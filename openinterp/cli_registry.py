@@ -254,10 +254,12 @@ def _allowed_signers(path: Path, base_ref: str | None) -> str:
 )
 @click.option(
     "--key",
-    default=Path("~/.ssh/id_ed25519"),
+    default=Path("~/.ssh/openinterp_signing"),
     show_default=True,
+    envvar="OPENINTERP_SIGNING_KEY",
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Private SSH key to sign with; its public key must be in --allowed-signers.",
+    help="Private SSH key to sign with (or $OPENINTERP_SIGNING_KEY); its public key must be "
+    "in --allowed-signers. Use a key kept for signing, not your login key.",
 )
 @click.option(
     "--allowed-signers",
