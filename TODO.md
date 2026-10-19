@@ -4,7 +4,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Protocol and science
 
-- [ ] **(protocol)** Replace the top-1-logit causal metric with one that can detect single-neuron effects: logit difference on the claimed tokens, or the projection onto the neuron's output direction at a downstream reader. See `activation-patching-practice`.
 - [ ] Rescan L11/N4255+ so it gets a confound profile and correlated neurons (protocol v0.3); its current submission predates them and fails `beats_confound_baseline`.
 - [ ] Re-audit Qwen2.5-0.5B L11/N4255+ with ≥ 512-token windows, a narrowed hypothesis ("*including* / *e.g.* after a category noun") and an independent reviewer model.
 - [ ] Scan both poles by default and show them together on neuron pages.
@@ -19,7 +18,36 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 - [ ] `openinterp audit`: configurable window length and stride, and Hugging Face dataset input (`--dataset NeelNanda/pile-10k`).
 - [ ] Faster scans: MPS/CUDA batching and caching activations to disk for re-use across neurons in a layer.
 - [ ] A `supersedes` field on submissions to link revisions to the record they replace.
+- [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
 - [ ] A scheduled hourly build and deploy (CI cron), as described in the vision.
+- [ ] Review [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) for ideas or reuse: its standardised hook points across many architectures (compare with `openinterp/harness/hooks.py`), activation caching (for faster scans), patching utilities (for the causal metric), attention-head hooks (for `ComponentIdentifier`) and weight processing such as LayerNorm folding (which changes what a neuron's weights look like). Decide whether to adopt it as a dependency, borrow ideas, or keep the current Hugging Face hooks.
+- [ ] Branding for the generated site and repo: a logo and wordmark to replace the `⊕` placeholder in `base.html`, a favicon, a colour palette and type defined once in the Tailwind config (currently ad hoc emerald/slate), Open Graph/social preview images for shared links, and the same mark on the README and GitHub social preview.
+- [ ] An About page in the generated site (`openinterp/builder/templates/about.html`, rendered by `compiler.py` and linked from the `base.html` header): the project's premise, how the proposer/reviewer protocol decides a verdict (linking `docs/PROTOCOL.md` and the current `PROTOCOL_VERSION`), what VERIFIED does and doesn't mean, how to contribute, and the licence.
+- [ ] Publish `openinterp` to PyPI so `pip install openinterp` (or `uvx openinterp`) runs the whole pipeline without cloning the repo. Check the name is free on PyPI; confirm the wheel ships the templates and `data/sample_corpus.txt`; move `pagefind[bin]` out of the dev group (or into an extra) so `openinterp build` works from an install; let users choose a CPU/CUDA torch; make commands that assume the repo layout (`submissions/`, `wiki/`, `exchange/`) take paths or work from any directory; and add a release workflow that builds and publishes on a version tag via PyPI trusted publishing.
+
+## Merge verification
+
+At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. Before a record merges, the claimed result should be reproduced from its JSON on a remote worker we control, not on GitHub-hosted runners, behind a queue that caps cost.
+
+- [ ] Reproduction check: for each new or changed record in a PR, re-run its stored probes against the model (as `openinterp reevaluate` already does, with no LLM calls) and confirm the activations match the record within a stated tolerance and the verdict is the same. Pin the model revision, dtype, device and library versions in the record so a mismatch means tampering or drift, not noise.
+- [ ] Remote worker: a GPU (or large CPU) machine that pulls jobs from a queue, keeps a warm cache of model weights, and runs one job at a time per device. No secrets or repo write access on the worker; it only needs to read the record and report a result.
+- [ ] Queue and cost controls: a submission from CI only enqueues a job (record path, commit SHA, record hash). Deduplicate by record hash, cap jobs per PR and per author per day, set a per-job timeout and a monthly budget, and refuse jobs once the budget is spent rather than scaling up.
+- [ ] Treat records as untrusted input: run only allow-listed models (no arbitrary Hugging Face repos, never `trust_remote_code`), bound probe count and length, and run each job in a sandbox with no network beyond the model cache.
+- [ ] Report back to GitHub as a commit status or check run on the PR's head SHA ("Reproduction: passed / failed / queued"), with a link to the log, and make it a required check for `main` once it is reliable.
+- [ ] Re-queue automatically when a PR's record changes, and let maintainers re-run or skip a job by hand (e.g. a label) for records whose model the worker can't load yet.
+
+## Visualisations
+
+The site currently shows one chart (the activation histogram on experiment pages); everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
+
+- [ ] Token heatmaps of the top-activating examples: the text with each token shaded by pole strength, the peak token marked, hover for the exact value (the standard Neuroscope-style view).
+- [ ] Probe results chart on each experiment: every positive, hard-negative and holdout probe as a dot on one activation axis, with the reviewer's threshold drawn as a line, so you can see at a glance why it passed or failed.
+- [ ] Causal effects chart: ablation/patching scores per probe pair as bars, next to the baseline they must beat (`beats_confound_baseline`).
+- [ ] Vocabulary projection bars: the top and bottom tokens the neuron promotes and suppresses (Jacobian and logit lens), replacing the current token lists.
+- [ ] Steering samples: the same prompt continued with the neuron clamped high, at baseline and ablated, side by side.
+- [ ] Layer map on model pages: a layer × neuron grid coloured by status (VERIFIED, rejected, dead, unexplored), so coverage and where the interpretable neurons sit are visible.
+- [ ] Registry dashboard on the home page: experiments and VERIFIED share over time, verdicts per model and per layer, and per-agent acceptance rates.
+- [ ] Later: circuit diagrams once attention heads land, and a cross-model graph linking matched neurons for universality.
 
 ## Scope expansion
 
@@ -62,9 +90,21 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
+- [ ] Fix the scheduled deploy (`.github/workflows/deploy.yml`): the hourly run doesn't seem to deploy. First suspect: the job-level `if: vars.R2_BUCKET != ''` is evaluated before the `production` environment is applied, so if `R2_BUCKET` is an environment variable rather than a repository variable the job is silently skipped, not failed. Check the Actions run history for skipped runs, and confirm the cron is firing at all (schedules only run from the default branch and are disabled after 60 days without activity).
 - [ ] Replace the synthetic `examples/audits/` fixtures with real records once some are VERIFIED.
 - [ ] Soften the README's "remarkably clean" premise until Goodfire's technical companion paper is published.
 - [ ] Mark the CI jobs "Lint and tests" and "Experiment records" as required in the GitHub branch protection rules for `main`.
-- [ ] Optional CI job: re-run `openinterp reevaluate` on changed records to confirm their verdicts reproduce (needs model downloads and caching).
 - [ ] Add the R2 secrets and variables to GitHub (see README, "Hourly deploy"), then run the deploy workflow once by hand.
 - [ ] GitHub disables scheduled workflows after 60 days without repository activity; keep an eye on the hourly deploy.
+
+## Later stage
+
+Research directions to pick up once the registry covers several models well.
+
+- [ ] Investigate using the Platonic Representation Hypothesis (PRH) once multiple models are well understood.
+- [ ] Investigate predicting an unknown neuron's interpretability based on previous audits.
+- [ ] Investigate simplifying neural pathways.
+- [ ] Investigate inserting memories or behaviours.
+- [ ] Investigate removing memories or behaviours.
+- [ ] Investigate complete explainability of each token.
+- [ ] Investigate model concept merging or diffing.
