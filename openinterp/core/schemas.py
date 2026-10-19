@@ -207,6 +207,30 @@ class RunEnvironment(StrictModel):
     transformers_version: str | None = None
 
 
+class CorpusSource(StrictModel):
+    """Where a scan corpus came from, written by ``openinterp corpus`` next to the corpus.
+
+    Enough to rebuild the same documents: the dataset at an exact commit, the files and
+    column read, the seed and sizes. ``license`` is the dataset card's licence, so pages
+    that show excerpts can attribute them.
+    """
+
+    dataset: str = Field(min_length=1, examples=["HuggingFaceFW/fineweb-edu"])
+    revision: str | None = Field(default=None, description="Dataset commit hash.")
+    files: str = Field(description="Glob of the Parquet files sampled, within the dataset.")
+    text_column: str = "text"
+    documents: int = Field(ge=0)
+    seed: int
+    max_chars: int = Field(gt=0)
+    docs_per_row_group: int = Field(gt=0)
+    license: str | None = None
+    sha256: str = Field(description="SHA-256 of the corpus file this describes.")
+
+    def __str__(self) -> str:
+        at = f"@{self.revision[:8]}" if self.revision else ""
+        return f"{self.dataset}{at} ({self.files}, {self.documents} docs, seed {self.seed})"
+
+
 class ExperimentProvenance(StrictModel):
     """Everything needed to re-run the scan that produced a submission."""
 
@@ -223,6 +247,7 @@ class ExperimentProvenance(StrictModel):
     seed: int | None = None
     harness_version: str
     environment: RunEnvironment | None = None
+    corpus_source: CorpusSource | None = None
 
 
 class CorrelatedNeuron(StrictModel):

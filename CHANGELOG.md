@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- `openinterp corpus`: samples a scan corpus from a Hugging Face Parquet dataset without downloading all of it, by reading seeded random row groups over HTTP. Presets: `fineweb-edu` (`HuggingFaceFW/fineweb-edu`, sample-10BT; the default) and `pile-10k`, or any dataset with `--files`. It writes `corpus.jsonl` and a `corpus.source.json` sidecar (`CorpusSource`: dataset, commit, files, seed, sizes, licence, SHA-256). Audits record the source in `provenance.corpus_source` when the corpus still matches it, and experiment pages show the licence. The same seed and revision rebuild a byte-identical corpus. Replaces the README's Pile snippet.
+
 ### Changed
 
 - **Token heatmaps** on experiment pages, Neuroscope-style. Each top example shows 30 tokens before and 10 after its peak, with the full snippet expandable. The peak token is underlined and bold, and hovering a token shows its exact stored strength (before, the value was rebuilt from a capped, rounded shade). A colour legend runs from 0 to the neuron's max, and each example has a values table for keyboard and screen-reader users. Newline tokens show as `↵` so they can be shaded. The tint is capped at 80%, so token text keeps at least 4.5:1 contrast in light and dark mode; the uncapped orange fell to 3.25:1 in dark mode.

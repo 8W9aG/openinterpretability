@@ -41,7 +41,7 @@ Methods from the wider interpretability literature that the registry doesn't use
 
 ## Pipeline
 
-- [ ] `openinterp audit`: configurable window length and stride, and Hugging Face dataset input (`--dataset NeelNanda/pile-10k`).
+- [ ] `openinterp audit`: configurable window length and stride, so long documents are scanned as overlapping ≥ 512-token windows instead of one truncated snippet. (Hugging Face dataset input is done: `openinterp corpus`.)
 - [ ] **(protocol)** Bounded scans: `openinterp audit` scans every document in the corpus, so cost grows linearly with it (~15 min for the 500-doc `corpus.jsonl` on CPU), and a larger corpus raises `max_activation` and so the 25% "active" threshold. Scan a fixed-size, seeded sample instead (e.g. `--max-tokens 200000 --sample-seed S`), record the seed, sample size and sample hash in `provenance`, and make `reevaluate`/reproduction re-draw the same sample. Changing what `max_activation` is computed over moves the threshold, so this needs a protocol bump.
 - [ ] Cache scan results per layer: one forward pass already captures the whole layer (`run_with_cache`), so store per-token activations for all of a layer's neurons (with token ids and positions) keyed by model, revision, layer and corpus sample hash, and let later audits in that layer, `next`, and exploratory analysis read the cache instead of re-running the model. Also expose a scan's per-token data so agents don't write their own full-corpus scans for diagnosis.
 - [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.
@@ -92,9 +92,8 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Datasets
 
-Scan corpora beyond `NeelNanda/pile-10k`. Record the dataset ID and revision on every submission so scans are reproducible, and check each licence before redistributing excerpts in the wiki.
+Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. Check each licence before redistributing excerpts in the wiki.
 
-- [ ] `HuggingFaceFW/fineweb-edu` (sample-10BT): clean modern web text, closer to the pretraining mix of recent models than the Pile.
 - [ ] `allenai/c4` (en, validation split): a standard web baseline used by much of the SAE literature.
 - [ ] `monology/pile-uncopyrighted`: a larger Pile sample when 10k documents are too few to find rare-concept activations.
 - [ ] `wikitext` (`wikitext-103-raw-v1`): long, clean articles for ≥ 512-token windows and entity/fact neurons.

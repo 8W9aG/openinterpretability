@@ -10,18 +10,22 @@ from pathlib import Path
 import click
 
 
-def read_corpus(path: Path | None) -> tuple[list[str], str, str]:
-    """Return (snippets, description, sha256 of the corpus source)."""
+def read_corpus(path: Path | None):
+    """Return (snippets, description, sha256 of the corpus file, its CorpusSource or None)."""
+    from openinterp.corpus import load_source
+
     if path is None:
         from openinterp.data import sample_corpus
 
         texts = sample_corpus()
-        return texts, "builtin:sample_corpus", sha256("\n".join(texts).encode())
+        return texts, "builtin:sample_corpus", sha256("\n".join(texts).encode()), None
     raw = path.read_bytes()
     lines = [line for line in raw.decode("utf-8").splitlines() if line.strip()]
     if path.suffix == ".jsonl":
         lines = [json.loads(line)["text"] for line in lines]
-    return lines, path.name, sha256(raw)
+    digest = sha256(raw)
+    source = load_source(path, digest)
+    return lines, str(source) if source else path.name, digest, source
 
 
 def sha256(data: bytes) -> str:
@@ -49,7 +53,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
     ident = NeuronIdentifier(
         model_name=model_name, layer=layer, neuron_idx=neuron, pole=pole or "positive"
     )
-    texts, corpus_name, corpus_sha = read_corpus(corpus)
+    texts, corpus_name, corpus_sha, corpus_source = read_corpus(corpus)
     click.echo(f"Scanning {len(texts)} snippets for {ident}…", err=True)
     scan = scan_neuron(runner, texts, layer, neuron, ident.pole, k=top_k)
     if not scan.examples or scan.examples[0].max_activation <= 0:
@@ -72,6 +76,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
             seed=seed if random_pick else None,
             harness_version=__version__,
             environment=run_environment(runner),
+            corpus_source=corpus_source,
         ),
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,

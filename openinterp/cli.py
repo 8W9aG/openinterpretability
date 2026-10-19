@@ -438,7 +438,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 
 
 # Registers the registry-maintenance commands on `cli`.
-from openinterp import cli_registry  # noqa: E402, F401
+from openinterp import cli_corpus, cli_registry  # noqa: E402, F401
 
 
 def main() -> None:
