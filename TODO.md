@@ -84,7 +84,7 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Scope expansion
 
-- [ ] Generalise `NeuronIdentifier` to `ComponentIdentifier` (MLP neuron pole, attention head) and add head hooks. See `attention-head-audit`.
+- [ ] Audit attention heads end to end (identifiers and hooks exist: `HeadIdentifier`, `runner.head_outputs`, `attention_patterns`). Still needed: an "active" definition for heads (write norm, or the pattern score the hypothesis predicts, e.g. induction score), a head scan, head probes and counterfactuals in the reviewer, letting submissions take a `ComponentIdentifier`, head pages on the site (`L<layer>/H<idx>`) and head columns in Parquet. That is a protocol change, so bump `PROTOCOL_VERSION`. Validate it on the positive control first (GPT-2 small induction heads). See `attention-head-audit`.
 - [ ] A transcoder/SAE baseline arm to test the native-neuron premise on the same layers.
 - [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.

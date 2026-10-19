@@ -38,6 +38,6 @@ To test the project's premise, compare native neurons with transcoder or SAE fea
 
 ## Suggested order
 
-1. Add the schema generalisation and a head hook to `NeuronHookRunner`, with tests on `tiny_gpt2`.
+1. ~~Add the schema generalisation and a head hook to `NeuronHookRunner`, with tests on `tiny_gpt2`.~~ Done: `ComponentIdentifier` (`NeuronIdentifier` | `HeadIdentifier`) in `core/schemas.py`; `runner.head_outputs`, `head_write_norm`, `head_output_weights`, `attention_patterns`, `hooks(head_interventions=…)` and `ablate_head` in `harness/hooks.py`; `_load_runner(..., attn_implementation="eager")` for patterns. Tested on `tiny_gpt2` (`tests/test_heads.py`) and checked on Qwen2.5-0.5B (14 heads × 64, grouped-query attention). Submissions still reject heads until the audit steps below exist.
 2. Audit known induction heads in GPT-2 small as a positive control. The protocol should VERIFY them; if it doesn't, fix the protocol before going further.
 3. Only then open head audits on Qwen and Llama.

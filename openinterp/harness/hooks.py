@@ -41,6 +41,17 @@ DOWN_PROJ_PATHS = (
     "feed_forward.w2",
 )
 
+# Attention output projection; its *input* is the concatenated head outputs
+# [batch, seq, n_heads * head_dim], so head h is one contiguous slice of it.
+ATTN_OUT_PATHS = (
+    "self_attn.o_proj",  # Llama, Qwen2, Mistral, Gemma, Phi-3
+    "attn.c_proj",  # GPT-2
+    "attention.dense",  # GPT-NeoX
+    "attn.out_proj",  # GPT-J
+    "self_attn.out_proj",  # OPT
+    "self_attention.dense",  # Falcon
+)
+
 # Final normalisation before the unembedding; its *input* is the final residual stream.
 FINAL_NORM_PATHS = (
     "model.norm",  # Llama, Qwen2, Mistral, Gemma
@@ -63,6 +74,18 @@ def _try_path(root: nn.Module, path: str) -> Any | None:
         return _get_path(root, path)
     except AttributeError:
         return None
+
+
+def ablate_head(head: int, head_dim: int, value: torch.Tensor | None = None) -> Intervention:
+    """A ``head_interventions`` entry replacing one head's output with ``value`` (default 0)."""
+
+    def intervene(z: torch.Tensor) -> torch.Tensor:
+        z = z.clone()
+        span = slice(head * head_dim, (head + 1) * head_dim)
+        z[..., span] = 0 if value is None else value.to(z.dtype)
+        return z
+
+    return intervene
 
 
 def isolate_pole(act: torch.Tensor, pole: Pole) -> torch.Tensor:
@@ -98,6 +121,7 @@ class NeuronHookRunner:
         *,
         layer_path: str | None = None,
         down_proj_path: str | None = None,
+        attn_out_path: str | None = None,
     ) -> None:
         self.model = model
         self.tokenizer = tokenizer
@@ -105,6 +129,7 @@ class NeuronHookRunner:
             tokenizer.pad_token = tokenizer.eos_token
         self.layers, self.layer_path = self._resolve_layers(layer_path)
         self.down_proj_path = self._resolve_down_proj(down_proj_path)
+        self._attn_out_path = attn_out_path  # resolved on first use: MLP audits don't need it
         self.model_revision: str | None = None  # Hugging Face commit, set by the loader
 
     def _resolve_layers(self, explicit: str | None) -> tuple[nn.ModuleList, str]:
@@ -140,6 +165,47 @@ class NeuronHookRunner:
         if not 0 <= layer < self.n_layers:
             raise IndexError(f"layer {layer} out of range for {self.n_layers}-layer model")
         return _get_path(self.layers[layer], self.down_proj_path)
+
+    def attn_out(self, layer: int) -> nn.Module:
+        """The attention output projection of ``layer`` (input: concatenated head outputs)."""
+        if not 0 <= layer < self.n_layers:
+            raise IndexError(f"layer {layer} out of range for {self.n_layers}-layer model")
+        if self._attn_out_path is None:
+            for path in ATTN_OUT_PATHS:
+                if isinstance(_try_path(self.layers[0], path), nn.Module):
+                    self._attn_out_path = path
+                    break
+            else:
+                raise ArchitectureNotSupportedError(
+                    f"Could not find the attention output projection under {self.layer_path}[0]; "
+                    "pass attn_out_path= explicitly."
+                )
+        return _get_path(self.layers[layer], self._attn_out_path)
+
+    @property
+    def n_heads(self) -> int:
+        config = getattr(self.model, "config", None)
+        for name in ("num_attention_heads", "n_head", "num_heads"):
+            if isinstance(getattr(config, name, None), int):
+                return getattr(config, name)
+        raise ArchitectureNotSupportedError("model config does not give the number of heads")
+
+    def head_dim(self, layer: int) -> int:
+        proj = self.attn_out(layer)
+        width = int(proj.in_features) if hasattr(proj, "in_features") else proj.weight.shape[0]
+        if width % self.n_heads:
+            raise ArchitectureNotSupportedError(
+                f"attention output width {width} is not a multiple of {self.n_heads} heads"
+            )
+        return width // self.n_heads
+
+    def head_output_weights(self, layer: int, head: int) -> torch.Tensor:
+        """W_O for one head: ``[d_model, head_dim]``, so its write is ``W_O @ z``."""
+        if not 0 <= head < self.n_heads:
+            raise IndexError(f"head {head} out of range for {self.n_heads} heads")
+        proj, d = self.attn_out(layer), self.head_dim(layer)
+        weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T  # Conv1D
+        return weight[:, head * d : (head + 1) * d].detach()
 
     def mlp_width(self, layer: int) -> int:
         proj = self.down_proj(layer)
@@ -181,13 +247,15 @@ class NeuronHookRunner:
         self,
         interventions: Mapping[int, Intervention] | None = None,
         output_interventions: Mapping[int, Intervention] | None = None,
+        head_interventions: Mapping[int, Intervention] | None = None,
     ) -> Iterator[None]:
         """Install hooks for the duration of the block.
 
         ``interventions[layer]`` receives the intermediate activation
         ``[batch, seq, d_mlp]`` and may return a replacement (or ``None`` to only
         observe). ``output_interventions[layer]`` does the same for the down
-        projection's output ``[batch, seq, d_model]``.
+        projection's output ``[batch, seq, d_model]``, and ``head_interventions[layer]``
+        for the attention heads' concatenated outputs ``[batch, seq, n_heads * head_dim]``.
         """
         handles = []
 
@@ -209,6 +277,8 @@ class NeuronHookRunner:
                 handles.append(self.down_proj(layer).register_forward_pre_hook(pre_hook(fn)))
             for layer, fn in (output_interventions or {}).items():
                 handles.append(self.down_proj(layer).register_forward_hook(post_hook(fn)))
+            for layer, fn in (head_interventions or {}).items():
+                handles.append(self.attn_out(layer).register_forward_pre_hook(pre_hook(fn)))
             yield
         finally:
             for handle in handles:
@@ -241,10 +311,45 @@ class NeuronHookRunner:
         inputs: Inputs,
         interventions: Mapping[int, Intervention] | None = None,
         output_interventions: Mapping[int, Intervention] | None = None,
+        head_interventions: Mapping[int, Intervention] | None = None,
     ) -> torch.Tensor:
         encoded = self.encode(inputs)
-        with self.hooks(interventions, output_interventions):
+        with self.hooks(interventions, output_interventions, head_interventions):
             return self.forward(encoded)
+
+    # -- attention heads -----------------------------------------------------
+
+    @torch.no_grad()
+    def head_outputs(self, inputs: Inputs, layer: int) -> torch.Tensor:
+        """Every head's output ``z`` in ``layer``: ``[batch, seq, n_heads, head_dim]``."""
+        captured: list[torch.Tensor] = []
+        self.run_with_interventions(
+            inputs, head_interventions={layer: lambda z: captured.append(z.detach().clone())}
+        )
+        z = captured[-1]
+        return z.reshape(*z.shape[:-1], self.n_heads, self.head_dim(layer))
+
+    @torch.no_grad()
+    def head_write_norm(self, inputs: Inputs, layer: int, head: int) -> torch.Tensor:
+        """``|W_O z|`` per token ``[batch, seq]``: how much the head writes to the residual."""
+        z = self.head_outputs(inputs, layer)[..., head, :]
+        w_o = self.head_output_weights(layer, head).to(z.dtype)
+        return (z @ w_o.T).float().norm(dim=-1)
+
+    @torch.no_grad()
+    def attention_patterns(self, inputs: Inputs, layer: int) -> torch.Tensor:
+        """Attention weights of ``layer``: ``[batch, n_heads, query, key]``.
+
+        Needs eager attention (load with ``attn_implementation="eager"``): SDPA and
+        flash attention don't return the weights.
+        """
+        output = self.model(**self.encode(inputs), output_attentions=True)
+        attentions = getattr(output, "attentions", None)
+        if not attentions or attentions[layer] is None:
+            raise ArchitectureNotSupportedError(
+                'the model returned no attention weights; load it with attn_implementation="eager"'
+            )
+        return attentions[layer]
 
     @torch.no_grad()
     def neuron_activations(

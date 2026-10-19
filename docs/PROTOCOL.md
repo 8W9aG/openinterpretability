@@ -9,6 +9,7 @@ One experiment tests **one hypothesis about one neuron pole** in one model revis
 | Term | Definition |
 | --- | --- |
 | Neuron | One coordinate of the MLP intermediate activation, i.e. the input to the down/output projection (`act(gate(x)) * up(x)` for gated MLPs). |
+| Attention head | One head's slice of the attention output projection's input (`o_proj`, or `c_proj` in GPT-2). Heads have an identifier (`HeadIdentifier`, `kind = "attn_head"`) and harness hooks, but no audit protocol yet: submissions take neuron poles only. |
 | Pole | Positive: `clamp(a, min=0)`. Negative: `clamp(a, max=0)`. The two poles are audited separately. |
 | Strength | Non-negative magnitude of the pole. Larger always means more active. |
 | Scale | The maximum strength seen during the discovery scan (`max_activation`). |
