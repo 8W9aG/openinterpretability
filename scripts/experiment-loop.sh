@@ -22,7 +22,7 @@ Usage: scripts/experiment-loop.sh [options]
   --driver MODEL       Claude model that drives each session (default: claude's own)
   --corpus PATH        Scan corpus (default: corpus.jsonl in the repo root)
   --max N              Stop after N experiments; 0 = until claude fails (default: 0)
-  --epsilon P          Exploration probability passed to `openinterp next` (default: 0.35)
+  --epsilon P          Exploration probability passed to `openinterp next` (default: 0.7)
   --worktree DIR       Worktree to run in (default: ../<repo>-loop, created if missing)
   --max-turns N        Turn limit per session, a guard against runaway sessions (default: 200)
   -h, --help           Show this help
@@ -37,7 +37,7 @@ REVIEWER=""
 DRIVER=""
 CORPUS="$REPO/corpus.jsonl"
 MAX=0
-EPSILON=0.35
+EPSILON=0.7
 WORKTREE="$(dirname "$REPO")/$(basename "$REPO")-loop"
 MAX_TURNS=200
 CLAUDE_BIN=${CLAUDE_BIN:-claude}

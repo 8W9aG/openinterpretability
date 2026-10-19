@@ -113,10 +113,11 @@ def test_sampling_spreads_agents_out(tmp_path, record):
         (p.choice.kind, p.choice.slug)
         for p in (plan_next(wiki, seed=s, now=NOW) for s in range(300))
     )
-    top_share = picks.most_common(1)[0][1] / 300
+    explored = picks.pop(("explore", None)) / 300
+    # Each explore draws its own random neuron, so only follow-ups can pile up.
+    top_share = picks.most_common(1)[0][1] / picks.total()
     assert len(picks) >= 4 and top_share < 0.5
-    explored = picks[("explore", None)] / 300
-    assert 0.25 < explored < 0.45  # epsilon = 0.35
+    assert 0.6 < explored < 0.8  # epsilon = 0.7
 
 
 @pytest.mark.parametrize("epsilon", [0.0, 1.0])

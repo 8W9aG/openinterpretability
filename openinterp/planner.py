@@ -230,7 +230,7 @@ def plan_next(
     wiki_dir: Path = Path("wiki"),
     *,
     seed: int | None = None,
-    epsilon: float = 0.35,
+    epsilon: float = 0.7,
     temperature: float = 1.0,
     models: Sequence[str] = (),
     claims: Sequence[str] = (),

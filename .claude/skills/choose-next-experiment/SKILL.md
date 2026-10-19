@@ -50,7 +50,7 @@ Record the model IDs the subagents report, not the ones you expect. For an `inde
 
 | Kind | When the planner offers it | What to do |
 | --- | --- | --- |
-| `explore` | With probability ε (default 0.35), or when the registry is empty | `openinterp audit --model M --random --seed S`, then write a hypothesis following `native-neuron-audit`. `selection = random` keeps registry statistics unbiased. |
+| `explore` | With probability ε (default 0.7), or when the registry is empty | `openinterp audit --model M --random --seed S`, then write a hypothesis following `native-neuron-audit`. `selection = random` keeps registry statistics unbiased. |
 | `reevaluate` | The verdict predates the current protocol | `openinterp reevaluate --record <path>`. Cheap, with no LLM calls. |
 | `independent_review` | The proposer reviewed its own hypothesis | `openinterp verify --audit-file <record> --agent-model <different model>`. Write probes per `interpretability-illusions-review`. |
 | `revise` | NEEDS_REVISION | New submission that fixes the failed gates (narrow the claim, longer context, recalibrated Δ), then verify. |

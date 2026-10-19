@@ -71,7 +71,7 @@ def check(wiki_dir, base_ref):
 @click.option("--seed", type=int, help="Reproduce a previous choice. Default: fresh randomness.")
 @click.option(
     "--epsilon",
-    default=0.35,
+    default=0.7,
     show_default=True,
     type=click.FloatRange(0, 1),
     help="Probability of exploring a uniformly random new neuron.",
