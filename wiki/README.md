@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **24** · neurons: **16** · NEEDS_REVISION: 5 · VERIFIED: 19
+Experiments: **25** · neurons: **17** · NEEDS_REVISION: 5 · VERIFIED: 20
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L22/N1058-negative/20261019T191542Z.md) | [Qwen/Qwen2.5-0.5B L22/N1058−](experiments/Qwen--Qwen2.5-0.5B/L22/N1058-negative/README.md) | review | VERIFIED | 0.81 | Litigation-procedure neuron: once a court-case context is set up (case caption, opinion or... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L17/N4749-negative/20261019T185557Z.md) | [Qwen/Qwen2.5-0.5B L17/N4749−](experiments/Qwen--Qwen2.5-0.5B/L17/N4749-negative/README.md) | review | VERIFIED | 0.85 | Fires on the word 'single' itself (any case, including the subword 'ingle' in camelCase... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L0/N788-negative/20261019T174516Z.md) | [Qwen/Qwen2.5-0.5B L0/N788−](experiments/Qwen--Qwen2.5-0.5B/L0/N788-negative/README.md) | review | VERIFIED | 0.96 | Fires on a word-internal continuation subword (a token with no leading space, e.g. 'ster',... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L15/N4838-negative/20261019T171253Z.md) | [Qwen/Qwen2.5-0.5B L15/N4838−](experiments/Qwen--Qwen2.5-0.5B/L15/N4838-negative/README.md) | review | NEEDS_REVISION | 0.70 | Fires on the boundary token that closes an attribution frame and opens the source's quoted or... |
