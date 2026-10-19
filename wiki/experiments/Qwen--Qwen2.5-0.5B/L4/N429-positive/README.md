@@ -10,6 +10,7 @@
 
 | Date | Experiment | Kind | Status | Balanced acc. | Protocol | Hypothesis |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-19 19:23 | [20261019T192322Z](20261019T192322Z.md) | review | VERIFIED | 0.95 | 0.5 | The positive pole fires on the token that completes a gendered civilian title of... |
 | 2026-10-19 11:07 | [20261019T110732Z](20261019T110732Z.md) | reevaluation | VERIFIED | 0.95 | 0.5 | The positive pole fires on the token that completes a gendered civilian title of... |
 | 2026-10-19 06:16 | [20261019T061618Z](20261019T061618Z.md) | review | VERIFIED | 0.95 | 0.4 | The positive pole fires on the token that completes a gendered civilian title of... |
 
