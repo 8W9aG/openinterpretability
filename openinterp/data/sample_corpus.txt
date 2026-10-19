@@ -1,0 +1,40 @@
+The capital of France is Paris, which sits on the Seine.
+She opened the door and the cold wind rushed into the hallway.
+def add(a, b):\n    return a + b
+In 1969, Apollo 11 landed on the Moon and Neil Armstrong stepped out.
+The stock market fell sharply after the central bank raised interest rates.
+"Where are you going?" he asked, but she did not answer.
+Photosynthesis converts light energy into chemical energy stored in glucose.
+For i in range(10): print(i)
+The recipe calls for two cups of flour, one egg, and a pinch of salt.
+Shakespeare wrote Hamlet around the year 1600.
+The patient was prescribed 500 mg of amoxicillin three times a day.
+Our quarterly revenue increased by 12 percent compared with last year.
+The cat sat on the mat and stared at the dog.
+Water boils at 100 degrees Celsius at sea level.
+The court ruled that the contract was void because of fraud.
+<html><body><h1>Hello, world!</h1></body></html>
+Tokyo, Berlin, Nairobi and Lima are all capital cities.
+If x is greater than five, then the function returns true.
+The orchestra tuned their instruments before the symphony began.
+He scored twice in the second half, and the crowd erupted.
+Mitochondria are often called the powerhouse of the cell.
+Please remember to submit your report by Friday at noon.
+The theorem follows directly from the triangle inequality.
+SELECT name, email FROM users WHERE active = 1 ORDER BY name;
+The river flooded the valley after three days of heavy rain.
+Once upon a time, in a kingdom far away, there lived a young princess.
+The algorithm runs in O(n log n) time on average.
+Bonjour, je m'appelle Marie et j'habite à Lyon.
+The senator announced she would not seek re-election next year.
+Add the onions to the pan and fry until golden brown.
+The telescope captured images of a galaxy 13 billion light-years away.
+I can't believe it's already October; the year went by so fast.
+The password must contain at least eight characters and one number.
+According to the report, unemployment fell to 3.9 percent in March.
+The violinist played the final note and the hall fell silent.
+Electrons carry a negative charge, while protons carry a positive one.
+The museum is open from 9 a.m. to 5 p.m., Tuesday through Sunday.
+import numpy as np\nx = np.zeros((3, 3))
+They hiked to the summit and watched the sunrise over the clouds.
+The defendant pleaded not guilty to all charges.

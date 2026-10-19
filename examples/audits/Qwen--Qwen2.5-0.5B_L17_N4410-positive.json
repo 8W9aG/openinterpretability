@@ -1,0 +1,305 @@
+{
+  "submission": {
+    "identifier": {
+      "model_name": "Qwen/Qwen2.5-0.5B",
+      "layer": 17,
+      "neuron_idx": 4410,
+      "pole": "positive"
+    },
+    "natural_language_explanation": "Python 'return' keyword inside a function body.",
+    "activating_tokens": [
+      " return"
+    ],
+    "counterfactuals": [
+      {
+        "base_prompt": "def f(x):\n    return x",
+        "counterfactual_prompt": "DEF F(X):\n    RETURN X",
+        "expected_delta": 0.7,
+        "observed_delta": 0.755
+      },
+      {
+        "base_prompt": "def f(x):\n    return x",
+        "counterfactual_prompt": "def f(x):\n    return x Indeed.",
+        "expected_delta": 0.0,
+        "observed_delta": -0.024
+      }
+    ],
+    "lookahead": {
+      "is_lookahead": false,
+      "target_upcoming_tokens": [],
+      "kl_divergence": 0.0439
+    },
+    "submitting_agent_model": "example-fixture",
+    "max_activation": 2.838,
+    "top_examples": [
+      {
+        "text": "def f(x):\n    return x",
+        "tokens": [
+          "def",
+          " f(x):",
+          " \n",
+          " ",
+          " ",
+          " ",
+          " return",
+          " x"
+        ],
+        "activations": [
+          0.072,
+          0.201,
+          0.016,
+          0.04,
+          0.395,
+          2.838,
+          0.143,
+          0.293
+        ],
+        "max_activation": 2.838,
+        "max_token_index": 5
+      },
+      {
+        "text": "def f(x):\n    return x",
+        "tokens": [
+          "def",
+          " f(x):",
+          " \n",
+          " ",
+          " ",
+          " ",
+          " return",
+          " x"
+        ],
+        "activations": [
+          0.367,
+          0.068,
+          0.269,
+          0.387,
+          0.023,
+          2.251,
+          0.338,
+          0.137
+        ],
+        "max_activation": 2.251,
+        "max_token_index": 5
+      },
+      {
+        "text": "def f(x):\n    return x",
+        "tokens": [
+          "def",
+          " f(x):",
+          " \n",
+          " ",
+          " ",
+          " ",
+          " return",
+          " x"
+        ],
+        "activations": [
+          0.239,
+          0.177,
+          0.07,
+          0.189,
+          0.164,
+          2.357,
+          0.203,
+          0.125
+        ],
+        "max_activation": 2.357,
+        "max_token_index": 5
+      }
+    ],
+    "activation_histogram": {
+      "bin_edges": [
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0,
+        1.125,
+        1.25,
+        1.375,
+        1.5,
+        1.625,
+        1.75,
+        1.875,
+        2.0,
+        2.125,
+        2.25,
+        2.375,
+        2.5,
+        2.625,
+        2.75,
+        2.875,
+        3.0
+      ],
+      "counts": [
+        1224,
+        1174,
+        727,
+        541,
+        502,
+        420,
+        401,
+        388,
+        328,
+        214,
+        196,
+        178,
+        173,
+        163,
+        162,
+        135,
+        131,
+        115,
+        109,
+        109,
+        85,
+        18,
+        5,
+        0
+      ]
+    },
+    "model_num_layers": 24,
+    "provenance": null
+  },
+  "verdict": {
+    "status": "VERIFIED",
+    "confidence_score": 0.78,
+    "adversarial_test_results": [
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 0",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.207,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 1",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.351,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 2",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.331,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 3",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.223,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 4",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.079,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 5",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.244,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 6",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.378,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 7",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.247,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 8",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.233,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 9",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.438,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 10",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.094,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 11",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.317,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      }
+    ],
+    "reviewer_agent_model": "example-fixture",
+    "timestamp": "2026-10-01T12:02:00Z",
+    "causal_metrics": {
+      "sufficiency_score": 0.35,
+      "necessity_score": 0.635,
+      "hydra_mitigated": true
+    },
+    "metrics": null,
+    "policy": null,
+    "notes": "Synthetic example record (not a real audit)."
+  }
+}

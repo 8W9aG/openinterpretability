@@ -1,0 +1,59 @@
+name: Deploy registry
+
+# Rebuild dist/ from main every hour and delta-sync it to Cloudflare R2. The build is
+# deterministic, so when no experiment changed the sync uploads, deletes and purges
+# nothing.
+on:
+  schedule:
+    - cron: "17 * * * *"  # hourly, off the top of the hour when Actions is busiest
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-registry
+  cancel-in-progress: false  # never interrupt a sync halfway
+
+jobs:
+  deploy:
+    name: Build and sync to R2
+    # Skipped (not failed) until the deploy is configured; see README "Hourly deploy".
+    if: ${{ vars.R2_BUCKET != '' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Check registry consistency
+        run: openinterp check
+      - name: Build site
+        run: |
+          openinterp build --audits-dir audits --output-dir dist
+          python -m pagefind --site dist
+      - name: Sync to R2
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          # Optional: purge changed URLs from the Cloudflare cache (custom domain only).
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          OPENINTERP_SITE_URL: ${{ vars.OPENINTERP_SITE_URL }}
+        run: |
+          openinterp deploy --dist-dir dist --bucket "$R2_BUCKET" --delete | tee deploy.log
+          {
+            echo "### Registry deploy"
+            echo
+            tail -n 2 deploy.log
+          } >> "$GITHUB_STEP_SUMMARY"

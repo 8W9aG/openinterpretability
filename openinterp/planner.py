@@ -1,0 +1,277 @@
+"""Choose the next experiment: randomised, exploration-balanced, herd-resistant.
+
+Every neuron in the registry generates candidate follow-up experiments (re-evaluate
+under the current protocol, independent re-review, revise, replicate, challenge,
+audit the opposite pole, try a new hypothesis after a rejection). Each candidate
+gets a weight from its expected information value, decayed by how often the neuron
+has been studied, by recent activity and by open PRs that already claim it. Weights
+are never zero: repeating an experiment is allowed, and a null result is data.
+
+With probability ``epsilon`` the planner explores instead: a uniformly random new
+neuron (the only selection that supports unbiased registry statistics). Otherwise
+it samples a candidate in proportion to ``weight ** (1 / temperature)``. Sampling,
+rather than taking the best candidate, keeps independent agents from piling onto
+the same neuron. The seed is reported so any choice can be reproduced.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import random
+import shutil
+import subprocess
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+from openinterp.builder.wiki import load_entries
+from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
+
+# Expected information value per experiment kind, before decay.
+BASE_WEIGHTS = {
+    "reevaluate": 3.0,  # verdict predates the current protocol; cheap, no LLM calls
+    "independent_review": 2.5,  # proposer reviewed its own hypothesis
+    "revise": 2.0,  # NEEDS_REVISION: failed gates say exactly what to fix
+    "replicate": 1.2,  # VERIFIED by only one reviewer model
+    "opposite_pole": 1.0,  # the other half of a studied neuron
+    "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
+    "challenge": 0.6,  # VERIFIED and replicated: hunt for counterexamples
+}
+SKILLS = {
+    "explore": ["native-neuron-audit", "neuron-family-triage", "vocab-projection-lookahead"],
+    "reevaluate": [],
+    "independent_review": ["interpretability-illusions-review"],
+    "revise": ["native-neuron-audit", "explanation-simulation-scoring"],
+    "replicate": ["interpretability-illusions-review"],
+    "opposite_pole": ["native-neuron-audit", "vocab-projection-lookahead"],
+    "new_hypothesis": ["native-neuron-audit", "neuron-steering-tests"],
+    "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
+}
+DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
+
+
+@dataclass(frozen=True)
+class Candidate:
+    kind: str
+    model: str
+    weight: float
+    rationale: str
+    commands: list[str]
+    slug: str | None = None
+    skills: list[str] = field(default_factory=list)
+
+
+@dataclass
+class NeuronState:
+    slug: str
+    record: AuditRecord
+    record_path: Path
+    experiments: int = 0
+    reviewers: set[str] = field(default_factory=set)
+    last: datetime | None = None
+
+
+def claim_key(slug: str) -> str:
+    """Branch-safe form of a neuron slug; PR branches and titles should contain it."""
+    return slug.replace("/", "-")
+
+
+def open_pr_claims() -> list[str]:
+    """Titles and branch names of open PRs (empty if `gh` is unavailable)."""
+    if not shutil.which("gh"):
+        return []
+    try:
+        out = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "list",
+                "--state",
+                "open",
+                "--limit",
+                "200",
+                "--json",
+                "title,headRefName",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        ).stdout
+    except (subprocess.SubprocessError, OSError):
+        return []
+    return [f"{pr['title']} {pr['headRefName']}" for pr in json.loads(out)]
+
+
+def load_states(audits_dir: Path, wiki_dir: Path) -> dict[str, NeuronState]:
+    states: dict[str, NeuronState] = {}
+    for path in sorted(Path(audits_dir).rglob("*.json")):
+        record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        if record.verdict is not None:
+            states[record.submission.identifier.slug] = NeuronState(
+                record.submission.identifier.slug, record, path
+            )
+    for entry in load_entries(Path(wiki_dir)):
+        state = states.get(entry.meta["slug"])
+        if state is None:
+            continue
+        state.experiments += 1
+        if entry.meta.get("reviewer"):
+            state.reviewers.add(entry.meta["reviewer"])
+        stamp = datetime.fromisoformat(entry.meta["timestamp"])
+        state.last = max(state.last, stamp) if state.last else stamp
+    for state in states.values():
+        state.experiments = max(state.experiments, 1)
+        state.reviewers.add(state.record.verdict.reviewer_agent_model)
+        state.last = state.last or state.record.verdict.timestamp
+    return states
+
+
+def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[float, list[str]]:
+    factor, notes = 1.0 / math.sqrt(state.experiments), []
+    if state.experiments > 1:
+        notes.append(f"{state.experiments} experiments so far")
+    age = now - state.last
+    if age < timedelta(hours=6):
+        factor *= 0.2
+        notes.append("studied in the last 6h")
+    elif age < timedelta(hours=24):
+        factor *= 0.5
+        notes.append("studied in the last 24h")
+    key = claim_key(state.slug)
+    if any(key in c or state.slug in c for c in claims):
+        factor *= 0.05
+        notes.append("an open PR already claims it")
+    return factor, notes
+
+
+def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], now: datetime):
+    record, verdict = state.record, state.record.verdict
+    ident = record.submission.identifier
+    path = state.record_path.as_posix()
+    target = f"--model {ident.model_name} --layer {ident.layer} --neuron {ident.neuron_idx}"
+    other = "negative" if ident.pole == "positive" else "positive"
+    gates = verdict.metrics.gates if verdict.metrics else {}
+    failed = [g for g, ok in gates.items() if not ok]
+    proposer = record.submission.submitting_agent_model
+    review = f"openinterp verify --audit-file {path} --agent-model <model other than {proposer}>"
+    revise = f"openinterp audit {target} --pole {ident.pole}"
+
+    kinds: list[tuple[str, str, list[str], str | None]] = []
+    stale = verdict.policy is None or verdict.policy.protocol_version != PROTOCOL_VERSION
+    if stale:
+        kinds.append(
+            (
+                "reevaluate",
+                "verdict predates the current protocol",
+                [f"openinterp reevaluate --record {path}"],
+                None,
+            )
+        )
+    if gates.get("independent_review") is False:
+        kinds.append(
+            ("independent_review", "the proposer reviewed its own hypothesis", [review], None)
+        )
+    if verdict.status == "NEEDS_REVISION":
+        kinds.append(
+            (
+                "revise",
+                f"failed gates: {', '.join(failed) or 'unknown'}",
+                [revise, "openinterp verify --audit-file <new submission>"],
+                None,
+            )
+        )
+    elif verdict.status == "REJECTED":
+        kinds.append(
+            (
+                "new_hypothesis",
+                "rejected; the null result stands, so try another idea",
+                [revise, "openinterp verify --audit-file <new submission>"],
+                None,
+            )
+        )
+    elif len(state.reviewers) < 2:
+        kinds.append(("replicate", "verified by only one reviewer model", [review], None))
+    else:
+        kinds.append(
+            ("challenge", "verified and replicated; look for counterexamples", [review], None)
+        )
+    other_slug = ident.slug.rsplit("-", 1)[0] + f"-{other}"
+    if other_slug not in slugs:
+        kinds.append(
+            (
+                "opposite_pole",
+                f"the {other} pole is unstudied",
+                [f"openinterp audit {target} --pole {other}"],
+                other_slug,
+            )
+        )
+
+    factor, notes = _decay(state, claims, now)
+    for kind, why, commands, slug in kinds:
+        yield Candidate(
+            kind=kind,
+            model=ident.model_name,
+            weight=BASE_WEIGHTS[kind] * factor,
+            rationale="; ".join([why, *notes]),
+            commands=commands,
+            slug=slug or ident.slug,
+            skills=SKILLS[kind],
+        )
+
+
+@dataclass
+class Plan:
+    seed: int
+    choice: Candidate
+    explored: bool
+    candidates: list[Candidate]
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), indent=2)
+
+
+def plan_next(
+    audits_dir: Path = Path("audits"),
+    wiki_dir: Path = Path("wiki"),
+    *,
+    seed: int | None = None,
+    epsilon: float = 0.35,
+    temperature: float = 1.0,
+    models: Sequence[str] = (),
+    claims: Sequence[str] = (),
+    now: datetime | None = None,
+) -> Plan:
+    seed = random.SystemRandom().getrandbits(32) if seed is None else seed
+    rng = random.Random(seed)
+    now = now or datetime.now(UTC)
+    states = load_states(audits_dir, wiki_dir)
+    slugs = set(states)
+    candidates = sorted(
+        (c for s in states.values() for c in candidates_for(s, slugs, claims, now)),
+        key=lambda c: -c.weight,
+    )
+    pool = sorted(
+        set(models)
+        or {s.record.submission.identifier.model_name for s in states.values()}
+        or set(DEFAULT_MODELS)
+    )
+
+    if not candidates or rng.random() < epsilon:
+        model = rng.choice(pool)
+        audit_seed = rng.getrandbits(32)
+        choice = Candidate(
+            kind="explore",
+            model=model,
+            weight=0.0,
+            rationale="uniformly random new neuron (unbiased; counts towards registry statistics)",
+            commands=[f"openinterp audit --model {model} --random --seed {audit_seed}"],
+            skills=SKILLS["explore"],
+        )
+        return Plan(seed, choice, True, candidates)
+
+    weights = [c.weight ** (1.0 / temperature) for c in candidates]
+    choice = rng.choices(candidates, weights=weights, k=1)[0]
+    return Plan(seed, choice, False, candidates)

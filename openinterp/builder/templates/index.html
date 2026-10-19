@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% set t = stats.totals %}
+
+{% block content %}
+<section class="mb-10">
+  <h1 class="text-3xl font-semibold tracking-tight">Verified neuron registry</h1>
+  <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
+    Hypotheses about native MLP neuron poles in open-weight models, each stress-tested by an
+    independent reviewer agent with adversarial hard negatives, minimal-pair counterfactuals,
+    and causal activation patching. Only audits that passed review are listed.
+  </p>
+  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-800">
+    {% for label, value in [
+      ("Verified neurons", t.neurons),
+      ("Models", t.models),
+      ("Mean confidence", t.mean_confidence | pct),
+      ("Lookahead neurons", t.lookahead or 0),
+    ] %}
+    <div class="bg-white p-4 dark:bg-slate-950">
+      <dt class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</dt>
+      <dd class="mt-1 font-mono text-2xl tabular-nums">{{ value }}</dd>
+    </div>
+    {% endfor %}
+  </dl>
+  {% if total_loaded > t.neurons %}
+  <p class="mt-2 text-xs text-slate-500">{{ total_loaded - t.neurons }} audits loaded but not published (unverified).</p>
+  {% endif %}
+</section>
+
+<section class="mb-10">
+  <h2 class="mb-3 text-lg font-semibold">Model coverage</h2>
+  {% if stats.models %}
+  <div class="space-y-4">
+    {% for m in stats.models %}
+    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <span class="font-mono text-sm font-medium">{{ m.model_name }}</span>
+        <span class="text-sm text-slate-600 tabular-nums dark:text-slate-400">
+          {{ m.neurons }} neurons · {{ m.layers_covered }}/{{ m.n_layers }} layers
+          (<strong class="text-slate-900 dark:text-slate-100">{{ m.coverage | pct }}</strong>)
+          · mean conf. {{ m.mean_confidence | pct }}
+        </span>
+      </div>
+      <div class="mt-3 flex h-8 items-end gap-px" role="img" aria-label="Verified neurons per layer">
+        {% for n in m.layer_counts %}
+        <div class="flex-1 {{ 'bg-emerald-500' if n else 'bg-slate-200 dark:bg-slate-800' }}"
+             style="height: {{ (100 * n / m.layer_max) | round(0) if n else 8 }}%"
+             title="Layer {{ loop.index0 }}: {{ n }} verified"></div>
+        {% endfor %}
+      </div>
+      <div class="mt-1 flex justify-between font-mono text-[10px] text-slate-500"><span>L0</span><span>L{{ m.n_layers - 1 }}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-500">No verified audits yet.</p>
+  {% endif %}
+</section>
+
+<section class="mb-10 grid gap-8 lg:grid-cols-3">
+  <div class="lg:col-span-2">
+    <h2 class="mb-3 text-lg font-semibold">Leaderboard</h2>
+    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr>
+            <th class="px-3 py-2">Neuron</th>
+            <th class="px-3 py-2">Explanation</th>
+            <th class="px-3 py-2 text-right">Conf.</th>
+            <th class="px-3 py-2 text-right">Suff.</th>
+            <th class="px-3 py-2 text-right">Nec.</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for n in neurons %}
+          {% set r = n.record %}
+          {% set c = r.verdict.causal_metrics if r.verdict else none %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+              <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ n.href }}">
+                L{{ r.submission.identifier.layer }}/N{{ r.submission.identifier.neuron_idx }}{{ '+' if r.submission.identifier.pole == 'positive' else '−' }}
+              </a>
+              <div class="text-slate-500">{{ r.submission.identifier.model_name }}</div>
+            </td>
+            <td class="px-3 py-2">
+              {{ r.submission.natural_language_explanation | truncate(140) }}
+              {% if r.submission.lookahead.is_lookahead %}<span class="ml-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
+            </td>
+            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ (r.verdict.confidence_score if r.verdict else none) | num(2) }}</td>
+            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ (c.sufficiency_score if c else none) | num(2) }}</td>
+            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ (c.necessity_score if c else none) | num(2) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div>
+    <h2 class="mb-3 text-lg font-semibold">Submitting agents</h2>
+    <ol class="divide-y divide-slate-200 rounded-lg border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-800">
+      {% for a in stats.agents %}
+      <li class="flex items-center justify-between gap-3 px-3 py-2">
+        <span class="truncate font-mono text-xs">{{ a.agent }}</span>
+        <span class="whitespace-nowrap tabular-nums text-slate-600 dark:text-slate-400">{{ a.verified }} · {{ a.mean_confidence | pct }}</span>
+      </li>
+      {% else %}
+      <li class="px-3 py-2 text-slate-500">None yet.</li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2 class="mb-1 text-lg font-semibold">Query the registry</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">
+    Runs DuckDB-Wasm in your browser against <code class="font-mono">data/registry.parquet</code>, exposed as the view <code class="font-mono">registry</code>.
+  </p>
+  <textarea id="sql" rows="3" spellcheck="false"
+    class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, round(confidence_score, 2) AS conf, explanation
+FROM registry ORDER BY confidence_score DESC LIMIT 20</textarea>
+  <div class="mt-2 flex items-center gap-3">
+    <button id="run-sql" class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300">Run query</button>
+    <span id="sql-status" class="text-xs text-slate-500"></span>
+  </div>
+  <div id="sql-result" class="mt-3 overflow-x-auto"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  const DUCKDB = "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm";
+  const status = document.getElementById("sql-status");
+  const out = document.getElementById("sql-result");
+  let conn;
+
+  async function connect() {
+    const duckdb = await import(DUCKDB);
+    const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+    const workerUrl = URL.createObjectURL(
+      new Blob([`importScripts("${bundle.mainWorker}");`], { type: "text/javascript" })
+    );
+    const db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(workerUrl));
+    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    URL.revokeObjectURL(workerUrl);
+    const url = new URL("data/registry.parquet", window.location.href).href;
+    await db.registerFileURL("registry.parquet", url, duckdb.DuckDBDataProtocol.HTTP, false);
+    const conn = await db.connect();
+    await conn.query("CREATE VIEW registry AS SELECT * FROM read_parquet('registry.parquet')");
+    return conn;
+  }
+
+  function cell(value) {
+    const td = document.createElement("td");
+    td.className = "px-3 py-1.5 align-top font-mono text-xs";
+    td.textContent = value === null || value === undefined ? "∅"
+      : typeof value === "object" ? JSON.stringify(value, (_k, v) => typeof v === "bigint" ? v.toString() : v)
+      : String(value);
+    return td;
+  }
+
+  function render(table) {
+    const fields = table.schema.fields.map((f) => f.name);
+    const el = document.createElement("table");
+    el.className = "w-full rounded-lg border border-slate-200 text-left dark:border-slate-800";
+    const head = el.createTHead().insertRow();
+    for (const name of fields) {
+      const th = document.createElement("th");
+      th.className = "bg-slate-50 px-3 py-1.5 text-xs font-medium dark:bg-slate-900";
+      th.textContent = name;
+      head.appendChild(th);
+    }
+    const body = el.createTBody();
+    for (const row of table.toArray()) {
+      const tr = body.insertRow();
+      tr.className = "border-t border-slate-200 dark:border-slate-800";
+      const obj = row.toJSON();
+      for (const name of fields) tr.appendChild(cell(obj[name]));
+    }
+    out.replaceChildren(el);
+    status.textContent = `${table.numRows} rows`;
+  }
+
+  document.getElementById("run-sql").addEventListener("click", async () => {
+    status.textContent = conn ? "Running…" : "Loading DuckDB-Wasm…";
+    try {
+      conn ??= await connect();
+      render(await conn.query(document.getElementById("sql").value));
+    } catch (err) {
+      status.textContent = "";
+      out.textContent = String(err);
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,281 @@
+{
+  "submission": {
+    "identifier": {
+      "model_name": "Qwen/Qwen2.5-0.5B",
+      "layer": 20,
+      "neuron_idx": 88,
+      "pole": "positive"
+    },
+    "natural_language_explanation": "Generic sentence-final punctuation.",
+    "activating_tokens": [
+      "."
+    ],
+    "counterfactuals": [
+      {
+        "base_prompt": "\"Come in,\" she said.",
+        "counterfactual_prompt": "\"COME IN,\" SHE SAID.",
+        "expected_delta": 0.7,
+        "observed_delta": 0.762
+      },
+      {
+        "base_prompt": "\"Come in,\" she said.",
+        "counterfactual_prompt": "\"Come in,\" she said. Indeed.",
+        "expected_delta": 0.0,
+        "observed_delta": 0.042
+      }
+    ],
+    "lookahead": {
+      "is_lookahead": false,
+      "target_upcoming_tokens": [],
+      "kl_divergence": 0.0452
+    },
+    "submitting_agent_model": "example-fixture",
+    "max_activation": 2.979,
+    "top_examples": [
+      {
+        "text": "\"Come in,\" she said.",
+        "tokens": [
+          "\"Come",
+          " in,\"",
+          " she",
+          " said."
+        ],
+        "activations": [
+          0.395,
+          0.161,
+          0.271,
+          2.214
+        ],
+        "max_activation": 2.214,
+        "max_token_index": 3
+      },
+      {
+        "text": "\"Come in,\" she said.",
+        "tokens": [
+          "\"Come",
+          " in,\"",
+          " she",
+          " said."
+        ],
+        "activations": [
+          0.287,
+          0.001,
+          0.329,
+          2.098
+        ],
+        "max_activation": 2.098,
+        "max_token_index": 3
+      },
+      {
+        "text": "\"Come in,\" she said.",
+        "tokens": [
+          "\"Come",
+          " in,\"",
+          " she",
+          " said."
+        ],
+        "activations": [
+          0.048,
+          0.26,
+          0.349,
+          2.979
+        ],
+        "max_activation": 2.979,
+        "max_token_index": 3
+      }
+    ],
+    "activation_histogram": {
+      "bin_edges": [
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0,
+        1.125,
+        1.25,
+        1.375,
+        1.5,
+        1.625,
+        1.75,
+        1.875,
+        2.0,
+        2.125,
+        2.25,
+        2.375,
+        2.5,
+        2.625,
+        2.75,
+        2.875,
+        3.0
+      ],
+      "counts": [
+        1171,
+        1115,
+        962,
+        821,
+        790,
+        769,
+        628,
+        553,
+        483,
+        457,
+        420,
+        326,
+        294,
+        241,
+        202,
+        170,
+        130,
+        128,
+        57,
+        42,
+        33,
+        17,
+        16,
+        7
+      ]
+    },
+    "model_num_layers": 24,
+    "provenance": null
+  },
+  "verdict": {
+    "status": "REJECTED",
+    "confidence_score": 0.31,
+    "adversarial_test_results": [
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 0",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.186,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 1",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.104,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 2",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.004,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 3",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.167,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 4",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.359,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 5",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.31,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 6",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.082,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 7",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.145,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 8",
+        "passed": false,
+        "expected_active": false,
+        "activation": 0.274,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 9",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.239,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 10",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.024,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      },
+      {
+        "kind": "hard_negative",
+        "prompt": "Near-miss probe 11",
+        "passed": true,
+        "expected_active": false,
+        "activation": 0.262,
+        "expected_delta": null,
+        "observed_delta": null,
+        "detail": ""
+      }
+    ],
+    "reviewer_agent_model": "example-fixture",
+    "timestamp": "2026-10-01T12:03:00Z",
+    "causal_metrics": {
+      "sufficiency_score": 0.343,
+      "necessity_score": 0.442,
+      "hydra_mitigated": true
+    },
+    "metrics": null,
+    "policy": null,
+    "notes": "Synthetic example record (not a real audit)."
+  }
+}

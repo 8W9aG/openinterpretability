@@ -1,0 +1,48 @@
+# Changelog
+
+All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
+
+The project has two version numbers:
+
+- **Package version** (`openinterp.__version__`): the code. Bump it in `openinterp/__init__.py`, which `pyproject.toml` reads.
+- **Protocol version** (`openinterp.core.schemas.PROTOCOL_VERSION`): the review decision rule. It is stored in every verdict and documented in `docs/PROTOCOL.md` §6. A protocol change always needs a package release too, but not the other way round.
+
+## [Unreleased]
+
+## [0.0.1] - 2026-10-18
+
+First release. Ships with protocol version **0.2**.
+
+### Added
+
+**Harness and protocol**
+
+- Strict Pydantic v2 schemas for neuron identifiers, counterfactual pairs, lookahead profiles, causal metrics, submissions, verdicts and audit records.
+- `NeuronHookRunner`: hooks on MLP down-projection inputs for Llama/Qwen/Mistral/Gemma, GPT-2, GPT-NeoX, GPT-J, OPT and Phi, with positive/negative pole isolation and corpus scanning.
+- Activation patching: denoising, noising and resample ablation per pole, with optional freezing of downstream MLP outputs to mitigate self-repair.
+- Attribution patching for whole layers in one backward pass.
+- Lookahead profiling (pole-ablation KL and concentration) and vocabulary projection of neuron output directions.
+- `ProposerAgent` and `ReviewerAgent` using LiteLLM and instructor (default model `anthropic/claude-opus-5-5`). Verdicts are computed deterministically by `evaluate_submission`.
+- Protocol v0.2 (`docs/PROTOCOL.md`): a gated decision rule using balanced accuracy over hard negatives and positive holdouts, a counterfactual tolerance relative to the prediction, minimum probe counts and an independent-review gate. It replaced v0.1's weighted mean and absolute Δ tolerance of 0.35 before release, after v0.1 verified an over-broad hypothesis.
+- Experiment provenance on submissions (model revision, corpus hash, selection method, seed) and the review policy stored on verdicts.
+- CLI commands `audit` (including `--random --seed`), `verify`/`review` (which also accepts an existing audit record), `reevaluate`, `build`, `deploy`, `wiki`, `check` and `next`.
+
+**Registry, wiki and site**
+
+- Experiment wiki (`wiki/`): a write-once Markdown page per completed experiment, with per-neuron history pages and a home index. `verify` and `reevaluate` write pages automatically, `reevaluate` saves the superseded verdict before overwriting a record, and `openinterp wiki` backfills existing records.
+- `openinterp next` and the `choose-next-experiment` skill: a randomised next-experiment planner (ε-greedy exploration of random neurons, Boltzmann sampling over follow-ups, decay for repeats, recency and open-PR claims). It prints a seed for reproducibility.
+- Static site builder (Jinja2 + Tailwind) with per-layer coverage, leaderboards, Pagefind search and a DuckDB-Wasm SQL console. The registry is exported as `registry.parquet` plus content-addressed snapshots.
+- The build is deterministic. There are no build timestamps, orderings are total, and stale pages are removed, so unchanged records rebuild byte-for-byte.
+- Cloudflare R2 delta sync with per-file cache policies:
+  - content-addressed files upload first and HTML last;
+  - `pagefind/` only syncs when a source file changed;
+  - `data/snapshots/` is never deleted;
+  - an optional Cloudflare cache purge covers only the changed URLs.
+
+**Project infrastructure**
+
+- GitHub Actions CI: lint, a 500-line limit on source and documentation files, tests, and `openinterp check` (audit/wiki pairing, stale indexes and write-once pages) on every PR.
+- Hourly deploy workflow that rebuilds from `main` and delta-syncs to R2. It is skipped until the `R2_BUCKET` variable is set.
+- A PR template with an experiment checklist.
+- Ten Claude Code research skills in `.claude/skills/`, each grounded in the interpretability literature.
+- First real audit: Qwen2.5-0.5B L11/N4255+, currently NEEDS_REVISION.
