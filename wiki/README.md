@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **28** · neurons: **19** · NEEDS_REVISION: 5 · VERIFIED: 23
+Experiments: **29** · neurons: **20** · NEEDS_REVISION: 5 · VERIFIED: 24
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L12/N4099-negative/20261019T204532Z.md) | [Qwen/Qwen2.5-0.5B L12/N4099−](experiments/Qwen--Qwen2.5-0.5B/L12/N4099-negative/README.md) | review | VERIFIED | 0.95 | Fires on the interior pieces (second through second-to-last) of a rare, recognisable string that... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L14/N2158-negative/20261019T200148Z.md) | [Qwen/Qwen2.5-0.5B L14/N2158−](experiments/Qwen--Qwen2.5-0.5B/L14/N2158-negative/README.md) | review | VERIFIED | 0.75 | Fires at the onset of a numeral that states a cardinal quantity (a count or amount of things:... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N2058-negative/20261019T194134Z.md) | [Qwen/Qwen2.5-0.5B L4/N2058−](experiments/Qwen--Qwen2.5-0.5B/L4/N2058-negative/README.md) | review | VERIFIED | 0.91 | Fires on a prefix (unary) operator token that opens an operand where the syntax expects an... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/20261019T192322Z.md) | [Qwen/Qwen2.5-0.5B L4/N429+](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/README.md) | review | VERIFIED | 0.95 | The positive pole fires on the token that completes a gendered civilian title of address (Mr,... |
