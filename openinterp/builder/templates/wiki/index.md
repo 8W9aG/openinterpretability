@@ -1,6 +1,6 @@
 # Experiment wiki
 
-Every completed Open Interpretability experiment, newest first. Pages are written automatically by `openinterp verify` and `openinterp reevaluate`. To create pages for older records, run `openinterp wiki --audits-dir audits`. Each experiment page is written once and never regenerated, so its **Discussion** section is safe to edit.
+Every completed Open Interpretability experiment, newest first. Pages are written automatically by `openinterp verify` and `openinterp reevaluate`. Each experiment's full record sits next to its page as `<id>.json`. To import loose records, run `openinterp wiki --import-dir <dir>`. Each experiment page is written once and never regenerated, so its **Discussion** section is safe to edit.
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 

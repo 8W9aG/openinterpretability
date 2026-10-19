@@ -77,6 +77,7 @@ class ModelNode:
     slug: str
     n_layers: int
     href: str
+    mlp_width: int | None = None  # neurons per layer; None when no record says
     layers: list[LayerNode] = field(default_factory=list)
 
     @property
@@ -92,13 +93,30 @@ class ModelNode:
         return sum(layer.verified for layer in self.layers)
 
     @property
-    def coverage(self) -> float:
-        return len(self.layers) / self.n_layers
+    def total_neurons(self) -> int | None:
+        return self.n_layers * self.mlp_width if self.mlp_width else None
+
+    @property
+    def coverage(self) -> float | None:
+        """Share of the model's neurons with at least one experiment."""
+        return self.neurons / self.total_neurons if self.total_neurons else None
+
+    @property
+    def verified_share(self) -> float | None:
+        """Share of the model's neurons with a verified pole."""
+        return self.verified / self.total_neurons if self.total_neurons else None
 
     def layer_counts(self) -> list[int]:
         """Studied neurons per layer index, including unstudied layers (0)."""
         counts = {layer.layer: len(layer.neurons) for layer in self.layers}
         return [counts.get(i, 0) for i in range(self.n_layers)]
+
+
+# MLP width of models whose early records predate ``model_mlp_width``. Records are
+# write-once, so the width can't be backfilled into them; a width on any record wins.
+KNOWN_MLP_WIDTHS = {
+    "Qwen/Qwen2.5-0.5B": 4864,
+}
 
 
 def model_href(slug: str) -> str:
@@ -142,9 +160,15 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
         model = models.get(ident.model_name)
         if model is None:
             model = models[ident.model_name] = ModelNode(
-                ident.model_name, mslug, 0, model_href(mslug)
+                ident.model_name,
+                mslug,
+                0,
+                model_href(mslug),
+                KNOWN_MLP_WIDTHS.get(ident.model_name),
             )
         model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
+        if r.submission.model_mlp_width:
+            model.mlp_width = r.submission.model_mlp_width
         key = (ident.model_name, ident.layer, ident.neuron_idx)
         if key not in neurons:
             neurons[key] = NeuronNode(

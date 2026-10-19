@@ -54,8 +54,20 @@ def _environment() -> Environment:
         lstrip_blocks=True,
     )
     env.filters["pct"] = lambda v: "—" if v is None else f"{100 * v:.0f}%"
+    env.filters["pct_fine"] = _pct_fine
     env.filters["num"] = lambda v, d=3: "—" if v is None else f"{v:.{d}f}"
+    env.filters["thousands"] = lambda v: "?" if v is None else f"{v:,}"
     return env
+
+
+def _pct_fine(v: float | None) -> str:
+    """A percentage with two significant figures, so 1 neuron in 100k isn't shown as 0%."""
+    if v is None:
+        return "—"
+    if v == 0:
+        return "0%"
+    decimals = max(0, 1 - math.floor(math.log10(100 * v)))
+    return f"{100 * v:.{decimals}f}%"
 
 
 def _root_for(rel_path: str) -> str:

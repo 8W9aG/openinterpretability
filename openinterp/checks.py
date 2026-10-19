@@ -1,15 +1,16 @@
 """Registry consistency checks, run in CI on every pull request (`openinterp check`).
 
-An experiment is posted as an audit record in ``audits/`` plus a wiki page in
-``wiki/experiments/``. The checks enforce that:
+An experiment is posted as an archived record ``<id>.json`` plus its page ``<id>.md``
+in ``wiki/experiments/<slug>/``. A neuron may have any number of experiments. The
+checks enforce that:
 
-1. every audit record validates, has a verdict, and is the only record for its neuron;
-2. every audit record has the wiki page for its current verdict, and the page's front
-   matter matches the record;
-3. every wiki experiment page belongs to a neuron that has an audit record, and has
-   an archived record (``<id>.json``) that validates and matches it; the archived
-   copy of each audit record's current verdict is identical to the record;
-4. the generated wiki indexes are up to date;
+1. every archived record validates, has a verdict, and sits at the path its neuron
+   slug and experiment id dictate;
+2. every record has its page and every page its record, and the page's front matter
+   matches the record;
+3. the generated wiki indexes are up to date;
+4. the retired ``audits/`` directory holds no records (import them with
+   ``openinterp wiki --import-dir audits``);
 5. with ``base_ref``, existing experiment pages were not deleted or edited outside
    their Discussion section, and archived records were not touched (write-once).
 """
@@ -26,13 +27,13 @@ from pydantic import ValidationError
 
 from openinterp.builder.wiki import (
     _read_front_matter,
-    experiment_id,
-    neuron_dir,
+    archive_path,
     rebuild_indexes,
 )
 from openinterp.core.schemas import AuditRecord
 
 DISCUSSION_HEADING = "## Discussion"
+LEGACY_AUDITS_DIR = Path("audits")
 
 
 @dataclass
@@ -59,62 +60,65 @@ class CheckReport:
 
 
 def check_registry(
-    audits_dir: Path = Path("audits"),
     wiki_dir: Path = Path("wiki"),
     *,
     base_ref: str | None = None,
+    legacy_audits_dir: Path = LEGACY_AUDITS_DIR,
 ) -> CheckReport:
     report = CheckReport()
-    audits_dir, wiki_dir = Path(audits_dir), Path(wiki_dir)
-    slugs = _check_records(audits_dir, wiki_dir, report)
-    _check_pages(wiki_dir, slugs, report)
+    wiki_dir = Path(wiki_dir)
+    _check_legacy(Path(legacy_audits_dir), report)
+    _check_records(wiki_dir, report)
+    _check_pages(wiki_dir, report)
     _check_indexes(wiki_dir, report)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, report)
     return report
 
 
-def _check_records(audits_dir: Path, wiki_dir: Path, report: CheckReport) -> dict[str, Path]:
-    slugs: dict[str, Path] = {}
-    if not audits_dir.is_dir():
-        return slugs
-    for path in sorted(audits_dir.rglob("*.json")):
-        report.records += 1
-        try:
-            record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
-        except ValidationError as exc:
-            report.add(path, f"invalid audit record ({exc.error_count()} validation errors)")
-            continue
-        slug = record.submission.identifier.slug
-        if slug in slugs:
-            report.add(path, f"duplicate record for {slug} (also {slugs[slug]})")
-            continue
-        slugs[slug] = path
-        if record.verdict is None:
-            report.add(path, "audit record has no verdict; run `openinterp verify` first")
-            continue
+def _check_legacy(audits_dir: Path, report: CheckReport) -> None:
+    if audits_dir.is_dir():
+        for path in sorted(audits_dir.rglob("*.json")):
+            report.add(
+                path,
+                "audits/ is retired; experiments live in wiki/experiments/. Run "
+                "`openinterp wiki --import-dir audits`, then delete audits/",
+            )
 
-        page = neuron_dir(wiki_dir, record) / f"{experiment_id(record)}.md"
-        if not page.exists():
-            report.add(path, f"missing wiki page {page}; run `openinterp wiki`")
+
+def _check_records(wiki_dir: Path, report: CheckReport) -> None:
+    root = wiki_dir / "experiments"
+    if not root.is_dir():
+        return
+    for path in sorted(root.rglob("*.json")):
+        report.records += 1
+        record = _load(path)
+        if record is None:
+            report.add(path, "invalid experiment record")
             continue
-        archived = page.with_suffix(".json")
-        if archived.exists() and _load(archived) != record:
-            report.add(archived, f"archived record differs from {path}; archives are write-once")
+        if record.verdict is None:
+            report.add(path, "experiment record has no verdict; run `openinterp verify` first")
+            continue
+        expected = archive_path(wiki_dir, record)
+        if path != expected:
+            report.add(path, f"experiment record belongs at {expected}")
+        page = path.with_suffix(".md")
+        if not page.exists():
+            report.add(path, "experiment record has no page; run `openinterp wiki`")
+            continue
         meta = _read_front_matter(page)
-        expected = {
-            "slug": slug,
+        values = {
+            "slug": record.submission.identifier.slug,
             "status": record.verdict.status,
             "balanced_accuracy": record.verdict.confidence_score,
             "timestamp": record.verdict.timestamp.isoformat(),
         }
-        for key, value in expected.items():
+        for key, value in values.items():
             if meta.get(key) != value:
                 report.add(page, f"front matter {key}={meta.get(key)!r} but record has {value!r}")
-    return slugs
 
 
-def _check_pages(wiki_dir: Path, slugs: dict[str, Path], report: CheckReport) -> None:
+def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
     root = wiki_dir / "experiments"
     if not root.is_dir():
         return
@@ -128,24 +132,8 @@ def _check_pages(wiki_dir: Path, slugs: dict[str, Path], report: CheckReport) ->
             meta = {}
         if not meta:
             report.add(page, "experiment page has no valid front matter")
-            continue
-        if meta.get("slug") not in slugs:
-            report.add(page, f"wiki page for {meta.get('slug')} has no audit record in audits/")
-        archived = page.with_suffix(".json")
-        if not archived.exists():
-            report.add(page, f"missing archived record {archived.name}; run `openinterp wiki`")
-            continue
-        record = _load(archived)
-        if record is None or record.verdict is None:
-            report.add(archived, "archived record is invalid or has no verdict")
-        elif (record.submission.identifier.slug, record.verdict.timestamp.isoformat()) != (
-            meta.get("slug"),
-            meta.get("timestamp"),
-        ):
-            report.add(archived, "archived record does not match its experiment page")
-    for archived in sorted(root.rglob("*.json")):
-        if not archived.with_suffix(".md").exists():
-            report.add(archived, "archived record has no experiment page")
+        if not page.with_suffix(".json").exists():
+            report.add(page, f"missing experiment record {page.with_suffix('.json').name}")
 
 
 def _load(path: Path) -> AuditRecord | None:

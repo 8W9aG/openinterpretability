@@ -1,4 +1,4 @@
-"""Experiment wiki: one Markdown page per completed experiment, plus indexes.
+"""Experiment registry and wiki: one record and one Markdown page per experiment.
 
 Layout under ``wiki/``::
 
@@ -7,16 +7,17 @@ Layout under ``wiki/``::
     experiments/<model>/L<l>/N<n>-<pole>/<id>.md        one experiment (write-once)
     experiments/<model>/L<l>/N<n>-<pole>/<id>.json      its full audit record (write-once)
 
-Experiment pages are never overwritten: a re-evaluation or revision gets a new
-page, so the wiki is the history even though ``audits/`` only holds the latest
-record. Each page's "Discussion" section is left for people and agents to edit.
-Indexes are regenerated from the pages' front matter on every write.
+The experiment, not the neuron, is the unit of storage. The ``<id>.json`` archive is
+the registry's only source of truth: a neuron can have any number of experiments,
+each adds new files and none edits another's, so parallel experiments on one neuron
+never conflict. A neuron's standing (latest or most conclusive verdict) is always
+derived from its experiments, never stored. Each page's "Discussion" section is left
+for people and agents to edit. Indexes are regenerated from the pages' front matter.
 """
 
 from __future__ import annotations
 
 import json
-import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -119,7 +120,6 @@ def write_experiment_page(
     wiki_dir: Path,
     *,
     kind: ExperimentKind = "review",
-    record_path: Path | None = None,
     previous_status: str | None = None,
 ) -> Path | None:
     """Write the page for a completed experiment and refresh the indexes.
@@ -154,11 +154,6 @@ def write_experiment_page(
         "proposer": sub.submitting_agent_model,
         "reviewer": verdict.reviewer_agent_model,
     }
-    rel_record = (
-        Path(os.path.relpath(record_path.resolve(), page.parent.resolve())).as_posix()
-        if record_path
-        else None
-    )
     body = (
         _environment()
         .get_template("experiment.md")
@@ -178,7 +173,7 @@ def write_experiment_page(
             examples=[(e.max_activation, _context(e)) for e in sub.top_examples[:10]],
             kind=kind,
             previous_status=previous_status,
-            record_link=rel_record,
+            record_link=archive_path(wiki_dir, record).name,
         )
     )
     page.parent.mkdir(parents=True, exist_ok=True)
@@ -192,11 +187,7 @@ def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:
 
 
 def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
-    """Store the full record of a completed experiment next to its page (write-once).
-
-    ``audits/`` keeps only the latest record per neuron; the archive keeps every
-    experiment, so superseded and null results stay available to the site.
-    """
+    """Store the full record of a completed experiment next to its page (write-once)."""
     path = archive_path(wiki_dir, record)
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -204,14 +195,19 @@ def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
     return path
 
 
-def load_archive(wiki_dir: Path) -> list[AuditRecord]:
-    """Every archived experiment record, oldest first."""
+def load_archive_paths(wiki_dir: Path) -> list[tuple[Path, AuditRecord]]:
+    """Every archived experiment record with its path, oldest first."""
     root = Path(wiki_dir) / "experiments"
-    records = [
-        AuditRecord.model_validate_json(p.read_text(encoding="utf-8"))
+    pairs = [
+        (p, AuditRecord.model_validate_json(p.read_text(encoding="utf-8")))
         for p in sorted(root.rglob("*.json"))
     ]
-    return sorted(records, key=lambda r: (r.verdict.timestamp, r.submission.identifier.slug))
+    return sorted(pairs, key=lambda pr: (pr[1].verdict.timestamp, pr[1].submission.identifier.slug))
+
+
+def load_archive(wiki_dir: Path) -> list[AuditRecord]:
+    """Every archived experiment record, oldest first."""
+    return [record for _, record in load_archive_paths(wiki_dir)]
 
 
 def load_entries(wiki_dir: Path) -> list[WikiEntry]:
@@ -259,11 +255,8 @@ def rebuild_indexes(wiki_dir: Path) -> None:
     )
 
 
-def backfill(records: Sequence[tuple[AuditRecord, Path]], wiki_dir: Path) -> list[Path]:
-    """Write pages for reviewed records that have none yet (idempotent)."""
-    written = [
-        write_experiment_page(record, wiki_dir, kind="backfill", record_path=path)
-        for record, path in records
-    ]
+def backfill(records: Sequence[AuditRecord], wiki_dir: Path) -> list[Path]:
+    """Import reviewed records as experiments (record + page) if not yet present (idempotent)."""
+    written = [write_experiment_page(record, wiki_dir, kind="backfill") for record in records]
     rebuild_indexes(wiki_dir)
     return [p for p in written if p is not None]

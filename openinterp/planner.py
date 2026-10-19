@@ -26,7 +26,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from openinterp.builder.wiki import load_entries
+from openinterp.builder.wiki import load_archive_paths
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
 
 # Expected information value per experiment kind, before decay.
@@ -105,27 +105,20 @@ def open_pr_claims() -> list[str]:
     return [f"{pr['title']} {pr['headRefName']}" for pr in json.loads(out)]
 
 
-def load_states(audits_dir: Path, wiki_dir: Path) -> dict[str, NeuronState]:
+def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
+    """One state per neuron pole, derived from all of its archived experiments.
+
+    Follow-ups are planned from the most recent experiment; the count, reviewers and
+    recency cover every experiment on the neuron.
+    """
     states: dict[str, NeuronState] = {}
-    for path in sorted(Path(audits_dir).rglob("*.json")):
-        record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
-        if record.verdict is not None:
-            states[record.submission.identifier.slug] = NeuronState(
-                record.submission.identifier.slug, record, path
-            )
-    for entry in load_entries(Path(wiki_dir)):
-        state = states.get(entry.meta["slug"])
-        if state is None:
-            continue
+    for path, record in load_archive_paths(Path(wiki_dir)):  # oldest first
+        slug = record.submission.identifier.slug
+        state = states.setdefault(slug, NeuronState(slug, record, path))
+        state.record, state.record_path = record, path
         state.experiments += 1
-        if entry.meta.get("reviewer"):
-            state.reviewers.add(entry.meta["reviewer"])
-        stamp = datetime.fromisoformat(entry.meta["timestamp"])
-        state.last = max(state.last, stamp) if state.last else stamp
-    for state in states.values():
-        state.experiments = max(state.experiments, 1)
-        state.reviewers.add(state.record.verdict.reviewer_agent_model)
-        state.last = state.last or state.record.verdict.timestamp
+        state.reviewers.add(record.verdict.reviewer_agent_model)
+        state.last = record.verdict.timestamp
     return states
 
 
@@ -234,7 +227,6 @@ class Plan:
 
 
 def plan_next(
-    audits_dir: Path = Path("audits"),
     wiki_dir: Path = Path("wiki"),
     *,
     seed: int | None = None,
@@ -247,7 +239,7 @@ def plan_next(
     seed = random.SystemRandom().getrandbits(32) if seed is None else seed
     rng = random.Random(seed)
     now = now or datetime.now(UTC)
-    states = load_states(audits_dir, wiki_dir)
+    states = load_states(wiki_dir)
     slugs = set(states)
     candidates = sorted(
         (c for s in states.values() for c in candidates_for(s, slugs, claims, now)),

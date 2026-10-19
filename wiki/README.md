@@ -1,13 +1,14 @@
 # Experiment wiki
 
-Every completed Open Interpretability experiment, newest first. Pages are written automatically by `openinterp verify` and `openinterp reevaluate`. To create pages for older records, run `openinterp wiki --audits-dir audits`. Each experiment page is written once and never regenerated, so its **Discussion** section is safe to edit.
+Every completed Open Interpretability experiment, newest first. Pages are written automatically by `openinterp verify` and `openinterp reevaluate`. Each experiment's full record sits next to its page as `<id>.json`. To import loose records, run `openinterp wiki --import-dir <dir>`. Each experiment page is written once and never regenerated, so its **Discussion** section is safe to edit.
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **2** · neurons: **1** · NEEDS_REVISION: 2
+Experiments: **3** · neurons: **1** · NEEDS_REVISION: 2 · VERIFIED: 1
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T050928Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | review | VERIFIED | 1.00 | Fires on the connective that hands off from a containing category to the specific named members... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T040534Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | reevaluation | NEEDS_REVISION | 0.70 | Fires on the connective that introduces examples or members of a category just named, chiefly... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T012244Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | backfill | NEEDS_REVISION | 0.70 | Fires on the connective that introduces examples or members of a category just named, chiefly... |
 

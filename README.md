@@ -18,12 +18,12 @@ cd openinterpretability
 make install                                      # creates .venv with everything
 ```
 
-**API keys.** Proposals and reviews are written by LLMs through [LiteLLM](https://docs.litellm.ai/), so set keys for two *different* models. The reviewer must not be the proposer, or the `independent_review` gate fails. Different providers are best:
+**An LLM.** Any LLM can write the proposals and reviews. `--agent-model` takes either:
 
-```bash
-export ANTHROPIC_API_KEY=...   # proposer, e.g. anthropic/claude-opus-5-5 (the default)
-export OPENAI_API_KEY=...      # reviewer, e.g. openai/gpt-5
-```
+- a [LiteLLM](https://docs.litellm.ai/) model string, with that provider's API key set, e.g. `export ANTHROPIC_API_KEY=...` for `anthropic/claude-opus-5-5` (the default);
+- `external/<name>` (e.g. `external/claude-opus-5-5`), which needs no keys. The command writes `exchange/<Agent>.prompt.md`, including the JSON schema of the answer, and waits for `exchange/<Agent>.response.json`. A coding agent, a chat window or a person can write the answer. Name the model that actually answered, because that name is recorded.
+
+The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
 
 **A scan corpus.** The built-in corpus is only a smoke test. This builds a better one from 500 Pile documents (one-off download, git-ignored):
 
@@ -56,6 +56,15 @@ The repo's skills load automatically, and `choose-next-experiment` defines the w
 
 The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready.
 
+**In a loop.** `scripts/experiment-loop.sh` runs experiments back to back, each in a fresh headless Claude Code session (`claude -p`), until it reaches `--max` or `claude` exits with an error (for example at the usage limit). Claude drives the workflow; you choose the LLMs that propose and review:
+
+```bash
+scripts/experiment-loop.sh --proposer anthropic/claude-opus-5-5 --reviewer openai/gpt-5 --max 10
+make loop LOOP_ARGS="--reviewer openai/gpt-5"   # the same, via make
+```
+
+It works in a separate worktree (`../<repo>-loop`) reset to `origin/main` before each experiment, so your checkout is untouched, and writes one log per experiment to `logs/loop/`. Each experiment opens its own PR, so review them as they arrive. `--driver` picks the Claude model that drives the session, `--epsilon` how often `openinterp next` explores new neurons, and a proposer or reviewer of `external/<name>` makes the driving session answer that role itself. The session can edit files and run `uv run`, `make`, `git` and `gh pr` without asking; see `ALLOWED_TOOLS` in the script. Run `scripts/experiment-loop.sh --help` for every option.
+
 ### 2B. Run it yourself
 
 ```bash
@@ -64,7 +73,7 @@ uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
 #   → scans the neuron (~5–10 min on CPU), asks the proposer for a hypothesis,
 #     writes submissions/<model>/L<layer>/N<idx>-<pole>.json
 uv run openinterp verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
-#   → independent probes, measured on the model; writes audits/… and the wiki/ page
+#   → probes, measured on the model; writes a new experiment (record + page) under wiki/experiments/
 ```
 
 For follow-ups that `next` suggests (revise, re-review, opposite pole), run the commands it prints. Add `--corpus corpus.jsonl` to any `audit`.
@@ -78,18 +87,18 @@ git switch -c experiment/Qwen--Qwen2.5-0.5B-L11-N4255-positive
 gh pr create --draft --title "experiment: Qwen--Qwen2.5-0.5B-L11-N4255-positive (explore)"
 # …run the experiment, then:
 make check lint test                      # the same checks CI runs on your PR
-git add audits wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
+git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
 gh pr ready
 ```
 
-Commit `audits/` and `wiki/`; never edit generated wiki pages except their **Discussion** section. CI rejects a PR whose record and wiki page don't match, and once merged the hourly deploy publishes the result. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
+Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id>.md`) and never edits another's, so any number of experiments on one neuron can be in flight at once. Never edit generated pages except their **Discussion** section. CI rejects a PR whose record and page don't match, and once merged the hourly deploy publishes the result. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
 
 ## Protocol
 
 Every claim is empirical and falsifiable:
 
 1. **Propose.** A submitting agent scans a corpus for the neuron pole's top-activating snippets. It then writes a hypothesis, says whether the pole is *retrospective* (reacts to tokens it has already read) or *lookahead* (prepares an upcoming token), and supplies minimal-pair counterfactuals with predicted activation deltas.
-2. **Review.** A reviewer agent, which must run on a different model from the proposer, writes 10–20 adversarial probes: mostly hard negatives (near-misses the hypothesis says should *not* fire), plus some positive holdouts. Every probe and counterfactual is then run through the real model. The verdict comes from those measurements and not from the reviewer's opinion, so anyone with the weights can reproduce it:
+2. **Review.** A reviewer agent (ideally, but not necessarily, a different model from the proposer) writes 10–20 adversarial probes: mostly hard negatives (near-misses the hypothesis says should *not* fire), plus some positive holdouts. Every probe and counterfactual is then run through the real model. The verdict comes from those measurements and not from the reviewer's opinion, so anyone with the weights can reproduce it:
    - balanced accuracy on hard negatives vs. positive holdouts, each gated separately, with near-duplicate probes counted once
    - confound control: the hypothesis must match or beat token-identity, position and never-active baselines
    - counterfactual Δ reproduction within a tolerance relative to the prediction
@@ -122,7 +131,7 @@ Every completed experiment gets a Markdown page and an archived copy of its full
 
 [CI](.github/workflows/ci.yml) runs two required jobs on every PR:
 - **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`).
-- **Experiment records:** `openinterp check`. Every audit record in `audits/` must validate, have a verdict, be the only record for its neuron and have a wiki page for that verdict. Every wiki experiment page must have an audit record. The wiki indexes must be current, and existing experiment pages may only change in their Discussion section.
+- **Experiment records:** `openinterp check`. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must validate, have a verdict, sit at the path its neuron and id dictate, and have a page whose front matter matches it; every page must have a record. The wiki indexes must be current, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty.
 
 Run `make check` locally before pushing. The [PR template](.github/pull_request_template.md) has a checklist for posting experiments.
 
@@ -152,7 +161,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
 | `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
 | `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
-| `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (LiteLLM + instructor structured outputs); deterministic `evaluate_submission` |
+| `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files); deterministic `evaluate_submission` |
 | `openinterp/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
 | `openinterp/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 
@@ -202,4 +211,4 @@ Configure the workflow in the repo's GitHub settings:
 
 ## Status
 
-Early scaffold. The records in `examples/audits/` are **synthetic fixtures** for exercising the builder. They are not real audit results.
+Early scaffold. The records in `examples/audits/` (imported with `openinterp wiki --import-dir`) are **synthetic fixtures** for exercising the builder. They are not real audit results.

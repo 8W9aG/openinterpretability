@@ -18,7 +18,7 @@
 | Model revision | `{{ p.model_revision or 'unrecorded' }}` · {{ p.dtype }} |
 {% endif %}
 {% if record_link %}
-| Record | [{{ record_link }}]({{ record_link }}) (holds the *latest* verdict for this neuron) |
+| Record | [{{ record_link }}]({{ record_link }}) (this experiment's full record) |
 {% endif %}
 
 ## Hypothesis

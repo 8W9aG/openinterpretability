@@ -47,8 +47,9 @@
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <span class="font-mono text-sm font-medium">{{ m.name }}</span>
         <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
-          {{ m.neurons }} neurons · {{ m.experiments }} experiments · {{ m.verified }} verified ·
-          {{ m.layers | length }}/{{ m.n_layers }} layers ({{ m.coverage | pct }})
+          {{ m.experiments }} experiments ·
+          {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }}) ·
+          {{ m.verified }}/{{ m.total_neurons | thousands }} verified ({{ m.verified_share | pct_fine }})
         </span>
       </div>
       <div class="mt-3 flex h-8 items-end gap-px" role="img" aria-label="Studied neurons per layer">

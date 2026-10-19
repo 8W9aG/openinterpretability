@@ -32,4 +32,4 @@ description: Reviewer's checklist of documented ways neuron explanations fool th
 - **Scan breadth.** Corpus diversity and `snippet_tokens`. Under 256 tokens is a reason to ask for a rescan.
 - **Counterfactuals.** The proposer measured these before submitting, so they are a reproduction check, not a prediction (`docs/PROTOCOL.md` §4).
 - **Patching effects.** If only patching, and not ablation, shows an effect, suspect a dormant pathway (Makelov et al.).
-- **Independence.** The reviewer model must differ from the proposer's. The `independent_review` gate enforces this; don't work around it.
+- **Independence.** Prefer a reviewer model that differs from the proposer's. It is recorded as `independent_review` but no longer gated (protocol 0.4), so say in the PR when the same model did both.

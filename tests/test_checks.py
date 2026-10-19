@@ -1,18 +1,17 @@
 import subprocess
+from datetime import timedelta
 
 import pytest
 
-from openinterp.builder.wiki import write_experiment_page
+from openinterp.builder.wiki import archive_path, write_experiment_page
 from openinterp.checks import check_registry
 from openinterp.core.schemas import AuditRecord
 
 
 @pytest.fixture
 def repo(tmp_path, monkeypatch, record):
-    """A minimal registry: one audit record with its wiki page, committed to git."""
+    """A minimal registry: one experiment (record + page), committed to git."""
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "audits").mkdir()
-    (tmp_path / "audits" / "a.json").write_text(record.model_dump_json())
     write_experiment_page(record, tmp_path / "wiki")
     git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
     subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
@@ -35,27 +34,49 @@ def test_consistent_registry_passes(repo):
     assert (report.records, report.pages) == (1, 1)
 
 
-def test_audit_without_wiki_page(repo):
+def _later(record, hours):
+    verdict = record.verdict.model_copy(
+        update={"timestamp": record.verdict.timestamp + timedelta(hours=hours)}
+    )
+    return record.model_copy(update={"verdict": verdict})
+
+
+def test_many_experiments_per_neuron(repo, record):
+    for hours in (1, 2):
+        write_experiment_page(_later(record, hours), repo / "wiki", kind="reevaluation")
+    report = check_registry(base_ref="main")
+    assert report.ok, messages(report)
+    assert (report.records, report.pages) == (3, 3)
+
+
+def test_record_without_page(repo):
     page_of(repo).unlink()
-    report = check_registry()
-    assert "missing wiki page" in messages(report)
+    assert "has no page" in messages(check_registry())
 
 
-def test_wiki_page_without_audit(repo):
-    (repo / "audits" / "a.json").unlink()
-    assert "has no audit record" in messages(check_registry())
+def test_page_without_record(repo):
+    page_of(repo).with_suffix(".json").unlink()
+    assert "missing experiment record" in messages(check_registry())
 
 
-def test_unreviewed_record(repo, submission):
-    (repo / "audits" / "a.json").write_text(AuditRecord(submission=submission).model_dump_json())
+def test_unreviewed_record(repo, record, submission):
+    stray = archive_path(repo / "wiki", record).with_name("x.json")
+    stray.write_text(AuditRecord(submission=submission).model_dump_json())
     assert "no verdict" in messages(check_registry())
 
 
-def test_invalid_and_duplicate_records(repo, record):
-    (repo / "audits" / "dup.json").write_text(record.model_dump_json())
-    (repo / "audits" / "bad.json").write_text('{"submission": {}}')
+def test_invalid_and_misplaced_records(repo, record):
+    folder = archive_path(repo / "wiki", record).parent
+    (folder / "bad.json").write_text('{"submission": {}}')
+    (folder / "20200101T000000Z.json").write_text(record.model_dump_json())
     text = messages(check_registry())
-    assert "duplicate record" in text and "invalid audit record" in text
+    assert "invalid experiment record" in text and "belongs at" in text
+
+
+def test_legacy_audits_dir_rejected(repo, record):
+    (repo / "audits").mkdir()
+    (repo / "audits" / "a.json").write_text(record.model_dump_json())
+    assert "audits/ is retired" in messages(check_registry())
 
 
 def test_front_matter_must_match_record(repo):
@@ -104,21 +125,7 @@ def test_cli_exit_code(repo):
     page_of(repo).unlink()
     result = CliRunner().invoke(cli, ["check"])
     assert result.exit_code == 1
-    assert "missing wiki page" in result.output
-
-
-def test_missing_archive(repo):
-    page_of(repo).with_suffix(".json").unlink()
-    assert "missing archived record" in messages(check_registry())
-
-
-def test_archive_must_match_record(repo, record):
-    archived = page_of(repo).with_suffix(".json")
-    changed = record.model_copy(
-        update={"verdict": record.verdict.model_copy(update={"notes": "tampered"})}
-    )
-    archived.write_text(changed.model_dump_json())
-    assert "archived record differs" in messages(check_registry())
+    assert "has no page" in result.output
 
 
 def test_archive_edits_rejected_by_write_once(repo):

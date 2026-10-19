@@ -67,18 +67,31 @@ wiki_option = click.option(
     default=Path("wiki"),
     show_default=True,
     type=click.Path(file_okay=False, path_type=Path),
-    help="Where to write the experiment page. Pass --wiki-dir '' to skip.",
+    help="Registry root: the experiment's record and page go in experiments/<slug>/. "
+    "Pass --wiki-dir '' to skip (then --out is required).",
 )
 
 
+def _skip_wiki(wiki_dir) -> bool:
+    return not str(wiki_dir) or str(wiki_dir) == "."
+
+
 def _write_wiki(record, wiki_dir, **kwargs) -> None:
-    if not str(wiki_dir) or str(wiki_dir) == ".":
+    if _skip_wiki(wiki_dir):
         return
-    from openinterp.builder.wiki import write_experiment_page
+    from openinterp.builder.wiki import archive_path, write_experiment_page
 
     page = write_experiment_page(record, wiki_dir, **kwargs)
     if page is not None:
+        click.echo(f"Experiment: {archive_path(wiki_dir, record)}")
         click.echo(f"Wiki: {page}")
+
+
+def _write_copy(record, out) -> None:
+    if out is not None:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(record.model_dump_json(indent=2))
+        click.echo(f"Wrote {out}")
 
 
 def with_model_options(fn):
@@ -113,7 +126,11 @@ def cli() -> None:
     help="Text file (one snippet per line) or .jsonl with a 'text' field.",
 )
 @click.option("--top-k", default=20, show_default=True, help="Examples shown to the proposer.")
-@click.option("--agent-model", default=None, help="LiteLLM model string for the proposer.")
+@click.option(
+    "--agent-model",
+    default=None,
+    help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file.",
+)
 @click.option(
     "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
 )
@@ -201,19 +218,23 @@ def audit(
 
 @cli.command()
 @click.option("--audit-file", required=True, type=click.Path(exists=True, path_type=Path))
-@click.option("--agent-model", default=None, help="LiteLLM model string for the reviewer.")
-@click.option("--n-probes", default=16, show_default=True, type=click.IntRange(10, 20))
 @click.option(
-    "--out", type=click.Path(path_type=Path), help="Output record (default: audits/<slug>.json)"
+    "--agent-model",
+    default=None,
+    help="Reviewer. LiteLLM model string, or external/<name> to answer a prompt file.",
 )
+@click.option("--n-probes", default=16, show_default=True, type=click.IntRange(10, 20))
+@click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @wiki_option
 @with_model_options
 def verify(audit_file, agent_model, n_probes, out, wiki_dir, device, dtype):
-    """Adversarially review a submission and write a registry record with the verdict."""
+    """Adversarially review a submission and post it as a new experiment."""
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.reviewer import ReviewerAgent
     from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
 
+    if _skip_wiki(wiki_dir) and out is None:
+        raise click.UsageError("--out is required when --wiki-dir '' skips the registry.")
     raw = audit_file.read_text()
     if "submission" in json.loads(raw):  # an existing audit record: re-review its submission
         submission = AuditRecord.model_validate_json(raw).submission
@@ -228,12 +249,9 @@ def verify(audit_file, agent_model, n_probes, out, wiki_dir, device, dtype):
     verdict = reviewer.review(submission, runner, probes=probes)
 
     record = AuditRecord(submission=submission, verdict=verdict)
-    out = out or Path("audits") / f"{submission.identifier.slug}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(record.model_dump_json(indent=2))
     click.echo(f"{verdict.status} (confidence {verdict.confidence_score:.2f}) — {verdict.notes}")
-    click.echo(f"Wrote {out}")
-    _write_wiki(record, wiki_dir, kind="review", record_path=out)
+    _write_copy(record, out)
+    _write_wiki(record, wiki_dir, kind="review")
 
 
 cli.add_command(verify, name="review")
@@ -241,14 +259,19 @@ cli.add_command(verify, name="review")
 
 @cli.command()
 @click.option("--record", required=True, type=click.Path(exists=True, path_type=Path))
-@click.option("--out", type=click.Path(path_type=Path), help="Default: overwrite --record.")
+@click.option("--out", type=click.Path(path_type=Path), help="Also write the new record here.")
 @wiki_option
 @with_model_options
 def reevaluate(record, out, wiki_dir, device, dtype):
-    """Re-measure a record's stored probes under the current ReviewPolicy (no LLM calls)."""
+    """Re-measure a record's stored probes under the current ReviewPolicy (no LLM calls).
+
+    The result is a new experiment; the original record is never modified.
+    """
     from openinterp.agents.reviewer import evaluate_submission, probes_from_verdict
     from openinterp.core.schemas import AuditRecord
 
+    if _skip_wiki(wiki_dir) and out is None:
+        raise click.UsageError("--out is required when --wiki-dir '' skips the registry.")
     old = AuditRecord.model_validate_json(record.read_text())
     if old.verdict is None:
         raise click.ClickException(f"{record} has no verdict to re-evaluate.")
@@ -256,16 +279,11 @@ def reevaluate(record, out, wiki_dir, device, dtype):
     verdict = evaluate_submission(
         old.submission, runner, probes_from_verdict(old.verdict), old.verdict.reviewer_agent_model
     )
-    out = out or record
     new = AuditRecord(submission=old.submission, verdict=verdict)
-    # Keep the superseded verdict in the wiki before the record is overwritten.
-    _write_wiki(old, wiki_dir, kind="backfill", record_path=out)
-    out.write_text(new.model_dump_json(indent=2))
     click.echo(f"{old.verdict.status} -> {verdict.status} — {verdict.notes}")
-    click.echo(f"Wrote {out}")
-    _write_wiki(
-        new, wiki_dir, kind="reevaluation", record_path=out, previous_status=old.verdict.status
-    )
+    _write_wiki(old, wiki_dir, kind="backfill")  # no-op when the original is already archived
+    _write_copy(new, out)
+    _write_wiki(new, wiki_dir, kind="reevaluation", previous_status=old.verdict.status)
 
 
 @cli.command()

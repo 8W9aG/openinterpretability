@@ -32,13 +32,10 @@ def _record(record, *, status, gates=None, policy=True, idx=117, pole="positive"
 
 
 def _registry(tmp_path, *records):
-    audits, wiki = tmp_path / "audits", tmp_path / "wiki"
-    audits.mkdir(exist_ok=True)
-    for i, rec in enumerate(records):
-        path = audits / f"r{i}.json"
-        path.write_text(rec.model_dump_json())
-        write_experiment_page(rec, wiki, record_path=path)
-    return audits, wiki
+    wiki = tmp_path / "wiki"
+    for rec in records:
+        write_experiment_page(rec, wiki)
+    return wiki
 
 
 def _kinds(plan):
@@ -46,13 +43,13 @@ def _kinds(plan):
 
 
 def test_empty_registry_explores(tmp_path):
-    plan = plan_next(tmp_path / "audits", tmp_path / "wiki", seed=1, epsilon=0.0, now=NOW)
+    plan = plan_next(tmp_path / "wiki", seed=1, epsilon=0.0, now=NOW)
     assert plan.explored and plan.choice.kind == "explore"
     assert plan.choice.commands[0].startswith("openinterp audit --model Qwen/Qwen2.5-0.5B --random")
 
 
 def test_candidates_follow_verdicts(tmp_path, record):
-    audits, wiki = _registry(
+    wiki = _registry(
         tmp_path,
         _record(
             record,
@@ -64,7 +61,7 @@ def test_candidates_follow_verdicts(tmp_path, record):
         _record(record, status="VERIFIED", idx=3, gates={"specificity": True}),
         _record(record, status="VERIFIED", idx=4, policy=False),  # pre-0.2 verdict
     )
-    plan = plan_next(audits, wiki, seed=1, epsilon=0.0, now=NOW)
+    plan = plan_next(wiki, seed=1, epsilon=0.0, now=NOW)
     kinds = _kinds(plan)
     assert {("revise", "N1-positive"), ("independent_review", "N1-positive")} <= kinds
     assert ("new_hypothesis", "N2-positive") in kinds  # a rejection is still followed up
@@ -76,14 +73,12 @@ def test_candidates_follow_verdicts(tmp_path, record):
 
 
 def test_opposite_pole_skipped_when_studied(tmp_path, record):
-    audits, wiki = _registry(
+    wiki = _registry(
         tmp_path,
         _record(record, status="VERIFIED", idx=5, gates={}),
         _record(record, status="VERIFIED", idx=5, pole="negative", gates={}),
     )
-    assert not any(
-        c.kind == "opposite_pole" for c in plan_next(audits, wiki, seed=1, now=NOW).candidates
-    )
+    assert not any(c.kind == "opposite_pole" for c in plan_next(wiki, seed=1, now=NOW).candidates)
 
 
 def test_decay_never_reaches_zero(tmp_path, record):
@@ -92,31 +87,31 @@ def test_decay_never_reaches_zero(tmp_path, record):
     rec = rec.model_copy(
         update={"verdict": rec.verdict.model_copy(update={"timestamp": claimed_recent})}
     )
-    audits, wiki = _registry(tmp_path, rec)
+    wiki = _registry(tmp_path, rec)
     claims = [f"experiment: {claim_key(rec.submission.identifier.slug)}"]
-    plan = plan_next(audits, wiki, seed=1, epsilon=0.0, claims=claims, now=NOW)
+    plan = plan_next(wiki, seed=1, epsilon=0.0, claims=claims, now=NOW)
     new_hyp = next(c for c in plan.candidates if c.kind == "new_hypothesis")
     assert 0 < new_hyp.weight < BASE_WEIGHTS["new_hypothesis"] * 0.02  # recency × claim
     assert "open PR" in new_hyp.rationale and "6h" in new_hyp.rationale
 
 
 def test_seed_reproduces_choice(tmp_path, record):
-    audits, wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", gates={}))
-    a = plan_next(audits, wiki, seed=42, now=NOW)
-    b = plan_next(audits, wiki, seed=42, now=NOW)
+    wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", gates={}))
+    a = plan_next(wiki, seed=42, now=NOW)
+    b = plan_next(wiki, seed=42, now=NOW)
     assert (a.choice, a.explored) == (b.choice, b.explored)
 
 
 def test_sampling_spreads_agents_out(tmp_path, record):
     """Independent agents must not all pick the same experiment."""
-    audits, wiki = _registry(
+    wiki = _registry(
         tmp_path,
         _record(record, status="NEEDS_REVISION", idx=1, gates={"independent_review": False}),
         _record(record, status="VERIFIED", idx=2, gates={}),
     )
     picks = Counter(
         (p.choice.kind, p.choice.slug)
-        for p in (plan_next(audits, wiki, seed=s, now=NOW) for s in range(300))
+        for p in (plan_next(wiki, seed=s, now=NOW) for s in range(300))
     )
     top_share = picks.most_common(1)[0][1] / 300
     assert len(picks) >= 4 and top_share < 0.5
@@ -126,8 +121,8 @@ def test_sampling_spreads_agents_out(tmp_path, record):
 
 @pytest.mark.parametrize("epsilon", [0.0, 1.0])
 def test_epsilon_extremes(tmp_path, record, epsilon):
-    audits, wiki = _registry(tmp_path, _record(record, status="VERIFIED", gates={}))
-    plans = [plan_next(audits, wiki, seed=s, epsilon=epsilon, now=NOW) for s in range(20)]
+    wiki = _registry(tmp_path, _record(record, status="VERIFIED", gates={}))
+    plans = [plan_next(wiki, seed=s, epsilon=epsilon, now=NOW) for s in range(20)]
     assert all(p.explored == (epsilon == 1.0) for p in plans)
 
 
@@ -138,10 +133,27 @@ def test_cli_next(tmp_path, record):
 
     from openinterp.cli import cli
 
-    audits, wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", gates={}))
-    args = ["next", "--audits-dir", str(audits), "--wiki-dir", str(wiki), "--no-claims"]
+    wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", gates={}))
+    args = ["next", "--wiki-dir", str(wiki), "--no-claims"]
     result = CliRunner().invoke(cli, [*args, "--seed", "3", "--json"])
     assert result.exit_code == 0, result.output
     assert json.loads(result.output)["seed"] == 3
     text = CliRunner().invoke(cli, [*args, "--top", "3"]).output
     assert "Next experiment:" in text and "seed" in text
+
+
+def test_latest_experiment_drives_follow_ups(tmp_path, record):
+    older = _record(record, status="NEEDS_REVISION", gates={"sensitivity": False}, idx=1)
+    newer = _record(record, status="VERIFIED", gates={}, idx=1)
+    newer = newer.model_copy(
+        update={
+            "verdict": newer.verdict.model_copy(
+                update={"timestamp": older.verdict.timestamp + timedelta(hours=1)}
+            )
+        }
+    )
+    wiki = _registry(tmp_path, newer, older)
+    plan = plan_next(wiki, seed=1, epsilon=0.0, now=NOW)
+    kinds = {kind for kind, _ in _kinds(plan)}
+    assert "revise" not in kinds and "replicate" in kinds
+    assert all("2 experiments so far" in c.rationale for c in plan.candidates)

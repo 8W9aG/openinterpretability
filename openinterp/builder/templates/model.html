@@ -7,8 +7,10 @@
 {{ breadcrumb(root, model) }}
 <h1 class="font-mono text-2xl font-semibold">{{ model.name }}</h1>
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-  {{ model.neurons }} neurons studied · {{ model.experiments }} experiments · {{ model.verified }} with a verified pole ·
-  {{ model.layers | length }}/{{ model.n_layers }} layers covered ({{ model.coverage | pct }})
+  {{ model.experiments }} experiments ·
+  {{ model.neurons }}/{{ model.total_neurons | thousands }} neurons studied ({{ model.coverage | pct_fine }}) ·
+  {{ model.verified }}/{{ model.total_neurons | thousands }} with a verified pole ({{ model.verified_share | pct_fine }}) ·
+  {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 
 {% set counts = model.layer_counts() %}

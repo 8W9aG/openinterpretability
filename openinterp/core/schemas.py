@@ -18,7 +18,7 @@ VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 
-PROTOCOL_VERSION = "0.3"
+PROTOCOL_VERSION = "0.4"
 
 UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
 
@@ -227,6 +227,7 @@ class NeuronAuditSubmission(StrictModel):
     top_examples: list[ActivatingExample] = Field(default_factory=list)
     activation_histogram: Histogram | None = None
     model_num_layers: int | None = Field(default=None, gt=0)
+    model_mlp_width: int | None = Field(default=None, gt=0, description="Neurons per MLP layer.")
     provenance: ExperimentProvenance | None = None
     correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
     confounds: ConfoundProfile | None = None
@@ -257,7 +258,8 @@ class ReviewPolicy(StrictModel):
     min_sensitivity: UnitFloat = 0.60
     min_counterfactual_reproduction: UnitFloat = 0.75
     reject_below_balanced_accuracy: UnitFloat = 0.60
-    require_independent_review: bool = True
+    # v0.4: proposer/reviewer independence is recorded but no longer gated by default.
+    require_independent_review: bool = False
     freeze_downstream: bool = True
     # v0.3: near-duplicate probes (word-set Jaccard >= this) count as one observation.
     probe_cluster_threshold: UnitFloat = 0.5

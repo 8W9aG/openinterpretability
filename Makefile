@@ -1,4 +1,4 @@
-.PHONY: install test lint format check build search-index sample-run serve clean
+.PHONY: install test lint format check build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -33,12 +33,16 @@ search-index:
 sample-run:
 	uv run python examples/make_sample_audits.py
 	rm -rf build/sample-wiki
-	uv run openinterp wiki --audits-dir examples/audits --wiki-dir build/sample-wiki
+	uv run openinterp wiki --import-dir examples/audits --wiki-dir build/sample-wiki
 	@$(MAKE) --no-print-directory build WIKI_DIR=build/sample-wiki
 	@echo "Open $(DIST_DIR)/index.html, or run 'make serve' for DuckDB/Pagefind (needs HTTP)."
 
 serve:
 	uv run python -m http.server --directory $(DIST_DIR) 8000
+
+# Run experiments back to back with headless Claude Code; see scripts/experiment-loop.sh --help.
+loop:
+	scripts/experiment-loop.sh $(LOOP_ARGS)
 
 clean:
 	rm -rf $(DIST_DIR) .pytest_cache .ruff_cache

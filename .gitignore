@@ -221,4 +221,6 @@ __marimo__/
 
 # openinterp working files
 submissions/
+exchange/
 corpus.jsonl
+logs/

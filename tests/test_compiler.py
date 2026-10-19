@@ -97,7 +97,32 @@ def test_every_experiment_published_in_hierarchy(tmp_path, records):
 
     layer = (model / "L3" / "index.html").read_text()
     assert 'href="../../../models/Qwen--Qwen2.5-0.5B/L3/N9.html"' in layer
-    assert "1/24 layers" in (model / "index.html").read_text()
+    model_page = (model / "index.html").read_text()
+    # Coverage counts neurons, not layers: 24 layers × 4,864 neurons.
+    assert "2/116,736 neurons studied (0.0017%)" in model_page
+    assert "1/116,736 with a verified pole (0.00086%)" in model_page
+    assert "1/24 layers" not in model_page
+
+
+def test_coverage_uses_recorded_mlp_width(tmp_path, records):
+    narrow = [
+        r.model_copy(update={"submission": r.submission.model_copy(update={"model_mlp_width": 4})})
+        for r in records
+    ]
+    compile_site(narrow, tmp_path)
+    index = (tmp_path / "index.html").read_text()
+    assert "2/96 neurons studied (2.1%)" in index
+    assert "1/96 verified (1.0%)" in index
+
+
+def test_pct_fine():
+    from openinterp.builder.compiler import _pct_fine
+
+    assert _pct_fine(None) == "—"
+    assert _pct_fine(0) == "0%"
+    assert _pct_fine(0.5) == "50%"
+    assert _pct_fine(0.021) == "2.1%"
+    assert _pct_fine(1 / 116_736) == "0.00086%"
 
 
 def test_experiments_ordered_by_conclusiveness(tmp_path, records):

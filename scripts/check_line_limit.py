@@ -14,7 +14,6 @@ MAX_LINES = 500
 
 EXEMPT = (
     "tests/*",
-    "audits/*",  # generated audit records (JSON data)
     "examples/audits/*",  # generated fixtures
     "wiki/*",  # generated experiment pages
     "uv.lock",

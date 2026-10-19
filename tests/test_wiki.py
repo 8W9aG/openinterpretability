@@ -32,20 +32,16 @@ def _failed_record(record):
 
 
 def test_writes_experiment_page_and_indexes(tmp_path, record):
-    audits = tmp_path / "audits"
-    audits.mkdir()
-    rec_path = audits / "r.json"
-    rec_path.write_text(record.model_dump_json())
     wiki = tmp_path / "wiki"
 
-    page = write_experiment_page(record, wiki, record_path=rec_path)
+    page = write_experiment_page(record, wiki)
     assert page == wiki / "experiments" / record.submission.identifier.slug / "20261001T120000Z.md"
     text = page.read_text()
     meta = _read_front_matter(page)
     assert meta["status"] == "VERIFIED" and meta["layer"] == 3
     assert "Fires on the closing quote of reported speech." in text
     assert "⟦" in text  # peak token marked in examples
-    assert "../../../../../audits/r.json" in text  # record link is relative to the page
+    assert "(20261001T120000Z.json)" in text  # links its own archived record
     assert "## Discussion" in text
 
     home = (wiki / "README.md").read_text()
@@ -95,9 +91,6 @@ def test_table_cells_escaped(tmp_path, record):
 
 
 def test_backfill_skips_unreviewed(tmp_path, record, submission):
-    written = backfill(
-        [(record, tmp_path / "a.json"), (AuditRecord(submission=submission), tmp_path / "b.json")],
-        tmp_path / "wiki",
-    )
+    written = backfill([record, AuditRecord(submission=submission)], tmp_path / "wiki")
     assert len(written) == 1
-    assert backfill([(record, tmp_path / "a.json")], tmp_path / "wiki") == []
+    assert backfill([record], tmp_path / "wiki") == []

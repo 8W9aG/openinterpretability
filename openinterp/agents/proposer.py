@@ -177,6 +177,7 @@ class ProposerAgent(LLMAgent):
             top_examples=list(examples),
             activation_histogram=histogram,
             model_num_layers=runner.n_layers if runner is not None else None,
+            model_mlp_width=runner.mlp_width(identifier.layer) if runner is not None else None,
             provenance=provenance,
             confounds=confounds,
             correlated_neurons=list(correlated),

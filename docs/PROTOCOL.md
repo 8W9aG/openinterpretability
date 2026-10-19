@@ -48,8 +48,8 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    - **positive holdouts** (at least four): new contexts, including paraphrases of the claimed feature, that the hypothesis says should fire.
 6. **Measure.** The harness runs every probe and counterfactual, measures the lookahead profile (KL between clean and pole-ablated next-token distributions, and how concentrated the change is), and computes the causal metrics.
 7. **Decide.** Apply the rule in §4.
-8. **Record.** Every completed experiment, whatever its verdict, gets a write-once page in `wiki/experiments/<model>/L<layer>/N<idx>-<pole>/<timestamp>.md`. The page holds the hypothesis, evidence, gate results, failed probes and next steps derived from the failed gates. `verify` and `reevaluate` write it automatically, and the superseded verdict is saved before `reevaluate` overwrites a record. The page's Discussion section is for free-form notes.
-9. **Publish.** Every experiment is published, whatever its verdict. The site and `registry.parquet` are built from the wiki archive, and a write-once `<id>.json` record sits beside each experiment page. `audits/` holds the latest record per neuron pole; `wiki/` holds every experiment. Pages follow Model → Layer → Neuron → Experiments, and each neuron's experiments are ordered by **conclusiveness**:
+8. **Record.** Every completed experiment, whatever its verdict, gets a write-once page in `wiki/experiments/<model>/L<layer>/N<idx>-<pole>/<timestamp>.md`. The page holds the hypothesis, evidence, gate results, failed probes and next steps derived from the failed gates. `verify` and `reevaluate` write it automatically, next to the experiment's write-once record `<timestamp>.json`. Re-evaluations, revisions and re-reviews are new experiments: nothing is ever overwritten. The page's Discussion section is for free-form notes.
+9. **Publish.** Every experiment is published, whatever its verdict. The site and `registry.parquet` are built from the archived `<id>.json` records, the registry's only source of truth. A neuron pole may have any number of experiments, and its standing (latest or most conclusive verdict) is derived from them, never stored. Pages follow Model → Layer → Neuron → Experiments, and each neuron's experiments are ordered by **conclusiveness**:
    - With Beta(1, 1) priors on specificity and sensitivity, P(useful) = P(balanced accuracy > 0.6).
    - Conclusiveness is |2·P(useful) − 1|, so a well-probed rejection ranks as high as a well-probed verification, and thinly-probed results rank low whatever their verdict.
 
@@ -80,7 +80,7 @@ A verdict is **VERIFIED** only if every gate passes:
 | `sensitivity` | ≥ 0.60 | The hypothesis generalises beyond its own examples. |
 | `counterfactual_reproduction` | ≥ 0.75 of pairs | The proposer's predicted Δ reproduce within `max(0.10, 0.50 × |predicted|)`, with the right sign. |
 | `lookahead_consistent` | — | The measured mechanism matches the claim. |
-| `independent_review` | — | The reviewer model differs from the proposer model. |
+| `independent_review` | off (`require_independent_review`) | The reviewer model differs from the proposer model. Always recorded; gated only when the policy requires it. |
 | `beats_confound_baseline` | ≥ best baseline | The hypothesis explains the probes at least as well as token identity, position or "never active". It fails when the submission has no confound profile. |
 
 If the probe set is adequate (both count gates pass) and balanced accuracy is below **0.60**, the verdict is **REJECTED**: the hypothesis predicts the neuron barely better than chance. Every other outcome is **NEEDS_REVISION**, and the failed gates are listed in `verdict.notes`.
@@ -124,6 +124,7 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 | 0.1 | Weighted mean of probe, counterfactual and lookahead pass rates; absolute Δ tolerance of 0.35. |
 | 0.2 | Gated rule with balanced accuracy; relative Δ tolerance; minimum probe counts; independent-review gate; provenance block. |
 | 0.3 | Near-duplicate probes cluster into single observations; confound-control gate against token, position and never-active baselines; correlated neurons and joint ablation recorded. |
+| 0.4 | `independent_review` is recorded but no longer gated by default (`require_independent_review = False`). |
 
 ### Registry-level dependence
 
@@ -134,7 +135,7 @@ These do not change the decision rule.
 
 ## 7. Worked example
 
-Qwen2.5-0.5B, layer 11, neuron 4255, positive pole, selected at random (`audits/qwen-L11-N4255-positive.json`).
+Qwen2.5-0.5B, layer 11, neuron 4255, positive pole, selected at random (`wiki/experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/`).
 
 - **Hypothesis:** fires on the connective that introduces examples of a category just named ("industries, *including* …", "such *as*").
 - **v0.1 verdict: VERIFIED (0.91).** Ten easy negatives outweighed three failed holdouts, and Δ predictions of 0.40 and 0.30 "passed" with observed values of 0.11 and 0.08.

@@ -6,12 +6,12 @@
 
 <!-- Delete this section if the PR posts no experiment. -->
 
-- [ ] The audit record is in `audits/` and was produced by `openinterp verify` or `openinterp reevaluate`.
+- [ ] The experiment's record (`wiki/experiments/<slug>/<id>.json`) was produced by `openinterp verify` or `openinterp reevaluate`.
 - [ ] The wiki page was generated (`openinterp wiki`), and I only edited its **Discussion** section by hand.
-- [ ] The proposer and reviewer were different models (`independent_review` gate).
+- [ ] I've said whether the proposer and reviewer were different models (`independent_review`, recorded but not gated).
 - [ ] `openinterp check` passes locally.
 - [ ] If the experiment came from `openinterp next`, its seed and kind are in this description.
 
 CI checks every PR in two jobs:
 - **Lint and tests:** `ruff check`, `ruff format --check` and `pytest`.
-- **Experiment records:** every audit record validates and has a verdict, is the only record for its neuron, and has a wiki page for its verdict. Every wiki page has an audit record, the wiki indexes are up to date, and existing experiment pages were not edited outside Discussion or deleted.
+- **Experiment records:** every experiment record validates, has a verdict and has a matching page, and every page has a record. Records are write-once, the wiki indexes are up to date, and existing experiment pages were not edited outside Discussion or deleted.

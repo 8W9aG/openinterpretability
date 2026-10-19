@@ -1,3 +1,6 @@
+import json
+import threading
+
 import pytest
 
 from openinterp.agents.base import LLMAgent
@@ -84,6 +87,7 @@ def test_build_submission_measures_evidence(ident, draft, toy_runner):
     assert sub.max_activation == examples[0].max_activation
     assert all(cf.observed_delta is not None for cf in sub.counterfactuals)
     assert sub.model_num_layers == 3
+    assert sub.model_mlp_width == toy_runner.mlp_width(ident.layer)
     assert sub.lookahead.kl_divergence >= 0
 
 
@@ -168,13 +172,22 @@ def test_review_rejects_wrong_hypothesis(ident, toy_runner, draft):
     assert verdict.confidence_score < SMALL.reject_below_balanced_accuracy
 
 
-def test_same_model_review_cannot_verify(ident, toy_runner, draft):
+def test_same_model_review_cannot_verify_when_required(ident, toy_runner, draft):
     sub = _submission(ident, toy_runner, draft, honest=True)
     probes = _probes(toy_runner, ident, sub, honest=True)
-    verdict = evaluate_submission(sub, toy_runner, probes, sub.submitting_agent_model, SMALL)
+    policy = SMALL.model_copy(update={"require_independent_review": True})
+    verdict = evaluate_submission(sub, toy_runner, probes, sub.submitting_agent_model, policy)
     assert verdict.metrics.gates["independent_review"] is False
     assert verdict.status != "VERIFIED"
     assert "independent_review" in verdict.notes
+
+
+def test_same_model_review_is_recorded_not_gated_by_default(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    probes = _probes(toy_runner, ident, sub, honest=True)
+    verdict = evaluate_submission(sub, toy_runner, probes, sub.submitting_agent_model, SMALL)
+    assert verdict.metrics.independent_review is False
+    assert verdict.metrics.gates["independent_review"] is True
 
 
 def test_probes_round_trip_through_verdict(ident, toy_runner, draft):
@@ -305,3 +318,35 @@ def test_review_records_confounds_and_joint_ablation(ident, toy_runner, draft):
     ja = verdict.joint_ablation
     assert ja is not None and len(ja.partners) == 3
     assert ja.kl_joint >= 0 and ja.kl_single >= 0
+
+
+def test_external_agent_reads_response_file(tmp_path):
+    agent = ProposerAgent("external/test-llm", exchange_dir=tmp_path, poll_interval=0.01)
+    pair = {"base_prompt": "a", "counterfactual_prompt": "b", "expected_delta": 0.5}
+    answer = {
+        "explanation": "fires on x",
+        "activating_tokens": ["x"],
+        "mechanism": "retrospective",
+        "counterfactuals": [dict(pair, rationale=str(i)) for i in range(3)],
+    }
+
+    def respond():
+        prompt = tmp_path / "ProposerAgent.prompt.md"
+        while not prompt.exists():
+            threading.Event().wait(0.01)
+        assert "counterfactuals" in prompt.read_text()  # schema is included
+        (tmp_path / "ProposerAgent.response.json").write_text('{"explanation": 1}')
+        while not (tmp_path / "ProposerAgent.error.txt").exists():
+            threading.Event().wait(0.01)
+        (tmp_path / "ProposerAgent.response.json").write_text(json.dumps(answer))
+
+    threading.Thread(target=respond, daemon=True).start()
+    draft = agent.structured(HypothesisDraft, "describe the neuron")
+    assert draft.explanation == "fires on x"
+    assert not (tmp_path / "ProposerAgent.error.txt").exists()
+
+
+def test_external_agent_times_out(tmp_path):
+    agent = ReviewerAgent("external/x", exchange_dir=tmp_path, timeout=0.05, poll_interval=0.01)
+    with pytest.raises(AgentError):
+        agent.structured(ProbeSet, "probes")

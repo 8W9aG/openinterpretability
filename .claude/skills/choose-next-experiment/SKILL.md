@@ -13,7 +13,7 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
 
 ## Procedure
 
-1. **Start from a fresh `main`.** Run `git pull`. The planner reads `audits/` and `wiki/`, so stale state means stale choices.
+1. **Start from a fresh `main`.** Run `git pull`. The planner reads every experiment in `wiki/experiments/`, so stale state means stale choices.
 2. **Ask the planner, with fresh randomness:**
    ```bash
    uv run openinterp next --top 5

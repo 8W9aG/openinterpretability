@@ -9,6 +9,22 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-10-18
+
+Ships with protocol version **0.4**.
+
+### Added
+
+- `scripts/experiment-loop.sh` (`make loop`): runs experiments back to back in fresh headless Claude Code sessions, in a separate worktree reset to `origin/main` each time, until `--max` or until `claude` fails (for example at the usage limit). `--proposer` and `--reviewer` choose the LLMs; `--driver` chooses the Claude model driving the session. Logs go to `logs/loop/` (git-ignored).
+- `NeuronAuditSubmission.model_mlp_width` (neurons per MLP layer), recorded by the proposer and exported to Parquet. It is optional, so existing records still validate.
+- `--agent-model external/<name>`: any LLM, agent or person can act as proposer or reviewer by answering `exchange/<Agent>.prompt.md` (which includes the JSON schema) with `exchange/<Agent>.response.json`. No API keys are needed.
+
+### Changed
+
+- **Experiments, not neurons, are the unit of storage.** `audits/` is retired: each experiment's write-once `wiki/experiments/<slug>/<id>.json` is the only source of truth, so a neuron can have any number of experiments and parallel PRs on one neuron no longer collide. `verify` and `reevaluate` add a new experiment and never overwrite one (`--out` writes an optional extra copy). `openinterp check` drops the one-record-per-neuron rule, checks each record's path and page instead, and rejects records left in `audits/`. The planner derives each neuron's state from all of its experiments. `openinterp wiki --audits-dir` becomes `--import-dir`, and `check`/`next` lose `--audits-dir`.
+- **Protocol 0.4:** `independent_review` is recorded but no longer gated by default (`ReviewPolicy.require_independent_review = False`).
+- Site coverage now counts neurons rather than layers: model cards and pages show neurons studied and neurons with a verified pole, each out of the model's total neurons (layers × MLP width). Before, one experiment anywhere in a layer counted the whole layer as covered. Records without a width fall back to `KNOWN_MLP_WIDTHS` in `builder/tree.py`; when the width is unknown, the total shows as "?".
+
 ## [0.0.2] - 2026-10-18
 
 Ships with protocol version **0.3**.
