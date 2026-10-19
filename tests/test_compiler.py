@@ -246,3 +246,42 @@ def test_vocabulary_lens_rendered(tmp_path, record):
     assert "Jacobian lens" in page and " including" in page and "cos(w, J·w) 0.31" in page
     row = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()[0]
     assert row["jacobian_promoted"] == [" including"] and row["lens_overlap"] == 0.0
+
+
+def test_token_heat_windows_long_snippets_around_the_peak():
+    from openinterp.builder.compiler import token_heat
+    from openinterp.core.schemas import ActivatingExample
+
+    acts = [0.0] * 100
+    acts[60] = 2.0
+    acts[61] = 3.0
+    ex = ActivatingExample(
+        text="x" * 100,
+        tokens=[f"t{i}" for i in range(100)],
+        activations=acts,
+        max_activation=3.0,
+        max_token_index=61,
+    )
+    heat = token_heat(ex, 4.0, before=5, after=2)
+    assert [t.text for t in heat.window] == [f"t{i}" for i in range(56, 64)]
+    assert heat.clipped_start and heat.clipped_end and len(heat.tokens) == 100
+    (peak,) = [t for t in heat.window if t.peak]
+    assert (peak.text, peak.shade, peak.value) == ("t61", 0.75, 3.0)  # shade vs the neuron's max
+
+    short = token_heat(ex.model_copy(update={"max_token_index": 1}), 4.0, before=5, after=200)
+    assert not short.clipped_start and not short.clipped_end
+
+    odd = ex.model_copy(
+        update={"tokens": ["a\n", *ex.tokens[1:]], "activations": [-0.0, *acts[1:]]}
+    )
+    first = token_heat(odd, 4.0).tokens[0]
+    assert first.text == "a↵" and str(first.value) == "0.0"
+
+
+def test_heatmap_renders_exact_values_and_peak(tmp_path, record):
+    compile_site([record], tmp_path)
+    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert 'class="tok heat peak" style="--a: 1.0" data-v="2.500 · peak"' in page
+    assert 'data-v="0.300"' in page  # exact stored value, not a rounded shade
+    assert "--heat-rgb: 234 88 12" in page  # positive pole hue
+    assert '<summary class="cursor-pointer">Values</summary>' in page

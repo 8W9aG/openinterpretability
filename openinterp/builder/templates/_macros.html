@@ -28,3 +28,8 @@
   {% if neuron %} / Neuron {{ neuron.idx }}{% endif %}
 </nav>
 {%- endmacro %}
+
+{# Tokens shaded by pole strength; hover (or tap) a token for its exact value. #}
+{% macro heat_tokens(tokens) -%}
+{%- for t in tokens %}<span class="tok heat{{ ' peak' if t.peak }}" style="--a: {{ t.shade }}" data-v="{{ t.value | num(3) }}{{ ' · peak' if t.peak }}">{{ t.text }}</span>{% endfor -%}
+{%- endmacro %}

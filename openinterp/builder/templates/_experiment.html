@@ -1,5 +1,5 @@
 {# One experiment on a neuron page. Expects `v` from compiler._experiment_view. #}
-{% from "_macros.html" import status_badge, evidence_badge, pole_mark %}
+{% from "_macros.html" import status_badge, evidence_badge, pole_mark, heat_tokens %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set positive = ident.pole == "positive" %}
@@ -135,13 +135,35 @@
   </div>
 
   {% if examples %}
-  <section class="mb-10">
-    <h3 class="mb-3 text-base font-semibold">Top-activating examples</h3>
+  <section class="mb-10" style="--heat-rgb: {{ '234 88 12' if positive else '2 132 199' }}">
+    <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <h3 class="text-base font-semibold">Top-activating examples</h3>
+      <div class="flex items-center gap-2 text-xs text-slate-500" aria-hidden="true">
+        <span>0</span><span class="heat-scale h-2 w-24 rounded-sm"></span><span class="font-mono">{{ (sub.max_activation or 0) | num(2) }}</span>
+        <span class="ml-2"><span class="tok heat peak" style="--a: 1">peak</span> token</span>
+      </div>
+    </div>
+    <p class="mb-3 text-xs text-slate-500">Each token is shaded by {{ ident.pole }}-pole strength as a fraction of the neuron's max activation; hover a token for its value. Up to 30 tokens before and 10 after each peak are shown.</p>
     <ol class="space-y-2">
-      {% for ex, heat in examples %}
+      {% for ex in examples %}
       <li class="rounded-lg border border-slate-200 p-3 text-sm leading-7 dark:border-slate-800">
-        <span class="mr-2 font-mono text-xs text-slate-500">{{ ex.max_activation | num(2) }}</span>
-        {% for tok, a in heat %}<span class="tok" style="background-color: rgb({{ '234 88 12' if positive else '2 132 199' }} / {{ a }})" title="{{ (a * (sub.max_activation or ex.max_activation)) | num(3) }}">{{ tok }}</span>{% endfor %}
+        <span class="mr-2 font-mono text-xs text-slate-500" title="peak strength">{{ ex.max_activation | num(2) }}</span>
+        {%- if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}
+        <div class="mt-1 flex flex-wrap gap-x-4 text-xs text-slate-500">
+          {% if ex.clipped_start or ex.clipped_end %}
+          <details><summary class="cursor-pointer">All {{ ex.tokens | length }} tokens</summary>
+            <p class="mt-2 text-sm leading-7 text-slate-900 dark:text-slate-100">{{ heat_tokens(ex.tokens) }}</p>
+          </details>
+          {% endif %}
+          <details><summary class="cursor-pointer">Values</summary>
+            <table class="mt-2 font-mono text-xs">
+              <thead class="sr-only"><tr><th>Token</th><th>Pole strength</th></tr></thead>
+              <tbody>
+                {% for t in ex.window %}<tr class="{{ 'font-semibold text-slate-900 dark:text-slate-100' if t.peak }}"><td class="pr-4"><code class="tok">{{ t.text }}</code></td><td class="text-right tabular-nums">{{ t.value | num(3) }}</td></tr>{% endfor %}
+              </tbody>
+            </table>
+          </details>
+        </div>
       </li>
       {% endfor %}
     </ol>

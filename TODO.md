@@ -11,15 +11,49 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 - [ ] **(protocol)** Decide whether steering predictions and simulation scores should become gates. Both need a pre-registered prediction format first.
 - [ ] Report registry-wide statistics (share VERIFIED, share dead) over `selection = "random"` records only.
 - [ ] Record dead neurons found by random selection instead of discarding them.
+- [ ] Null calibration: run the full pipeline on targets that should fail and report the VERIFIED rate as the protocol's false-positive rate. Cases: a hypothesis written for neuron A scored against neuron B, a shuffled-label hypothesis, and "neurons" in a randomly rotated MLP hidden basis. The rotated basis also tests the native-basis premise directly: if rotated units verify about as often as real ones, the neuron basis isn't privileged (Elhage et al., 2021). With many agents, neurons and gates, registry-level claims need this false-positive rate, or a multiple-comparisons correction, before they mean anything.
+- [ ] Ground-truth calibration: audit models whose mechanisms are known by construction, and check that agents recover each neuron's role. Candidates: Tracr-compiled transformers, InterpBench (Gupta et al., 2024), and a small model fine-tuned to plant a known neuron. This complements the induction-head positive control: that control checks the protocol can say yes, while this checks that the agent's explanation is the *right* one.
+- [ ] **(protocol)** Hypothesis-conditioned resample ablation, i.e. causal scrubbing for one neuron (Chan et al., 2022). Replace the pole's activation with its value on another token the hypothesis labels the same, and separately with its value on a token labelled differently. If the hypothesis captures what downstream layers use, the first barely changes the loss and the second does. This needs the hypothesis as an executable labeller (the simulator in `explanation-simulation-scoring`). It would also answer §4's open point that `next_token_kl` shows a neuron matters, but not *for the reason the hypothesis gives*.
+- [ ] **(protocol)** Output-side explanations: require a hypothesis to say what the pole *does* (its effect on the next tokens or on the text) as well as what activates it, and score that side by intervention. Steer the pole, then check whether a judge given the explanation can tell steered text from unsteered text (Delphi's intervention scoring, Paulo et al., 2025; output-centric descriptions, Gur-Arieh et al., 2025). Today only lookahead claims make an output-side prediction.
+
+## Analyses per experiment
+
+Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
+
+- [ ] Cheaper explanation scores alongside simulation: *detection* (a judge picks which held-out windows activate the pole, given only the explanation), *fuzzing* (the judge decides whether the highlighted tokens in a window are the ones that activate it) and *embedding* retrieval, as in Delphi (Paulo et al., 2025, `EleutherAI/delphi`). Score them on windows the proposer never saw, sampled across activation quantiles as well as from the top. These are much cheaper than per-token simulation, so they could run on every record.
+- [ ] Input attribution for the pole: which context tokens drive it, measured with integrated gradients over the input embeddings (Sundararajan et al., 2017; `captum`'s `LayerIntegratedGradients`) and checked by ablating context positions one at a time. This separates "fires on the current token" from "fires because of something 50 tokens back". The result feeds the confound profile and gives the reviewer the context to vary in probes.
+- [ ] Tuned lens (Belrose et al., 2023) as a third vocabulary lens next to the logit and Jacobian lenses. Use pretrained lenses where they exist (`tuned-lens` ships them for GPT-2, Pythia and some Llama models) and train them for Qwen2.5-0.5B (cheap: one affine map per layer). Record how far it agrees with the Jacobian lens.
+- [ ] Verbalise the pole's output direction with a Patchscope or SelfIE prompt (Ghandeharioun et al., 2024; Chen et al., 2024). Inject `w_out`, scaled, into an inspection prompt and record the decoded text. Where a trained Activation Oracle exists for the model (Karvonen et al., 2025), record its answer too. Both are blind, example-free descriptions: use them as an extra proposer baseline (does the oracle's description verify as often as the agent's?), and never show them to the reviewer.
+- [ ] Wiring: the pole's top upstream and downstream connections. Two sources:
+  - *weights*: virtual weights (Elhage et al., 2021) from attention heads' OV circuits and earlier neurons' `w_out` into the pole's `w_in`, and from its `w_out` into later neurons' `w_in` and heads' Q/K/V, with the norm folded in or approximated;
+  - *activations*: edge attribution patching on the reviewer's probes (EAP, Syed et al., 2023; EAP-IG, Hanna et al., 2024).
+
+  Link edges to other registry entries. This is the first step toward circuit pages, and it overlaps with `ComponentIdentifier`.
+- [ ] Linear-probe comparison for VERIFIED concepts. Using labelled data from `sparse-probing-search`, train logistic and mass-mean probes (Marks & Tegmark, 2023) on the layer's MLP hidden activations and on the residual stream. Report:
+  - probe accuracy against the neuron alone;
+  - the cosine between the probe direction and the neuron's basis vector;
+  - the k-sparse probing curve, i.e. how many neurons the concept needs (Gurnee et al., 2023).
+
+  This shows whether a concept is localised in the neuron or only partly carried by it.
+- [ ] Causal-abstraction check (Geiger et al., 2024; `stanfordnlp/pyvene`). For a hypothesis that names a variable ("inside a quotation"), compare the interchange-intervention accuracy of swapping the pole between counterfactual pairs with that of a learned one-dimensional DAS direction for the same variable. The probe comparison above is correlational; this is its causal counterpart. A neuron close to the DAS ceiling is the model's variable; one far below it is a partial view of it.
+- [ ] Multi-dimensional features (Engels et al., 2024): check whether the pole and its partner poles together trace a circular or ordinal manifold, such as days of the week, months or small numbers. Fit PCA to their joint activations on the activating set. Allow hypotheses of the form "one coordinate of a k-dimensional feature" so these neurons aren't forced into a single-concept story and rejected.
+- [ ] Adversarial input search, the text analogue of feature visualisation. Optimise prompts to maximise, or exactly hit, the pole's activation, using GCG/EPO-style fluent optimisation (Thompson et al., "Fluent dreaming", 2024), and check the hypothesis on the results. This automated reviewer arm hunts for false positives and negatives an LLM reviewer wouldn't think of. Record how many optimised inputs the hypothesis mispredicts.
 
 ## Pipeline
 
 - [ ] `openinterp audit`: configurable window length and stride, and Hugging Face dataset input (`--dataset NeelNanda/pile-10k`).
-- [ ] Faster scans: MPS/CUDA batching and caching activations to disk for re-use across neurons in a layer.
+- [ ] **(protocol)** Bounded scans: `openinterp audit` scans every document in the corpus, so cost grows linearly with it (~15 min for the 500-doc `corpus.jsonl` on CPU), and a larger corpus raises `max_activation` and so the 25% "active" threshold. Scan a fixed-size, seeded sample instead (e.g. `--max-tokens 200000 --sample-seed S`), record the seed, sample size and sample hash in `provenance`, and make `reevaluate`/reproduction re-draw the same sample. Changing what `max_activation` is computed over moves the threshold, so this needs a protocol bump.
+- [ ] Cache scan results per layer: one forward pass already captures the whole layer (`run_with_cache`), so store per-token activations for all of a layer's neurons (with token ids and positions) keyed by model, revision, layer and corpus sample hash, and let later audits in that layer, `next`, and exploratory analysis read the cache instead of re-running the model. Also expose a scan's per-token data so agents don't write their own full-corpus scans for diagnosis.
+- [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.
 - [ ] A `supersedes` field on submissions to link revisions to the record they replace.
 - [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
 - [ ] A scheduled hourly build and deploy (CI cron), as described in the vision.
 - [ ] Review [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) for ideas or reuse: its standardised hook points across many architectures (compare with `openinterp/harness/hooks.py`), activation caching (for faster scans), patching utilities (for the causal metric), attention-head hooks (for `ComponentIdentifier`) and weight processing such as LayerNorm folding (which changes what a neuron's weights look like). Decide whether to adopt it as a dependency, borrow ideas, or keep the current Hugging Face hooks.
+- [ ] Review the rest of the tooling stack the same way:
+  - [nnsight](https://github.com/ndif-team/nnsight) with NDIF remote execution, for models too large for contributors' hardware (Llama 3.1 70B/405B). `reproduce` would need to run against the same backend.
+  - [pyvene](https://github.com/stanfordnlp/pyvene), for interchange interventions and DAS.
+  - [SAELens](https://github.com/decoderesearch/SAELens) and [circuit-tracer](https://github.com/safety-research/circuit-tracer), for loading published SAEs and transcoders in the baseline arm.
+  - [Delphi](https://github.com/EleutherAI/delphi), for explanation scoring.
 - [ ] Branding for the generated site and repo: a logo and wordmark to replace the `⊕` placeholder in `base.html`, a favicon, a colour palette and type defined once in the Tailwind config (currently ad hoc emerald/slate), Open Graph/social preview images for shared links, and the same mark on the README and GitHub social preview.
 - [ ] An About page in the generated site (`openinterp/builder/templates/about.html`, rendered by `compiler.py` and linked from the `base.html` header): the project's premise, how the proposer/reviewer protocol decides a verdict (linking `docs/PROTOCOL.md` and the current `PROTOCOL_VERSION`), what VERIFIED does and doesn't mean, how to contribute, and the licence.
 - [ ] Google Colab guide (a `docs/colab.md` page plus a ready-to-run notebook with an "Open in Colab" badge in the README): install from git (or PyPI once published) without clobbering Colab's CUDA torch, pick a GPU runtime and `--device cuda`, store API keys and `HF_TOKEN` in Colab secrets (or use the two-step answer files with no keys), build the scan corpus, note which models fit on a free T4 and when to use `--dtype bfloat16`/`float16`, and save results by pushing a branch or copying `wiki/` to Drive before the runtime resets.
@@ -38,9 +72,8 @@ At the moment CI's "Experiment records" job (`openinterp check`) only confirms t
 
 ## Visualisations
 
-The site currently shows one chart (the activation histogram on experiment pages); everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
+Experiment pages currently show the activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] Token heatmaps of the top-activating examples: the text with each token shaded by pole strength, the peak token marked, hover for the exact value (the standard Neuroscope-style view).
 - [ ] Probe results chart on each experiment: every positive, hard-negative and holdout probe as a dot on one activation axis, with the reviewer's threshold drawn as a line, so you can see at a glance why it passed or failed.
 - [ ] Causal effects chart: ablation/patching scores per probe pair as bars, next to the baseline they must beat (`beats_confound_baseline`).
 - [ ] Vocabulary projection bars: the top and bottom tokens the neuron promotes and suppresses (Jacobian and logit lens), replacing the current token lists.
@@ -53,6 +86,8 @@ The site currently shows one chart (the activation histogram on experiment pages
 
 - [ ] Generalise `NeuronIdentifier` to `ComponentIdentifier` (MLP neuron pole, attention head) and add head hooks. See `attention-head-audit`.
 - [ ] A transcoder/SAE baseline arm to test the native-neuron premise on the same layers.
+- [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
+- [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
 - [ ] Cross-model universality links: match verified neurons across sibling models (Qwen2.5-0.5B ↔ 1.5B).
 
 ## Datasets
@@ -86,6 +121,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 - [ ] Phi-3.5-mini / Phi-4-mini: a fused `gate_up_proj`, so check the `mlp.down_proj` input still exposes one value per neuron.
 - [ ] Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
 - [ ] Stanford `stanford-crfm` GPT-2 seeds (alias/battlestar/…): same architecture, different seeds, for a universality baseline.
+- [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate, which makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
 - [ ] Mixture-of-experts (Qwen1.5-MoE-A2.7B, OLMoE-1B-7B): needs a decision on how to identify an expert neuron (`expert` index in the identifier) and how to handle routing in patching. Defer until `ComponentIdentifier` lands.
 
 ## Housekeeping
@@ -107,4 +143,9 @@ Research directions to pick up once the registry covers several models well.
 - [ ] Investigate inserting memories or behaviours.
 - [ ] Investigate removing memories or behaviours.
 - [ ] Investigate complete explainability of each token.
-- [ ] Investigate model concept merging or diffing.
+- [ ] Investigate model concept merging or diffing. Start with base ↔ instruct pairs: which verified neurons keep their hypothesis after instruction tuning, and which change. Crosscoders (Lindsey et al., 2024) are the learned-basis comparison.
+- [ ] Developmental tracking: follow VERIFIED neurons through Pythia and OLMo training checkpoints. When does the pole appear, does its hypothesis hold from then on, and does its birth line up with loss plateaus or with changes in the local learning coefficient (Lau et al., 2023; the `devinterp` library)?
+- [ ] Training-data links: on OLMo (open data), count a verified neuron's trigger n-grams and contexts in the pretraining corpus (e.g. with infini-gram) to test whether concept frequency predicts which neurons become clean. Gradient-based attribution (TracIn, EK-FAC influence functions; Grosse et al., 2023) is only affordable on Pythia-70M-scale models.
+- [ ] A registry coverage metric. Mean-ablate every neuron in a layer that isn't VERIFIED, or replace each verified pole with its hypothesis-simulated activation, and measure the share of loss recovered. This is a running measure of how much of the model the registry explains, and a concrete form of "complete explainability of each token".
+- [ ] Standard benchmarks once attention heads land: MIB (Mueller et al., 2025) for circuit localisation, and RAVEL (Huang et al., 2024) for whether verified neurons separate an entity's attributes (a city's country from its continent).
+- [ ] Factual recall and editing: use causal tracing (Meng et al., 2022) to check whether verified neurons sit on the fact-recall path at the subject's last token, before trying to insert or remove memories. Keep in mind the critiques of the knowledge-neuron view (Niu et al., 2024).

@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Changed
 
+- **Token heatmaps** on experiment pages, Neuroscope-style. Each top example shows 30 tokens before and 10 after its peak, with the full snippet expandable. The peak token is underlined and bold, and hovering a token shows its exact stored strength (before, the value was rebuilt from a capped, rounded shade). A colour legend runs from 0 to the neuron's max, and each example has a values table for keyboard and screen-reader users. Newline tokens show as `↵` so they can be shaded. The tint is capped at 80%, so token text keeps at least 4.5:1 contrast in light and dark mode; the uncapped orange fell to 3.25:1 in dark mode.
+
 - **Protocol 0.5: causal metrics that can see a single neuron.** Sufficiency and necessity are now scored at the position where the pole's strength differs most between a minimal pair's prompts. The target is the claimed upcoming tokens for lookahead claims and next-token KL otherwise. Each score is the median percentile of the pole's effect among the 32 same-layer neurons (`ReviewPolicy.causal_null_neurons`) whose strength changes as much between the pair. Control pairs are skipped. Before, the score was the fraction of the top-1-logit gap restored, which read ≈ 0 for every neuron. On the four Qwen2.5-0.5B neuron poles in the registry the new scores range from about 0.6 (L11/N4255+) to 1.0 (L23/N726−). Still recorded, not gated. `CausalMetrics` gains `target`, `target_tokens`, `sufficiency_effect`, `necessity_effect`, `null_neurons` and `pairs_scored`; all are optional, so older records still validate. Parquet gains `causal_target`.
 
 ### Added
