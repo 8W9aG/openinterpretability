@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **6** · neurons: **4** · NEEDS_REVISION: 2 · VERIFIED: 4
+Experiments: **7** · neurons: **5** · NEEDS_REVISION: 3 · VERIFIED: 4
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/20261019T090614Z.md) | [Qwen/Qwen2.5-0.5B L23/N726+](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/README.md) | review | NEEDS_REVISION | 0.80 | The positive pole is a sparse detector of an unfinished word: it fires on a short word-initial... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-negative/20261019T063944Z.md) | [Qwen/Qwen2.5-0.5B L4/N429−](experiments/Qwen--Qwen2.5-0.5B/L4/N429-negative/README.md) | review | VERIFIED | 0.95 | The negative pole (weak; max ~2.3) fires on the completing piece of a small set of memorised... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/20261019T061618Z.md) | [Qwen/Qwen2.5-0.5B L4/N429+](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/README.md) | review | VERIFIED | 0.95 | The positive pole fires on the token that completes a gendered civilian title of address (Mr,... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/20261019T055203Z.md) | [Qwen/Qwen2.5-0.5B L23/N726−](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/README.md) | review | VERIFIED | 0.91 | The negative pole fires on the token where the context makes a constraint/restriction word the... |
