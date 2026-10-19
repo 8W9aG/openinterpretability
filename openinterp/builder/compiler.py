@@ -149,6 +149,9 @@ def _anchor_href(row: dict) -> str:
     return f"{page}#{row['pole']}-{row['experiment_id']}"
 
 
+RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
+
+
 def registry_stats(parquet: Path) -> dict:
     """Totals and leaderboards, queried with DuckDB over the exported parquet."""
     con = duckdb.connect()
@@ -190,6 +193,18 @@ def registry_stats(parquet: Path) -> dict:
         ORDER BY conclusiveness DESC, reviewed_at DESC, slug LIMIT 15
         """
     )
+    recent = rows(
+        f"""
+        SELECT slug, model_name, layer, neuron_idx, pole, experiment_id, explanation, status,
+               conclusiveness, evidence_direction, submitting_agent_model,
+               -- formatted in SQL: returning TIMESTAMPTZ to Python would need pytz
+               strftime(timezone('UTC', reviewed_at), '%Y-%m-%dT%H:%M:%SZ') AS reviewed_iso,
+               strftime(timezone('UTC', reviewed_at), '%Y-%m-%d') AS reviewed_date,
+               strftime(timezone('UTC', reviewed_at), '%H:%M UTC') AS reviewed_time,
+               reviewer_agent_model, reuses_probes_of IS NOT NULL AS remeasurement
+        FROM r ORDER BY reviewed_at DESC, slug, experiment_id LIMIT {RECENT_EXPERIMENTS}
+        """
+    )
     agents = rows(
         """
         SELECT submitting_agent_model AS agent, count(*) AS experiments,
@@ -199,9 +214,15 @@ def registry_stats(parquet: Path) -> dict:
         """
     )
     con.close()
-    for row in verified + conclusive:
+    for row in verified + conclusive + recent:
         row["href"] = _anchor_href(row)
-    return {"totals": totals, "verified": verified, "conclusive": conclusive, "agents": agents}
+    return {
+        "totals": totals,
+        "verified": verified,
+        "conclusive": conclusive,
+        "recent": recent,
+        "agents": agents,
+    }
 
 
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.

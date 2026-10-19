@@ -66,6 +66,45 @@
   {% endif %}
 </section>
 
+<section class="mb-10">
+  <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ stats.recent | length }} experiments, whatever their verdict, newest first.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Neuron</th><th class="px-3 py-2">Result</th><th class="hidden px-3 py-2 md:table-cell">Agents</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for r in stats.recent %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400">
+            <time datetime="{{ r.reviewed_iso }}">{{ r.reviewed_date }}</time>
+            <div class="text-slate-500">{{ r.reviewed_time }}</div>
+          </td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/N{{ r.neuron_idx }}{{ pole_mark(r.pole) }}</a>
+            <div class="text-slate-500">{{ r.model_name }}</div>
+            <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
+          </td>
+          <td class="px-3 py-2">
+            <div class="mb-1 flex flex-wrap gap-1">{{ status_badge(r.status) }} {{ evidence_badge(r.conclusiveness, r.evidence_direction) }}
+              {% if r.remeasurement %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400" title="Re-measures an earlier experiment's probes; not independent evidence">re-measurement</span>{% endif %}
+            </div>
+            {{ r.explanation | truncate(140) }}
+          </td>
+          <td class="hidden px-3 py-2 font-mono text-xs text-slate-500 md:table-cell">
+            <div title="proposer">{{ r.submitting_agent_model }}</div>
+            <div title="reviewer">↳ {{ r.reviewer_agent_model }}</div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td class="px-3 py-2 text-slate-500" colspan="4">No experiments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <section class="mb-10 grid gap-8 lg:grid-cols-3">
   <div class="lg:col-span-2">
     <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>
