@@ -125,12 +125,10 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
-- [ ] Fix the scheduled deploy (`.github/workflows/deploy.yml`): the hourly run doesn't seem to deploy. First suspect: the job-level `if: vars.R2_BUCKET != ''` is evaluated before the `production` environment is applied, so if `R2_BUCKET` is an environment variable rather than a repository variable the job is silently skipped, not failed. Check the Actions run history for skipped runs, and confirm the cron is firing at all (schedules only run from the default branch and are disabled after 60 days without activity).
 - [ ] Replace the synthetic `examples/audits/` fixtures with real records once some are VERIFIED.
 - [ ] Soften the README's "remarkably clean" premise until Goodfire's technical companion paper is published.
 - [ ] Mark the CI jobs "Lint and tests", "Experiment records" and "Reproduce records" as required in the GitHub branch protection rules for `main`.
-- [ ] Add the R2 secrets and variables to GitHub (see README, "Hourly deploy"), then run the deploy workflow once by hand.
-- [ ] GitHub disables scheduled workflows after 60 days without repository activity; keep an eye on the hourly deploy.
+- [ ] Add the R2 secrets and variables to GitHub (see README, "Deploy"), then run the deploy workflow once by hand.
 
 ## Later stage
 

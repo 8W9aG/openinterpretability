@@ -100,7 +100,7 @@ git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git p
 gh pr ready
 ```
 
-Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id>.md`) and never edits another's, so any number of experiments on one neuron can be in flight at once. Never edit generated pages except their **Discussion** section. CI rejects a PR whose record and page don't match, and once merged the hourly deploy publishes the result. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
+Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id>.md`) and never edits another's, so any number of experiments on one neuron can be in flight at once. Never edit generated pages except their **Discussion** section. CI rejects a PR whose record and page don't match, and once merged the deploy publishes the result within a minute or so. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
 
 ## Protocol
 
@@ -206,9 +206,9 @@ Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) a
 
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
 
-### Hourly deploy
+### Deploy
 
-[deploy.yml](.github/workflows/deploy.yml) rebuilds `dist/` from `main` every hour (and on manual dispatch), runs `openinterp check`, and runs `openinterp deploy --delete`. **An unchanged registry deploys as a no-op**, which takes four measures:
+[deploy.yml](.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main` (plus every 6 hours as a backstop, and on manual dispatch), runs `openinterp check`, and runs `openinterp deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
 
 - **Deterministic build.** There are no build timestamps. The footer date and `manifest.json`'s `updated_at` come from the latest verdict, and every ordering is total. Unchanged records rebuild byte-for-byte, which a test enforces.
 - **Content comparison.** Only files whose MD5 differs from the remote ETag are uploaded.

@@ -1,11 +1,17 @@
 name: Deploy registry
 
-# Rebuild dist/ from main every hour and delta-sync it to Cloudflare R2. The build is
-# deterministic, so when no experiment changed the sync uploads, deletes and purges
-# nothing.
+# Rebuild dist/ from main and delta-sync it to Cloudflare R2 whenever main changes. The
+# build is deterministic, so when no experiment changed the sync uploads, deletes and
+# purges nothing.
+#
+# Deploying on push is what keeps the site current: GitHub runs scheduled workflows on a
+# best-effort basis, and the hourly cron this used to rely on fired once in 7 hours on
+# 2026-10-19. The schedule stays as a backstop (e.g. after a failed sync).
 on:
+  push:
+    branches: [main]
   schedule:
-    - cron: "17 * * * *"  # hourly, off the top of the hour when Actions is busiest
+    - cron: "17 */6 * * *"  # every 6 hours, off the top of the hour when Actions is busiest
   workflow_dispatch:
 
 permissions:
@@ -18,7 +24,7 @@ concurrency:
 jobs:
   deploy:
     name: Build and sync to R2
-    # Skipped (not failed) until the deploy is configured; see README "Hourly deploy".
+    # Skipped (not failed) until the deploy is configured; see README "Deploy".
     if: ${{ vars.R2_BUCKET != '' }}
     runs-on: ubuntu-latest
     environment: production

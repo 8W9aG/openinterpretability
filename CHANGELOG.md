@@ -9,12 +9,9 @@ The project has two version numbers:
 
 ## [Unreleased]
 
-### Added
-
-- `openinterp corpus`: samples a scan corpus from a Hugging Face Parquet dataset without downloading all of it, by reading seeded random row groups over HTTP. Presets: `fineweb-edu` (`HuggingFaceFW/fineweb-edu`, sample-10BT; the default) and `pile-10k`, or any dataset with `--files`. It writes `corpus.jsonl` and a `corpus.source.json` sidecar (`CorpusSource`: dataset, commit, files, seed, sizes, licence, SHA-256). Audits record the source in `provenance.corpus_source` when the corpus still matches it, and experiment pages show the licence. The same seed and revision rebuild a byte-identical corpus. Replaces the README's Pile snippet.
-
 ### Changed
 
+- **Deploy on every push to `main`.** The site went stale because the deploy relied on an hourly cron, and GitHub's scheduled workflows are best-effort: on 2026-10-19 it fired once in about 7 hours. Every scheduled and manual run did deploy, so the `R2_BUCKET` guard was not the cause. The schedule stays as a 6-hourly backstop.
 - **`openinterp next` explores twice as often:** the default `--epsilon` goes from 0.35 to 0.7, so 70% of draws audit a new random neuron rather than following up on one already studied. `scripts/experiment-loop.sh` uses the same default.
 - **Token heatmaps** on experiment pages, Neuroscope-style. Each top example shows 30 tokens before and 10 after its peak, with the full snippet expandable. The peak token is underlined and bold, and hovering a token shows its exact stored strength (before, the value was rebuilt from a capped, rounded shade). A colour legend runs from 0 to the neuron's max, and each example has a values table for keyboard and screen-reader users. Newline tokens show as `↵` so they can be shaded. The tint is capped at 80%, so token text keeps at least 4.5:1 contrast in light and dark mode; the uncapped orange fell to 3.25:1 in dark mode.
 
@@ -22,6 +19,7 @@ The project has two version numbers:
 
 ### Added
 
+- `openinterp corpus`: samples a scan corpus from a Hugging Face Parquet dataset without downloading all of it, by reading seeded random row groups over HTTP. Presets: `fineweb-edu` (`HuggingFaceFW/fineweb-edu`, sample-10BT; the default) and `pile-10k`, or any dataset with `--files`. It writes `corpus.jsonl` and a `corpus.source.json` sidecar (`CorpusSource`: dataset, commit, files, seed, sizes, licence, SHA-256). Audits record the source in `provenance.corpus_source` when the corpus still matches it, and experiment pages show the licence. The same seed and revision rebuild a byte-identical corpus. Replaces the README's Pile snippet.
 - **Attention heads, step 1: identifiers and hooks.** `ComponentIdentifier` is a union of `NeuronIdentifier` (`kind = "mlp_neuron_pole"`, the default, so existing records validate unchanged) and the new `HeadIdentifier` (`kind = "attn_head"`, `head_idx`, slug `L<layer>/H<idx>`). `NeuronHookRunner` resolves each layer's attention output projection (Llama/Qwen/Mistral/Gemma/Phi, GPT-2, GPT-NeoX, GPT-J, OPT, Falcon) and gains `head_outputs`, `head_write_norm`, `head_output_weights`, `attention_patterns` and `hooks(head_interventions=…)`, plus `ablate_head`. `_load_runner` takes `attn_implementation` (patterns need `"eager"`). Submissions still accept neuron poles only and reject a head with a clear message, so the decision rule and `PROTOCOL_VERSION` are unchanged.
 - **Most recent experiments** on the home page: the latest 10 experiments, whatever their verdict, newest first, with review time (UTC), neuron, status, evidence strength, hypothesis, proposer and reviewer, and a tag for re-measurements. On small screens the date moves under the neuron.
 - **Proposer and reviewer as Claude Code subagents, with no API key.** `.claude/agents/neuron-proposer.md` and `neuron-reviewer.md` answer prompt files. The reviewer has no tool that runs the model, so it can't see probe activations before its probe set is final.
