@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **13** · neurons: **7** · NEEDS_REVISION: 3 · VERIFIED: 10
+Experiments: **14** · neurons: **7** · NEEDS_REVISION: 3 · VERIFIED: 11
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/20261019T110732Z.md) | [Qwen/Qwen2.5-0.5B L4/N429+](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/README.md) | reevaluation | VERIFIED | 0.95 | The positive pole fires on the token that completes a gendered civilian title of address (Mr,... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/20261019T110409Z.md) | [Qwen/Qwen2.5-0.5B L23/N726+](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/README.md) | reevaluation | VERIFIED | 0.90 | The positive pole fires on a non-final sub-word piece of an organic-chemistry or carbohydrate... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T110111Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | reevaluation | VERIFIED | 1.00 | Fires on the connective that hands off from a containing category to the specific named members... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L6/N3151-negative/20261019T105603Z.md) | [Qwen/Qwen2.5-0.5B L6/N3151−](experiments/Qwen--Qwen2.5-0.5B/L6/N3151-negative/README.md) | review | VERIFIED | 0.85 | Fires on the verb token itself (its final subword) of transitive verbs whose direct object is a... |
