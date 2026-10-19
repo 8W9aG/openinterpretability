@@ -15,7 +15,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Pipeline
 
-- [ ] Claude Code agent flow ("option 2"): `.claude/agents/neuron-proposer.md` and `neuron-reviewer.md`, plus CLI commands that emit scan evidence and accept hypotheses and probe sets as JSON, so agents need no API key.
 - [ ] `openinterp audit`: configurable window length and stride, and Hugging Face dataset input (`--dataset NeelNanda/pile-10k`).
 - [ ] Faster scans: MPS/CUDA batching and caching activations to disk for re-use across neurons in a layer.
 - [ ] A `supersedes` field on submissions to link revisions to the record they replace.

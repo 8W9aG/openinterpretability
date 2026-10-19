@@ -66,6 +66,18 @@ class LLMAgent:
             self._client = instructor.from_litellm(litellm.completion)
         return self._client
 
+    @classmethod
+    def render_prompt(
+        cls, response_model: type[BaseModel], prompt: str, response_path: Path | str
+    ) -> str:
+        """The full prompt for an external answerer: system prompt, task and JSON schema."""
+        schema = json.dumps(response_model.model_json_schema(), indent=2)
+        return (
+            f"# System\n\n{cls.system_prompt}\n\n# Prompt\n\n{prompt}\n\n"
+            f"# Response\n\nWrite a JSON object matching this schema to `{response_path}`:\n\n"
+            f"```json\n{schema}\n```\n"
+        )
+
     def structured(self, response_model: type[T], prompt: str) -> T:
         if self.model.startswith(EXTERNAL_PREFIX):
             return self._external(response_model, prompt)
@@ -98,12 +110,7 @@ class LLMAgent:
         error_path = self.exchange_dir / f"{name}.error.txt"
         for stale in (response_path, error_path):
             stale.unlink(missing_ok=True)
-        schema = json.dumps(response_model.model_json_schema(), indent=2)
-        prompt_path.write_text(
-            f"# System\n\n{self.system_prompt}\n\n# Prompt\n\n{prompt}\n\n"
-            f"# Response\n\nWrite a JSON object matching this schema to `{response_path}`:\n\n"
-            f"```json\n{schema}\n```\n"
-        )
+        prompt_path.write_text(self.render_prompt(response_model, prompt, response_path))
         print(f"Waiting for {response_path} (prompt: {prompt_path})…", file=sys.stderr)
         deadline = time.monotonic() + self.timeout
         while time.monotonic() < deadline:

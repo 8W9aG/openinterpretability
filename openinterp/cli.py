@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
-import secrets
 from pathlib import Path
 
 import click
@@ -31,24 +29,6 @@ def _load_runner(model_name: str, device: str, dtype: str):
     model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch_dtype).to(device)
     model.eval()
     return NeuronHookRunner(model, tokenizer)
-
-
-def _read_corpus(path: Path | None) -> tuple[list[str], str, str]:
-    """Return (snippets, description, sha256 of the corpus source)."""
-    if path is None:
-        from openinterp.data import sample_corpus
-
-        texts = sample_corpus()
-        return texts, "builtin:sample_corpus", _sha256("\n".join(texts).encode())
-    raw = path.read_bytes()
-    lines = [line for line in raw.decode("utf-8").splitlines() if line.strip()]
-    if path.suffix == ".jsonl":
-        lines = [json.loads(line)["text"] for line in lines]
-    return lines, path.name, _sha256(raw)
-
-
-def _sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 model_options = [
@@ -108,7 +88,9 @@ def cli() -> None:
 
 @cli.command()
 @click.option(
-    "--model", "model_name", required=True, help="Hugging Face repo, e.g. Qwen/Qwen2.5-0.5B"
+    "--model",
+    "model_name",
+    help="Hugging Face repo, e.g. Qwen/Qwen2.5-0.5B. Required unless --evidence.",
 )
 @click.option("--layer", type=int, help="Required unless --random.")
 @click.option("--neuron", type=int, help="Required unless --random.")
@@ -129,7 +111,26 @@ def cli() -> None:
 @click.option(
     "--agent-model",
     default=None,
-    help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file.",
+    help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file. "
+    "With --hypothesis, the name recorded for whoever wrote it (e.g. external/claude-opus-5-5).",
+)
+@click.option(
+    "--evidence-out",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Scan only: write the evidence to this JSON file and the proposer's prompt next to "
+    "it (<name>.prompt.md), then exit. Answer the prompt, then run with --evidence.",
+)
+@click.option(
+    "--evidence",
+    "evidence_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Evidence from --evidence-out; skips the scan. Requires --hypothesis.",
+)
+@click.option(
+    "--hypothesis",
+    "hypothesis_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
 )
 @click.option(
     "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
@@ -145,69 +146,72 @@ def audit(
     corpus,
     top_k,
     agent_model,
+    evidence_out,
+    evidence_file,
+    hypothesis_file,
     out,
     device,
     dtype,
 ):
-    """Scan a neuron pole, ask the proposer agent for a hypothesis, and write a submission."""
-    import random
+    """Scan a neuron pole, get a hypothesis from the proposer, and write a submission.
 
-    from openinterp import __version__
+    \b
+    In one step, the proposer is an LLM (or external/<name>, answered via exchange/).
+    In two steps, any agent can propose without an API key or a waiting process:
+      openinterp audit --model M --random --evidence-out ev.json
+      (answer ev.prompt.md by writing ev.hypothesis.json)
+      openinterp audit --evidence ev.json --hypothesis ev.hypothesis.json \\
+        --agent-model external/<model that wrote it>
+    """
     from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.proposer import ProposerAgent
-    from openinterp.core.schemas import ExperimentProvenance, NeuronIdentifier
-    from openinterp.harness.hooks import activation_histogram
-    from openinterp.harness.jlens import vocabulary_lens
-    from openinterp.harness.scan import scan_neuron
+    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterp.cli_evidence import scan_evidence, write_evidence
+    from openinterp.core.schemas import ScanEvidence
 
-    if not random_pick and (layer is None or neuron is None):
-        raise click.UsageError("--layer and --neuron are required unless --random is given.")
-    runner = _load_runner(model_name, device, dtype)
-    if random_pick:
-        seed = secrets.randbits(32) if seed is None else seed
-        rng = random.Random(seed)
-        layer = rng.randrange(runner.n_layers) if layer is None else layer
-        neuron = rng.randrange(runner.mlp_width(layer)) if neuron is None else neuron
-        pole = rng.choice(["positive", "negative"]) if pole is None else pole
-    ident = NeuronIdentifier(
-        model_name=model_name, layer=layer, neuron_idx=neuron, pole=pole or "positive"
-    )
-    pole = ident.pole
-    texts, corpus_name, corpus_sha = _read_corpus(corpus)
-    click.echo(f"Scanning {len(texts)} snippets for {ident}…", err=True)
-    scan = scan_neuron(runner, texts, layer, neuron, pole, k=top_k)
-    examples, values = scan.examples, scan.values
-    if not examples or examples[0].max_activation <= 0:
-        raise click.ClickException(
-            f"{ident} never activates on this corpus; try a larger --corpus."
+    if (evidence_file is None) != (hypothesis_file is None):
+        raise click.UsageError("--evidence and --hypothesis go together.")
+    if evidence_file is not None:
+        if evidence_out is not None:
+            raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
+        if not agent_model:
+            raise click.UsageError(
+                "--agent-model is required with --hypothesis: name the model that wrote it."
+            )
+        evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
+        draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
+        runner = _load_runner(evidence.identifier.model_name, device, dtype)
+        agent = ProposerAgent(agent_model)
+    else:
+        if model_name is None:
+            raise click.UsageError("--model is required unless --evidence is given.")
+        runner = _load_runner(model_name, device, dtype)
+        evidence = scan_evidence(
+            runner, model_name, layer, neuron, pole, random_pick, seed, corpus, top_k, dtype
         )
-    click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
-    lens = vocabulary_lens(runner, texts[:100], layer, neuron, pole)
+        if evidence_out is not None:
+            write_evidence(evidence, evidence_out)
+            return
+        agent = ProposerAgent(agent_model or DEFAULT_MODEL)
+        click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
+        draft = agent.propose(
+            evidence.identifier,
+            evidence.top_examples,
+            evidence.vocabulary_lens,
+            evidence.confounds,
+            evidence.correlated_neurons,
+        )
 
-    agent = ProposerAgent(agent_model or DEFAULT_MODEL)
-    click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
-    draft = agent.propose(ident, examples, lens, scan.confounds, scan.correlated)
-    provenance = ExperimentProvenance(
-        model_revision=getattr(runner.model.config, "_commit_hash", None),
-        dtype=dtype,
-        corpus=corpus_name,
-        corpus_sha256=corpus_sha,
-        n_snippets=len(texts),
-        tokens_scanned=len(values),
-        selection="random" if random_pick else "manual",
-        seed=seed if random_pick else None,
-        harness_version=__version__,
-    )
+    ident = evidence.identifier
     submission = agent.build_submission(
         ident,
         draft,
         runner=runner,
-        examples=examples,
-        histogram=activation_histogram(values),
-        provenance=provenance,
-        confounds=scan.confounds,
-        correlated=scan.correlated,
-        vocabulary_lens=lens,
+        examples=evidence.top_examples,
+        histogram=evidence.activation_histogram,
+        provenance=evidence.provenance,
+        confounds=evidence.confounds,
+        correlated=evidence.correlated_neurons,
+        vocabulary_lens=evidence.vocabulary_lens,
     )
     out = out or Path("submissions") / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -221,31 +225,62 @@ def audit(
 @click.option(
     "--agent-model",
     default=None,
-    help="Reviewer. LiteLLM model string, or external/<name> to answer a prompt file.",
+    help="Reviewer. LiteLLM model string, or external/<name> to answer a prompt file. "
+    "With --probes, the name recorded for whoever wrote them.",
 )
 @click.option("--n-probes", default=16, show_default=True, type=click.IntRange(10, 20))
+@click.option(
+    "--emit-prompt",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Write the reviewer's prompt here, e.g. review.prompt.md (answer in "
+    "review.probes.json), and exit. "
+    "Loads no model, so the reviewer sees no probe activations.",
+)
+@click.option(
+    "--probes",
+    "probes_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="ProbeSet JSON answering --emit-prompt. No LLM is called.",
+)
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @wiki_option
 @with_model_options
-def verify(audit_file, agent_model, n_probes, out, wiki_dir, device, dtype):
+def verify(
+    audit_file, agent_model, n_probes, emit_prompt, probes_file, out, wiki_dir, device, dtype
+):
     """Adversarially review a submission and post it as a new experiment."""
     from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.reviewer import ReviewerAgent
+    from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
+    from openinterp.cli_evidence import answer_path
     from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
 
-    if _skip_wiki(wiki_dir) and out is None:
-        raise click.UsageError("--out is required when --wiki-dir '' skips the registry.")
     raw = audit_file.read_text()
     if "submission" in json.loads(raw):  # an existing audit record: re-review its submission
         submission = AuditRecord.model_validate_json(raw).submission
     else:
         submission = NeuronAuditSubmission.model_validate_json(raw)
-    runner = _load_runner(submission.identifier.model_name, device, dtype)
+    if emit_prompt is not None:
+        answer = answer_path(emit_prompt, ".probes.json")
+        task = ReviewerAgent.probe_prompt(submission, n=n_probes)
+        emit_prompt.parent.mkdir(parents=True, exist_ok=True)
+        emit_prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, answer))
+        click.echo(f"Reviewer prompt: {emit_prompt} (answer in {answer})")
+        return
+    if _skip_wiki(wiki_dir) and out is None:
+        raise click.UsageError("--out is required when --wiki-dir '' skips the registry.")
+    if probes_file is not None and not agent_model:
+        raise click.UsageError(
+            "--agent-model is required with --probes: name the model that wrote them."
+        )
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     if reviewer.model == submission.submitting_agent_model:
         click.echo("warning: reviewer and submitter use the same model", err=True)
-    click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
-    probes = reviewer.generate_probes(submission, n=n_probes).probes
+    if probes_file is not None:
+        probes = ProbeSet.model_validate_json(probes_file.read_text()).probes
+    else:
+        click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
+        probes = reviewer.generate_probes(submission, n=n_probes).probes
+    runner = _load_runner(submission.identifier.model_name, device, dtype)
     verdict = reviewer.review(submission, runner, probes=probes)
 
     record = AuditRecord(submission=submission, verdict=verdict)

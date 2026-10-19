@@ -33,6 +33,19 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
 6. **Run the experiment** using the table below and the skills the planner lists.
 7. **Post the result, whatever it is.** Run `openinterp wiki`, then `make check lint test`, then mark the PR ready. A failed hypothesis gets committed exactly like a verified one. Never abandon a claimed experiment silently: if you stop, close the PR with a note saying why.
 
+## Proposer and reviewer without API keys
+
+In Claude Code, use the `neuron-proposer` and `neuron-reviewer` subagents with the two-step commands instead of an LLM API. Wherever this skill or the planner says `openinterp audit …` or `openinterp verify …`:
+
+1. `uv run openinterp audit <same options> --evidence-out exchange/ev.json` scans and writes `exchange/ev.prompt.md`.
+2. Ask `neuron-proposer` to answer `exchange/ev.prompt.md`. It writes `exchange/ev.hypothesis.json` and reports its model ID.
+3. `uv run openinterp audit --evidence exchange/ev.json --hypothesis exchange/ev.hypothesis.json --agent-model external/<proposer model ID> --out submissions/<key>.json`
+4. `uv run openinterp review --audit-file <submission or record> --emit-prompt exchange/review.prompt.md`
+5. Ask `neuron-reviewer` to answer `exchange/review.prompt.md`. Give it only that path: it must not see this neuron's records or any activations. It writes `exchange/review.probes.json` and reports its model ID.
+6. `uv run openinterp review --audit-file <same file> --probes exchange/review.probes.json --agent-model external/<reviewer model ID>`
+
+Record the model IDs the subagents report, not the ones you expect. For an `independent_review` or `replicate` draw, the reviewer's model must differ from the record's proposer; if the subagent's model is the same, say so in the PR instead of claiming independence.
+
 ## What each kind means
 
 | Kind | When the planner offers it | What to do |

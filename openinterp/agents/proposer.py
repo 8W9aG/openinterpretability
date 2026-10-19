@@ -89,6 +89,18 @@ class ProposerAgent(LLMAgent):
         confounds: ConfoundProfile | None = None,
         correlated: Sequence[CorrelatedNeuron] = (),
     ) -> HypothesisDraft:
+        prompt = self.proposal_prompt(identifier, examples, lens, confounds, correlated)
+        return self.structured(HypothesisDraft, prompt)
+
+    @staticmethod
+    def proposal_prompt(
+        identifier: NeuronIdentifier,
+        examples: Sequence[ActivatingExample],
+        lens: VocabularyLens | None = None,
+        confounds: ConfoundProfile | None = None,
+        correlated: Sequence[CorrelatedNeuron] = (),
+    ) -> str:
+        """The task text the proposer answers: the scan evidence for one neuron pole."""
         prompt = (
             f"Neuron: {identifier}\n\n"
             f"Top-activating snippets (peak token in [[ ]]):\n{format_examples(examples)}\n\n"
@@ -118,7 +130,7 @@ class ProposerAgent(LLMAgent):
                 for c in correlated[:5]
             )
             prompt += f"Neuron poles in this layer that co-activate with it: {pairs}.\n"
-        return self.structured(HypothesisDraft, prompt)
+        return prompt
 
     def build_submission(
         self,

@@ -64,9 +64,14 @@ class ReviewerAgent(LLMAgent):
     )
 
     def generate_probes(self, submission: NeuronAuditSubmission, n: int = 16) -> ProbeSet:
+        return self.structured(ProbeSet, self.probe_prompt(submission, n))
+
+    @staticmethod
+    def probe_prompt(submission: NeuronAuditSubmission, n: int = 16) -> str:
+        """The task text the reviewer answers. It shows no activations of candidate probes."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         examples = "\n".join(f"- {e.text}" for e in submission.top_examples[:10]) or "(none)"
-        prompt = (
+        return (
             f"Neuron: {submission.identifier}\n"
             f"Hypothesis: {submission.natural_language_explanation}\n"
             f"Claimed activating tokens: {submission.activating_tokens}\n"
@@ -75,7 +80,6 @@ class ReviewerAgent(LLMAgent):
             f"Top-activating examples:\n{examples}\n\n"
             f"Write {n} probes."
         )
-        return self.structured(ProbeSet, prompt)
 
     def review(
         self,

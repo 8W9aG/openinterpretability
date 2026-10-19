@@ -215,6 +215,22 @@ class JointAblation(StrictModel):
     redundancy_ratio: float | None = None
 
 
+class ScanEvidence(StrictModel):
+    """What ``openinterp audit --evidence-out`` measured, for a proposer working offline.
+
+    It holds everything a submission needs except the hypothesis, so ``openinterp audit
+    --evidence <file> --hypothesis <file>`` can build the submission without rescanning.
+    """
+
+    identifier: NeuronIdentifier
+    top_examples: list[ActivatingExample]
+    activation_histogram: Histogram | None = None
+    provenance: ExperimentProvenance | None = None
+    confounds: ConfoundProfile | None = None
+    correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
+    vocabulary_lens: VocabularyLens | None = None
+
+
 class NeuronAuditSubmission(StrictModel):
     identifier: NeuronIdentifier
     natural_language_explanation: str = Field(min_length=1)

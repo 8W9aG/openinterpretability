@@ -22,6 +22,20 @@ make install                                      # creates .venv with everythin
 
 - a [LiteLLM](https://docs.litellm.ai/) model string, with that provider's API key set, e.g. `export ANTHROPIC_API_KEY=...` for `anthropic/claude-opus-5-5` (the default);
 - `external/<name>` (e.g. `external/claude-opus-5-5`), which needs no keys. The command writes `exchange/<Agent>.prompt.md`, including the JSON schema of the answer, and waits for `exchange/<Agent>.response.json`. A coding agent, a chat window or a person can write the answer. Name the model that actually answered, because that name is recorded.
+- answer files, which need no keys and no waiting process. `audit --evidence-out` and `review --emit-prompt` write the prompt and exit; `audit --evidence … --hypothesis …` and `review --probes …` take the answer as JSON. In Claude Code, the `neuron-proposer` and `neuron-reviewer` subagents (`.claude/agents/`) write those answers:
+
+  ```bash
+  uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl --evidence-out exchange/ev.json
+  # neuron-proposer answers exchange/ev.prompt.md -> exchange/ev.hypothesis.json
+  uv run openinterp audit --evidence exchange/ev.json --hypothesis exchange/ev.hypothesis.json \
+    --agent-model external/claude-opus-5-5 --out submissions/ev.json
+  uv run openinterp review --audit-file submissions/ev.json --emit-prompt exchange/review.prompt.md
+  # neuron-reviewer answers exchange/review.prompt.md -> exchange/review.probes.json
+  uv run openinterp review --audit-file submissions/ev.json --probes exchange/review.probes.json \
+    --agent-model external/claude-sonnet-5-5
+  ```
+
+  The reviewer subagent has no tool that runs the model, so it can't see probe activations before its probe set is final. The two subagents run on different models (Opus and Sonnet), so the review counts as independent. Pass each one's reported model ID to `--agent-model`.
 
 The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
 

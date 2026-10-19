@@ -76,7 +76,7 @@ mkdir -p "$LOG_DIR"
 
 # Tools the session may use without asking. Nothing outside the repo workflow.
 ALLOWED_TOOLS=(
-  Read Edit Write Glob Grep Skill
+  Read Edit Write Glob Grep Skill Agent
   "Bash(uv run:*)" "Bash(make:*)" "Bash(git:*)" "Bash(gh pr:*)"
   "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(grep:*)" "Bash(jq:*)"
 )
@@ -94,8 +94,9 @@ describes and note it in the PR description.
   different from the record's proposer and $REVIEWER is the same model, re-draw once
   as the skill allows and say why in the PR.
 - Corpus: add --corpus $CORPUS to every \`openinterp audit\`.
-- If a model is external/<name>, answer its exchange/<Agent>.prompt.md yourself by
-  writing exchange/<Agent>.response.json, following the methodology skills.
+- If a model is external/<name>, use the two-step flow in the skill's "Proposer and
+  reviewer without API keys" section, with the neuron-proposer and neuron-reviewer
+  subagents answering the prompts. Record the model IDs they report.
 - Post the result whatever the verdict: commit wiki/, run make check lint test, push,
   and mark the PR ready. If you have to abandon it, close the PR with the reason.
 - Finish on a clean working tree. End your reply with one line:
