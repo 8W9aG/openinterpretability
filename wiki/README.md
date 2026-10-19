@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **34** · neurons: **24** · NEEDS_REVISION: 6 · VERIFIED: 28
+Experiments: **35** · neurons: **25** · NEEDS_REVISION: 6 · VERIFIED: 29
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L10/N3054-positive/20261019T223933Z.md) | [Qwen/Qwen2.5-0.5B L10/N3054+](experiments/Qwen--Qwen2.5-0.5B/L10/N3054-positive/README.md) | review | VERIFIED | 0.96 | Fires on the content tokens of a hand-written literal data value in code, config, connection... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/20261019T222551Z.md) | [Qwen/Qwen2.5-0.5B L23/N726−](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/README.md) | review | VERIFIED | 0.91 | The negative pole fires on the token where the context makes a constraint/restriction word the... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L0/N3460-positive/20261019T215759Z.md) | [Qwen/Qwen2.5-0.5B L0/N3460+](experiments/Qwen--Qwen2.5-0.5B/L0/N3460-positive/README.md) | review | NEEDS_REVISION | 0.81 | A layer-0 token detector for short runs of 3 to 6 hash marks used as Markdown heading or banner... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L7/N4292-negative/20261019T214336Z.md) | [Qwen/Qwen2.5-0.5B L7/N4292−](experiments/Qwen--Qwen2.5-0.5B/L7/N4292-negative/README.md) | review | VERIFIED | 1.00 | Fires on an adverbial means/manner/circumstance preposition attached to a preceding verb phrase... |
