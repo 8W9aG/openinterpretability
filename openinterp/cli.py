@@ -81,11 +81,22 @@ def _write_wiki(record, wiki_dir, **kwargs) -> None:
     if _skip_wiki(wiki_dir):
         return
     from openinterp.builder.wiki import archive_path, write_experiment_page
+    from openinterp.signing import SignatureError, auto_sign
 
     page = write_experiment_page(record, wiki_dir, **kwargs)
     if page is not None:
-        click.echo(f"Experiment: {archive_path(wiki_dir, record)}")
+        archived = archive_path(wiki_dir, record)
+        click.echo(f"Experiment: {archived}")
         click.echo(f"Wiki: {page}")
+        if kwargs.get("kind") == "backfill":
+            return  # an imported record this run didn't produce: never vouch for it
+        try:
+            signer = auto_sign(archived)
+        except SignatureError as exc:
+            click.echo(f"warning: could not sign {archived}: {exc}", err=True)
+        else:
+            if signer:
+                click.echo(f"Signed as {signer}: {archived}.sig (CI skips reproducing it)")
 
 
 def _write_copy(record, out) -> None:

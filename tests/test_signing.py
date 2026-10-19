@@ -101,3 +101,48 @@ def test_sign_command_explains_how_to_trust_a_new_key(tmp_path, keys):
     signers.write_text(signer_line("will", maintainer))
     result = CliRunner().invoke(cli, args)
     assert result.exit_code == 0 and "Signed" in result.output and "as will" in result.output
+
+
+@pytest.fixture
+def auto_signing(tmp_path, monkeypatch, keys):
+    maintainer, _ = keys
+    monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "1")
+    monkeypatch.setenv("OPENINTERP_SIGNING_KEY", str(maintainer))
+    monkeypatch.chdir(tmp_path)
+    signers = Path(".github/allowed_signers")
+    signers.parent.mkdir()
+    signers.write_text(signer_line("will", maintainer))
+    return signers
+
+
+def test_new_experiments_are_signed_when_the_key_is_trusted(auto_signing, record, monkeypatch):
+    from openinterp.builder.wiki import archive_path
+    from openinterp.cli import _write_wiki
+
+    _write_wiki(record, Path("wiki"), kind="review")
+    archived = archive_path(Path("wiki"), record)
+    assert verify_record(archived, auto_signing.read_text()) == "will"
+
+
+def test_backfilled_records_are_never_signed(auto_signing, record):
+    from openinterp.builder.wiki import archive_path
+    from openinterp.cli import _write_wiki
+
+    _write_wiki(record, Path("wiki"), kind="backfill")
+    assert not signature_path(archive_path(Path("wiki"), record)).exists()
+
+
+@pytest.mark.parametrize("setting", ["untrusted", "disabled", "no key"])
+def test_auto_sign_does_nothing_otherwise(auto_signing, keys, monkeypatch, setting, tmp_path):
+    from openinterp.signing import auto_sign
+
+    record = tmp_path / "r.json"
+    record.write_text("{}")
+    if setting == "untrusted":
+        monkeypatch.setenv("OPENINTERP_SIGNING_KEY", str(keys[1]))
+    elif setting == "disabled":
+        monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
+    else:
+        monkeypatch.setenv("OPENINTERP_SIGNING_KEY", str(tmp_path / "missing"))
+    assert auto_sign(record) is None
+    assert not signature_path(record).exists()

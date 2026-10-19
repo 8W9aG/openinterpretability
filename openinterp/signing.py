@@ -15,12 +15,19 @@ protocol. It only says the signer vouches that the record is what it claims to b
 
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
 
 NAMESPACE = "openinterp-record"
 ALLOWED_SIGNERS = Path(".github/allowed_signers")
+DEFAULT_KEY = Path("~/.ssh/openinterp_signing")
+
+
+def signing_key() -> Path:
+    """The signing key: ``$OPENINTERP_SIGNING_KEY``, else ``~/.ssh/openinterp_signing``."""
+    return Path(os.environ.get("OPENINTERP_SIGNING_KEY") or DEFAULT_KEY).expanduser()
 
 
 class SignatureError(Exception):
@@ -37,6 +44,26 @@ def sign_record(record_path: Path, key: Path) -> Path:
     sig.unlink(missing_ok=True)  # ssh-keygen refuses to overwrite
     _ssh_keygen("-Y", "sign", "-f", str(key), "-n", NAMESPACE, str(record_path))
     return sig
+
+
+def auto_sign(record_path: Path, allowed_signers: Path = ALLOWED_SIGNERS) -> str | None:
+    """Sign a newly archived record if this machine holds a trusted signing key.
+
+    Returns the signer's principal, or ``None`` when signing is off
+    (``OPENINTERP_AUTO_SIGN=0``), there is no key, or the key isn't in
+    ``allowed_signers`` (an untrusted signature would only make CI fail).
+    """
+    if os.environ.get("OPENINTERP_AUTO_SIGN", "1").lower() in {"0", "false", "no"}:
+        return None
+    key = signing_key()
+    public = key.with_name(key.name + ".pub")
+    if not key.exists() or not public.exists() or not allowed_signers.exists():
+        return None
+    signers = allowed_signers.read_text(encoding="utf-8")
+    if public.read_text(encoding="utf-8").split()[1] not in signers.split():
+        return None
+    sign_record(record_path, key)
+    return verify_record(record_path, signers)
 
 
 def verify_record(record_path: Path, allowed_signers: str) -> str | None:

@@ -176,3 +176,9 @@ def toy_runner(toy_model):
     from openinterp.harness.hooks import NeuronHookRunner
 
     return NeuronHookRunner(toy_model, FakeTokenizer())
+
+
+@pytest.fixture(autouse=True)
+def _no_auto_sign(monkeypatch):
+    """Never sign test records with the developer's real key (tests opt back in)."""
+    monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
