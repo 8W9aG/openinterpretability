@@ -10,6 +10,7 @@
 
 | Date | Experiment | Kind | Status | Balanced acc. | Protocol | Hypothesis |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-19 11:04 | [20261019T110409Z](20261019T110409Z.md) | reevaluation | VERIFIED | 0.90 | 0.5 | The positive pole fires on a non-final sub-word piece of an organic-chemistry or... |
 | 2026-10-19 10:04 | [20261019T100407Z](20261019T100407Z.md) | review | VERIFIED | 0.90 | 0.4 | The positive pole fires on a non-final sub-word piece of an organic-chemistry or... |
 | 2026-10-19 09:06 | [20261019T090614Z](20261019T090614Z.md) | review | NEEDS_REVISION | 0.80 | 0.4 | The positive pole is a sparse detector of an unfinished word: it fires on a short... |
 
