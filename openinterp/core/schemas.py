@@ -147,6 +147,18 @@ class ActivatingExample(StrictModel):
         return self
 
 
+class RunEnvironment(StrictModel):
+    """Where a measurement ran. Reproducing a record pins the model revision and dtype;
+    the device and library versions explain drift that a different setup can cause."""
+
+    device: str
+    dtype: str = Field(description="Dtype of the loaded weights, e.g. float32.")
+    model_revision: str | None = Field(default=None, description="Hugging Face commit hash.")
+    openinterp_version: str
+    torch_version: str
+    transformers_version: str | None = None
+
+
 class ExperimentProvenance(StrictModel):
     """Everything needed to re-run the scan that produced a submission."""
 
@@ -162,6 +174,7 @@ class ExperimentProvenance(StrictModel):
     )
     seed: int | None = None
     harness_version: str
+    environment: RunEnvironment | None = None
 
 
 class CorrelatedNeuron(StrictModel):
@@ -348,6 +361,7 @@ class VerificationVerdict(StrictModel):
     metrics: ReviewMetrics | None = None
     policy: ReviewPolicy | None = None
     joint_ablation: JointAblation | None = None
+    environment: RunEnvironment | None = None
     notes: str = ""
 
 

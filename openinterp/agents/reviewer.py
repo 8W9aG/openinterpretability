@@ -30,7 +30,7 @@ from openinterp.core.schemas import (
 from openinterp.core.stats import balanced_accuracy, effective_counts
 from openinterp.harness.confounds import baseline_predictions
 from openinterp.harness.covariance import joint_ablation
-from openinterp.harness.hooks import NeuronHookRunner, pole_strength
+from openinterp.harness.hooks import NeuronHookRunner, pole_strength, run_environment
 from openinterp.harness.lookahead import measure_lookahead
 from openinterp.harness.patcher import (
     ActivationPatcher,
@@ -182,6 +182,7 @@ def evaluate_submission(
         metrics=metrics,
         policy=policy,
         joint_ablation=_joint_ablation(submission, runner, probes, policy),
+        environment=run_environment(runner),
         notes=_summary(results, metrics),
     )
 

@@ -20,7 +20,7 @@ import torch
 from torch import nn
 
 from openinterp.core.exceptions import ArchitectureNotSupportedError
-from openinterp.core.schemas import ActivatingExample, Histogram, Pole
+from openinterp.core.schemas import ActivatingExample, Histogram, Pole, RunEnvironment
 
 # Probed in order; the first path that resolves on the model wins.
 LAYER_PATHS = (
@@ -105,6 +105,7 @@ class NeuronHookRunner:
             tokenizer.pad_token = tokenizer.eos_token
         self.layers, self.layer_path = self._resolve_layers(layer_path)
         self.down_proj_path = self._resolve_down_proj(down_proj_path)
+        self.model_revision: str | None = None  # Hugging Face commit, set by the loader
 
     def _resolve_layers(self, explicit: str | None) -> tuple[nn.ModuleList, str]:
         for path in (explicit,) if explicit else LAYER_PATHS:
@@ -256,6 +257,28 @@ class NeuronHookRunner:
 
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:
         return float(self.neuron_activations(text, layer, neuron_idx, pole).max())
+
+
+def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
+    """The device, weights dtype, model revision and library versions of ``runner``."""
+    from openinterp import __version__
+
+    try:
+        import transformers
+
+        transformers_version = transformers.__version__
+    except ImportError:
+        transformers_version = None
+    config = getattr(runner.model, "config", None)
+    return RunEnvironment(
+        device=str(runner.device),
+        dtype=str(next(runner.model.parameters()).dtype).removeprefix("torch."),
+        model_revision=getattr(runner, "model_revision", None)
+        or getattr(config, "_commit_hash", None),
+        openinterp_version=__version__,
+        torch_version=torch.__version__,
+        transformers_version=transformers_version,
+    )
 
 
 def top_activating_examples(

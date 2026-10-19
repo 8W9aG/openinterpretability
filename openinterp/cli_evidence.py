@@ -34,7 +34,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
 
     from openinterp import __version__
     from openinterp.core.schemas import ExperimentProvenance, NeuronIdentifier, ScanEvidence
-    from openinterp.harness.hooks import activation_histogram
+    from openinterp.harness.hooks import activation_histogram, run_environment
     from openinterp.harness.jlens import vocabulary_lens
     from openinterp.harness.scan import scan_neuron
 
@@ -62,7 +62,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
         top_examples=scan.examples,
         activation_histogram=activation_histogram(scan.values),
         provenance=ExperimentProvenance(
-            model_revision=getattr(runner.model.config, "_commit_hash", None),
+            model_revision=run_environment(runner).model_revision,
             dtype=dtype,
             corpus=corpus_name,
             corpus_sha256=corpus_sha,
@@ -71,6 +71,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
             selection="random" if random_pick else "manual",
             seed=seed if random_pick else None,
             harness_version=__version__,
+            environment=run_environment(runner),
         ),
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,

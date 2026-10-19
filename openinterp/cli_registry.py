@@ -121,3 +121,66 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
     total = sum(x.weight for x in plan.candidates) or 1.0
     for x in plan.candidates[:top]:
         click.echo(f"  {x.weight / total:6.1%}  {x.kind:18s} {x.slug}  — {x.rationale}")
+
+
+@cli.command()
+@click.argument("records", nargs=-1, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--base-ref",
+    help="Reproduce every record added or changed since this git ref (e.g. origin/main).",
+)
+@click.option(
+    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
+)
+@click.option(
+    "--atol",
+    default=1e-3,
+    show_default=True,
+    type=click.FloatRange(min=0),
+    help="Absolute tolerance, as a fraction of the neuron's max activation.",
+)
+@click.option("--rtol", default=1e-2, show_default=True, type=click.FloatRange(min=0))
+@click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto.")
+def reproduce(records, base_ref, wiki_dir, atol, rtol, device):
+    """Re-run experiment records against their pinned model and compare (no LLM calls).
+
+    Each record's scan evidence, counterfactual deltas and review are measured again
+    with the model revision and dtype it pins, under its own review policy. Exits 1 if
+    any number differs beyond tolerance or any pass/fail, gate or status differs.
+    """
+    from openinterp.checks import changed_records
+    from openinterp.cli import _load_runner
+    from openinterp.core.schemas import AuditRecord
+    from openinterp.reproduce import Tolerance, check_protocol, pinned_environment
+    from openinterp.reproduce import reproduce_record as run
+
+    paths = list(records)
+    if base_ref:
+        paths += [p for p in changed_records(wiki_dir, base_ref) if p not in paths]
+    if not paths:
+        click.echo("No records to reproduce.")
+        return
+    tolerance = Tolerance(atol=atol, rtol=rtol)
+    runners: dict[tuple, object] = {}
+    failed = 0
+    for path in paths:
+        record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        reason = check_protocol(record)
+        if reason is None:
+            revision, dtype = pinned_environment(record)
+            key = (record.submission.identifier.model_name, revision, dtype)
+            if key not in runners:
+                runners[key] = _load_runner(key[0], device, dtype, revision=revision)
+            report = run(record, runners[key], tolerance, path)
+            problems, warnings = report.mismatches, report.warnings
+        else:
+            problems, warnings = [reason], []
+        failed += bool(problems)
+        click.echo(f"{'FAILED' if problems else 'REPRODUCED'}: {path}")
+        for message in problems:
+            click.echo(f"  mismatch: {message}")
+        for message in warnings:
+            click.echo(f"  warning: {message}")
+    click.echo(f"{len(paths) - failed}/{len(paths)} record(s) reproduced.")
+    if failed:
+        raise SystemExit(1)

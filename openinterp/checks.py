@@ -191,3 +191,17 @@ def _check_write_once(wiki_dir: Path, base_ref: str, report: CheckReport) -> Non
                     path,
                     "experiment pages are write-once; only the Discussion section may be edited",
                 )
+
+
+def changed_records(wiki_dir: Path, base_ref: str) -> list[Path]:
+    """Experiment records added or modified since ``base_ref``."""
+    diff = _git(
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "--diff-filter=AM",
+        f"{base_ref}...HEAD",
+        "--",
+        str(Path(wiki_dir) / "experiments"),
+    )
+    return [Path(name) for name in diff.splitlines() if name.endswith(".json")]

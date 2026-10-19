@@ -146,6 +146,7 @@ Every completed experiment gets a Markdown page and an archived copy of its full
 [CI](.github/workflows/ci.yml) runs two required jobs on every PR:
 - **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`).
 - **Experiment records:** `openinterp check`. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must validate, have a verdict, sit at the path its neuron and id dictate, and have a page whose front matter matches it; every page must have a record. The wiki indexes must be current, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty.
+- **Reproduction (not in CI yet):** `openinterp reproduce --base-ref origin/main` re-runs every record a branch adds or changes against the model commit it pins, and fails if any activation, result, gate or status differs from the record. It needs the model weights, so it isn't run on GitHub's runners; see "Merge verification" in [TODO.md](TODO.md).
 
 Run `make check` locally before pushing. The [PR template](.github/pull_request_template.md) has a checklist for posting experiments.
 

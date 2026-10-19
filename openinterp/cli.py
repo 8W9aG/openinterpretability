@@ -10,7 +10,7 @@ import click
 from openinterp.core.exceptions import OpenInterpError
 
 
-def _load_runner(model_name: str, device: str, dtype: str):
+def _load_runner(model_name: str, device: str, dtype: str, revision: str | None = None):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -25,10 +25,31 @@ def _load_runner(model_name: str, device: str, dtype: str):
         "float16": torch.float16,
     }[dtype]
     click.echo(f"Loading {model_name} on {device}…", err=True)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch_dtype).to(device)
+    commit = _resolve_revision(model_name, revision)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, revision=commit)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, torch_dtype=torch_dtype, revision=commit
+    ).to(device)
     model.eval()
-    return NeuronHookRunner(model, tokenizer)
+    runner = NeuronHookRunner(model, tokenizer)
+    runner.model_revision = commit
+    return runner
+
+
+def _resolve_revision(model_name: str, revision: str | None) -> str | None:
+    """The commit hash of ``revision`` (default: main), so records pin exact weights.
+
+    ``config._commit_hash`` is not set by every transformers version; the snapshot
+    folder Hugging Face caches the files in is always named after the commit.
+    """
+    from huggingface_hub import snapshot_download
+
+    try:
+        return Path(
+            snapshot_download(model_name, revision=revision, allow_patterns=["config.json"])
+        ).name
+    except Exception:  # offline with nothing cached, or a local path: load as given
+        return revision
 
 
 model_options = [
