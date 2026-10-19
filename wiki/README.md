@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **20** · neurons: **13** · NEEDS_REVISION: 4 · VERIFIED: 16
+Experiments: **21** · neurons: **13** · NEEDS_REVISION: 4 · VERIFIED: 17
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-negative/20261019T165534Z.md) | [Qwen/Qwen2.5-0.5B L4/N429−](experiments/Qwen--Qwen2.5-0.5B/L4/N429-negative/README.md) | review | VERIFIED | 1.00 | The negative pole (weak; max ~2.3) fires on the completing piece of a small set of memorised... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-negative/20261019T165031Z.md) | [Qwen/Qwen2.5-0.5B L4/N4339−](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-negative/README.md) | review | VERIFIED | 0.90 | Fires on the word naming a hostile blow, attack or (more weakly) intense attention that the... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L16/N199-negative/20261019T163051Z.md) | [Qwen/Qwen2.5-0.5B L16/N199−](experiments/Qwen--Qwen2.5-0.5B/L16/N199-negative/README.md) | review | NEEDS_REVISION | 0.72 | Fires on a whole English word in running prose that breaks a strong local collocational... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L16/N2071-positive/20261019T153802Z.md) | [Qwen/Qwen2.5-0.5B L16/N2071+](experiments/Qwen--Qwen2.5-0.5B/L16/N2071-positive/README.md) | review | VERIFIED | 0.95 | Fires on a word-initial 'dis'-family subword fragment (' disc', 'Disc', ' dis', ' diss', '... |
