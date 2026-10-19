@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **16** · neurons: **9** · NEEDS_REVISION: 3 · VERIFIED: 13
+Experiments: **17** · neurons: **10** · NEEDS_REVISION: 3 · VERIFIED: 14
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-negative/20261019T151751Z.md) | [Qwen/Qwen2.5-0.5B L4/N2436−](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-negative/README.md) | review | VERIFIED | 0.91 | Fires on the word that names an industrial production site or sector: the head noun or adjective... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L10/N283-positive/20261019T145938Z.md) | [Qwen/Qwen2.5-0.5B L10/N283+](experiments/Qwen--Qwen2.5-0.5B/L10/N283-positive/README.md) | review | VERIFIED | 0.92 | Fires on the preposition or determiner that opens the interlocutor slot right after a word... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-positive/20261019T113221Z.md) | [Qwen/Qwen2.5-0.5B L4/N1889+](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-positive/README.md) | review | VERIFIED | 1.00 | Detects the letter c/C when it names the C programming language family, retrospectively. The... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/20261019T110732Z.md) | [Qwen/Qwen2.5-0.5B L4/N429+](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/README.md) | reevaluation | VERIFIED | 0.95 | The positive pole fires on the token that completes a gendered civilian title of address (Mr,... |
