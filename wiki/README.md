@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **15** · neurons: **8** · NEEDS_REVISION: 3 · VERIFIED: 12
+Experiments: **16** · neurons: **9** · NEEDS_REVISION: 3 · VERIFIED: 13
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L10/N283-positive/20261019T145938Z.md) | [Qwen/Qwen2.5-0.5B L10/N283+](experiments/Qwen--Qwen2.5-0.5B/L10/N283-positive/README.md) | review | VERIFIED | 0.92 | Fires on the preposition or determiner that opens the interlocutor slot right after a word... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-positive/20261019T113221Z.md) | [Qwen/Qwen2.5-0.5B L4/N1889+](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-positive/README.md) | review | VERIFIED | 1.00 | Detects the letter c/C when it names the C programming language family, retrospectively. The... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/20261019T110732Z.md) | [Qwen/Qwen2.5-0.5B L4/N429+](experiments/Qwen--Qwen2.5-0.5B/L4/N429-positive/README.md) | reevaluation | VERIFIED | 0.95 | The positive pole fires on the token that completes a gendered civilian title of address (Mr,... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/20261019T110409Z.md) | [Qwen/Qwen2.5-0.5B L23/N726+](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/README.md) | reevaluation | VERIFIED | 0.90 | The positive pole fires on a non-final sub-word piece of an organic-chemistry or carbohydrate... |
