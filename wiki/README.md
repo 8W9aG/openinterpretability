@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **19** · neurons: **12** · NEEDS_REVISION: 4 · VERIFIED: 15
+Experiments: **20** · neurons: **13** · NEEDS_REVISION: 4 · VERIFIED: 16
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-negative/20261019T165031Z.md) | [Qwen/Qwen2.5-0.5B L4/N4339−](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-negative/README.md) | review | VERIFIED | 0.90 | Fires on the word naming a hostile blow, attack or (more weakly) intense attention that the... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L16/N199-negative/20261019T163051Z.md) | [Qwen/Qwen2.5-0.5B L16/N199−](experiments/Qwen--Qwen2.5-0.5B/L16/N199-negative/README.md) | review | NEEDS_REVISION | 0.72 | Fires on a whole English word in running prose that breaks a strong local collocational... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L16/N2071-positive/20261019T153802Z.md) | [Qwen/Qwen2.5-0.5B L16/N2071+](experiments/Qwen--Qwen2.5-0.5B/L16/N2071-positive/README.md) | review | VERIFIED | 0.95 | Fires on a word-initial 'dis'-family subword fragment (' disc', 'Disc', ' dis', ' diss', '... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-negative/20261019T151751Z.md) | [Qwen/Qwen2.5-0.5B L4/N2436−](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-negative/README.md) | review | VERIFIED | 0.91 | Fires on the word that names an industrial production site or sector: the head noun or adjective... |
