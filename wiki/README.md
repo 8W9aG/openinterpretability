@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **30** · neurons: **21** · NEEDS_REVISION: 5 · VERIFIED: 25
+Experiments: **31** · neurons: **22** · NEEDS_REVISION: 5 · VERIFIED: 26
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L9/N3303-positive/20261019T212406Z.md) | [Qwen/Qwen2.5-0.5B L9/N3303+](experiments/Qwen--Qwen2.5-0.5B/L9/N3303-positive/README.md) | review | VERIFIED | 0.95 | Fires on the word that expresses how often or at what rate an event happens, when it modifies an... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L1/N12-negative/20261019T211057Z.md) | [Qwen/Qwen2.5-0.5B L1/N12−](experiments/Qwen--Qwen2.5-0.5B/L1/N12-negative/README.md) | review | VERIFIED | 1.00 | A layer-1 bigram detector that fires on the second token of a few specific two-token pairs: most... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L12/N4099-negative/20261019T204532Z.md) | [Qwen/Qwen2.5-0.5B L12/N4099−](experiments/Qwen--Qwen2.5-0.5B/L12/N4099-negative/README.md) | review | VERIFIED | 0.95 | Fires on the interior pieces (second through second-to-last) of a rare, recognisable string that... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L14/N2158-negative/20261019T200148Z.md) | [Qwen/Qwen2.5-0.5B L14/N2158−](experiments/Qwen--Qwen2.5-0.5B/L14/N2158-negative/README.md) | review | VERIFIED | 0.75 | Fires at the onset of a numeral that states a cardinal quantity (a count or amount of things:... |
