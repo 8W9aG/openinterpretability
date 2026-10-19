@@ -1,5 +1,6 @@
 """Reproducing a record catches edited numbers, results and verdicts."""
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -121,3 +122,51 @@ def test_cli_exit_code(tmp_path, monkeypatch, record, toy_runner):
     assert result.exit_code == 1 and "FAILED" in result.output
     assert "1/2 record(s) reproduced" in result.output
     assert len(loads) == 2  # one load per invocation, shared across same-model records
+
+
+def test_cli_allow_list_refuses_other_models_without_loading(tmp_path, monkeypatch, record):
+    monkeypatch.setattr(
+        "openinterp.cli._load_runner", lambda *a, **k: pytest.fail("must not load the model")
+    )
+    path = tmp_path / "r.json"
+    path.write_text(record.model_dump_json())
+    result = CliRunner().invoke(cli, ["reproduce", str(path), "--allow-model", "Qwen/Qwen2.5-0.5B"])
+    assert result.exit_code == 1 and "model toy is not on the allow-list" in result.output
+
+
+def test_cli_reports_to_github_actions(tmp_path, monkeypatch, record, toy_runner):
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    bad = tmp_path / "bad.json"
+    bad.write_text(edit_result(record, 0, passed=False).model_dump_json())
+    result = CliRunner().invoke(cli, ["reproduce", str(bad)])
+    assert result.exit_code == 1
+    assert f"::error file={bad}::" in result.output
+    assert "### Reproduction" in summary.read_text() and "❌" in summary.read_text()
+
+
+def test_changed_records_lists_added_records(tmp_path, monkeypatch):
+    import subprocess
+
+    from openinterp.checks import changed_records
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    monkeypatch.chdir(tmp_path)
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    old = tmp_path / "wiki" / "experiments" / "m" / "old.json"
+    old.parent.mkdir(parents=True)
+    old.write_text("{}")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    git("switch", "-q", "-c", "pr")
+    (old.parent / "new.json").write_text("{}")
+    (old.parent / "new.md").write_text("page")
+    git("add", "-A")
+    git("commit", "-q", "-m", "add")
+    assert changed_records(Path("wiki"), "main") == [Path("wiki/experiments/m/new.json")]

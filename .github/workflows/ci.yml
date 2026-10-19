@@ -58,3 +58,42 @@ jobs:
           else
             openinterp check
           fi
+
+  reproduce:
+    name: Reproduce records
+    # Re-runs every record a pull request adds or changes against the model it pins
+    # (docs/PROTOCOL.md §5). Pull requests without record changes finish at once, so the
+    # job always reports and can be made a required check. Fork PRs get a read-only token
+    # and no secrets, and only allow-listed models are downloaded.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ALLOWED_MODELS: Qwen/Qwen2.5-0.5B  # space-separated; add a model before records use it
+      HF_HUB_DISABLE_PROGRESS_BARS: "1"
+      TRANSFORMERS_VERBOSITY: error
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # diff against the PR's base branch to find its records
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Restore model weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: hf-hub-v1-${{ github.run_id }}
+          restore-keys: hf-hub-v1-
+      - name: Reproduce added or changed records
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          flags=()
+          for model in $ALLOWED_MODELS; do flags+=(--allow-model "$model"); done
+          openinterp reproduce --base-ref "origin/$BASE_REF" --device cpu "${flags[@]}"

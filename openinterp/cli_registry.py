@@ -141,18 +141,38 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
 )
 @click.option("--rtol", default=1e-2, show_default=True, type=click.FloatRange(min=0))
 @click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto.")
-def reproduce(records, base_ref, wiki_dir, atol, rtol, device):
+@click.option(
+    "--allow-model",
+    "allowed_models",
+    multiple=True,
+    help="Only load these Hugging Face models (repeatable); records naming any other model "
+    "fail without a download. Default: any model.",
+)
+@click.option(
+    "--allowed-signers",
+    default=Path(".github/allowed_signers"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Records signed by a key listed here skip reproduction. With --base-ref the file "
+    "is read from that ref, so a branch can't add its own key.",
+)
+def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, allowed_signers):
     """Re-run experiment records against their pinned model and compare (no LLM calls).
 
     Each record's scan evidence, counterfactual deltas and review are measured again
     with the model revision and dtype it pins, under its own review policy. Exits 1 if
     any number differs beyond tolerance or any pass/fail, gate or status differs.
     """
+    import os
+
+    from pydantic import ValidationError
+
     from openinterp.checks import changed_records
     from openinterp.cli import _load_runner
     from openinterp.core.schemas import AuditRecord
     from openinterp.reproduce import Tolerance, check_protocol, pinned_environment
     from openinterp.reproduce import reproduce_record as run
+    from openinterp.signing import SignatureError, verify_record
 
     paths = list(records)
     if base_ref:
@@ -160,27 +180,112 @@ def reproduce(records, base_ref, wiki_dir, atol, rtol, device):
     if not paths:
         click.echo("No records to reproduce.")
         return
+    in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+    signers = _allowed_signers(allowed_signers, base_ref)
     tolerance = Tolerance(atol=atol, rtol=rtol)
     runners: dict[tuple, object] = {}
-    failed = 0
-    for path in paths:
-        record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
+    results: list[tuple[Path, list[str], list[str]]] = []
+
+    def check_one(path: Path) -> tuple[str, list[str], list[str]]:
+        try:
+            signer = verify_record(path, signers)
+        except SignatureError as exc:
+            return "FAILED", [str(exc)], []
+        if signer:
+            return f"SIGNED by {signer} (reproduction skipped)", [], []
+        try:
+            record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValidationError:
+            return "FAILED", ["invalid experiment record"], []
+        model = record.submission.identifier.model_name
         reason = check_protocol(record)
-        if reason is None:
-            revision, dtype = pinned_environment(record)
-            key = (record.submission.identifier.model_name, revision, dtype)
-            if key not in runners:
-                runners[key] = _load_runner(key[0], device, dtype, revision=revision)
-            report = run(record, runners[key], tolerance, path)
-            problems, warnings = report.mismatches, report.warnings
-        else:
-            problems, warnings = [reason], []
-        failed += bool(problems)
-        click.echo(f"{'FAILED' if problems else 'REPRODUCED'}: {path}")
+        if allowed_models and model not in allowed_models:
+            reason = f"model {model} is not on the allow-list ({', '.join(allowed_models)})"
+        if reason:
+            return "FAILED", [reason], []
+        revision, dtype = pinned_environment(record)
+        key = (model, revision, dtype)
+        if key not in runners:
+            runners[key] = _load_runner(model, device, dtype, revision=revision)
+        report = run(record, runners[key], tolerance, path)
+        return ("FAILED" if report.mismatches else "REPRODUCED"), report.mismatches, report.warnings
+
+    for path in paths:
+        status, problems, warnings = check_one(path)
+        results.append((path, problems, warnings))
+        click.echo(f"{status}: {path}")
         for message in problems:
-            click.echo(f"  mismatch: {message}")
+            click.echo(
+                f"::error file={path}::{message}" if in_actions else f"  mismatch: {message}"
+            )
         for message in warnings:
-            click.echo(f"  warning: {message}")
-    click.echo(f"{len(paths) - failed}/{len(paths)} record(s) reproduced.")
+            click.echo(
+                f"::warning file={path}::{message}" if in_actions else f"  warning: {message}"
+            )
+
+    failed = sum(bool(problems) for _, problems, _ in results)
+    summary = f"{len(paths) - failed}/{len(paths)} record(s) reproduced."
+    click.echo(summary)
+    if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
+            fh.write(f"### Reproduction\n\n{summary}\n\n")
+            for path, problems, _ in results:
+                fh.write(f"- {'❌' if problems else '✅'} `{path}`\n")
+                fh.writelines(f"  - {message}\n" for message in problems)
     if failed:
         raise SystemExit(1)
+
+
+def _allowed_signers(path: Path, base_ref: str | None) -> str:
+    """The allowed-signers file's content: from ``base_ref`` if given, else from disk."""
+    import subprocess
+
+    if base_ref:
+        shown = subprocess.run(
+            ["git", "show", f"{base_ref}:{path.as_posix()}"], capture_output=True, text=True
+        )
+        return shown.stdout if shown.returncode == 0 else ""
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+@cli.command()
+@click.argument(
+    "records", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.option(
+    "--key",
+    default=Path("~/.ssh/id_ed25519"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Private SSH key to sign with; its public key must be in --allowed-signers.",
+)
+@click.option(
+    "--allowed-signers",
+    default=Path(".github/allowed_signers"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+)
+def sign(records, key, allowed_signers):
+    """Vouch for experiment records with your SSH key, so CI skips reproducing them.
+
+    Writes <id>.json.sig next to each record; the record itself is not changed. The
+    verdict still comes from the review protocol: a signature only says you vouch that
+    the record is what it claims to be. Commit the .sig files with the records.
+    """
+    from openinterp.signing import SignatureError, sign_record, verify_record
+
+    signers = _allowed_signers(allowed_signers, None)
+    for path in records:
+        sig = sign_record(path, key.expanduser())
+        try:
+            signer = verify_record(path, signers)
+        except SignatureError:
+            click.echo(
+                f"Wrote {sig}, but {key}.pub is not in {allowed_signers}, so CI will reject "
+                "it. Add it with:\n"
+                f'  echo "<your-name> namespaces=\\"openinterp-record\\" $(cat {key}.pub)" '
+                f">> {allowed_signers}",
+                err=True,
+            )
+            raise SystemExit(1) from None
+        click.echo(f"Signed {path} as {signer}: {sig}")

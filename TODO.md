@@ -27,9 +27,9 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Merge verification
 
-At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), but it needs model weights, so it should run before a record merges on a remote worker we control, not on GitHub-hosted runners, behind a queue that caps cost.
+At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), and CI's "Reproduce records" job runs it on every pull request, on GitHub-hosted CPU runners with cached weights and a model allow-list. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
-- [ ] Remote worker: a GPU (or large CPU) machine that pulls jobs from a queue, keeps a warm cache of model weights, and runs one job at a time per device. No secrets or repo write access on the worker; it only needs to read the record and report a result.
+- [ ] Remote worker: move "Reproduce records" to a GPU (or large CPU) machine that pulls jobs from a queue, keeps a warm cache of model weights, and runs one job at a time per device. No secrets or repo write access on the worker; it only needs to read the record and report a result.
 - [ ] Queue and cost controls: a submission from CI only enqueues a job (record path, commit SHA, record hash). Deduplicate by record hash, cap jobs per PR and per author per day, set a per-job timeout and a monthly budget, and refuse jobs once the budget is spent rather than scaling up.
 - [ ] Treat records as untrusted input: run only allow-listed models (no arbitrary Hugging Face repos, never `trust_remote_code`), bound probe count and length, and run each job in a sandbox with no network beyond the model cache.
 - [ ] Report back to GitHub as a commit status or check run on the PR's head SHA ("Reproduction: passed / failed / queued"), with a link to the log, and make it a required check for `main` once it is reliable.
@@ -92,7 +92,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 - [ ] Fix the scheduled deploy (`.github/workflows/deploy.yml`): the hourly run doesn't seem to deploy. First suspect: the job-level `if: vars.R2_BUCKET != ''` is evaluated before the `production` environment is applied, so if `R2_BUCKET` is an environment variable rather than a repository variable the job is silently skipped, not failed. Check the Actions run history for skipped runs, and confirm the cron is firing at all (schedules only run from the default branch and are disabled after 60 days without activity).
 - [ ] Replace the synthetic `examples/audits/` fixtures with real records once some are VERIFIED.
 - [ ] Soften the README's "remarkably clean" premise until Goodfire's technical companion paper is published.
-- [ ] Mark the CI jobs "Lint and tests" and "Experiment records" as required in the GitHub branch protection rules for `main`.
+- [ ] Mark the CI jobs "Lint and tests", "Experiment records" and "Reproduce records" as required in the GitHub branch protection rules for `main`.
 - [ ] Add the R2 secrets and variables to GitHub (see README, "Hourly deploy"), then run the deploy workflow once by hand.
 - [ ] GitHub disables scheduled workflows after 60 days without repository activity; keep an eye on the hourly deploy.
 

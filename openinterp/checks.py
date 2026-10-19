@@ -134,6 +134,9 @@ def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
             report.add(page, "experiment page has no valid front matter")
         if not page.with_suffix(".json").exists():
             report.add(page, f"missing experiment record {page.with_suffix('.json').name}")
+    for sig in sorted(root.rglob("*.json.sig")):
+        if not sig.with_suffix("").exists():
+            report.add(sig, f"signature for a missing record {sig.with_suffix('').name}")
 
 
 def _load(path: Path) -> AuditRecord | None:

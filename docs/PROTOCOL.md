@@ -131,6 +131,8 @@ A record must let a third party re-derive its verdict:
 
 Numbers must agree within `atol × scale + rtol × |recorded|` (defaults 0.001 and 0.01). These absorb float differences between devices and library versions, but not an edited number. Every pass/fail, every gate and the status must agree exactly. Causal metrics and joint ablation are not gated, so a difference there is only a warning. A different device or library version is reported as a warning. A record judged under another protocol version can't be reproduced by the current harness, because its decision rule was different: re-evaluate it instead.
 
+A trusted maintainer can instead **sign** a record (`openinterp sign <file>`, with an SSH key listed in `.github/allowed_signers`). This writes `<id>.json.sig` next to the record, over its exact bytes. `reproduce` then skips the record, reporting it as signed. A signature that doesn't verify fails like a mismatch. With `--base-ref`, the signers list is read from the base ref, so a branch can't trust its own key. A signature doesn't change the verdict, which still comes from the review protocol. It only records that the signer vouches for the record.
+
 Reproduction can't show that the reviewer wrote its probes without seeing activations. It shows only that the record's numbers and verdict follow from its probes and the model.
 
 ## 6. Changing the protocol

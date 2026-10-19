@@ -1,0 +1,5 @@
+# Keys whose signatures let CI skip reproducing an experiment record (openinterp sign).
+# One signer per line, in OpenSSH allowed_signers format:
+#   <principal> namespaces="openinterp-record" <key type> <public key>
+# CI reads this file from the pull request's base branch, so a pull request can't add
+# its own key: a new signer has to land on main first.
