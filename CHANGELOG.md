@@ -9,10 +9,6 @@ The project has two version numbers:
 
 ## [Unreleased]
 
-### Added
-
-- **Attention heads, step 1: identifiers and hooks.** `ComponentIdentifier` is a union of `NeuronIdentifier` (`kind = "mlp_neuron_pole"`, the default, so existing records validate unchanged) and the new `HeadIdentifier` (`kind = "attn_head"`, `head_idx`, slug `L<layer>/H<idx>`). `NeuronHookRunner` resolves each layer's attention output projection (Llama/Qwen/Mistral/Gemma/Phi, GPT-2, GPT-NeoX, GPT-J, OPT, Falcon) and gains `head_outputs`, `head_write_norm`, `head_output_weights`, `attention_patterns` and `hooks(head_interventions=…)`, plus `ablate_head`. `_load_runner` takes `attn_implementation` (patterns need `"eager"`). Submissions still accept neuron poles only and reject a head with a clear message, so the decision rule and `PROTOCOL_VERSION` are unchanged.
-
 ### Changed
 
 - **Token heatmaps** on experiment pages, Neuroscope-style. Each top example shows 30 tokens before and 10 after its peak, with the full snippet expandable. The peak token is underlined and bold, and hovering a token shows its exact stored strength (before, the value was rebuilt from a capped, rounded shade). A colour legend runs from 0 to the neuron's max, and each example has a values table for keyboard and screen-reader users. Newline tokens show as `↵` so they can be shaded. The tint is capped at 80%, so token text keeps at least 4.5:1 contrast in light and dark mode; the uncapped orange fell to 3.25:1 in dark mode.
@@ -21,6 +17,7 @@ The project has two version numbers:
 
 ### Added
 
+- **Attention heads, step 1: identifiers and hooks.** `ComponentIdentifier` is a union of `NeuronIdentifier` (`kind = "mlp_neuron_pole"`, the default, so existing records validate unchanged) and the new `HeadIdentifier` (`kind = "attn_head"`, `head_idx`, slug `L<layer>/H<idx>`). `NeuronHookRunner` resolves each layer's attention output projection (Llama/Qwen/Mistral/Gemma/Phi, GPT-2, GPT-NeoX, GPT-J, OPT, Falcon) and gains `head_outputs`, `head_write_norm`, `head_output_weights`, `attention_patterns` and `hooks(head_interventions=…)`, plus `ablate_head`. `_load_runner` takes `attn_implementation` (patterns need `"eager"`). Submissions still accept neuron poles only and reject a head with a clear message, so the decision rule and `PROTOCOL_VERSION` are unchanged.
 - **Most recent experiments** on the home page: the latest 10 experiments, whatever their verdict, newest first, with review time (UTC), neuron, status, evidence strength, hypothesis, proposer and reviewer, and a tag for re-measurements. On small screens the date moves under the neuron.
 - **Proposer and reviewer as Claude Code subagents, with no API key.** `.claude/agents/neuron-proposer.md` and `neuron-reviewer.md` answer prompt files. The reviewer has no tool that runs the model, so it can't see probe activations before its probe set is final.
 - Two-step CLI commands that write a prompt and exit, then take the answer as JSON, so no process waits on an answer file: `openinterp audit --evidence-out` (scan evidence as `ScanEvidence` JSON plus the proposer's prompt), `audit --evidence … --hypothesis …` (builds the submission without rescanning), `review --emit-prompt` (loads no model) and `review --probes …`. `--agent-model` is required with an answer file, so the record names the model that wrote it.
