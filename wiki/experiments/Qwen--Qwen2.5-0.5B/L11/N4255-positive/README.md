@@ -10,6 +10,7 @@
 
 | Date | Experiment | Kind | Status | Balanced acc. | Protocol | Hypothesis |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-19 11:01 | [20261019T110111Z](20261019T110111Z.md) | reevaluation | VERIFIED | 1.00 | 0.5 | Fires on the connective that hands off from a containing category to the specific... |
 | 2026-10-19 05:09 | [20261019T050928Z](20261019T050928Z.md) | review | VERIFIED | 1.00 | 0.4 | Fires on the connective that hands off from a containing category to the specific... |
 | 2026-10-19 04:05 | [20261019T040534Z](20261019T040534Z.md) | reevaluation | NEEDS_REVISION | 0.70 | 0.3 | Fires on the connective that introduces examples or members of a category just named,... |
 | 2026-10-19 01:22 | [20261019T012244Z](20261019T012244Z.md) | backfill | NEEDS_REVISION | 0.70 | 0.2 | Fires on the connective that introduces examples or members of a category just named,... |
