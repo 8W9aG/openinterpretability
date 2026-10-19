@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **8** · neurons: **5** · NEEDS_REVISION: 3 · VERIFIED: 5
+Experiments: **10** · neurons: **6** · NEEDS_REVISION: 3 · VERIFIED: 7
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L3/N3738-negative/20261019T103259Z.md) | [Qwen/Qwen2.5-0.5B L3/N3738−](experiments/Qwen--Qwen2.5-0.5B/L3/N3738-negative/README.md) | review | VERIFIED | 1.00 | Fires on the word 'official' used as an adjective or adverb meaning formally sanctioned or... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/20261019T101330Z.md) | [Qwen/Qwen2.5-0.5B L23/N726−](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/README.md) | reevaluation | VERIFIED | 0.91 | The negative pole fires on the token where the context makes a constraint/restriction word the... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/20261019T100407Z.md) | [Qwen/Qwen2.5-0.5B L23/N726+](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/README.md) | review | VERIFIED | 0.90 | The positive pole fires on a non-final sub-word piece of an organic-chemistry or carbohydrate... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/20261019T090614Z.md) | [Qwen/Qwen2.5-0.5B L23/N726+](experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/README.md) | review | NEEDS_REVISION | 0.80 | The positive pole is a sparse detector of an unfinished word: it fires on a short word-initial... |
