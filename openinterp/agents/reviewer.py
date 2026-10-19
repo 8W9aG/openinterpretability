@@ -13,13 +13,14 @@ import statistics
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
+import torch
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
-from openinterp.core.exceptions import ShapeMismatchError
 from openinterp.core.schemas import (
     AdversarialTestResult,
     CausalMetrics,
+    CausalTarget,
     NeuronAuditSubmission,
     ReviewMetrics,
     ReviewPolicy,
@@ -29,9 +30,14 @@ from openinterp.core.schemas import (
 from openinterp.core.stats import balanced_accuracy, effective_counts
 from openinterp.harness.confounds import baseline_predictions
 from openinterp.harness.covariance import joint_ablation
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterp.harness.hooks import NeuronHookRunner, pole_strength
 from openinterp.harness.lookahead import measure_lookahead
-from openinterp.harness.patcher import ActivationPatcher, PatchResult, token_logit_metric
+from openinterp.harness.patcher import (
+    ActivationPatcher,
+    logit_direction_metric,
+    metric_change,
+    next_token_kl,
+)
 
 
 class AdversarialProbe(BaseModel):
@@ -166,7 +172,13 @@ def evaluate_submission(
         adversarial_test_results=results,
         reviewer_agent_model=reviewer_model,
         timestamp=datetime.now(UTC),
-        causal_metrics=causal_metrics(submission, runner, policy.freeze_downstream),
+        causal_metrics=causal_metrics(
+            submission,
+            runner,
+            freeze_downstream=policy.freeze_downstream,
+            null_neurons=policy.causal_null_neurons,
+            min_change=policy.delta_abs_tolerance * scale,
+        ),
         metrics=metrics,
         policy=policy,
         joint_ablation=_joint_ablation(submission, runner, probes, policy),
@@ -332,37 +344,131 @@ def probes_from_verdict(verdict: VerificationVerdict) -> list[AdversarialProbe]:
     ]
 
 
+def claimed_token_weights(
+    submission: NeuronAuditSubmission, runner: NeuronHookRunner
+) -> tuple[torch.Tensor, list[str]] | None:
+    """Equal vocabulary weights on a lookahead claim's single-token targets, if any resolve."""
+    tokenizer = runner.tokenizer
+    if not submission.lookahead.is_lookahead or tokenizer is None:
+        return None
+    vocab = runner.model.get_output_embeddings().weight.shape[0]
+    ids: dict[int, str] = {}
+    for token in submission.lookahead.target_upcoming_tokens:
+        encoded = tokenizer.encode(token, add_special_tokens=False)
+        if len(encoded) == 1 and encoded[0] < vocab:
+            ids.setdefault(encoded[0], token)
+    if not ids:
+        return None
+    weights = torch.zeros(vocab)
+    weights[list(ids)] = 1.0 / len(ids)
+    return weights, list(ids.values())
+
+
 def causal_metrics(
-    submission: NeuronAuditSubmission, runner: NeuronHookRunner, freeze_downstream: bool = True
-) -> CausalMetrics:
-    """Median normalised sufficiency (denoising) and necessity (noising) over the minimal pairs.
+    submission: NeuronAuditSubmission,
+    runner: NeuronHookRunner,
+    *,
+    freeze_downstream: bool = True,
+    null_neurons: int = 32,
+    min_change: float = 0.0,
+) -> CausalMetrics | None:
+    """Sufficiency and necessity of the pole, each ranked against comparable neurons.
 
-    Both are scored on the logit of the base prompt's top-1 next token. Pairs whose
-    clean and corrupted runs predict that token equally well carry no signal and are
-    skipped.
+    Every minimal pair is patched clean → corrupted (sufficiency) and corrupted → clean
+    (necessity) at the position where the pole's strength differs most between the two
+    prompts (the final position when their lengths differ, since only it can be
+    patched). The effect is scored there on a target no neuron is favoured by:
+
+    * ``claimed_tokens``: a lookahead claim's upcoming tokens, as their mean logit minus
+      the vocabulary mean (signed);
+    * ``next_token_kl``: otherwise, KL(unpatched ‖ patched) of the next-token distribution.
+
+    The same patch is applied, one neuron at a time, to the ``null_neurons`` neurons of
+    the layer whose pole strength changes between the two prompts by the most similar
+    amount. A score is the median over pairs of the pole's |effect| percentile among
+    theirs: 0.5 means "no more influential than a neuron that changes as much".
+
+    Pairs where the pole moves by at most ``min_change`` (controls) carry no causal
+    signal and are skipped; with none left the result is ``None``.
+
+    Two alternatives read wrongly on real models. Dividing by the whole clean/corrupted
+    gap (protocol < 0.5) reads ≈ 0 for any single neuron, because the gap sums every
+    component's contribution. Ranking against *random* neurons reads ≈ 1, because minimal
+    pairs are built to change this neuron and most others barely change at all.
     """
+    claimed = claimed_token_weights(submission, runner)
+    target: CausalTarget = "claimed_tokens" if claimed else "next_token_kl"
+    ident = submission.identifier
     patcher = ActivationPatcher(runner)
-    sufficiency: list[float] = []
-    necessity: list[float] = []
+    scores: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
+    effects: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     for pair in submission.counterfactuals:
-        top = int(runner.run_with_interventions(pair.base_prompt)[0, -1].argmax())
-        metric = token_logit_metric(top)
+        base, cf = (
+            pole_strength(runner.run_with_cache(text, [ident.layer])[1][ident.layer][0], ident.pole)
+            for text in (pair.base_prompt, pair.counterfactual_prompt)
+        )  # [seq, d_mlp]
+        if base.shape == cf.shape:
+            position = int((base[:, ident.neuron_idx] - cf[:, ident.neuron_idx]).abs().argmax())
+            positions = "all"
+            change = (base[: position + 1] - cf[: position + 1]).abs().amax(0)
+        else:
+            positions, position = "last", -1
+            change = (base[-1] - cf[-1]).abs()
+        own_change = float(change[ident.neuron_idx])
+        if own_change <= min_change:
+            continue
+        null = _matched_neurons(change, ident.neuron_idx, null_neurons)
+        effect = (
+            metric_change(logit_direction_metric(claimed[0], position))
+            if claimed
+            else next_token_kl(position)
+        )
+        runs = {
+            "sufficiency": (pair.base_prompt, pair.counterfactual_prompt),
+            "necessity": (pair.counterfactual_prompt, pair.base_prompt),
+        }
+        for kind, (source, target_prompt) in runs.items():
+            own, *others = patcher.patch_many(
+                source,
+                target_prompt,
+                ident.layer,
+                [ident.neuron_idx, *null],
+                ident.pole,
+                effect=effect,
+                positions=positions,
+                freeze_downstream=freeze_downstream,
+            )
+            effects[kind].append(own)
+            scores[kind].append(_percentile(abs(own), [abs(o) for o in others]))
 
-        def run(source: str, target: str, metric=metric) -> PatchResult:
-            kw = {"metric": metric, "freeze_downstream": freeze_downstream}
-            try:
-                return patcher.patch(source, target, submission.identifier, **kw)
-            except ShapeMismatchError:
-                return patcher.patch(source, target, submission.identifier, positions="last", **kw)
-
-        sufficiency.append(run(pair.base_prompt, pair.counterfactual_prompt).recovery)
-        necessity.append(run(pair.counterfactual_prompt, pair.base_prompt).recovery)
-
+    if not effects["sufficiency"]:
+        return None
     return CausalMetrics(
-        sufficiency_score=_robust_unit(sufficiency),
-        necessity_score=_robust_unit(necessity),
+        sufficiency_score=_robust_unit(scores["sufficiency"]),
+        necessity_score=_robust_unit(scores["necessity"]),
         hydra_mitigated=freeze_downstream,
+        target=target,
+        target_tokens=claimed[1] if claimed else [],
+        sufficiency_effect=round(statistics.median(effects["sufficiency"]), 9),
+        necessity_effect=round(statistics.median(effects["necessity"]), 9),
+        null_neurons=null_neurons,
+        pairs_scored=len(effects["sufficiency"]),
     )
+
+
+def _matched_neurons(change: torch.Tensor, neuron_idx: int, k: int) -> list[int]:
+    """The ``k`` other neurons whose strength ``change`` is closest to ``neuron_idx``'s."""
+    order = (change - change[neuron_idx]).abs().argsort(stable=True).tolist()
+    return [n for n in order if n != neuron_idx][:k]
+
+
+def _percentile(value: float, null: Sequence[float]) -> float:
+    """Fraction of ``null`` below ``value``, counting ties as half."""
+    if not null:
+        return math.nan
+    below = sum(n < value for n in null)
+    ties = sum(n == value for n in null)
+    return (below + 0.5 * ties) / len(null)
 
 
 def _robust_unit(values: Sequence[float]) -> float:

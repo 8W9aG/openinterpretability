@@ -118,7 +118,7 @@ Every claim is empirical and falsifiable:
    - counterfactual Δ reproduction within a tolerance relative to the prediction
    - lookahead consistency (the claimed mechanism compared with KL(clean ‖ pole-ablated) on next-token distributions)
    - covariance: the most correlated same-layer neurons, and joint ablation with them to expose redundancy (recorded, not gated)
-   - causal sufficiency (clean → corrupted patching) and necessity (corrupted → clean resample ablation), with downstream MLP outputs frozen to mitigate self-repair (the hydra effect); recorded but not yet gated
+   - causal sufficiency (clean → corrupted patching) and necessity (corrupted → clean resample ablation), with downstream MLP outputs frozen to mitigate self-repair (the hydra effect), each ranked against same-layer neurons that change as much between the pair; recorded but not yet gated
 3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterp/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) and searched client-side with Pagefind and DuckDB-Wasm.
 
 The full experimental protocol (roles, lifecycle, decision rule and reproducibility requirements) is in [docs/PROTOCOL.md](docs/PROTOCOL.md).

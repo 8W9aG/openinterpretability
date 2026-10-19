@@ -29,6 +29,8 @@ from openinterp.core.schemas import Pole
 from openinterp.harness.hooks import Inputs, Intervention, NeuronHookRunner, replace_pole
 
 Metric = Callable[[torch.Tensor], torch.Tensor]
+# (patched logits [1, seq, vocab], unpatched target logits [1, seq, vocab]) -> effect
+Effect = Callable[[torch.Tensor, torch.Tensor], float]
 Positions = Literal["all", "last"]
 
 
@@ -47,6 +49,38 @@ def logit_diff_metric(correct_id: int, incorrect_id: int, position: int = -1) ->
     return lambda logits: (
         logits[:, position, correct_id] - logits[:, position, incorrect_id]
     ).mean()
+
+
+def logit_direction_metric(weights: torch.Tensor, position: int = -1) -> Metric:
+    """Projection of the logits at ``position`` onto a vocabulary direction (batch mean).
+
+    ``weights`` is centred first, so the shared logit offset (which softmax ignores)
+    cannot move the metric. With weights 1/k on k tokens this is the mean logit of
+    those tokens minus the mean logit over the vocabulary.
+    """
+    w = weights.float()
+    w = w - w.mean()
+    return lambda logits: (logits[:, position].float() @ w.to(logits.device)).mean()
+
+
+def metric_change(metric: Metric) -> Effect:
+    """Signed change in ``metric`` caused by the patch."""
+    return lambda patched, target: float(metric(patched)) - float(metric(target))
+
+
+def next_token_kl(position: int = -1) -> Effect:
+    """KL(unpatched ‖ patched) between next-token distributions at ``position``."""
+
+    def effect(patched: torch.Tensor, target: torch.Tensor) -> float:
+        p = torch.log_softmax(target[:, position].float(), dim=-1)
+        q = torch.log_softmax(patched[:, position].float(), dim=-1)
+        return max(0.0, float((p.exp() * (p - q)).sum(-1).mean()))
+
+    return effect
+
+
+def _constant(value: torch.Tensor) -> Intervention:
+    return lambda _out: value
 
 
 def _normalised(patched: float, baseline: float, reference: float, eps: float = 1e-6) -> float:
@@ -147,6 +181,62 @@ class ActivationPatcher:
             patched_metric=float(metric(patched_logits)),
             logit_delta=(patched_logits[0, -1] - target_logits[0, -1]).detach().cpu(),
         )
+
+    def patch_many(
+        self,
+        source: Inputs,
+        target: Inputs,
+        layer: int,
+        neuron_indices: Sequence[int],
+        pole: Pole,
+        *,
+        effect: Effect,
+        positions: Positions = "all",
+        freeze_downstream: bool = False,
+        batch_size: int = 8,
+    ) -> list[float]:
+        """``effect`` of patching each neuron in ``layer``, one at a time, from source to target.
+
+        With ``effect=metric_change(metric)`` this is :meth:`patch`'s ``metric_delta``.
+
+        Each neuron gets its own row of a batch, so ``k`` neurons cost ``k / batch_size``
+        forward passes instead of ``k``. ``source`` and ``target`` must be single prompts.
+        """
+        runner = self.runner
+        downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
+        _, source_cache = runner.run_with_cache(source, [layer])
+        target_enc = runner.encode(target)
+        target_logits, target_cache = runner.run_with_cache(target_enc, [layer])
+        downstream_out = self._cache_outputs(target_enc, downstream)
+        src_act = source_cache[layer]
+        if src_act.shape[0] != 1 or target_cache[layer].shape[0] != 1:
+            raise ValueError("patch_many takes one source and one target prompt")
+        if positions == "all" and src_act.shape[:2] != target_cache[layer].shape[:2]:
+            raise ShapeMismatchError(
+                f"source {tuple(src_act.shape[:2])} and target "
+                f"{tuple(target_cache[layer].shape[:2])} differ in sequence length; "
+                "use positions='last' or align the prompts."
+            )
+        span = slice(None) if positions == "all" else slice(-1, None)
+
+        deltas: list[float] = []
+        for start in range(0, len(neuron_indices), batch_size):
+            chunk = list(neuron_indices[start : start + batch_size])
+            batch = {k: v.repeat(len(chunk), *[1] * (v.dim() - 1)) for k, v in target_enc.items()}
+
+            def inject(act: torch.Tensor, chunk=chunk) -> torch.Tensor:
+                act = act.clone()
+                for row, idx in enumerate(chunk):
+                    act[row, span, idx] = replace_pole(
+                        act[row, span, idx], src_act[0, span, idx], pole
+                    )
+                return act
+
+            n = len(chunk)
+            frozen = {i: _constant(cached.repeat(n, 1, 1)) for i, cached in downstream_out.items()}
+            patched = runner.run_with_interventions(batch, {layer: inject}, frozen)
+            deltas += [effect(patched[row : row + 1], target_logits) for row in range(len(chunk))]
+        return deltas
 
     def _cache_outputs(self, encoded, layers: Sequence[int]) -> dict[int, torch.Tensor]:
         if not layers:

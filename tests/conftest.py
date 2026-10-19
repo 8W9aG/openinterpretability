@@ -164,6 +164,9 @@ class FakeTokenizer:
             ),
         }
 
+    def encode(self, text, add_special_tokens=True):
+        return [self._id(c) for c in text]
+
     def decode(self, ids):
         return "".join(chr(96 + i) for i in ids)
 

@@ -1,7 +1,9 @@
 import json
+import math
 import threading
 
 import pytest
+import torch
 
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
@@ -11,6 +13,10 @@ from openinterp.agents.reviewer import (
     ReviewerAgent,
     ReviewPolicy,
     _delta_agrees,
+    _matched_neurons,
+    _percentile,
+    causal_metrics,
+    claimed_token_weights,
     decide,
     evaluate_submission,
     probes_from_verdict,
@@ -350,3 +356,47 @@ def test_external_agent_times_out(tmp_path):
     agent = ReviewerAgent("external/x", exchange_dir=tmp_path, timeout=0.05, poll_interval=0.01)
     with pytest.raises(AgentError):
         agent.structured(ProbeSet, "probes")
+
+
+def test_claimed_token_weights_for_lookahead(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    lookahead = sub.lookahead.model_copy(
+        update={"is_lookahead": True, "target_upcoming_tokens": ["a", "b", "a", "too long"]}
+    )
+    weights, tokens = claimed_token_weights(
+        sub.model_copy(update={"lookahead": lookahead}), toy_runner
+    )
+    assert tokens == ["a", "b"]  # deduplicated; multi-token strings are dropped
+    assert float(weights.sum()) == pytest.approx(1.0)
+    causal = causal_metrics(
+        sub.model_copy(update={"lookahead": lookahead}), toy_runner, null_neurons=5
+    )
+    assert causal.target == "claimed_tokens" and causal.target_tokens == ["a", "b"]
+
+
+def test_causal_metrics_rank_against_matched_neurons(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    retro = sub.lookahead.model_copy(update={"is_lookahead": False})
+    sub = sub.model_copy(update={"lookahead": retro})
+    assert claimed_token_weights(sub, toy_runner) is None
+    causal = causal_metrics(sub, toy_runner, null_neurons=5)
+    assert causal.target == "next_token_kl" and causal.target_tokens == []
+    assert causal.null_neurons == 5
+    assert causal.sufficiency_effect >= 0 and causal.necessity_effect >= 0  # KL
+
+
+def test_causal_metrics_skip_control_pairs(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    all_pairs = causal_metrics(sub, toy_runner, null_neurons=5)
+    assert all_pairs.pairs_scored == len(sub.counterfactuals)
+    assert causal_metrics(sub, toy_runner, null_neurons=5, min_change=1e9) is None
+
+
+def test_matched_neurons_are_closest_in_change():
+    change = torch.tensor([0.0, 5.0, 4.0, 0.1, 6.0, 9.0])
+    assert _matched_neurons(change, 1, 3) == [2, 4, 5]
+
+
+def test_percentile_counts_ties_as_half():
+    assert _percentile(2.0, [1.0, 2.0, 3.0, 0.0]) == pytest.approx(0.625)
+    assert math.isnan(_percentile(1.0, []))

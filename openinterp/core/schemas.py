@@ -17,8 +17,9 @@ Pole = Literal["positive", "negative"]
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
+CausalTarget = Literal["claimed_tokens", "next_token_kl"]
 
-PROTOCOL_VERSION = "0.4"
+PROTOCOL_VERSION = "0.5"
 
 UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
 
@@ -77,12 +78,43 @@ class LookaheadProfile(StrictModel):
 
 
 class CausalMetrics(StrictModel):
-    """Normalised causal effect of the neuron pole on the model's next-token prediction."""
+    """Causal effect of the neuron pole on the model's next-token prediction.
+
+    Since protocol 0.5 each minimal pair is patched both ways and scored on a target that
+    favours no particular neuron: the mean logit of a lookahead claim's upcoming tokens
+    (``claimed_tokens``), otherwise the next-token KL caused by the patch
+    (``next_token_kl``). The pole's effect is ranked against the ``null_neurons``
+    same-layer neurons whose strength changes most similarly between the pair's prompts,
+    patched the same way and scored on the same target. ``sufficiency_score`` (clean →
+    corrupted) and ``necessity_score`` (corrupted → clean) are the median percentile of
+    the pole's |effect| among theirs, so 0.5 means "no more influential than a neuron
+    that changes as much". Control pairs, where the pole barely moves, are skipped.
+
+    Records with ``target = None`` predate 0.5: their scores are the fraction of the
+    clean/corrupted gap in the top-1 next-token logit restored by the patch.
+    """
 
     sufficiency_score: UnitFloat
     necessity_score: UnitFloat
     hydra_mitigated: bool = Field(
         description="True if downstream MLP outputs were frozen to block self-repair (hydra)."
+    )
+    target: CausalTarget | None = None
+    target_tokens: list[str] = Field(
+        default_factory=list,
+        description="The claimed upcoming tokens scored (``claimed_tokens`` only).",
+    )
+    sufficiency_effect: float | None = Field(
+        default=None,
+        description="Median effect of the clean → corrupted patch (logits or KL, per target).",
+    )
+    necessity_effect: float | None = Field(
+        default=None,
+        description="Median effect of the corrupted → clean patch (logits or KL, per target).",
+    )
+    null_neurons: int | None = Field(default=None, ge=0)
+    pairs_scored: int | None = Field(
+        default=None, ge=0, description="Minimal pairs where the pole moved (controls skipped)."
     )
 
 
@@ -277,6 +309,9 @@ class ReviewPolicy(StrictModel):
     # v0.4: proposer/reviewer independence is recorded but no longer gated by default.
     require_independent_review: bool = False
     freeze_downstream: bool = True
+    # v0.5: causal effects are ranked against this many same-layer neurons whose strength
+    # changes as much between each minimal pair.
+    causal_null_neurons: int = Field(default=32, ge=1)
     # v0.3: near-duplicate probes (word-set Jaccard >= this) count as one observation.
     probe_cluster_threshold: UnitFloat = 0.5
     # v0.3: the hypothesis must match or beat trivial token/position baselines.

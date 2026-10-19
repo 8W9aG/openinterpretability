@@ -1,4 +1,4 @@
-# Audit protocol (v0.3)
+# Audit protocol (v0.5)
 
 This document defines what one Open Interpretability experiment is, who does what, and how a verdict is decided. The code implements it: the decision rule is `openinterp.agents.reviewer.evaluate_submission`, and its parameters are `openinterp.core.schemas.ReviewPolicy`. Every verdict stores the policy it was computed under, so any record can be re-checked with `openinterp reevaluate`.
 
@@ -102,7 +102,15 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
   - the kurtosis of the vocabulary scores (≈ 3 means no specific token set).
 
   On Qwen2.5-0.5B the lenses disagree completely up to the middle layers and converge near the output, so mechanism claims should rest on the Jacobian lens. It is reported, not gated.
-- **Causal metrics.** Sufficiency and necessity (clean↔corrupted patching, with downstream MLP outputs frozen against self-repair) are recorded but not gated. They are scored on the top-1 next-token logit, and a single neuron rarely moves that measurably. A better target, such as the logits of the claimed tokens or the neuron's output direction in the residual stream, is open work.
+- **Causal metrics.** Sufficiency (clean → corrupted patch) and necessity (corrupted → clean patch) are measured on each minimal pair, with downstream MLP outputs frozen against self-repair. They are recorded, not gated.
+  - *Where.* The pole is patched at every position and scored at the position where its strength differs most between the two prompts. When the prompts differ in token length, only the final position can be patched and scored.
+  - *What.* The target favours no particular neuron. A lookahead claim is scored on its claimed upcoming tokens: their mean logit minus the vocabulary mean (`claimed_tokens`). Anything else is scored on the KL between the unpatched and patched next-token distributions (`next_token_kl`).
+  - *Compared with what.* The same patch is applied, one neuron at a time, to the 32 same-layer neurons (`causal_null_neurons`) whose strength changes most similarly between the pair's prompts. Each score is the median over pairs of the pole's |effect| percentile among theirs. 0.5 means "no more influential than a neuron that changes as much"; 1.0 means it beats all of them. The raw median effects are recorded too.
+  - *Which pairs.* Control pairs, where the pole moves by at most `delta_abs_tolerance × scale`, carry no causal signal and are skipped. With none left, no causal metrics are recorded.
+
+  Two simpler scores read wrongly on Qwen2.5-0.5B. The fraction of the whole clean/corrupted gap restored (protocol ≤ 0.4, on the top-1 logit) reads ≈ 0 for any single neuron: the gap sums every component's contribution, and the rest of the model often moves the other way. A percentile against *random* neurons reads ≈ 1 for every neuron, because minimal pairs are built to change the audited neuron and most others barely change.
+
+  The `next_token_kl` target shows that a neuron matters, not that it matters *for the reason the hypothesis gives*. A causal test of a retrospective claim would need the hypothesis to name the behaviour it affects. Gating on these scores needs a pre-registered prediction format first (see TODO).
 
 ## 5. Reproducibility requirements
 
@@ -125,6 +133,7 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 | 0.2 | Gated rule with balanced accuracy; relative Δ tolerance; minimum probe counts; independent-review gate; provenance block. |
 | 0.3 | Near-duplicate probes cluster into single observations; confound-control gate against token, position and never-active baselines; correlated neurons and joint ablation recorded. |
 | 0.4 | `independent_review` is recorded but no longer gated by default (`require_independent_review = False`). |
+| 0.5 | Causal metrics (still not gated) are scored on claimed tokens or next-token KL at the pole's most-changed position, as percentiles against activation-change-matched same-layer neurons; control pairs are skipped. Replaces the fraction of the top-1-logit gap restored. |
 
 ### Registry-level dependence
 

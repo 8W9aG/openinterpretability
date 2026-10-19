@@ -49,5 +49,5 @@ Get token frequencies by counting token ids over the scan corpus. Find positiona
 ## Fit with the protocol
 
 - Triage is a *selection* aid. Neurons picked because their statistics stood out have `provenance.selection = "manual"`, not `random`.
-- Entropy and token-frequency neurons will fail a top-1-logit causal metric by design. Their causal test should measure output entropy or KL to the unigram distribution. See `activation-patching-practice`.
+- Entropy and token-frequency neurons would fail a top-1-logit causal metric by design. Protocol 0.5 scores retrospective claims on next-token KL, which does see them; a test of the specific claim should measure output entropy or KL to the unigram distribution. See `activation-patching-practice`.
 - Universality (Gurnee et al.) suggests checking whether a verified neuron has a counterpart in a sibling model (e.g. Qwen2.5-0.5B vs 1.5B). That is a natural registry cross-reference to add.

@@ -9,11 +9,16 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **Protocol 0.5: causal metrics that can see a single neuron.** Sufficiency and necessity are now scored at the position where the pole's strength differs most between a minimal pair's prompts. The target is the claimed upcoming tokens for lookahead claims and next-token KL otherwise. Each score is the median percentile of the pole's effect among the 32 same-layer neurons (`ReviewPolicy.causal_null_neurons`) whose strength changes as much between the pair. Control pairs are skipped. Before, the score was the fraction of the top-1-logit gap restored, which read ≈ 0 for every neuron. On the four Qwen2.5-0.5B neuron poles in the registry the new scores range from about 0.6 (L11/N4255+) to 1.0 (L23/N726−). Still recorded, not gated. `CausalMetrics` gains `target`, `target_tokens`, `sufficiency_effect`, `necessity_effect`, `null_neurons` and `pairs_scored`; all are optional, so older records still validate. Parquet gains `causal_target`.
+
 ### Added
 
 - **Proposer and reviewer as Claude Code subagents, with no API key.** `.claude/agents/neuron-proposer.md` and `neuron-reviewer.md` answer prompt files. The reviewer has no tool that runs the model, so it can't see probe activations before its probe set is final.
 - Two-step CLI commands that write a prompt and exit, then take the answer as JSON, so no process waits on an answer file: `openinterp audit --evidence-out` (scan evidence as `ScanEvidence` JSON plus the proposer's prompt), `audit --evidence … --hypothesis …` (builds the submission without rescanning), `review --emit-prompt` (loads no model) and `review --probes …`. `--agent-model` is required with an answer file, so the record names the model that wrote it.
 - `scripts/experiment-loop.sh`: for `external/<name>` models the driving session now uses the subagents.
+- `ActivationPatcher.patch_many`: patch many neurons of one layer, one per batch row, with any effect function (`metric_change`, `next_token_kl`). `logit_direction_metric` scores logits along a centred vocabulary direction.
 
 ## [0.0.3] - 2026-10-18
 
