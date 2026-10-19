@@ -33,8 +33,8 @@
   <section class="mb-10 grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-800" data-pagefind-ignore>
     {% for label, value, hint in [
       ("Balanced accuracy", verdict.confidence_score if verdict else none, "Mean of hard-negative specificity and holdout sensitivity"),
-      ("Sufficiency", c.sufficiency_score if c else none, "Clean→corrupted patch: fraction of clean prediction restored"),
-      ("Necessity", c.necessity_score if c else none, "Corrupted→clean patch: fraction of prediction lost"),
+      ("Sufficiency", c.sufficiency_score if c else none, "Clean→corrupted patch: percentile of the pole's effect among comparable neurons" if c and c.target else "Clean→corrupted patch: fraction of clean prediction restored"),
+      ("Necessity", c.necessity_score if c else none, "Corrupted→clean patch: percentile of the pole's effect among comparable neurons" if c and c.target else "Corrupted→clean patch: fraction of prediction lost"),
       ("Lookahead KL", none, "KL(clean ‖ pole-ablated) over next-token distributions"),
     ] %}
     <div class="bg-white p-4 dark:bg-slate-950" title="{{ hint }}">
@@ -52,7 +52,13 @@
   </section>
   {% if c %}
   <p class="-mt-8 mb-10 text-xs text-slate-500">
-    Causal scores are medians over minimal pairs on the base prompt's top-1 token logit.
+    {% if c.target %}
+    Causal scores rank the pole's patch effect against the {{ c.null_neurons }} same-layer neurons that change as much between each minimal pair (0.5 = typical), median over {{ c.pairs_scored }} non-control pairs, scored on
+    {% if c.target == "claimed_tokens" %}the claimed tokens{% for t in c.target_tokens %} <code class="tok rounded bg-violet-100 px-1 dark:bg-violet-900">{{ t }}</code>{% endfor %}{% else %}next-token KL{% endif %}.
+    Median effect {{ '%.3g' | format(c.sufficiency_effect) }} (sufficiency) / {{ '%.3g' | format(c.necessity_effect) }} (necessity).
+    {% else %}
+    Causal scores are medians over minimal pairs on the base prompt's top-1 token logit (protocol &lt; 0.5).
+    {% endif %}
     Self-repair (hydra effect) {{ 'mitigated by freezing downstream MLP outputs' if c.hydra_mitigated else 'not mitigated' }}.
   </p>
   {% endif %}

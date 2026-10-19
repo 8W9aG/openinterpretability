@@ -29,7 +29,7 @@ nec = p.noise(clean, corrupted, ident, metric=metric, freeze_downstream=True).re
 
 ## Choosing the metric (the current weak point)
 
-The protocol's causal metrics use the top-1 next-token logit, which is why they read ≈ 0 for `L11/N4255`. Better targets, in order of preference:
+Up to protocol 0.4 the causal metrics used the top-1 next-token logit and divided by the whole clean/corrupted gap, so they read ≈ 0 for every neuron. Since 0.5, `causal_metrics` in `agents/reviewer.py` scores claimed tokens (lookahead claims) or next-token KL, and ranks the pole against same-layer neurons whose strength changes as much between the pair (`ActivationPatcher.patch_many`). Ranking against random neurons instead reads ≈ 1, because minimal pairs are built to change the audited neuron. Candidate targets, in order of preference:
 1. **Logit difference between the claimed tokens** (for lookahead neurons, the `target_upcoming_tokens` against a plausible alternative).
 2. **Projection of the residual stream onto the neuron's output direction at a downstream reader** (for retrospective neurons whose effect is indirect).
 3. **Output entropy or KL to the unigram distribution** (entropy and token-frequency neurons; see `neuron-family-triage`).

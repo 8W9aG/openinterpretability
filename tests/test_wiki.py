@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from openinterp.builder.compiler import compile_site
 from openinterp.builder.wiki import (
     _read_front_matter,
     backfill,
@@ -7,7 +8,7 @@ from openinterp.builder.wiki import (
     load_entries,
     write_experiment_page,
 )
-from openinterp.core.schemas import AuditRecord, ReviewMetrics, ReviewPolicy
+from openinterp.core.schemas import AuditRecord, CausalMetrics, ReviewMetrics, ReviewPolicy
 
 
 def _failed_record(record):
@@ -94,3 +95,30 @@ def test_backfill_skips_unreviewed(tmp_path, record, submission):
     written = backfill([record, AuditRecord(submission=submission)], tmp_path / "wiki")
     assert len(written) == 1
     assert backfill([record], tmp_path / "wiki") == []
+
+
+def test_causal_metrics_render_by_protocol(tmp_path, record):
+    causal = CausalMetrics(
+        sufficiency_score=0.9,
+        necessity_score=0.8,
+        hydra_mitigated=True,
+        target="claimed_tokens",
+        target_tokens=[" Paris"],
+        sufficiency_effect=0.0123,
+        necessity_effect=-3.4e-06,
+        null_neurons=32,
+        pairs_scored=3,
+    )
+    new = AuditRecord(
+        submission=record.submission,
+        verdict=record.verdict.model_copy(update={"causal_metrics": causal}),
+    )
+    wiki = write_experiment_page(new, tmp_path / "wiki").read_text()
+    assert "32 same-layer neurons" in wiki and "claimed_tokens ( Paris)" in wiki
+    assert "-3.4e-06" in wiki
+    old = write_experiment_page(record, tmp_path / "old").read_text()
+    assert "top-1 logit, protocol < 0.5" in old
+
+    compile_site([new], tmp_path / "site")
+    page = next((tmp_path / "site" / "models").rglob("N*.html")).read_text()
+    assert "the claimed tokens" in page and "0.0123" in page

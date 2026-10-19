@@ -8,7 +8,13 @@ from openinterp.core.exceptions import ShapeMismatchError
 from openinterp.harness.attribution import attribution_patching, top_attributed_neurons
 from openinterp.harness.hooks import NeuronHookRunner, replace_pole
 from openinterp.harness.lookahead import measure_lookahead, output_token_projection
-from openinterp.harness.patcher import ActivationPatcher, token_logit_metric
+from openinterp.harness.patcher import (
+    ActivationPatcher,
+    logit_direction_metric,
+    metric_change,
+    next_token_kl,
+    token_logit_metric,
+)
 from tests.conftest import D_MLP
 
 CLEAN = torch.tensor([[1, 5, 7, 2, 9]])
@@ -177,3 +183,55 @@ def test_measure_lookahead(runner):
     profile = measure_lookahead(runner, CLEAN, 2, 0, "positive")
     assert profile.kl_divergence >= 0
     assert isinstance(profile.is_lookahead, bool)
+
+
+def test_logit_direction_metric_on_tokens_is_mean_minus_vocab_mean():
+    logits = torch.randn(2, 3, 16)
+    weights = torch.zeros(16)
+    weights[[4, 9]] = 0.5
+    expected = pytest.approx(
+        float((logits[:, 1, [4, 9]].mean(-1) - logits[:, 1].mean(-1)).mean()), abs=1e-6
+    )
+    metric = logit_direction_metric(weights, 1)
+    assert float(metric(logits)) == expected
+    assert float(metric(logits + 3.0)) == expected  # a shared logit offset changes nothing
+
+
+@pytest.mark.parametrize("freeze", [False, True])
+@pytest.mark.parametrize("positions", ["all", "last"])
+def test_patch_many_matches_patch_one_at_a_time(runner, freeze, positions):
+    metric = token_logit_metric(3)
+    indices = [0, 4, 7, 11]
+    batched = ActivationPatcher(runner).patch_many(
+        CLEAN,
+        CORRUPT,
+        1,
+        indices,
+        "positive",
+        effect=metric_change(metric),
+        positions=positions,
+        freeze_downstream=freeze,
+        batch_size=3,
+    )
+    single = [
+        ActivationPatcher(runner)
+        .patch(
+            CLEAN,
+            CORRUPT,
+            neuron(idx=i),
+            metric=metric,
+            positions=positions,
+            freeze_downstream=freeze,
+        )
+        .metric_delta
+        for i in indices
+    ]
+    assert batched == pytest.approx(single, abs=1e-5)
+
+
+def test_next_token_kl_is_zero_without_change_and_positive_with_it(runner):
+    logits = runner.run_with_interventions(CLEAN)
+    assert next_token_kl(2)(logits, logits) == pytest.approx(0.0, abs=1e-6)
+    shifted = logits.clone()
+    shifted[:, 2, 0] += 5.0
+    assert next_token_kl(2)(shifted, logits) > 0

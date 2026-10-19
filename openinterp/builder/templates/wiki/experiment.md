@@ -57,7 +57,12 @@ This verdict predates protocol v0.2, so it has no per-gate metrics. Run `openint
 {% endif %}
 
 {% if verdict.causal_metrics %}
-Causal metrics (recorded, not gated): sufficiency {{ verdict.causal_metrics.sufficiency_score | num(4) }}, necessity {{ verdict.causal_metrics.necessity_score | num(4) }}, hydra mitigated: {{ verdict.causal_metrics.hydra_mitigated }}.
+{% set c = verdict.causal_metrics %}
+{% if c.target %}
+Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the pole's patch effect among the {{ c.null_neurons }} same-layer neurons that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
+{% else %}
+Causal metrics (recorded, not gated; top-1 logit, protocol < 0.5): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}, hydra mitigated: {{ c.hydra_mitigated }}.
+{% endif %}
 {% endif %}
 
 ### Probes
