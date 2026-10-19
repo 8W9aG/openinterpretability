@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-10-19
+
+Ships with protocol version **0.5**.
+
 ### Changed
 
 - **Deploy on every push to `main`.** The site went stale because the deploy relied on an hourly cron, and GitHub's scheduled workflows are best-effort: on 2026-10-19 it fired once in about 7 hours. Every scheduled and manual run did deploy, so the `R2_BUCKET` guard was not the cause. The schedule stays as a 6-hourly backstop.
