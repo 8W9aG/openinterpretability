@@ -11,7 +11,15 @@ from __future__ import annotations
 import re
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Discriminator,
+    Field,
+    Tag,
+    model_validator,
+)
 
 Pole = Literal["positive", "negative"]
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
@@ -28,17 +36,25 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 
-class NeuronIdentifier(StrictModel):
-    """Addresses one pole of one MLP neuron in an open-weight model."""
-
+class _Component(StrictModel):
     model_name: str = Field(min_length=1, examples=["Qwen/Qwen2.5-0.5B"])
     layer: int = Field(ge=0)
-    neuron_idx: int = Field(ge=0)
-    pole: Pole
 
     @property
     def model_slug(self) -> str:
         return re.sub(r"[^A-Za-z0-9._-]+", "--", self.model_name)
+
+
+class NeuronIdentifier(_Component):
+    """Addresses one pole of one MLP neuron in an open-weight model.
+
+    The ``mlp_neuron_pole`` case of :data:`ComponentIdentifier`. ``kind`` defaults, so
+    records written before it existed still validate.
+    """
+
+    kind: Literal["mlp_neuron_pole"] = "mlp_neuron_pole"
+    neuron_idx: int = Field(ge=0)
+    pole: Pole
 
     @property
     def slug(self) -> str:
@@ -47,6 +63,38 @@ class NeuronIdentifier(StrictModel):
     def __str__(self) -> str:
         sign = "+" if self.pole == "positive" else "-"
         return f"{self.model_name} L{self.layer}/N{self.neuron_idx}{sign}"
+
+
+class HeadIdentifier(_Component):
+    """Addresses one attention head: its slice of the attention output projection's input.
+
+    Heads have no sign, so no pole. They can be identified and hooked
+    (:meth:`NeuronHookRunner.head_outputs`), but not yet audited: submissions still take
+    a :class:`NeuronIdentifier`.
+    """
+
+    kind: Literal["attn_head"] = "attn_head"
+    head_idx: int = Field(ge=0)
+
+    @property
+    def slug(self) -> str:
+        return f"{self.model_slug}/L{self.layer}/H{self.head_idx}"
+
+    def __str__(self) -> str:
+        return f"{self.model_name} L{self.layer}/H{self.head_idx}"
+
+
+def _component_kind(value) -> str:
+    kind = value.get("kind") if isinstance(value, dict) else getattr(value, "kind", None)
+    return kind or "mlp_neuron_pole"  # records predating `kind` are neuron poles
+
+
+ComponentIdentifier = Annotated[
+    Annotated[NeuronIdentifier, Tag("mlp_neuron_pole")]
+    | Annotated[HeadIdentifier, Tag("attn_head")],
+    Discriminator(_component_kind),
+]
+"""Any auditable unit: an MLP neuron pole or an attention head, told apart by ``kind``."""
 
 
 class CounterfactualPair(StrictModel):
@@ -278,6 +326,18 @@ class ScanEvidence(StrictModel):
 
 class NeuronAuditSubmission(StrictModel):
     identifier: NeuronIdentifier
+
+    @model_validator(mode="before")
+    @classmethod
+    def _neurons_only(cls, data):
+        ident = data.get("identifier") if isinstance(data, dict) else None
+        if _component_kind(ident or {}) == "attn_head":
+            raise ValueError(
+                "attention heads can be identified and hooked, but not audited yet: "
+                "submissions take an MLP neuron pole"
+            )
+        return data
+
     natural_language_explanation: str = Field(min_length=1)
     activating_tokens: list[str]
     counterfactuals: list[CounterfactualPair] = Field(min_length=1)

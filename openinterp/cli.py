@@ -10,7 +10,15 @@ import click
 from openinterp.core.exceptions import OpenInterpError
 
 
-def _load_runner(model_name: str, device: str, dtype: str, revision: str | None = None):
+def _load_runner(
+    model_name: str,
+    device: str,
+    dtype: str,
+    revision: str | None = None,
+    attn_implementation: str | None = None,
+):
+    """Load ``model_name`` at ``revision``. Pass ``attn_implementation="eager"`` when
+    attention patterns are needed (SDPA and flash attention don't return them)."""
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -27,8 +35,9 @@ def _load_runner(model_name: str, device: str, dtype: str, revision: str | None 
     click.echo(f"Loading {model_name} on {device}…", err=True)
     commit = _resolve_revision(model_name, revision)
     tokenizer = AutoTokenizer.from_pretrained(model_name, revision=commit)
+    extra = {"attn_implementation": attn_implementation} if attn_implementation else {}
     model = AutoModelForCausalLM.from_pretrained(
-        model_name, torch_dtype=torch_dtype, revision=commit
+        model_name, torch_dtype=torch_dtype, revision=commit, **extra
     ).to(device)
     model.eval()
     runner = NeuronHookRunner(model, tokenizer)

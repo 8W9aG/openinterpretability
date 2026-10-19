@@ -53,7 +53,7 @@ def test_denoise_injects_clean_activation(runner):
     patcher = ActivationPatcher(runner)
     original_hooks = runner.hooks
 
-    def spying_hooks(interventions=None, output_interventions=None):
+    def spying_hooks(interventions=None, output_interventions=None, head_interventions=None):
         if interventions and 0 in interventions:
             fn = interventions[0]
 
@@ -64,7 +64,7 @@ def test_denoise_injects_clean_activation(runner):
                 return out
 
             interventions = {0: spy}
-        return original_hooks(interventions, output_interventions)
+        return original_hooks(interventions, output_interventions, head_interventions)
 
     runner.hooks = spying_hooks
     result = patcher.denoise(CLEAN, CORRUPT, n)
