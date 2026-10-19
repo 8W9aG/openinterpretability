@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **22** · neurons: **14** · NEEDS_REVISION: 5 · VERIFIED: 17
+Experiments: **23** · neurons: **15** · NEEDS_REVISION: 5 · VERIFIED: 18
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L0/N788-negative/20261019T174516Z.md) | [Qwen/Qwen2.5-0.5B L0/N788−](experiments/Qwen--Qwen2.5-0.5B/L0/N788-negative/README.md) | review | VERIFIED | 0.96 | Fires on a word-internal continuation subword (a token with no leading space, e.g. 'ster',... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L15/N4838-negative/20261019T171253Z.md) | [Qwen/Qwen2.5-0.5B L15/N4838−](experiments/Qwen--Qwen2.5-0.5B/L15/N4838-negative/README.md) | review | NEEDS_REVISION | 0.70 | Fires on the boundary token that closes an attribution frame and opens the source's quoted or... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N429-negative/20261019T165534Z.md) | [Qwen/Qwen2.5-0.5B L4/N429−](experiments/Qwen--Qwen2.5-0.5B/L4/N429-negative/README.md) | review | VERIFIED | 1.00 | The negative pole (weak; max ~2.3) fires on the completing piece of a small set of memorised... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-negative/20261019T165031Z.md) | [Qwen/Qwen2.5-0.5B L4/N4339−](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-negative/README.md) | review | VERIFIED | 0.90 | Fires on the word naming a hostile blow, attack or (more weakly) intense attention that the... |
