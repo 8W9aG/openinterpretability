@@ -1,0 +1,70 @@
+"""``openinterp corpus``: build a scan corpus from a Hugging Face dataset."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import click
+
+from openinterp.cli import cli
+from openinterp.corpus import PRESETS
+
+
+@cli.command()
+@click.option(
+    "--dataset",
+    default="fineweb-edu",
+    show_default=True,
+    help=f"A preset ({', '.join(PRESETS)}) or a Hugging Face dataset ID (then pass --files).",
+)
+@click.option("--files", help="Glob of Parquet files within the dataset. Default: the preset's.")
+@click.option("--text-column", help="Column holding the text. Default: the preset's, or 'text'.")
+@click.option("--revision", help="Dataset branch, tag or commit. Default: main, pinned on use.")
+@click.option("--docs", "documents", default=500, show_default=True, type=click.IntRange(1))
+@click.option("--seed", default=0, show_default=True, type=int)
+@click.option(
+    "--max-chars",
+    default=3000,
+    show_default=True,
+    type=click.IntRange(1),
+    help="Cut each document to this many characters.",
+)
+@click.option(
+    "--docs-per-row-group",
+    default=20,
+    show_default=True,
+    type=click.IntRange(1),
+    help="Documents taken from each Parquet row group read; lower spreads the sample wider.",
+)
+@click.option(
+    "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
+)
+def corpus(
+    dataset, files, text_column, revision, documents, seed, max_chars, docs_per_row_group, out
+):
+    """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
+
+    Writes <out> (one {"text": ...} per line) and <name>.source.json next to it, which
+    pins the dataset commit, files, seed and licence. `openinterp audit --corpus <out>`
+    records that source in the submission's provenance.
+    """
+    from openinterp.corpus import build_from_hub
+
+    preset = PRESETS.get(dataset)
+    if preset is None and not files:
+        raise click.UsageError(f"--files is required for {dataset!r}, which is not a preset.")
+    source = build_from_hub(
+        preset.dataset if preset else dataset,
+        out,
+        files=files or preset.files,
+        text_column=text_column or (preset.text_column if preset else "text"),
+        revision=revision,
+        documents=documents,
+        seed=seed,
+        max_chars=max_chars,
+        docs_per_row_group=docs_per_row_group,
+    )
+    click.echo(f"Wrote {source.documents} documents to {out}: {source}")
+    if source.documents < documents:
+        click.echo(f"warning: only {source.documents} of {documents} documents found", err=True)
+    click.echo(f"Licence: {source.license or 'not stated on the dataset card'}")

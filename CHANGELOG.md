@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- `openinterp corpus`: samples a scan corpus from a Hugging Face Parquet dataset without downloading all of it, by reading seeded random row groups over HTTP. Presets: `fineweb-edu` (`HuggingFaceFW/fineweb-edu`, sample-10BT; the default) and `pile-10k`, or any dataset with `--files`. It writes `corpus.jsonl` and a `corpus.source.json` sidecar (`CorpusSource`: dataset, commit, files, seed, sizes, licence, SHA-256). Audits record the source in `provenance.corpus_source` when the corpus still matches it, and experiment pages show the licence. The same seed and revision rebuild a byte-identical corpus. Replaces the README's Pile snippet.
+
 ### Changed
 
 - **`openinterp next` explores twice as often:** the default `--epsilon` goes from 0.35 to 0.7, so 70% of draws audit a new random neuron rather than following up on one already studied. `scripts/experiment-loop.sh` uses the same default.

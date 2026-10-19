@@ -39,18 +39,13 @@ make install                                      # creates .venv with everythin
 
 The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
 
-**A scan corpus.** The built-in corpus is only a smoke test. This builds a better one from 500 Pile documents (one-off download, git-ignored):
+**A scan corpus.** The built-in corpus is only a smoke test. This samples 500 documents from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) (its 10B-token sample, about a minute, reading only the Parquet row groups it needs; git-ignored):
 
 ```bash
-uv run python - <<'PY'
-import json, pyarrow.parquet as pq
-from huggingface_hub import hf_hub_download
-path = hf_hub_download("NeelNanda/pile-10k", "data/train-00000-of-00001-4746b8785c874cc7.parquet", repo_type="dataset")
-with open("corpus.jsonl", "w") as f:
-    for text in pq.read_table(path, columns=["text"]).column("text").to_pylist()[:500]:
-        f.write(json.dumps({"text": text[:3000]}) + "\n")
-PY
+uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k for the Pile, --seed N for another sample
 ```
+
+It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`.
 
 ### 2A. Let an agent run it (Claude Code)
 

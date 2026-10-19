@@ -14,7 +14,7 @@
 {% if sub.provenance %}
 {% set p = sub.provenance %}
 | Selection | {{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %} |
-| Corpus | {{ p.corpus | cell }} · {{ "{:,}".format(p.n_snippets) }} snippets · {{ "{:,}".format(p.tokens_scanned) }} tokens{% if p.snippet_tokens %} · {{ p.snippet_tokens }}-token windows{% endif %} |
+| Corpus | {{ p.corpus | cell }} · {{ "{:,}".format(p.n_snippets) }} snippets · {{ "{:,}".format(p.tokens_scanned) }} tokens{% if p.snippet_tokens %} · {{ p.snippet_tokens }}-token windows{% endif %}{% if p.corpus_source and p.corpus_source.license %} · licence {{ p.corpus_source.license | cell }}{% endif %} |
 | Model revision | `{{ p.model_revision or 'unrecorded' }}` · {{ p.dtype }} |
 {% endif %}
 {% if record_link %}
