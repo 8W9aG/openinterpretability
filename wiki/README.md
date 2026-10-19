@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **3** · neurons: **1** · NEEDS_REVISION: 2 · VERIFIED: 1
+Experiments: **4** · neurons: **2** · NEEDS_REVISION: 2 · VERIFIED: 2
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/20261019T055203Z.md) | [Qwen/Qwen2.5-0.5B L23/N726−](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/README.md) | review | VERIFIED | 0.91 | The negative pole fires on the token where the context makes a constraint/restriction word the... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T050928Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | review | VERIFIED | 1.00 | Fires on the connective that hands off from a containing category to the specific named members... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T040534Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | reevaluation | NEEDS_REVISION | 0.70 | Fires on the connective that introduces examples or members of a category just named, chiefly... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261019T012244Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | backfill | NEEDS_REVISION | 0.70 | Fires on the connective that introduces examples or members of a category just named, chiefly... |
