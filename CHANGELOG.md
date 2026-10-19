@@ -17,6 +17,7 @@ The project has two version numbers:
 
 ### Added
 
+- **Most recent experiments** on the home page: the latest 10 experiments, whatever their verdict, newest first, with review time (UTC), neuron, status, evidence strength, hypothesis, proposer and reviewer, and a tag for re-measurements. On small screens the date moves under the neuron.
 - **Proposer and reviewer as Claude Code subagents, with no API key.** `.claude/agents/neuron-proposer.md` and `neuron-reviewer.md` answer prompt files. The reviewer has no tool that runs the model, so it can't see probe activations before its probe set is final.
 - Two-step CLI commands that write a prompt and exit, then take the answer as JSON, so no process waits on an answer file: `openinterp audit --evidence-out` (scan evidence as `ScanEvidence` JSON plus the proposer's prompt), `audit --evidence … --hypothesis …` (builds the submission without rescanning), `review --emit-prompt` (loads no model) and `review --probes …`. `--agent-model` is required with an answer file, so the record names the model that wrote it.
 - `scripts/experiment-loop.sh`: for `external/<name>` models the driving session now uses the subagents.

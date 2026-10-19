@@ -285,3 +285,21 @@ def test_heatmap_renders_exact_values_and_peak(tmp_path, record):
     assert 'data-v="0.300"' in page  # exact stored value, not a rounded shade
     assert "--heat-rgb: 234 88 12" in page  # positive pole hue
     assert '<summary class="cursor-pointer">Values</summary>' in page
+
+
+def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
+    from openinterp.builder.compiler import registry_stats
+
+    report = compile_site(records, tmp_path)
+    recent = registry_stats(report.parquet)["recent"]
+    assert [r["reviewed_iso"] for r in recent] == sorted(
+        (r["reviewed_iso"] for r in recent), reverse=True
+    )
+    assert recent[0]["reviewed_iso"] == "2026-10-01T14:00:00Z"  # the +2 h verification
+    assert recent[0]["reviewed_time"] == "14:00 UTC" and recent[0]["href"].endswith(
+        recent[0]["experiment_id"]
+    )
+    home = (tmp_path / "index.html").read_text()
+    section = home.split("Most recent experiments")[1].split("Most conclusive results")[0]
+    assert section.index("Fires on commas.") < section.index("Fires on dates.")  # +1 h before +0 h
+    assert '<time datetime="2026-10-01T14:00:00Z">2026-10-01</time>' in section
