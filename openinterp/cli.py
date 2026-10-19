@@ -139,8 +139,9 @@ def audit(
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.proposer import ProposerAgent
     from openinterp.core.schemas import ExperimentProvenance, NeuronIdentifier
-    from openinterp.harness.hooks import activation_histogram, top_activating_examples
-    from openinterp.harness.lookahead import output_token_projection
+    from openinterp.harness.hooks import activation_histogram
+    from openinterp.harness.jlens import vocabulary_lens
+    from openinterp.harness.scan import scan_neuron
 
     if not random_pick and (layer is None or neuron is None):
         raise click.UsageError("--layer and --neuron are required unless --random is given.")
@@ -157,19 +158,18 @@ def audit(
     pole = ident.pole
     texts, corpus_name, corpus_sha = _read_corpus(corpus)
     click.echo(f"Scanning {len(texts)} snippets for {ident}…", err=True)
-    examples, values = top_activating_examples(runner, texts, layer, neuron, pole, k=top_k)
+    scan = scan_neuron(runner, texts, layer, neuron, pole, k=top_k)
+    examples, values = scan.examples, scan.values
     if not examples or examples[0].max_activation <= 0:
         raise click.ClickException(
             f"{ident} never activates on this corpus; try a larger --corpus."
         )
-    promoted = [
-        runner.tokenizer.decode([t])
-        for t, _ in output_token_projection(runner, layer, neuron, pole)
-    ]
+    click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
+    lens = vocabulary_lens(runner, texts[:100], layer, neuron, pole)
 
     agent = ProposerAgent(agent_model or DEFAULT_MODEL)
     click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
-    draft = agent.propose(ident, examples, promoted)
+    draft = agent.propose(ident, examples, lens, scan.confounds, scan.correlated)
     provenance = ExperimentProvenance(
         model_revision=getattr(runner.model.config, "_commit_hash", None),
         dtype=dtype,
@@ -188,6 +188,9 @@ def audit(
         examples=examples,
         histogram=activation_histogram(values),
         provenance=provenance,
+        confounds=scan.confounds,
+        correlated=scan.correlated,
+        vocabulary_lens=lens,
     )
     out = out or Path("submissions") / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -267,23 +270,24 @@ def reevaluate(record, out, wiki_dir, device, dtype):
 
 @cli.command()
 @click.option(
-    "--audits-dir", required=True, type=click.Path(exists=True, file_okay=False, path_type=Path)
+    "--wiki-dir",
+    default=Path("wiki"),
+    show_default=True,
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Experiment archive (wiki/experiments/**/<id>.json).",
 )
 @click.option(
     "--output-dir", default=Path("dist"), show_default=True, type=click.Path(path_type=Path)
 )
-@click.option(
-    "--include-unverified", is_flag=True, help="Also publish non-VERIFIED records (previews)."
-)
-def build(audits_dir, output_dir, include_unverified):
-    """Compile audit records into static HTML pages and data/registry.parquet."""
-    from openinterp.builder.compiler import compile_site, load_records
+def build(wiki_dir, output_dir):
+    """Compile every archived experiment into static pages and data/registry.parquet."""
+    from openinterp.builder.compiler import compile_site
+    from openinterp.builder.wiki import load_archive
 
-    records = load_records(audits_dir)
-    report = compile_site(records, output_dir, include_unverified=include_unverified)
+    report = compile_site(load_archive(wiki_dir), output_dir)
     click.echo(
-        f"Published {report.records_published}/{report.records_loaded} records: "
-        f"{len(report.pages)} pages, {report.parquet} → {output_dir}"
+        f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
+        f"{report.parquet} → {output_dir}"
     )
 
 

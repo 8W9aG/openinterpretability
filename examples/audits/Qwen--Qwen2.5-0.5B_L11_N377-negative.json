@@ -149,7 +149,10 @@
       ]
     },
     "model_num_layers": 24,
-    "provenance": null
+    "provenance": null,
+    "correlated_neurons": [],
+    "confounds": null,
+    "vocabulary_lens": null
   },
   "verdict": {
     "status": "VERIFIED",
@@ -157,7 +160,7 @@
     "adversarial_test_results": [
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 0",
+        "prompt": "Synthetic a0 probe0",
         "passed": true,
         "expected_active": false,
         "activation": 0.455,
@@ -167,7 +170,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 1",
+        "prompt": "Synthetic b1 probe1",
         "passed": true,
         "expected_active": false,
         "activation": 0.34,
@@ -177,7 +180,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 2",
+        "prompt": "Synthetic c2 probe2",
         "passed": true,
         "expected_active": false,
         "activation": 0.317,
@@ -187,7 +190,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 3",
+        "prompt": "Synthetic d3 probe3",
         "passed": true,
         "expected_active": false,
         "activation": 0.288,
@@ -197,7 +200,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 4",
+        "prompt": "Synthetic e4 probe4",
         "passed": true,
         "expected_active": false,
         "activation": 0.185,
@@ -207,7 +210,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 5",
+        "prompt": "Synthetic f5 probe5",
         "passed": false,
         "expected_active": false,
         "activation": 0.018,
@@ -217,7 +220,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 6",
+        "prompt": "Synthetic g6 probe6",
         "passed": true,
         "expected_active": false,
         "activation": 0.481,
@@ -227,7 +230,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 7",
+        "prompt": "Synthetic h7 probe7",
         "passed": true,
         "expected_active": false,
         "activation": 0.062,
@@ -237,7 +240,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 8",
+        "prompt": "Synthetic i8 probe8",
         "passed": true,
         "expected_active": false,
         "activation": 0.4,
@@ -247,7 +250,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 9",
+        "prompt": "Synthetic j9 probe9",
         "passed": false,
         "expected_active": false,
         "activation": 0.011,
@@ -257,7 +260,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 10",
+        "prompt": "Synthetic k10 probe10",
         "passed": true,
         "expected_active": false,
         "activation": 0.051,
@@ -267,7 +270,7 @@
       },
       {
         "kind": "hard_negative",
-        "prompt": "Near-miss probe 11",
+        "prompt": "Synthetic l11 probe11",
         "passed": true,
         "expected_active": false,
         "activation": 0.11,
@@ -285,6 +288,7 @@
     },
     "metrics": null,
     "policy": null,
+    "joint_ablation": null,
     "notes": "Synthetic example record (not a real audit)."
   }
 }

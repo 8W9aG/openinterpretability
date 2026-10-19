@@ -1,0 +1,287 @@
+{# One experiment on a neuron page. Expects `v` from compiler._experiment_view. #}
+{% from "_macros.html" import status_badge, evidence_badge, pole_mark %}
+{% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
+{% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
+{% set positive = ident.pole == "positive" %}
+<section id="{{ e.anchor }}" class="scroll-mt-4 rounded-xl border border-slate-200 dark:border-slate-800">
+  <header class="p-5">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="font-mono text-sm font-semibold">#{{ rank }} · {{ ident.pole }} pole {{ pole_mark(ident.pole) }}</span>
+      {{ status_badge(verdict.status) }}
+      {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
+      {% if e.is_latest %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">latest for this pole</span>{% else %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800">superseded</span>{% endif %}
+      {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
+      <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
+    </div>
+    <p class="mt-3 max-w-3xl text-base leading-relaxed">{{ sub.natural_language_explanation }}</p>
+    <p class="mt-2 text-xs text-slate-500">
+      Hard negatives {{ "%g" | format(e.sig.negatives.passed) }}/{{ e.sig.negatives.clusters }} rejected ·
+      holdouts {{ "%g" | format(e.sig.holdouts.passed) }}/{{ e.sig.holdouts.clusters }} fired
+      <span title="Near-duplicate probes count as one observation">(independent observations; {{ e.sig.negatives.raw + e.sig.holdouts.raw }} probes)</span> ·
+      P(useful) {{ e.sig.p_useful | num(2) }}
+      {% if not e.independent %}· <span class="text-amber-700 dark:text-amber-400">re-measures the probes of {{ e.reuses }}; not independent evidence</span>{% endif %}
+    </p>
+    {% if sub.activating_tokens %}
+    <p class="mt-3 flex flex-wrap gap-1.5">
+      {% for tok in sub.activating_tokens %}<code class="tok rounded border border-slate-300 px-1.5 py-0.5 text-xs dark:border-slate-700">{{ tok }}</code>{% endfor %}
+    </p>
+    {% endif %}
+  </header>
+  <details class="border-t border-slate-200 p-5 dark:border-slate-800" {{ 'open' if rank == 1 }}>
+    <summary class="cursor-pointer text-sm font-medium text-slate-600 dark:text-slate-400">Evidence and review</summary>
+    <div class="mt-5">
+  <section class="mb-10 grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-800" data-pagefind-ignore>
+    {% for label, value, hint in [
+      ("Balanced accuracy", verdict.confidence_score if verdict else none, "Mean of hard-negative specificity and holdout sensitivity"),
+      ("Sufficiency", c.sufficiency_score if c else none, "Clean→corrupted patch: fraction of clean prediction restored"),
+      ("Necessity", c.necessity_score if c else none, "Corrupted→clean patch: fraction of prediction lost"),
+      ("Lookahead KL", none, "KL(clean ‖ pole-ablated) over next-token distributions"),
+    ] %}
+    <div class="bg-white p-4 dark:bg-slate-950" title="{{ hint }}">
+      <div class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</div>
+      {% if label == "Lookahead KL" %}
+      <div class="mt-1 font-mono text-2xl tabular-nums">{{ sub.lookahead.kl_divergence | num(4) }}</div>
+      {% else %}
+      <div class="mt-1 font-mono text-2xl tabular-nums">{{ value | num(2) }}</div>
+      <div class="mt-2 h-1.5 rounded bg-slate-200 dark:bg-slate-800">
+        <div class="h-1.5 rounded bg-emerald-500" style="width: {{ ((value or 0) * 100) | round(1) }}%"></div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% if c %}
+  <p class="-mt-8 mb-10 text-xs text-slate-500">
+    Causal scores are medians over minimal pairs on the base prompt's top-1 token logit.
+    Self-repair (hydra effect) {{ 'mitigated by freezing downstream MLP outputs' if c.hydra_mitigated else 'not mitigated' }}.
+  </p>
+  {% endif %}
+
+  <div class="mb-10 grid gap-8 lg:grid-cols-2">
+    <section>
+      <h3 class="mb-3 text-base font-semibold">Activation distribution</h3>
+      {% if bars %}
+      <svg viewBox="0 0 600 160" class="w-full" role="img" aria-label="Histogram of {{ ident.pole }} pole strength over the scanned corpus">
+        {% for b in bars %}
+        <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" class="{{ 'fill-orange-500' if positive else 'fill-sky-500' }}"><title>{{ b.label }}</title></rect>
+        {% endfor %}
+        <line x1="0" y1="140.5" x2="600" y2="140.5" class="stroke-slate-400" stroke-width="1"/>
+        <text x="0" y="156" class="fill-slate-500 font-mono" font-size="11">{{ sub.activation_histogram.bin_edges[0] | num(2) }}</text>
+        <text x="600" y="156" text-anchor="end" class="fill-slate-500 font-mono" font-size="11">{{ sub.activation_histogram.bin_edges[-1] | num(2) }}</text>
+      </svg>
+      <p class="mt-1 text-xs text-slate-500">Pole strength per token; bar height is log(1 + count).</p>
+      {% else %}
+      <p class="text-sm text-slate-500">No histogram recorded.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h3 class="mb-3 text-base font-semibold">Mechanism</h3>
+      <p class="text-sm">
+        {% if sub.lookahead.is_lookahead %}
+        Claimed <strong>lookahead</strong>: prepares upcoming tokens
+        {% for tok in sub.lookahead.target_upcoming_tokens %}<code class="tok mx-0.5 rounded bg-violet-100 px-1 text-xs dark:bg-violet-900">{{ tok }}</code>{% endfor %}.
+        {% else %}
+        Claimed <strong>retrospective</strong>: responds to tokens already in context.
+        {% endif %}
+      </p>
+      {% if sub.vocabulary_lens %}
+      {% set vl = sub.vocabulary_lens %}
+      <table class="mt-4 w-full text-xs">
+        <thead class="text-slate-500">
+          <tr>
+            <th class="pb-1 text-left font-normal"></th>
+            <th class="pb-1 text-left font-normal" title="Output direction transported to the final layer with the context-averaged Jacobian (Gurnee et al., 2026)">Jacobian lens</th>
+            <th class="pb-1 text-left font-normal" title="Output direction read directly through the unembedding (J = I)">Logit lens</th>
+          </tr>
+        </thead>
+        <tbody class="align-top">
+          {% for label, jac, logit in [("Promotes", vl.jacobian_promoted, vl.logit_promoted), ("Suppresses", vl.jacobian_suppressed, vl.logit_suppressed)] %}
+          <tr>
+            <td class="pr-2 text-slate-500">{{ label }}</td>
+            <td class="pr-2">{% for t in jac[:8] %}<code class="tok mr-1 rounded bg-slate-100 px-1 dark:bg-slate-800">{{ t }}</code>{% endfor %}</td>
+            <td class="text-slate-500">{% for t in logit[:8] %}<code class="tok mr-1 rounded px-1">{{ t }}</code>{% endfor %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="mt-1 text-xs text-slate-500">
+        Top-10 overlap {{ vl.overlap | pct }} · cos(w, J·w) {{ vl.direction_cosine | num(2) }} ·
+        kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) / {{ vl.logit_kurtosis | num(1) }} (logit); ≈3 means no specific token set ·
+        {{ vl.prompts }} prompts
+      </p>
+      {% endif %}
+      <dl class="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <dt class="text-slate-500">Submitted by</dt><dd class="font-mono text-xs">{{ sub.submitting_agent_model }}</dd>
+        {% if verdict %}
+        <dt class="text-slate-500">Reviewed by</dt><dd class="font-mono text-xs">{{ verdict.reviewer_agent_model }}</dd>
+        <dt class="text-slate-500">Reviewed at</dt><dd class="font-mono text-xs">{{ verdict.timestamp.strftime("%Y-%m-%d %H:%M UTC") }}</dd>
+        <dt class="text-slate-500">Max activation</dt><dd class="font-mono text-xs">{{ sub.max_activation | num(4) }}</dd>
+        {% endif %}
+        {% if sub.provenance %}
+        {% set p = sub.provenance %}
+        <dt class="text-slate-500">Selection</dt><dd class="font-mono text-xs">{{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %}</dd>
+        <dt class="text-slate-500">Corpus</dt><dd class="font-mono text-xs">{{ p.corpus }} · {{ "{:,}".format(p.tokens_scanned) }} tokens</dd>
+        <dt class="text-slate-500">Model revision</dt><dd class="font-mono text-xs">{{ (p.model_revision or "unrecorded")[:12] }} · {{ p.dtype }}</dd>
+        {% endif %}
+      </dl>
+    </section>
+  </div>
+
+  {% if examples %}
+  <section class="mb-10">
+    <h3 class="mb-3 text-base font-semibold">Top-activating examples</h3>
+    <ol class="space-y-2">
+      {% for ex, heat in examples %}
+      <li class="rounded-lg border border-slate-200 p-3 text-sm leading-7 dark:border-slate-800">
+        <span class="mr-2 font-mono text-xs text-slate-500">{{ ex.max_activation | num(2) }}</span>
+        {% for tok, a in heat %}<span class="tok" style="background-color: rgb({{ '234 88 12' if positive else '2 132 199' }} / {{ a }})" title="{{ (a * (sub.max_activation or ex.max_activation)) | num(3) }}">{{ tok }}</span>{% endfor %}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  <section class="mb-10">
+    <h3 class="mb-3 text-base font-semibold">Minimal-pair counterfactuals</h3>
+    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr><th class="px-3 py-2">Base</th><th class="px-3 py-2">Counterfactual</th><th class="px-3 py-2 text-right">Expected Δ</th><th class="px-3 py-2 text-right">Observed Δ</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for cf in sub.counterfactuals %}
+          <tr>
+            <td class="px-3 py-2">{{ cf.base_prompt }}</td>
+            <td class="px-3 py-2">{{ cf.counterfactual_prompt }}</td>
+            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ cf.expected_delta | num(2) }}</td>
+            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ cf.observed_delta | num(2) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Δ = (base − counterfactual) peak pole strength, as a fraction of max activation.</p>
+  </section>
+
+  {% if verdict %}
+  <section data-pagefind-ignore>
+    <h3 class="mb-1 text-base font-semibold">Adversarial review</h3>
+    <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">{{ verdict.notes }}</p>
+    {% if verdict.metrics %}
+    {% set m = verdict.metrics %}
+    <div class="mb-4 flex flex-wrap gap-2 text-xs">
+      {% for gate, ok in m.gates.items() %}
+      <span class="rounded border px-2 py-0.5 font-mono {{ 'border-emerald-300 text-emerald-800 dark:border-emerald-800 dark:text-emerald-300' if ok else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}">{{ '✓' if ok else '✗' }} {{ gate | replace('_', ' ') }}</span>
+      {% endfor %}
+    </div>
+    <p class="mb-4 font-mono text-xs text-slate-500">
+      specificity {{ m.specificity | num(2) }} · sensitivity {{ m.sensitivity | num(2) }} ·
+      balanced accuracy {{ m.balanced_accuracy | num(2) }} · counterfactual reproduction {{ m.counterfactual_reproduction | num(2) }}
+      {% if verdict.policy %}· protocol v{{ verdict.policy.protocol_version }}{% endif %}
+    </p>
+    {% endif %}
+    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr><th class="px-3 py-2"></th><th class="px-3 py-2">Test</th><th class="px-3 py-2">Input</th><th class="px-3 py-2">Expected</th><th class="px-3 py-2 text-right">Observed</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for t in verdict.adversarial_test_results %}
+          <tr>
+            <td class="px-3 py-2 font-mono {{ 'text-emerald-600' if t.passed else 'text-rose-600' }}" aria-label="{{ 'passed' if t.passed else 'failed' }}">{{ '✓' if t.passed else '✗' }}</td>
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ t.kind | replace('_', ' ') }}</td>
+            <td class="px-3 py-2">{{ t.prompt }}{% if t.detail %}<div class="text-xs text-slate-500">{{ t.detail }}</div>{% endif %}</td>
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+              {% if t.expected_active is not none %}{{ 'active' if t.expected_active else 'inactive' }}{% elif t.expected_delta is not none %}Δ {{ t.expected_delta | num(2) }}{% endif %}
+            </td>
+            <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-xs tabular-nums">
+              {% if t.activation is not none %}{{ t.activation | num(3) }}{% elif t.observed_delta is not none %}Δ {{ t.observed_delta | num(2) }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="mt-10" data-pagefind-ignore>
+    <h3 class="mb-3 text-base font-semibold">Covariance and confounds</h3>
+    {% set m = verdict.metrics %}
+    {% set cf = sub.confounds %}
+    {% set ja = verdict.joint_ablation %}
+    {% if not (cf or v.correlated or ja) %}
+    <p class="text-sm text-slate-500">Not recorded: this scan predates protocol 0.3. A rescan adds correlated neurons, the confound profile and joint ablation.</p>
+    {% else %}
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div>
+        <h4 class="mb-2 text-sm font-medium">Confounds</h4>
+        {% if cf %}
+        <dl class="grid grid-cols-2 gap-1 text-sm">
+          <dt class="text-slate-500" title="Variance explained by a per-token-id mean">Token identity R²</dt><dd class="font-mono">{{ cf.token_r2 | num(2) }}</dd>
+          <dt class="text-slate-500" title="Variance explained by a per-position mean">Position R²</dt><dd class="font-mono">{{ cf.position_r2 | num(2) }}</dd>
+          <dt class="text-slate-500" title="log token frequency vs mean strength">Frequency r</dt><dd class="font-mono">{{ cf.frequency_correlation | num(2) }}</dd>
+          {% if m and m.confound_baseline %}
+          <dt class="text-slate-500">Best trivial baseline</dt><dd class="font-mono text-xs">{{ m.confound_baseline }} · {{ m.confound_baseline_accuracy | num(2) }}</dd>
+          <dt class="text-slate-500">Hypothesis</dt><dd class="font-mono text-xs">{{ m.balanced_accuracy | num(2) }} {{ '✓' if m.gates.get('beats_confound_baseline') else '✗' }}</dd>
+          {% endif %}
+        </dl>
+        <p class="mt-2 flex flex-wrap gap-1">
+          {% for t in cf.trigger_tokens[:12] %}<code class="tok rounded border border-slate-300 px-1 text-xs dark:border-slate-700" title="mean {{ t.mean_strength | num(3) }} over {{ t.count }}">{{ t.token }}</code>{% endfor %}
+        </p>
+        {% else %}<p class="text-sm text-slate-500">No confound profile.</p>{% endif %}
+      </div>
+      <div>
+        <h4 class="mb-2 text-sm font-medium" title="Neuron poles in the same layer that fire when this pole fires">Co-activating neuron poles</h4>
+        {% if v.correlated %}
+        <table class="w-full font-mono text-xs">
+          <thead class="text-slate-500">
+            <tr>
+              <th class="pb-1 text-left font-normal">Pole</th>
+              <th class="pb-1 text-right font-normal" title="P(partner active | this pole active) / P(partner active): 95% lower bound (point estimate)">Lift ≥</th>
+              <th class="pb-1 text-right font-normal" title="Tokens where both are active">Both</th>
+              <th class="pb-1 text-right font-normal" title="Spearman rank correlation of pole strengths">ρ</th>
+              <th class="pb-1 text-right font-normal" title="Pearson correlation with signed activation (reference)">r</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in v.correlated %}
+            {% set c = row.c %}
+            <tr>
+              <td>{% if row.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ row.href }}">N{{ c.neuron_idx }}</a>{% else %}N{{ c.neuron_idx }}{% endif %}{{ pole_mark(c.pole) }}</td>
+              <td class="text-right {{ 'font-semibold' if c.coactivation_lift_lower >= 2 }}" title="point estimate {{ '%.1f' | format(c.coactivation_lift) }}">{{ "%.1f" | format(c.coactivation_lift_lower) }}</td>
+              <td class="text-right text-slate-500">{{ c.coactive_tokens }}</td>
+              <td class="text-right">{{ "%+.2f" | format(c.spearman) }}</td>
+              <td class="text-right text-slate-500">{{ "%+.2f" | format(c.pearson) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="mt-2 text-xs text-slate-500">Ranked by the 95% lower bound of co-activation lift: how much more often a pole fires when this one does, discounting chance coincidences. ρ is rank-based and robust to heavy tails.</p>
+        {% else %}<p class="text-sm text-slate-500">None recorded.</p>{% endif %}
+      </div>
+      <div>
+        <h4 class="mb-2 text-sm font-medium">Joint ablation</h4>
+        {% if ja %}
+        <dl class="grid grid-cols-2 gap-1 text-sm">
+          <dt class="text-slate-500">Partners</dt><dd class="font-mono text-xs">{% for p in ja.partners %}N{{ p }}{{ ', ' if not loop.last }}{% endfor %}</dd>
+          <dt class="text-slate-500">KL pole alone</dt><dd class="font-mono text-xs">{{ "%.2e" | format(ja.kl_single) }}</dd>
+          <dt class="text-slate-500">KL partners</dt><dd class="font-mono text-xs">{{ "%.2e" | format(ja.kl_partners) }}</dd>
+          <dt class="text-slate-500">KL together</dt><dd class="font-mono text-xs">{{ "%.2e" | format(ja.kl_joint) }}</dd>
+          <dt class="text-slate-500" title="(KL together − KL partners) / KL pole alone">Redundancy ratio</dt><dd class="font-mono text-xs">{{ ja.redundancy_ratio | num(2) }}</dd>
+        </dl>
+        <p class="mt-2 text-xs text-slate-500">
+          {% if ja.redundancy_ratio is none %}The pole alone has no measurable effect.
+          {% elif ja.redundancy_ratio > 1.5 %}The pole matters more once its partners are removed: likely redundancy.
+          {% elif ja.redundancy_ratio < 0.5 %}With the partners already removed, also removing this pole adds little: its effect overlaps with theirs (a shared pathway).
+          {% else %}The partners don't change the pole's effect much.{% endif %}
+        </p>
+        {% else %}<p class="text-sm text-slate-500">Not run: no partner reached the correlation threshold.</p>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+    </div>
+  </details>
+</section>

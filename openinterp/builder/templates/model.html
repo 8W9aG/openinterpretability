@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb %}
+
+{% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
+
+{% block content %}
+{{ breadcrumb(root, model) }}
+<h1 class="font-mono text-2xl font-semibold">{{ model.name }}</h1>
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+  {{ model.neurons }} neurons studied · {{ model.experiments }} experiments · {{ model.verified }} with a verified pole ·
+  {{ model.layers | length }}/{{ model.n_layers }} layers covered ({{ model.coverage | pct }})
+</p>
+
+{% set counts = model.layer_counts() %}
+{% set peak = (counts | max) or 1 %}
+<div class="mt-6 flex h-10 items-end gap-px" role="img" aria-label="Studied neurons per layer">
+  {% for n in counts %}
+  <div class="flex-1 {{ 'bg-emerald-500' if n else 'bg-slate-200 dark:bg-slate-800' }}"
+       style="height: {{ (100 * n / peak) | round(0) if n else 8 }}%" title="Layer {{ loop.index0 }}: {{ n }} neurons"></div>
+  {% endfor %}
+</div>
+<div class="mt-1 flex justify-between font-mono text-[10px] text-slate-500"><span>L0</span><span>L{{ model.n_layers - 1 }}</span></div>
+
+<div class="mt-8 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr>
+        <th class="px-3 py-2">Layer</th>
+        <th class="px-3 py-2 text-right">Neurons studied</th>
+        <th class="px-3 py-2 text-right">Experiments</th>
+        <th class="px-3 py-2 text-right">Verified</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for layer in model.layers %}
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+        <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons | length }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.verified }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

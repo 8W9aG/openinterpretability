@@ -105,3 +105,28 @@ def test_cli_exit_code(repo):
     result = CliRunner().invoke(cli, ["check"])
     assert result.exit_code == 1
     assert "missing wiki page" in result.output
+
+
+def test_missing_archive(repo):
+    page_of(repo).with_suffix(".json").unlink()
+    assert "missing archived record" in messages(check_registry())
+
+
+def test_archive_must_match_record(repo, record):
+    archived = page_of(repo).with_suffix(".json")
+    changed = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"notes": "tampered"})}
+    )
+    archived.write_text(changed.model_dump_json())
+    assert "archived record differs" in messages(check_registry())
+
+
+def test_archive_edits_rejected_by_write_once(repo):
+    archived = page_of(repo).with_suffix(".json")
+    archived.write_text(archived.read_text() + "\n")
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qam", "touch"], check=True
+    )
+    assert "archived experiment records are write-once" in messages(
+        check_registry(base_ref="main~1")
+    )

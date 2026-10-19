@@ -5,6 +5,7 @@ Layout under ``wiki/``::
     README.md                                   home: every experiment, newest first
     experiments/<model>/L<l>/N<n>-<pole>/README.md      neuron page: its experiment history
     experiments/<model>/L<l>/N<n>-<pole>/<id>.md        one experiment (write-once)
+    experiments/<model>/L<l>/N<n>-<pole>/<id>.json      its full audit record (write-once)
 
 Experiment pages are never overwritten: a re-evaluation or revision gets a new
 page, so the wiki is the history even though ``audits/`` only holds the latest
@@ -44,6 +45,10 @@ GATE_ADVICE = {
     "retrospective vs lookahead (skill: `vocab-projection-lookahead`).",
     "independent_review": "The proposer and reviewer used the same model. Re-review with a "
     "different reviewer model.",
+    "beats_confound_baseline": "A trivial baseline (token identity, position or 'never "
+    "active') explains the probes at least as well as the hypothesis, or the scan predates "
+    "confound profiling. Rescan with `openinterp audit` and sharpen the claim beyond the "
+    "trigger tokens (skill: `interpretability-illusions-review`).",
 }
 
 
@@ -125,6 +130,7 @@ def write_experiment_page(
     if record.verdict is None:
         return None
     page = neuron_dir(wiki_dir, record) / f"{experiment_id(record)}.md"
+    archive_record(record, wiki_dir)
     if page.exists():
         return None
 
@@ -179,6 +185,33 @@ def write_experiment_page(
     page.write_text(_front_matter(meta) + "\n" + body, encoding="utf-8")
     rebuild_indexes(wiki_dir)
     return page
+
+
+def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:
+    return neuron_dir(wiki_dir, record) / f"{experiment_id(record)}.json"
+
+
+def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
+    """Store the full record of a completed experiment next to its page (write-once).
+
+    ``audits/`` keeps only the latest record per neuron; the archive keeps every
+    experiment, so superseded and null results stay available to the site.
+    """
+    path = archive_path(wiki_dir, record)
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(record.model_dump_json() + "\n", encoding="utf-8")
+    return path
+
+
+def load_archive(wiki_dir: Path) -> list[AuditRecord]:
+    """Every archived experiment record, oldest first."""
+    root = Path(wiki_dir) / "experiments"
+    records = [
+        AuditRecord.model_validate_json(p.read_text(encoding="utf-8"))
+        for p in sorted(root.rglob("*.json"))
+    ]
+    return sorted(records, key=lambda r: (r.verdict.timestamp, r.submission.identifier.slug))
 
 
 def load_entries(wiki_dir: Path) -> list[WikiEntry]:

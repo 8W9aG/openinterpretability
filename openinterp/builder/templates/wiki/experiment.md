@@ -80,6 +80,38 @@ Causal metrics (recorded, not gated): sufficiency {{ verdict.causal_metrics.suff
 **Lookahead check:** {{ '✅' if t.passed else '❌' }} {{ t.detail }}
 {% endfor %}
 
+{% if sub.vocabulary_lens %}
+{% set vl = sub.vocabulary_lens %}
+### Vocabulary lens
+
+| | Jacobian lens | Logit lens |
+| --- | --- | --- |
+| Promotes | {% for t in vl.jacobian_promoted[:8] %}`{{ t | cell }}` {% endfor %}| {% for t in vl.logit_promoted[:8] %}`{{ t | cell }}` {% endfor %}|
+| Suppresses | {% for t in vl.jacobian_suppressed[:8] %}`{{ t | cell }}` {% endfor %}| {% for t in vl.logit_suppressed[:8] %}`{{ t | cell }}` {% endfor %}|
+
+Top-10 overlap {{ vl.overlap | pct }}; cos(w, J·w) {{ vl.direction_cosine | num(2) }}; kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) vs {{ vl.logit_kurtosis | num(1) }} (logit); {{ vl.prompts }} prompts.
+
+{% endif %}
+### Covariance and confounds
+
+{% if metrics and metrics.effective_hard_negatives is not none %}
+- **Independent observations:** {{ metrics.effective_hard_negatives }} hard-negative and {{ metrics.effective_holdouts }} holdout clusters (near-duplicate probes count once).
+{% endif %}
+{% if sub.confounds %}
+- **Confounds:** token identity R² {{ sub.confounds.token_r2 | num(2) }}, position R² {{ sub.confounds.position_r2 | num(2) }}, frequency r {{ sub.confounds.frequency_correlation | num(2) }}.{% if metrics and metrics.confound_baseline %} Best trivial baseline: {{ metrics.confound_baseline }} at {{ metrics.confound_baseline_accuracy | num(2) }}; the hypothesis scores {{ metrics.balanced_accuracy | num(2) }}.{% endif %}
+
+{% else %}
+- **Confounds:** no confound profile (the scan predates protocol 0.3).
+{% endif %}
+{% if sub.correlated_neurons %}
+- **Co-activating neuron poles:** {% for c in sub.correlated_neurons[:5] %}N{{ c.neuron_idx }}{{ '+' if c.pole == 'positive' else '−' }} (lift ≥ {{ "%.1f" | format(c.coactivation_lift_lower) }} on {{ c.coactive_tokens }} tokens, ρ = {{ "%+.2f" | format(c.spearman) }}){{ ", " if not loop.last }}{% endfor %}
+
+{% endif %}
+{% if verdict.joint_ablation %}
+{% set ja = verdict.joint_ablation %}
+- **Joint ablation** with {% for p in ja.partners %}N{{ p }}{{ ", " if not loop.last }}{% endfor %}: KL alone {{ "%.2e" | format(ja.kl_single) }}, partners {{ "%.2e" | format(ja.kl_partners) }}, together {{ "%.2e" | format(ja.kl_joint) }}; redundancy ratio {{ ja.redundancy_ratio | num(2) }}.
+{% endif %}
+
 ## Next steps
 
 {% if verdict.status == 'VERIFIED' %}

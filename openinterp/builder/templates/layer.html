@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, pole_mark %}
+
+{% block title %}{{ model.name }} layer {{ layer.layer }} · {{ site_title }}{% endblock %}
+
+{% block content %}
+{{ breadcrumb(root, model, layer) }}
+<h1 class="text-2xl font-semibold"><span class="font-mono">{{ model.name }}</span> · layer {{ layer.layer }}</h1>
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+  {{ layer.neurons | length }} neurons studied · {{ layer.experiments }} experiments · {{ layer.verified }} with a verified pole
+</p>
+
+<div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr>
+        <th class="px-3 py-2">Neuron</th>
+        <th class="px-3 py-2">Latest status by pole</th>
+        <th class="px-3 py-2 text-right">Experiments</th>
+        <th class="px-3 py-2">Most conclusive result</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for n in layer.neurons %}
+      <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+        <td class="whitespace-nowrap px-3 py-2 font-mono">
+          <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">N{{ n.idx }}</a>
+        </td>
+        <td class="space-y-1 px-3 py-2">
+          {% for pole, e in n.latest_by_pole | dictsort(reverse=true) %}
+          <div class="flex items-center gap-2 text-xs">{{ pole_mark(pole) }} {{ status_badge(e.record.verdict.status) }}</div>
+          {% endfor %}
+        </td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ n.experiments | length }}</td>
+        <td class="px-3 py-2">
+          <div class="mb-1">{{ evidence_badge(n.top.sig.conclusiveness, n.top.sig.direction) }}</div>
+          <a class="hover:underline" href="{{ root }}{{ n.href }}#{{ n.top.anchor }}">{{ n.top.record.submission.natural_language_explanation | truncate(140) }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

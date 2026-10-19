@@ -26,6 +26,9 @@ from openinterp.core.schemas import (
     VerdictStatus,
     VerificationVerdict,
 )
+from openinterp.core.stats import balanced_accuracy, effective_counts
+from openinterp.harness.confounds import baseline_predictions
+from openinterp.harness.covariance import joint_ablation
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.lookahead import measure_lookahead
 from openinterp.harness.patcher import ActivationPatcher, PatchResult, token_logit_metric
@@ -102,9 +105,11 @@ def evaluate_submission(
     threshold = policy.activation_threshold * scale
 
     results: list[AdversarialTestResult] = []
+    actual: list[bool] = []
     for probe in probes:
         strength = runner.max_pole_strength(probe.text, *args)
         active = scale > 0 and strength >= threshold
+        actual.append(active)
         results.append(
             AdversarialTestResult(
                 kind="positive_holdout" if probe.expected_active else "hard_negative",
@@ -146,7 +151,10 @@ def evaluate_submission(
     )
 
     metrics = review_metrics(
-        results, policy, independent=reviewer_model != submission.submitting_agent_model
+        results,
+        policy,
+        independent=reviewer_model != submission.submitting_agent_model,
+        baseline=confound_baseline(submission, runner, probes, actual, threshold, policy),
     )
     return VerificationVerdict(
         status=decide(metrics, policy),
@@ -157,8 +165,73 @@ def evaluate_submission(
         causal_metrics=causal_metrics(submission, runner, policy.freeze_downstream),
         metrics=metrics,
         policy=policy,
+        joint_ablation=_joint_ablation(submission, runner, probes, policy),
         notes=_summary(results, metrics),
     )
+
+
+def _probe_score(
+    probes: Sequence[AdversarialProbe],
+    predicted: Sequence[bool],
+    actual: Sequence[bool],
+    policy: ReviewPolicy,
+) -> float:
+    """Balanced accuracy of ``predicted`` vs ``actual`` activity, split by the hypothesis's
+    labels (hard negatives / holdouts), with near-duplicate probes clustered."""
+
+    def subset(expected: bool):
+        rows = [
+            (p.text, pr == a)
+            for p, pr, a in zip(probes, predicted, actual, strict=True)
+            if p.expected_active == expected
+        ]
+        return effective_counts(
+            [t for t, _ in rows], [ok for _, ok in rows], policy.probe_cluster_threshold
+        )
+
+    return balanced_accuracy(subset(False), subset(True))
+
+
+def confound_baseline(
+    submission: NeuronAuditSubmission,
+    runner: NeuronHookRunner,
+    probes: Sequence[AdversarialProbe],
+    actual: Sequence[bool],
+    threshold: float,
+    policy: ReviewPolicy,
+) -> tuple[str, float] | None:
+    """Best trivial explanation of the probes' activity: (name, balanced accuracy).
+
+    ``None`` when the submission has no confound profile (scan predates protocol 0.3).
+    """
+    if submission.confounds is None or runner.tokenizer is None or not probes:
+        return None
+    texts = [p.text for p in probes]
+    candidates = baseline_predictions(submission.confounds, runner.tokenizer, texts, threshold)
+    candidates["never active"] = [False] * len(probes)
+    scored = {name: _probe_score(probes, pred, actual, policy) for name, pred in candidates.items()}
+    best = max(sorted(scored), key=lambda name: scored[name])
+    return best, round(scored[best], 6)
+
+
+def _joint_ablation(submission, runner, probes, policy):
+    # Ranked by co-activation lift (the scan's order); Spearman is the fallback signal.
+    partners: list[int] = []
+    for c in submission.correlated_neurons:
+        lifted = c.coactivation_lift_lower >= policy.min_partner_lift and (
+            c.coactive_tokens >= policy.min_partner_coactive
+        )
+        if (lifted or abs(c.spearman) >= policy.min_partner_correlation) and (
+            c.neuron_idx not in partners
+        ):
+            partners.append(c.neuron_idx)
+    partners = partners[: policy.joint_ablation_partners]
+    if not partners:
+        return None
+    ident = submission.identifier
+    prompts = [p.base_prompt for p in submission.counterfactuals]
+    prompts += [p.text for p in probes if p.expected_active]
+    return joint_ablation(runner, prompts, ident.layer, ident.neuron_idx, ident.pole, partners)
 
 
 def _delta_agrees(expected: float, observed: float, policy: ReviewPolicy) -> bool:
@@ -180,35 +253,49 @@ def _pass_rate(results: Sequence[AdversarialTestResult], kinds: set[str]) -> flo
 
 
 def review_metrics(
-    results: Sequence[AdversarialTestResult], policy: ReviewPolicy, *, independent: bool
+    results: Sequence[AdversarialTestResult],
+    policy: ReviewPolicy,
+    *,
+    independent: bool,
+    baseline: tuple[str, float] | None = None,
 ) -> ReviewMetrics:
-    negatives = [r for r in results if r.kind == "hard_negative"]
-    holdouts = [r for r in results if r.kind == "positive_holdout"]
-    specificity = _pass_rate(results, {"hard_negative"})
-    sensitivity = _pass_rate(results, {"positive_holdout"})
+    def counts(kind: str):
+        rows = [r for r in results if r.kind == kind]
+        return effective_counts(
+            [r.prompt for r in rows], [r.passed for r in rows], policy.probe_cluster_threshold
+        )
+
+    negatives, holdouts = counts("hard_negative"), counts("positive_holdout")
     reproduction = _pass_rate(results, {"counterfactual"})
     lookahead = all(r.passed for r in results if r.kind == "lookahead_consistency")
-    rates = [r for r in (specificity, sensitivity) if r is not None]
-    balanced = sum(rates) / len(rates) if rates else 0.0
+    balanced = balanced_accuracy(negatives, holdouts)
+    beats_baseline = not policy.require_confound_control or (
+        baseline is not None and balanced >= baseline[1] - 1e-9
+    )
 
     gates = {
-        "enough_hard_negatives": len(negatives) >= policy.min_hard_negatives,
-        "enough_holdouts": len(holdouts) >= policy.min_holdouts,
-        "specificity": (specificity or 0.0) >= policy.min_specificity,
-        "sensitivity": (sensitivity or 0.0) >= policy.min_sensitivity,
+        "enough_hard_negatives": negatives.clusters >= policy.min_hard_negatives,
+        "enough_holdouts": holdouts.clusters >= policy.min_holdouts,
+        "specificity": (negatives.rate or 0.0) >= policy.min_specificity,
+        "sensitivity": (holdouts.rate or 0.0) >= policy.min_sensitivity,
         "counterfactual_reproduction": (reproduction or 0.0)
         >= policy.min_counterfactual_reproduction,
         "lookahead_consistent": lookahead,
         "independent_review": independent or not policy.require_independent_review,
+        "beats_confound_baseline": beats_baseline,
     }
     return ReviewMetrics(
-        specificity=specificity,
-        sensitivity=sensitivity,
+        specificity=None if negatives.rate is None else round(negatives.rate, 6),
+        sensitivity=None if holdouts.rate is None else round(holdouts.rate, 6),
         balanced_accuracy=round(balanced, 6),
         counterfactual_reproduction=reproduction,
         lookahead_consistent=lookahead,
         independent_review=independent,
         gates=gates,
+        effective_hard_negatives=negatives.clusters,
+        effective_holdouts=holdouts.clusters,
+        confound_baseline=baseline[0] if baseline else None,
+        confound_baseline_accuracy=baseline[1] if baseline else None,
     )
 
 

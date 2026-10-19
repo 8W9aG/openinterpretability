@@ -6,10 +6,12 @@ An experiment is posted as an audit record in ``audits/`` plus a wiki page in
 1. every audit record validates, has a verdict, and is the only record for its neuron;
 2. every audit record has the wiki page for its current verdict, and the page's front
    matter matches the record;
-3. every wiki experiment page belongs to a neuron that has an audit record;
+3. every wiki experiment page belongs to a neuron that has an audit record, and has
+   an archived record (``<id>.json``) that validates and matches it; the archived
+   copy of each audit record's current verdict is identical to the record;
 4. the generated wiki indexes are up to date;
 5. with ``base_ref``, existing experiment pages were not deleted or edited outside
-   their Discussion section (pages are write-once).
+   their Discussion section, and archived records were not touched (write-once).
 """
 
 from __future__ import annotations
@@ -96,6 +98,9 @@ def _check_records(audits_dir: Path, wiki_dir: Path, report: CheckReport) -> dic
         if not page.exists():
             report.add(path, f"missing wiki page {page}; run `openinterp wiki`")
             continue
+        archived = page.with_suffix(".json")
+        if archived.exists() and _load(archived) != record:
+            report.add(archived, f"archived record differs from {path}; archives are write-once")
         meta = _read_front_matter(page)
         expected = {
             "slug": slug,
@@ -123,8 +128,31 @@ def _check_pages(wiki_dir: Path, slugs: dict[str, Path], report: CheckReport) ->
             meta = {}
         if not meta:
             report.add(page, "experiment page has no valid front matter")
-        elif meta.get("slug") not in slugs:
+            continue
+        if meta.get("slug") not in slugs:
             report.add(page, f"wiki page for {meta.get('slug')} has no audit record in audits/")
+        archived = page.with_suffix(".json")
+        if not archived.exists():
+            report.add(page, f"missing archived record {archived.name}; run `openinterp wiki`")
+            continue
+        record = _load(archived)
+        if record is None or record.verdict is None:
+            report.add(archived, "archived record is invalid or has no verdict")
+        elif (record.submission.identifier.slug, record.verdict.timestamp.isoformat()) != (
+            meta.get("slug"),
+            meta.get("timestamp"),
+        ):
+            report.add(archived, "archived record does not match its experiment page")
+    for archived in sorted(root.rglob("*.json")):
+        if not archived.with_suffix(".md").exists():
+            report.add(archived, "archived record has no experiment page")
+
+
+def _load(path: Path) -> AuditRecord | None:
+    try:
+        return AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
+    except ValidationError:
+        return None
 
 
 def _check_indexes(wiki_dir: Path, report: CheckReport) -> None:
@@ -160,6 +188,9 @@ def _check_write_once(wiki_dir: Path, base_ref: str, report: CheckReport) -> Non
     for line in diff.splitlines():
         status, _, name = line.partition("\t")
         path = Path(name)
+        if path.suffix == ".json" and status in {"D", "M"}:
+            report.add(path, "archived experiment records are write-once")
+            continue
         if path.name == "README.md" or path.suffix != ".md":
             continue
         if status == "D":

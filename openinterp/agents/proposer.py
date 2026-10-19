@@ -10,12 +10,15 @@ from pydantic import BaseModel, Field
 from openinterp.agents.base import LLMAgent
 from openinterp.core.schemas import (
     ActivatingExample,
+    ConfoundProfile,
+    CorrelatedNeuron,
     CounterfactualPair,
     ExperimentProvenance,
     Histogram,
     LookaheadProfile,
     NeuronAuditSubmission,
     NeuronIdentifier,
+    VocabularyLens,
 )
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.lookahead import measure_lookahead
@@ -82,14 +85,39 @@ class ProposerAgent(LLMAgent):
         self,
         identifier: NeuronIdentifier,
         examples: Sequence[ActivatingExample],
-        promoted_tokens: Sequence[str] = (),
+        lens: VocabularyLens | None = None,
+        confounds: ConfoundProfile | None = None,
+        correlated: Sequence[CorrelatedNeuron] = (),
     ) -> HypothesisDraft:
         prompt = (
             f"Neuron: {identifier}\n\n"
             f"Top-activating snippets (peak token in [[ ]]):\n{format_examples(examples)}\n\n"
-            f"Tokens this pole directly promotes via the unembedding: "
-            f"{', '.join(repr(t) for t in promoted_tokens) or 'unknown'}\n"
         )
+        if lens is not None:
+            prompt += (
+                f"Tokens this pole promotes via the Jacobian lens (its output direction "
+                f"transported to the final layer; reliable in middle layers): "
+                f"{', '.join(map(repr, lens.jacobian_promoted))}; suppresses: "
+                f"{', '.join(map(repr, lens.jacobian_suppressed))}. "
+                f"Logit lens (no transport): {', '.join(map(repr, lens.logit_promoted))}. "
+                f"Lens agreement {lens.overlap:.0%}; peakedness (kurtosis) "
+                f"{lens.jacobian_kurtosis:.1f}, where ~3 means no specific token set.\n"
+            )
+        if confounds is not None:
+            top = ", ".join(repr(t.token) for t in confounds.trigger_tokens[:10])
+            prompt += (
+                f"\nConfounds: token identity explains {confounds.token_r2:.0%} of activation "
+                f"variance, position {confounds.position_r2:.0%}. Highest mean-activation "
+                f"tokens: {top}. Your hypothesis must predict activity better than "
+                f"'fires on these tokens'.\n"
+            )
+        if correlated:
+            pairs = ", ".join(
+                f"N{c.neuron_idx}{'+' if c.pole == 'positive' else '-'} "
+                f"(co-activation lift >= {c.coactivation_lift_lower:.1f}, rho={c.spearman:+.2f})"
+                for c in correlated[:5]
+            )
+            prompt += f"Neuron poles in this layer that co-activate with it: {pairs}.\n"
         return self.structured(HypothesisDraft, prompt)
 
     def build_submission(
@@ -100,7 +128,10 @@ class ProposerAgent(LLMAgent):
         runner: NeuronHookRunner | None = None,
         examples: Sequence[ActivatingExample] = (),
         histogram: Histogram | None = None,
+        confounds: ConfoundProfile | None = None,
+        correlated: Sequence[CorrelatedNeuron] = (),
         provenance: ExperimentProvenance | None = None,
+        vocabulary_lens: VocabularyLens | None = None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
@@ -147,6 +178,9 @@ class ProposerAgent(LLMAgent):
             activation_histogram=histogram,
             model_num_layers=runner.n_layers if runner is not None else None,
             provenance=provenance,
+            confounds=confounds,
+            correlated_neurons=list(correlated),
+            vocabulary_lens=vocabulary_lens,
         )
 
 

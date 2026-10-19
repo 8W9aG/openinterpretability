@@ -1,4 +1,4 @@
-# Audit protocol (v0.2)
+# Audit protocol (v0.3)
 
 This document defines what one Open Interpretability experiment is, who does what, and how a verdict is decided. The code implements it: the decision rule is `openinterp.agents.reviewer.evaluate_submission`, and its parameters are `openinterp.core.schemas.ReviewPolicy`. Every verdict stores the policy it was computed under, so any record can be re-checked with `openinterp reevaluate`.
 
@@ -49,33 +49,59 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
 6. **Measure.** The harness runs every probe and counterfactual, measures the lookahead profile (KL between clean and pole-ablated next-token distributions, and how concentrated the change is), and computes the causal metrics.
 7. **Decide.** Apply the rule in §4.
 8. **Record.** Every completed experiment, whatever its verdict, gets a write-once page in `wiki/experiments/<model>/L<layer>/N<idx>-<pole>/<timestamp>.md`. The page holds the hypothesis, evidence, gate results, failed probes and next steps derived from the failed gates. `verify` and `reevaluate` write it automatically, and the superseded verdict is saved before `reevaluate` overwrites a record. The page's Discussion section is for free-form notes.
-9. **Publish.** Only `VERIFIED` records are compiled into the public site and `registry.parquet`. `audits/` holds the latest record per neuron; `wiki/` holds every experiment.
+9. **Publish.** Every experiment is published, whatever its verdict. The site and `registry.parquet` are built from the wiki archive, and a write-once `<id>.json` record sits beside each experiment page. `audits/` holds the latest record per neuron pole; `wiki/` holds every experiment. Pages follow Model → Layer → Neuron → Experiments, and each neuron's experiments are ordered by **conclusiveness**:
+   - With Beta(1, 1) priors on specificity and sensitivity, P(useful) = P(balanced accuracy > 0.6).
+   - Conclusiveness is |2·P(useful) − 1|, so a well-probed rejection ranks as high as a well-probed verification, and thinly-probed results rank low whatever their verdict.
 
 ## 4. Decision rule
 
+Probes are not independent: one reviewer writes them all, often as variations on a theme. Near-duplicate probes (word-set Jaccard ≥ `probe_cluster_threshold`, default 0.5) are therefore clustered, and each cluster counts as **one observation**, scored by its mean pass rate. Every count and rate below uses these effective counts.
+
 Probe accuracy is reported as **balanced accuracy**, the mean of:
-- **specificity**: the fraction of hard negatives that stayed inactive;
-- **sensitivity**: the fraction of positive holdouts that fired.
+- **specificity**: the cluster-weighted fraction of hard negatives that stayed inactive;
+- **sensitivity**: the cluster-weighted fraction of positive holdouts that fired.
 
 Balanced accuracy is the `confidence_score`. Using it means many easy negatives cannot hide failed generalisations.
+
+**Confound control.** The scan records a confound profile of the pole: the variance explained by token identity and by position, the correlation with token frequency, and the tokens and positions with the highest mean strength. On the reviewer's probes, the hypothesis is compared with three trivial baselines, each scored by the same cluster-weighted balanced accuracy:
+- *token identity*: active if any token is a trigger token;
+- *position*: active at a high-activation position;
+- *never active*.
+
+A hypothesis that can't at least match the best of these adds nothing beyond "fires on token X".
 
 A verdict is **VERIFIED** only if every gate passes:
 
 | Gate | Default | Why |
 | --- | --- | --- |
-| `enough_hard_negatives` | ≥ 6 | Specificity is meaningless on a handful of probes. |
-| `enough_holdouts` | ≥ 3 | The same applies to sensitivity. |
+| `enough_hard_negatives` | ≥ 6 clusters | Specificity is meaningless on a handful of independent probes. |
+| `enough_holdouts` | ≥ 3 clusters | The same applies to sensitivity. |
 | `specificity` | ≥ 0.80 | The hypothesis is not too broad. |
 | `sensitivity` | ≥ 0.60 | The hypothesis generalises beyond its own examples. |
 | `counterfactual_reproduction` | ≥ 0.75 of pairs | The proposer's predicted Δ reproduce within `max(0.10, 0.50 × |predicted|)`, with the right sign. |
 | `lookahead_consistent` | — | The measured mechanism matches the claim. |
 | `independent_review` | — | The reviewer model differs from the proposer model. |
+| `beats_confound_baseline` | ≥ best baseline | The hypothesis explains the probes at least as well as token identity, position or "never active". It fails when the submission has no confound profile. |
 
 If the probe set is adequate (both count gates pass) and balanced accuracy is below **0.60**, the verdict is **REJECTED**: the hypothesis predicts the neuron barely better than chance. Every other outcome is **NEEDS_REVISION**, and the failed gates are listed in `verdict.notes`.
 
 ### What is not evidence (yet)
 
 - **The proposer's counterfactuals.** The proposer can measure these before submitting, so a match is a reproduction check (it catches measurement or transcription errors) and not a successful prediction. The predictive test is the reviewer's probes, which are written without seeing any activations.
+- **Covariance with other neurons.** Pole strengths are sparse and heavy-tailed, so a global correlation mostly measures agreement on "nothing is happening". The scan therefore finds partner neuron *poles* by co-activation lift: P(partner active | target active) ÷ P(partner active).
+  - *Target active* uses the protocol threshold; *partner active* means above the partner pole's own 99th percentile.
+  - Partners are ranked by the 95% Wilson lower bound of the lift, so a few chance coincidences don't count.
+  - Each partner also records Spearman's ρ of the two pole strengths (on a fixed-seed reservoir sample, ties averaged) and, for reference, Pearson's r with the signed activation.
+  - The reviewer ablates the pole with up to 3 partners (lift lower bound ≥ 2 on ≥ 5 co-active tokens, or |ρ| ≥ 0.2). It reports the KL for the pole alone, the partners alone and all together.
+  - The *redundancy ratio*, (KL together − KL partners) / KL alone, exceeds 1 when partners mask the pole's effect, and is near 0 when the pole's effect overlaps with theirs.
+
+  This is reported, not gated.
+- **Vocabulary lens.** Each submission records the pole's output direction read through the logit lens and the **Jacobian lens** (Gurnee et al., 2026). The Jacobian lens transports the direction with the context-averaged Jacobian E[∂h_final,t′/∂h_ℓ,t] over t′ ≥ t, estimated from one perturbed forward pass per prompt and sign. The record includes:
+  - both top-10 lists;
+  - their overlap and cos(w, J·w);
+  - the kurtosis of the vocabulary scores (≈ 3 means no specific token set).
+
+  On Qwen2.5-0.5B the lenses disagree completely up to the middle layers and converge near the output, so mechanism claims should rest on the Jacobian lens. It is reported, not gated.
 - **Causal metrics.** Sufficiency and necessity (clean↔corrupted patching, with downstream MLP outputs frozen against self-repair) are recorded but not gated. They are scored on the top-1 next-token logit, and a single neuron rarely moves that measurably. A better target, such as the logits of the claimed tokens or the neuron's output direction in the residual stream, is open work.
 
 ## 5. Reproducibility requirements
@@ -97,6 +123,14 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 | --- | --- |
 | 0.1 | Weighted mean of probe, counterfactual and lookahead pass rates; absolute Δ tolerance of 0.35. |
 | 0.2 | Gated rule with balanced accuracy; relative Δ tolerance; minimum probe counts; independent-review gate; provenance block. |
+| 0.3 | Near-duplicate probes cluster into single observations; confound-control gate against token, position and never-active baselines; correlated neurons and joint ablation recorded. |
+
+### Registry-level dependence
+
+These do not change the decision rule.
+- **Re-measurements.** An experiment that re-measures an earlier experiment's probe set (e.g. `reevaluate`) is marked as such. It is ranked after the original and is never counted as independent evidence.
+- **Most-conclusive list.** The home page shows one row per neuron pole.
+- **False discovery estimate.** The home page reports the expected number of false discoveries among current VERIFIED claims, Σ (1 − P(useful)) over one claim per neuron pole.
 
 ## 7. Worked example
 
@@ -105,4 +139,10 @@ Qwen2.5-0.5B, layer 11, neuron 4255, positive pole, selected at random (`audits/
 - **Hypothesis:** fires on the connective that introduces examples of a category just named ("industries, *including* …", "such *as*").
 - **v0.1 verdict: VERIFIED (0.91).** Ten easy negatives outweighed three failed holdouts, and Δ predictions of 0.40 and 0.30 "passed" with observed values of 0.11 and 0.08.
 - **v0.2 verdict: NEEDS_REVISION.** Specificity was 1.0 but sensitivity only 0.4: "for example", "like" and "among them" did not fire. Counterfactual reproduction was 1/4. Proposer and reviewer were the same model.
+- **v0.3 re-evaluation: NEEDS_REVISION.** It also fails `beats_confound_baseline`, because the scan predates confound profiling. A rescan found:
+  - token identity explains 24% of activation variance and position about 0%;
+  - the mean strength on " including" is 0.37, below the 0.43 "active" threshold, so the token alone does not make the neuron fire and context matters;
+  - no layer-11 neuron correlates above |r| = 0.10, yet co-activation tells a different story. Ten neuron poles co-fire on 40–52 of its ~180 active tokens, a lift of at least 10–13 at the 95% lower bound. Global correlation hid them because the coupling exists only when the neuron fires.
+  - Ablating the top three partners moves the output about 14× more than ablating N4255 alone, and with the partners removed N4255 adds almost nothing (redundancy ratio 0.02). Its effect overlaps a shared pathway rather than being masked.
+  - Its logit-lens tokens ("oor", " Fälle", ".ordinal") were noise. The Jacobian lens shares none of them and is just as flat (kurtosis 3.0), which supports the retrospective claim rather than revealing a hidden prediction role.
 - **Next submission should:** narrow the claim to the token *including* (and *e.g.*) after a category noun, and get an independent reviewer.

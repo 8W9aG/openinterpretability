@@ -18,7 +18,7 @@ VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 
-PROTOCOL_VERSION = "0.2"
+PROTOCOL_VERSION = "0.3"
 
 UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
 
@@ -132,6 +132,89 @@ class ExperimentProvenance(StrictModel):
     harness_version: str
 
 
+class CorrelatedNeuron(StrictModel):
+    """A same-layer neuron *pole* that co-varies with the audited pole over the scan.
+
+    * ``coactivation_lift``: P(partner active | target active) / P(partner active), with
+      add-one smoothing. "Target active" uses the protocol threshold (a fraction of the
+      target's max); "partner active" means above the partner pole's own 99th
+      percentile. This measures the regime where redundancy matters, when the target fires.
+    * ``spearman``: rank correlation of the two pole strengths on a uniform token sample.
+      It is robust to heavy tails and massive activations, and ties (zeros) are averaged.
+    * ``pearson``: linear correlation with the partner's *signed* activation over every
+      token, kept for reference.
+    """
+
+    neuron_idx: int = Field(ge=0)
+    pole: Pole
+    coactivation_lift: float = Field(ge=0.0)
+    # 95% Wilson lower bound on P(partner active | target active), over the base rate.
+    # Few co-active tokens can inflate the point estimate; partners are ranked by this.
+    coactivation_lift_lower: float = Field(ge=0.0)
+    coactive_tokens: int = Field(ge=0)
+    spearman: float = Field(ge=-1.0, le=1.0)
+    pearson: float = Field(ge=-1.0, le=1.0)
+
+
+class TokenStat(StrictModel):
+    token: str
+    token_id: int = Field(ge=0)
+    mean_strength: float = Field(ge=0.0)
+    count: int = Field(gt=0)
+
+
+class ConfoundProfile(StrictModel):
+    """How much of the pole's activation simple confounds explain over the scan corpus.
+
+    ``token_r2`` / ``position_r2`` are the variance explained by a per-token-id / per-
+    position mean model. ``trigger_tokens`` (highest mean strength, ``count >= min_count``)
+    and ``position_means`` drive the trivial baselines a hypothesis must match or beat.
+    """
+
+    token_r2: UnitFloat
+    position_r2: UnitFloat
+    frequency_correlation: float = Field(ge=-1.0, le=1.0)
+    min_count: int = Field(gt=0)
+    trigger_tokens: list[TokenStat]
+    position_means: list[float]
+
+
+class VocabularyLens(StrictModel):
+    """The pole's output direction read through the logit lens and the Jacobian lens.
+
+    The Jacobian lens (Gurnee et al., 2026) first transports the direction to the final
+    layer with the context-averaged Jacobian, so it stays reliable in middle layers
+    where the logit lens (J = I) does not. ``overlap`` is the shared fraction of the
+    two top-k lists; ``direction_cosine`` is cos(w, J·w), so low values mean later
+    layers substantially rotate what this neuron writes. Kurtosis of the vocabulary
+    z-scores is high when the pole promotes a small, specific token set.
+    """
+
+    logit_promoted: list[str]
+    logit_suppressed: list[str]
+    jacobian_promoted: list[str]
+    jacobian_suppressed: list[str]
+    overlap: UnitFloat
+    direction_cosine: float = Field(ge=-1.0, le=1.0)
+    logit_kurtosis: float = Field(ge=0.0)
+    jacobian_kurtosis: float = Field(ge=0.0)
+    prompts: int = Field(ge=0)
+
+
+class JointAblation(StrictModel):
+    """Next-token KL when ablating the pole, its correlated partners, or both.
+
+    ``redundancy_ratio`` = (kl_joint − kl_partners) / kl_single: how much more the pole
+    matters once its correlated partners are gone (> 1 suggests redundancy).
+    """
+
+    partners: list[int]
+    kl_single: float = Field(ge=0.0)
+    kl_partners: float = Field(ge=0.0)
+    kl_joint: float = Field(ge=0.0)
+    redundancy_ratio: float | None = None
+
+
 class NeuronAuditSubmission(StrictModel):
     identifier: NeuronIdentifier
     natural_language_explanation: str = Field(min_length=1)
@@ -145,6 +228,9 @@ class NeuronAuditSubmission(StrictModel):
     activation_histogram: Histogram | None = None
     model_num_layers: int | None = Field(default=None, gt=0)
     provenance: ExperimentProvenance | None = None
+    correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
+    confounds: ConfoundProfile | None = None
+    vocabulary_lens: VocabularyLens | None = None
 
 
 class AdversarialTestResult(StrictModel):
@@ -173,6 +259,16 @@ class ReviewPolicy(StrictModel):
     reject_below_balanced_accuracy: UnitFloat = 0.60
     require_independent_review: bool = True
     freeze_downstream: bool = True
+    # v0.3: near-duplicate probes (word-set Jaccard >= this) count as one observation.
+    probe_cluster_threshold: UnitFloat = 0.5
+    # v0.3: the hypothesis must match or beat trivial token/position baselines.
+    require_confound_control: bool = True
+    joint_ablation_partners: int = Field(default=3, ge=0)
+    # Partners for joint ablation: lower-bound co-activation lift >= min_partner_lift on
+    # at least min_partner_coactive tokens, or |Spearman| >= min_partner_correlation.
+    min_partner_correlation: UnitFloat = 0.2
+    min_partner_lift: float = Field(default=2.0, ge=1.0)
+    min_partner_coactive: int = Field(default=5, ge=1)
 
 
 class ReviewMetrics(StrictModel):
@@ -183,6 +279,10 @@ class ReviewMetrics(StrictModel):
     lookahead_consistent: bool
     independent_review: bool
     gates: dict[str, bool]
+    effective_hard_negatives: int | None = None  # clusters of near-duplicate probes
+    effective_holdouts: int | None = None
+    confound_baseline_accuracy: UnitFloat | None = None  # best trivial baseline, same probes
+    confound_baseline: str | None = None
 
 
 class VerificationVerdict(StrictModel):
@@ -194,6 +294,7 @@ class VerificationVerdict(StrictModel):
     causal_metrics: CausalMetrics | None = None
     metrics: ReviewMetrics | None = None
     policy: ReviewPolicy | None = None
+    joint_ablation: JointAblation | None = None
     notes: str = ""
 
 

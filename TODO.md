@@ -5,6 +5,7 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 ## Protocol and science
 
 - [ ] **(protocol)** Replace the top-1-logit causal metric with one that can detect single-neuron effects: logit difference on the claimed tokens, or the projection onto the neuron's output direction at a downstream reader. See `activation-patching-practice`.
+- [ ] Rescan L11/N4255+ so it gets a confound profile and correlated neurons (protocol v0.3); its current submission predates them and fails `beats_confound_baseline`.
 - [ ] Re-audit Qwen2.5-0.5B L11/N4255+ with ≥ 512-token windows, a narrowed hypothesis ("*including* / *e.g.* after a category noun") and an independent reviewer model.
 - [ ] Scan both poles by default and show them together on neuron pages.
 - [ ] Positive control: audit known induction heads or other well-documented units and confirm the protocol VERIFIES them.

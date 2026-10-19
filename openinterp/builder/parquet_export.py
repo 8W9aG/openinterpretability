@@ -1,6 +1,7 @@
-"""Bundle audit records into a columnar registry for bulk analysis.
+"""Bundle every experiment into a columnar registry for bulk analysis.
 
-Writes two copies of the same table:
+One row per experiment, whatever its verdict (``is_latest`` marks the newest
+experiment for each neuron pole). Writes two copies of the same table:
 
 * ``data/registry.parquet`` -- stable URL, always the latest build (short cache).
 * ``data/snapshots/registry-<sha256>.parquet`` -- content-addressed, cached forever.
@@ -21,6 +22,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from openinterp.builder.tree import Experiment
 from openinterp.core.schemas import AuditRecord
 
 COUNTERFACTUAL_TYPE = pa.struct(
@@ -34,7 +36,9 @@ COUNTERFACTUAL_TYPE = pa.struct(
 
 REGISTRY_SCHEMA = pa.schema(
     [
+        ("experiment_id", pa.string()),
         ("slug", pa.string()),
+        ("is_latest", pa.bool_()),
         ("model_name", pa.string()),
         ("layer", pa.int32()),
         ("neuron_idx", pa.int32()),
@@ -57,6 +61,26 @@ REGISTRY_SCHEMA = pa.schema(
         ("submitting_agent_model", pa.string()),
         ("reviewer_agent_model", pa.string()),
         ("reviewed_at", pa.timestamp("us", tz="UTC")),
+        ("p_useful", pa.float64()),
+        ("conclusiveness", pa.float64()),
+        ("evidence_direction", pa.string()),
+        ("reuses_probes_of", pa.string()),
+        ("effective_hard_negatives", pa.int32()),
+        ("effective_holdouts", pa.int32()),
+        ("confound_baseline", pa.string()),
+        ("confound_baseline_accuracy", pa.float64()),
+        ("token_r2", pa.float64()),
+        ("position_r2", pa.float64()),
+        ("top_partner_neuron", pa.int32()),
+        ("top_partner_pole", pa.string()),
+        ("top_partner_lift", pa.float64()),
+        ("top_partner_spearman", pa.float64()),
+        ("redundancy_ratio", pa.float64()),
+        ("jacobian_promoted", pa.list_(pa.string())),
+        ("logit_promoted", pa.list_(pa.string())),
+        ("lens_overlap", pa.float64()),
+        ("lens_direction_cosine", pa.float64()),
+        ("jacobian_kurtosis", pa.float64()),
         ("record_json", pa.string()),
     ]
 )
@@ -95,15 +119,53 @@ def record_to_row(record: AuditRecord) -> dict:
     }
 
 
-def records_to_table(records: Sequence[AuditRecord]) -> pa.Table:
+def experiment_row(exp: Experiment) -> dict:
+    sub, verdict = exp.record.submission, exp.record.verdict
+    metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
+    lens = sub.vocabulary_lens
+    top = sub.correlated_neurons[0] if sub.correlated_neurons else None
+    return {
+        **record_to_row(exp.record),
+        "experiment_id": exp.id,
+        "is_latest": exp.is_latest,
+        "p_useful": exp.sig.p_useful,
+        "conclusiveness": exp.sig.conclusiveness,
+        "evidence_direction": exp.sig.direction,
+        "reuses_probes_of": exp.reuses,
+        "effective_hard_negatives": exp.sig.negatives.clusters,
+        "effective_holdouts": exp.sig.holdouts.clusters,
+        "confound_baseline": metrics.confound_baseline if metrics else None,
+        "confound_baseline_accuracy": metrics.confound_baseline_accuracy if metrics else None,
+        "token_r2": confounds.token_r2 if confounds else None,
+        "position_r2": confounds.position_r2 if confounds else None,
+        "top_partner_neuron": top.neuron_idx if top else None,
+        "top_partner_pole": top.pole if top else None,
+        "top_partner_lift": top.coactivation_lift_lower if top else None,
+        "top_partner_spearman": top.spearman if top else None,
+        "redundancy_ratio": joint.redundancy_ratio if joint else None,
+        "jacobian_promoted": lens.jacobian_promoted if lens else None,
+        "logit_promoted": lens.logit_promoted if lens else None,
+        "lens_overlap": lens.overlap if lens else None,
+        "lens_direction_cosine": lens.direction_cosine if lens else None,
+        "jacobian_kurtosis": lens.jacobian_kurtosis if lens else None,
+    }
+
+
+def records_to_table(experiments: Sequence[Experiment]) -> pa.Table:
     rows = sorted(
-        (record_to_row(r) for r in records),
-        key=lambda row: (row["model_name"], row["layer"], row["neuron_idx"], row["pole"]),
+        (experiment_row(e) for e in experiments),
+        key=lambda row: (
+            row["model_name"],
+            row["layer"],
+            row["neuron_idx"],
+            row["pole"],
+            row["experiment_id"],
+        ),
     )
     return pa.Table.from_pylist(rows, schema=REGISTRY_SCHEMA)
 
 
-def export_registry(records: Sequence[AuditRecord], output_dir: Path) -> Path:
+def export_registry(experiments: Sequence[Experiment], output_dir: Path) -> Path:
     """Write the registry parquet, a content-addressed snapshot and a manifest.
 
     Returns the path of ``data/registry.parquet``.
@@ -111,7 +173,7 @@ def export_registry(records: Sequence[AuditRecord], output_dir: Path) -> Path:
     data_dir = Path(output_dir) / "data"
     (data_dir / "snapshots").mkdir(parents=True, exist_ok=True)
     latest = data_dir / "registry.parquet"
-    pq.write_table(records_to_table(records), latest, compression="zstd")
+    pq.write_table(records_to_table(experiments), latest, compression="zstd")
 
     digest = hashlib.sha256(latest.read_bytes()).hexdigest()[:16]
     snapshot = data_dir / "snapshots" / f"registry-{digest}.parquet"
@@ -121,9 +183,9 @@ def export_registry(records: Sequence[AuditRecord], output_dir: Path) -> Path:
         "latest": "data/registry.parquet",
         "snapshot": snapshot.relative_to(output_dir).as_posix(),
         "sha256_prefix": digest,
-        "records": len(records),
+        "experiments": len(experiments),
         "updated_at": max(
-            (r.verdict.timestamp.isoformat() for r in records if r.verdict), default=None
+            (e.record.verdict.timestamp.isoformat() for e in experiments), default=None
         ),
     }
     (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

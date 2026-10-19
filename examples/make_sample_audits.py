@@ -120,7 +120,7 @@ def main() -> None:
         tests = [
             AdversarialTestResult(
                 kind="hard_negative",
-                prompt=f"Near-miss probe {i}",
+                prompt=f"Synthetic {chr(97 + i)}{i} probe{i}",
                 passed=rng.random() < conf,
                 expected_active=False,
                 activation=round(rng.uniform(0, 0.5), 3),

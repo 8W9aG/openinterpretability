@@ -41,6 +41,15 @@ DOWN_PROJ_PATHS = (
     "feed_forward.w2",
 )
 
+# Final normalisation before the unembedding; its *input* is the final residual stream.
+FINAL_NORM_PATHS = (
+    "model.norm",  # Llama, Qwen2, Mistral, Gemma
+    "transformer.ln_f",  # GPT-2, GPT-J, Falcon
+    "gpt_neox.final_layer_norm",  # Pythia / GPT-NeoX
+    "model.decoder.final_layer_norm",  # OPT
+    "model.final_layernorm",  # Phi
+)
+
 Inputs = str | Sequence[str] | torch.Tensor | Mapping[str, torch.Tensor]
 Intervention = Callable[[torch.Tensor], torch.Tensor | None]
 
@@ -137,6 +146,13 @@ class NeuronHookRunner:
             return int(proj.in_features)
         # transformers' Conv1D stores weight as (in_features, out_features).
         return int(proj.weight.shape[0])
+
+    def final_norm(self) -> nn.Module | None:
+        for path in FINAL_NORM_PATHS:
+            module = _try_path(self.model, path)
+            if isinstance(module, nn.Module):
+                return module
+        return None
 
     def neuron_output_direction(self, layer: int, neuron_idx: int) -> torch.Tensor:
         """The residual-stream vector written by one unit of activation of this neuron."""
@@ -252,37 +268,15 @@ def top_activating_examples(
     k: int = 20,
     batch_size: int = 8,
 ) -> tuple[list[ActivatingExample], list[float]]:
-    """Scan ``texts`` and return the ``k`` most strongly activating snippets.
+    """Scan ``texts``; return the ``k`` strongest snippets and every token's pole strength.
 
-    Also returns every non-padding token's pole strength, for histograms.
+    A thin wrapper over :func:`openinterp.harness.scan.scan_neuron`, which also
+    gathers correlated neurons and the confound profile.
     """
-    if runner.tokenizer is None:
-        raise ValueError("top_activating_examples requires a tokenizer")
-    examples: list[ActivatingExample] = []
-    all_values: list[float] = []
-    for start in range(0, len(texts), batch_size):
-        batch = list(texts[start : start + batch_size])
-        encoded = runner.encode(batch)
-        strengths = runner.neuron_activations(encoded, layer, neuron_idx, pole).float().cpu()
-        mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool().cpu()
-        for row, text in enumerate(batch):
-            ids = encoded["input_ids"][row][mask[row]].tolist()
-            values = strengths[row][mask[row]].tolist()
-            if not values:
-                continue
-            all_values.extend(values)
-            peak = max(range(len(values)), key=values.__getitem__)
-            examples.append(
-                ActivatingExample(
-                    text=text,
-                    tokens=[runner.tokenizer.decode([i]) for i in ids],
-                    activations=[round(v, 5) for v in values],
-                    max_activation=values[peak],
-                    max_token_index=peak,
-                )
-            )
-    examples.sort(key=lambda e: e.max_activation, reverse=True)
-    return examples[:k], all_values
+    from openinterp.harness.scan import scan_neuron
+
+    result = scan_neuron(runner, texts, layer, neuron_idx, pole, k=k, batch_size=batch_size)
+    return result.examples, result.values
 
 
 def activation_histogram(values: Sequence[float], bins: int = 30) -> Histogram:

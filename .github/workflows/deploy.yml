@@ -38,7 +38,7 @@ jobs:
         run: openinterp check
       - name: Build site
         run: |
-          openinterp build --audits-dir audits --output-dir dist
+          openinterp build --wiki-dir wiki --output-dir dist
           python -m pagefind --site dist
       - name: Sync to R2
         env:

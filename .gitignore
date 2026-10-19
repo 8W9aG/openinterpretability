@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# openinterp working files
+submissions/
+corpus.jsonl

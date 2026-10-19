@@ -4,46 +4,119 @@
 
 Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**: each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It builds on recent findings that native representations are remarkably clean when evaluated properly (e.g. Goodfire / Cammarata, 2026; Bereska & Gavves, 2024).
 
+## Get started: run an experiment and contribute it
+
+An experiment takes one neuron, proposes what it does, has a *different* model try to break that claim, and posts the result, whatever it is. A hypothesis that fails is a result too. You can let an agent drive the whole loop in Claude Code (path A) or run each step yourself (path B).
+
+### 1. Set up (once)
+
+You need Git, a GitHub account, Python 3.11+ and [uv](https://docs.astral.sh/uv/). The [GitHub CLI](https://cli.github.com/) (`gh`) is optional but recommended: it lets the planner see which neurons other contributors have already claimed. A laptop CPU is enough for the default model, Qwen2.5-0.5B (about 1 GB, downloaded on first use).
+
+```bash
+gh repo fork 8W9aG/openinterpretability --clone   # or fork on GitHub and git clone your fork
+cd openinterpretability
+make install                                      # creates .venv with everything
+```
+
+**API keys.** Proposals and reviews are written by LLMs through [LiteLLM](https://docs.litellm.ai/), so set keys for two *different* models. The reviewer must not be the proposer, or the `independent_review` gate fails. Different providers are best:
+
+```bash
+export ANTHROPIC_API_KEY=...   # proposer, e.g. anthropic/claude-opus-5-5 (the default)
+export OPENAI_API_KEY=...      # reviewer, e.g. openai/gpt-5
+```
+
+**A scan corpus.** The built-in corpus is only a smoke test. This builds a better one from 500 Pile documents (one-off download, git-ignored):
+
+```bash
+uv run python - <<'PY'
+import json, pyarrow.parquet as pq
+from huggingface_hub import hf_hub_download
+path = hf_hub_download("NeelNanda/pile-10k", "data/train-00000-of-00001-4746b8785c874cc7.parquet", repo_type="dataset")
+with open("corpus.jsonl", "w") as f:
+    for text in pq.read_table(path, columns=["text"]).column("text").to_pylist()[:500]:
+        f.write(json.dumps({"text": text[:3000]}) + "\n")
+PY
+```
+
+### 2A. Let an agent run it (Claude Code)
+
+Start [Claude Code](https://claude.com/claude-code) in the repo with the keys above set in the same shell, and ask:
+
+```text
+Run the next experiment and open a PR with the result.
+Use corpus.jsonl for the scan, and openai/gpt-5 as the reviewer model.
+```
+
+The repo's skills load automatically, and `choose-next-experiment` defines the workflow. The agent:
+1. picks an experiment with `openinterp next`, which is randomised so contributors don't collide;
+2. claims it with a draft PR;
+3. reads the neuron's history in `wiki/`;
+4. runs the audit and the independent review;
+5. posts the result.
+
+The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready.
+
+### 2B. Run it yourself
+
+```bash
+uv run openinterp next                    # what to do next, e.g. "explore" a random neuron
+uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
+#   → scans the neuron (~5–10 min on CPU), asks the proposer for a hypothesis,
+#     writes submissions/<model>/L<layer>/N<idx>-<pole>.json
+uv run openinterp verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
+#   → independent probes, measured on the model; writes audits/… and the wiki/ page
+```
+
+For follow-ups that `next` suggests (revise, re-review, opposite pole), run the commands it prints. Add `--corpus corpus.jsonl` to any `audit`.
+
+### 3. Contribute it
+
+The planner reads open PRs to avoid duplicate work, so claim the neuron early. The branch and PR title use the neuron's slug with `/` replaced by `-`, e.g. `Qwen--Qwen2.5-0.5B-L11-N4255-positive`:
+
+```bash
+git switch -c experiment/Qwen--Qwen2.5-0.5B-L11-N4255-positive
+gh pr create --draft --title "experiment: Qwen--Qwen2.5-0.5B-L11-N4255-positive (explore)"
+# …run the experiment, then:
+make check lint test                      # the same checks CI runs on your PR
+git add audits wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
+gh pr ready
+```
+
+Commit `audits/` and `wiki/`; never edit generated wiki pages except their **Discussion** section. CI rejects a PR whose record and wiki page don't match, and once merged the hourly deploy publishes the result. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
+
 ## Protocol
 
 Every claim is empirical and falsifiable:
 
 1. **Propose.** A submitting agent scans a corpus for the neuron pole's top-activating snippets. It then writes a hypothesis, says whether the pole is *retrospective* (reacts to tokens it has already read) or *lookahead* (prepares an upcoming token), and supplies minimal-pair counterfactuals with predicted activation deltas.
 2. **Review.** A reviewer agent, which must run on a different model from the proposer, writes 10–20 adversarial probes: mostly hard negatives (near-misses the hypothesis says should *not* fire), plus some positive holdouts. Every probe and counterfactual is then run through the real model. The verdict comes from those measurements and not from the reviewer's opinion, so anyone with the weights can reproduce it:
-   - balanced accuracy on hard negatives vs. positive holdouts, each gated separately
+   - balanced accuracy on hard negatives vs. positive holdouts, each gated separately, with near-duplicate probes counted once
+   - confound control: the hypothesis must match or beat token-identity, position and never-active baselines
    - counterfactual Δ reproduction within a tolerance relative to the prediction
    - lookahead consistency (the claimed mechanism compared with KL(clean ‖ pole-ablated) on next-token distributions)
+   - covariance: the most correlated same-layer neurons, and joint ablation with them to expose redundancy (recorded, not gated)
    - causal sufficiency (clean → corrupted patching) and necessity (corrupted → clean resample ablation), with downstream MLP outputs frozen to mitigate self-repair (the hydra effect); recorded but not yet gated
-3. **Publish.** `VERIFIED` records are compiled into a fully static site plus a Parquet registry. The output is hosted on Cloudflare R2 (zero egress) and searched client-side with Pagefind and DuckDB-Wasm.
+3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterp/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) and searched client-side with Pagefind and DuckDB-Wasm.
 
 The full experimental protocol (roles, lifecycle, decision rule and reproducibility requirements) is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
-## Quickstart
+## Development
 
 ```bash
 make install        # uv sync
 make test           # pytest (CPU only, no downloads)
+make lint           # ruff + the 500-line limit
+make check          # registry consistency (what CI's "Experiment records" job runs)
 make sample-run     # build dist/ from synthetic example records
-make serve          # http://localhost:8000 (DuckDB-Wasm and Pagefind need HTTP)
-```
-
-Audit a real neuron. This needs an LLM API key for whichever [LiteLLM](https://docs.litellm.ai/) provider you choose:
-
-```bash
-export ANTHROPIC_API_KEY=...            # or OPENAI_API_KEY, etc.
-openinterp audit  --model Qwen/Qwen2.5-0.5B --layer 12 --neuron 3071 --pole positive \
-                  --corpus my_corpus.txt --agent-model anthropic/claude-opus-5-5
-openinterp verify --audit-file submissions/Qwen--Qwen2.5-0.5B/L12/N3071-positive.json \
-                  --agent-model openai/gpt-5
-openinterp build  --audits-dir audits --output-dir dist
+make build          # build dist/ from the wiki archive, plus the Pagefind index
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
 
-The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`. `review` is an alias for `verify`.
+`dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`.
 
 ## Experiment wiki
 
-Every completed experiment gets a Markdown page in [`wiki/`](wiki/README.md), whatever its verdict. `openinterp verify` and `openinterp reevaluate` write it automatically, and `openinterp wiki` backfills pages for existing records. Each page records the hypothesis, top examples, gate results, probes, counterfactuals and next steps based on the gates that failed. A page is written once and never regenerated, so its Discussion section is safe to edit. Each neuron also gets a history page, and `wiki/README.md` indexes every experiment.
+Every completed experiment gets a Markdown page and an archived copy of its full record (`<id>.json`) in [`wiki/`](wiki/README.md), whatever its verdict. `openinterp verify` and `openinterp reevaluate` write it automatically, and `openinterp wiki` backfills pages for existing records. Each page records the hypothesis, top examples, gate results, probes, counterfactuals and next steps based on the gates that failed. A page is written once and never regenerated, so its Discussion section is safe to edit. Each neuron also gets a history page, and `wiki/README.md` indexes every experiment.
 
 ## Pull requests
 
@@ -61,7 +134,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | --- | --- | --- |
 | `choose-next-experiment` | Pick the next experiment with `openinterp next`: randomised, explore vs exploit, herd-resistant | ε-greedy and Boltzmann sampling over follow-ups |
 | `native-neuron-audit` | Avoid misreading a neuron (context, data, poles, SwiGLU regimes) | Goodfire, *Already Clean* (2026) |
-| `vocab-projection-lookahead` | Decide retrospective vs lookahead | Geva et al. 2021/2022; logit lens; tuned lens; Voita et al. 2023 |
+| `vocab-projection-lookahead` | Decide retrospective vs lookahead | Gurnee et al. 2026 (Jacobian lens); Geva et al. 2021/2022; logit lens; Voita et al. 2023 |
 | `neuron-family-triage` | Pre-classify neurons from weight statistics | Gurnee et al. 2024; Stolfo et al. 2024; Voita et al. 2023 |
 | `explanation-simulation-scoring` | Score explanations by predicted activations | Bills et al. 2023; Huang et al. 2023 |
 | `activation-patching-practice` | Choose causal metrics and corruptions; handle self-repair | Meng et al. 2022; Zhang & Nanda 2023; Heimersheim & Nanda 2024; McGrath et al. 2023; Rushing & Nanda 2024; AtP* |
@@ -91,11 +164,15 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 
 ## Static site & data
 
+The site is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
+
 ```
 dist/
-├── index.html                       # stats, per-layer coverage, leaderboard, SQL console
-├── neurons/<model>/L<layer>/N<idx>-<pole>.html   # data-pagefind-body
-├── data/registry.parquet            # latest, max-age=3600
+├── index.html                                   # totals, models, most conclusive results, verified, SQL console
+├── models/<model>/index.html                    # layer coverage
+├── models/<model>/L<layer>/index.html           # neurons studied in the layer
+├── models/<model>/L<layer>/N<idx>.html          # every experiment (both poles), most conclusive first
+├── data/registry.parquet            # one row per experiment; latest, max-age=3600
 ├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
 ├── data/manifest.json
 └── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)

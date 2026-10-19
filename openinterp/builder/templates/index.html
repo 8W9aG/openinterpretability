@@ -1,20 +1,23 @@
 {% extends "base.html" %}
+{% from "_macros.html" import status_badge, evidence_badge, pole_mark %}
 {% set t = stats.totals %}
 
 {% block content %}
 <section class="mb-10">
-  <h1 class="text-3xl font-semibold tracking-tight">Verified neuron registry</h1>
+  <h1 class="text-3xl font-semibold tracking-tight">Neuron registry</h1>
   <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
-    Hypotheses about native MLP neuron poles in open-weight models, each stress-tested by an
-    independent reviewer agent with adversarial hard negatives, minimal-pair counterfactuals,
-    and causal activation patching. Only audits that passed review are listed.
+    Every experiment on native MLP neuron poles in open-weight models, each stress-tested by an
+    independent reviewer agent with adversarial hard negatives, minimal-pair counterfactuals
+    and causal patching. Null results are published too: a well-tested hypothesis that fails
+    tells us as much as one that passes.
   </p>
-  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-800">
+  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-5 dark:border-slate-800 dark:bg-slate-800">
     {% for label, value in [
-      ("Verified neurons", t.neurons),
+      ("Experiments", t.experiments),
+      ("Neurons studied", t.neurons),
       ("Models", t.models),
-      ("Mean confidence", t.mean_confidence | pct),
-      ("Lookahead neurons", t.lookahead or 0),
+      ("Verified poles", t.verified),
+      ("Conclusive nulls", t.conclusive_nulls),
     ] %}
     <div class="bg-white p-4 dark:bg-slate-950">
       <dt class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</dt>
@@ -22,74 +25,66 @@
     </div>
     {% endfor %}
   </dl>
-  {% if total_loaded > t.neurons %}
-  <p class="mt-2 text-xs text-slate-500">{{ total_loaded - t.neurons }} audits loaded but not published (unverified).</p>
-  {% endif %}
+  <p class="mt-3 text-sm text-slate-600 dark:text-slate-400" title="Sum of (1 − P(useful)) over the current verified claims, one per neuron pole">
+    {% if fdr.claims %}
+    Estimated false discoveries among the {{ fdr.claims }} verified claims:
+    <strong class="font-mono">{{ fdr.expected_false }}</strong> (false discovery rate ≈ {{ fdr.rate | pct }}).
+    {% else %}
+    No verified claims yet, so no false discovery estimate.
+    {% endif %}
+    Repeat experiments that re-measure the same probes are not counted as independent evidence.
+  </p>
 </section>
 
 <section class="mb-10">
-  <h2 class="mb-3 text-lg font-semibold">Model coverage</h2>
-  {% if stats.models %}
+  <h2 class="mb-3 text-lg font-semibold">Models</h2>
+  {% if models %}
   <div class="space-y-4">
-    {% for m in stats.models %}
-    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+    {% for m in models %}
+    {% set counts = m.layer_counts() %}
+    {% set peak = (counts | max) or 1 %}
+    <a href="{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <span class="font-mono text-sm font-medium">{{ m.model_name }}</span>
-        <span class="text-sm text-slate-600 tabular-nums dark:text-slate-400">
-          {{ m.neurons }} neurons · {{ m.layers_covered }}/{{ m.n_layers }} layers
-          (<strong class="text-slate-900 dark:text-slate-100">{{ m.coverage | pct }}</strong>)
-          · mean conf. {{ m.mean_confidence | pct }}
+        <span class="font-mono text-sm font-medium">{{ m.name }}</span>
+        <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
+          {{ m.neurons }} neurons · {{ m.experiments }} experiments · {{ m.verified }} verified ·
+          {{ m.layers | length }}/{{ m.n_layers }} layers ({{ m.coverage | pct }})
         </span>
       </div>
-      <div class="mt-3 flex h-8 items-end gap-px" role="img" aria-label="Verified neurons per layer">
-        {% for n in m.layer_counts %}
+      <div class="mt-3 flex h-8 items-end gap-px" role="img" aria-label="Studied neurons per layer">
+        {% for n in counts %}
         <div class="flex-1 {{ 'bg-emerald-500' if n else 'bg-slate-200 dark:bg-slate-800' }}"
-             style="height: {{ (100 * n / m.layer_max) | round(0) if n else 8 }}%"
-             title="Layer {{ loop.index0 }}: {{ n }} verified"></div>
+             style="height: {{ (100 * n / peak) | round(0) if n else 8 }}%" title="Layer {{ loop.index0 }}: {{ n }} neurons"></div>
         {% endfor %}
       </div>
-      <div class="mt-1 flex justify-between font-mono text-[10px] text-slate-500"><span>L0</span><span>L{{ m.n_layers - 1 }}</span></div>
-    </div>
+    </a>
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-sm text-slate-500">No verified audits yet.</p>
+  <p class="text-sm text-slate-500">No experiments yet.</p>
   {% endif %}
 </section>
 
 <section class="mb-10 grid gap-8 lg:grid-cols-3">
   <div class="lg:col-span-2">
-    <h2 class="mb-3 text-lg font-semibold">Leaderboard</h2>
+    <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>
+    <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Strongest evidence in either direction, from every experiment.</p>
     <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-sm">
-        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-          <tr>
-            <th class="px-3 py-2">Neuron</th>
-            <th class="px-3 py-2">Explanation</th>
-            <th class="px-3 py-2 text-right">Conf.</th>
-            <th class="px-3 py-2 text-right">Suff.</th>
-            <th class="px-3 py-2 text-right">Nec.</th>
-          </tr>
-        </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-          {% for n in neurons %}
-          {% set r = n.record %}
-          {% set c = r.verdict.causal_metrics if r.verdict else none %}
-          <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+          {% for r in stats.conclusive %}
+          <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-              <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ n.href }}">
-                L{{ r.submission.identifier.layer }}/N{{ r.submission.identifier.neuron_idx }}{{ '+' if r.submission.identifier.pole == 'positive' else '−' }}
-              </a>
-              <div class="text-slate-500">{{ r.submission.identifier.model_name }}</div>
+              <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/N{{ r.neuron_idx }}{{ pole_mark(r.pole) }}</a>
+              <div class="text-slate-500">{{ r.model_name }}</div>
             </td>
             <td class="px-3 py-2">
-              {{ r.submission.natural_language_explanation | truncate(140) }}
-              {% if r.submission.lookahead.is_lookahead %}<span class="ml-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
+              <div class="mb-1 flex flex-wrap gap-1">{{ evidence_badge(r.conclusiveness, r.evidence_direction) }} {{ status_badge(r.status) }}</div>
+              {{ r.explanation | truncate(140) }}
             </td>
-            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ (r.verdict.confidence_score if r.verdict else none) | num(2) }}</td>
-            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ (c.sufficiency_score if c else none) | num(2) }}</td>
-            <td class="px-3 py-2 text-right font-mono tabular-nums">{{ (c.necessity_score if c else none) | num(2) }}</td>
           </tr>
+          {% else %}
+          <tr><td class="px-3 py-2 text-slate-500">No experiments yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -101,7 +96,7 @@
       {% for a in stats.agents %}
       <li class="flex items-center justify-between gap-3 px-3 py-2">
         <span class="truncate font-mono text-xs">{{ a.agent }}</span>
-        <span class="whitespace-nowrap tabular-nums text-slate-600 dark:text-slate-400">{{ a.verified }} · {{ a.mean_confidence | pct }}</span>
+        <span class="whitespace-nowrap tabular-nums text-slate-600 dark:text-slate-400" title="experiments · verified">{{ a.experiments }} · {{ a.verified }}</span>
       </li>
       {% else %}
       <li class="px-3 py-2 text-slate-500">None yet.</li>
@@ -110,14 +105,41 @@
   </div>
 </section>
 
+<section class="mb-10">
+  <h2 class="mb-3 text-lg font-semibold">Verified neurons</h2>
+  {% if stats.verified %}
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Neuron</th><th class="px-3 py-2">Explanation</th><th class="px-3 py-2 text-right">Bal. acc.</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for r in stats.verified %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/N{{ r.neuron_idx }}{{ pole_mark(r.pole) }}</a>
+            <div class="text-slate-500">{{ r.model_name }}</div>
+          </td>
+          <td class="px-3 py-2">{{ r.explanation | truncate(140) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ r.confidence_score | num(2) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-500">No verified neurons yet.</p>
+  {% endif %}
+</section>
+
 <section>
   <h2 class="mb-1 text-lg font-semibold">Query the registry</h2>
   <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">
     Runs DuckDB-Wasm in your browser against <code class="font-mono">data/registry.parquet</code>, exposed as the view <code class="font-mono">registry</code>.
   </p>
   <textarea id="sql" rows="3" spellcheck="false"
-    class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, round(confidence_score, 2) AS conf, explanation
-FROM registry ORDER BY confidence_score DESC LIMIT 20</textarea>
+    class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, status, round(conclusiveness, 2) AS conclusive, evidence_direction, explanation
+FROM registry ORDER BY conclusiveness DESC LIMIT 20</textarea>
   <div class="mt-2 flex items-center gap-3">
     <button id="run-sql" class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300">Run query</button>
     <span id="sql-status" class="text-xs text-slate-500"></span>

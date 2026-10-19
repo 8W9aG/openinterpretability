@@ -1,0 +1,30 @@
+{% macro status_badge(status) -%}
+{% set cls = {
+  "VERIFIED": "bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100",
+  "NEEDS_REVISION": "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
+  "REJECTED": "bg-rose-100 text-rose-900 dark:bg-rose-900 dark:text-rose-100",
+} %}
+<span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ cls[status] }}">{{ status | replace('_', ' ') }}</span>
+{%- endmacro %}
+
+{% macro evidence_badge(conclusiveness, direction) -%}
+{% set strength = 'strong' if conclusiveness >= 0.9 else ('moderate' if conclusiveness >= 0.5 else 'weak') %}
+{% set supports = direction == 'supports' %}
+<span class="whitespace-nowrap rounded border px-2 py-0.5 text-xs {{ 'border-emerald-300 text-emerald-800 dark:border-emerald-800 dark:text-emerald-300' if supports else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}"
+      title="Conclusiveness {{ conclusiveness | num(2) }}: how settled the probe evidence is, in either direction">
+  {{ strength }} evidence {{ 'for' if supports else 'against' }} · {{ conclusiveness | num(2) }}
+</span>
+{%- endmacro %}
+
+{% macro pole_mark(pole) -%}
+<span class="{{ 'text-orange-600' if pole == 'positive' else 'text-sky-600' }}">{{ '+' if pole == 'positive' else '−' }}</span>
+{%- endmacro %}
+
+{% macro breadcrumb(root, model=none, layer=none, neuron=none) -%}
+<nav class="mb-4 text-xs text-slate-500">
+  <a class="underline" href="{{ root }}index.html">Registry</a>
+  {% if model %} / {% if layer %}<a class="underline" href="{{ root }}{{ model.href }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}{% endif %}
+  {% if layer %} / {% if neuron %}<a class="underline" href="{{ root }}{{ layer.href }}">Layer {{ layer.layer }}</a>{% else %}Layer {{ layer.layer }}{% endif %}{% endif %}
+  {% if neuron %} / Neuron {{ neuron.idx }}{% endif %}
+</nav>
+{%- endmacro %}

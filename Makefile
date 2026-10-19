@@ -1,6 +1,6 @@
 .PHONY: install test lint format check build search-index sample-run serve clean
 
-AUDITS_DIR ?= audits
+WIKI_DIR ?= wiki
 DIST_DIR ?= dist
 
 install:
@@ -22,7 +22,7 @@ format:
 	uv run ruff check --fix .
 
 build:
-	uv run openinterp build --audits-dir $(AUDITS_DIR) --output-dir $(DIST_DIR)
+	uv run openinterp build --wiki-dir $(WIKI_DIR) --output-dir $(DIST_DIR)
 	@$(MAKE) --no-print-directory search-index
 
 # Pagefind (a locked dev dependency, so no Node is needed) indexes dist/ for search.
@@ -32,7 +32,9 @@ search-index:
 # Builds the site from synthetic example records (no model or LLM calls).
 sample-run:
 	uv run python examples/make_sample_audits.py
-	@$(MAKE) --no-print-directory build AUDITS_DIR=examples/audits
+	rm -rf build/sample-wiki
+	uv run openinterp wiki --audits-dir examples/audits --wiki-dir build/sample-wiki
+	@$(MAKE) --no-print-directory build WIKI_DIR=build/sample-wiki
 	@echo "Open $(DIST_DIR)/index.html, or run 'make serve' for DuckDB/Pagefind (needs HTTP)."
 
 serve:

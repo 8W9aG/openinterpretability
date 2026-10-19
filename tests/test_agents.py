@@ -16,6 +16,7 @@ from openinterp.agents.reviewer import (
 from openinterp.core.exceptions import AgentError
 from openinterp.core.schemas import AdversarialTestResult, CounterfactualPair, NeuronIdentifier
 from openinterp.harness.hooks import top_activating_examples
+from openinterp.harness.jlens import vocabulary_lens
 
 # The toy model's probe set is small, so relax only the minimum-count gates.
 SMALL = ReviewPolicy(min_hard_negatives=1, min_holdouts=1)
@@ -53,7 +54,8 @@ def test_structured_call_passes_model_and_messages(mocker, draft, ident, toy_run
     agent = ProposerAgent("openai/test-model", client=client)
     examples, _ = top_activating_examples(toy_runner, TEXTS, 1, 2, "positive", k=3)
 
-    assert agent.propose(ident, examples, ["x"]) is draft
+    lens = vocabulary_lens(toy_runner, ["hello"], 1, 2, "positive", k=3)
+    assert agent.propose(ident, examples, lens) is draft
     kwargs = client.chat.completions.create.call_args.kwargs
     assert kwargs["model"] == "openai/test-model"
     assert kwargs["response_model"] is HypothesisDraft
@@ -94,9 +96,16 @@ def test_probe_set_bounds():
 
 
 def _submission(ident, toy_runner, draft, *, honest: bool):
-    examples, _ = top_activating_examples(toy_runner, TEXTS, 1, 2, "positive")
+    from openinterp.harness.scan import scan_neuron
+
+    scan = scan_neuron(toy_runner, TEXTS, 1, 2, "positive")
     sub = ProposerAgent("openai/test").build_submission(
-        ident, draft, runner=toy_runner, examples=examples
+        ident,
+        draft,
+        runner=toy_runner,
+        examples=scan.examples,
+        confounds=scan.confounds,
+        correlated=scan.correlated,
     )
     # Honest submissions predict exactly what was measured; dishonest ones the opposite.
     pairs = [
@@ -194,18 +203,27 @@ def test_relative_delta_tolerance(expected, observed, ok):
 
 
 def _results(neg_pass, neg_fail, pos_pass, pos_fail, cf_pass=4, cf_fail=0):
-    def r(kind, passed):
-        return AdversarialTestResult(kind=kind, prompt="p", passed=passed)
+    serial = iter(range(10_000))
+
+    def r(kind, passed, n):
+        # Distinct word sets, so no two probes cluster as near-duplicates.
+        return [
+            AdversarialTestResult(kind=kind, prompt=f"w{i}a w{i}b w{i}c", passed=passed)
+            for i in (next(serial) for _ in range(n))
+        ]
 
     return (
-        [r("hard_negative", True)] * neg_pass
-        + [r("hard_negative", False)] * neg_fail
-        + [r("positive_holdout", True)] * pos_pass
-        + [r("positive_holdout", False)] * pos_fail
-        + [r("counterfactual", True)] * cf_pass
-        + [r("counterfactual", False)] * cf_fail
-        + [r("lookahead_consistency", True)]
+        r("hard_negative", True, neg_pass)
+        + r("hard_negative", False, neg_fail)
+        + r("positive_holdout", True, pos_pass)
+        + r("positive_holdout", False, pos_fail)
+        + r("counterfactual", True, cf_pass)
+        + r("counterfactual", False, cf_fail)
+        + r("lookahead_consistency", True, 1)
     )
+
+
+BASELINE = ("never active", 0.5)
 
 
 @pytest.mark.parametrize(
@@ -220,12 +238,14 @@ def _results(neg_pass, neg_fail, pos_pass, pos_fail, cf_pass=4, cf_fail=0):
 )
 def test_decision_rule(counts, status):
     policy = ReviewPolicy()
-    metrics = review_metrics(_results(*counts), policy, independent=True)
+    metrics = review_metrics(_results(*counts), policy, independent=True, baseline=BASELINE)
     assert decide(metrics, policy) == status
 
 
 def test_balanced_accuracy_ignores_class_imbalance():
-    metrics = review_metrics(_results(10, 0, 2, 3), ReviewPolicy(), independent=True)
+    metrics = review_metrics(
+        _results(10, 0, 2, 3), ReviewPolicy(), independent=True, baseline=BASELINE
+    )
     assert metrics.specificity == 1.0 and metrics.sensitivity == 0.4
     assert metrics.balanced_accuracy == pytest.approx(0.7)
 
@@ -246,3 +266,42 @@ def test_reviewer_agent_uses_llm_probes(mocker, ident, toy_runner, draft):
         )
         == 11
     )
+
+
+def test_near_duplicate_probes_count_once():
+    dupes = [
+        AdversarialTestResult(
+            kind="hard_negative", prompt=f"Many cities including Paris {i}", passed=True
+        )
+        for i in range(8)
+    ]
+    metrics = review_metrics(
+        dupes + _results(0, 0, 5, 0), ReviewPolicy(), independent=True, baseline=BASELINE
+    )
+    assert metrics.effective_hard_negatives == 1
+    assert metrics.gates["enough_hard_negatives"] is False
+
+
+def test_confound_gate():
+    results = _results(10, 0, 4, 1)  # balanced accuracy 0.9
+    policy = ReviewPolicy()
+    assert review_metrics(
+        results, policy, independent=True, baseline=("token identity", 0.9)
+    ).gates["beats_confound_baseline"]  # ties pass
+    beaten = review_metrics(results, policy, independent=True, baseline=("token identity", 0.95))
+    assert beaten.gates["beats_confound_baseline"] is False
+    assert beaten.confound_baseline == "token identity"
+    missing = review_metrics(results, policy, independent=True, baseline=None)
+    assert missing.gates["beats_confound_baseline"] is False  # no confound profile
+
+
+def test_review_records_confounds_and_joint_ablation(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    assert sub.confounds is not None and sub.correlated_neurons
+    probes = _probes(toy_runner, ident, sub, honest=True)
+    policy = ReviewPolicy(min_hard_negatives=1, min_holdouts=1, min_partner_correlation=0.0)
+    verdict = evaluate_submission(sub, toy_runner, probes, "anthropic/reviewer", policy)
+    assert verdict.metrics.confound_baseline_accuracy is not None
+    ja = verdict.joint_ablation
+    assert ja is not None and len(ja.partners) == 3
+    assert ja.kl_joint >= 0 and ja.kl_single >= 0
