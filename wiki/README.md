@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **44** · neurons: **32** · NEEDS_REVISION: 9 · REJECTED: 2 · VERIFIED: 33
+Experiments: **45** · neurons: **32** · NEEDS_REVISION: 9 · REJECTED: 2 · VERIFIED: 34
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-negative/20261020T050348Z.md) | [Qwen/Qwen2.5-0.5B L4/N2436−](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-negative/README.md) | review | VERIFIED | 0.82 | Fires on the word that names an industrial production site or sector: the head noun or adjective... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L8/N4047-positive/20261020T045924Z.md) | [Qwen/Qwen2.5-0.5B L8/N4047+](experiments/Qwen--Qwen2.5-0.5B/L8/N4047-positive/README.md) | review | VERIFIED | 1.00 | This pole is a subject-verb number-agreement detector: it fires on the token carrying a... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L16/N4678-negative/20261020T044139Z.md) | [Qwen/Qwen2.5-0.5B L16/N4678−](experiments/Qwen--Qwen2.5-0.5B/L16/N4678-negative/README.md) | review | NEEDS_REVISION | 0.60 | The negative pole detects an explicit scalar comparison: the comparative degree of a property,... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L6/N3151-negative/20261020T042047Z.md) | [Qwen/Qwen2.5-0.5B L6/N3151−](experiments/Qwen--Qwen2.5-0.5B/L6/N3151-negative/README.md) | review | VERIFIED | 0.85 | Fires on the verb token itself (its final subword) of transitive verbs whose direct object is a... |
