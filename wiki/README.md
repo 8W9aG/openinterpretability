@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **48** · neurons: **34** · NEEDS_REVISION: 10 · REJECTED: 2 · VERIFIED: 36
+Experiments: **49** · neurons: **35** · NEEDS_REVISION: 11 · REJECTED: 2 · VERIFIED: 36
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L17/N4346-negative/20261020T071748Z.md) | [Qwen/Qwen2.5-0.5B L17/N4346−](experiments/Qwen--Qwen2.5-0.5B/L17/N4346-negative/README.md) | review | NEEDS_REVISION | 0.67 | Pole N4346- fires on specialised technical/formal vocabulary in use: its peaks land on the token... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L16/N199-positive/20261020T063117Z.md) | [Qwen/Qwen2.5-0.5B L16/N199+](experiments/Qwen--Qwen2.5-0.5B/L16/N199-positive/README.md) | review | VERIFIED | 0.83 | The positive pole fires on a token that is a word-piece rather than a word: a single alphabetic... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L16/N2071-positive/20261020T055533Z.md) | [Qwen/Qwen2.5-0.5B L16/N2071+](experiments/Qwen--Qwen2.5-0.5B/L16/N2071-positive/README.md) | review | NEEDS_REVISION | 0.61 | Fires on a word-initial 'dis'-family subword fragment (' disc', 'Disc', ' dis', ' diss', '... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L19/N787-negative/20261020T054928Z.md) | [Qwen/Qwen2.5-0.5B L19/N787−](experiments/Qwen--Qwen2.5-0.5B/L19/N787-negative/README.md) | review | VERIFIED | 0.83 | The negative pole fires when the current token is a word-initial subword fragment — the first... |
