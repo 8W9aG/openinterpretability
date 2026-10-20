@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **67** · neurons: **52** · NEEDS_REVISION: 19 · REJECTED: 6 · VERIFIED: 42
+Experiments: **68** · neurons: **53** · NEEDS_REVISION: 20 · REJECTED: 6 · VERIFIED: 42
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L2/N1141-positive/20261020T182417Z.md) | [Qwen/Qwen2.5-0.5B L2/N1141+](experiments/Qwen--Qwen2.5-0.5B/L2/N1141-positive/README.md) | review | NEEDS_REVISION | 0.60 | The positive pole is a retrospective harm-signal detector with a one-token lag: it peaks on the... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L0/N3129-positive/20261020T174436Z.md) | [Qwen/Qwen2.5-0.5B L0/N3129+](experiments/Qwen--Qwen2.5-0.5B/L0/N3129-positive/README.md) | review | REJECTED | 0.52 | Fires on single tokens whose meaning is a concrete physical place or a region of one - terrain... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/20261020T171549Z.md) | [Qwen/Qwen2.5-0.5B L11/N4255+](experiments/Qwen--Qwen2.5-0.5B/L11/N4255-positive/README.md) | review | NEEDS_REVISION | 0.77 | Fires on the connective that hands off from a containing category to the specific named members... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L13/N3725-positive/20261020T170633Z.md) | [Qwen/Qwen2.5-0.5B L13/N3725+](experiments/Qwen--Qwen2.5-0.5B/L13/N3725-positive/README.md) | review | REJECTED | 0.50 | The pole fires where a clause finishes a self-contained statement: on the last content token(s)... |
