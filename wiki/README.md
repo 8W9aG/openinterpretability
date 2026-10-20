@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **57** · neurons: **43** · NEEDS_REVISION: 15 · REJECTED: 3 · VERIFIED: 39
+Experiments: **58** · neurons: **44** · NEEDS_REVISION: 15 · REJECTED: 3 · VERIFIED: 40
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L22/N4198-negative/20261020T124457Z.md) | [Qwen/Qwen2.5-0.5B L22/N4198−](experiments/Qwen--Qwen2.5-0.5B/L22/N4198-negative/README.md) | review | VERIFIED | 0.75 | The pole is a retrospective word-assembly detector: it fires on a token that is one sub-word... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L10/N283-negative/20261020T120938Z.md) | [Qwen/Qwen2.5-0.5B L10/N283−](experiments/Qwen--Qwen2.5-0.5B/L10/N283-negative/README.md) | review | VERIFIED | 0.92 | The negative pole fires on the sample side of a measurement, sampling or examination act: the... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L1/N2115-negative/20261020T114424Z.md) | [Qwen/Qwen2.5-0.5B L1/N2115−](experiments/Qwen--Qwen2.5-0.5B/L1/N2115-negative/README.md) | review | VERIFIED | 0.85 | The negative pole fires on a standalone operator glyph that is being used as an operator inside... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-negative/20261020T111948Z.md) | [Qwen/Qwen2.5-0.5B L4/N1889−](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-negative/README.md) | review | NEEDS_REVISION | 0.67 | The negative pole is the anti-C side of this neuron's C-language axis: it fires on a token of... |
