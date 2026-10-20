@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **64** · neurons: **50** · NEEDS_REVISION: 18 · REJECTED: 4 · VERIFIED: 42
+Experiments: **65** · neurons: **51** · NEEDS_REVISION: 18 · REJECTED: 5 · VERIFIED: 42
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L13/N3725-positive/20261020T170633Z.md) | [Qwen/Qwen2.5-0.5B L13/N3725+](experiments/Qwen--Qwen2.5-0.5B/L13/N3725-positive/README.md) | review | REJECTED | 0.50 | The pole fires where a clause finishes a self-contained statement: on the last content token(s)... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L15/N61-negative/20261020T162913Z.md) | [Qwen/Qwen2.5-0.5B L15/N61−](experiments/Qwen--Qwen2.5-0.5B/L15/N61-negative/README.md) | review | VERIFIED | 1.00 | The pole fires while the model spells out the identity of a software artifact: it is active... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L0/N788-positive/20261020T154720Z.md) | [Qwen/Qwen2.5-0.5B L0/N788+](experiments/Qwen--Qwen2.5-0.5B/L0/N788-positive/README.md) | review | VERIFIED | 0.91 | The pole is a one-token word-initial 'Mc' fragment detector: 'Mc' is the highest-activation... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L8/N1401-positive/20261020T151913Z.md) | [Qwen/Qwen2.5-0.5B L8/N1401+](experiments/Qwen--Qwen2.5-0.5B/L8/N1401-positive/README.md) | review | NEEDS_REVISION | 0.61 | The pole fires on a human or institutional reference that is a party to a relation or... |
