@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **39** · neurons: **29** · NEEDS_REVISION: 8 · REJECTED: 2 · VERIFIED: 29
+Experiments: **40** · neurons: **29** · NEEDS_REVISION: 8 · REJECTED: 2 · VERIFIED: 30
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L1/N12-negative/20261020T035318Z.md) | [Qwen/Qwen2.5-0.5B L1/N12−](experiments/Qwen--Qwen2.5-0.5B/L1/N12-negative/README.md) | review | VERIFIED | 0.95 | A layer-1 bigram detector that fires on the second token of a few specific two-token pairs: most... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-positive/20261020T034458Z.md) | [Qwen/Qwen2.5-0.5B L4/N2436+](experiments/Qwen--Qwen2.5-0.5B/L4/N2436-positive/README.md) | review | NEEDS_REVISION | 0.75 | The positive pole fires on the token that names a material substance in technical or... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-positive/20261020T025010Z.md) | [Qwen/Qwen2.5-0.5B L4/N4339+](experiments/Qwen--Qwen2.5-0.5B/L4/N4339-positive/README.md) | review | REJECTED | 0.55 | The positive pole fires on a token that completes a multi-token surface unit instead of starting... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L22/N4505-negative/20261020T021426Z.md) | [Qwen/Qwen2.5-0.5B L22/N4505−](experiments/Qwen--Qwen2.5-0.5B/L22/N4505-negative/README.md) | review | REJECTED | 0.53 | The negative pole is a retrospective detector of unfamiliar, non-whole-word material: it fires... |
