@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **60** · neurons: **46** · NEEDS_REVISION: 16 · REJECTED: 4 · VERIFIED: 40
+Experiments: **61** · neurons: **47** · NEEDS_REVISION: 17 · REJECTED: 4 · VERIFIED: 40
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L8/N124-positive/20261020T144820Z.md) | [Qwen/Qwen2.5-0.5B L8/N124+](experiments/Qwen--Qwen2.5-0.5B/L8/N124-positive/README.md) | review | NEEDS_REVISION | 0.75 | This pole detects formulaic, stored text rather than composed prose: it peaks on the token where... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L9/N946-negative/20261020T142107Z.md) | [Qwen/Qwen2.5-0.5B L9/N946−](experiments/Qwen--Qwen2.5-0.5B/L9/N946-negative/README.md) | review | REJECTED | 0.48 | The pole fires on the first token of the word that continues a specific, individuated noun... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L14/N3912-negative/20261020T133518Z.md) | [Qwen/Qwen2.5-0.5B L14/N3912−](experiments/Qwen--Qwen2.5-0.5B/L14/N3912-negative/README.md) | review | NEEDS_REVISION | 0.67 | The pole fires on promotional web-marketing prose: copy that promises or explains how to improve... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L22/N4198-negative/20261020T124457Z.md) | [Qwen/Qwen2.5-0.5B L22/N4198−](experiments/Qwen--Qwen2.5-0.5B/L22/N4198-negative/README.md) | review | VERIFIED | 0.75 | The pole is a retrospective word-assembly detector: it fires on a token that is one sub-word... |
