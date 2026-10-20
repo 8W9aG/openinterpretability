@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **70** · neurons: **54** · NEEDS_REVISION: 21 · REJECTED: 6 · VERIFIED: 43
+Experiments: **71** · neurons: **55** · NEEDS_REVISION: 21 · REJECTED: 6 · VERIFIED: 44
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L8/N1198-positive/20261020T195801Z.md) | [Qwen/Qwen2.5-0.5B L8/N1198+](experiments/Qwen--Qwen2.5-0.5B/L8/N1198-positive/README.md) | review | VERIFIED | 0.90 | Retrospective detector of a stated age of a particular person: it peaks on the token that... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L6/N509-negative/20261020T193409Z.md) | [Qwen/Qwen2.5-0.5B L6/N509−](experiments/Qwen--Qwen2.5-0.5B/L6/N509-negative/README.md) | review | NEEDS_REVISION | 0.70 | The negative pole fires on the token of a content noun that names a specialised, domain-specific... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L16/N4678-negative/20261020T185144Z.md) | [Qwen/Qwen2.5-0.5B L16/N4678−](experiments/Qwen--Qwen2.5-0.5B/L16/N4678-negative/README.md) | review | VERIFIED | 0.75 | The negative pole fires when a comparative is used in a definite or clause-initial frame in a... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L2/N1141-positive/20261020T182417Z.md) | [Qwen/Qwen2.5-0.5B L2/N1141+](experiments/Qwen--Qwen2.5-0.5B/L2/N1141-positive/README.md) | review | NEEDS_REVISION | 0.60 | The positive pole is a retrospective harm-signal detector with a one-token lag: it peaks on the... |
