@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **59** · neurons: **45** · NEEDS_REVISION: 16 · REJECTED: 3 · VERIFIED: 40
+Experiments: **60** · neurons: **46** · NEEDS_REVISION: 16 · REJECTED: 4 · VERIFIED: 40
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L9/N946-negative/20261020T142107Z.md) | [Qwen/Qwen2.5-0.5B L9/N946−](experiments/Qwen--Qwen2.5-0.5B/L9/N946-negative/README.md) | review | REJECTED | 0.48 | The pole fires on the first token of the word that continues a specific, individuated noun... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L14/N3912-negative/20261020T133518Z.md) | [Qwen/Qwen2.5-0.5B L14/N3912−](experiments/Qwen--Qwen2.5-0.5B/L14/N3912-negative/README.md) | review | NEEDS_REVISION | 0.67 | The pole fires on promotional web-marketing prose: copy that promises or explains how to improve... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L22/N4198-negative/20261020T124457Z.md) | [Qwen/Qwen2.5-0.5B L22/N4198−](experiments/Qwen--Qwen2.5-0.5B/L22/N4198-negative/README.md) | review | VERIFIED | 0.75 | The pole is a retrospective word-assembly detector: it fires on a token that is one sub-word... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L10/N283-negative/20261020T120938Z.md) | [Qwen/Qwen2.5-0.5B L10/N283−](experiments/Qwen--Qwen2.5-0.5B/L10/N283-negative/README.md) | review | VERIFIED | 0.92 | The negative pole fires on the sample side of a measurement, sampling or examination act: the... |
