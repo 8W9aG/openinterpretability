@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **36** · neurons: **26** · NEEDS_REVISION: 7 · VERIFIED: 29
+Experiments: **37** · neurons: **27** · NEEDS_REVISION: 7 · REJECTED: 1 · VERIFIED: 29
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L22/N4505-negative/20261020T021426Z.md) | [Qwen/Qwen2.5-0.5B L22/N4505−](experiments/Qwen--Qwen2.5-0.5B/L22/N4505-negative/README.md) | review | REJECTED | 0.53 | The negative pole is a retrospective detector of unfamiliar, non-whole-word material: it fires... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L21/N3121-negative/20261020T004119Z.md) | [Qwen/Qwen2.5-0.5B L21/N3121−](experiments/Qwen--Qwen2.5-0.5B/L21/N3121-negative/README.md) | review | NEEDS_REVISION | 0.75 | Retrospective subword-fragment detector: the negative pole fires when the current token is a BPE... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L10/N3054-positive/20261019T223933Z.md) | [Qwen/Qwen2.5-0.5B L10/N3054+](experiments/Qwen--Qwen2.5-0.5B/L10/N3054-positive/README.md) | review | VERIFIED | 0.96 | Fires on the content tokens of a hand-written literal data value in code, config, connection... |
 | [2026-10-19](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/20261019T222551Z.md) | [Qwen/Qwen2.5-0.5B L23/N726−](experiments/Qwen--Qwen2.5-0.5B/L23/N726-negative/README.md) | review | VERIFIED | 0.91 | The negative pole fires on the token where the context makes a constraint/restriction word the... |
