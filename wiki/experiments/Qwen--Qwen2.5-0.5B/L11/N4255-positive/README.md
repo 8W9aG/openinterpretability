@@ -2,7 +2,7 @@
 
 [← wiki home](../../../../README.md)
 
-**Latest status:** VERIFIED (2026-10-19)
+**Latest status:** NEEDS_REVISION (2026-10-20)
 
 > Fires on the connective that hands off from a containing category to the specific named members or subdivision that follow: chiefly 'including' after a plural category noun ('many countries, including France…'), 'of' after an administrative-region noun ('the U.S. state of Illinois', 'the province of Ontario'), and 'under' in blog post metadata ('posted … and filed under <Tag>'). Ordinary 'of' (cup of tea, shore of, capital of), 'such as', 'for example' and 'like' stay weak. Leftovers: some code/LaTeX operator and punctuation peaks are not explained.
 
@@ -10,6 +10,7 @@
 
 | Date | Experiment | Kind | Status | Balanced acc. | Protocol | Hypothesis |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-20 17:15 | [20261020T171549Z](20261020T171549Z.md) | review | NEEDS_REVISION | 0.77 | 0.5 | Fires on the connective that hands off from a containing category to the specific... |
 | 2026-10-19 11:01 | [20261019T110111Z](20261019T110111Z.md) | reevaluation | VERIFIED | 1.00 | 0.5 | Fires on the connective that hands off from a containing category to the specific... |
 | 2026-10-19 05:09 | [20261019T050928Z](20261019T050928Z.md) | review | VERIFIED | 1.00 | 0.4 | Fires on the connective that hands off from a containing category to the specific... |
 | 2026-10-19 04:05 | [20261019T040534Z](20261019T040534Z.md) | reevaluation | NEEDS_REVISION | 0.70 | 0.3 | Fires on the connective that introduces examples or members of a category just named,... |
