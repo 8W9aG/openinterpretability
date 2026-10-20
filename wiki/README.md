@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **75** · neurons: **58** · NEEDS_REVISION: 22 · REJECTED: 9 · VERIFIED: 44
+Experiments: **76** · neurons: **59** · NEEDS_REVISION: 22 · REJECTED: 9 · VERIFIED: 45
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L19/N3993-positive/20261020T221435Z.md) | [Qwen/Qwen2.5-0.5B L19/N3993+](experiments/Qwen--Qwen2.5-0.5B/L19/N3993-positive/README.md) | review | VERIFIED | 0.82 | The positive pole fires at the hinge of a value statement about a definite, measurable attribute... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L16/N2643-negative/20261020T214749Z.md) | [Qwen/Qwen2.5-0.5B L16/N2643−](experiments/Qwen--Qwen2.5-0.5B/L16/N2643-negative/README.md) | review | REJECTED | 0.58 | The negative pole fires on the separator token that closes the numeric field of a bibliographic... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L9/N1458-negative/20261020T211015Z.md) | [Qwen/Qwen2.5-0.5B L9/N1458−](experiments/Qwen--Qwen2.5-0.5B/L9/N1458-negative/README.md) | review | REJECTED | 0.50 | The pole fires on a relation word - a preposition or subordinator (at, as, for, by, on, under,... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L3/N3962-positive/20261020T204237Z.md) | [Qwen/Qwen2.5-0.5B L3/N3962+](experiments/Qwen--Qwen2.5-0.5B/L3/N3962-positive/README.md) | review | NEEDS_REVISION | 0.70 | The pole fires when the token just read is a word-internal continuation piece that extends a... |
