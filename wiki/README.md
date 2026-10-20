@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **54** · neurons: **40** · NEEDS_REVISION: 14 · REJECTED: 3 · VERIFIED: 37
+Experiments: **55** · neurons: **41** · NEEDS_REVISION: 15 · REJECTED: 3 · VERIFIED: 37
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-negative/20261020T111948Z.md) | [Qwen/Qwen2.5-0.5B L4/N1889−](experiments/Qwen--Qwen2.5-0.5B/L4/N1889-negative/README.md) | review | NEEDS_REVISION | 0.67 | The negative pole is the anti-C side of this neuron's C-language axis: it fires on a token of... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L11/N2660-positive/20261020T104043Z.md) | [Qwen/Qwen2.5-0.5B L11/N2660+](experiments/Qwen--Qwen2.5-0.5B/L11/N2660-positive/README.md) | review | NEEDS_REVISION | 0.60 | This pole fires when a singular individual is picked out of a plural or group background:... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L16/N2455-positive/20261020T101600Z.md) | [Qwen/Qwen2.5-0.5B L16/N2455+](experiments/Qwen--Qwen2.5-0.5B/L16/N2455-positive/README.md) | review | VERIFIED | 0.75 | The pole fires on the linking or metalinguistic token that introduces a specific named... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L3/N1429-negative/20261020T091127Z.md) | [Qwen/Qwen2.5-0.5B L3/N1429−](experiments/Qwen--Qwen2.5-0.5B/L3/N1429-negative/README.md) | review | REJECTED | 0.50 | The negative pole is a sparse two-token completion detector: it peaks only when the current... |
