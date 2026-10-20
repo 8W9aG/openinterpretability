@@ -4,10 +4,11 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **51** · neurons: **37** · NEEDS_REVISION: 13 · REJECTED: 2 · VERIFIED: 36
+Experiments: **52** · neurons: **38** · NEEDS_REVISION: 13 · REJECTED: 3 · VERIFIED: 36
 
 | Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
+| [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L3/N1429-negative/20261020T091127Z.md) | [Qwen/Qwen2.5-0.5B L3/N1429−](experiments/Qwen--Qwen2.5-0.5B/L3/N1429-negative/README.md) | review | REJECTED | 0.50 | The negative pole is a sparse two-token completion detector: it peaks only when the current... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L20/N967-positive/20261020T083608Z.md) | [Qwen/Qwen2.5-0.5B L20/N967+](experiments/Qwen--Qwen2.5-0.5B/L20/N967-positive/README.md) | review | NEEDS_REVISION | 0.75 | The pole is a retrospective 'committed completion' detector: it peaks on a token when the model... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L17/N4749-positive/20261020T075953Z.md) | [Qwen/Qwen2.5-0.5B L17/N4749+](experiments/Qwen--Qwen2.5-0.5B/L17/N4749-positive/README.md) | review | NEEDS_REVISION | 0.70 | Fires on the low-content glue tokens of citation- and notice-formatted records, at 1.2-2.9... |
 | [2026-10-20](experiments/Qwen--Qwen2.5-0.5B/L17/N4346-negative/20261020T071748Z.md) | [Qwen/Qwen2.5-0.5B L17/N4346−](experiments/Qwen--Qwen2.5-0.5B/L17/N4346-negative/README.md) | review | NEEDS_REVISION | 0.67 | Pole N4346- fires on specialised technical/formal vocabulary in use: its peaks land on the token... |
