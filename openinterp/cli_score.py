@@ -108,8 +108,9 @@ def score(
     """Score an explanation on held-out text: detection, fuzzing and embedding.
 
     \b
-    Reported, not gated (docs/PROTOCOL.md §4). Attach the result to a review with
-    `openinterp review … --explanation-scores <file>`. In one step the judge is an LLM:
+    Reported, not gated (docs/PROTOCOL.md §4), but every review records them: pass the
+    result to `openinterp review … --explanation-scores <file>`. In one step the judge is
+    an LLM:
       openinterp score --audit-file sub.json --corpus corpus.jsonl --judge-model M --out s.json
     In two steps any agent can judge, without an API key:
       openinterp score --audit-file sub.json --corpus corpus.jsonl --emit-task score.task.json
@@ -119,7 +120,6 @@ def score(
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.judge import (
         DetectionAnswer,
-        ExplanationJudge,
         FuzzingAnswer,
         ScoringTask,
     )
@@ -134,11 +134,14 @@ def score(
         detection = DetectionAnswer.model_validate_json(
             _sibling(task_file, ".detection.json").read_text()
         )
-        fuzzing = FuzzingAnswer.model_validate_json(
-            _sibling(task_file, ".fuzzing.json").read_text()
+        fuzzing = (  # no fuzzing prompt when no held-out window was active
+            FuzzingAnswer.model_validate_json(_sibling(task_file, ".fuzzing.json").read_text())
+            if task.fuzzing
+            else FuzzingAnswer(correct=[])
         )
         out = out or _sibling(task_file, ".scores.json")
         runner = _load_runner(task.identifier.model_name, device, dtype)
+        scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
     else:
         if audit_file is None:
             raise click.UsageError("--audit-file is required unless --task is given.")
@@ -146,23 +149,43 @@ def score(
             raise click.UsageError("--out is required when scoring in one step.")
         submission = _load_submission(audit_file)
         runner = _load_runner(submission.identifier.model_name, device, dtype)
-        task = _draw_task(
-            runner, submission, corpus, seed, window_tokens, quantiles, per_quantile, max_windows
-        )
+        sampling = (seed, window_tokens, quantiles, per_quantile, max_windows)
         if emit_task is not None:
-            _write_task(task, emit_task)
+            _write_task(_draw_task(runner, submission, corpus, *sampling), emit_task)
             return
-        judge = ExplanationJudge(judge_model or DEFAULT_MODEL)
-        judge_model = judge.model
-        click.echo(f"Asking {judge.model} to judge {len(task.detection)} windows…", err=True)
-        detection = judge.detect(task.explanation, task.detection)
-        fuzzing = judge.fuzz(task.explanation, task.fuzzing)
-
-    scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
+        scores = score_submission(
+            runner, submission, corpus, judge_model or DEFAULT_MODEL, embedding_model, *sampling
+        )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(scores.model_dump_json(indent=2))
     click.echo(_summary(scores))
     click.echo(f"Wrote {out}")
+
+
+def score_submission(
+    runner,
+    submission,
+    corpus: Path | None,
+    judge_model: str,
+    embedding_model: str = DEFAULT_EMBEDDING_MODEL,
+    seed: int | None = None,
+    window_tokens: int = 32,
+    quantiles: int = 5,
+    per_quantile: int = 5,
+    max_windows: int = 4000,
+):
+    """Draw held-out windows and score the explanation with an LLM judge, in one step."""
+    from openinterp.agents.judge import ExplanationJudge, FuzzingAnswer
+
+    sampling = (seed, window_tokens, quantiles, per_quantile, max_windows)
+    task = _draw_task(runner, submission, corpus, *sampling)
+    judge = ExplanationJudge(judge_model)
+    click.echo(f"Asking {judge.model} to judge {len(task.detection)} windows…", err=True)
+    detection = judge.detect(task.explanation, task.detection)
+    fuzzing = (
+        judge.fuzz(task.explanation, task.fuzzing) if task.fuzzing else FuzzingAnswer(correct=[])
+    )
+    return _score_task(task, runner, detection, fuzzing, judge.model, embedding_model)
 
 
 def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_quantile, cap):
@@ -218,10 +241,14 @@ def _write_task(task, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(task.model_dump_json(indent=2))
     click.echo(f"Wrote {path} ({len(task.detection)} detection, {len(task.fuzzing)} fuzzing)")
+    if not task.active_windows:
+        click.echo("No held-out window is active: detection scores false positives only.")
     for kind, model, prompt in [
         ("detection", DetectionAnswer, ExplanationJudge.detection_prompt),
         ("fuzzing", FuzzingAnswer, ExplanationJudge.fuzzing_prompt),
     ]:
+        if not getattr(task, kind):
+            continue
         prompt_path, answer = _sibling(path, f".{kind}.prompt.md"), _sibling(path, f".{kind}.json")
         text = prompt(task.explanation, getattr(task, kind))
         prompt_path.write_text(ExplanationJudge.render_prompt(model, text, answer))

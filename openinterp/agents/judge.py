@@ -77,9 +77,9 @@ class ExplanationJudge(LLMAgent):
         texts = "\n".join(f"{n}. {_show(w.tokens)}" for n, w in enumerate(windows, 1))
         return (
             f"Explanation of the neuron:\n\n> {explanation}\n\n"
-            "Some of the texts below make the neuron fire on at least one token and the rest "
-            "don't; the proportion is not given. List the numbers of the texts in which the "
-            f"explanation says it fires.\n\n{texts}"
+            "Any number of the texts below, possibly none or all, make the neuron fire on at "
+            "least one token. List the numbers of the texts in which the explanation says it "
+            f"fires.\n\n{texts}"
         )
 
     @staticmethod

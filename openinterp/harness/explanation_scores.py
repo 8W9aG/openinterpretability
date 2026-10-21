@@ -111,7 +111,8 @@ def sample_heldout(
     fuzzing, so the weakest activations count as much as the top ones. Detection gets as
     many inactive windows as active ones. Fuzzing marks the active tokens of half its
     active windows and as many random inactive tokens in the other half, and adds half
-    as many inactive windows with random tokens marked.
+    as many inactive windows with random tokens marked. With no active window at all,
+    detection gets ``quantiles × per_quantile`` inactive ones and fuzzing none.
     """
     rng = random.Random(seed)
     skip = set(exclude)
@@ -120,11 +121,11 @@ def sample_heldout(
     measured = measure_windows(runner, candidates[:max_windows], ident)
     active = sorted((w for w in measured if w.peak >= threshold), key=lambda w: w.peak)
     inactive = [w for w in measured if w.peak < threshold]
-    if not active:
-        raise ValueError(
-            f"none of {len(measured)} held-out {window_tokens}-token windows reaches the "
-            f"threshold {threshold:.4g}; try longer windows or a larger corpus"
-        )
+    if not measured:
+        raise ValueError("no held-out windows: every corpus snippet is a top example")
+    if not active:  # the explanation can still be scored on false positives
+        drawn = rng.sample(inactive, min(len(inactive), quantiles * per_quantile))
+        return HeldOutSample(drawn, [], [], len(measured), 0)
     n = len(active)
     bins = [active[i * n // quantiles : (i + 1) * n // quantiles] for i in range(quantiles)]
     edges = [b[0].peak for b in bins[1:] if b]

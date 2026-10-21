@@ -149,7 +149,10 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
     gates = verdict.metrics.gates if verdict.metrics else {}
     failed = [g for g, ok in gates.items() if not ok]
     proposer = record.submission.submitting_agent_model
-    review = f"openinterp verify --audit-file {path} --agent-model <model other than {proposer}>"
+    review = (
+        f"openinterp verify --audit-file {path} --corpus <scan corpus> "
+        f"--agent-model <model other than {proposer}>"
+    )
     revise = f"openinterp audit {target} --pole {ident.pole}"
 
     kinds: list[tuple[str, str, list[str], str | None]] = []
@@ -172,7 +175,7 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             (
                 "revise",
                 f"failed gates: {', '.join(failed) or 'unknown'}",
-                [revise, "openinterp verify --audit-file <new submission>"],
+                [revise, "openinterp verify --audit-file <new submission> --corpus <scan corpus>"],
                 None,
             )
         )
@@ -181,7 +184,7 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             (
                 "new_hypothesis",
                 "rejected; the null result stands, so try another idea",
-                [revise, "openinterp verify --audit-file <new submission>"],
+                [revise, "openinterp verify --audit-file <new submission> --corpus <scan corpus>"],
                 None,
             )
         )

@@ -294,6 +294,14 @@ def audit(
 )
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @explanation_scores_option
+@click.option(
+    "--corpus",
+    type=click.Path(exists=True, path_type=Path),
+    help="Without --explanation-scores: the scan's corpus, to score the explanation on.",
+)
+@click.option(
+    "--judge-model", help="Without --explanation-scores: the judge (default: the reviewer)."
+)
 @wiki_option
 @with_model_options
 def verify(
@@ -304,15 +312,21 @@ def verify(
     probes_file,
     out,
     scores_file,
+    corpus,
+    judge_model,
     wiki_dir,
     device,
     dtype,
 ):
-    """Adversarially review a submission and post it as a new experiment."""
+    """Adversarially review a submission and post it as a new experiment.
+
+    Every review records explanation scores on held-out text (`openinterp score`). Pass
+    them with --explanation-scores; in one step (no --probes), they are measured here.
+    """
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
-    from openinterp.cli_score import load_scores
+    from openinterp.cli_score import load_scores, score_submission
     from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
 
     raw = audit_file.read_text()
@@ -333,6 +347,11 @@ def verify(
         raise click.UsageError(
             "--agent-model is required with --probes: name the model that wrote them."
         )
+    if scores_file is None and (probes_file is not None or corpus is None):
+        raise click.UsageError(
+            "--explanation-scores is required (from `openinterp score`, docs/PROTOCOL.md §4); "
+            "without --probes, --corpus <the scan's corpus> also works."
+        )
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     if reviewer.model == submission.submitting_agent_model:
@@ -343,6 +362,8 @@ def verify(
         click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
         probes = reviewer.generate_probes(submission, n=n_probes).probes
     runner = _load_runner(submission.identifier.model_name, device, dtype)
+    if scores is None:  # one step: score here, on the scan's corpus (checked above)
+        scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
     verdict = verdict.model_copy(update={"explanation_scores": scores})
 

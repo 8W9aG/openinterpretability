@@ -114,9 +114,11 @@ def test_sample_heldout_draws_evenly_from_each_quantile(toy_runner, monkeypatch)
     assert not {w.text for w in sample.detection} & {w.text for w in sample.fuzzing}
 
 
-def test_sample_heldout_fails_without_active_windows(toy_runner):
-    with pytest.raises(ValueError, match="reaches the threshold"):
-        sample_heldout(toy_runner, CORPUS, IDENT, 1e9, seed=0, window_tokens=8)
+def test_without_active_windows_detection_scores_false_positives_only(toy_runner):
+    sample = sample_heldout(toy_runner, CORPUS, IDENT, 1e9, seed=0, window_tokens=8)
+    assert (len(sample.detection), sample.fuzzing, sample.active_windows) == (25, [], 0)
+    with pytest.raises(ValueError, match="no held-out windows"):
+        sample_heldout(toy_runner, CORPUS, IDENT, 1.0, seed=0, exclude=CORPUS)
 
 
 def test_judge_prompts_hide_activations_and_mark_tokens(mocker):
@@ -238,3 +240,38 @@ def test_reproduce_rederives_scores_and_warns_on_edits(toy_record, toy_runner):
     )
     report = reproduce_record(tampered, toy_runner)
     assert report.ok and any("embedding_auroc differs" in w for w in report.warnings)
+
+
+def test_task_without_active_windows_needs_no_fuzzing_judge(flow):
+    sub = flow.sub.model_copy(update={"max_activation": 1e9})
+    (flow.path / "dead.json").write_text(sub.model_dump_json())
+    run("score", "--audit-file", "dead.json", "--corpus", "corpus.txt", "--window-tokens", 8,
+        "--emit-task", "score.task.json")  # fmt: skip
+    assert not (flow.path / "score.fuzzing.prompt.md").exists()
+    (flow.path / "score.detection.json").write_text('{"active": [1, 2]}')
+    run("score", "--task", "score.task.json", "--judge-model", "external/judge")
+    scores = ExplanationScores.model_validate_json((flow.path / "score.scores.json").read_text())
+    assert scores.fuzzing is None and scores.detection.false_positive_rate == 2 / 25
+    assert scores.detection.true_positive_rate is None and scores.embedding_auroc is None
+
+
+def test_one_step_review_scores_the_explanation_itself(flow, monkeypatch):
+    from openinterp.agents.reviewer import AdversarialProbe, ProbeSet
+
+    probes = ProbeSet(probes=[AdversarialProbe(text=t, expected_active=i < 4, rationale="r")
+                              for i, t in enumerate(CORPUS[:10])])  # fmt: skip
+    monkeypatch.setattr("openinterp.agents.reviewer.ReviewerAgent.generate_probes",
+                        lambda self, sub, n: probes)  # fmt: skip
+    judged = []
+
+    def detect(self, explanation, windows):
+        judged.append(self.model)
+        return DetectionAnswer(active=[1])
+
+    monkeypatch.setattr(ExplanationJudge, "detect", detect)
+    monkeypatch.setattr(ExplanationJudge, "fuzz", lambda self, e, ws: FuzzingAnswer(correct=[]))
+    run("review", "--audit-file", "sub.json", "--agent-model", "openai/reviewer",
+        "--corpus", "corpus.txt", "--wiki-dir", "wiki")  # fmt: skip
+    (record_path,) = (flow.path / "wiki" / "experiments").rglob("*.json")
+    scores = AuditRecord.model_validate_json(record_path.read_text()).verdict.explanation_scores
+    assert judged == ["openai/reviewer"] and scores.judge_model == "openai/reviewer"

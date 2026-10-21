@@ -23,7 +23,7 @@ description: Score a neuron explanation by how well it predicts per-token activa
 
 ## Cheaper scores: detection, fuzzing and embedding
 
-Paulo et al., 2025 (Delphi, `EleutherAI/delphi`) replace per-token simulation with three cheaper scores, which `openinterp score` records (docs/PROTOCOL.md §4):
+Paulo et al., 2025 (Delphi, `EleutherAI/delphi`) replace per-token simulation with three cheaper scores. `openinterp score` computes them, and every review records them (docs/PROTOCOL.md §4):
 
 ```bash
 uv run openinterp score --audit-file <submission or record> --corpus corpus.jsonl --emit-task exchange/score.task.json
