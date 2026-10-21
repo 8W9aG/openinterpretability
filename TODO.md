@@ -4,7 +4,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Protocol and science
 
-- [ ] Re-audit Qwen2.5-0.5B L11/N4255+ with ≥ 512-token windows, a narrowed hypothesis ("*including* / *e.g.* after a category noun") and an independent reviewer model.
 - [ ] Enforce reviewer independence, or stop claiming it. `docs/PROTOCOL.md` §2 says the reviewer must not be the same model as the proposer, but 50 of the 79 records (2026-10-20) have the same model on both sides, 38 of them `deepseek-flash` reviewing itself, and 23 VERIFIED verdicts are self-reviewed. Either refuse a same-model `review`, or reword the table and badge self-reviewed verdicts on experiment and neuron pages. Either way, the planner's `replicate` draw should also fire when a pole's only reviewer was its proposer, not just when one reviewer model verified it.
 - [ ] **(protocol)** Decide what a pole's status is when its experiments disagree. Today it is the newest experiment's (`builder/tree.py`), so a weaker or self-reviewed rerun overturns a cross-model VERIFIED. Of the 11 poles with more than one experiment, 5 changed verdict: L16/N2071+ went VERIFIED → NEEDS_REVISION, and L11/N4255+ went NR, NR, V, V, NR. Options: the newest experiment under the current protocol, preferring independent reviews; or a "contested" status when recent experiments disagree. Show the disagreement on neuron pages and report reviewer agreement across the registry.
 - [ ] Scan both poles by default and show them together on neuron pages.

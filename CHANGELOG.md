@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **Re-audit of Qwen2.5-0.5B L11/N4255+** (`20261021T150406Z`): VERIFIED (balanced accuracy 0.81) under protocol 0.6. It used a 512-token-window scan, a narrowed claim (", including" after a plural class noun, with ", such as" / ", like" / ", notably" as weaker members, and amount-sense "including", "for example" and ", e.g." excluded) and a reviewer model different from the proposer (claude-sonnet-5-5 against claude-opus-5-5). The held-out explanation scores are at chance (detection 0.50, fuzzing 0.54): most of the pole's activity on ordinary text is a diffuse background the claim names but does not explain.
+
 ## [0.0.5] - 2026-10-20
 
 Ships with protocol version **0.6**.
