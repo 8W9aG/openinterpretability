@@ -6,10 +6,10 @@ import duckdb
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.compiler import compile_site, histogram_bars, load_records
+from openinterp.builder.compiler import compile_site, histogram_bars, load_records, probe_chart
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
-from openinterp.core.schemas import AdversarialTestResult, AuditRecord
+from openinterp.core.schemas import AdversarialTestResult, AuditRecord, ReviewPolicy
 
 MODEL = "Qwen--Qwen2.5-0.5B"
 
@@ -174,6 +174,51 @@ def test_histogram_bars(submission):
     assert bars[0]["h"] == pytest.approx(140)  # tallest bin fills the chart
     assert bars[0]["h"] > bars[1]["h"] > bars[2]["h"]
     assert histogram_bars(None) == []
+
+
+def _scored(verdict):
+    def t(kind, activation, passed):
+        return AdversarialTestResult(
+            kind=kind, prompt=f"p {activation}", passed=passed, activation=activation
+        )
+
+    return verdict.model_copy(
+        update={
+            "policy": ReviewPolicy(activation_threshold=0.25),
+            "adversarial_test_results": [
+                t("hard_negative", 0.1, True),
+                t("hard_negative", 0.1, True),  # same value: dodged, not hidden
+                t("hard_negative", 3.0, False),  # beyond the scan max widens the axis
+                t("positive_holdout", 2.0, True),
+                t("positive_holdout", 0.2, False),
+                AdversarialTestResult(kind="counterfactual", prompt="a -> b", passed=True),
+            ],
+        }
+    )
+
+
+def test_probe_chart(verdict):
+    chart = probe_chart(_scored(verdict), 2.0)
+    assert chart["threshold"] == pytest.approx(0.5)
+    negatives, holdouts = chart["rows"]
+    assert (negatives["n"], negatives["passed"], holdouts["n"], holdouts["passed"]) == (3, 2, 2, 1)
+    assert chart["zero_x"] == chart["left"]
+    assert negatives["dots"][-1]["cx"] == chart["right"]  # 3.0 is the axis end
+    assert chart["zero_x"] < chart["threshold_x"] < chart["max_x"] < chart["right"]
+    a, b = negatives["dots"][:2]
+    assert a["cx"] == b["cx"] and a["cy"] != b["cy"]
+    assert "failed · 0.200 (10% of max)" in holdouts["dots"][0]["label"]
+    assert probe_chart(verdict, 2.0) is None  # no recorded policy, so no threshold to draw
+    assert probe_chart(_scored(verdict), None) is None
+
+
+def test_probe_chart_rendered(tmp_path, record):
+    scored = record.model_copy(update={"verdict": _scored(record.verdict)})
+    compile_site([scored], tmp_path)
+    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    assert "Probe strengths against the activation threshold" in page
+    assert "2 of 3 hard negatives passed; 1 of 2 positive holdouts passed" in page
+    assert "threshold 0.62 (25% of max)" in page
 
 
 def test_cli_build_from_wiki_archive(tmp_path, records):
