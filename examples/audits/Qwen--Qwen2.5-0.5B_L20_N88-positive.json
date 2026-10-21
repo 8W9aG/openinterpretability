@@ -3,6 +3,7 @@
     "identifier": {
       "model_name": "Qwen/Qwen2.5-0.5B",
       "layer": 20,
+      "kind": "mlp_neuron_pole",
       "neuron_idx": 88,
       "pole": "positive"
     },
@@ -140,6 +141,7 @@
       ]
     },
     "model_num_layers": 24,
+    "model_mlp_width": null,
     "provenance": null,
     "correlated_neurons": [],
     "confounds": null,
@@ -275,11 +277,455 @@
     "causal_metrics": {
       "sufficiency_score": 0.343,
       "necessity_score": 0.442,
-      "hydra_mitigated": true
+      "hydra_mitigated": true,
+      "target": null,
+      "target_tokens": [],
+      "sufficiency_effect": null,
+      "necessity_effect": null,
+      "null_neurons": null,
+      "pairs_scored": null
     },
     "metrics": null,
     "policy": null,
     "joint_ablation": null,
+    "environment": null,
+    "explanation_scores": {
+      "slug": "Qwen--Qwen2.5-0.5B/L20/N88-positive",
+      "explanation": "Generic sentence-final punctuation.",
+      "threshold": 0.74475,
+      "window_tokens": 32,
+      "quantiles": 5,
+      "quantile_edges": [
+        0.894,
+        1.192,
+        1.49,
+        2.085
+      ],
+      "seed": 0,
+      "corpus": "synthetic",
+      "corpus_sha256": null,
+      "candidate_windows": 4000,
+      "active_windows": 151,
+      "judge_model": "example-fixture",
+      "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "detection": {
+        "balanced_accuracy": 0.75,
+        "true_positive_rate": 0.8,
+        "false_positive_rate": 0.3,
+        "recall_by_quantile": [
+          1.0,
+          0.5,
+          1.0,
+          0.5,
+          1.0
+        ]
+      },
+      "fuzzing": null,
+      "embedding_auroc": 0.73,
+      "detection_windows": [
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.161,
+            0.271,
+            2.214
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.418
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.029,
+            0.0,
+            0.033,
+            0.21
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.242
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.048,
+            0.26,
+            0.349,
+            2.979
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.226
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.04,
+            0.016,
+            0.027,
+            0.221
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.335
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.287,
+            0.001,
+            0.329,
+            2.098
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.294
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.005,
+            0.026,
+            0.035,
+            0.298
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.188
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.161,
+            0.271,
+            2.214
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.391
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.029,
+            0.0,
+            0.033,
+            0.21
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.06
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.048,
+            0.26,
+            0.349,
+            2.979
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.547
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.04,
+            0.016,
+            0.027,
+            0.221
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.297
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.287,
+            0.001,
+            0.329,
+            2.098
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.226
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.005,
+            0.026,
+            0.035,
+            0.298
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.236
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.161,
+            0.271,
+            2.214
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.212
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.029,
+            0.0,
+            0.033,
+            0.21
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.189
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.048,
+            0.26,
+            0.349,
+            2.979
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.552
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.04,
+            0.016,
+            0.027,
+            0.221
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.368
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.287,
+            0.001,
+            0.329,
+            2.098
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.52
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.005,
+            0.026,
+            0.035,
+            0.298
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.374
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.161,
+            0.271,
+            2.214
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.239
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.029,
+            0.0,
+            0.033,
+            0.21
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.087
+        }
+      ],
+      "fuzzing_windows": []
+    },
     "notes": "Synthetic example record (not a real audit)."
   }
 }

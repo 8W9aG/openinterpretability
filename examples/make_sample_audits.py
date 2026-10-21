@@ -10,6 +10,7 @@ import random
 from datetime import UTC, datetime
 from pathlib import Path
 
+from openinterp.core.explanation import ExplanationScores, ScoredWindow
 from openinterp.core.schemas import (
     ActivatingExample,
     AdversarialTestResult,
@@ -22,6 +23,7 @@ from openinterp.core.schemas import (
     NeuronIdentifier,
     VerificationVerdict,
 )
+from openinterp.harness.explanation_scores import finalize_scores
 
 MODEL = "Qwen/Qwen2.5-0.5B"
 FIXTURE = "example-fixture"
@@ -74,6 +76,44 @@ def example(rng: random.Random, text: str, peak: int) -> ActivatingExample:
     acts[peak] = round(rng.uniform(2.0, 3.0), 3)
     return ActivatingExample(
         text=text, tokens=tokens, activations=acts, max_activation=acts[peak], max_token_index=peak
+    )
+
+
+def sample_scores(rng: random.Random, sub: NeuronAuditSubmission) -> ExplanationScores:
+    """Invented held-out windows and judge answers, so pages show the scores section."""
+    scale = sub.max_activation or 1.0
+    windows = []
+    for n in range(20):
+        ex = sub.top_examples[n % len(sub.top_examples)]
+        active = n % 2 == 0
+        acts = [a if active else round(a * 0.1, 3) for a in ex.activations]
+        windows.append(
+            ScoredWindow(
+                text=ex.text,
+                tokens=ex.tokens,
+                activations=acts,
+                quantile=n % 5 if active else None,
+                label=active,
+                judged=active if rng.random() < 0.75 else not active,
+                similarity=round(rng.uniform(0.0, 0.4) + 0.2 * active, 3),
+            )
+        )
+    return finalize_scores(
+        ExplanationScores(
+            slug=sub.identifier.slug,
+            explanation=sub.natural_language_explanation,
+            threshold=0.25 * scale,
+            window_tokens=32,
+            quantiles=5,
+            quantile_edges=[round(scale * q, 3) for q in (0.3, 0.4, 0.5, 0.7)],
+            seed=0,
+            corpus="synthetic",
+            candidate_windows=4000,
+            active_windows=rng.randint(40, 200),
+            judge_model=FIXTURE,
+            embedding_model="sentence-transformers/all-MiniLM-L6-v2",
+            detection_windows=windows,
+        )
     )
 
 
@@ -138,6 +178,9 @@ def main() -> None:
                 necessity_score=round(rng.uniform(0.2, 0.8), 3),
                 hydra_mitigated=True,
             ),
+            explanation_scores=sample_scores(
+                random.Random(n), sub
+            ),  # own stream: other values stay put
             notes="Synthetic example record (not a real audit).",
         )
         path = out / f"{ident.slug.replace('/', '_')}.json"

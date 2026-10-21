@@ -31,9 +31,14 @@ make install                                      # creates .venv with everythin
     --agent-model external/claude-opus-5-5 --out submissions/ev.json
   uv run openinterp review --audit-file submissions/ev.json --emit-prompt exchange/review.prompt.md
   # neuron-reviewer answers exchange/review.prompt.md -> exchange/review.probes.json
+  uv run openinterp score --audit-file submissions/ev.json --corpus corpus.jsonl --emit-task exchange/score.task.json
+  # one explanation-judge answers exchange/score.detection.prompt.md, another exchange/score.fuzzing.prompt.md
+  uv run openinterp score --task exchange/score.task.json --judge-model external/claude-haiku-5-5
   uv run openinterp review --audit-file submissions/ev.json --probes exchange/review.probes.json \
-    --agent-model external/claude-sonnet-5-5
+    --agent-model external/claude-sonnet-5-5 --explanation-scores exchange/score.scores.json
   ```
+
+  Every review also records explanation scores. `openinterp score` scores the explanation on held-out text the proposer never saw: Delphi's detection, fuzzing and embedding scores, with the `explanation-judge` subagent answering its prompts. `review --explanation-scores` records the result, and `review` refuses `--probes` without it. A one-step review (no `--probes`) scores the explanation itself on `--corpus`. The scores are reported, not gated (docs/PROTOCOL.md §4).
 
   The reviewer subagent has no tool that runs the model, so it can't see probe activations before its probe set is final. The two subagents run on different models (Opus and Sonnet), so the review counts as independent. Pass each one's reported model ID to `--agent-model`.
 
