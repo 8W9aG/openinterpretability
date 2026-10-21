@@ -130,6 +130,8 @@ A record must let a third party re-derive its verdict:
 - `verdict.policy`: the exact thresholds, including `protocol_version`.
 - `verdict.environment` (and `provenance.environment` for the scan): the device, weights dtype, model commit and the openinterp, torch and transformers versions the measurements ran with.
 
+`provenance.costs` also records what the experiment cost to run: wall time per stage (model load, scan, lenses, proposer, held-out windows, judge, reviewer, probe measurement, gates, causal metrics) and each LLM call's model, prompt size, tokens and cost as LiteLLM reports them. A prompt answered from a file (`external/<name>`) is timed from the prompt being written to the answer being written, with no token counts. A re-review or re-evaluation records only its own costs. These numbers are reported, never gated, and `reproduce` ignores them.
+
 `openinterp reevaluate --record <file>` re-measures a record's stored probes under the current policy, without LLM calls. The result is a new experiment.
 
 `openinterp reproduce <file>…` (or `--base-ref origin/main` for every record a branch adds or changes) checks that a record is what it claims to be. It loads the model commit and dtype the record pins and re-runs everything the verdict rests on, without LLM calls:

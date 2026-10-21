@@ -13,6 +13,7 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Discriminator, Field, Tag, model_validator
 
+from openinterp.core.costs import ExperimentCosts
 from openinterp.core.explanation import ExplanationScores
 from openinterp.core.strict import StrictModel, UnitFloat
 
@@ -245,6 +246,11 @@ class ExperimentProvenance(StrictModel):
     harness_version: str
     environment: RunEnvironment | None = None
     corpus_source: CorpusSource | None = None
+    costs: ExperimentCosts | None = Field(
+        default=None,
+        description="Wall time per stage and LLM usage of the run that produced this record "
+        "(reported, never gated).",
+    )
 
 
 class CorrelatedNeuron(StrictModel):

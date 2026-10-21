@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
+from openinterp.core.costs import ExperimentCosts
 from openinterp.core.strict import StrictModel, UnitFloat
 
 
@@ -83,3 +84,7 @@ class ExplanationScores(StrictModel):
     )
     detection_windows: list[ScoredWindow] = Field(default_factory=list)
     fuzzing_windows: list[ScoredWindow] = Field(default_factory=list)
+    costs: ExperimentCosts | None = Field(
+        default=None,
+        description="What scoring cost; a review moves it into the record's provenance.",
+    )

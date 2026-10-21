@@ -69,6 +69,7 @@ def format_examples(examples: Sequence[ActivatingExample], max_examples: int = 2
 
 
 class ProposerAgent(LLMAgent):
+    role = "proposer"
     system_prompt = (
         "You are a mechanistic interpretability researcher auditing a single native MLP "
         "neuron pole in an open-weight language model. Activations are pole strengths "

@@ -20,9 +20,8 @@ def _load_runner(
     """Load ``model_name`` at ``revision``. Pass ``attn_implementation="eager"`` when
     attention patterns are needed (SDPA and flash attention don't return them)."""
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterp.core import costs
 
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,6 +32,15 @@ def _load_runner(
         "float16": torch.float16,
     }[dtype]
     click.echo(f"Loading {model_name} on {device}…", err=True)
+    with costs.stage("model_load"):
+        return _load(model_name, device, torch_dtype, revision, attn_implementation)
+
+
+def _load(model_name, device, torch_dtype, revision, attn_implementation):
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    from openinterp.harness.hooks import NeuronHookRunner
+
     commit = _resolve_revision(model_name, revision)
     tokenizer = AutoTokenizer.from_pretrained(model_name, revision=commit)
     extra = {"attn_implementation": attn_implementation} if attn_implementation else {}
@@ -124,6 +132,23 @@ def _write_copy(record, out) -> None:
         click.echo(f"Wrote {out}")
 
 
+def _clear_costs(submission):
+    """``submission`` without the costs of the experiment that first audited it."""
+    prov = submission.provenance
+    if prov is None or prov.costs is None:
+        return submission
+    return submission.model_copy(update={"provenance": prov.model_copy(update={"costs": None})})
+
+
+def _add_costs(submission, *parts):
+    """``submission`` with ``parts`` and everything this process measured in its costs."""
+    from openinterp.cli_evidence import with_costs
+    from openinterp.core import costs
+
+    provenance = with_costs(submission.provenance, *parts, costs.measured())
+    return submission.model_copy(update={"provenance": provenance})
+
+
 def with_model_options(fn):
     for option in reversed(model_options):
         fn = option(fn)
@@ -132,8 +157,18 @@ def with_model_options(fn):
 
 @click.group()
 @click.version_option(package_name="openinterp")
-def cli() -> None:
+@click.pass_context
+def cli(ctx) -> None:
     """Open Interpretability: agent-audited registry of native neurons."""
+    import time
+
+    from openinterp.core import costs
+
+    costs.reset()
+    start = time.perf_counter()
+    command = ctx.invoked_subcommand or "openinterp"
+    if command != "costs":  # summarising the ledger isn't part of any experiment
+        ctx.call_on_close(lambda: costs.append_ledger(command, time.perf_counter() - start))
 
 
 @cli.command()
@@ -193,11 +228,13 @@ def verify(
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
     from openinterp.cli_score import load_scores, score_submission
+    from openinterp.core import costs
     from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
 
     raw = audit_file.read_text()
     if "submission" in json.loads(raw):  # an existing audit record: re-review its submission
         submission = AuditRecord.model_validate_json(raw).submission
+        submission = _clear_costs(submission)  # its audit belonged to another experiment
     else:
         submission = NeuronAuditSubmission.model_validate_json(raw)
     if emit_prompt is not None:
@@ -224,6 +261,10 @@ def verify(
         click.echo("warning: reviewer and submitter use the same model", err=True)
     if probes_file is not None:
         probes = ProbeSet.model_validate_json(probes_file.read_text()).probes
+        # --emit-prompt review.prompt.md is answered in review.probes.json.
+        stem = probes_file.name.removesuffix(".probes.json")
+        prompt_file = probes_file.with_name(stem + ".prompt.md")
+        costs.add_external("reviewer", reviewer.model, prompt_file, probes_file)
     else:
         click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
         probes = reviewer.generate_probes(submission, n=n_probes).probes
@@ -231,9 +272,12 @@ def verify(
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
+    # The scores' costs move into the record's provenance with everything else.
+    scored = scores and scores.costs
+    scores = scores and scores.model_copy(update={"costs": None})
     verdict = verdict.model_copy(update={"explanation_scores": scores})
 
-    record = AuditRecord(submission=submission, verdict=verdict)
+    record = AuditRecord(submission=_add_costs(submission, scored), verdict=verdict)
     click.echo(f"{verdict.status} (confidence {verdict.confidence_score:.2f}) — {verdict.notes}")
     _write_copy(record, out)
     _write_wiki(record, wiki_dir, kind="review")
@@ -264,11 +308,14 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
         raise click.ClickException(f"{record} has no verdict to re-evaluate.")
     scores = load_scores(scores_file, old.submission)
     runner = _load_runner(old.submission.identifier.model_name, device, dtype)
+    submission = _clear_costs(old.submission)
     verdict = evaluate_submission(
-        old.submission, runner, probes_from_verdict(old.verdict), old.verdict.reviewer_agent_model
+        submission, runner, probes_from_verdict(old.verdict), old.verdict.reviewer_agent_model
     )
+    scored = scores and scores.costs
+    scores = scores and scores.model_copy(update={"costs": None})
     verdict = verdict.model_copy(update={"explanation_scores": scores})
-    new = AuditRecord(submission=old.submission, verdict=verdict)
+    new = AuditRecord(submission=_add_costs(submission, scored), verdict=verdict)
     click.echo(f"{old.verdict.status} -> {verdict.status} — {verdict.notes}")
     _write_wiki(old, wiki_dir, kind="backfill")  # no-op when the original is already archived
     _write_copy(new, out)
@@ -351,7 +398,13 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 
 
 # Registers the registry-maintenance commands on `cli`.
-from openinterp import cli_corpus, cli_evidence, cli_registry, cli_score  # noqa: E402, F401
+from openinterp import (  # noqa: E402, F401
+    cli_corpus,
+    cli_costs,
+    cli_evidence,
+    cli_registry,
+    cli_score,
+)
 
 
 def main() -> None:

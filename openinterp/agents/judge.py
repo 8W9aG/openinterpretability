@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
+from openinterp.core.costs import ExperimentCosts
 from openinterp.core.schemas import NeuronIdentifier
 
 MARK_OPEN, MARK_CLOSE = "<<", ">>"
@@ -40,6 +41,7 @@ class ScoringTask(BaseModel):
     active_windows: int
     detection: list[TaskWindow]
     fuzzing: list[TaskWindow]
+    costs: ExperimentCosts | None = None  # of drawing the windows
 
 
 class DetectionAnswer(BaseModel):
@@ -63,6 +65,7 @@ def _show(tokens: Sequence[str], marked: Sequence[int] = ()) -> str:
 
 
 class ExplanationJudge(LLMAgent):
+    role = "judge"
     system_prompt = (
         "You test how well a short explanation of a neuron in a language model predicts "
         "where it fires. You see only the explanation and some short texts, never the "
