@@ -42,12 +42,36 @@ Methods from the wider interpretability literature that the registry doesn't use
 ## Pipeline
 
 - [ ] `openinterp audit`: configurable window length and stride, so long documents are scanned as overlapping ≥ 512-token windows instead of one truncated snippet. (Hugging Face dataset input is done: `openinterp corpus`.)
-- [ ] **(protocol)** Bounded scans: `openinterp audit` scans every document in the corpus, so cost grows linearly with it (~15 min for the 500-doc `corpus.jsonl` on CPU), and a larger corpus raises `max_activation` and so the 25% "active" threshold. Scan a fixed-size, seeded sample instead (e.g. `--max-tokens 200000 --sample-seed S`), record the seed, sample size and sample hash in `provenance`, and make `reevaluate`/reproduction re-draw the same sample. Changing what `max_activation` is computed over moves the threshold, so this needs a protocol bump.
-- [ ] Cache scan results per layer: one forward pass already captures the whole layer (`run_with_cache`), so store per-token activations for all of a layer's neurons (with token ids and positions) keyed by model, revision, layer and corpus sample hash, and let later audits in that layer, `next`, and exploratory analysis read the cache instead of re-running the model. Also expose a scan's per-token data so agents don't write their own full-corpus scans for diagnosis.
-- [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.
 - [ ] A `supersedes` field on submissions to link revisions to the record they replace.
 - [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
+- [ ] `openinterp loop`: run experiments back to back from the Python CLI, with no Claude Code session driving them, so the loop works wherever `openinterp` is installed (including `uvx openinterp` once it is on PyPI) and `scripts/experiment-loop.sh` can become a thin wrapper or go away. What each iteration does:
+  - Reset a detached worktree to `origin/main`.
+  - Draw with the planner (`--epsilon`, as in `openinterp next`).
+  - Claim the draw the way `choose-next-experiment` does: branch `experiment/<key>[-<kind>]`, an empty "Claim" commit, and a draft PR via `gh`.
+  - Run the draw's `audit`/`verify` commands in-process with the `--proposer` and `--reviewer` LiteLLM models. Reject `external/<name>`, since nobody would be there to answer it.
+  - Run `openinterp wiki` and `openinterp check`, commit `wiki/` (with any `.sig`), push, and mark the PR ready. On an error, close the PR and give the reason.
+
+  Loop behaviour and options:
+  - No delay between iterations.
+  - `--max N`, where 0 means run until stopped.
+  - Stop after repeated failures, or after backing off on a provider rate or usage limit.
+  - One log per iteration in `logs/loop/`, and the same `RESULT: <slug> <verdict> <PR url>` line the script prints.
+
+  Draws that need judgement, such as `revise` (narrowing a claim, fixing failed gates), must give the proposer the previous record and its failed gates. Enforce a reviewer different from the record's proposer for `independent_review`/`replicate` draws, re-drawing once if not. Keep the model loaded across iterations, so experiments don't each reload weights as the per-session script does. Test it with a temporary git repo, a stubbed `gh` and fake agents.
 - [ ] A scheduled hourly build and deploy (CI cron), as described in the vision.
+- [ ] Make the repo's GitHub Wiki (`8W9aG/openinterpretability.wiki.git`) the only home of the wiki pages: experiment pages, neuron history and the index. The records (`<id>.json` and `.sig`) stay in this repo. Records are data, and they keep going through PRs, `openinterp check`, reproduction and signing. A GitHub Wiki can't do that: it has no PRs, branch protection or required checks, and only collaborators can push to it, so fork contributors couldn't submit. The work:
+  - Stop committing pages. `verify`, `review` and `reevaluate` write only the record. Remove the `.md` pages and generated indexes from `wiki/`. Consider renaming `wiki/experiments/` to `records/`, updating the site build, Parquet export, `reproduce`, `next` and the planner to match.
+  - Add `openinterp wiki --github-wiki <dir>`, which renders pages from the records into a checkout of the wiki repo. The GitHub Wiki gives every page a flat name, so:
+    - give each page a unique one, e.g. `Qwen--Qwen2.5-0.5B-L13-N1706-positive` for neuron history and `…-20261020T224903Z` for an experiment;
+    - link records and `docs/` to their files on `main`;
+    - generate `Home.md` (the index) and a `_Sidebar.md` by model and layer.
+  - Keep pages write-once. The export creates a page for each new record and never overwrites an existing one, so Discussion edits made on the wiki survive. Only the index, sidebar and neuron history pages are regenerated, and neuron history pages get their own Discussion section, which is carried over.
+  - Publish on merge: a step in the deploy workflow, on push to `main`, runs the export and pushes to the wiki repo. Check whether `GITHUB_TOKEN` can push there, or a deploy key is needed. The wiki has to be initialised once by hand, by creating its first page.
+  - Guard edits:
+    - restrict wiki editing to collaborators;
+    - add a workflow on the `gollum` event that diffs each edit and reverts any change outside a Discussion section, keeping today's "only Discussion may change" rule;
+    - since this check runs after the edit, rely on the records in the repo, not the pages, for anything that must be trusted.
+  - Simplify CI: drop the record/page consistency and page-immutability checks from `openinterp check`. Move existing Discussion text from the repo pages into the wiki before deleting them. Update the README, `docs/PROTOCOL.md`, the PR template and `choose-next-experiment`, which tell contributors to commit pages.
 - [ ] Review [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) for ideas or reuse: its standardised hook points across many architectures (compare with `openinterp/harness/hooks.py`), activation caching (for faster scans), patching utilities (for the causal metric), attention-head hooks (for `ComponentIdentifier`) and weight processing such as LayerNorm folding (which changes what a neuron's weights look like). Decide whether to adopt it as a dependency, borrow ideas, or keep the current Hugging Face hooks.
 - [ ] Review the rest of the tooling stack the same way:
   - [nnsight](https://github.com/ndif-team/nnsight) with NDIF remote execution, for models too large for contributors' hardware (Llama 3.1 70B/405B). `reproduce` would need to run against the same backend.
@@ -58,6 +82,39 @@ Methods from the wider interpretability literature that the registry doesn't use
 - [ ] An About page in the generated site (`openinterp/builder/templates/about.html`, rendered by `compiler.py` and linked from the `base.html` header): the project's premise, how the proposer/reviewer protocol decides a verdict (linking `docs/PROTOCOL.md` and the current `PROTOCOL_VERSION`), what VERIFIED does and doesn't mean, how to contribute, and the licence.
 - [ ] Google Colab guide (a `docs/colab.md` page plus a ready-to-run notebook with an "Open in Colab" badge in the README): install from git (or PyPI once published) without clobbering Colab's CUDA torch, pick a GPU runtime and `--device cuda`, store API keys and `HF_TOKEN` in Colab secrets (or use the two-step answer files with no keys), build the scan corpus, note which models fit on a free T4 and when to use `--dtype bfloat16`/`float16`, and save results by pushing a branch or copying `wiki/` to Drive before the runtime resets.
 - [ ] Publish `openinterp` to PyPI so `pip install openinterp` (or `uvx openinterp`) runs the whole pipeline without cloning the repo. Check the name is free on PyPI; confirm the wheel ships the templates and `data/sample_corpus.txt`; move `pagefind[bin]` out of the dev group (or into an extra) so `openinterp build` works from an install; let users choose a CPU/CUDA torch; make commands that assume the repo layout (`submissions/`, `wiki/`, `exchange/`) take paths or work from any directory; and add a release workflow that builds and publishes on a version tag via PyPI trusted publishing.
+
+## Performance
+
+Make each experiment faster and cheaper in tokens without changing what it measures. Baseline from the 2026-10-20 loop (claim commit to result commit in git history):
+
+- **Time:** an explore draw takes 25–40 min, and a replicate that skips the scan about 5 min. The CPU corpus scan is roughly 13–15 min of an explore draw.
+- **Prompt sizes:** proposer prompts (`ev.prompt.md`) are 57–62 KB, about 15k tokens. Reviewer prompts are about 30 KB, and the scan evidence (`ev.json`) about 500 KB.
+
+Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
+
+- [ ] Instrument every experiment.
+  - Record wall time per stage (model load, scan, lenses, proposer call, reviewer call, probe measurement, gates, `check`/`test`).
+  - Record token usage and cost per LLM call (LiteLLM returns both).
+  - Store them in the record's `provenance` as reported numbers, never gated.
+  - Have `openinterp loop` / `scripts/experiment-loop.sh` print a per-experiment summary and a running total.
+- [ ] **(protocol)** Bounded scans: `openinterp audit` scans every document in the corpus, so cost grows linearly with it (~15 min for the 500-doc `corpus.jsonl` on CPU), and a larger corpus raises `max_activation` and so the 25% "active" threshold. Scan a fixed-size, seeded sample instead (e.g. `--max-tokens 200000 --sample-seed S`), record the seed, sample size and sample hash in `provenance`, and make `reevaluate`/reproduction re-draw the same sample. Changing what `max_activation` is computed over moves the threshold, so this needs a protocol bump.
+- [ ] Cache scan results per layer: one forward pass already captures the whole layer (`run_with_cache`), so store per-token activations for all of a layer's neurons (with token ids and positions) keyed by model, revision, layer and corpus sample hash, and let later audits in that layer, `next`, and exploratory analysis read the cache instead of re-running the model. Also expose a scan's per-token data so agents don't write their own full-corpus scans for diagnosis.
+- [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.
+- [ ] Load the model once per experiment. `audit` and `verify` run as separate processes, and each loads the model; the scan, lenses, probe measurement and gates could share one load. `openinterp loop` (Pipeline) extends this across experiments. Batch the reviewer's probes and counterfactuals into as few forward passes as their lengths allow.
+- [ ] Trim the proposer prompt.
+  - Top-activating snippets currently include whole documents: the first example for L13/N1706+ is an entire film review. Show a window of a fixed number of tokens around the peak instead.
+  - Drop near-duplicate snippets.
+  - Cap the token-strip and lens lists at what the hypothesis actually uses.
+  - Do the same pass on the reviewer prompt.
+  - A/B the trimmed prompts against the current ones on a fixed set of neurons before switching.
+- [ ] Order prompts for provider prompt caching. Put the stable parts (system prompt, methodology, answer schema) first and the neuron's evidence last, and pass cache-control hints through LiteLLM, so repeated experiments reuse the cached prefix.
+- [ ] Cut the driving session's tokens. In Claude Code, the driver reads skills, docs and large JSON files on every experiment, and the proposer subagent re-reads the evidence.
+  - Make `openinterp next` print the exact commands for the draw, so the driver doesn't need to re-derive them from `SKILL.md` and `docs/PROTOCOL.md`.
+  - Add a compact `openinterp show <record|evidence>` summary, so agents never open `ev.json` or a full record.
+  - Keep CLI output terse by default (`--quiet` for progress bars and warnings).
+  - Measure whether a smaller driver model (`--driver`) completes experiments as reliably, since the CLI does the substantive work.
+- [ ] Keep per-experiment checks proportional to the change. `openinterp check` and the wiki index rebuild walk every record, so their cost grows with the registry. Check only the records a branch adds or changes (`--base-ref origin/main`, as `reproduce` does), and keep the full check for CI on `main`.
+- [ ] Run experiments in parallel on one machine: several loops in separate worktrees. The planner's claim weighting already keeps them off the same neuron. Share one model-weight cache and the per-layer scan cache, and cap concurrency by RAM/VRAM.
 
 ## Merge verification
 
