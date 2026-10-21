@@ -83,6 +83,9 @@ REGISTRY_SCHEMA = pa.schema(
         ("lens_overlap", pa.float64()),
         ("lens_direction_cosine", pa.float64()),
         ("jacobian_kurtosis", pa.float64()),
+        ("detection_score", pa.float64()),
+        ("fuzzing_score", pa.float64()),
+        ("embedding_auroc", pa.float64()),
         ("record_json", pa.string()),
     ]
 )
@@ -126,7 +129,7 @@ def record_to_row(record: AuditRecord) -> dict:
 def experiment_row(exp: Experiment) -> dict:
     sub, verdict = exp.record.submission, exp.record.verdict
     metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
-    lens = sub.vocabulary_lens
+    lens, scores = sub.vocabulary_lens, verdict.explanation_scores
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None
     return {
         **record_to_row(exp.record),
@@ -152,7 +155,14 @@ def experiment_row(exp: Experiment) -> dict:
         "lens_overlap": lens.overlap if lens else None,
         "lens_direction_cosine": lens.direction_cosine if lens else None,
         "jacobian_kurtosis": lens.jacobian_kurtosis if lens else None,
+        "detection_score": _balanced(scores.detection if scores else None),
+        "fuzzing_score": _balanced(scores.fuzzing if scores else None),
+        "embedding_auroc": scores.embedding_auroc if scores else None,
     }
+
+
+def _balanced(score) -> float | None:
+    return score.balanced_accuracy if score else None
 
 
 def records_to_table(experiments: Sequence[Experiment]) -> pa.Table:

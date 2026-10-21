@@ -3,6 +3,7 @@
     "identifier": {
       "model_name": "Qwen/Qwen2.5-0.5B",
       "layer": 17,
+      "kind": "mlp_neuron_pole",
       "neuron_idx": 4410,
       "pole": "positive"
     },
@@ -164,6 +165,7 @@
       ]
     },
     "model_num_layers": 24,
+    "model_mlp_width": null,
     "provenance": null,
     "correlated_neurons": [],
     "confounds": null,
@@ -299,11 +301,615 @@
     "causal_metrics": {
       "sufficiency_score": 0.35,
       "necessity_score": 0.635,
-      "hydra_mitigated": true
+      "hydra_mitigated": true,
+      "target": null,
+      "target_tokens": [],
+      "sufficiency_effect": null,
+      "necessity_effect": null,
+      "null_neurons": null,
+      "pairs_scored": null
     },
     "metrics": null,
     "policy": null,
     "joint_ablation": null,
+    "environment": null,
+    "explanation_scores": {
+      "slug": "Qwen--Qwen2.5-0.5B/L17/N4410-positive",
+      "explanation": "Python 'return' keyword inside a function body.",
+      "threshold": 0.7095,
+      "window_tokens": 32,
+      "quantiles": 5,
+      "quantile_edges": [
+        0.851,
+        1.135,
+        1.419,
+        1.987
+      ],
+      "seed": 0,
+      "corpus": "synthetic",
+      "corpus_sha256": null,
+      "candidate_windows": 4000,
+      "active_windows": 133,
+      "judge_model": "example-fixture",
+      "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "detection": {
+        "balanced_accuracy": 0.8,
+        "true_positive_rate": 0.6,
+        "false_positive_rate": 0.0,
+        "recall_by_quantile": [
+          0.5,
+          1.0,
+          0.5,
+          0.0,
+          1.0
+        ]
+      },
+      "fuzzing": null,
+      "embedding_auroc": 0.92,
+      "detection_windows": [
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.579
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.037,
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.034
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.239,
+            0.177,
+            0.07,
+            0.189,
+            0.164,
+            2.357,
+            0.203,
+            0.125
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.494
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.007,
+            0.02,
+            0.002,
+            0.004,
+            0.04,
+            0.284,
+            0.014,
+            0.029
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.123
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.367,
+            0.068,
+            0.269,
+            0.387,
+            0.023,
+            2.251,
+            0.338,
+            0.137
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.443
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.024,
+            0.018,
+            0.007,
+            0.019,
+            0.016,
+            0.236,
+            0.02,
+            0.013
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.063
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.357
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.037,
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.398
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.239,
+            0.177,
+            0.07,
+            0.189,
+            0.164,
+            2.357,
+            0.203,
+            0.125
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.418
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.007,
+            0.02,
+            0.002,
+            0.004,
+            0.04,
+            0.284,
+            0.014,
+            0.029
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.107
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.367,
+            0.068,
+            0.269,
+            0.387,
+            0.023,
+            2.251,
+            0.338,
+            0.137
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.211
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.024,
+            0.018,
+            0.007,
+            0.019,
+            0.016,
+            0.236,
+            0.02,
+            0.013
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.127
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.557
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.037,
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.224
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.239,
+            0.177,
+            0.07,
+            0.189,
+            0.164,
+            2.357,
+            0.203,
+            0.125
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.21
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.007,
+            0.02,
+            0.002,
+            0.004,
+            0.04,
+            0.284,
+            0.014,
+            0.029
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.055
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.367,
+            0.068,
+            0.269,
+            0.387,
+            0.023,
+            2.251,
+            0.338,
+            0.137
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.599
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.024,
+            0.018,
+            0.007,
+            0.019,
+            0.016,
+            0.236,
+            0.02,
+            0.013
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.073
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.519
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.037,
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.363
+        }
+      ],
+      "fuzzing_windows": []
+    },
     "notes": "Synthetic example record (not a real audit)."
   }
 }

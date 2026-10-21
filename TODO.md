@@ -4,7 +4,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Protocol and science
 
-- [ ] Rescan L11/N4255+ so it gets a confound profile and correlated neurons (protocol v0.3); its current submission predates them and fails `beats_confound_baseline`.
 - [ ] Re-audit Qwen2.5-0.5B L11/N4255+ with ≥ 512-token windows, a narrowed hypothesis ("*including* / *e.g.* after a category noun") and an independent reviewer model.
 - [ ] Scan both poles by default and show them together on neuron pages.
 - [ ] Positive control: audit known induction heads or other well-documented units and confirm the protocol VERIFIES them.
@@ -20,7 +19,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
 
-- [ ] Cheaper explanation scores alongside simulation: *detection* (a judge picks which held-out windows activate the pole, given only the explanation), *fuzzing* (the judge decides whether the highlighted tokens in a window are the ones that activate it) and *embedding* retrieval, as in Delphi (Paulo et al., 2025, `EleutherAI/delphi`). Score them on windows the proposer never saw, sampled across activation quantiles as well as from the top. These are much cheaper than per-token simulation, so they could run on every record.
 - [ ] Input attribution for the pole: which context tokens drive it, measured with integrated gradients over the input embeddings (Sundararajan et al., 2017; `captum`'s `LayerIntegratedGradients`) and checked by ablating context positions one at a time. This separates "fires on the current token" from "fires because of something 50 tokens back". The result feeds the confound profile and gives the reviewer the context to vary in probes.
 - [ ] Tuned lens (Belrose et al., 2023) as a third vocabulary lens next to the logit and Jacobian lenses. Use pretrained lenses where they exist (`tuned-lens` ships them for GPT-2, Pythia and some Llama models) and train them for Qwen2.5-0.5B (cheap: one affine map per layer). Record how far it agrees with the Jacobian lens.
 - [ ] Verbalise the pole's output direction with a Patchscope or SelfIE prompt (Ghandeharioun et al., 2024; Chen et al., 2024). Inject `w_out`, scaled, into an inspection prompt and record the decoded text. Where a trained Activation Oracle exists for the model (Karvonen et al., 2025), record its answer too. Both are blind, example-free descriptions: use them as an extra proposer baseline (does the oracle's description verify as often as the agent's?), and never show them to the reviewer.
@@ -41,7 +39,6 @@ Methods from the wider interpretability literature that the registry doesn't use
 
 ## Pipeline
 
-- [ ] `openinterp audit`: configurable window length and stride, so long documents are scanned as overlapping ≥ 512-token windows instead of one truncated snippet. (Hugging Face dataset input is done: `openinterp corpus`.)
 - [ ] A `supersedes` field on submissions to link revisions to the record they replace.
 - [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
 - [ ] `openinterp loop`: run experiments back to back from the Python CLI, with no Claude Code session driving them, so the loop works wherever `openinterp` is installed (including `uvx openinterp` once it is on PyPI) and `scripts/experiment-loop.sh` can become a thin wrapper or go away. What each iteration does:

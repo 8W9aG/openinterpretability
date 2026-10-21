@@ -11,15 +11,10 @@ from __future__ import annotations
 import re
 from typing import Annotated, Literal
 
-from pydantic import (
-    AwareDatetime,
-    BaseModel,
-    ConfigDict,
-    Discriminator,
-    Field,
-    Tag,
-    model_validator,
-)
+from pydantic import AwareDatetime, Discriminator, Field, Tag, model_validator
+
+from openinterp.core.explanation import ExplanationScores
+from openinterp.core.strict import StrictModel, UnitFloat
 
 Pole = Literal["positive", "negative"]
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
@@ -28,12 +23,6 @@ SelectionMethod = Literal["random", "attribution", "manual"]
 CausalTarget = Literal["claimed_tokens", "next_token_kl"]
 
 PROTOCOL_VERSION = "0.5"
-
-UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
-
-
-class StrictModel(BaseModel):
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 
 class _Component(StrictModel):
@@ -240,7 +229,15 @@ class ExperimentProvenance(StrictModel):
     corpus_sha256: str | None = None
     n_snippets: int = Field(ge=0)
     tokens_scanned: int = Field(ge=0)
-    snippet_tokens: int | None = Field(default=None, gt=0)
+    snippet_tokens: int | None = Field(
+        default=None,
+        gt=0,
+        description="Window length when documents were scanned as overlapping windows; "
+        "None when each was scanned whole.",
+    )
+    snippet_stride: int | None = Field(
+        default=None, gt=0, description="Tokens between the starts of consecutive windows."
+    )
     selection: SelectionMethod = Field(
         description="How the neuron was chosen; only 'random' gives unbiased registry statistics."
     )
@@ -447,6 +444,7 @@ class VerificationVerdict(StrictModel):
     policy: ReviewPolicy | None = None
     joint_ablation: JointAblation | None = None
     environment: RunEnvironment | None = None
+    explanation_scores: ExplanationScores | None = None
     notes: str = ""
 
 

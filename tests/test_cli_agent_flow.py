@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 from click.testing import CliRunner
 
+from openinterp.agents.judge import ScoringTask
 from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft
 from openinterp.agents.reviewer import AdversarialProbe, ProbeSet
 from openinterp.cli import cli
@@ -45,6 +46,20 @@ def run(*args):
     return result
 
 
+def test_audit_scans_windows_and_records_them(flow):
+    run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+        "--window-tokens", 4, "--evidence-out", "ev.json")  # fmt: skip
+    evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
+    prov = evidence.provenance
+    assert (prov.snippet_tokens, prov.snippet_stride) == (4, 2)  # stride defaults to half
+    assert prov.tokens_scanned == sum(len(t) for t in TEXTS)
+    assert all(len(ex.tokens) <= 4 for ex in evidence.top_examples)
+
+    args = ["audit", "--model", "toy", "--random", "--stride", "2", "--evidence-out", "ev.json"]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code != 0 and "--stride needs --window-tokens" in result.output
+
+
 def test_proposer_and_reviewer_answer_files(flow):
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip
@@ -74,11 +89,24 @@ def test_proposer_and_reviewer_answer_files(flow):
         ]
     )
     (flow.path / "review.probes.json").write_text(probes.model_dump_json())
+    (flow.path / "heldout.txt").write_text("\n".join(t[::-1] + " abc" for t in TEXTS))
+    run("score", "--audit-file", "sub.json", "--corpus", "heldout.txt", "--window-tokens", 4,
+        "--emit-task", "score.task.json")  # fmt: skip
+    task = ScoringTask.model_validate_json((flow.path / "score.task.json").read_text())
+    (flow.path / "score.detection.json").write_text('{"active": [1]}')
+    (flow.path / "score.fuzzing.json").write_text('{"correct": []}')
+    run("score", "--task", "score.task.json", "--judge-model", "external/judge",
+        "--embedding-model", "")  # fmt: skip
     run("review", "--audit-file", "sub.json", "--probes", "review.probes.json",
-        "--agent-model", "external/reviewer", "--wiki-dir", "wiki")  # fmt: skip
+        "--agent-model", "external/reviewer", "--explanation-scores", "score.scores.json",
+        "--wiki-dir", "wiki")  # fmt: skip
     (record_path,) = (flow.path / "wiki" / "experiments").rglob("*.json")
     record = AuditRecord.model_validate_json(record_path.read_text())
     assert record.verdict.reviewer_agent_model == "external/reviewer"
+    scores = record.verdict.explanation_scores
+    assert scores.judge_model == "external/judge" and len(scores.detection_windows) == len(
+        task.detection
+    )
     assert [r.prompt for r in record.verdict.adversarial_test_results][: len(probes.probes)] == [
         p.text for p in probes.probes
     ]
@@ -90,6 +118,10 @@ def test_proposer_and_reviewer_answer_files(flow):
         (["audit", "--evidence", "x.json"], "go together"),
         (["audit", "--evidence", "x.json", "--hypothesis", "x.json"], "--agent-model is required"),
         (["review", "--audit-file", "x.json", "--probes", "x.json"], "--agent-model is required"),
+        (
+            ["review", "--audit-file", "x.json", "--probes", "x.json", "--agent-model", "r"],
+            "--explanation-scores is required",
+        ),
     ],
 )
 def test_answer_files_need_a_recorded_model(flow, args, message):

@@ -10,8 +10,10 @@ revision and dtype the record pins, every measurement its verdict rests on:
    (no LLM calls): every probe's activation and pass/fail, every gate and the status.
 
 Numbers must agree within ``atol × scale + rtol × |recorded|``. Anything the decision
-rule reads (pass/fail, gates, status) must agree exactly. Causal metrics and joint
-ablation are reported but not gated, so a difference there is only a warning.
+rule reads (pass/fail, gates, status) must agree exactly. Causal metrics, joint
+ablation and explanation scores are reported but not gated, so a difference there is
+only a warning. Explanation scores are re-derived from re-measured windows and the
+judge's stored answers; the judge and embedding model are not re-run.
 
 A record judged under another protocol version can't be reproduced by this harness:
 its decision rule was different. Re-evaluate it instead (`openinterp reevaluate`).
@@ -151,7 +153,37 @@ def reproduce_record(
         sub, runner, probes_from_verdict(verdict), verdict.reviewer_agent_model, verdict.policy
     )
     _compare_verdicts(verdict, redo, tolerance, scale, report)
+
+    # 4. Explanation scores (reported, not gated): re-measure the windows, keep the answers.
+    if verdict.explanation_scores is not None:
+        _compare_explanation_scores(
+            verdict.explanation_scores, runner, ident, tolerance, scale, report
+        )
     return report
+
+
+def _compare_explanation_scores(
+    old, runner, ident, tolerance: Tolerance, scale: float, report
+) -> None:
+    from openinterp.harness.explanation_scores import remeasure
+
+    new = remeasure(old, runner, ident)
+    for kind in ("detection", "fuzzing"):
+        pairs = zip(getattr(old, f"{kind}_windows"), getattr(new, f"{kind}_windows"), strict=True)
+        for n, (a, b) in enumerate(pairs, 1):
+            report.compared += 1
+            same = len(a.activations) == len(b.activations) and all(
+                tolerance.close(x, y, scale)
+                for x, y in zip(a.activations, b.activations, strict=True)
+            )
+            if not same or a.label != b.label:
+                report.warnings.append(
+                    f"explanation scores: {kind} window {n} re-measures differently "
+                    f"(label {a.label} -> {b.label})"
+                )
+    for name in ("detection", "fuzzing", "embedding_auroc"):
+        if getattr(old, name) != getattr(new, name):
+            report.warnings.append(f"explanation scores: {name} differs (recorded, not gated)")
 
 
 def _compare_environment(record: AuditRecord, now: RunEnvironment, report) -> None:

@@ -82,6 +82,15 @@ wiki_option = click.option(
 )
 
 
+explanation_scores_option = click.option(
+    "--explanation-scores",
+    "scores_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="ExplanationScores JSON from `openinterp score` for this explanation, recorded in "
+    "the verdict (reported, not gated).",
+)
+
+
 def _skip_wiki(wiki_dir) -> bool:
     return not str(wiki_dir) or str(wiki_dir) == "."
 
@@ -128,140 +137,6 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option(
-    "--model",
-    "model_name",
-    help="Hugging Face repo, e.g. Qwen/Qwen2.5-0.5B. Required unless --evidence.",
-)
-@click.option("--layer", type=int, help="Required unless --random.")
-@click.option("--neuron", type=int, help="Required unless --random.")
-@click.option("--pole", type=click.Choice(["positive", "negative"]), help="Default: positive.")
-@click.option(
-    "--random",
-    "random_pick",
-    is_flag=True,
-    help="Sample unspecified layer/neuron/pole uniformly (the unbiased selection method).",
-)
-@click.option("--seed", type=int, help="Seed for --random (recorded in provenance).")
-@click.option(
-    "--corpus",
-    type=click.Path(exists=True, path_type=Path),
-    help="Text file (one snippet per line) or .jsonl with a 'text' field.",
-)
-@click.option("--top-k", default=20, show_default=True, help="Examples shown to the proposer.")
-@click.option(
-    "--agent-model",
-    default=None,
-    help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file. "
-    "With --hypothesis, the name recorded for whoever wrote it (e.g. external/claude-opus-5-5).",
-)
-@click.option(
-    "--evidence-out",
-    type=click.Path(dir_okay=False, path_type=Path),
-    help="Scan only: write the evidence to this JSON file and the proposer's prompt next to "
-    "it (<name>.prompt.md), then exit. Answer the prompt, then run with --evidence.",
-)
-@click.option(
-    "--evidence",
-    "evidence_file",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="Evidence from --evidence-out; skips the scan. Requires --hypothesis.",
-)
-@click.option(
-    "--hypothesis",
-    "hypothesis_file",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
-)
-@click.option(
-    "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
-)
-@with_model_options
-def audit(
-    model_name,
-    layer,
-    neuron,
-    pole,
-    random_pick,
-    seed,
-    corpus,
-    top_k,
-    agent_model,
-    evidence_out,
-    evidence_file,
-    hypothesis_file,
-    out,
-    device,
-    dtype,
-):
-    """Scan a neuron pole, get a hypothesis from the proposer, and write a submission.
-
-    \b
-    In one step, the proposer is an LLM (or external/<name>, answered via exchange/).
-    In two steps, any agent can propose without an API key or a waiting process:
-      openinterp audit --model M --random --evidence-out ev.json
-      (answer ev.prompt.md by writing ev.hypothesis.json)
-      openinterp audit --evidence ev.json --hypothesis ev.hypothesis.json \\
-        --agent-model external/<model that wrote it>
-    """
-    from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
-    from openinterp.cli_evidence import scan_evidence, write_evidence
-    from openinterp.core.schemas import ScanEvidence
-
-    if (evidence_file is None) != (hypothesis_file is None):
-        raise click.UsageError("--evidence and --hypothesis go together.")
-    if evidence_file is not None:
-        if evidence_out is not None:
-            raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
-        if not agent_model:
-            raise click.UsageError(
-                "--agent-model is required with --hypothesis: name the model that wrote it."
-            )
-        evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
-        draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
-        runner = _load_runner(evidence.identifier.model_name, device, dtype)
-        agent = ProposerAgent(agent_model)
-    else:
-        if model_name is None:
-            raise click.UsageError("--model is required unless --evidence is given.")
-        runner = _load_runner(model_name, device, dtype)
-        evidence = scan_evidence(
-            runner, model_name, layer, neuron, pole, random_pick, seed, corpus, top_k, dtype
-        )
-        if evidence_out is not None:
-            write_evidence(evidence, evidence_out)
-            return
-        agent = ProposerAgent(agent_model or DEFAULT_MODEL)
-        click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
-        draft = agent.propose(
-            evidence.identifier,
-            evidence.top_examples,
-            evidence.vocabulary_lens,
-            evidence.confounds,
-            evidence.correlated_neurons,
-        )
-
-    ident = evidence.identifier
-    submission = agent.build_submission(
-        ident,
-        draft,
-        runner=runner,
-        examples=evidence.top_examples,
-        histogram=evidence.activation_histogram,
-        provenance=evidence.provenance,
-        confounds=evidence.confounds,
-        correlated=evidence.correlated_neurons,
-        vocabulary_lens=evidence.vocabulary_lens,
-    )
-    out = out or Path("submissions") / f"{ident.slug}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(submission.model_dump_json(indent=2))
-    click.echo(f"Hypothesis: {submission.natural_language_explanation}")
-    click.echo(f"Wrote {out}")
-
-
-@cli.command()
 @click.option("--audit-file", required=True, type=click.Path(exists=True, path_type=Path))
 @click.option(
     "--agent-model",
@@ -284,15 +159,40 @@ def audit(
     help="ProbeSet JSON answering --emit-prompt. No LLM is called.",
 )
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
+@explanation_scores_option
+@click.option(
+    "--corpus",
+    type=click.Path(exists=True, path_type=Path),
+    help="Without --explanation-scores: the scan's corpus, to score the explanation on.",
+)
+@click.option(
+    "--judge-model", help="Without --explanation-scores: the judge (default: the reviewer)."
+)
 @wiki_option
 @with_model_options
 def verify(
-    audit_file, agent_model, n_probes, emit_prompt, probes_file, out, wiki_dir, device, dtype
+    audit_file,
+    agent_model,
+    n_probes,
+    emit_prompt,
+    probes_file,
+    out,
+    scores_file,
+    corpus,
+    judge_model,
+    wiki_dir,
+    device,
+    dtype,
 ):
-    """Adversarially review a submission and post it as a new experiment."""
+    """Adversarially review a submission and post it as a new experiment.
+
+    Every review records explanation scores on held-out text (`openinterp score`). Pass
+    them with --explanation-scores; in one step (no --probes), they are measured here.
+    """
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
+    from openinterp.cli_score import load_scores, score_submission
     from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
 
     raw = audit_file.read_text()
@@ -313,6 +213,12 @@ def verify(
         raise click.UsageError(
             "--agent-model is required with --probes: name the model that wrote them."
         )
+    if scores_file is None and (probes_file is not None or corpus is None):
+        raise click.UsageError(
+            "--explanation-scores is required (from `openinterp score`, docs/PROTOCOL.md §4); "
+            "without --probes, --corpus <the scan's corpus> also works."
+        )
+    scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     if reviewer.model == submission.submitting_agent_model:
         click.echo("warning: reviewer and submitter use the same model", err=True)
@@ -322,7 +228,10 @@ def verify(
         click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
         probes = reviewer.generate_probes(submission, n=n_probes).probes
     runner = _load_runner(submission.identifier.model_name, device, dtype)
+    if scores is None:  # one step: score here, on the scan's corpus (checked above)
+        scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
+    verdict = verdict.model_copy(update={"explanation_scores": scores})
 
     record = AuditRecord(submission=submission, verdict=verdict)
     click.echo(f"{verdict.status} (confidence {verdict.confidence_score:.2f}) — {verdict.notes}")
@@ -336,14 +245,16 @@ cli.add_command(verify, name="review")
 @cli.command()
 @click.option("--record", required=True, type=click.Path(exists=True, path_type=Path))
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the new record here.")
+@explanation_scores_option
 @wiki_option
 @with_model_options
-def reevaluate(record, out, wiki_dir, device, dtype):
+def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     """Re-measure a record's stored probes under the current ReviewPolicy (no LLM calls).
 
     The result is a new experiment; the original record is never modified.
     """
     from openinterp.agents.reviewer import evaluate_submission, probes_from_verdict
+    from openinterp.cli_score import load_scores
     from openinterp.core.schemas import AuditRecord
 
     if _skip_wiki(wiki_dir) and out is None:
@@ -351,10 +262,12 @@ def reevaluate(record, out, wiki_dir, device, dtype):
     old = AuditRecord.model_validate_json(record.read_text())
     if old.verdict is None:
         raise click.ClickException(f"{record} has no verdict to re-evaluate.")
+    scores = load_scores(scores_file, old.submission)
     runner = _load_runner(old.submission.identifier.model_name, device, dtype)
     verdict = evaluate_submission(
         old.submission, runner, probes_from_verdict(old.verdict), old.verdict.reviewer_agent_model
     )
+    verdict = verdict.model_copy(update={"explanation_scores": scores})
     new = AuditRecord(submission=old.submission, verdict=verdict)
     click.echo(f"{old.verdict.status} -> {verdict.status} — {verdict.notes}")
     _write_wiki(old, wiki_dir, kind="backfill")  # no-op when the original is already archived
@@ -438,7 +351,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 
 
 # Registers the registry-maintenance commands on `cli`.
-from openinterp import cli_corpus, cli_registry  # noqa: E402, F401
+from openinterp import cli_corpus, cli_evidence, cli_registry, cli_score  # noqa: E402, F401
 
 
 def main() -> None:

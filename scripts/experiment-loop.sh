@@ -94,10 +94,12 @@ describes and note it in the PR description.
   <model …> placeholder in the planner's commands. If the draw needs a reviewer
   different from the record's proposer and $REVIEWER is the same model, re-draw once
   as the skill allows and say why in the PR.
-- Corpus: add --corpus $CORPUS to every \`openinterp audit\`.
+- Corpus: add --corpus $CORPUS to every \`openinterp audit\`, \`openinterp score\` and
+  \`openinterp verify\` (verify scores the explanation on held-out text from it).
 - If a model is external/<name>, use the two-step flow in the skill's "Proposer and
-  reviewer without API keys" section, with the neuron-proposer and neuron-reviewer
-  subagents answering the prompts. Record the model IDs they report.
+  reviewer without API keys" section, with the neuron-proposer, neuron-reviewer and
+  explanation-judge subagents answering the prompts. Every review needs explanation
+  scores. Record the model IDs they report.
 - Post the result whatever the verdict, then land it as land-experiment describes: build,
   wait for green checks, and merge only if every merge condition holds; otherwise leave
   the PR open with a comment saying why. If you have to abandon it, close the PR with
