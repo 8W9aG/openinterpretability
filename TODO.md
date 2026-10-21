@@ -124,7 +124,6 @@ At the moment CI's "Experiment records" job (`openinterp check`) only confirms t
 
 Experiment pages currently show the activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] Probe results chart on each experiment: every positive, hard-negative and holdout probe as a dot on one activation axis, with the reviewer's threshold drawn as a line, so you can see at a glance why it passed or failed.
 - [ ] Causal effects chart: ablation/patching scores per probe pair as bars, next to the baseline they must beat (`beats_confound_baseline`).
 - [ ] Vocabulary projection bars: the top and bottom tokens the neuron promotes and suppresses (Jacobian and logit lens), replacing the current token lists.
 - [ ] Steering samples: the same prompt continued with the neuron clamped high, at baseline and ablated, side by side.

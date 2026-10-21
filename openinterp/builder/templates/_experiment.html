@@ -212,6 +212,45 @@
       {% if verdict.policy %}· protocol v{{ verdict.policy.protocol_version }}{% endif %}
     </p>
     {% endif %}
+    {% if v.probes %}
+    {% set pc = v.probes %}
+    <figure class="mb-6">
+      <div class="overflow-x-auto">
+      <svg viewBox="0 0 {{ pc.width }} {{ pc.height }}" class="w-full min-w-[520px]" role="img" aria-label="Probe strengths against the activation threshold: {% for row in pc.rows %}{{ row.passed }} of {{ row.n }} {{ row.label | lower }} passed{{ '; ' if not loop.last else '' }}{% endfor %}. Values are in the table below.">
+        <rect x="{{ pc.threshold_x }}" y="{{ pc.top }}" width="{{ pc.right - pc.threshold_x }}" height="{{ pc.axis_y - pc.top }}" class="fill-slate-100 dark:fill-slate-900"/>
+        {% for row in pc.rows %}
+        <text x="0" y="{{ row.y - 2 }}" class="fill-slate-700 dark:fill-slate-300" font-size="12">{{ row.label }}</text>
+        <text x="0" y="{{ row.y + 13 }}" class="fill-slate-500" font-size="11">{{ row.passed }}/{{ row.n }} {{ row.expect }}</text>
+        <line x1="{{ pc.left }}" y1="{{ row.y }}" x2="{{ pc.right }}" y2="{{ row.y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
+        {% endfor %}
+        <line x1="{{ pc.threshold_x }}" y1="{{ pc.top - 6 }}" x2="{{ pc.threshold_x }}" y2="{{ pc.axis_y }}" class="stroke-slate-500" stroke-width="1.5"/>
+        <text x="{{ pc.threshold_x + 4 }}" y="{{ pc.top - 10 }}" class="fill-slate-600 dark:fill-slate-400" font-size="11">threshold {{ pc.threshold | num(2) }} ({{ pc.threshold_frac | pct }} of max) → active</text>
+        {% for row in pc.rows %}{% for d in row.dots %}
+        <g>
+          <title>{{ d.label }}</title>
+          <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="10" fill="transparent"/>
+          {% if d.passed %}
+          <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="{{ pc.r }}" class="fill-emerald-500 stroke-white dark:stroke-slate-950" stroke-width="2"/>
+          {% else %}
+          <path d="M{{ d.cx - 4 }} {{ d.cy - 4 }}L{{ d.cx + 4 }} {{ d.cy + 4 }}M{{ d.cx + 4 }} {{ d.cy - 4 }}L{{ d.cx - 4 }} {{ d.cy + 4 }}" class="stroke-white dark:stroke-slate-950" stroke-width="5" stroke-linecap="round"/>
+          <path d="M{{ d.cx - 4 }} {{ d.cy - 4 }}L{{ d.cx + 4 }} {{ d.cy + 4 }}M{{ d.cx + 4 }} {{ d.cy - 4 }}L{{ d.cx - 4 }} {{ d.cy + 4 }}" class="stroke-rose-600 dark:stroke-rose-400" stroke-width="2.5" stroke-linecap="round"/>
+          {% endif %}
+        </g>
+        {% endfor %}{% endfor %}
+        <line x1="{{ pc.left }}" y1="{{ pc.axis_y + 0.5 }}" x2="{{ pc.right }}" y2="{{ pc.axis_y + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
+        {% for tx, label, anchor in [(pc.zero_x, "0", "middle"), (pc.max_x, "max " ~ (pc.scale | num(2)), "end" if pc.max_x > pc.right - 40 else "middle")] %}
+        <line x1="{{ tx }}" y1="{{ pc.axis_y }}" x2="{{ tx }}" y2="{{ pc.axis_y + 4 }}" class="stroke-slate-400" stroke-width="1"/>
+        <text x="{{ tx }}" y="{{ pc.axis_y + 16 }}" text-anchor="{{ anchor }}" class="fill-slate-500 font-mono" font-size="11">{{ label }}</text>
+        {% endfor %}
+      </svg>
+      </div>
+      <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+        <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="fill-emerald-500"/></svg> passed</span>
+        <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><path d="M2 2L10 10M10 2L2 10" class="stroke-rose-600 dark:stroke-rose-400" stroke-width="2.5" stroke-linecap="round"/></svg> failed</span>
+        <span>Peak {{ ident.pole }}-pole strength of each probe; the shaded side of the line counts as active. Hover a dot for its prompt.</span>
+      </figcaption>
+    </figure>
+    {% endif %}
     <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-sm">
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
