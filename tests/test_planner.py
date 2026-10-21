@@ -70,6 +70,8 @@ def test_candidates_follow_verdicts(tmp_path, record):
     assert ("opposite_pole", "N3-negative") in kinds
     revise = next(c for c in plan.candidates if c.kind == "revise")
     assert "sensitivity" in revise.rationale
+    supersedes = revise.commands[0].split(" --pole positive --supersedes ")[1]
+    assert supersedes.endswith("N1-positive/20261001T120000Z.json")
 
 
 def test_opposite_pole_skipped_when_studied(tmp_path, record):

@@ -24,6 +24,9 @@ class Experiment:
     id: str
     is_latest: bool  # newest experiment for this neuron pole
     reuses: str | None = None  # id of an earlier experiment with the same probe set
+    # Revision links (``supersedes``) point both ways, so keep them out of repr and ==.
+    revises: Experiment | None = field(default=None, repr=False, compare=False)
+    revised_by: list[Experiment] = field(default_factory=list, repr=False, compare=False)
 
     @property
     def independent(self) -> bool:
@@ -229,6 +232,7 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
+        _link_revisions(node.experiments)
         node.experiments.sort(key=experiment_order)
         model = models[name]
         if not model.layers or model.layers[-1].layer != layer_idx:
@@ -250,6 +254,15 @@ def _mark_reuse(experiments: list[Experiment]) -> None:
             e.reuses = first[key]
         else:
             first.setdefault(key, e.id)
+
+
+def _link_revisions(experiments: list[Experiment]) -> None:
+    by_key = {(e.side, e.id): e for e in experiments}
+    for e in sorted(experiments, key=lambda e: e.record.verdict.timestamp):
+        target = by_key.get((e.side, e.record.submission.supersedes))
+        if target is not None:
+            e.revises = target
+            target.revised_by.append(e)
 
 
 def false_discovery(models: Sequence[ModelNode]) -> dict:

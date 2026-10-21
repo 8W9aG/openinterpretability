@@ -50,6 +50,38 @@ def test_many_experiments_per_neuron(repo, record):
     assert (report.records, report.pages) == (3, 3)
 
 
+def _revision(record, revises, hours=1):
+    later = _later(record, hours)
+    sub = later.submission.model_copy(update={"supersedes": revises})
+    return later.model_copy(update={"submission": sub})
+
+
+def test_revision_links_an_earlier_experiment(repo, record):
+    first = page_of(repo).stem
+    page = write_experiment_page(_revision(record, first), repo / "wiki")
+    assert check_registry(base_ref="main").ok
+    text = page.read_text()
+    assert f'supersedes: "{first}"' in text and f"| Revises | [{first}]({first}.md) |" in text
+    write_experiment_page(_revision(record, None, hours=2), repo / "wiki")  # rebuild the index
+    neuron = (page.parent / "README.md").read_text()
+    assert f"revises [{first}]({first}.md)" in neuron
+
+
+@pytest.mark.parametrize(
+    "revises, message",
+    [("20990101T000000Z", "not an earlier experiment"), ("20000101T000000Z", "no such experiment")],
+)
+def test_revision_must_name_an_earlier_experiment_on_the_unit(repo, record, revises, message):
+    write_experiment_page(_revision(record, revises), repo / "wiki")
+    assert message in messages(check_registry())
+
+
+def test_page_and_record_agree_on_supersedes(repo):
+    page = page_of(repo)
+    page.write_text(page.read_text().replace("---\n", '---\nsupersedes: "x"\n', 1))
+    assert "front matter supersedes" in messages(check_registry())
+
+
 def test_record_without_page(repo):
     page_of(repo).unlink()
     assert "has no page" in messages(check_registry())

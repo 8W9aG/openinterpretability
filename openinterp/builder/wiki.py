@@ -169,6 +169,8 @@ def write_experiment_page(
         "proposer": sub.submitting_agent_model,
         "reviewer": verdict.reviewer_agent_model,
     }
+    if sub.supersedes:
+        meta["supersedes"] = sub.supersedes
     body = (
         _environment()
         .get_template("experiment.md")

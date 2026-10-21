@@ -162,6 +162,18 @@ def test_parquet_has_every_experiment(tmp_path, records):
     assert nulls == (2,)
 
 
+def test_revisions_linked_both_ways(tmp_path, records):
+    verified = records[1]  # revises records[0], the early attempt on N117+
+    sub = verified.submission.model_copy(update={"supersedes": "20261001T120000Z"})
+    records[1] = verified.model_copy(update={"submission": sub})
+    compile_site(records, tmp_path)
+    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert 'Revises <a class="font-mono underline" href="#positive-20261001T120000Z">' in neuron
+    assert 'Revised by <a class="font-mono underline" href="#positive-20261001T140000Z">' in neuron
+    rows = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
+    assert sorted(r["supersedes"] or "" for r in rows) == ["", "", "", "20261001T120000Z"]
+
+
 def test_empty_registry_builds(tmp_path):
     report = compile_site([], tmp_path)
     assert report.experiments_published == 0

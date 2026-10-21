@@ -180,6 +180,34 @@ def test_rereviewing_a_record_keeps_only_the_new_review_costs(flow, toy_runner):
     assert not {"scan", "proposer"} & set(stages)  # the audit was another experiment's
 
 
+def test_audit_records_the_experiment_it_supersedes(flow, record):
+    from openinterp.builder.wiki import archive_record
+
+    run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+        "--evidence-out", "ev.json")  # fmt: skip
+    (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
+    evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
+    same = record.model_copy(
+        update={
+            "submission": record.submission.model_copy(update={"identifier": evidence.identifier})
+        }
+    )
+    old = archive_record(same, flow.path / "wiki")
+    step = ["audit", "--evidence", "ev.json", "--hypothesis", "ev.hypothesis.json",
+            "--agent-model", "external/proposer", "--out", "sub.json"]  # fmt: skip
+    result = run(*step, "--supersedes", old)
+    assert "Supersedes: 20261001T120000Z (VERIFIED)" in result.output
+    sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
+    assert sub.supersedes == "20261001T120000Z"
+
+    other = archive_record(record, flow.path / "other")  # another unit
+    result = CliRunner().invoke(cli, [*step, "--supersedes", str(other)])
+    assert result.exit_code != 0 and "names an experiment on" in result.output
+    result = CliRunner().invoke(cli, ["audit", "--model", "toy", "--random", "--evidence-out",
+                                      "ev.json", "--supersedes", str(old)])  # fmt: skip
+    assert result.exit_code != 0 and "--supersedes goes on the step" in result.output
+
+
 @pytest.mark.parametrize(
     "args, message",
     [
