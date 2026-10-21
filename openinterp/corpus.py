@@ -44,6 +44,15 @@ PRESETS = {
     "fineweb-edu": Preset("HuggingFaceFW/fineweb-edu", "sample/10BT/*.parquet"),
     # The first 10k Pile documents; the registry's original corpus.
     "pile-10k": Preset("NeelNanda/pile-10k", "data/*.parquet"),
+    # The Pile without Books3, BookCorpus2, OpenSubtitles, YTSubtitles and OWT2: ~90x
+    # pile-10k's documents, for rare concepts. The main branch is zstd JSONL, so read the
+    # Hub's Parquet conversion (its first 891,748 training documents). Licence "other": each
+    # Pile component keeps its own terms.
+    "pile-uncopyrighted": Preset(
+        "monology/pile-uncopyrighted",
+        "default/partial-train/*.parquet",
+        revision="refs/convert/parquet",
+    ),
     # C4 English validation split: the standard web baseline of the SAE literature. The
     # main branch is gzipped JSON, so read the Hub's Parquet conversion. ODC-By.
     "c4": Preset("allenai/c4", "en/partial-validation/*.parquet", revision="refs/convert/parquet"),
