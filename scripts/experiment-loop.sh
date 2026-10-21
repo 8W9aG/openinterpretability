@@ -28,7 +28,10 @@ Usage: scripts/experiment-loop.sh [options]
   --max-turns N        Turn limit per session, a guard against runaway sessions (default: 200)
   -h, --help           Show this help
 
-Logs go to <repo>/logs/loop/. Set CLAUDE_BIN if `claude` is not on PATH.
+Logs go to <repo>/logs/loop/: per experiment, the session's stderr and result (.log),
+its `claude --output-format json` result (.json), and the costs ledger every openinterp
+command appends to (.costs.jsonl). After each experiment the loop prints what it cost
+and a running total (`openinterp costs`). Set CLAUDE_BIN if `claude` is not on PATH.
 EOF
 }
 
@@ -109,14 +112,39 @@ describes and note it in the PR description.
 EOF
 }
 
-claude_args=(-p --permission-mode acceptEdits --max-turns "$MAX_TURNS")
+claude_args=(-p --output-format json --permission-mode acceptEdits --max-turns "$MAX_TURNS")
 [[ -n $DRIVER ]] && claude_args+=(--model "$DRIVER")
 claude_args+=(--allowedTools "${ALLOWED_TOOLS[@]}") # variadic, so last
+
+# `openinterp costs` from the worktree's checkout, which has the latest harness.
+costs() { (cd "$WORKTREE" && uv run --quiet openinterp costs "$@") || true; }
+
+# The session's final message, from its JSON result.
+session_result() {
+  (cd "$WORKTREE" && uv run --quiet python -c \
+    'import json, sys; print(json.load(open(sys.argv[1])).get("result", ""))' "$1") 2>/dev/null || true
+}
+
+LEDGERS=()
+SESSIONS=()
+report() { # $1: iteration, $2: its ledger, $3: its session result
+  echo "[$1] cost of this experiment:"
+  costs "$2" --session "$3" | sed "s/^/[$1]   /"
+  if [[ ${#LEDGERS[@]} -gt 1 ]]; then
+    local args=("${LEDGERS[@]}") s
+    for s in "${SESSIONS[@]}"; do args+=(--session "$s"); done
+    echo "[$1] running total over ${#LEDGERS[@]} experiments:"
+    costs "${args[@]}" | sed "s/^/[$1]   /"
+  fi
+}
 
 i=0
 while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   i=$((i + 1))
-  log="$LOG_DIR/$(date -u +%Y%m%dT%H%M%SZ)-$i.log"
+  stem="$LOG_DIR/$(date -u +%Y%m%dT%H%M%SZ)-$i"
+  log="$stem.log" ledger="$stem.costs.jsonl" session="$stem.json"
+  LEDGERS+=("$ledger")
+  SESSIONS+=("$session")
   echo "[$i] $(date -u +%FT%TZ) starting; log: $log"
 
   # Every experiment starts from the latest registry, detached so no branch is reused.
@@ -127,7 +155,12 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   fi
   git -C "$WORKTREE" switch --quiet --detach origin/main
 
-  if ! (cd "$WORKTREE" && prompt | "$CLAUDE_BIN" "${claude_args[@]}") >"$log" 2>&1; then
+  status=0
+  (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "$CLAUDE_BIN" "${claude_args[@]}") \
+    >"$session" 2>"$log" || status=$?
+  session_result "$session" >>"$log"
+  report "$i" "$ledger" "$session"
+  if [[ $status -ne 0 ]]; then
     echo "[$i] claude exited with an error (usage limit?); stopping. See $log" >&2
     exit 1
   fi

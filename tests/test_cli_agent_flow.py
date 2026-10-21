@@ -10,6 +10,8 @@ from openinterp.agents.judge import ScoringTask
 from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft
 from openinterp.agents.reviewer import AdversarialProbe, ProbeSet
 from openinterp.cli import cli
+from openinterp.cli_costs import read_ledger
+from openinterp.core.costs import LEDGER_ENV
 from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission, ScanEvidence
 from tests.test_agents import TEXTS
 
@@ -60,7 +62,8 @@ def test_audit_scans_windows_and_records_them(flow):
     assert result.exit_code != 0 and "--stride needs --window-tokens" in result.output
 
 
-def test_proposer_and_reviewer_answer_files(flow):
+def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
+    monkeypatch.setenv(LEDGER_ENV, str(flow.path / "costs.jsonl"))
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip
     evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
@@ -110,6 +113,66 @@ def test_proposer_and_reviewer_answer_files(flow):
     assert [r.prompt for r in record.verdict.adversarial_test_results][: len(probes.probes)] == [
         p.text for p in probes.probes
     ]
+
+    # Every step's costs reach the record: the scan's through the evidence file, the
+    # scores' through the scores file, and the review's own.
+    costs = record.submission.provenance.costs
+    stages = [s.stage for s in costs.stages]
+    judged = ["judge", "judge"] if task.fuzzing else ["judge"]
+    assert stages == ["scan", "lenses", "proposer", "counterfactuals", "heldout_windows",
+                      *judged, "remeasure", "reviewer", "probe_measurement", "gates",
+                      "causal_metrics"]  # fmt: skip
+    assert [c.agent for c in costs.llm_calls] == ["proposer", *judged, "reviewer"]
+    assert all(c.external and c.prompt_chars for c in costs.llm_calls)
+    assert scores.costs is None  # moved into the provenance
+    ledger = read_ledger([flow.path / "costs.jsonl"])
+    assert [e["command"] for e in ledger] == [
+        "audit",
+        "audit",
+        "review",
+        "score",
+        "score",
+        "review",
+    ]
+    summary = run("costs", flow.path / "costs.jsonl").output
+    assert "probe_measurement" in summary and "external: no token counts" in summary
+
+
+def test_rereviewing_a_record_keeps_only_the_new_review_costs(flow, toy_runner):
+    from openinterp.agents.reviewer import evaluate_submission
+
+    run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+        "--evidence-out", "ev.json")  # fmt: skip
+    (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
+    run("audit", "--evidence", "ev.json", "--hypothesis", "ev.hypothesis.json",
+        "--agent-model", "external/proposer", "--out", "sub.json")  # fmt: skip
+    sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
+    assert "scan" in [s.stage for s in sub.provenance.costs.stages]
+    probes = ProbeSet(
+        probes=[
+            AdversarialProbe(text=t, expected_active=i % 3 == 0, rationale="r")
+            for i, t in enumerate(TEXTS * 2)
+        ]  # fmt: skip
+    )
+    old = AuditRecord(
+        submission=sub, verdict=evaluate_submission(sub, toy_runner, probes.probes, "external/r")
+    )
+    (flow.path / "old.json").write_text(old.model_dump_json())
+    (flow.path / "review.probes.json").write_text(probes.model_dump_json())
+    (flow.path / "heldout.txt").write_text("\n".join(t[::-1] + " abc" for t in TEXTS))
+    run("score", "--audit-file", "old.json", "--corpus", "heldout.txt", "--window-tokens", 4,
+        "--emit-task", "score.task.json")  # fmt: skip
+    (flow.path / "score.detection.json").write_text('{"active": [1]}')
+    (flow.path / "score.fuzzing.json").write_text('{"correct": []}')
+    run("score", "--task", "score.task.json", "--judge-model", "external/judge",
+        "--embedding-model", "")  # fmt: skip
+    run("review", "--audit-file", "old.json", "--probes", "review.probes.json",
+        "--agent-model", "external/reviewer2", "--explanation-scores", "score.scores.json",
+        "--wiki-dir", "", "--out", "new.json")  # fmt: skip
+    new = AuditRecord.model_validate_json((flow.path / "new.json").read_text())
+    stages = [s.stage for s in new.submission.provenance.costs.stages]
+    assert stages[0] == "heldout_windows" and "probe_measurement" in stages
+    assert not {"scan", "proposer"} & set(stages)  # the audit was another experiment's
 
 
 @pytest.mark.parametrize(

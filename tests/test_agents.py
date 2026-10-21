@@ -1,6 +1,7 @@
 import json
 import math
 import threading
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -82,6 +83,44 @@ def test_agent_errors_are_wrapped(mocker):
 
     with pytest.raises(AgentError, match="rate limited"):
         Dummy("m", client=client).structured(ProbeSet, "hi")
+
+
+def test_structured_call_records_usage_across_retries(draft):
+    from openinterp.core import costs
+
+    class Client:  # instructor's hooks: one raw LiteLLM response per attempt
+        def __init__(self):
+            self.hooks = []
+            self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+
+        def on(self, name, fn):
+            self.hooks.append(fn)
+
+        def off(self, name, fn):
+            self.hooks.remove(fn)
+
+        def create(self, **kwargs):
+            for cost in (0.01, 0.02):
+                usage = SimpleNamespace(
+                    prompt_tokens=100,
+                    completion_tokens=10,
+                    prompt_tokens_details=SimpleNamespace(cached_tokens=40),
+                )
+                response = SimpleNamespace(usage=usage, _hidden_params={"response_cost": cost})
+                for hook in self.hooks:
+                    hook(response)
+            return draft
+
+    costs.reset()
+    client = Client()
+    ProposerAgent("anthropic/m", client=client).structured(HypothesisDraft, "go")
+    (call,) = costs.measured().llm_calls
+    assert (call.agent, call.model, call.attempts) == ("proposer", "anthropic/m", 2)
+    assert (call.prompt_tokens, call.completion_tokens, call.cached_tokens) == (200, 20, 80)
+    assert call.cost_usd == pytest.approx(0.03)
+    assert call.prompt_chars == len(ProposerAgent.system_prompt) + 2
+    assert [s.stage for s in costs.measured().stages] == ["proposer"]
+    assert client.hooks == []  # unregistered after the call
 
 
 def test_build_submission_measures_evidence(ident, draft, toy_runner):

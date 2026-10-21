@@ -15,6 +15,7 @@ from typing import Any, ClassVar, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from openinterp.core import costs
 from openinterp.core.exceptions import AgentError
 
 T = TypeVar("T", bound=BaseModel)
@@ -35,6 +36,7 @@ class LLMAgent:
     """
 
     system_prompt: ClassVar[str] = ""
+    role: ClassVar[str] = "agent"  # the stage its calls are timed as
 
     def __init__(
         self,
@@ -79,13 +81,27 @@ class LLMAgent:
         )
 
     def structured(self, response_model: type[T], prompt: str) -> T:
-        if self.model.startswith(EXTERNAL_PREFIX):
-            return self._external(response_model, prompt)
+        with costs.stage(self.role):
+            if self.model.startswith(EXTERNAL_PREFIX):
+                result = self._external(response_model, prompt)
+                chars = len(self.system_prompt) + len(prompt)
+                call = costs.LLMCall(
+                    agent=self.role, model=self.model, external=True, prompt_chars=chars
+                )
+                costs.add_call(call)
+                return result
+            return self._completion(response_model, prompt)
+
+    def _completion(self, response_model: type[T], prompt: str) -> T:
         kwargs: dict[str, Any] = {}
         if self.temperature is not None:
             kwargs["temperature"] = self.temperature
+        responses: list[Any] = []  # one raw response per attempt, for usage and cost
+        client, hook = self.client, responses.append
+        if hasattr(client, "on"):  # instructor's hooks; a stub client may lack them
+            client.on("completion:response", hook)
         try:
-            return self.client.chat.completions.create(
+            return client.chat.completions.create(
                 model=self.model,
                 response_model=response_model,
                 max_retries=self.max_retries,
@@ -100,6 +116,18 @@ class LLMAgent:
                 f"{type(self).__name__} ({self.model}) failed to produce "
                 f"{response_model.__name__}: {exc}"
             ) from exc
+        finally:
+            if hasattr(client, "off"):
+                client.off("completion:response", hook)
+            chars = len(self.system_prompt) + len(prompt)
+            costs.add_call(
+                costs.LLMCall(
+                    agent=self.role,
+                    model=self.model,
+                    prompt_chars=chars,
+                    **costs.usage_of(responses),
+                )
+            )
 
     def _external(self, response_model: type[T], prompt: str) -> T:
         """Write the prompt to disk and wait for a valid JSON response from anyone."""

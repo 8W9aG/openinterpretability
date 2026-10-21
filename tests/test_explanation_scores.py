@@ -186,6 +186,9 @@ def test_two_step_scoring_attaches_to_a_review(flow):
     assert scores.detection is not None and scores.fuzzing is not None
     assert scores.embedding_auroc is not None
     assert [w.judged for w in scores.detection_windows][:2] == [True, False]
+    stages = [s.stage for s in scores.costs.stages]  # drawing, then scoring
+    assert stages[:1] == ["heldout_windows"] and {"judge", "embedding", "remeasure"} <= set(stages)
+    assert [(c.agent, c.external) for c in scores.costs.llm_calls] == [("judge", True)] * 2
 
     probes = {"probes": [{"text": t, "expected_active": i < 4, "rationale": "r"}
                          for i, t in enumerate(CORPUS[:10])]}  # fmt: skip
@@ -195,7 +198,8 @@ def test_two_step_scoring_attaches_to_a_review(flow):
         "--wiki-dir", "wiki")  # fmt: skip
     (record_path,) = (flow.path / "wiki" / "experiments").rglob("*.json")
     record = AuditRecord.model_validate_json(record_path.read_text())
-    assert record.verdict.explanation_scores == scores
+    # The scores' costs move into the record's provenance (here there is none to hold them).
+    assert record.verdict.explanation_scores == scores.model_copy(update={"costs": None})
     page = next((flow.path / "wiki" / "experiments").rglob("2*.md")).read_text()
     assert "Explanation scores on held-out text" in page
 

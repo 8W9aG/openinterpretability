@@ -90,11 +90,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
 
-- [ ] Instrument every experiment.
-  - Record wall time per stage (model load, scan, lenses, proposer call, reviewer call, probe measurement, gates, `check`/`test`).
-  - Record token usage and cost per LLM call (LiteLLM returns both).
-  - Store them in the record's `provenance` as reported numbers, never gated.
-  - Have `openinterp loop` / `scripts/experiment-loop.sh` print a per-experiment summary and a running total.
 - [ ] **(protocol)** Bounded scans: `openinterp audit` scans every document in the corpus, so cost grows linearly with it (~15 min for the 500-doc `corpus.jsonl` on CPU), and a larger corpus raises `max_activation` and so the 25% "active" threshold. Scan a fixed-size, seeded sample instead (e.g. `--max-tokens 200000 --sample-seed S`), record the seed, sample size and sample hash in `provenance`, and make `reevaluate`/reproduction re-draw the same sample. Changing what `max_activation` is computed over moves the threshold, so this needs a protocol bump.
 - [ ] Cache scan results per layer: one forward pass already captures the whole layer (`run_with_cache`), so store per-token activations for all of a layer's neurons (with token ids and positions) keyed by model, revision, layer and corpus sample hash, and let later audits in that layer, `next`, and exploratory analysis read the cache instead of re-running the model. Also expose a scan's per-token data so agents don't write their own full-corpus scans for diagnosis.
 - [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.

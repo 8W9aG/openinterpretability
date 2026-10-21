@@ -182,3 +182,11 @@ def toy_runner(toy_model):
 def _no_auto_sign(monkeypatch):
     """Never sign test records with the developer's real key (tests opt back in)."""
     monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
+
+
+@pytest.fixture(autouse=True)
+def _no_costs_ledger(monkeypatch):
+    """Keep test commands out of a loop's real costs ledger (tests opt back in)."""
+    from openinterp.core.costs import LEDGER_ENV
+
+    monkeypatch.delenv(LEDGER_ENV, raising=False)
