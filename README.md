@@ -47,7 +47,7 @@ The record notes whether the reviewer was a different model from the proposer (`
 **A scan corpus.** The built-in corpus is only a smoke test. This samples 500 documents from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) (its 10B-token sample, about a minute, reading only the Parquet row groups it needs; git-ignored):
 
 ```bash
-uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k for the Pile, --seed N for another sample
+uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k or c4 for another corpus, --seed N for another sample
 ```
 
 It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
