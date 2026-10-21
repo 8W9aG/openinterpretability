@@ -119,7 +119,14 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
     assert (source.revision, source.license) == ("conv1", "odc-by")
 
 
-def test_cli_uses_the_presets_revision(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    "preset, dataset, files",
+    [
+        ("c4", "allenai/c4", "en/partial-validation/*.parquet"),
+        ("pile-uncopyrighted", "monology/pile-uncopyrighted", "default/partial-train/*.parquet"),
+    ],
+)
+def test_cli_uses_the_presets_revision(monkeypatch, tmp_path, preset, dataset, files):
     calls = {}
 
     def fake_build(dataset, out, **kw):
@@ -127,10 +134,10 @@ def test_cli_uses_the_presets_revision(monkeypatch, tmp_path):
         return SimpleNamespace(documents=kw["documents"], license="odc-by")
 
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
-    args = ["corpus", "--dataset", "c4", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
+    args = ["corpus", "--dataset", preset, "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     assert CliRunner().invoke(cli, args).exit_code == 0
-    assert calls["dataset"] == "allenai/c4" and calls["revision"] == "refs/convert/parquet"
-    assert calls["files"] == "en/partial-validation/*.parquet"
+    assert calls["dataset"] == dataset and calls["revision"] == "refs/convert/parquet"
+    assert calls["files"] == files
     CliRunner().invoke(cli, [*args, "--revision", "abc123"])
     assert calls["revision"] == "abc123"
 
