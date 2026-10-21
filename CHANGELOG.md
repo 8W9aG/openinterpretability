@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-10-21
+
+Ships with protocol version **0.7**.
+
 ### Added
 
 - **`pile-uncopyrighted` corpus preset:** `openinterp corpus --dataset pile-uncopyrighted` samples [Pile Uncopyrighted](https://huggingface.co/datasets/monology/pile-uncopyrighted) (`monology/pile-uncopyrighted`), the Pile without its Books3, BookCorpus2, OpenSubtitles, YTSubtitles and OWT2 subsets, for when `pile-10k`'s 10,000 documents are too few to find a rare concept's activations. Its main branch is zstd-compressed JSONL, so like `c4` the preset reads the Hub's Parquet conversion (`refs/convert/parquet`, `default/partial-train`), which holds the first 891,748 training documents, about 89 times `pile-10k`. The card's licence is `other`: each Pile component keeps its own terms, so check an excerpt's source before redistributing it in the wiki. 500 documents take about a minute, and rebuilding at the recorded commit gives a byte-identical corpus.
