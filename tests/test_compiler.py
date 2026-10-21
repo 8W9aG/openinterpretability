@@ -6,10 +6,22 @@ import duckdb
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.compiler import compile_site, histogram_bars, load_records, probe_chart
+from openinterp.builder.compiler import (
+    causal_chart,
+    compile_site,
+    histogram_bars,
+    load_records,
+    probe_chart,
+)
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
-from openinterp.core.schemas import AdversarialTestResult, AuditRecord, ReviewPolicy
+from openinterp.core.schemas import (
+    AdversarialTestResult,
+    AuditRecord,
+    CausalPairEffect,
+    PatchEffect,
+    ReviewPolicy,
+)
 
 MODEL = "Qwen--Qwen2.5-0.5B"
 
@@ -231,6 +243,59 @@ def test_probe_chart_rendered(tmp_path, record):
     assert "Probe strengths against the activation threshold" in page
     assert "2 of 3 hard negatives passed; 1 of 2 positive holdouts passed" in page
     assert "threshold 0.62 (25% of max)" in page
+
+
+def _causal_pairs(causal):
+    def patch(percentile, effect):
+        return PatchEffect(effect=effect, percentile=percentile, null_median=0.01, null_max=0.05)
+
+    return causal.model_copy(
+        update={
+            "target": "next_token_kl",
+            "null_neurons": 32,
+            "pairs_scored": 2,
+            "sufficiency_effect": 0.1,
+            "necessity_effect": 0.05,
+            "pairs": [
+                CausalPairEffect(
+                    pair_index=0, sufficiency=patch(0.9, 0.2), necessity=patch(None, 0.0)
+                ),
+                CausalPairEffect(
+                    pair_index=1, sufficiency=patch(0.3, 0.004), necessity=patch(1.0, 0.1)
+                ),
+            ],
+        }
+    )
+
+
+def test_causal_chart(submission, verdict):
+    assert causal_chart(verdict.causal_metrics, submission.counterfactuals) is None  # pre-0.5
+    chart = causal_chart(_causal_pairs(verdict.causal_metrics), submission.counterfactuals)
+    first, second = chart["rows"]
+    assert (first["label"], second["label"]) == ("Pair 1", "Pair 2")
+    full = chart["right"] - chart["left"]
+    assert first["bars"][0]["w"] == pytest.approx(0.9 * full, abs=0.01)
+    assert first["bars"][1]["w"] is None  # no matched units: nothing to rank against
+    assert second["bars"][1]["w"] == pytest.approx(full)
+    assert chart["baseline_x"] == pytest.approx(chart["left"] + full / 2)
+    assert submission.counterfactuals[0].base_prompt in first["bars"][0]["label"]
+    assert [b["value"] for b in chart["median"]["bars"]] == [0.6, 0.4]
+    assert chart["median"]["y"] > second["y"]
+
+    medians_only = causal_chart(
+        verdict.causal_metrics.model_copy(update={"target": "next_token_kl"}), []
+    )
+    assert medians_only["rows"] == [] and medians_only["rule_y"] is None
+
+
+def test_causal_chart_rendered(tmp_path, record):
+    causal = _causal_pairs(record.verdict.causal_metrics)
+    verdict = record.verdict.model_copy(update={"causal_metrics": causal})
+    compile_site([record.model_copy(update={"verdict": verdict})], tmp_path)
+    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    assert "Causal effects per minimal pair" in page
+    assert "Sufficiency and necessity percentiles for 2 minimal pairs" in page
+    assert "Per-pair numbers" in page
 
 
 def test_cli_build_from_wiki_archive(tmp_path, records):

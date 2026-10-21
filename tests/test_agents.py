@@ -1,5 +1,6 @@
 import json
 import math
+import statistics
 import threading
 from types import SimpleNamespace
 
@@ -424,6 +425,18 @@ def test_causal_metrics_rank_against_matched_neurons(ident, toy_runner, draft):
     assert causal.target == "next_token_kl" and causal.target_tokens == []
     assert causal.null_neurons == 5
     assert causal.sufficiency_effect >= 0 and causal.necessity_effect >= 0  # KL
+
+
+def test_causal_metrics_record_each_pair(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    causal = causal_metrics(sub, toy_runner, null_neurons=5)
+    assert [p.pair_index for p in causal.pairs] == list(range(causal.pairs_scored))
+    suff = [p.sufficiency for p in causal.pairs]
+    assert causal.sufficiency_score == pytest.approx(
+        statistics.median(p.percentile for p in suff), abs=1e-6
+    )
+    assert causal.sufficiency_effect == pytest.approx(statistics.median(p.effect for p in suff))
+    assert all(0 <= p.null_median <= p.null_max for p in suff)
 
 
 def test_causal_metrics_skip_control_pairs(ident, toy_runner, draft):

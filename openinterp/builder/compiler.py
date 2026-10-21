@@ -186,6 +186,79 @@ def probe_chart(verdict, scale: float | None, width: int = 640) -> dict | None:
     }
 
 
+CAUSAL_KINDS = (("sufficiency", "Sufficiency"), ("necessity", "Necessity"))
+
+
+def causal_chart(causal, counterfactuals, width: int = 640) -> dict | None:
+    """Bar geometry: each pair's sufficiency and necessity percentile against the 0.5 line.
+
+    A percentile ranks the unit's |effect| among the matched units' (protocol ≥ 0.5),
+    so 0.5 is the baseline: as influential as a unit that changes as much. Each pair gets
+    a row of two bars, and a final row holds the medians, which are the recorded scores.
+    Records without per-pair effects get the median row alone. Records before 0.5 scored
+    a fraction of the gap instead, which has no such baseline, so they get no chart.
+    """
+    if causal is None or causal.target is None:
+        return None
+    left, right = 132, width - 48
+    bar, gap, row_h, top = 9, 2, 34, 30
+
+    def x(v: float) -> float:
+        return round(left + (right - left) * v, 2)
+
+    def bars(y: float, values: dict[str, tuple[float | None, str]]) -> list[dict]:
+        out = []
+        for i, (kind, label) in enumerate(CAUSAL_KINDS):
+            value, detail = values[kind]
+            out.append(
+                {
+                    "kind": kind,
+                    "y": round(y + i * (bar + gap), 2),
+                    "w": round(x(value) - left, 2) if value is not None else None,
+                    "value": value,
+                    "label": f"{label}: " + ("—" if value is None else f"{value:.2f}") + detail,
+                }
+            )
+        return out
+
+    rows = []
+    for p in causal.pairs:
+        pair = counterfactuals[p.pair_index] if p.pair_index < len(counterfactuals) else None
+        prompts = f"\n{pair.base_prompt} → {pair.counterfactual_prompt}" if pair else ""
+        y = top + len(rows) * row_h
+        values = {}
+        for kind, _ in CAUSAL_KINDS:
+            patch = getattr(p, kind)
+            values[kind] = (
+                patch.percentile,
+                f" · effect {patch.effect:.3g} (matched |effect| median "
+                f"{patch.null_median:.3g}, max {patch.null_max:.3g}){prompts}",
+            )
+        rows.append({"label": f"Pair {p.pair_index + 1}", "y": y, "bars": bars(y, values)})
+    median_y = top + len(rows) * row_h + (10 if rows else 0)
+    detail = f" · median of {causal.pairs_scored} pairs" if causal.pairs_scored else ""
+    medians = {
+        "sufficiency": (causal.sufficiency_score, detail),
+        "necessity": (causal.necessity_score, detail),
+    }
+    median = {"label": "Median (score)", "y": median_y, "bars": bars(median_y, medians)}
+    axis_y = median_y + 2 * bar + gap + 10
+    return {
+        "width": width,
+        "height": axis_y + 20,
+        "left": left,
+        "right": right,
+        "top": top,
+        "axis_y": axis_y,
+        "rows": rows,
+        "median": median,
+        "rule_y": median_y - 8 if rows else None,
+        "bar": bar,
+        "baseline_x": x(0.5),
+        "ticks": [(x(v), f"{v:g}") for v in (0, 0.25, 0.5, 0.75, 1)],
+    }
+
+
 @dataclass(frozen=True)
 class HeatToken:
     text: str
@@ -418,6 +491,7 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "c": verdict.causal_metrics,
         "bars": histogram_bars(sub.activation_histogram),
         "probes": probe_chart(verdict, sub.max_activation),
+        "causal": causal_chart(verdict.causal_metrics, sub.counterfactuals),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),

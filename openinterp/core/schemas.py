@@ -61,6 +61,25 @@ class LookaheadProfile(StrictModel):
     kl_divergence: float = Field(ge=0.0)
 
 
+class PatchEffect(StrictModel):
+    """One patch of one minimal pair: the unit's effect and its matched null's."""
+
+    effect: float = Field(description="The unit's signed effect (logits or KL, per target).")
+    percentile: UnitFloat | None = Field(
+        default=None, description="Fraction of the matched units' |effect| below the unit's."
+    )
+    null_median: float = Field(ge=0.0, description="Median |effect| of the matched units.")
+    null_max: float = Field(ge=0.0, description="Largest |effect| of the matched units.")
+
+
+class CausalPairEffect(StrictModel):
+    """Both patches of one non-control minimal pair, for the per-pair causal chart."""
+
+    pair_index: int = Field(ge=0, description="Index into the submission's counterfactuals.")
+    sufficiency: PatchEffect
+    necessity: PatchEffect
+
+
 class CausalMetrics(StrictModel):
     """Causal effect of the neuron pole on the model's next-token prediction.
 
@@ -99,6 +118,10 @@ class CausalMetrics(StrictModel):
     null_neurons: int | None = Field(default=None, ge=0)
     pairs_scored: int | None = Field(
         default=None, ge=0, description="Minimal pairs where the pole moved (controls skipped)."
+    )
+    pairs: list[CausalPairEffect] = Field(
+        default_factory=list,
+        description="Per-pair effects behind the medians (empty in older records).",
     )
 
 
