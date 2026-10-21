@@ -13,6 +13,7 @@ def repo(tmp_path, monkeypatch, record):
     """A minimal registry: one experiment (record + page), committed to git."""
     monkeypatch.chdir(tmp_path)
     write_experiment_page(record, tmp_path / "wiki")
+    (tmp_path / ".gitignore").write_text("wiki/README.md\nwiki/experiments/**/README.md\n")
     git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
     subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
     subprocess.run([*git, "add", "."], check=True)
@@ -86,9 +87,11 @@ def test_front_matter_must_match_record(repo):
     assert "front matter status" in text
 
 
-def test_stale_index(repo):
-    (repo / "wiki" / "README.md").write_text("# hand edited\n")
-    assert "out of date" in messages(check_registry())
+def test_committed_index_rejected(repo):
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "add", "-f", "wiki"], check=True)
+    subprocess.run([*git, "commit", "-qm", "index"], check=True)
+    assert "not committed" in messages(check_registry(base_ref="main~1"))
 
 
 def test_discussion_edits_allowed(repo):

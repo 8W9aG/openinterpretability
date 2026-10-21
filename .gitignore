@@ -224,3 +224,8 @@ submissions/
 exchange/
 corpus.jsonl
 logs/
+
+# Generated wiki indexes: rebuilt from the records by `openinterp wiki` (and by verify,
+# review and reevaluate). Not committed, so parallel experiment PRs never conflict.
+wiki/README.md
+wiki/experiments/**/README.md

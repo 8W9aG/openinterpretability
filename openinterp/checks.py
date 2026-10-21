@@ -8,28 +8,25 @@ checks enforce that:
    slug and experiment id dictate;
 2. every record has its page and every page its record, and the page's front matter
    matches the record;
-3. the generated wiki indexes are up to date;
-4. the retired ``audits/`` directory holds no records (import them with
+3. the retired ``audits/`` directory holds no records (import them with
    ``openinterp wiki --import-dir audits``);
-5. with ``base_ref``, existing experiment pages were not deleted or edited outside
-   their Discussion section, and archived records were not touched (write-once).
+4. with ``base_ref``, existing experiment pages were not deleted or edited outside
+   their Discussion section, archived records were not touched (write-once), and no
+   generated index (``README.md``) was committed.
+
+The indexes are rebuilt from the records whenever they are needed and are gitignored:
+every experiment PR used to edit the same index rows, so parallel PRs conflicted.
 """
 
 from __future__ import annotations
 
-import shutil
 import subprocess
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from pydantic import ValidationError
 
-from openinterp.builder.wiki import (
-    _read_front_matter,
-    archive_path,
-    rebuild_indexes,
-)
+from openinterp.builder.wiki import _read_front_matter, archive_path
 from openinterp.core.schemas import AuditRecord
 
 DISCUSSION_HEADING = "## Discussion"
@@ -70,7 +67,6 @@ def check_registry(
     _check_legacy(Path(legacy_audits_dir), report)
     _check_records(wiki_dir, report)
     _check_pages(wiki_dir, report)
-    _check_indexes(wiki_dir, report)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, report)
     return report
@@ -146,21 +142,6 @@ def _load(path: Path) -> AuditRecord | None:
         return None
 
 
-def _check_indexes(wiki_dir: Path, report: CheckReport) -> None:
-    if not (wiki_dir / "experiments").is_dir():
-        return
-    with tempfile.TemporaryDirectory() as tmp:
-        fresh = Path(tmp) / "wiki"
-        shutil.copytree(wiki_dir, fresh)
-        rebuild_indexes(fresh)
-        for generated in sorted(fresh.rglob("README.md")):
-            committed = wiki_dir / generated.relative_to(fresh)
-            if not committed.exists() or committed.read_text(
-                encoding="utf-8"
-            ) != generated.read_text(encoding="utf-8"):
-                report.add(committed, "wiki index is out of date; run `openinterp wiki`")
-
-
 def _git(*args: str) -> str:
     return subprocess.run(
         ["git", *args], check=True, capture_output=True, text=True, encoding="utf-8"
@@ -174,7 +155,7 @@ def _check_write_once(wiki_dir: Path, base_ref: str, report: CheckReport) -> Non
         "--no-renames",
         f"{base_ref}...HEAD",
         "--",
-        str(wiki_dir / "experiments"),
+        str(wiki_dir),
     )
     for line in diff.splitlines():
         status, _, name = line.partition("\t")
@@ -182,7 +163,11 @@ def _check_write_once(wiki_dir: Path, base_ref: str, report: CheckReport) -> Non
         if path.suffix == ".json" and status in {"D", "M"}:
             report.add(path, "archived experiment records are write-once")
             continue
-        if path.name == "README.md" or path.suffix != ".md":
+        if path.name == "README.md":
+            if status == "A":
+                report.add(path, "generated wiki indexes are not committed; `git rm --cached` it")
+            continue
+        if path.suffix != ".md":
             continue
         if status == "D":
             report.add(path, "experiment pages are write-once and must not be deleted")

@@ -29,9 +29,9 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
    gh pr create --draft --title "experiment: $KEY (<kind>)" --body "openinterp next seed: <seed>"
    ```
    For `explore`, run `openinterp audit --random` first; the neuron it picks becomes the key.
-5. **Read the history.** Before writing anything, read `wiki/experiments/<slug>/README.md` and every experiment page it lists, including Discussion sections. Revisions must address the failed gates and failed probes recorded there.
+5. **Read the history.** Before writing anything, run `uv run openinterp wiki` (the indexes are generated, not committed), then read `wiki/experiments/<slug>/README.md` and every experiment page it lists, including Discussion sections. Revisions must address the failed gates and failed probes recorded there.
 6. **Run the experiment** using the table below and the skills the planner lists.
-7. **Post the result, whatever it is.** Run `openinterp wiki`, then `make check lint test`, then mark the PR ready. If `verify` printed "Signed as …", commit the `<id>.json.sig` next to the record (all of `wiki/`): CI then skips reproducing it. A failed hypothesis gets committed exactly like a verified one. Never abandon a claimed experiment silently: if you stop, close the PR with a note saying why.
+7. **Post the result, whatever it is.** Run `openinterp wiki`, then `make check lint test`, then mark the PR ready. Commit `wiki/`; the gitignore keeps the generated `README.md` indexes out. If `verify` printed "Signed as …", commit the `<id>.json.sig` next to the record: CI then skips reproducing it. A failed hypothesis gets committed exactly like a verified one. Never abandon a claimed experiment silently: if you stop, close the PR with a note saying why.
 
 ## Proposer and reviewer without API keys
 

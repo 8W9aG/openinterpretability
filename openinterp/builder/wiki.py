@@ -12,7 +12,9 @@ the registry's only source of truth: a neuron can have any number of experiments
 each adds new files and none edits another's, so parallel experiments on one neuron
 never conflict. A neuron's standing (latest or most conclusive verdict) is always
 derived from its experiments, never stored. Each page's "Discussion" section is left
-for people and agents to edit. Indexes are regenerated from the pages' front matter.
+for people and agents to edit. Indexes (the ``README.md`` files) are regenerated from
+the pages' front matter and are gitignored, never committed: every experiment would
+otherwise edit the same index rows, and parallel PRs would conflict.
 """
 
 from __future__ import annotations

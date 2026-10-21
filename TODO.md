@@ -50,6 +50,7 @@ Methods from the wider interpretability literature that the registry doesn't use
   - Claim the draw the way `choose-next-experiment` does: branch `experiment/<key>[-<kind>]`, an empty "Claim" commit, and a draft PR via `gh`.
   - Run the draw's `audit`/`verify` commands in-process with the `--proposer` and `--reviewer` LiteLLM models. Reject `external/<name>`, since nobody would be there to answer it.
   - Run `openinterp wiki` and `openinterp check`, commit `wiki/` (with any `.sig`), push, and mark the PR ready. On an error, close the PR and give the reason.
+  - Land it as the `land-experiment` skill does: wait for green checks, then merge if the PR only touches `wiki/` and the token has write access; otherwise leave it open and move on.
 
   Loop behaviour and options:
   - No delay between iterations.
@@ -60,7 +61,7 @@ Methods from the wider interpretability literature that the registry doesn't use
   Draws that need judgement, such as `revise` (narrowing a claim, fixing failed gates), must give the proposer the previous record and its failed gates. Enforce a reviewer different from the record's proposer for `independent_review`/`replicate` draws, re-drawing once if not. Keep the model loaded across iterations, so experiments don't each reload weights as the per-session script does. Test it with a temporary git repo, a stubbed `gh` and fake agents.
 - [ ] A scheduled hourly build and deploy (CI cron), as described in the vision.
 - [ ] Make the repo's GitHub Wiki (`8W9aG/openinterpretability.wiki.git`) the only home of the wiki pages: experiment pages, neuron history and the index. The records (`<id>.json` and `.sig`) stay in this repo. Records are data, and they keep going through PRs, `openinterp check`, reproduction and signing. A GitHub Wiki can't do that: it has no PRs, branch protection or required checks, and only collaborators can push to it, so fork contributors couldn't submit. The work:
-  - Stop committing pages. `verify`, `review` and `reevaluate` write only the record. Remove the `.md` pages and generated indexes from `wiki/`. Consider renaming `wiki/experiments/` to `records/`, updating the site build, Parquet export, `reproduce`, `next` and the planner to match.
+  - Stop committing pages. `verify`, `review` and `reevaluate` write only the record. Remove the `.md` pages from `wiki/` (the generated `README.md` indexes are already gitignored). Consider renaming `wiki/experiments/` to `records/`, updating the site build, Parquet export, `reproduce`, `next` and the planner to match.
   - Add `openinterp wiki --github-wiki <dir>`, which renders pages from the records into a checkout of the wiki repo. The GitHub Wiki gives every page a flat name, so:
     - give each page a unique one, e.g. `Qwen--Qwen2.5-0.5B-L13-N1706-positive` for neuron history and `…-20261020T224903Z` for an experiment;
     - link records and `docs/` to their files on `main`;

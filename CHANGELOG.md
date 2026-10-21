@@ -9,6 +9,15 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **`land-experiment` skill:** `choose-next-experiment` plus building the site, waiting for CI to go green and merging the PR. It merges only when every check passed on the current head, the PR touches nothing outside `wiki/`, and the agent's `gh` account has write access; otherwise it comments on the PR and moves on to the next experiment.
+
+### Changed
+
+- **Generated wiki indexes are no longer committed.** `wiki/README.md` and each neuron's `README.md` are gitignored and rebuilt locally by `openinterp wiki` (and by `verify`, `review` and `reevaluate`). Every experiment PR used to edit the same index rows, so parallel PRs conflicted. `openinterp check` no longer compares indexes and instead rejects a PR that commits one.
+- **`scripts/experiment-loop.sh` lands experiments:** each session follows `land-experiment`, and may also run `gh run` and `gh repo view`. Its result line gains `merged` or `open`.
+
 ## [0.0.4] - 2026-10-19
 
 Ships with protocol version **0.5**.
