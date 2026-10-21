@@ -16,6 +16,9 @@
 | Selection | {{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %} |
 | Corpus | {{ p.corpus | cell }} · {{ "{:,}".format(p.n_snippets) }} snippets · {{ "{:,}".format(p.tokens_scanned) }} tokens{% if p.snippet_tokens %} · {{ p.snippet_tokens }}-token windows{% if p.snippet_stride %} every {{ p.snippet_stride }} tokens{% endif %}{% endif %}{% if p.corpus_source and p.corpus_source.license %} · licence {{ p.corpus_source.license | cell }}{% endif %} |
 | Model revision | `{{ p.model_revision or 'unrecorded' }}` · {{ p.dtype }} |
+{% if p.costs %}
+| Run cost | {{ p.costs.summary() | cell }} (reported, not gated) |
+{% endif %}
 {% endif %}
 {% if record_link %}
 | Record | [{{ record_link }}]({{ record_link }}) (this experiment's full record) |

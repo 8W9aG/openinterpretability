@@ -52,6 +52,7 @@ def scan_evidence(
     import random
 
     from openinterp import __version__
+    from openinterp.core import costs
     from openinterp.core.schemas import ExperimentProvenance, NeuronIdentifier, ScanEvidence
     from openinterp.harness.hooks import activation_histogram, run_environment
     from openinterp.harness.jlens import vocabulary_lens
@@ -76,7 +77,8 @@ def scan_evidence(
         how = ""
     click.echo(f"Scanning {len(texts)} snippets{how} for {ident}…", err=True)
     windows = {"window_tokens": window_tokens, "stride": stride}
-    scan = scan_neuron(runner, texts, layer, neuron, ident.pole, k=top_k, **windows)
+    with costs.stage("scan"):
+        scan = scan_neuron(runner, texts, layer, neuron, ident.pole, k=top_k, **windows)
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise click.ClickException(
             f"{ident} never activates on this corpus; try a larger --corpus."
@@ -85,6 +87,8 @@ def scan_evidence(
     # The first 100 documents, each cut to its first window when scanning windows.
     pieces = cut_pieces(runner.tokenizer, texts[:100], window_tokens, stride)
     lens_texts = [p.text for p in pieces if p.start == 0]
+    with costs.stage("lenses"):
+        lens = vocabulary_lens(runner, lens_texts, layer, neuron, ident.pole)
     return ScanEvidence(
         identifier=ident,
         top_examples=scan.examples,
@@ -106,7 +110,7 @@ def scan_evidence(
         ),
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,
-        vocabulary_lens=vocabulary_lens(runner, lens_texts, layer, neuron, ident.pole),
+        vocabulary_lens=lens,
     )
 
 
@@ -116,9 +120,22 @@ def answer_path(prompt_path: Path, suffix: str) -> Path:
     return prompt_path.with_name(name + suffix)
 
 
+def with_costs(provenance, *parts):
+    """``provenance`` with ``parts`` merged into its costs; unchanged if it is ``None``."""
+    from openinterp.core.costs import merge
+
+    if provenance is None:
+        return None
+    return provenance.model_copy(update={"costs": merge(provenance.costs, *parts)})
+
+
 def write_evidence(evidence, path: Path) -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterp.core import costs
 
+    evidence = evidence.model_copy(
+        update={"provenance": with_costs(evidence.provenance, costs.measured())}
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(evidence.model_dump_json(indent=2))
     prompt_path = path.with_suffix(".prompt.md")
@@ -230,6 +247,7 @@ def audit(
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
+    from openinterp.core import costs
     from openinterp.core.schemas import ScanEvidence
 
     if (evidence_file is None) != (hypothesis_file is None):
@@ -245,6 +263,8 @@ def audit(
             )
         evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
         draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
+        prompt_file = evidence_file.with_suffix(".prompt.md")
+        costs.add_external("proposer", agent_model, prompt_file, hypothesis_file)
         runner = _load_runner(evidence.identifier.model_name, device, dtype)
         agent = ProposerAgent(agent_model)
     else:
@@ -279,17 +299,21 @@ def audit(
         )
 
     ident = evidence.identifier
-    submission = agent.build_submission(
-        ident,
-        draft,
-        runner=runner,
-        examples=evidence.top_examples,
-        histogram=evidence.activation_histogram,
-        provenance=evidence.provenance,
-        confounds=evidence.confounds,
-        correlated=evidence.correlated_neurons,
-        vocabulary_lens=evidence.vocabulary_lens,
-    )
+    with costs.stage("counterfactuals"):
+        submission = agent.build_submission(
+            ident,
+            draft,
+            runner=runner,
+            examples=evidence.top_examples,
+            histogram=evidence.activation_histogram,
+            provenance=evidence.provenance,
+            confounds=evidence.confounds,
+            correlated=evidence.correlated_neurons,
+            vocabulary_lens=evidence.vocabulary_lens,
+        )
+    # An evidence file carries the scan's costs; a one-step audit measured them here.
+    provenance = with_costs(submission.provenance, costs.measured())
+    submission = submission.model_copy(update={"provenance": provenance})
     out = out or Path("submissions") / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(submission.model_dump_json(indent=2))

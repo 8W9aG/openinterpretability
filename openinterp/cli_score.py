@@ -124,6 +124,7 @@ def score(
         ScoringTask,
     )
     from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
+    from openinterp.core import costs
 
     if task_file is not None:
         if audit_file is not None or emit_task is not None:
@@ -140,8 +141,15 @@ def score(
             else FuzzingAnswer(correct=[])
         )
         out = out or _sibling(task_file, ".scores.json")
+        for kind in ("detection", "fuzzing") if task.fuzzing else ("detection",):
+            prompt, answer = (
+                _sibling(task_file, f".{kind}.prompt.md"),
+                _sibling(task_file, f".{kind}.json"),
+            )
+            costs.add_external("judge", judge_model, prompt, answer)
         runner = _load_runner(task.identifier.model_name, device, dtype)
         scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
+        scores = scores.model_copy(update={"costs": costs.merge(task.costs, costs.measured())})
     else:
         if audit_file is None:
             raise click.UsageError("--audit-file is required unless --task is given.")
@@ -151,11 +159,13 @@ def score(
         runner = _load_runner(submission.identifier.model_name, device, dtype)
         sampling = (seed, window_tokens, quantiles, per_quantile, max_windows)
         if emit_task is not None:
-            _write_task(_draw_task(runner, submission, corpus, *sampling), emit_task)
+            task = _draw_task(runner, submission, corpus, *sampling)
+            _write_task(task.model_copy(update={"costs": costs.measured()}), emit_task)
             return
         scores = score_submission(
             runner, submission, corpus, judge_model or DEFAULT_MODEL, embedding_model, *sampling
         )
+        scores = scores.model_copy(update={"costs": costs.measured()})
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(scores.model_dump_json(indent=2))
     click.echo(_summary(scores))
@@ -191,6 +201,7 @@ def score_submission(
 def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_quantile, cap):
     from openinterp.agents.judge import ScoringTask, TaskWindow
     from openinterp.cli_evidence import read_corpus
+    from openinterp.core import costs
     from openinterp.harness.explanation_scores import sample_heldout
 
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
@@ -198,18 +209,19 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
     threshold = _threshold(submission)
     click.echo(f"Measuring held-out {window_tokens}-token windows (seed {seed})…", err=True)
     try:
-        sample = sample_heldout(
-            runner,
-            texts,
-            submission.identifier,
-            threshold,
-            seed=seed,
-            exclude=[e.text for e in submission.top_examples],
-            window_tokens=window_tokens,
-            max_windows=cap,
-            quantiles=quantiles,
-            per_quantile=per_quantile,
-        )
+        with costs.stage("heldout_windows"):
+            sample = sample_heldout(
+                runner,
+                texts,
+                submission.identifier,
+                threshold,
+                seed=seed,
+                exclude=[e.text for e in submission.top_examples],
+                window_tokens=window_tokens,
+                max_windows=cap,
+                quantiles=quantiles,
+                per_quantile=per_quantile,
+            )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
 
@@ -257,6 +269,7 @@ def _write_task(task, path: Path) -> None:
 
 def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
     from openinterp.agents.judge import answered
+    from openinterp.core import costs
     from openinterp.core.explanation import ExplanationScores, ScoredWindow
     from openinterp.harness.explanation_scores import embedding_similarities, remeasure
 
@@ -268,9 +281,10 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
     sims = [None] * len(task.detection)
     if embedding_model:
         click.echo(f"Embedding the explanation and windows with {embedding_model}…", err=True)
-        sims = embedding_similarities(
-            embedding_model, task.explanation, [w.text for w in task.detection]
-        )
+        with costs.stage("embedding"):
+            sims = embedding_similarities(
+                embedding_model, task.explanation, [w.text for w in task.detection]
+            )
 
     def unmeasured(windows, answers, similarities):
         return [
@@ -303,7 +317,8 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
         detection_windows=unmeasured(task.detection, det, sims),
         fuzzing_windows=unmeasured(task.fuzzing, fuz, [None] * len(task.fuzzing)),
     )
-    return remeasure(scores, runner, task.identifier)
+    with costs.stage("remeasure"):
+        return remeasure(scores, runner, task.identifier)
 
 
 def _summary(scores) -> str:

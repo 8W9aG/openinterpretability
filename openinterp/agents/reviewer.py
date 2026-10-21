@@ -17,6 +17,7 @@ import torch
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
+from openinterp.core import costs
 from openinterp.core.schemas import (
     AdversarialTestResult,
     CausalMetrics,
@@ -57,6 +58,7 @@ DEFAULT_POLICY = ReviewPolicy()
 
 
 class ReviewerAgent(LLMAgent):
+    role = "reviewer"
     system_prompt = (
         "You are an adversarial peer reviewer for mechanistic interpretability claims. Given "
         "a hypothesis about what makes a neuron pole fire, write probes designed to break it. "
@@ -107,6 +109,7 @@ def evaluate_submission(
     reviewer_model: str,
     policy: ReviewPolicy = DEFAULT_POLICY,
 ) -> VerificationVerdict:
+    lap = costs.laps()
     ident = submission.identifier
     args = (ident.layer, ident.neuron_idx, ident.pole)
     scale = submission.max_activation or max(
@@ -160,28 +163,33 @@ def evaluate_submission(
         )
     )
 
+    lap("probe_measurement")
     metrics = review_metrics(
         results,
         policy,
         independent=reviewer_model != submission.submitting_agent_model,
         baseline=confound_baseline(submission, runner, probes, actual, threshold, policy),
     )
+    lap("gates")
+    causal = causal_metrics(
+        submission,
+        runner,
+        freeze_downstream=policy.freeze_downstream,
+        null_neurons=policy.causal_null_neurons,
+        min_change=policy.delta_abs_tolerance * scale,
+    )
+    joint = _joint_ablation(submission, runner, probes, policy)
+    lap("causal_metrics")
     return VerificationVerdict(
         status=decide(metrics, policy),
         confidence_score=metrics.balanced_accuracy,
         adversarial_test_results=results,
         reviewer_agent_model=reviewer_model,
         timestamp=datetime.now(UTC),
-        causal_metrics=causal_metrics(
-            submission,
-            runner,
-            freeze_downstream=policy.freeze_downstream,
-            null_neurons=policy.causal_null_neurons,
-            min_change=policy.delta_abs_tolerance * scale,
-        ),
+        causal_metrics=causal,
         metrics=metrics,
         policy=policy,
-        joint_ablation=_joint_ablation(submission, runner, probes, policy),
+        joint_ablation=joint,
         environment=run_environment(runner),
         notes=_summary(results, metrics),
     )
