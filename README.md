@@ -2,7 +2,7 @@
 
 `openinterp` is a decentralized, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
-Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**: each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It builds on recent findings that native representations are remarkably clean when evaluated properly (e.g. Goodfire / Cammarata, 2026; Bereska & Gavves, 2024).
+Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**: each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It starts from a working hypothesis, not an established finding: Goodfire's essay [*Neural Networks Are Already Clean*](https://already-clean.goodfire.com/) (Cammarata, 2026) argues that most apparent polysemanticity in native neurons comes from fixable tooling problems rather than superposition. Its technical companion paper has not been published, so the registry tests that claim one pole at a time rather than assuming it, and a pole that resists a clean explanation is a result too.
 
 ## Get started: run an experiment and contribute it
 
