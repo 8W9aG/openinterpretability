@@ -82,6 +82,65 @@ def cut_pieces(
             start, prev_end = start + stride, end
 
 
+@dataclass
+class Batch:
+    """One forward pass of pieces, with which of its tokens the scan counts."""
+
+    pieces: list[Piece]
+    encoded: dict[str, torch.Tensor]
+    ids: torch.Tensor  # [b, seq], on the CPU
+    mask: torch.Tensor  # real (non-padding) tokens
+    counted: torch.Tensor  # real tokens new to the scan
+    positions: torch.Tensor
+
+
+def batches(runner: NeuronHookRunner, pieces: Sequence[Piece], batch_size: int) -> Iterator[Batch]:
+    for start in range(0, len(pieces), batch_size):
+        batch = list(pieces[start : start + batch_size])
+        encoded = runner.encode([p.text for p in batch])
+        ids = encoded["input_ids"].cpu()
+        mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool().cpu()
+        # Count only each piece's fresh tail: real tokens at or after it ≤ fresh.
+        fresh = torch.tensor([p.fresh or ids.shape[1] for p in batch]).unsqueeze(1)
+        counted = mask & (mask.flip(1).cumsum(1).flip(1) <= fresh)
+        positions = torch.arange(ids.shape[1]).expand_as(ids)
+        yield Batch(batch, encoded, ids, mask, counted, positions)
+
+
+class TopExamples:
+    """Collects every piece's strengths and keeps the ``k`` strongest that don't overlap."""
+
+    def __init__(self) -> None:
+        self.candidates: list[tuple[float, Piece, list[int], list[float]]] = []
+
+    def update(self, batch: Batch, strengths: torch.Tensor) -> None:
+        for row, piece in enumerate(batch.pieces):
+            row_vals = strengths[row][batch.mask[row]].tolist()
+            if row_vals:
+                ids = batch.ids[row][batch.mask[row]].tolist()
+                self.candidates.append((max(row_vals), piece, ids, row_vals))
+
+    def top(self, tokenizer, k: int) -> list[ActivatingExample]:
+        examples: list[ActivatingExample] = []
+        chosen: list[Piece] = []
+        for peak_value, piece, row_ids, row_vals in sorted(self.candidates, key=lambda c: -c[0]):
+            if len(examples) == k:
+                break
+            if any(piece.overlaps(c) for c in chosen):
+                continue
+            chosen.append(piece)
+            examples.append(
+                ActivatingExample(
+                    text=piece.text,
+                    tokens=[tokenizer.decode([i]) for i in row_ids],
+                    activations=[round(v, 5) for v in row_vals],
+                    max_activation=peak_value,
+                    max_token_index=row_vals.index(peak_value),
+                )
+            )
+        return examples
+
+
 def scan_neuron(
     runner: NeuronHookRunner,
     texts: Sequence[str],
@@ -100,52 +159,24 @@ def scan_neuron(
         raise ValueError("scan_neuron requires a tokenizer")
     partners = PartnerSearch(runner.mlp_width(layer))
     confounds = ConfoundAccumulator()
-    candidates: list[tuple[float, Piece, list[int], list[float]]] = []
+    top = TopExamples()
     values: list[float] = []
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
-    for start in range(0, len(pieces), batch_size):
-        batch = pieces[start : start + batch_size]
-        encoded = runner.encode([p.text for p in batch])
-        _, cache = runner.run_with_cache(encoded, [layer])
+    for batch in batches(runner, pieces, batch_size):
+        _, cache = runner.run_with_cache(batch.encoded, [layer])
         acts = cache[layer].float().cpu()  # [b, seq, d_mlp]
         strengths = pole_strength(acts[..., neuron_idx], pole)
-        ids = encoded["input_ids"].cpu()
-        mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool().cpu()
-        positions = torch.arange(ids.shape[1]).expand_as(ids)
-        # Count only each piece's fresh tail: real tokens at or after it ≤ fresh.
-        fresh = torch.tensor([p.fresh or ids.shape[1] for p in batch]).unsqueeze(1)
-        counted = mask & (mask.flip(1).cumsum(1).flip(1) <= fresh)
-
+        counted = batch.counted
         partners.update(strengths[counted], acts[counted])
-        confounds.update(ids[counted], positions[counted], strengths[counted])
+        confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
         values.extend(strengths[counted].tolist())
-        for row, piece in enumerate(batch):
-            row_vals = strengths[row][mask[row]].tolist()
-            if row_vals:
-                candidates.append((max(row_vals), piece, ids[row][mask[row]].tolist(), row_vals))
+        top.update(batch, strengths)
 
-    examples: list[ActivatingExample] = []
-    chosen: list[Piece] = []
-    for peak_value, piece, row_ids, row_vals in sorted(candidates, key=lambda c: -c[0]):
-        if len(examples) == k:
-            break
-        if any(piece.overlaps(c) for c in chosen):
-            continue
-        chosen.append(piece)
-        examples.append(
-            ActivatingExample(
-                text=piece.text,
-                tokens=[runner.tokenizer.decode([i]) for i in row_ids],
-                activations=[round(v, 5) for v in row_vals],
-                max_activation=peak_value,
-                max_token_index=row_vals.index(peak_value),
-            )
-        )
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
     return ScanResult(
-        examples=examples,
+        examples=top.top(runner.tokenizer, k),
         values=values,
         correlated=partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
         confounds=confounds.finalize(runner.tokenizer, min_count),

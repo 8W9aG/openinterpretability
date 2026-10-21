@@ -12,7 +12,7 @@ Each neuron has two poles, isolated with ``torch.clamp``: the positive pole is
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from functools import reduce
 from typing import Any
 
@@ -62,6 +62,12 @@ FINAL_NORM_PATHS = (
 )
 
 Inputs = str | Sequence[str] | torch.Tensor | Mapping[str, torch.Tensor]
+
+
+class _StopForward(Exception):
+    """Raised from a hook to end a forward pass once what it needs has been captured."""
+
+
 Intervention = Callable[[torch.Tensor], torch.Tensor | None]
 
 
@@ -84,6 +90,17 @@ def ablate_head(head: int, head_dim: int, value: torch.Tensor | None = None) -> 
         span = slice(head * head_dim, (head + 1) * head_dim)
         z[..., span] = 0 if value is None else value.to(z.dtype)
         return z
+
+    return intervene
+
+
+def ablate_pole(neuron_idx: int, pole: Pole) -> Intervention:
+    """An ``interventions`` entry zeroing one neuron's ``pole``, leaving the other intact."""
+
+    def intervene(act: torch.Tensor) -> torch.Tensor:
+        act = act.clone()
+        act[..., neuron_idx] = act[..., neuron_idx] - isolate_pole(act[..., neuron_idx], pole)
+        return act
 
     return intervene
 
@@ -321,11 +338,18 @@ class NeuronHookRunner:
 
     @torch.no_grad()
     def head_outputs(self, inputs: Inputs, layer: int) -> torch.Tensor:
-        """Every head's output ``z`` in ``layer``: ``[batch, seq, n_heads, head_dim]``."""
+        """Every head's output ``z`` in ``layer``: ``[batch, seq, n_heads, head_dim]``.
+
+        The forward pass stops once ``layer``'s heads have run: later layers can't change them.
+        """
         captured: list[torch.Tensor] = []
-        self.run_with_interventions(
-            inputs, head_interventions={layer: lambda z: captured.append(z.detach().clone())}
-        )
+
+        def capture(z: torch.Tensor) -> None:
+            captured.append(z.detach().clone())
+            raise _StopForward
+
+        with suppress(_StopForward):
+            self.run_with_interventions(inputs, head_interventions={layer: capture})
         z = captured[-1]
         return z.reshape(*z.shape[:-1], self.n_heads, self.head_dim(layer))
 

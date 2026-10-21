@@ -1,7 +1,9 @@
 """Bundle every experiment into a columnar registry for bulk analysis.
 
 One row per experiment, whatever its verdict (``is_latest`` marks the newest
-experiment for each neuron pole). Writes two copies of the same table:
+experiment for each neuron pole or head). ``kind`` tells the units apart: a neuron
+pole row has ``neuron_idx`` and ``pole``, an attention head row ``head_idx``. Writes
+two copies of the same table:
 
 * ``data/registry.parquet`` -- stable URL, always the latest build (short cache).
 * ``data/snapshots/registry-<sha256>.parquet`` -- content-addressed, cached forever.
@@ -40,11 +42,14 @@ REGISTRY_SCHEMA = pa.schema(
         ("slug", pa.string()),
         ("is_latest", pa.bool_()),
         ("model_name", pa.string()),
+        ("kind", pa.string()),
         ("layer", pa.int32()),
         ("neuron_idx", pa.int32()),
         ("pole", pa.string()),
+        ("head_idx", pa.int32()),
         ("model_num_layers", pa.int32()),
         ("model_mlp_width", pa.int32()),
+        ("model_n_heads", pa.int32()),
         ("explanation", pa.string()),
         ("activating_tokens", pa.list_(pa.string())),
         ("is_lookahead", pa.bool_()),
@@ -86,6 +91,9 @@ REGISTRY_SCHEMA = pa.schema(
         ("detection_score", pa.float64()),
         ("fuzzing_score", pa.float64()),
         ("embedding_auroc", pa.float64()),
+        ("previous_token_score", pa.float64()),
+        ("duplicate_token_score", pa.float64()),
+        ("induction_score", pa.float64()),
         ("record_json", pa.string()),
     ]
 )
@@ -96,14 +104,18 @@ def record_to_row(record: AuditRecord) -> dict:
     ident = sub.identifier
     causal = verdict.causal_metrics if verdict else None
     tests = verdict.adversarial_test_results if verdict else []
+    is_head = ident.kind == "attn_head"
     return {
         "slug": ident.slug,
         "model_name": ident.model_name,
+        "kind": ident.kind,
         "layer": ident.layer,
-        "neuron_idx": ident.neuron_idx,
+        "neuron_idx": None if is_head else ident.neuron_idx,
         "pole": ident.pole,
+        "head_idx": ident.head_idx if is_head else None,
         "model_num_layers": sub.model_num_layers,
         "model_mlp_width": sub.model_mlp_width,
+        "model_n_heads": sub.model_n_heads,
         "explanation": sub.natural_language_explanation,
         "activating_tokens": sub.activating_tokens,
         "is_lookahead": sub.lookahead.is_lookahead,
@@ -129,7 +141,7 @@ def record_to_row(record: AuditRecord) -> dict:
 def experiment_row(exp: Experiment) -> dict:
     sub, verdict = exp.record.submission, exp.record.verdict
     metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
-    lens, scores = sub.vocabulary_lens, verdict.explanation_scores
+    lens, scores, head = sub.vocabulary_lens, verdict.explanation_scores, sub.head_profile
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None
     return {
         **record_to_row(exp.record),
@@ -158,6 +170,9 @@ def experiment_row(exp: Experiment) -> dict:
         "detection_score": _balanced(scores.detection if scores else None),
         "fuzzing_score": _balanced(scores.fuzzing if scores else None),
         "embedding_auroc": scores.embedding_auroc if scores else None,
+        "previous_token_score": head.previous_token_score if head else None,
+        "duplicate_token_score": head.duplicate_token_score if head else None,
+        "induction_score": head.induction_score if head else None,
     }
 
 
@@ -171,8 +186,9 @@ def records_to_table(experiments: Sequence[Experiment]) -> pa.Table:
         key=lambda row: (
             row["model_name"],
             row["layer"],
-            row["neuron_idx"],
-            row["pole"],
+            row["kind"] != "mlp_neuron_pole",
+            row["neuron_idx"] if row["head_idx"] is None else row["head_idx"],
+            row["pole"] or "",
             row["experiment_id"],
         ),
     )

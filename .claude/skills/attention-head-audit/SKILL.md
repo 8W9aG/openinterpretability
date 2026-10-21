@@ -26,11 +26,12 @@ def head_slice(act, head):  # act: [b, seq, n_heads * head_dim]
     return act[..., head * head_dim : (head + 1) * head_dim]
 ```
 
-What heads need in addition:
-1. **Attention patterns.** Load the model with `attn_implementation="eager"` and call it with `output_attentions=True`. SDPA and flash attention don't return weights.
-2. **A schema generalisation.** Introduce `ComponentIdentifier` with `kind: Literal["mlp_neuron_pole", "attn_head"]`, `layer`, `index`, and `pole: Pole | None`. Keep `NeuronIdentifier` as the `mlp_neuron_pole` case so existing records still validate. This is a schema change, so bump `PROTOCOL_VERSION`.
-3. **A different "active" definition.** Heads have no scalar activation. Use the norm of the head's output, or the attention-pattern score that the hypothesis predicts (e.g. induction score: attention to the token after an earlier copy of the current one).
-4. **Probe semantics.** Hard negatives for an induction head are repeated sequences with the copy broken; holdouts are repeated random-token sequences (Olsson et al.).
+How the harness handles heads (protocol 0.6, `harness/units.py` and `harness/heads.py`):
+1. **Attention patterns.** Head commands load the model with `attn_implementation="eager"` (`attn_implementation(ident)`), since SDPA and flash attention don't return weights.
+2. **Identifiers.** `ComponentIdentifier` is `NeuronIdentifier | HeadIdentifier`, told apart by `kind`; submissions and evidence take either. A head submission must carry a `HeadProfile`.
+3. **Strength.** `|W_O (z_t − z̄)|`, with z̄ the head's mean output over the scan, stored in `head_profile.mean_output`. The raw write norm `|W_O z|` doesn't work: most heads write a sizeable resting vector, so on GPT-2 small L5H1 the median token sits at a quarter of the maximum and half of all text would count as "active". Against z̄, the five known GPT-2 small induction heads (L5H1, L5H5, L6H9, L7H2, L7H10) are active on every second-half token of repeated random tokens and on almost none of the first half; the previous-token head L4H11 is active nearly everywhere. Ablation is mean ablation (z → z̄), so strength is exactly how far ablating the head moves the residual stream.
+4. **Evidence.** The scan records the tokens each top example's peak attends to, and previous-token, duplicate-token and induction scores on random repeated sequences. There is no vocabulary lens or partner search for heads.
+5. **Probe semantics.** Hard negatives for an induction head are repeated sequences with the copy broken; holdouts are repeated random-token sequences (Olsson et al.). Probes are measured on their own, so the earlier copy must be inside the probe.
 
 ## Learned-basis baselines
 
@@ -38,6 +39,7 @@ To test the project's premise, compare native neurons with transcoder or SAE fea
 
 ## Suggested order
 
-1. ~~Add the schema generalisation and a head hook to `NeuronHookRunner`, with tests on `tiny_gpt2`.~~ Done: `ComponentIdentifier` (`NeuronIdentifier` | `HeadIdentifier`) in `core/schemas.py`; `runner.head_outputs`, `head_write_norm`, `head_output_weights`, `attention_patterns`, `hooks(head_interventions=…)` and `ablate_head` in `harness/hooks.py`; `_load_runner(..., attn_implementation="eager")` for patterns. Tested on `tiny_gpt2` (`tests/test_heads.py`) and checked on Qwen2.5-0.5B (14 heads × 64, grouped-query attention). Submissions still reject heads until the audit steps below exist.
-2. Audit known induction heads in GPT-2 small as a positive control. The protocol should VERIFY them; if it doesn't, fix the protocol before going further.
-3. Only then open head audits on Qwen and Llama.
+1. ~~Add the schema generalisation and a head hook to `NeuronHookRunner`, with tests on `tiny_gpt2`.~~ Done: `ComponentIdentifier` (`NeuronIdentifier` | `HeadIdentifier`) in `core/identifiers.py`; `runner.head_outputs`, `head_write_norm`, `head_output_weights`, `attention_patterns`, `hooks(head_interventions=…)` and `ablate_head` in `harness/hooks.py`. Tested on `tiny_gpt2` (`tests/test_heads.py`) and checked on Qwen2.5-0.5B (14 heads × 64, grouped-query attention).
+2. ~~The audit pipeline for heads.~~ Done (protocol 0.6): `openinterp audit --layer L --head H` (or `--unit head --random`), then `score`, `review`, `reevaluate` and `reproduce` as for neurons; head pages at `L<layer>/H<idx>.html`, Parquet columns `kind`, `head_idx` and the pattern scores (`tests/test_head_audit.py`).
+3. Audit known induction heads in GPT-2 small as a positive control. The protocol should VERIFY them; if it doesn't, fix the protocol before going further.
+4. Only then open head audits on Qwen and Llama.

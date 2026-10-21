@@ -1,7 +1,7 @@
 """Fail if any source or documentation file exceeds the line limit.
 
-Tests, configuration, lockfiles and generated data (audit records, wiki pages,
-fixtures) are exempt. Run via `make lint`; CI runs it in the lint step.
+Tests, configuration, lockfiles and generated data (audit records and wiki
+pages) are exempt. Run via `make lint`; CI runs it in the lint step.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ MAX_LINES = 500
 
 EXEMPT = (
     "tests/*",
-    "examples/audits/*",  # generated fixtures
     "wiki/*",  # generated experiment pages
     "uv.lock",
     "*.toml",

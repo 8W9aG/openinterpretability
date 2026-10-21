@@ -7,28 +7,28 @@
 {{ breadcrumb(root, model, layer) }}
 <h1 class="text-2xl font-semibold"><span class="font-mono">{{ model.name }}</span> · layer {{ layer.layer }}</h1>
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-  {{ layer.neurons | length }} neurons studied · {{ layer.experiments }} experiments · {{ layer.verified }} with a verified pole
+  {{ layer.neurons | length }} neurons studied · {% if layer.heads %}{{ layer.heads | length }} heads studied · {% endif %}{{ layer.experiments }} experiments · {{ layer.verified }} with a verified pole{% if layer.heads %} · {{ layer.verified_heads }} verified heads{% endif %}
 </p>
 
 <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
       <tr>
-        <th class="px-3 py-2">Neuron</th>
+        <th class="px-3 py-2">Unit</th>
         <th class="px-3 py-2">Latest status by pole</th>
         <th class="px-3 py-2 text-right">Experiments</th>
         <th class="px-3 py-2">Most conclusive result</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-      {% for n in layer.neurons %}
+      {% for n in layer.units %}
       <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="whitespace-nowrap px-3 py-2 font-mono">
-          <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">N{{ n.idx }}</a>
+          <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>
         </td>
         <td class="space-y-1 px-3 py-2">
           {% for pole, e in n.latest_by_pole | dictsort(reverse=true) %}
-          <div class="flex items-center gap-2 text-xs">{{ pole_mark(pole) }} {{ status_badge(e.record.verdict.status) }}</div>
+          <div class="flex items-center gap-2 text-xs">{% if not n.is_head %}{{ pole_mark(pole) }} {% endif %}{{ status_badge(e.record.verdict.status) }}</div>
           {% endfor %}
         </td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ n.experiments | length }}</td>

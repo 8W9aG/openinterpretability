@@ -29,11 +29,22 @@ build:
 search-index:
 	uv run python -m pagefind --site $(DIST_DIR)
 
-# Builds the site from synthetic example records (no model or LLM calls).
+# A few real experiments from the wiki covering each verdict, a neuron with several
+# experiments, and held-out explanation scores. Records are write-once, so paths are stable.
+SAMPLE_RECORDS = $(addprefix wiki/experiments/Qwen--Qwen2.5-0.5B/, \
+	L4/N1889-positive/20261019T113221Z.json \
+	L9/N1458-negative/20261020T211015Z.json \
+	L11/N4255-positive/20261019T050928Z.json \
+	L11/N4255-positive/20261020T171549Z.json \
+	L12/N4232-negative/20261021T044854Z.json \
+	L20/N967-negative/20261021T040406Z.json)
+
+# Builds the site from a small sample of real records (no model or LLM calls).
 sample-run:
-	uv run python examples/make_sample_audits.py
-	rm -rf build/sample-wiki
-	uv run openinterp wiki --import-dir examples/audits --wiki-dir build/sample-wiki
+	rm -rf build/sample-records build/sample-wiki
+	mkdir -p build/sample-records
+	cp $(SAMPLE_RECORDS) build/sample-records/
+	uv run openinterp wiki --import-dir build/sample-records --wiki-dir build/sample-wiki
 	@$(MAKE) --no-print-directory build WIKI_DIR=build/sample-wiki
 	@echo "Open $(DIST_DIR)/index.html, or run 'make serve' for DuckDB/Pagefind (needs HTTP)."
 

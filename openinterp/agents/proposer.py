@@ -10,18 +10,20 @@ from pydantic import BaseModel, Field
 from openinterp.agents.base import LLMAgent
 from openinterp.core.schemas import (
     ActivatingExample,
+    ComponentIdentifier,
     ConfoundProfile,
     CorrelatedNeuron,
     CounterfactualPair,
     ExperimentProvenance,
+    HeadProfile,
     Histogram,
     LookaheadProfile,
     NeuronAuditSubmission,
-    NeuronIdentifier,
     VocabularyLens,
 )
 from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.lookahead import measure_lookahead
+from openinterp.harness.lookahead import ablation_profile
+from openinterp.harness.units import Unit, max_strength, unit_of
 
 
 class CounterfactualDraft(BaseModel):
@@ -65,47 +67,69 @@ def format_examples(examples: Sequence[ActivatingExample], max_examples: int = 2
         window = range(max(0, ex.max_token_index - 3), min(len(ex.tokens), ex.max_token_index + 2))
         context = ", ".join(f"{ex.tokens[i]!r}:{ex.activations[i]:.2f}" for i in window)
         lines.append(f"{n}. (max {ex.max_activation:.3f}) {marked}\n   around peak: {context}")
+        if ex.attends_to:
+            attended = ", ".join(
+                f"{ex.tokens[i]!r} (token {i - ex.max_token_index:+d}, weight {w:.2f})"
+                for i, w in zip(ex.attends_to, ex.attention_weights, strict=True)
+            )
+            lines.append(f"   peak attends to: {attended}")
     return "\n".join(lines)
+
+
+def format_head_profile(profile: HeadProfile) -> str:
+    return (
+        f"Strength is |W_O (z - mean z)|: how far the head's write to the residual stream is "
+        f"from its average write. Attention-pattern scores on {profile.pattern_sequences} "
+        f"random {profile.pattern_length}-token sequences repeated twice (0-1; mean attention "
+        f"weight): previous token {profile.previous_token_score:.2f}, duplicate token "
+        f"{profile.duplicate_token_score:.2f}, induction (to the token after an earlier copy "
+        f"of the current one) {profile.induction_score:.2f}.\n"
+    )
 
 
 class ProposerAgent(LLMAgent):
     role = "proposer"
     system_prompt = (
-        "You are a mechanistic interpretability researcher auditing a single native MLP "
-        "neuron pole in an open-weight language model. Activations are pole strengths "
-        "(non-negative; larger = more active). Propose the most specific hypothesis that "
-        "explains the evidence and that could be falsified. Decide explicitly whether the "
-        "pole reacts to what has already been read (retrospective) or prepares a particular "
-        "upcoming token (lookahead): lookahead neurons often peak on the token *before* the "
-        "predicted one, and their promoted-token list is informative. Write minimal-pair "
+        "You are a mechanistic interpretability researcher auditing a single native unit, an "
+        "MLP neuron pole or an attention head, in an open-weight language model. Activations "
+        "are strengths (non-negative; larger = more active). Propose the most specific "
+        "hypothesis that explains the evidence and that could be falsified. Decide explicitly "
+        "whether the unit reacts to what has already been read (retrospective) or prepares a "
+        "particular upcoming token (lookahead): lookahead neurons often peak on the token "
+        "*before* the predicted one, and their promoted-token list is informative. Write "
+        "minimal-pair "
         "counterfactuals that change as little text as possible, including at least one "
         "control pair with expected_delta near 0."
     )
 
     def propose(
         self,
-        identifier: NeuronIdentifier,
+        identifier: ComponentIdentifier,
         examples: Sequence[ActivatingExample],
         lens: VocabularyLens | None = None,
         confounds: ConfoundProfile | None = None,
         correlated: Sequence[CorrelatedNeuron] = (),
+        head_profile: HeadProfile | None = None,
     ) -> HypothesisDraft:
-        prompt = self.proposal_prompt(identifier, examples, lens, confounds, correlated)
+        prompt = self.proposal_prompt(
+            identifier, examples, lens, confounds, correlated, head_profile
+        )
         return self.structured(HypothesisDraft, prompt)
 
     @staticmethod
     def proposal_prompt(
-        identifier: NeuronIdentifier,
+        identifier: ComponentIdentifier,
         examples: Sequence[ActivatingExample],
         lens: VocabularyLens | None = None,
         confounds: ConfoundProfile | None = None,
         correlated: Sequence[CorrelatedNeuron] = (),
+        head_profile: HeadProfile | None = None,
     ) -> str:
-        """The task text the proposer answers: the scan evidence for one neuron pole."""
-        prompt = (
-            f"Neuron: {identifier}\n\n"
-            f"Top-activating snippets (peak token in [[ ]]):\n{format_examples(examples)}\n\n"
-        )
+        """The task text the proposer answers: the scan evidence for one unit."""
+        prompt = f"{'Attention head' if head_profile else 'Neuron'}: {identifier}\n\n"
+        if head_profile is not None:
+            prompt += format_head_profile(head_profile) + "\n"
+        prompt += f"Top-activating snippets (peak token in [[ ]]):\n{format_examples(examples)}\n\n"
         if lens is not None:
             prompt += (
                 f"Tokens this pole promotes via the Jacobian lens (its output direction "
@@ -135,7 +159,7 @@ class ProposerAgent(LLMAgent):
 
     def build_submission(
         self,
-        identifier: NeuronIdentifier,
+        identifier: ComponentIdentifier,
         draft: HypothesisDraft,
         *,
         runner: NeuronHookRunner | None = None,
@@ -145,6 +169,7 @@ class ProposerAgent(LLMAgent):
         correlated: Sequence[CorrelatedNeuron] = (),
         provenance: ExperimentProvenance | None = None,
         vocabulary_lens: VocabularyLens | None = None,
+        head_profile: HeadProfile | None = None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
@@ -162,20 +187,17 @@ class ProposerAgent(LLMAgent):
             target_upcoming_tokens=list(draft.target_upcoming_tokens),
             kl_divergence=0.0,
         )
+        is_head = identifier.kind == "attn_head"
         if runner is not None and max_act:
+            unit = unit_of(identifier, head_profile)
             pairs = [
                 pair.model_copy(
-                    update={"observed_delta": observed_delta(runner, identifier, pair, max_act)}
+                    update={"observed_delta": observed_delta(runner, unit, pair, max_act)}
                 )
                 for pair in pairs
             ]
-            measured = measure_lookahead(
-                runner,
-                [p.base_prompt for p in pairs],
-                identifier.layer,
-                identifier.neuron_idx,
-                identifier.pole,
-            )
+            prompts = [p.base_prompt for p in pairs]
+            measured = ablation_profile(runner, prompts, unit.ablation(runner))
             # Keep the proposer's claim; record the measured KL as evidence for review.
             lookahead = lookahead.model_copy(update={"kl_divergence": measured.kl_divergence})
 
@@ -191,18 +213,19 @@ class ProposerAgent(LLMAgent):
             activation_histogram=histogram,
             model_num_layers=runner.n_layers if runner is not None else None,
             model_mlp_width=runner.mlp_width(identifier.layer) if runner is not None else None,
+            model_n_heads=runner.n_heads if runner is not None and is_head else None,
             provenance=provenance,
             confounds=confounds,
             correlated_neurons=list(correlated),
             vocabulary_lens=vocabulary_lens,
+            head_profile=head_profile,
         )
 
 
 def observed_delta(
-    runner: NeuronHookRunner, ident: NeuronIdentifier, pair: CounterfactualPair, scale: float
+    runner: NeuronHookRunner, unit: Unit, pair: CounterfactualPair, scale: float
 ) -> float:
-    """Measured (base - counterfactual) max pole strength, normalised by ``scale``."""
-    args = (ident.layer, ident.neuron_idx, ident.pole)
-    base = runner.max_pole_strength(pair.base_prompt, *args)
-    cf = runner.max_pole_strength(pair.counterfactual_prompt, *args)
+    """Measured (base - counterfactual) max strength, normalised by ``scale``."""
+    base = max_strength(runner, unit, pair.base_prompt)
+    cf = max_strength(runner, unit, pair.counterfactual_prompt)
     return round((base - cf) / scale, 6)

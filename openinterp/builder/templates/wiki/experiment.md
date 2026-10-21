@@ -1,7 +1,8 @@
 {% set ident = sub.identifier %}
-# {{ ident.model_name }} · L{{ ident.layer }}/N{{ ident.neuron_idx }}{{ '+' if ident.pole == 'positive' else '−' }} · {{ verdict.status }}
+{% set is_head = ident.kind == 'attn_head' %}
+# {{ ident.model_name }} · {{ label }} · {{ verdict.status }}
 
-[← all experiments on this neuron](README.md) · [wiki home](../../../../README.md)
+[← all experiments on this {{ 'head' if is_head else 'neuron' }}](README.md) · [wiki home](../../../../README.md)
 
 | | |
 | --- | --- |
@@ -31,7 +32,11 @@
 - **Activating tokens:** {% for t in sub.activating_tokens %}`{{ t | cell }}`{{ ", " if not loop.last }}{% endfor %}
 
 - **Mechanism claimed:** {{ 'lookahead, preparing ' ~ (sub.lookahead.target_upcoming_tokens | join(', ')) if sub.lookahead.is_lookahead else 'retrospective' }}
-- **Max activation (scan):** {{ sub.max_activation | num(4) }}
+- **Max activation (scan):** {{ sub.max_activation | num(4) }}{% if is_head %} (head strength, \|W_O (z − z̄)\|){% endif %}
+{% if sub.head_profile %}
+{% set hp = sub.head_profile %}
+- **Attention patterns** (random {{ hp.pattern_length }}-token sequences repeated twice; reported, not gated): previous token {{ hp.previous_token_score | num(2) }}, duplicate token {{ hp.duplicate_token_score | num(2) }}, induction {{ hp.induction_score | num(2) }}
+{% endif %}
 
 {% if examples %}
 ### Top-activating examples
@@ -62,7 +67,7 @@ This verdict predates protocol v0.2, so it has no per-gate metrics. Run `openint
 {% if verdict.causal_metrics %}
 {% set c = verdict.causal_metrics %}
 {% if c.target %}
-Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the pole's patch effect among the {{ c.null_neurons }} same-layer neurons that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
+Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the {{ 'head' if is_head else 'pole' }}'s patch effect among the {{ c.null_neurons }} same-layer {{ 'heads' if is_head else 'neurons' }} that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
 {% else %}
 Causal metrics (recorded, not gated; top-1 logit, protocol < 0.5): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}, hydra mitigated: {{ c.hydra_mitigated }}.
 {% endif %}

@@ -21,7 +21,7 @@ def flow(tmp_path, monkeypatch, toy_runner):
     toy_runner.model.config = SimpleNamespace()
     loads = []
 
-    def load(model_name, device, dtype):
+    def load(model_name, device, dtype, *_args, **_kwargs):
         loads.append(model_name)
         return toy_runner
 

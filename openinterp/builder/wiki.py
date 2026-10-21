@@ -4,6 +4,7 @@ Layout under ``wiki/``::
 
     README.md                                   home: every experiment, newest first
     experiments/<model>/L<l>/N<n>-<pole>/README.md      neuron page: its experiment history
+    experiments/<model>/L<l>/H<h>/...                   the same for an attention head
     experiments/<model>/L<l>/N<n>-<pole>/<id>.md        one experiment (write-once)
     experiments/<model>/L<l>/N<n>-<pole>/<id>.json      its full audit record (write-once)
 
@@ -64,6 +65,13 @@ class WikiEntry:
 def experiment_id(record: AuditRecord) -> str:
     assert record.verdict is not None
     return record.verdict.timestamp.strftime("%Y%m%dT%H%M%SZ")
+
+
+def unit_label(meta: dict) -> str:
+    """``L3/N7+`` or ``L5/H1``, from a page's front matter."""
+    if "head" in meta:
+        return f"L{meta['layer']}/H{meta['head']}"
+    return f"L{meta['layer']}/N{meta['neuron']}{'+' if meta['pole'] == 'positive' else '−'}"
 
 
 def neuron_dir(wiki_dir: Path, record: AuditRecord) -> Path:
@@ -137,17 +145,22 @@ def write_experiment_page(
         return None
 
     sub, verdict = record.submission, record.verdict
+    ident = sub.identifier
     metrics, policy = verdict.metrics, verdict.policy
     failed = [g for g, ok in (metrics.gates.items() if metrics else []) if not ok]
     advice = [GATE_ADVICE[g].format(**(policy.model_dump() if policy else {})) for g in failed]
+    unit = (
+        {"head": ident.head_idx}
+        if ident.kind == "attn_head"
+        else {"neuron": ident.neuron_idx, "pole": ident.pole}
+    )
     meta = {
         "experiment_id": experiment_id(record),
         "kind": kind,
-        "slug": sub.identifier.slug,
-        "model": sub.identifier.model_name,
-        "layer": sub.identifier.layer,
-        "neuron": sub.identifier.neuron_idx,
-        "pole": sub.identifier.pole,
+        "slug": ident.slug,
+        "model": ident.model_name,
+        "layer": ident.layer,
+        **unit,
         "status": verdict.status,
         "balanced_accuracy": verdict.confidence_score,
         "protocol_version": policy.protocol_version if policy else None,
@@ -161,6 +174,7 @@ def write_experiment_page(
         .get_template("experiment.md")
         .render(
             meta=meta,
+            label=unit_label(meta),
             sub=sub,
             verdict=verdict,
             metrics=metrics,
@@ -233,9 +247,10 @@ def rebuild_indexes(wiki_dir: Path) -> None:
         by_neuron.setdefault(entry.meta["slug"], []).append(entry)
     for slug, history in by_neuron.items():
         index = wiki_dir / "experiments" / slug / "README.md"
+        latest = history[0].meta
         index.write_text(
             env.get_template("neuron.md").render(
-                slug=slug, latest=history[0].meta, history=history
+                slug=slug, latest=latest, label=unit_label(latest), history=history
             ),
             encoding="utf-8",
         )
@@ -246,6 +261,7 @@ def rebuild_indexes(wiki_dir: Path) -> None:
     rows = [
         {
             **e.meta,
+            "label": unit_label(e.meta),
             "link": e.path.relative_to(wiki_dir).as_posix(),
             "neuron_link": e.path.parent.relative_to(wiki_dir).as_posix() + "/README.md",
         }

@@ -8,83 +8,26 @@ are accepted for datetimes under strict mode.
 
 from __future__ import annotations
 
-import re
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import AwareDatetime, Discriminator, Field, Tag, model_validator
+from pydantic import AwareDatetime, Field, model_validator
 
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.explanation import ExplanationScores
+from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
+    ComponentIdentifier,
+    HeadIdentifier,
+    NeuronIdentifier,
+    Pole,
+)
 from openinterp.core.strict import StrictModel, UnitFloat
 
-Pole = Literal["positive", "negative"]
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 CausalTarget = Literal["claimed_tokens", "next_token_kl"]
 
-PROTOCOL_VERSION = "0.5"
-
-
-class _Component(StrictModel):
-    model_name: str = Field(min_length=1, examples=["Qwen/Qwen2.5-0.5B"])
-    layer: int = Field(ge=0)
-
-    @property
-    def model_slug(self) -> str:
-        return re.sub(r"[^A-Za-z0-9._-]+", "--", self.model_name)
-
-
-class NeuronIdentifier(_Component):
-    """Addresses one pole of one MLP neuron in an open-weight model.
-
-    The ``mlp_neuron_pole`` case of :data:`ComponentIdentifier`. ``kind`` defaults, so
-    records written before it existed still validate.
-    """
-
-    kind: Literal["mlp_neuron_pole"] = "mlp_neuron_pole"
-    neuron_idx: int = Field(ge=0)
-    pole: Pole
-
-    @property
-    def slug(self) -> str:
-        return f"{self.model_slug}/L{self.layer}/N{self.neuron_idx}-{self.pole}"
-
-    def __str__(self) -> str:
-        sign = "+" if self.pole == "positive" else "-"
-        return f"{self.model_name} L{self.layer}/N{self.neuron_idx}{sign}"
-
-
-class HeadIdentifier(_Component):
-    """Addresses one attention head: its slice of the attention output projection's input.
-
-    Heads have no sign, so no pole. They can be identified and hooked
-    (:meth:`NeuronHookRunner.head_outputs`), but not yet audited: submissions still take
-    a :class:`NeuronIdentifier`.
-    """
-
-    kind: Literal["attn_head"] = "attn_head"
-    head_idx: int = Field(ge=0)
-
-    @property
-    def slug(self) -> str:
-        return f"{self.model_slug}/L{self.layer}/H{self.head_idx}"
-
-    def __str__(self) -> str:
-        return f"{self.model_name} L{self.layer}/H{self.head_idx}"
-
-
-def _component_kind(value) -> str:
-    kind = value.get("kind") if isinstance(value, dict) else getattr(value, "kind", None)
-    return kind or "mlp_neuron_pole"  # records predating `kind` are neuron poles
-
-
-ComponentIdentifier = Annotated[
-    Annotated[NeuronIdentifier, Tag("mlp_neuron_pole")]
-    | Annotated[HeadIdentifier, Tag("attn_head")],
-    Discriminator(_component_kind),
-]
-"""Any auditable unit: an MLP neuron pole or an attention head, told apart by ``kind``."""
+PROTOCOL_VERSION = "0.6"
 
 
 class CounterfactualPair(StrictModel):
@@ -168,13 +111,19 @@ class Histogram(StrictModel):
 
 
 class ActivatingExample(StrictModel):
-    """A text snippet with per-token pole strengths (non-negative magnitudes)."""
+    """A text snippet with per-token strengths (non-negative magnitudes).
+
+    For an attention head, ``attends_to`` lists the tokens the peak token attends to
+    most, strongest first, with their attention weights in ``attention_weights``.
+    """
 
     text: str
     tokens: list[str]
     activations: list[float]
     max_activation: float = Field(ge=0.0)
     max_token_index: int = Field(ge=0)
+    attends_to: list[int] = Field(default_factory=list)
+    attention_weights: list[UnitFloat] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _aligned(self) -> ActivatingExample:
@@ -182,7 +131,37 @@ class ActivatingExample(StrictModel):
             raise ValueError("tokens and activations must be the same length")
         if self.tokens and self.max_token_index >= len(self.tokens):
             raise ValueError("max_token_index out of range")
+        if len(self.attends_to) != len(self.attention_weights):
+            raise ValueError("attends_to and attention_weights must be the same length")
+        if any(not 0 <= i <= self.max_token_index for i in self.attends_to):
+            raise ValueError("attends_to must index tokens up to the peak (attention is causal)")
         return self
+
+
+class HeadProfile(StrictModel):
+    """What defines an attention head's activity, and its standard attention-pattern scores.
+
+    A head's strength at token t is ``|W_O (z_t − mean_output)|``: how far its write to
+    the residual stream is from its mean write over the scan, i.e. how far mean-ablating
+    the head would move the residual stream there. ``mean_output`` (z̄, one value per
+    head dimension) is measured once, by the scan, and every later measurement of the
+    experiment uses this stored value, so a record reproduces without the corpus.
+
+    The pattern scores are mean attention weights on ``pattern_sequences`` sequences of
+    ``pattern_length`` uniformly random tokens repeated twice (Olsson et al., 2022):
+    ``previous_token`` to the token before, ``duplicate_token`` from the second copy to
+    the same token in the first, ``induction`` from the second copy to the token *after*
+    the same token in the first. Each is between 0 and 1; reported, not gated.
+    """
+
+    mean_output: list[float] = Field(min_length=1)
+    mean_tokens: int = Field(gt=0, description="Tokens z̄ was averaged over.")
+    previous_token_score: UnitFloat
+    duplicate_token_score: UnitFloat
+    induction_score: UnitFloat
+    pattern_sequences: int = Field(gt=0)
+    pattern_length: int = Field(gt=1)
+    pattern_seed: int
 
 
 class RunEnvironment(StrictModel):
@@ -343,29 +322,36 @@ class ScanEvidence(StrictModel):
     --evidence <file> --hypothesis <file>`` can build the submission without rescanning.
     """
 
-    identifier: NeuronIdentifier
+    identifier: ComponentIdentifier
     top_examples: list[ActivatingExample]
     activation_histogram: Histogram | None = None
     provenance: ExperimentProvenance | None = None
     confounds: ConfoundProfile | None = None
     correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
     vocabulary_lens: VocabularyLens | None = None
+    head_profile: HeadProfile | None = None
+    model_n_heads: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _head_profile(self) -> ScanEvidence:
+        return _require_head_profile(self)
+
+
+def _require_head_profile(model):
+    """A head's strength is undefined without its mean output; a neuron has no profile."""
+    is_head = model.identifier.kind == "attn_head"
+    if is_head and model.head_profile is None:
+        raise ValueError("an attention head needs a head_profile: its mean output defines strength")
+    if not is_head and model.head_profile is not None:
+        raise ValueError("head_profile is only for attention heads")
+    return model
 
 
 class NeuronAuditSubmission(StrictModel):
-    identifier: NeuronIdentifier
+    """A hypothesis about one unit, frozen once submitted: a neuron pole or, since protocol
+    0.6, an attention head. The name predates heads and is kept for compatibility."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def _neurons_only(cls, data):
-        ident = data.get("identifier") if isinstance(data, dict) else None
-        if _component_kind(ident or {}) == "attn_head":
-            raise ValueError(
-                "attention heads can be identified and hooked, but not audited yet: "
-                "submissions take an MLP neuron pole"
-            )
-        return data
-
+    identifier: ComponentIdentifier
     natural_language_explanation: str = Field(min_length=1)
     activating_tokens: list[str]
     counterfactuals: list[CounterfactualPair] = Field(min_length=1)
@@ -381,6 +367,12 @@ class NeuronAuditSubmission(StrictModel):
     correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
     confounds: ConfoundProfile | None = None
     vocabulary_lens: VocabularyLens | None = None
+    head_profile: HeadProfile | None = None
+    model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
+
+    @model_validator(mode="after")
+    def _head_profile(self) -> NeuronAuditSubmission:
+        return _require_head_profile(self)
 
 
 class AdversarialTestResult(StrictModel):

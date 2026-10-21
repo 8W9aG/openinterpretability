@@ -3,7 +3,7 @@
 `openinterp check` only validates a record's shape. This re-runs, against the model
 revision and dtype the record pins, every measurement its verdict rests on:
 
-1. the scan evidence: each top example's per-token pole strengths, and the scale
+1. the scan evidence: each top example's per-token strengths, and the scale
    (``max_activation``) that every "active" threshold is a fraction of;
 2. each counterfactual pair's observed Δ;
 3. the review itself, with the record's stored probes and its own ``ReviewPolicy``
@@ -102,8 +102,10 @@ def reproduce_record(
     if reason:
         report.fail(reason)
         return report
+    from openinterp.harness.units import submission_unit
+
     sub, verdict = record.submission, record.verdict
-    ident = sub.identifier
+    unit = submission_unit(sub)
     _compare_environment(record, run_environment(runner), report)
 
     scale = sub.max_activation or 0.0
@@ -113,7 +115,7 @@ def reproduce_record(
 
     # 1. Scan evidence.
     for n, ex in enumerate(sub.top_examples, 1):
-        strengths = runner.neuron_activations(ex.text, ident.layer, ident.neuron_idx, ident.pole)
+        strengths = unit.strengths(runner, ex.text)
         tokens = runner.encode(ex.text)["input_ids"][0].tolist()
         words = [runner.tokenizer.decode([i]) for i in tokens] if runner.tokenizer else None
         if words is not None and words != ex.tokens:
@@ -141,7 +143,7 @@ def reproduce_record(
         if pair.observed_delta is None or not scale:
             continue
         report.compared += 1
-        delta = observed_delta(runner, ident, pair, scale)
+        delta = observed_delta(runner, unit, pair, scale)
         if not tolerance.close(pair.observed_delta, delta, 1.0):
             report.fail(
                 f"counterfactual {n}: observed_delta recorded {pair.observed_delta}, "
@@ -157,17 +159,17 @@ def reproduce_record(
     # 4. Explanation scores (reported, not gated): re-measure the windows, keep the answers.
     if verdict.explanation_scores is not None:
         _compare_explanation_scores(
-            verdict.explanation_scores, runner, ident, tolerance, scale, report
+            verdict.explanation_scores, runner, unit, tolerance, scale, report
         )
     return report
 
 
 def _compare_explanation_scores(
-    old, runner, ident, tolerance: Tolerance, scale: float, report
+    old, runner, unit, tolerance: Tolerance, scale: float, report
 ) -> None:
     from openinterp.harness.explanation_scores import remeasure
 
-    new = remeasure(old, runner, ident)
+    new = remeasure(old, runner, unit)
     for kind in ("detection", "fuzzing"):
         pairs = zip(getattr(old, f"{kind}_windows"), getattr(new, f"{kind}_windows"), strict=True)
         for n, (a, b) in enumerate(pairs, 1):

@@ -1,17 +1,17 @@
-# Audit protocol (v0.5)
+# Audit protocol (v0.6)
 
 This document defines what one Open Interpretability experiment is, who does what, and how a verdict is decided. The code implements it: the decision rule is `openinterp.agents.reviewer.evaluate_submission`, and its parameters are `openinterp.core.schemas.ReviewPolicy`. Every verdict stores the policy it was computed under, so any record can be re-checked with `openinterp reevaluate`.
 
 ## 1. Unit of analysis
 
-One experiment tests **one hypothesis about one neuron pole** in one model revision.
+One experiment tests **one hypothesis about one unit** in one model revision. A unit is a neuron pole or, since protocol 0.6, an attention head.
 
 | Term | Definition |
 | --- | --- |
 | Neuron | One coordinate of the MLP intermediate activation, i.e. the input to the down/output projection (`act(gate(x)) * up(x)` for gated MLPs). |
-| Attention head | One head's slice of the attention output projection's input (`o_proj`, or `c_proj` in GPT-2). Heads have an identifier (`HeadIdentifier`, `kind = "attn_head"`) and harness hooks, but no audit protocol yet: submissions take neuron poles only. |
 | Pole | Positive: `clamp(a, min=0)`. Negative: `clamp(a, max=0)`. The two poles are audited separately. |
-| Strength | Non-negative magnitude of the pole. Larger always means more active. |
+| Attention head | One head's output z: its slice of the attention output projection's input (`o_proj`, or `c_proj` in GPT-2). Identified by `HeadIdentifier` (`kind = "attn_head"`, `L<layer>/H<idx>`). A head has no sign, so no poles. |
+| Strength | Non-negative, per token. Larger always means more active. For a neuron pole, the magnitude of the pole. For a head, `\|W_O (z_t − z̄)\|`: the distance between the head's write to the residual stream at token t and its mean write over the scan, i.e. how far mean-ablating the head would move the residual stream there. z̄ is measured by the scan and stored in `head_profile.mean_output`, so every later measurement uses the same zero point and a record reproduces without its corpus. |
 | Scale | The maximum strength seen during the discovery scan (`max_activation`). |
 | Active | A prompt is active if its peak strength over all tokens is at least `activation_threshold × scale` (default 0.25). |
 | Δ (counterfactual) | `(peak strength on base − peak strength on counterfactual) / scale`. |
@@ -34,11 +34,11 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
                        └──────────── NEEDS_REVISION: new submission ◀───────┘
 ```
 
-1. **Select.** Choose the neuron pole and record how in `provenance.selection`. Agents without an assignment use `openinterp next` (skill `choose-next-experiment`). It explores uniformly random neurons with probability ε and otherwise samples a follow-up on an existing neuron; re-studying a neuron is valid, and null results count as data. The options are:
-   - `random`: uniform over layers, then neurons, then poles (`openinterp audit --random --seed N`). Only randomly selected neurons count towards registry-wide statistics such as "fraction of neurons with a verified explanation".
+1. **Select.** Choose the unit and record how in `provenance.selection`. Agents without an assignment use `openinterp next` (skill `choose-next-experiment`). It explores uniformly random neurons with probability ε and otherwise samples a follow-up on an existing neuron; re-studying a neuron is valid, and null results count as data. The options are:
+   - `random`: uniform over layers, then neurons, then poles (`openinterp audit --random --seed N`), or over layers, then heads (`--unit head --random`). Only randomly selected units count towards registry-wide statistics such as "fraction of neurons with a verified explanation", and neurons and heads are never pooled.
    - `attribution`: chosen because it ranked highly in attribution patching for some behaviour.
    - `manual`: anything else.
-2. **Scan.** Run the corpus through the model and keep the top-k activating snippets and a histogram of all token strengths. Documents are read whole, or as overlapping windows (`--window-tokens`, `--stride`) in which each token is counted once and top examples don't overlap. Record the model revision, dtype, corpus, corpus hash, token count and window length and stride in `provenance`.
+2. **Scan.** Run the corpus through the model and keep the top-k activating snippets and a histogram of all token strengths. Documents are read whole, or as overlapping windows (`--window-tokens`, `--stride`) in which each token is counted once and top examples don't overlap. Record the model revision, dtype, corpus, corpus hash, token count and window length and stride in `provenance`. A head scan first averages the head's output over every counted token (z̄), then measures strengths against it. It also records, for each top example, the tokens its peak attends to most, and the head's previous-token, duplicate-token and induction scores: mean attention weights on 16 sequences of 32 uniformly random tokens repeated twice (Olsson et al., 2022). These are evidence for the proposer, not gates. Heads have no vocabulary lens (a head writes a subspace, not one direction) and no partner search.
 3. **Hypothesize.** The proposer states:
    - a natural-language explanation precise enough that a third party can label new text as "predicted active" or "predicted inactive";
    - the mechanism: **retrospective** (reacts to tokens already read) or **lookahead** (prepares specific upcoming tokens);
@@ -47,10 +47,10 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
 5. **Probe.** The reviewer writes 10–20 probes and labels each with what the *hypothesis* predicts, not with what the reviewer expects the neuron to do:
    - **hard negatives** (about two thirds): near-misses that share surface features with the activating examples but which the hypothesis says should not fire;
    - **positive holdouts** (at least four): new contexts, including paraphrases of the claimed feature, that the hypothesis says should fire.
-6. **Measure.** The harness runs every probe and counterfactual, measures the lookahead profile (KL between clean and pole-ablated next-token distributions, and how concentrated the change is), and computes the causal metrics.
+6. **Measure.** The harness runs every probe and counterfactual, measures the lookahead profile (KL between clean and ablated next-token distributions, and how concentrated the change is), and computes the causal metrics. A pole is ablated by zeroing it; a head by replacing its output with z̄ (mean ablation), the change its strength measures.
 7. **Decide.** Apply the rule in §4.
-8. **Record.** Every completed experiment, whatever its verdict, gets a write-once page in `wiki/experiments/<model>/L<layer>/N<idx>-<pole>/<timestamp>.md`. The page holds the hypothesis, evidence, gate results, failed probes and next steps derived from the failed gates. `verify` and `reevaluate` write it automatically, next to the experiment's write-once record `<timestamp>.json`. Re-evaluations, revisions and re-reviews are new experiments: nothing is ever overwritten. The page's Discussion section is for free-form notes.
-9. **Publish.** Every experiment is published, whatever its verdict. The site and `registry.parquet` are built from the archived `<id>.json` records, the registry's only source of truth. A neuron pole may have any number of experiments, and its standing (latest or most conclusive verdict) is derived from them, never stored. Pages follow Model → Layer → Neuron → Experiments, and each neuron's experiments are ordered by **conclusiveness**:
+8. **Record.** Every completed experiment, whatever its verdict, gets a write-once page in `wiki/experiments/<model>/L<layer>/N<idx>-<pole>/<timestamp>.md` (a head: `…/L<layer>/H<idx>/`). The page holds the hypothesis, evidence, gate results, failed probes and next steps derived from the failed gates. `verify` and `reevaluate` write it automatically, next to the experiment's write-once record `<timestamp>.json`. Re-evaluations, revisions and re-reviews are new experiments: nothing is ever overwritten. The page's Discussion section is for free-form notes.
+9. **Publish.** Every experiment is published, whatever its verdict. The site and `registry.parquet` are built from the archived `<id>.json` records, the registry's only source of truth. A neuron pole or head may have any number of experiments, and its standing (latest or most conclusive verdict) is derived from them, never stored. Pages follow Model → Layer → Neuron (`N<idx>.html`) or head (`H<idx>.html`) → Experiments, and each unit's experiments are ordered by **conclusiveness**:
    - With Beta(1, 1) priors on specificity and sensitivity, P(useful) = P(balanced accuracy > 0.6).
    - Conclusiveness is |2·P(useful) − 1|, so a well-probed rejection ranks as high as a well-probed verification, and thinly-probed results rank low whatever their verdict.
 
@@ -106,7 +106,7 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
 - **Causal metrics.** Sufficiency (clean → corrupted patch) and necessity (corrupted → clean patch) are measured on each minimal pair, with downstream MLP outputs frozen against self-repair. They are recorded, not gated.
   - *Where.* The pole is patched at every position and scored at the position where its strength differs most between the two prompts. When the prompts differ in token length, only the final position can be patched and scored.
   - *What.* The target favours no particular neuron. A lookahead claim is scored on its claimed upcoming tokens: their mean logit minus the vocabulary mean (`claimed_tokens`). Anything else is scored on the KL between the unpatched and patched next-token distributions (`next_token_kl`).
-  - *Compared with what.* The same patch is applied, one neuron at a time, to the 32 same-layer neurons (`causal_null_neurons`) whose strength changes most similarly between the pair's prompts. Each score is the median over pairs of the pole's |effect| percentile among theirs. 0.5 means "no more influential than a neuron that changes as much"; 1.0 means it beats all of them. The raw median effects are recorded too.
+  - *Compared with what.* The same patch is applied, one neuron at a time, to the 32 same-layer neurons (`causal_null_neurons`) whose strength changes most similarly between the pair's prompts. A head is patched by swapping its output z and ranked against the other heads of its layer (at most `causal_null_neurons`); the change matched is each head's change in write, |W_O,h (z_base − z_cf)|, which needs no head's z̄. With a dozen or so heads per layer the percentile is coarse. Each score is the median over pairs of the pole's |effect| percentile among theirs. 0.5 means "no more influential than a neuron that changes as much"; 1.0 means it beats all of them. The raw median effects are recorded too.
   - *Which pairs.* Control pairs, where the pole moves by at most `delta_abs_tolerance × scale`, carry no causal signal and are skipped. With none left, no causal metrics are recorded.
 
   Two simpler scores read wrongly on Qwen2.5-0.5B. The fraction of the whole clean/corrupted gap restored (protocol ≤ 0.4, on the top-1 logit) reads ≈ 0 for any single neuron: the gap sums every component's contribution, and the rest of the model often moves the other way. A percentile against *random* neurons reads ≈ 1 for every neuron, because minimal pairs are built to change the audited neuron and most others barely change.
@@ -124,7 +124,8 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
 
 A record must let a third party re-derive its verdict:
 
-- `identifier`: model name, layer, neuron, pole.
+- `identifier`: model name, layer, and neuron and pole, or head.
+- `head_profile.mean_output` for a head: the zero point of its strength.
 - `provenance`: model revision (commit hash), dtype, corpus and its SHA-256, snippet and token counts, selection method and seed, harness version.
 - The full probe set with labels and rationales, stored as `adversarial_test_results`.
 - `verdict.policy`: the exact thresholds, including `protocol_version`.
@@ -156,6 +157,7 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 | 0.3 | Near-duplicate probes cluster into single observations; confound-control gate against token, position and never-active baselines; correlated neurons and joint ablation recorded. |
 | 0.4 | `independent_review` is recorded but no longer gated by default (`require_independent_review = False`). |
 | 0.5 | Causal metrics (still not gated) are scored on claimed tokens or next-token KL at the pole's most-changed position, as percentiles against activation-change-matched same-layer neurons; control pairs are skipped. Replaces the fraction of the top-1-logit gap restored. |
+| 0.6 | Attention heads can be audited. A head's strength is \|W_O (z − z̄)\| against its mean output over the scan (stored in the record), its ablation is mean ablation, and its causal metrics rank it against the other heads of its layer. The decision rule for neuron poles is unchanged; `CausalMetrics.null_neurons` now records how many comparison units were used. |
 
 ### Registry-level dependence
 

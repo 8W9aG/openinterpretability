@@ -47,7 +47,7 @@ The record notes whether the reviewer was a different model from the proposer (`
 **A scan corpus.** The built-in corpus is only a smoke test. This samples 500 documents from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) (its 10B-token sample, about a minute, reading only the Parquet row groups it needs; git-ignored):
 
 ```bash
-uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k for the Pile, --seed N for another sample
+uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k or c4 for another corpus, --seed N for another sample
 ```
 
 It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
@@ -90,6 +90,8 @@ uv run openinterp verify --audit-file submissions/<…>.json --agent-model opena
 #   → probes, measured on the model; writes a new experiment (record + page) under wiki/experiments/
 ```
 
+Attention heads go through the same commands: `--layer 5 --head 1` audits one head (`--unit head --random` samples one), and every later step reads the head from the submission. A head's strength at a token is the distance between its write to the residual stream and its mean write over the scan, `|W_O (z − z̄)|` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §1).
+
 For follow-ups that `next` suggests (revise, re-review, opposite pole), run the commands it prints. Add `--corpus corpus.jsonl` to any `audit`.
 
 ### 3. Contribute it
@@ -130,7 +132,7 @@ make install        # uv sync
 make test           # pytest (CPU only, no downloads)
 make lint           # ruff + the 500-line limit
 make check          # registry consistency (what CI's "Experiment records" job runs)
-make sample-run     # build dist/ from synthetic example records
+make sample-run     # build dist/ from a few real records in the wiki
 make build          # build dist/ from the wiki archive, plus the Pagefind index
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
@@ -177,8 +179,10 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 
 | Path | Purpose |
 | --- | --- |
-| `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier`, `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
+| `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` (in `core/identifiers.py`), `HeadProfile`, `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
 | `openinterp/harness/hooks.py` | `NeuronHookRunner`: forward hooks on the MLP down-projection input (the neuron basis) for Llama/Qwen/Mistral/GPT-2/NeoX/OPT/Phi; pole isolation; corpus scanning |
+| `openinterp/harness/units.py` | What strength and ablation mean for each unit: a neuron pole, or an attention head measured from its mean output |
+| `openinterp/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
 | `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
 | `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
 | `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
@@ -190,6 +194,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 
 - **Neuron activation:** the input to the MLP's down/output projection. For gated MLPs this is `act(gate(x)) * up(x)`.
 - **Pole:** the positive pole is `clamp(a, min=0)` and the negative pole is `clamp(a, max=0)`. Pole *strength* is always reported as a non-negative magnitude.
+- **Attention head:** one head's slice of the attention output projection's input. Its strength is `|W_O (z − z̄)|`, with z̄ its mean output over the scan.
 - **Counterfactual Δ:** `(peak strength on base − peak strength on counterfactual) / max activation`.
 
 ## Static site & data
@@ -232,4 +237,4 @@ Configure the workflow in the repo's GitHub settings:
 
 ## Status
 
-Early scaffold. The records in `examples/audits/` (imported with `openinterp wiki --import-dir`) are **synthetic fixtures** for exercising the builder. They are not real audit results.
+Early scaffold. `make sample-run` builds the site from six real experiments in `wiki/experiments/` (listed in the `Makefile`), imported with `openinterp wiki --import-dir`.

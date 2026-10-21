@@ -63,7 +63,7 @@ class ExplanationScores(StrictModel):
     ``quantile_edges``, and matched with as many inactive ones.
     """
 
-    slug: str = Field(description="The neuron pole scored, as NeuronIdentifier.slug.")
+    slug: str = Field(description="The unit scored: its identifier's slug.")
     explanation: str = Field(min_length=1)
     threshold: float = Field(gt=0.0, description="Pole strength counted as active.")
     window_tokens: int = Field(gt=0)
