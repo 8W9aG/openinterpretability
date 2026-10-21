@@ -16,13 +16,13 @@
         "base_prompt": "\"Come in,\" she said.",
         "counterfactual_prompt": "\"COME IN,\" SHE SAID.",
         "expected_delta": 0.7,
-        "observed_delta": 0.887
+        "observed_delta": 0.762
       },
       {
         "base_prompt": "\"Come in,\" she said.",
         "counterfactual_prompt": "\"Come in,\" she said. Indeed.",
         "expected_delta": 0.0,
-        "observed_delta": 0.001
+        "observed_delta": 0.042
       }
     ],
     "lookahead": {
@@ -31,7 +31,7 @@
       "kl_divergence": 0.0452
     },
     "submitting_agent_model": "example-fixture",
-    "max_activation": 2.68,
+    "max_activation": 2.979,
     "top_examples": [
       {
         "text": "\"Come in,\" she said.",
@@ -43,11 +43,11 @@
         ],
         "activations": [
           0.395,
-          0.393,
-          0.059,
-          2.68
+          0.161,
+          0.271,
+          2.214
         ],
-        "max_activation": 2.68,
+        "max_activation": 2.214,
         "max_token_index": 3
       },
       {
@@ -59,12 +59,12 @@
           " said."
         ],
         "activations": [
-          0.351,
-          0.198,
-          0.367,
-          2.498
+          0.287,
+          0.001,
+          0.329,
+          2.098
         ],
-        "max_activation": 2.498,
+        "max_activation": 2.098,
         "max_token_index": 3
       },
       {
@@ -76,12 +76,12 @@
           " said."
         ],
         "activations": [
-          0.199,
-          0.268,
-          0.081,
-          2.219
+          0.048,
+          0.26,
+          0.349,
+          2.979
         ],
-        "max_activation": 2.219,
+        "max_activation": 2.979,
         "max_token_index": 3
       }
     ],
@@ -114,30 +114,30 @@
         3.0
       ],
       "counts": [
-        1314,
-        917,
-        812,
-        743,
-        738,
-        681,
-        658,
-        613,
-        506,
-        426,
-        349,
-        166,
-        160,
-        118,
-        102,
-        70,
-        64,
-        64,
-        35,
-        27,
+        1171,
+        1115,
+        962,
+        821,
+        790,
+        769,
+        628,
+        553,
+        483,
+        457,
+        420,
+        326,
+        294,
+        241,
+        202,
+        170,
+        130,
+        128,
+        57,
+        42,
+        33,
+        17,
         16,
-        16,
-        14,
-        6
+        7
       ]
     },
     "model_num_layers": 24,
@@ -156,7 +156,7 @@
         "prompt": "Synthetic a0 probe0",
         "passed": false,
         "expected_active": false,
-        "activation": 0.287,
+        "activation": 0.186,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -166,7 +166,7 @@
         "prompt": "Synthetic b1 probe1",
         "passed": false,
         "expected_active": false,
-        "activation": 0.403,
+        "activation": 0.104,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -176,7 +176,7 @@
         "prompt": "Synthetic c2 probe2",
         "passed": false,
         "expected_active": false,
-        "activation": 0.495,
+        "activation": 0.004,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -184,9 +184,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic d3 probe3",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.453,
+        "activation": 0.167,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -194,9 +194,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic e4 probe4",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.268,
+        "activation": 0.359,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -206,7 +206,7 @@
         "prompt": "Synthetic f5 probe5",
         "passed": false,
         "expected_active": false,
-        "activation": 0.413,
+        "activation": 0.31,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -214,9 +214,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic g6 probe6",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.396,
+        "activation": 0.082,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -226,7 +226,7 @@
         "prompt": "Synthetic h7 probe7",
         "passed": false,
         "expected_active": false,
-        "activation": 0.293,
+        "activation": 0.145,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -236,7 +236,7 @@
         "prompt": "Synthetic i8 probe8",
         "passed": false,
         "expected_active": false,
-        "activation": 0.399,
+        "activation": 0.274,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -244,9 +244,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic j9 probe9",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.0,
+        "activation": 0.239,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -256,7 +256,7 @@
         "prompt": "Synthetic k10 probe10",
         "passed": true,
         "expected_active": false,
-        "activation": 0.253,
+        "activation": 0.024,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -266,7 +266,7 @@
         "prompt": "Synthetic l11 probe11",
         "passed": true,
         "expected_active": false,
-        "activation": 0.033,
+        "activation": 0.262,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -275,8 +275,8 @@
     "reviewer_agent_model": "example-fixture",
     "timestamp": "2026-10-01T12:03:00Z",
     "causal_metrics": {
-      "sufficiency_score": 0.816,
-      "necessity_score": 0.766,
+      "sufficiency_score": 0.343,
+      "necessity_score": 0.442,
       "hydra_mitigated": true,
       "target": null,
       "target_tokens": [],
@@ -292,36 +292,36 @@
     "explanation_scores": {
       "slug": "Qwen--Qwen2.5-0.5B/L20/N88-positive",
       "explanation": "Generic sentence-final punctuation.",
-      "threshold": 0.67,
+      "threshold": 0.74475,
       "window_tokens": 32,
       "quantiles": 5,
       "quantile_edges": [
-        0.804,
-        1.072,
-        1.34,
-        1.876
+        0.894,
+        1.192,
+        1.49,
+        2.085
       ],
       "seed": 0,
       "corpus": "synthetic",
       "corpus_sha256": null,
       "candidate_windows": 4000,
-      "active_windows": 72,
+      "active_windows": 151,
       "judge_model": "example-fixture",
       "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
       "detection": {
         "balanced_accuracy": 0.75,
-        "true_positive_rate": 0.7,
-        "false_positive_rate": 0.2,
+        "true_positive_rate": 0.8,
+        "false_positive_rate": 0.3,
         "recall_by_quantile": [
           1.0,
-          0.0,
+          0.5,
           1.0,
           0.5,
           1.0
         ]
       },
       "fuzzing": null,
-      "embedding_auroc": 0.92,
+      "embedding_auroc": 0.73,
       "detection_windows": [
         {
           "text": "\"Come in,\" she said.",
@@ -333,15 +333,15 @@
           ],
           "activations": [
             0.395,
-            0.393,
-            0.059,
-            2.68
+            0.161,
+            0.271,
+            2.214
           ],
           "quantile": 0,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.363
+          "similarity": 0.418
         },
         {
           "text": "\"Come in,\" she said.",
@@ -352,16 +352,16 @@
             " said."
           ],
           "activations": [
-            0.035,
-            0.02,
-            0.037,
-            0.25
+            0.029,
+            0.0,
+            0.033,
+            0.21
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": true,
-          "similarity": 0.025
+          "judged": false,
+          "similarity": 0.242
         },
         {
           "text": "\"Come in,\" she said.",
@@ -372,16 +372,16 @@
             " said."
           ],
           "activations": [
-            0.199,
-            0.268,
-            0.081,
-            2.219
+            0.048,
+            0.26,
+            0.349,
+            2.979
           ],
           "quantile": 2,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.251
+          "similarity": 0.226
         },
         {
           "text": "\"Come in,\" she said.",
@@ -393,15 +393,15 @@
           ],
           "activations": [
             0.04,
-            0.039,
-            0.006,
-            0.268
+            0.016,
+            0.027,
+            0.221
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.332
+          "similarity": 0.335
         },
         {
           "text": "\"Come in,\" she said.",
@@ -412,16 +412,16 @@
             " said."
           ],
           "activations": [
-            0.351,
-            0.198,
-            0.367,
-            2.498
+            0.287,
+            0.001,
+            0.329,
+            2.098
           ],
           "quantile": 4,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.214
+          "similarity": 0.294
         },
         {
           "text": "\"Come in,\" she said.",
@@ -432,16 +432,16 @@
             " said."
           ],
           "activations": [
-            0.02,
-            0.027,
-            0.008,
-            0.222
+            0.005,
+            0.026,
+            0.035,
+            0.298
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": false,
-          "similarity": 0.197
+          "judged": true,
+          "similarity": 0.188
         },
         {
           "text": "\"Come in,\" she said.",
@@ -453,15 +453,15 @@
           ],
           "activations": [
             0.395,
-            0.393,
-            0.059,
-            2.68
+            0.161,
+            0.271,
+            2.214
           ],
           "quantile": 1,
           "highlighted": [],
           "label": true,
           "judged": false,
-          "similarity": 0.487
+          "similarity": 0.391
         },
         {
           "text": "\"Come in,\" she said.",
@@ -472,16 +472,16 @@
             " said."
           ],
           "activations": [
-            0.035,
-            0.02,
-            0.037,
-            0.25
+            0.029,
+            0.0,
+            0.033,
+            0.21
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.061
+          "similarity": 0.06
         },
         {
           "text": "\"Come in,\" she said.",
@@ -492,16 +492,16 @@
             " said."
           ],
           "activations": [
-            0.199,
-            0.268,
-            0.081,
-            2.219
+            0.048,
+            0.26,
+            0.349,
+            2.979
           ],
           "quantile": 3,
           "highlighted": [],
           "label": true,
-          "judged": false,
-          "similarity": 0.364
+          "judged": true,
+          "similarity": 0.547
         },
         {
           "text": "\"Come in,\" she said.",
@@ -513,15 +513,15 @@
           ],
           "activations": [
             0.04,
-            0.039,
-            0.006,
-            0.268
+            0.016,
+            0.027,
+            0.221
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.155
+          "similarity": 0.297
         },
         {
           "text": "\"Come in,\" she said.",
@@ -532,16 +532,16 @@
             " said."
           ],
           "activations": [
-            0.351,
-            0.198,
-            0.367,
-            2.498
+            0.287,
+            0.001,
+            0.329,
+            2.098
           ],
           "quantile": 0,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.388
+          "similarity": 0.226
         },
         {
           "text": "\"Come in,\" she said.",
@@ -552,16 +552,16 @@
             " said."
           ],
           "activations": [
-            0.02,
-            0.027,
-            0.008,
-            0.222
+            0.005,
+            0.026,
+            0.035,
+            0.298
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": false,
-          "similarity": 0.013
+          "judged": true,
+          "similarity": 0.236
         },
         {
           "text": "\"Come in,\" she said.",
@@ -573,15 +573,15 @@
           ],
           "activations": [
             0.395,
-            0.393,
-            0.059,
-            2.68
+            0.161,
+            0.271,
+            2.214
           ],
           "quantile": 2,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.452
+          "similarity": 0.212
         },
         {
           "text": "\"Come in,\" she said.",
@@ -592,16 +592,16 @@
             " said."
           ],
           "activations": [
-            0.035,
-            0.02,
-            0.037,
-            0.25
+            0.029,
+            0.0,
+            0.033,
+            0.21
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": false,
-          "similarity": 0.22
+          "judged": true,
+          "similarity": 0.189
         },
         {
           "text": "\"Come in,\" she said.",
@@ -612,16 +612,16 @@
             " said."
           ],
           "activations": [
-            0.199,
-            0.268,
-            0.081,
-            2.219
+            0.048,
+            0.26,
+            0.349,
+            2.979
           ],
           "quantile": 4,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.353
+          "similarity": 0.552
         },
         {
           "text": "\"Come in,\" she said.",
@@ -633,15 +633,15 @@
           ],
           "activations": [
             0.04,
-            0.039,
-            0.006,
-            0.268
+            0.016,
+            0.027,
+            0.221
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": true,
-          "similarity": 0.196
+          "judged": false,
+          "similarity": 0.368
         },
         {
           "text": "\"Come in,\" she said.",
@@ -652,16 +652,16 @@
             " said."
           ],
           "activations": [
-            0.351,
-            0.198,
-            0.367,
-            2.498
+            0.287,
+            0.001,
+            0.329,
+            2.098
           ],
           "quantile": 1,
           "highlighted": [],
           "label": true,
-          "judged": false,
-          "similarity": 0.444
+          "judged": true,
+          "similarity": 0.52
         },
         {
           "text": "\"Come in,\" she said.",
@@ -672,16 +672,16 @@
             " said."
           ],
           "activations": [
-            0.02,
-            0.027,
-            0.008,
-            0.222
+            0.005,
+            0.026,
+            0.035,
+            0.298
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.253
+          "similarity": 0.374
         },
         {
           "text": "\"Come in,\" she said.",
@@ -693,15 +693,15 @@
           ],
           "activations": [
             0.395,
-            0.393,
-            0.059,
-            2.68
+            0.161,
+            0.271,
+            2.214
           ],
           "quantile": 3,
           "highlighted": [],
           "label": true,
-          "judged": true,
-          "similarity": 0.25
+          "judged": false,
+          "similarity": 0.239
         },
         {
           "text": "\"Come in,\" she said.",
@@ -712,16 +712,16 @@
             " said."
           ],
           "activations": [
-            0.035,
-            0.02,
-            0.037,
-            0.25
+            0.029,
+            0.0,
+            0.033,
+            0.21
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.249
+          "similarity": 0.087
         }
       ],
       "fuzzing_windows": []

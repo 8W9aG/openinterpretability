@@ -16,22 +16,22 @@
         "base_prompt": "def f(x):\n    return x",
         "counterfactual_prompt": "DEF F(X):\n    RETURN X",
         "expected_delta": 0.7,
-        "observed_delta": 0.812
+        "observed_delta": 0.755
       },
       {
         "base_prompt": "def f(x):\n    return x",
         "counterfactual_prompt": "def f(x):\n    return x Indeed.",
         "expected_delta": 0.0,
-        "observed_delta": -0.093
+        "observed_delta": -0.024
       }
     ],
     "lookahead": {
       "is_lookahead": false,
       "target_upcoming_tokens": [],
-      "kl_divergence": 0.0142
+      "kl_divergence": 0.0439
     },
     "submitting_agent_model": "example-fixture",
-    "max_activation": 2.19,
+    "max_activation": 2.838,
     "top_examples": [
       {
         "text": "def f(x):\n    return x",
@@ -46,16 +46,16 @@
           " x"
         ],
         "activations": [
-          0.38,
-          0.167,
-          0.001,
-          0.006,
-          0.302,
-          2.19,
-          0.27,
-          0.245
+          0.072,
+          0.201,
+          0.016,
+          0.04,
+          0.395,
+          2.838,
+          0.143,
+          0.293
         ],
-        "max_activation": 2.19,
+        "max_activation": 2.838,
         "max_token_index": 5
       },
       {
@@ -71,16 +71,16 @@
           " x"
         ],
         "activations": [
-          0.243,
-          0.079,
-          0.121,
-          0.275,
-          0.073,
-          2.022,
-          0.369,
-          0.251
+          0.367,
+          0.068,
+          0.269,
+          0.387,
+          0.023,
+          2.251,
+          0.338,
+          0.137
         ],
-        "max_activation": 2.022,
+        "max_activation": 2.251,
         "max_token_index": 5
       },
       {
@@ -96,16 +96,16 @@
           " x"
         ],
         "activations": [
-          0.366,
-          0.32,
-          0.046,
-          0.103,
-          0.261,
-          2.154,
-          0.258,
-          0.046
+          0.239,
+          0.177,
+          0.07,
+          0.189,
+          0.164,
+          2.357,
+          0.203,
+          0.125
         ],
-        "max_activation": 2.154,
+        "max_activation": 2.357,
         "max_token_index": 5
       }
     ],
@@ -138,30 +138,30 @@
         3.0
       ],
       "counts": [
-        1299,
-        820,
-        762,
-        757,
-        749,
-        413,
-        374,
-        335,
-        272,
-        245,
-        228,
-        188,
-        183,
-        182,
-        164,
-        151,
-        137,
-        126,
-        120,
-        92,
-        78,
-        59,
-        39,
-        17
+        1224,
+        1174,
+        727,
+        541,
+        502,
+        420,
+        401,
+        388,
+        328,
+        214,
+        196,
+        178,
+        173,
+        163,
+        162,
+        135,
+        131,
+        115,
+        109,
+        109,
+        85,
+        18,
+        5,
+        0
       ]
     },
     "model_num_layers": 24,
@@ -180,7 +180,7 @@
         "prompt": "Synthetic a0 probe0",
         "passed": true,
         "expected_active": false,
-        "activation": 0.292,
+        "activation": 0.207,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -190,7 +190,7 @@
         "prompt": "Synthetic b1 probe1",
         "passed": true,
         "expected_active": false,
-        "activation": 0.495,
+        "activation": 0.351,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -200,7 +200,7 @@
         "prompt": "Synthetic c2 probe2",
         "passed": true,
         "expected_active": false,
-        "activation": 0.057,
+        "activation": 0.331,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -210,7 +210,7 @@
         "prompt": "Synthetic d3 probe3",
         "passed": true,
         "expected_active": false,
-        "activation": 0.467,
+        "activation": 0.223,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -220,7 +220,7 @@
         "prompt": "Synthetic e4 probe4",
         "passed": true,
         "expected_active": false,
-        "activation": 0.429,
+        "activation": 0.079,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -230,7 +230,7 @@
         "prompt": "Synthetic f5 probe5",
         "passed": true,
         "expected_active": false,
-        "activation": 0.151,
+        "activation": 0.244,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -238,9 +238,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic g6 probe6",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.15,
+        "activation": 0.378,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -248,9 +248,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic h7 probe7",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.28,
+        "activation": 0.247,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -260,7 +260,7 @@
         "prompt": "Synthetic i8 probe8",
         "passed": true,
         "expected_active": false,
-        "activation": 0.169,
+        "activation": 0.233,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -270,7 +270,7 @@
         "prompt": "Synthetic j9 probe9",
         "passed": false,
         "expected_active": false,
-        "activation": 0.406,
+        "activation": 0.438,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -278,9 +278,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic k10 probe10",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.058,
+        "activation": 0.094,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -288,9 +288,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic l11 probe11",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.019,
+        "activation": 0.317,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -299,8 +299,8 @@
     "reviewer_agent_model": "example-fixture",
     "timestamp": "2026-10-01T12:02:00Z",
     "causal_metrics": {
-      "sufficiency_score": 0.501,
-      "necessity_score": 0.612,
+      "sufficiency_score": 0.35,
+      "necessity_score": 0.635,
       "hydra_mitigated": true,
       "target": null,
       "target_tokens": [],
@@ -316,36 +316,36 @@
     "explanation_scores": {
       "slug": "Qwen--Qwen2.5-0.5B/L17/N4410-positive",
       "explanation": "Python 'return' keyword inside a function body.",
-      "threshold": 0.5475,
+      "threshold": 0.7095,
       "window_tokens": 32,
       "quantiles": 5,
       "quantile_edges": [
-        0.657,
-        0.876,
-        1.095,
-        1.533
+        0.851,
+        1.135,
+        1.419,
+        1.987
       ],
       "seed": 0,
       "corpus": "synthetic",
       "corpus_sha256": null,
       "candidate_windows": 4000,
-      "active_windows": 66,
+      "active_windows": 133,
       "judge_model": "example-fixture",
       "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
       "detection": {
-        "balanced_accuracy": 0.7,
-        "true_positive_rate": 0.7,
-        "false_positive_rate": 0.3,
+        "balanced_accuracy": 0.8,
+        "true_positive_rate": 0.6,
+        "false_positive_rate": 0.0,
         "recall_by_quantile": [
+          0.5,
           1.0,
-          1.0,
+          0.5,
           0.0,
-          1.0,
-          0.5
+          1.0
         ]
       },
       "fuzzing": null,
-      "embedding_auroc": 0.76,
+      "embedding_auroc": 0.92,
       "detection_windows": [
         {
           "text": "def f(x):\n    return x",
@@ -360,20 +360,20 @@
             " x"
           ],
           "activations": [
-            0.38,
-            0.167,
-            0.001,
-            0.006,
-            0.302,
-            2.19,
-            0.27,
-            0.245
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
           ],
           "quantile": 0,
           "highlighted": [],
           "label": true,
-          "judged": true,
-          "similarity": 0.267
+          "judged": false,
+          "similarity": 0.579
         },
         {
           "text": "def f(x):\n    return x",
@@ -388,20 +388,20 @@
             " x"
           ],
           "activations": [
-            0.024,
-            0.008,
-            0.012,
-            0.028,
-            0.007,
-            0.202,
             0.037,
-            0.025
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.322
+          "similarity": 0.034
         },
         {
           "text": "def f(x):\n    return x",
@@ -416,20 +416,20 @@
             " x"
           ],
           "activations": [
-            0.366,
-            0.32,
-            0.046,
-            0.103,
-            0.261,
-            2.154,
-            0.258,
-            0.046
+            0.239,
+            0.177,
+            0.07,
+            0.189,
+            0.164,
+            2.357,
+            0.203,
+            0.125
           ],
           "quantile": 2,
           "highlighted": [],
           "label": true,
           "judged": false,
-          "similarity": 0.235
+          "similarity": 0.494
         },
         {
           "text": "def f(x):\n    return x",
@@ -444,20 +444,20 @@
             " x"
           ],
           "activations": [
-            0.038,
-            0.017,
-            0.0,
-            0.001,
-            0.03,
-            0.219,
-            0.027,
-            0.025
+            0.007,
+            0.02,
+            0.002,
+            0.004,
+            0.04,
+            0.284,
+            0.014,
+            0.029
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": true,
-          "similarity": 0.079
+          "judged": false,
+          "similarity": 0.123
         },
         {
           "text": "def f(x):\n    return x",
@@ -472,20 +472,20 @@
             " x"
           ],
           "activations": [
-            0.243,
-            0.079,
-            0.121,
-            0.275,
-            0.073,
-            2.022,
-            0.369,
-            0.251
+            0.367,
+            0.068,
+            0.269,
+            0.387,
+            0.023,
+            2.251,
+            0.338,
+            0.137
           ],
           "quantile": 4,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.354
+          "similarity": 0.443
         },
         {
           "text": "def f(x):\n    return x",
@@ -500,20 +500,20 @@
             " x"
           ],
           "activations": [
-            0.037,
-            0.032,
-            0.005,
-            0.01,
-            0.026,
-            0.215,
-            0.026,
-            0.005
+            0.024,
+            0.018,
+            0.007,
+            0.019,
+            0.016,
+            0.236,
+            0.02,
+            0.013
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.223
+          "similarity": 0.063
         },
         {
           "text": "def f(x):\n    return x",
@@ -528,20 +528,20 @@
             " x"
           ],
           "activations": [
-            0.38,
-            0.167,
-            0.001,
-            0.006,
-            0.302,
-            2.19,
-            0.27,
-            0.245
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
           ],
           "quantile": 1,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.568
+          "similarity": 0.357
         },
         {
           "text": "def f(x):\n    return x",
@@ -556,76 +556,20 @@
             " x"
           ],
           "activations": [
-            0.024,
-            0.008,
-            0.012,
-            0.028,
-            0.007,
-            0.202,
             0.037,
-            0.025
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": true,
-          "similarity": 0.286
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
-            0.366,
-            0.32,
-            0.046,
-            0.103,
-            0.261,
-            2.154,
-            0.258,
-            0.046
-          ],
-          "quantile": 3,
-          "highlighted": [],
-          "label": true,
-          "judged": true,
-          "similarity": 0.233
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
-            0.038,
-            0.017,
-            0.0,
-            0.001,
-            0.03,
-            0.219,
+            0.007,
             0.027,
-            0.025
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.4
+          "similarity": 0.398
         },
         {
           "text": "def f(x):\n    return x",
@@ -640,76 +584,76 @@
             " x"
           ],
           "activations": [
-            0.243,
-            0.079,
-            0.121,
-            0.275,
-            0.073,
-            2.022,
-            0.369,
-            0.251
+            0.239,
+            0.177,
+            0.07,
+            0.189,
+            0.164,
+            2.357,
+            0.203,
+            0.125
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.418
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.007,
+            0.02,
+            0.002,
+            0.004,
+            0.04,
+            0.284,
+            0.014,
+            0.029
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.107
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.367,
+            0.068,
+            0.269,
+            0.387,
+            0.023,
+            2.251,
+            0.338,
+            0.137
           ],
           "quantile": 0,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.267
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
-            0.037,
-            0.032,
-            0.005,
-            0.01,
-            0.026,
-            0.215,
-            0.026,
-            0.005
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": false,
-          "similarity": 0.046
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
-            0.38,
-            0.167,
-            0.001,
-            0.006,
-            0.302,
-            2.19,
-            0.27,
-            0.245
-          ],
-          "quantile": 2,
-          "highlighted": [],
-          "label": true,
-          "judged": false,
-          "similarity": 0.541
+          "similarity": 0.211
         },
         {
           "text": "def f(x):\n    return x",
@@ -725,18 +669,102 @@
           ],
           "activations": [
             0.024,
-            0.008,
-            0.012,
-            0.028,
+            0.018,
             0.007,
-            0.202,
-            0.037,
-            0.025
+            0.019,
+            0.016,
+            0.236,
+            0.02,
+            0.013
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
+          "similarity": 0.127
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.557
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.037,
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.224
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.239,
+            0.177,
+            0.07,
+            0.189,
+            0.164,
+            2.357,
+            0.203,
+            0.125
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
           "similarity": 0.21
         },
         {
@@ -752,48 +780,20 @@
             " x"
           ],
           "activations": [
-            0.366,
-            0.32,
-            0.046,
-            0.103,
-            0.261,
-            2.154,
-            0.258,
-            0.046
-          ],
-          "quantile": 4,
-          "highlighted": [],
-          "label": true,
-          "judged": false,
-          "similarity": 0.281
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
-            0.038,
-            0.017,
-            0.0,
-            0.001,
-            0.03,
-            0.219,
-            0.027,
-            0.025
+            0.007,
+            0.02,
+            0.002,
+            0.004,
+            0.04,
+            0.284,
+            0.014,
+            0.029
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.103
+          "similarity": 0.055
         },
         {
           "text": "def f(x):\n    return x",
@@ -808,14 +808,14 @@
             " x"
           ],
           "activations": [
-            0.243,
-            0.079,
-            0.121,
-            0.275,
-            0.073,
-            2.022,
-            0.369,
-            0.251
+            0.367,
+            0.068,
+            0.269,
+            0.387,
+            0.023,
+            2.251,
+            0.338,
+            0.137
           ],
           "quantile": 1,
           "highlighted": [],
@@ -836,76 +836,76 @@
             " x"
           ],
           "activations": [
-            0.037,
-            0.032,
-            0.005,
-            0.01,
-            0.026,
-            0.215,
-            0.026,
-            0.005
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": true,
-          "similarity": 0.249
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
-            0.38,
-            0.167,
-            0.001,
-            0.006,
-            0.302,
-            2.19,
-            0.27,
-            0.245
-          ],
-          "quantile": 3,
-          "highlighted": [],
-          "label": true,
-          "judged": true,
-          "similarity": 0.383
-        },
-        {
-          "text": "def f(x):\n    return x",
-          "tokens": [
-            "def",
-            " f(x):",
-            " \n",
-            " ",
-            " ",
-            " ",
-            " return",
-            " x"
-          ],
-          "activations": [
             0.024,
-            0.008,
-            0.012,
-            0.028,
+            0.018,
             0.007,
-            0.202,
-            0.037,
-            0.025
+            0.019,
+            0.016,
+            0.236,
+            0.02,
+            0.013
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.331
+          "similarity": 0.073
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.072,
+            0.201,
+            0.016,
+            0.04,
+            0.395,
+            2.838,
+            0.143,
+            0.293
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.519
+        },
+        {
+          "text": "def f(x):\n    return x",
+          "tokens": [
+            "def",
+            " f(x):",
+            " \n",
+            " ",
+            " ",
+            " ",
+            " return",
+            " x"
+          ],
+          "activations": [
+            0.037,
+            0.007,
+            0.027,
+            0.039,
+            0.002,
+            0.225,
+            0.034,
+            0.014
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.363
         }
       ],
       "fuzzing_windows": []

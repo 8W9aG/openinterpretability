@@ -306,23 +306,23 @@
       "corpus": "synthetic",
       "corpus_sha256": null,
       "candidate_windows": 4000,
-      "active_windows": 55,
+      "active_windows": 40,
       "judge_model": "example-fixture",
       "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
       "detection": {
-        "balanced_accuracy": 0.55,
-        "true_positive_rate": 0.6,
+        "balanced_accuracy": 0.6,
+        "true_positive_rate": 0.7,
         "false_positive_rate": 0.5,
         "recall_by_quantile": [
           0.5,
+          1.0,
+          1.0,
           0.5,
-          1.0,
-          1.0,
-          0.0
+          0.5
         ]
       },
       "fuzzing": null,
-      "embedding_auroc": 0.86,
+      "embedding_auroc": 0.94,
       "detection_windows": [
         {
           "text": "\"Come in,\" she said.",
@@ -341,8 +341,8 @@
           "quantile": 0,
           "highlighted": [],
           "label": true,
-          "judged": true,
-          "similarity": 0.316
+          "judged": false,
+          "similarity": 0.503
         },
         {
           "text": "\"Come in,\" she said.",
@@ -362,7 +362,7 @@
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.075
+          "similarity": 0.104
         },
         {
           "text": "\"Come in,\" she said.",
@@ -382,7 +382,7 @@
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.463
+          "similarity": 0.362
         },
         {
           "text": "\"Come in,\" she said.",
@@ -401,8 +401,8 @@
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": false,
-          "similarity": 0.036
+          "judged": true,
+          "similarity": 0.121
         },
         {
           "text": "\"Come in,\" she said.",
@@ -421,8 +421,8 @@
           "quantile": 4,
           "highlighted": [],
           "label": true,
-          "judged": false,
-          "similarity": 0.551
+          "judged": true,
+          "similarity": 0.433
         },
         {
           "text": "\"Come in,\" she said.",
@@ -442,7 +442,7 @@
           "highlighted": [],
           "label": false,
           "judged": true,
-          "similarity": 0.337
+          "similarity": 0.202
         },
         {
           "text": "\"Come in,\" she said.",
@@ -461,8 +461,8 @@
           "quantile": 1,
           "highlighted": [],
           "label": true,
-          "judged": false,
-          "similarity": 0.569
+          "judged": true,
+          "similarity": 0.502
         },
         {
           "text": "\"Come in,\" she said.",
@@ -482,7 +482,7 @@
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.157
+          "similarity": 0.1
         },
         {
           "text": "\"Come in,\" she said.",
@@ -501,8 +501,8 @@
           "quantile": 3,
           "highlighted": [],
           "label": true,
-          "judged": true,
-          "similarity": 0.31
+          "judged": false,
+          "similarity": 0.593
         },
         {
           "text": "\"Come in,\" she said.",
@@ -522,7 +522,7 @@
           "highlighted": [],
           "label": false,
           "judged": true,
-          "similarity": 0.34
+          "similarity": 0.361
         },
         {
           "text": "\"Come in,\" she said.",
@@ -541,8 +541,8 @@
           "quantile": 0,
           "highlighted": [],
           "label": true,
-          "judged": false,
-          "similarity": 0.436
+          "judged": true,
+          "similarity": 0.492
         },
         {
           "text": "\"Come in,\" she said.",
@@ -562,7 +562,7 @@
           "highlighted": [],
           "label": false,
           "judged": true,
-          "similarity": 0.232
+          "similarity": 0.274
         },
         {
           "text": "\"Come in,\" she said.",
@@ -582,7 +582,7 @@
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.464
+          "similarity": 0.24
         },
         {
           "text": "\"Come in,\" she said.",
@@ -601,8 +601,8 @@
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": true,
-          "similarity": 0.367
+          "judged": false,
+          "similarity": 0.244
         },
         {
           "text": "\"Come in,\" she said.",
@@ -622,7 +622,7 @@
           "highlighted": [],
           "label": true,
           "judged": false,
-          "similarity": 0.233
+          "similarity": 0.587
         },
         {
           "text": "\"Come in,\" she said.",
@@ -642,7 +642,7 @@
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.195
+          "similarity": 0.346
         },
         {
           "text": "\"Come in,\" she said.",
@@ -662,7 +662,7 @@
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.538
+          "similarity": 0.522
         },
         {
           "text": "\"Come in,\" she said.",
@@ -682,7 +682,7 @@
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.293
+          "similarity": 0.006
         },
         {
           "text": "\"Come in,\" she said.",
@@ -702,7 +702,7 @@
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.288
+          "similarity": 0.36
         },
         {
           "text": "\"Come in,\" she said.",
@@ -722,7 +722,7 @@
           "highlighted": [],
           "label": false,
           "judged": true,
-          "similarity": 0.133
+          "similarity": 0.267
         }
       ],
       "fuzzing_windows": []

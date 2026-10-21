@@ -178,7 +178,9 @@ def main() -> None:
                 necessity_score=round(rng.uniform(0.2, 0.8), 3),
                 hydra_mitigated=True,
             ),
-            explanation_scores=sample_scores(rng, sub),
+            explanation_scores=sample_scores(
+                random.Random(n), sub
+            ),  # own stream: other values stay put
             notes="Synthetic example record (not a real audit).",
         )
         path = out / f"{ident.slug.replace('/', '_')}.json"

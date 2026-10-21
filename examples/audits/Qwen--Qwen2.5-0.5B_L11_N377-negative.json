@@ -16,13 +16,13 @@
         "base_prompt": "In 1969, Apollo 11 landed.",
         "counterfactual_prompt": "IN 1969, APOLLO 11 LANDED.",
         "expected_delta": 0.7,
-        "observed_delta": 0.887
+        "observed_delta": 0.559
       },
       {
         "base_prompt": "In 1969, Apollo 11 landed.",
         "counterfactual_prompt": "In 1969, Apollo 11 landed. Indeed.",
         "expected_delta": 0.0,
-        "observed_delta": -0.088
+        "observed_delta": 0.04
       }
     ],
     "lookahead": {
@@ -31,10 +31,10 @@
         " 19",
         " 18"
       ],
-      "kl_divergence": 0.0341
+      "kl_divergence": 0.0032
     },
     "submitting_agent_model": "example-fixture",
-    "max_activation": 2.961,
+    "max_activation": 2.842,
     "top_examples": [
       {
         "text": "In 1969, Apollo 11 landed.",
@@ -46,13 +46,13 @@
           " landed."
         ],
         "activations": [
-          0.04,
-          2.91,
-          0.279,
-          0.018,
-          0.23
+          0.23,
+          2.657,
+          0.076,
+          0.075,
+          0.245
         ],
-        "max_activation": 2.91,
+        "max_activation": 2.657,
         "max_token_index": 1
       },
       {
@@ -65,13 +65,13 @@
           " landed."
         ],
         "activations": [
-          0.214,
-          2.576,
-          0.011,
-          0.254,
-          0.243
+          0.191,
+          2.842,
+          0.303,
+          0.351,
+          0.369
         ],
-        "max_activation": 2.576,
+        "max_activation": 2.842,
         "max_token_index": 1
       },
       {
@@ -84,13 +84,13 @@
           " landed."
         ],
         "activations": [
-          0.156,
-          2.961,
-          0.392,
-          0.015,
-          0.009
+          0.359,
+          2.276,
+          0.216,
+          0.157,
+          0.282
         ],
-        "max_activation": 2.961,
+        "max_activation": 2.276,
         "max_token_index": 1
       }
     ],
@@ -123,30 +123,30 @@
         3.0
       ],
       "counts": [
-        1777,
-        1105,
-        1002,
-        728,
-        645,
-        526,
-        446,
-        416,
-        280,
-        221,
-        177,
-        172,
-        120,
+        2235,
+        1196,
+        995,
+        901,
+        757,
+        745,
+        676,
+        667,
+        633,
+        630,
+        525,
+        431,
+        397,
+        379,
+        356,
+        346,
+        266,
+        239,
+        161,
+        111,
         99,
-        94,
-        88,
-        81,
-        79,
-        74,
-        52,
+        49,
         42,
-        42,
-        16,
-        9
+        34
       ]
     },
     "model_num_layers": 24,
@@ -163,9 +163,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic a0 probe0",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.171,
+        "activation": 0.455,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -175,7 +175,7 @@
         "prompt": "Synthetic b1 probe1",
         "passed": true,
         "expected_active": false,
-        "activation": 0.298,
+        "activation": 0.34,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -185,7 +185,7 @@
         "prompt": "Synthetic c2 probe2",
         "passed": true,
         "expected_active": false,
-        "activation": 0.087,
+        "activation": 0.317,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -195,7 +195,7 @@
         "prompt": "Synthetic d3 probe3",
         "passed": true,
         "expected_active": false,
-        "activation": 0.205,
+        "activation": 0.288,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -205,7 +205,7 @@
         "prompt": "Synthetic e4 probe4",
         "passed": true,
         "expected_active": false,
-        "activation": 0.254,
+        "activation": 0.185,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -213,9 +213,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic f5 probe5",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.179,
+        "activation": 0.018,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -223,9 +223,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic g6 probe6",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.125,
+        "activation": 0.481,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -235,7 +235,7 @@
         "prompt": "Synthetic h7 probe7",
         "passed": true,
         "expected_active": false,
-        "activation": 0.006,
+        "activation": 0.062,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -245,7 +245,7 @@
         "prompt": "Synthetic i8 probe8",
         "passed": true,
         "expected_active": false,
-        "activation": 0.168,
+        "activation": 0.4,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -253,9 +253,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic j9 probe9",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.14,
+        "activation": 0.011,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -265,7 +265,7 @@
         "prompt": "Synthetic k10 probe10",
         "passed": true,
         "expected_active": false,
-        "activation": 0.477,
+        "activation": 0.051,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -275,7 +275,7 @@
         "prompt": "Synthetic l11 probe11",
         "passed": true,
         "expected_active": false,
-        "activation": 0.144,
+        "activation": 0.11,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -284,8 +284,8 @@
     "reviewer_agent_model": "example-fixture",
     "timestamp": "2026-10-01T12:01:00Z",
     "causal_metrics": {
-      "sufficiency_score": 0.516,
-      "necessity_score": 0.768,
+      "sufficiency_score": 0.688,
+      "necessity_score": 0.41,
       "hydra_mitigated": true,
       "target": null,
       "target_tokens": [],
@@ -301,36 +301,36 @@
     "explanation_scores": {
       "slug": "Qwen--Qwen2.5-0.5B/L11/N377-negative",
       "explanation": "Prepares a year token after 'in' when the context is historical.",
-      "threshold": 0.74025,
+      "threshold": 0.7105,
       "window_tokens": 32,
       "quantiles": 5,
       "quantile_edges": [
-        0.888,
-        1.184,
-        1.48,
-        2.073
+        0.853,
+        1.137,
+        1.421,
+        1.989
       ],
       "seed": 0,
       "corpus": "synthetic",
       "corpus_sha256": null,
       "candidate_windows": 4000,
-      "active_windows": 142,
+      "active_windows": 115,
       "judge_model": "example-fixture",
       "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
       "detection": {
-        "balanced_accuracy": 0.8500000000000001,
+        "balanced_accuracy": 0.7,
         "true_positive_rate": 0.8,
-        "false_positive_rate": 0.1,
+        "false_positive_rate": 0.4,
         "recall_by_quantile": [
           1.0,
-          0.0,
+          0.5,
           1.0,
-          1.0,
+          0.5,
           1.0
         ]
       },
       "fuzzing": null,
-      "embedding_auroc": 0.83,
+      "embedding_auroc": 0.96,
       "detection_windows": [
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -342,17 +342,17 @@
             " landed."
           ],
           "activations": [
-            0.04,
-            2.91,
-            0.279,
-            0.018,
-            0.23
+            0.23,
+            2.657,
+            0.076,
+            0.075,
+            0.245
           ],
           "quantile": 0,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.448
+          "similarity": 0.539
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -364,17 +364,17 @@
             " landed."
           ],
           "activations": [
-            0.021,
-            0.258,
-            0.001,
-            0.025,
-            0.024
+            0.019,
+            0.284,
+            0.03,
+            0.035,
+            0.037
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
-          "judged": false,
-          "similarity": 0.155
+          "judged": true,
+          "similarity": 0.102
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -386,17 +386,17 @@
             " landed."
           ],
           "activations": [
-            0.156,
-            2.961,
-            0.392,
-            0.015,
-            0.009
+            0.359,
+            2.276,
+            0.216,
+            0.157,
+            0.282
           ],
           "quantile": 2,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.46
+          "similarity": 0.38
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -408,17 +408,17 @@
             " landed."
           ],
           "activations": [
-            0.004,
-            0.291,
-            0.028,
-            0.002,
-            0.023
+            0.023,
+            0.266,
+            0.008,
+            0.007,
+            0.025
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.077
+          "similarity": 0.315
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -430,170 +430,16 @@
             " landed."
           ],
           "activations": [
-            0.214,
-            2.576,
-            0.011,
-            0.254,
-            0.243
+            0.191,
+            2.842,
+            0.303,
+            0.351,
+            0.369
           ],
           "quantile": 4,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.296
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.016,
-            0.296,
-            0.039,
-            0.002,
-            0.001
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": false,
-          "similarity": 0.151
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.04,
-            2.91,
-            0.279,
-            0.018,
-            0.23
-          ],
-          "quantile": 1,
-          "highlighted": [],
-          "label": true,
-          "judged": false,
-          "similarity": 0.427
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.021,
-            0.258,
-            0.001,
-            0.025,
-            0.024
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": false,
-          "similarity": 0.161
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.156,
-            2.961,
-            0.392,
-            0.015,
-            0.009
-          ],
-          "quantile": 3,
-          "highlighted": [],
-          "label": true,
-          "judged": true,
-          "similarity": 0.367
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.004,
-            0.291,
-            0.028,
-            0.002,
-            0.023
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": false,
-          "similarity": 0.019
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.214,
-            2.576,
-            0.011,
-            0.254,
-            0.243
-          ],
-          "quantile": 0,
-          "highlighted": [],
-          "label": true,
-          "judged": true,
-          "similarity": 0.304
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.016,
-            0.296,
-            0.039,
-            0.002,
-            0.001
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": false,
           "similarity": 0.211
         },
         {
@@ -606,39 +452,17 @@
             " landed."
           ],
           "activations": [
-            0.04,
-            2.91,
-            0.279,
-            0.018,
-            0.23
-          ],
-          "quantile": 2,
-          "highlighted": [],
-          "label": true,
-          "judged": true,
-          "similarity": 0.425
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.021,
-            0.258,
-            0.001,
-            0.025,
-            0.024
+            0.036,
+            0.228,
+            0.022,
+            0.016,
+            0.028
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": true,
-          "similarity": 0.354
+          "similarity": 0.173
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -650,61 +474,17 @@
             " landed."
           ],
           "activations": [
-            0.156,
-            2.961,
-            0.392,
-            0.015,
-            0.009
-          ],
-          "quantile": 4,
-          "highlighted": [],
-          "label": true,
-          "judged": true,
-          "similarity": 0.325
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.004,
-            0.291,
-            0.028,
-            0.002,
-            0.023
-          ],
-          "quantile": null,
-          "highlighted": [],
-          "label": false,
-          "judged": false,
-          "similarity": 0.324
-        },
-        {
-          "text": "In 1969, Apollo 11 landed.",
-          "tokens": [
-            "In",
-            " 1969,",
-            " Apollo",
-            " 11",
-            " landed."
-          ],
-          "activations": [
-            0.214,
-            2.576,
-            0.011,
-            0.254,
-            0.243
+            0.23,
+            2.657,
+            0.076,
+            0.075,
+            0.245
           ],
           "quantile": 1,
           "highlighted": [],
           "label": true,
           "judged": false,
-          "similarity": 0.525
+          "similarity": 0.201
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -716,17 +496,17 @@
             " landed."
           ],
           "activations": [
-            0.016,
-            0.296,
-            0.039,
-            0.002,
-            0.001
+            0.019,
+            0.284,
+            0.03,
+            0.035,
+            0.037
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.4
+          "similarity": 0.289
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -738,17 +518,17 @@
             " landed."
           ],
           "activations": [
-            0.04,
-            2.91,
-            0.279,
-            0.018,
-            0.23
+            0.359,
+            2.276,
+            0.216,
+            0.157,
+            0.282
           ],
           "quantile": 3,
           "highlighted": [],
           "label": true,
           "judged": true,
-          "similarity": 0.233
+          "similarity": 0.578
         },
         {
           "text": "In 1969, Apollo 11 landed.",
@@ -760,17 +540,237 @@
             " landed."
           ],
           "activations": [
-            0.021,
-            0.258,
-            0.001,
-            0.025,
-            0.024
+            0.023,
+            0.266,
+            0.008,
+            0.007,
+            0.025
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.012
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.191,
+            2.842,
+            0.303,
+            0.351,
+            0.369
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.417
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.036,
+            0.228,
+            0.022,
+            0.016,
+            0.028
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.152
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.23,
+            2.657,
+            0.076,
+            0.075,
+            0.245
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.369
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.019,
+            0.284,
+            0.03,
+            0.035,
+            0.037
           ],
           "quantile": null,
           "highlighted": [],
           "label": false,
           "judged": false,
-          "similarity": 0.395
+          "similarity": 0.089
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.359,
+            2.276,
+            0.216,
+            0.157,
+            0.282
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.398
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.023,
+            0.266,
+            0.008,
+            0.007,
+            0.025
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.092
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.191,
+            2.842,
+            0.303,
+            0.351,
+            0.369
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.384
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.036,
+            0.228,
+            0.022,
+            0.016,
+            0.028
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.009
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.23,
+            2.657,
+            0.076,
+            0.075,
+            0.245
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.423
+        },
+        {
+          "text": "In 1969, Apollo 11 landed.",
+          "tokens": [
+            "In",
+            " 1969,",
+            " Apollo",
+            " 11",
+            " landed."
+          ],
+          "activations": [
+            0.019,
+            0.284,
+            0.03,
+            0.035,
+            0.037
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.074
         }
       ],
       "fuzzing_windows": []
