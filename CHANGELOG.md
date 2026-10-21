@@ -11,6 +11,12 @@ The project has two version numbers:
 
 ### Added
 
+- **Explanation scores on held-out text** (Delphi; Paulo et al., 2025), reported, not gated. `openinterp score` cuts the corpus snippets the proposer never saw (everything but the scan's top examples) into 32-token windows. It measures each window on its own, as the judge reads it, and draws active windows evenly from 5 activation bins, plus inactive ones. Three scores:
+  - *detection:* a judge given only the explanation picks the windows that activate the pole;
+  - *fuzzing:* the judge decides whether the marked tokens in a window are the ones that activate it;
+  - *embedding:* the AUROC of explanation–window cosine from a local sentence encoder (`sentence-transformers/all-MiniLM-L6-v2`), with no LLM.
+
+  The judge is a LiteLLM model, or two-step: `--emit-task` writes the windows and two prompts (no activations), and `--task` scores the answers. The new `explanation-judge` subagent answers in Claude Code. `review` and `reevaluate` take `--explanation-scores` and record them as `VerificationVerdict.explanation_scores` (`ExplanationScores`, optional, so older records validate). `openinterp reproduce` re-measures the windows and re-derives the scores from the stored answers, warning on differences. Experiment pages show the scores, and Parquet gains `detection_score`, `fuzzing_score` and `embedding_auroc`. Scoring takes about 2 minutes on CPU for Qwen2.5-0.5B. On L1/N12− (VERIFIED, a bigram detector), only 69 of 4000 held-out windows were active, and a literal reading of the explanation found none of them. Its held-out activity is mostly ` in` after verbs other than *look*, which top examples alone don't show.
 - **`land-experiment` skill:** `choose-next-experiment` plus building the site, waiting for CI to go green and merging the PR. It merges only when every check passed on the current head, the PR touches nothing outside `wiki/`, and the agent's `gh` account has write access; otherwise it comments on the PR and moves on to the next experiment.
 
 ### Changed

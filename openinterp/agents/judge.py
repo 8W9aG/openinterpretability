@@ -1,0 +1,112 @@
+"""Judge agent: scores an explanation on held-out windows from the explanation alone.
+
+Detection asks which windows activate the pole; fuzzing asks whether the tokens marked
+in each window are the ones that activate it (Paulo et al., 2025). The judge never sees
+activations: a :class:`ScoringTask` holds the windows' text and markings only, and the
+labels are re-measured when the answers are scored.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+from pydantic import BaseModel, Field
+
+from openinterp.agents.base import LLMAgent
+from openinterp.core.schemas import NeuronIdentifier
+
+MARK_OPEN, MARK_CLOSE = "<<", ">>"
+
+
+class TaskWindow(BaseModel):
+    text: str
+    tokens: list[str]
+    highlighted: list[int] = Field(default_factory=list)
+
+
+class ScoringTask(BaseModel):
+    """What ``openinterp score --emit-task`` writes: everything but the labels."""
+
+    identifier: NeuronIdentifier
+    explanation: str
+    threshold: float
+    window_tokens: int
+    quantiles: int
+    quantile_edges: list[float]
+    seed: int
+    corpus: str
+    corpus_sha256: str | None = None
+    candidate_windows: int
+    active_windows: int
+    detection: list[TaskWindow]
+    fuzzing: list[TaskWindow]
+
+
+class DetectionAnswer(BaseModel):
+    active: list[int] = Field(
+        description="Numbers of the texts in which, going by the explanation, the neuron "
+        "fires on at least one token. Leave out every other text."
+    )
+
+
+class FuzzingAnswer(BaseModel):
+    correct: list[int] = Field(
+        description="Numbers of the texts whose marked tokens are exactly where, going by the "
+        "explanation, the neuron fires. Leave out texts marked wrongly."
+    )
+
+
+def _show(tokens: Sequence[str], marked: Sequence[int] = ()) -> str:
+    hot = set(marked)
+    text = "".join(f"{MARK_OPEN}{t}{MARK_CLOSE}" if i in hot else t for i, t in enumerate(tokens))
+    return text.replace("\n", "⏎")
+
+
+class ExplanationJudge(LLMAgent):
+    system_prompt = (
+        "You test how well a short explanation of a neuron in a language model predicts "
+        "where it fires. You see only the explanation and some short texts, never the "
+        "neuron's activations. Apply the explanation literally, as written: don't guess "
+        "what the neuron really does, and don't reward texts for being on a related topic "
+        "if the explanation's condition isn't met. Texts are excerpts and may start or end "
+        "mid-word; line breaks are shown as ⏎."
+    )
+
+    @staticmethod
+    def detection_prompt(explanation: str, windows: Sequence[TaskWindow]) -> str:
+        texts = "\n".join(f"{n}. {_show(w.tokens)}" for n, w in enumerate(windows, 1))
+        return (
+            f"Explanation of the neuron:\n\n> {explanation}\n\n"
+            "Some of the texts below make the neuron fire on at least one token and the rest "
+            "don't; the proportion is not given. List the numbers of the texts in which the "
+            f"explanation says it fires.\n\n{texts}"
+        )
+
+    @staticmethod
+    def fuzzing_prompt(explanation: str, windows: Sequence[TaskWindow]) -> str:
+        texts = "\n".join(
+            f"{n}. {_show(w.tokens, w.highlighted)}" for n, w in enumerate(windows, 1)
+        )
+        return (
+            f"Explanation of the neuron:\n\n> {explanation}\n\n"
+            f"In each text below, some tokens are marked {MARK_OPEN}like this{MARK_CLOSE}. In "
+            "some texts the marks are exactly the tokens where the neuron fires; in the rest "
+            "they are on other tokens, or the neuron doesn't fire in that text at all. List "
+            "the numbers of the texts whose marks are where the explanation says the neuron "
+            f"fires.\n\n{texts}"
+        )
+
+    def detect(self, explanation: str, windows: Sequence[TaskWindow]) -> DetectionAnswer:
+        return self.structured(DetectionAnswer, self.detection_prompt(explanation, windows))
+
+    def fuzz(self, explanation: str, windows: Sequence[TaskWindow]) -> FuzzingAnswer:
+        return self.structured(FuzzingAnswer, self.fuzzing_prompt(explanation, windows))
+
+
+def answered(numbers: Sequence[int], count: int, what: str) -> list[bool]:
+    """Per-window yes/no from a judge's list of 1-based text numbers."""
+    bad = sorted({n for n in numbers if not 1 <= n <= count})
+    if bad:
+        raise ValueError(f"{what} answer names texts {bad}, but there are only {count}")
+    chosen = set(numbers)
+    return [n in chosen for n in range(1, count + 1)]

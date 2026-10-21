@@ -64,6 +64,11 @@ Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4
 Causal metrics (recorded, not gated; top-1 logit, protocol < 0.5): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}, hydra mitigated: {{ c.hydra_mitigated }}.
 {% endif %}
 {% endif %}
+{% if verdict.explanation_scores %}
+{% set es = verdict.explanation_scores %}
+
+Explanation scores on held-out text (recorded, not gated): detection {{ (es.detection.balanced_accuracy if es.detection else none) | num(2) }}, fuzzing {{ (es.fuzzing.balanced_accuracy if es.fuzzing else none) | num(2) }} (balanced accuracy of a judge given only the hypothesis), embedding AUROC {{ es.embedding_auroc | num(2) }}. {{ es.detection_windows | length }} detection and {{ es.fuzzing_windows | length }} fuzzing windows of {{ es.window_tokens }} tokens, from {{ es.active_windows }} active of {{ es.candidate_windows }} held-out windows; judge `{{ es.judge_model | cell }}`{% if es.detection %}; detection recall by activation quantile, weakest to top: {% for r in es.detection.recall_by_quantile %}{{ r | num(2) }}{{ ", " if not loop.last }}{% endfor %}{% endif %}.
+{% endif %}
 
 ### Probes
 

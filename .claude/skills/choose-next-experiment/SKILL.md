@@ -44,6 +44,8 @@ In Claude Code, use the `neuron-proposer` and `neuron-reviewer` subagents with t
 5. Ask `neuron-reviewer` to answer `exchange/review.prompt.md`. Give it only that path: it must not see this neuron's records or any activations. It writes `exchange/review.probes.json` and reports its model ID.
 6. `uv run openinterp review --audit-file <same file> --probes exchange/review.probes.json --agent-model external/<reviewer model ID>`
 
+Optionally, before step 6, score the explanation on held-out text (reported, not gated; skill `explanation-simulation-scoring`). Run `openinterp score --audit-file <same file> --corpus corpus.jsonl --emit-task exchange/score.task.json`. Then ask one `explanation-judge` to answer `exchange/score.detection.prompt.md` and a second one `exchange/score.fuzzing.prompt.md`, run `openinterp score --task exchange/score.task.json --judge-model external/<judge model ID>`, and add `--explanation-scores exchange/score.scores.json` to step 6.
+
 Record the model IDs the subagents report, not the ones you expect. For an `independent_review` or `replicate` draw, the reviewer's model must differ from the record's proposer; if the subagent's model is the same, say so in the PR instead of claiming independence.
 
 ## What each kind means

@@ -35,6 +35,8 @@ make install                                      # creates .venv with everythin
     --agent-model external/claude-sonnet-5-5
   ```
 
+  Optionally, `openinterp score` scores the explanation on held-out text the proposer never saw (Delphi's detection, fuzzing and embedding scores; the `explanation-judge` subagent answers its prompts), and `review --explanation-scores` records the result. It is reported, not gated (docs/PROTOCOL.md §4).
+
   The reviewer subagent has no tool that runs the model, so it can't see probe activations before its probe set is final. The two subagents run on different models (Opus and Sonnet), so the review counts as independent. Pass each one's reported model ID to `--agent-model`.
 
 The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.

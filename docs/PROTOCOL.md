@@ -112,6 +112,13 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
   Two simpler scores read wrongly on Qwen2.5-0.5B. The fraction of the whole clean/corrupted gap restored (protocol ≤ 0.4, on the top-1 logit) reads ≈ 0 for any single neuron: the gap sums every component's contribution, and the rest of the model often moves the other way. A percentile against *random* neurons reads ≈ 1 for every neuron, because minimal pairs are built to change the audited neuron and most others barely change.
 
   The `next_token_kl` target shows that a neuron matters, not that it matters *for the reason the hypothesis gives*. A causal test of a retrospective claim would need the hypothesis to name the behaviour it affects. Gating on these scores needs a pre-registered prediction format first (see TODO).
+- **Explanation scores on held-out text** (Delphi; Paulo et al., 2025), from `openinterp score`, attached with `review --explanation-scores` (or `reevaluate`, for an existing record). They test the explanation on text nobody chose, where probes test it on text the reviewer chose.
+  - *Windows.* The corpus snippets that are not the scan's top examples, so the proposer never saw them, are cut into 32-token windows. Each window is measured on its own, exactly as the judge reads it, the way probes are. Active windows (peak ≥ the activation threshold) are split into 5 bins by peak strength. Each bin gives 5 windows to detection and 5 to fuzzing, so weak activations count as much as the top ones. Detection also gets as many inactive windows.
+  - *Detection.* A judge given only the explanation lists the windows it says activate the pole. Score: balanced accuracy, with recall per activation bin.
+  - *Fuzzing.* In each window some tokens are marked: the active tokens, the same number of inactive tokens, or random tokens in an inactive window. The judge lists the windows whose marks are where the explanation says the pole fires. Score: balanced accuracy.
+  - *Embedding.* The AUROC of the cosine between the explanation and each detection window, from a local sentence encoder (`sentence-transformers/all-MiniLM-L6-v2` by default). It needs no LLM.
+
+  The task a judge answers holds no activations: labels are measured when the answers are scored, and `openinterp reproduce` re-measures them and re-derives the scores from the stored answers (warnings only). 0.5 is chance for all three. A narrow explanation that passes review can still score low here, if most of the pole's held-out activity falls outside it.
 
 ## 5. Reproducibility requirements
 

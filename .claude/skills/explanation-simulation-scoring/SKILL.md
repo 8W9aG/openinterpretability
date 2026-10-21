@@ -18,7 +18,24 @@ description: Score a neuron explanation by how well it predicts per-token activa
 | Observational precision | Specificity on hard negatives (reviewer probes) |
 | Observational recall | Sensitivity on positive holdouts |
 | Interventional test | Counterfactual Δ and causal metrics (see `activation-patching-practice`) |
+| Detection, fuzzing, embedding | `openinterp score`, recorded as `verdict.explanation_scores` (reported, not gated) |
 | Simulation correlation | **Not yet in the protocol.** Compute it as supplementary evidence |
+
+## Cheaper scores: detection, fuzzing and embedding
+
+Paulo et al., 2025 (Delphi, `EleutherAI/delphi`) replace per-token simulation with three cheaper scores, which `openinterp score` records (docs/PROTOCOL.md §4):
+
+```bash
+uv run openinterp score --audit-file <submission or record> --corpus corpus.jsonl --emit-task exchange/score.task.json
+# explanation-judge answers exchange/score.detection.prompt.md, a *second* one answers score.fuzzing.prompt.md
+uv run openinterp score --task exchange/score.task.json --judge-model external/<judge model ID>
+uv run openinterp review … --explanation-scores exchange/score.scores.json   # or reevaluate --record …
+```
+
+- Use the scan's corpus. The scan's top examples are left out, so every window is text the proposer never saw.
+- Give each prompt to a separate judge. Fuzzing marks real active tokens, so a judge that saw them would score detection on more than the explanation.
+- Read `recall_by_quantile` as well as the balanced accuracy. Explanations written from top examples typically miss the weaker bins.
+- A low score with a VERIFIED verdict is not a contradiction. The probes test the claim where the reviewer looked; these scores test where the pole fires in ordinary text. Say in the next revision which held-out activity the explanation leaves out.
 
 ## Procedure: simulation score
 

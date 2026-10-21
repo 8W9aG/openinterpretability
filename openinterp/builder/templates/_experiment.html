@@ -209,6 +209,15 @@
       {% if verdict.policy %}· protocol v{{ verdict.policy.protocol_version }}{% endif %}
     </p>
     {% endif %}
+    {% if verdict.explanation_scores %}
+    {% set es = verdict.explanation_scores %}
+    <p class="mb-4 font-mono text-xs text-slate-500" title="A judge given only the hypothesis picks out held-out windows (detection) or checks marked tokens (fuzzing); recorded, not gated">
+      held-out detection {{ (es.detection.balanced_accuracy if es.detection else none) | num(2) }} ·
+      fuzzing {{ (es.fuzzing.balanced_accuracy if es.fuzzing else none) | num(2) }} ·
+      embedding AUROC {{ es.embedding_auroc | num(2) }} ·
+      {{ es.detection_windows | length + es.fuzzing_windows | length }} windows of {{ es.window_tokens }} tokens · judge {{ es.judge_model or '—' }}
+    </p>
+    {% endif %}
     <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-sm">
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">

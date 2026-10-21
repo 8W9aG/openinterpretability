@@ -82,6 +82,15 @@ wiki_option = click.option(
 )
 
 
+explanation_scores_option = click.option(
+    "--explanation-scores",
+    "scores_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="ExplanationScores JSON from `openinterp score` for this explanation, recorded in "
+    "the verdict (reported, not gated).",
+)
+
+
 def _skip_wiki(wiki_dir) -> bool:
     return not str(wiki_dir) or str(wiki_dir) == "."
 
@@ -284,15 +293,26 @@ def audit(
     help="ProbeSet JSON answering --emit-prompt. No LLM is called.",
 )
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
+@explanation_scores_option
 @wiki_option
 @with_model_options
 def verify(
-    audit_file, agent_model, n_probes, emit_prompt, probes_file, out, wiki_dir, device, dtype
+    audit_file,
+    agent_model,
+    n_probes,
+    emit_prompt,
+    probes_file,
+    out,
+    scores_file,
+    wiki_dir,
+    device,
+    dtype,
 ):
     """Adversarially review a submission and post it as a new experiment."""
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
+    from openinterp.cli_score import load_scores
     from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
 
     raw = audit_file.read_text()
@@ -313,6 +333,7 @@ def verify(
         raise click.UsageError(
             "--agent-model is required with --probes: name the model that wrote them."
         )
+    scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     if reviewer.model == submission.submitting_agent_model:
         click.echo("warning: reviewer and submitter use the same model", err=True)
@@ -323,6 +344,7 @@ def verify(
         probes = reviewer.generate_probes(submission, n=n_probes).probes
     runner = _load_runner(submission.identifier.model_name, device, dtype)
     verdict = reviewer.review(submission, runner, probes=probes)
+    verdict = verdict.model_copy(update={"explanation_scores": scores})
 
     record = AuditRecord(submission=submission, verdict=verdict)
     click.echo(f"{verdict.status} (confidence {verdict.confidence_score:.2f}) — {verdict.notes}")
@@ -336,14 +358,16 @@ cli.add_command(verify, name="review")
 @cli.command()
 @click.option("--record", required=True, type=click.Path(exists=True, path_type=Path))
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the new record here.")
+@explanation_scores_option
 @wiki_option
 @with_model_options
-def reevaluate(record, out, wiki_dir, device, dtype):
+def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     """Re-measure a record's stored probes under the current ReviewPolicy (no LLM calls).
 
     The result is a new experiment; the original record is never modified.
     """
     from openinterp.agents.reviewer import evaluate_submission, probes_from_verdict
+    from openinterp.cli_score import load_scores
     from openinterp.core.schemas import AuditRecord
 
     if _skip_wiki(wiki_dir) and out is None:
@@ -351,10 +375,12 @@ def reevaluate(record, out, wiki_dir, device, dtype):
     old = AuditRecord.model_validate_json(record.read_text())
     if old.verdict is None:
         raise click.ClickException(f"{record} has no verdict to re-evaluate.")
+    scores = load_scores(scores_file, old.submission)
     runner = _load_runner(old.submission.identifier.model_name, device, dtype)
     verdict = evaluate_submission(
         old.submission, runner, probes_from_verdict(old.verdict), old.verdict.reviewer_agent_model
     )
+    verdict = verdict.model_copy(update={"explanation_scores": scores})
     new = AuditRecord(submission=old.submission, verdict=verdict)
     click.echo(f"{old.verdict.status} -> {verdict.status} — {verdict.notes}")
     _write_wiki(old, wiki_dir, kind="backfill")  # no-op when the original is already archived
@@ -438,7 +464,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 
 
 # Registers the registry-maintenance commands on `cli`.
-from openinterp import cli_corpus, cli_registry  # noqa: E402, F401
+from openinterp import cli_corpus, cli_registry, cli_score  # noqa: E402, F401
 
 
 def main() -> None:
