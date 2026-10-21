@@ -12,7 +12,13 @@ from collections.abc import Sequence
 
 import torch
 
-from openinterp.core.schemas import CausalMetrics, CausalTarget, NeuronAuditSubmission
+from openinterp.core.schemas import (
+    CausalMetrics,
+    CausalPairEffect,
+    CausalTarget,
+    NeuronAuditSubmission,
+    PatchEffect,
+)
 from openinterp.harness.hooks import NeuronHookRunner, pole_strength
 from openinterp.harness.patcher import (
     ActivationPatcher,
@@ -115,7 +121,8 @@ def causal_metrics(
     scores: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     effects: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     nulls: list[int] = []
-    for pair in submission.counterfactuals:
+    pairs: list[CausalPairEffect] = []
+    for index, pair in enumerate(submission.counterfactuals):
         changes = _head_changes if is_head else _neuron_changes
         positions, position, change = changes(
             runner, ident, pair.base_prompt, pair.counterfactual_prompt
@@ -133,6 +140,7 @@ def causal_metrics(
             "sufficiency": (pair.base_prompt, pair.counterfactual_prompt),
             "necessity": (pair.counterfactual_prompt, pair.base_prompt),
         }
+        patched: dict[str, PatchEffect] = {}
         for kind, (source, target_prompt) in runs.items():
             units = [ident.index, *null]
             options = {
@@ -148,8 +156,17 @@ def causal_metrics(
                 own, *others = patcher.patch_many(
                     source, target_prompt, ident.layer, units, ident.pole, **options
                 )
+            null_effects = sorted(abs(o) for o in others)
+            percentile = _percentile(abs(own), null_effects)
             effects[kind].append(own)
-            scores[kind].append(_percentile(abs(own), [abs(o) for o in others]))
+            scores[kind].append(percentile)
+            patched[kind] = PatchEffect(
+                effect=round(own, 9),
+                percentile=round(percentile, 6) if math.isfinite(percentile) else None,
+                null_median=round(statistics.median(null_effects), 9) if null_effects else 0.0,
+                null_max=round(null_effects[-1], 9) if null_effects else 0.0,
+            )
+        pairs.append(CausalPairEffect(pair_index=index, **patched))
 
     if not effects["sufficiency"]:
         return None
@@ -163,6 +180,7 @@ def causal_metrics(
         necessity_effect=round(statistics.median(effects["necessity"]), 9),
         null_neurons=min(nulls),
         pairs_scored=len(effects["sufficiency"]),
+        pairs=pairs,
     )
 
 

@@ -19,6 +19,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
+from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.tree import (
     Experiment,
@@ -28,7 +29,7 @@ from openinterp.builder.tree import (
     neuron_href,
 )
 from openinterp.core.exceptions import RegistryError
-from openinterp.core.schemas import ActivatingExample, AuditRecord, Histogram
+from openinterp.core.schemas import ActivatingExample, AuditRecord
 
 
 @dataclass
@@ -78,112 +79,6 @@ def _pct_fine(v: float | None) -> str:
 
 def _root_for(rel_path: str) -> str:
     return "../" * (len(Path(rel_path).parts) - 1)
-
-
-def histogram_bars(hist: Histogram | None, width: int = 600, height: int = 140) -> list[dict]:
-    """SVG bar geometry; heights are log-scaled because activations are heavy-tailed."""
-    if hist is None or not hist.counts:
-        return []
-    peak = math.log1p(max(hist.counts)) or 1.0
-    bar_w = width / len(hist.counts)
-    bars = []
-    for i, count in enumerate(hist.counts):
-        h = height * math.log1p(count) / peak
-        bars.append(
-            {
-                "x": round(i * bar_w, 2),
-                "y": round(height - h, 2),
-                "w": round(max(bar_w - 1, 0.5), 2),
-                "h": round(h, 2),
-                "label": f"[{hist.bin_edges[i]:.3g}, {hist.bin_edges[i + 1]:.3g}): {count}",
-            }
-        )
-    return bars
-
-
-PROBE_ROWS = (
-    ("hard_negative", "Hard negatives", "stay below"),
-    ("positive_holdout", "Positive holdouts", "reach it"),
-)
-
-
-def probe_chart(verdict, scale: float | None, width: int = 640) -> dict | None:
-    """Strip-chart geometry: each activation probe as a dot on one pole-strength axis.
-
-    The reviewer's threshold (``activation_threshold × max activation``) is the line a
-    hard negative must stay below and a holdout must reach. Dots that would overlap are
-    dodged vertically within their row, so every probe stays visible.
-    """
-    if verdict is None or verdict.policy is None or not scale:
-        return None
-    tests = [
-        t
-        for t in verdict.adversarial_test_results
-        if t.kind in {kind for kind, *_ in PROBE_ROWS} and t.activation is not None
-    ]
-    if not tests:
-        return None
-    threshold = verdict.policy.activation_threshold * scale
-    lo = min(0.0, *(t.activation for t in tests))
-    hi = max(scale, *(t.activation for t in tests))
-    left, right = 132, width - 12
-    r, row_gap, top = 5, 64, 34
-
-    def x(v: float) -> float:
-        return round(left + (right - left) * (v - lo) / ((hi - lo) or 1.0), 2)
-
-    rows = []
-    for i, (kind, label, expect) in enumerate(PROBE_ROWS):
-        cy = top + 24 + i * row_gap
-        placed: list[tuple[float, float]] = []
-        dots = []
-        group = sorted((t for t in tests if t.kind == kind), key=lambda t: t.activation)
-        for t in group:
-            cx = x(t.activation)
-            for dy in (0, -10, 10, -20, 20):
-                if all(
-                    (cx - px) ** 2 + (cy + dy - py) ** 2 >= (2 * r + 1) ** 2 for px, py in placed
-                ):
-                    break
-            placed.append((cx, cy + dy))
-            prompt = t.prompt if len(t.prompt) <= 160 else t.prompt[:157] + "…"
-            dots.append(
-                {
-                    "cx": cx,
-                    "cy": cy + dy,
-                    "passed": t.passed,
-                    "label": f"{'passed' if t.passed else 'failed'} · {t.activation:.3f} "
-                    f"({t.activation / scale:.0%} of max)\n{prompt}",
-                }
-            )
-        passed = sum(d["passed"] for d in dots)
-        rows.append(
-            {
-                "label": label,
-                "expect": expect,
-                "y": cy,
-                "dots": dots,
-                "passed": passed,
-                "n": len(dots),
-            }
-        )
-    axis_y = top + 24 + len(PROBE_ROWS) * row_gap - 24
-    return {
-        "width": width,
-        "height": axis_y + 20,
-        "left": left,
-        "right": right,
-        "top": top,
-        "axis_y": axis_y,
-        "rows": rows,
-        "r": r,
-        "threshold": threshold,
-        "threshold_x": x(threshold),
-        "threshold_frac": verdict.policy.activation_threshold,
-        "zero_x": x(0.0),
-        "max_x": x(scale),
-        "scale": scale,
-    }
 
 
 @dataclass(frozen=True)
@@ -418,6 +313,7 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "c": verdict.causal_metrics,
         "bars": histogram_bars(sub.activation_histogram),
         "probes": probe_chart(verdict, sub.max_activation),
+        "causal": causal_chart(verdict.causal_metrics, sub.counterfactuals),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),

@@ -71,6 +71,14 @@ This verdict predates protocol v0.2, so it has no per-gate metrics. Run `openint
 {% set c = verdict.causal_metrics %}
 {% if c.target %}
 Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the {{ 'head' if is_head else 'pole' }}'s patch effect among the {{ c.null_neurons }} same-layer {{ 'heads' if is_head else 'neurons' }} that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
+{% if c.pairs %}
+
+| Pair | Sufficiency | Effect | Matched median / max | Necessity | Effect | Matched median / max |
+| --- | --- | --- | --- | --- | --- | --- |
+{% for p in c.pairs %}
+| {{ p.pair_index + 1 }} | {{ p.sufficiency.percentile | num(2) }} | {{ '%.3g' | format(p.sufficiency.effect) }} | {{ '%.3g' | format(p.sufficiency.null_median) }} / {{ '%.3g' | format(p.sufficiency.null_max) }} | {{ p.necessity.percentile | num(2) }} | {{ '%.3g' | format(p.necessity.effect) }} | {{ '%.3g' | format(p.necessity.null_median) }} / {{ '%.3g' | format(p.necessity.null_max) }} |
+{% endfor %}
+{% endif %}
 {% else %}
 Causal metrics (recorded, not gated; top-1 logit, protocol < 0.5): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}, hydra mitigated: {{ c.hydra_mitigated }}.
 {% endif %}

@@ -8,7 +8,14 @@ from openinterp.builder.wiki import (
     load_entries,
     write_experiment_page,
 )
-from openinterp.core.schemas import AuditRecord, CausalMetrics, ReviewMetrics, ReviewPolicy
+from openinterp.core.schemas import (
+    AuditRecord,
+    CausalMetrics,
+    CausalPairEffect,
+    PatchEffect,
+    ReviewMetrics,
+    ReviewPolicy,
+)
 
 
 def _failed_record(record):
@@ -116,6 +123,18 @@ def test_causal_metrics_render_by_protocol(tmp_path, record):
     wiki = write_experiment_page(new, tmp_path / "wiki").read_text()
     assert "32 same-layer neurons" in wiki and "claimed_tokens ( Paris)" in wiki
     assert "-3.4e-06" in wiki
+    assert "| Pair | Sufficiency" not in wiki  # no per-pair effects recorded
+    effect = PatchEffect(effect=0.02, percentile=0.75, null_median=0.001, null_max=0.03)
+    pairs = [CausalPairEffect(pair_index=1, sufficiency=effect, necessity=effect)]
+    with_pairs = new.model_copy(
+        update={
+            "verdict": new.verdict.model_copy(
+                update={"causal_metrics": causal.model_copy(update={"pairs": pairs})}
+            )
+        }
+    )
+    wiki = write_experiment_page(with_pairs, tmp_path / "pairs").read_text()
+    assert "| 2 | 0.75 | 0.02 | 0.001 / 0.03 | 0.75 |" in wiki
     old = write_experiment_page(record, tmp_path / "old").read_text()
     assert "top-1 logit, protocol < 0.5" in old
 
