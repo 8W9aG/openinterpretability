@@ -1,4 +1,4 @@
-# Audit protocol (v0.6)
+# Audit protocol (v0.7)
 
 This document defines what one Open Interpretability experiment is, who does what, and how a verdict is decided. The code implements it: the decision rule is `openinterp.agents.reviewer.evaluate_submission`, and its parameters are `openinterp.core.schemas.ReviewPolicy`. Every verdict stores the policy it was computed under, so any record can be re-checked with `openinterp reevaluate`.
 
@@ -12,7 +12,7 @@ One experiment tests **one hypothesis about one unit** in one model revision. A 
 | Pole | Positive: `clamp(a, min=0)`. Negative: `clamp(a, max=0)`. The two poles are audited separately. |
 | Attention head | One head's output z: its slice of the attention output projection's input (`o_proj`, or `c_proj` in GPT-2). Identified by `HeadIdentifier` (`kind = "attn_head"`, `L<layer>/H<idx>`). A head has no sign, so no poles. |
 | Strength | Non-negative, per token. Larger always means more active. For a neuron pole, the magnitude of the pole. For a head, `\|W_O (z_t − z̄)\|`: the distance between the head's write to the residual stream at token t and its mean write over the scan, i.e. how far mean-ablating the head would move the residual stream there. z̄ is measured by the scan and stored in `head_profile.mean_output`, so every later measurement uses the same zero point and a record reproduces without its corpus. |
-| Scale | The maximum strength seen during the discovery scan (`max_activation`). |
+| Scale | The maximum strength seen during the discovery scan (`max_activation`), over the scan's corpus sample (§3, step 2). |
 | Active | A prompt is active if its peak strength over all tokens is at least `activation_threshold × scale` (default 0.25). |
 | Δ (counterfactual) | `(peak strength on base − peak strength on counterfactual) / scale`. |
 
@@ -38,7 +38,9 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    - `random`: uniform over layers, then neurons, then poles (`openinterp audit --random --seed N`), or over layers, then heads (`--unit head --random`). Only randomly selected units count towards registry-wide statistics such as "fraction of neurons with a verified explanation", and neurons and heads are never pooled.
    - `attribution`: chosen because it ranked highly in attribution patching for some behaviour.
    - `manual`: anything else.
-2. **Scan.** Run the corpus through the model and keep the top-k activating snippets and a histogram of all token strengths. Documents are read whole, or as overlapping windows (`--window-tokens`, `--stride`) in which each token is counted once and top examples don't overlap. Record the model revision, dtype, corpus, corpus hash, token count and window length and stride in `provenance`. A head scan first averages the head's output over every counted token (z̄), then measures strengths against it. It also records, for each top example, the tokens its peak attends to most, and the head's previous-token, duplicate-token and induction scores: mean attention weights on 16 sequences of 32 uniformly random tokens repeated twice (Olsson et al., 2022). These are evidence for the proposer, not gates. Heads have no vocabulary lens (a head writes a subspace, not one direction) and no partner search.
+2. **Scan.** Run a sample of the corpus through the model and keep the top-k activating snippets and a histogram of all token strengths.
+   - *Sample.* Since protocol 0.7 a scan reads a fixed-size, seeded sample of whole documents, not the whole corpus, so its cost and its scale don't grow with the corpus. Documents are visited in `random.Random(seed)` order, and each is taken if it fits in what is left of the token budget (the first always is). Tokens are counted with the model's tokenizer, without special tokens. The defaults are a budget of 200,000 tokens and seed 0 (`--max-tokens`, `--sample-seed`), so every audit of one corpus with one tokenizer reads the same documents. `provenance.corpus_sample` records the seed, budget, document and token counts and the SHA-256 of the sampled documents as JSONL. `--max-tokens 0` scans the whole corpus and records no sample, as every record before 0.7 did.
+   - *Reading.* Documents are read whole, or as overlapping windows (`--window-tokens`, `--stride`) in which each token is counted once and top examples don't overlap. Record the model revision, dtype, corpus, corpus hash, sample, token count and window length and stride in `provenance`. A head scan first averages the head's output over every counted token (z̄), then measures strengths against it. It also records, for each top example, the tokens its peak attends to most, and the head's previous-token, duplicate-token and induction scores: mean attention weights on 16 sequences of 32 uniformly random tokens repeated twice (Olsson et al., 2022). These are evidence for the proposer, not gates. Heads have no vocabulary lens (a head writes a subspace, not one direction) and no partner search.
 3. **Hypothesize.** The proposer states:
    - a natural-language explanation precise enough that a third party can label new text as "predicted active" or "predicted inactive";
    - the mechanism: **retrospective** (reacts to tokens already read) or **lookahead** (prepares specific upcoming tokens);
@@ -119,7 +121,7 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
 
   The `next_token_kl` target shows that a neuron matters, not that it matters *for the reason the hypothesis gives*. A causal test of a retrospective claim would need the hypothesis to name the behaviour it affects. Gating on these scores needs a pre-registered prediction format first (see TODO).
 - **Explanation scores on held-out text** (Delphi; Paulo et al., 2025), from `openinterp score`. Every review records them: `review` takes them with `--explanation-scores`, or measures them itself in one-step mode, and refuses to post without them. `reevaluate` makes no LLM calls, so it attaches them only when given. They test the explanation on text nobody chose, where probes test it on text the reviewer chose.
-  - *Windows.* The corpus snippets that are not the scan's top examples, so the proposer never saw them, are cut into 32-token windows. Each window is measured on its own, exactly as the judge reads it, the way probes are. Active windows (peak ≥ the activation threshold) are split into 5 bins by peak strength. Each bin gives 5 windows to detection and 5 to fuzzing, so weak activations count as much as the top ones. Detection also gets as many inactive windows.
+  - *Windows.* The corpus snippets that are not the scan's top examples, so the proposer never saw them, are cut into 32-token windows. They come from the whole corpus, not just the scan's sample. Each window is measured on its own, exactly as the judge reads it, the way probes are. Active windows (peak ≥ the activation threshold) are split into 5 bins by peak strength. Each bin gives 5 windows to detection and 5 to fuzzing, so weak activations count as much as the top ones. Detection also gets as many inactive windows.
   - *Detection.* A judge given only the explanation lists the windows it says activate the pole. Score: balanced accuracy, with recall per activation bin.
   - *Fuzzing.* In each window some tokens are marked: the active tokens, the same number of inactive tokens, or random tokens in an inactive window. The judge lists the windows whose marks are where the explanation says the pole fires. Score: balanced accuracy.
   - *Embedding.* The AUROC of the cosine between the explanation and each detection window, from a local sentence encoder (`sentence-transformers/all-MiniLM-L6-v2` by default). It needs no LLM.
@@ -132,7 +134,7 @@ A record must let a third party re-derive its verdict:
 
 - `identifier`: model name, layer, and neuron and pole, or head.
 - `head_profile.mean_output` for a head: the zero point of its strength.
-- `provenance`: model revision (commit hash), dtype, corpus and its SHA-256, snippet and token counts, selection method and seed, harness version.
+- `provenance`: model revision (commit hash), dtype, corpus and its SHA-256, the corpus sample (seed, token budget, SHA-256), snippet and token counts, selection method and seed, harness version.
 - The full probe set with labels and rationales, stored as `adversarial_test_results`.
 - `verdict.policy`: the exact thresholds, including `protocol_version`.
 - `verdict.environment` (and `provenance.environment` for the scan): the device, weights dtype, model commit and the openinterp, torch and transformers versions the measurements ran with.
@@ -144,7 +146,8 @@ A record must let a third party re-derive its verdict:
 `openinterp reproduce <file>…` (or `--base-ref origin/main` for every record a branch adds or changes) checks that a record is what it claims to be. It loads the model commit and dtype the record pins and re-runs everything the verdict rests on, without LLM calls:
 - each top example's per-token strengths, and the scale (`max_activation`) that every threshold is a fraction of;
 - each counterfactual's observed Δ;
-- the review, with the record's own probes, reviewer and policy.
+- the review, with the record's own probes, reviewer and policy;
+- with `--corpus <the scan's corpus>`, the corpus sample: re-drawn from its seed and budget, it must hash the same and contain every top example. A different corpus is a warning. CI has no corpus, so it skips this check.
 
 Numbers must agree within `atol × scale + rtol × |recorded|` (defaults 0.001 and 0.01). These absorb float differences between devices and library versions, but not an edited number. Every pass/fail, every gate and the status must agree exactly. Causal metrics and joint ablation are not gated, so a difference there is only a warning. A different device or library version is reported as a warning. A record judged under another protocol version can't be reproduced by the current harness, because its decision rule was different: re-evaluate it instead.
 
@@ -164,6 +167,7 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 | 0.4 | `independent_review` is recorded but no longer gated by default (`require_independent_review = False`). |
 | 0.5 | Causal metrics (still not gated) are scored on claimed tokens or next-token KL at the pole's most-changed position, as percentiles against activation-change-matched same-layer neurons; control pairs are skipped. Replaces the fraction of the top-1-logit gap restored. |
 | 0.6 | Attention heads can be audited. A head's strength is \|W_O (z − z̄)\| against its mean output over the scan (stored in the record), its ablation is mean ablation, and its causal metrics rank it against the other heads of its layer. The decision rule for neuron poles is unchanged; `CausalMetrics.null_neurons` now records how many comparison units were used. |
+| 0.7 | A scan reads a seeded sample of whole documents within a token budget (default 200,000 tokens, seed 0), recorded in `provenance.corpus_sample`, instead of the whole corpus. The scale, and so the "active" threshold, is the maximum over that sample. The decision rule is unchanged. A record without a sample scanned its whole corpus, and re-evaluating it keeps that scale. |
 
 ### Registry-level dependence
 

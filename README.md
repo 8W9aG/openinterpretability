@@ -50,7 +50,7 @@ The record notes whether the reviewer was a different model from the proposer (`
 uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k or c4 for another corpus, --seed N for another sample
 ```
 
-It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
+It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time (`--max-tokens`, `--sample-seed`; `--max-tokens 0` scans all of it), and records the sample in provenance. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
 
 ### 2A. Let an agent run it (Claude Code)
 

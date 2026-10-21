@@ -62,6 +62,22 @@ def test_audit_scans_windows_and_records_them(flow):
     assert result.exit_code != 0 and "--stride needs --window-tokens" in result.output
 
 
+def test_audit_scans_a_seeded_token_sample(flow):
+    def scan(*args):
+        run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+            *args, "--evidence-out", "ev.json")  # fmt: skip
+        return ScanEvidence.model_validate_json((flow.path / "ev.json").read_text()).provenance
+
+    prov = scan("--max-tokens", 30, "--sample-seed", 5)
+    sample = prov.corpus_sample
+    assert (sample.max_tokens, sample.seed, sample.corpus_documents) == (30, 5, len(TEXTS))
+    assert prov.n_snippets == sample.documents < len(TEXTS)
+    assert prov.tokens_scanned == sample.tokens <= 30  # one token per character
+    assert scan("--max-tokens", 30, "--sample-seed", 5).corpus_sample == sample
+    assert scan().corpus_sample.documents == len(TEXTS)  # the default budget fits it all
+    assert scan("--max-tokens", 0).corpus_sample is None  # the whole corpus
+
+
 def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     monkeypatch.setenv(LEDGER_ENV, str(flow.path / "costs.jsonl"))
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",

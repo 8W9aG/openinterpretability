@@ -28,7 +28,7 @@ ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "look
 SelectionMethod = Literal["random", "attribution", "manual"]
 CausalTarget = Literal["claimed_tokens", "next_token_kl"]
 
-PROTOCOL_VERSION = "0.6"
+PROTOCOL_VERSION = "0.7"
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 
@@ -203,6 +203,33 @@ class CorpusSource(StrictModel):
         return f"{self.dataset}{at} ({self.files}, {self.documents} docs, seed {self.seed})"
 
 
+class CorpusSample(StrictModel):
+    """The seeded, token-bounded sample of the corpus a scan read (protocol 0.7).
+
+    Documents are visited in ``random.Random(seed)`` order, and each is taken whole if it
+    fits in what is left of ``max_tokens`` (the first always is), then kept in corpus
+    order. Tokens are counted by the model's tokenizer, without special tokens.
+    Re-drawing with the same corpus, tokenizer, seed and budget gives the same
+    documents, which ``sha256`` pins.
+    """
+
+    seed: int
+    max_tokens: int = Field(gt=0, description="Token budget the sample was drawn to.")
+    documents: int = Field(gt=0)
+    corpus_documents: int = Field(gt=0, description="Documents in the corpus it was drawn from.")
+    tokens: int = Field(ge=0, description="Tokenizer tokens in the sampled documents.")
+    sha256: str = Field(
+        description='SHA-256 of the sampled documents as JSONL ({"text": ...} per line), '
+        "the bytes `openinterp corpus` would write for them."
+    )
+
+    def __str__(self) -> str:
+        return (
+            f"{self.documents} of {self.corpus_documents} docs, {self.tokens:,} tokens "
+            f"(≤ {self.max_tokens:,}, seed {self.seed})"
+        )
+
+
 class ExperimentProvenance(StrictModel):
     """Everything needed to re-run the scan that produced a submission."""
 
@@ -228,6 +255,11 @@ class ExperimentProvenance(StrictModel):
     harness_version: str
     environment: RunEnvironment | None = None
     corpus_source: CorpusSource | None = None
+    corpus_sample: CorpusSample | None = Field(
+        default=None,
+        description="The sample of the corpus scanned; None when the whole corpus was "
+        "(every record before protocol 0.7).",
+    )
     costs: ExperimentCosts | None = Field(
         default=None,
         description="Wall time per stage and LLM usage of the run that produced this record "
