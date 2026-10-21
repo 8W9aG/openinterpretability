@@ -69,6 +69,9 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
     prompt = (flow.path / "ev.prompt.md").read_text()
     assert "ev.hypothesis.json" in prompt and '"counterfactuals"' in prompt  # schema included
+    # The toy model has no attention: every peak comes from its own token.
+    assert evidence.input_attribution.current_token_share == pytest.approx(1.0)
+    assert "Input attribution" in prompt and "100% of it is on the peak token" in prompt
     assert not (flow.path / "submissions").exists()  # scan only
 
     (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
@@ -78,12 +81,14 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     assert sub.submitting_agent_model == "external/proposer"
     assert sub.identifier == evidence.identifier and sub.top_examples == evidence.top_examples
     assert all(cf.observed_delta is not None for cf in sub.counterfactuals)  # measured
+    assert sub.input_attribution == evidence.input_attribution
 
     loads = len(flow.loads)
     run("review", "--audit-file", "sub.json", "--emit-prompt", "review.prompt.md")
     assert len(flow.loads) == loads  # the reviewer's prompt never touches the model
     assert "review.probes.json" in (flow.path / "review.prompt.md").read_text()
     assert "review.prompt.probes.json" not in (flow.path / "review.prompt.md").read_text()
+    assert "Probes are measured on their own" in (flow.path / "review.prompt.md").read_text()
 
     probes = ProbeSet(
         probes=[
@@ -119,9 +124,9 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     costs = record.submission.provenance.costs
     stages = [s.stage for s in costs.stages]
     judged = ["judge", "judge"] if task.fuzzing else ["judge"]
-    assert stages == ["scan", "lenses", "proposer", "counterfactuals", "heldout_windows",
-                      *judged, "remeasure", "reviewer", "probe_measurement", "gates",
-                      "causal_metrics"]  # fmt: skip
+    assert stages == ["scan", "lenses", "input_attribution", "proposer", "counterfactuals",
+                      "heldout_windows", *judged, "remeasure", "reviewer", "probe_measurement",
+                      "gates", "causal_metrics"]  # fmt: skip
     assert [c.agent for c in costs.llm_calls] == ["proposer", *judged, "reviewer"]
     assert all(c.external and c.prompt_chars for c in costs.llm_calls)
     assert scores.costs is None  # moved into the provenance

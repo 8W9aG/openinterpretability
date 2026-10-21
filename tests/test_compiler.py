@@ -293,6 +293,54 @@ def test_vocabulary_lens_rendered(tmp_path, record):
     assert row["jacobian_promoted"] == [" including"] and row["lens_overlap"] == 0.0
 
 
+def test_input_attribution_rendered(tmp_path, record):
+    from openinterp.builder.wiki import write_experiment_page
+    from openinterp.core.attribution import (
+        AttributedToken,
+        ContextExample,
+        DistanceShare,
+        InputAttribution,
+    )
+    from openinterp.harness.input_attribution import DISTANCE_BANDS
+
+    shares = [0.5, 0.1, 0.1, 0.1, 0.2, 0.0]
+    attribution = InputAttribution(
+        baseline_token="<|endoftext|>",
+        tolerance=0.1,
+        examples=[
+            ContextExample(
+                example=0,
+                peak_token='"',
+                tokens=4,
+                steps=16,
+                converged=True,
+                top=[
+                    AttributedToken(offset=0, token='"', attribution=0.5, ablation_effect=0.6),
+                    AttributedToken(offset=-3, token="Hi", attribution=0.3, ablation_effect=0.2),
+                ],
+                completeness_error=0.05,
+            )
+        ],
+        distances=[
+            DistanceShare(min_distance=lo, max_distance=hi, share=s)
+            for (lo, hi), s in zip(DISTANCE_BANDS, shares, strict=True)
+        ],
+        mean_distance=7.25,
+        ablation_agreement=0.8,
+    )
+    sub = record.submission.model_copy(update={"input_attribution": attribution})
+    rec = record.model_copy(update={"submission": sub})
+    compile_site([rec], tmp_path / "site")
+    page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "Input attribution" in page and "65+ back" in page and "ρ = 0.80" in page
+    row = pq.read_table(tmp_path / "site" / "data" / "registry.parquet").to_pylist()[0]
+    assert row["current_token_share"] == 0.5 and row["context_mean_distance"] == 7.25
+
+    md = write_experiment_page(rec, tmp_path / "wiki").read_text()
+    assert "### Input attribution" in md and "| Share | 50% | 10% |" in md
+    assert '| 1 | `"` | `"` 0, 0.50 / 0.60; `Hi` -3, 0.30 / 0.20 |' in md
+
+
 def test_token_heat_windows_long_snippets_around_the_peak():
     from openinterp.builder.compiler import token_heat
     from openinterp.core.schemas import ActivatingExample

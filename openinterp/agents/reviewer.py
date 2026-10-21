@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
+from openinterp.agents.proposer import format_input_attribution
 from openinterp.core import costs
 from openinterp.core.schemas import (
     AdversarialTestResult,
@@ -78,8 +79,17 @@ class ReviewerAgent(LLMAgent):
     def probe_prompt(submission: NeuronAuditSubmission, n: int = 16) -> str:
         """The task text the reviewer answers. It shows no activations of candidate probes."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
-        examples = "\n".join(f"- {e.text}" for e in submission.top_examples[:10]) or "(none)"
+        top = submission.top_examples[:10]
+        examples = "\n".join(f"{n}. {e.text}" for n, e in enumerate(top, 1)) or "(none)"
         is_head = submission.identifier.kind == "attn_head"
+        context = ""
+        if submission.input_attribution is not None:
+            context = format_input_attribution(submission.input_attribution)
+        if context:
+            context += (
+                "Probes are measured on their own, so a probe contains only the context "
+                "you write into it: vary the tokens above, not just the peak token.\n"
+            )
         return (
             f"{'Attention head' if is_head else 'Neuron'}: {submission.identifier}\n"
             + (HEAD_ACTIVITY if is_head else "")
@@ -88,7 +98,8 @@ class ReviewerAgent(LLMAgent):
             f"Claimed mechanism: {mechanism}"
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             f"Top-activating examples:\n{examples}\n\n"
-            f"Write {n} probes."
+            + (f"{context}\n" if context else "")
+            + f"Write {n} probes."
         )
 
     def review(
