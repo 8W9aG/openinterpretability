@@ -137,140 +137,6 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option(
-    "--model",
-    "model_name",
-    help="Hugging Face repo, e.g. Qwen/Qwen2.5-0.5B. Required unless --evidence.",
-)
-@click.option("--layer", type=int, help="Required unless --random.")
-@click.option("--neuron", type=int, help="Required unless --random.")
-@click.option("--pole", type=click.Choice(["positive", "negative"]), help="Default: positive.")
-@click.option(
-    "--random",
-    "random_pick",
-    is_flag=True,
-    help="Sample unspecified layer/neuron/pole uniformly (the unbiased selection method).",
-)
-@click.option("--seed", type=int, help="Seed for --random (recorded in provenance).")
-@click.option(
-    "--corpus",
-    type=click.Path(exists=True, path_type=Path),
-    help="Text file (one snippet per line) or .jsonl with a 'text' field.",
-)
-@click.option("--top-k", default=20, show_default=True, help="Examples shown to the proposer.")
-@click.option(
-    "--agent-model",
-    default=None,
-    help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file. "
-    "With --hypothesis, the name recorded for whoever wrote it (e.g. external/claude-opus-5-5).",
-)
-@click.option(
-    "--evidence-out",
-    type=click.Path(dir_okay=False, path_type=Path),
-    help="Scan only: write the evidence to this JSON file and the proposer's prompt next to "
-    "it (<name>.prompt.md), then exit. Answer the prompt, then run with --evidence.",
-)
-@click.option(
-    "--evidence",
-    "evidence_file",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="Evidence from --evidence-out; skips the scan. Requires --hypothesis.",
-)
-@click.option(
-    "--hypothesis",
-    "hypothesis_file",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
-)
-@click.option(
-    "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
-)
-@with_model_options
-def audit(
-    model_name,
-    layer,
-    neuron,
-    pole,
-    random_pick,
-    seed,
-    corpus,
-    top_k,
-    agent_model,
-    evidence_out,
-    evidence_file,
-    hypothesis_file,
-    out,
-    device,
-    dtype,
-):
-    """Scan a neuron pole, get a hypothesis from the proposer, and write a submission.
-
-    \b
-    In one step, the proposer is an LLM (or external/<name>, answered via exchange/).
-    In two steps, any agent can propose without an API key or a waiting process:
-      openinterp audit --model M --random --evidence-out ev.json
-      (answer ev.prompt.md by writing ev.hypothesis.json)
-      openinterp audit --evidence ev.json --hypothesis ev.hypothesis.json \\
-        --agent-model external/<model that wrote it>
-    """
-    from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
-    from openinterp.cli_evidence import scan_evidence, write_evidence
-    from openinterp.core.schemas import ScanEvidence
-
-    if (evidence_file is None) != (hypothesis_file is None):
-        raise click.UsageError("--evidence and --hypothesis go together.")
-    if evidence_file is not None:
-        if evidence_out is not None:
-            raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
-        if not agent_model:
-            raise click.UsageError(
-                "--agent-model is required with --hypothesis: name the model that wrote it."
-            )
-        evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
-        draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
-        runner = _load_runner(evidence.identifier.model_name, device, dtype)
-        agent = ProposerAgent(agent_model)
-    else:
-        if model_name is None:
-            raise click.UsageError("--model is required unless --evidence is given.")
-        runner = _load_runner(model_name, device, dtype)
-        evidence = scan_evidence(
-            runner, model_name, layer, neuron, pole, random_pick, seed, corpus, top_k, dtype
-        )
-        if evidence_out is not None:
-            write_evidence(evidence, evidence_out)
-            return
-        agent = ProposerAgent(agent_model or DEFAULT_MODEL)
-        click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
-        draft = agent.propose(
-            evidence.identifier,
-            evidence.top_examples,
-            evidence.vocabulary_lens,
-            evidence.confounds,
-            evidence.correlated_neurons,
-        )
-
-    ident = evidence.identifier
-    submission = agent.build_submission(
-        ident,
-        draft,
-        runner=runner,
-        examples=evidence.top_examples,
-        histogram=evidence.activation_histogram,
-        provenance=evidence.provenance,
-        confounds=evidence.confounds,
-        correlated=evidence.correlated_neurons,
-        vocabulary_lens=evidence.vocabulary_lens,
-    )
-    out = out or Path("submissions") / f"{ident.slug}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(submission.model_dump_json(indent=2))
-    click.echo(f"Hypothesis: {submission.natural_language_explanation}")
-    click.echo(f"Wrote {out}")
-
-
-@cli.command()
 @click.option("--audit-file", required=True, type=click.Path(exists=True, path_type=Path))
 @click.option(
     "--agent-model",
@@ -485,7 +351,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 
 
 # Registers the registry-maintenance commands on `cli`.
-from openinterp import cli_corpus, cli_registry, cli_score  # noqa: E402, F401
+from openinterp import cli_corpus, cli_evidence, cli_registry, cli_score  # noqa: E402, F401
 
 
 def main() -> None:

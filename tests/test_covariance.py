@@ -16,7 +16,7 @@ from openinterp.core.stats import (
 from openinterp.harness.confounds import ConfoundAccumulator, baseline_predictions
 from openinterp.harness.covariance import CovarianceAccumulator, PartnerSearch, joint_ablation
 from openinterp.harness.hooks import pole_strength
-from openinterp.harness.scan import scan_neuron
+from openinterp.harness.scan import cut_pieces, scan_neuron
 from tests.conftest import D_MLP, FakeTokenizer
 
 TEXTS = ["abcde", "hello world", "zzzz", "quoted 'text'", "mixed Case 123", "aaaa bbbb"]
@@ -161,6 +161,44 @@ def test_scan_gathers_everything(toy_runner):
     top = scan.correlated[0]
     partner = pole_strength(acts[:, top.neuron_idx], top.pole)
     assert top.spearman == pytest.approx(spearman(target, partner), abs=1e-4)
+
+
+def test_windows_cover_each_document_once():
+    tok = FakeTokenizer()
+    pieces = list(cut_pieces(tok, ["a" * 10, "b" * 3], 4, 3))
+    assert [(p.doc, p.start, p.end, p.fresh) for p in pieces] == [
+        (0, 0, 4, None), (0, 3, 7, 3), (0, 6, 10, 3), (1, 0, 3, None),
+    ]  # fmt: skip
+    assert [p.text for p in cut_pieces(tok, ["abc"], None, None)] == ["abc"]
+    with pytest.raises(ValueError, match="stride"):
+        list(cut_pieces(tok, ["abc"], 4, 5))
+
+
+def test_windowed_scan_counts_each_token_once(toy_runner):
+    texts = ["the quick brown fox jumps over the lazy dog", *TEXTS]
+    scan = scan_neuron(toy_runner, texts, 1, 2, "positive", window_tokens=8, stride=5)
+    assert len(scan.values) == sum(len(t) for t in texts)
+    assert scan.windows == len(list(cut_pieces(toy_runner.tokenizer, texts, 8, 5)))
+
+    # Each window's own tokens, first window whole and later ones by their fresh tail.
+    expected = []
+    for piece in cut_pieces(toy_runner.tokenizer, texts, 8, 5):
+        acts = toy_runner.neuron_activations(piece.text, 1, 2, "positive")[0].tolist()
+        expected += acts[-piece.fresh :] if piece.fresh else acts
+    assert scan.values == pytest.approx(expected)
+
+    # Examples are windows that re-measure as recorded, and never overlap.
+    assert all(len(ex.tokens) <= 8 for ex in scan.examples)
+    for ex in scan.examples:
+        acts = toy_runner.neuron_activations(ex.text, 1, 2, "positive")[0].tolist()
+        assert ex.activations == pytest.approx(acts, abs=1e-5)
+    peaks = [ex.max_activation for ex in scan.examples]
+    assert peaks == sorted(peaks, reverse=True)
+
+    # One document read in heavily overlapping windows: the examples still don't overlap.
+    doc = texts[0]
+    scan = scan_neuron(toy_runner, [doc], 1, 2, "positive", window_tokens=8, stride=2)
+    assert len(scan.examples) > 1 and sum(len(ex.tokens) for ex in scan.examples) <= len(doc)
 
 
 def test_joint_ablation(toy_runner):

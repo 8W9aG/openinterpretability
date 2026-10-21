@@ -38,7 +38,7 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    - `random`: uniform over layers, then neurons, then poles (`openinterp audit --random --seed N`). Only randomly selected neurons count towards registry-wide statistics such as "fraction of neurons with a verified explanation".
    - `attribution`: chosen because it ranked highly in attribution patching for some behaviour.
    - `manual`: anything else.
-2. **Scan.** Run the corpus through the model and keep the top-k activating snippets and a histogram of all token strengths. Record the model revision, dtype, corpus, corpus hash and token count in `provenance`.
+2. **Scan.** Run the corpus through the model and keep the top-k activating snippets and a histogram of all token strengths. Documents are read whole, or as overlapping windows (`--window-tokens`, `--stride`) in which each token is counted once and top examples don't overlap. Record the model revision, dtype, corpus, corpus hash, token count and window length and stride in `provenance`.
 3. **Hypothesize.** The proposer states:
    - a natural-language explanation precise enough that a third party can label new text as "predicted active" or "predicted inactive";
    - the mechanism: **retrospective** (reacts to tokens already read) or **lookahead** (prepares specific upcoming tokens);

@@ -104,7 +104,7 @@ def sample_heldout(
     quantiles: int = 5,
     per_quantile: int = 5,
 ) -> HeldOutSample:
-    """Draw detection and fuzzing windows from ``texts`` minus ``exclude``.
+    """Draw detection and fuzzing windows from the ``texts`` containing no ``exclude``.
 
     Active windows (peak ≥ ``threshold``) are sorted by peak and split into ``quantiles``
     equal bins; each bin gives ``per_quantile`` windows to detection and as many to
@@ -115,8 +115,9 @@ def sample_heldout(
     detection gets ``quantiles × per_quantile`` inactive ones and fuzzing none.
     """
     rng = random.Random(seed)
-    skip = set(exclude)
-    candidates = cut_windows(runner, [t for t in texts if t not in skip], window_tokens)
+    # A top example may be a window of a longer document: leave out the whole document.
+    held_out = [t for t in texts if not any(e in t for e in exclude)]
+    candidates = cut_windows(runner, held_out, window_tokens)
     rng.shuffle(candidates)
     measured = measure_windows(runner, candidates[:max_windows], ident)
     active = sorted((w for w in measured if w.peak >= threshold), key=lambda w: w.peak)

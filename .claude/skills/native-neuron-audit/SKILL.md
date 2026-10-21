@@ -52,6 +52,6 @@ If the top positive-pole examples split across `g+u+` and `g-u-`, they are proba
 
 ## Fit with the protocol
 
-- Record the corpus and window length in `provenance` (`snippet_tokens`). Reviewers will discount short-context scans.
+- Scan long documents with `openinterp audit --window-tokens 512` (stride defaults to half a window). Provenance records the window length and stride (`snippet_tokens`, `snippet_stride`). Reviewers will discount short-context scans.
 - Use the "Too little room" and "offshoot" points when arguing that a two-job neuron is really one job. The reviewer's positive holdouts should then include the offshoot.
 - Steering ("what the model writes when the neuron is turned up") is one of the essay's main checks. See the `neuron-steering-tests` skill.
