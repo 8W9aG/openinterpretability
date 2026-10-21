@@ -172,7 +172,6 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
-- [ ] Replace the synthetic `examples/audits/` fixtures with real records once some are VERIFIED.
 - [ ] Soften the README's "remarkably clean" premise until Goodfire's technical companion paper is published.
 - [ ] Mark the CI jobs "Lint and tests", "Experiment records" and "Reproduce records" as required in the GitHub branch protection rules for `main`.
 - [ ] Add the R2 secrets and variables to GitHub (see README, "Deploy"), then run the deploy workflow once by hand.
