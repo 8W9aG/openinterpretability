@@ -19,7 +19,10 @@ from openinterp.corpus import PRESETS
 )
 @click.option("--files", help="Glob of Parquet files within the dataset. Default: the preset's.")
 @click.option("--text-column", help="Column holding the text. Default: the preset's, or 'text'.")
-@click.option("--revision", help="Dataset branch, tag or commit. Default: main, pinned on use.")
+@click.option(
+    "--revision",
+    help="Dataset branch, tag or commit. Default: the preset's, or main; pinned on use.",
+)
 @click.option("--docs", "documents", default=500, show_default=True, type=click.IntRange(1))
 @click.option("--seed", default=0, show_default=True, type=int)
 @click.option(
@@ -58,7 +61,7 @@ def corpus(
         out,
         files=files or preset.files,
         text_column=text_column or (preset.text_column if preset else "text"),
-        revision=revision,
+        revision=revision or (preset.revision if preset else None),
         documents=documents,
         seed=seed,
         max_chars=max_chars,

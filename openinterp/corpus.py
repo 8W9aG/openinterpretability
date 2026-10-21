@@ -30,6 +30,7 @@ class Preset:
     dataset: str
     files: str  # glob within the dataset repo
     text_column: str = "text"
+    revision: str | None = None  # default branch or tag; pinned to a commit on use
 
 
 PRESETS = {
@@ -38,6 +39,9 @@ PRESETS = {
     "fineweb-edu": Preset("HuggingFaceFW/fineweb-edu", "sample/10BT/*.parquet"),
     # The first 10k Pile documents; the registry's original corpus.
     "pile-10k": Preset("NeelNanda/pile-10k", "data/*.parquet"),
+    # C4 English validation split: the standard web baseline of the SAE literature. The
+    # main branch is gzipped JSON, so read the Hub's Parquet conversion. ODC-By.
+    "c4": Preset("allenai/c4", "en/partial-validation/*.parquet", revision="refs/convert/parquet"),
 }
 
 
@@ -118,9 +122,14 @@ def build_from_hub(
     """Sample a corpus from a Hugging Face dataset at a pinned revision."""
     from huggingface_hub import HfApi, HfFileSystem
 
-    info = HfApi().dataset_info(dataset, revision=revision)
-    card = info.card_data.to_dict() if info.card_data else {}
-    license_ = card.get("license")
+    api = HfApi()
+    info = api.dataset_info(dataset, revision=revision)
+    if info.card_data is None and revision is not None:
+        # Branches like refs/convert/parquet carry no dataset card: use the default branch's.
+        card_data = api.dataset_info(dataset).card_data
+    else:
+        card_data = info.card_data
+    license_ = card_data.to_dict().get("license") if card_data else None
     fs = HfFileSystem()
     paths = fs.glob(f"datasets/{dataset}@{info.sha}/{files}")
     if not paths:

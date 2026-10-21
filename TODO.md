@@ -140,9 +140,8 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Datasets
 
-Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. Check each licence before redistributing excerpts in the wiki.
+Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] `allenai/c4` (en, validation split): a standard web baseline used by much of the SAE literature.
 - [ ] `monology/pile-uncopyrighted`: a larger Pile sample when 10k documents are too few to find rare-concept activations.
 - [ ] `wikitext` (`wikitext-103-raw-v1`): long, clean articles for ≥ 512-token windows and entity/fact neurons.
 - [ ] `roneneldan/TinyStories`: simple English for a low-confound control corpus and small models.

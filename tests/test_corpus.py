@@ -88,6 +88,49 @@ def test_build_from_hub_pins_revision_and_licence(tmp_path, shards, monkeypatch)
     assert (source.revision, source.license, source.documents) == ("sha1", "mit", 5)
 
 
+def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, monkeypatch):
+    local = fsspec.filesystem("file")
+
+    class FakeFS:
+        def glob(self, pattern):
+            return shards
+
+        def open(self, path, mode):
+            return local.open(path, mode)
+
+    main = SimpleNamespace(
+        sha="main1", card_data=SimpleNamespace(to_dict=lambda: {"license": ["odc-by"]})
+    )
+    converted = SimpleNamespace(sha="conv1", card_data=None)  # refs/convert/parquet: no README
+    infos = {None: main, "refs/convert/parquet": converted}
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", FakeFS)
+    monkeypatch.setattr(
+        "huggingface_hub.HfApi",
+        lambda: SimpleNamespace(dataset_info=lambda d, revision=None: infos[revision]),
+    )
+    source = build_from_hub(
+        "org/data", tmp_path / "c.jsonl", files="*.parquet", revision="refs/convert/parquet",
+        documents=5,
+    )  # fmt: skip
+    assert (source.revision, source.license) == ("conv1", "odc-by")
+
+
+def test_cli_uses_the_presets_revision(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_build(dataset, out, **kw):
+        calls.update(kw, dataset=dataset)
+        return SimpleNamespace(documents=kw["documents"], license="odc-by")
+
+    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    args = ["corpus", "--dataset", "c4", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
+    assert CliRunner().invoke(cli, args).exit_code == 0
+    assert calls["dataset"] == "allenai/c4" and calls["revision"] == "refs/convert/parquet"
+    assert calls["files"] == "en/partial-validation/*.parquet"
+    CliRunner().invoke(cli, [*args, "--revision", "abc123"])
+    assert calls["revision"] == "abc123"
+
+
 def test_cli_needs_files_for_non_presets():
     result = CliRunner().invoke(cli, ["corpus", "--dataset", "someone/dataset"])
     assert result.exit_code != 0 and "--files is required" in result.output
