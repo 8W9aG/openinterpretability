@@ -303,3 +303,34 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
     section = home.split("Most recent experiments")[1].split("Most conclusive results")[0]
     assert section.index("Fires on commas.") < section.index("Fires on dates.")  # +1 h before +0 h
     assert '<time datetime="2026-10-01T14:00:00Z">2026-10-01</time>' in section
+
+
+def test_explanation_scores_rendered_mistakes_first(tmp_path, record):
+    from openinterp.core.explanation import ExplanationScores, ScoredWindow
+    from openinterp.harness.explanation_scores import finalize_scores
+
+    def window(text, acts, label, judged, marks=()):
+        return ScoredWindow(text=text, tokens=list(text), activations=acts, label=label,
+                            judged=judged, highlighted=list(marks),
+                            quantile=0 if max(acts) >= 0.6 else None)  # fmt: skip
+
+    scores = finalize_scores(
+        ExplanationScores(
+            slug=record.submission.identifier.slug, explanation="x", threshold=0.6,
+            window_tokens=32, quantiles=1, quantile_edges=[], seed=3, corpus="c",
+            candidate_windows=900, active_windows=40, judge_model="external/judge",
+            detection_windows=[window("ok", [0.0, 0.0], False, False),
+                               window("hm", [0.0, 2.0], True, False)],
+            fuzzing_windows=[window("fz", [2.0, 0.0], True, True, marks=[0])],
+        )
+    )  # fmt: skip
+    rec = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"explanation_scores": scores})}
+    )
+    compile_site([rec], tmp_path)
+    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "Explanation scores on held-out text" in page and "40 active of 900" in page
+    assert page.index(">missed<") < page.index(">correct rejection<")  # mistakes first
+    assert "peak marked" in page and "marks right · judged right" in page
+    row = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()[0]
+    assert (row["detection_score"], row["fuzzing_score"]) == (0.5, 1.0)

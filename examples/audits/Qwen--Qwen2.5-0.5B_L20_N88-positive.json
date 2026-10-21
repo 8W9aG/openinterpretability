@@ -3,6 +3,7 @@
     "identifier": {
       "model_name": "Qwen/Qwen2.5-0.5B",
       "layer": 20,
+      "kind": "mlp_neuron_pole",
       "neuron_idx": 88,
       "pole": "positive"
     },
@@ -15,13 +16,13 @@
         "base_prompt": "\"Come in,\" she said.",
         "counterfactual_prompt": "\"COME IN,\" SHE SAID.",
         "expected_delta": 0.7,
-        "observed_delta": 0.762
+        "observed_delta": 0.887
       },
       {
         "base_prompt": "\"Come in,\" she said.",
         "counterfactual_prompt": "\"Come in,\" she said. Indeed.",
         "expected_delta": 0.0,
-        "observed_delta": 0.042
+        "observed_delta": 0.001
       }
     ],
     "lookahead": {
@@ -30,7 +31,7 @@
       "kl_divergence": 0.0452
     },
     "submitting_agent_model": "example-fixture",
-    "max_activation": 2.979,
+    "max_activation": 2.68,
     "top_examples": [
       {
         "text": "\"Come in,\" she said.",
@@ -42,11 +43,11 @@
         ],
         "activations": [
           0.395,
-          0.161,
-          0.271,
-          2.214
+          0.393,
+          0.059,
+          2.68
         ],
-        "max_activation": 2.214,
+        "max_activation": 2.68,
         "max_token_index": 3
       },
       {
@@ -58,12 +59,12 @@
           " said."
         ],
         "activations": [
-          0.287,
-          0.001,
-          0.329,
-          2.098
+          0.351,
+          0.198,
+          0.367,
+          2.498
         ],
-        "max_activation": 2.098,
+        "max_activation": 2.498,
         "max_token_index": 3
       },
       {
@@ -75,12 +76,12 @@
           " said."
         ],
         "activations": [
-          0.048,
-          0.26,
-          0.349,
-          2.979
+          0.199,
+          0.268,
+          0.081,
+          2.219
         ],
-        "max_activation": 2.979,
+        "max_activation": 2.219,
         "max_token_index": 3
       }
     ],
@@ -113,33 +114,34 @@
         3.0
       ],
       "counts": [
-        1171,
-        1115,
-        962,
-        821,
-        790,
-        769,
-        628,
-        553,
-        483,
-        457,
-        420,
-        326,
-        294,
-        241,
-        202,
-        170,
-        130,
-        128,
-        57,
-        42,
-        33,
-        17,
+        1314,
+        917,
+        812,
+        743,
+        738,
+        681,
+        658,
+        613,
+        506,
+        426,
+        349,
+        166,
+        160,
+        118,
+        102,
+        70,
+        64,
+        64,
+        35,
+        27,
         16,
-        7
+        16,
+        14,
+        6
       ]
     },
     "model_num_layers": 24,
+    "model_mlp_width": null,
     "provenance": null,
     "correlated_neurons": [],
     "confounds": null,
@@ -154,7 +156,7 @@
         "prompt": "Synthetic a0 probe0",
         "passed": false,
         "expected_active": false,
-        "activation": 0.186,
+        "activation": 0.287,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -164,7 +166,7 @@
         "prompt": "Synthetic b1 probe1",
         "passed": false,
         "expected_active": false,
-        "activation": 0.104,
+        "activation": 0.403,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -174,7 +176,7 @@
         "prompt": "Synthetic c2 probe2",
         "passed": false,
         "expected_active": false,
-        "activation": 0.004,
+        "activation": 0.495,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -182,9 +184,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic d3 probe3",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.167,
+        "activation": 0.453,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -192,9 +194,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic e4 probe4",
-        "passed": false,
+        "passed": true,
         "expected_active": false,
-        "activation": 0.359,
+        "activation": 0.268,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -204,7 +206,7 @@
         "prompt": "Synthetic f5 probe5",
         "passed": false,
         "expected_active": false,
-        "activation": 0.31,
+        "activation": 0.413,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -212,9 +214,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic g6 probe6",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.082,
+        "activation": 0.396,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -224,7 +226,7 @@
         "prompt": "Synthetic h7 probe7",
         "passed": false,
         "expected_active": false,
-        "activation": 0.145,
+        "activation": 0.293,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -234,7 +236,7 @@
         "prompt": "Synthetic i8 probe8",
         "passed": false,
         "expected_active": false,
-        "activation": 0.274,
+        "activation": 0.399,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -242,9 +244,9 @@
       {
         "kind": "hard_negative",
         "prompt": "Synthetic j9 probe9",
-        "passed": true,
+        "passed": false,
         "expected_active": false,
-        "activation": 0.239,
+        "activation": 0.0,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -254,7 +256,7 @@
         "prompt": "Synthetic k10 probe10",
         "passed": true,
         "expected_active": false,
-        "activation": 0.024,
+        "activation": 0.253,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -264,7 +266,7 @@
         "prompt": "Synthetic l11 probe11",
         "passed": true,
         "expected_active": false,
-        "activation": 0.262,
+        "activation": 0.033,
         "expected_delta": null,
         "observed_delta": null,
         "detail": ""
@@ -273,13 +275,457 @@
     "reviewer_agent_model": "example-fixture",
     "timestamp": "2026-10-01T12:03:00Z",
     "causal_metrics": {
-      "sufficiency_score": 0.343,
-      "necessity_score": 0.442,
-      "hydra_mitigated": true
+      "sufficiency_score": 0.816,
+      "necessity_score": 0.766,
+      "hydra_mitigated": true,
+      "target": null,
+      "target_tokens": [],
+      "sufficiency_effect": null,
+      "necessity_effect": null,
+      "null_neurons": null,
+      "pairs_scored": null
     },
     "metrics": null,
     "policy": null,
     "joint_ablation": null,
+    "environment": null,
+    "explanation_scores": {
+      "slug": "Qwen--Qwen2.5-0.5B/L20/N88-positive",
+      "explanation": "Generic sentence-final punctuation.",
+      "threshold": 0.67,
+      "window_tokens": 32,
+      "quantiles": 5,
+      "quantile_edges": [
+        0.804,
+        1.072,
+        1.34,
+        1.876
+      ],
+      "seed": 0,
+      "corpus": "synthetic",
+      "corpus_sha256": null,
+      "candidate_windows": 4000,
+      "active_windows": 72,
+      "judge_model": "example-fixture",
+      "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "detection": {
+        "balanced_accuracy": 0.75,
+        "true_positive_rate": 0.7,
+        "false_positive_rate": 0.2,
+        "recall_by_quantile": [
+          1.0,
+          0.0,
+          1.0,
+          0.5,
+          1.0
+        ]
+      },
+      "fuzzing": null,
+      "embedding_auroc": 0.92,
+      "detection_windows": [
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.393,
+            0.059,
+            2.68
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.363
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.035,
+            0.02,
+            0.037,
+            0.25
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.025
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.199,
+            0.268,
+            0.081,
+            2.219
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.251
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.04,
+            0.039,
+            0.006,
+            0.268
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.332
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.351,
+            0.198,
+            0.367,
+            2.498
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.214
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.02,
+            0.027,
+            0.008,
+            0.222
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.197
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.393,
+            0.059,
+            2.68
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.487
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.035,
+            0.02,
+            0.037,
+            0.25
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.061
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.199,
+            0.268,
+            0.081,
+            2.219
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.364
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.04,
+            0.039,
+            0.006,
+            0.268
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.155
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.351,
+            0.198,
+            0.367,
+            2.498
+          ],
+          "quantile": 0,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.388
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.02,
+            0.027,
+            0.008,
+            0.222
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.013
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.393,
+            0.059,
+            2.68
+          ],
+          "quantile": 2,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.452
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.035,
+            0.02,
+            0.037,
+            0.25
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.22
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.199,
+            0.268,
+            0.081,
+            2.219
+          ],
+          "quantile": 4,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.353
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.04,
+            0.039,
+            0.006,
+            0.268
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": true,
+          "similarity": 0.196
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.351,
+            0.198,
+            0.367,
+            2.498
+          ],
+          "quantile": 1,
+          "highlighted": [],
+          "label": true,
+          "judged": false,
+          "similarity": 0.444
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.02,
+            0.027,
+            0.008,
+            0.222
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.253
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.395,
+            0.393,
+            0.059,
+            2.68
+          ],
+          "quantile": 3,
+          "highlighted": [],
+          "label": true,
+          "judged": true,
+          "similarity": 0.25
+        },
+        {
+          "text": "\"Come in,\" she said.",
+          "tokens": [
+            "\"Come",
+            " in,\"",
+            " she",
+            " said."
+          ],
+          "activations": [
+            0.035,
+            0.02,
+            0.037,
+            0.25
+          ],
+          "quantile": null,
+          "highlighted": [],
+          "label": false,
+          "judged": false,
+          "similarity": 0.249
+        }
+      ],
+      "fuzzing_windows": []
+    },
     "notes": "Synthetic example record (not a real audit)."
   }
 }

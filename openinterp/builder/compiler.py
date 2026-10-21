@@ -101,6 +101,7 @@ class HeatToken:
     shade: float  # 0..1 of the pole's max activation; the template caps the tint
     value: float  # the stored pole strength
     peak: bool
+    marked: bool = False  # fuzzing: a token the judge was told is active
 
 
 @dataclass(frozen=True)
@@ -141,6 +142,50 @@ def token_heat(
         clipped_start=start > 0,
         clipped_end=end < len(tokens),
     )
+
+
+# Detection outcomes, the explanation's mistakes first.
+OUTCOMES = {
+    (True, False): "missed",
+    (False, True): "false alarm",
+    (True, True): "hit",
+    (False, False): "correct rejection",
+}
+
+
+def explanation_view(scores, scale: float) -> dict | None:
+    """Held-out windows grouped by how the judge did, ready for the token heatmap."""
+    if scores is None:
+        return None
+    scale = scale or 1.0
+
+    def window(w) -> dict:
+        peak = max(range(len(w.activations)), key=w.activations.__getitem__, default=-1)
+        marks = set(w.highlighted)
+        tokens = [
+            HeatToken(
+                tok.replace("\n", "↵"),
+                round(min(1.0, max(0.0, act / scale)), 3),
+                act or 0.0,
+                i == peak and act >= scores.threshold,
+                i in marks,
+            )
+            for i, (tok, act) in enumerate(zip(w.tokens, w.activations, strict=True))
+        ]
+        outcome = OUTCOMES[(w.label, w.judged)] if w.judged is not None else "not judged"
+        return {"w": w, "tokens": tokens, "outcome": outcome, "peak": max(w.activations, default=0)}
+
+    order = list(OUTCOMES.values())
+    detection = sorted(
+        (window(w) for w in scores.detection_windows),
+        key=lambda r: (order.index(r["outcome"]) if r["outcome"] in order else 9, -r["peak"]),
+    )
+    fuzzing = sorted(
+        (window(w) for w in scores.fuzzing_windows),
+        key=lambda r: (r["w"].label == r["w"].judged, -r["peak"]),
+    )
+    counts = {o: sum(r["outcome"] == o for r in detection) for o in order}
+    return {"s": scores, "detection": detection, "fuzzing": fuzzing, "counts": counts}
 
 
 def _anchor_href(row: dict) -> str:
@@ -255,6 +300,7 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "bars": histogram_bars(sub.activation_histogram),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
+        "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
     }
 
 
