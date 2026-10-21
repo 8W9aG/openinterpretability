@@ -120,6 +120,27 @@
         {{ vl.prompts }} prompts
       </p>
       {% endif %}
+      {% if sub.input_attribution and sub.input_attribution.examples %}
+      {% set ia = sub.input_attribution %}
+      <h4 class="mt-4 mb-1 text-sm font-medium" title="Integrated gradients over the input token embeddings at each top example's peak (Sundararajan et al., 2017)">Input attribution</h4>
+      {% if ia.distances %}
+      <dl class="grid grid-cols-6 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs dark:border-slate-800 dark:bg-slate-800">
+        {% for d in ia.distances %}
+        <div class="bg-white p-1 dark:bg-slate-950" title="Share of |attribution| on tokens this far back from the peak"><dt class="text-slate-500">{{ d.label }} back</dt><dd class="font-mono tabular-nums">{{ d.share | pct }}</dd></div>
+        {% endfor %}
+      </dl>
+      {% endif %}
+      <ul class="mt-2 space-y-1 text-xs">
+        {% for ex in ia.examples %}
+        <li><span class="text-slate-500">#{{ ex.example + 1 }}{{ "" if ex.converged else " (not converged)" }} at</span> <code class="tok rounded bg-slate-100 px-1 dark:bg-slate-800">{{ ex.peak_token }}</code>:
+          {% for t in ex.top %}<code class="tok mr-1 rounded px-1" title="offset {{ t.offset }}; attribution {{ t.attribution | num(2) }}; replacing it alone {{ t.ablation_effect | num(2) }}">{{ t.token }}<sub class="text-slate-500">{{ t.offset }}</sub> {{ t.attribution | num(2) }}</code>{% endfor %}</li>
+        {% endfor %}
+      </ul>
+      <p class="mt-1 text-xs text-slate-500">
+        Shares of the gap to <code>{{ ia.baseline_token }}</code> at every position but the first · converged on {{ ia.converged }} of {{ ia.examples | length }} · mean {{ ia.mean_distance | num(1) }} tokens back ·
+        agreement with replacing one token at a time ρ = {{ ia.ablation_agreement | num(2) }} · reported, not gated
+      </p>
+      {% endif %}
       {% if sub.head_profile %}
       {% set hp = sub.head_profile %}
       <dl class="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs dark:border-slate-800 dark:bg-slate-800">

@@ -12,6 +12,7 @@ from typing import Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
+from openinterp.core.attribution import InputAttribution
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.explanation import ExplanationScores
 from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
@@ -329,6 +330,7 @@ class ScanEvidence(StrictModel):
     confounds: ConfoundProfile | None = None
     correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
     vocabulary_lens: VocabularyLens | None = None
+    input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0)
 
@@ -367,6 +369,7 @@ class NeuronAuditSubmission(StrictModel):
     correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
     confounds: ConfoundProfile | None = None
     vocabulary_lens: VocabularyLens | None = None
+    input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
 

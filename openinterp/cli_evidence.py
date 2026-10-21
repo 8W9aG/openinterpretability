@@ -50,7 +50,8 @@ def scan_evidence(
     head=None,
     unit="neuron",
 ):
-    """Pick the unit, scan the corpus and read the vocabulary lens (neurons only)."""
+    """Pick the unit, scan the corpus, then (neurons only) read the vocabulary lens and
+    attribute the top examples' peaks to their context tokens."""
     import random
 
     from openinterp import __version__
@@ -63,6 +64,7 @@ def scan_evidence(
     )
     from openinterp.harness.heads import scan_head
     from openinterp.harness.hooks import activation_histogram, run_environment
+    from openinterp.harness.input_attribution import input_attribution
     from openinterp.harness.jlens import vocabulary_lens
     from openinterp.harness.scan import cut_pieces, default_stride, scan_neuron
 
@@ -100,7 +102,7 @@ def scan_evidence(
         raise click.ClickException(
             f"{ident} never activates on this corpus; try a larger --corpus."
         )
-    lens = None
+    lens = attribution = None
     if unit == "neuron":  # a head writes a subspace, not one direction a lens can read
         click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
         # The first 100 documents, each cut to its first window when scanning windows.
@@ -108,6 +110,9 @@ def scan_evidence(
         lens_texts = [p.text for p in pieces if p.start == 0]
         with costs.stage("lenses"):
             lens = vocabulary_lens(runner, lens_texts, layer, index, ident.pole)
+        click.echo("Attributing the top examples' peaks to their context tokens…", err=True)
+        with costs.stage("input_attribution"):
+            attribution = input_attribution(runner, scan.examples, layer, index, ident.pole)
     return ScanEvidence(
         identifier=ident,
         top_examples=scan.examples,
@@ -130,6 +135,7 @@ def scan_evidence(
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,
         vocabulary_lens=lens,
+        input_attribution=attribution,
         head_profile=getattr(scan, "profile", None),
         model_n_heads=runner.n_heads if unit == "head" else None,
     )
@@ -168,6 +174,7 @@ def write_evidence(evidence, path: Path) -> None:
         evidence.confounds,
         evidence.correlated_neurons,
         evidence.head_profile,
+        evidence.input_attribution,
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -341,6 +348,7 @@ def audit(
             evidence.confounds,
             evidence.correlated_neurons,
             evidence.head_profile,
+            evidence.input_attribution,
         )
 
     ident = evidence.identifier
@@ -355,6 +363,7 @@ def audit(
             confounds=evidence.confounds,
             correlated=evidence.correlated_neurons,
             vocabulary_lens=evidence.vocabulary_lens,
+            input_attribution=evidence.input_attribution,
             head_profile=evidence.head_profile,
         )
     # An evidence file carries the scan's costs; a one-step audit measured them here.

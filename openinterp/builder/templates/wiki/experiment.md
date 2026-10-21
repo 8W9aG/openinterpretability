@@ -110,6 +110,30 @@ Explanation scores on held-out text (recorded, not gated): detection {{ (es.dete
 Top-10 overlap {{ vl.overlap | pct }}; cos(w, J·w) {{ vl.direction_cosine | num(2) }}; kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) vs {{ vl.logit_kurtosis | num(1) }} (logit); {{ vl.prompts }} prompts.
 
 {% endif %}
+{% if sub.input_attribution and sub.input_attribution.examples %}
+{% set ia = sub.input_attribution %}
+### Input attribution
+
+Integrated gradients over the input tokens at the peak of {{ ia.examples | length }} top examples, from a baseline of `{{ ia.baseline_token | cell }}` at every position but the first; the path integral converged on {{ ia.converged }}. Replacing one token at a time agrees at ρ = {{ ia.ablation_agreement | num(2) }}.
+
+{% if ia.distances %}
+Share of |attribution| by distance from the peak, over converged examples; mean {{ ia.mean_distance | num(1) }} tokens back:
+
+| Tokens back |{% for d in ia.distances %} {{ d.label }} |{% endfor %}
+
+| --- |{% for d in ia.distances %} --- |{% endfor %}
+
+| Share |{% for d in ia.distances %} {{ d.share | pct }} |{% endfor %}
+
+{% endif %}
+
+| Example | Peak | Most attributed tokens: offset, attribution / ablation effect |
+| --- | --- | --- |
+{% for ex in ia.examples %}
+| {{ ex.example + 1 }}{{ "" if ex.converged else " (not converged)" }} | `{{ ex.peak_token | cell }}` | {% for t in ex.top %}`{{ t.token | cell }}` {{ t.offset }}, {{ t.attribution | num(2) }} / {{ t.ablation_effect | num(2) }}{{ "; " if not loop.last }}{% endfor %} |
+{% endfor %}
+
+{% endif %}
 ### Covariance and confounds
 
 {% if metrics and metrics.effective_hard_negatives is not none %}

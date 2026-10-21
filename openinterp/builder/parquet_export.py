@@ -88,6 +88,9 @@ REGISTRY_SCHEMA = pa.schema(
         ("lens_overlap", pa.float64()),
         ("lens_direction_cosine", pa.float64()),
         ("jacobian_kurtosis", pa.float64()),
+        ("current_token_share", pa.float64()),
+        ("context_mean_distance", pa.float64()),
+        ("context_ablation_agreement", pa.float64()),
         ("detection_score", pa.float64()),
         ("fuzzing_score", pa.float64()),
         ("embedding_auroc", pa.float64()),
@@ -143,6 +146,9 @@ def experiment_row(exp: Experiment) -> dict:
     metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
     lens, scores, head = sub.vocabulary_lens, verdict.explanation_scores, sub.head_profile
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None
+    attribution = sub.input_attribution
+    if attribution is not None and not attribution.examples:
+        attribution = None  # every example was skipped: nothing measured
     return {
         **record_to_row(exp.record),
         "experiment_id": exp.id,
@@ -167,6 +173,9 @@ def experiment_row(exp: Experiment) -> dict:
         "lens_overlap": lens.overlap if lens else None,
         "lens_direction_cosine": lens.direction_cosine if lens else None,
         "jacobian_kurtosis": lens.jacobian_kurtosis if lens else None,
+        "current_token_share": attribution.current_token_share if attribution else None,
+        "context_mean_distance": attribution.mean_distance if attribution else None,
+        "context_ablation_agreement": attribution.ablation_agreement if attribution else None,
         "detection_score": _balanced(scores.detection if scores else None),
         "fuzzing_score": _balanced(scores.fuzzing if scores else None),
         "embedding_auroc": scores.embedding_auroc if scores else None,

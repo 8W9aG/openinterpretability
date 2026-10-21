@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
+from openinterp.core.attribution import InputAttribution
 from openinterp.core.schemas import (
     ActivatingExample,
     ComponentIdentifier,
@@ -87,6 +88,44 @@ def format_head_profile(profile: HeadProfile) -> str:
     )
 
 
+def format_input_attribution(attribution: InputAttribution) -> str:
+    """Where in the context the pole's peaks come from, for the proposer and the reviewer."""
+    if not attribution.examples:
+        return ""
+    n = len(attribution.examples)
+    text = (
+        f"Input attribution (integrated gradients over the input tokens, at the peak of "
+        f"{n} top examples; the path integral converged on {attribution.converged}): "
+    )
+    if attribution.distances:
+        shares = {d.min_distance: d.share for d in attribution.distances}
+        far = sum(d.share for d in attribution.distances if d.min_distance > 16)
+        text += (
+            f"{shares[0]:.0%} of it is on the peak token itself, {shares[1]:.0%} on the "
+            f"token before and {far:.0%} more than 16 tokens back (mean distance "
+            f"{attribution.mean_distance:.1f} tokens). "
+        )
+    if attribution.ablation_agreement is not None:
+        text += (
+            f"Replacing one token at a time agrees with it at rho = "
+            f"{attribution.ablation_agreement:+.2f}. "
+        )
+    lines = [
+        text + "Tokens driving each peak most, as offset from the peak: share of the "
+        "activation (attribution / effect of replacing that token alone; trust the second "
+        "where an example did not converge):"
+    ]
+    for ex in attribution.examples:
+        tokens = ", ".join(
+            f"{t.token!r} ({t.offset:+d}) {t.attribution:.2f}/"
+            + ("?" if t.ablation_effect is None else f"{t.ablation_effect:.2f}")
+            for t in ex.top
+        )
+        note = "" if ex.converged else " (not converged)"
+        lines.append(f"  example {ex.example + 1}, peak {ex.peak_token!r}{note}: {tokens}")
+    return "\n".join(lines) + "\n"
+
+
 class ProposerAgent(LLMAgent):
     role = "proposer"
     system_prompt = (
@@ -110,9 +149,10 @@ class ProposerAgent(LLMAgent):
         confounds: ConfoundProfile | None = None,
         correlated: Sequence[CorrelatedNeuron] = (),
         head_profile: HeadProfile | None = None,
+        attribution: InputAttribution | None = None,
     ) -> HypothesisDraft:
         prompt = self.proposal_prompt(
-            identifier, examples, lens, confounds, correlated, head_profile
+            identifier, examples, lens, confounds, correlated, head_profile, attribution
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -124,6 +164,7 @@ class ProposerAgent(LLMAgent):
         confounds: ConfoundProfile | None = None,
         correlated: Sequence[CorrelatedNeuron] = (),
         head_profile: HeadProfile | None = None,
+        attribution: InputAttribution | None = None,
     ) -> str:
         """The task text the proposer answers: the scan evidence for one unit."""
         prompt = f"{'Attention head' if head_profile else 'Neuron'}: {identifier}\n\n"
@@ -155,6 +196,8 @@ class ProposerAgent(LLMAgent):
                 for c in correlated[:5]
             )
             prompt += f"Neuron poles in this layer that co-activate with it: {pairs}.\n"
+        if attribution is not None:
+            prompt += "\n" + format_input_attribution(attribution)
         return prompt
 
     def build_submission(
@@ -169,6 +212,7 @@ class ProposerAgent(LLMAgent):
         correlated: Sequence[CorrelatedNeuron] = (),
         provenance: ExperimentProvenance | None = None,
         vocabulary_lens: VocabularyLens | None = None,
+        input_attribution: InputAttribution | None = None,
         head_profile: HeadProfile | None = None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
@@ -218,6 +262,7 @@ class ProposerAgent(LLMAgent):
             confounds=confounds,
             correlated_neurons=list(correlated),
             vocabulary_lens=vocabulary_lens,
+            input_attribution=input_attribution,
             head_profile=head_profile,
         )
 
