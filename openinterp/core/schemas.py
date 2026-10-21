@@ -229,7 +229,15 @@ class ExperimentProvenance(StrictModel):
     corpus_sha256: str | None = None
     n_snippets: int = Field(ge=0)
     tokens_scanned: int = Field(ge=0)
-    snippet_tokens: int | None = Field(default=None, gt=0)
+    snippet_tokens: int | None = Field(
+        default=None,
+        gt=0,
+        description="Window length when documents were scanned as overlapping windows; "
+        "None when each was scanned whole.",
+    )
+    snippet_stride: int | None = Field(
+        default=None, gt=0, description="Tokens between the starts of consecutive windows."
+    )
     selection: SelectionMethod = Field(
         description="How the neuron was chosen; only 'random' gives unbiased registry statistics."
     )

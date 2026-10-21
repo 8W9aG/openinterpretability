@@ -1,4 +1,4 @@
-"""Helpers for ``openinterp audit``: corpus loading, the scan, and prompt/answer files."""
+"""``openinterp audit``, and its helpers: corpus loading, the scan, and prompt/answer files."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import secrets
 from pathlib import Path
 
 import click
+
+from openinterp.cli import cli, with_model_options
 
 
 def read_corpus(path: Path | None):
@@ -32,7 +34,20 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, corpus, top_k, dtype):
+def scan_evidence(
+    runner,
+    model_name,
+    layer,
+    neuron,
+    pole,
+    random_pick,
+    seed,
+    corpus,
+    top_k,
+    dtype,
+    window_tokens=None,
+    stride=None,
+):
     """Pick the neuron pole, scan the corpus and read the vocabulary lens."""
     import random
 
@@ -40,7 +55,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
     from openinterp.core.schemas import ExperimentProvenance, NeuronIdentifier, ScanEvidence
     from openinterp.harness.hooks import activation_histogram, run_environment
     from openinterp.harness.jlens import vocabulary_lens
-    from openinterp.harness.scan import scan_neuron
+    from openinterp.harness.scan import cut_pieces, default_stride, scan_neuron
 
     if not random_pick and (layer is None or neuron is None):
         raise click.UsageError("--layer and --neuron are required unless --random is given.")
@@ -54,13 +69,22 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
         model_name=model_name, layer=layer, neuron_idx=neuron, pole=pole or "positive"
     )
     texts, corpus_name, corpus_sha, corpus_source = read_corpus(corpus)
-    click.echo(f"Scanning {len(texts)} snippets for {ident}…", err=True)
-    scan = scan_neuron(runner, texts, layer, neuron, ident.pole, k=top_k)
+    if window_tokens is not None:
+        stride = stride or default_stride(window_tokens)
+        how = f" as {window_tokens}-token windows every {stride} tokens"
+    else:
+        how = ""
+    click.echo(f"Scanning {len(texts)} snippets{how} for {ident}…", err=True)
+    windows = {"window_tokens": window_tokens, "stride": stride}
+    scan = scan_neuron(runner, texts, layer, neuron, ident.pole, k=top_k, **windows)
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise click.ClickException(
             f"{ident} never activates on this corpus; try a larger --corpus."
         )
     click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
+    # The first 100 documents, each cut to its first window when scanning windows.
+    pieces = cut_pieces(runner.tokenizer, texts[:100], window_tokens, stride)
+    lens_texts = [p.text for p in pieces if p.start == 0]
     return ScanEvidence(
         identifier=ident,
         top_examples=scan.examples,
@@ -72,6 +96,8 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
             corpus_sha256=corpus_sha,
             n_snippets=len(texts),
             tokens_scanned=len(scan.values),
+            snippet_tokens=window_tokens,
+            snippet_stride=stride if window_tokens is not None else None,
             selection="random" if random_pick else "manual",
             seed=seed if random_pick else None,
             harness_version=__version__,
@@ -80,7 +106,7 @@ def scan_evidence(runner, model_name, layer, neuron, pole, random_pick, seed, co
         ),
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,
-        vocabulary_lens=vocabulary_lens(runner, texts[:100], layer, neuron, ident.pole),
+        vocabulary_lens=vocabulary_lens(runner, lens_texts, layer, neuron, ident.pole),
     )
 
 
@@ -108,3 +134,164 @@ def write_evidence(evidence, path: Path) -> None:
     click.echo(f"Neuron: {evidence.identifier}")
     click.echo(f"Wrote {path}")
     click.echo(f"Proposer prompt: {prompt_path} (answer in {answer_path})")
+
+
+@cli.command()
+@click.option(
+    "--model",
+    "model_name",
+    help="Hugging Face repo, e.g. Qwen/Qwen2.5-0.5B. Required unless --evidence.",
+)
+@click.option("--layer", type=int, help="Required unless --random.")
+@click.option("--neuron", type=int, help="Required unless --random.")
+@click.option("--pole", type=click.Choice(["positive", "negative"]), help="Default: positive.")
+@click.option(
+    "--random",
+    "random_pick",
+    is_flag=True,
+    help="Sample unspecified layer/neuron/pole uniformly (the unbiased selection method).",
+)
+@click.option("--seed", type=int, help="Seed for --random (recorded in provenance).")
+@click.option(
+    "--corpus",
+    type=click.Path(exists=True, path_type=Path),
+    help="Text file (one snippet per line) or .jsonl with a 'text' field.",
+)
+@click.option("--top-k", default=20, show_default=True, help="Examples shown to the proposer.")
+@click.option(
+    "--window-tokens",
+    type=click.IntRange(2),
+    help="Scan each document as overlapping windows of this many tokens (≥ 512 recommended) "
+    "instead of whole. Top examples are then windows. Default: whole documents.",
+)
+@click.option(
+    "--stride",
+    type=click.IntRange(1),
+    help="Tokens between window starts (default: half of --window-tokens). Each token counts "
+    "once, with at least --window-tokens minus --stride tokens of context.",
+)
+@click.option(
+    "--agent-model",
+    default=None,
+    help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file. "
+    "With --hypothesis, the name recorded for whoever wrote it (e.g. external/claude-opus-5-5).",
+)
+@click.option(
+    "--evidence-out",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Scan only: write the evidence to this JSON file and the proposer's prompt next to "
+    "it (<name>.prompt.md), then exit. Answer the prompt, then run with --evidence.",
+)
+@click.option(
+    "--evidence",
+    "evidence_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Evidence from --evidence-out; skips the scan. Requires --hypothesis.",
+)
+@click.option(
+    "--hypothesis",
+    "hypothesis_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
+)
+@click.option(
+    "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
+)
+@with_model_options
+def audit(
+    model_name,
+    layer,
+    neuron,
+    pole,
+    random_pick,
+    seed,
+    corpus,
+    top_k,
+    window_tokens,
+    stride,
+    agent_model,
+    evidence_out,
+    evidence_file,
+    hypothesis_file,
+    out,
+    device,
+    dtype,
+):
+    """Scan a neuron pole, get a hypothesis from the proposer, and write a submission.
+
+    \b
+    In one step, the proposer is an LLM (or external/<name>, answered via exchange/).
+    In two steps, any agent can propose without an API key or a waiting process:
+      openinterp audit --model M --random --evidence-out ev.json
+      (answer ev.prompt.md by writing ev.hypothesis.json)
+      openinterp audit --evidence ev.json --hypothesis ev.hypothesis.json \\
+        --agent-model external/<model that wrote it>
+    """
+    from openinterp.agents.base import DEFAULT_MODEL
+    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
+    from openinterp.core.schemas import ScanEvidence
+
+    if (evidence_file is None) != (hypothesis_file is None):
+        raise click.UsageError("--evidence and --hypothesis go together.")
+    if stride is not None and (window_tokens is None or stride > window_tokens):
+        raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
+    if evidence_file is not None:
+        if evidence_out is not None:
+            raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
+        if not agent_model:
+            raise click.UsageError(
+                "--agent-model is required with --hypothesis: name the model that wrote it."
+            )
+        evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
+        draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
+        runner = _load_runner(evidence.identifier.model_name, device, dtype)
+        agent = ProposerAgent(agent_model)
+    else:
+        if model_name is None:
+            raise click.UsageError("--model is required unless --evidence is given.")
+        runner = _load_runner(model_name, device, dtype)
+        evidence = scan_evidence(
+            runner,
+            model_name,
+            layer,
+            neuron,
+            pole,
+            random_pick,
+            seed,
+            corpus,
+            top_k,
+            dtype,
+            window_tokens=window_tokens,
+            stride=stride,
+        )
+        if evidence_out is not None:
+            write_evidence(evidence, evidence_out)
+            return
+        agent = ProposerAgent(agent_model or DEFAULT_MODEL)
+        click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
+        draft = agent.propose(
+            evidence.identifier,
+            evidence.top_examples,
+            evidence.vocabulary_lens,
+            evidence.confounds,
+            evidence.correlated_neurons,
+        )
+
+    ident = evidence.identifier
+    submission = agent.build_submission(
+        ident,
+        draft,
+        runner=runner,
+        examples=evidence.top_examples,
+        histogram=evidence.activation_histogram,
+        provenance=evidence.provenance,
+        confounds=evidence.confounds,
+        correlated=evidence.correlated_neurons,
+        vocabulary_lens=evidence.vocabulary_lens,
+    )
+    out = out or Path("submissions") / f"{ident.slug}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(submission.model_dump_json(indent=2))
+    click.echo(f"Hypothesis: {submission.natural_language_explanation}")
+    click.echo(f"Wrote {out}")

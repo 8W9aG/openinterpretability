@@ -46,6 +46,20 @@ def run(*args):
     return result
 
 
+def test_audit_scans_windows_and_records_them(flow):
+    run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+        "--window-tokens", 4, "--evidence-out", "ev.json")  # fmt: skip
+    evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
+    prov = evidence.provenance
+    assert (prov.snippet_tokens, prov.snippet_stride) == (4, 2)  # stride defaults to half
+    assert prov.tokens_scanned == sum(len(t) for t in TEXTS)
+    assert all(len(ex.tokens) <= 4 for ex in evidence.top_examples)
+
+    args = ["audit", "--model", "toy", "--random", "--stride", "2", "--evidence-out", "ev.json"]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code != 0 and "--stride needs --window-tokens" in result.output
+
+
 def test_proposer_and_reviewer_answer_files(flow):
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip

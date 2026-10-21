@@ -96,6 +96,13 @@ def test_sample_heldout_is_seeded_and_held_out(toy_runner):
     assert all(w.highlighted for w in fuzzing)
 
 
+def test_a_windowed_top_example_holds_out_its_whole_document(toy_runner):
+    excerpts = [t[5:20] for t in CORPUS[:10]]  # what a windowed scan shows the proposer
+    sample = sample_heldout(toy_runner, CORPUS, IDENT, 1.0, seed=0, exclude=excerpts,
+                            window_tokens=8)  # fmt: skip
+    assert sample.candidate_windows == 5 * 50
+
+
 def test_sample_heldout_draws_evenly_from_each_quantile(toy_runner, monkeypatch):
     # Distinct peaks 0.00 … 0.99, first token only; the toy model's own peaks tie.
     def measure(runner, texts, ident):

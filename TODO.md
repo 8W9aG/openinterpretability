@@ -39,7 +39,6 @@ Methods from the wider interpretability literature that the registry doesn't use
 
 ## Pipeline
 
-- [ ] `openinterp audit`: configurable window length and stride, so long documents are scanned as overlapping ≥ 512-token windows instead of one truncated snippet. (Hugging Face dataset input is done: `openinterp corpus`.)
 - [ ] A `supersedes` field on submissions to link revisions to the record they replace.
 - [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
 - [ ] `openinterp loop`: run experiments back to back from the Python CLI, with no Claude Code session driving them, so the loop works wherever `openinterp` is installed (including `uvx openinterp` once it is on PyPI) and `scripts/experiment-loop.sh` can become a thin wrapper or go away. What each iteration does:
