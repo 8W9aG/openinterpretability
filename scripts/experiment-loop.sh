@@ -2,8 +2,9 @@
 # Run experiments back to back, each in a fresh headless Claude Code session, until
 # the iteration limit is reached or `claude` fails (e.g. the usage limit is hit).
 #
-# Claude drives the workflow (choose-next-experiment: plan, claim, audit, review,
-# post a PR); the proposer and reviewer LLMs are whatever you pass here. A model
+# Claude drives the workflow (land-experiment: plan, claim, audit, review, post a PR,
+# wait for green CI, and merge it when the PR only touches wiki/ and `gh` has write
+# access); the proposer and reviewer LLMs are whatever you pass here. A model
 # `external/<name>` means the driving Claude session answers that agent itself.
 #
 # Runs in a separate git worktree on a fresh origin/main each iteration, so your
@@ -77,14 +78,14 @@ mkdir -p "$LOG_DIR"
 # Tools the session may use without asking. Nothing outside the repo workflow.
 ALLOWED_TOOLS=(
   Read Edit Write Glob Grep Skill Agent
-  "Bash(uv run:*)" "Bash(make:*)" "Bash(git:*)" "Bash(gh pr:*)"
+  "Bash(uv run:*)" "Bash(make:*)" "Bash(git:*)" "Bash(gh pr:*)" "Bash(gh run:*)" "Bash(gh repo view:*)"
   "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(grep:*)" "Bash(jq:*)"
 )
 
 prompt() {
   cat <<EOF
-Run exactly one experiment end to end, following the choose-next-experiment skill,
-then stop. You are in an unattended loop: don't ask questions; make the call the skill
+Run exactly one experiment end to end and land it, following the land-experiment skill
+(which builds on choose-next-experiment), then stop. You are in an unattended loop: don't ask questions; make the call the skill
 describes and note it in the PR description.
 
 - Plan with: uv run openinterp next --top 5 --epsilon $EPSILON
@@ -97,10 +98,12 @@ describes and note it in the PR description.
 - If a model is external/<name>, use the two-step flow in the skill's "Proposer and
   reviewer without API keys" section, with the neuron-proposer and neuron-reviewer
   subagents answering the prompts. Record the model IDs they report.
-- Post the result whatever the verdict: commit wiki/, run make check lint test, push,
-  and mark the PR ready. If you have to abandon it, close the PR with the reason.
+- Post the result whatever the verdict, then land it as land-experiment describes: build,
+  wait for green checks, and merge only if every merge condition holds; otherwise leave
+  the PR open with a comment saying why. If you have to abandon it, close the PR with
+  the reason.
 - Finish on a clean working tree. End your reply with one line:
-  RESULT: <slug> <verdict> <PR url>   (or RESULT: none <reason>)
+  RESULT: <slug> <verdict> <PR url> <merged|open>   (or RESULT: none <reason>)
 EOF
 }
 
