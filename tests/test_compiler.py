@@ -6,13 +6,8 @@ import duckdb
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.compiler import (
-    causal_chart,
-    compile_site,
-    histogram_bars,
-    load_records,
-    probe_chart,
-)
+from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart
+from openinterp.builder.compiler import compile_site, load_records
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import (

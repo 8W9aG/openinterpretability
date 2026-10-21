@@ -1,0 +1,67 @@
+{# Per-pair causal effects for _experiment.html. Expects `v`, `c`, `sub`, `what`, `is_head`. #}
+  {% if v.causal %}
+  {% set cc = v.causal %}
+  <section class="mb-10" data-pagefind-ignore>
+    <h3 class="mb-3 text-base font-semibold">Causal effects per minimal pair</h3>
+    <figure>
+      <div class="overflow-x-auto">
+      <svg viewBox="0 0 {{ cc.width }} {{ cc.height }}" class="w-full min-w-[520px]" role="img" aria-label="Sufficiency and necessity percentiles {% if cc.rows %}for {{ cc.rows | length }} minimal pairs {% endif %}against the 0.5 baseline of matched {{ 'heads' if is_head else 'neurons' }}: median sufficiency {{ c.sufficiency_score | num(2) }}, necessity {{ c.necessity_score | num(2) }}.{% if cc.rows %} Values are in the table below.{% endif %}">
+        <rect x="{{ cc.baseline_x }}" y="{{ cc.top - 8 }}" width="{{ cc.right - cc.baseline_x }}" height="{{ cc.axis_y - cc.top + 8 }}" class="fill-slate-100 dark:fill-slate-900"/>
+        {% if cc.rule_y %}<line x1="0" y1="{{ cc.rule_y }}" x2="{{ cc.right }}" y2="{{ cc.rule_y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>{% endif %}
+        {% for row in cc.rows + [cc.median] %}
+        {% set is_median = loop.last %}
+        <text x="0" y="{{ row.y + cc.bar + 5 }}" class="{{ 'fill-slate-700 dark:fill-slate-300 font-medium' if is_median else 'fill-slate-600 dark:fill-slate-400' }}" font-size="12">{{ row.label }}</text>
+        {% for b in row.bars %}
+        <g>
+          <title>{{ b.label }}</title>
+          <rect x="{{ cc.left }}" y="{{ b.y - 1 }}" width="{{ cc.right - cc.left }}" height="{{ cc.bar + 2 }}" fill="transparent"/>
+          {% if b.w is not none %}
+          <rect x="{{ cc.left }}" y="{{ b.y }}" width="{{ [b.w, 1] | max }}" height="{{ cc.bar }}" rx="2" class="{{ 'fill-indigo-500' if b.kind == 'sufficiency' else 'fill-amber-600' }}"/>
+          {% endif %}
+          {% if is_median %}
+          <text x="{{ cc.left + (b.w or 0) + 4 }}" y="{{ b.y + cc.bar - 1 }}" class="fill-slate-700 font-mono dark:fill-slate-300" font-size="10">{{ b.value | num(2) }}</text>
+          {% endif %}
+        </g>
+        {% endfor %}
+        {% endfor %}
+        <line x1="{{ cc.baseline_x }}" y1="{{ cc.top - 14 }}" x2="{{ cc.baseline_x }}" y2="{{ cc.axis_y }}" class="stroke-slate-500" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="{{ cc.baseline_x }}" y="{{ cc.top - 18 }}" text-anchor="middle" class="fill-slate-600 dark:fill-slate-400" font-size="11">0.5 = a typical matched {{ 'head' if is_head else 'neuron' }}</text>
+        <line x1="{{ cc.left }}" y1="{{ cc.axis_y + 0.5 }}" x2="{{ cc.right }}" y2="{{ cc.axis_y + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
+        {% for tx, label in cc.ticks %}
+        <line x1="{{ tx }}" y1="{{ cc.axis_y }}" x2="{{ tx }}" y2="{{ cc.axis_y + 4 }}" class="stroke-slate-400" stroke-width="1"/>
+        <text x="{{ tx }}" y="{{ cc.axis_y + 16 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="11">{{ label }}</text>
+        {% endfor %}
+      </svg>
+      </div>
+      <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+        <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="2" width="10" height="8" rx="2" class="fill-indigo-500"/></svg> sufficiency (clean → corrupted)</span>
+        <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="2" width="10" height="8" rx="2" class="fill-amber-600"/></svg> necessity (corrupted → clean)</span>
+        <span>Percentile of the {{ what }}'s |effect| among the {{ c.null_neurons }} matched {{ 'heads' if is_head else 'neurons' }}; control pairs are skipped. {% if cc.rows %}Hover a bar for its effect and prompts.{% else %}This record predates per-pair effects, so only the medians are shown.{% endif %}</span>
+      </figcaption>
+    </figure>
+    {% if cc.rows %}
+    <details class="mt-3">
+      <summary class="cursor-pointer text-xs text-slate-500">Per-pair numbers</summary>
+      <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+            <tr><th class="px-3 py-2">Pair</th><th class="px-3 py-2">Prompts</th><th class="px-3 py-2 text-right">Sufficiency</th><th class="px-3 py-2 text-right">Necessity</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+            {% for p in c.pairs %}{% set pair = sub.counterfactuals[p.pair_index] if p.pair_index < sub.counterfactuals | length else none %}
+            <tr>
+              <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ p.pair_index + 1 }}</td>
+              <td class="px-3 py-2">{% if pair %}{{ pair.base_prompt }}<div class="text-xs text-slate-500">→ {{ pair.counterfactual_prompt }}</div>{% endif %}</td>
+              {% for patch in [p.sufficiency, p.necessity] %}
+              <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-xs tabular-nums">{{ patch.percentile | num(2) }}<div class="text-slate-500">effect {{ '%.3g' | format(patch.effect) }}</div><div class="text-slate-500">matched {{ '%.3g' | format(patch.null_median) }} / {{ '%.3g' | format(patch.null_max) }}</div></td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-1 text-xs text-slate-500">Each cell: percentile, then the {{ what }}'s signed effect and the matched {{ 'heads' if is_head else 'neurons' }}' median and largest |effect|, in {{ 'logits' if c.target == 'claimed_tokens' else 'nats of KL' }}.</p>
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
