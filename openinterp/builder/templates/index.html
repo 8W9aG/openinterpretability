@@ -6,17 +6,18 @@
 <section class="mb-10">
   <h1 class="text-3xl font-semibold tracking-tight">Neuron registry</h1>
   <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
-    Every experiment on native MLP neuron poles in open-weight models, each stress-tested by an
+    Every experiment on native MLP neuron poles and attention heads in open-weight models, each stress-tested by an
     independent reviewer agent with adversarial hard negatives, minimal-pair counterfactuals
     and causal patching. Null results are published too: a well-tested hypothesis that fails
     tells us as much as one that passes.
   </p>
-  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-5 dark:border-slate-800 dark:bg-slate-800">
+  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-6 dark:border-slate-800 dark:bg-slate-800">
     {% for label, value in [
       ("Experiments", t.experiments),
       ("Neurons studied", t.neurons),
+      ("Heads studied", t.heads),
       ("Models", t.models),
-      ("Verified poles", t.verified),
+      ("Verified units", t.verified),
       ("Conclusive nulls", t.conclusive_nulls),
     ] %}
     <div class="bg-white p-4 dark:bg-slate-950">
@@ -25,7 +26,7 @@
     </div>
     {% endfor %}
   </dl>
-  <p class="mt-3 text-sm text-slate-600 dark:text-slate-400" title="Sum of (1 − P(useful)) over the current verified claims, one per neuron pole">
+  <p class="mt-3 text-sm text-slate-600 dark:text-slate-400" title="Sum of (1 − P(useful)) over the current verified claims, one per neuron pole or head">
     {% if fdr.claims %}
     Estimated false discoveries among the {{ fdr.claims }} verified claims:
     <strong class="font-mono">{{ fdr.expected_false }}</strong> (false discovery rate ≈ {{ fdr.rate | pct }}).
@@ -72,7 +73,7 @@
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Neuron</th><th class="px-3 py-2">Result</th><th class="hidden px-3 py-2 md:table-cell">Agents</th></tr>
+        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Result</th><th class="hidden px-3 py-2 md:table-cell">Agents</th></tr>
       </thead>
       <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
         {% for r in stats.recent %}
@@ -82,7 +83,7 @@
             <div class="text-slate-500">{{ r.reviewed_time }}</div>
           </td>
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/N{{ r.neuron_idx }}{{ pole_mark(r.pole) }}</a>
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
             <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
           </td>
@@ -115,7 +116,7 @@
           {% for r in stats.conclusive %}
           <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-              <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/N{{ r.neuron_idx }}{{ pole_mark(r.pole) }}</a>
+              <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
               <div class="text-slate-500">{{ r.model_name }}</div>
             </td>
             <td class="px-3 py-2">
@@ -146,18 +147,18 @@
 </section>
 
 <section class="mb-10">
-  <h2 class="mb-3 text-lg font-semibold">Verified neurons</h2>
+  <h2 class="mb-3 text-lg font-semibold">Verified neurons and heads</h2>
   {% if stats.verified %}
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-        <tr><th class="px-3 py-2">Neuron</th><th class="px-3 py-2">Explanation</th><th class="px-3 py-2 text-right">Bal. acc.</th></tr>
+        <tr><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Explanation</th><th class="px-3 py-2 text-right">Bal. acc.</th></tr>
       </thead>
       <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
         {% for r in stats.verified %}
         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/N{{ r.neuron_idx }}{{ pole_mark(r.pole) }}</a>
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
           </td>
           <td class="px-3 py-2">{{ r.explanation | truncate(140) }}</td>
@@ -168,7 +169,7 @@
     </table>
   </div>
   {% else %}
-  <p class="text-sm text-slate-500">No verified neurons yet.</p>
+  <p class="text-sm text-slate-500">No verified neurons or heads yet.</p>
   {% endif %}
 </section>
 
@@ -178,7 +179,7 @@
     Runs DuckDB-Wasm in your browser against <code class="font-mono">data/registry.parquet</code>, exposed as the view <code class="font-mono">registry</code>.
   </p>
   <textarea id="sql" rows="3" spellcheck="false"
-    class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, status, round(conclusiveness, 2) AS conclusive, evidence_direction, explanation
+    class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, head_idx, status, round(conclusiveness, 2) AS conclusive, evidence_direction, explanation
 FROM registry ORDER BY conclusiveness DESC LIMIT 20</textarea>
   <div class="mt-2 flex items-center gap-3">
     <button id="run-sql" class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300">Run query</button>

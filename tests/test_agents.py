@@ -14,10 +14,6 @@ from openinterp.agents.reviewer import (
     ReviewerAgent,
     ReviewPolicy,
     _delta_agrees,
-    _matched_neurons,
-    _percentile,
-    causal_metrics,
-    claimed_token_weights,
     decide,
     evaluate_submission,
     probes_from_verdict,
@@ -25,6 +21,12 @@ from openinterp.agents.reviewer import (
 )
 from openinterp.core.exceptions import AgentError
 from openinterp.core.schemas import AdversarialTestResult, CounterfactualPair, NeuronIdentifier
+from openinterp.harness.causal import (
+    _matched_units,
+    _percentile,
+    causal_metrics,
+    claimed_token_weights,
+)
 from openinterp.harness.hooks import top_activating_examples
 from openinterp.harness.jlens import vocabulary_lens
 
@@ -433,7 +435,7 @@ def test_causal_metrics_skip_control_pairs(ident, toy_runner, draft):
 
 def test_matched_neurons_are_closest_in_change():
     change = torch.tensor([0.0, 5.0, 4.0, 0.1, 6.0, 9.0])
-    assert _matched_neurons(change, 1, 3) == [2, 4, 5]
+    assert _matched_units(change, 1, 3) == [2, 4, 5]
 
 
 def test_percentile_counts_ties_as_half():

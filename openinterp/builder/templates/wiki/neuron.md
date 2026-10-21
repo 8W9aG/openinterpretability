@@ -1,4 +1,4 @@
-# {{ latest.model }} · L{{ latest.layer }}/N{{ latest.neuron }}{{ '+' if latest.pole == 'positive' else '−' }}
+# {{ latest.model }} · {{ label }}
 
 [← wiki home](../../../../README.md)
 

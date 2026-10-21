@@ -1,4 +1,6 @@
-"""Group every archived experiment into Model → Layer → Neuron → Experiments.
+"""Group every archived experiment into Model → Layer → Unit → Experiments.
+
+A unit is an MLP neuron (both poles on one page) or an attention head.
 
 All experiments are published, whatever their verdict. Within a neuron they are
 ordered by how conclusive the result is (see :mod:`significance`), so a strong null
@@ -30,21 +32,38 @@ class Experiment:
         return self.reuses is None
 
     @property
+    def side(self) -> str:
+        """A neuron experiment's pole, or ``head``: what the unit page groups it under."""
+        return self.record.submission.identifier.pole or "head"
+
+    @property
     def anchor(self) -> str:
-        return f"{self.record.submission.identifier.pole}-{self.id}"
+        return f"{self.side}-{self.id}"
 
 
 @dataclass
-class NeuronNode:
+class UnitNode:
+    """One neuron (both poles) or one attention head, with all of its experiments."""
+
     model: str
     layer: int
     idx: int
     href: str
+    kind: str = "mlp_neuron_pole"
     experiments: list[Experiment] = field(default_factory=list)
 
     @property
+    def is_head(self) -> bool:
+        return self.kind == "attn_head"
+
+    @property
+    def label(self) -> str:
+        return f"{'H' if self.is_head else 'N'}{self.idx}"
+
+    @property
     def latest_by_pole(self) -> dict[str, Experiment]:
-        return {e.record.submission.identifier.pole: e for e in self.experiments if e.is_latest}
+        """Latest experiment per pole (``head`` for a head)."""
+        return {e.side: e for e in self.experiments if e.is_latest}
 
     @property
     def verified(self) -> bool:
@@ -60,15 +79,28 @@ class LayerNode:
     model: str
     layer: int
     href: str
-    neurons: list[NeuronNode] = field(default_factory=list)
+    units: list[UnitNode] = field(default_factory=list)  # neurons, then heads
+
+    @property
+    def neurons(self) -> list[UnitNode]:
+        return [u for u in self.units if not u.is_head]
+
+    @property
+    def heads(self) -> list[UnitNode]:
+        return [u for u in self.units if u.is_head]
 
     @property
     def experiments(self) -> int:
-        return sum(len(n.experiments) for n in self.neurons)
+        return sum(len(n.experiments) for n in self.units)
 
     @property
     def verified(self) -> int:
+        """Neurons with a verified pole."""
         return sum(n.verified for n in self.neurons)
+
+    @property
+    def verified_heads(self) -> int:
+        return sum(n.verified for n in self.heads)
 
 
 @dataclass
@@ -83,6 +115,14 @@ class ModelNode:
     @property
     def neurons(self) -> int:
         return sum(len(layer.neurons) for layer in self.layers)
+
+    @property
+    def heads(self) -> int:
+        return sum(len(layer.heads) for layer in self.layers)
+
+    @property
+    def verified_heads(self) -> int:
+        return sum(layer.verified_heads for layer in self.layers)
 
     @property
     def experiments(self) -> int:
@@ -131,15 +171,24 @@ def neuron_href(slug: str, layer: int, idx: int) -> str:
     return f"models/{slug}/L{layer}/N{idx}.html"
 
 
+def head_href(slug: str, layer: int, idx: int) -> str:
+    return f"models/{slug}/L{layer}/H{idx}.html"
+
+
+def unit_href(ident) -> str:
+    """The page of the neuron or head ``ident`` names."""
+    href = head_href if ident.kind == "attn_head" else neuron_href
+    return href(ident.model_slug, ident.layer, ident.index)
+
+
 def experiment_order(e: Experiment) -> tuple:
     """Most conclusive first; on ties independent evidence before re-measurements, then
     newest first, then deterministically."""
-    ident = e.record.submission.identifier
     return (
         -e.sig.conclusiveness,
         not e.independent,
         -e.record.verdict.timestamp.timestamp(),
-        ident.pole,
+        e.side,
         e.id,
     )
 
@@ -153,7 +202,7 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
             latest[slug] = r
 
     models: dict[str, ModelNode] = {}
-    neurons: dict[tuple[str, int, int], NeuronNode] = {}
+    units: dict[tuple[str, int, bool, int], UnitNode] = {}  # neurons sort before heads
     for r in reviewed:
         ident = r.submission.identifier
         mslug = ident.model_slug
@@ -169,25 +218,22 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
         model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
         if r.submission.model_mlp_width:
             model.mlp_width = r.submission.model_mlp_width
-        key = (ident.model_name, ident.layer, ident.neuron_idx)
-        if key not in neurons:
-            neurons[key] = NeuronNode(
-                ident.model_name,
-                ident.layer,
-                ident.neuron_idx,
-                neuron_href(mslug, ident.layer, ident.neuron_idx),
+        key = (ident.model_name, ident.layer, ident.kind != "mlp_neuron_pole", ident.index)
+        if key not in units:
+            units[key] = UnitNode(
+                ident.model_name, ident.layer, ident.index, unit_href(ident), ident.kind
             )
-        neurons[key].experiments.append(
+        units[key].experiments.append(
             Experiment(r, significance(r), experiment_id(r), latest[ident.slug] is r)
         )
 
-    for (name, layer_idx, _), node in sorted(neurons.items()):
+    for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
         node.experiments.sort(key=experiment_order)
         model = models[name]
         if not model.layers or model.layers[-1].layer != layer_idx:
             model.layers.append(LayerNode(name, layer_idx, layer_href(model.slug, layer_idx)))
-        model.layers[-1].neurons.append(node)
+        model.layers[-1].units.append(node)
     return [models[name] for name in sorted(models)]
 
 
@@ -199,7 +245,7 @@ def _mark_reuse(experiments: list[Experiment]) -> None:
             for r in e.record.verdict.adversarial_test_results
             if r.kind in ("hard_negative", "positive_holdout")
         )
-        key = (e.record.submission.identifier.pole, probes)
+        key = (e.side, probes)
         if probes and key in first:
             e.reuses = first[key]
         else:
@@ -207,7 +253,8 @@ def _mark_reuse(experiments: list[Experiment]) -> None:
 
 
 def false_discovery(models: Sequence[ModelNode]) -> dict:
-    """Expected false discoveries among the current VERIFIED claims (one per neuron pole).
+    """Expected false discoveries among the current VERIFIED claims (one per neuron pole or
+    head).
 
     Each claim is false with probability 1 − P(useful), so the expected number of
     false claims is their sum and the estimated false discovery rate is that over the
@@ -219,7 +266,7 @@ def false_discovery(models: Sequence[ModelNode]) -> dict:
         e.sig.p_useful
         for m in models
         for layer in m.layers
-        for n in layer.neurons
+        for n in layer.units
         for e in n.latest_by_pole.values()
         if e.record.is_verified
     ]

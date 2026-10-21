@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 {% from "_macros.html" import breadcrumb, status_badge, evidence_badge, pole_mark %}
 
-{% block title %}{{ model.name }} L{{ neuron.layer }}/N{{ neuron.idx }} · {{ site_title }}{% endblock %}
+{% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
 {% block content %}
 <article data-pagefind-body>
   {{ breadcrumb(root, model, layer, neuron) }}
   <header class="mb-8">
-    <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · L{{ neuron.layer }}/N{{ neuron.idx }}</h1>
+    <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · L{{ neuron.layer }}/{{ neuron.label }}</h1>
     <p class="mt-1 hidden" data-pagefind-filter="model">{{ model.name }}</p>
-    {# The two poles are read together: the negative pole often encodes the contrast the positive one draws. #}
+    {# A neuron's two poles are read together: the negative pole often encodes the contrast the positive one draws. A head has one card. #}
     <div class="mt-4 grid gap-3 sm:grid-cols-2">
-      {% for pole in ["positive", "negative"] %}
+      {% for pole in (["head"] if neuron.is_head else ["positive", "negative"]) %}
       {% set latest = neuron.latest_by_pole.get(pole) %}
-      {% set pole_exps = neuron.experiments | selectattr("record.submission.identifier.pole", "equalto", pole) | selectattr("independent") | list %}
+      {% set pole_exps = neuron.experiments | selectattr("side", "equalto", pole) | selectattr("independent") | list %}
       <div class="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="text-slate-500">{{ pole | capitalize }} pole {{ pole_mark(pole) }}</span>
+          <span class="text-slate-500">{% if neuron.is_head %}Attention head{% else %}{{ pole | capitalize }} pole {{ pole_mark(pole) }}{% endif %}</span>
           {% if latest %}{{ status_badge(latest.record.verdict.status) }}<span class="hidden" data-pagefind-filter="status">{{ latest.record.verdict.status }}</span>{% endif %}
         </div>
         {% if pole_exps %}
@@ -32,7 +32,7 @@
       {% endfor %}
     </div>
     <p class="mt-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-      Every experiment on this neuron, including null and superseded results, ordered by how
+      Every experiment on this {{ "head" if neuron.is_head else "neuron" }}, including null and superseded results, ordered by how
       conclusive its probe evidence is (in either direction).
     </p>
   </header>

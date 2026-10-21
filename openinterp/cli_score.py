@@ -123,7 +123,7 @@ def score(
         FuzzingAnswer,
         ScoringTask,
     )
-    from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
+    from openinterp.cli import _load_unit_runner  # looked up per call, so tests can swap it
     from openinterp.core import costs
 
     if task_file is not None:
@@ -147,7 +147,7 @@ def score(
                 _sibling(task_file, f".{kind}.json"),
             )
             costs.add_external("judge", judge_model, prompt, answer)
-        runner = _load_runner(task.identifier.model_name, device, dtype)
+        runner = _load_unit_runner(task.identifier, device, dtype)
         scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
         scores = scores.model_copy(update={"costs": costs.merge(task.costs, costs.measured())})
     else:
@@ -156,7 +156,7 @@ def score(
         if emit_task is None and out is None:
             raise click.UsageError("--out is required when scoring in one step.")
         submission = _load_submission(audit_file)
-        runner = _load_runner(submission.identifier.model_name, device, dtype)
+        runner = _load_unit_runner(submission.identifier, device, dtype)
         sampling = (seed, window_tokens, quantiles, per_quantile, max_windows)
         if emit_task is not None:
             task = _draw_task(runner, submission, corpus, *sampling)
@@ -191,9 +191,12 @@ def score_submission(
     task = _draw_task(runner, submission, corpus, *sampling)
     judge = ExplanationJudge(judge_model)
     click.echo(f"Asking {judge.model} to judge {len(task.detection)} windows…", err=True)
-    detection = judge.detect(task.explanation, task.detection)
+    noun = _noun(task.identifier)
+    detection = judge.detect(task.explanation, task.detection, noun)
     fuzzing = (
-        judge.fuzz(task.explanation, task.fuzzing) if task.fuzzing else FuzzingAnswer(correct=[])
+        judge.fuzz(task.explanation, task.fuzzing, noun)
+        if task.fuzzing
+        else FuzzingAnswer(correct=[])
     )
     return _score_task(task, runner, detection, fuzzing, judge.model, embedding_model)
 
@@ -203,6 +206,7 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
     from openinterp.cli_evidence import read_corpus
     from openinterp.core import costs
     from openinterp.harness.explanation_scores import sample_heldout
+    from openinterp.harness.units import submission_unit
 
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
     seed = secrets.randbits(32) if seed is None else seed
@@ -213,7 +217,7 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
             sample = sample_heldout(
                 runner,
                 texts,
-                submission.identifier,
+                submission_unit(submission),
                 threshold,
                 seed=seed,
                 exclude=[e.text for e in submission.top_examples],
@@ -232,6 +236,7 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
 
     return ScoringTask(
         identifier=submission.identifier,
+        head_profile=submission.head_profile,
         explanation=submission.natural_language_explanation,
         threshold=threshold,
         window_tokens=window_tokens,
@@ -262,7 +267,7 @@ def _write_task(task, path: Path) -> None:
         if not getattr(task, kind):
             continue
         prompt_path, answer = _sibling(path, f".{kind}.prompt.md"), _sibling(path, f".{kind}.json")
-        text = prompt(task.explanation, getattr(task, kind))
+        text = prompt(task.explanation, getattr(task, kind), _noun(task.identifier))
         prompt_path.write_text(ExplanationJudge.render_prompt(model, text, answer))
         click.echo(f"Judge prompt: {prompt_path} (answer in {answer})")
 
@@ -272,6 +277,7 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
     from openinterp.core import costs
     from openinterp.core.explanation import ExplanationScores, ScoredWindow
     from openinterp.harness.explanation_scores import embedding_similarities, remeasure
+    from openinterp.harness.units import unit_of
 
     try:
         det = answered(detection.active, len(task.detection), "detection")
@@ -318,7 +324,11 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
         fuzzing_windows=unmeasured(task.fuzzing, fuz, [None] * len(task.fuzzing)),
     )
     with costs.stage("remeasure"):
-        return remeasure(scores, runner, task.identifier)
+        return remeasure(scores, runner, unit_of(task.identifier, task.head_profile))
+
+
+def _noun(identifier) -> str:
+    return "attention head" if identifier.kind == "attn_head" else "neuron"
 
 
 def _summary(scores) -> str:

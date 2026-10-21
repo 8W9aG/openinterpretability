@@ -107,7 +107,9 @@ def test_cli_exit_code(tmp_path, monkeypatch, record, toy_runner):
     loads = []
     monkeypatch.setattr(
         "openinterp.cli._load_runner",
-        lambda name, device, dtype, revision=None: loads.append((name, dtype)) or toy_runner,
+        lambda name, device, dtype, revision=None, attn=None: (
+            loads.append((name, dtype)) or toy_runner
+        ),
     )
     good = tmp_path / "good.json"
     good.write_text(record.model_dump_json())

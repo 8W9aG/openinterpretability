@@ -4,13 +4,13 @@ Every completed Open Interpretability experiment, newest first. Pages are writte
 
 The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
-Experiments: **{{ rows | length }}** · neurons: **{{ neurons }}**{% for status, n in counts | dictsort %} · {{ status }}: {{ n }}{% endfor %}
+Experiments: **{{ rows | length }}** · units: **{{ neurons }}**{% for status, n in counts | dictsort %} · {{ status }}: {{ n }}{% endfor %}
 
 
-| Date | Neuron | Kind | Status | Balanced acc. | Hypothesis |
+| Date | Unit | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
 {% for r in rows %}
-| [{{ r.timestamp[:10] }}]({{ r.link }}) | [{{ r.model }} L{{ r.layer }}/N{{ r.neuron }}{{ '+' if r.pole == 'positive' else '−' }}]({{ r.neuron_link }}) | {{ r.kind }} | {{ r.status }} | {{ r.balanced_accuracy | num(2) }} | {{ r.hypothesis | truncate(100) | cell }} |
+| [{{ r.timestamp[:10] }}]({{ r.link }}) | [{{ r.model }} {{ r.label }}]({{ r.neuron_link }}) | {{ r.kind }} | {{ r.status }} | {{ r.balanced_accuracy | num(2) }} | {{ r.hypothesis | truncate(100) | cell }} |
 {% else %}
 | | | | No experiments yet. | | |
 {% endfor %}

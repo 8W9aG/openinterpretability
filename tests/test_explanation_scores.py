@@ -27,11 +27,13 @@ from openinterp.harness.explanation_scores import (
     remeasure,
     sample_heldout,
 )
+from openinterp.harness.units import NeuronUnit
 from openinterp.reproduce import reproduce_record
 from tests.test_agents import SMALL, _probes, _submission
 from tests.test_reproduce import draft  # noqa: F401  (fixture)
 
 IDENT = NeuronIdentifier(model_name="toy", layer=1, neuron_idx=2, pole="positive")
+UNIT = NeuronUnit(IDENT)
 CORPUS = ["".join(random.Random(i).choices("abcdefghijklmnop qrstuvwxyz", k=40)) for i in range(60)]
 
 
@@ -46,7 +48,7 @@ def toy_record(toy_runner, draft):  # noqa: F811
 
 
 def _threshold(runner, quantile=0.5):
-    peaks = sorted(w.peak for w in measure_windows(runner, CORPUS, IDENT))
+    peaks = sorted(w.peak for w in measure_windows(runner, CORPUS, UNIT))
     return peaks[int(quantile * len(peaks))]
 
 
@@ -88,8 +90,8 @@ def test_fuzzing_label_needs_exactly_the_active_tokens():
 def test_sample_heldout_is_seeded_and_held_out(toy_runner):
     threshold = _threshold(toy_runner)
     kwargs = dict(seed=7, exclude=CORPUS[:10], window_tokens=8, quantiles=3, per_quantile=2)
-    sample = sample_heldout(toy_runner, CORPUS, IDENT, threshold, **kwargs)
-    assert sample == sample_heldout(toy_runner, CORPUS, IDENT, threshold, **kwargs)
+    sample = sample_heldout(toy_runner, CORPUS, UNIT, threshold, **kwargs)
+    assert sample == sample_heldout(toy_runner, CORPUS, UNIT, threshold, **kwargs)
     assert sample.candidate_windows == 5 * 50  # five 8-token windows per unexcluded text
     fuzzing = label_windows(sample.fuzzing, threshold, sample.quantile_edges, fuzzing=True)
     assert any(w.label for w in fuzzing) and not all(w.label for w in fuzzing)
@@ -98,7 +100,7 @@ def test_sample_heldout_is_seeded_and_held_out(toy_runner):
 
 def test_a_windowed_top_example_holds_out_its_whole_document(toy_runner):
     excerpts = [t[5:20] for t in CORPUS[:10]]  # what a windowed scan shows the proposer
-    sample = sample_heldout(toy_runner, CORPUS, IDENT, 1.0, seed=0, exclude=excerpts,
+    sample = sample_heldout(toy_runner, CORPUS, UNIT, 1.0, seed=0, exclude=excerpts,
                             window_tokens=8)  # fmt: skip
     assert sample.candidate_windows == 5 * 50
 
@@ -111,7 +113,7 @@ def test_sample_heldout_draws_evenly_from_each_quantile(toy_runner, monkeypatch)
     monkeypatch.setattr("openinterp.harness.explanation_scores.cut_windows", lambda r, t, n: t)
     monkeypatch.setattr("openinterp.harness.explanation_scores.measure_windows", measure)
     texts = [str(i) for i in range(100)]
-    sample = sample_heldout(toy_runner, texts, IDENT, 0.4, seed=1, quantiles=3, per_quantile=2)
+    sample = sample_heldout(toy_runner, texts, UNIT, 0.4, seed=1, quantiles=3, per_quantile=2)
     assert (sample.active_windows, sample.quantile_edges) == (60, [0.6, 0.8])
     detection = label_windows(sample.detection, 0.4, sample.quantile_edges, fuzzing=False)
     quantiles = sorted(w.quantile for w in detection if w.label)
@@ -122,10 +124,10 @@ def test_sample_heldout_draws_evenly_from_each_quantile(toy_runner, monkeypatch)
 
 
 def test_without_active_windows_detection_scores_false_positives_only(toy_runner):
-    sample = sample_heldout(toy_runner, CORPUS, IDENT, 1e9, seed=0, window_tokens=8)
+    sample = sample_heldout(toy_runner, CORPUS, UNIT, 1e9, seed=0, window_tokens=8)
     assert (len(sample.detection), sample.fuzzing, sample.active_windows) == (25, [], 0)
     with pytest.raises(ValueError, match="no held-out windows"):
-        sample_heldout(toy_runner, CORPUS, IDENT, 1.0, seed=0, exclude=CORPUS)
+        sample_heldout(toy_runner, CORPUS, UNIT, 1.0, seed=0, exclude=CORPUS)
 
 
 def test_judge_prompts_hide_activations_and_mark_tokens(mocker):
@@ -225,7 +227,7 @@ def test_scores_for_another_explanation_are_refused(flow):
 
 def test_reproduce_rederives_scores_and_warns_on_edits(toy_record, toy_runner):
     threshold = _threshold(toy_runner)
-    sample = sample_heldout(toy_runner, CORPUS, IDENT, threshold, seed=1, window_tokens=8,
+    sample = sample_heldout(toy_runner, CORPUS, UNIT, threshold, seed=1, window_tokens=8,
                             quantiles=2, per_quantile=2)  # fmt: skip
     windows = label_windows(sample.detection, threshold, sample.quantile_edges, fuzzing=False)
     windows = [w.model_copy(update={"judged": w.label, "similarity": 0.1}) for w in windows]
@@ -236,7 +238,7 @@ def test_reproduce_rederives_scores_and_warns_on_edits(toy_record, toy_runner):
             active_windows=1, detection_windows=windows,
         ),
         toy_runner,
-        IDENT,
+        UNIT,
     )  # fmt: skip
     assert scores.detection.balanced_accuracy == 1.0 and scores.embedding_auroc == 0.5
 
@@ -275,12 +277,14 @@ def test_one_step_review_scores_the_explanation_itself(flow, monkeypatch):
                         lambda self, sub, n: probes)  # fmt: skip
     judged = []
 
-    def detect(self, explanation, windows):
+    def detect(self, explanation, windows, noun="neuron"):
         judged.append(self.model)
         return DetectionAnswer(active=[1])
 
     monkeypatch.setattr(ExplanationJudge, "detect", detect)
-    monkeypatch.setattr(ExplanationJudge, "fuzz", lambda self, e, ws: FuzzingAnswer(correct=[]))
+    monkeypatch.setattr(
+        ExplanationJudge, "fuzz", lambda self, e, ws, noun="neuron": FuzzingAnswer(correct=[])
+    )
     run("review", "--audit-file", "sub.json", "--agent-model", "openai/reviewer",
         "--corpus", "corpus.txt", "--wiki-dir", "wiki")  # fmt: skip
     (record_path,) = (flow.path / "wiki" / "experiments").rglob("*.json")

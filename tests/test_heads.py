@@ -7,12 +7,23 @@ from pydantic import TypeAdapter, ValidationError
 from openinterp.core.schemas import (
     ComponentIdentifier,
     HeadIdentifier,
+    HeadProfile,
     NeuronAuditSubmission,
     NeuronIdentifier,
 )
 from openinterp.harness.hooks import NeuronHookRunner, ablate_head
 
 IDS = torch.tensor([[1, 5, 7, 2, 9, 3]])
+PROFILE = HeadProfile(
+    mean_output=[0.0] * 16,
+    mean_tokens=1,
+    previous_token_score=0.1,
+    duplicate_token_score=0.2,
+    induction_score=0.3,
+    pattern_sequences=1,
+    pattern_length=4,
+    pattern_seed=0,
+)
 
 
 @pytest.fixture
@@ -32,7 +43,8 @@ def test_component_identifiers_round_trip_and_old_records_still_validate():
         '{"kind": "attn_head", "model_name": "gpt2", "layer": 5, "head_idx": 1}'
     )
     assert isinstance(head, HeadIdentifier)
-    assert (head.slug, str(head)) == ("gpt2/L5/H1", "gpt2 L5/H1")
+    assert (head.slug, str(head), head.index) == ("gpt2/L5/H1", "gpt2 L5/H1", 1)
+    assert (neuron.label, neuron.index) == ("L3/N7-", 7)
     assert adapter.validate_json(head.model_dump_json()) == head
     with pytest.raises(ValidationError):
         adapter.validate_json(
@@ -40,10 +52,17 @@ def test_component_identifiers_round_trip_and_old_records_still_validate():
         )
 
 
-def test_submissions_reject_heads_with_a_clear_message(submission):
+def test_a_head_submission_needs_its_profile_and_a_neuron_has_none(submission):
     data = submission.model_dump(mode="json")
     data["identifier"] = {"kind": "attn_head", "model_name": "gpt2", "layer": 0, "head_idx": 1}
-    with pytest.raises(ValidationError, match="not audited yet"):
+    with pytest.raises(ValidationError, match="needs a head_profile"):
+        NeuronAuditSubmission.model_validate(data)
+    data["head_profile"] = PROFILE.model_dump()
+    head = NeuronAuditSubmission.model_validate(data)
+    assert head.identifier.label == "L0/H1" and head.identifier.pole is None
+
+    data["identifier"] = submission.identifier.model_dump()
+    with pytest.raises(ValidationError, match="only for attention heads"):
         NeuronAuditSubmission.model_validate(data)
 
 
@@ -60,8 +79,9 @@ def test_heads_sum_to_the_attention_output(runner):
     captured = []
     proj = runner.attn_out(1)
     handle = proj.register_forward_hook(lambda _m, _a, out: captured.append(out))
-    z = runner.head_outputs(IDS, 1)
+    runner.run_with_interventions(IDS)
     handle.remove()
+    z = runner.head_outputs(IDS, 1)
     assert z.shape == (1, IDS.shape[1], 2, 16)
     rebuilt = sum(z[..., h, :] @ runner.head_output_weights(1, h).T for h in range(2)) + proj.bias
     torch.testing.assert_close(rebuilt, captured[-1], atol=1e-5, rtol=1e-5)

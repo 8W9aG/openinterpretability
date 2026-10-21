@@ -16,8 +16,8 @@ from dataclasses import dataclass
 import torch
 
 from openinterp.core.explanation import ExplanationScores, JudgeScore, ScoredWindow
-from openinterp.core.schemas import NeuronIdentifier
-from openinterp.harness.hooks import NeuronHookRunner, pole_strength
+from openinterp.harness.hooks import NeuronHookRunner
+from openinterp.harness.units import Unit
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -66,17 +66,16 @@ def cut_windows(runner: NeuronHookRunner, texts: Sequence[str], window_tokens: i
 def measure_windows(
     runner: NeuronHookRunner,
     texts: Sequence[str],
-    ident: NeuronIdentifier,
+    unit: Unit,
     *,
     batch_size: int = 16,
 ) -> list[Window]:
-    """Per-token pole strengths of each text, run on its own (no surrounding context)."""
+    """Per-token strengths of each text, run on its own (no surrounding context)."""
     windows = []
     for start in range(0, len(texts), batch_size):
         batch = list(texts[start : start + batch_size])
         encoded = runner.encode(batch)
-        _, cache = runner.run_with_cache(encoded, [ident.layer])
-        strengths = pole_strength(cache[ident.layer][..., ident.neuron_idx].float(), ident.pole)
+        strengths = unit.strengths(runner, encoded).float()
         ids = encoded["input_ids"]
         mask = encoded.get("attention_mask", torch.ones_like(ids)).bool()
         for row, text in enumerate(batch):
@@ -94,7 +93,7 @@ def measure_windows(
 def sample_heldout(
     runner: NeuronHookRunner,
     texts: Sequence[str],
-    ident: NeuronIdentifier,
+    unit: Unit,
     threshold: float,
     *,
     seed: int,
@@ -119,7 +118,7 @@ def sample_heldout(
     held_out = [t for t in texts if not any(e in t for e in exclude)]
     candidates = cut_windows(runner, held_out, window_tokens)
     rng.shuffle(candidates)
-    measured = measure_windows(runner, candidates[:max_windows], ident)
+    measured = measure_windows(runner, candidates[:max_windows], unit)
     active = sorted((w for w in measured if w.peak >= threshold), key=lambda w: w.peak)
     inactive = [w for w in measured if w.peak < threshold]
     if not measured:
@@ -228,11 +227,11 @@ def finalize_scores(scores: ExplanationScores) -> ExplanationScores:
     )
 
 
-def remeasure(scores: ExplanationScores, runner: NeuronHookRunner, ident: NeuronIdentifier):
+def remeasure(scores: ExplanationScores, runner: NeuronHookRunner, unit: Unit):
     """Re-measure every window and re-derive labels and scores, keeping the answers."""
 
     def redo(windows: Sequence[ScoredWindow], fuzzing: bool) -> list[ScoredWindow]:
-        fresh = measure_windows(runner, [w.text for w in windows], ident)
+        fresh = measure_windows(runner, [w.text for w in windows], unit)
         fresh = [
             Window(f.text, f.tokens, f.activations, tuple(w.highlighted))
             for f, w in zip(fresh, windows, strict=True)
