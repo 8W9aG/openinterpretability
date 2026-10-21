@@ -7,6 +7,9 @@
 | | |
 | --- | --- |
 | Experiment | `{{ meta.experiment_id }}` ({{ kind }}{% if previous_status %}, previous verdict {{ previous_status }}{% endif %}) |
+{% if sub.supersedes %}
+| Revises | [{{ sub.supersedes }}]({{ sub.supersedes }}.md) |
+{% endif %}
 | Date | {{ verdict.timestamp.strftime("%Y-%m-%d %H:%M UTC") }} |
 | Verdict | **{{ verdict.status }}**, balanced accuracy {{ verdict.confidence_score | num(2) }} |
 | Protocol | {{ ('v' ~ policy.protocol_version) if policy else 'unrecorded (pre-0.2)' }} |

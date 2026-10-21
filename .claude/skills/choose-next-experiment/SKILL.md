@@ -39,7 +39,7 @@ In Claude Code, use the `neuron-proposer`, `neuron-reviewer` and `explanation-ju
 
 1. `uv run openinterp audit <same options> --evidence-out exchange/ev.json` scans and writes `exchange/ev.prompt.md`.
 2. Ask `neuron-proposer` to answer `exchange/ev.prompt.md`. It writes `exchange/ev.hypothesis.json` and reports its model ID.
-3. `uv run openinterp audit --evidence exchange/ev.json --hypothesis exchange/ev.hypothesis.json --agent-model external/<proposer model ID> --out submissions/<key>.json`
+3. `uv run openinterp audit --evidence exchange/ev.json --hypothesis exchange/ev.hypothesis.json --agent-model external/<proposer model ID> --out submissions/<key>.json`. If the planner's command has `--supersedes <record>`, pass it here, not in step 1.
 4. `uv run openinterp review --audit-file <submission or record> --emit-prompt exchange/review.prompt.md`
 5. Ask `neuron-reviewer` to answer `exchange/review.prompt.md`. Give it only that path: it must not see this neuron's records or any activations. It writes `exchange/review.probes.json` and reports its model ID.
 6. `uv run openinterp score --audit-file <same file> --corpus <the scan's corpus> --emit-task exchange/score.task.json` draws held-out windows and writes the judge prompts. Every review needs these scores (skill `explanation-simulation-scoring`).

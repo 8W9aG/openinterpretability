@@ -8,6 +8,7 @@ checks enforce that:
    slug and experiment id dictate;
 2. every record has its page and every page its record, and the page's front matter
    matches the record;
+   a record that ``supersedes`` another names an earlier experiment on the same unit;
 3. the retired ``audits/`` directory holds no records (import them with
    ``openinterp wiki --import-dir audits``);
 4. with ``base_ref``, existing experiment pages were not deleted or edited outside
@@ -98,6 +99,7 @@ def _check_records(wiki_dir: Path, report: CheckReport) -> None:
         expected = archive_path(wiki_dir, record)
         if path != expected:
             report.add(path, f"experiment record belongs at {expected}")
+        _check_supersedes(path, record, report)
         page = path.with_suffix(".md")
         if not page.exists():
             report.add(path, "experiment record has no page; run `openinterp wiki`")
@@ -108,10 +110,21 @@ def _check_records(wiki_dir: Path, report: CheckReport) -> None:
             "status": record.verdict.status,
             "balanced_accuracy": record.verdict.confidence_score,
             "timestamp": record.verdict.timestamp.isoformat(),
+            "supersedes": record.submission.supersedes,
         }
         for key, value in values.items():
             if meta.get(key) != value:
                 report.add(page, f"front matter {key}={meta.get(key)!r} but record has {value!r}")
+
+
+def _check_supersedes(path: Path, record: AuditRecord, report: CheckReport) -> None:
+    revises = record.submission.supersedes
+    if revises is None:
+        return
+    if revises >= path.stem:  # ids are UTC timestamps, so they sort chronologically
+        report.add(path, f"supersedes {revises}, which is not an earlier experiment")
+    elif not path.with_name(f"{revises}.json").exists():
+        report.add(path, f"supersedes {revises}, but this unit has no such experiment")
 
 
 def _check_pages(wiki_dir: Path, report: CheckReport) -> None:

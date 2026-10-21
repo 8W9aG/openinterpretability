@@ -155,7 +155,8 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
         f"openinterp verify --audit-file {path} --corpus <scan corpus> "
         f"--agent-model <model other than {proposer}>"
     )
-    revise = f"openinterp audit {target}" + ("" if is_head else f" --pole {ident.pole}")
+    pole = "" if is_head else f" --pole {ident.pole}"
+    revise = f"openinterp audit {target}{pole} --supersedes {path}"
 
     kinds: list[tuple[str, str, list[str], str | None]] = []
     stale = verdict.policy is None or verdict.policy.protocol_version != PROTOCOL_VERSION

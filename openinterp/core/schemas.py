@@ -29,6 +29,8 @@ SelectionMethod = Literal["random", "attribution", "manual"]
 CausalTarget = Literal["claimed_tokens", "next_token_kl"]
 
 PROTOCOL_VERSION = "0.6"
+# An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
+EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 
 
 class CounterfactualPair(StrictModel):
@@ -372,6 +374,12 @@ class NeuronAuditSubmission(StrictModel):
     input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
+    supersedes: str | None = Field(
+        default=None,
+        pattern=EXPERIMENT_ID_PATTERN,
+        description="Experiment id of the earlier experiment on the same unit that this "
+        "submission revises (reported, not gated).",
+    )
 
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:

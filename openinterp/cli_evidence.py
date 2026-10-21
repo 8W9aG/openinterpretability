@@ -141,6 +141,19 @@ def scan_evidence(
     )
 
 
+def load_superseded(path: Path):
+    """The archived, reviewed record that ``audit --supersedes`` names."""
+    from openinterp.core.schemas import AuditRecord
+
+    try:
+        record = AuditRecord.model_validate_json(path.read_text())
+    except ValueError as exc:
+        raise click.BadParameter(f"not an audit record: {exc}", param_hint="--supersedes") from exc
+    if record.verdict is None:
+        raise click.BadParameter("that record has no verdict yet", param_hint="--supersedes")
+    return record
+
+
 def answer_path(prompt_path: Path, suffix: str) -> Path:
     """``review.prompt.md`` or ``review.md`` -> ``review<suffix>``."""
     name = prompt_path.name.removesuffix(".md").removesuffix(".prompt")
@@ -251,6 +264,13 @@ def write_evidence(evidence, path: Path) -> None:
     help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
 )
 @click.option(
+    "--supersedes",
+    "superseded_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Archived record (wiki/experiments/<slug>/<id>.json) this submission revises, e.g. a "
+    "NEEDS_REVISION one. Recorded in the submission; it must be on the same unit.",
+)
+@click.option(
     "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
 )
 @with_model_options
@@ -271,6 +291,7 @@ def audit(
     evidence_out,
     evidence_file,
     hypothesis_file,
+    superseded_file,
     out,
     device,
     dtype,
@@ -287,6 +308,7 @@ def audit(
     """
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterp.builder.wiki import experiment_id
     from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
     from openinterp.core import costs
     from openinterp.core.schemas import ScanEvidence
@@ -301,6 +323,11 @@ def audit(
         raise click.UsageError("--evidence and --hypothesis go together.")
     if stride is not None and (window_tokens is None or stride > window_tokens):
         raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
+    if superseded_file is not None and evidence_out is not None:
+        raise click.UsageError(
+            "--supersedes goes on the step that writes the submission (with --hypothesis)."
+        )
+    superseded = superseded_file and load_superseded(superseded_file)
     if evidence_file is not None:
         if evidence_out is not None:
             raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
@@ -352,6 +379,11 @@ def audit(
         )
 
     ident = evidence.identifier
+    if superseded is not None and superseded.submission.identifier.slug != ident.slug:
+        raise click.UsageError(
+            f"--supersedes names an experiment on {superseded.submission.identifier}, "
+            f"not on {ident}."
+        )
     with costs.stage("counterfactuals"):
         submission = agent.build_submission(
             ident,
@@ -368,9 +400,12 @@ def audit(
         )
     # An evidence file carries the scan's costs; a one-step audit measured them here.
     provenance = with_costs(submission.provenance, costs.measured())
-    submission = submission.model_copy(update={"provenance": provenance})
+    revises = superseded and experiment_id(superseded)
+    submission = submission.model_copy(update={"provenance": provenance, "supersedes": revises})
     out = out or Path("submissions") / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(submission.model_dump_json(indent=2))
     click.echo(f"Hypothesis: {submission.natural_language_explanation}")
+    if revises:
+        click.echo(f"Supersedes: {revises} ({superseded.verdict.status})")
     click.echo(f"Wrote {out}")
