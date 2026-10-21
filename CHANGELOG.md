@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-10-20
+
+Ships with protocol version **0.6**.
+
 ### Added
 
 - **Protocol 0.6: attention heads can be audited.** `openinterp audit --model M --layer L --head H` scans one head (`--unit head --random` samples one uniformly), and `score`, `review`, `reevaluate`, `reproduce` and `next` take head submissions like neuron ones. Submissions and scan evidence take any `ComponentIdentifier`; a head's carries a `HeadProfile`. A head's strength at a token is `|W_O (z − z̄)|`, the distance between its write to the residual stream and its mean write z̄ over the scan, which the record stores so every later measurement shares the zero point. The raw write norm doesn't work: on GPT-2 small L5H1 the median token sits at a quarter of the maximum, so half of all text would be "active". Against z̄, the five known GPT-2 small induction heads are active on every second-half token of repeated random tokens and almost no first-half token. A head is ablated by setting z to z̄ (mean ablation), and its causal metrics rank it against the other heads of its layer, matched on the change in each head's write. The scan also records the tokens each top example's peak attends to and the head's previous-token, duplicate-token and induction scores (Olsson et al., 2022); heads get no vocabulary lens or partner search. Head commands load the model with eager attention. Head pages live at `models/<model>/L<layer>/H<idx>.html` and in `wiki/experiments/<model>/L<layer>/H<idx>/`. Parquet gains `kind`, `head_idx`, `model_n_heads` and the three pattern scores (`neuron_idx` and `pole` are null for heads), and the home page counts heads studied. The decision rule for neuron poles is unchanged, but every existing verdict was judged under 0.5, so `openinterp next` now proposes re-evaluating them. A positive-control dry run on GPT-2 small L5H1 scanned 235,650 tokens in about 2 minutes on CPU (induction score 0.89) and the proposer identified it as an induction head unprompted. It was NEEDS_REVISION after two rounds, on specificity alone (see TODO).
