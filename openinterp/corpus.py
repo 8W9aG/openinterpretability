@@ -16,13 +16,18 @@ import hashlib
 import json
 import math
 import random
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from openinterp.core.schemas import CorpusSource
+from openinterp.core.schemas import CorpusSample, CorpusSource
+
+# What `openinterp audit` scans by default (protocol 0.7): a fixed seed, so every audit
+# of a corpus reads the same documents and their scales are comparable.
+DEFAULT_SAMPLE_TOKENS = 200_000
+DEFAULT_SAMPLE_SEED = 0
 
 
 @dataclass(frozen=True)
@@ -88,10 +93,42 @@ def _read_groups(fs, groups, column: str) -> Iterator[list]:
             yield pq.ParquetFile(fh).read_row_group(i, columns=[column]).column(column).to_pylist()
 
 
+def jsonl_bytes(texts: Sequence[str]) -> bytes:
+    """``texts`` as a JSONL corpus: one ``{"text": ...}`` per line."""
+    return "".join(json.dumps({"text": t}, ensure_ascii=False) + "\n" for t in texts).encode()
+
+
+def sample_tokens(
+    tokenizer, texts: Sequence[str], max_tokens: int, seed: int
+) -> tuple[list[str], CorpusSample]:
+    """A seeded sample of whole documents with at most ``max_tokens`` tokens (see
+    :class:`CorpusSample`), in corpus order, and its description."""
+    if not texts:
+        raise ValueError("the corpus has no documents to sample")
+    order = random.Random(seed).sample(range(len(texts)), len(texts))
+    picked: list[int] = []
+    total = 0
+    for i in order:
+        n = len(tokenizer.encode(texts[i], add_special_tokens=False))
+        if picked and total + n > max_tokens:
+            continue  # a shorter document later in the order may still fit
+        picked.append(i)
+        total += n
+    sample = [texts[i] for i in sorted(picked)]
+    return sample, CorpusSample(
+        seed=seed,
+        max_tokens=max_tokens,
+        documents=len(sample),
+        corpus_documents=len(texts),
+        tokens=total,
+        sha256=hashlib.sha256(jsonl_bytes(sample)).hexdigest(),
+    )
+
+
 def write_corpus(texts: list[str], out: Path, **source) -> CorpusSource:
     """Write the JSONL corpus and its source sidecar; returns the source."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = "".join(json.dumps({"text": t}, ensure_ascii=False) + "\n" for t in texts).encode()
+    data = jsonl_bytes(texts)
     out.write_bytes(data)
     record = CorpusSource(documents=len(texts), sha256=hashlib.sha256(data).hexdigest(), **source)
     source_path(out).write_text(record.model_dump_json(indent=2) + "\n", encoding="utf-8")

@@ -10,6 +10,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli, with_model_options
+from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 
 
 def read_corpus(path: Path | None):
@@ -49,9 +50,12 @@ def scan_evidence(
     stride=None,
     head=None,
     unit="neuron",
+    max_tokens=None,
+    sample_seed=0,
 ):
-    """Pick the unit, scan the corpus, then (neurons only) read the vocabulary lens and
-    attribute the top examples' peaks to their context tokens."""
+    """Pick the unit, scan the corpus (or a ``max_tokens`` sample of it), then (neurons
+    only) read the vocabulary lens and attribute the top examples' peaks to their
+    context tokens."""
     import random
 
     from openinterp import __version__
@@ -86,6 +90,12 @@ def scan_evidence(
             model_name=model_name, layer=layer, neuron_idx=index, pole=pole or "positive"
         )
     texts, corpus_name, corpus_sha, corpus_source = read_corpus(corpus)
+    sample = None
+    if max_tokens:
+        from openinterp.corpus import sample_tokens
+
+        texts, sample = sample_tokens(runner.tokenizer, texts, max_tokens, sample_seed)
+        click.echo(f"Sampled {sample}", err=True)
     if window_tokens is not None:
         stride = stride or default_stride(window_tokens)
         how = f" as {window_tokens}-token windows every {stride} tokens"
@@ -131,6 +141,7 @@ def scan_evidence(
             harness_version=__version__,
             environment=run_environment(runner),
             corpus_source=corpus_source,
+            corpus_sample=sample,
         ),
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,
@@ -226,6 +237,23 @@ def write_evidence(evidence, path: Path) -> None:
     type=click.Path(exists=True, path_type=Path),
     help="Text file (one snippet per line) or .jsonl with a 'text' field.",
 )
+@click.option(
+    "--max-tokens",
+    default=DEFAULT_SAMPLE_TOKENS,
+    show_default=True,
+    type=click.IntRange(0),
+    help="Scan a seeded sample of whole documents with at most this many tokens, so the "
+    "scan's cost and scale don't grow with the corpus (recorded in provenance). "
+    "0 scans every document.",
+)
+@click.option(
+    "--sample-seed",
+    default=DEFAULT_SAMPLE_SEED,
+    show_default=True,
+    type=int,
+    help="Seed for the --max-tokens sample. Keep the default so audits of one corpus read "
+    "the same documents.",
+)
 @click.option("--top-k", default=20, show_default=True, help="Examples shown to the proposer.")
 @click.option(
     "--window-tokens",
@@ -284,6 +312,8 @@ def audit(
     random_pick,
     seed,
     corpus,
+    max_tokens,
+    sample_seed,
     top_k,
     window_tokens,
     stride,
@@ -362,6 +392,8 @@ def audit(
             stride=stride,
             head=head,
             unit=unit,
+            max_tokens=max_tokens,
+            sample_seed=sample_seed,
         )
         if evidence_out is not None:
             write_evidence(evidence, evidence_out)

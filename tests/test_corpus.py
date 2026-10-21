@@ -1,5 +1,6 @@
 """Corpora sampled from Parquet datasets, with a source sidecar (offline: local files)."""
 
+import hashlib
 import json
 from types import SimpleNamespace
 
@@ -13,11 +14,14 @@ from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.corpus import (
     build_from_hub,
+    jsonl_bytes,
     load_source,
     sample_documents,
+    sample_tokens,
     source_path,
     write_corpus,
 )
+from tests.conftest import FakeTokenizer
 
 
 @pytest.fixture
@@ -136,6 +140,39 @@ def test_cli_needs_files_for_non_presets():
     assert result.exit_code != 0 and "--files is required" in result.output
 
 
+DOCS = [f"doc {i} " + "x" * (i * 7 % 23) for i in range(40)]  # 6 to 28 tokens each
+
+
+def test_token_sample_is_seeded_bounded_and_in_corpus_order():
+    tok = FakeTokenizer()
+    texts, sample = sample_tokens(tok, DOCS, max_tokens=200, seed=3)
+    assert sample_tokens(tok, DOCS, 200, 3) == (texts, sample)  # re-draws the same
+    assert sample_tokens(tok, DOCS, 200, 4)[0] != texts
+    assert sample.tokens == sum(len(tok.encode(t)) for t in texts) <= 200
+    assert sample.tokens > 200 - max(len(d) for d in DOCS)  # filled until nothing fits
+    assert texts == [d for d in DOCS if d in texts]  # corpus order
+    assert (sample.documents, sample.corpus_documents) == (len(texts), len(DOCS))
+    assert sample.sha256 == hashlib.sha256(jsonl_bytes(texts)).hexdigest()
+
+
+def test_token_sample_takes_everything_that_fits_and_at_least_one_document():
+    tok = FakeTokenizer()
+    texts, sample = sample_tokens(tok, DOCS, max_tokens=10**6, seed=0)
+    assert texts == DOCS and sample.tokens == sum(map(len, DOCS))
+    texts, sample = sample_tokens(tok, DOCS, max_tokens=1, seed=0)
+    assert len(texts) == 1 and sample.tokens > sample.max_tokens
+    with pytest.raises(ValueError, match="no documents"):
+        sample_tokens(tok, [], 10, 0)
+
+
+def test_full_sample_of_a_built_corpus_hashes_like_the_file(tmp_path):
+    out = tmp_path / "corpus.jsonl"
+    source = write_corpus(DOCS, out, dataset="d", files="*", seed=0, max_chars=99,
+                          docs_per_row_group=1)  # fmt: skip
+    _, sample = sample_tokens(FakeTokenizer(), read_corpus(out)[0], 10**6, 0)
+    assert sample.sha256 == source.sha256
+
+
 def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import write_experiment_page
@@ -150,9 +187,14 @@ def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
         dtype="float32", corpus=str(source), n_snippets=500, tokens_scanned=1000,
         selection="random", harness_version="test", corpus_source=source,
     )  # fmt: skip
+    _, sample = sample_tokens(FakeTokenizer(), DOCS, 200, 0)
+    provenance = provenance.model_copy(update={"corpus_sample": sample})
     sub = record.submission.model_copy(update={"provenance": provenance})
     rec = AuditRecord(submission=sub, verdict=record.verdict)
     compile_site([rec], tmp_path / "site")
     page = next((tmp_path / "site" / "models").rglob("N*.html")).read_text()
     assert "fineweb-edu@87f09149" in page and "licence odc-by" in page
-    assert "licence odc-by" in write_experiment_page(rec, tmp_path / "wiki").read_text()
+    wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
+    assert "licence odc-by" in wiki
+    shown = f"seeded sample of {sample.documents}/40 docs (≤ 200 tokens, seed 0)"
+    assert shown in page and shown in wiki

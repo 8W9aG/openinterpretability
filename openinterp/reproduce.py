@@ -9,6 +9,10 @@ revision and dtype the record pins, every measurement its verdict rests on:
 3. the review itself, with the record's stored probes and its own ``ReviewPolicy``
    (no LLM calls): every probe's activation and pass/fail, every gate and the status.
 
+Given the scan's corpus, it also re-draws the record's corpus sample (protocol 0.7)
+from its seed and token budget, and checks that it hashes the same and holds every top
+example.
+
 Numbers must agree within ``atol × scale + rtol × |recorded|``. Anything the decision
 rule reads (pass/fail, gates, status) must agree exactly. Causal metrics, joint
 ablation and explanation scores are reported but not gated, so a difference there is
@@ -93,7 +97,10 @@ def reproduce_record(
     runner: NeuronHookRunner,
     tolerance: Tolerance = DEFAULT_TOLERANCE,
     path: Path | None = None,
+    corpus: tuple[list[str], str] | None = None,
 ) -> ReproductionReport:
+    """Reproduce ``record`` with ``runner``. ``corpus`` is (documents, SHA-256 of the
+    corpus file), to re-draw the scan's sample from."""
     from openinterp.agents.proposer import observed_delta
     from openinterp.agents.reviewer import evaluate_submission, probes_from_verdict
 
@@ -114,6 +121,8 @@ def reproduce_record(
         report.fail(f"max_activation {scale} is not the top example's peak {peak}")
 
     # 1. Scan evidence.
+    if corpus is not None:
+        _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
     for n, ex in enumerate(sub.top_examples, 1):
         strengths = unit.strengths(runner, ex.text)
         tokens = runner.encode(ex.text)["input_ids"][0].tolist()
@@ -162,6 +171,25 @@ def reproduce_record(
             verdict.explanation_scores, runner, unit, tolerance, scale, report
         )
     return report
+
+
+def _check_sample(prov, examples, runner, texts, corpus_sha, report) -> None:
+    """Re-draw the record's corpus sample: the same documents, holding every top example."""
+    from openinterp.corpus import sample_tokens
+
+    sample = prov and prov.corpus_sample
+    if sample is None:
+        return
+    if corpus_sha != prov.corpus_sha256:
+        report.warnings.append("the corpus given is not the scan's; its sample was not checked")
+        return
+    drawn, redrawn = sample_tokens(runner.tokenizer, texts, sample.max_tokens, sample.seed)
+    if redrawn != sample:
+        report.fail(f"corpus sample recorded {sample}, re-drawn {redrawn}")
+        return
+    for n, ex in enumerate(examples, 1):
+        if not any(ex.text in doc for doc in drawn):
+            report.fail(f"top example {n} is not in the corpus sample")
 
 
 def _compare_explanation_scores(

@@ -142,6 +142,12 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
 @click.option("--rtol", default=1e-2, show_default=True, type=click.FloatRange(min=0))
 @click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto.")
 @click.option(
+    "--corpus",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="The scans' corpus: re-draw each record's corpus sample from it and check it "
+    "holds the top examples. Records scanned on another corpus get a warning.",
+)
+@click.option(
     "--allow-model",
     "allowed_models",
     multiple=True,
@@ -156,7 +162,9 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
     help="Records signed by a key listed here skip reproduction. With --base-ref the file "
     "is read from that ref, so a branch can't add its own key.",
 )
-def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, allowed_signers):
+def reproduce(
+    records, base_ref, wiki_dir, atol, rtol, device, corpus, allowed_models, allowed_signers
+):
     """Re-run experiment records against their pinned model and compare (no LLM calls).
 
     Each record's scan evidence, counterfactual deltas and review are measured again
@@ -169,6 +177,7 @@ def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, a
 
     from openinterp.checks import changed_records
     from openinterp.cli import _load_runner
+    from openinterp.cli_evidence import read_corpus
     from openinterp.core.schemas import AuditRecord
     from openinterp.harness.units import attn_implementation
     from openinterp.reproduce import Tolerance, check_protocol, pinned_environment
@@ -184,6 +193,10 @@ def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, a
     in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
     signers = _allowed_signers(allowed_signers, base_ref)
     tolerance = Tolerance(atol=atol, rtol=rtol)
+    scan_corpus = None
+    if corpus is not None:
+        texts, _, corpus_sha, _ = read_corpus(corpus)
+        scan_corpus = (texts, corpus_sha)
     runners: dict[tuple, object] = {}
     results: list[tuple[Path, list[str], list[str]]] = []
 
@@ -209,7 +222,7 @@ def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, a
         key = (model, revision, dtype, attn)
         if key not in runners:
             runners[key] = _load_runner(model, device, dtype, revision, attn)
-        report = run(record, runners[key], tolerance, path)
+        report = run(record, runners[key], tolerance, path, scan_corpus)
         return ("FAILED" if report.mismatches else "REPRODUCED"), report.mismatches, report.warnings
 
     for path in paths:

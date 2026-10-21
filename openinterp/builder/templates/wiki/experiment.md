@@ -18,7 +18,7 @@
 {% if sub.provenance %}
 {% set p = sub.provenance %}
 | Selection | {{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %} |
-| Corpus | {{ p.corpus | cell }} · {{ "{:,}".format(p.n_snippets) }} snippets · {{ "{:,}".format(p.tokens_scanned) }} tokens{% if p.snippet_tokens %} · {{ p.snippet_tokens }}-token windows{% if p.snippet_stride %} every {{ p.snippet_stride }} tokens{% endif %}{% endif %}{% if p.corpus_source and p.corpus_source.license %} · licence {{ p.corpus_source.license | cell }}{% endif %} |
+| Corpus | {{ p.corpus | cell }} · {{ "{:,}".format(p.n_snippets) }} snippets · {{ "{:,}".format(p.tokens_scanned) }} tokens{% if p.corpus_sample %} · seeded sample of {{ p.corpus_sample.documents }}/{{ p.corpus_sample.corpus_documents }} docs (≤ {{ "{:,}".format(p.corpus_sample.max_tokens) }} tokens, seed {{ p.corpus_sample.seed }}){% endif %}{% if p.snippet_tokens %} · {{ p.snippet_tokens }}-token windows{% if p.snippet_stride %} every {{ p.snippet_stride }} tokens{% endif %}{% endif %}{% if p.corpus_source and p.corpus_source.license %} · licence {{ p.corpus_source.license | cell }}{% endif %} |
 | Model revision | `{{ p.model_revision or 'unrecorded' }}` · {{ p.dtype }} |
 {% if p.costs %}
 | Run cost | {{ p.costs.summary() | cell }} (reported, not gated) |

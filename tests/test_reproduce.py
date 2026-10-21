@@ -93,6 +93,35 @@ def test_edited_scan_evidence_is_caught(record, toy_runner):
     assert "is not the top example's peak" in messages
 
 
+def test_corpus_sample_is_redrawn(record, toy_runner):
+    from openinterp.core.schemas import ExperimentProvenance
+    from openinterp.corpus import sample_tokens
+
+    docs = [e.text for e in record.submission.top_examples] + ["padding text"] * 3
+    _, sample = sample_tokens(toy_runner.tokenizer, docs, 10**6, 0)
+    prov = ExperimentProvenance(
+        dtype="float32", corpus="c", corpus_sha256="abc", n_snippets=len(docs),
+        tokens_scanned=sample.tokens, selection="manual", harness_version="t",
+        corpus_sample=sample,
+    )  # fmt: skip
+    sub = record.submission.model_copy(update={"provenance": prov})
+    rec = record.model_copy(update={"submission": sub})
+
+    def check(texts, sha="abc", r=rec):
+        return reproduce_record(r, toy_runner, corpus=(texts, sha))
+
+    assert check(docs).ok
+    assert check(docs[:-1]).mismatches == [f"corpus sample recorded {sample}, re-drawn "
+        f"{sample_tokens(toy_runner.tokenizer, docs[:-1], 10**6, 0)[1]}"]  # fmt: skip
+    other = check(docs, sha="other")
+    assert other.ok and "not the scan's" in other.warnings[-1]
+    # A sample that can't have produced the top examples: one document, not theirs.
+    _, lone = sample_tokens(toy_runner.tokenizer, ["padding text"], 10**6, 0)
+    fake = prov.model_copy(update={"corpus_sample": lone})
+    r = rec.model_copy(update={"submission": sub.model_copy(update={"provenance": fake})})
+    assert "top example 1 is not in the corpus sample" in check(["padding text"], r=r).mismatches
+
+
 def test_other_protocol_versions_are_refused(record, toy_runner):
     old_policy = record.verdict.policy.model_copy(update={"protocol_version": "0.4"})
     old = record.model_copy(
