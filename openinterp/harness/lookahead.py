@@ -7,16 +7,19 @@ Two complementary measurements on native weights:
   tokens the pole directly promotes.
 * :func:`measure_lookahead` zero-ablates the pole on real prompts and compares the
   next-token distributions. A lookahead neuron's ablation moves probability mass
-  in a concentrated way onto/off a small set of upcoming tokens.
+  in a concentrated way onto/off a small set of upcoming tokens. :func:`ablation_profile`
+  does the same for any unit's ablation (an attention head is mean-ablated).
 """
 
 from __future__ import annotations
+
+from collections.abc import Mapping
 
 import torch
 import torch.nn.functional as F
 
 from openinterp.core.schemas import LookaheadProfile, Pole
-from openinterp.harness.hooks import Inputs, NeuronHookRunner, isolate_pole
+from openinterp.harness.hooks import Inputs, Intervention, NeuronHookRunner, ablate_pole
 
 
 def output_token_projection(
@@ -32,40 +35,47 @@ def output_token_projection(
     return list(zip(top.indices.tolist(), top.values.tolist(), strict=True))
 
 
-@torch.no_grad()
 def measure_lookahead(
     runner: NeuronHookRunner,
     prompts: Inputs,
     layer: int,
     neuron_idx: int,
     pole: Pole,
+    **kwargs,
+) -> LookaheadProfile:
+    """Zero-ablate the pole on ``prompts``; see :func:`ablation_profile`."""
+    return ablation_profile(
+        runner, prompts, {"interventions": {layer: ablate_pole(neuron_idx, pole)}}, **kwargs
+    )
+
+
+@torch.no_grad()
+def ablation_profile(
+    runner: NeuronHookRunner,
+    prompts: Inputs,
+    ablation: Mapping[str, Mapping[int, Intervention]],
     *,
     k: int = 10,
     kl_threshold: float = 1e-3,
     concentration_threshold: float = 0.5,
 ) -> LookaheadProfile:
-    """Zero-ablate the pole on ``prompts`` and profile its effect on next-token predictions.
+    """Ablate a unit on ``prompts`` and profile the effect on next-token predictions.
 
-    ``kl_divergence`` is KL(clean || ablated) averaged over non-padding positions.
-    The neuron is flagged as lookahead when that KL exceeds ``kl_threshold`` and the
-    ``k`` tokens losing the most probability account for at least
-    ``concentration_threshold`` of the total probability mass moved.
+    ``ablation`` holds :meth:`NeuronHookRunner.run_with_interventions` keyword arguments
+    (a unit's ``ablation()``). ``kl_divergence`` is KL(clean || ablated) averaged over
+    non-padding positions. The unit is flagged as lookahead when that KL exceeds
+    ``kl_threshold`` and the ``k`` tokens losing the most probability account for at
+    least ``concentration_threshold`` of the total probability mass moved.
     """
-
-    def ablate(act: torch.Tensor) -> torch.Tensor:
-        act = act.clone()
-        act[..., neuron_idx] = act[..., neuron_idx] - isolate_pole(act[..., neuron_idx], pole)
-        return act
-
     encoded = runner.encode(prompts)
     mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
     clean = F.log_softmax(runner.run_with_interventions(encoded).float(), dim=-1)[mask]
-    ablated = F.log_softmax(
-        runner.run_with_interventions(encoded, {layer: ablate}).float(), dim=-1
-    )[mask]
+    ablated = F.log_softmax(runner.run_with_interventions(encoded, **ablation).float(), dim=-1)[
+        mask
+    ]
 
     kl = F.kl_div(ablated, clean, log_target=True, reduction="batchmean").clamp(min=0.0)
-    prob_shift = (clean.exp() - ablated.exp()).mean(dim=0)  # positive = neuron supports token
+    prob_shift = (clean.exp() - ablated.exp()).mean(dim=0)  # positive = unit supports token
     total_moved = prob_shift.abs().sum()
     top = prob_shift.topk(min(k, prob_shift.numel()))
     concentration = float(top.values.clamp(min=0).sum() / total_moved) if total_moved > 0 else 0.0

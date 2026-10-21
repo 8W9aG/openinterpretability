@@ -36,6 +36,14 @@ def _load_runner(
         return _load(model_name, device, torch_dtype, revision, attn_implementation)
 
 
+def _load_unit_runner(ident, device: str, dtype: str, revision: str | None = None):
+    """Load the model an identifier names, with eager attention for a head."""
+    from openinterp.harness.units import attn_implementation
+
+    attn = attn_implementation(ident)
+    return _load_runner(ident.model_name, device, dtype, revision, attn)
+
+
 def _load(model_name, device, torch_dtype, revision, attn_implementation):
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -268,7 +276,7 @@ def verify(
     else:
         click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
         probes = reviewer.generate_probes(submission, n=n_probes).probes
-    runner = _load_runner(submission.identifier.model_name, device, dtype)
+    runner = _load_unit_runner(submission.identifier, device, dtype)
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
@@ -307,7 +315,7 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     if old.verdict is None:
         raise click.ClickException(f"{record} has no verdict to re-evaluate.")
     scores = load_scores(scores_file, old.submission)
-    runner = _load_runner(old.submission.identifier.model_name, device, dtype)
+    runner = _load_unit_runner(old.submission.identifier, device, dtype)
     submission = _clear_costs(old.submission)
     verdict = evaluate_submission(
         submission, runner, probes_from_verdict(old.verdict), old.verdict.reviewer_agent_model

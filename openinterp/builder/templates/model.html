@@ -10,6 +10,7 @@
   {{ model.experiments }} experiments ·
   {{ model.neurons }}/{{ model.total_neurons | thousands }} neurons studied ({{ model.coverage | pct_fine }}) ·
   {{ model.verified }}/{{ model.total_neurons | thousands }} with a verified pole ({{ model.verified_share | pct_fine }}) ·
+  {% if model.heads %}{{ model.heads }} attention heads studied ({{ model.verified_heads }} verified) · {% endif %}
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 
@@ -29,6 +30,7 @@
       <tr>
         <th class="px-3 py-2">Layer</th>
         <th class="px-3 py-2 text-right">Neurons studied</th>
+        <th class="px-3 py-2 text-right">Heads studied</th>
         <th class="px-3 py-2 text-right">Experiments</th>
         <th class="px-3 py-2 text-right">Verified</th>
       </tr>
@@ -38,6 +40,7 @@
       <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons | length }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.heads | length }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.verified }}</td>
       </tr>

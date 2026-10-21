@@ -170,6 +170,7 @@ def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, a
     from openinterp.checks import changed_records
     from openinterp.cli import _load_runner
     from openinterp.core.schemas import AuditRecord
+    from openinterp.harness.units import attn_implementation
     from openinterp.reproduce import Tolerance, check_protocol, pinned_environment
     from openinterp.reproduce import reproduce_record as run
     from openinterp.signing import SignatureError, verify_record
@@ -204,9 +205,10 @@ def reproduce(records, base_ref, wiki_dir, atol, rtol, device, allowed_models, a
         if reason:
             return "FAILED", [reason], []
         revision, dtype = pinned_environment(record)
-        key = (model, revision, dtype)
+        attn = attn_implementation(record.submission.identifier)
+        key = (model, revision, dtype, attn)
         if key not in runners:
-            runners[key] = _load_runner(model, device, dtype, revision=revision)
+            runners[key] = _load_runner(model, device, dtype, revision, attn)
         report = run(record, runners[key], tolerance, path)
         return ("FAILED" if report.mismatches else "REPRODUCED"), report.mismatches, report.warnings
 

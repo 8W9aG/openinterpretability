@@ -1,9 +1,9 @@
 """Compile every archived experiment into a static site under ``dist/``.
 
 Pages follow the registry hierarchy: ``index.html`` → ``models/<model>/index.html``
-→ ``models/<model>/L<layer>/index.html`` → ``models/<model>/L<layer>/N<idx>.html``.
-Each neuron page lists all of its experiments, most conclusive first. Null results
-are published alongside positive ones.
+→ ``models/<model>/L<layer>/index.html`` → ``models/<model>/L<layer>/N<idx>.html`` (a
+neuron) or ``H<idx>.html`` (an attention head). Each unit page lists all of its
+experiments, most conclusive first. Null results are published alongside positive ones.
 """
 
 from __future__ import annotations
@@ -20,7 +20,13 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.parquet_export import export_registry
-from openinterp.builder.tree import Experiment, build_tree, false_discovery, neuron_href
+from openinterp.builder.tree import (
+    Experiment,
+    build_tree,
+    false_discovery,
+    head_href,
+    neuron_href,
+)
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord, Histogram
 
@@ -190,6 +196,13 @@ class HeatToken:
 
 
 @dataclass(frozen=True)
+class Attended:
+    text: str
+    weight: float
+    offset: int  # tokens from the peak (≤ 0)
+
+
+@dataclass(frozen=True)
 class HeatExample:
     """One top-activating example, ready for the token heatmap."""
 
@@ -198,6 +211,7 @@ class HeatExample:
     tokens: list[HeatToken]  # the whole snippet
     clipped_start: bool
     clipped_end: bool
+    attended: list[Attended] = field(default_factory=list)  # a head's peak attention
 
 
 def token_heat(
@@ -226,6 +240,10 @@ def token_heat(
         tokens=tokens,
         clipped_start=start > 0,
         clipped_end=end < len(tokens),
+        attended=[
+            Attended(tokens[i].text, w, i - example.max_token_index)
+            for i, w in zip(example.attends_to, example.attention_weights, strict=True)
+        ],
     )
 
 
@@ -275,8 +293,17 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 def _anchor_href(row: dict) -> str:
     model_slug = row["slug"].split("/", 1)[0]
-    page = neuron_href(model_slug, row["layer"], row["neuron_idx"])
-    return f"{page}#{row['pole']}-{row['experiment_id']}"
+    if row["kind"] == "attn_head":
+        page = head_href(model_slug, row["layer"], row["head_idx"])
+    else:
+        page = neuron_href(model_slug, row["layer"], row["neuron_idx"])
+    return f"{page}#{row['pole'] or 'head'}-{row['experiment_id']}"
+
+
+def _unit_label(row: dict) -> str:
+    """``N12`` or ``H3``; templates add the layer and the pole mark."""
+    head = row["kind"] == "attn_head"
+    return f"H{row['head_idx']}" if head else f"N{row['neuron_idx']}"
 
 
 RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
@@ -295,7 +322,10 @@ def registry_stats(parquet: Path) -> dict:
     totals = rows(
         """
         SELECT count(*) AS experiments,
-               count(DISTINCT (model_name, layer, neuron_idx)) AS neurons,
+               count(DISTINCT (model_name, layer, neuron_idx))
+                   FILTER (WHERE kind = 'mlp_neuron_pole') AS neurons,
+               count(DISTINCT (model_name, layer, head_idx))
+                   FILTER (WHERE kind = 'attn_head') AS heads,
                count(DISTINCT model_name) AS models,
                count(*) FILTER (WHERE is_latest AND status = 'VERIFIED') AS verified,
                count(*) FILTER (WHERE conclusiveness >= 0.9 AND evidence_direction = 'refutes')
@@ -305,7 +335,8 @@ def registry_stats(parquet: Path) -> dict:
     )[0]
     verified = rows(
         """
-        SELECT slug, model_name, layer, neuron_idx, pole, experiment_id, explanation,
+        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
+               explanation,
                confidence_score, sufficiency_score, necessity_score, is_lookahead
         FROM r WHERE is_latest AND status = 'VERIFIED'
         ORDER BY confidence_score DESC, slug
@@ -313,7 +344,8 @@ def registry_stats(parquet: Path) -> dict:
     )
     conclusive = rows(
         """
-        SELECT slug, model_name, layer, neuron_idx, pole, experiment_id, explanation, status,
+        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
+               explanation, status,
                conclusiveness, evidence_direction
         FROM r
         WHERE reuses_probes_of IS NULL  -- re-measurements are not independent evidence
@@ -325,7 +357,8 @@ def registry_stats(parquet: Path) -> dict:
     )
     recent = rows(
         f"""
-        SELECT slug, model_name, layer, neuron_idx, pole, experiment_id, explanation, status,
+        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
+               explanation, status,
                conclusiveness, evidence_direction, submitting_agent_model,
                -- formatted in SQL: returning TIMESTAMPTZ to Python would need pytz
                strftime(timezone('UTC', reviewed_at), '%Y-%m-%dT%H:%M:%SZ') AS reviewed_iso,
@@ -346,6 +379,7 @@ def registry_stats(parquet: Path) -> dict:
     con.close()
     for row in verified + conclusive + recent:
         row["href"] = _anchor_href(row)
+        row["unit"] = _unit_label(row)
     return {
         "totals": totals,
         "verified": verified,
@@ -373,7 +407,7 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
     sub, verdict = e.record.submission, e.record.verdict
     ident = sub.identifier
     correlated = []
-    for c in sub.correlated_neurons:
+    for c in sub.correlated_neurons:  # neuron poles only
         href = neuron_href(ident.model_slug, ident.layer, c.neuron_idx)
         correlated.append({"c": c, "href": href if href in studied else None})
     return {
@@ -403,7 +437,7 @@ def compile_site(
 
     models = build_tree(records)
     experiments = [
-        e for m in models for layer in m.layers for n in layer.neurons for e in n.experiments
+        e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
     report = BuildReport(output_dir, len(records), len(experiments))
     report.parquet = export_registry(experiments, output_dir)
@@ -423,12 +457,12 @@ def compile_site(
         out.write_text(env.get_template(template).render(**common, root=_root_for(rel), **context))
         report.pages.append(out)
 
-    studied = {n.href for m in models for layer in m.layers for n in layer.neurons}
+    studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
         render(model.href, "model.html", model=model)
         for layer in model.layers:
             render(layer.href, "layer.html", model=model, layer=layer)
-            for neuron in layer.neurons:
+            for neuron in layer.units:
                 views = [_experiment_view(e, studied) for e in neuron.experiments]
                 render(
                     neuron.href, "neuron.html", model=model, layer=layer, neuron=neuron, views=views
