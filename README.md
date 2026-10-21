@@ -132,7 +132,7 @@ make install        # uv sync
 make test           # pytest (CPU only, no downloads)
 make lint           # ruff + the 500-line limit
 make check          # registry consistency (what CI's "Experiment records" job runs)
-make sample-run     # build dist/ from synthetic example records
+make sample-run     # build dist/ from a few real records in the wiki
 make build          # build dist/ from the wiki archive, plus the Pagefind index
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
@@ -237,4 +237,4 @@ Configure the workflow in the repo's GitHub settings:
 
 ## Status
 
-Early scaffold. The records in `examples/audits/` (imported with `openinterp wiki --import-dir`) are **synthetic fixtures** for exercising the builder. They are not real audit results.
+Early scaffold. `make sample-run` builds the site from six real experiments in `wiki/experiments/` (listed in the `Makefile`), imported with `openinterp wiki --import-dir`.

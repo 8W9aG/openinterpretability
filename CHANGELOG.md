@@ -26,6 +26,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **`make sample-run` builds from real records.** It imports six experiments from `wiki/experiments/` (VERIFIED, NEEDS_REVISION and REJECTED, a neuron with two experiments, and two with held-out explanation scores) instead of generating synthetic ones. `examples/make_sample_audits.py` and the `examples/audits/` fixtures are gone.
 - **Generated wiki indexes are no longer committed.** `wiki/README.md` and each neuron's `README.md` are gitignored and rebuilt locally by `openinterp wiki` (and by `verify`, `review` and `reevaluate`). Every experiment PR used to edit the same index rows, so parallel PRs conflicted. `openinterp check` no longer compares indexes and instead rejects a PR that commits one.
 - **`scripts/experiment-loop.sh` lands experiments:** each session follows `land-experiment`, and may also run `gh run` and `gh repo view`. Its result line gains `merged` or `open`.
 
