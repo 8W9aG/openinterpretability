@@ -20,7 +20,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
 
-- [ ] Tuned lens (Belrose et al., 2023) as a third vocabulary lens next to the logit and Jacobian lenses. Use pretrained lenses where they exist (`tuned-lens` ships them for GPT-2, Pythia and some Llama models) and train them for Qwen2.5-0.5B (cheap: one affine map per layer). Record how far it agrees with the Jacobian lens.
 - [ ] Verbalise the pole's output direction with a Patchscope or SelfIE prompt (Ghandeharioun et al., 2024; Chen et al., 2024). Inject `w_out`, scaled, into an inspection prompt and record the decoded text. Where a trained Activation Oracle exists for the model (Karvonen et al., 2025), record its answer too. Both are blind, example-free descriptions: use them as an extra proposer baseline (does the oracle's description verify as often as the agent's?), and never show them to the reviewer.
 - [ ] Wiring: the pole's top upstream and downstream connections. Two sources:
   - *weights*: virtual weights (Elhage et al., 2021) from attention heads' OV circuits and earlier neurons' `w_out` into the pole's `w_in`, and from its `w_out` into later neurons' `w_in` and heads' Q/K/V, with the norm folded in or approximated;
