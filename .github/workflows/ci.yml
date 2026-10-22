@@ -69,7 +69,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      ALLOWED_MODELS: Qwen/Qwen2.5-0.5B  # space-separated; add a model before records use it
+      # Space-separated; add a model before records use it. Kept in sync with
+      # [tool.openinterp] models in pyproject.toml, but not read from it: a fork PR could
+      # then make CI download any model.
+      ALLOWED_MODELS: Qwen/Qwen2.5-0.5B
       HF_HUB_DISABLE_PROGRESS_BARS: "1"
       TRANSFORMERS_VERBOSITY: error
     steps:

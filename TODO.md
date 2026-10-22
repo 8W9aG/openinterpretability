@@ -38,7 +38,6 @@ Methods from the wider interpretability literature that the registry doesn't use
 
 ## Pipeline
 
-- [ ] Let `openinterp next` explore models the registry doesn't have yet. Its explore pool falls back to the models already in the registry (`planner.py`), so with every record on Qwen2.5-0.5B the loop can never start on anything under Models. Add a configured model list (e.g. `[tool.openinterp] models` in `pyproject.toml`, kept in sync with CI's `ALLOWED_MODELS`) and weight explore draws toward models with little coverage.
 - [ ] Recover the scan corpus's provenance. 77 of 79 records scanned a `corpus.jsonl` (SHA-256 `ded48cfc…`) that isn't in git and has no `corpus.source.json`, so their `provenance.corpus_source` is empty. `reproduce` copes because it re-measures stored examples, but nobody else can re-run those scans, histograms or `max_activation`. Find out which `openinterp corpus` call (or older snippet) produced it and publish a sidecar, or publish the corpus itself once its licence is checked. Then make `audit` warn on, or refuse, a corpus with no matching sidecar.
 - [ ] Backfill explanation scores. Only 2 of 79 records have them, so detection and fuzzing can't be compared with verdicts across the registry. Add a planner draw that runs `score` and `reevaluate --explanation-scores` on records that lack them, VERIFIED first, then check whether VERIFIED predicts held-out detection. That check is a prerequisite for deciding whether simulation scores should become a gate (Protocol and science).
 - [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
@@ -170,7 +169,7 @@ Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Huggin
 
 ## Models
 
-The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test, a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means) and a check that the final-norm path resolves.
+The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test, a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means) and a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml` and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
 
 - [ ] Qwen2.5 family: 1.5B, 3B and the `-Instruct` variants, for base ↔ instruct and size-scaling comparisons with the default model.
 - [ ] Qwen3 (0.6B, 1.7B, 4B): the successor architecture; check `q_norm`/`k_norm` don't break hook resolution.

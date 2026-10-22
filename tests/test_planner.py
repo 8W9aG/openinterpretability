@@ -1,11 +1,13 @@
+import re
 from collections import Counter
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.core.schemas import AuditRecord, ReviewMetrics, ReviewPolicy
-from openinterp.planner import BASE_WEIGHTS, claim_key, plan_next
+from openinterp.planner import BASE_WEIGHTS, claim_key, configured_models, plan_next
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
 
@@ -203,3 +205,48 @@ def test_replicate_until_another_model_reviews(tmp_path, record):
     crossed = [_reviewed_by(rec, proposer), _reviewed_by(rec, "other/m", hours=1)]
     kinds = _kinds(plan_next(_registry(tmp_path / "b", *crossed), seed=1, now=NOW))
     assert ("challenge", "N1-positive") in kinds and ("replicate", "N1-positive") not in kinds
+
+
+def _explored_models(wiki, n=400, **kwargs):
+    plans = (plan_next(wiki, seed=s, epsilon=1.0, now=NOW, **kwargs) for s in range(n))
+    return Counter(p.choice.model for p in plans)
+
+
+def test_explores_configured_models_by_coverage(tmp_path, record):
+    """A configured model with no records is explored; well-covered ones still are."""
+    wiki = _registry(tmp_path, *(_record(record, status="VERIFIED", idx=i) for i in range(8)))
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
+    )
+    picks = _explored_models(wiki)
+    # Weights 1/√9 and 1/√1, so the new model gets 75% of explore draws.
+    assert 0.68 < picks["new/model"] / picks.total() < 0.82
+    assert picks["Qwen/Qwen2.5-0.5B"] > 0
+    plan = plan_next(wiki, seed=1, epsilon=1.0, now=NOW)
+    assert plan.explore_models == pytest.approx({"Qwen/Qwen2.5-0.5B": 0.25, "new/model": 0.75})
+    assert "by coverage" in plan.choice.rationale
+
+
+def test_open_claims_count_as_coverage(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["a/x", "b/y"]\n')
+    claims = [
+        f"experiment: a--x-L{i}-N1-positive experiment/a--x-L{i}-N1-positive" for i in range(3)
+    ]
+    plan = plan_next(tmp_path / "wiki", seed=1, now=NOW, claims=claims)
+    assert plan.explore_models == pytest.approx({"a/x": 1 / 3, "b/y": 2 / 3})  # 1/√4 vs 1/√1
+
+
+def test_model_option_overrides_config(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["a/x"]\n')
+    assert set(_explored_models(tmp_path / "wiki", n=20, models=["b/y"])) == {"b/y"}
+    assert set(_explored_models(tmp_path / "wiki", n=20)) == {"a/x"}
+
+
+def test_configured_models_match_ci_allow_list():
+    """CI must be able to reproduce every record the planner sends agents to make."""
+    root = Path(__file__).resolve().parents[1]
+    ci = (root / ".github/workflows/ci.yml").read_text()
+    allowed = re.search(r"^\s*ALLOWED_MODELS:\s*(.+?)\s*$", ci, re.M).group(1).split()
+    configured = configured_models(root / "pyproject.toml")
+    assert configured and sorted(configured) == sorted(allowed)
+    assert configured_models(root / "missing.toml") == ()
