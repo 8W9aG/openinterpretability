@@ -114,7 +114,6 @@ Measure before optimising, and check that any change to what the agents see does
 
 At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), and CI's "Reproduce records" job runs it on every pull request, on GitHub-hosted CPU runners with cached weights and a model allow-list. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
-- [ ] Remote worker: move "Reproduce records" to a GPU (or large CPU) machine that pulls jobs from a queue, keeps a warm cache of model weights, and runs one job at a time per device. No secrets or repo write access on the worker; it only needs to read the record and report a result.
 - [ ] Queue and cost controls: a submission from CI only enqueues a job (record path, commit SHA, record hash). Deduplicate by record hash, cap jobs per PR and per author per day, set a per-job timeout and a monthly budget, and refuse jobs once the budget is spent rather than scaling up.
 - [ ] Treat records as untrusted input: run only allow-listed models (no arbitrary Hugging Face repos, never `trust_remote_code`), bound probe count and length, and run each job in a sandbox with no network beyond the model cache.
 - [ ] Report back to GitHub as a commit status or check run on the PR's head SHA ("Reproduction: passed / failed / queued"), with a link to the log, and make it a required check for `main` once it is reliable.
@@ -125,7 +124,6 @@ At the moment CI's "Experiment records" job (`openinterp check`) only confirms t
 
 Experiment pages currently show the activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] Vocabulary projection bars: the top and bottom tokens the neuron promotes and suppresses (Jacobian and logit lens), replacing the current token lists.
 - [ ] Steering samples: the same prompt continued with the neuron clamped high, at baseline and ablated, side by side.
 - [ ] Layer map on model pages: a layer × neuron grid coloured by status (VERIFIED, rejected, dead, unexplored), so coverage and where the interpretable neurons sit are visible.
 - [ ] Feasibility study: a concept map on model pages, in the style of "2.5 million cancer research papers, mapped" (embed each item's text → k-NN graph → UMAP → Leiden clusters, labelled by theme). Each point is a neuron, placed by the meaning of the text it fires on, not by its activations or weights. Write up the findings and a recommendation before building anything.

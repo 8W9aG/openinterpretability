@@ -103,32 +103,6 @@
         Claimed <strong>retrospective</strong>: responds to tokens already in context.
         {% endif %}
       </p>
-      {% if sub.vocabulary_lens %}
-      {% set vl = sub.vocabulary_lens %}
-      <table class="mt-4 w-full text-xs">
-        <thead class="text-slate-500">
-          <tr>
-            <th class="pb-1 text-left font-normal"></th>
-            <th class="pb-1 text-left font-normal" title="Output direction transported to the final layer with the context-averaged Jacobian (Gurnee et al., 2026)">Jacobian lens</th>
-            <th class="pb-1 text-left font-normal" title="Output direction read directly through the unembedding (J = I)">Logit lens</th>
-          </tr>
-        </thead>
-        <tbody class="align-top">
-          {% for label, jac, logit in [("Promotes", vl.jacobian_promoted, vl.logit_promoted), ("Suppresses", vl.jacobian_suppressed, vl.logit_suppressed)] %}
-          <tr>
-            <td class="pr-2 text-slate-500">{{ label }}</td>
-            <td class="pr-2">{% for t in jac[:8] %}<code class="tok mr-1 rounded bg-slate-100 px-1 dark:bg-slate-800">{{ t }}</code>{% endfor %}</td>
-            <td class="text-slate-500">{% for t in logit[:8] %}<code class="tok mr-1 rounded px-1">{{ t }}</code>{% endfor %}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="mt-1 text-xs text-slate-500">
-        Top-10 overlap {{ vl.overlap | pct }} · cos(w, J·w) {{ vl.direction_cosine | num(2) }} ·
-        kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) / {{ vl.logit_kurtosis | num(1) }} (logit); ≈3 means no specific token set ·
-        {{ vl.prompts }} prompts
-      </p>
-      {% endif %}
       {% if sub.input_attribution and sub.input_attribution.examples %}
       {% set ia = sub.input_attribution %}
       <h4 class="mt-4 mb-1 text-sm font-medium" title="Integrated gradients over the input token embeddings at each top example's peak (Sundararajan et al., 2017)">Input attribution</h4>
@@ -182,6 +156,8 @@
       </dl>
     </section>
   </div>
+
+  {% include "_vocab_chart.html" %}
 
   {% if examples %}
   <section class="mb-10" style="--heat-rgb: {{ '234 88 12' if positive else '2 132 199' }}">

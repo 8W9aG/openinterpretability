@@ -115,10 +115,12 @@ Explanation scores on held-out text (recorded, not gated): detection {{ (es.dete
 
 | | Jacobian lens | Logit lens |
 | --- | --- | --- |
-| Promotes | {% for t in vl.jacobian_promoted[:8] %}`{{ t | cell }}` {% endfor %}| {% for t in vl.logit_promoted[:8] %}`{{ t | cell }}` {% endfor %}|
-| Suppresses | {% for t in vl.jacobian_suppressed[:8] %}`{{ t | cell }}` {% endfor %}| {% for t in vl.logit_suppressed[:8] %}`{{ t | cell }}` {% endfor %}|
+{% for label, side in [("Promotes", "promoted"), ("Suppresses", "suppressed")] %}
+| {{ label }} |{% for lens in ("jacobian", "logit") %}{% set zs = vl[lens ~ "_" ~ side ~ "_z"] %} {% for t in vl[lens ~ "_" ~ side][:8] %}`{{ t | cell }}`{% if zs %} {{ "%+.1f" | format(zs[loop.index0]) }}{% endif %} {% endfor %}|{% endfor %}
 
-Top-10 overlap {{ vl.overlap | pct }}; cos(w, J·w) {{ vl.direction_cosine | num(2) }}; kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) vs {{ vl.logit_kurtosis | num(1) }} (logit); {{ vl.prompts }} prompts.
+{% endfor %}
+
+{% if vl.jacobian_promoted_z %}Numbers are z-scores over the whole vocabulary. {% endif %}Top-10 overlap {{ vl.overlap | pct }}; cos(w, J·w) {{ vl.direction_cosine | num(2) }}; kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) vs {{ vl.logit_kurtosis | num(1) }} (logit); {{ vl.prompts }} prompts.
 
 {% endif %}
 {% if sub.input_attribution and sub.input_attribution.examples %}

@@ -116,6 +116,114 @@ def probe_chart(verdict, scale: float | None, width: int = 640) -> dict | None:
     }
 
 
+LENSES = (
+    (
+        "jacobian",
+        "Jacobian lens",
+        "Output direction transported to the final layer with the "
+        "context-averaged Jacobian (Gurnee et al., 2026)",
+    ),
+    ("logit", "Logit lens", "Output direction read directly through the unembedding (J = I)"),
+)
+VISIBLE_WHITESPACE = str.maketrans({" ": "␣", "\n": "↵", "\t": "⇥"})
+
+
+def _nice_step(span: float, max_ticks: int = 4) -> float:
+    """The smallest 1/2/5 × 10ⁿ step that splits ``span`` into at most ``max_ticks``."""
+    if span <= 0:
+        return 1.0
+    base = 10 ** math.floor(math.log10(span / max_ticks))
+    return next(m * base for m in (1, 2, 5, 10) if span / (m * base) <= max_ticks)
+
+
+def _bar_path(x0: float, x1: float, y: float, h: float, r: float = 4) -> str:
+    """A bar from the baseline ``x0`` to ``x1``: square at the baseline, rounded at the end."""
+    sign = 1 if x1 >= x0 else -1
+    r = min(r, abs(x1 - x0), h / 2)
+    tip = x1 - sign * r
+    return (
+        f"M{x0:.2f} {y:.2f}H{tip:.2f}Q{x1:.2f} {y:.2f} {x1:.2f} {y + r:.2f}"
+        f"V{y + h - r:.2f}Q{x1:.2f} {y + h:.2f} {tip:.2f} {y + h:.2f}H{x0:.2f}Z"
+    )
+
+
+def vocab_chart(lens, width: int = 360) -> dict | None:
+    """Diverging bars of each lens's top promoted and suppressed tokens by vocabulary z-score.
+
+    One panel per lens, on a shared axis (z-scores are scale-invariant, so the lenses are
+    comparable). Rows run from the most promoted token down to the most suppressed; each
+    token's label sits on the far side of zero from its bar. Records without z-scores get
+    no chart; the page lists their tokens instead.
+    """
+    if lens is None:
+        return None
+    lists = {}
+    for key, *_ in LENSES:
+        for side in ("promoted", "suppressed"):
+            tokens, z = getattr(lens, f"{key}_{side}"), getattr(lens, f"{key}_{side}_z")
+            if z is None or len(z) != len(tokens):
+                return None
+            lists[key, side] = list(zip(tokens, z, strict=True))
+    zmax = max((abs(v) for pairs in lists.values() for _, v in pairs), default=0.0) or 1.0
+    step = _nice_step(zmax)
+    reach = math.ceil(zmax / step) * step
+    zero, half = width / 2, width / 2 - 6
+    bar, pitch, gap, top = 11, 15, 10, 4
+
+    def x(v: float) -> float:
+        return round(zero + half * v / reach, 2)
+
+    panels = []
+    for key, title, hint in LENSES:
+        promoted, suppressed = lists[key, "promoted"], lists[key, "suppressed"]
+        rows, y = [], top
+        for side, pairs in (("promoted", promoted), ("suppressed", suppressed[::-1])):
+            for i, (token, z) in enumerate(pairs):
+                rank = i + 1 if side == "promoted" else len(pairs) - i
+                shown = token.translate(VISIBLE_WHITESPACE)
+                rows.append(
+                    {
+                        "promoted": side == "promoted",
+                        "y": y,
+                        "d": _bar_path(zero, x(z), y, bar),
+                        "text": shown if len(shown) <= 22 else shown[:21] + "…",
+                        "text_x": zero - 6 if z >= 0 else zero + 6,
+                        "anchor": "end" if z >= 0 else "start",
+                        "label": f"{shown} · z = {z:+.2f} · #{rank} {side}",
+                    }
+                )
+                y += pitch
+            y += gap
+        panels.append({"key": key, "title": title, "hint": hint, "rows": rows})
+    axis_y = max((len(p["rows"]) for p in panels), default=0) * pitch + top + gap
+    ticks = [
+        (x(i * step), f"{i * step:+g}" if i else "0")
+        for i in range(-round(reach / step), round(reach / step) + 1)
+    ]
+    table = [
+        {
+            "rank": i + 1,
+            **{
+                f"{key}_{side}": lists[key, side][i] if i < len(lists[key, side]) else None
+                for key, *_ in LENSES
+                for side in ("promoted", "suppressed")
+            },
+        }
+        for i in range(max(len(pairs) for pairs in lists.values()))
+    ]
+    return {
+        "width": width,
+        "height": axis_y + 18,
+        "bar": bar,
+        "pitch": pitch,
+        "zero_x": zero,
+        "axis_y": axis_y,
+        "ticks": ticks,
+        "panels": panels,
+        "table": table,
+    }
+
+
 CAUSAL_KINDS = (("sufficiency", "Sufficiency"), ("necessity", "Necessity"))
 
 
