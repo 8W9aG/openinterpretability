@@ -56,6 +56,11 @@ def test_vocabulary_lens(toy_runner):
     assert lens.overlap == 1.0 and lens.direction_cosine == pytest.approx(1.0, abs=1e-4)
     assert lens.logit_promoted == lens.jacobian_promoted
     assert lens.prompts == 2
+    for side in ("logit_promoted", "logit_suppressed", "jacobian_promoted", "jacobian_suppressed"):
+        assert len(getattr(lens, f"{side}_z")) == 4
+    assert lens.jacobian_promoted_z == sorted(lens.jacobian_promoted_z, reverse=True)
+    assert lens.jacobian_promoted_z[0] > 0 > lens.jacobian_suppressed_z[0]
+    assert lens.jacobian_suppressed_z == sorted(lens.jacobian_suppressed_z)
 
     early = vocabulary_lens(toy_runner, ["hello world", "abc"], 0, 3, "positive", k=4)
     assert -1 <= early.direction_cosine <= 1 and len(early.jacobian_promoted) == 4

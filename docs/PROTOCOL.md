@@ -107,7 +107,7 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
 
   This is reported, not gated.
 - **Vocabulary lens.** Each submission records the pole's output direction read through the logit lens and the **Jacobian lens** (Gurnee et al., 2026). The Jacobian lens transports the direction with the context-averaged Jacobian E[∂h_final,t′/∂h_ℓ,t] over t′ ≥ t, estimated from one perturbed forward pass per prompt and sign. The record includes:
-  - both top-10 lists;
+  - both top-10 lists, with each token's z-score over the whole vocabulary;
   - their overlap and cos(w, J·w);
   - the kurtosis of the vocabulary scores (≈ 3 means no specific token set).
 

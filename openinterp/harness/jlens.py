@@ -103,7 +103,11 @@ def _decode(runner: NeuronHookRunner, vector: torch.Tensor, k: int):
     z = (scores - scores.mean()) / scores.std().clamp(min=1e-12)
     top = scores.topk(k).indices.tolist()
     bottom = (-scores).topk(k).indices.tolist()
-    return top, bottom, float((z**4).mean())
+    return top, bottom, float((z**4).mean()), _rounded(z[top]), _rounded(z[bottom])
+
+
+def _rounded(values: torch.Tensor) -> list[float]:
+    return [round(float(v), 4) for v in values]
 
 
 def vocabulary_lens(
@@ -125,8 +129,8 @@ def vocabulary_lens(
         tok = runner.tokenizer
         return [tok.decode([i]) if tok is not None else str(i) for i in ids]
 
-    logit_top, logit_bottom, logit_kurt = _decode(runner, direction, k)
-    jac_top, jac_bottom, jac_kurt = _decode(runner, transported, k)
+    logit_top, logit_bottom, logit_kurt, logit_top_z, logit_bottom_z = _decode(runner, direction, k)
+    jac_top, jac_bottom, jac_kurt, jac_top_z, jac_bottom_z = _decode(runner, transported, k)
     cosine = torch.nn.functional.cosine_similarity(
         direction.to(transported.device), transported, dim=0
     )
@@ -135,6 +139,10 @@ def vocabulary_lens(
         logit_suppressed=words(logit_bottom),
         jacobian_promoted=words(jac_top),
         jacobian_suppressed=words(jac_bottom),
+        logit_promoted_z=logit_top_z,
+        logit_suppressed_z=logit_bottom_z,
+        jacobian_promoted_z=jac_top_z,
+        jacobian_suppressed_z=jac_bottom_z,
         overlap=round(len(set(logit_top) & set(jac_top)) / k, 4),
         direction_cosine=round(max(-1.0, min(1.0, float(cosine))), 6),
         logit_kurtosis=round(logit_kurt, 4),

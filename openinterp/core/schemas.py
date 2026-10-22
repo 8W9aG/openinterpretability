@@ -287,12 +287,20 @@ class VocabularyLens(StrictModel):
     two top-k lists; ``direction_cosine`` is cos(w, J·w), so low values mean later
     layers substantially rotate what this neuron writes. Kurtosis of the vocabulary
     z-scores is high when the pole promotes a small, specific token set.
+
+    The ``*_z`` lists hold each listed token's z-score over the whole vocabulary,
+    in the same order. They are scale-invariant, so the two lenses share an axis.
+    Records before they were added have ``None``.
     """
 
     logit_promoted: list[str]
     logit_suppressed: list[str]
     jacobian_promoted: list[str]
     jacobian_suppressed: list[str]
+    logit_promoted_z: list[float] | None = None
+    logit_suppressed_z: list[float] | None = None
+    jacobian_promoted_z: list[float] | None = None
+    jacobian_suppressed_z: list[float] | None = None
     overlap: UnitFloat
     direction_cosine: float = Field(ge=-1.0, le=1.0)
     logit_kurtosis: float = Field(ge=0.0)
