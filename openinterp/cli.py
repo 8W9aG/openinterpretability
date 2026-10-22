@@ -57,6 +57,7 @@ def _load(model_name, device, torch_dtype, revision, attn_implementation):
     ).to(device)
     model.eval()
     runner = NeuronHookRunner(model, tokenizer)
+    runner.model_name = model_name
     runner.model_revision = commit
     return runner
 
@@ -416,6 +417,7 @@ from openinterp import (  # noqa: E402, F401
     cli_costs,
     cli_evidence,
     cli_registry,
+    cli_scan,
     cli_score,
 )
 

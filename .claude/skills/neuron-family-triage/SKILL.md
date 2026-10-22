@@ -44,7 +44,7 @@ def weight_stats(runner, layer):
 | Never active on a broad corpus | Dead | Skip it, but record it for registry statistics |
 | Activation depends on position, not content | Positional | Test with shuffled-content probes at a fixed position |
 
-Get token frequencies by counting token ids over the scan corpus. Find positional neurons by correlating activation with position index across the scan.
+Get token frequencies by counting token ids over the scan corpus. Find positional neurons by correlating activation with position index across the scan. `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl --top 0 --format jsonl` gives every scanned token's id, position in its piece and strength, from the layer's cached scan when there is one, so don't write your own scan loop.
 
 ## Fit with the protocol
 

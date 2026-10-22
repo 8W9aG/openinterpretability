@@ -117,6 +117,15 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
     click.echo(f"Why: {c.rationale}")
     for command in c.commands:
         click.echo(f"  $ {command}")
+    if any(cmd.startswith("openinterp audit") and "--neuron" in cmd for cmd in c.commands):
+        from openinterp.harness.layer_cache import LayerCache
+
+        cache = LayerCache.default()
+        if cache is not None and c.layer in cache.cached_layers(c.model):
+            click.echo(
+                f"Scan cache: layer {c.layer} is cached, so the audit replays its scan "
+                "(when the corpus options match) instead of running the model."
+            )
     if c.skills:
         click.echo(f"Skills: {', '.join(c.skills)}")
     click.echo(

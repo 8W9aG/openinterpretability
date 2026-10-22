@@ -11,12 +11,17 @@ in the first window that reaches it after the first, where it has at least
 ``window_tokens - stride`` tokens of context (the strided-perplexity convention).
 Top examples are windows, decoded back to text so a record re-measures them as the
 scan did, and no two overlap.
+
+Each forward pass yields a :class:`Chunk`: the whole layer's activations on every real
+token of its pieces. Given a :class:`~openinterp.harness.layer_cache.LayerCache`, a scan
+stores its chunks, and a later scan of any neuron in that layer replays them.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import torch
 
@@ -30,6 +35,12 @@ from openinterp.core.schemas import (
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.covariance import PartnerSearch
 from openinterp.harness.hooks import NeuronHookRunner, pole_strength
+
+if TYPE_CHECKING:
+    from openinterp.harness.layer_cache import LayerCache
+
+
+BATCH_SIZE = 8  # pieces per forward pass; part of a cached scan's key, as it sets padding
 
 
 @dataclass
@@ -107,6 +118,54 @@ def batches(runner: NeuronHookRunner, pieces: Sequence[Piece], batch_size: int) 
         yield Batch(batch, encoded, ids, mask, counted, positions)
 
 
+@dataclass
+class Chunk:
+    """One forward pass, flattened to its pieces' real tokens in scan order."""
+
+    pieces: list[Piece]
+    lengths: list[int]  # real tokens of each piece
+    ids: torch.Tensor  # [n]
+    positions: torch.Tensor  # [n]
+    counted: torch.Tensor  # [n] bool: tokens new to the scan
+    acts: torch.Tensor  # [n, width] the whole layer, in the model's dtype, on the CPU
+
+    def rows(self) -> Iterator[tuple[Piece, slice]]:
+        """Each piece and its rows."""
+        start = 0
+        for piece, n in zip(self.pieces, self.lengths, strict=True):
+            yield piece, slice(start, start + n)
+            start += n
+
+
+def layer_chunks(
+    runner: NeuronHookRunner, pieces: Sequence[Piece], layer: int, batch_size: int
+) -> Iterator[Chunk]:
+    """Run the model over ``pieces`` and yield ``layer``'s activations batch by batch."""
+    for batch in batches(runner, pieces, batch_size):
+        _, cache = runner.run_with_cache(batch.encoded, [layer])
+        yield Chunk(
+            pieces=batch.pieces,
+            lengths=batch.mask.sum(1).tolist(),
+            ids=batch.ids[batch.mask],
+            positions=batch.positions[batch.mask],
+            counted=batch.counted[batch.mask],
+            acts=cache[layer].cpu()[batch.mask],
+        )
+
+
+def scan_chunks(
+    runner: NeuronHookRunner,
+    pieces: Sequence[Piece],
+    layer: int,
+    batch_size: int,
+    cache: LayerCache | None = None,
+) -> Iterator[Chunk]:
+    """``layer``'s chunks: replayed from ``cache`` if it holds them, else from the model
+    (and stored in ``cache``)."""
+    chunks = layer_chunks(runner, pieces, layer, batch_size)
+    return chunks if cache is None else cache.through(runner, layer, pieces, batch_size, chunks)
+
+
 class TopExamples:
     """Collects every piece's strengths and keeps the ``k`` strongest that don't overlap."""
 
@@ -115,10 +174,16 @@ class TopExamples:
 
     def update(self, batch: Batch, strengths: torch.Tensor) -> None:
         for row, piece in enumerate(batch.pieces):
-            row_vals = strengths[row][batch.mask[row]].tolist()
-            if row_vals:
-                ids = batch.ids[row][batch.mask[row]].tolist()
-                self.candidates.append((max(row_vals), piece, ids, row_vals))
+            mask = batch.mask[row]
+            self.add(piece, batch.ids[row][mask].tolist(), strengths[row][mask].tolist())
+
+    def update_chunk(self, chunk: Chunk, strengths: torch.Tensor) -> None:
+        for piece, rows in chunk.rows():
+            self.add(piece, chunk.ids[rows].tolist(), strengths[rows].tolist())
+
+    def add(self, piece: Piece, ids: list[int], values: list[float]) -> None:
+        if values:
+            self.candidates.append((max(values), piece, ids, values))
 
     def top(self, tokenizer, k: int) -> list[ActivatingExample]:
         examples: list[ActivatingExample] = []
@@ -149,12 +214,15 @@ def scan_neuron(
     pole: Pole,
     *,
     k: int = 20,
-    batch_size: int = 8,
+    batch_size: int = BATCH_SIZE,
     n_correlated: int = 10,
     min_count: int = 3,
     window_tokens: int | None = None,
     stride: int | None = None,
+    cache: LayerCache | None = None,
 ) -> ScanResult:
+    """Scan ``texts`` for one neuron pole. With ``cache``, replay the layer's stored
+    activations if it holds this scan, and store them if not."""
     if runner.tokenizer is None:
         raise ValueError("scan_neuron requires a tokenizer")
     partners = PartnerSearch(runner.mlp_width(layer))
@@ -163,15 +231,14 @@ def scan_neuron(
     values: list[float] = []
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
-    for batch in batches(runner, pieces, batch_size):
-        _, cache = runner.run_with_cache(batch.encoded, [layer])
-        acts = cache[layer].float().cpu()  # [b, seq, d_mlp]
-        strengths = pole_strength(acts[..., neuron_idx], pole)
-        counted = batch.counted
+    for chunk in scan_chunks(runner, pieces, layer, batch_size, cache):
+        acts = chunk.acts.float()  # [n, d_mlp]
+        strengths = pole_strength(acts[:, neuron_idx], pole)
+        counted = chunk.counted
         partners.update(strengths[counted], acts[counted])
-        confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
+        confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
         values.extend(strengths[counted].tolist())
-        top.update(batch, strengths)
+        top.update_chunk(chunk, strengths)
 
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
