@@ -34,7 +34,7 @@ BASE_WEIGHTS = {
     "reevaluate": 3.0,  # verdict predates the current protocol; cheap, no LLM calls
     "independent_review": 2.5,  # proposer reviewed its own hypothesis
     "revise": 2.0,  # NEEDS_REVISION: failed gates say exactly what to fix
-    "replicate": 1.2,  # VERIFIED by only one reviewer model
+    "replicate": 1.2,  # VERIFIED by one reviewer model, or never by an independent one
     "opposite_pole": 1.0,  # the other half of a studied neuron
     "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
     "challenge": 0.6,  # VERIFIED and replicated: hunt for counterexamples
@@ -70,6 +70,7 @@ class NeuronState:
     record_path: Path
     experiments: int = 0
     reviewers: set[str] = field(default_factory=set)
+    independent_reviews: int = 0  # experiments reviewed by a model other than the proposer's
     last: datetime | None = None
 
 
@@ -118,6 +119,7 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
         state.record, state.record_path = record, path
         state.experiments += 1
         state.reviewers.add(record.verdict.reviewer_agent_model)
+        state.independent_reviews += not record.self_reviewed
         state.last = record.verdict.timestamp
     return states
 
@@ -169,7 +171,8 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
                 None,
             )
         )
-    if gates.get("independent_review") is False:
+    # Not the gate: it passes self-reviews unless the policy requires independence.
+    if record.self_reviewed:
         kinds.append(
             ("independent_review", "the proposer reviewed its own hypothesis", [review], None)
         )
@@ -193,6 +196,8 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
         )
     elif len(state.reviewers) < 2:
         kinds.append(("replicate", "verified by only one reviewer model", [review], None))
+    elif not state.independent_reviews:
+        kinds.append(("replicate", "every review so far was a self-review", [review], None))
     else:
         kinds.append(
             ("challenge", "verified and replicated; look for counterexamples", [review], None)

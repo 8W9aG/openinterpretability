@@ -10,7 +10,7 @@ Experiments: **{{ rows | length }}** · units: **{{ neurons }}**{% for status, n
 | Date | Unit | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |
 {% for r in rows %}
-| [{{ r.timestamp[:10] }}]({{ r.link }}) | [{{ r.model }} {{ r.label }}]({{ r.neuron_link }}) | {{ r.kind }} | {{ r.status }} | {{ r.balanced_accuracy | num(2) }} | {{ r.hypothesis | truncate(100) | cell }} |
+| [{{ r.timestamp[:10] }}]({{ r.link }}) | [{{ r.model }} {{ r.label }}]({{ r.neuron_link }}) | {{ r.kind }} | {{ r.status }}{% if r.get('proposer') and r.proposer == r.get('reviewer') %} (self-reviewed){% endif %} | {{ r.balanced_accuracy | num(2) }} | {{ r.hypothesis | truncate(100) | cell }} |
 {% else %}
 | | | | No experiments yet. | | |
 {% endfor %}

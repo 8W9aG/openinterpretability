@@ -14,7 +14,7 @@
 | Verdict | **{{ verdict.status }}**, balanced accuracy {{ verdict.confidence_score | num(2) }} |
 | Protocol | {{ ('v' ~ policy.protocol_version) if policy else 'unrecorded (pre-0.2)' }} |
 | Proposer | `{{ sub.submitting_agent_model | cell }}` |
-| Reviewer | `{{ verdict.reviewer_agent_model | cell }}` |
+| Reviewer | `{{ verdict.reviewer_agent_model | cell }}`{% if self_reviewed %} (self-reviewed: same model as the proposer, so not an independent review){% endif %} |
 {% if sub.provenance %}
 {% set p = sub.provenance %}
 | Selection | {{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %} |
@@ -167,6 +167,10 @@ Share of |attribution| by distance from the peak, over converged examples; mean 
 
 ## Next steps
 
+{% if self_reviewed %}
+**Self-reviewed.** The proposer's model also wrote the probes. That is allowed, but a review by a different model is stronger evidence, so a re-review is the first follow-up (`openinterp next` draws these).
+
+{% endif %}
 {% if verdict.status == 'VERIFIED' %}
 Published in the registry. Possible follow-ups: audit the opposite pole, try a sibling model for a universal counterpart, and run steering tests (skill: `neuron-steering-tests`).
 {% else %}

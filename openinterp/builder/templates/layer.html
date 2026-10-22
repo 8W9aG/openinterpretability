@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, pole_mark %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, pole_mark %}
 
 {% block title %}{{ model.name }} layer {{ layer.layer }} · {{ site_title }}{% endblock %}
 
@@ -28,7 +28,7 @@
         </td>
         <td class="space-y-1 px-3 py-2">
           {% for pole, e in n.latest_by_pole | dictsort(reverse=true) %}
-          <div class="flex items-center gap-2 text-xs">{% if not n.is_head %}{{ pole_mark(pole) }} {% endif %}{{ status_badge(e.record.verdict.status) }}</div>
+          <div class="flex items-center gap-2 text-xs">{% if not n.is_head %}{{ pole_mark(pole) }} {% endif %}{{ status_badge(e.record.verdict.status) }}{% if e.record.self_reviewed %} {{ self_review_badge() }}{% endif %}</div>
           {% endfor %}
         </td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ n.experiments | length }}</td>

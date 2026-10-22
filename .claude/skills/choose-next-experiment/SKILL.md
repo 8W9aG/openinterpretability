@@ -57,11 +57,11 @@ Record the model IDs the subagents report, not the ones you expect. For an `inde
 | --- | --- | --- |
 | `explore` | With probability ε (default 0.7), or when the registry is empty | `openinterp audit --model M --random --seed S`, then write a hypothesis following `native-neuron-audit`. `selection = random` keeps registry statistics unbiased. |
 | `reevaluate` | The verdict predates the current protocol | `openinterp reevaluate --record <path>`. Cheap, with no LLM calls. |
-| `independent_review` | The proposer reviewed its own hypothesis | `openinterp verify --audit-file <record> --agent-model <different model>`. Write probes per `interpretability-illusions-review`. |
+| `independent_review` | The latest experiment was self-reviewed (the proposer's model wrote the probes) | `openinterp verify --audit-file <record> --agent-model <different model>`. Write probes per `interpretability-illusions-review`. |
 | `revise` | NEEDS_REVISION | New submission that fixes the failed gates (narrow the claim, longer context, recalibrated Δ), then verify. |
 | `new_hypothesis` | REJECTED | The rejection stands. Propose a *different* idea, e.g. a different feature, the other mechanism, or a long-context rescan. |
-| `replicate` | VERIFIED by only one reviewer model | Independent review with a new probe set from a different model. |
-| `challenge` | VERIFIED and replicated | Look for counterexamples: cross-dataset holdouts, long-context probes, steering (`neuron-steering-tests`). |
+| `replicate` | VERIFIED by only one reviewer model, or every review so far was a self-review | Independent review with a new probe set from a different model. |
+| `challenge` | VERIFIED, replicated, and independently reviewed at least once | Look for counterexamples: cross-dataset holdouts, long-context probes, steering (`neuron-steering-tests`). |
 | `opposite_pole` | The other pole of a studied neuron is unstudied | `openinterp audit … --pole <other>`. The negative pole often encodes the distinction the positive one draws. |
 
 ## How the planner decides

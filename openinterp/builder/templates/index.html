@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, evidence_badge, pole_mark %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark %}
 {% set t = stats.totals %}
 
 {% block content %}
 <section class="mb-10">
   <h1 class="text-3xl font-semibold tracking-tight">Neuron registry</h1>
   <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
-    Every experiment on native MLP neuron poles and attention heads in open-weight models, each stress-tested by an
-    independent reviewer agent with adversarial hard negatives, minimal-pair counterfactuals
+    Every experiment on native MLP neuron poles and attention heads in open-weight models, each stress-tested by a
+    reviewer agent (ideally a different model from the proposer) with adversarial hard negatives, minimal-pair counterfactuals
     and causal patching. Null results are published too: a well-tested hypothesis that fails
     tells us as much as one that passes.
   </p>
@@ -35,6 +35,13 @@
     {% endif %}
     Repeat experiments that re-measure the same probes are not counted as independent evidence.
   </p>
+  {% if t.self_reviewed %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    {{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.
+    {% if t.verified %}So were {{ t.verified_self_reviewed }} of the {{ t.verified }} current verified claims.{% endif %}
+    That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">openinterp next</code> draws re-reviews of these.
+  </p>
+  {% endif %}
 </section>
 
 <section class="mb-10">
@@ -89,6 +96,7 @@
           </td>
           <td class="px-3 py-2">
             <div class="mb-1 flex flex-wrap gap-1">{{ status_badge(r.status) }} {{ evidence_badge(r.conclusiveness, r.evidence_direction) }}
+              {% if r.self_reviewed %}{{ self_review_badge() }}{% endif %}
               {% if r.remeasurement %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400" title="Re-measures an earlier experiment's probes; not independent evidence">re-measurement</span>{% endif %}
             </div>
             {{ r.explanation | truncate(140) }}
@@ -137,7 +145,7 @@
       {% for a in stats.agents %}
       <li class="flex items-center justify-between gap-3 px-3 py-2">
         <span class="truncate font-mono text-xs">{{ a.agent }}</span>
-        <span class="whitespace-nowrap tabular-nums text-slate-600 dark:text-slate-400" title="experiments · verified">{{ a.experiments }} · {{ a.verified }}</span>
+        <span class="whitespace-nowrap tabular-nums text-slate-600 dark:text-slate-400" title="experiments · verified · self-reviewed">{{ a.experiments }} · {{ a.verified }} · {{ a.self_reviewed }}</span>
       </li>
       {% else %}
       <li class="px-3 py-2 text-slate-500">None yet.</li>
@@ -161,7 +169,7 @@
             <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
           </td>
-          <td class="px-3 py-2">{{ r.explanation | truncate(140) }}</td>
+          <td class="px-3 py-2">{% if r.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ r.explanation | truncate(140) }}</td>
           <td class="px-3 py-2 text-right font-mono tabular-nums">{{ r.confidence_score | num(2) }}</td>
         </tr>
         {% endfor %}

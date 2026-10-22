@@ -224,14 +224,17 @@ def registry_stats(parquet: Path) -> dict:
                count(DISTINCT model_name) AS models,
                count(*) FILTER (WHERE is_latest AND status = 'VERIFIED') AS verified,
                count(*) FILTER (WHERE conclusiveness >= 0.9 AND evidence_direction = 'refutes')
-                   AS conclusive_nulls
+                   AS conclusive_nulls,
+               count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
+               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED' AND self_reviewed)
+                   AS verified_self_reviewed
         FROM r
         """
     )[0]
     verified = rows(
         """
         SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
-               explanation,
+               explanation, self_reviewed,
                confidence_score, sufficiency_score, necessity_score, is_lookahead
         FROM r WHERE is_latest AND status = 'VERIFIED'
         ORDER BY confidence_score DESC, slug
@@ -259,7 +262,8 @@ def registry_stats(parquet: Path) -> dict:
                strftime(timezone('UTC', reviewed_at), '%Y-%m-%dT%H:%M:%SZ') AS reviewed_iso,
                strftime(timezone('UTC', reviewed_at), '%Y-%m-%d') AS reviewed_date,
                strftime(timezone('UTC', reviewed_at), '%H:%M UTC') AS reviewed_time,
-               reviewer_agent_model, reuses_probes_of IS NOT NULL AS remeasurement
+               reviewer_agent_model, self_reviewed,
+               reuses_probes_of IS NOT NULL AS remeasurement
         FROM r ORDER BY reviewed_at DESC, slug, experiment_id LIMIT {RECENT_EXPERIMENTS}
         """
     )
@@ -267,6 +271,7 @@ def registry_stats(parquet: Path) -> dict:
         """
         SELECT submitting_agent_model AS agent, count(*) AS experiments,
                count(*) FILTER (WHERE is_latest AND status = 'VERIFIED') AS verified,
+               count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
                avg(conclusiveness) AS mean_conclusiveness
         FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
         """

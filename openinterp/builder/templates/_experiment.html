@@ -1,5 +1,5 @@
 {# One experiment on a neuron or head page. Expects `v` from compiler._experiment_view. #}
-{% from "_macros.html" import status_badge, evidence_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
@@ -12,6 +12,7 @@
       <span class="font-mono text-sm font-semibold">#{{ rank }} · {% if is_head %}attention head{% else %}{{ ident.pole }} pole {{ pole_mark(ident.pole) }}{% endif %}</span>
       {{ status_badge(verdict.status) }}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
+      {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
       {% if e.is_latest %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">latest for this {{ what }}</span>{% else %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800">superseded</span>{% endif %}
       {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
@@ -165,7 +166,7 @@
       <dl class="mt-4 grid grid-cols-2 gap-2 text-sm">
         <dt class="text-slate-500">Submitted by</dt><dd class="font-mono text-xs">{{ sub.submitting_agent_model }}</dd>
         {% if verdict %}
-        <dt class="text-slate-500">Reviewed by</dt><dd class="font-mono text-xs">{{ verdict.reviewer_agent_model }}</dd>
+        <dt class="text-slate-500">Reviewed by</dt><dd class="font-mono text-xs">{{ verdict.reviewer_agent_model }}{% if e.record.self_reviewed %} <span class="font-sans text-amber-700 dark:text-amber-400">(same model as the proposer: not an independent review)</span>{% endif %}</dd>
         <dt class="text-slate-500">Reviewed at</dt><dd class="font-mono text-xs">{{ verdict.timestamp.strftime("%Y-%m-%d %H:%M UTC") }}</dd>
         <dt class="text-slate-500">Max activation</dt><dd class="font-mono text-xs">{{ sub.max_activation | num(4) }}</dd>
         {% endif %}
