@@ -52,6 +52,8 @@ uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k, pil
 
 It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time (`--max-tokens`, `--sample-seed`; `--max-tokens 0` scans all of it), and records the sample in provenance. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
 
+A scan's forward pass captures the whole layer, so `audit` caches every neuron's activations in that layer (in `~/.cache/openinterp/scans`; `$OPENINTERP_SCAN_CACHE` moves it, `off` disables it). A later audit of any neuron in the layer, with the same model, corpus options and dtype, replays the cache instead of running the model and gets the same numbers. The cache is capped at 40 GB (`$OPENINTERP_SCAN_CACHE_GB`); a 200,000-token Qwen2.5-0.5B layer in float32 takes about 4 GB, and the least recently used layers go first. `openinterp scan-cache` lists or clears it. For a neuron's per-token activations over the scan, e.g. every occurrence of one token, use `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl` (`--token`, `--min-strength`, `--top 0` for all, `--format jsonl`) rather than writing a scan loop.
+
 ### 2A. Let an agent run it (Claude Code)
 
 Start [Claude Code](https://claude.com/claude-code) in the repo with the keys above set in the same shell, and ask:
@@ -191,6 +193,8 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | --- | --- |
 | `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` (in `core/identifiers.py`), `HeadProfile`, `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
 | `openinterp/harness/hooks.py` | `NeuronHookRunner`: forward hooks on the MLP down-projection input (the neuron basis) for Llama/Qwen/Mistral/GPT-2/NeoX/OPT/Phi; pole isolation; corpus scanning |
+| `openinterp/harness/scan.py` | The audit's corpus scan: windows, top examples, partners and confounds in one pass, over chunks of whole-layer activations |
+| `openinterp/harness/layer_cache.py` | On-disk cache of those chunks per model, layer and corpus sample, which later scans and `openinterp activations` replay |
 | `openinterp/harness/units.py` | What strength and ablation mean for each unit: a neuron pole, or an attention head measured from its mean output |
 | `openinterp/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
 | `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |

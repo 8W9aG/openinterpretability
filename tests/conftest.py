@@ -190,3 +190,11 @@ def _no_costs_ledger(monkeypatch):
     from openinterp.core.costs import LEDGER_ENV
 
     monkeypatch.delenv(LEDGER_ENV, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _scan_cache(tmp_path_factory, monkeypatch):
+    """Cache layer scans in a temporary directory, never the developer's real cache."""
+    from openinterp.harness.layer_cache import ENV
+
+    monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("scan-cache")))

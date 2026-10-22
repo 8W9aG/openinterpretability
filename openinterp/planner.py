@@ -67,6 +67,7 @@ class Candidate:
     commands: list[str]
     slug: str | None = None
     skills: list[str] = field(default_factory=list)
+    layer: int | None = None
 
 
 @dataclass
@@ -253,6 +254,7 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             commands=commands,
             slug=slug or ident.slug,
             skills=SKILLS[kind],
+            layer=ident.layer,
         )
 
 

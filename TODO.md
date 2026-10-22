@@ -93,7 +93,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
 
-- [ ] Cache scan results per layer: one forward pass already captures the whole layer (`run_with_cache`), so store per-token activations for all of a layer's neurons (with token ids and positions) keyed by model, revision, layer and corpus sample hash, and let later audits in that layer, `next`, and exploratory analysis read the cache instead of re-running the model. Also expose a scan's per-token data so agents don't write their own full-corpus scans for diagnosis.
 - [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.
 - [ ] Load the model once per experiment. `audit` and `verify` run as separate processes, and each loads the model; the scan, lenses, probe measurement and gates could share one load. `openinterp loop` (Pipeline) extends this across experiments. Batch the reviewer's probes and counterfactuals into as few forward passes as their lengths allow.
 - [ ] Trim the proposer prompt.

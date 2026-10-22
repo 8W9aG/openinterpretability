@@ -35,6 +35,21 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+scan_cache_option = click.option(
+    "--scan-cache/--no-scan-cache",
+    "use_scan_cache",
+    default=True,
+    show_default=True,
+    help="Replay a cached scan of the layer, or store this one (see `openinterp scan-cache`).",
+)
+
+
+def open_scan_cache(enabled: bool):
+    from openinterp.harness.layer_cache import LayerCache
+
+    return LayerCache.default() if enabled else None
+
+
 def scan_evidence(
     runner,
     model_name,
@@ -52,10 +67,11 @@ def scan_evidence(
     unit="neuron",
     max_tokens=None,
     sample_seed=0,
+    scan_cache=None,
 ):
     """Pick the unit, scan the corpus (or a ``max_tokens`` sample of it), then (neurons
     only) read the vocabulary lens and attribute the top examples' peaks to their
-    context tokens."""
+    context tokens. A neuron scan replays ``scan_cache`` when it holds the layer."""
     import random
 
     from openinterp import __version__
@@ -107,7 +123,12 @@ def scan_evidence(
         if unit == "head":
             scan = scan_head(runner, texts, ident, k=top_k, **windows)
         else:
-            scan = scan_neuron(runner, texts, layer, index, ident.pole, k=top_k, **windows)
+            scan = scan_neuron(
+                runner, texts, layer, index, ident.pole, k=top_k, cache=scan_cache, **windows
+            )
+    if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:
+        verb = "Replayed" if scan_cache.replayed else "Cached"
+        click.echo(f"{verb} layer {layer}'s scan: {scan_cache.last}", err=True)
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise click.ClickException(
             f"{ident} never activates on this corpus; try a larger --corpus."
@@ -267,6 +288,7 @@ def write_evidence(evidence, path: Path) -> None:
     help="Tokens between window starts (default: half of --window-tokens). Each token counts "
     "once, with at least --window-tokens minus --stride tokens of context.",
 )
+@scan_cache_option
 @click.option(
     "--agent-model",
     default=None,
@@ -317,6 +339,7 @@ def audit(
     top_k,
     window_tokens,
     stride,
+    use_scan_cache,
     agent_model,
     evidence_out,
     evidence_file,
@@ -394,6 +417,7 @@ def audit(
             unit=unit,
             max_tokens=max_tokens,
             sample_seed=sample_seed,
+            scan_cache=open_scan_cache(use_scan_cache),
         )
         if evidence_out is not None:
             write_evidence(evidence, evidence_out)
