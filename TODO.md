@@ -160,7 +160,6 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] `monology/pile-uncopyrighted`: a larger Pile sample when 10k documents are too few to find rare-concept activations.
 - [ ] `wikitext` (`wikitext-103-raw-v1`): long, clean articles for ≥ 512-token windows and entity/fact neurons.
 - [ ] `roneneldan/TinyStories`: simple English for a low-confound control corpus and small models.
 - [ ] Code: `bigcode/the-stack-smol` or `codeparrot/github-code-clean`, for syntax, bracket and indentation neurons.
@@ -190,7 +189,6 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
-- [ ] Soften the README's "remarkably clean" premise until Goodfire's technical companion paper is published.
 - [ ] Mark the CI jobs "Lint and tests", "Experiment records" and "Reproduce records" as required in the GitHub branch protection rules for `main`.
 - [ ] Add the R2 secrets and variables to GitHub (see README, "Deploy"), then run the deploy workflow once by hand.
 - [ ] Keep a short "State of the registry" note at the top of this file (or a `make stats` target that prints it): experiments, units, models, VERIFIED share, self-reviewed share and protocol versions in use. As of 2026-10-20: 79 experiments on 67 units, all Qwen2.5-0.5B, 46 VERIFIED, and 8 records still under protocols 0.2–0.4. Several items above depend on these numbers, and nobody should have to rerun ad-hoc scripts to see them.

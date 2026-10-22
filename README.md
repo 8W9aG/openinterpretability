@@ -2,7 +2,7 @@
 
 `openinterp` is a decentralized, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
-Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**: each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It builds on recent findings that native representations are remarkably clean when evaluated properly (e.g. Goodfire / Cammarata, 2026; Bereska & Gavves, 2024).
+Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**: each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It starts from a working hypothesis, not an established finding: Goodfire's essay [*Neural Networks Are Already Clean*](https://already-clean.goodfire.com/) (Cammarata, 2026) argues that most apparent polysemanticity in native neurons comes from fixable tooling problems rather than superposition. Its technical companion paper has not been published, so the registry tests that claim one pole at a time rather than assuming it, and a pole that resists a clean explanation is a result too.
 
 ## Get started: run an experiment and contribute it
 
@@ -47,7 +47,7 @@ The record notes whether the reviewer was a different model from the proposer (`
 **A scan corpus.** The built-in corpus is only a smoke test. This samples 500 documents from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) (its 10B-token sample, about a minute, reading only the Parquet row groups it needs; git-ignored):
 
 ```bash
-uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k or c4 for another corpus, --seed N for another sample
+uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k, pile-uncopyrighted or c4 for another corpus, --seed N for another sample
 ```
 
 It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time (`--max-tokens`, `--sample-seed`; `--max-tokens 0` scans all of it), and records the sample in provenance. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
