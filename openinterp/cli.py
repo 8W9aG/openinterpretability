@@ -266,7 +266,12 @@ def verify(
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     if reviewer.model == submission.submitting_agent_model:
-        click.echo("warning: reviewer and submitter use the same model", err=True)
+        click.echo(
+            f"warning: {reviewer.model} both proposed and reviewed this, so the review is not "
+            "independent. It will be recorded and badged as self-reviewed; a different "
+            "reviewer model is preferred (docs/PROTOCOL.md §2).",
+            err=True,
+        )
     if probes_file is not None:
         probes = ProbeSet.model_validate_json(probes_file.read_text()).probes
         # --emit-prompt review.prompt.md is answered in review.probes.json.

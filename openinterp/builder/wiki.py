@@ -47,8 +47,8 @@ GATE_ADVICE = {
     "recalibrate the predictions, or replace pairs that test the wrong feature.",
     "lookahead_consistent": "The measured mechanism contradicts the claim. Revisit "
     "retrospective vs lookahead (skill: `vocab-projection-lookahead`).",
-    "independent_review": "The proposer and reviewer used the same model. Re-review with a "
-    "different reviewer model.",
+    "independent_review": "The proposer and reviewer used the same model, and this policy "
+    "requires them to differ. Re-review with a different reviewer model.",
     "beats_confound_baseline": "A trivial baseline (token identity, position or 'never "
     "active') explains the probes at least as well as the hypothesis, or the scan predates "
     "confound profiling. Rescan with `openinterp audit` and sharpen the claim beyond the "
@@ -192,6 +192,7 @@ def write_experiment_page(
             kind=kind,
             previous_status=previous_status,
             record_link=archive_path(wiki_dir, record).name,
+            self_reviewed=record.self_reviewed,
         )
     )
     page.parent.mkdir(parents=True, exist_ok=True)

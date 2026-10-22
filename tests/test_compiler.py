@@ -499,3 +499,28 @@ def test_explanation_scores_rendered_mistakes_first(tmp_path, record):
     assert "peak marked" in page and "marks right · judged right" in page
     row = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()[0]
     assert (row["detection_score"], row["fuzzing_score"]) == (0.5, 1.0)
+
+
+def _self_reviewed(rec):
+    model = rec.submission.submitting_agent_model
+    return rec.model_copy(
+        update={"verdict": rec.verdict.model_copy(update={"reviewer_agent_model": model})}
+    )
+
+
+def test_self_reviews_badged_and_counted(tmp_path, records):
+    from openinterp.builder.compiler import registry_stats
+
+    records[1] = _self_reviewed(records[1])  # N117+'s latest, VERIFIED
+    report = compile_site(records, tmp_path)
+    totals = registry_stats(report.parquet)["totals"]
+    assert (totals["self_reviewed"], totals["verified_self_reviewed"]) == (1, 1)
+    assert pq.read_table(report.parquet).column("self_reviewed").to_pylist().count(True) == 1
+
+    layer = tmp_path / "models" / MODEL / "L3"
+    neuron = (layer / "N117.html").read_text()
+    assert neuron.count(">self-reviewed</span>") == 2  # the positive pole's card and experiment
+    assert "same model as the proposer" in neuron
+    assert ">self-reviewed</span>" not in (layer / "N9.html").read_text()
+    home = (tmp_path / "index.html").read_text()
+    assert "1 of 4 experiments were" in home and "So were 1 of the 1 current verified" in home

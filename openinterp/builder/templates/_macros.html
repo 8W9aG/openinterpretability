@@ -16,6 +16,12 @@
 </span>
 {%- endmacro %}
 
+{# The proposer's model also wrote the probes. Recorded, not gated (protocol §2). #}
+{% macro self_review_badge() -%}
+<span class="whitespace-nowrap rounded border border-dashed border-amber-400 px-2 py-0.5 text-xs text-amber-800 dark:border-amber-700 dark:text-amber-300"
+      title="The proposer's model also wrote the probes, so this is not an independent review. Allowed, but a re-review by a different model is worth more: openinterp next draws these.">self-reviewed</span>
+{%- endmacro %}
+
 {% macro pole_mark(pole) -%}
 <span class="{{ 'text-orange-600' if pole == 'positive' else 'text-sky-600' }}">{{ '+' if pole == 'positive' else '−' }}</span>
 {%- endmacro %}

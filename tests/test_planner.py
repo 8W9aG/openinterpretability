@@ -160,3 +160,46 @@ def test_latest_experiment_drives_follow_ups(tmp_path, record):
     kinds = {kind for kind, _ in _kinds(plan)}
     assert "revise" not in kinds and "replicate" in kinds
     assert all("2 experiments so far" in c.rationale for c in plan.candidates)
+
+
+def _reviewed_by(rec, reviewer, *, hours=0):
+    """The same record reviewed by ``reviewer``; self-reviewed if it is the proposer."""
+    independent = reviewer != rec.submission.submitting_agent_model
+    metrics = rec.verdict.metrics.model_copy(update={"independent_review": independent})
+    verdict = rec.verdict.model_copy(
+        update={
+            "reviewer_agent_model": reviewer,
+            "metrics": metrics,
+            "timestamp": rec.verdict.timestamp + timedelta(hours=hours),
+        }
+    )
+    return rec.model_copy(update={"verdict": verdict})
+
+
+def test_self_review_draws_a_re_review_although_the_gate_passes(tmp_path, record):
+    # Under the default policy a self-review passes the independent_review gate.
+    rec = _record(record, status="NEEDS_REVISION", idx=1, gates={"independent_review": True})
+    proposer = rec.submission.submitting_agent_model
+    wiki = _registry(tmp_path, _reviewed_by(rec, proposer))
+    assert ("independent_review", "N1-positive") in _kinds(plan_next(wiki, seed=1, now=NOW))
+
+
+def test_replicate_until_another_model_reviews(tmp_path, record):
+    """Two reviewer models that each reviewed their own hypothesis are not a replication."""
+    rec = _record(record, status="VERIFIED", idx=1, gates={})
+    proposer = rec.submission.submitting_agent_model
+    other = rec.model_copy(
+        update={
+            "submission": rec.submission.model_copy(update={"submitting_agent_model": "other/m"})
+        }
+    )
+    selves = [_reviewed_by(rec, proposer), _reviewed_by(other, "other/m", hours=1)]
+    plan = plan_next(_registry(tmp_path / "a", *selves), seed=1, now=NOW)
+    assert ("replicate", "N1-positive") in _kinds(plan)
+    assert ("challenge", "N1-positive") not in _kinds(plan)
+    replicate = next(c for c in plan.candidates if c.kind == "replicate")
+    assert "self-review" in replicate.rationale
+
+    crossed = [_reviewed_by(rec, proposer), _reviewed_by(rec, "other/m", hours=1)]
+    kinds = _kinds(plan_next(_registry(tmp_path / "b", *crossed), seed=1, now=NOW))
+    assert ("challenge", "N1-positive") in kinds and ("replicate", "N1-positive") not in kinds

@@ -462,3 +462,12 @@ class AuditRecord(StrictModel):
     @property
     def is_verified(self) -> bool:
         return self.verdict is not None and self.verdict.status == "VERIFIED"
+
+    @property
+    def self_reviewed(self) -> bool:
+        """The proposer's model also reviewed it: recorded and badged, not gated (§2)."""
+        if self.verdict is None:
+            return False
+        if self.verdict.metrics is not None:
+            return not self.verdict.metrics.independent_review
+        return self.verdict.reviewer_agent_model == self.submission.submitting_agent_model

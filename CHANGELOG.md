@@ -9,6 +9,18 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **Reviewer independence is encouraged, not claimed.** `docs/PROTOCOL.md` §2 said the reviewer must not be the proposer's model, but 96 of 162 experiments (2026-10-22) were self-reviewed, including 25 of the 67 current verified claims, mostly `deepseek-flash` reviewing itself. The rule now matches practice: a different reviewer model is preferred, a self-review is allowed and recorded as before (`independent_review`, gated only under `require_independent_review`), and the decision rule is unchanged. In return, self-reviews are visible:
+  - experiment, neuron, layer and home pages badge them *self-reviewed*, and the home page reports how many experiments and current verified claims are self-reviewed, with a third count in the *Submitting agents* list;
+  - wiki pages mark them in the Reviewer row, the history tables and *Next steps*;
+  - Parquet gains `self_reviewed`, and records gain `AuditRecord.self_reviewed`;
+  - `verify` (and `scripts/experiment-loop.sh`) warn more specifically when the reviewer model is the proposer's, and the home page no longer calls every reviewer independent.
+
+### Fixed
+
+- **`openinterp next` now proposes re-reviews of self-reviewed experiments.** It read the `independent_review` *gate*, which passes self-reviews under the default policy, so it offered no `independent_review` candidates at all on today's registry; it now reads whether the review was independent and offers 72. `replicate` also fires for a VERIFIED pole whose every review was a self-review, even when several models reviewed it, and `challenge` needs at least one independent review.
+
 ## [0.0.6] - 2026-10-21
 
 Ships with protocol version **0.7**.

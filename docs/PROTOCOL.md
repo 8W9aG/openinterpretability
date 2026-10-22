@@ -21,10 +21,17 @@ One experiment tests **one hypothesis about one unit** in one model revision. A 
 | Role | Does | Must not |
 | --- | --- | --- |
 | **Proposer** | Selects the neuron, scans a corpus, writes the hypothesis, the mechanism claim and the minimal-pair counterfactuals. | Edit a submission after review. A revision is a new submission. |
-| **Reviewer** | Writes adversarial probes from the hypothesis text and the top examples. | See probe activations before the probe set is final. Be the same model as the proposer. |
+| **Reviewer** | Writes adversarial probes from the hypothesis text and the top examples. Should be a different model from the proposer (see below). | See probe activations before the probe set is final. |
 | **Harness** | Runs every measurement against the model weights and applies the decision rule. | Use LLM judgement anywhere in the verdict. |
 
 Agents only write text: hypotheses and probes. Every number in a verdict comes from running the model.
+
+**Reviewer independence is encouraged, not enforced.** A model probing its own hypothesis tends to share its blind spots, so a reviewer from a different model is stronger evidence. Since protocol 0.4 a same-model review is allowed: the record stores `independent_review = false` and the verdict is computed as usual (`require_independent_review` turns it into a gate, §4). In return, self-reviews are made visible and followed up:
+- `verify` (alias `review`) warns when the reviewer model is the proposer's.
+- Experiment, neuron, layer and home pages badge the verdict *self-reviewed*, wiki pages mark it, and `registry.parquet` has a `self_reviewed` column. The home page reports how many experiments and current verified claims are self-reviewed.
+- `openinterp next` proposes an independent re-review of any unit whose latest experiment was self-reviewed, and a `replicate` of a VERIFIED unit that no other model has reviewed.
+
+"Same model" means the same recorded model ID, so record the IDs the agents report.
 
 ## 3. Lifecycle
 

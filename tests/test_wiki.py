@@ -141,3 +141,15 @@ def test_causal_metrics_render_by_protocol(tmp_path, record):
     compile_site([new], tmp_path / "site")
     page = next((tmp_path / "site" / "models").rglob("N*.html")).read_text()
     assert "the claimed tokens" in page and "0.0123" in page
+
+
+def test_self_review_marked(tmp_path, record):
+    model = record.submission.submitting_agent_model
+    record = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"reviewer_agent_model": model})}
+    )
+    page = write_experiment_page(record, tmp_path / "wiki")
+    assert "self-reviewed: same model as the proposer" in page.read_text()
+    assert "**Self-reviewed.**" in page.read_text()
+    assert "VERIFIED (self-reviewed)" in (page.parent / "README.md").read_text()
+    assert "VERIFIED (self-reviewed)" in (tmp_path / "wiki" / "README.md").read_text()

@@ -67,7 +67,8 @@ command -v gh >/dev/null || { echo "gh is required to claim and post experiments
 [[ -f $CORPUS ]] || { echo "corpus not found: $CORPUS (see README, step 1)" >&2; exit 1; }
 CORPUS=$(cd "$(dirname "$CORPUS")" && pwd)/$(basename "$CORPUS")
 if [[ $REVIEWER == "$PROPOSER" ]]; then
-  echo "warning: proposer and reviewer are both $PROPOSER; reviews won't be independent" >&2
+  echo "warning: proposer and reviewer are both $PROPOSER, so every review will be badged" \
+    "self-reviewed; pass --reviewer <another model> for independent reviews" >&2
 fi
 
 if [[ ! -d $WORKTREE ]]; then
