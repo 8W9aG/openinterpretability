@@ -12,13 +12,18 @@ from openinterp.core.strict import StrictModel
 Pole = Literal["positive", "negative"]
 
 
+def model_slug(model_name: str) -> str:
+    """Path-safe model name: ``Qwen/Qwen2.5-0.5B`` → ``Qwen--Qwen2.5-0.5B``."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "--", model_name)
+
+
 class _Component(StrictModel):
     model_name: str = Field(min_length=1, examples=["Qwen/Qwen2.5-0.5B"])
     layer: int = Field(ge=0)
 
     @property
     def model_slug(self) -> str:
-        return re.sub(r"[^A-Za-z0-9._-]+", "--", self.model_name)
+        return model_slug(self.model_name)
 
 
 class NeuronIdentifier(_Component):

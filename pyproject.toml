@@ -50,6 +50,13 @@ path = "openinterp/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["openinterp"]
 
+[tool.openinterp]
+# Models `openinterp next` explores, weighted towards those with little coverage. Keep in
+# sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
+# CI can reproduce every record the planner asks for. A new model also needs the checks
+# under "Models" in TODO.md first.
+models = ["Qwen/Qwen2.5-0.5B"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

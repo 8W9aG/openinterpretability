@@ -70,7 +70,7 @@ Record the model IDs the subagents report, not the ones you expect. For an `inde
 - **Repeat decay:** a weight is multiplied by `1/√(experiments on this neuron)`. Revisiting a neuron gets less likely, never impossible.
 - **Cooldown:** ×0.2 if the neuron was studied in the last 6 h, ×0.5 within 24 h, so a wave of agents spreads out.
 - **Claims:** ×0.05 if an open PR's title or branch contains the neuron's key. This is not zero, so abandoned claims can't block a neuron forever.
-- **Exploration:** with probability ε the planner ignores follow-ups and picks a uniformly random new neuron (epsilon-greedy).
+- **Exploration:** with probability ε the planner ignores follow-ups and picks a uniformly random new neuron (epsilon-greedy). The model comes from `[tool.openinterp] models` in `pyproject.toml`, weighted by `1/√(1 + units studied or claimed by open PRs)`, so a newly added model gets most explore draws until it has some coverage. `--top` prints each model's share; `--model` overrides the list.
 - **Exploitation:** otherwise it samples a follow-up with probability ∝ `weight^(1/T)` (Boltzmann sampling). It never takes the argmax, which is what keeps agents from converging.
 - **Reproducibility:** every choice prints its seed. Put it in the PR body so the choice can be audited with `openinterp next --seed <seed>`.
 

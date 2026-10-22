@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **`openinterp next` explores configured models, weighted towards little coverage.** The explore pool fell back to the models already in the registry, so with every record on Qwen2.5-0.5B the planner could never start on a new model. It now reads `[tool.openinterp] models` in `pyproject.toml` (next to `--wiki-dir`) and draws a model with weight `1/√(1 + units studied or claimed by open PRs)`; `--top` lists each model's share, the rationale and `Plan.explore_models` record it, and `--model` still overrides. A test keeps the list equal to CI's `ALLOWED_MODELS`, so CI can reproduce every record the planner asks for. The list holds only Qwen2.5-0.5B until a model under *Models* in `TODO.md` passes its checks.
+
 ### Changed
 
 - **Reviewer independence is encouraged, not claimed.** `docs/PROTOCOL.md` §2 said the reviewer must not be the proposer's model, but 96 of 162 experiments (2026-10-22) were self-reviewed, including 25 of the 67 current verified claims, mostly `deepseek-flash` reviewing itself. The rule now matches practice: a different reviewer model is preferred, a self-review is allowed and recorded as before (`independent_review`, gated only under `require_independent_review`), and the decision rule is unchanged. In return, self-reviews are visible:

@@ -8,7 +8,10 @@ has been studied, by recent activity and by open PRs that already claim it. Weig
 are never zero: repeating an experiment is allowed, and a null result is data.
 
 With probability ``epsilon`` the planner explores instead: a uniformly random new
-neuron (the only selection that supports unbiased registry statistics). Otherwise
+neuron (the only selection that supports unbiased registry statistics), in a model
+drawn from the configured list (``[tool.openinterp] models`` in ``pyproject.toml``)
+with weight ``1/√(1 + units studied or claimed)``, so models with little coverage
+get explored without the well-covered ones being dropped. Otherwise
 it samples a candidate in proportion to ``weight ** (1 / temperature)``. Sampling,
 rather than taking the best candidate, keeps independent agents from piling onto
 the same neuron. The seed is reported so any choice can be reproduced.
@@ -21,12 +24,15 @@ import math
 import random
 import shutil
 import subprocess
+import tomllib
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openinterp.builder.wiki import load_archive_paths
+from openinterp.core.identifiers import model_slug
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
 
 # Expected information value per experiment kind, before decay.
@@ -104,6 +110,30 @@ def open_pr_claims() -> list[str]:
     except (subprocess.SubprocessError, OSError):
         return []
     return [f"{pr['title']} {pr['headRefName']}" for pr in json.loads(out)]
+
+
+def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:
+    """Models the planner explores: ``[tool.openinterp] models`` (empty if unset)."""
+    try:
+        with open(pyproject, "rb") as fh:
+            config = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return ()
+    return tuple(config.get("tool", {}).get("openinterp", {}).get("models", ()))
+
+
+def explore_weights(
+    pool: Sequence[str], states: dict[str, NeuronState], claims: Sequence[str]
+) -> dict[str, float]:
+    """Explore probability per model, ∝ ``1/√(1 + units studied or claimed)``."""
+    studied = Counter(s.record.submission.identifier.model_name for s in states.values())
+    weights = {}
+    for model in pool:
+        key = f"{model_slug(model)}-L"  # how a claim on this model's units starts
+        claimed = sum(key in c for c in claims)
+        weights[model] = 1.0 / math.sqrt(1 + studied[model] + claimed)
+    total = sum(weights.values())
+    return {m: w / total for m, w in weights.items()}
 
 
 def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
@@ -232,6 +262,7 @@ class Plan:
     choice: Candidate
     explored: bool
     candidates: list[Candidate]
+    explore_models: dict[str, float] = field(default_factory=dict)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2)
@@ -247,6 +278,11 @@ def plan_next(
     claims: Sequence[str] = (),
     now: datetime | None = None,
 ) -> Plan:
+    """Draw the next experiment.
+
+    Explore draws use ``models`` if given, else the models configured in the
+    ``pyproject.toml`` next to ``wiki_dir``, else the registry's, else ``DEFAULT_MODELS``.
+    """
     seed = random.SystemRandom().getrandbits(32) if seed is None else seed
     rng = random.Random(seed)
     now = now or datetime.now(UTC)
@@ -258,23 +294,28 @@ def plan_next(
     )
     pool = sorted(
         set(models)
+        or set(configured_models(Path(wiki_dir).parent / "pyproject.toml"))
         or {s.record.submission.identifier.model_name for s in states.values()}
         or set(DEFAULT_MODELS)
     )
+    explore = explore_weights(pool, states, claims)
 
     if not candidates or rng.random() < epsilon:
-        model = rng.choice(pool)
+        model = rng.choices(pool, weights=[explore[m] for m in pool], k=1)[0]
         audit_seed = rng.getrandbits(32)
+        rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
+        if len(pool) > 1:
+            rationale += f"; {model} drawn with probability {explore[model]:.0%} by coverage"
         choice = Candidate(
             kind="explore",
             model=model,
             weight=0.0,
-            rationale="uniformly random new neuron (unbiased; counts towards registry statistics)",
+            rationale=rationale,
             commands=[f"openinterp audit --model {model} --random --seed {audit_seed}"],
             skills=SKILLS["explore"],
         )
-        return Plan(seed, choice, True, candidates)
+        return Plan(seed, choice, True, candidates, explore)
 
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
     choice = rng.choices(candidates, weights=weights, k=1)[0]
-    return Plan(seed, choice, False, candidates)
+    return Plan(seed, choice, False, candidates, explore)

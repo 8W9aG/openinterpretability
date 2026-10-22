@@ -83,7 +83,12 @@ def check(wiki_dir, base_ref):
     type=click.FloatRange(min=0.05),
     help="Higher flattens the weights (more exploration among follow-ups).",
 )
-@click.option("--model", "models", multiple=True, help="Model(s) to explore. Default: registry's.")
+@click.option(
+    "--model",
+    "models",
+    multiple=True,
+    help="Model(s) to explore. Default: [tool.openinterp] models in pyproject.toml.",
+)
 @click.option(
     "--claims/--no-claims",
     default=True,
@@ -121,6 +126,10 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
     total = sum(x.weight for x in plan.candidates) or 1.0
     for x in plan.candidates[:top]:
         click.echo(f"  {x.weight / total:6.1%}  {x.kind:18s} {x.slug}  — {x.rationale}")
+    if top and len(plan.explore_models) > 1:
+        click.echo("Explore draws by model:")
+        for model, p in sorted(plan.explore_models.items(), key=lambda kv: -kv[1]):
+            click.echo(f"  {p:6.1%}  {model}")
 
 
 @cli.command()

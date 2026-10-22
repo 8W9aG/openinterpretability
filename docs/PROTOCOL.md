@@ -41,7 +41,7 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
                        └──────────── NEEDS_REVISION: new submission ◀───────┘
 ```
 
-1. **Select.** Choose the unit and record how in `provenance.selection`. Agents without an assignment use `openinterp next` (skill `choose-next-experiment`). It explores uniformly random neurons with probability ε and otherwise samples a follow-up on an existing neuron; re-studying a neuron is valid, and null results count as data. The options are:
+1. **Select.** Choose the unit and record how in `provenance.selection`. Agents without an assignment use `openinterp next` (skill `choose-next-experiment`). It explores uniformly random neurons with probability ε, in a model drawn from `[tool.openinterp] models` in `pyproject.toml` with weight 1/√(1 + units studied or claimed), and otherwise samples a follow-up on an existing neuron; re-studying a neuron is valid, and null results count as data. The options are:
    - `random`: uniform over layers, then neurons, then poles (`openinterp audit --random --seed N`), or over layers, then heads (`--unit head --random`). Only randomly selected units count towards registry-wide statistics such as "fraction of neurons with a verified explanation", and neurons and heads are never pooled.
    - `attribution`: chosen because it ranked highly in attribution patching for some behaviour.
    - `manual`: anything else.
