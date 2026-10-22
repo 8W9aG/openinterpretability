@@ -19,7 +19,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart
+from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.tree import (
     Experiment,
@@ -319,6 +319,7 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "bars": histogram_bars(sub.activation_histogram),
         "probes": probe_chart(verdict, sub.max_activation),
         "causal": causal_chart(verdict.causal_metrics, sub.counterfactuals),
+        "vocab": vocab_chart(sub.vocabulary_lens),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),

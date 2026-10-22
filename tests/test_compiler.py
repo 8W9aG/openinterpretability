@@ -6,7 +6,7 @@ import duckdb
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart
+from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
 from openinterp.builder.compiler import compile_site, load_records
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
@@ -341,28 +341,77 @@ def test_rebuild_removes_stale_pages(tmp_path, records):
     assert len(list((tmp_path / "data" / "snapshots").iterdir())) == 1
 
 
-def test_vocabulary_lens_rendered(tmp_path, record):
+def _lens(**scores):
     from openinterp.core.schemas import VocabularyLens
 
-    lens = VocabularyLens(
-        logit_promoted=["oor"],
-        logit_suppressed=["x"],
-        jacobian_promoted=[" including"],
-        jacobian_suppressed=[" excluding"],
+    return VocabularyLens(
+        logit_promoted=["oor", "x"],
+        logit_suppressed=["y", "z"],
+        jacobian_promoted=[" including", "inc"],
+        jacobian_suppressed=[" excluding", "\n"],
         overlap=0.0,
         direction_cosine=0.31,
         logit_kurtosis=3.2,
         jacobian_kurtosis=9.5,
         prompts=100,
+        **scores,
     )
-    rec = record.model_copy(
-        update={"submission": record.submission.model_copy(update={"vocabulary_lens": lens})}
-    )
-    compile_site([rec], tmp_path)
-    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
-    assert "Jacobian lens" in page and " including" in page and "cos(w, J·w) 0.31" in page
-    row = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()[0]
-    assert row["jacobian_promoted"] == [" including"] and row["lens_overlap"] == 0.0
+
+
+Z_SCORES = {
+    "logit_promoted_z": [4.0, 3.0],
+    "logit_suppressed_z": [-2.0, -1.5],
+    "jacobian_promoted_z": [9.0, 6.0],
+    "jacobian_suppressed_z": [-7.0, -5.0],
+}
+
+
+def test_vocab_chart():
+    assert vocab_chart(None) is None and vocab_chart(_lens()) is None  # no z-scores recorded
+    chart = vocab_chart(_lens(**Z_SCORES))
+    jacobian, logit = chart["panels"]
+    assert (jacobian["title"], logit["title"]) == ("Jacobian lens", "Logit lens")
+    # Most promoted at the top, most suppressed at the bottom.
+    assert [r["text"] for r in jacobian["rows"]] == ["␣including", "inc", "↵", "␣excluding"]
+    assert [r["promoted"] for r in jacobian["rows"]] == [True, True, False, False]
+    ys = [r["y"] for r in jacobian["rows"]]
+    assert ys == sorted(ys) and ys[2] - ys[1] > ys[1] - ys[0]  # a gap between the sides
+    # One shared axis: |z| = 9 reaches 10 on a 5-step scale, centred on zero.
+    zero, half = chart["zero_x"], chart["width"] / 2 - 6
+    assert [label for _, label in chart["ticks"]] == ["-10", "-5", "0", "+5", "+10"]
+    tip = float(jacobian["rows"][0]["d"].split("Q")[1].split()[0])
+    assert tip == pytest.approx(zero + 0.9 * half, abs=0.01)
+    assert logit["rows"][0]["anchor"] == "end" and logit["rows"][-1]["anchor"] == "start"
+    assert "z = -7.00 · #1 suppressed" in jacobian["rows"][-1]["label"]
+    assert chart["table"][0]["jacobian_suppressed"] == (" excluding", -7.0)
+
+    mismatched = _lens(**{**Z_SCORES, "logit_promoted_z": [4.0]})
+    assert vocab_chart(mismatched) is None
+
+
+def test_vocabulary_lens_rendered(tmp_path, record):
+    from openinterp.builder.wiki import write_experiment_page
+
+    def with_lens(lens):
+        sub = record.submission.model_copy(update={"vocabulary_lens": lens})
+        return record.model_copy(update={"submission": sub})
+
+    compile_site([with_lens(_lens())], tmp_path / "old")
+    page = (tmp_path / "old" / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "Vocabulary projection" in page and "predates vocabulary z-scores" in page
+    assert " including" in page and "cos(w, J·w) 0.31" in page
+
+    rec = with_lens(_lens(**Z_SCORES))
+    compile_site([rec], tmp_path / "new")
+    page = (tmp_path / "new" / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "predates vocabulary" not in page and "␣including · z = +9.00 · #1 promoted" in page
+    row = pq.read_table(tmp_path / "new" / "data" / "registry.parquet").to_pylist()[0]
+    assert row["jacobian_promoted"] == [" including", "inc"] and row["lens_overlap"] == 0.0
+    assert row["jacobian_promoted_z"] == [9.0, 6.0] and row["logit_promoted_z"] == [4.0, 3.0]
+
+    wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
+    assert "| Promotes | ` including` +9.0 `inc` +6.0 | `oor` +4.0 `x` +3.0 |" in wiki
+    assert "| Suppresses | ` excluding` -7.0" in wiki
 
 
 def test_input_attribution_rendered(tmp_path, record):
