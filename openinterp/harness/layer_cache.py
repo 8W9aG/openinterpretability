@@ -6,15 +6,17 @@ all of them. Later audits of any neuron in that layer, and per-token analysis
 
 An entry is keyed by everything that sets its numbers: the model, its revision, the
 weights' dtype, the device type, the torch and transformers versions, the layer, the
-batch size (which sets padding) and the exact pieces scanned (texts and windows).
-Replaying an entry gives the same scan result as running the model, bit for bit.
+token budget per batch (which sets padding) and the exact pieces scanned (texts and
+windows). Replaying an entry gives the same scan result as running the model, bit for
+bit.
 
 Each entry is a directory ``<root>/<model>/L<layer>/<key>/`` holding ``meta.json``,
 ``pieces.json``, ``acts.bin`` (``[rows, width]`` in the activation dtype) and per-row
 ``ids.npy``, ``positions.npy``, ``piece.npy`` and ``counted.npy``. The rows are every
-real (non-padding) token of every piece, in scan order. Entries are written to a
-temporary directory and renamed into place, so concurrent scans never see a partial
-one. Once the cache outgrows its size cap, the least recently used entries go.
+real (non-padding) token of every piece, in scan order, and ``meta.json`` lists how many
+pieces each forward pass took. Entries are written to a temporary directory and renamed
+into place, so concurrent scans never see a partial one. Once the cache outgrows its
+size cap, the least recently used entries go.
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ import torch
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.scan import Chunk, Piece
 
-FORMAT = 1
+FORMAT = 2  # 2: batches by token budget, recorded in meta.json
 ENV = "OPENINTERP_SCAN_CACHE"  # cache directory, or "off"
 SIZE_ENV = "OPENINTERP_SCAN_CACHE_GB"
 DEFAULT_GB = 40.0
@@ -89,26 +91,26 @@ class Entry:
         dtype = getattr(torch, self.meta["dtype"])
         return tensor.view(dtype) if dtype in _BITS else tensor
 
-    def chunks(self, batch_size: int) -> Iterator[Chunk]:
+    def chunks(self) -> Iterator[Chunk]:
         """The scan's batches again, as the model produced them."""
         pieces = self.pieces()
         acts = self.acts()
         ids, positions = self.rows("ids"), self.rows("positions")
         counted, piece = self.rows("counted"), self.rows("piece")
         lengths = np.bincount(piece, minlength=len(pieces)).tolist()
-        row = 0
-        for start in range(0, len(pieces), batch_size):
-            batch_lengths = lengths[start : start + batch_size]
+        start = row = 0
+        for size in self.meta["batches"]:
+            batch_lengths = lengths[start : start + size]
             end = row + sum(batch_lengths)
             yield Chunk(
-                pieces=pieces[start : start + batch_size],
+                pieces=pieces[start : start + size],
                 lengths=batch_lengths,
                 ids=torch.from_numpy(np.array(ids[row:end])).long(),
                 positions=torch.from_numpy(np.array(positions[row:end])).long(),
                 counted=torch.from_numpy(np.array(counted[row:end])),
                 acts=self._tensor(acts[row:end]),
             )
-            row = end
+            start, row = start + size, end
 
 
 class LayerCache:
@@ -129,7 +131,7 @@ class LayerCache:
 
     @staticmethod
     def fields(
-        runner: NeuronHookRunner, layer: int, pieces: Sequence[Piece], batch_size: int
+        runner: NeuronHookRunner, layer: int, pieces: Sequence[Piece], batch_tokens: int
     ) -> dict | None:
         """What an entry is keyed by; None for a model with no name to key it by."""
         config = getattr(runner.model, "config", None)
@@ -154,7 +156,7 @@ class LayerCache:
             "torch": torch.__version__,
             "transformers": transformers_version,
             "layer": layer,
-            "batch_size": batch_size,
+            "batch_tokens": batch_tokens,
             "pieces_sha256": digest.hexdigest(),
         }
 
@@ -165,9 +167,9 @@ class LayerCache:
     # -- reading -------------------------------------------------------------
 
     def lookup(
-        self, runner: NeuronHookRunner, layer: int, pieces: Sequence[Piece], batch_size: int
+        self, runner: NeuronHookRunner, layer: int, pieces: Sequence[Piece], batch_tokens: int
     ) -> Entry | None:
-        fields = self.fields(runner, layer, pieces, batch_size)
+        fields = self.fields(runner, layer, pieces, batch_tokens)
         if fields is None:
             return None
         path = self.path(fields)
@@ -200,15 +202,15 @@ class LayerCache:
         runner: NeuronHookRunner,
         layer: int,
         pieces: Sequence[Piece],
-        batch_size: int,
+        batch_tokens: int,
         chunks: Iterator[Chunk],
     ) -> Iterator[Chunk]:
         """The cached chunks if this scan is cached, else ``chunks``, stored as they pass."""
-        entry = self.lookup(runner, layer, pieces, batch_size)
+        entry = self.lookup(runner, layer, pieces, batch_tokens)
         self.replayed, self.last = entry is not None, entry and entry.path
         if entry is not None:
-            return entry.chunks(batch_size)
-        fields = self.fields(runner, layer, pieces, batch_size)
+            return entry.chunks()
+        fields = self.fields(runner, layer, pieces, batch_tokens)
         if fields is None:
             return chunks
         self.last = self.path(fields)
@@ -219,6 +221,7 @@ class LayerCache:
         tmp = final.with_name(f".{final.name}.{os.getpid()}.{secrets.token_hex(4)}")
         tmp.mkdir(parents=True)
         rows: dict[str, list[np.ndarray]] = {"ids": [], "positions": [], "piece": [], "counted": []}
+        sizes: list[int] = []
         index = 0
         width = storage = None
         try:
@@ -231,6 +234,7 @@ class LayerCache:
                     rows["ids"].append(chunk.ids.numpy().astype(np.int32))
                     rows["positions"].append(chunk.positions.numpy().astype(np.int32))
                     rows["counted"].append(chunk.counted.numpy())
+                    sizes.append(len(chunk.pieces))
                     for n in chunk.lengths:
                         rows["piece"].append(np.full(n, index, dtype=np.int32))
                         index += 1
@@ -245,6 +249,7 @@ class LayerCache:
                 "width": width or 0,
                 "dtype": fields["dtype"],
                 "storage": storage or "float32",
+                "batches": sizes,
                 "created": datetime.now(UTC).isoformat(timespec="seconds"),
             }
             (tmp / "meta.json").write_text(json.dumps(meta, indent=2))

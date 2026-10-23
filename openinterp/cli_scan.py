@@ -80,7 +80,7 @@ def activations(
 
     from openinterp.cli import _load_runner
     from openinterp.harness.hooks import pole_strength
-    from openinterp.harness.scan import BATCH_SIZE, cut_pieces, scan_chunks
+    from openinterp.harness.scan import cut_pieces, scan_chunks
 
     if stride is not None and (window_tokens is None or stride > window_tokens):
         raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
@@ -96,7 +96,7 @@ def activations(
 
     ids, strengths, counted, piece_of, index = [], [], [], [], []
     next_piece = 0
-    for chunk in scan_chunks(runner, pieces, layer, BATCH_SIZE, cache):
+    for chunk in scan_chunks(runner, pieces, layer, cache=cache):
         ids.append(chunk.ids)
         strengths.append(pole_strength(chunk.acts[:, neuron].float(), pole))
         counted.append(chunk.counted)

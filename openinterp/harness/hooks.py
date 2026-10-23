@@ -467,16 +467,17 @@ def top_activating_examples(
     pole: Pole,
     *,
     k: int = 20,
-    batch_size: int = 8,
+    batch_tokens: int | None = None,
 ) -> tuple[list[ActivatingExample], list[float]]:
     """Scan ``texts``; return the ``k`` strongest snippets and every token's pole strength.
 
     A thin wrapper over :func:`openinterp.harness.scan.scan_neuron`, which also
     gathers correlated neurons and the confound profile.
     """
-    from openinterp.harness.scan import scan_neuron
+    from openinterp.harness.scan import BATCH_TOKENS, scan_neuron
 
-    result = scan_neuron(runner, texts, layer, neuron_idx, pole, k=k, batch_size=batch_size)
+    batch_tokens = batch_tokens or BATCH_TOKENS
+    result = scan_neuron(runner, texts, layer, neuron_idx, pole, k=k, batch_tokens=batch_tokens)
     return result.examples, result.values
 
 
