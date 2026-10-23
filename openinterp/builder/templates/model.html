@@ -11,6 +11,7 @@
   {{ model.neurons }}/{{ model.total_neurons | thousands }} neurons studied ({{ model.coverage | pct_fine }}) ·
   {{ model.verified }}/{{ model.total_neurons | thousands }} with a verified pole ({{ model.verified_share | pct_fine }}) ·
   {% if model.heads %}{{ model.heads }} attention heads studied ({{ model.verified_heads }} verified) · {% endif %}
+  {% if model.features %}{{ model.features }} dictionary features studied as a baseline ({{ model.verified_features }} verified) · {% endif %}
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 

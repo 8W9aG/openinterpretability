@@ -1,7 +1,8 @@
 """Causal metrics of a unit: sufficiency and necessity, ranked against comparable units.
 
 Recorded in every verdict, never gated (docs/PROTOCOL.md §4). A neuron pole is ranked
-against the same layer's neurons, an attention head against the same layer's heads.
+against the same layer's neurons, an attention head against the same layer's heads, a
+dictionary feature against the same dictionary's other latents.
 """
 
 from __future__ import annotations
@@ -89,19 +90,19 @@ def causal_metrics(
     Every minimal pair is patched clean → corrupted (sufficiency) and corrupted → clean
     (necessity) at the position where the unit differs most between the two prompts
     (the final position when their lengths differ, since only it can be patched). A
-    neuron pole's difference is its strength change; a head's is the change in its
-    write to the residual stream. The effect is scored there on a target no unit is
-    favoured by:
+    neuron pole's difference is its strength change; a head's or a dictionary latent's is
+    the change in its write to the residual stream. The effect is scored there on a
+    target no unit is favoured by:
 
     * ``claimed_tokens``: a lookahead claim's upcoming tokens, as their mean logit minus
       the vocabulary mean (signed);
     * ``next_token_kl``: otherwise, KL(unpatched ‖ patched) of the next-token distribution.
 
     The same patch is applied, one unit at a time, to the ``null_neurons`` units of the
-    same kind and layer (neurons, or the other heads) whose change between the two
-    prompts is most similar. A score is the median over pairs of the unit's |effect|
-    percentile among theirs: 0.5 means "no more influential than a unit that changes as
-    much".
+    same kind and layer (neurons, the other heads, or the dictionary's other latents) whose
+    change between the two prompts is most similar. A score is the median over pairs of
+    the unit's |effect| percentile among theirs: 0.5 means "no more influential than a
+    unit that changes as much".
 
     Pairs where the unit moves by at most ``min_change`` (controls) carry no causal
     signal and are skipped; with none left the result is ``None``.
@@ -111,22 +112,16 @@ def causal_metrics(
     component's contribution. Ranking against *random* neurons reads ≈ 1, because minimal
     pairs are built to change this neuron and most others barely change at all.
     """
-    from openinterp.harness.heads import patch_heads
-
     claimed = claimed_token_weights(submission, runner)
     target: CausalTarget = "claimed_tokens" if claimed else "next_token_kl"
     ident = submission.identifier
-    is_head = ident.kind == "attn_head"
-    patcher = ActivationPatcher(runner)
+    changes, patch = _unit_patching(submission, runner)
     scores: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     effects: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     nulls: list[int] = []
     pairs: list[CausalPairEffect] = []
     for index, pair in enumerate(submission.counterfactuals):
-        changes = _head_changes if is_head else _neuron_changes
-        positions, position, change = changes(
-            runner, ident, pair.base_prompt, pair.counterfactual_prompt
-        )
+        positions, position, change = changes(pair.base_prompt, pair.counterfactual_prompt)
         if float(change[ident.index]) <= min_change:
             continue
         null = _matched_units(change, ident.index, null_neurons)
@@ -148,14 +143,7 @@ def causal_metrics(
                 "positions": positions,
                 "freeze_downstream": freeze_downstream,
             }
-            if is_head:
-                own, *others = patch_heads(
-                    runner, source, target_prompt, ident.layer, units, **options
-                )
-            else:
-                own, *others = patcher.patch_many(
-                    source, target_prompt, ident.layer, units, ident.pole, **options
-                )
+            own, *others = patch(source, target_prompt, units, **options)
             null_effects = sorted(abs(o) for o in others)
             percentile = _percentile(abs(own), null_effects)
             effects[kind].append(own)
@@ -181,6 +169,38 @@ def causal_metrics(
         null_neurons=min(nulls),
         pairs_scored=len(effects["sufficiency"]),
         pairs=pairs,
+    )
+
+
+def _unit_patching(submission: NeuronAuditSubmission, runner: NeuronHookRunner):
+    """``changes(base, cf)`` and ``patch(source, target, units, **options)`` for the kind
+    of unit ``submission`` is about."""
+    from openinterp.harness.features import patch_features, write_changes
+    from openinterp.harness.heads import patch_heads
+    from openinterp.harness.units import FeatureUnit, submission_unit
+
+    ident, unit = submission.identifier, submission_unit(submission)
+    if isinstance(unit, FeatureUnit):
+        dictionary, site = unit.dictionary(runner), unit.profile.input_site
+        return (
+            lambda base, cf: write_changes(runner, dictionary, ident, site, base, cf),
+            lambda source, target, units, **options: patch_features(
+                runner, dictionary, site, source, target, ident.layer, units, **options
+            ),
+        )
+    if ident.kind == "attn_head":
+        return (
+            lambda base, cf: _head_changes(runner, ident, base, cf),
+            lambda source, target, units, **options: patch_heads(
+                runner, source, target, ident.layer, units, **options
+            ),
+        )
+    patcher = ActivationPatcher(runner)
+    return (
+        lambda base, cf: _neuron_changes(runner, ident, base, cf),
+        lambda source, target, units, **options: patcher.patch_many(
+            source, target, ident.layer, units, ident.pole, **options
+        ),
     )
 
 

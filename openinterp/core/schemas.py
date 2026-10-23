@@ -23,9 +23,15 @@ from openinterp.core.costs import ExperimentCosts
 from openinterp.core.explanation import ExplanationScores
 from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     ComponentIdentifier,
+    FeatureIdentifier,
     HeadIdentifier,
     NeuronIdentifier,
     Pole,
+)
+from openinterp.core.profiles import (  # noqa: F401  (re-exported)
+    DictionaryProfile,
+    DictionarySite,
+    HeadProfile,
 )
 from openinterp.core.strict import StrictModel, UnitFloat
 
@@ -103,32 +109,6 @@ class ActivatingExample(StrictModel):
         if any(not 0 <= i <= self.max_token_index for i in self.attends_to):
             raise ValueError("attends_to must index tokens up to the peak (attention is causal)")
         return self
-
-
-class HeadProfile(StrictModel):
-    """What defines an attention head's activity, and its standard attention-pattern scores.
-
-    A head's strength at token t is ``|W_O (z_t − mean_output)|``: how far its write to
-    the residual stream is from its mean write over the scan, i.e. how far mean-ablating
-    the head would move the residual stream there. ``mean_output`` (z̄, one value per
-    head dimension) is measured once, by the scan, and every later measurement of the
-    experiment uses this stored value, so a record reproduces without the corpus.
-
-    The pattern scores are mean attention weights on ``pattern_sequences`` sequences of
-    ``pattern_length`` uniformly random tokens repeated twice (Olsson et al., 2022):
-    ``previous_token`` to the token before, ``duplicate_token`` from the second copy to
-    the same token in the first, ``induction`` from the second copy to the token *after*
-    the same token in the first. Each is between 0 and 1; reported, not gated.
-    """
-
-    mean_output: list[float] = Field(min_length=1)
-    mean_tokens: int = Field(gt=0, description="Tokens z̄ was averaged over.")
-    previous_token_score: UnitFloat
-    duplicate_token_score: UnitFloat
-    induction_score: UnitFloat
-    pattern_sequences: int = Field(gt=0)
-    pattern_length: int = Field(gt=1)
-    pattern_seed: int
 
 
 class RunEnvironment(StrictModel):
@@ -339,25 +319,34 @@ class ScanEvidence(StrictModel):
     input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0)
+    dictionary_profile: DictionaryProfile | None = None
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
-        return _require_head_profile(self)
+        return _require_unit_profile(self)
 
 
-def _require_head_profile(model):
-    """A head's strength is undefined without its mean output; a neuron has no profile."""
-    is_head = model.identifier.kind == "attn_head"
-    if is_head and model.head_profile is None:
-        raise ValueError("an attention head needs a head_profile: its mean output defines strength")
-    if not is_head and model.head_profile is not None:
-        raise ValueError("head_profile is only for attention heads")
+def _require_unit_profile(model):
+    """A head's strength is undefined without its mean output, and a dictionary feature's
+    without its dictionary's weights; a neuron needs neither."""
+    kind = model.identifier.kind
+    for field, owner, unit, why in (
+        ("head_profile", "attn_head", "an attention head", "its mean output"),
+        ("dictionary_profile", "dictionary_feature", "a dictionary feature", "its dictionary"),
+    ):
+        present = getattr(model, field) is not None
+        units = unit.split(" ", 1)[1] + "s"
+        if kind == owner and not present:
+            raise ValueError(f"{unit} needs a {field}: {why} defines strength")
+        if kind != owner and present:
+            raise ValueError(f"{field} is only for {units}")
     return model
 
 
 class NeuronAuditSubmission(StrictModel):
-    """A hypothesis about one unit, frozen once submitted: a neuron pole or, since protocol
-    0.6, an attention head. The name predates heads and is kept for compatibility."""
+    """A hypothesis about one unit, frozen once submitted: a neuron pole, an attention head
+    (since protocol 0.6) or a dictionary feature. The name predates heads and is kept for
+    compatibility."""
 
     identifier: ComponentIdentifier
     natural_language_explanation: str = Field(min_length=1)
@@ -378,6 +367,7 @@ class NeuronAuditSubmission(StrictModel):
     input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
+    dictionary_profile: DictionaryProfile | None = None
     supersedes: str | None = Field(
         default=None,
         pattern=EXPERIMENT_ID_PATTERN,
@@ -387,7 +377,7 @@ class NeuronAuditSubmission(StrictModel):
 
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:
-        return _require_head_profile(self)
+        return _require_unit_profile(self)
 
 
 class AdversarialTestResult(StrictModel):

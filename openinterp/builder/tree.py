@@ -1,6 +1,7 @@
 """Group every archived experiment into Model → Layer → Unit → Experiments.
 
-A unit is an MLP neuron (both poles on one page) or an attention head.
+A unit is an MLP neuron (both poles on one page), an attention head, or a latent of a
+sparse dictionary (the learned-basis baseline, kept apart from native-unit counts).
 
 All experiments are published, whatever their verdict. Within a neuron they are
 ordered by how conclusive the result is (see :mod:`significance`), so a strong null
@@ -36,17 +37,30 @@ class Experiment:
 
     @property
     def side(self) -> str:
-        """A neuron experiment's pole, or ``head``: what the unit page groups it under."""
-        return self.record.submission.identifier.pole or "head"
+        """A neuron experiment's pole, else ``head`` or ``feature``: what the unit page
+        groups it under."""
+        ident = self.record.submission.identifier
+        return ident.pole or SIDES[ident.kind][0]
 
     @property
     def anchor(self) -> str:
         return f"{self.side}-{self.id}"
 
 
+# What a unit page groups experiments under, per kind, and the prefix of a unit's label.
+SIDES = {
+    "mlp_neuron_pole": ("positive", "negative"),
+    "attn_head": ("head",),
+    "dictionary_feature": ("feature",),
+}
+LABEL_PREFIX = {"mlp_neuron_pole": "N", "attn_head": "H", "dictionary_feature": "F"}
+NOUNS = {"mlp_neuron_pole": "neuron", "attn_head": "head", "dictionary_feature": "feature"}
+
+
 @dataclass
 class UnitNode:
-    """One neuron (both poles) or one attention head, with all of its experiments."""
+    """One neuron (both poles), attention head or dictionary feature, with all of its
+    experiments."""
 
     model: str
     layer: int
@@ -54,18 +68,35 @@ class UnitNode:
     href: str
     kind: str = "mlp_neuron_pole"
     experiments: list[Experiment] = field(default_factory=list)
+    dictionary: str | None = None  # a feature's dictionary
 
     @property
     def is_head(self) -> bool:
         return self.kind == "attn_head"
 
     @property
+    def is_neuron(self) -> bool:
+        return self.kind == "mlp_neuron_pole"
+
+    @property
+    def is_feature(self) -> bool:
+        return self.kind == "dictionary_feature"
+
+    @property
+    def sides(self) -> tuple[str, ...]:
+        return SIDES[self.kind]
+
+    @property
+    def noun(self) -> str:
+        return NOUNS[self.kind]
+
+    @property
     def label(self) -> str:
-        return f"{'H' if self.is_head else 'N'}{self.idx}"
+        return f"{LABEL_PREFIX[self.kind]}{self.idx}"
 
     @property
     def latest_by_pole(self) -> dict[str, Experiment]:
-        """Latest experiment per pole (``head`` for a head)."""
+        """Latest experiment per pole (``head`` for a head, ``feature`` for a feature)."""
         return {e.side: e for e in self.experiments if e.is_latest}
 
     @property
@@ -82,15 +113,19 @@ class LayerNode:
     model: str
     layer: int
     href: str
-    units: list[UnitNode] = field(default_factory=list)  # neurons, then heads
+    units: list[UnitNode] = field(default_factory=list)  # neurons, then heads, then features
 
     @property
     def neurons(self) -> list[UnitNode]:
-        return [u for u in self.units if not u.is_head]
+        return [u for u in self.units if u.is_neuron]
 
     @property
     def heads(self) -> list[UnitNode]:
         return [u for u in self.units if u.is_head]
+
+    @property
+    def features(self) -> list[UnitNode]:
+        return [u for u in self.units if u.is_feature]
 
     @property
     def experiments(self) -> int:
@@ -104,6 +139,10 @@ class LayerNode:
     @property
     def verified_heads(self) -> int:
         return sum(n.verified for n in self.heads)
+
+    @property
+    def verified_features(self) -> int:
+        return sum(n.verified for n in self.features)
 
 
 @dataclass
@@ -126,6 +165,14 @@ class ModelNode:
     @property
     def verified_heads(self) -> int:
         return sum(layer.verified_heads for layer in self.layers)
+
+    @property
+    def features(self) -> int:
+        return sum(len(layer.features) for layer in self.layers)
+
+    @property
+    def verified_features(self) -> int:
+        return sum(layer.verified_features for layer in self.layers)
 
     @property
     def experiments(self) -> int:
@@ -178,8 +225,14 @@ def head_href(slug: str, layer: int, idx: int) -> str:
     return f"models/{slug}/L{layer}/H{idx}.html"
 
 
+def feature_href(slug: str, layer: int, dictionary: str, idx: int) -> str:
+    return f"models/{slug}/L{layer}/{dictionary}/F{idx}.html"
+
+
 def unit_href(ident) -> str:
-    """The page of the neuron or head ``ident`` names."""
+    """The page of the neuron, head or feature ``ident`` names."""
+    if ident.kind == "dictionary_feature":
+        return feature_href(ident.model_slug, ident.layer, ident.dictionary, ident.index)
     href = head_href if ident.kind == "attn_head" else neuron_href
     return href(ident.model_slug, ident.layer, ident.index)
 
@@ -205,7 +258,7 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
             latest[slug] = r
 
     models: dict[str, ModelNode] = {}
-    units: dict[tuple[str, int, bool, int], UnitNode] = {}  # neurons sort before heads
+    units: dict[tuple[str, int, int, str, int], UnitNode] = {}  # neurons, heads, features
     for r in reviewed:
         ident = r.submission.identifier
         mslug = ident.model_slug
@@ -221,10 +274,17 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
         model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
         if r.submission.model_mlp_width:
             model.mlp_width = r.submission.model_mlp_width
-        key = (ident.model_name, ident.layer, ident.kind != "mlp_neuron_pole", ident.index)
+        dictionary = getattr(ident, "dictionary", None)
+        order = list(SIDES).index(ident.kind)
+        key = (ident.model_name, ident.layer, order, dictionary or "", ident.index)
         if key not in units:
             units[key] = UnitNode(
-                ident.model_name, ident.layer, ident.index, unit_href(ident), ident.kind
+                ident.model_name,
+                ident.layer,
+                ident.index,
+                unit_href(ident),
+                ident.kind,
+                dictionary=dictionary,
             )
         units[key].experiments.append(
             Experiment(r, significance(r), experiment_id(r), latest[ident.slug] is r)
@@ -266,8 +326,9 @@ def _link_revisions(experiments: list[Experiment]) -> None:
 
 
 def false_discovery(models: Sequence[ModelNode]) -> dict:
-    """Expected false discoveries among the current VERIFIED claims (one per neuron pole or
-    head).
+    """Expected false discoveries among the current VERIFIED claims about native units (one
+    per neuron pole or head; dictionary features are a baseline, not claims about the model's
+    own units).
 
     Each claim is false with probability 1 − P(useful), so the expected number of
     false claims is their sum and the estimated false discovery rate is that over the
@@ -280,6 +341,7 @@ def false_discovery(models: Sequence[ModelNode]) -> dict:
         for m in models
         for layer in m.layers
         for n in layer.units
+        if not n.is_feature
         for e in n.latest_by_pole.values()
         if e.record.is_verified
     ]

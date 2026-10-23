@@ -1,8 +1,10 @@
 {% set ident = sub.identifier %}
 {% set is_head = ident.kind == 'attn_head' %}
+{% set is_feature = ident.kind == 'dictionary_feature' %}
+{% set peer = 'head' if is_head else ('latent' if is_feature else 'neuron') %}
 # {{ ident.model_name }} · {{ label }} · {{ verdict.status }}
 
-[← all experiments on this {{ 'head' if is_head else 'neuron' }}](README.md) · [wiki home](../../../../README.md)
+[← all experiments on this {{ 'head' if is_head else ('feature' if is_feature else 'neuron') }}](README.md) · [wiki home]({{ home }})
 
 | | |
 | --- | --- |
@@ -35,10 +37,14 @@
 - **Activating tokens:** {% for t in sub.activating_tokens %}`{{ t | cell }}`{{ ", " if not loop.last }}{% endfor %}
 
 - **Mechanism claimed:** {{ 'lookahead, preparing ' ~ (sub.lookahead.target_upcoming_tokens | join(', ')) if sub.lookahead.is_lookahead else 'retrospective' }}
-- **Max activation (scan):** {{ sub.max_activation | num(4) }}{% if is_head %} (head strength, \|W_O (z − z̄)\|){% endif %}
+- **Max activation (scan):** {{ sub.max_activation | num(4) }}{% if is_head %} (head strength, \|W_O (z − z̄)\|){% elif is_feature %} (latent activation){% endif %}
 {% if sub.head_profile %}
 {% set hp = sub.head_profile %}
 - **Attention patterns** (random {{ hp.pattern_length }}-token sequences repeated twice; reported, not gated): previous token {{ hp.previous_token_score | num(2) }}, duplicate token {{ hp.duplicate_token_score | num(2) }}, induction {{ hp.induction_score | num(2) }}
+{% endif %}
+{% if sub.dictionary_profile %}
+{% set dp = sub.dictionary_profile %}
+- **Dictionary** (a learned-basis baseline, not a native unit): a {{ dp.kind }} with {{ dp.n_features }} latents, `{{ dp.repo }}`{% if dp.revision %}@{{ dp.revision[:8] }}{% endif %} `{{ dp.path }}`, reading `{{ dp.input_site }}`. On the scan it explains {{ dp.explained_variance | num(2) if dp.explained_variance is not none else 'unmeasured' }} of the MLP output's variance with mean L0 {{ dp.mean_l0 | num(1) if dp.mean_l0 is not none else 'unmeasured' }}; this latent is active on {{ dp.density | num(4) }} of tokens (reported, not gated).
 {% endif %}
 
 {% if examples %}
@@ -70,7 +76,7 @@ This verdict predates protocol v0.2, so it has no per-gate metrics. Run `openint
 {% if verdict.causal_metrics %}
 {% set c = verdict.causal_metrics %}
 {% if c.target %}
-Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the {{ 'head' if is_head else 'pole' }}'s patch effect among the {{ c.null_neurons }} same-layer {{ 'heads' if is_head else 'neurons' }} that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
+Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the {{ 'head' if is_head else ('feature' if is_feature else 'pole') }}'s patch effect among the {{ c.null_neurons }} same-layer {{ peer }}s that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
 {% if c.pairs %}
 
 | Pair | Sufficiency | Effect | Matched median / max | Necessity | Effect | Matched median / max |

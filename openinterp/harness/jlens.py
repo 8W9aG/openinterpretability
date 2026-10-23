@@ -123,6 +123,20 @@ def vocabulary_lens(
     direction = runner.neuron_output_direction(layer, neuron_idx).float()
     if pole == "negative":
         direction = -direction
+    return direction_lens(runner, prompts, layer, direction, k=k)
+
+
+def direction_lens(
+    runner: NeuronHookRunner,
+    prompts: Sequence[str],
+    layer: int,
+    direction: torch.Tensor,
+    *,
+    k: int = 10,
+) -> VocabularyLens:
+    """Read any vector written after ``layer``'s MLP (a pole's, or a dictionary latent's
+    decoder row) through both lenses."""
+    direction = direction.float()
     transported = transported_direction(runner, prompts, layer, direction)
 
     def words(ids: list[int]) -> list[str]:

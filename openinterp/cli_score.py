@@ -237,6 +237,7 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
     return ScoringTask(
         identifier=submission.identifier,
         head_profile=submission.head_profile,
+        dictionary_profile=submission.dictionary_profile,
         explanation=submission.natural_language_explanation,
         threshold=threshold,
         window_tokens=window_tokens,
@@ -277,7 +278,7 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
     from openinterp.core import costs
     from openinterp.core.explanation import ExplanationScores, ScoredWindow
     from openinterp.harness.explanation_scores import embedding_similarities, remeasure
-    from openinterp.harness.units import unit_of
+    from openinterp.harness.units import submission_unit
 
     try:
         det = answered(detection.active, len(task.detection), "detection")
@@ -324,11 +325,11 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
         fuzzing_windows=unmeasured(task.fuzzing, fuz, [None] * len(task.fuzzing)),
     )
     with costs.stage("remeasure"):
-        return remeasure(scores, runner, unit_of(task.identifier, task.head_profile))
+        return remeasure(scores, runner, submission_unit(task))
 
 
 def _noun(identifier) -> str:
-    return "attention head" if identifier.kind == "attn_head" else "neuron"
+    return identifier.noun
 
 
 def _summary(scores) -> str:

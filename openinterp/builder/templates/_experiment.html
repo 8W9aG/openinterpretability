@@ -1,15 +1,18 @@
-{# One experiment on a neuron or head page. Expects `v` from compiler._experiment_view. #}
+{# One experiment on a neuron, head or feature page. Expects `v` from compiler._experiment_view. #}
 {% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
-{% set positive = ident.pole != "negative" %}{# heads share the positive pole's colours #}
-{% set what = "head" if is_head else "pole" %}
-{% set strength = "head strength" if is_head else ident.pole ~ "-pole strength" %}
+{% set is_feature = ident.kind == "dictionary_feature" %}
+{% set positive = ident.pole != "negative" %}{# heads and features share the positive pole's colours #}
+{% set what = "head" if is_head else ("feature" if is_feature else "pole") %}
+{% set peer = "head" if is_head else ("latent" if is_feature else "neuron") %}
+{% set peers = peer ~ "s" %}
+{% set strength = "head strength" if is_head else ("latent activation" if is_feature else ident.pole ~ "-pole strength") %}
 <section id="{{ e.anchor }}" class="scroll-mt-4 rounded-xl border border-slate-200 dark:border-slate-800">
   <header class="p-5">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="font-mono text-sm font-semibold">#{{ rank }} · {% if is_head %}attention head{% else %}{{ ident.pole }} pole {{ pole_mark(ident.pole) }}{% endif %}</span>
+      <span class="font-mono text-sm font-semibold">#{{ rank }} · {% if is_head %}attention head{% elif is_feature %}{{ ident.dictionary }} latent{% else %}{{ ident.pole }} pole {{ pole_mark(ident.pole) }}{% endif %}</span>
       {{ status_badge(verdict.status) }}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
@@ -44,9 +47,9 @@
   <section class="mb-10 grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-800" data-pagefind-ignore>
     {% for label, value, hint in [
       ("Balanced accuracy", verdict.confidence_score if verdict else none, "Mean of hard-negative specificity and holdout sensitivity"),
-      ("Sufficiency", c.sufficiency_score if c else none, "Clean→corrupted patch: percentile of the " ~ what ~ "'s effect among comparable " ~ ("heads" if is_head else "neurons") if c and c.target else "Clean→corrupted patch: fraction of clean prediction restored"),
-      ("Necessity", c.necessity_score if c else none, "Corrupted→clean patch: percentile of the " ~ what ~ "'s effect among comparable " ~ ("heads" if is_head else "neurons") if c and c.target else "Corrupted→clean patch: fraction of prediction lost"),
-      ("Lookahead KL", none, "KL(clean ‖ " ~ ("head mean-ablated" if is_head else "pole-ablated") ~ ") over next-token distributions"),
+      ("Sufficiency", c.sufficiency_score if c else none, "Clean→corrupted patch: percentile of the " ~ what ~ "'s effect among comparable " ~ peers if c and c.target else "Clean→corrupted patch: fraction of clean prediction restored"),
+      ("Necessity", c.necessity_score if c else none, "Corrupted→clean patch: percentile of the " ~ what ~ "'s effect among comparable " ~ peers if c and c.target else "Corrupted→clean patch: fraction of prediction lost"),
+      ("Lookahead KL", none, "KL(clean ‖ " ~ ("head mean-ablated" if is_head else ("latent-ablated" if is_feature else "pole-ablated")) ~ ") over next-token distributions"),
     ] %}
     <div class="bg-white p-4 dark:bg-slate-950" title="{{ hint }}">
       <div class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</div>
@@ -64,7 +67,7 @@
   {% if c %}
   <p class="-mt-8 mb-10 text-xs text-slate-500">
     {% if c.target %}
-    Causal scores rank the {{ what }}'s patch effect against the {{ c.null_neurons }} same-layer {{ "heads" if is_head else "neurons" }} that change as much between each minimal pair (0.5 = typical), median over {{ c.pairs_scored }} non-control pairs, scored on
+    Causal scores rank the {{ what }}'s patch effect against the {{ c.null_neurons }} same-layer {{ peers }} that change as much between each minimal pair (0.5 = typical), median over {{ c.pairs_scored }} non-control pairs, scored on
     {% if c.target == "claimed_tokens" %}the claimed tokens{% for t in c.target_tokens %} <code class="tok rounded bg-violet-100 px-1 dark:bg-violet-900">{{ t }}</code>{% endfor %}{% else %}next-token KL{% endif %}.
     Median effect {{ '%.3g' | format(c.sufficiency_effect) }} (sufficiency) / {{ '%.3g' | format(c.necessity_effect) }} (necessity).
     {% else %}
@@ -137,6 +140,19 @@
       </dl>
       <p class="mt-1 text-xs text-slate-500">Attention-pattern scores on {{ hp.pattern_sequences }} random {{ hp.pattern_length }}-token sequences repeated twice (reported, not gated). Strength is measured from the head's mean output over {{ "{:,}".format(hp.mean_tokens) }} scanned tokens.</p>
       {% endif %}
+      {% if sub.dictionary_profile %}
+      {% set dp = sub.dictionary_profile %}
+      <dl class="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs dark:border-slate-800 dark:bg-slate-800">
+        {% for label, value, hint in [
+          ("Explained variance", dp.explained_variance | num(2) if dp.explained_variance is not none else "–", "Fraction of the MLP output's variance the whole dictionary reconstructs on the scan"),
+          ("Mean L0", dp.mean_l0 | num(1) if dp.mean_l0 is not none else "–", "Active latents per scanned token"),
+          ("Density", dp.density | pct_fine, "Share of scanned tokens on which this latent is non-zero"),
+        ] %}
+        <div class="bg-white p-2 dark:bg-slate-950" title="{{ hint }}"><dt class="text-slate-500">{{ label }}</dt><dd class="mt-0.5 font-mono text-base tabular-nums">{{ value }}</dd></div>
+        {% endfor %}
+      </dl>
+      <p class="mt-1 text-xs text-slate-500">A latent of a {{ dp.kind }} with {{ "{:,}".format(dp.n_features) }} latents ({{ dp.repo }}{% if dp.revision %}@{{ dp.revision[:8] }}{% endif %}, <code>{{ dp.path }}</code>), reading <code>{{ dp.input_site }}</code>: a learned-basis baseline, not a native unit. Fit measured on {{ "{:,}".format(dp.tokens) }} scanned tokens (reported, not gated).</p>
+      {% endif %}
       <dl class="mt-4 grid grid-cols-2 gap-2 text-sm">
         <dt class="text-slate-500">Submitted by</dt><dd class="font-mono text-xs">{{ sub.submitting_agent_model }}</dd>
         {% if verdict %}
@@ -168,7 +184,7 @@
         <span class="ml-2"><span class="tok heat peak" style="--a: 1">peak</span> token</span>
       </div>
     </div>
-    <p class="mb-3 text-xs text-slate-500">Each token is shaded by {{ strength }} as a fraction of the {{ "head" if is_head else "neuron" }}'s max activation;{% if is_head %} the tokens the peak attends to most are listed under each example;{% endif %} hover a token for its value. Up to 30 tokens before and 10 after each peak are shown.</p>
+    <p class="mb-3 text-xs text-slate-500">Each token is shaded by {{ strength }} as a fraction of the {{ peer if is_head or is_feature else "neuron" }}'s max activation;{% if is_head %} the tokens the peak attends to most are listed under each example;{% endif %} hover a token for its value. Up to 30 tokens before and 10 after each peak are shown.</p>
     <ol class="space-y-2">
       {% for ex in examples %}
       <li class="rounded-lg border border-slate-200 p-3 text-sm leading-7 dark:border-slate-800">
@@ -430,7 +446,7 @@
           </tbody>
         </table>
         <p class="mt-2 text-xs text-slate-500">Ranked by the 95% lower bound of co-activation lift: how much more often a pole fires when this one does, discounting chance coincidences. ρ is rank-based and robust to heavy tails.</p>
-        {% else %}<p class="text-sm text-slate-500">{{ "Not measured for attention heads." if is_head else "None recorded." }}</p>{% endif %}
+        {% else %}<p class="text-sm text-slate-500">{{ "Not measured for attention heads." if is_head else ("Not measured for dictionary features." if is_feature else "None recorded.") }}</p>{% endif %}
       </div>
       <div>
         <h4 class="mb-2 text-sm font-medium">Joint ablation</h4>
@@ -448,7 +464,7 @@
           {% elif ja.redundancy_ratio < 0.5 %}With the partners already removed, also removing this pole adds little: its effect overlaps with theirs (a shared pathway).
           {% else %}The partners don't change the pole's effect much.{% endif %}
         </p>
-        {% else %}<p class="text-sm text-slate-500">{{ "Not run for attention heads." if is_head else "Not run: no partner reached the correlation threshold." }}</p>{% endif %}
+        {% else %}<p class="text-sm text-slate-500">{{ "Not run for attention heads." if is_head else ("Not run for dictionary features." if is_feature else "Not run: no partner reached the correlation threshold.") }}</p>{% endif %}
       </div>
     </div>
     {% endif %}
