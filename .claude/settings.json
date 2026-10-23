@@ -1,8 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh pr merge:*)",
-      "Bash(gh api -X PUT repos/8W9aG/openinterpretability/branches/main/protection:*)"
+      "Bash(uv run:*)",
+      "Bash(make:*)",
+      "Bash(git:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh run:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api -X PUT repos/8W9aG/openinterpretability/branches/main/protection:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(jq:*)"
     ]
   }
 }
