@@ -16,8 +16,10 @@ import hashlib
 import json
 import math
 import random
+import re
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -36,6 +38,7 @@ class Preset:
     files: str  # glob within the dataset repo
     text_column: str = "text"
     revision: str | None = None  # default branch or tag; pinned to a commit on use
+    layout: str | None = None  # how rows become documents (see LAYOUTS); None: one per row
 
 
 PRESETS = {
@@ -56,7 +59,52 @@ PRESETS = {
     # C4 English validation split: the standard web baseline of the SAE literature. The
     # main branch is gzipped JSON, so read the Hub's Parquet conversion. ODC-By.
     "c4": Preset("allenai/c4", "en/partial-validation/*.parquet", revision="refs/convert/parquet"),
+    # WikiText-103: 28,475 Good and Featured Wikipedia articles, long and clean, for windows
+    # of 512+ tokens and entity/fact neurons. One row per paragraph or heading, so rows are
+    # joined back into articles. CC BY-SA 3.0 and GFDL: attribute and share excerpts alike.
+    "wikitext": Preset(
+        "Salesforce/wikitext", "wikitext-103-raw-v1/train-*.parquet", layout="wikitext"
+    ),
 }
+
+# WikiText's top-level heading row (" = Title = \n") starts an article; sections are
+# " = = Section = = \n". Its text is tokenised: "1 @,@ 000", "well @-@ known", "lobster ,".
+_WIKITEXT_TITLE = re.compile(r" = [^=].* = \n?")
+_WIKITEXT_HEADING = re.compile(r"(?:= )+(.*?)(?: =)+")
+_WIKITEXT_DETOKENIZE = [
+    (re.compile(r" @(.)@ "), r"\1"),  # number separators and hyphens
+    (re.compile(r" ([.,;:!?%)\]}])"), r"\1"),
+    (re.compile(r"([(\[{$]) "), r"\1"),
+    (re.compile(r" (n't|'s|'re|'ve|'m|'ll|'d)\b"), r"\1"),
+    (re.compile(r" ' s\b"), "'s"),  # possessive after punctuation: "Inc. ' s"
+    (re.compile(r"s ' "), "s' "),  # plural possessive
+    (re.compile(r'" ([^"]*?) "'), r'"\1"'),
+]
+
+
+def wikitext_articles(rows: Sequence[str | None]) -> list[str]:
+    """The WikiText articles that start and end within ``rows``, detokenised, with
+    headings as plain lines and paragraphs separated by blank lines. An article cut by
+    the start or end of ``rows`` (a row group's edge) is dropped, not truncated."""
+    starts = [i for i, row in enumerate(rows) if _WIKITEXT_TITLE.fullmatch(row or "")]
+    return [_wikitext_article(rows[a:b]) for a, b in pairwise(starts)]
+
+
+def _wikitext_article(rows: Sequence[str | None]) -> str:
+    paragraphs = []
+    for row in rows:
+        text = (row or "").strip()
+        if heading := _WIKITEXT_HEADING.fullmatch(text):
+            text = heading.group(1)
+        for pattern, repl in _WIKITEXT_DETOKENIZE:
+            text = pattern.sub(repl, text)
+        if text:
+            paragraphs.append(text)
+    return "\n\n".join(paragraphs)
+
+
+# Row layouts other than one document per row: rows of one row group -> its documents.
+LAYOUTS = {"wikitext": wikitext_articles}
 
 
 def source_path(corpus_path: Path) -> Path:
@@ -73,8 +121,10 @@ def sample_documents(
     seed: int,
     max_chars: int,
     docs_per_row_group: int,
+    layout: str | None = None,
 ) -> list[str]:
-    """Up to ``documents`` non-empty texts, cut to ``max_chars``, from Parquet files on ``fs``."""
+    """Up to ``documents`` non-empty texts, cut to ``max_chars``, from Parquet files on ``fs``.
+    With a ``layout``, each row group's rows are first joined into its documents."""
     rng = random.Random(seed)
     groups = [(path, i) for path in sorted(paths) for i in range(_row_groups(fs, path))]
     rng.shuffle(groups)
@@ -82,6 +132,8 @@ def sample_documents(
     take = max(docs_per_row_group, math.ceil(documents / max(len(groups), 1)))
     out: list[str] = []
     for texts in _read_groups(fs, groups, text_column):
+        if layout is not None:
+            texts = LAYOUTS[layout](texts)
         order = rng.sample(range(len(texts)), len(texts))
         picked = [j for j in order if (texts[j] or "").strip()][:take]  # empties don't count
         for j in sorted(picked):
@@ -164,6 +216,7 @@ def build_from_hub(
     seed: int = 0,
     max_chars: int = 3000,
     docs_per_row_group: int = 20,
+    layout: str | None = None,
 ) -> CorpusSource:
     """Sample a corpus from a Hugging Face dataset at a pinned revision."""
     from huggingface_hub import HfApi, HfFileSystem
@@ -188,6 +241,7 @@ def build_from_hub(
         seed=seed,
         max_chars=max_chars,
         docs_per_row_group=docs_per_row_group,
+        layout=layout,
     )
     return write_corpus(
         texts,
@@ -199,5 +253,6 @@ def build_from_hub(
         seed=seed,
         max_chars=max_chars,
         docs_per_row_group=docs_per_row_group,
+        layout=layout,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )

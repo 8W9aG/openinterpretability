@@ -19,6 +19,7 @@ from openinterp.corpus import (
     sample_documents,
     sample_tokens,
     source_path,
+    wikitext_articles,
     write_corpus,
 )
 from tests.conftest import FakeTokenizer
@@ -52,6 +53,37 @@ def test_sampling_is_seeded_spread_and_clean(shards):
 def test_small_datasets_still_fill_the_sample(shards):
     docs = sample(shards[:1], documents=30, docs_per_row_group=1)  # 4 row groups only
     assert len(docs) == 30
+
+
+WIKITEXT = [
+    " as the war ended . \n",  # the end of an article cut by the row group's start
+    "", " = Homarus gammarus = \n", "",
+    " Homarus gammarus , known as the European lobster , is 60 cm ( 24 in ) long . \n",
+    "", " = = Description = = \n", "",
+    " It weighs 2 @.@ 2 kg , 1 @,@ 000 g are well @-@ known and the \" crusher \" ca n't . \n",
+    " The lobsters ' claws and Apple Inc. ' s iPhone 's game ; 50 % of $ 5 [ sic ] . \n",
+    "", " = Second = \n", "", " Its only paragraph . \n",
+    "", " = Cut = \n", "", " An article cut by the row group's end . \n",
+]  # fmt: skip
+
+
+def test_wikitext_rows_become_whole_detokenised_articles():
+    assert wikitext_articles(WIKITEXT) == [
+        "Homarus gammarus\n\n"
+        "Homarus gammarus, known as the European lobster, is 60 cm (24 in) long.\n\n"
+        "Description\n\n"
+        'It weighs 2.2 kg, 1,000 g are well-known and the "crusher" can\'t.\n\n'
+        "The lobsters' claws and Apple Inc.'s iPhone's game; 50% of $5 [sic].",
+        "Second\n\nIts only paragraph.",
+    ]
+    assert wikitext_articles(WIKITEXT[:10]) == []  # no article ends within the rows
+
+
+def test_a_layout_joins_each_row_groups_rows_into_documents(tmp_path):
+    path = tmp_path / "wikitext.parquet"
+    pq.write_table(pa.table({"text": WIKITEXT * 3}), path, row_group_size=len(WIKITEXT))
+    docs = sample([str(path)], documents=10, max_chars=1000, layout="wikitext")
+    assert len(docs) == 6 and {d.split("\n")[0] for d in docs} == {"Homarus gammarus", "Second"}
 
 
 def test_source_sidecar_pins_the_exact_corpus(tmp_path):
@@ -120,13 +152,18 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
 
 
 @pytest.mark.parametrize(
-    "preset, dataset, files",
+    "preset, dataset, files, revision, layout",
     [
-        ("c4", "allenai/c4", "en/partial-validation/*.parquet"),
-        ("pile-uncopyrighted", "monology/pile-uncopyrighted", "default/partial-train/*.parquet"),
+        ("c4", "allenai/c4", "en/partial-validation/*.parquet", "refs/convert/parquet", None),
+        ("pile-uncopyrighted", "monology/pile-uncopyrighted", "default/partial-train/*.parquet",
+         "refs/convert/parquet", None),
+        ("wikitext", "Salesforce/wikitext", "wikitext-103-raw-v1/train-*.parquet", None,
+         "wikitext"),
     ],
-)
-def test_cli_uses_the_presets_revision(monkeypatch, tmp_path, preset, dataset, files):
+)  # fmt: skip
+def test_cli_uses_the_presets_revision_and_layout(
+    monkeypatch, tmp_path, preset, dataset, files, revision, layout
+):
     calls = {}
 
     def fake_build(dataset, out, **kw):
@@ -136,8 +173,8 @@ def test_cli_uses_the_presets_revision(monkeypatch, tmp_path, preset, dataset, f
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", preset, "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     assert CliRunner().invoke(cli, args).exit_code == 0
-    assert calls["dataset"] == dataset and calls["revision"] == "refs/convert/parquet"
-    assert calls["files"] == files
+    assert calls["dataset"] == dataset and calls["revision"] == revision
+    assert (calls["files"], calls["layout"]) == (files, layout)
     CliRunner().invoke(cli, [*args, "--revision", "abc123"])
     assert calls["revision"] == "abc123"
 

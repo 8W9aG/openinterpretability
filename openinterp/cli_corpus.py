@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli
-from openinterp.corpus import PRESETS
+from openinterp.corpus import LAYOUTS, PRESETS
 
 
 @cli.command()
@@ -22,6 +22,12 @@ from openinterp.corpus import PRESETS
 @click.option(
     "--revision",
     help="Dataset branch, tag or commit. Default: the preset's, or main; pinned on use.",
+)
+@click.option(
+    "--layout",
+    type=click.Choice(list(LAYOUTS)),
+    help="Join rows into documents this way, e.g. one WikiText row per paragraph. Default: "
+    "the preset's, or one document per row.",
 )
 @click.option("--docs", "documents", default=500, show_default=True, type=click.IntRange(1))
 @click.option("--seed", default=0, show_default=True, type=int)
@@ -43,7 +49,16 @@ from openinterp.corpus import PRESETS
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
 )
 def corpus(
-    dataset, files, text_column, revision, documents, seed, max_chars, docs_per_row_group, out
+    dataset,
+    files,
+    text_column,
+    revision,
+    layout,
+    documents,
+    seed,
+    max_chars,
+    docs_per_row_group,
+    out,
 ):
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
 
@@ -62,6 +77,7 @@ def corpus(
         files=files or preset.files,
         text_column=text_column or (preset.text_column if preset else "text"),
         revision=revision or (preset.revision if preset else None),
+        layout=layout or (preset.layout if preset else None),
         documents=documents,
         seed=seed,
         max_chars=max_chars,
