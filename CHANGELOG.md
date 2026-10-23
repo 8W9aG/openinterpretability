@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **A unit's status no longer follows its newest experiment.** A weaker or self-reviewed rerun could overturn a cross-model VERIFIED: L16/N2071+ went VERIFIED → NEEDS_REVISION on one re-review. The status (its *standing*) is now derived from all of a unit's experiments (`docs/PROTOCOL.md` §3 step 9). Only the newest hypothesis counts, each probe set once (a re-measurement replaces its earlier reading), and independent reviews outweigh self-reviews. If the reviews left disagree on VERIFIED, the unit is **CONTESTED** and not counted as verified. On the 191 archived experiments this changes two of 38 multi-experiment poles: L16/N2071+ (VERIFIED by Sonnet 5.5, NEEDS_REVISION by DeepSeek) and L22/N4198− (self-reviewed VERIFIED, then REJECTED) are now contested. 82 units are still verified. Unit and layer pages show the standing. A unit's card lists the reviews it rests on, and each experiment is tagged *counts toward status*, *re-measured since*, *outweighed by an independent review* or *earlier hypothesis*, replacing *latest*/*superseded*. The home page lists contested units and reports reviewer agreement: 11 of the 16 hypotheses reviewed with more than one probe set got the same verdict from every review, and pairs of reviews agree 69% of the time (73% across reviewer models). Parquet gains `unit_status` and `counts_toward_status`; `is_latest` stays. Verdicts are unchanged, so the protocol version is too.
+
 ## [0.0.7] - 2026-10-22
 
 Ships with protocol version **0.7**.

@@ -6,6 +6,10 @@ sparse dictionary (the learned-basis baseline, kept apart from native-unit count
 All experiments are published, whatever their verdict. Within a neuron they are
 ordered by how conclusive the result is (see :mod:`significance`), so a strong null
 result sits next to a strong positive one rather than being hidden.
+
+A pole's status (its :class:`Standing`) is derived from its experiments by the rule in
+``docs/PROTOCOL.md`` §3 step 9: the newest hypothesis, one reading per probe set,
+independent reviews over self-reviews, and CONTESTED when those readings disagree.
 """
 
 from __future__ import annotations
@@ -25,9 +29,12 @@ class Experiment:
     id: str
     is_latest: bool  # newest experiment for this neuron pole
     reuses: str | None = None  # id of an earlier experiment with the same probe set
+    claim: str = ""  # the submission without its provenance: equal for re-reviews of one hypothesis
+    role: str = "current"  # what it counts for in the pole's standing (ROLES)
     # Revision links (``supersedes``) point both ways, so keep them out of repr and ==.
     revises: Experiment | None = field(default=None, repr=False, compare=False)
     revised_by: list[Experiment] = field(default_factory=list, repr=False, compare=False)
+    standing: Standing | None = field(default=None, repr=False, compare=False)  # its pole's
 
     @property
     def independent(self) -> bool:
@@ -45,6 +52,50 @@ class Experiment:
     @property
     def anchor(self) -> str:
         return f"{self.side}-{self.id}"
+
+    @property
+    def probe_set(self) -> str:
+        """The experiment whose probes this one measured: re-measurements share it."""
+        return self.reuses or self.id
+
+    @property
+    def counts(self) -> bool:
+        """Whether the pole's current status rests on this experiment."""
+        return self.role == "current"
+
+
+# Why an experiment does or doesn't count towards its pole's standing, with its label.
+ROLES = {
+    "current": "counts toward status",
+    "remeasured": "re-measured since",
+    "outweighed": "outweighed by an independent review",
+    "earlier_hypothesis": "earlier hypothesis",
+}
+
+
+@dataclass
+class Standing:
+    """What a pole's experiments say now. Derived, never stored (``pole_standing``)."""
+
+    status: str  # VERIFIED, NEEDS_REVISION, REJECTED, or CONTESTED when readings disagree
+    readings: list[Experiment]  # the experiments it rests on, newest first
+
+    @property
+    def lead(self) -> Experiment:
+        return self.readings[0]
+
+    @property
+    def verified(self) -> bool:
+        return self.status == "VERIFIED"
+
+    @property
+    def contested(self) -> bool:
+        return self.status == "CONTESTED"
+
+    @property
+    def self_reviewed(self) -> bool:
+        """Only self-reviews back it: an independent review would have outweighed them."""
+        return all(e.record.self_reviewed for e in self.readings)
 
 
 # What a unit page groups experiments under, per kind, and the prefix of a unit's label.
@@ -69,6 +120,7 @@ class UnitNode:
     kind: str = "mlp_neuron_pole"
     experiments: list[Experiment] = field(default_factory=list)
     dictionary: str | None = None  # a feature's dictionary
+    standings: dict[str, Standing] = field(default_factory=dict)  # per pole (or head, feature)
 
     @property
     def is_head(self) -> bool:
@@ -95,13 +147,8 @@ class UnitNode:
         return f"{LABEL_PREFIX[self.kind]}{self.idx}"
 
     @property
-    def latest_by_pole(self) -> dict[str, Experiment]:
-        """Latest experiment per pole (``head`` for a head, ``feature`` for a feature)."""
-        return {e.side: e for e in self.experiments if e.is_latest}
-
-    @property
     def verified(self) -> bool:
-        return any(e.record.is_verified for e in self.latest_by_pole.values())
+        return any(s.verified for s in self.standings.values())
 
     @property
     def top(self) -> Experiment:
@@ -287,12 +334,22 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
                 dictionary=dictionary,
             )
         units[key].experiments.append(
-            Experiment(r, significance(r), experiment_id(r), latest[ident.slug] is r)
+            Experiment(
+                r,
+                significance(r),
+                experiment_id(r),
+                latest[ident.slug] is r,
+                claim=r.submission.model_dump_json(exclude={"provenance"}),
+            )
         )
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
         _link_revisions(node.experiments)
+        for side in node.sides:
+            pole = [e for e in node.experiments if e.side == side]
+            if pole:
+                node.standings[side] = pole_standing(pole)
         node.experiments.sort(key=experiment_order)
         model = models[name]
         if not model.layers or model.layers[-1].layer != layer_idx:
@@ -325,6 +382,108 @@ def _link_revisions(experiments: list[Experiment]) -> None:
             target.revised_by.append(e)
 
 
+def _newest_first(experiments: Sequence[Experiment]) -> list[Experiment]:
+    return sorted(experiments, key=lambda e: (e.record.verdict.timestamp, e.id), reverse=True)
+
+
+def _readings(experiments: Sequence[Experiment]) -> list[Experiment]:
+    """The newest experiment per probe set, newest first: a re-measurement (e.g. under a
+    newer protocol) replaces the reading it repeats instead of counting twice."""
+    seen: set[str] = set()
+    out = []
+    for e in _newest_first(experiments):
+        if e.probe_set not in seen:
+            seen.add(e.probe_set)
+            out.append(e)
+    return out
+
+
+def pole_standing(experiments: Sequence[Experiment]) -> Standing:
+    """Derive one pole's standing from all of its experiments, and set each one's ``role``.
+
+    1. Only the newest hypothesis counts: a new submission replaces older ones, whose
+       verdicts were about a different claim.
+    2. Each probe set counts once, read by its newest experiment.
+    3. If any reading is an independent review, self-reviews are outweighed.
+    4. The readings left agree, or the pole is CONTESTED. Only VERIFIED against anything
+       else is a disagreement; if none is VERIFIED, the newest reading's status stands.
+    """
+    newest = _newest_first(experiments)
+    introduced = {e.claim: e for e in reversed(newest)}  # each claim's first experiment
+    current = max(introduced.values(), key=lambda e: (e.record.verdict.timestamp, e.id)).claim
+    latest = _readings([e for e in newest if e.claim == current])
+    readings = [e for e in latest if not e.record.self_reviewed] or latest
+    counted, read = {e.id for e in readings}, {e.id for e in latest}
+    for e in newest:
+        if e.claim != current:
+            e.role = "earlier_hypothesis"
+        elif e.id in counted:
+            e.role = "current"
+        elif e.id in read:
+            e.role = "outweighed"
+        else:
+            e.role = "remeasured"
+    statuses = {e.record.verdict.status for e in readings}
+    contested = "VERIFIED" in statuses and len(statuses) > 1
+    standing = Standing("CONTESTED" if contested else readings[0].record.verdict.status, readings)
+    for e in newest:
+        e.standing = standing
+    return standing
+
+
+def native_standings(models: Sequence[ModelNode]):
+    """``(unit, side, standing)`` for every native neuron pole and head (dictionary features
+    are a baseline, not claims about the model's own units)."""
+    for m in models:
+        for layer in m.layers:
+            for n in layer.units:
+                if not n.is_feature:
+                    for side, standing in n.standings.items():
+                        yield n, side, standing
+
+
+def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
+    """How often reviews of the same hypothesis agree on VERIFIED versus not.
+
+    Counts every hypothesis about a native unit with more than one probe set (re-reviews,
+    replications, independent re-reviews), each probe set read by its newest experiment,
+    self-reviews included: this measures the reviews, not the standing rule.
+    """
+    claims = unanimous = pairs = agreeing = 0
+    cross_pairs = cross_agreeing = 0
+    for m in models:
+        for layer in m.layers:
+            for n in layer.units:
+                if n.is_feature:
+                    continue
+                by_claim: dict[tuple[str, str], list[Experiment]] = {}
+                for e in n.experiments:
+                    by_claim.setdefault((e.side, e.claim), []).append(e)
+                for group in by_claim.values():
+                    readings = _readings(group)
+                    if len(readings) < 2:
+                        continue
+                    claims += 1
+                    unanimous += len({e.record.is_verified for e in readings}) == 1
+                    for i, a in enumerate(readings):
+                        for b in readings[i + 1 :]:
+                            agree = a.record.is_verified == b.record.is_verified
+                            pairs += 1
+                            agreeing += agree
+                            ra, rb = a.record.verdict, b.record.verdict
+                            if ra.reviewer_agent_model != rb.reviewer_agent_model:
+                                cross_pairs += 1
+                                cross_agreeing += agree
+    return {
+        "claims": claims,
+        "unanimous": unanimous,
+        "pairs": pairs,
+        "pair_agreement": round(agreeing / pairs, 4) if pairs else None,
+        "cross_model_pairs": cross_pairs,
+        "cross_model_agreement": round(cross_agreeing / cross_pairs, 4) if cross_pairs else None,
+    }
+
+
 def false_discovery(models: Sequence[ModelNode]) -> dict:
     """Expected false discoveries among the current VERIFIED claims about native units (one
     per neuron pole or head; dictionary features are a baseline, not claims about the model's
@@ -336,14 +495,11 @@ def false_discovery(models: Sequence[ModelNode]) -> dict:
     """
     from openinterp.core.stats import expected_false_discoveries
 
+    # A claim backed by several agreeing reviews takes its weakest one's P(useful).
     claims = [
-        e.sig.p_useful
-        for m in models
-        for layer in m.layers
-        for n in layer.units
-        if not n.is_feature
-        for e in n.latest_by_pole.values()
-        if e.record.is_verified
+        min(e.sig.p_useful for e in s.readings)
+        for _, _, s in native_standings(models)
+        if s.verified
     ]
     expected = expected_false_discoveries(claims)
     return {

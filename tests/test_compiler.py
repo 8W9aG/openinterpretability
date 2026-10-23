@@ -98,7 +98,7 @@ def test_every_experiment_published_in_hierarchy(tmp_path, records):
     assert "data-pagefind-body" in neuron
     assert 'href="../../../index.html"' in neuron  # relative root from nested pages
     assert "Fires on commas." in neuron and "Early idea." in neuron  # null + superseded shown
-    assert "superseded" in neuron and "latest for this pole" in neuron
+    assert "earlier hypothesis" in neuron and "counts toward status" in neuron
     assert "&#34;Hello,&#34; she said." in neuron  # prompts are HTML-escaped
     assert "<rect" in neuron  # histogram rendered
 
@@ -160,6 +160,13 @@ def test_parquet_has_every_experiment(tmp_path, records):
     latest = {(r["neuron_idx"], r["pole"]): r for r in rows if r["is_latest"]}
     assert latest[(117, "positive")]["status"] == "VERIFIED"
     assert sum(not r["is_latest"] for r in rows) == 1
+    status = {(r["neuron_idx"], r["pole"]): r["unit_status"] for r in rows}
+    assert status == {
+        (117, "positive"): "VERIFIED",
+        (117, "negative"): "REJECTED",
+        (9, "positive"): "REJECTED",
+    }
+    assert sum(r["counts_toward_status"] for r in rows) == 3  # not the early N117+ idea
     assert all(0 <= r["conclusiveness"] <= 1 for r in rows)
 
     manifest = json.loads((tmp_path / "data" / "manifest.json").read_text())
@@ -573,3 +580,138 @@ def test_self_reviews_badged_and_counted(tmp_path, records):
     assert ">self-reviewed</span>" not in (layer / "N9.html").read_text()
     home = (tmp_path / "index.html").read_text()
     assert "1 of 4 experiments were" in home and "So were 1 of the 1 current verified" in home
+
+
+def _reviewed_by(rec, reviewer, *, status, hours, counts=(10, 0, 5, 0)):
+    """A re-review of ``rec``'s submission: a new probe set from ``reviewer``."""
+    verdict = rec.verdict.model_copy(
+        update={
+            "status": status,
+            "reviewer_agent_model": reviewer,
+            # Prompts of its own, so it isn't a re-measurement of an earlier probe set.
+            "adversarial_test_results": [
+                t.model_copy(update={"prompt": f"{t.prompt} {reviewer}{hours}"})
+                for t in probes(*counts)
+            ],
+            "timestamp": rec.verdict.timestamp + timedelta(hours=hours),
+        }
+    )
+    return rec.model_copy(update={"verdict": verdict})
+
+
+def _standing(records, idx=117, pole="positive"):
+    from openinterp.builder.tree import build_tree
+
+    (model,) = build_tree(records)
+    (unit,) = [n for layer in model.layers for n in layer.units if n.idx == idx]
+    return unit.standings[pole], unit
+
+
+def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
+    """An independent VERIFIED and a later independent NEEDS_REVISION of the same hypothesis:
+    the pole is CONTESTED, not NEEDS_REVISION, and not counted as verified."""
+    from openinterp.builder.compiler import registry_stats
+
+    verified = records[1]
+    records.append(
+        _reviewed_by(
+            verified, "deepseek/flash", status="NEEDS_REVISION", hours=3, counts=(5, 5, 1, 4)
+        )
+    )
+    standing, unit = _standing(records)
+    assert standing.status == "CONTESTED" and standing.contested
+    assert [e.record.verdict.status for e in standing.readings] == ["NEEDS_REVISION", "VERIFIED"]
+    assert not unit.verified
+
+    report = compile_site(records, tmp_path)
+    stats = registry_stats(report.parquet)
+    assert (stats["totals"]["verified"], stats["totals"]["contested"]) == (0, 1)
+    assert stats["verified"] == []
+    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "CONTESTED" in neuron and "Reviews of this hypothesis disagree" in neuron
+    home = (tmp_path / "index.html").read_text()
+    assert 'id="contested"' in home and "1 unit is contested" in home
+    assert "0 of the 1 hypotheses reviewed with more than one probe set" in home
+
+
+def test_independent_review_outweighs_self_review(records):
+    verified = records[1]  # reviewed by anthropic/claude-test, proposed by openai/gpt-test
+    records.append(
+        _self_reviewed(_reviewed_by(verified, "x", status="REJECTED", hours=3, counts=(2, 8, 0, 5)))
+    )
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and not standing.self_reviewed
+    roles = {e.record.verdict.status: e.role for e in unit.experiments if e.side == "positive"}
+    assert roles == {
+        "NEEDS_REVISION": "earlier_hypothesis",
+        "VERIFIED": "current",
+        "REJECTED": "outweighed",
+    }
+
+
+def test_self_reviews_alone_can_contest(records):
+    verified = _self_reviewed(records[1])
+    records[1] = verified
+    records.append(
+        _reviewed_by(
+            verified,
+            verified.verdict.reviewer_agent_model,
+            status="REJECTED",
+            hours=3,
+            counts=(2, 8, 0, 5),
+        )
+    )
+    standing, _ = _standing(records)
+    assert standing.status == "CONTESTED" and standing.self_reviewed
+
+
+def test_remeasurement_replaces_its_reading(records):
+    """Re-evaluating a probe set under a newer protocol replaces that reading: the old
+    reading can't contest the new one."""
+    verified = records[1]
+    remeasured = verified.model_copy(
+        update={
+            "verdict": verified.verdict.model_copy(
+                update={
+                    "status": "NEEDS_REVISION",
+                    "timestamp": verified.verdict.timestamp + timedelta(hours=3),
+                }
+            )
+        }
+    )
+    records.append(remeasured)
+    standing, unit = _standing(records)
+    assert standing.status == "NEEDS_REVISION" and len(standing.readings) == 1
+    assert [e.role for e in unit.experiments if e.record is verified] == ["remeasured"]
+
+
+def test_revision_replaces_contested_hypothesis(records):
+    verified = records[1]
+    records.append(
+        _reviewed_by(
+            verified, "deepseek/flash", status="NEEDS_REVISION", hours=3, counts=(5, 5, 1, 4)
+        )
+    )
+    revised = experiment(
+        records[0], idx=117, status="VERIFIED", counts=(10, 0, 5, 0), hours=6, text="Narrower."
+    )
+    records.append(revised)
+    standing, _ = _standing(records)
+    assert standing.status == "VERIFIED"
+    assert [e.record.submission.natural_language_explanation for e in standing.readings] == [
+        "Narrower."
+    ]
+
+
+def test_reviewer_agreement(records):
+    from openinterp.builder.tree import build_tree, reviewer_agreement
+
+    verified = records[1]
+    records.append(_reviewed_by(verified, "deepseek/flash", status="VERIFIED", hours=3))
+    records.append(
+        _reviewed_by(verified, "other/model", status="NEEDS_REVISION", hours=4, counts=(5, 5, 1, 4))
+    )
+    agreement = reviewer_agreement(build_tree(records))
+    assert agreement["claims"] == 1 and agreement["unanimous"] == 0
+    assert agreement["pairs"] == 3 and agreement["pair_agreement"] == round(1 / 3, 4)
+    assert agreement["cross_model_pairs"] == 3

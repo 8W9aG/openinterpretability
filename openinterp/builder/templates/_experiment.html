@@ -16,7 +16,7 @@
       {{ status_badge(verdict.status) }}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
-      {% if e.is_latest %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">latest for this {{ what }}</span>{% else %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800">superseded</span>{% endif %}
+      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-500' }}" title="How this experiment counts toward the {{ what }}'s status">{{ roles[e.role] }}</span>
       {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
     </div>

@@ -47,6 +47,13 @@
     That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">openinterp next</code> draws re-reviews of these.
   </p>
   {% endif %}
+  {% if agreement.claims %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" title="Each probe set is read by its newest experiment, so re-measurements don't count twice">
+    Reviewer agreement: {{ agreement.unanimous }} of the {{ agreement.claims }} hypotheses reviewed with more than one probe set got the same verdict, VERIFIED or not, from every review.
+    Pairs of reviews agree {{ agreement.pair_agreement | pct }} of the time{% if agreement.cross_model_pairs %} ({{ agreement.cross_model_agreement | pct }} of {{ agreement.cross_model_pairs }} pairs from different reviewer models){% endif %}.
+    {% if contested %}<a class="underline" href="#contested">{{ contested | length }} unit{{ 's are' if contested | length != 1 else ' is' }} contested</a>: a VERIFIED review and another review of its current hypothesis disagree, so it is not counted as verified.{% endif %}
+  </p>
+  {% endif %}
 </section>
 
 <section class="mb-10">
@@ -185,6 +192,36 @@
   <p class="text-sm text-slate-500">No verified neurons or heads yet.</p>
   {% endif %}
 </section>
+
+{% if contested %}
+<section id="contested" class="mb-10 scroll-mt-4">
+  <h2 class="mb-1 text-lg font-semibold">Contested neurons and heads</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Reviews of the current hypothesis disagree. Independent reviews outweigh self-reviews, so these are disagreements among reviews of the same kind. Another independent review, or a narrower revision, settles them.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Hypothesis</th><th class="px-3 py-2">Reviews</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for c in contested %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ c.unit.href }}">L{{ c.unit.layer }}/{{ c.unit.label }}{% if c.unit.is_neuron %}{{ pole_mark(c.side) }}{% endif %}</a>
+            <div class="text-slate-500">{{ c.model }}</div>
+          </td>
+          <td class="px-3 py-2">{% if c.standing.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ c.standing.lead.record.submission.natural_language_explanation | truncate(140) }}</td>
+          <td class="space-y-1 px-3 py-2 text-xs">
+            {% for r in c.standing.readings %}
+            <div class="flex flex-wrap items-center gap-2"><a href="{{ c.unit.href }}#{{ r.anchor }}">{{ status_badge(r.record.verdict.status) }}</a><span class="font-mono text-slate-500">{{ r.record.verdict.reviewer_agent_model }}</span></div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 
 <section>
   <h2 class="mb-1 text-lg font-semibold">Query the registry</h2>
