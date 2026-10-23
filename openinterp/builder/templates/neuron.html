@@ -12,19 +12,24 @@
     {# A neuron's two poles are read together: the negative pole often encodes the contrast the positive one draws. A head has one card. #}
     <div class="mt-4 grid gap-3 sm:grid-cols-2">
       {% for pole in neuron.sides %}
-      {% set latest = neuron.latest_by_pole.get(pole) %}
+      {% set s = neuron.standings.get(pole) %}
       {% set pole_exps = neuron.experiments | selectattr("side", "equalto", pole) | selectattr("independent") | list %}
       <div class="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
         <div class="flex items-center gap-2">
           <span class="text-slate-500">{% if neuron.is_head %}Attention head{% elif neuron.is_feature %}Latent of {{ neuron.dictionary }}{% else %}{{ pole | capitalize }} pole {{ pole_mark(pole) }}{% endif %}</span>
-          {% if latest %}{{ status_badge(latest.record.verdict.status) }}<span class="hidden" data-pagefind-filter="status">{{ latest.record.verdict.status }}</span>{% if latest.record.self_reviewed %}{{ self_review_badge() }}{% endif %}{% endif %}
+          {% if s %}{{ status_badge(s.status) }}<span class="hidden" data-pagefind-filter="status">{{ s.status }}</span>{% if s.self_reviewed %}{{ self_review_badge() }}{% endif %}{% endif %}
         </div>
-        {% if pole_exps %}
+        {% if s %}
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          {{ evidence_badge(pole_exps[0].sig.conclusiveness, pole_exps[0].sig.direction) }}
+          {% if not s.contested %}{{ evidence_badge(s.lead.sig.conclusiveness, s.lead.sig.direction) }}{% endif %}
           <span>{{ pole_exps | length }} independent experiment{{ 's' if pole_exps | length != 1 }}</span>
         </div>
-        <p class="mt-2 text-xs">{{ pole_exps[0].record.submission.natural_language_explanation | truncate(120) }}</p>
+        <p class="mt-2 text-xs">{{ s.lead.record.submission.natural_language_explanation | truncate(120) }}</p>
+        {% if s.readings | length > 1 %}
+        <p class="mt-2 text-xs text-slate-500">{% if s.contested %}Reviews of this hypothesis disagree:{% else %}Every review of this hypothesis agrees:{% endif %}
+          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="#{{ r.anchor }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <span class="font-mono">{{ r.record.verdict.reviewer_agent_model }}</span>{{ "; " if not loop.last }}{% endfor %}.
+        </p>
+        {% endif %}
         {% else %}
         <p class="mt-2 text-xs text-slate-500">Not studied yet: a candidate for <code>openinterp next</code>.</p>
         {% endif %}

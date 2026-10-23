@@ -27,8 +27,8 @@
           <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% if n.dictionary %}<div class="text-xs text-slate-500">{{ n.dictionary }}</div>{% endif +%}
         </td>
         <td class="space-y-1 px-3 py-2">
-          {% for pole, e in n.latest_by_pole | dictsort(reverse=true) %}
-          <div class="flex items-center gap-2 text-xs">{% if n.is_neuron %}{{ pole_mark(pole) }} {% endif %}{{ status_badge(e.record.verdict.status) }}{% if e.record.self_reviewed %} {{ self_review_badge() }}{% endif %}</div>
+          {% for pole, s in n.standings | dictsort(reverse=true) %}
+          <div class="flex items-center gap-2 text-xs">{% if n.is_neuron %}{{ pole_mark(pole) }} {% endif %}{{ status_badge(s.status) }}{% if s.self_reviewed %} {{ self_review_badge() }}{% endif %}</div>
           {% endfor %}
         </td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ n.experiments | length }}</td>

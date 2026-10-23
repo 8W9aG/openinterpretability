@@ -6,16 +6,23 @@ sparse dictionary (the learned-basis baseline, kept apart from native-unit count
 All experiments are published, whatever their verdict. Within a neuron they are
 ordered by how conclusive the result is (see :mod:`significance`), so a strong null
 result sits next to a strong positive one rather than being hidden.
+
+A pole's status is derived from its experiments by :mod:`standing`.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from openinterp.builder.significance import Significance, significance
+from openinterp.builder.standing import native_standings, pole_standing
 from openinterp.builder.wiki import experiment_id
 from openinterp.core.schemas import AuditRecord
+
+if TYPE_CHECKING:
+    from openinterp.builder.standing import Standing
 
 
 @dataclass
@@ -25,9 +32,12 @@ class Experiment:
     id: str
     is_latest: bool  # newest experiment for this neuron pole
     reuses: str | None = None  # id of an earlier experiment with the same probe set
+    claim: str = ""  # the submission without its provenance: equal for re-reviews of one hypothesis
+    role: str = "current"  # what it counts for in the pole's standing (standing.ROLES)
     # Revision links (``supersedes``) point both ways, so keep them out of repr and ==.
     revises: Experiment | None = field(default=None, repr=False, compare=False)
     revised_by: list[Experiment] = field(default_factory=list, repr=False, compare=False)
+    standing: Standing | None = field(default=None, repr=False, compare=False)  # its pole's
 
     @property
     def independent(self) -> bool:
@@ -45,6 +55,16 @@ class Experiment:
     @property
     def anchor(self) -> str:
         return f"{self.side}-{self.id}"
+
+    @property
+    def probe_set(self) -> str:
+        """The experiment whose probes this one measured: re-measurements share it."""
+        return self.reuses or self.id
+
+    @property
+    def counts(self) -> bool:
+        """Whether the pole's current status rests on this experiment."""
+        return self.role == "current"
 
 
 # What a unit page groups experiments under, per kind, and the prefix of a unit's label.
@@ -69,6 +89,7 @@ class UnitNode:
     kind: str = "mlp_neuron_pole"
     experiments: list[Experiment] = field(default_factory=list)
     dictionary: str | None = None  # a feature's dictionary
+    standings: dict[str, Standing] = field(default_factory=dict)  # per pole (or head, feature)
 
     @property
     def is_head(self) -> bool:
@@ -95,13 +116,8 @@ class UnitNode:
         return f"{LABEL_PREFIX[self.kind]}{self.idx}"
 
     @property
-    def latest_by_pole(self) -> dict[str, Experiment]:
-        """Latest experiment per pole (``head`` for a head, ``feature`` for a feature)."""
-        return {e.side: e for e in self.experiments if e.is_latest}
-
-    @property
     def verified(self) -> bool:
-        return any(e.record.is_verified for e in self.latest_by_pole.values())
+        return any(s.verified for s in self.standings.values())
 
     @property
     def top(self) -> Experiment:
@@ -287,12 +303,22 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
                 dictionary=dictionary,
             )
         units[key].experiments.append(
-            Experiment(r, significance(r), experiment_id(r), latest[ident.slug] is r)
+            Experiment(
+                r,
+                significance(r),
+                experiment_id(r),
+                latest[ident.slug] is r,
+                claim=r.submission.model_dump_json(exclude={"provenance"}),
+            )
         )
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
         _link_revisions(node.experiments)
+        for side in node.sides:
+            pole = [e for e in node.experiments if e.side == side]
+            if pole:
+                node.standings[side] = pole_standing(pole)
         node.experiments.sort(key=experiment_order)
         model = models[name]
         if not model.layers or model.layers[-1].layer != layer_idx:
@@ -336,14 +362,11 @@ def false_discovery(models: Sequence[ModelNode]) -> dict:
     """
     from openinterp.core.stats import expected_false_discoveries
 
+    # A claim backed by several agreeing reviews takes its weakest one's P(useful).
     claims = [
-        e.sig.p_useful
-        for m in models
-        for layer in m.layers
-        for n in layer.units
-        if not n.is_feature
-        for e in n.latest_by_pole.values()
-        if e.record.is_verified
+        min(e.sig.p_useful for e in s.readings)
+        for _, _, s in native_standings(models)
+        if s.verified
     ]
     expected = expected_false_discoveries(claims)
     return {

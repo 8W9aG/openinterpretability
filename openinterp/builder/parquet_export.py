@@ -1,7 +1,10 @@
 """Bundle every experiment into a columnar registry for bulk analysis.
 
-One row per experiment, whatever its verdict (``is_latest`` marks the newest
-experiment for each neuron pole, head or feature). ``kind`` tells the units apart: a
+One row per experiment, whatever its verdict. ``unit_status`` is the standing of the row's
+neuron pole, head or feature (``docs/PROTOCOL.md`` §3 step 9; CONTESTED when its reviews
+disagree), repeated on each of its rows, and ``counts_toward_status`` marks the rows it
+rests on. ``is_latest`` marks the newest experiment for each, which is not necessarily one
+of those. ``kind`` tells the units apart: a
 neuron pole row has ``neuron_idx`` and ``pole``, an attention head row ``head_idx``, and a
 dictionary feature row (the learned-basis baseline) ``dictionary`` and ``feature_idx``.
 Filter on ``kind`` before computing native-neuron statistics. Writes
@@ -43,6 +46,8 @@ REGISTRY_SCHEMA = pa.schema(
         ("experiment_id", pa.string()),
         ("slug", pa.string()),
         ("is_latest", pa.bool_()),
+        ("unit_status", pa.string()),
+        ("counts_toward_status", pa.bool_()),
         ("model_name", pa.string()),
         ("kind", pa.string()),
         ("layer", pa.int32()),
@@ -168,6 +173,8 @@ def experiment_row(exp: Experiment) -> dict:
         **record_to_row(exp.record),
         "experiment_id": exp.id,
         "is_latest": exp.is_latest,
+        "unit_status": exp.standing.status if exp.standing else None,
+        "counts_toward_status": exp.counts,
         "p_useful": exp.sig.p_useful,
         "conclusiveness": exp.sig.conclusiveness,
         "evidence_direction": exp.sig.direction,

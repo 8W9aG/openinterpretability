@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
 from openinterp.builder.parquet_export import export_registry
+from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     LABEL_PREFIX,
     SIDES,
@@ -67,6 +68,7 @@ def _environment() -> Environment:
     env.filters["pct_fine"] = _pct_fine
     env.filters["num"] = lambda v, d=3: "—" if v is None else f"{v:.{d}f}"
     env.filters["thousands"] = lambda v: "?" if v is None else f"{v:,}"
+    env.globals["roles"] = ROLES
     return env
 
 
@@ -230,15 +232,20 @@ def registry_stats(parquet: Path) -> dict:
                count(DISTINCT slug) FILTER (WHERE kind = 'dictionary_feature') AS features,
                count(DISTINCT model_name) AS models,
                -- dictionary features are a baseline, not claims about native units
-               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED'
-                                AND kind != 'dictionary_feature') AS verified,
-               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED'
-                                AND kind = 'dictionary_feature') AS verified_features,
+               count(DISTINCT slug) FILTER (WHERE unit_status = 'VERIFIED'
+                                            AND kind != 'dictionary_feature') AS verified,
+               count(DISTINCT slug) FILTER (WHERE unit_status = 'VERIFIED'
+                                            AND kind = 'dictionary_feature') AS verified_features,
+               count(DISTINCT slug) FILTER (WHERE unit_status = 'CONTESTED'
+                                            AND kind != 'dictionary_feature') AS contested,
                count(*) FILTER (WHERE conclusiveness >= 0.9 AND evidence_direction = 'refutes')
                    AS conclusive_nulls,
                count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
-               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED' AND self_reviewed
-                                AND kind != 'dictionary_feature') AS verified_self_reviewed
+               -- a standing rests on self-reviews only when no independent review exists
+               count(DISTINCT slug) FILTER (WHERE counts_toward_status AND self_reviewed
+                                            AND unit_status = 'VERIFIED'
+                                            AND kind != 'dictionary_feature')
+                   AS verified_self_reviewed
         FROM r
         """
     )[0]
@@ -248,7 +255,11 @@ def registry_stats(parquet: Path) -> dict:
                experiment_id,
                explanation, self_reviewed,
                confidence_score, sufficiency_score, necessity_score, is_lookahead
-        FROM r WHERE is_latest AND status = 'VERIFIED' AND kind != 'dictionary_feature'
+        FROM r
+        WHERE counts_toward_status AND unit_status = 'VERIFIED' AND kind != 'dictionary_feature'
+        QUALIFY row_number() OVER (
+            PARTITION BY slug ORDER BY reviewed_at DESC, experiment_id
+        ) = 1  -- one row per unit: its newest agreeing review
         ORDER BY confidence_score DESC, slug
         """
     )
@@ -284,7 +295,8 @@ def registry_stats(parquet: Path) -> dict:
     agents = rows(
         """
         SELECT submitting_agent_model AS agent, count(*) AS experiments,
-               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED') AS verified,
+               count(DISTINCT slug)
+                   FILTER (WHERE counts_toward_status AND unit_status = 'VERIFIED') AS verified,
                count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
                avg(conclusiveness) AS mean_conclusiveness
         FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
@@ -389,5 +401,11 @@ def compile_site(
         models=models,
         stats=registry_stats(report.parquet),
         fdr=false_discovery(models),
+        agreement=reviewer_agreement(models),
+        contested=[
+            {"model": n.model, "unit": n, "side": side, "standing": st}
+            for n, side, st in native_standings(models)
+            if st.contested
+        ],
     )
     return report
