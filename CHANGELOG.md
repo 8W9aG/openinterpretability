@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-10-22
+
+Ships with protocol version **0.7**.
+
 ### Added
 
 - **`wikitext` corpus preset:** `openinterp corpus --dataset wikitext` samples whole articles from [WikiText-103](https://huggingface.co/datasets/Salesforce/wikitext) (`Salesforce/wikitext`, `wikitext-103-raw-v1`, train split): 28,475 Good and Featured Wikipedia articles, long and clean, for windows of 512 tokens or more and for entity and fact neurons. The dataset stores one row per paragraph or heading, so a new `--layout wikitext` (a preset field, recorded as `layout` in the corpus's source sidecar) joins each row group's rows back into articles, keeps only the articles that start and end within the row group, writes headings as plain lines with blank lines between paragraphs, and undoes WikiText's tokenisation (`1 @,@ 000` → `1,000`, `well @-@ known` → `well-known`, `lobster ,` → `lobster,`, `ca n't` → `can't`, `( 24 in )` → `(24 in)`). Single-quoted phrases keep their spaces, because apostrophes such as *K'iche'* make them ambiguous. 500 documents take about 20 seconds. Rebuilding at the recorded commit gives a byte-identical corpus. With the default `--max-chars 3000`, 478 of the 500 documents have at least 512 Qwen2.5 tokens (median 683); `--max-chars 100000` keeps whole articles (median 2,846). Licence: CC BY-SA 3.0 and GFDL, so excerpts in the wiki need attribution and the same licence.
