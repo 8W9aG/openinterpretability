@@ -185,7 +185,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
-- [ ] Mark the CI jobs "Lint and tests", "Experiment records" and "Reproduce records" as required in the GitHub branch protection rules for `main`.
+- [x] Mark the CI jobs "Lint and tests", "Experiment records" and "Reproduce records" as required in the GitHub branch protection rules for `main`.
 - [ ] Add the R2 secrets and variables to GitHub (see README, "Deploy"), then run the deploy workflow once by hand.
 - [ ] Keep a short "State of the registry" note at the top of this file (or a `make stats` target that prints it): experiments, units, models, VERIFIED share, self-reviewed share and protocol versions in use. As of 2026-10-20: 79 experiments on 67 units, all Qwen2.5-0.5B, 46 VERIFIED, and 8 records still under protocols 0.2–0.4. Several items above depend on these numbers, and nobody should have to rerun ad-hoc scripts to see them.
 - [ ] Say in `CHANGELOG.md` that only records reviewed after the explanation-scores change have scores. "Every review records them" reads as if the whole registry has them, but the site shows them on 2 pages.

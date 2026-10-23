@@ -1,5 +1,8 @@
 {
   "permissions": {
-    "allow": ["Bash(gh pr merge:*)"]
+    "allow": [
+      "Bash(gh pr merge:*)",
+      "Bash(gh api -X PUT repos/8W9aG/openinterpretability/branches/main/protection:*)"
+    ]
   }
 }
