@@ -21,18 +21,16 @@ from pydantic import ValidationError
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
 from openinterp.builder.parquet_export import export_registry
+from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     LABEL_PREFIX,
-    ROLES,
     SIDES,
     Experiment,
     build_tree,
     false_discovery,
     feature_href,
     head_href,
-    native_standings,
     neuron_href,
-    reviewer_agreement,
 )
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord

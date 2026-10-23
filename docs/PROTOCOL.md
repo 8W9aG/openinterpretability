@@ -64,7 +64,7 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    - With Beta(1, 1) priors on specificity and sensitivity, P(useful) = P(balanced accuracy > 0.6).
    - Conclusiveness is |2·P(useful) − 1|, so a well-probed rejection ranks as high as a well-probed verification, and thinly-probed results rank low whatever their verdict.
 
-   **Standing.** A unit's status is not simply its newest experiment's, or a weaker or self-reviewed rerun could overturn an independent VERIFIED. It is derived in four steps (`builder.tree.pole_standing`):
+   **Standing.** A unit's status is not simply its newest experiment's, or a weaker or self-reviewed rerun could overturn an independent VERIFIED. It is derived in four steps (`builder.standing.pole_standing`):
    1. *Newest hypothesis.* Only experiments on the unit's newest submission count. A new submission replaces older ones (a revision names them in `supersedes`), and their verdicts were about a different claim. Re-reviews of one submission share everything but provenance.
    2. *One reading per probe set.* A re-measurement of a probe set (e.g. `reevaluate` under a newer protocol) replaces that set's earlier reading.
    3. *Independent over self-review.* If any reading came from a reviewer model other than the proposer's, self-reviews are outweighed.

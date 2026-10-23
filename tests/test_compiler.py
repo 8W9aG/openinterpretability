@@ -704,7 +704,8 @@ def test_revision_replaces_contested_hypothesis(records):
 
 
 def test_reviewer_agreement(records):
-    from openinterp.builder.tree import build_tree, reviewer_agreement
+    from openinterp.builder.standing import reviewer_agreement
+    from openinterp.builder.tree import build_tree
 
     verified = records[1]
     records.append(_reviewed_by(verified, "deepseek/flash", status="VERIFIED", hours=3))
