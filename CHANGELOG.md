@@ -18,7 +18,7 @@ The project has two version numbers:
   - *Why.* The readings are mostly generic categories: 38 distinct over 99 experiments, led by *country*, *noun* and *animal*.
   - *Judges.* Judges split on grammatical readings, taking *noun* or *verb* as the word or the part of speech. One answer arrived malformed and was judged again: 26 texts where the malformed one held 12.
 
-  The Activation Oracle half of the TODO item stays open until the registry audits a model that has one.
+  This closes the first *Analyses per experiment* item in `TODO.md`. Its Activation Oracle half moves under *Models*, since it waits on a model that has a released oracle.
 
 ### Changed
 
