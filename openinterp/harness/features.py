@@ -22,6 +22,7 @@ from openinterp.harness.heads import _repeat
 from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
 from openinterp.harness.scan import ScanResult, TopExamples, batches, cut_pieces
+from openinterp.harness.sites import dictionary_io
 
 ENCODE_CHUNK = 1024  # tokens encoded through the whole dictionary at once
 
@@ -86,7 +87,7 @@ def scan_feature(
     fit = _Fit()
     values: list[float] = []
     for batch in batches(runner, pieces, batch_size):
-        x, out = runner.dictionary_io(batch.encoded, layer, spec.input_site)
+        x, out = dictionary_io(runner, batch.encoded, layer, spec.input_site)
         strengths = dictionary.feature(x, f).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
@@ -120,7 +121,7 @@ def latent_activations(
     runner: NeuronHookRunner, dictionary: Dictionary, inputs: Inputs, layer: int, site: str
 ) -> torch.Tensor:
     """Every latent's activation on one prompt: ``[seq, n]``."""
-    x, _ = runner.dictionary_io(inputs, layer, site)
+    x, _ = dictionary_io(runner, inputs, layer, site)
     return dictionary.encode(x[0])
 
 

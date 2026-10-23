@@ -122,16 +122,6 @@ def ablate_pole(neuron_idx: int, pole: Pole) -> Intervention:
     return intervene
 
 
-def normalize_without_affine(norm: nn.Module, x: torch.Tensor) -> torch.Tensor:
-    """What ``norm`` makes of ``x`` before its gain and bias: standardised for LayerNorm,
-    divided by its root mean square for RMSNorm (float32)."""
-    eps = getattr(norm, "eps", None) or getattr(norm, "variance_epsilon", None) or 1e-6
-    x = x.float()
-    if isinstance(norm, nn.LayerNorm):
-        return torch.nn.functional.layer_norm(x, x.shape[-1:], eps=eps)
-    return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + eps)
-
-
 def isolate_pole(act: torch.Tensor, pole: Pole) -> torch.Tensor:
     """Return only the component of ``act`` belonging to ``pole`` (signed)."""
     return torch.clamp(act, min=0) if pole == "positive" else torch.clamp(act, max=0)
@@ -348,33 +338,13 @@ class NeuronHookRunner:
             for layer, fn in (head_interventions or {}).items():
                 handles.append(self.attn_out(layer).register_forward_pre_hook(pre_hook(fn)))
             for layer, (site, fn) in (dictionary_interventions or {}).items():
-                handles += self._dictionary_hooks(layer, site, fn)
+                from openinterp.harness.sites import site_hooks
+
+                handles += site_hooks(self, layer, site, fn)
             yield
         finally:
             for handle in handles:
                 handle.remove()
-
-    def _dictionary_hooks(self, layer: int, site: DictionarySite, fn: DictionaryIntervention):
-        """Hooks for one ``dictionary_interventions`` entry: read x at ``site``, then call
-        ``fn(x, out)`` on the down projection's output."""
-        seen: list[torch.Tensor] = []
-        handles = []
-        if site in ("mlp_in", "mlp_in_normalized"):
-            norm = self.mlp_norm(layer) if site == "mlp_in_normalized" else None
-
-            def record(_module, args):
-                seen.append(args[0] if norm is None else normalize_without_affine(norm, args[0]))
-
-            module = self.mlp(layer) if norm is None else norm
-            handles.append(module.register_forward_pre_hook(record))
-        elif site != "mlp_out":
-            raise ValueError(f"unknown dictionary site {site!r}")
-
-        def output(_module, _args, out):
-            return fn(out if site == "mlp_out" else seen.pop(), out)
-
-        handles.append(self.down_proj(layer).register_forward_hook(output))
-        return handles
 
     def forward(self, encoded: Mapping[str, torch.Tensor]) -> torch.Tensor:
         return logits_of(self.model(**encoded))
@@ -412,22 +382,6 @@ class NeuronHookRunner:
             interventions, output_interventions, head_interventions, dictionary_interventions
         ):
             return self.forward(encoded)
-
-    @torch.no_grad()
-    def dictionary_io(
-        self, inputs: Inputs, layer: int, site: DictionarySite
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """A dictionary's input at ``site`` and the MLP output it reconstructs, both
-        ``[batch, seq, d]``. The forward pass stops at ``layer``'s MLP."""
-        captured: list[tuple[torch.Tensor, torch.Tensor]] = []
-
-        def capture(x: torch.Tensor, out: torch.Tensor) -> None:
-            captured.append((x.detach().clone(), out.detach().clone()))
-            raise _StopForward
-
-        with suppress(_StopForward):
-            self.run_with_interventions(inputs, dictionary_interventions={layer: (site, capture)})
-        return captured[-1]
 
     # -- attention heads -----------------------------------------------------
 

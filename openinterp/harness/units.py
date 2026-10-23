@@ -36,6 +36,7 @@ from openinterp.core.schemas import (
 )
 from openinterp.harness.dictionaries import Dictionary, load_dictionary
 from openinterp.harness.hooks import Inputs, NeuronHookRunner, ablate_head, ablate_pole
+from openinterp.harness.sites import dictionary_io
 
 
 @dataclass(frozen=True)
@@ -81,7 +82,7 @@ class FeatureUnit:
 
     def strengths(self, runner: NeuronHookRunner, inputs: Inputs) -> torch.Tensor:
         """Per-token latent activation ``[batch, seq]``."""
-        x, _ = runner.dictionary_io(inputs, self.ident.layer, self.profile.input_site)
+        x, _ = dictionary_io(runner, inputs, self.ident.layer, self.profile.input_site)
         return self.dictionary(runner).feature(x, self.ident.feature_idx)
 
     def ablation(self, runner: NeuronHookRunner) -> dict[str, Mapping[int, Any]]:

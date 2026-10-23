@@ -193,13 +193,14 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 
 | Path | Purpose |
 | --- | --- |
-| `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` (in `core/identifiers.py`), `HeadProfile`, `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
+| `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` / `FeatureIdentifier` (in `core/identifiers.py`), `HeadProfile` / `DictionaryProfile` (in `core/profiles.py`), `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
 | `openinterp/harness/hooks.py` | `NeuronHookRunner`: forward hooks on the MLP down-projection input (the neuron basis) for Llama/Qwen/Mistral/GPT-2/NeoX/OPT/Phi; pole isolation; corpus scanning |
 | `openinterp/harness/scan.py` | The audit's corpus scan: windows, top examples, partners and confounds in one pass, over chunks of whole-layer activations |
 | `openinterp/harness/layer_cache.py` | On-disk cache of those chunks per model, layer and corpus sample, which later scans and `openinterp activations` replay |
 | `openinterp/harness/units.py` | What strength and ablation mean for each unit: a neuron pole, an attention head measured from its mean output, or a dictionary latent |
 | `openinterp/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
 | `openinterp/harness/dictionaries.py` | Published transcoders/SAEs (presets, pinned weights, how each is read) |
+| `openinterp/harness/sites.py` | Where a dictionary reads its input and writes its output: the hooks behind `dictionary_interventions` |
 | `openinterp/harness/features.py` | Dictionary-latent scan (with the dictionary's fit) and latent patching |
 | `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
 | `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |

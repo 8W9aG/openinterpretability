@@ -17,6 +17,7 @@ from openinterp.harness import dictionaries
 from openinterp.harness.dictionaries import DictionarySpec, load_spec
 from openinterp.harness.features import patch_features, scan_feature
 from openinterp.harness.hooks import NeuronHookRunner, activation_histogram
+from openinterp.harness.sites import dictionary_io
 from openinterp.harness.units import FeatureUnit
 from openinterp.planner import plan_next
 from openinterp.reproduce import reproduce_record
@@ -90,7 +91,7 @@ def test_dictionary_sites_read_the_mlp_input_its_normalisation_and_output(runner
         ("mlp_in_normalized", standardised),
         ("mlp_out", seen["out"]),
     ]:
-        x, out = runner.dictionary_io(TEXTS[0], 1, site)
+        x, out = dictionary_io(runner, TEXTS[0], 1, site)
         torch.testing.assert_close(x.float(), expected.float(), atol=1e-5, rtol=0)
         torch.testing.assert_close(out, seen["out"])
 
@@ -103,7 +104,7 @@ def test_scan_measures_the_latent_and_the_dictionarys_fit(runner, spec, scan):
     assert scan.examples[0].max_activation == pytest.approx(max(scan.values))
 
     dictionary = load_spec(spec, 1)
-    xs, outs = zip(*(runner.dictionary_io(t, 1, spec.input_site) for t in TEXTS), strict=True)
+    xs, outs = zip(*(dictionary_io(runner, t, 1, spec.input_site) for t in TEXTS), strict=True)
     x, out = torch.cat([v[0] for v in xs]), torch.cat([v[0] for v in outs])
     acts = dictionary.encode(x)
     error = ((dictionary.decode(acts) - out) ** 2).sum()
@@ -123,7 +124,7 @@ def test_scan_measures_the_latent_and_the_dictionarys_fit(runner, spec, scan):
 def test_ablation_removes_exactly_the_latents_write(runner, scan):
     unit = FeatureUnit(FEATURE, scan.profile)
     dictionary = unit.dictionary(runner)
-    x, clean = runner.dictionary_io(TEXTS[1], 1, "mlp_in_normalized")
+    x, clean = dictionary_io(runner, TEXTS[1], 1, "mlp_in_normalized")
     seen = []  # on the MLP block, so it sees the down projection's output after the ablation
     mlp = runner.model.transformer.h[1].mlp
     handle = mlp.register_forward_hook(lambda _m, _a, out: seen.append(out))
@@ -138,8 +139,8 @@ def test_patching_a_latent_moves_the_output_by_its_write_change(runner, spec, sc
     dictionary = load_spec(spec, 1)
     source, target = "abcabc", "abcxyz"
     site = spec.input_site
-    a = {t: dictionary.encode(runner.dictionary_io(t, 1, site)[0][0]) for t in (source, target)}
-    _, clean = runner.dictionary_io(target, 1, site)
+    a = {t: dictionary.encode(dictionary_io(runner, t, 1, site)[0][0]) for t in (source, target)}
+    _, clean = dictionary_io(runner, target, 1, site)
 
     def mlp_change(_patched, _target):  # the effect: how far layer 1's MLP output moved
         return float(captured[-1][:1].sub(clean).abs().sum())
