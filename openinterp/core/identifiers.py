@@ -1,9 +1,10 @@
-"""Identifiers of the units an experiment can audit: MLP neuron poles and attention heads."""
+"""Identifiers of the units an experiment can audit: MLP neuron poles, attention heads and
+the latents of published sparse dictionaries (transcoders, SAEs)."""
 
 from __future__ import annotations
 
 import re
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import Discriminator, Field, Tag
 
@@ -45,6 +46,8 @@ class NeuronIdentifier(_Component):
     def index(self) -> int:
         return self.neuron_idx
 
+    noun: ClassVar[str] = "neuron"
+
     @property
     def label(self) -> str:
         """``L3/N7+``: the unit within its model."""
@@ -77,12 +80,51 @@ class HeadIdentifier(_Component):
     def index(self) -> int:
         return self.head_idx
 
+    noun: ClassVar[str] = "attention head"
+
     @property
     def label(self) -> str:
         return f"L{self.layer}/H{self.head_idx}"
 
     def __str__(self) -> str:
         return f"{self.model_name} {self.label}"
+
+
+class FeatureIdentifier(_Component):
+    """Addresses one latent of a published sparse dictionary (a transcoder or SAE) on an MLP.
+
+    The learned-basis baseline for the native-neuron premise: its experiments run under
+    the same protocol but never count towards native-neuron statistics. ``dictionary``
+    names a preset in :mod:`openinterp.harness.dictionaries`; the weights it was measured
+    with (repository, commit, file) are pinned in the submission's
+    :class:`~openinterp.core.schemas.DictionaryProfile`. Latents are non-negative, so no pole.
+    """
+
+    kind: Literal["dictionary_feature"] = "dictionary_feature"
+    dictionary: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]*$", examples=["gpt2-small-transcoders"])
+    feature_idx: int = Field(ge=0)
+
+    @property
+    def pole(self) -> None:
+        """Latents have no sign; lets code read ``ident.pole`` for any unit."""
+        return None
+
+    @property
+    def slug(self) -> str:
+        return f"{self.model_slug}/L{self.layer}/{self.dictionary}/F{self.feature_idx}"
+
+    @property
+    def index(self) -> int:
+        return self.feature_idx
+
+    noun: ClassVar[str] = "dictionary feature"
+
+    @property
+    def label(self) -> str:
+        return f"L{self.layer}/F{self.feature_idx}"
+
+    def __str__(self) -> str:
+        return f"{self.model_name} {self.label} ({self.dictionary})"
 
 
 def _component_kind(value) -> str:
@@ -92,7 +134,9 @@ def _component_kind(value) -> str:
 
 ComponentIdentifier = Annotated[
     Annotated[NeuronIdentifier, Tag("mlp_neuron_pole")]
-    | Annotated[HeadIdentifier, Tag("attn_head")],
+    | Annotated[HeadIdentifier, Tag("attn_head")]
+    | Annotated[FeatureIdentifier, Tag("dictionary_feature")],
     Discriminator(_component_kind),
 ]
-"""Any auditable unit: an MLP neuron pole or an attention head, told apart by ``kind``."""
+"""Any auditable unit: an MLP neuron pole, an attention head or a dictionary feature, told
+apart by ``kind``."""

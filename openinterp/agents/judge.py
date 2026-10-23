@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
 from openinterp.core.costs import ExperimentCosts
-from openinterp.core.schemas import ComponentIdentifier, HeadProfile
+from openinterp.core.schemas import ComponentIdentifier, DictionaryProfile, HeadProfile
 
 MARK_OPEN, MARK_CLOSE = "<<", ">>"
 
@@ -30,6 +30,7 @@ class ScoringTask(BaseModel):
 
     identifier: ComponentIdentifier
     head_profile: HeadProfile | None = None  # a head's strength is defined by its mean output
+    dictionary_profile: DictionaryProfile | None = None  # and a feature's by its dictionary
     explanation: str
     threshold: float
     window_tokens: int
@@ -68,7 +69,8 @@ def _show(tokens: Sequence[str], marked: Sequence[int] = ()) -> str:
 class ExplanationJudge(LLMAgent):
     role = "judge"
     system_prompt = (
-        "You test how well a short explanation of a neuron (or attention head) in a language "
+        "You test how well a short explanation of a neuron (or attention head, or dictionary "
+        "latent) in a language "
         "model predicts where it fires. You see only the explanation and some short texts, "
         "never its activations. Apply the explanation literally, as written: don't guess "
         "what the neuron really does, and don't reward texts for being on a related topic "

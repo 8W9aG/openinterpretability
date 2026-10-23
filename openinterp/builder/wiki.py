@@ -4,6 +4,7 @@ Layout under ``wiki/``::
 
     README.md                                   home: every experiment, newest first
     experiments/<model>/L<l>/N<n>-<pole>/README.md      neuron page: its experiment history
+    experiments/<model>/L<l>/<dictionary>/F<f>/README.md   dictionary feature page
     experiments/<model>/L<l>/H<h>/...                   the same for an attention head
     experiments/<model>/L<l>/N<n>-<pole>/<id>.md        one experiment (write-once)
     experiments/<model>/L<l>/N<n>-<pole>/<id>.json      its full audit record (write-once)
@@ -68,14 +69,21 @@ def experiment_id(record: AuditRecord) -> str:
 
 
 def unit_label(meta: dict) -> str:
-    """``L3/N7+`` or ``L5/H1``, from a page's front matter."""
+    """``L3/N7+``, ``L5/H1`` or ``L8/F40 (dictionary)``, from a page's front matter."""
     if "head" in meta:
         return f"L{meta['layer']}/H{meta['head']}"
+    if "feature" in meta:
+        return f"L{meta['layer']}/F{meta['feature']} ({meta['dictionary']})"
     return f"L{meta['layer']}/N{meta['neuron']}{'+' if meta['pole'] == 'positive' else '−'}"
 
 
 def neuron_dir(wiki_dir: Path, record: AuditRecord) -> Path:
     return Path(wiki_dir) / "experiments" / record.submission.identifier.slug
+
+
+def home_link(slug: str) -> str:
+    """The wiki home's README from a unit's directory, ``experiments/<slug>``."""
+    return "../" * (len(slug.split("/")) + 1) + "README.md"
 
 
 def _environment() -> Environment:
@@ -149,11 +157,12 @@ def write_experiment_page(
     metrics, policy = verdict.metrics, verdict.policy
     failed = [g for g, ok in (metrics.gates.items() if metrics else []) if not ok]
     advice = [GATE_ADVICE[g].format(**(policy.model_dump() if policy else {})) for g in failed]
-    unit = (
-        {"head": ident.head_idx}
-        if ident.kind == "attn_head"
-        else {"neuron": ident.neuron_idx, "pole": ident.pole}
-    )
+    if ident.kind == "attn_head":
+        unit = {"head": ident.head_idx}
+    elif ident.kind == "dictionary_feature":
+        unit = {"dictionary": ident.dictionary, "feature": ident.feature_idx}
+    else:
+        unit = {"neuron": ident.neuron_idx, "pole": ident.pole}
     meta = {
         "experiment_id": experiment_id(record),
         "kind": kind,
@@ -193,6 +202,7 @@ def write_experiment_page(
             previous_status=previous_status,
             record_link=archive_path(wiki_dir, record).name,
             self_reviewed=record.self_reviewed,
+            home=home_link(ident.slug),
         )
     )
     page.parent.mkdir(parents=True, exist_ok=True)
@@ -253,7 +263,11 @@ def rebuild_indexes(wiki_dir: Path) -> None:
         latest = history[0].meta
         index.write_text(
             env.get_template("neuron.md").render(
-                slug=slug, latest=latest, label=unit_label(latest), history=history
+                slug=slug,
+                latest=latest,
+                label=unit_label(latest),
+                history=history,
+                home=home_link(slug),
             ),
             encoding="utf-8",
         )

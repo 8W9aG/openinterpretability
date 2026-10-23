@@ -61,7 +61,8 @@ class ReviewerAgent(LLMAgent):
     role = "reviewer"
     system_prompt = (
         "You are an adversarial peer reviewer for mechanistic interpretability claims. Given "
-        "a hypothesis about what makes a neuron pole (or an attention head) fire, write probes "
+        "a hypothesis about what makes a neuron pole (or an attention head, or a sparse "
+        "dictionary latent) fire, write probes "
         "designed to break it. "
         "About two thirds of the probes must be hard negatives: near-miss sentences that share "
         "surface features with the activating examples (same words in other senses, same "
@@ -91,7 +92,7 @@ class ReviewerAgent(LLMAgent):
                 "you write into it: vary the tokens above, not just the peak token.\n"
             )
         return (
-            f"{'Attention head' if is_head else 'Neuron'}: {submission.identifier}\n"
+            f"{submission.identifier.noun.capitalize()}: {submission.identifier}\n"
             + (HEAD_ACTIVITY if is_head else "")
             + f"Hypothesis: {submission.natural_language_explanation}\n"
             f"Claimed activating tokens: {submission.activating_tokens}\n"

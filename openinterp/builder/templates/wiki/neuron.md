@@ -1,6 +1,6 @@
 # {{ latest.model }} · {{ label }}
 
-[← wiki home](../../../../README.md)
+[← wiki home]({{ home }})
 
 **Latest status:** {{ latest.status }} ({{ latest.timestamp[:10] }})
 

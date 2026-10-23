@@ -23,6 +23,7 @@ from openinterp.core.costs import ExperimentCosts
 from openinterp.core.explanation import ExplanationScores
 from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     ComponentIdentifier,
+    FeatureIdentifier,
     HeadIdentifier,
     NeuronIdentifier,
     Pole,
@@ -129,6 +130,43 @@ class HeadProfile(StrictModel):
     pattern_sequences: int = Field(gt=0)
     pattern_length: int = Field(gt=1)
     pattern_seed: int
+
+
+DictionarySite = Literal["mlp_in", "mlp_in_normalized", "mlp_out"]
+
+
+class DictionaryProfile(StrictModel):
+    """The dictionary a feature belongs to, pinned, and how well it fits the scan corpus.
+
+    A latent's strength is its activation ``act(W_enc[:, f] · x + b_enc[f])``, where x is
+    read at ``input_site`` of the feature's layer: the MLP's input (``mlp_in``), that
+    input's normalisation without the norm's gain and bias (``mlp_in_normalized``, the
+    TransformerLens ``ln2.hook_normalized`` convention most public transcoders were
+    trained on), or the MLP's output (``mlp_out``, an SAE). With
+    ``subtract_decoder_bias``, ``b_dec`` is subtracted from x first, as SAEs often do.
+    The latent writes ``a_f · W_dec[f]`` to the MLP's output; ablating it removes that
+    write. Every measurement reads the weights at ``repo``/``revision``/``path``, so a
+    record reproduces even if the preset that named them changes.
+
+    ``explained_variance`` (the fraction of the MLP output's variance the whole
+    dictionary reconstructs) and ``mean_l0`` (active latents per token) are measured on
+    the scan's tokens: reported, not gated. A poorly fitting dictionary makes a weak
+    baseline. ``density`` is the share of scanned tokens on which this latent is non-zero.
+    """
+
+    kind: Literal["transcoder", "sae"]
+    repo: str = Field(min_length=1, description="Hugging Face repository of the weights.")
+    revision: str | None = Field(default=None, description="Commit hash of ``repo``.")
+    path: str = Field(min_length=1, description="Safetensors file within ``repo``.")
+    input_site: DictionarySite
+    output_site: Literal["mlp_out"] = "mlp_out"
+    activation: Literal["relu", "jumprelu"]
+    subtract_decoder_bias: bool = False
+    n_features: int = Field(gt=0)
+    density: UnitFloat
+    explained_variance: float | None = Field(default=None, le=1.0)
+    mean_l0: float | None = Field(default=None, ge=0.0)
+    tokens: int = Field(gt=0, description="Scanned tokens the fit statistics cover.")
 
 
 class RunEnvironment(StrictModel):
@@ -339,25 +377,34 @@ class ScanEvidence(StrictModel):
     input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0)
+    dictionary_profile: DictionaryProfile | None = None
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
-        return _require_head_profile(self)
+        return _require_unit_profile(self)
 
 
-def _require_head_profile(model):
-    """A head's strength is undefined without its mean output; a neuron has no profile."""
-    is_head = model.identifier.kind == "attn_head"
-    if is_head and model.head_profile is None:
-        raise ValueError("an attention head needs a head_profile: its mean output defines strength")
-    if not is_head and model.head_profile is not None:
-        raise ValueError("head_profile is only for attention heads")
+def _require_unit_profile(model):
+    """A head's strength is undefined without its mean output, and a dictionary feature's
+    without its dictionary's weights; a neuron needs neither."""
+    kind = model.identifier.kind
+    for field, owner, unit, why in (
+        ("head_profile", "attn_head", "an attention head", "its mean output"),
+        ("dictionary_profile", "dictionary_feature", "a dictionary feature", "its dictionary"),
+    ):
+        present = getattr(model, field) is not None
+        units = unit.split(" ", 1)[1] + "s"
+        if kind == owner and not present:
+            raise ValueError(f"{unit} needs a {field}: {why} defines strength")
+        if kind != owner and present:
+            raise ValueError(f"{field} is only for {units}")
     return model
 
 
 class NeuronAuditSubmission(StrictModel):
-    """A hypothesis about one unit, frozen once submitted: a neuron pole or, since protocol
-    0.6, an attention head. The name predates heads and is kept for compatibility."""
+    """A hypothesis about one unit, frozen once submitted: a neuron pole, an attention head
+    (since protocol 0.6) or a dictionary feature. The name predates heads and is kept for
+    compatibility."""
 
     identifier: ComponentIdentifier
     natural_language_explanation: str = Field(min_length=1)
@@ -378,6 +425,7 @@ class NeuronAuditSubmission(StrictModel):
     input_attribution: InputAttribution | None = None
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
+    dictionary_profile: DictionaryProfile | None = None
     supersedes: str | None = Field(
         default=None,
         pattern=EXPERIMENT_ID_PATTERN,
@@ -387,7 +435,7 @@ class NeuronAuditSubmission(StrictModel):
 
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:
-        return _require_head_profile(self)
+        return _require_unit_profile(self)
 
 
 class AdversarialTestResult(StrictModel):

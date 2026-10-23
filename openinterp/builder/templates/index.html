@@ -35,6 +35,11 @@
     {% endif %}
     Repeat experiments that re-measure the same probes are not counted as independent evidence.
   </p>
+  {% if t.features %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a learned-basis baseline, {{ t.verified_features }} of them verified.
+  </p>
+  {% endif %}
   {% if t.self_reviewed %}
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
     {{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.

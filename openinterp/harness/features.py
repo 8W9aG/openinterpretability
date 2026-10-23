@@ -1,0 +1,205 @@
+"""Scanning and patching one latent of a sparse dictionary (a transcoder or SAE).
+
+A latent's strength is its activation (see :mod:`openinterp.harness.units`). The scan
+reads the dictionary's input at its site in one pass that stops at the feature's layer,
+and counts the same tokens as a neuron scan (see :mod:`scan`), so the top examples,
+histogram and confound profile mean the same thing for every kind of unit. The same
+pass measures how well the whole dictionary reconstructs the MLP output there, so a
+record says whether the baseline it belongs to was a faithful one.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+
+import torch
+
+from openinterp.core.schemas import DictionaryProfile, FeatureIdentifier
+from openinterp.harness.confounds import ConfoundAccumulator
+from openinterp.harness.dictionaries import Dictionary, DictionarySpec, load_spec, spec_profile
+from openinterp.harness.heads import _repeat
+from openinterp.harness.hooks import Inputs, NeuronHookRunner
+from openinterp.harness.patcher import Effect, Positions
+from openinterp.harness.scan import ScanResult, TopExamples, batches, cut_pieces
+
+ENCODE_CHUNK = 1024  # tokens encoded through the whole dictionary at once
+
+
+@dataclass
+class FeatureScanResult(ScanResult):
+    profile: DictionaryProfile | None = None
+
+
+class _Fit:
+    """Running reconstruction error, output variance and L0 of a dictionary."""
+
+    def __init__(self) -> None:
+        self.tokens = 0
+        self.error = self.sum_sq = self.l0 = 0.0
+        self.total: torch.Tensor | None = None
+
+    def update(self, dictionary: Dictionary, x: torch.Tensor, out: torch.Tensor) -> None:
+        for start in range(0, x.shape[0], ENCODE_CHUNK):
+            xs, target = x[start : start + ENCODE_CHUNK], out[start : start + ENCODE_CHUNK]
+            target = target.float().to(dictionary.w_dec.device)
+            acts = dictionary.encode(xs)
+            self.error += float(((dictionary.decode(acts) - target) ** 2).sum())
+            self.l0 += float((acts > 0).sum())
+            self.sum_sq += float((target.double() ** 2).sum())
+            chunk = target.double().sum(0)
+            self.total = chunk if self.total is None else self.total + chunk
+        self.tokens += x.shape[0]
+
+    def stats(self) -> dict[str, float]:
+        variance = self.sum_sq - float((self.total**2).sum()) / self.tokens
+        explained = 1 - self.error / variance if variance > 0 else None
+        return {
+            "explained_variance": None if explained is None else round(explained, 6),
+            "mean_l0": round(self.l0 / self.tokens, 4),
+        }
+
+
+def scan_feature(
+    runner: NeuronHookRunner,
+    texts: Sequence[str],
+    ident: FeatureIdentifier,
+    spec: DictionarySpec,
+    *,
+    k: int = 20,
+    batch_size: int = 8,
+    min_count: int = 3,
+    window_tokens: int | None = None,
+    stride: int | None = None,
+) -> FeatureScanResult:
+    """Top examples, strengths, confounds and the :class:`DictionaryProfile` of one latent."""
+    if runner.tokenizer is None:
+        raise ValueError("scan_feature requires a tokenizer")
+    layer, f = ident.layer, ident.feature_idx
+    dictionary = load_spec(spec, layer, runner.device)
+    if f >= dictionary.n_features:
+        raise ValueError(f"{ident}: the dictionary has {dictionary.n_features} latents")
+    pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
+
+    confounds = ConfoundAccumulator()
+    top = TopExamples()
+    fit = _Fit()
+    values: list[float] = []
+    for batch in batches(runner, pieces, batch_size):
+        x, out = runner.dictionary_io(batch.encoded, layer, spec.input_site)
+        strengths = dictionary.feature(x, f).cpu()
+        counted = batch.counted
+        confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
+        values.extend(strengths[counted].tolist())
+        top.update(batch, strengths)
+        on_device = counted.to(x.device)
+        fit.update(dictionary, x[on_device], out[on_device])
+    if not values:
+        raise ValueError("the corpus has no tokens to scan")
+
+    profile = spec_profile(
+        spec,
+        layer,
+        n_features=dictionary.n_features,
+        density=round(sum(v > 0 for v in values) / len(values), 6),
+        tokens=len(values),
+        **fit.stats(),
+    )
+    return FeatureScanResult(
+        examples=top.top(runner.tokenizer, k),
+        values=values,
+        correlated=[],
+        confounds=confounds.finalize(runner.tokenizer, min_count),
+        windows=len(pieces),
+        profile=profile,
+    )
+
+
+@torch.no_grad()
+def latent_activations(
+    runner: NeuronHookRunner, dictionary: Dictionary, inputs: Inputs, layer: int, site: str
+) -> torch.Tensor:
+    """Every latent's activation on one prompt: ``[seq, n]``."""
+    x, _ = runner.dictionary_io(inputs, layer, site)
+    return dictionary.encode(x[0])
+
+
+@torch.no_grad()
+def write_changes(
+    runner: NeuronHookRunner,
+    dictionary: Dictionary,
+    ident: FeatureIdentifier,
+    site: str,
+    base: str,
+    cf: str,
+) -> tuple[Positions, int, torch.Tensor]:
+    """Where to patch and score, and every latent's write change ``|Δa| · |W_dec[f]|`` up
+    to there, in units of the audited latent's activation (so its own entry is ``|Δa|``).
+
+    Latents' decoder norms differ, so comparing writes, as heads do, matches the null
+    latents to the audited one by how much each moves the MLP output.
+    """
+    a_b, a_c = (latent_activations(runner, dictionary, t, ident.layer, site) for t in (base, cf))
+    norms = dictionary.w_dec.norm(dim=-1)
+    scale = norms / norms[ident.feature_idx].clamp(min=1e-12)
+    if a_b.shape != a_c.shape:
+        return "last", -1, (a_b[-1] - a_c[-1]).abs() * scale
+    position = int((a_b[:, ident.feature_idx] - a_c[:, ident.feature_idx]).abs().argmax())
+    return "all", position, (a_b[: position + 1] - a_c[: position + 1]).abs().amax(0) * scale
+
+
+@torch.no_grad()
+def patch_features(
+    runner: NeuronHookRunner,
+    dictionary: Dictionary,
+    site: str,
+    source: Inputs,
+    target: Inputs,
+    layer: int,
+    features: Sequence[int],
+    *,
+    effect: Effect,
+    positions: Positions = "all",
+    freeze_downstream: bool = False,
+    batch_size: int = 8,
+) -> list[float]:
+    """``effect`` of patching each latent's activation, one at a time, from source into
+    target: the MLP output gains ``(a_source − a_target) · W_dec[f]``.
+
+    The dictionary counterpart of :meth:`ActivationPatcher.patch_many`: each latent gets
+    its own row of a batch, and later MLP outputs can be frozen against self-repair.
+    """
+    from openinterp.harness.patcher import ActivationPatcher
+
+    a_src = latent_activations(runner, dictionary, source, layer, site)  # [seq, n]
+    target_enc = runner.encode(target)
+    target_logits = runner.run_with_interventions(target_enc)
+    if target_logits.shape[0] != 1:
+        raise ValueError("patch_features takes one source and one target prompt")
+    if positions == "all" and a_src.shape[0] != target_logits.shape[1]:
+        raise ValueError("source and target differ in length; use positions='last'")
+    downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
+    downstream_out = ActivationPatcher(runner)._cache_outputs(target_enc, downstream)
+    span = slice(None) if positions == "all" else slice(-1, None)
+
+    effects: list[float] = []
+    for start in range(0, len(features), batch_size):
+        chunk = torch.tensor(list(features[start : start + batch_size]))
+        n = len(chunk)
+        batch = {k: v.repeat(n, *[1] * (v.dim() - 1)) for k, v in target_enc.items()}
+        idx = chunk.to(dictionary.w_dec.device)
+
+        def inject(x: torch.Tensor, out: torch.Tensor, idx=idx, n=n) -> torch.Tensor:
+            a_tgt = dictionary.feature(x[0, span], idx)  # [span, n]; every row is the target
+            delta = (a_src[span][:, idx] - a_tgt).T  # [n, span]
+            out = out.clone()
+            write = delta.unsqueeze(-1) * dictionary.w_dec[idx].unsqueeze(1)  # [n, span, d]
+            out[:n, span] += write.to(out.dtype)
+            return out
+
+        frozen = {i: _repeat(cached, n) for i, cached in downstream_out.items()}
+        patched = runner.run_with_interventions(
+            batch, None, frozen, dictionary_interventions={layer: (site, inject)}
+        )
+        effects += [effect(patched[row : row + 1], target_logits) for row in range(n)]
+    return effects

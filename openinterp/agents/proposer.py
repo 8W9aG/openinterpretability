@@ -15,6 +15,7 @@ from openinterp.core.schemas import (
     ConfoundProfile,
     CorrelatedNeuron,
     CounterfactualPair,
+    DictionaryProfile,
     ExperimentProvenance,
     HeadProfile,
     Histogram,
@@ -88,6 +89,22 @@ def format_head_profile(profile: HeadProfile) -> str:
     )
 
 
+def format_dictionary_profile(profile: DictionaryProfile) -> str:
+    fit = ""
+    if profile.explained_variance is not None:
+        fit = (
+            f" On the scan the whole dictionary reconstructs "
+            f"{profile.explained_variance:.0%} of the MLP output's variance with "
+            f"{profile.mean_l0:.0f} active latents per token."
+        )
+    return (
+        f"This is one latent of a sparse {profile.kind} ({profile.n_features} latents) "
+        f"trained on this layer's MLP, not a native neuron. Strength is the latent's "
+        f"activation (non-negative); it writes activation x its decoder vector to the MLP "
+        f"output. It is non-zero on {profile.density:.2%} of scanned tokens.{fit}\n"
+    )
+
+
 def format_input_attribution(attribution: InputAttribution) -> str:
     """Where in the context the pole's peaks come from, for the proposer and the reviewer."""
     if not attribution.examples:
@@ -129,8 +146,9 @@ def format_input_attribution(attribution: InputAttribution) -> str:
 class ProposerAgent(LLMAgent):
     role = "proposer"
     system_prompt = (
-        "You are a mechanistic interpretability researcher auditing a single native unit, an "
-        "MLP neuron pole or an attention head, in an open-weight language model. Activations "
+        "You are a mechanistic interpretability researcher auditing a single unit, a native "
+        "MLP neuron pole or attention head, or a latent of a sparse dictionary trained on an "
+        "MLP layer, in an open-weight language model. Activations "
         "are strengths (non-negative; larger = more active). Propose the most specific "
         "hypothesis that explains the evidence and that could be falsified. Decide explicitly "
         "whether the unit reacts to what has already been read (retrospective) or prepares a "
@@ -150,9 +168,17 @@ class ProposerAgent(LLMAgent):
         correlated: Sequence[CorrelatedNeuron] = (),
         head_profile: HeadProfile | None = None,
         attribution: InputAttribution | None = None,
+        dictionary_profile: DictionaryProfile | None = None,
     ) -> HypothesisDraft:
         prompt = self.proposal_prompt(
-            identifier, examples, lens, confounds, correlated, head_profile, attribution
+            identifier,
+            examples,
+            lens,
+            confounds,
+            correlated,
+            head_profile,
+            attribution,
+            dictionary_profile,
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -165,15 +191,19 @@ class ProposerAgent(LLMAgent):
         correlated: Sequence[CorrelatedNeuron] = (),
         head_profile: HeadProfile | None = None,
         attribution: InputAttribution | None = None,
+        dictionary_profile: DictionaryProfile | None = None,
     ) -> str:
         """The task text the proposer answers: the scan evidence for one unit."""
-        prompt = f"{'Attention head' if head_profile else 'Neuron'}: {identifier}\n\n"
+        prompt = f"{identifier.noun.capitalize()}: {identifier}\n\n"
         if head_profile is not None:
             prompt += format_head_profile(head_profile) + "\n"
+        if dictionary_profile is not None:
+            prompt += format_dictionary_profile(dictionary_profile) + "\n"
         prompt += f"Top-activating snippets (peak token in [[ ]]):\n{format_examples(examples)}\n\n"
         if lens is not None:
             prompt += (
-                f"Tokens this pole promotes via the Jacobian lens (its output direction "
+                f"Tokens this {'pole' if identifier.pole else identifier.noun} promotes via the "
+                f"Jacobian lens (its output direction "
                 f"transported to the final layer; reliable in middle layers): "
                 f"{', '.join(map(repr, lens.jacobian_promoted))}; suppresses: "
                 f"{', '.join(map(repr, lens.jacobian_suppressed))}. "
@@ -214,6 +244,7 @@ class ProposerAgent(LLMAgent):
         vocabulary_lens: VocabularyLens | None = None,
         input_attribution: InputAttribution | None = None,
         head_profile: HeadProfile | None = None,
+        dictionary_profile: DictionaryProfile | None = None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
@@ -233,7 +264,7 @@ class ProposerAgent(LLMAgent):
         )
         is_head = identifier.kind == "attn_head"
         if runner is not None and max_act:
-            unit = unit_of(identifier, head_profile)
+            unit = unit_of(identifier, head_profile, dictionary_profile)
             pairs = [
                 pair.model_copy(
                     update={"observed_delta": observed_delta(runner, unit, pair, max_act)}
@@ -264,6 +295,7 @@ class ProposerAgent(LLMAgent):
             vocabulary_lens=vocabulary_lens,
             input_attribution=input_attribution,
             head_profile=head_profile,
+            dictionary_profile=dictionary_profile,
         )
 
 

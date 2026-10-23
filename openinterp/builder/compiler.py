@@ -22,9 +22,12 @@ from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.tree import (
+    LABEL_PREFIX,
+    SIDES,
     Experiment,
     build_tree,
     false_discovery,
+    feature_href,
     head_href,
     neuron_href,
 )
@@ -188,17 +191,20 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 def _anchor_href(row: dict) -> str:
     model_slug = row["slug"].split("/", 1)[0]
-    if row["kind"] == "attn_head":
-        page = head_href(model_slug, row["layer"], row["head_idx"])
+    kind, layer = row["kind"], row["layer"]
+    if kind == "attn_head":
+        page = head_href(model_slug, layer, row["head_idx"])
+    elif kind == "dictionary_feature":
+        page = feature_href(model_slug, layer, row["dictionary"], row["feature_idx"])
     else:
-        page = neuron_href(model_slug, row["layer"], row["neuron_idx"])
-    return f"{page}#{row['pole'] or 'head'}-{row['experiment_id']}"
+        page = neuron_href(model_slug, layer, row["neuron_idx"])
+    return f"{page}#{row['pole'] or SIDES[kind][0]}-{row['experiment_id']}"
 
 
 def _unit_label(row: dict) -> str:
-    """``N12`` or ``H3``; templates add the layer and the pole mark."""
-    head = row["kind"] == "attn_head"
-    return f"H{row['head_idx']}" if head else f"N{row['neuron_idx']}"
+    """``N12``, ``H3`` or ``F40``; templates add the layer and the pole mark."""
+    column = {"attn_head": "head_idx", "dictionary_feature": "feature_idx"}
+    return f"{LABEL_PREFIX[row['kind']]}{row[column.get(row['kind'], 'neuron_idx')]}"
 
 
 RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
@@ -221,28 +227,35 @@ def registry_stats(parquet: Path) -> dict:
                    FILTER (WHERE kind = 'mlp_neuron_pole') AS neurons,
                count(DISTINCT (model_name, layer, head_idx))
                    FILTER (WHERE kind = 'attn_head') AS heads,
+               count(DISTINCT slug) FILTER (WHERE kind = 'dictionary_feature') AS features,
                count(DISTINCT model_name) AS models,
-               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED') AS verified,
+               -- dictionary features are a baseline, not claims about native units
+               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED'
+                                AND kind != 'dictionary_feature') AS verified,
+               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED'
+                                AND kind = 'dictionary_feature') AS verified_features,
                count(*) FILTER (WHERE conclusiveness >= 0.9 AND evidence_direction = 'refutes')
                    AS conclusive_nulls,
                count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
-               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED' AND self_reviewed)
-                   AS verified_self_reviewed
+               count(*) FILTER (WHERE is_latest AND status = 'VERIFIED' AND self_reviewed
+                                AND kind != 'dictionary_feature') AS verified_self_reviewed
         FROM r
         """
     )[0]
     verified = rows(
         """
-        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
+        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
+               experiment_id,
                explanation, self_reviewed,
                confidence_score, sufficiency_score, necessity_score, is_lookahead
-        FROM r WHERE is_latest AND status = 'VERIFIED'
+        FROM r WHERE is_latest AND status = 'VERIFIED' AND kind != 'dictionary_feature'
         ORDER BY confidence_score DESC, slug
         """
     )
     conclusive = rows(
         """
-        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
+        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
+               experiment_id,
                explanation, status,
                conclusiveness, evidence_direction
         FROM r
@@ -255,7 +268,8 @@ def registry_stats(parquet: Path) -> dict:
     )
     recent = rows(
         f"""
-        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, experiment_id,
+        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
+               experiment_id,
                explanation, status,
                conclusiveness, evidence_direction, submitting_agent_model,
                -- formatted in SQL: returning TIMESTAMPTZ to Python would need pytz
