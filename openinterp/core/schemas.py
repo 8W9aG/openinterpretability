@@ -139,6 +139,10 @@ class CorpusSource(StrictModel):
     seed: int
     max_chars: int = Field(gt=0)
     docs_per_row_group: int = Field(gt=0)
+    layout: str | None = Field(
+        default=None,
+        description="How rows were joined into documents (e.g. 'wikitext'); None: one per row.",
+    )
     license: str | None = None
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
 
