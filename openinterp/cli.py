@@ -56,10 +56,24 @@ def _load(model_name, device, torch_dtype, revision, attn_implementation):
         model_name, torch_dtype=torch_dtype, revision=commit, **extra
     ).to(device)
     model.eval()
+    _align_parameters(model)
     runner = NeuronHookRunner(model, tokenizer)
     runner.model_name = model_name
     runner.model_revision = commit
     return runner
+
+
+def _align_parameters(model, alignment: int = 64) -> None:
+    """Copy parameters that sit at a misaligned address into fresh memory.
+
+    Weights memory-mapped from a safetensors file start wherever the file puts them;
+    GPT-2's are not even 4-byte aligned, and a matrix-vector product on them (the
+    vocabulary lens's) dies with SIGBUS in Apple's BLAS. Shared (tied) parameters are
+    one object, so they stay tied.
+    """
+    for param in model.parameters():
+        if param.data_ptr() % alignment:
+            param.data = param.data.clone()
 
 
 def _resolve_revision(model_name: str, revision: str | None) -> str | None:

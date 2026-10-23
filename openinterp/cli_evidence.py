@@ -1,39 +1,15 @@
-"""``openinterp audit``, and its helpers: corpus loading, the scan, and prompt/answer files."""
+"""``openinterp audit``, and its helpers: scan caching and prompt/answer files. Corpus
+loading and the scan itself are in :mod:`openinterp.evidence`."""
 
 from __future__ import annotations
 
-import hashlib
-import json
-import secrets
 from pathlib import Path
 
 import click
 
 from openinterp.cli import cli, with_model_options
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
-
-
-def read_corpus(path: Path | None):
-    """Return (snippets, description, sha256 of the corpus file, its CorpusSource or None)."""
-    from openinterp.corpus import load_source
-
-    if path is None:
-        from openinterp.data import sample_corpus
-
-        texts = sample_corpus()
-        return texts, "builtin:sample_corpus", sha256("\n".join(texts).encode()), None
-    raw = path.read_bytes()
-    lines = [line for line in raw.decode("utf-8").splitlines() if line.strip()]
-    if path.suffix == ".jsonl":
-        lines = [json.loads(line)["text"] for line in lines]
-    digest = sha256(raw)
-    source = load_source(path, digest)
-    return lines, str(source) if source else path.name, digest, source
-
-
-def sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
+from openinterp.evidence import read_corpus, scan_evidence, sha256  # noqa: F401  (re-exported)
 
 scan_cache_option = click.option(
     "--scan-cache/--no-scan-cache",
@@ -48,129 +24,6 @@ def open_scan_cache(enabled: bool):
     from openinterp.harness.layer_cache import LayerCache
 
     return LayerCache.default() if enabled else None
-
-
-def scan_evidence(
-    runner,
-    model_name,
-    layer,
-    neuron,
-    pole,
-    random_pick,
-    seed,
-    corpus,
-    top_k,
-    dtype,
-    window_tokens=None,
-    stride=None,
-    head=None,
-    unit="neuron",
-    max_tokens=None,
-    sample_seed=0,
-    scan_cache=None,
-):
-    """Pick the unit, scan the corpus (or a ``max_tokens`` sample of it), then (neurons
-    only) read the vocabulary lens and attribute the top examples' peaks to their
-    context tokens. A neuron scan replays ``scan_cache`` when it holds the layer."""
-    import random
-
-    from openinterp import __version__
-    from openinterp.core import costs
-    from openinterp.core.schemas import (
-        ExperimentProvenance,
-        HeadIdentifier,
-        NeuronIdentifier,
-        ScanEvidence,
-    )
-    from openinterp.harness.heads import scan_head
-    from openinterp.harness.hooks import activation_histogram, run_environment
-    from openinterp.harness.input_attribution import input_attribution
-    from openinterp.harness.jlens import vocabulary_lens
-    from openinterp.harness.scan import cut_pieces, default_stride, scan_neuron
-
-    index = head if unit == "head" else neuron
-    if not random_pick and (layer is None or index is None):
-        raise click.UsageError(f"--layer and --{unit} are required unless --random is given.")
-    if random_pick:
-        seed = secrets.randbits(32) if seed is None else seed
-        rng = random.Random(seed)
-        layer = rng.randrange(runner.n_layers) if layer is None else layer
-        width = runner.n_heads if unit == "head" else runner.mlp_width(layer)
-        index = rng.randrange(width) if index is None else index
-        if unit == "neuron":
-            pole = rng.choice(["positive", "negative"]) if pole is None else pole
-    if unit == "head":
-        ident = HeadIdentifier(model_name=model_name, layer=layer, head_idx=index)
-    else:
-        ident = NeuronIdentifier(
-            model_name=model_name, layer=layer, neuron_idx=index, pole=pole or "positive"
-        )
-    texts, corpus_name, corpus_sha, corpus_source = read_corpus(corpus)
-    sample = None
-    if max_tokens:
-        from openinterp.corpus import sample_tokens
-
-        texts, sample = sample_tokens(runner.tokenizer, texts, max_tokens, sample_seed)
-        click.echo(f"Sampled {sample}", err=True)
-    if window_tokens is not None:
-        stride = stride or default_stride(window_tokens)
-        how = f" as {window_tokens}-token windows every {stride} tokens"
-    else:
-        how = ""
-    click.echo(f"Scanning {len(texts)} snippets{how} for {ident}…", err=True)
-    windows = {"window_tokens": window_tokens, "stride": stride}
-    with costs.stage("scan"):
-        if unit == "head":
-            scan = scan_head(runner, texts, ident, k=top_k, **windows)
-        else:
-            scan = scan_neuron(
-                runner, texts, layer, index, ident.pole, k=top_k, cache=scan_cache, **windows
-            )
-    if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:
-        verb = "Replayed" if scan_cache.replayed else "Cached"
-        click.echo(f"{verb} layer {layer}'s scan: {scan_cache.last}", err=True)
-    if not scan.examples or scan.examples[0].max_activation <= 0:
-        raise click.ClickException(
-            f"{ident} never activates on this corpus; try a larger --corpus."
-        )
-    lens = attribution = None
-    if unit == "neuron":  # a head writes a subspace, not one direction a lens can read
-        click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
-        # The first 100 documents, each cut to its first window when scanning windows.
-        pieces = cut_pieces(runner.tokenizer, texts[:100], window_tokens, stride)
-        lens_texts = [p.text for p in pieces if p.start == 0]
-        with costs.stage("lenses"):
-            lens = vocabulary_lens(runner, lens_texts, layer, index, ident.pole)
-        click.echo("Attributing the top examples' peaks to their context tokens…", err=True)
-        with costs.stage("input_attribution"):
-            attribution = input_attribution(runner, scan.examples, layer, index, ident.pole)
-    return ScanEvidence(
-        identifier=ident,
-        top_examples=scan.examples,
-        activation_histogram=activation_histogram(scan.values),
-        provenance=ExperimentProvenance(
-            model_revision=run_environment(runner).model_revision,
-            dtype=dtype,
-            corpus=corpus_name,
-            corpus_sha256=corpus_sha,
-            n_snippets=len(texts),
-            tokens_scanned=len(scan.values),
-            snippet_tokens=window_tokens,
-            snippet_stride=stride if window_tokens is not None else None,
-            selection="random" if random_pick else "manual",
-            seed=seed if random_pick else None,
-            harness_version=__version__,
-            environment=run_environment(runner),
-            corpus_source=corpus_source,
-            corpus_sample=sample,
-        ),
-        confounds=scan.confounds,
-        correlated_neurons=scan.correlated,
-        vocabulary_lens=lens,
-        input_attribution=attribution,
-        head_profile=getattr(scan, "profile", None),
-        model_n_heads=runner.n_heads if unit == "head" else None,
-    )
 
 
 def load_superseded(path: Path):
@@ -220,6 +73,7 @@ def write_evidence(evidence, path: Path) -> None:
         evidence.correlated_neurons,
         evidence.head_profile,
         evidence.input_attribution,
+        evidence.dictionary_profile,
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -242,9 +96,21 @@ def write_evidence(evidence, path: Path) -> None:
     help="Audit this attention head of --layer instead of a neuron (implies --unit head).",
 )
 @click.option(
+    "--feature",
+    type=int,
+    help="Audit this latent of --dictionary on --layer instead of a neuron (implies --unit "
+    "feature).",
+)
+@click.option(
+    "--dictionary",
+    help="Sparse dictionary (transcoder or SAE) whose latent to audit, e.g. "
+    "gpt2-small-transcoders; it implies --model. See openinterp/harness/dictionaries.py.",
+)
+@click.option(
     "--unit",
-    type=click.Choice(["neuron", "head"]),
-    help="What --random samples: an MLP neuron pole (default) or an attention head.",
+    type=click.Choice(["neuron", "head", "feature"]),
+    help="What --random samples: an MLP neuron pole (default), an attention head, or a "
+    "latent of --dictionary (the learned-basis baseline).",
 )
 @click.option(
     "--random",
@@ -330,6 +196,8 @@ def audit(
     neuron,
     pole,
     head,
+    feature,
+    dictionary,
     unit,
     random_pick,
     seed,
@@ -349,7 +217,8 @@ def audit(
     device,
     dtype,
 ):
-    """Scan a neuron pole or attention head, get a hypothesis, and write a submission.
+    """Scan a neuron pole, attention head or dictionary feature, get a hypothesis, and write
+    a submission.
 
     \b
     In one step, the proposer is an LLM (or external/<name>, answered via exchange/).
@@ -365,13 +234,28 @@ def audit(
     from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
     from openinterp.core import costs
     from openinterp.core.schemas import ScanEvidence
+    from openinterp.harness.dictionaries import dictionary_spec
     from openinterp.harness.units import attn_implementation
 
-    unit = unit or ("head" if head is not None else "neuron")
-    if unit == "head" and (neuron is not None or pole is not None):
-        raise click.UsageError("--neuron and --pole are for neurons; a head has neither.")
-    if unit == "neuron" and head is not None:
+    if unit is None:
+        unit = "head" if head is not None else "neuron"
+        unit = "feature" if feature is not None or dictionary is not None else unit
+    if unit != "neuron" and (neuron is not None or pole is not None):
+        raise click.UsageError(f"--neuron and --pole are for neurons; a {unit} has neither.")
+    if head is not None and unit != "head":
         raise click.UsageError("--head needs --unit head (or no --unit).")
+    if unit != "feature" and (feature is not None or dictionary is not None):
+        raise click.UsageError("--feature and --dictionary need --unit feature (or no --unit).")
+    if unit == "feature" and evidence_file is None:
+        if dictionary is None:
+            raise click.UsageError("--unit feature needs --dictionary.")
+        try:
+            spec = dictionary_spec(dictionary)
+        except ValueError as exc:
+            raise click.BadParameter(str(exc), param_hint="--dictionary") from exc
+        if model_name not in (None, spec.model_name):
+            raise click.UsageError(f"{dictionary} is a dictionary for {spec.model_name}.")
+        model_name = spec.model_name
     if (evidence_file is None) != (hypothesis_file is None):
         raise click.UsageError("--evidence and --hypothesis go together.")
     if stride is not None and (window_tokens is None or stride > window_tokens):
@@ -418,6 +302,8 @@ def audit(
             max_tokens=max_tokens,
             sample_seed=sample_seed,
             scan_cache=open_scan_cache(use_scan_cache),
+            feature=feature,
+            dictionary=dictionary,
         )
         if evidence_out is not None:
             write_evidence(evidence, evidence_out)
@@ -432,6 +318,7 @@ def audit(
             evidence.correlated_neurons,
             evidence.head_profile,
             evidence.input_attribution,
+            evidence.dictionary_profile,
         )
 
     ident = evidence.identifier
@@ -453,6 +340,7 @@ def audit(
             vocabulary_lens=evidence.vocabulary_lens,
             input_attribution=evidence.input_attribution,
             head_profile=evidence.head_profile,
+            dictionary_profile=evidence.dictionary_profile,
         )
     # An evidence file carries the scan's costs; a one-step audit measured them here.
     provenance = with_costs(submission.provenance, costs.measured())

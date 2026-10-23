@@ -20,7 +20,13 @@ import torch
 from torch import nn
 
 from openinterp.core.exceptions import ArchitectureNotSupportedError
-from openinterp.core.schemas import ActivatingExample, Histogram, Pole, RunEnvironment
+from openinterp.core.schemas import (
+    ActivatingExample,
+    DictionarySite,
+    Histogram,
+    Pole,
+    RunEnvironment,
+)
 
 # Probed in order; the first path that resolves on the model wins.
 LAYER_PATHS = (
@@ -52,6 +58,15 @@ ATTN_OUT_PATHS = (
     "self_attention.dense",  # Falcon
 )
 
+# Normalisation feeding the MLP; dictionaries trained on TransformerLens activations read
+# its input standardised without the gain and bias (``ln2.hook_normalized``).
+PRE_MLP_NORM_PATHS = (
+    "pre_feedforward_layernorm",  # Gemma 2/3 (whose post_attention_layernorm is not it)
+    "post_attention_layernorm",  # Llama, Qwen2, Mistral, GPT-NeoX
+    "ln_2",  # GPT-2
+    "final_layer_norm",  # OPT
+)
+
 # Final normalisation before the unembedding; its *input* is the final residual stream.
 FINAL_NORM_PATHS = (
     "model.norm",  # Llama, Qwen2, Mistral, Gemma
@@ -69,6 +84,8 @@ class _StopForward(Exception):
 
 
 Intervention = Callable[[torch.Tensor], torch.Tensor | None]
+# Receives a dictionary's input x at its site and the MLP output; may return a new output.
+DictionaryIntervention = Callable[[torch.Tensor, torch.Tensor], torch.Tensor | None]
 
 
 def _get_path(root: nn.Module, path: str) -> Any:
@@ -231,6 +248,25 @@ class NeuronHookRunner:
         # transformers' Conv1D stores weight as (in_features, out_features).
         return int(proj.weight.shape[0])
 
+    def mlp_norm(self, layer: int) -> nn.Module:
+        """The normalisation whose output is ``layer``'s MLP input."""
+        for path in PRE_MLP_NORM_PATHS:
+            module = _try_path(self.layers[layer], path)
+            if isinstance(module, nn.Module):
+                return module
+        raise ArchitectureNotSupportedError(
+            f"Could not find the norm before the MLP under {self.layer_path}[{layer}]"
+        )
+
+    def mlp(self, layer: int) -> nn.Module:
+        """``layer``'s MLP block: the module that owns the down projection."""
+        parent, _, _ = self.down_proj_path.rpartition(".")
+        if not parent:
+            raise ArchitectureNotSupportedError(
+                f"the down projection {self.down_proj_path} is not inside an MLP module"
+            )
+        return _get_path(self.layers[layer], parent)
+
     def final_norm(self) -> nn.Module | None:
         for path in FINAL_NORM_PATHS:
             module = _try_path(self.model, path)
@@ -265,6 +301,8 @@ class NeuronHookRunner:
         interventions: Mapping[int, Intervention] | None = None,
         output_interventions: Mapping[int, Intervention] | None = None,
         head_interventions: Mapping[int, Intervention] | None = None,
+        dictionary_interventions: Mapping[int, tuple[DictionarySite, DictionaryIntervention]]
+        | None = None,
     ) -> Iterator[None]:
         """Install hooks for the duration of the block.
 
@@ -273,6 +311,9 @@ class NeuronHookRunner:
         observe). ``output_interventions[layer]`` does the same for the down
         projection's output ``[batch, seq, d_model]``, and ``head_interventions[layer]``
         for the attention heads' concatenated outputs ``[batch, seq, n_heads * head_dim]``.
+        ``dictionary_interventions[layer] = (site, fn)`` calls ``fn(x, out)`` with a
+        dictionary's input ``x`` read at ``site`` (see ``DictionaryProfile``) and the down
+        projection's output, which ``fn`` may replace.
         """
         handles = []
 
@@ -296,6 +337,10 @@ class NeuronHookRunner:
                 handles.append(self.down_proj(layer).register_forward_hook(post_hook(fn)))
             for layer, fn in (head_interventions or {}).items():
                 handles.append(self.attn_out(layer).register_forward_pre_hook(pre_hook(fn)))
+            for layer, (site, fn) in (dictionary_interventions or {}).items():
+                from openinterp.harness.sites import site_hooks
+
+                handles += site_hooks(self, layer, site, fn)
             yield
         finally:
             for handle in handles:
@@ -329,9 +374,13 @@ class NeuronHookRunner:
         interventions: Mapping[int, Intervention] | None = None,
         output_interventions: Mapping[int, Intervention] | None = None,
         head_interventions: Mapping[int, Intervention] | None = None,
+        dictionary_interventions: Mapping[int, tuple[DictionarySite, DictionaryIntervention]]
+        | None = None,
     ) -> torch.Tensor:
         encoded = self.encode(inputs)
-        with self.hooks(interventions, output_interventions, head_interventions):
+        with self.hooks(
+            interventions, output_interventions, head_interventions, dictionary_interventions
+        ):
             return self.forward(encoded)
 
     # -- attention heads -----------------------------------------------------

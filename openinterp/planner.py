@@ -176,9 +176,13 @@ def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[fl
 def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], now: datetime):
     record, verdict = state.record, state.record.verdict
     ident = record.submission.identifier
-    is_head = ident.kind == "attn_head"
     path = state.record_path.as_posix()
-    unit = f"--head {ident.head_idx}" if is_head else f"--neuron {ident.neuron_idx}"
+    if ident.kind == "attn_head":
+        unit = f"--head {ident.head_idx}"
+    elif ident.kind == "dictionary_feature":
+        unit = f"--dictionary {ident.dictionary} --feature {ident.feature_idx}"
+    else:
+        unit = f"--neuron {ident.neuron_idx}"
     target = f"--model {ident.model_name} --layer {ident.layer} {unit}"
     other = "negative" if ident.pole == "positive" else "positive"
     gates = verdict.metrics.gates if verdict.metrics else {}
@@ -188,7 +192,7 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
         f"openinterp verify --audit-file {path} --corpus <scan corpus> "
         f"--agent-model <model other than {proposer}>"
     )
-    pole = "" if is_head else f" --pole {ident.pole}"
+    pole = f" --pole {ident.pole}" if ident.pole else ""
     revise = f"openinterp audit {target}{pole} --supersedes {path}"
 
     kinds: list[tuple[str, str, list[str], str | None]] = []
@@ -234,7 +238,7 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             ("challenge", "verified and replicated; look for counterexamples", [review], None)
         )
     other_slug = ident.slug.rsplit("-", 1)[0] + f"-{other}"
-    if not is_head and other_slug not in slugs:  # a head has no poles
+    if ident.pole and other_slug not in slugs:  # heads and features have no poles
         kinds.append(
             (
                 "opposite_pole",

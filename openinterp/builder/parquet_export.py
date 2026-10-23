@@ -1,8 +1,10 @@
 """Bundle every experiment into a columnar registry for bulk analysis.
 
 One row per experiment, whatever its verdict (``is_latest`` marks the newest
-experiment for each neuron pole or head). ``kind`` tells the units apart: a neuron
-pole row has ``neuron_idx`` and ``pole``, an attention head row ``head_idx``. Writes
+experiment for each neuron pole, head or feature). ``kind`` tells the units apart: a
+neuron pole row has ``neuron_idx`` and ``pole``, an attention head row ``head_idx``, and a
+dictionary feature row (the learned-basis baseline) ``dictionary`` and ``feature_idx``.
+Filter on ``kind`` before computing native-neuron statistics. Writes
 two copies of the same table:
 
 * ``data/registry.parquet`` -- stable URL, always the latest build (short cache).
@@ -24,7 +26,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from openinterp.builder.tree import Experiment
+from openinterp.builder.tree import SIDES, Experiment
 from openinterp.core.schemas import AuditRecord
 
 COUNTERFACTUAL_TYPE = pa.struct(
@@ -47,6 +49,8 @@ REGISTRY_SCHEMA = pa.schema(
         ("neuron_idx", pa.int32()),
         ("pole", pa.string()),
         ("head_idx", pa.int32()),
+        ("dictionary", pa.string()),
+        ("feature_idx", pa.int32()),
         ("model_num_layers", pa.int32()),
         ("model_mlp_width", pa.int32()),
         ("model_n_heads", pa.int32()),
@@ -101,6 +105,9 @@ REGISTRY_SCHEMA = pa.schema(
         ("previous_token_score", pa.float64()),
         ("duplicate_token_score", pa.float64()),
         ("induction_score", pa.float64()),
+        ("dictionary_explained_variance", pa.float64()),
+        ("dictionary_mean_l0", pa.float64()),
+        ("feature_density", pa.float64()),
         ("record_json", pa.string()),
     ]
 )
@@ -111,15 +118,17 @@ def record_to_row(record: AuditRecord) -> dict:
     ident = sub.identifier
     causal = verdict.causal_metrics if verdict else None
     tests = verdict.adversarial_test_results if verdict else []
-    is_head = ident.kind == "attn_head"
+    kind = ident.kind
     return {
         "slug": ident.slug,
         "model_name": ident.model_name,
         "kind": ident.kind,
         "layer": ident.layer,
-        "neuron_idx": None if is_head else ident.neuron_idx,
+        "neuron_idx": ident.neuron_idx if kind == "mlp_neuron_pole" else None,
         "pole": ident.pole,
-        "head_idx": ident.head_idx if is_head else None,
+        "head_idx": ident.head_idx if kind == "attn_head" else None,
+        "dictionary": ident.dictionary if kind == "dictionary_feature" else None,
+        "feature_idx": ident.feature_idx if kind == "dictionary_feature" else None,
         "model_num_layers": sub.model_num_layers,
         "model_mlp_width": sub.model_mlp_width,
         "model_n_heads": sub.model_n_heads,
@@ -150,6 +159,7 @@ def experiment_row(exp: Experiment) -> dict:
     sub, verdict = exp.record.submission, exp.record.verdict
     metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
     lens, scores, head = sub.vocabulary_lens, verdict.explanation_scores, sub.head_profile
+    dictionary = sub.dictionary_profile
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None
     attribution = sub.input_attribution
     if attribution is not None and not attribution.examples:
@@ -190,6 +200,9 @@ def experiment_row(exp: Experiment) -> dict:
         "previous_token_score": head.previous_token_score if head else None,
         "duplicate_token_score": head.duplicate_token_score if head else None,
         "induction_score": head.induction_score if head else None,
+        "dictionary_explained_variance": dictionary.explained_variance if dictionary else None,
+        "dictionary_mean_l0": dictionary.mean_l0 if dictionary else None,
+        "feature_density": dictionary.density if dictionary else None,
     }
 
 
@@ -203,8 +216,9 @@ def records_to_table(experiments: Sequence[Experiment]) -> pa.Table:
         key=lambda row: (
             row["model_name"],
             row["layer"],
-            row["kind"] != "mlp_neuron_pole",
-            row["neuron_idx"] if row["head_idx"] is None else row["head_idx"],
+            list(SIDES).index(row["kind"]),
+            row["dictionary"] or "",
+            next(row[c] for c in ("neuron_idx", "head_idx", "feature_idx") if row[c] is not None),
             row["pole"] or "",
             row["experiment_id"],
         ),

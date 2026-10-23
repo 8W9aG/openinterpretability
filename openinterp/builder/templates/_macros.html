@@ -31,7 +31,7 @@
   <a class="underline" href="{{ root }}index.html">Registry</a>
   {% if model %} / {% if layer %}<a class="underline" href="{{ root }}{{ model.href }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}{% endif %}
   {% if layer %} / {% if neuron %}<a class="underline" href="{{ root }}{{ layer.href }}">Layer {{ layer.layer }}</a>{% else %}Layer {{ layer.layer }}{% endif %}{% endif %}
-  {% if neuron %} / {{ "Head" if neuron.is_head else "Neuron" }} {{ neuron.idx }}{% endif %}
+  {% if neuron %} / {{ neuron.noun | capitalize }} {{ neuron.idx }}{% if neuron.dictionary %} ({{ neuron.dictionary }}){% endif %}{% endif %}
 </nav>
 {%- endmacro %}
 

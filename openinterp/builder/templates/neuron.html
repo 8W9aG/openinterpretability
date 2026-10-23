@@ -11,12 +11,12 @@
     <p class="mt-1 hidden" data-pagefind-filter="model">{{ model.name }}</p>
     {# A neuron's two poles are read together: the negative pole often encodes the contrast the positive one draws. A head has one card. #}
     <div class="mt-4 grid gap-3 sm:grid-cols-2">
-      {% for pole in (["head"] if neuron.is_head else ["positive", "negative"]) %}
+      {% for pole in neuron.sides %}
       {% set latest = neuron.latest_by_pole.get(pole) %}
       {% set pole_exps = neuron.experiments | selectattr("side", "equalto", pole) | selectattr("independent") | list %}
       <div class="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="text-slate-500">{% if neuron.is_head %}Attention head{% else %}{{ pole | capitalize }} pole {{ pole_mark(pole) }}{% endif %}</span>
+          <span class="text-slate-500">{% if neuron.is_head %}Attention head{% elif neuron.is_feature %}Latent of {{ neuron.dictionary }}{% else %}{{ pole | capitalize }} pole {{ pole_mark(pole) }}{% endif %}</span>
           {% if latest %}{{ status_badge(latest.record.verdict.status) }}<span class="hidden" data-pagefind-filter="status">{{ latest.record.verdict.status }}</span>{% if latest.record.self_reviewed %}{{ self_review_badge() }}{% endif %}{% endif %}
         </div>
         {% if pole_exps %}
@@ -32,7 +32,7 @@
       {% endfor %}
     </div>
     <p class="mt-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-      Every experiment on this {{ "head" if neuron.is_head else "neuron" }}, including null and superseded results, ordered by how
+      Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
       conclusive its probe evidence is (in either direction).
     </p>
   </header>

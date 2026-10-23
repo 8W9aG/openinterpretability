@@ -35,7 +35,7 @@ How the harness handles heads (protocol 0.6, `harness/units.py` and `harness/hea
 
 ## Learned-basis baselines
 
-To test the project's premise, compare native neurons with transcoder or SAE features on the same layer, model and corpus, scoring with this protocol: the share VERIFIED among randomly selected units, and balanced accuracy. Learned features go in as another `kind`, never mixed into native-neuron statistics.
+To test the project's premise, compare native neurons with transcoder or SAE features on the same layer, model and corpus, scoring with this protocol: the share VERIFIED among randomly selected units, and balanced accuracy. Learned features go in as another `kind`, never mixed into native-neuron statistics. Done for transcoder latents: `FeatureIdentifier` (`kind = "dictionary_feature"`), presets in `harness/dictionaries.py` (the first is `gpt2-small-transcoders`, Dunefsky et al.), the scan and patching in `harness/features.py`, and `openinterp audit --dictionary <name> --random`. The site and Parquet keep features apart from native units. Running the comparison is in `TODO.md`.
 
 ## Suggested order
 
