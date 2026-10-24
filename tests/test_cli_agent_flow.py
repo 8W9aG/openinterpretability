@@ -101,6 +101,9 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     # The Patchscope reads the direction only after the proposer answered.
     assert sub.patchscope is not None and sub.patchscope.readings
     assert "patchscope" not in (flow.path / "ev.json").read_text()
+    # So are the steering samples, from neutral prompts no agent sees.
+    assert sub.steering is not None and len(sub.steering.samples) == 5
+    assert "steering" not in (flow.path / "ev.json").read_text()
 
     loads = len(flow.loads)
     run("review", "--audit-file", "sub.json", "--emit-prompt", "review.prompt.md")
@@ -109,6 +112,7 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     assert "review.prompt.probes.json" not in (flow.path / "review.prompt.md").read_text()
     assert "Probes are measured on their own" in (flow.path / "review.prompt.md").read_text()
     assert sub.patchscope.readings[0].text not in (flow.path / "review.prompt.md").read_text()
+    assert sub.steering.samples[0].prompt not in (flow.path / "review.prompt.md").read_text()
 
     probes = ProbeSet(
         probes=[
@@ -145,8 +149,8 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     stages = [s.stage for s in costs.stages]
     judged = ["judge", "judge"] if task.fuzzing else ["judge"]
     assert stages == ["scan", "lenses", "input_attribution", "proposer", "counterfactuals",
-                      "patchscope", "heldout_windows", *judged, "remeasure", "reviewer",
-                      "probe_measurement", "gates", "causal_metrics"]  # fmt: skip
+                      "patchscope", "steering", "heldout_windows", *judged, "remeasure",
+                      "reviewer", "probe_measurement", "gates", "causal_metrics"]  # fmt: skip
     assert [c.agent for c in costs.llm_calls] == ["proposer", *judged, "reviewer"]
     assert all(c.external and c.prompt_chars for c in costs.llm_calls)
     assert scores.costs is None  # moved into the provenance

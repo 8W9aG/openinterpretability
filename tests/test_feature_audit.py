@@ -19,6 +19,7 @@ from openinterp.harness.features import patch_features, scan_feature
 from openinterp.harness.hooks import NeuronHookRunner, activation_histogram
 from openinterp.harness.patchscope import write_direction
 from openinterp.harness.sites import dictionary_io
+from openinterp.harness.steering import steering_interventions
 from openinterp.harness.units import FeatureUnit
 from openinterp.planner import plan_next
 from openinterp.reproduce import reproduce_record
@@ -134,6 +135,22 @@ def test_ablation_removes_exactly_the_latents_write(runner, scan):
     write = dictionary.feature(x, 5).unsqueeze(-1) * dictionary.w_dec[5]
     assert float(write.abs().max()) > 0
     torch.testing.assert_close(seen[-1], clean - write, atol=1e-6, rtol=0)
+
+
+def test_steering_sets_the_latent_and_ablation_removes_its_write(runner, scan):
+    unit = FeatureUnit(FEATURE, scan.profile)
+    dictionary = unit.dictionary(runner)
+    x, clean = dictionary_io(runner, [TEXTS[1]] * 3, 1, "mlp_in_normalized")
+    seen = []  # on the MLP block, so it sees the down projection's output after steering
+    mlp = runner.model.transformer.h[1].mlp
+    handle = mlp.register_forward_hook(lambda _m, _a, out: seen.append(out))
+    ablate, clamp = torch.tensor([False, True, False]), torch.tensor([float("nan")] * 2 + [2.0])
+    with runner.hooks(**steering_interventions(runner, unit, ablate, clamp)):
+        runner.forward(runner.encode([TEXTS[1]] * 3))
+    handle.remove()
+    a, w = dictionary.feature(x, 5).unsqueeze(-1), dictionary.w_dec[5]
+    expected = torch.stack([clean[0], clean[1] - a[1] * w, clean[2] + (2.0 - a[2]) * w])
+    torch.testing.assert_close(seen[-1], expected, atol=1e-6, rtol=0)
 
 
 def test_patching_a_latent_moves_the_output_by_its_write_change(runner, spec, scan):

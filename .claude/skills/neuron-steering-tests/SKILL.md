@@ -12,6 +12,8 @@ description: Test a neuron hypothesis generatively by clamping the pole high (or
 
 ## Procedure
 
+Every audit of a neuron pole or dictionary feature already records steering samples (`submission.steering`): five neutral prompts at baseline, ablated, and clamped at 1, 2 and 4 × `max_activation`, shown on the experiment page. Read those first. Use the procedure below for prompts of your own, or to write a prediction down before you look.
+
 ```python
 import torch
 
