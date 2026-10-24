@@ -17,6 +17,7 @@ from openinterp.harness import dictionaries
 from openinterp.harness.dictionaries import DictionarySpec, load_spec
 from openinterp.harness.features import patch_features, scan_feature
 from openinterp.harness.hooks import NeuronHookRunner, activation_histogram
+from openinterp.harness.patchscope import write_direction
 from openinterp.harness.sites import dictionary_io
 from openinterp.harness.units import FeatureUnit
 from openinterp.planner import plan_next
@@ -209,6 +210,8 @@ def test_a_feature_is_audited_reviewed_and_reproduced(runner, scan):
     assert AuditRecord.model_validate_json(record.model_dump_json()) == record
     report = reproduce_record(record, runner)
     assert report.ok, report.mismatches
+    unit = FeatureUnit(FEATURE, scan.profile)  # a Patchscope reads the decoder row
+    assert torch.equal(write_direction(runner, unit), unit.dictionary(runner).w_dec[5].float())
 
     prompt = ReviewerAgent.probe_prompt(sub)
     assert prompt.startswith("Dictionary feature: tiny-gpt2 L1/F5 (tiny-tc)")

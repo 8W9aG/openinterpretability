@@ -54,6 +54,21 @@ def with_costs(provenance, *parts):
     return provenance.model_copy(update={"costs": merge(provenance.costs, *parts)})
 
 
+def read_patchscope(runner, submission):
+    """The model's own reading of the unit's output direction, once the proposer has
+    answered so it can't steer the hypothesis; ``None`` for a head, which writes a subspace."""
+    from openinterp.core import costs
+    from openinterp.harness.patchscope import patchscope, write_direction
+    from openinterp.harness.units import submission_unit
+
+    direction = write_direction(runner, submission_unit(submission))
+    if direction is None or runner.tokenizer is None:
+        return None
+    click.echo("Reading the output direction back through a Patchscope…", err=True)
+    with costs.stage("patchscope"):
+        return patchscope(runner, submission.identifier.layer, direction)
+
+
 def write_evidence(evidence, path: Path) -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
@@ -342,10 +357,13 @@ def audit(
             head_profile=evidence.head_profile,
             dictionary_profile=evidence.dictionary_profile,
         )
+    readout = read_patchscope(runner, submission)
     # An evidence file carries the scan's costs; a one-step audit measured them here.
     provenance = with_costs(submission.provenance, costs.measured())
     revises = superseded and experiment_id(superseded)
-    submission = submission.model_copy(update={"provenance": provenance, "supersedes": revises})
+    submission = submission.model_copy(
+        update={"provenance": provenance, "supersedes": revises, "patchscope": readout}
+    )
     out = out or Path("submissions") / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(submission.model_dump_json(indent=2))

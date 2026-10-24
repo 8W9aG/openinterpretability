@@ -1,0 +1,33 @@
+{# Patchscope readout for _experiment.html. Expects `sub`. #}
+  {% if sub.patchscope and sub.patchscope.readings %}
+  {% set ps = sub.patchscope %}
+  <section class="mb-10" data-pagefind-ignore>
+    <h3 class="mb-1 text-base font-semibold" title="Ghandeharioun et al., 2024; Chen et al., 2024 (SelfIE)">Patchscope</h3>
+    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The model's own description of this unit's output direction, with no examples. The direction replaces the residual stream after the named layer at the <code class="tok">{{ ps.placeholder }}</code> of each prompt, at each multiple of the norm it replaces, and the model continues greedily. The control injects a random direction instead, so text the two share comes from the prompt.</p>
+    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr>
+            <th class="px-3 py-2">Prompt</th><th class="px-3 py-2">Layer</th><th class="px-3 py-2"></th>
+            {% for s in ps.scales %}<th class="px-3 py-2" title="Norm of the injected vector over the norm of the residual it replaces">×{{ "%g" | format(s) }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for prompt, layer, readings in ps.rows %}
+          <tr>
+            <td class="px-3 py-1 align-top" rowspan="2" title="{{ ps.prompts[prompt] | replace('{x}', ps.placeholder) }}">{{ prompt }}</td>
+            <td class="px-3 py-1 align-top font-mono tabular-nums" rowspan="2">{{ layer }}</td>
+            <td class="px-3 py-1 text-slate-500">unit</td>
+            {% for r in readings %}<td class="px-3 py-1 font-mono">{{ r.text }}</td>{% endfor %}
+          </tr>
+          <tr class="text-slate-500">
+            <td class="px-3 py-1">control</td>
+            {% for r in readings %}<td class="px-3 py-1 font-mono">{{ r.control_text }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Hover a prompt's name for its text · read after the proposer answered and shown to neither agent · reported, not gated</p>
+  </section>
+  {% endif %}

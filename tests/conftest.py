@@ -39,6 +39,9 @@ class ToyBlock(nn.Module):
         super().__init__()
         self.mlp = ToyMLP()
 
+    def forward(self, x):
+        return x + self.mlp(x)
+
 
 class ToyModel(nn.Module):
     """Llama-shaped residual MLP stack: ``model.layers[i].mlp.down_proj``."""
@@ -59,7 +62,7 @@ class ToyModel(nn.Module):
     def forward(self, input_ids, attention_mask=None):
         x = self.embed(input_ids)
         for block in self.model.layers:
-            x = x + block.mlp(x)
+            x = block(x)
         return SimpleNamespace(logits=self.lm_head(x))
 
 
