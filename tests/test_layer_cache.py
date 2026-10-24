@@ -38,18 +38,20 @@ def no_model(runner, monkeypatch):
 @pytest.mark.parametrize("windows", [{}, {"window_tokens": 8, "stride": 3}])
 @pytest.mark.parametrize("pole", ["positive", "negative"])
 def test_replaying_a_cached_layer_matches_the_model(named, cache, monkeypatch, windows, pole):
-    fresh = scan_neuron(named, LONG, 1, 2, pole, batch_size=3, **windows)
-    stored = scan_neuron(named, LONG, 1, 2, pole, batch_size=3, cache=cache, **windows)
+    fresh = scan_neuron(named, LONG, 1, 2, pole, batch_tokens=100, **windows)
+    stored = scan_neuron(named, LONG, 1, 2, pole, batch_tokens=100, cache=cache, **windows)
     assert not cache.replayed and cache.last.exists()
 
     with monkeypatch.context() as patch:
         no_model(named, patch)
-        replayed = scan_neuron(named, LONG, 1, 2, pole, batch_size=3, cache=cache, **windows)
+        replayed = scan_neuron(named, LONG, 1, 2, pole, batch_tokens=100, cache=cache, **windows)
         assert cache.replayed
         # Any other neuron of the layer replays the same entry.
-        other = scan_neuron(named, LONG, 1, 7, pole, batch_size=3, cache=cache, **windows)
+        other = scan_neuron(named, LONG, 1, 7, pole, batch_tokens=100, cache=cache, **windows)
     assert astuple(fresh) == astuple(stored) == astuple(replayed)
-    assert astuple(other) == astuple(scan_neuron(named, LONG, 1, 7, pole, batch_size=3, **windows))
+    assert astuple(other) == astuple(
+        scan_neuron(named, LONG, 1, 7, pole, batch_tokens=100, **windows)
+    )
     assert len(cache.entries()) == 1
 
 
@@ -61,7 +63,7 @@ def test_bfloat16_activations_round_trip(cache, monkeypatch):
     scan_neuron(runner, TEXTS, 1, 2, "positive", cache=cache)
     entry = cache.entries()[0]
     assert entry.meta["storage"] == "int16"
-    replayed = torch.cat([c.acts for c in entry.chunks(8)])
+    replayed = torch.cat([c.acts for c in entry.chunks()])
     assert replayed.dtype == torch.bfloat16
     assert torch.equal(entry.column(2), replayed[:, 2].float())
     no_model(runner, monkeypatch)
@@ -70,14 +72,14 @@ def test_bfloat16_activations_round_trip(cache, monkeypatch):
 
 def test_the_key_covers_what_sets_the_numbers(named, cache):
     pieces = list(cut_pieces(named.tokenizer, TEXTS, None, None))
-    key = LayerCache.fields(named, 1, pieces, 8)
+    key = LayerCache.fields(named, 1, pieces, 2048)
     assert key["model"] == "toy/model" and key["dtype"] == "float32" and key["device"] == "cpu"
     windowed = list(cut_pieces(named.tokenizer, TEXTS, 4, 2))
     others = [
-        LayerCache.fields(named, 2, pieces, 8),
-        LayerCache.fields(named, 1, pieces[:-1], 8),
-        LayerCache.fields(named, 1, windowed, 8),
-        LayerCache.fields(named, 1, pieces, 4),
+        LayerCache.fields(named, 2, pieces, 2048),
+        LayerCache.fields(named, 1, pieces[:-1], 2048),
+        LayerCache.fields(named, 1, windowed, 2048),
+        LayerCache.fields(named, 1, pieces, 1024),
     ]
     assert len({cache.path(f) for f in [key, *others]}) == 5
 
@@ -97,7 +99,7 @@ def test_an_unfinished_scan_leaves_nothing(named, cache):
     from openinterp.harness.scan import layer_chunks
 
     pieces = list(cut_pieces(named.tokenizer, TEXTS, None, None))
-    chunks = cache.through(named, 1, pieces, 2, layer_chunks(named, pieces, 1, 2))
+    chunks = cache.through(named, 1, pieces, 16, layer_chunks(named, pieces, 1, 16))
     next(chunks)
     chunks.close()
     assert not cache.entries() and not any(cache.root.rglob("acts.bin"))

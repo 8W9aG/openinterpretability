@@ -23,8 +23,7 @@ def _load_runner(
 
     from openinterp.core import costs
 
-    if device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = resolve_device(device)
     torch_dtype = {
         "auto": "auto",
         "float32": torch.float32,
@@ -34,6 +33,18 @@ def _load_runner(
     click.echo(f"Loading {model_name} on {device}…", err=True)
     with costs.stage("model_load"):
         return _load(model_name, device, torch_dtype, revision, attn_implementation)
+
+
+def resolve_device(device: str) -> str:
+    """``auto``: CUDA, else Apple's GPU (MPS), else the CPU. float32 activations on MPS
+    match the CPU's to about 1e-4 of a neuron's peak, inside reproduce's tolerance."""
+    import torch
+
+    if device != "auto":
+        return device
+    if torch.cuda.is_available():
+        return "cuda"
+    return "mps" if torch.backends.mps.is_available() else "cpu"
 
 
 def _load_unit_runner(ident, device: str, dtype: str, revision: str | None = None):
@@ -93,7 +104,12 @@ def _resolve_revision(model_name: str, revision: str | None) -> str | None:
 
 
 model_options = [
-    click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto."),
+    click.option(
+        "--device",
+        default="auto",
+        show_default=True,
+        help="cpu, cuda, mps or auto (CUDA, else MPS, else CPU).",
+    ),
     click.option(
         "--dtype",
         type=click.Choice(["auto", "float32", "bfloat16", "float16"]),

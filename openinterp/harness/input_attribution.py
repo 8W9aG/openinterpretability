@@ -252,7 +252,9 @@ def input_attribution(
         top = attr.abs().topk(min(top_k, len(attr))).indices.tolist()
         checked = sorted(set(top) | set(range(max(0, peak - near), peak + 1)))
         ablated = ablate_positions(runner, ids, *args, baseline, checked, batch_size=batch_size)
-        effect = dict(zip(checked, ((values[peak] - ablated.cpu()) / gap).tolist(), strict=True))
+        effect = dict(
+            zip(checked, ((float(values[peak]) - ablated.cpu()) / gap).tolist(), strict=True)
+        )
         if error <= tolerance:
             checked_attr += [float(attr[i]) for i in checked]
             checked_effect += [effect[i] for i in checked]

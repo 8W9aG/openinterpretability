@@ -21,7 +21,7 @@ from openinterp.harness.dictionaries import Dictionary, DictionarySpec, load_spe
 from openinterp.harness.heads import _repeat
 from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
-from openinterp.harness.scan import ScanResult, TopExamples, batches, cut_pieces
+from openinterp.harness.scan import BATCH_TOKENS, ScanResult, TopExamples, batches, cut_pieces
 from openinterp.harness.sites import dictionary_io
 
 ENCODE_CHUNK = 1024  # tokens encoded through the whole dictionary at once
@@ -68,7 +68,7 @@ def scan_feature(
     spec: DictionarySpec,
     *,
     k: int = 20,
-    batch_size: int = 8,
+    batch_tokens: int = BATCH_TOKENS,
     min_count: int = 3,
     window_tokens: int | None = None,
     stride: int | None = None,
@@ -86,7 +86,7 @@ def scan_feature(
     top = TopExamples()
     fit = _Fit()
     values: list[float] = []
-    for batch in batches(runner, pieces, batch_size):
+    for batch in batches(runner, pieces, batch_tokens):
         x, out = dictionary_io(runner, batch.encoded, layer, spec.input_site)
         strengths = dictionary.feature(x, f).cpu()
         counted = batch.counted
