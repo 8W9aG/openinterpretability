@@ -34,6 +34,7 @@ from openinterp.core.profiles import (  # noqa: F401  (re-exported)
     DictionarySite,
     HeadProfile,
 )
+from openinterp.core.steering import SteeringSamples
 from openinterp.core.strict import StrictModel, UnitFloat
 
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
@@ -377,6 +378,12 @@ class NeuronAuditSubmission(StrictModel):
         default=None,
         description="The model's own description of the unit's output direction, read after "
         "the proposer answered and shown to neither agent (reported, not gated).",
+    )
+    steering: SteeringSamples | None = Field(
+        default=None,
+        description="Neutral prompts continued with the unit clamped high, at baseline and "
+        "ablated, taken after the proposer answered and shown to neither agent (reported, "
+        "not gated).",
     )
     supersedes: str | None = Field(
         default=None,

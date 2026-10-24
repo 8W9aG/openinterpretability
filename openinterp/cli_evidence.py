@@ -69,6 +69,21 @@ def read_patchscope(runner, submission):
         return patchscope(runner, submission.identifier.layer, direction)
 
 
+def read_steering(runner, submission):
+    """Neutral prompts continued with the unit clamped high, at baseline and ablated, once
+    the proposer has answered; ``None`` for a head, which has no "high" to clamp to."""
+    from openinterp.core import costs
+    from openinterp.harness.steering import steering_samples
+    from openinterp.harness.units import HeadUnit, submission_unit
+
+    unit = submission_unit(submission)
+    if isinstance(unit, HeadUnit) or not submission.max_activation or runner.tokenizer is None:
+        return None
+    click.echo("Continuing neutral prompts with the unit clamped and ablated…", err=True)
+    with costs.stage("steering"):
+        return steering_samples(runner, unit, submission.max_activation)
+
+
 def write_evidence(evidence, path: Path) -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
@@ -358,11 +373,17 @@ def audit(
             dictionary_profile=evidence.dictionary_profile,
         )
     readout = read_patchscope(runner, submission)
+    steering = read_steering(runner, submission)
     # An evidence file carries the scan's costs; a one-step audit measured them here.
     provenance = with_costs(submission.provenance, costs.measured())
     revises = superseded and experiment_id(superseded)
     submission = submission.model_copy(
-        update={"provenance": provenance, "supersedes": revises, "patchscope": readout}
+        update={
+            "provenance": provenance,
+            "supersedes": revises,
+            "patchscope": readout,
+            "steering": steering,
+        }
     )
     out = out or Path("submissions") / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)

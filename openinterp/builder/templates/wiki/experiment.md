@@ -149,6 +149,22 @@ The model's own description of the output direction, with no examples: the direc
 Prompts: {% for name, template in ps.prompts.items() %}{{ name }} `{{ template | replace("{x}", ps.placeholder) | cell }}`{{ "; " if not loop.last }}{% endfor %}.
 
 {% endif %}
+{% if sub.steering and sub.steering.samples %}
+{% set st = sub.steering %}
+### Steering
+
+Neutral prompts continued greedily for up to {{ st.max_new_tokens }} tokens with the unit ablated, untouched, and clamped at multiples of its top activation in the scan ({{ st.clamp_unit | num(2) }}), at every token. Drift at ×1–×2 says what the unit makes the model write; drift only at ×4 is off-distribution. Taken after the proposer answered and shown to neither agent; reported, not gated.
+
+| Prompt | Ablated | Baseline |{% for m in st.multiples %} Clamped ×{{ "%g" | format(m) }} |{% endfor %}
+
+| --- | --- | --- |{% for m in st.multiples %} --- |{% endfor %}
+
+{% for s in st.samples %}
+| {{ s.prompt | cell }} | {{ s.ablated | cell }} | {{ s.baseline | cell }} |{% for text in s.clamped %} {{ text | cell }} |{% endfor %}
+
+{% endfor %}
+
+{% endif %}
 {% if sub.input_attribution and sub.input_attribution.examples %}
 {% set ia = sub.input_attribution %}
 ### Input attribution
