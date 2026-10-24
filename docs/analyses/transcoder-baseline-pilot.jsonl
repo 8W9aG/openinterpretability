@@ -1,0 +1,24 @@
+{"arm": "latent", "seed": 1, "unit": "L2/F18651", "outcome": "dead"}
+{"arm": "latent", "seed": 2, "unit": "L0/F3001", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L0/gpt2-small-transcoders/F3001/20261024T143806Z.json"}
+{"arm": "latent", "seed": 3, "unit": "L3/F19419", "outcome": "dead"}
+{"arm": "latent", "seed": 4, "unit": "L3/F9938", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/gpt2-small-transcoders/F9938/20261024T143615Z.json"}
+{"arm": "latent", "seed": 5, "unit": "L9/F8370", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L9/gpt2-small-transcoders/F8370/20261024T143144Z.json"}
+{"arm": "latent", "seed": 6, "unit": "L9/F2640", "outcome": "dead"}
+{"arm": "latent", "seed": 7, "unit": "L5/F4943", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L5/gpt2-small-transcoders/F4943/20261024T143109Z.json"}
+{"arm": "latent", "seed": 8, "unit": "L3/F12137", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/gpt2-small-transcoders/F12137/20261024T143325Z.json"}
+{"arm": "latent", "seed": 9, "unit": "L7/F20093", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F20093/20261024T143638Z.json"}
+{"arm": "latent", "seed": 10, "unit": "L9/F1067", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L9/gpt2-small-transcoders/F1067/20261024T143823Z.json"}
+{"arm": "latent", "seed": 11, "unit": "L7/F18342", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F18342/20261024T143655Z.json"}
+{"arm": "latent", "seed": 12, "unit": "L7/F8814", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F8814/20261024T143953Z.json"}
+{"arm": "latent", "seed": 13, "unit": "L4/F9527", "outcome": "dead"}
+{"arm": "latent", "seed": 14, "unit": "L1/F20181", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L1/gpt2-small-transcoders/F20181/20261024T144006Z.json"}
+{"arm": "neuron_pole", "seed": 1, "unit": "L2/N2331+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L2/N2331-positive/20261024T144248Z.json"}
+{"arm": "neuron_pole", "seed": 2, "unit": "L0/N375+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L0/N375-positive/20261024T144020Z.json"}
+{"arm": "neuron_pole", "seed": 3, "unit": "L3/N2427+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N2427-positive/20261024T144034Z.json"}
+{"arm": "neuron_pole", "seed": 4, "unit": "L3/N1242+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N1242-positive/20261024T144212Z.json"}
+{"arm": "neuron_pole", "seed": 5, "unit": "L9/N1046-", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L9/N1046-negative/20261024T144226Z.json"}
+{"arm": "neuron_pole", "seed": 6, "unit": "L9/N330-", "outcome": "live", "verdict": "REJECTED", "record": "wiki/experiments/openai-community--gpt2/L9/N330-negative/20261024T144436Z.json"}
+{"arm": "neuron_pole", "seed": 7, "unit": "L5/N617-", "outcome": "live", "verdict": "REJECTED", "record": "wiki/experiments/openai-community--gpt2/L5/N617-negative/20261024T144526Z.json"}
+{"arm": "neuron_pole", "seed": 8, "unit": "L3/N1517-", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L3/N1517-negative/20261024T144546Z.json"}
+{"arm": "neuron_pole", "seed": 9, "unit": "L7/N2511-", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L7/N2511-negative/20261024T144450Z.json"}
+{"arm": "neuron_pole", "seed": 10, "unit": "L9/N133-", "outcome": "live", "verdict": "REJECTED", "record": "wiki/experiments/openai-community--gpt2/L9/N133-negative/20261024T145116Z.json"}
