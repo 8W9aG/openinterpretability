@@ -158,7 +158,12 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
     help="Absolute tolerance, as a fraction of the neuron's max activation.",
 )
 @click.option("--rtol", default=1e-2, show_default=True, type=click.FloatRange(min=0))
-@click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto.")
+@click.option(
+    "--device",
+    default="auto",
+    show_default=True,
+    help="cpu, cuda, mps or auto (CUDA, else MPS, else CPU).",
+)
 @click.option(
     "--corpus",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),

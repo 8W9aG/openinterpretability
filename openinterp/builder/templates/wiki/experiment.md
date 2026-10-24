@@ -129,6 +129,26 @@ Explanation scores on held-out text (recorded, not gated): detection {{ (es.dete
 {% if vl.jacobian_promoted_z %}Numbers are z-scores over the whole vocabulary. {% endif %}Top-10 overlap {{ vl.overlap | pct }}; cos(w, J·w) {{ vl.direction_cosine | num(2) }}; kurtosis {{ vl.jacobian_kurtosis | num(1) }} (Jacobian) vs {{ vl.logit_kurtosis | num(1) }} (logit); {{ vl.prompts }} prompts.
 
 {% endif %}
+{% if sub.patchscope and sub.patchscope.readings %}
+{% set ps = sub.patchscope %}
+### Patchscope
+
+The model's own description of the output direction, with no examples: the direction replaces the residual stream after the named layer's block at the `{{ ps.placeholder | cell }}` of each prompt, at each multiple of the norm it replaces, and the model continues greedily. The control injects a random direction instead, so text the two share comes from the prompt. Read after the proposer answered and shown to neither agent; reported, not gated.
+
+| Prompt | Layer | |{% for s in ps.scales %} ×{{ "%g" | format(s) }} |{% endfor %}
+
+| --- | --- | --- |{% for s in ps.scales %} --- |{% endfor %}
+
+{% for prompt, layer, readings in ps.rows %}
+| {{ prompt }} | {{ layer }} | unit |{% for r in readings %} {{ r.text | cell }} |{% endfor %}
+
+| | | control |{% for r in readings %} {{ r.control_text | cell }} |{% endfor %}
+
+{% endfor %}
+
+Prompts: {% for name, template in ps.prompts.items() %}{{ name }} `{{ template | replace("{x}", ps.placeholder) | cell }}`{{ "; " if not loop.last }}{% endfor %}.
+
+{% endif %}
 {% if sub.input_attribution and sub.input_attribution.examples %}
 {% set ia = sub.input_attribution %}
 ### Input attribution

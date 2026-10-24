@@ -19,7 +19,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
 
-- [ ] Verbalise the pole's output direction with a Patchscope or SelfIE prompt (Ghandeharioun et al., 2024; Chen et al., 2024). Inject `w_out`, scaled, into an inspection prompt and record the decoded text. Where a trained Activation Oracle exists for the model (Karvonen et al., 2025), record its answer too. Both are blind, example-free descriptions: use them as an extra proposer baseline (does the oracle's description verify as often as the agent's?), and never show them to the reviewer.
 - [ ] Wiring: the pole's top upstream and downstream connections. Two sources:
   - *weights*: virtual weights (Elhage et al., 2021) from attention heads' OV circuits and earlier neurons' `w_out` into the pole's `w_in`, and from its `w_out` into later neurons' `w_in` and heads' Q/K/V, with the norm folded in or approximated;
   - *activations*: edge attribution patching on the reviewer's probes (EAP, Syed et al., 2023; EAP-IG, Hanna et al., 2024).
@@ -99,7 +98,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
 
-- [ ] Use the GPU on Macs: `--device auto` picks CUDA or CPU and never MPS (`openinterp/cli.py`), so scans on Apple silicon run on CPU. Add MPS to `auto` (checking float32 results match CPU within tolerance) and batch long documents by token budget rather than a fixed `batch_size`.
 - [ ] Load the model once per experiment. `audit` and `verify` run as separate processes, and each loads the model; the scan, lenses, probe measurement and gates could share one load. `openinterp loop` (Pipeline) extends this across experiments. Batch the reviewer's probes and counterfactuals into as few forward passes as their lengths allow.
 - [ ] Trim the proposer prompt.
   - Top-activating snippets currently include whole documents: the first example for L13/N1706+ is an entire film review. Show a window of a fixed number of tokens around the peak instead.
@@ -120,7 +118,6 @@ Measure before optimising, and check that any change to what the agents see does
 
 At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), and CI's "Reproduce records" job runs it on every pull request, on GitHub-hosted CPU runners with cached weights and a model allow-list. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
-- [ ] Queue and cost controls: a submission from CI only enqueues a job (record path, commit SHA, record hash). Deduplicate by record hash, cap jobs per PR and per author per day, set a per-job timeout and a monthly budget, and refuse jobs once the budget is spent rather than scaling up.
 - [ ] Treat records as untrusted input: run only allow-listed models (no arbitrary Hugging Face repos, never `trust_remote_code`), bound probe count and length, and run each job in a sandbox with no network beyond the model cache.
 - [ ] Report back to GitHub as a commit status or check run on the PR's head SHA ("Reproduction: passed / failed / queued"), with a link to the log, and make it a required check for `main` once it is reliable.
 - [ ] Auto-merge experiment-only PRs: when every changed file is under `wiki/` (experiment records, their `.sig` files, pages and generated indexes) and "Experiment records" and "Reproduce records" pass (reproduced, or signed by an allowed signer), merge the PR automatically. Any change outside `wiki/` (code, workflows, `.github/allowed_signers`) keeps the PR manual. Make those checks required first, so GitHub's auto-merge waits for them. Fork PRs need a separate `pull_request_target` workflow that only reads the PR's file list through the API and enables auto-merge, and never checks out or runs the PR's code with a write token. Squash-merge so `main` gets one commit per experiment.
@@ -187,6 +184,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 - [ ] Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
 - [ ] Stanford `stanford-crfm` GPT-2 seeds (alias/battlestar/…): same architecture, different seeds, for a universality baseline.
 - [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate, which makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
+- [ ] Activation Oracle baseline, once a model with a released oracle is in the registry (Karvonen et al., 2025; oracles exist for Gemma-2, Gemma-3, Qwen3 and Llama 3 models, and the README warns the 1–4B ones are weaker out of distribution). Record the oracle's description of each unit's output direction next to `submission.patchscope`, and score it as a blind proposer baseline as `openinterp patchscope-baseline` scores the Patchscope readout (`docs/analyses/patchscope-baseline.md`: at chance on Qwen2.5-0.5B). Never show it to the reviewer. Check first that the oracle copes with a single scaled direction rather than a real residual activation, and with a base model when it was trained on the instruct one.
 - [ ] Mixture-of-experts (Qwen1.5-MoE-A2.7B, OLMoE-1B-7B): needs a decision on how to identify an expert neuron (`expert` index in the identifier) and how to handle routing in patching. Defer until `ComponentIdentifier` lands.
 
 ## Housekeeping

@@ -18,7 +18,7 @@ from openinterp.core.schemas import ActivatingExample, HeadIdentifier, HeadProfi
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
-from openinterp.harness.scan import ScanResult, TopExamples, batches, cut_pieces
+from openinterp.harness.scan import BATCH_TOKENS, ScanResult, TopExamples, batches, cut_pieces
 from openinterp.harness.units import head_strength
 
 
@@ -66,7 +66,7 @@ def scan_head(
     ident: HeadIdentifier,
     *,
     k: int = 20,
-    batch_size: int = 8,
+    batch_tokens: int = BATCH_TOKENS,
     min_count: int = 3,
     window_tokens: int | None = None,
     stride: int | None = None,
@@ -84,7 +84,7 @@ def scan_head(
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
     total, count = None, 0
-    for batch in batches(runner, pieces, batch_size):
+    for batch in batches(runner, pieces, batch_tokens):
         z = runner.head_outputs(batch.encoded, layer)[..., head, :].float().cpu()
         chunk = z[batch.counted].sum(0)
         total = chunk if total is None else total + chunk
@@ -96,7 +96,7 @@ def scan_head(
     confounds = ConfoundAccumulator()
     top = TopExamples()
     values: list[float] = []
-    for batch in batches(runner, pieces, batch_size):
+    for batch in batches(runner, pieces, batch_tokens):
         z = runner.head_outputs(batch.encoded, layer)[..., head, :]
         strengths = head_strength(runner, ident, z, mean).cpu()
         counted = batch.counted

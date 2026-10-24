@@ -28,6 +28,7 @@ from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     NeuronIdentifier,
     Pole,
 )
+from openinterp.core.patchscope import PatchscopeReadout
 from openinterp.core.profiles import (  # noqa: F401  (re-exported)
     DictionaryProfile,
     DictionarySite,
@@ -372,6 +373,11 @@ class NeuronAuditSubmission(StrictModel):
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
     dictionary_profile: DictionaryProfile | None = None
+    patchscope: PatchscopeReadout | None = Field(
+        default=None,
+        description="The model's own description of the unit's output direction, read after "
+        "the proposer answered and shown to neither agent (reported, not gated).",
+    )
     supersedes: str | None = Field(
         default=None,
         pattern=EXPERIMENT_ID_PATTERN,

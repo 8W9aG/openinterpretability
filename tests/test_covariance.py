@@ -16,7 +16,7 @@ from openinterp.core.stats import (
 from openinterp.harness.confounds import ConfoundAccumulator, baseline_predictions
 from openinterp.harness.covariance import CovarianceAccumulator, PartnerSearch, joint_ablation
 from openinterp.harness.hooks import pole_strength
-from openinterp.harness.scan import cut_pieces, scan_neuron
+from openinterp.harness.scan import cut_pieces, plan_batches, scan_neuron
 from tests.conftest import D_MLP, FakeTokenizer
 
 TEXTS = ["abcde", "hello world", "zzzz", "quoted 'text'", "mixed Case 123", "aaaa bbbb"]
@@ -199,6 +199,21 @@ def test_windowed_scan_counts_each_token_once(toy_runner):
     doc = texts[0]
     scan = scan_neuron(toy_runner, [doc], 1, 2, "positive", window_tokens=8, stride=2)
     assert len(scan.examples) > 1 and sum(len(ex.tokens) for ex in scan.examples) <= len(doc)
+
+
+def test_batches_fill_a_token_budget_in_order():
+    assert plan_batches([5, 3, 4, 10, 2], 15) == [3, 1, 1]  # 3×5; 10 alone; then 2
+    assert plan_batches([20, 1], 8) == [1, 1]  # a piece longer than the budget goes alone
+    assert plan_batches([], 8) == []
+
+
+def test_a_scan_does_not_depend_on_its_batches(toy_runner):
+    texts = ["the quick brown fox jumps over the lazy dog", *TEXTS]
+    one = scan_neuron(toy_runner, texts, 1, 2, "positive", batch_tokens=1)
+    many = scan_neuron(toy_runner, texts, 1, 2, "positive", batch_tokens=10_000)
+    assert one.values == pytest.approx(many.values, abs=1e-5)
+    peaks = [ex.max_activation for ex in many.examples]  # tied peaks may swap texts
+    assert [ex.max_activation for ex in one.examples] == pytest.approx(peaks, abs=1e-5)
 
 
 def test_joint_ablation(toy_runner):

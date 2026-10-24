@@ -67,7 +67,7 @@ def transported_direction(
     module = _final_residual_module(runner)
     direction = direction.to(runner.device, torch.float32)
     step = eps / max(float(direction.norm()), 1e-12)
-    total = torch.zeros_like(direction, dtype=torch.float64)
+    total = torch.zeros(direction.shape, dtype=torch.float64)  # on the CPU: MPS has no float64
     pairs = 0
     batches = (
         [prompts]
@@ -80,10 +80,10 @@ def transported_direction(
         plus = _final_residual(runner, module, encoded, layer, step * direction)
         minus = _final_residual(runner, module, encoded, layer, -step * direction)
         delta = (plus - minus) / (2 * step)  # [b, seq, d]
-        total += delta[mask].double().sum(0)
+        total += delta[mask].cpu().double().sum(0)
         lengths = mask.sum(1)
         pairs += int((lengths * (lengths + 1) // 2).sum())
-    return (total / max(pairs, 1)).float()
+    return (total / max(pairs, 1)).float().to(runner.device)
 
 
 def _through_final_norm(runner: NeuronHookRunner, vector: torch.Tensor) -> torch.Tensor:

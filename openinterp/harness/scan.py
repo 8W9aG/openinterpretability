@@ -40,7 +40,11 @@ if TYPE_CHECKING:
     from openinterp.harness.layer_cache import LayerCache
 
 
-BATCH_SIZE = 8  # pieces per forward pass; part of a cached scan's key, as it sets padding
+# Padded tokens per forward pass (pieces × the longest). Part of a cached scan's key, as
+# it sets padding. On Qwen2.5-0.5B over corpus.jsonl the model reads 27% fewer tokens,
+# padding included, than with 8 pieces a pass, and 2048 is near the fastest budget on
+# Apple's GPU.
+BATCH_TOKENS = 2048
 
 
 @dataclass
@@ -105,9 +109,31 @@ class Batch:
     positions: torch.Tensor
 
 
-def batches(runner: NeuronHookRunner, pieces: Sequence[Piece], batch_size: int) -> Iterator[Batch]:
-    for start in range(0, len(pieces), batch_size):
-        batch = list(pieces[start : start + batch_size])
+def plan_batches(lengths: Sequence[int], batch_tokens: int) -> list[int]:
+    """How many consecutive pieces each forward pass takes: as many as fit in
+    ``batch_tokens`` once padded to the longest, and at least one."""
+    sizes: list[int] = []
+    size = longest = 0
+    for n in lengths:
+        if size and max(longest, n) * (size + 1) > batch_tokens:
+            sizes.append(size)
+            size = longest = 0
+        size, longest = size + 1, max(longest, n)
+    return [*sizes, size] if size else sizes
+
+
+def batches(
+    runner: NeuronHookRunner, pieces: Sequence[Piece], batch_tokens: int = BATCH_TOKENS
+) -> Iterator[Batch]:
+    """``pieces`` in order, in forward passes of at most ``batch_tokens`` padded tokens."""
+    if not pieces:
+        return
+    every = runner.tokenizer([p.text for p in pieces], return_tensors="pt", padding=True)
+    lengths = every.get("attention_mask", torch.ones_like(every["input_ids"])).sum(1).tolist()
+    start = 0
+    for size in plan_batches(lengths, batch_tokens):
+        batch = list(pieces[start : start + size])
+        start += size
         encoded = runner.encode([p.text for p in batch])
         ids = encoded["input_ids"].cpu()
         mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool().cpu()
@@ -138,10 +164,10 @@ class Chunk:
 
 
 def layer_chunks(
-    runner: NeuronHookRunner, pieces: Sequence[Piece], layer: int, batch_size: int
+    runner: NeuronHookRunner, pieces: Sequence[Piece], layer: int, batch_tokens: int
 ) -> Iterator[Chunk]:
     """Run the model over ``pieces`` and yield ``layer``'s activations batch by batch."""
-    for batch in batches(runner, pieces, batch_size):
+    for batch in batches(runner, pieces, batch_tokens):
         _, cache = runner.run_with_cache(batch.encoded, [layer])
         yield Chunk(
             pieces=batch.pieces,
@@ -157,13 +183,13 @@ def scan_chunks(
     runner: NeuronHookRunner,
     pieces: Sequence[Piece],
     layer: int,
-    batch_size: int,
+    batch_tokens: int = BATCH_TOKENS,
     cache: LayerCache | None = None,
 ) -> Iterator[Chunk]:
     """``layer``'s chunks: replayed from ``cache`` if it holds them, else from the model
     (and stored in ``cache``)."""
-    chunks = layer_chunks(runner, pieces, layer, batch_size)
-    return chunks if cache is None else cache.through(runner, layer, pieces, batch_size, chunks)
+    chunks = layer_chunks(runner, pieces, layer, batch_tokens)
+    return chunks if cache is None else cache.through(runner, layer, pieces, batch_tokens, chunks)
 
 
 class TopExamples:
@@ -214,7 +240,7 @@ def scan_neuron(
     pole: Pole,
     *,
     k: int = 20,
-    batch_size: int = BATCH_SIZE,
+    batch_tokens: int = BATCH_TOKENS,
     n_correlated: int = 10,
     min_count: int = 3,
     window_tokens: int | None = None,
@@ -231,7 +257,7 @@ def scan_neuron(
     values: list[float] = []
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
-    for chunk in scan_chunks(runner, pieces, layer, batch_size, cache):
+    for chunk in scan_chunks(runner, pieces, layer, batch_tokens, cache):
         acts = chunk.acts.float()  # [n, d_mlp]
         strengths = pole_strength(acts[:, neuron_idx], pole)
         counted = chunk.counted
