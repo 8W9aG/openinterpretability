@@ -19,7 +19,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
 
-- [ ] Use the recorded Patchscope readout (`submission.patchscope`) as an extra proposer baseline: turn a unit's readout into a hypothesis and review it like the agent's. Does the blind description verify as often? The readout needs a rule for choosing which reading counts (prompt, layer, scale) before it can be scored, e.g. the reading least like its control. Where a trained Activation Oracle exists for the model (Karvonen et al., 2025), record its answer too. None exists for Qwen2.5-0.5B or GPT-2 small. Never show either to the reviewer.
 - [ ] Wiring: the pole's top upstream and downstream connections. Two sources:
   - *weights*: virtual weights (Elhage et al., 2021) from attention heads' OV circuits and earlier neurons' `w_out` into the pole's `w_in`, and from its `w_out` into later neurons' `w_in` and heads' Q/K/V, with the norm folded in or approximated;
   - *activations*: edge attribution patching on the reviewer's probes (EAP, Syed et al., 2023; EAP-IG, Hanna et al., 2024).
@@ -186,6 +185,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 - [ ] Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
 - [ ] Stanford `stanford-crfm` GPT-2 seeds (alias/battlestar/…): same architecture, different seeds, for a universality baseline.
 - [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate, which makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
+- [ ] Activation Oracle baseline, once a model with a released oracle is in the registry (Karvonen et al., 2025; oracles exist for Gemma-2, Gemma-3, Qwen3 and Llama 3 models, and the README warns the 1–4B ones are weaker out of distribution). Record the oracle's description of each unit's output direction next to `submission.patchscope`, and score it as a blind proposer baseline as `openinterp patchscope-baseline` scores the Patchscope readout (`docs/analyses/patchscope-baseline.md`: at chance on Qwen2.5-0.5B). Never show it to the reviewer. Check first that the oracle copes with a single scaled direction rather than a real residual activation, and with a base model when it was trained on the instruct one.
 - [ ] Mixture-of-experts (Qwen1.5-MoE-A2.7B, OLMoE-1B-7B): needs a decision on how to identify an expert neuron (`expert` index in the identifier) and how to handle routing in patching. Defer until `ComponentIdentifier` lands.
 
 ## Housekeeping
