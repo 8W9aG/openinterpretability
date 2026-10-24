@@ -56,7 +56,8 @@ class DictionaryProfile(StrictModel):
     ``explained_variance`` (the fraction of the MLP output's variance the whole
     dictionary reconstructs) and ``mean_l0`` (active latents per token) are measured on
     the scan's tokens: reported, not gated. A poorly fitting dictionary makes a weak
-    baseline. ``density`` is the share of scanned tokens on which this latent is non-zero.
+    baseline. So does one with many ``dead_share`` latents, which a random draw can't
+    audit. ``density`` is the share of scanned tokens on which this latent is non-zero.
     """
 
     kind: Literal["transcoder", "sae"]
@@ -71,4 +72,7 @@ class DictionaryProfile(StrictModel):
     density: UnitFloat
     explained_variance: float | None = Field(default=None, le=1.0)
     mean_l0: float | None = Field(default=None, ge=0.0)
+    dead_share: UnitFloat | None = Field(
+        default=None, description="Share of the latents inactive on every scanned token."
+    )
     tokens: int = Field(gt=0, description="Scanned tokens the fit statistics cover.")

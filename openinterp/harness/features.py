@@ -39,6 +39,7 @@ class _Fit:
         self.tokens = 0
         self.error = self.sum_sq = self.l0 = 0.0
         self.total: torch.Tensor | None = None
+        self.fired: torch.Tensor | None = None  # [n] latents active on some token
 
     def update(self, dictionary: Dictionary, x: torch.Tensor, out: torch.Tensor) -> None:
         for start in range(0, x.shape[0], ENCODE_CHUNK):
@@ -47,8 +48,11 @@ class _Fit:
             acts = dictionary.encode(xs)
             self.error += float(((dictionary.decode(acts) - target) ** 2).sum())
             self.l0 += float((acts > 0).sum())
-            self.sum_sq += float((target.double() ** 2).sum())
-            chunk = target.double().sum(0)
+            fired = (acts > 0).any(0)
+            self.fired = fired if self.fired is None else self.fired | fired
+            exact = target.cpu().double()  # MPS has no float64
+            self.sum_sq += float((exact**2).sum())
+            chunk = exact.sum(0)
             self.total = chunk if self.total is None else self.total + chunk
         self.tokens += x.shape[0]
 
@@ -58,6 +62,7 @@ class _Fit:
         return {
             "explained_variance": None if explained is None else round(explained, 6),
             "mean_l0": round(self.l0 / self.tokens, 4),
+            "dead_share": round(1 - float(self.fired.float().mean()), 6),
         }
 
 

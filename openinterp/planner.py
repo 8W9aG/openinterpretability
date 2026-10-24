@@ -113,14 +113,23 @@ def open_pr_claims() -> list[str]:
     return [f"{pr['title']} {pr['headRefName']}" for pr in json.loads(out)]
 
 
-def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:
-    """Models the planner explores: ``[tool.openinterp] models`` (empty if unset)."""
+def _config(pyproject: Path) -> dict:
     try:
         with open(pyproject, "rb") as fh:
-            config = tomllib.load(fh)
+            return tomllib.load(fh).get("tool", {}).get("openinterp", {})
     except (OSError, tomllib.TOMLDecodeError):
-        return ()
-    return tuple(config.get("tool", {}).get("openinterp", {}).get("models", ()))
+        return {}
+
+
+def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:
+    """Models the planner explores: ``[tool.openinterp] models`` (empty if unset)."""
+    return tuple(_config(pyproject).get("models", ()))
+
+
+def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, int]:
+    """``[tool.openinterp.window_tokens]``: the scan window of each model whose context is
+    shorter than the corpus's documents (GPT-2 reads 1,024 positions)."""
+    return dict(_config(pyproject).get("window_tokens", {}))
 
 
 def explore_weights(
@@ -184,6 +193,9 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
     else:
         unit = f"--neuron {ident.neuron_idx}"
     target = f"--model {ident.model_name} --layer {ident.layer} {unit}"
+    provenance = record.submission.provenance
+    if provenance and provenance.snippet_tokens:  # rescan as the record was scanned
+        target += f" --window-tokens {provenance.snippet_tokens}"
     other = "negative" if ident.pole == "positive" else "positive"
     gates = verdict.metrics.gates if verdict.metrics else {}
     failed = [g for g, ok in gates.items() if not ok]
@@ -298,9 +310,10 @@ def plan_next(
         (c for s in states.values() for c in candidates_for(s, slugs, claims, now)),
         key=lambda c: -c.weight,
     )
+    pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = sorted(
         set(models)
-        or set(configured_models(Path(wiki_dir).parent / "pyproject.toml"))
+        or set(configured_models(pyproject))
         or {s.record.submission.identifier.model_name for s in states.values()}
         or set(DEFAULT_MODELS)
     )
@@ -312,12 +325,15 @@ def plan_next(
         rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
         if len(pool) > 1:
             rationale += f"; {model} drawn with probability {explore[model]:.0%} by coverage"
+        audit = f"openinterp audit --model {model} --random --seed {audit_seed}"
+        if window := configured_windows(pyproject).get(model):
+            audit += f" --window-tokens {window}"
         choice = Candidate(
             kind="explore",
             model=model,
             weight=0.0,
             rationale=rationale,
-            commands=[f"openinterp audit --model {model} --random --seed {audit_seed}"],
+            commands=[audit],
             skills=SKILLS["explore"],
         )
         return Plan(seed, choice, True, candidates, explore)

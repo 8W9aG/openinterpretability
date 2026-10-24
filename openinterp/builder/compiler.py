@@ -20,6 +20,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
+from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
@@ -302,6 +303,7 @@ def registry_stats(parquet: Path) -> dict:
         FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
         """
     )
+    baseline = learned_baseline(con)
     con.close()
     for row in verified + conclusive + recent:
         row["href"] = _anchor_href(row)
@@ -312,6 +314,7 @@ def registry_stats(parquet: Path) -> dict:
         "conclusive": conclusive,
         "recent": recent,
         "agents": agents,
+        "baseline": baseline,
     }
 
 

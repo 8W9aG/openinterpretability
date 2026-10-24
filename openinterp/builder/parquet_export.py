@@ -83,6 +83,10 @@ REGISTRY_SCHEMA = pa.schema(
         ("evidence_direction", pa.string()),
         ("reuses_probes_of", pa.string()),
         ("supersedes", pa.string()),
+        ("selection", pa.string()),
+        ("corpus_sha256", pa.string()),
+        ("window_tokens", pa.int32()),
+        ("balanced_accuracy", pa.float64()),
         ("effective_hard_negatives", pa.int32()),
         ("effective_holdouts", pa.int32()),
         ("confound_baseline", pa.string()),
@@ -112,6 +116,7 @@ REGISTRY_SCHEMA = pa.schema(
         ("induction_score", pa.float64()),
         ("dictionary_explained_variance", pa.float64()),
         ("dictionary_mean_l0", pa.float64()),
+        ("dictionary_dead_share", pa.float64()),
         ("feature_density", pa.float64()),
         ("record_json", pa.string()),
     ]
@@ -180,6 +185,10 @@ def experiment_row(exp: Experiment) -> dict:
         "evidence_direction": exp.sig.direction,
         "reuses_probes_of": exp.reuses,
         "supersedes": exp.record.submission.supersedes,
+        "selection": sub.provenance.selection if sub.provenance else None,
+        "corpus_sha256": sub.provenance.corpus_sha256 if sub.provenance else None,
+        "window_tokens": sub.provenance.snippet_tokens if sub.provenance else None,
+        "balanced_accuracy": metrics.balanced_accuracy if metrics else None,
         "effective_hard_negatives": exp.sig.negatives.clusters,
         "effective_holdouts": exp.sig.holdouts.clusters,
         "confound_baseline": metrics.confound_baseline if metrics else None,
@@ -209,6 +218,7 @@ def experiment_row(exp: Experiment) -> dict:
         "induction_score": head.induction_score if head else None,
         "dictionary_explained_variance": dictionary.explained_variance if dictionary else None,
         "dictionary_mean_l0": dictionary.mean_l0 if dictionary else None,
+        "dictionary_dead_share": dictionary.dead_share if dictionary else None,
         "feature_density": dictionary.density if dictionary else None,
     }
 
