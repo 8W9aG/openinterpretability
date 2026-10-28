@@ -11,7 +11,7 @@ from __future__ import annotations
 import bisect
 import random
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import torch
 
@@ -28,10 +28,19 @@ class Window:
     tokens: list[str]
     activations: list[float]
     highlighted: tuple[int, ...] = ()
+    start: int = 0  # 1 for a unit with a first-token floor (protocol 0.8)
 
     @property
     def peak(self) -> float:
-        return max(self.activations, default=0.0)
+        """Over the measured tokens."""
+        return max(self.activations[self.start :], default=0.0)
+
+    def hot(self, threshold: float) -> list[int]:
+        """Measured tokens at or above ``threshold``."""
+        return [i for i, a in enumerate(self.activations) if i >= self.start and a >= threshold]
+
+    def cold(self, threshold: float) -> list[int]:
+        return [i for i, a in enumerate(self.activations) if i >= self.start and a < threshold]
 
 
 @dataclass(frozen=True)
@@ -85,6 +94,7 @@ def measure_windows(
                     text=text,
                     tokens=[runner.tokenizer.decode([i]) for i in ids[row][keep].tolist()],
                     activations=[round(v, 5) for v in strengths[row][keep].cpu().tolist()],
+                    start=int(unit.skip_first),
                 )
             )
     return windows
@@ -140,14 +150,14 @@ def sample_heldout(
 
     fuzzing = []
     for n, w in enumerate(fuzz_active):
-        hot = [i for i, a in enumerate(w.activations) if a >= threshold]
-        cold = [i for i, a in enumerate(w.activations) if a < threshold]
+        hot, cold = w.hot(threshold), w.cold(threshold)
         marks = hot if n % 2 == 0 or len(cold) < len(hot) else rng.sample(cold, len(hot))
-        fuzzing.append(Window(w.text, w.tokens, w.activations, tuple(sorted(marks))))
+        fuzzing.append(replace(w, highlighted=tuple(sorted(marks))))
     rest = [w for w in inactive if w not in detection]
     for w in rng.sample(rest, min(len(rest), len(fuzz_active) // 2)):
-        marks = rng.sample(range(len(w.tokens)), min(len(w.tokens), rng.randint(1, 3)))
-        fuzzing.append(Window(w.text, w.tokens, w.activations, tuple(sorted(marks))))
+        tokens = range(w.start, len(w.tokens))
+        marks = rng.sample(tokens, min(len(tokens), rng.randint(1, 3)))
+        fuzzing.append(replace(w, highlighted=tuple(sorted(marks))))
     rng.shuffle(detection)
     rng.shuffle(fuzzing)
     return HeldOutSample(detection, fuzzing, edges, len(measured), len(active))
@@ -164,7 +174,7 @@ def label_windows(
 ) -> list[ScoredWindow]:
     out = []
     for n, w in enumerate(windows):
-        hot = {i for i, a in enumerate(w.activations) if a >= threshold}
+        hot = set(w.hot(threshold))
         label = bool(hot) and set(w.highlighted) == hot if fuzzing else bool(hot)
         out.append(
             ScoredWindow(
@@ -232,10 +242,8 @@ def remeasure(scores: ExplanationScores, runner: NeuronHookRunner, unit: Unit):
 
     def redo(windows: Sequence[ScoredWindow], fuzzing: bool) -> list[ScoredWindow]:
         fresh = measure_windows(runner, [w.text for w in windows], unit)
-        fresh = [
-            Window(f.text, f.tokens, f.activations, tuple(w.highlighted))
-            for f, w in zip(fresh, windows, strict=True)
-        ]
+        pairs = zip(fresh, windows, strict=True)
+        fresh = [replace(f, highlighted=tuple(w.highlighted)) for f, w in pairs]
         return label_windows(
             fresh,
             scores.threshold,

@@ -48,7 +48,7 @@ VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 
-PROTOCOL_VERSION = "0.7"
+PROTOCOL_VERSION = "0.8"
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 
@@ -286,6 +286,7 @@ class ScanEvidence(StrictModel):
     identifier: ComponentIdentifier
     top_examples: list[ActivatingExample]
     activation_histogram: Histogram | None = None
+    first_token_floor: bool | None = None  # v0.8, see NeuronAuditSubmission
     provenance: ExperimentProvenance | None = None
     confounds: ConfoundProfile | None = None
     correlated_neurons: list[CorrelatedNeuron] = Field(default_factory=list)
@@ -334,6 +335,12 @@ class NeuronAuditSubmission(StrictModel):
     max_activation: float | None = Field(default=None, gt=0.0)
     top_examples: list[ActivatingExample] = Field(default_factory=list)
     activation_histogram: Histogram | None = None
+    first_token_floor: bool | None = Field(
+        default=None,
+        description="Protocol 0.8: the unit is active at the first position on at least half "
+        "the vocabulary, so it is not measured at a text's first token. None: not judged (a "
+        "record from before 0.8), and a review judges it.",
+    )
     model_num_layers: int | None = Field(default=None, gt=0)
     model_mlp_width: int | None = Field(default=None, gt=0, description="Neurons per MLP layer.")
     provenance: ExperimentProvenance | None = None
@@ -387,6 +394,9 @@ class AdversarialTestResult(StrictModel):
     expected_delta: float | None = None
     observed_delta: float | None = None
     detail: str = ""
+    # v0.8: False for a one-token prompt to a unit with a first-token floor, which is not
+    # measured at the first token. It is recorded but counts in no metric.
+    measured: bool = True
 
 
 class ReviewPolicy(StrictModel):
@@ -418,6 +428,10 @@ class ReviewPolicy(StrictModel):
     min_partner_correlation: UnitFloat = 0.2
     min_partner_lift: float = Field(default=2.0, ge=1.0)
     min_partner_coactive: int = Field(default=5, ge=1)
+    # v0.8: a unit active on at least this share of its scan's tokens is default-on, and
+    # is not audited as a detector: no hard negative of a few words can stay inactive. One
+    # active at the first position on this share of the vocabulary has a first-token floor.
+    max_active_share: UnitFloat = 0.5
 
 
 class ReviewMetrics(StrictModel):
@@ -432,6 +446,10 @@ class ReviewMetrics(StrictModel):
     effective_holdouts: int | None = None
     confound_baseline_accuracy: UnitFloat | None = None  # best trivial baseline, same probes
     confound_baseline: str | None = None
+    # v0.8: share of the scan's tokens at or above the "active" line (from its histogram),
+    # and whether the unit was measured without each text's first token.
+    active_share: UnitFloat | None = None
+    first_token_floor: bool | None = None
 
 
 class VerificationVerdict(StrictModel):

@@ -260,6 +260,11 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             )
         )
 
+    if gates.get("not_default_on") is False:
+        # A default-on unit can't be audited as a detector, so no revision or review of it
+        # can pass; only its other pole is still open.
+        kinds = [k for k in kinds if k[0] in ("reevaluate", "opposite_pole")]
+
     factor, notes = _decay(state, claims, now)
     for kind, why, commands, slug in kinds:
         yield Candidate(

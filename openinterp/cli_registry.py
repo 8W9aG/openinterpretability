@@ -52,7 +52,9 @@ def check(wiki_dir, base_ref):
             click.echo(f"error: {problem}", err=True)
 
     summary = (
-        f"Checked {report.records} experiment records and {report.pages} experiment pages: "
+        f"Checked {report.records} experiment records and {report.pages} experiment pages"
+        + (f" and {report.draws} draw records" if report.draws else "")
+        + ": "
         + ("all consistent." if report.ok else f"{len(report.problems)} problem(s).")
     )
     click.echo(summary)
