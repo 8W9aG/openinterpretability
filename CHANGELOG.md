@@ -15,6 +15,8 @@ The project has two version numbers:
 
 - **`$OPENINTERP_MODEL_ALIASES` renames the recorded external model.** When Claude Code is proxied (e.g. through LiteLLM to Grok), its subagents report the Claude model they were asked for, and that name was recorded as the proposer, reviewer or judge. The variable rewrites `external/<name>` in `--agent-model` and `--judge-model` before it is recorded: `reported=actual` pairs separated by commas (`claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`), or one bare name for every external model. LiteLLM model strings are left alone, since they're the model that gets called.
 
+- **`tinystories` corpus preset** (`roneneldan/TinyStories`, CDLA-Sharing-1.0): simple English stories for a low-confound control corpus and small models. `openinterp corpus --dataset tinystories` samples its train split, which is on the dataset's main branch.
+
 ## [0.0.8] - 2026-10-27
 
 Ships with protocol version **0.7**.
