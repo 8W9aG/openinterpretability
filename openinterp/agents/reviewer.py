@@ -33,7 +33,7 @@ from openinterp.harness.covariance import joint_ablation
 from openinterp.harness.hooks import NeuronHookRunner, run_environment
 from openinterp.harness.lookahead import ablation_profile
 from openinterp.harness.units import max_strength, submission_unit
-from openinterp.harness.wiring import activation_wiring
+from openinterp.harness.wiring_activations import activation_wiring
 
 
 class AdversarialProbe(BaseModel):

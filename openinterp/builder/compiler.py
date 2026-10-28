@@ -20,7 +20,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
-from openinterp.builder.circuits import circuits, unit_circuits
+from openinterp.builder.circuits import circuits, unit_circuits, wiring_view
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
@@ -335,40 +335,6 @@ def _clean_owned_paths(output_dir: Path) -> None:
             shutil.rmtree(path)
         elif path.exists():
             path.unlink()
-
-
-def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:
-    """A wiring's edge lists with each edge's page linked when the registry has one."""
-    if wiring is None:
-        return None
-    href = {"mlp_neuron": neuron_href, "attn_head": head_href}
-
-    def rows(edges):
-        if edges is None:
-            return None
-        out = []
-        for edge in edges:
-            page = href[edge.kind](slug, edge.layer, edge.index)
-            # The channel the weight came from, when there are several to choose from.
-            via = max(edge.channels, key=lambda c: abs(edge.channels[c]), default=None)
-            out.append(
-                {
-                    "e": edge,
-                    "href": page if page in studied else None,
-                    "via": via if len(edge.channels) > 1 else None,
-                }
-            )
-        return out
-
-    return {
-        "w": wiring,
-        "groups": [
-            ("Upstream neurons", rows(wiring.upstream_neurons)),
-            ("Upstream heads", rows(wiring.upstream_heads)),
-            ("Downstream neurons", rows(wiring.downstream_neurons)),
-            ("Downstream heads", rows(wiring.downstream_heads)),
-        ],
-    }
 
 
 def _experiment_view(

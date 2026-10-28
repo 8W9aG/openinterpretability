@@ -4,6 +4,7 @@ Every experiment's wiring (its own, or a backfilled row) names its unit's strong
 direct connections. An edge between two units that both have pages is kept; the units
 it joins, followed edge to edge, form one circuit per connected group. Each circuit
 is laid out by layer, so chains read left to right from earlier to later layers.
+:func:`wiring_view` is one experiment's wiring, with each edge's page linked.
 """
 
 from __future__ import annotations
@@ -127,3 +128,36 @@ def _layout(edges: list[CircuitEdge]) -> Circuit:
 def unit_circuits(model: ModelNode, found: list[Circuit]) -> dict[str, int]:
     """Each unit's circuit number (1-based, as on the page), by href."""
     return {u.href: n for n, c in enumerate(found, 1) for u in c.units}
+
+
+def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:
+    """A wiring's edge lists with each edge's page linked when the registry has one."""
+    if wiring is None:
+        return None
+
+    def rows(edges):
+        if edges is None:
+            return None
+        out = []
+        for edge in edges:
+            page = HREF[edge.kind](slug, edge.layer, edge.index)
+            # The channel the weight came from, when there are several to choose from.
+            via = max(edge.channels, key=lambda c: abs(edge.channels[c]), default=None)
+            out.append(
+                {
+                    "e": edge,
+                    "href": page if page in studied else None,
+                    "via": via if len(edge.channels) > 1 else None,
+                }
+            )
+        return out
+
+    return {
+        "w": wiring,
+        "groups": [
+            ("Upstream neurons", rows(wiring.upstream_neurons)),
+            ("Upstream heads", rows(wiring.upstream_heads)),
+            ("Downstream neurons", rows(wiring.downstream_neurons)),
+            ("Downstream heads", rows(wiring.downstream_heads)),
+        ],
+    }

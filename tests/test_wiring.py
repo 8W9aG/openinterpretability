@@ -7,13 +7,8 @@ from openinterp.core.schemas import FeatureIdentifier, HeadIdentifier, NeuronIde
 from openinterp.harness.features import scan_feature
 from openinterp.harness.hooks import NeuronHookRunner, ablate_pole, pole_strength
 from openinterp.harness.units import FeatureUnit, HeadUnit, NeuronUnit
-from openinterp.harness.wiring import (
-    _downstream_head_effects,
-    activation_wiring,
-    attention_reads,
-    target_of,
-    weight_wiring,
-)
+from openinterp.harness.wiring import attention_reads, target_of, weight_wiring
+from openinterp.harness.wiring_activations import _downstream_head_effects, activation_wiring
 from tests.conftest import N_LAYERS, FakeTokenizer
 from tests.test_feature_audit import TEXTS, spec  # noqa: F401  (fixture)
 
@@ -147,7 +142,7 @@ def test_downstream_head_value_channel_matches_attention_by_hand(gpt2_runner, ti
     unit = neuron(0, 3)
     t = target_of(gpt2_runner, unit)
     encoded = gpt2_runner.encode(["hello world"])
-    from openinterp.harness.wiring import _clean_pass
+    from openinterp.harness.wiring_activations import _clean_pass
 
     cap = _clean_pass(gpt2_runner, t, encoded, attention=True)
     delta = t.written(cap)

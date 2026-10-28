@@ -79,7 +79,8 @@ def wire(runner, record: AuditRecord) -> WiringRow:
     """Both readings for one archived record."""
     from openinterp.core.exceptions import ArchitectureNotSupportedError
     from openinterp.harness.units import submission_unit
-    from openinterp.harness.wiring import activation_wiring, weight_wiring
+    from openinterp.harness.wiring import weight_wiring
+    from openinterp.harness.wiring_activations import activation_wiring
 
     sub, verdict = record.submission, record.verdict
     slug, eid = row_key(record)
