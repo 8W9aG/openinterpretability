@@ -1,6 +1,8 @@
 """Auditing a sparse-dictionary latent end to end, on a randomly initialised GPT-2 and a
 random transcoder stored locally (no download)."""
 
+from dataclasses import replace
+
 import pyarrow.parquet as pq
 import pytest
 import torch
@@ -116,6 +118,7 @@ def test_scan_measures_the_latent_and_the_dictionarys_fit(runner, spec, scan):
     )
     assert profile.mean_l0 == pytest.approx(float((acts > 0).sum(-1).float().mean()), abs=1e-3)
     assert profile.density == pytest.approx(float((acts[:, 5] > 0).float().mean()), abs=1e-5)
+    assert profile.dead_share == pytest.approx(float((acts.amax(0) == 0).float().mean()))
     assert (profile.n_features, profile.tokens, profile.path) == (
         N_FEATURES,
         len(scan.values),
@@ -290,11 +293,35 @@ def test_cli_samples_a_random_latent_of_the_dictionary(runner, spec, tmp_path, m
     assert loads == [("tiny-gpt2", None)]  # the dictionary names the model
     assert "Dictionary feature:" in (tmp_path / "ev.prompt.md").read_text()
 
+    short = replace(spec, context_tokens=8)
+    monkeypatch.setitem(dictionaries.DICTIONARIES, "tiny-short", short)
     for bad_args, message in [
         (["--dictionary", "tiny-tc", "--model", "other"], "a dictionary for tiny-gpt2"),
+        (["--dictionary", "tiny-short", "--random"], "--window-tokens 8"),
+        (["--dictionary", "tiny-short", "--random", "--window-tokens", "16"], "up to 8 tokens"),
         (["--dictionary", "nope", "--layer", "0", "--feature", "1"], "unknown dictionary"),
         (["--feature", "1", "--pole", "positive"], "a feature has neither"),
         (["--unit", "feature", "--random"], "needs --dictionary"),
     ]:
         bad = CliRunner().invoke(cli, ["audit", *bad_args])
         assert bad.exit_code != 0 and message in bad.output, bad.output
+
+
+def test_ci_reproduces_only_preset_dictionaries(runner, scan, tmp_path, monkeypatch):
+    """The model allow-list also bounds what CI downloads: a feature record must pin its
+    preset's weights."""
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: runner)
+    record = _record(runner, scan)
+    elsewhere = scan.profile.model_copy(update={"repo": "someone/else"})
+    moved = record.model_copy(
+        update={
+            "submission": record.submission.model_copy(update={"dictionary_profile": elsewhere})
+        }
+    )
+    good, bad = tmp_path / "good.json", tmp_path / "bad.json"
+    good.write_text(record.model_dump_json())
+    bad.write_text(moved.model_dump_json())
+    args = ["reproduce", str(good), str(bad), "--allow-model", "tiny-gpt2"]
+    result = CliRunner().invoke(cli, args)
+    assert f"REPRODUCED: {good}" in result.output, result.output
+    assert f"FAILED: {bad}" in result.output and "not a preset's" in result.output

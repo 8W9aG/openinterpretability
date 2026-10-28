@@ -8,8 +8,12 @@ from openinterp.core.schemas import (
     AuditRecord,
     CausalMetrics,
     CounterfactualPair,
+    HeadIdentifier,
     Histogram,
+    NeuronAuditSubmission,
     NeuronIdentifier,
+    OppositePole,
+    ScanEvidence,
     VerificationVerdict,
 )
 
@@ -86,3 +90,22 @@ def test_unreviewed_record_is_not_verified(submission):
 def test_models_are_frozen(identifier):
     with pytest.raises(ValidationError):
         identifier.layer = 4
+
+
+def _opposite(pole):
+    example = ActivatingExample(
+        text="a", tokens=["a"], activations=[1.0], max_activation=1.0, max_token_index=0
+    )
+    return OppositePole(pole=pole, top_examples=[example])
+
+
+def test_opposite_pole_is_the_other_pole_of_a_neuron(submission):
+    other = submission.model_copy(update={"opposite_pole": _opposite("negative")})
+    assert NeuronAuditSubmission.model_validate(other.model_dump()).opposite_pole.pole == "negative"
+    with pytest.raises(ValidationError, match="does not name"):
+        submission.model_validate(
+            submission.model_dump() | {"opposite_pole": _opposite("positive")}
+        )
+    head = HeadIdentifier(model_name="gpt2", layer=5, head_idx=1)
+    with pytest.raises(ValidationError, match="only for neuron poles"):
+        ScanEvidence(identifier=head, top_examples=[], opposite_pole=_opposite("negative"))

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli, with_model_options
+from openinterp.cli import cli, recorded_model_option, with_model_options
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 from openinterp.evidence import read_corpus, scan_evidence, sha256  # noqa: F401  (re-exported)
 
@@ -188,6 +188,7 @@ def write_evidence(evidence, path: Path) -> None:
 @click.option(
     "--agent-model",
     default=None,
+    callback=recorded_model_option,
     help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file. "
     "With --hypothesis, the name recorded for whoever wrote it (e.g. external/claude-opus-5-5).",
 )
@@ -286,6 +287,12 @@ def audit(
         if model_name not in (None, spec.model_name):
             raise click.UsageError(f"{dictionary} is a dictionary for {spec.model_name}.")
         model_name = spec.model_name
+        limit = spec.context_tokens
+        if limit and (window_tokens is None or window_tokens > limit):
+            raise click.UsageError(
+                f"{dictionary} only fits contexts of up to {limit} tokens; "
+                f"scan with --window-tokens {limit}."
+            )
     if (evidence_file is None) != (hypothesis_file is None):
         raise click.UsageError("--evidence and --hypothesis go together.")
     if stride is not None and (window_tokens is None or stride > window_tokens):
@@ -379,6 +386,7 @@ def audit(
     revises = superseded and experiment_id(superseded)
     submission = submission.model_copy(
         update={
+            "opposite_pole": evidence.opposite_pole,
             "provenance": provenance,
             "supersedes": revises,
             "patchscope": readout,

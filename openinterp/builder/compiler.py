@@ -20,6 +20,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
+from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
@@ -68,6 +69,8 @@ def _environment() -> Environment:
     env.filters["pct_fine"] = _pct_fine
     env.filters["num"] = lambda v, d=3: "—" if v is None else f"{v:.{d}f}"
     env.filters["thousands"] = lambda v: "?" if v is None else f"{v:,}"
+    # p-values below 0.001 would round to 0.000, so show them in scientific notation.
+    env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
     return env
 
@@ -302,6 +305,7 @@ def registry_stats(parquet: Path) -> dict:
         FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
         """
     )
+    baseline = learned_baseline(con)
     con.close()
     for row in verified + conclusive + recent:
         row["href"] = _anchor_href(row)
@@ -312,6 +316,7 @@ def registry_stats(parquet: Path) -> dict:
         "conclusive": conclusive,
         "recent": recent,
         "agents": agents,
+        "baseline": baseline,
     }
 
 
@@ -350,6 +355,42 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
     }
+
+
+def pole_scans(neuron, n: int = 3) -> dict | None:
+    """Both poles' top examples for a neuron page, side by side.
+
+    The newest experiment that recorded its other pole supplies both, so they come from
+    one scan. Without one (records from before both poles were scanned), each pole's
+    newest experiment supplies its own, and a pole with none has no column.
+    """
+    if not neuron.is_neuron:
+        return None
+    newest = sorted(neuron.experiments, key=lambda e: e.record.verdict.timestamp, reverse=True)
+    both = next((e for e in newest if e.record.submission.opposite_pole), None)
+    found: dict[str, tuple[list[ActivatingExample], Experiment]] = {}
+    if both is not None:
+        sub = both.record.submission
+        found[sub.identifier.pole] = (sub.top_examples, both)
+        found[sub.opposite_pole.pole] = (sub.opposite_pole.top_examples, both)
+    else:
+        for e in newest:
+            found.setdefault(e.side, (e.record.submission.top_examples, e))
+    poles = []
+    for pole in neuron.sides:
+        examples, e = found.get(pole, ([], None))
+        scale = max((ex.max_activation for ex in examples), default=0.0)
+        poles.append(
+            {
+                "pole": pole,
+                "max": scale,
+                "examples": [token_heat(ex, scale, before=20, after=5) for ex in examples[:n]],
+                "source": e,
+            }
+        )
+    if not any(p["examples"] for p in poles):
+        return None
+    return {"poles": poles, "shared": both}
 
 
 def compile_site(
@@ -393,7 +434,13 @@ def compile_site(
             for neuron in layer.units:
                 views = [_experiment_view(e, studied) for e in neuron.experiments]
                 render(
-                    neuron.href, "neuron.html", model=model, layer=layer, neuron=neuron, views=views
+                    neuron.href,
+                    "neuron.html",
+                    model=model,
+                    layer=layer,
+                    neuron=neuron,
+                    views=views,
+                    poles=pole_scans(neuron),
                 )
     render(
         "index.html",
