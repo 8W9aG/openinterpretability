@@ -119,6 +119,15 @@ def reproduce_record(
     peak = max((e.max_activation for e in sub.top_examples), default=None)
     if peak is not None and not math.isclose(scale, peak, rel_tol=1e-9, abs_tol=1e-12):
         report.fail(f"max_activation {scale} is not the top example's peak {peak}")
+    if sub.first_token_floor is not None:  # judged against the scan's scale (protocol 0.8)
+        from functools import partial
+
+        from openinterp.core.schemas import ReviewPolicy
+        from openinterp.harness.scan import has_first_token_floor
+
+        read = partial(unit.strengths, runner)
+        if has_first_token_floor(runner, read, scale, ReviewPolicy()) != sub.first_token_floor:
+            report.fail(f"first_token_floor {sub.first_token_floor} does not reproduce")
 
     # 1. Scan evidence.
     if corpus is not None:
@@ -144,7 +153,8 @@ def reproduce_record(
                 f"(recorded {ex.activations[bad[0]] if bad else len(ex.activations)}, "
                 f"reproduced {round(values[bad[0]], 6) if bad else len(values)})"
             )
-        if not tolerance.close(ex.max_activation, max(values, default=0.0), scale):
+        measured = values[int(unit.skip_first) :]
+        if not tolerance.close(ex.max_activation, max(measured, default=0.0), scale):
             report.fail(f"top example {n}: max_activation differs")
 
     # 2. Counterfactuals as submitted.

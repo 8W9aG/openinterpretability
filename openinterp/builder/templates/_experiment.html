@@ -304,7 +304,11 @@
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
           {% for t in verdict.adversarial_test_results %}
           <tr>
+            {% if t.measured %}
             <td class="px-3 py-2 font-mono {{ 'text-emerald-600' if t.passed else 'text-rose-600' }}" aria-label="{{ 'passed' if t.passed else 'failed' }}">{{ '✓' if t.passed else '✗' }}</td>
+            {% else %}
+            <td class="px-3 py-2 font-mono text-slate-400" aria-label="unmeasured: one token" title="One token: the first token is never measured, so this counts in no metric">—</td>
+            {% endif %}
             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ t.kind | replace('_', ' ') }}</td>
             <td class="px-3 py-2">{{ t.prompt }}{% if t.detail %}<div class="text-xs text-slate-500">{{ t.detail }}</div>{% endif %}</td>
             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">

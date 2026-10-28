@@ -127,7 +127,8 @@ def record_to_row(record: AuditRecord) -> dict:
     sub, verdict = record.submission, record.verdict
     ident = sub.identifier
     causal = verdict.causal_metrics if verdict else None
-    tests = verdict.adversarial_test_results if verdict else []
+    # A one-token prompt (protocol 0.8) is recorded but not measured, so it isn't a test.
+    tests = [t for t in verdict.adversarial_test_results if t.measured] if verdict else []
     kind = ident.kind
     return {
         "slug": ident.slug,

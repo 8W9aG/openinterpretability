@@ -42,6 +42,8 @@ def weight_stats(runner, layer):
 | Large `out_norm`, low `unembed_span_share` | Entropy | Changes confidence, not which token wins |
 | `W_U · w_out` correlates with log unigram frequency | Token frequency | Pulls the output towards or away from the unigram distribution |
 | Never active on a broad corpus | Dead | Skip it, but record it for registry statistics |
+| Active on at least half the scan's tokens | Default-on | The scan stops on it (protocol 0.8). Record it for registry statistics. Most of GPT-2's negative poles are, as GELU's dip holds them near its minimum |
+| Active at the first position on most of the vocabulary | First-token floor | Audited without each text's first token (protocol 0.8). About 1,400 of GPT-2's layer-1 and -2 positive poles |
 | Activation depends on position, not content | Positional | Test with shuffled-content probes at a fixed position |
 
 Get token frequencies by counting token ids over the scan corpus. Find positional neurons by correlating activation with position index across the scan. `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl --top 0 --format jsonl` gives every scanned token's id, position in its piece and strength, from the layer's cached scan when there is one, so don't write your own scan loop.

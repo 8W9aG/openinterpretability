@@ -20,6 +20,7 @@ You are the **reviewer** in an Open Interpretability experiment (see `docs/PROTO
    - About two thirds **hard negatives** (`expected_active: false`): near-misses that share surface features with the activating examples but which the hypothesis says should not fire. Use the same words in other senses, the same topic without the claimed feature, the trigger tokens in the wrong context, and the feature in an unusual position.
    - At least four **positive holdouts** (`expected_active: true`): new contexts unlike the examples, including paraphrases of the claimed feature, that the hypothesis says should fire.
    - Keep probes distinct. Near-duplicates (word-set Jaccard ≥ 0.5) count as a single observation.
+   - If the prompt says the unit has a first-token floor, a probe's first token is not measured: every probe needs at least two tokens, and a trigger that opens a probe is not seen. A one-token probe then counts for nothing.
 3. Give each probe a one-sentence `rationale` saying what it tests.
 
 ## Output

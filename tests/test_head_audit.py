@@ -40,7 +40,9 @@ def test_scan_measures_strength_from_the_mean_output(runner, scan):
     z = torch.cat([runner.head_outputs(t, 1)[0, :, 1] for t in TEXTS])
     profile = scan.profile
     torch.testing.assert_close(torch.tensor(profile.mean_output), z.mean(0), atol=1e-5, rtol=0)
-    assert profile.mean_tokens == len(scan.values) == sum(map(len, TEXTS))
+    # z̄ is over every counted token; with a first-token floor the values leave firsts out.
+    assert profile.mean_tokens == sum(map(len, TEXTS))
+    assert len(scan.values) == profile.mean_tokens - len(TEXTS) * scan.first_token_floor
     assert scan.examples[0].max_activation == pytest.approx(max(scan.values))
     unit = submission_unit(scan_evidence(scan))
     for ex in scan.examples:
@@ -105,12 +107,15 @@ def _record(runner, scan):
         histogram=activation_histogram(scan.values),
         confounds=scan.confounds,
         head_profile=scan.profile,
+        first_token_floor=scan.first_token_floor,
     )
     probes = [
         AdversarialProbe(text=t, expected_active=i % 2 == 0, rationale="r")
         for i, t in enumerate(TEXTS + ["xyzxyz", "plain", "abab", "nope!"])
     ]
-    verdict = evaluate_submission(sub, runner, probes, "openai/reviewer", SMALL)
+    # The toy head is default-on (see below); these tests are about everything else.
+    policy = SMALL.model_copy(update={"max_active_share": 1.0})
+    verdict = evaluate_submission(sub, runner, probes, "openai/reviewer", policy)
     return AuditRecord(submission=sub, verdict=verdict)
 
 
@@ -166,6 +171,8 @@ def test_cli_samples_a_random_head_with_eager_attention(runner, tmp_path, monkey
         return runner
 
     monkeypatch.setattr("openinterp.cli._load_runner", load)
+    # A randomly initialised head writes far from its mean on most tokens: default-on.
+    monkeypatch.setattr("openinterp.evidence.check_default_on", lambda *a: None)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     args = ["audit", "--model", "tiny-gpt2", "--unit", "head", "--random", "--seed", "3",

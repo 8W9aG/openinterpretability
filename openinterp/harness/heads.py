@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import partial
 
 import torch
 
@@ -18,8 +19,15 @@ from openinterp.core.schemas import ActivatingExample, HeadIdentifier, HeadProfi
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
-from openinterp.harness.scan import BATCH_TOKENS, ScanResult, TopExamples, batches, cut_pieces
-from openinterp.harness.units import head_strength
+from openinterp.harness.scan import (
+    BATCH_TOKENS,
+    ScanResult,
+    TopExamples,
+    batches,
+    cut_pieces,
+    settle,
+)
+from openinterp.harness.units import HeadUnit, head_strength
 
 
 @dataclass
@@ -96,13 +104,17 @@ def scan_head(
     confounds = ConfoundAccumulator()
     top = TopExamples()
     values: list[float] = []
+    first: list[bool] = []
     for batch in batches(runner, pieces, batch_tokens):
         z = runner.head_outputs(batch.encoded, layer)[..., head, :]
         strengths = head_strength(runner, ident, z, mean).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
         values.extend(strengths[counted].tolist())
+        first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)
+    unit = HeadUnit(ident, tuple(mean))
+    examples, values, floor = settle(runner, partial(unit.strengths, runner), values, first, top, k)
 
     scores = pattern_scores(
         runner, layer, head, sequences=pattern_sequences, length=pattern_length, seed=pattern_seed
@@ -116,11 +128,12 @@ def scan_head(
         pattern_seed=pattern_seed,
     )
     return HeadScanResult(
-        examples=[peak_attention(runner, e, layer, head) for e in top.top(runner.tokenizer, k)],
+        examples=[peak_attention(runner, e, layer, head) for e in examples],
         values=values,
         correlated=[],
         confounds=confounds.finalize(runner.tokenizer, min_count),
         windows=len(pieces),
+        first_token_floor=floor,
         profile=profile,
     )
 

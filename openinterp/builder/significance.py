@@ -56,7 +56,7 @@ def significance(record: AuditRecord) -> Significance:
     results = verdict.adversarial_test_results if verdict else []
 
     def counts(kind: str) -> EffectiveCounts:
-        rows = [r for r in results if r.kind == kind]
+        rows = [r for r in results if r.kind == kind and r.measured]
         return effective_counts(
             [r.prompt for r in rows], [r.passed for r in rows], policy.probe_cluster_threshold
         )

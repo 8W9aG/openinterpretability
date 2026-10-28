@@ -86,6 +86,11 @@ def test_fuzzing_label_needs_exactly_the_active_tokens():
     assert [s.label for s in detection] == [True, True, True, False]
     assert detection[0].quantile == 1  # peak 3.0 is past the 2.5 edge
 
+    # A unit with a first-token floor isn't read at the first token (protocol 0.8).
+    floor = [Window("x", list("abcd"), [5.0, 0.0, 0.0, 0.0], (0,), start=start) for start in (0, 1)]
+    assert [w.peak for w in floor] == [5.0, 0.0]
+    assert [s.label for s in label_windows(floor, 1.0, [2.5], fuzzing=True)] == [True, False]
+
 
 def test_sample_heldout_is_seeded_and_held_out(toy_runner):
     threshold = _threshold(toy_runner)
