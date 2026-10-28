@@ -169,13 +169,13 @@ Neutral prompts continued greedily for up to {{ st.max_new_tokens }} tokens with
 {% if loop.first %}
 ### Wiring
 
-The units that write most directly into this pole's input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Reported, not gated.
+The units that write most directly into this unit's input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Reported, not gated.
 
 {% endif %}
 {% if w.method == "weights" %}
-**From the weights.** Virtual weights with each norm's gain folded in; they rank units but have no absolute scale. Upstream neurons: their write against this pole's read (+ means their positive activation raises it). Heads: the norm of the OV circuit's read (upstream) or of the Q/K/V read of this pole's write (downstream). Downstream neurons: their read of this pole's write. Read after the proposer answered and shown to neither agent.
+**From the weights.** Virtual weights with each norm's gain folded in; they rank units but have no absolute scale. Each number is how much one unit reads of the other's write: signed when one vector reads another (+ means a positive activation raises the read), otherwise a norm. Heads count through their OV circuit upstream and their Q, K and V reads downstream. Read after the proposer answered and shown to neither agent.
 {% else %}
-**From activations,** averaged over this pole's peak on {{ w.prompts }} of the review's prompts where it fired. Upstream: the first-order change in pole strength from removing a unit's direct write (+ excites). Downstream neurons: the change in their activation when this pole's write is removed from their input alone.
+**From activations,** averaged over this unit's peak on {{ w.prompts }} of the review's prompts where it fired. Upstream: the first-order change in its strength from removing a unit's direct write (+ excites). Downstream: the change in a later neuron's activation, or how far a later head's write moves, when this unit's write is removed from that unit's input (one of Q, K or V for a head) alone.
 {% endif %}
 
 {% for title, edges in [("Upstream neurons", w.upstream_neurons), ("Upstream heads", w.upstream_heads), ("Downstream neurons", w.downstream_neurons), ("Downstream heads", w.downstream_heads)] %}

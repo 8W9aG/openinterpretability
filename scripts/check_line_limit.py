@@ -15,6 +15,7 @@ MAX_LINES = 500
 EXEMPT = (
     "tests/*",
     "wiki/*",  # generated experiment pages
+    "docs/analyses/*.jsonl",  # generated analysis rows
     "uv.lock",
     "*.toml",
     "*.yml",

@@ -229,6 +229,10 @@ def model_href(slug: str) -> str:
     return f"models/{slug}/index.html"
 
 
+def circuits_href(slug: str) -> str:
+    return f"models/{slug}/circuits.html"
+
+
 def layer_href(slug: str, layer: int) -> str:
     return f"models/{slug}/L{layer}/index.html"
 

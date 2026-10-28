@@ -391,12 +391,22 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
 @click.option(
     "--output-dir", default=Path("dist"), show_default=True, type=click.Path(path_type=Path)
 )
-def build(wiki_dir, output_dir):
+@click.option(
+    "--wiring",
+    "wiring_path",
+    default=Path("docs/analyses/wiring.jsonl"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Backfilled wiring (`openinterp wiring-backfill`) for records without their own; "
+    "skipped if missing.",
+)
+def build(wiki_dir, output_dir, wiring_path):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import load_archive
+    from openinterp.wiring_backfill import load_rows
 
-    report = compile_site(load_archive(wiki_dir), output_dir)
+    report = compile_site(load_archive(wiki_dir), output_dir, wiring_rows=load_rows(wiring_path))
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
         f"{report.parquet} → {output_dir}"
@@ -464,6 +474,7 @@ from openinterp import (  # noqa: E402, F401
     cli_registry,
     cli_scan,
     cli_score,
+    cli_wiring,
 )
 
 
