@@ -106,6 +106,9 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     # So are the steering samples, from neutral prompts no agent sees.
     assert sub.steering is not None and len(sub.steering.samples) == 5
     assert "steering" not in (flow.path / "ev.json").read_text()
+    # And the wiring from the weights (the toy model has no attention, so no heads).
+    assert sub.wiring.method == "weights" and sub.wiring.upstream_heads is None
+    assert "wiring" not in (flow.path / "ev.json").read_text()
 
     loads = len(flow.loads)
     run("review", "--audit-file", "sub.json", "--emit-prompt", "review.prompt.md")
@@ -151,8 +154,9 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     stages = [s.stage for s in costs.stages]
     judged = ["judge", "judge"] if task.fuzzing else ["judge"]
     assert stages == ["scan", "lenses", "input_attribution", "proposer", "counterfactuals",
-                      "patchscope", "steering", "heldout_windows", *judged, "remeasure",
-                      "reviewer", "probe_measurement", "gates", "causal_metrics"]  # fmt: skip
+                      "patchscope", "steering", "wiring", "heldout_windows", *judged,
+                      "remeasure", "reviewer", "probe_measurement", "gates", "causal_metrics",
+                      "wiring"]  # fmt: skip
     assert [c.agent for c in costs.llm_calls] == ["proposer", *judged, "reviewer"]
     assert all(c.external and c.prompt_chars for c in costs.llm_calls)
     assert scores.costs is None  # moved into the provenance

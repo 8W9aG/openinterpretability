@@ -165,6 +165,25 @@ Neutral prompts continued greedily for up to {{ st.max_new_tokens }} tokens with
 {% endfor %}
 
 {% endif %}
+{% for w in [sub.wiring, verdict.wiring] if w %}
+{% if loop.first %}
+### Wiring
+
+The units that write most directly into this pole's input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Reported, not gated.
+
+{% endif %}
+{% if w.method == "weights" %}
+**From the weights.** Virtual weights with each norm's gain folded in; they rank units but have no absolute scale. Upstream neurons: their write against this pole's read (+ means their positive activation raises it). Heads: the norm of the OV circuit's read (upstream) or of the Q/K/V read of this pole's write (downstream). Downstream neurons: their read of this pole's write. Read after the proposer answered and shown to neither agent.
+{% else %}
+**From activations,** averaged over this pole's peak on {{ w.prompts }} of the review's prompts where it fired. Upstream: the first-order change in pole strength from removing a unit's direct write (+ excites). Downstream neurons: the change in their activation when this pole's write is removed from their input alone.
+{% endif %}
+
+{% for title, edges in [("Upstream neurons", w.upstream_neurons), ("Upstream heads", w.upstream_heads), ("Downstream neurons", w.downstream_neurons), ("Downstream heads", w.downstream_heads)] %}
+- **{{ title }}:** {% if edges is none %}not measured.{% elif not edges %}none.{% else %}{% for e in edges %}L{{ e.layer }}/{{ "N" if e.kind == "mlp_neuron" else "H" }}{{ e.index }} {{ "%+.3g" | format(e.weight) }}{{ ", " if not loop.last }}{% endfor %}{% endif %}
+
+{% endfor %}
+
+{% endfor %}
 {% if sub.input_attribution and sub.input_attribution.examples %}
 {% set ia = sub.input_attribution %}
 ### Input attribution
