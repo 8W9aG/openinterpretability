@@ -28,6 +28,7 @@ from openinterp.builder.tree import (
     LABEL_PREFIX,
     SIDES,
     Experiment,
+    agent_costs,
     build_tree,
     circuits_href,
     false_discovery,
@@ -482,6 +483,7 @@ def compile_site(
         "index.html",
         models=models,
         stats=registry_stats(report.parquet),
+        agent_costs=agent_costs(experiments),
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
         contested=[

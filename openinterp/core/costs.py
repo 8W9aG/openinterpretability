@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
@@ -19,6 +20,7 @@ from pathlib import Path
 
 from pydantic import Field
 
+from openinterp.core import pricing
 from openinterp.core.strict import StrictModel
 
 LEDGER_ENV = "OPENINTERP_COSTS_LOG"
@@ -34,7 +36,8 @@ class StageTiming(StrictModel):
 
 class LLMCall(StrictModel):
     """One structured LLM request, counting every retry. Token counts and cost are what
-    LiteLLM reported, and ``None`` when it reported none or an external agent answered."""
+    LiteLLM reported, or, for an external answerer, what its usage file says (priced from
+    :mod:`openinterp.core.pricing`). ``None`` when nobody reported them."""
 
     agent: str = Field(min_length=1, examples=["proposer", "reviewer", "judge"])
     model: str = Field(min_length=1)
@@ -48,7 +51,54 @@ class LLMCall(StrictModel):
     prompt_tokens: int | None = Field(default=None, ge=0)
     completion_tokens: int | None = Field(default=None, ge=0)
     cached_tokens: int | None = Field(default=None, ge=0, description="Prompt tokens cached.")
+    cache_write_tokens: int | None = Field(
+        default=None, ge=0, description="Prompt tokens written to the cache."
+    )
     cost_usd: float | None = Field(default=None, ge=0.0)
+    price_table: str | None = Field(
+        default=None,
+        description="List-price table cost_usd was computed from (pricing.TABLE); None when "
+        "the provider reported the cost.",
+    )
+
+
+class ExternalUsage(StrictModel):
+    """Tokens an external answerer used, written next to its answer as
+    ``<answer>.usage.json`` (``openinterp usage``). ``input_tokens`` excludes cache reads
+    and writes. ``cost_usd`` is for a provider that reports its own cost; otherwise the
+    tokens are priced at list price for the model the command records."""
+
+    model: str | None = Field(default=None, description="The model the transcript reports.")
+    requests: int = Field(default=0, ge=0)
+    input_tokens: int = Field(default=0, ge=0)
+    cache_read_tokens: int = Field(default=0, ge=0)
+    cache_write_5m_tokens: int = Field(default=0, ge=0)
+    cache_write_1h_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+    cost_usd: float | None = Field(default=None, ge=0.0)
+    source: str | None = Field(default=None, examples=["claude-code:agent-a1b2c3"])
+
+    def call_fields(self, model: str) -> dict:
+        """Token, cost and price-table fields of an :class:`LLMCall` answered by ``model``."""
+        writes = self.cache_write_5m_tokens + self.cache_write_1h_tokens
+        fields = {
+            "prompt_tokens": self.input_tokens + self.cache_read_tokens + writes,
+            "completion_tokens": self.output_tokens,
+            "cached_tokens": self.cache_read_tokens,
+            "cache_write_tokens": writes,
+        }
+        if self.cost_usd is not None:
+            return {**fields, "cost_usd": self.cost_usd}
+        cost = pricing.cost_usd(
+            model,
+            input_tokens=self.input_tokens,
+            output_tokens=self.output_tokens,
+            cache_read_tokens=self.cache_read_tokens,
+            cache_write_5m_tokens=self.cache_write_5m_tokens,
+            cache_write_1h_tokens=self.cache_write_1h_tokens,
+        )
+        table = pricing.TABLE if cost is not None else None
+        return {**fields, "cost_usd": cost, "price_table": table}
 
 
 class ExperimentCosts(StrictModel):
@@ -149,13 +199,42 @@ def measured() -> ExperimentCosts:
     return ExperimentCosts(stages=list(_stages), llm_calls=list(_calls))
 
 
+def usage_path(answer: Path) -> Path:
+    """Where an answer's usage goes: ``ev.hypothesis.json`` → ``ev.hypothesis.usage.json``."""
+    return answer.with_name(answer.name.removesuffix(".json") + ".usage.json")
+
+
 def add_external(agent: str, model: str, prompt: Path, answer: Path) -> None:
-    """Record a prompt answered from a file: its size, and the time between the prompt
-    and the answer being written (``None`` stage when the prompt file is gone)."""
+    """Record a prompt answered from a file: its size, the time between the prompt and the
+    answer being written (no stage when the prompt file is gone), and the answerer's
+    tokens and cost when ``usage_path(answer)`` exists."""
     if prompt.exists() and answer.exists():
         add_stage(agent, answer.stat().st_mtime - prompt.stat().st_mtime)
     chars = len(prompt.read_text()) if prompt.exists() else None
-    add_call(LLMCall(agent=agent, model=model, external=True, prompt_chars=chars))
+    fields = {}
+    if (usage_file := usage_path(answer)).exists():
+        usage = ExternalUsage.model_validate_json(usage_file.read_text())
+        _check_model(usage, model, usage_file)
+        fields = usage.call_fields(model)
+    add_call(LLMCall(agent=agent, model=model, external=True, prompt_chars=chars, **fields))
+
+
+def _check_model(usage: ExternalUsage, model: str, usage_file: Path) -> None:
+    """Warn when the transcript names another model than the one being recorded, unless
+    ``$OPENINTERP_MODEL_ALIASES`` says a proxy renamed it (the recorded one is priced)."""
+    from openinterp.agents.base import MODEL_ALIASES_ENV
+
+    reported = usage.model and {pricing.price_key(m) for m in usage.model.split(",")}
+    if (
+        reported
+        and pricing.price_key(model) not in reported
+        and not os.environ.get(MODEL_ALIASES_ENV)
+    ):
+        print(
+            f"warning: {usage_file} was answered by {usage.model}, but {model} is being "
+            "recorded and priced.",
+            file=sys.stderr,
+        )
 
 
 def usage_of(responses: Iterable[object]) -> dict:
@@ -198,3 +277,39 @@ def append_ledger(command: str, seconds: float) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry) + "\n")
+
+
+ROLE_ORDER = ("proposer", "reviewer", "judge")
+
+
+def by_agent(experiments: Iterable[tuple[str | None, ExperimentCosts | None]]) -> list[dict]:
+    """LLM cost per experiment for each (role, model), from (verdict status, costs) pairs.
+
+    An experiment counts as priced for a role and model when every one of its calls there
+    has a cost. ``mean_usd`` averages over priced experiments, and ``usd_per_verified``
+    divides their total by how many of them were VERIFIED.
+    """
+    groups: dict[tuple[str, str], dict] = {}
+    for status, run in experiments:
+        calls: dict[tuple[str, str], list[LLMCall]] = {}
+        for call in run.llm_calls if run else ():
+            calls.setdefault((call.agent, call.model), []).append(call)
+        for key, cs in calls.items():
+            g = groups.setdefault(key, {"experiments": 0, "priced": 0, "usd": 0.0, "verified": 0})
+            g["experiments"] += 1
+            if all(c.cost_usd is not None for c in cs):
+                g["priced"] += 1
+                g["usd"] += sum(c.cost_usd for c in cs)
+                g["verified"] += status == "VERIFIED"
+    rows = [
+        {
+            "agent": agent,
+            "model": model,
+            **g,
+            "mean_usd": g["usd"] / g["priced"] if g["priced"] else None,
+            "usd_per_verified": g["usd"] / g["verified"] if g["verified"] else None,
+        }
+        for (agent, model), g in groups.items()
+    ]
+    order = {r: i for i, r in enumerate(ROLE_ORDER)}
+    return sorted(rows, key=lambda r: (order.get(r["agent"], len(order)), -r["priced"], r["model"]))

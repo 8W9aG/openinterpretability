@@ -1,0 +1,74 @@
+"""Token usage of a Claude Code subagent, read from its transcript.
+
+Claude Code keeps each subagent's transcript at
+``~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl``, one JSON line per
+message part. Every part of one API response repeats that response's ``usage``, and the
+last part carries the final output count, so each response is counted once, from its
+last line.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+from openinterp.core.costs import ExternalUsage
+
+
+def claude_dir() -> Path:
+    return Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+
+
+def find_transcript(agent: str) -> Path:
+    """``agent`` is a transcript path, or the agent ID Claude Code reports when a subagent
+    finishes (``a1b2c3…``, with or without the ``agent-`` prefix)."""
+    path = Path(agent).expanduser()
+    if path.suffix == ".jsonl" and path.is_file():
+        return path
+    name = f"agent-{agent.removeprefix('agent-')}.jsonl"
+    found = sorted(
+        claude_dir().glob(f"projects/*/*/subagents/{name}"), key=lambda p: p.stat().st_mtime
+    )
+    if not found:
+        raise FileNotFoundError(f"No Claude Code transcript {name} under {claude_dir()}.")
+    return found[-1]  # the newest, if a resumed session copied it
+
+
+def usage_from_transcript(path: Path) -> ExternalUsage:
+    last: dict[str, dict] = {}  # API response id → its last line's message
+    for line in path.read_text().splitlines():
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue  # a line cut off by a crash
+        message = entry.get("message") if entry.get("type") == "assistant" else None
+        if not isinstance(message, dict) or not message.get("usage"):
+            continue
+        if message.get("model", "").startswith("<"):  # e.g. "<synthetic>" error stubs
+            continue
+        last[message.get("id") or entry.get("uuid")] = message
+
+    totals = dict.fromkeys(("input", "read", "write_5m", "write_1h", "output"), 0)
+    models: dict[str, int] = {}
+    for message in last.values():
+        u = message["usage"]
+        writes = u.get("cache_creation") or {}
+        write_1h = writes.get("ephemeral_1h_input_tokens") or 0
+        totals["input"] += u.get("input_tokens") or 0
+        totals["read"] += u.get("cache_read_input_tokens") or 0
+        totals["write_1h"] += write_1h
+        totals["write_5m"] += (u.get("cache_creation_input_tokens") or 0) - write_1h
+        totals["output"] += u.get("output_tokens") or 0
+        model = message.get("model") or "unknown"
+        models[model] = models.get(model, 0) + 1
+    return ExternalUsage(
+        model=",".join(sorted(models, key=lambda m: -models[m])) or None,
+        requests=len(last),
+        input_tokens=totals["input"],
+        cache_read_tokens=totals["read"],
+        cache_write_5m_tokens=max(totals["write_5m"], 0),
+        cache_write_1h_tokens=totals["write_1h"],
+        output_tokens=totals["output"],
+        source=f"claude-code:{path.stem}",
+    )

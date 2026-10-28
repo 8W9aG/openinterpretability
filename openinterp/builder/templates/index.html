@@ -203,6 +203,31 @@
   </div>
 </section>
 
+{% if agent_costs %}
+<section class="mb-10">
+  <h2 class="mb-1 text-lg font-semibold">Agent costs</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">LLM cost per experiment for each role and model, over experiments where every call of that role was priced: by LiteLLM, or from a subagent's token usage at list price. Reported, not gated.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Role</th><th class="px-3 py-2">Model</th><th class="px-3 py-2 text-right" title="experiments priced / experiments">Priced</th><th class="px-3 py-2 text-right">Mean</th><th class="px-3 py-2 text-right" title="total cost of the priced experiments / how many of them were VERIFIED">Per VERIFIED</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for c in agent_costs %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="px-3 py-2">{{ c.agent }}</td>
+          <td class="px-3 py-2 font-mono text-xs">{{ c.model }}</td>
+          <td class="px-3 py-2 text-right tabular-nums">{{ c.priced }}/{{ c.experiments }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">${{ "%.3f" | format(c.mean_usd) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{% if c.usd_per_verified is not none %}${{ "%.2f" | format(c.usd_per_verified) }}{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 <section class="mb-10">
   <h2 class="mb-3 text-lg font-semibold">Verified neurons and heads</h2>
   {% if stats.verified %}
