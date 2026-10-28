@@ -4,7 +4,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Protocol and science
 
-- [ ] Scan both poles by default and show them together on neuron pages.
 - [ ] Positive control: audit known induction heads or other well-documented units and confirm the protocol VERIFIES them. Protocol 0.6 can audit heads; a dry run on GPT-2 small L5H1 (induction score 0.89; proposer and judges Claude Opus/Haiku 5.5, reviewer Sonnet 5.5) was NEEDS_REVISION twice, failing only specificity. Every holdout fired, every counterfactual reproduced, causal scores were 1.0 against the layer's other heads, and the record reproduced. The misses: (1) the head also fires on fuzzy and template repeats ("The dog … the dog", `x = a + b; y = c + d`), which an exact-repeat explanation excludes; (2) the reviewer labelled probes by words, not GPT-2 tokens, so exact repeats like ". My … . My" were marked as hard negatives. Next: a third revision that describes the fuzzy matching, run as a registry experiment, and decide whether reviewer prompts for heads should state the token-level matching rule.
 - [ ] **(protocol)** Decide whether steering predictions and simulation scores should become gates. Both need a pre-registered prediction format first.
 - [ ] Report registry-wide statistics (share VERIFIED, share dead) over `selection = "random"` records only.

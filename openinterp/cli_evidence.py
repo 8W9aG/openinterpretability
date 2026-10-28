@@ -385,6 +385,7 @@ def audit(
     revises = superseded and experiment_id(superseded)
     submission = submission.model_copy(
         update={
+            "opposite_pole": evidence.opposite_pole,
             "provenance": provenance,
             "supersedes": revises,
             "patchscope": readout,

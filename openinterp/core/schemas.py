@@ -20,6 +20,12 @@ from openinterp.core.causal import (  # noqa: F401  (re-exported)
     PatchEffect,
 )
 from openinterp.core.costs import ExperimentCosts
+from openinterp.core.examples import (  # noqa: F401  (re-exported)
+    ActivatingExample,
+    Histogram,
+    OppositePole,
+    check_opposite_pole,
+)
 from openinterp.core.explanation import ExplanationScores
 from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     ComponentIdentifier,
@@ -72,45 +78,6 @@ class LookaheadProfile(StrictModel):
     is_lookahead: bool
     target_upcoming_tokens: list[str] = Field(default_factory=list)
     kl_divergence: float = Field(ge=0.0)
-
-
-class Histogram(StrictModel):
-    bin_edges: list[float] = Field(min_length=2)
-    counts: list[int]
-
-    @model_validator(mode="after")
-    def _shape(self) -> Histogram:
-        if len(self.counts) != len(self.bin_edges) - 1:
-            raise ValueError("counts must have exactly len(bin_edges) - 1 entries")
-        return self
-
-
-class ActivatingExample(StrictModel):
-    """A text snippet with per-token strengths (non-negative magnitudes).
-
-    For an attention head, ``attends_to`` lists the tokens the peak token attends to
-    most, strongest first, with their attention weights in ``attention_weights``.
-    """
-
-    text: str
-    tokens: list[str]
-    activations: list[float]
-    max_activation: float = Field(ge=0.0)
-    max_token_index: int = Field(ge=0)
-    attends_to: list[int] = Field(default_factory=list)
-    attention_weights: list[UnitFloat] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def _aligned(self) -> ActivatingExample:
-        if len(self.tokens) != len(self.activations):
-            raise ValueError("tokens and activations must be the same length")
-        if self.tokens and self.max_token_index >= len(self.tokens):
-            raise ValueError("max_token_index out of range")
-        if len(self.attends_to) != len(self.attention_weights):
-            raise ValueError("attends_to and attention_weights must be the same length")
-        if any(not 0 <= i <= self.max_token_index for i in self.attends_to):
-            raise ValueError("attends_to must index tokens up to the peak (attention is causal)")
-        return self
 
 
 class RunEnvironment(StrictModel):
@@ -326,9 +293,11 @@ class ScanEvidence(StrictModel):
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0)
     dictionary_profile: DictionaryProfile | None = None
+    opposite_pole: OppositePole | None = None
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
+        check_opposite_pole(self)
         return _require_unit_profile(self)
 
 
@@ -391,9 +360,15 @@ class NeuronAuditSubmission(StrictModel):
         description="Experiment id of the earlier experiment on the same unit that this "
         "submission revises (reported, not gated).",
     )
+    opposite_pole: OppositePole | None = Field(
+        default=None,
+        description="A neuron's other pole, from the same scan: its top examples and "
+        "histogram, shown beside this pole on the neuron page (reported, not gated).",
+    )
 
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:
+        check_opposite_pole(self)
         return _require_unit_profile(self)
 
 
