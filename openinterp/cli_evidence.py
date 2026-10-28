@@ -286,6 +286,12 @@ def audit(
         if model_name not in (None, spec.model_name):
             raise click.UsageError(f"{dictionary} is a dictionary for {spec.model_name}.")
         model_name = spec.model_name
+        limit = spec.context_tokens
+        if limit and (window_tokens is None or window_tokens > limit):
+            raise click.UsageError(
+                f"{dictionary} only fits contexts of up to {limit} tokens; "
+                f"scan with --window-tokens {limit}."
+            )
     if (evidence_file is None) != (hypothesis_file is None):
         raise click.UsageError("--evidence and --hypothesis go together.")
     if stride is not None and (window_tokens is None or stride > window_tokens):
@@ -379,6 +385,7 @@ def audit(
     revises = superseded and experiment_id(superseded)
     submission = submission.model_copy(
         update={
+            "opposite_pole": evidence.opposite_pole,
             "provenance": provenance,
             "supersedes": revises,
             "patchscope": readout,

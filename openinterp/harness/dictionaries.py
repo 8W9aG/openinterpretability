@@ -39,6 +39,8 @@ class DictionarySpec:
     input_site: DictionarySite
     activation: str = "relu"
     subtract_decoder_bias: bool = False
+    # Longest context the dictionary fits; feature scans must use windows no longer.
+    context_tokens: int | None = None
     reference: str = ""
 
     def file(self, layer: int) -> str:
@@ -51,7 +53,10 @@ DICTIONARIES: dict[str, DictionarySpec] = {
     # Checked against openai-community/gpt2 at layer 8: on 16 corpus documents the
     # dictionary explains 66% of the MLP output's variance with ~69 active latents per
     # token when it reads the LayerNorm-standardised input, and nothing when it reads the
-    # MLP's (affine) input, which is why the site matters.
+    # MLP's (affine) input, which is why the site matters. Read through position 128 the
+    # fit holds (layers 0–2: 45–90% of variance), then falls; past position ~200 it goes
+    # negative there (−154% at layer 2 over 512-token windows), so scans use 128-token
+    # windows, as if the dictionaries were trained on 128-token contexts.
     "gpt2-small-transcoders": DictionarySpec(
         model_name="openai-community/gpt2",
         kind="transcoder",
@@ -60,6 +65,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         path="gpt2-small-dun-chl-mlp-tc{layer}/sae.safetensors",
         layers=tuple(range(12)),
         input_site="mlp_in_normalized",
+        context_tokens=128,
         reference="Dunefsky, Chlenski & Nanda, 2024, arXiv:2406.11944",
     ),
 }

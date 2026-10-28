@@ -4,7 +4,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 ## Protocol and science
 
-- [ ] Scan both poles by default and show them together on neuron pages.
 - [ ] Positive control: audit known induction heads or other well-documented units and confirm the protocol VERIFIES them. Protocol 0.6 can audit heads; a dry run on GPT-2 small L5H1 (induction score 0.89; proposer and judges Claude Opus/Haiku 5.5, reviewer Sonnet 5.5) was NEEDS_REVISION twice, failing only specificity. Every holdout fired, every counterfactual reproduced, causal scores were 1.0 against the layer's other heads, and the record reproduced. The misses: (1) the head also fires on fuzzy and template repeats ("The dog … the dog", `x = a + b; y = c + d`), which an exact-repeat explanation excludes; (2) the reviewer labelled probes by words, not GPT-2 tokens, so exact repeats like ". My … . My" were marked as hard negatives. Next: a third revision that describes the fuzzy matching, run as a registry experiment, and decide whether reviewer prompts for heads should state the token-level matching rule.
 - [ ] **(protocol)** Decide whether steering predictions and simulation scores should become gates. Both need a pre-registered prediction format first.
 - [ ] Report registry-wide statistics (share VERIFIED, share dead) over `selection = "random"` records only.
@@ -149,7 +148,9 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Scope expansion
 
-- [ ] Run the transcoder baseline arm. Latents can be audited (`openinterp audit --dictionary gpt2-small-transcoders --random`); what's left is the comparison: the share VERIFIED and balanced accuracy among N random latents against N random native neuron poles on the same GPT-2 small layers and corpus (scan with `--window-tokens 512`, since GPT-2 reads 1,024 positions). GPT-2 small must first pass the checks under *Models*. Then report the two shares on the site, with the dictionaries' explained variance beside them.
+- [ ] **(protocol)** Decide how GELU negative poles, and early-layer poles with a first-token floor, are audited. The learned-basis baseline now samples positive poles only for GELU models. Some ways forward:
+  - measure a probe's activity away from position 0, where several poles sit above the line whatever the token (6 of the baseline's 40 positive poles, all in layers 1–2, failed this way);
+  - record default-on poles as a family (skill `neuron-family-triage`) instead of auditing them as detectors.
 - [ ] More dictionary presets in `openinterp/harness/dictionaries.py`: Gemma Scope transcoders (Gemma 2 2B, JumpReLU), the circuit-tracer transcoders (Qwen3, Llama 3.2 1B), Llama Scope, and an MLP-output SAE. A residual-stream SAE needs a new input and output site. Check each preset's input site by its reconstruction, as the GPT-2 one was. No public dictionary covers Qwen2.5-0.5B, the registry's default model, so its baseline would need one trained on the scan corpus.
 - [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
@@ -188,7 +189,6 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
-- [ ] Add the R2 secrets and variables to GitHub (see README, "Deploy"), then run the deploy workflow once by hand.
 - [ ] Keep a short "State of the registry" note at the top of this file (or a `make stats` target that prints it): experiments, units, models, VERIFIED share, self-reviewed share and protocol versions in use. As of 2026-10-20: 79 experiments on 67 units, all Qwen2.5-0.5B, 46 VERIFIED, and 8 records still under protocols 0.2–0.4. Several items above depend on these numbers, and nobody should have to rerun ad-hoc scripts to see them.
 - [ ] Say in `CHANGELOG.md` that only records reviewed after the explanation-scores change have scores. "Every review records them" reads as if the whole registry has them, but the site shows them on 2 pages.
 
