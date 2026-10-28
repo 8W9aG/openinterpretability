@@ -295,3 +295,63 @@ def causal_chart(causal, counterfactuals, width: int = 640) -> dict | None:
         "baseline_x": x(0.5),
         "ticks": [(x(v), f"{v:g}") for v in (0, 0.25, 0.5, 0.75, 1)],
     }
+
+
+# Neuron statuses on the layer map, best first: a neuron shows its best pole's status.
+MAP_STATUSES = ("VERIFIED", "CONTESTED", "NEEDS_REVISION", "REJECTED")
+
+
+def layer_map(model, width: int = 640) -> dict | None:
+    """Layer × neuron-index geometry: one row per layer, one mark per studied neuron.
+
+    Each mark sits at the neuron's index and takes its best pole's status (``MAP_STATUSES``
+    order), so coverage and where the verified neurons sit both show. Marks are drawn worst
+    status first, so a verified neuron is never hidden under a neighbour. Models whose MLP
+    width no record gives get no map: the index axis would have no end.
+    """
+    if not model.mlp_width or not model.neurons:
+        return None
+    left, right = 36, width - 8
+    row, pitch, top = 10, 13, 4
+    mark_w = max(3.0, (right - left) / model.mlp_width)
+
+    def x(idx: int) -> float:
+        return round(left + (right - left - mark_w) * idx / max(model.mlp_width - 1, 1), 2)
+
+    counts = dict.fromkeys(MAP_STATUSES, 0)
+    marks = []
+    for layer in model.layers:
+        y = top + layer.layer * pitch
+        for n in layer.neurons:
+            statuses = {st.status for st in n.standings.values()}
+            status = next(s for s in MAP_STATUSES if s in statuses)
+            counts[status] += 1
+            poles = ", ".join(f"{side} {st.status}" for side, st in n.standings.items())
+            marks.append(
+                {
+                    "x": x(n.idx),
+                    "y": y,
+                    "status": status,
+                    "href": n.href,
+                    "label": f"L{layer.layer} {n.label} · {poles.replace('_', ' ')}",
+                }
+            )
+    marks.sort(key=lambda m: -MAP_STATUSES.index(m["status"]))
+    axis_y = top + model.n_layers * pitch + 2
+    step = _nice_step(model.mlp_width)
+    ticks = [(x(i), f"{i:,}") for i in range(0, model.mlp_width, int(step))]
+    return {
+        "width": width,
+        "height": axis_y + 18,
+        "left": left,
+        "right": right,
+        "row": row,
+        "mark_w": round(mark_w, 2),
+        "axis_y": axis_y,
+        "rows": [(i, top + i * pitch) for i in range(model.n_layers)],
+        "label_every": 1 if model.n_layers <= 16 else 2,
+        "marks": marks,
+        "ticks": ticks,
+        "counts": counts,
+        "unexplored": model.total_neurons - model.neurons,
+    }

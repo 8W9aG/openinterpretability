@@ -19,7 +19,13 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
+from openinterp.builder.charts import (
+    causal_chart,
+    histogram_bars,
+    layer_map,
+    probe_chart,
+    vocab_chart,
+)
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
@@ -455,6 +461,7 @@ def compile_site(
             model.href,
             "model.html",
             model=model,
+            layer_map=layer_map(model),
             circuits=found,
             hubs=found_hubs,
             circuits_page=page,
