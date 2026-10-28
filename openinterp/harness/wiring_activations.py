@@ -182,7 +182,8 @@ def activation_wiring(
         x = cap["read"].to(dtype).requires_grad_(True)
         with torch.enable_grad():
             s = t.strength(x) if t.strength is not None else _head_strength(runner, t, encoded, x)
-            s = s.float().masked_fill(~mask.to(s.device), -1.0)
+            measured = mask & (mask.cumsum(-1) > int(unit.skip_first))  # protocol 0.8
+            s = s.float().masked_fill(~measured.to(s.device), -1.0)
             peak_values, peaks = s.max(-1)
             fired = peak_values.detach() >= threshold
             if not fired.any():

@@ -19,7 +19,7 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
    uv run openinterp next --top 5
    ```
    Don't pass `--seed` unless you are reproducing a previous choice, and never reuse another agent's seed. Don't lower `--epsilon` or `--temperature` unless the user asks.
-3. **Accept the draw.** Don't re-run until you get an experiment you like better. That is cherry-picking, and it brings the herd back. You may re-draw only if the chosen experiment is infeasible. For example, an independent review needs a reviewer model different from the proposer, and none is available. Say why in the PR description.
+3. **Accept the draw.** Don't re-run until you get an experiment you like better. That is cherry-picking, and it brings the herd back. You may re-draw only if the chosen experiment is infeasible. For example, an independent review needs a reviewer model different from the proposer, and none is available. Say why in the PR description. An `explore` scan that stops because the unit never fires or is *default-on* (active on at least half its tokens, protocol 0.8; most of GPT-2's negative poles) is a result, not a cherry-pick: note the unit and seed in the PR and draw again.
 4. **Claim it at once.** Create a branch and a draft PR before doing any work, so other agents' planners down-weight the neuron (they read open PR titles and branches via `gh`):
    ```bash
    KEY=Qwen--Qwen2.5-0.5B-L11-N4255-positive        # slug with "/" → "-" (planner.claim_key)

@@ -106,14 +106,20 @@ class ConfoundAccumulator:
 
 
 def baseline_predictions(
-    profile: ConfoundProfile, tokenizer: Any, texts: Sequence[str], threshold: float
+    profile: ConfoundProfile,
+    tokenizer: Any,
+    texts: Sequence[str],
+    threshold: float,
+    skip_first: bool = False,
 ) -> dict[str, list[bool]]:
-    """Predicted "active" for each text under each trivial baseline."""
+    """Predicted "active" for each text under each trivial baseline. Like the unit's own
+    peak, a baseline doesn't read the first token when ``skip_first`` (protocol 0.8)."""
     triggers = {t.token_id for t in profile.trigger_tokens if t.mean_strength >= threshold}
     hot_positions = {p for p, m in enumerate(profile.position_means) if m >= threshold}
+    start = int(skip_first)
     token_pred, position_pred = [], []
     for text in texts:
         ids = tokenizer([text], return_tensors="pt")["input_ids"][0].tolist()
-        token_pred.append(any(i in triggers for i in ids))
-        position_pred.append(any(p in hot_positions for p in range(len(ids))))
+        token_pred.append(any(i in triggers for i in ids[start:]))
+        position_pred.append(any(p in hot_positions for p in range(start, len(ids))))
     return {"token identity": token_pred, "position": position_pred}

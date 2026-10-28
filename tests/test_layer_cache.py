@@ -29,8 +29,15 @@ def cache(tmp_path):
 
 
 def no_model(runner, monkeypatch):
-    def fail(*_args, **_kwargs):
-        raise AssertionError("ran the model")
+    """Fail if the runner reads text. The first-token floor's pass over the vocabulary
+    (one token per input) still runs: a replayed layer holds no first positions."""
+    run = runner.run_with_cache
+
+    def fail(inputs, *args, **kwargs):
+        ids = inputs["input_ids"] if isinstance(inputs, dict) else None
+        if ids is None or ids.shape[-1] != 1:
+            raise AssertionError("ran the model")
+        return run(inputs, *args, **kwargs)
 
     monkeypatch.setattr(runner, "run_with_cache", fail)
 

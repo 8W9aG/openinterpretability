@@ -13,6 +13,14 @@ ablation the lookahead profile uses:
   its write ``a_f · W_dec[f]`` from the MLP output, leaving the dictionary's error and
   every other latent as they were.
 
+A unit with a *first-token floor* (protocol 0.8) is not measured at a text's first
+token. The first token has no context and is the attention sink, and some early-layer
+units sit above their line there whatever the token, so every probe would fire. A unit
+has the floor if it is active at the first position on at least half the vocabulary
+(:func:`openinterp.harness.scan.first_position_share`). A prompt's peak is then over
+its other tokens (``skip_first``). Every other unit is measured at every token, so one
+that detects *which* token opens a text can still be audited.
+
 The raw write norm ``|W_O z_t|`` would not do: most heads write a sizeable resting
 vector (often while attending to the first token), so in GPT-2 small an induction
 head's median token sits at a quarter of its maximum and half of all text would count
@@ -42,6 +50,7 @@ from openinterp.harness.sites import dictionary_io
 @dataclass(frozen=True)
 class NeuronUnit:
     ident: NeuronIdentifier
+    skip_first: bool = False
 
     def strengths(self, runner: NeuronHookRunner, inputs: Inputs) -> torch.Tensor:
         """Per-token pole strength ``[batch, seq]``."""
@@ -58,6 +67,7 @@ class NeuronUnit:
 class HeadUnit:
     ident: HeadIdentifier
     mean_output: tuple[float, ...]
+    skip_first: bool = False
 
     def strengths(self, runner: NeuronHookRunner, inputs: Inputs) -> torch.Tensor:
         """Per-token ``|W_O (z − z̄)|`` ``[batch, seq]``."""
@@ -76,6 +86,7 @@ class HeadUnit:
 class FeatureUnit:
     ident: FeatureIdentifier
     profile: DictionaryProfile
+    skip_first: bool = False
 
     def dictionary(self, runner: NeuronHookRunner) -> Dictionary:
         return load_dictionary(self.profile, runner.device)
@@ -109,27 +120,47 @@ def head_strength(
     return ((z.float() - mean) @ w_o.T.to(z.device)).norm(dim=-1)
 
 
-def unit_of(ident: ComponentIdentifier, head_profile=None, dictionary_profile=None) -> Unit:
+def unit_of(
+    ident: ComponentIdentifier, head_profile=None, dictionary_profile=None, skip_first=False
+) -> Unit:
     """The unit ``ident`` names; a head or a feature needs the profile its strength is
     defined by."""
     if isinstance(ident, HeadIdentifier):
         if head_profile is None:
             raise ValueError(f"{ident} has no head profile, so its strength is undefined")
-        return HeadUnit(ident, tuple(head_profile.mean_output))
+        return HeadUnit(ident, tuple(head_profile.mean_output), skip_first)
     if isinstance(ident, FeatureIdentifier):
         if dictionary_profile is None:
             raise ValueError(f"{ident} has no dictionary profile, so its strength is undefined")
-        return FeatureUnit(ident, dictionary_profile)
-    return NeuronUnit(ident)
+        return FeatureUnit(ident, dictionary_profile, skip_first)
+    return NeuronUnit(ident, skip_first)
 
 
 def submission_unit(submission) -> Unit:
-    """The unit a submission, scan evidence or scoring task is about."""
-    return unit_of(submission.identifier, submission.head_profile, submission.dictionary_profile)
+    """The unit a submission, scan evidence or scoring task is about. A record from before
+    protocol 0.8 has no ``first_token_floor`` and is measured at every token."""
+    floor = bool(getattr(submission, "first_token_floor", None))
+    return unit_of(
+        submission.identifier, submission.head_profile, submission.dictionary_profile, floor
+    )
+
+
+def peak_strength(runner: NeuronHookRunner, unit: Unit, text: str) -> float | None:
+    """The peak strength of ``text`` over its measured tokens; ``None`` when it has none
+    (one token, for a unit that skips the first)."""
+    strengths = unit.strengths(runner, text)[0][int(unit.skip_first) :]
+    return float(strengths.max()) if strengths.numel() else None
 
 
 def max_strength(runner: NeuronHookRunner, unit: Unit, text: str) -> float:
-    return float(unit.strengths(runner, text).max())
+    """:func:`peak_strength`, for a text that must have a measured token."""
+    peak = peak_strength(runner, unit, text)
+    if peak is None:
+        raise ValueError(
+            f"{text!r} is one token, and {unit.ident} is not measured at the first token "
+            "(it has a first-token floor), so use two or more"
+        )
+    return peak
 
 
 def attn_implementation(ident: ComponentIdentifier) -> str | None:

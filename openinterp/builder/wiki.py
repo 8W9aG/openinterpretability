@@ -54,6 +54,9 @@ GATE_ADVICE = {
     "active') explains the probes at least as well as the hypothesis, or the scan predates "
     "confound profiling. Rescan with `openinterp audit` and sharpen the claim beyond the "
     "trigger tokens (skill: `interpretability-illusions-review`).",
+    "not_default_on": "The unit is active on at least half of its scan's tokens, so no hard "
+    "negative of a few words can stay inactive. It can't be audited as a detector; record "
+    "it as default-on (docs/PROTOCOL.md §1).",
 }
 
 
@@ -195,7 +198,7 @@ def write_experiment_page(
             failed_probes=[
                 t
                 for t in verdict.adversarial_test_results
-                if not t.passed and t.kind in {"hard_negative", "positive_holdout"}
+                if not t.passed and t.measured and t.kind in {"hard_negative", "positive_holdout"}
             ],
             examples=[(e.max_activation, _context(e)) for e in sub.top_examples[:10]],
             kind=kind,

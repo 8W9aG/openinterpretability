@@ -121,6 +121,7 @@ def write_evidence(evidence, path: Path) -> None:
         evidence.head_profile,
         evidence.input_attribution,
         evidence.dictionary_profile,
+        bool(evidence.first_token_floor),
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -373,6 +374,7 @@ def audit(
             evidence.head_profile,
             evidence.input_attribution,
             evidence.dictionary_profile,
+            bool(evidence.first_token_floor),
         )
 
     ident = evidence.identifier
@@ -382,20 +384,24 @@ def audit(
             f"not on {ident}."
         )
     with costs.stage("counterfactuals"):
-        submission = agent.build_submission(
-            ident,
-            draft,
-            runner=runner,
-            examples=evidence.top_examples,
-            histogram=evidence.activation_histogram,
-            provenance=evidence.provenance,
-            confounds=evidence.confounds,
-            correlated=evidence.correlated_neurons,
-            vocabulary_lens=evidence.vocabulary_lens,
-            input_attribution=evidence.input_attribution,
-            head_profile=evidence.head_profile,
-            dictionary_profile=evidence.dictionary_profile,
-        )
+        try:
+            submission = agent.build_submission(
+                ident,
+                draft,
+                runner=runner,
+                examples=evidence.top_examples,
+                histogram=evidence.activation_histogram,
+                provenance=evidence.provenance,
+                confounds=evidence.confounds,
+                correlated=evidence.correlated_neurons,
+                vocabulary_lens=evidence.vocabulary_lens,
+                input_attribution=evidence.input_attribution,
+                head_profile=evidence.head_profile,
+                dictionary_profile=evidence.dictionary_profile,
+                first_token_floor=evidence.first_token_floor,
+            )
+        except ValueError as exc:  # e.g. a one-token counterfactual prompt
+            raise click.ClickException(f"Counterfactual: {exc}") from exc
     readout = read_patchscope(runner, submission)
     steering = read_steering(runner, submission)
     wiring = read_wiring(runner, submission)

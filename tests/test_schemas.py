@@ -109,3 +109,13 @@ def test_opposite_pole_is_the_other_pole_of_a_neuron(submission):
     head = HeadIdentifier(model_name="gpt2", layer=5, head_idx=1)
     with pytest.raises(ValidationError, match="only for neuron poles"):
         ScanEvidence(identifier=head, top_examples=[], opposite_pole=_opposite("negative"))
+
+
+def test_histogram_share_counts_bins_wholly_above_the_line():
+    from openinterp.core.examples import Histogram
+
+    h = Histogram(bin_edges=[0.0, 1.0, 2.0, 3.0, 4.0], counts=[5, 1, 2, 2])
+    assert h.share_at_least(2.0) == pytest.approx(0.4)
+    assert h.share_at_least(1.5) == pytest.approx(0.4)  # the straddling bin is left out
+    assert h.share_at_least(0.0) == 1.0
+    assert Histogram(bin_edges=[0.0, 1.0], counts=[0]).share_at_least(0.5) == 0.0
