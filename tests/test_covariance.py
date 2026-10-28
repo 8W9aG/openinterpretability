@@ -162,6 +162,13 @@ def test_scan_gathers_everything(toy_runner):
     partner = pole_strength(acts[:, top.neuron_idx], top.pole)
     assert top.spearman == pytest.approx(spearman(target, partner), abs=1e-4)
 
+    # The same pass reads the other pole.
+    other = scan.opposite
+    assert other.pole == "negative" and len(other.values) == len(scan.values)
+    negative = pole_strength(acts[:, 2], "negative")
+    assert sorted(other.values) == pytest.approx(sorted(negative.tolist()), abs=1e-5)
+    assert other.examples[0].max_activation == pytest.approx(float(negative.max()), abs=1e-5)
+
 
 def test_windows_cover_each_document_once():
     tok = FakeTokenizer()

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, pole_mark %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
@@ -36,6 +36,35 @@
       </div>
       {% endfor %}
     </div>
+    {% if poles %}
+    <section class="mt-6" aria-labelledby="both-poles">
+      <h2 id="both-poles" class="text-base font-semibold">Both poles</h2>
+      <p class="mt-1 max-w-3xl text-xs text-slate-500">
+        {% if poles.shared %}Top examples of each pole from one scan, that of <a class="underline-offset-2 hover:underline" href="#{{ poles.shared.anchor }}">experiment {{ poles.shared.id }}</a>{% else %}Top examples of each pole from its newest experiment's scan{% endif %}.
+        Each column is shaded by its own pole's max; hover a token for its value.
+      </p>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+        {% for p in poles.poles %}
+        <div class="min-w-0 rounded-lg border border-slate-200 p-3 dark:border-slate-800" style="--heat-rgb: {{ '234 88 12' if p.pole == 'positive' else '2 132 199' }}">
+          <div class="flex items-baseline justify-between gap-2 text-sm">
+            <span class="text-slate-500">{{ p.pole | capitalize }} pole {{ pole_mark(p.pole) }}</span>
+            {% if p.examples %}<span class="font-mono text-xs text-slate-500" title="peak strength in the scan">max {{ p.max | num(2) }}</span>{% endif %}
+          </div>
+          {% if p.examples %}
+          <ol class="mt-2 space-y-2">
+            {% for ex in p.examples %}
+            <li class="break-words text-sm leading-7">{% if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}</li>
+            {% endfor %}
+          </ol>
+          {% if not poles.shared and p.source %}<p class="mt-2 text-xs text-slate-500">From <a class="underline-offset-2 hover:underline" href="#{{ p.source.anchor }}">experiment {{ p.source.id }}</a>.</p>{% endif %}
+          {% else %}
+          <p class="mt-2 text-xs text-slate-500">Not scanned yet.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
     <p class="mt-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
       Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
       conclusive its probe evidence is (in either direction).
