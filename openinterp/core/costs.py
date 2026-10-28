@@ -16,6 +16,7 @@ import sys
 import time
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 
 from pydantic import Field
@@ -62,21 +63,36 @@ class LLMCall(StrictModel):
     )
 
 
-class ExternalUsage(StrictModel):
-    """Tokens an external answerer used, written next to its answer as
-    ``<answer>.usage.json`` (``openinterp usage``). ``input_tokens`` excludes cache reads
-    and writes. ``cost_usd`` is for a provider that reports its own cost; otherwise the
-    tokens are priced at list price for the model the command records."""
+class RequestUsage(StrictModel):
+    """One API request's tokens. ``input_tokens`` excludes cache reads and writes."""
 
-    model: str | None = Field(default=None, description="The model the transcript reports.")
-    requests: int = Field(default=0, ge=0)
+    at: datetime | None = Field(default=None, description="When it was made, if known.")
     input_tokens: int = Field(default=0, ge=0)
     cache_read_tokens: int = Field(default=0, ge=0)
     cache_write_5m_tokens: int = Field(default=0, ge=0)
     cache_write_1h_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
+
+
+class ExternalUsage(RequestUsage):
+    """Tokens an external answerer used, written next to its answer as
+    ``<answer>.usage.json`` (``openinterp usage``): totals, plus each request when known,
+    since prices can depend on a request's size and time. ``cost_usd`` is for a provider
+    that reports its own cost; otherwise the requests are priced at list price for the
+    model the command records."""
+
+    model: str | None = Field(default=None, description="The model the transcript reports.")
+    requests: int = Field(default=0, ge=0)
+    per_request: list[RequestUsage] = Field(default_factory=list)
     cost_usd: float | None = Field(default=None, ge=0.0)
     source: str | None = Field(default=None, examples=["claude-code:agent-a1b2c3"])
+
+    @classmethod
+    def of(cls, requests: list[RequestUsage], **kw) -> ExternalUsage:
+        """Totals over ``requests``, keeping each one."""
+        keys = [k for k in RequestUsage.model_fields if k != "at"]
+        totals = {k: sum(getattr(r, k) for r in requests) for k in keys}
+        return cls(requests=len(requests), per_request=requests, **totals, **kw)
 
     def call_fields(self, model: str) -> dict:
         """Token, cost and price-table fields of an :class:`LLMCall` answered by ``model``."""
@@ -89,14 +105,11 @@ class ExternalUsage(StrictModel):
         }
         if self.cost_usd is not None:
             return {**fields, "cost_usd": self.cost_usd}
-        cost = pricing.cost_usd(
-            model,
-            input_tokens=self.input_tokens,
-            output_tokens=self.output_tokens,
-            cache_read_tokens=self.cache_read_tokens,
-            cache_write_5m_tokens=self.cache_write_5m_tokens,
-            cache_write_1h_tokens=self.cache_write_1h_tokens,
-        )
+        if self.per_request:
+            cost = pricing.cost_usd(model, self.per_request)
+        else:  # totals only: made now, each request with the average prompt
+            prompt = fields["prompt_tokens"] / max(self.requests, 1)
+            cost = pricing.cost_usd(model, [self], prompt=prompt)
         table = pricing.TABLE if cost is not None else None
         return {**fields, "cost_usd": cost, "price_table": table}
 

@@ -11,9 +11,17 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 
-from openinterp.core.costs import ExternalUsage
+from openinterp.core.costs import ExternalUsage, RequestUsage
+
+
+def _time(value) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, ValueError):
+        return None
 
 
 def claude_dir() -> Path:
@@ -36,7 +44,7 @@ def find_transcript(agent: str) -> Path:
 
 
 def usage_from_transcript(path: Path) -> ExternalUsage:
-    last: dict[str, dict] = {}  # API response id → its last line's message
+    last: dict[str, tuple] = {}  # API response id → (time, its last line's message)
     for line in path.read_text().splitlines():
         try:
             entry = json.loads(line)
@@ -47,28 +55,29 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
             continue
         if message.get("model", "").startswith("<"):  # e.g. "<synthetic>" error stubs
             continue
-        last[message.get("id") or entry.get("uuid")] = message
+        at = _time(entry.get("timestamp"))
+        last[message.get("id") or entry.get("uuid")] = (at, message)
 
-    totals = dict.fromkeys(("input", "read", "write_5m", "write_1h", "output"), 0)
-    models: dict[str, int] = {}
-    for message in last.values():
+    requests, models = [], {}
+    for at, message in last.values():
         u = message["usage"]
-        writes = u.get("cache_creation") or {}
-        write_1h = writes.get("ephemeral_1h_input_tokens") or 0
-        totals["input"] += u.get("input_tokens") or 0
-        totals["read"] += u.get("cache_read_input_tokens") or 0
-        totals["write_1h"] += write_1h
-        totals["write_5m"] += (u.get("cache_creation_input_tokens") or 0) - write_1h
-        totals["output"] += u.get("output_tokens") or 0
+        write_1h = (u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens") or 0
+        requests.append(
+            RequestUsage(
+                at=at,
+                input_tokens=u.get("input_tokens") or 0,
+                cache_read_tokens=u.get("cache_read_input_tokens") or 0,
+                cache_write_5m_tokens=max(
+                    (u.get("cache_creation_input_tokens") or 0) - write_1h, 0
+                ),
+                cache_write_1h_tokens=write_1h,
+                output_tokens=u.get("output_tokens") or 0,
+            )
+        )
         model = message.get("model") or "unknown"
         models[model] = models.get(model, 0) + 1
-    return ExternalUsage(
+    return ExternalUsage.of(
+        requests,
         model=",".join(sorted(models, key=lambda m: -models[m])) or None,
-        requests=len(last),
-        input_tokens=totals["input"],
-        cache_read_tokens=totals["read"],
-        cache_write_5m_tokens=max(totals["write_5m"], 0),
-        cache_write_1h_tokens=totals["write_1h"],
-        output_tokens=totals["output"],
         source=f"claude-code:{path.stem}",
     )

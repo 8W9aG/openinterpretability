@@ -2,6 +2,7 @@
 
 import json
 import os
+from datetime import datetime
 
 from click.testing import CliRunner
 
@@ -80,21 +81,55 @@ def test_ledger_and_summary(tmp_path, monkeypatch):
     assert len(read_ledger([ledger])) == 1  # `costs` itself is not an experiment step
 
 
+def _req(at=None, **tokens):
+    return costs.RequestUsage(at=at and datetime.fromisoformat(at), **tokens)
+
+
 def test_pricing_normalises_names_and_skips_unknown_models():
     from openinterp.core import pricing
 
     assert pricing.price_key("external/anthropic/claude-opus-5-5[1m]") == "claude-opus-5-5"
-    # 1M input at $4, 1M cache reads at $0.20, 1M 5-minute writes at 1.25 × $4, 1M output
-    cost = pricing.cost_usd(
-        "external/claude-opus-5-5",
-        input_tokens=10**6,
-        output_tokens=10**6,
-        cache_read_tokens=10**6,
-        cache_write_5m_tokens=10**6,
-        cache_write_1h_tokens=10**6,
+    # 1M each of input ($4), output, cache reads ($0.20), 5-minute (1.25×) and 1-hour (2×) writes
+    m = 10**6
+    big = _req(
+        input_tokens=m,
+        output_tokens=m,
+        cache_read_tokens=m,
+        cache_write_5m_tokens=m,
+        cache_write_1h_tokens=m,
     )
-    assert cost == 4 + 20 + 0.2 + 5 + 8
-    assert pricing.cost_usd("external/deepseek-flash", input_tokens=1, output_tokens=1) is None
+    assert pricing.cost_usd("external/claude-opus-5-5", [big]) == 4 + 20 + 0.2 + 5 + 8
+    assert pricing.cost_usd("external/claude-3-5-sonnet-20241022", [big]) is None
+    # Muse Spark at its Contributor tier, any version
+    small = _req(input_tokens=m, output_tokens=m)
+    for name in ("muse-spark-1.3-contributor", "muse-spark-1.3.3"):
+        assert pricing.cost_usd(f"external/{name}", [small]) == 0.3
+    assert pricing.cost_usd("external/glm-4.7-flash", [small]) == 0.0
+
+
+def test_pricing_tiers_peaks_and_dates():
+    from openinterp.core import pricing
+
+    k = 1000
+    short, long = _req(input_tokens=100 * k), _req(input_tokens=100 * k + 1)
+    assert pricing.cost_usd("external/claude-haiku-5-5", [short]) == 0.01
+    assert pricing.cost_usd("external/claude-haiku-5-5", [long]) == round(0.5 * 100_001 / 1e6, 6)
+    grok = _req(input_tokens=200 * k, output_tokens=k)
+    assert pricing.cost_usd("external/grok-build", [grok]) == 0.4 + 0.004
+    # Summed over 3 requests the prompt is 300K, but each was 100K: the standard tier.
+    assert pricing.cost_usd("grok-build", [_req(input_tokens=300 * k)], prompt=100 * k) == 0.3
+
+    m = 10**6
+    off = _req("2026-10-24T02:00:00+00:00", input_tokens=m, output_tokens=m)  # Saturday
+    peak = _req("2026-10-28T02:00:00+00:00", input_tokens=m, output_tokens=m)  # Wednesday
+    before_cut = _req("2026-09-01T12:00:00+00:00", input_tokens=m)
+    assert pricing.cost_usd("external/deepseek-flash[1m]", [off]) == 0.75
+    assert pricing.cost_usd("external/deepseek-flash[1m]", [off, peak]) == 0.75 + 1.5
+    assert pricing.cost_usd("external/deepseek-flash[1m]", [off, before_cut]) is None
+
+    in_2026 = _req("2026-12-31T23:00:00+00:00", input_tokens=m)
+    in_2027 = _req("2027-01-01T01:00:00+00:00", input_tokens=m)
+    assert pricing.cost_usd("external/gemini/gemini-3.8-flash", [in_2026, in_2027]) == 2.25
 
 
 def _transcript(path, model="claude-sonnet-5-5"):
@@ -110,7 +145,8 @@ def _transcript(path, model="claude-sonnet-5-5"):
             "output_tokens": output,
         }
         message = {"id": msg_id, "model": model, "usage": usage}
-        return json.dumps({"type": "assistant", "message": message})
+        entry = {"type": "assistant", "message": message, "timestamp": "2026-10-28T01:00:00Z"}
+        return json.dumps(entry)
 
     lines = [
         json.dumps({"type": "user", "message": {"role": "user", "content": "hi"}}),
@@ -137,6 +173,8 @@ def test_usage_from_transcript_counts_each_response_once(tmp_path):
     )
     assert (u.cache_write_5m_tokens, u.cache_write_1h_tokens, u.output_tokens) == (50, 50, 340)
     assert u.source == "claude-code:agent-abc"
+    assert [r.output_tokens for r in u.per_request] == [300, 40]
+    assert u.per_request[0].at == datetime.fromisoformat("2026-10-28T01:00:00+00:00")
 
 
 def test_external_answer_with_usage_file_is_priced(tmp_path):
@@ -168,7 +206,7 @@ def test_external_answer_with_usage_file_is_priced(tmp_path):
     costs.usage_path(answer).write_text(reported.model_dump_json())
     costs.add_external("reviewer", "external/claude-sonnet-5-5", prompt, answer)
     costs.usage_path(answer).write_text(usage.model_dump_json())
-    costs.add_external("reviewer", "external/deepseek-flash", prompt, answer)
+    costs.add_external("reviewer", "external/unlisted-model", prompt, answer)
     _, own, unknown = costs.measured().llm_calls
     assert (own.cost_usd, own.price_table) == (0.5, None)
     assert (unknown.cost_usd, unknown.price_table, unknown.prompt_tokens) == (None, None, 254)
