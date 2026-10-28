@@ -77,6 +77,42 @@ def test_structured_call_passes_model_and_messages(mocker, draft, ident, toy_run
     assert "[[" in kwargs["messages"][1]["content"]  # peak token marked
 
 
+@pytest.mark.parametrize(
+    "spec, model, recorded",
+    [
+        ("", "external/claude-haiku-5-5", "external/claude-haiku-5-5"),
+        ("grok-4", "external/claude-haiku-5-5", "external/grok-4"),
+        ("grok-4", "anthropic/claude-haiku-5-5", "anthropic/claude-haiku-5-5"),  # it's called
+        (
+            "claude-haiku-5-5=grok-4-fast, claude-opus-5-5=grok-4",
+            "external/claude-opus-5-5",
+            "external/grok-4",
+        ),
+        ("claude-haiku-5-5=grok-4-fast", "external/claude-opus-5-5", "external/claude-opus-5-5"),
+        (
+            "external/claude-haiku-5-5=external/grok-4-fast,grok-4",
+            "external/claude-haiku-5-5",
+            "external/grok-4-fast",
+        ),
+        ("claude-haiku-5-5=grok-4-fast,grok-4", "external/claude-opus-5-5", "external/grok-4"),
+        ("grok-4", None, None),
+    ],
+)
+def test_recorded_model_applies_aliases(monkeypatch, spec, model, recorded):
+    from openinterp.agents.base import MODEL_ALIASES_ENV, recorded_model
+
+    monkeypatch.setenv(MODEL_ALIASES_ENV, spec)
+    assert recorded_model(model) == recorded
+
+
+def test_recorded_model_rejects_malformed_aliases(monkeypatch):
+    from openinterp.agents.base import MODEL_ALIASES_ENV, recorded_model
+
+    monkeypatch.setenv(MODEL_ALIASES_ENV, "claude-haiku-5-5=")
+    with pytest.raises(ValueError, match="malformed"):
+        recorded_model("external/claude-haiku-5-5")
+
+
 def test_agent_errors_are_wrapped(mocker):
     client = mocker.Mock()
     client.chat.completions.create.side_effect = RuntimeError("rate limited")

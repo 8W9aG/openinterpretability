@@ -2,6 +2,10 @@
 
 Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unreleased]` when they land. Items marked **(protocol)** change the decision rule and must bump `PROTOCOL_VERSION` (`docs/PROTOCOL.md` §6).
 
+## Bugs
+
+- [ ] Fix the `HF_TOKEN` issue.
+
 ## Protocol and science
 
 - [ ] Positive control: audit known induction heads or other well-documented units and confirm the protocol VERIFIES them. Protocol 0.6 can audit heads; a dry run on GPT-2 small L5H1 (induction score 0.89; proposer and judges Claude Opus/Haiku 5.5, reviewer Sonnet 5.5) was NEEDS_REVISION twice, failing only specificity. Every holdout fired, every counterfactual reproduced, causal scores were 1.0 against the layer's other heads, and the record reproduced. The misses: (1) the head also fires on fuzzy and template repeats ("The dog … the dog", `x = a + b; y = c + d`), which an exact-repeat explanation excludes; (2) the reviewer labelled probes by words, not GPT-2 tokens, so exact repeats like ". My … . My" were marked as hard negatives. Next: a third revision that describes the fuzzy matching, run as a registry experiment, and decide whether reviewer prompts for heads should state the token-level matching rule.
@@ -32,6 +36,12 @@ Methods from the wider interpretability literature that the registry doesn't use
 - [ ] Causal-abstraction check (Geiger et al., 2024; `stanfordnlp/pyvene`). For a hypothesis that names a variable ("inside a quotation"), compare the interchange-intervention accuracy of swapping the pole between counterfactual pairs with that of a learned one-dimensional DAS direction for the same variable. The probe comparison above is correlational; this is its causal counterpart. A neuron close to the DAS ceiling is the model's variable; one far below it is a partial view of it.
 - [ ] Multi-dimensional features (Engels et al., 2024): check whether the pole and its partner poles together trace a circular or ordinal manifold, such as days of the week, months or small numbers. Fit PCA to their joint activations on the activating set. Allow hypotheses of the form "one coordinate of a k-dimensional feature" so these neurons aren't forced into a single-concept story and rejected.
 - [ ] Adversarial input search, the text analogue of feature visualisation. Optimise prompts to maximise, or exactly hit, the pole's activation, using GCG/EPO-style fluent optimisation (Thompson et al., "Fluent dreaming", 2024), and check the hypothesis on the results. This automated reviewer arm hunts for false positives and negatives an LLM reviewer wouldn't think of. Record how many optimised inputs the hypothesis mispredicts.
+- [ ] Investigate using part-of-speech (PoS) tags in the process. Tag the scan corpus (e.g. spaCy, or the `universal_dependencies` labels under Datasets), align word tags to model tokens, and report the PoS distribution of the pole's top activations against the corpus base rate. Uses to try:
+  - *proposer*: give it the PoS enrichment as evidence, so syntactic neurons ("verbs after a modal") are easier to spot than from raw tokens;
+  - *reviewer*: build hard negatives from the same word in a different role ("run" as noun vs verb) and check probe labels against the tags;
+  - *triage*: flag poles whose activations are explained by PoS alone, as a cheap prior alongside `neuron-family-triage`.
+
+  Check first how often subword splits and tagger errors make the alignment unreliable.
 
 ## Pipeline
 
@@ -127,6 +137,7 @@ At the moment CI's "Experiment records" job (`openinterp check`) only confirms t
 Experiment pages currently show the activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
 - [ ] Layer map on model pages: a layer × neuron grid coloured by status (VERIFIED, rejected, dead, unexplored), so coverage and where the interpretable neurons sit are visible.
+- [ ] Use a BitTorrent-style visualisation for progress on neurons and layers: a "pieces" bar per layer (and one for the whole model) where each cell is a neuron or a block of neurons, filled as experiments land and shaded by status. It replaces the "Studied neurons per layer" histogram (`m.layer_counts()` in `templates/index.html` and `templates/model.html`). Once `openinterp next` spreads random draws evenly, that histogram is flat and says nothing, while a pieces bar still shows how much of each layer is covered and where the gaps are. Decide the block size per cell for wide layers (Qwen2.5-0.5B has 4,864 neurons per layer), and whether this is the same view as the layer map above.
 - [ ] Feasibility study: a concept map on model pages, in the style of "2.5 million cancer research papers, mapped" (embed each item's text → k-NN graph → UMAP → Leiden clusters, labelled by theme). Each point is a neuron, placed by the meaning of the text it fires on, not by its activations or weights. Write up the findings and a recommendation before building anything.
   - **The embedding.** Use a text embedding (sentence-embedding model or embeddings API) of the text each pole fires on: its top-activating contexts, with the peak token marked inside a window of about ±20 tokens. A neuron's vector is the mean embedding of its positive-pole texts minus the mean embedding of its negative-pole texts. Then L2-normalise it and compare with cosine. So a "Paris as a city" neuron lands near other city neurons. Two neurons whose poles swap the same concepts (+city/−code and +code/−city) point opposite ways. Text that both poles share, such as "this is English web text", cancels out. Things to settle:
     - *Weighting.* Use a plain mean, or weight each text by its activation or rank so the strongest examples count most. Means keep the two poles on the same scale even when they keep different numbers of examples.
@@ -197,6 +208,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 Research directions to pick up once the registry covers several models well.
 
 - [ ] Investigate using the Platonic Representation Hypothesis (PRH) once multiple models are well understood.
+- [ ] Investigate snap training with Procrustes and the PRH: fit an orthogonal Procrustes map between two models' activations on shared text, then train one model to snap onto the other's representation. Check whether VERIFIED neurons map to their counterparts and keep their hypotheses after the snap.
 - [ ] Investigate predicting an unknown neuron's interpretability based on previous audits.
 - [ ] Investigate simplifying neural pathways.
 - [ ] Investigate inserting memories or behaviours.
