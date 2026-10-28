@@ -42,6 +42,7 @@ from openinterp.core.profiles import (  # noqa: F401  (re-exported)
 )
 from openinterp.core.steering import SteeringSamples
 from openinterp.core.strict import StrictModel, UnitFloat
+from openinterp.core.wiring import Wiring, WiringEdge  # noqa: F401  (re-exported)
 
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
@@ -365,6 +366,11 @@ class NeuronAuditSubmission(StrictModel):
         description="A neuron's other pole, from the same scan: its top examples and "
         "histogram, shown beside this pole on the neuron page (reported, not gated).",
     )
+    wiring: Wiring | None = Field(
+        default=None,
+        description="A neuron pole's top connections by virtual weight, read after the "
+        "proposer answered and shown to neither agent (reported, not gated).",
+    )
 
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:
@@ -440,6 +446,11 @@ class VerificationVerdict(StrictModel):
     joint_ablation: JointAblation | None = None
     environment: RunEnvironment | None = None
     explanation_scores: ExplanationScores | None = None
+    wiring: Wiring | None = Field(
+        default=None,
+        description="A neuron pole's top connections by attribution on the review's prompts "
+        "where it fired (reported, not gated).",
+    )
     notes: str = ""
 
 

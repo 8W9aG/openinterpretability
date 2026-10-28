@@ -749,3 +749,47 @@ def test_neuron_page_shows_both_poles(tmp_path, records):
     section = page.split('id="both-poles"')[1].split("</section>")[0]
     assert "from one scan" in section and "Not scanned yet." not in section
     assert 'data-v="0.900 · peak"' in section and "max 0.90" in section
+
+
+def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
+    from openinterp.builder.wiki import write_experiment_page
+    from openinterp.core.wiring import Wiring, WiringEdge
+
+    def edge(layer, index, weight, kind="mlp_neuron", **channels):
+        return WiringEdge(kind=kind, layer=layer, index=index, weight=weight, channels=channels)
+
+    weights = Wiring(
+        method="weights",
+        upstream_neurons=[edge(1, 5, -0.42, gate=-0.42, up=0.1), edge(2, 9, 0.3, gate=0.1, up=0.3)],
+        upstream_heads=[edge(3, 2, 0.8, kind="attn_head", gate=0.8, up=0.2)],
+        downstream_neurons=[edge(4, 1, 0.25, gate=0.25, up=0.0)],
+        downstream_heads=[edge(5, 0, 1.5, kind="attn_head", q=0.1, k=1.5, v=0.2)],
+    )
+    activations = Wiring(
+        method="activations",
+        upstream_neurons=[edge(1, 5, 0.07)],
+        upstream_heads=None,
+        downstream_neurons=[],
+        prompts=4,
+    )
+    sub = record.submission.model_copy(update={"wiring": weights})
+    verdict = record.verdict.model_copy(update={"wiring": activations})
+    rec = record.model_copy(update={"submission": sub, "verdict": verdict})
+    other_ident = sub.identifier.model_copy(update={"layer": 1, "neuron_idx": 5})
+    other = record.model_copy(
+        update={"submission": record.submission.model_copy(update={"identifier": other_ident})}
+    )
+    compile_site([rec, other], tmp_path / "site")
+    page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "From the weights" in page and "on 4 of the review" in page
+    assert 'href="../../../models/' + MODEL + '/L1/N5.html">L1/N5</a>' in page
+    assert ">L2/N9<" in page and "L2/N9</a>" not in page  # no page for it: not linked
+    assert "gate -0.42 · up +0.1" in page and ">k</td>" in page
+    assert "Not measured." in page and "None: no later layer." in page
+
+    wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
+    assert "### Wiring" in wiki and wiki.count("### Wiring") == 1
+    assert "- **Upstream neurons:** L1/N5 -0.42, L2/N9 +0.3" in wiki
+    assert "- **Downstream heads:** L5/H0 +1.5" in wiki
+    assert "- **Upstream heads:** not measured." in wiki
+    assert "on 4 of the review's prompts" in wiki

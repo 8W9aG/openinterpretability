@@ -84,6 +84,24 @@ def read_steering(runner, submission):
         return steering_samples(runner, unit, submission.max_activation)
 
 
+def read_wiring(runner, submission):
+    """A neuron pole's top connections by virtual weight, once the proposer has answered;
+    ``None`` for other units or an unsupported architecture."""
+    from openinterp.core import costs
+    from openinterp.core.exceptions import ArchitectureNotSupportedError
+    from openinterp.harness.wiring import weight_wiring
+
+    if submission.identifier.kind != "mlp_neuron_pole":
+        return None
+    click.echo("Reading the pole's wiring from the weights…", err=True)
+    with costs.stage("wiring"):
+        try:
+            return weight_wiring(runner, submission.identifier)
+        except ArchitectureNotSupportedError as exc:
+            click.echo(f"Skipping wiring: {exc}", err=True)
+            return None
+
+
 def write_evidence(evidence, path: Path) -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
@@ -381,6 +399,7 @@ def audit(
         )
     readout = read_patchscope(runner, submission)
     steering = read_steering(runner, submission)
+    wiring = read_wiring(runner, submission)
     # An evidence file carries the scan's costs; a one-step audit measured them here.
     provenance = with_costs(submission.provenance, costs.measured())
     revises = superseded and experiment_id(superseded)
@@ -391,6 +410,7 @@ def audit(
             "supersedes": revises,
             "patchscope": readout,
             "steering": steering,
+            "wiring": wiring,
         }
     )
     out = out or Path("submissions") / f"{ident.slug}.json"
