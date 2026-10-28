@@ -40,6 +40,8 @@ The project has two version numbers:
 
 - **`tinystories` corpus preset** (`roneneldan/TinyStories`, CDLA-Sharing-1.0): simple English stories for a low-confound control corpus and small models. `openinterp corpus --dataset tinystories` samples its train split, which is on the dataset's main branch.
 
+- **Unauditable random draws are kept.** A random draw the scan stops on, because it never fires (dead) or is default-on, used to leave no trace. `audit --random` now writes it write-once to `wiki/draws/<slug>/<timestamp>.json` (`UnauditableDraw`: the unit, the outcome, the active share and the scan's provenance), with `--wiki-dir ''` to skip. `openinterp check` validates the records, the build exports `data/draws.parquet`, and the home page's learned-basis baseline gains a *Not auditable* column per arm. The 21 dead latent draws of the transcoder baseline were re-drawn under 0.8 and recorded.
+
 ### Changed
 
 - **Protocol 0.8: units with a first-token floor skip the first token, and default-on units are not audited** (`docs/analyses/position-zero.md`). This settles how GELU negative poles and early-layer poles with a first-token floor are audited.
