@@ -15,8 +15,8 @@
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 
-{% if circuits %}
-<p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
+{% if circuits or hubs %}
+<p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
 
 {% set counts = model.layer_counts() %}

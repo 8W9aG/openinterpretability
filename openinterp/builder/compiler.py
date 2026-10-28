@@ -20,7 +20,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
-from openinterp.builder.circuits import circuits, unit_circuits, wiring_view
+from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
@@ -447,18 +447,26 @@ def compile_site(
 
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
-        found = circuits(model, rows)
-        circuit_of = unit_circuits(model, found)
+        found, found_hubs = circuits_and_hubs(model, rows)
+        anchor_of = unit_anchors(found, found_hubs)
         page = circuits_href(model.slug)
-        render(model.href, "model.html", model=model, circuits=found, circuits_page=page)
-        if found:
+        render(
+            model.href,
+            "model.html",
+            model=model,
+            circuits=found,
+            hubs=found_hubs,
+            circuits_page=page,
+        )
+        if found or found_hubs:
             n_units = sum(len(c.units) for c in found)
-            render(page, "circuits.html", model=model, found=found, n_units=n_units)
+            view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
+            render(page, "circuits.html", model=model, **view)
         for layer in model.layers:
             render(layer.href, "layer.html", model=model, layer=layer)
             for neuron in layer.units:
-                n = circuit_of.get(neuron.href)
-                circuit = f"{page}#circuit-{n}" if n else None
+                anchor = anchor_of.get(neuron.href)
+                circuit = f"{page}#{anchor}" if anchor else None
                 views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
                 render(
                     neuron.href,
