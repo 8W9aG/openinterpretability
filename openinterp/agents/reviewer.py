@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import format_input_attribution
 from openinterp.core import costs
+from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -32,6 +33,7 @@ from openinterp.harness.covariance import joint_ablation
 from openinterp.harness.hooks import NeuronHookRunner, run_environment
 from openinterp.harness.lookahead import ablation_profile
 from openinterp.harness.units import max_strength, submission_unit
+from openinterp.harness.wiring import activation_wiring
 
 
 class AdversarialProbe(BaseModel):
@@ -194,6 +196,8 @@ def evaluate_submission(
     )
     joint = _joint_ablation(submission, runner, probes, policy)
     lap("causal_metrics")
+    wiring = _activation_wiring(submission, runner, probes, threshold)
+    lap("wiring")
     return VerificationVerdict(
         status=decide(metrics, policy),
         confidence_score=metrics.balanced_accuracy,
@@ -205,6 +209,7 @@ def evaluate_submission(
         policy=policy,
         joint_ablation=joint,
         environment=run_environment(runner),
+        wiring=wiring,
         notes=_summary(results, metrics),
     )
 
@@ -271,6 +276,19 @@ def _joint_ablation(submission, runner, probes, policy):
     prompts = [p.base_prompt for p in submission.counterfactuals]
     prompts += [p.text for p in probes if p.expected_active]
     return joint_ablation(runner, prompts, ident.layer, ident.neuron_idx, ident.pole, partners)
+
+
+def _activation_wiring(submission, runner, probes, threshold):
+    """Wiring by attribution at the pole's peak on the prompts it should fire on (the
+    counterfactuals' base prompts and the holdouts), counting those where it did."""
+    if submission.identifier.kind != "mlp_neuron_pole" or threshold <= 0:
+        return None
+    prompts = [p.base_prompt for p in submission.counterfactuals]
+    prompts += [p.text for p in probes if p.expected_active]
+    try:
+        return activation_wiring(runner, submission.identifier, prompts, threshold)
+    except ArchitectureNotSupportedError:
+        return None
 
 
 def _delta_agrees(expected: float, observed: float, policy: ReviewPolicy) -> bool:
