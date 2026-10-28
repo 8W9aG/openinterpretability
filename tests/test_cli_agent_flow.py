@@ -170,7 +170,10 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
         "review",
     ]
     summary = run("costs", flow.path / "costs.jsonl").output
-    assert "probe_measurement" in summary and "external: no token counts" in summary
+    assert (
+        "probe_measurement" in summary
+        and "external without a usage file: no token counts" in summary
+    )
 
 
 def test_rereviewing_a_record_keeps_only_the_new_review_costs(flow, toy_runner):
