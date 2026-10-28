@@ -40,6 +40,10 @@ The project has two version numbers:
 
 - **`tinystories` corpus preset** (`roneneldan/TinyStories`, CDLA-Sharing-1.0): simple English stories for a low-confound control corpus and small models. `openinterp corpus --dataset tinystories` samples its train split, which is on the dataset's main branch.
 
+- **Unauditable random draws are kept.** A random draw the scan stops on, because it never fires (dead) or is default-on, used to leave no trace. `audit --random` now writes it write-once to `wiki/draws/<slug>/<timestamp>.json` (`UnauditableDraw`: the unit, the outcome, the active share and the scan's provenance), with `--wiki-dir ''` to skip. `openinterp check` validates the records, the build exports `data/draws.parquet`, and the home page's learned-basis baseline gains a *Not auditable* column per arm. The 21 dead latent draws of the transcoder baseline were re-drawn under 0.8 and recorded.
+
+- **The baseline's six floor poles, re-audited under 0.8.** Each was audited as a revision of its record, with the baseline's roles (`docs/analyses/position-zero.md`). With the first token unmeasured, every hypothesis has hard negatives. L2/N2331+ (a lowercase piece completing a rare split word) is VERIFIED. The other five fail only specificity, with every holdout and counterfactual passing. A scoring task now carries its unit's `first_token_floor`: `score --task` had re-measured a floor unit's held-out windows with their first tokens, so every window was labelled active.
+
 ### Changed
 
 - **Protocol 0.8: units with a first-token floor skip the first token, and default-on units are not audited** (`docs/analyses/position-zero.md`). This settles how GELU negative poles and early-layer poles with a first-token floor are audited.

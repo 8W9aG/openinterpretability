@@ -131,11 +131,28 @@ def scan_evidence(
     if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:
         verb = "Replayed" if scan_cache.replayed else "Cached"
         click.echo(f"{verb} layer {layer}'s scan: {scan_cache.last}", err=True)
+    provenance = ExperimentProvenance(
+        model_revision=run_environment(runner).model_revision,
+        dtype=dtype,
+        corpus=corpus_name,
+        corpus_sha256=corpus_sha,
+        n_snippets=len(texts),
+        tokens_scanned=len(scan.values),
+        snippet_tokens=window_tokens,
+        snippet_stride=stride if window_tokens is not None else None,
+        selection="random" if random_pick else "manual",
+        seed=seed if random_pick else None,
+        harness_version=__version__,
+        environment=run_environment(runner),
+        corpus_source=corpus_source,
+        corpus_sample=sample,
+    )
     if not scan.examples or scan.examples[0].max_activation <= 0:
-        raise click.ClickException(
-            f"{ident} never activates on this corpus; try a larger --corpus."
+        raise Unauditable(
+            f"{ident} never activates on this corpus; try a larger --corpus.",
+            draw(ident, "dead", None, provenance),
         )
-    check_default_on(ident, scan.values, scan.examples[0].max_activation)
+    check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
     lens = attribution = None
     if unit != "head":  # a head writes a subspace, not one direction a lens can read
         click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
@@ -167,22 +184,7 @@ def scan_evidence(
         top_examples=scan.examples,
         activation_histogram=activation_histogram(scan.values),
         first_token_floor=scan.first_token_floor,
-        provenance=ExperimentProvenance(
-            model_revision=run_environment(runner).model_revision,
-            dtype=dtype,
-            corpus=corpus_name,
-            corpus_sha256=corpus_sha,
-            n_snippets=len(texts),
-            tokens_scanned=len(scan.values),
-            snippet_tokens=window_tokens,
-            snippet_stride=stride if window_tokens is not None else None,
-            selection="random" if random_pick else "manual",
-            seed=seed if random_pick else None,
-            harness_version=__version__,
-            environment=run_environment(runner),
-            corpus_source=corpus_source,
-            corpus_sample=sample,
-        ),
+        provenance=provenance,
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,
         vocabulary_lens=lens,
@@ -194,7 +196,30 @@ def scan_evidence(
     )
 
 
-def check_default_on(ident, values, scale: float) -> None:
+class Unauditable(click.ClickException):
+    """The scan stopped on a unit that can't be audited; ``draw`` records it."""
+
+    def __init__(self, message: str, draw):
+        super().__init__(message)
+        self.draw = draw
+
+
+def draw(ident, outcome, share, provenance):
+    from datetime import UTC, datetime
+
+    from openinterp.core.draws import UnauditableDraw
+
+    share = None if share is None else round(share, 6)
+    return UnauditableDraw(
+        identifier=ident,
+        outcome=outcome,
+        active_share=share,
+        provenance=provenance,
+        timestamp=datetime.now(UTC),
+    )
+
+
+def check_default_on(ident, values, scale: float, provenance=None) -> None:
     """Stop if the unit is default-on (protocol 0.8): active on so much of the scan that a
     hard negative of a few words would still fire, so it can't be audited as a detector.
     Most of GPT-2's negative poles are (GELU's dip; docs/analyses/position-zero.md). The
@@ -205,10 +230,11 @@ def check_default_on(ident, values, scale: float) -> None:
     policy = ReviewPolicy()
     share = activation_histogram(values).share_at_least(policy.activation_threshold * scale)
     if share >= policy.max_active_share:
-        raise click.ClickException(
+        raise Unauditable(
             f"{ident} is default-on: it is active on {share:.0%} of the scan's tokens, so no "
             "hard negative can stay inactive and it can't be audited as a detector "
-            "(docs/PROTOCOL.md §1). Record the draw as default-on."
+            "(docs/PROTOCOL.md §1).",
+            draw(ident, "default_on", share, provenance) if provenance else None,
         )
 
 

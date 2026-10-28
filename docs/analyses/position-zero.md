@@ -65,7 +65,23 @@ Re-evaluating keeps a record's scale and re-measures its stored probes. A record
 - **Floor poles.** The six floor poles, and three of the pilot's negative poles, are judged to have a floor. Their verdicts stay NEEDS_REVISION, because their probe sets were written for the floor: they need new hypotheses and probes, not a re-measurement.
 - **Qwen.** No Qwen pole has a floor, so all nine stay as they were.
 
+## Re-auditing the six floor poles
+
+Each of the baseline's six floor poles was rescanned under 0.8 and audited as a revision of its record. The scans read the same corpus sample in 128-token windows, and every pole was judged to have a first-token floor and not to be default-on. The roles were those of the baseline: proposer `claude-opus-5-5`, reviewer `claude-sonnet-5-5`, judges `claude-haiku-5-5`. Before each review the labels were checked against the submitted explanation and GPT-2's token splits. Three probe sets went back to their reviewer for labels that contradicted the explanation, for example a near-line noun or ' ch'+'ien' labelled inactive.
+
+| Pole | Hypothesis | Verdict | Specificity | Sensitivity |
+| --- | --- | --- | --- | --- |
+| L1/N2522+ | French 'ien' after a one-letter stem (bien, rien, lien), 'ét' of 'été', ' steroid', and transfer verbs after about 8 tokens | NEEDS_REVISION | 0.45 | 1.00 |
+| L1/N3040+ | ' rest' in any sense, and a few Latinate word starts | NEEDS_REVISION | 0.73 | 1.00 |
+| L1/N874+ | words of preference and support, and of group and lineage | NEEDS_REVISION | 0.64 | 1.00 |
+| L2/N1712+ | a short lexicon of code, markup and SQL tokens (IFRAME, FROM, View, `[`) | NEEDS_REVISION | 0.50 | 1.00 |
+| L2/N993+ | a no-space piece completing a short code or split word (T1, MP3, gear\|box) | NEEDS_REVISION | 0.50 | 1.00 |
+| L2/N2331+ | a lowercase no-space piece completing a rare, technical or foreign word | **VERIFIED** | 0.82 | 1.00 |
+
+Every hypothesis now has hard negatives. Every holdout fired, and every counterfactual reproduced. The five that fail, fail only specificity, as 13 of the baseline's other positive poles did: the poles are broader than their explanations. For example, L2/N993+ also fires on "gear box" and "sk id" written apart, and L1/N2522+ on other French '-ien' words. So the floor hid ordinary poles, neither unusually clean nor unusually messy.
+
+The learned-basis baseline counts each unit by its first experiment, so these revisions don't change its positive-pole arm. Once L3/N47+ is re-evaluated (see above), that arm is 21 of 40 VERIFIED. Counting the floor poles by their revisions instead would make it 22 of 40.
+
 ## Next
 
-- Re-audit the six floor poles under 0.8 as revisions, and report the positive-pole arm with them.
-- Record default-on and dead draws as outcomes of random selection (`TODO.md`). With 87% of GPT-2's negative poles default-on, about 44% of `explore`'s GPT-2 draws now stop at the scan.
+- Report registry-wide statistics over random draws, with the dead and default-on draws now kept in `wiki/draws/` as outcomes (`TODO.md`).

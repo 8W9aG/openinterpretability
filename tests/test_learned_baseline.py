@@ -124,3 +124,38 @@ def test_wilson_interval_and_fisher_exact_test():
     assert fisher_exact(1, 10, 11, 14) == pytest.approx(0.0027594562)
     assert fisher_exact(8, 10, 1, 6) == pytest.approx(0.0349650350)
     assert fisher_exact(3, 6, 3, 6) == pytest.approx(1.0)
+
+
+def _draw(record, ident, outcome, window=128):
+    from datetime import UTC, datetime
+
+    from openinterp.core.draws import UnauditableDraw
+
+    return UnauditableDraw(
+        identifier=ident,
+        outcome=outcome,
+        active_share=0.9 if outcome == "default_on" else None,
+        provenance=_provenance("random", window),
+        timestamp=datetime(2026, 10, 1, tzinfo=UTC),
+    )
+
+
+def test_unauditable_draws_are_counted_with_their_arm(tmp_path, baseline_records, record):
+    pole = record.submission.identifier.model_copy(update={"layer": 3, "neuron_idx": 20})
+    latent = baseline_records[0].submission.identifier.model_copy(update={"feature_idx": 9})
+    draws = [
+        _draw(record, latent, "dead"),
+        _draw(record, latent.model_copy(update={"feature_idx": 8}), "dead"),
+        _draw(record, pole.model_copy(update={"pole": "negative"}), "default_on"),
+        _draw(record, pole.model_copy(update={"layer": 7}), "dead"),  # not a compared layer
+        _draw(record, pole, "dead", window=512),  # not the latents' scan
+    ]
+    report = compile_site(baseline_records, tmp_path, draws=draws)
+    (b,) = registry_stats(report.parquet, draws)["baseline"]
+    assert (b.features.dead, b.features.default_on) == (2, 0)
+    assert (b.neurons.dead, b.neurons.default_on) == (0, 1)
+    assert (b.negative_poles.default_on, b.positive_poles.default_on) == (1, 0)
+    assert "2 dead" in (tmp_path / "index.html").read_text()
+    rows = pq.read_table(tmp_path / "data" / "draws.parquet").to_pylist()
+    assert [r["outcome"] for r in rows] == ["dead", "dead", "default_on", "dead", "dead"]
+    assert rows[2]["pole"] == "negative" and rows[0]["dictionary"] == "tiny-tc"

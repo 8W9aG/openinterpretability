@@ -15,11 +15,15 @@ about −0.75. It sits in the dip on most tokens, so a probe's peak nearly alway
 the activity line and no hard negative passes. There the baseline's native arm is
 positive poles (``audit --random --pole positive``), and :attr:`Comparison.p_positive`
 is the test that matters.
+
+Random draws that couldn't be audited (``wiki/draws/``: dead, or default-on since protocol
+0.8) are counted per arm next to it, so a share VERIFIED can be read against every draw.
 """
 
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import duckdb
@@ -41,6 +45,8 @@ class Arm:
     units: int
     verified: int
     mean_balanced_accuracy: float | None
+    dead: int = 0  # random draws of this arm the scan stopped on (wiki/draws/)
+    default_on: int = 0
 
     @property
     def share(self) -> float | None:
@@ -106,13 +112,26 @@ def fisher_exact(k1: int, n1: int, k2: int, n2: int) -> float:
     return min(1.0, p)
 
 
-def _arm(rows: list[dict]) -> Arm:
+def _arm(rows: list[dict], draws: Sequence = ()) -> Arm:
     accuracies = [r["balanced_accuracy"] for r in rows if r["balanced_accuracy"] is not None]
     return Arm(
         units=len(rows),
         verified=sum(r["status"] == "VERIFIED" for r in rows),
         mean_balanced_accuracy=sum(accuracies) / len(accuracies) if accuracies else None,
+        dead=sum(d.outcome == "dead" for d in draws),
+        default_on=sum(d.outcome == "default_on" for d in draws),
     )
+
+
+def _pole_arm(rows: list[dict], draws: Sequence, pole: str) -> Arm:
+    return _arm(
+        [r for r in rows if r["pole"] == pole], [d for d in draws if d.identifier.pole == pole]
+    )
+
+
+def _scan_of(draw) -> tuple:
+    prov, ident = draw.provenance, draw.identifier
+    return (ident.model_name, prov.corpus_sha256, prov.snippet_tokens)
 
 
 def _mean(values) -> float | None:
@@ -120,9 +139,9 @@ def _mean(values) -> float | None:
     return sum(values) / len(values) if values else None
 
 
-def learned_baseline(con: duckdb.DuckDBPyConnection) -> list[Comparison]:
+def learned_baseline(con: duckdb.DuckDBPyConnection, draws: Sequence = ()) -> list[Comparison]:
     """One comparison per dictionary and scan setting (corpus, window) with a randomly
-    selected latent, over view ``r``."""
+    selected latent, over view ``r``, with the unauditable ``draws`` of each arm."""
     cur = con.execute(FIRST_AUDITS)
     cols = [d[0] for d in cur.description]
     first = [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
@@ -143,6 +162,10 @@ def learned_baseline(con: duckdb.DuckDBPyConnection) -> list[Comparison]:
             and (r["model_name"], r["corpus_sha256"], r["window_tokens"]) == tuple(scan)
             and r["layer"] in layers
         ]
+        same = [d for d in draws if _scan_of(d) == tuple(scan) and d.identifier.layer in layers]
+        latent_draws = [d for d in same if getattr(d.identifier, "dictionary", None) == name]
+        pole_draws = [d for d in same if d.identifier.kind == "mlp_neuron_pole"]
+
         comparisons.append(
             Comparison(
                 model_name=scan[0],
@@ -150,10 +173,10 @@ def learned_baseline(con: duckdb.DuckDBPyConnection) -> list[Comparison]:
                 layers=layers,
                 corpus_sha256=scan[1],
                 window_tokens=scan[2],
-                features=_arm(latents),
-                neurons=_arm(neurons),
-                positive_poles=_arm([r for r in neurons if r["pole"] == "positive"]),
-                negative_poles=_arm([r for r in neurons if r["pole"] == "negative"]),
+                features=_arm(latents, latent_draws),
+                neurons=_arm(neurons, pole_draws),
+                positive_poles=_pole_arm(neurons, pole_draws, "positive"),
+                negative_poles=_pole_arm(neurons, pole_draws, "negative"),
                 explained_variance=_mean(r["dictionary_explained_variance"] for r in latents),
                 mean_l0=_mean(r["dictionary_mean_l0"] for r in latents),
                 dead_share=_mean(r["dictionary_dead_share"] for r in latents),
