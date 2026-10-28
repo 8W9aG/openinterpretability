@@ -100,7 +100,7 @@ Explanation scores on held-out text (recorded, not gated): detection {{ (es.dete
 | | Kind | Probe | Expected | Activation |
 | --- | --- | --- | --- | --- |
 {% for t in verdict.adversarial_test_results if t.kind in ('hard_negative', 'positive_holdout') %}
-| {{ '✅' if t.passed else '❌' }} | {{ t.kind | replace('_', ' ') }} | {{ t.prompt | cell }} | {{ 'active' if t.expected_active else 'inactive' }} | {{ t.activation | num(3) }} |
+| {{ ('✅' if t.passed else '❌') if t.measured else '—' }} | {{ t.kind | replace('_', ' ') }} | {{ t.prompt | cell }} | {{ 'active' if t.expected_active else 'inactive' }} | {{ t.activation | num(3) if t.measured else 'unmeasured (one token)' }} |
 {% endfor %}
 
 ### Counterfactuals
@@ -108,7 +108,7 @@ Explanation scores on held-out text (recorded, not gated): detection {{ (es.dete
 | | Base → counterfactual | Expected Δ | Observed Δ |
 | --- | --- | --- | --- |
 {% for t in verdict.adversarial_test_results if t.kind == 'counterfactual' %}
-| {{ '✅' if t.passed else '❌' }} | {{ t.prompt | cell }} | {{ t.expected_delta | num(2) }} | {{ t.observed_delta | num(3) }} |
+| {{ ('✅' if t.passed else '❌') if t.measured else '—' }} | {{ t.prompt | cell }} | {{ t.expected_delta | num(2) }} | {{ t.observed_delta | num(3) if t.measured else 'unmeasured (one token)' }} |
 {% endfor %}
 
 {% for t in verdict.adversarial_test_results if t.kind == 'lookahead_consistency' %}

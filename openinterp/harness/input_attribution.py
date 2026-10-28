@@ -13,9 +13,10 @@ but the first. The first token stays as it is: most of the model's attention res
 it (the attention sink), so replacing it moves the whole path off-distribution, and on
 Qwen2.5-0.5B the integral then fails to converge and credits the first few tokens of a
 window with much of the activation that replacing any one of them doesn't remove. A
-peak on the first token is attributed to it alone. Position embeddings, where a model
-has them, are left alone. By completeness the attributions sum to f(x) − f(b), and
-each is reported as a share of that gap.
+peak on the first token is attributed to it alone; for a pole with a first-token floor
+(``skip_first``, protocol 0.8) the peak is over the other tokens. Position embeddings,
+where a model has them, are left alone. By completeness the attributions sum to
+f(x) − f(b), and each is reported as a share of that gap.
 
 The path integral is linear in each token's contribution, so it is checked by
 replacing one token at a time with the reference token and re-measuring: the peak
@@ -211,6 +212,7 @@ def input_attribution(
     top_k: int = 5,
     near: int = 4,
     batch_size: int = 8,
+    skip_first: bool = False,
 ) -> InputAttribution:
     """Integrated gradients at the peak of the first ``n_examples`` top examples.
 
@@ -236,7 +238,8 @@ def input_attribution(
         ids = runner.encode(example.text)["input_ids"][:1]
         with torch.no_grad():
             values = _pole_values(runner, ids, *args, lambda _out: None)[0]
-            peak = int(values.argmax())
+            start = int(skip_first and len(values) > 1)
+            peak = start + int(values[start:].argmax())
             ids = ids[:, : peak + 1]
             empty = _pole_values(
                 runner, ids, *args, lambda out, keep=peak > 0: reference(out, baseline, keep)

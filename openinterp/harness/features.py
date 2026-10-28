@@ -21,7 +21,14 @@ from openinterp.harness.dictionaries import Dictionary, DictionarySpec, load_spe
 from openinterp.harness.heads import _repeat
 from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
-from openinterp.harness.scan import BATCH_TOKENS, ScanResult, TopExamples, batches, cut_pieces
+from openinterp.harness.scan import (
+    BATCH_TOKENS,
+    ScanResult,
+    TopExamples,
+    batches,
+    cut_pieces,
+    settle,
+)
 from openinterp.harness.sites import dictionary_io
 
 ENCODE_CHUNK = 1024  # tokens encoded through the whole dictionary at once
@@ -91,32 +98,42 @@ def scan_feature(
     top = TopExamples()
     fit = _Fit()
     values: list[float] = []
+    first: list[bool] = []
     for batch in batches(runner, pieces, batch_tokens):
         x, out = dictionary_io(runner, batch.encoded, layer, spec.input_site)
         strengths = dictionary.feature(x, f).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
         values.extend(strengths[counted].tolist())
+        first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)
         on_device = counted.to(x.device)
         fit.update(dictionary, x[on_device], out[on_device])
     if not values:
         raise ValueError("the corpus has no tokens to scan")
 
+    def read(inputs):
+        x, _ = dictionary_io(runner, inputs, layer, spec.input_site)
+        return dictionary.feature(x, f)
+
+    density = round(sum(v > 0 for v in values) / len(values), 6)
+    tokens = len(values)
+    examples, values, floor = settle(runner, read, values, first, top, k)
     profile = spec_profile(
         spec,
         layer,
         n_features=dictionary.n_features,
-        density=round(sum(v > 0 for v in values) / len(values), 6),
-        tokens=len(values),
+        density=density,
+        tokens=tokens,
         **fit.stats(),
     )
     return FeatureScanResult(
-        examples=top.top(runner.tokenizer, k),
+        examples=examples,
         values=values,
         correlated=[],
         confounds=confounds.finalize(runner.tokenizer, min_count),
         windows=len(pieces),
+        first_token_floor=floor,
         profile=profile,
     )
 

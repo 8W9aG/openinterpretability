@@ -290,3 +290,27 @@ def test_answer_files_need_a_recorded_model(flow, args, message):
         (flow.path / "x.json").write_text(json.dumps(submission))
     result = CliRunner().invoke(cli, args)
     assert result.exit_code != 0 and message in result.output
+
+
+def test_a_random_draw_the_scan_stops_on_is_recorded(flow):
+    from openinterp.checks import check_registry
+    from openinterp.core.draws import load_draws
+
+    # The toy pole is active on most tokens: default-on.
+    args = ["audit", "--model", "toy", "--layer", "1", "--neuron", "7", "--pole", "positive",
+            "--corpus", "corpus.txt", "--evidence-out", "ev.json"]  # fmt: skip
+    manual = CliRunner().invoke(cli, args)
+    assert manual.exit_code != 0 and "default-on" in manual.output
+    assert not (flow.path / "wiki" / "draws").exists()  # only random draws are kept
+
+    result = CliRunner().invoke(cli, [*args, "--random", "--seed", "4"])
+    assert result.exit_code != 0 and "Recorded the default-on draw" in result.output
+    (draw,) = load_draws(flow.path / "wiki")
+    assert (draw.outcome, draw.identifier.pole, draw.provenance.seed) == (
+        "default_on",
+        "positive",
+        4,
+    )
+    assert draw.provenance.selection == "random" and draw.active_share >= 0.5
+    report = check_registry(flow.path / "wiki")
+    assert report.ok and report.draws == 1

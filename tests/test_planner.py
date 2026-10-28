@@ -76,6 +76,13 @@ def test_candidates_follow_verdicts(tmp_path, record):
     assert supersedes.endswith("N1-positive/20261001T120000Z.json")
 
 
+def test_default_on_units_get_no_follow_ups_but_their_other_pole(tmp_path, record):
+    gates = {"not_default_on": False, "specificity": False, "independent_review": False}
+    wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", idx=6, gates=gates))
+    kinds = _kinds(plan_next(wiki, seed=1, epsilon=0.0, now=NOW))
+    assert kinds == {("opposite_pole", "N6-negative")}
+
+
 def test_opposite_pole_skipped_when_studied(tmp_path, record):
     wiki = _registry(
         tmp_path,

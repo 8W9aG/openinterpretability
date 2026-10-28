@@ -9,6 +9,10 @@ overlapping windows that start every ``stride`` tokens, so a long document is re
 full without one huge forward pass. Every token still counts once in the statistics,
 in the first window that reaches it after the first, where it has at least
 ``window_tokens - stride`` tokens of context (the strided-perplexity convention).
+A unit with a first-token floor (protocol 0.8) is above its line at the first token
+whatever the token, so its scan leaves first tokens out of its scale, histogram and
+top-example ranking (:func:`settle`). That is decided after the pass, so every scan
+keeps whether each counted token is its piece's first.
 Top examples are windows, decoded back to text so a record re-measures them as the
 scan did, and no two overlap.
 
@@ -19,7 +23,7 @@ stores its chunks, and a later scan of any neuron in that layer replays them.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -34,7 +38,7 @@ from openinterp.core.schemas import (
 )
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.covariance import PartnerSearch
-from openinterp.harness.hooks import NeuronHookRunner, pole_strength
+from openinterp.harness.hooks import Inputs, NeuronHookRunner, pole_strength
 
 if TYPE_CHECKING:
     from openinterp.harness.layer_cache import LayerCache
@@ -55,6 +59,8 @@ class ScanResult:
     confounds: ConfoundProfile
     windows: int = 0  # forward-pass inputs: documents, or windows of them
     opposite: OppositeScan | None = None  # the neuron's other pole, from the same pass
+    # Protocol 0.8: first tokens are left out of examples and values (see ``settle``).
+    first_token_floor: bool = False
 
 
 @dataclass
@@ -62,6 +68,62 @@ class OppositeScan:
     pole: Pole
     examples: list[ActivatingExample]
     values: list[float]
+    first_token_floor: bool = False
+
+
+Strengths = Callable[[Inputs], torch.Tensor]
+
+
+@torch.no_grad()
+def first_position_share(
+    runner: NeuronHookRunner, strengths: Strengths, line: float, batch_size: int = 8192
+) -> float:
+    """The share of the vocabulary (special tokens left out) on which ``strengths`` is at
+    or above ``line`` at a text's first position. Attention there sees only the token
+    itself, so this is a property of the weights, the same for every corpus."""
+    tokenizer = runner.tokenizer
+    try:
+        size = len(tokenizer)
+    except TypeError:  # a tokenizer without a length: one id per embedding row
+        size = runner.model.get_input_embeddings().num_embeddings
+    special = set(getattr(tokenizer, "all_special_ids", None) or [])
+    vocab = [i for i in range(size) if i not in special]
+    above = 0
+    for start in range(0, len(vocab), batch_size):
+        ids = torch.tensor(vocab[start : start + batch_size], device=runner.device).unsqueeze(1)
+        out = strengths({"input_ids": ids, "attention_mask": torch.ones_like(ids)})
+        above += int((out[:, 0] >= line).sum())
+    return above / max(len(vocab), 1)
+
+
+def has_first_token_floor(
+    runner: NeuronHookRunner, strengths: Strengths, scale: float, policy: ReviewPolicy
+) -> bool:
+    """Protocol 0.8: is the unit active at the first position on at least
+    ``policy.max_active_share`` of the vocabulary, against its line ``scale`` sets?"""
+    if scale <= 0:
+        return False
+    line = policy.activation_threshold * scale
+    return first_position_share(runner, strengths, line) >= policy.max_active_share
+
+
+def settle(
+    runner: NeuronHookRunner,
+    strengths: Strengths,
+    values: Sequence[float],
+    first: Sequence[bool],
+    top: TopExamples,
+    k: int,
+) -> tuple[list[ActivatingExample], list[float], bool]:
+    """A scan's top examples, counted values and whether the unit has a first-token floor.
+    The floor is judged against the scale the unit would have without first tokens (the
+    top example's peak after its first token), which is the scale it records if it has the
+    floor; with it, first tokens are left out of the examples' ranking and of the values."""
+    best = top.top(runner.tokenizer, 1, skip_first=True)
+    scale = best[0].max_activation if best else 0.0
+    floor = has_first_token_floor(runner, strengths, scale, ReviewPolicy())
+    kept = [v for v, f in zip(values, first, strict=True) if not f] if floor else list(values)
+    return top.top(runner.tokenizer, k, skip_first=floor), kept, floor
 
 
 @dataclass(frozen=True)
@@ -116,6 +178,11 @@ class Batch:
     counted: torch.Tensor  # real tokens new to the scan
     positions: torch.Tensor
 
+    @property
+    def first(self) -> torch.Tensor:
+        """Each piece's first real token."""
+        return self.mask & (self.mask.cumsum(1) == 1)
+
 
 def plan_batches(lengths: Sequence[int], batch_tokens: int) -> list[int]:
     """How many consecutive pieces each forward pass takes: as many as fit in
@@ -163,6 +230,11 @@ class Chunk:
     counted: torch.Tensor  # [n] bool: tokens new to the scan
     acts: torch.Tensor  # [n, width] the whole layer, in the model's dtype, on the CPU
 
+    @property
+    def first(self) -> torch.Tensor:
+        """``[n]`` bool: each piece's first token (pieces are padded on the right)."""
+        return self.positions == 0
+
     def rows(self) -> Iterator[tuple[Piece, slice]]:
         """Each piece and its rows."""
         start = 0
@@ -204,7 +276,7 @@ class TopExamples:
     """Collects every piece's strengths and keeps the ``k`` strongest that don't overlap."""
 
     def __init__(self) -> None:
-        self.candidates: list[tuple[float, Piece, list[int], list[float]]] = []
+        self.candidates: list[tuple[Piece, list[int], list[float]]] = []
 
     def update(self, batch: Batch, strengths: torch.Tensor) -> None:
         for row, piece in enumerate(batch.pieces):
@@ -217,12 +289,16 @@ class TopExamples:
 
     def add(self, piece: Piece, ids: list[int], values: list[float]) -> None:
         if values:
-            self.candidates.append((max(values), piece, ids, values))
+            self.candidates.append((piece, ids, values))
 
-    def top(self, tokenizer, k: int) -> list[ActivatingExample]:
+    def top(self, tokenizer, k: int, skip_first: bool = False) -> list[ActivatingExample]:
+        """The ``k`` strongest pieces by their peak, after their first token if
+        ``skip_first``."""
+        start = int(skip_first)
+        ranked = [(max(v[start:]), p, i, v) for p, i, v in self.candidates if len(v) > start]
         examples: list[ActivatingExample] = []
         chosen: list[Piece] = []
-        for peak_value, piece, row_ids, row_vals in sorted(self.candidates, key=lambda c: -c[0]):
+        for peak_value, piece, row_ids, row_vals in sorted(ranked, key=lambda c: -c[0]):
             if len(examples) == k:
                 break
             if any(piece.overlaps(c) for c in chosen):
@@ -234,7 +310,7 @@ class TopExamples:
                     tokens=[tokenizer.decode([i]) for i in row_ids],
                     activations=[round(v, 5) for v in row_vals],
                     max_activation=peak_value,
-                    max_token_index=row_vals.index(peak_value),
+                    max_token_index=row_vals.index(peak_value, start),
                 )
             )
         return examples
@@ -266,6 +342,7 @@ def scan_neuron(
     top, other_top = TopExamples(), TopExamples()
     values: list[float] = []
     other_values: list[float] = []
+    first: list[bool] = []
     other: Pole = "negative" if pole == "positive" else "positive"
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
@@ -276,18 +353,27 @@ def scan_neuron(
         partners.update(strengths[counted], acts[counted])
         confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
         values.extend(strengths[counted].tolist())
+        first.extend(chunk.first[counted].tolist())
         top.update_chunk(chunk, strengths)
         other_strengths = pole_strength(acts[:, neuron_idx], other)
         other_values.extend(other_strengths[counted].tolist())
         other_top.update_chunk(chunk, other_strengths)
 
+    def reader(p: Pole) -> Strengths:
+        return lambda inputs: runner.neuron_activations(inputs, layer, neuron_idx, p)
+
+    examples, values, floor = settle(runner, reader(pole), values, first, top, k)
+    other_examples, other_values, other_floor = settle(
+        runner, reader(other), other_values, first, other_top, opposite_k
+    )
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
     return ScanResult(
-        examples=top.top(runner.tokenizer, k),
+        examples=examples,
         values=values,
         correlated=partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
         confounds=confounds.finalize(runner.tokenizer, min_count),
         windows=len(pieces),
-        opposite=OppositeScan(other, other_top.top(runner.tokenizer, opposite_k), other_values),
+        opposite=OppositeScan(other, other_examples, other_values, other_floor),
+        first_token_floor=floor,
     )

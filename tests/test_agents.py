@@ -8,7 +8,12 @@ import pytest
 import torch
 
 from openinterp.agents.base import LLMAgent
-from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
+from openinterp.agents.proposer import (
+    FIRST_TOKEN_UNMEASURED,
+    CounterfactualDraft,
+    HypothesisDraft,
+    ProposerAgent,
+)
 from openinterp.agents.reviewer import (
     AdversarialProbe,
     ProbeSet,
@@ -30,6 +35,7 @@ from openinterp.harness.causal import (
 )
 from openinterp.harness.hooks import top_activating_examples
 from openinterp.harness.jlens import vocabulary_lens
+from openinterp.harness.units import NeuronUnit, max_strength, peak_strength
 
 # The toy model's probe set is small, so relax only the minimum-count gates.
 SMALL = ReviewPolicy(min_hard_negatives=1, min_holdouts=1)
@@ -339,6 +345,60 @@ def test_decision_rule(counts, status):
     assert decide(metrics, policy) == status
 
 
+def test_default_on_gate_reads_the_scan_histogram():
+    policy = ReviewPolicy()
+    results = _results(10, 0, 5, 0)
+    for share, passes in [(None, True), (0.49, True), (0.5, False), (0.9, False)]:
+        metrics = review_metrics(
+            results, policy, independent=True, baseline=BASELINE, active_share=share
+        )
+        assert metrics.gates["not_default_on"] is passes and metrics.active_share == share
+        assert decide(metrics, policy) == ("VERIFIED" if passes else "NEEDS_REVISION")
+
+
+def test_a_first_token_floor_skips_the_first_token(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    probes = _probes(toy_runner, ident, sub, honest=True)
+    plain = evaluate_submission(sub, toy_runner, probes, "anthropic/reviewer", SMALL)
+    assert plain.metrics.first_token_floor is False  # judged over the vocabulary
+    assert all(r.measured for r in plain.adversarial_test_results)
+
+    floored = sub.model_copy(update={"first_token_floor": True})
+    verdict = evaluate_submission(floored, toy_runner, probes, "anthropic/reviewer", SMALL)
+    assert verdict.metrics.first_token_floor is True
+    unit = NeuronUnit(ident, skip_first=True)
+    for r in verdict.adversarial_test_results:
+        if r.kind in {"hard_negative", "positive_holdout"}:
+            # One-token probes ("a", "q") are recorded, unmeasured, and count for nothing.
+            assert r.measured == (len(r.prompt) > 1)
+            assert r.activation == (None if not r.measured else pytest.approx(
+                max_strength(toy_runner, unit, r.prompt), abs=1e-6
+            ))  # fmt: skip
+    measured = [p for p in probes if len(p.text) > 1]
+    only = evaluate_submission(floored, toy_runner, measured, "anthropic/reviewer", SMALL)
+    assert verdict.metrics == only.metrics
+    with pytest.raises(ValueError, match="one token"):
+        max_strength(toy_runner, unit, "a")
+    assert peak_strength(toy_runner, NeuronUnit(ident), "a") is not None
+
+
+def test_only_a_floor_unit_is_told_its_first_token_is_not_measured(ident, toy_runner, draft):
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    assert FIRST_TOKEN_UNMEASURED not in ReviewerAgent.probe_prompt(sub)
+    floored = sub.model_copy(update={"first_token_floor": True})
+    assert FIRST_TOKEN_UNMEASURED in ReviewerAgent.probe_prompt(floored)
+    assert FIRST_TOKEN_UNMEASURED in ProposerAgent.proposal_prompt(
+        ident, sub.top_examples, first_token_floor=True
+    )
+    assert FIRST_TOKEN_UNMEASURED not in ProposerAgent.proposal_prompt(ident, sub.top_examples)
+    one = draft.counterfactuals[0].model_copy(update={"base_prompt": "a"})
+    short = draft.model_copy(update={"counterfactuals": [*draft.counterfactuals, one]})
+    with pytest.raises(ValueError, match="first-token floor"):
+        ProposerAgent("openai/test").build_submission(
+            ident, short, runner=toy_runner, examples=sub.top_examples, first_token_floor=True
+        )
+
+
 def test_balanced_accuracy_ignores_class_imbalance():
     metrics = review_metrics(
         _results(10, 0, 2, 3), ReviewPolicy(), independent=True, baseline=BASELINE
@@ -385,6 +445,10 @@ def test_confound_gate():
     assert review_metrics(
         results, policy, independent=True, baseline=("token identity", 0.9)
     ).gates["beats_confound_baseline"]  # ties pass
+    ten_of_eleven = review_metrics(  # specificity 10/11, sensitivity 10/11
+        _results(10, 1, 10, 1), policy, independent=True, baseline=("token identity", 0.909091)
+    )
+    assert ten_of_eleven.gates["beats_confound_baseline"]  # a tie with the rounded baseline
     beaten = review_metrics(results, policy, independent=True, baseline=("token identity", 0.95))
     assert beaten.gates["beats_confound_baseline"] is False
     assert beaten.confound_baseline == "token identity"

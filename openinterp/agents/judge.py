@@ -31,6 +31,8 @@ class ScoringTask(BaseModel):
     identifier: ComponentIdentifier
     head_profile: HeadProfile | None = None  # a head's strength is defined by its mean output
     dictionary_profile: DictionaryProfile | None = None  # and a feature's by its dictionary
+    # v0.8: the unit isn't measured at a window's first token (NeuronAuditSubmission)
+    first_token_floor: bool | None = None
     explanation: str
     threshold: float
     window_tokens: int

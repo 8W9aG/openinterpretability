@@ -131,10 +131,28 @@ def scan_evidence(
     if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:
         verb = "Replayed" if scan_cache.replayed else "Cached"
         click.echo(f"{verb} layer {layer}'s scan: {scan_cache.last}", err=True)
+    provenance = ExperimentProvenance(
+        model_revision=run_environment(runner).model_revision,
+        dtype=dtype,
+        corpus=corpus_name,
+        corpus_sha256=corpus_sha,
+        n_snippets=len(texts),
+        tokens_scanned=len(scan.values),
+        snippet_tokens=window_tokens,
+        snippet_stride=stride if window_tokens is not None else None,
+        selection="random" if random_pick else "manual",
+        seed=seed if random_pick else None,
+        harness_version=__version__,
+        environment=run_environment(runner),
+        corpus_source=corpus_source,
+        corpus_sample=sample,
+    )
     if not scan.examples or scan.examples[0].max_activation <= 0:
-        raise click.ClickException(
-            f"{ident} never activates on this corpus; try a larger --corpus."
+        raise Unauditable(
+            f"{ident} never activates on this corpus; try a larger --corpus.",
+            draw(ident, "dead", None, provenance),
         )
+    check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
     lens = attribution = None
     if unit != "head":  # a head writes a subspace, not one direction a lens can read
         click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
@@ -150,7 +168,9 @@ def scan_evidence(
     if unit == "neuron":
         click.echo("Attributing the top examples' peaks to their context tokens…", err=True)
         with costs.stage("input_attribution"):
-            attribution = input_attribution(runner, scan.examples, layer, index, ident.pole)
+            attribution = input_attribution(
+                runner, scan.examples, layer, index, ident.pole, skip_first=scan.first_token_floor
+            )
     other = scan.opposite  # a neuron's other pole, recorded if it ever fired
     opposite = None
     if other is not None and other.examples and other.examples[0].max_activation > 0:
@@ -163,22 +183,8 @@ def scan_evidence(
         identifier=ident,
         top_examples=scan.examples,
         activation_histogram=activation_histogram(scan.values),
-        provenance=ExperimentProvenance(
-            model_revision=run_environment(runner).model_revision,
-            dtype=dtype,
-            corpus=corpus_name,
-            corpus_sha256=corpus_sha,
-            n_snippets=len(texts),
-            tokens_scanned=len(scan.values),
-            snippet_tokens=window_tokens,
-            snippet_stride=stride if window_tokens is not None else None,
-            selection="random" if random_pick else "manual",
-            seed=seed if random_pick else None,
-            harness_version=__version__,
-            environment=run_environment(runner),
-            corpus_source=corpus_source,
-            corpus_sample=sample,
-        ),
+        first_token_floor=scan.first_token_floor,
+        provenance=provenance,
         confounds=scan.confounds,
         correlated_neurons=scan.correlated,
         vocabulary_lens=lens,
@@ -188,6 +194,48 @@ def scan_evidence(
         dictionary_profile=scan.profile if unit == "feature" else None,
         opposite_pole=opposite,
     )
+
+
+class Unauditable(click.ClickException):
+    """The scan stopped on a unit that can't be audited; ``draw`` records it."""
+
+    def __init__(self, message: str, draw):
+        super().__init__(message)
+        self.draw = draw
+
+
+def draw(ident, outcome, share, provenance):
+    from datetime import UTC, datetime
+
+    from openinterp.core.draws import UnauditableDraw
+
+    share = None if share is None else round(share, 6)
+    return UnauditableDraw(
+        identifier=ident,
+        outcome=outcome,
+        active_share=share,
+        provenance=provenance,
+        timestamp=datetime.now(UTC),
+    )
+
+
+def check_default_on(ident, values, scale: float, provenance=None) -> None:
+    """Stop if the unit is default-on (protocol 0.8): active on so much of the scan that a
+    hard negative of a few words would still fire, so it can't be audited as a detector.
+    Most of GPT-2's negative poles are (GELU's dip; docs/analyses/position-zero.md). The
+    share is read from the histogram, as the review's `not_default_on` gate reads it."""
+    from openinterp.core.schemas import ReviewPolicy
+    from openinterp.harness.hooks import activation_histogram
+
+    policy = ReviewPolicy()
+    share = activation_histogram(values).share_at_least(policy.activation_threshold * scale)
+    if share >= policy.max_active_share:
+        raise Unauditable(
+            f"{ident} is default-on: it is active on {share:.0%} of the scan's tokens, so no "
+            "hard negative can stay inactive and it can't be audited as a detector "
+            "(docs/PROTOCOL.md §1).",
+            draw(ident, "default_on", share, provenance) if provenance else None,
+        )
 
 
 def check_context(runner, texts) -> None:
