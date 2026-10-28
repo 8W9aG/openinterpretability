@@ -2,7 +2,7 @@
   {% if v.wiring %}
   <section class="mb-10" data-pagefind-ignore>
     <h3 class="mb-1 text-base font-semibold" title="Elhage et al., 2021; Syed et al., 2023">Wiring</h3>
-    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this {{ what }}'s input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Linked units have pages in the registry. Reported, not gated.{% if v.wiring_backfilled %} Backfilled after the review by <code>openinterp wiring-backfill</code>, from the record's model revision and the review's prompts; it is not part of the record.{% endif %}{% if v.circuit %} <a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ v.circuit }}">See its circuit</a>.{% endif %}</p>
+    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this {{ what }}'s input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Linked units have pages in the registry. Reported, not gated.{% if v.wiring_backfilled %} Backfilled after the review by <code>openinterp wiring-backfill</code>, from the record's model revision and the review's prompts; it is not part of the record.{% endif %}{% if v.circuit %} <a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ v.circuit }}">See it on the circuits page</a>.{% endif %}</p>
     {% for view in v.wiring %}
     {% set w = view.w %}
     <h4 class="mb-1 text-sm font-medium">{{ "From the weights" if w.method == "weights" else "From activations" }}</h4>
