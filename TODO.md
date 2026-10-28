@@ -18,11 +18,7 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
 
-- [ ] Wiring: the pole's top upstream and downstream connections. Two sources:
-  - *weights*: virtual weights (Elhage et al., 2021) from attention heads' OV circuits and earlier neurons' `w_out` into the pole's `w_in`, and from its `w_out` into later neurons' `w_in` and heads' Q/K/V, with the norm folded in or approximated;
-  - *activations*: edge attribution patching on the reviewer's probes (EAP, Syed et al., 2023; EAP-IG, Hanna et al., 2024).
-
-  Link edges to other registry entries. This is the first step toward circuit pages, and it overlaps with `ComponentIdentifier`.
+- [ ] Wiring follow-ups (wiring of neuron poles landed; see `CHANGELOG.md`): downstream heads from activations (EAP-IG, Hanna et al., 2024, for edges into Q/K/V); wiring for heads and dictionary features; backfilling it on archived records; then circuit pages that chain edges between registry entries.
 - [ ] Linear-probe comparison for VERIFIED concepts. Using labelled data from `sparse-probing-search`, train logistic and mass-mean probes (Marks & Tegmark, 2023) on the layer's MLP hidden activations and on the residual stream. Report:
   - probe accuracy against the neuron alone;
   - the cosine between the probe direction and the neuron's basis vector;
