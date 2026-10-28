@@ -155,7 +155,6 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Scope expansion
 
-- [ ] Re-audit the learned-basis baseline's six floor poles (L1/N2522+, L1/N3040+, L1/N874+, L2/N1712+, L2/N993+, L2/N2331+) under protocol 0.8, where their first-token floor no longer counts, as revisions of their records. Then report the positive-pole arm with them (`docs/analyses/position-zero.md`).
 - [ ] More dictionary presets in `openinterp/harness/dictionaries.py`: Gemma Scope transcoders (Gemma 2 2B, JumpReLU), the circuit-tracer transcoders (Qwen3, Llama 3.2 1B), Llama Scope, and an MLP-output SAE. A residual-stream SAE needs a new input and output site. Check each preset's input site by its reconstruction, as the GPT-2 one was. No public dictionary covers Qwen2.5-0.5B, the registry's default model, so its baseline would need one trained on the scan corpus.
 - [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
