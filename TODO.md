@@ -149,10 +149,8 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Scope expansion
 
-- [ ] Run the transcoder baseline arm in full. A pilot of 10 random latents against 10 random GPT-2 small neuron poles is in `docs/analyses/transcoder-baseline-pilot.md`. Latents: 9 of 10 VERIFIED. Neuron poles: 2 of 10, split 2 of 4 positive and 0 of 6 negative. Fisher p = 0.0055 overall, and 0.18 against positive poles only. The gap is mostly GPT-2's negative poles. GELU's dip keeps them active on almost every token, so a probe's peak always clears 0.25 × max, and they can't have hard negatives that pass. Before the full run (N ≥ 40 per arm, `--window-tokens 128 --corpus corpus.jsonl`, logging dead draws), decide how to treat them (next item).
-- [ ] **(protocol)** Decide how GELU negative poles are audited and sampled. Some ways forward:
-  - measure a probe's activity away from position 0, where several poles sit above the line whatever the token;
-  - sample only positive poles for GELU models in the learned-basis baseline;
+- [ ] **(protocol)** Decide how GELU negative poles, and early-layer poles with a first-token floor, are audited. The learned-basis baseline now samples positive poles only for GELU models. Some ways forward:
+  - measure a probe's activity away from position 0, where several poles sit above the line whatever the token (6 of the baseline's 40 positive poles, all in layers 1–2, failed this way);
   - record default-on poles as a family (skill `neuron-family-triage`) instead of auditing them as detectors.
 - [ ] More dictionary presets in `openinterp/harness/dictionaries.py`: Gemma Scope transcoders (Gemma 2 2B, JumpReLU), the circuit-tracer transcoders (Qwen3, Llama 3.2 1B), Llama Scope, and an MLP-output SAE. A residual-stream SAE needs a new input and output site. Check each preset's input site by its reconstruction, as the GPT-2 one was. No public dictionary covers Qwen2.5-0.5B, the registry's default model, so its baseline would need one trained on the scan corpus.
 - [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.

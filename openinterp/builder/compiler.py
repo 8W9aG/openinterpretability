@@ -69,6 +69,8 @@ def _environment() -> Environment:
     env.filters["pct_fine"] = _pct_fine
     env.filters["num"] = lambda v, d=3: "—" if v is None else f"{v:.{d}f}"
     env.filters["thousands"] = lambda v: "?" if v is None else f"{v:,}"
+    # p-values below 0.001 would round to 0.000, so show them in scientific notation.
+    env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
     return env
 

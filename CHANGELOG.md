@@ -11,6 +11,12 @@ The project has two version numbers:
 
 ### Added
 
+- **Transcoder baseline on GPT-2 small: latents beat positive neuron poles, 37 of 40 against 20 of 40** (`docs/analyses/transcoder-baseline.md`). This is the full run of the learned-basis baseline in `TODO.md`. It audited 40 random `gpt2-small-transcoders` latents and 40 random positive neuron poles under protocol 0.7. Scans read `corpus.jsonl` in 128-token windows. The proposer was claude-opus-5-5, the reviewer claude-sonnet-5-5 and the judges claude-haiku-5-5. Every draw is logged in order in `transcoder-baseline.jsonl`, with its verdict and record.
+  - *Result.* Latents: 92% VERIFIED (Wilson 80–97%), mean balanced accuracy 0.95. Positive poles: 50% (35–65%), 0.90. Fisher p = 4.3 × 10⁻⁵.
+  - *Dead latents.* 21 of 61 latent draws never fired on the scan. Counting them as not verified gives 37 of 61 (61%), and p = 0.31.
+  - *Why poles fail.* 13 poles failed specificity: they are broad families, and hard negatives outside the described family fired. Six poles in layers 1–2 stated a first-token floor above the activity line, so they could have no hard negatives. One failed the confound baseline. Three latents failed: sensitivity, counterfactual reproduction and lookahead consistency, one each.
+- **The baseline's native arm is positive poles for GELU models.** `Comparison.p_positive` tests latents against positive poles, and the home page reports that p first, then the p against all poles. `docs/PROTOCOL.md` §1 says why: GELU's negative pole sits in its dip on most tokens, so no hard negative can pass. p-values below 0.001 now show in scientific notation instead of rounding to 0.000.
+
 - **Transcoder baseline pilot on GPT-2 small** (`docs/analyses/transcoder-baseline-pilot.md`). 20 random units were audited, with seeds drawn in order and every draw logged in `transcoder-baseline-pilot.jsonl`. The scans read `corpus.jsonl` in 128-token windows. Proposer was claude-opus-5-5, reviewer claude-sonnet-5-5 and judges claude-haiku-5-5.
   - *Result.* Transcoder latents: 9 of 10 VERIFIED (90%, Wilson 60–98%). Neuron poles: 2 of 10 (20%, 6–51%), split 2 of 4 positive and 0 of 6 negative. Fisher p = 0.0055 overall, 0.18 against positive poles only.
   - *Dead draws.* 4 of the first 14 latent draws never fired on the scan; no neuron draw was dead.

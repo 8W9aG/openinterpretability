@@ -11,7 +11,10 @@ Each unit counts once, by its first reviewed experiment, and only if that experi
 it at random. Follow-ups (revisions, re-reviews) are left out so that neither arm gains
 from being studied more. Neurons are also compared by pole: in a GELU MLP (GPT-2) the
 negative pole is the activation's dip, at most 0.17 and reached at a pre-activation of
-about −0.75, so it behaves unlike a ReLU latent or a positive pole.
+about −0.75. It sits in the dip on most tokens, so a probe's peak nearly always clears
+the activity line and no hard negative passes. There the baseline's native arm is
+positive poles (``audit --random --pole positive``), and :attr:`Comparison.p_positive`
+is the test that matters.
 """
 
 from __future__ import annotations
@@ -65,15 +68,21 @@ class Comparison:
 
     @property
     def p_value(self) -> float | None:
-        """Two-sided Fisher exact test of equal shares VERIFIED."""
-        if not (self.features.units and self.neurons.units):
-            return None
-        return fisher_exact(
-            self.features.verified,
-            self.features.units,
-            self.neurons.verified,
-            self.neurons.units,
-        )
+        """Two-sided Fisher exact test of equal shares VERIFIED, latents against every
+        neuron pole."""
+        return _fisher(self.features, self.neurons)
+
+    @property
+    def p_positive(self) -> float | None:
+        """The same against positive poles only: the comparison for a GELU MLP, whose
+        negative poles no hard negative can pass (docs/PROTOCOL.md §1)."""
+        return _fisher(self.features, self.positive_poles)
+
+
+def _fisher(a: Arm, b: Arm) -> float | None:
+    if not (a.units and b.units):
+        return None
+    return fisher_exact(a.verified, a.units, b.verified, b.units)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
