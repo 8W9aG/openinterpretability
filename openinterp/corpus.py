@@ -59,6 +59,10 @@ PRESETS = {
     # C4 English validation split: the standard web baseline of the SAE literature. The
     # main branch is gzipped JSON, so read the Hub's Parquet conversion. ODC-By.
     "c4": Preset("allenai/c4", "en/partial-validation/*.parquet", revision="refs/convert/parquet"),
+    # Synthetic short stories written with a 3-4 year-old's vocabulary: a low-confound control
+    # corpus for small models. Parquet is on the main branch. CDLA-Sharing-1.0: share excerpts
+    # under the same licence.
+    "tinystories": Preset("roneneldan/TinyStories", "data/train-*.parquet"),
     # WikiText-103: 28,475 Good and Featured Wikipedia articles, long and clean, for windows
     # of 512+ tokens and entity/fact neurons. One row per paragraph or heading, so rows are
     # joined back into articles. CC BY-SA 3.0 and GFDL: attribute and share excerpts alike.

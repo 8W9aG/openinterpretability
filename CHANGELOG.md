@@ -15,6 +15,12 @@ The project has two version numbers:
 
 - **`$OPENINTERP_MODEL_ALIASES` renames the recorded external model.** When Claude Code is proxied (e.g. through LiteLLM to Grok), its subagents report the Claude model they were asked for, and that name was recorded as the proposer, reviewer or judge. The variable rewrites `external/<name>` in `--agent-model` and `--judge-model` before it is recorded: `reported=actual` pairs separated by commas (`claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`), or one bare name for every external model. LiteLLM model strings are left alone, since they're the model that gets called.
 
+- **`tinystories` corpus preset** (`roneneldan/TinyStories`, CDLA-Sharing-1.0): simple English stories for a low-confound control corpus and small models. `openinterp corpus --dataset tinystories` samples its train split, which is on the dataset's main branch.
+
+### Fixed
+
+- **CI's reproduce job downloads models with `HF_TOKEN` and from a shared cache.** Unsigned records stalled after "You are sending unauthenticated requests to the HF Hub" until the job was cancelled: the job never passed the `HF_TOKEN` secret, and the model cache it saved was scoped to its own pull request, so every PR downloaded Qwen2.5-0.5B again without a token (and each ~800 MB PR cache evicted others). The job now gets `secrets.HF_TOKEN` and only restores the cache. A new `model-cache` job on pushes to main downloads the allow-listed models at their current commits and saves the shared cache, keyed by those commits. `ALLOWED_MODELS` moves to the workflow's `env` so both jobs read one list.
+
 ## [0.0.8] - 2026-10-27
 
 Ships with protocol version **0.7**.
