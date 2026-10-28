@@ -238,6 +238,8 @@ def reproduce(
         reason = check_protocol(record)
         if allowed_models and model not in allowed_models:
             reason = f"model {model} is not on the allow-list ({', '.join(allowed_models)})"
+        elif allowed_models and not _preset_dictionary(record):
+            reason = "its dictionary is not a preset's (openinterp/harness/dictionaries.py)"
         if reason:
             return "FAILED", [reason], []
         revision, dtype = pinned_environment(record)
@@ -272,6 +274,18 @@ def reproduce(
                 fh.writelines(f"  - {message}\n" for message in problems)
     if failed:
         raise SystemExit(1)
+
+
+def _preset_dictionary(record) -> bool:
+    """A feature record pins the weights of its dictionary's preset, so the allow-list also
+    limits which dictionaries are downloaded. Other records have none to check."""
+    from openinterp.harness.dictionaries import DICTIONARIES
+
+    ident, profile = record.submission.identifier, record.submission.dictionary_profile
+    if ident.kind != "dictionary_feature" or profile is None:
+        return True
+    spec = DICTIONARIES.get(ident.dictionary)
+    return spec is not None and (spec.repo, spec.revision) == (profile.repo, profile.revision)
 
 
 def _allowed_signers(path: Path, base_ref: str | None) -> str:

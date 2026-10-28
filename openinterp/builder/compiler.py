@@ -20,6 +20,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
+from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
@@ -68,6 +69,8 @@ def _environment() -> Environment:
     env.filters["pct_fine"] = _pct_fine
     env.filters["num"] = lambda v, d=3: "—" if v is None else f"{v:.{d}f}"
     env.filters["thousands"] = lambda v: "?" if v is None else f"{v:,}"
+    # p-values below 0.001 would round to 0.000, so show them in scientific notation.
+    env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
     return env
 
@@ -302,6 +305,7 @@ def registry_stats(parquet: Path) -> dict:
         FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
         """
     )
+    baseline = learned_baseline(con)
     con.close()
     for row in verified + conclusive + recent:
         row["href"] = _anchor_href(row)
@@ -312,6 +316,7 @@ def registry_stats(parquet: Path) -> dict:
         "conclusive": conclusive,
         "recent": recent,
         "agents": agents,
+        "baseline": baseline,
     }
 
 
