@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from openinterp.builder.wiki import write_experiment_page
-from openinterp.core.schemas import AuditRecord, ReviewMetrics, ReviewPolicy
+from openinterp.core.schemas import AuditRecord, ExperimentProvenance, ReviewMetrics, ReviewPolicy
 from openinterp.planner import BASE_WEIGHTS, claim_key, configured_models, plan_next
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
@@ -250,3 +250,30 @@ def test_configured_models_match_ci_allow_list():
     configured = configured_models(root / "pyproject.toml")
     assert configured and sorted(configured) == sorted(allowed)
     assert configured_models(root / "missing.toml") == ()
+
+
+def test_short_context_models_are_scanned_in_windows(tmp_path, record):
+    """GPT-2 is scanned in windows: its explore draws, and follow-ups on a record scanned
+    in windows, rescan with the window length."""
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterp]\nmodels = ["a/x"]\n[tool.openinterp.window_tokens]\n"a/x" = 128\n'
+    )
+    plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW)
+    assert plan.choice.commands[0].endswith("--window-tokens 128")
+
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus="c",
+        n_snippets=1,
+        tokens_scanned=10,
+        snippet_tokens=256,
+        selection="random",
+        harness_version="t",
+    )
+    rec = _record(record, status="NEEDS_REVISION", gates={"specificity": False})
+    rec = rec.model_copy(
+        update={"submission": rec.submission.model_copy(update={"provenance": provenance})}
+    )
+    plan = plan_next(_registry(tmp_path / "b", rec), seed=1, epsilon=0.0, now=NOW)
+    audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
+    assert audits and all("--window-tokens 256" in cmd for cmd in audits)

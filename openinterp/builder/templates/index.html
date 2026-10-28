@@ -56,6 +56,43 @@
   {% endif %}
 </section>
 
+{% if stats.baseline %}
+<section class="mb-10" id="learned-baseline">
+  <h2 class="mb-1 text-lg font-semibold">Learned-basis baseline</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    Are a model's own neurons as explainable as the latents of a sparse dictionary trained on its MLPs?
+    Randomly selected latents and randomly selected neuron poles of the same model and layers, scanned the same way and audited under the same protocol.
+    Each unit counts once, by its first experiment, so follow-ups don't favour either side. Intervals are 95% Wilson intervals;
+    p is a two-sided Fisher exact test of latents against all neuron poles.
+  </p>
+  {% for b in stats.baseline %}
+  <div class="mb-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <caption class="bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-400">
+        <span class="font-mono">{{ b.model_name }}</span> · <span class="font-mono">{{ b.dictionary }}</span> · layers {{ b.layers | first }}–{{ b.layers | last }} ·
+        {% if b.window_tokens %}{{ b.window_tokens }}-token windows{% else %}whole documents{% endif %} of corpus <span class="font-mono" title="{{ b.corpus_sha256 }}">{{ (b.corpus_sha256 or "?")[:8] }}</span> ·
+        explained variance {{ b.explained_variance | pct }} · mean L0 {{ b.mean_l0 | num(0) }}{% if b.dead_share is not none %} · <span title="Latents inactive on every scanned token: a random draw of one can't be audited, so they are not in the latents' row">dead latents {{ b.dead_share | pct }}</span>{% endif %}{% if b.p_value is not none %} · p = {{ b.p_value | num(2) }}{% endif %}
+      </caption>
+      <thead class="text-xs uppercase tracking-wide text-slate-500">
+        <tr><th class="px-3 py-2">Random units</th><th class="px-3 py-2 text-right">Audited</th><th class="px-3 py-2 text-right">Verified</th><th class="px-3 py-2 text-right">Share (95% CI)</th><th class="px-3 py-2 text-right">Balanced accuracy</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 tabular-nums dark:divide-slate-800">
+        {% for label, arm in [("Dictionary latents", b.features), ("Neuron poles", b.neurons), ("↳ positive poles", b.positive_poles), ("↳ negative poles", b.negative_poles)] %}
+        <tr>
+          <td class="px-3 py-2">{{ label }}</td>
+          <td class="px-3 py-2 text-right font-mono">{{ arm.units }}</td>
+          <td class="px-3 py-2 text-right font-mono">{{ arm.verified }}</td>
+          <td class="px-3 py-2 text-right font-mono">{% if arm.units %}{{ arm.share | pct }} ({{ arm.interval[0] | pct }}–{{ arm.interval[1] | pct }}){% else %}—{% endif %}</td>
+          <td class="px-3 py-2 text-right font-mono">{{ arm.mean_balanced_accuracy | num(2) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 <section class="mb-10">
   <h2 class="mb-3 text-lg font-semibold">Models</h2>
   {% if models %}
