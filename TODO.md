@@ -107,7 +107,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
 
-- [ ] Load the model once per experiment. `audit` and `verify` run as separate processes, and each loads the model; the scan, lenses, probe measurement and gates could share one load. `openinterp loop` (Pipeline) extends this across experiments. Batch the reviewer's probes and counterfactuals into as few forward passes as their lengths allow.
 - [ ] Trim the proposer prompt.
   - Top-activating snippets currently include whole documents: the first example for L13/N1706+ is an entire film review. Show a window of a fixed number of tokens around the peak instead.
   - Drop near-duplicate snippets.
@@ -127,7 +126,6 @@ Measure before optimising, and check that any change to what the agents see does
 
 At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), and CI's "Reproduce records" job runs it on every pull request, on GitHub-hosted CPU runners with cached weights and a model allow-list. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
-- [ ] Treat records as untrusted input: run only allow-listed models (no arbitrary Hugging Face repos, never `trust_remote_code`), bound probe count and length, and run each job in a sandbox with no network beyond the model cache.
 - [ ] Report back to GitHub as a commit status or check run on the PR's head SHA ("Reproduction: passed / failed / queued"), with a link to the log, and make it a required check for `main` once it is reliable.
 - [ ] Auto-merge experiment-only PRs: when every changed file is under `wiki/` (experiment records, their `.sig` files, pages and generated indexes) and "Experiment records" and "Reproduce records" pass (reproduced, or signed by an allowed signer), merge the PR automatically. Any change outside `wiki/` (code, workflows, `.github/allowed_signers`) keeps the PR manual. Make those checks required first, so GitHub's auto-merge waits for them. Fork PRs need a separate `pull_request_target` workflow that only reads the PR's file list through the API and enables auto-merge, and never checks out or runs the PR's code with a write token. Squash-merge so `main` gets one commit per experiment.
 - [ ] Re-queue automatically when a PR's record changes, and let maintainers re-run or skip a job by hand (e.g. a label) for records whose model the worker can't load yet.
