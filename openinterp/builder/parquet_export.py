@@ -13,7 +13,8 @@ two copies of the same table:
 * ``data/registry.parquet`` -- stable URL, always the latest build (short cache).
 * ``data/snapshots/registry-<sha256>.parquet`` -- content-addressed, cached forever.
 
-``data/manifest.json`` points at the current snapshot.
+``data/manifest.json`` points at the current snapshot. ``data/draws.parquet`` has one
+row per random draw that could not be audited (dead or default-on, ``wiki/draws/``).
 
 Output is deterministic: identical records produce byte-identical files, so an
 unchanged registry deploys as a no-op.
@@ -269,3 +270,49 @@ def export_registry(experiments: Sequence[Experiment], output_dir: Path) -> Path
     }
     (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return latest
+
+
+DRAW_COLUMNS = {
+    "kind": pa.string(),
+    "model_name": pa.string(),
+    "layer": pa.int32(),
+    "index": pa.int32(),
+    "pole": pa.string(),
+    "dictionary": pa.string(),
+    "outcome": pa.string(),
+    "active_share": pa.float64(),
+    "corpus_sha256": pa.string(),
+    "window_tokens": pa.int32(),
+    "seed": pa.int64(),
+    "protocol_version": pa.string(),
+    "drawn_at": pa.timestamp("us", tz="UTC"),
+}
+
+
+def export_draws(draws: Sequence, output_dir: Path) -> Path:
+    """Write ``data/draws.parquet``: the random draws no experiment could audit."""
+    rows = []
+    for d in draws:
+        ident, prov = d.identifier, d.provenance
+        rows.append(
+            {
+                "kind": ident.kind,
+                "model_name": ident.model_name,
+                "layer": ident.layer,
+                "index": ident.index,
+                "pole": getattr(ident, "pole", None),
+                "dictionary": getattr(ident, "dictionary", None),
+                "outcome": d.outcome,
+                "active_share": d.active_share,
+                "corpus_sha256": prov.corpus_sha256,
+                "window_tokens": prov.snippet_tokens,
+                "seed": prov.seed,
+                "protocol_version": d.protocol_version,
+                "drawn_at": d.timestamp,
+            }
+        )
+    path = Path(output_dir) / "data" / "draws.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    schema = pa.schema(list(DRAW_COLUMNS.items()))
+    pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
+    return path

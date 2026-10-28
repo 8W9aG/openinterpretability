@@ -404,9 +404,15 @@ def build(wiki_dir, output_dir, wiring_path):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import load_archive
+    from openinterp.core.draws import load_draws
     from openinterp.wiring_backfill import load_rows
 
-    report = compile_site(load_archive(wiki_dir), output_dir, wiring_rows=load_rows(wiring_path))
+    report = compile_site(
+        load_archive(wiki_dir),
+        output_dir,
+        wiring_rows=load_rows(wiring_path),
+        draws=load_draws(wiki_dir),
+    )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
         f"{report.parquet} → {output_dir}"
