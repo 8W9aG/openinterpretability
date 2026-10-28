@@ -142,10 +142,11 @@
       {% endif %}
       {% if sub.dictionary_profile %}
       {% set dp = sub.dictionary_profile %}
-      <dl class="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs dark:border-slate-800 dark:bg-slate-800">
+      <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-800">
         {% for label, value, hint in [
           ("Explained variance", dp.explained_variance | num(2) if dp.explained_variance is not none else "–", "Fraction of the MLP output's variance the whole dictionary reconstructs on the scan"),
           ("Mean L0", dp.mean_l0 | num(1) if dp.mean_l0 is not none else "–", "Active latents per scanned token"),
+          ("Dead latents", dp.dead_share | pct if dp.dead_share is not none else "–", "Share of the dictionary's latents inactive on every scanned token"),
           ("Density", dp.density | pct_fine, "Share of scanned tokens on which this latent is non-zero"),
         ] %}
         <div class="bg-white p-2 dark:bg-slate-950" title="{{ hint }}"><dt class="text-slate-500">{{ label }}</dt><dd class="mt-0.5 font-mono text-base tabular-nums">{{ value }}</dd></div>

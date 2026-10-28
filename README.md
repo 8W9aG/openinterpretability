@@ -104,7 +104,7 @@ uv run openinterp verify --audit-file submissions/<…>.json --agent-model opena
 
 Attention heads go through the same commands: `--layer 5 --head 1` audits one head (`--unit head --random` samples one), and every later step reads the head from the submission. A head's strength at a token is the distance between its write to the residual stream and its mean write over the scan, `|W_O (z − z̄)|` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §1).
 
-Latents of published sparse dictionaries are the learned-basis baseline: `openinterp audit --dictionary gpt2-small-transcoders --random --window-tokens 512` audits a random latent of Dunefsky et al.'s GPT-2 small transcoders under the same protocol. The dictionary names its model, and its weights are pinned in the submission. Feature verdicts are reported apart from native units, so the two shares VERIFIED can be compared. Presets are in `openinterp/harness/dictionaries.py`.
+Latents of published sparse dictionaries are the learned-basis baseline: `openinterp audit --dictionary gpt2-small-transcoders --random --window-tokens 128` audits a random latent of Dunefsky et al.'s GPT-2 small transcoders under the same protocol. The dictionary names its model, and its weights are pinned in the submission. These transcoders fit only the first 128 positions of a context, so their scans, and the GPT-2 neuron scans they are compared with, use 128-token windows. Feature verdicts are reported apart from native units, so the two shares VERIFIED can be compared. The home page compares them per dictionary, over randomly selected units only (`openinterp/builder/learned_baseline.py`). Presets are in `openinterp/harness/dictionaries.py`.
 
 For follow-ups that `next` suggests (revise, re-review, opposite pole), run the commands it prints. Add `--corpus corpus.jsonl` to any `audit`.
 
@@ -215,6 +215,17 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 - **Pole:** the positive pole is `clamp(a, min=0)` and the negative pole is `clamp(a, max=0)`. Pole *strength* is always reported as a non-negative magnitude.
 - **Attention head:** one head's slice of the attention output projection's input. Its strength is `|W_O (z − z̄)|`, with z̄ its mean output over the scan.
 - **Counterfactual Δ:** `(peak strength on base − peak strength on counterfactual) / max activation`.
+
+### Models
+
+The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.toml`). What a pole means depends on the MLP's activation.
+
+| Model | MLP | Negative pole | Scan |
+| --- | --- | --- | --- |
+| `Qwen/Qwen2.5-0.5B` | SwiGLU, `silu(gate(x)) * up(x)` | Unbounded: `up(x)` carries the sign | Whole documents |
+| `openai-community/gpt2` | GELU, `gelu_new(c_fc(x))` | GELU's dip, at most 0.170 in every layer and reached at a pre-activation of about −0.75. 73–88% of tokens are below zero, and a strongly negative input reads as inactive | 128-token windows (`[tool.openinterp.window_tokens]`), matching its transcoders. GPT-2 itself reads 1,024 positions |
+
+GPT-2's final norm is `transformer.ln_f` and its MLP norm `ln_2`, which the transcoders' `mlp_in_normalized` site standardises.
 
 ## Static site & data
 
