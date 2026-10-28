@@ -2,6 +2,10 @@
 
 Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unreleased]` when they land. Items marked **(protocol)** change the decision rule and must bump `PROTOCOL_VERSION` (`docs/PROTOCOL.md` §6).
 
+## Bugs
+
+- [ ] Fix the `HF_TOKEN` issue.
+
 ## Protocol and science
 
 - [ ] Positive control: audit known induction heads or other well-documented units and confirm the protocol VERIFIES them. Protocol 0.6 can audit heads; a dry run on GPT-2 small L5H1 (induction score 0.89; proposer and judges Claude Opus/Haiku 5.5, reviewer Sonnet 5.5) was NEEDS_REVISION twice, failing only specificity. Every holdout fired, every counterfactual reproduced, causal scores were 1.0 against the layer's other heads, and the record reproduced. The misses: (1) the head also fires on fuzzy and template repeats ("The dog … the dog", `x = a + b; y = c + d`), which an exact-repeat explanation excludes; (2) the reviewer labelled probes by words, not GPT-2 tokens, so exact repeats like ". My … . My" were marked as hard negatives. Next: a third revision that describes the fuzzy matching, run as a registry experiment, and decide whether reviewer prompts for heads should state the token-level matching rule.
@@ -32,9 +36,21 @@ Methods from the wider interpretability literature that the registry doesn't use
 - [ ] Causal-abstraction check (Geiger et al., 2024; `stanfordnlp/pyvene`). For a hypothesis that names a variable ("inside a quotation"), compare the interchange-intervention accuracy of swapping the pole between counterfactual pairs with that of a learned one-dimensional DAS direction for the same variable. The probe comparison above is correlational; this is its causal counterpart. A neuron close to the DAS ceiling is the model's variable; one far below it is a partial view of it.
 - [ ] Multi-dimensional features (Engels et al., 2024): check whether the pole and its partner poles together trace a circular or ordinal manifold, such as days of the week, months or small numbers. Fit PCA to their joint activations on the activating set. Allow hypotheses of the form "one coordinate of a k-dimensional feature" so these neurons aren't forced into a single-concept story and rejected.
 - [ ] Adversarial input search, the text analogue of feature visualisation. Optimise prompts to maximise, or exactly hit, the pole's activation, using GCG/EPO-style fluent optimisation (Thompson et al., "Fluent dreaming", 2024), and check the hypothesis on the results. This automated reviewer arm hunts for false positives and negatives an LLM reviewer wouldn't think of. Record how many optimised inputs the hypothesis mispredicts.
+- [ ] Investigate using part-of-speech (PoS) tags in the process. Tag the scan corpus (e.g. spaCy, or the `universal_dependencies` labels under Datasets), align word tags to model tokens, and report the PoS distribution of the pole's top activations against the corpus base rate. Uses to try:
+  - *proposer*: give it the PoS enrichment as evidence, so syntactic neurons ("verbs after a modal") are easier to spot than from raw tokens;
+  - *reviewer*: build hard negatives from the same word in a different role ("run" as noun vs verb) and check probe labels against the tags;
+  - *triage*: flag poles whose activations are explained by PoS alone, as a cheap prior alongside `neuron-family-triage`.
+
+  Check first how often subword splits and tagger errors make the alignment unreliable.
 
 ## Pipeline
 
+- [ ] Record what each agent model (Claude, DeepSeek, Muse Spark, …) costs per experiment, so the choice of proposer, reviewer and judge can be weighed against its results. Records already hold tokens and USD per LLM call (`ExperimentCosts.llm_calls`), but only for API-key runs through LiteLLM. Runs that answer prompt files (`external/<name>`, i.e. every Claude Code experiment) record only the prompt's length. To close the gap:
+  - capture each subagent's token usage from the driving session, and pass it to `audit`, `score` and `review` alongside the answer file;
+  - price tokens from a versioned price table per model, recording the table's date, since list prices change;
+  - with a proxy, price the model that actually answered (`OPENINTERP_MODEL_ALIASES`), not the one Claude Code reports.
+
+  Then report cost per experiment by role and model (mean, and per VERIFIED result) in `openinterp costs` and on the site.
 - [ ] Recover the scan corpus's provenance. 77 of 79 records scanned a `corpus.jsonl` (SHA-256 `ded48cfc…`) that isn't in git and has no `corpus.source.json`, so their `provenance.corpus_source` is empty. `reproduce` copes because it re-measures stored examples, but nobody else can re-run those scans, histograms or `max_activation`. Find out which `openinterp corpus` call (or older snippet) produced it and publish a sidecar, or publish the corpus itself once its licence is checked. Then make `audit` warn on, or refuse, a corpus with no matching sidecar.
 - [ ] Backfill explanation scores. Only 2 of 79 records have them, so detection and fuzzing can't be compared with verdicts across the registry. Add a planner draw that runs `score` and `reevaluate --explanation-scores` on records that lack them, VERIFIED first, then check whether VERIFIED predicts held-out detection. That check is a prerequisite for deciding whether simulation scores should become a gate (Protocol and science).
 - [ ] Record the human contributor behind each experiment, not just the agent model: an optional `contributor` (a public handle, e.g. GitHub username, never an email) on the submission and on the verdict, so proposer and reviewer can differ. Fill it from a `--contributor` flag or `OPENINTERP_CONTRIBUTOR`, falling back to nothing rather than reading git config silently. Export it to Parquet and add a contributor leaderboard next to the home page's "Submitting agents" table (experiments, VERIFIED, well-probed rejections, reviews done), so people get credit as well as models.
@@ -63,6 +79,10 @@ Methods from the wider interpretability literature that the registry doesn't use
 
   Later: attention heads (`patch_heads` already exists, so heads can appear unlabelled before any are studied), attribution graphs (Ameisen et al., 2025; `circuit-tracer`) for paths rather than single units, steering predictions, and a site page.
 - [ ] A scheduled hourly build and deploy (CI cron), as described in the vision.
+- [ ] Serve the site at open-interpretability.com and use it everywhere:
+  - attach it as the R2 bucket's custom domain;
+  - set the `OPENINTERP_SITE_URL` repo variable, which turns on the deploy's cache purge;
+  - link it from the README, the repo's homepage field and the site's own canonical URLs.
 - [ ] Expire stale claims: a scheduled GitHub workflow (daily cron, plus `workflow_dispatch` with a dry-run input) that releases claims abandoned for 3 days. A claim is an `experiment/*` branch whose only commits ahead of `main` are the empty "Claim" commit, so it changes no files. When the branch's last commit and its PR's last update are both more than 3 days old, close the draft PR with a comment saying why and how to reclaim, then delete the branch. Leave alone any branch that has a file change, or a PR that someone has commented on or marked ready. A fork PR's branch can't be deleted from here, so only close its PR. Stale claims otherwise stay in the planner's claim weighting and keep agents off those neurons. Needs `contents: write` and `pull-requests: write`.
 - [ ] Make the repo's GitHub Wiki (`8W9aG/openinterpretability.wiki.git`) the only home of the wiki pages: experiment pages, neuron history and the index. The records (`<id>.json` and `.sig`) stay in this repo. Records are data, and they keep going through PRs, `openinterp check`, reproduction and signing. A GitHub Wiki can't do that: it has no PRs, branch protection or required checks, and only collaborators can push to it, so fork contributors couldn't submit. The work:
   - Stop committing pages. `verify`, `review` and `reevaluate` write only the record. Remove the `.md` pages from `wiki/` (the generated `README.md` indexes are already gitignored). Consider renaming `wiki/experiments/` to `records/`, updating the site build, Parquet export, `reproduce`, `next` and the planner to match.
@@ -127,6 +147,7 @@ At the moment CI's "Experiment records" job (`openinterp check`) only confirms t
 Experiment pages currently show the activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
 - [ ] Layer map on model pages: a layer × neuron grid coloured by status (VERIFIED, rejected, dead, unexplored), so coverage and where the interpretable neurons sit are visible.
+- [ ] Use a BitTorrent-style visualisation for progress on neurons and layers: a "pieces" bar per layer (and one for the whole model) where each cell is a neuron or a block of neurons, filled as experiments land and shaded by status. It replaces the "Studied neurons per layer" histogram (`m.layer_counts()` in `templates/index.html` and `templates/model.html`). Once `openinterp next` spreads random draws evenly, that histogram is flat and says nothing, while a pieces bar still shows how much of each layer is covered and where the gaps are. Decide the block size per cell for wide layers (Qwen2.5-0.5B has 4,864 neurons per layer), and whether this is the same view as the layer map above.
 - [ ] Feasibility study: a concept map on model pages, in the style of "2.5 million cancer research papers, mapped" (embed each item's text → k-NN graph → UMAP → Leiden clusters, labelled by theme). Each point is a neuron, placed by the meaning of the text it fires on, not by its activations or weights. Write up the findings and a recommendation before building anything.
   - **The embedding.** Use a text embedding (sentence-embedding model or embeddings API) of the text each pole fires on: its top-activating contexts, with the peak token marked inside a window of about ±20 tokens. A neuron's vector is the mean embedding of its positive-pole texts minus the mean embedding of its negative-pole texts. Then L2-normalise it and compare with cosine. So a "Paris as a city" neuron lands near other city neurons. Two neurons whose poles swap the same concepts (+city/−code and +code/−city) point opposite ways. Text that both poles share, such as "this is English web text", cancels out. Things to settle:
     - *Weighting.* Use a plain mean, or weight each text by its activation or rank so the strongest examples count most. Means keep the two poles on the same scale even when they keep different numbers of examples.
@@ -160,7 +181,6 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] `roneneldan/TinyStories`: simple English for a low-confound control corpus and small models.
 - [ ] Code: `bigcode/the-stack-smol` or `codeparrot/github-code-clean`, for syntax, bracket and indentation neurons.
 - [ ] Multilingual: `wikimedia/wikipedia` (non-English configs) or `uonlp/CulturaX`, for language-identity and script neurons.
 - [ ] Maths: `open-web-math/open-web-math` and `openai/gsm8k`, for number, operator and LaTeX neurons.
@@ -197,6 +217,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 Research directions to pick up once the registry covers several models well.
 
 - [ ] Investigate using the Platonic Representation Hypothesis (PRH) once multiple models are well understood.
+- [ ] Investigate snap training with Procrustes and the PRH: fit an orthogonal Procrustes map between two models' activations on shared text, then train one model to snap onto the other's representation. Check whether VERIFIED neurons map to their counterparts and keep their hypotheses after the snap.
 - [ ] Investigate predicting an unknown neuron's interpretability based on previous audits.
 - [ ] Investigate simplifying neural pathways.
 - [ ] Investigate inserting memories or behaviours.

@@ -138,6 +138,17 @@ explanation_scores_option = click.option(
 )
 
 
+def recorded_model_option(_ctx, _param, value):
+    """Click callback for model options: the name to record, after
+    ``$OPENINTERP_MODEL_ALIASES`` (``openinterp.agents.base.recorded_model``)."""
+    from openinterp.agents.base import recorded_model
+
+    try:
+        return recorded_model(value)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc)) from exc
+
+
 def _skip_wiki(wiki_dir) -> bool:
     return not str(wiki_dir) or str(wiki_dir) == "."
 
@@ -215,6 +226,7 @@ def cli(ctx) -> None:
 @click.option(
     "--agent-model",
     default=None,
+    callback=recorded_model_option,
     help="Reviewer. LiteLLM model string, or external/<name> to answer a prompt file. "
     "With --probes, the name recorded for whoever wrote them.",
 )
@@ -240,7 +252,9 @@ def cli(ctx) -> None:
     help="Without --explanation-scores: the scan's corpus, to score the explanation on.",
 )
 @click.option(
-    "--judge-model", help="Without --explanation-scores: the judge (default: the reviewer)."
+    "--judge-model",
+    callback=recorded_model_option,
+    help="Without --explanation-scores: the judge (default: the reviewer).",
 )
 @wiki_option
 @with_model_options

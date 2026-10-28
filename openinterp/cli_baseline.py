@@ -9,7 +9,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli, with_model_options
+from openinterp.cli import cli, recorded_model_option, with_model_options
 
 
 @cli.command("patchscope-baseline")
@@ -25,6 +25,7 @@ from openinterp.cli import cli, with_model_options
     "--judge-model",
     default="external/claude-haiku-5-5",
     show_default=True,
+    callback=recorded_model_option,
     help="Write judge prompts for the experiments this judge scored, and record their "
     "answers as its own: the pair is only fair with the same judge.",
 )
