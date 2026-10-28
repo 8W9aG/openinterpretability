@@ -15,6 +15,10 @@
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 
+{% if circuits %}
+<p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
+{% endif %}
+
 {% set counts = model.layer_counts() %}
 {% set peak = (counts | max) or 1 %}
 <div class="mt-6 flex h-10 items-end gap-px" role="img" aria-label="Studied neurons per layer">

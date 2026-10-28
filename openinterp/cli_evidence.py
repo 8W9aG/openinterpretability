@@ -85,18 +85,17 @@ def read_steering(runner, submission):
 
 
 def read_wiring(runner, submission):
-    """A neuron pole's top connections by virtual weight, once the proposer has answered;
-    ``None`` for other units or an unsupported architecture."""
+    """The unit's top connections by virtual weight, once the proposer has answered;
+    ``None`` on an unsupported architecture."""
     from openinterp.core import costs
     from openinterp.core.exceptions import ArchitectureNotSupportedError
+    from openinterp.harness.units import submission_unit
     from openinterp.harness.wiring import weight_wiring
 
-    if submission.identifier.kind != "mlp_neuron_pole":
-        return None
-    click.echo("Reading the pole's wiring from the weights…", err=True)
+    click.echo("Reading the unit's wiring from the weights…", err=True)
     with costs.stage("wiring"):
         try:
-            return weight_wiring(runner, submission.identifier)
+            return weight_wiring(runner, submission_unit(submission))
         except ArchitectureNotSupportedError as exc:
             click.echo(f"Skipping wiring: {exc}", err=True)
             return None
