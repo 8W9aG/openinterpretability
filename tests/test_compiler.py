@@ -124,6 +124,33 @@ def test_coverage_uses_recorded_mlp_width(tmp_path, records):
     assert "1/96 verified (1.0%)" in index
 
 
+def test_layer_map(tmp_path, records):
+    from openinterp.builder.charts import layer_map
+    from openinterp.builder.tree import ModelNode, build_tree
+
+    (model,) = build_tree(records)
+    chart = layer_map(model)
+    assert chart["counts"] == {"VERIFIED": 1, "CONTESTED": 0, "NEEDS_REVISION": 0, "REJECTED": 1}
+    assert chart["unexplored"] == 116_736 - 2
+    assert len(chart["rows"]) == 24 and chart["label_every"] == 2
+    # Worst status drawn first, so the verified neuron is on top; N117 shows its best pole.
+    assert [(m["status"], m["label"]) for m in chart["marks"]] == [
+        ("REJECTED", "L3 N9 · positive REJECTED"),
+        ("VERIFIED", "L3 N117 · positive VERIFIED, negative REJECTED"),
+    ]
+    n9, n117 = chart["marks"]
+    assert chart["left"] < n9["x"] < n117["x"] < chart["right"]
+    assert n9["y"] == n117["y"] == chart["rows"][3][1]
+    assert [label for _, label in chart["ticks"]] == ["0", "2,000", "4,000"]
+    assert layer_map(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no map
+
+    compile_site(records, tmp_path)
+    page = (tmp_path / "models" / MODEL / "index.html").read_text()
+    assert "Layer map: 2 studied neurons of 116,736" in page
+    assert '<a href="../../models/Qwen--Qwen2.5-0.5B/L3/N117.html">' in page
+    assert "Studied neurons per layer" not in page  # the map replaces the histogram
+
+
 def test_pct_fine():
     from openinterp.builder.compiler import _pct_fine
 

@@ -1,4 +1,5 @@
-"""``openinterp costs``: summarise what experiments cost from a ledger of commands."""
+"""``openinterp costs``: summarise what experiments cost, from ledgers of commands or from
+the registry's records; ``openinterp usage``: record what an external answerer used."""
 
 from __future__ import annotations
 
@@ -79,8 +80,8 @@ def _usage(calls: list[dict]) -> str:
         parts.append(f"{prompt or 0:,}{hit} + {completion or 0:,} tokens")
     if (cost := total("cost_usd")) is not None:
         parts.append(f"${cost:.3f}")
-    if any(c.get("external") for c in calls):
-        parts.append("external: no token counts")
+    if any(c.get("external") and c.get("prompt_tokens") is None for c in calls):
+        parts.append("external without a usage file: no token counts")
     return ", ".join(parts)
 
 
@@ -103,6 +104,38 @@ def _session(sessions: list[dict]) -> str:
     return f"{n} session{'s' * (n != 1)}, {minutes:.1f} min, {turns} turns, {tokens}{cost}"
 
 
+def registry_costs(wiki_dir: Path) -> str:
+    """Cost per experiment by role and model, over the records in ``wiki_dir``."""
+    from openinterp.builder.compiler import load_records
+    from openinterp.core.costs import by_agent
+
+    records = load_records(wiki_dir / "experiments")
+    rows = by_agent(
+        (
+            r.verdict.status if r.verdict else None,
+            r.submission.provenance and r.submission.provenance.costs,
+        )
+        for r in records
+    )
+    if not rows:
+        return f"No LLM calls recorded in {len(records)} records."
+
+    def usd(v):
+        return f"${v:.3f}" if v is not None else "–"
+
+    lines = [
+        f"LLM cost per experiment ({len(records)} records; priced = every call has a cost):",
+        f"  {'role':<9} {'model':<40} {'priced':>11} {'mean':>8} {'per VERIFIED':>13}",
+    ]
+    for r in rows:
+        priced = f"{r['priced']}/{r['experiments']}"
+        lines.append(
+            f"  {r['agent']:<9} {r['model']:<40} {priced:>11} {usd(r['mean_usd']):>8} "
+            f"{usd(r['usd_per_verified']):>13}"
+        )
+    return "\n".join(lines)
+
+
 @cli.command()
 @click.argument("ledgers", nargs=-1, type=click.Path(dir_okay=False, path_type=Path))
 @click.option(
@@ -112,14 +145,63 @@ def _session(sessions: list[dict]) -> str:
     type=click.Path(dir_okay=False, path_type=Path),
     help="`claude -p --output-format json` output of the driving session (repeatable).",
 )
-def costs(ledgers, sessions):
-    """Summarise wall time and LLM usage from $OPENINTERP_COSTS_LOG ledgers.
+@click.option(
+    "--wiki-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Summarise the registry's records instead: LLM cost per experiment by role and "
+    "model, mean and per VERIFIED result.",
+)
+def costs(ledgers, sessions, wiki_dir):
+    """Summarise wall time and LLM usage from $OPENINTERP_COSTS_LOG ledgers, or the
+    registry's LLM costs by role and model (--wiki-dir).
 
     Set OPENINTERP_COSTS_LOG=<file> and every openinterp command appends what it measured
     there: its wall time, its stages and its LLM calls. Records hold the same numbers for
     their own experiment, in `submission.provenance.costs`. Reported, never gated.
     """
+    if wiki_dir is not None:
+        if ledgers or sessions:
+            raise click.UsageError("--wiki-dir summarises records; drop the ledgers.")
+        click.echo(registry_costs(wiki_dir))
+        return
     if not ledgers and not sessions:
-        raise click.UsageError("Pass at least one ledger or --session file.")
+        raise click.UsageError("Pass at least one ledger, --session file or --wiki-dir.")
     found = [s for s in (read_session(p) for p in sessions) if s is not None]
     click.echo(summarise(read_ledger(ledgers), found))
+
+
+@cli.command()
+@click.argument("agent")
+@click.option(
+    "--answer",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="The answer the subagent wrote, e.g. exchange/ev.hypothesis.json.",
+)
+def usage(agent, answer):
+    """Record a Claude Code subagent's token usage next to the answer it wrote.
+
+    AGENT is the agent ID Claude Code reports when the subagent finishes, or the path of
+    its transcript (~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl).
+    Writes <answer>.usage.json, which `audit --hypothesis`, `review --probes` and
+    `score --task` read to record the call's tokens and cost, priced at list price for
+    the model they record (after $OPENINTERP_MODEL_ALIASES, so a proxied model is priced
+    as the model that actually answered).
+    """
+    from openinterp.core.costs import usage_path
+    from openinterp.core.transcripts import find_transcript, usage_from_transcript
+
+    try:
+        transcript = find_transcript(agent)
+    except FileNotFoundError as exc:
+        raise click.BadParameter(str(exc), param_hint="AGENT") from exc
+    found = usage_from_transcript(transcript)
+    out = usage_path(answer)
+    out.write_text(found.model_dump_json(indent=2) + "\n")
+    tokens = found.input_tokens + found.cache_read_tokens
+    tokens += found.cache_write_5m_tokens + found.cache_write_1h_tokens
+    click.echo(
+        f"{found.model}: {found.requests} requests, {tokens:,} input "
+        f"({found.cache_read_tokens:,} cache reads) + {found.output_tokens:,} output tokens. "
+        f"Wrote {out}"
+    )

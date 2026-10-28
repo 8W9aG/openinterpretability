@@ -217,7 +217,7 @@ def cli(ctx) -> None:
     costs.reset()
     start = time.perf_counter()
     command = ctx.invoked_subcommand or "openinterp"
-    if command != "costs":  # summarising the ledger isn't part of any experiment
+    if command not in ("costs", "usage"):  # bookkeeping, not an experiment step
         ctx.call_on_close(lambda: costs.append_ledger(command, time.perf_counter() - start))
 
 

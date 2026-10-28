@@ -19,6 +19,39 @@
 <p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
 
+{% set map_fill = {
+  "VERIFIED": "fill-emerald-500",
+  "CONTESTED": "fill-sky-500",
+  "NEEDS_REVISION": "fill-amber-500",
+  "REJECTED": "fill-rose-500",
+} %}
+{% if layer_map %}
+{% set lm = layer_map %}
+<figure class="mt-6" data-pagefind-ignore>
+  <div class="overflow-x-auto">
+  <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="img" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">
+    {% for i, y in lm.rows %}
+    <rect x="{{ lm.left }}" y="{{ y }}" width="{{ lm.right - lm.left }}" height="{{ lm.row }}" class="fill-slate-100 dark:fill-slate-800/60"/>
+    {% if i % lm.label_every == 0 %}<text x="{{ lm.left - 6 }}" y="{{ y + lm.row - 1 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">L{{ i }}</text>{% endif %}
+    {% endfor %}
+    {% for m in lm.marks %}
+    <a href="{{ root }}{{ m.href }}"><title>{{ m.label }}</title><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ lm.mark_w }}" height="{{ lm.row }}" class="{{ map_fill[m.status] }}"/></a>
+    {% endfor %}
+    {% for tx, label in lm.ticks %}
+    <line x1="{{ tx }}" y1="{{ lm.axis_y - 2 }}" x2="{{ tx }}" y2="{{ lm.axis_y + 2 }}" class="stroke-slate-400" stroke-width="1"/>
+    <text x="{{ tx }}" y="{{ lm.axis_y + 13 }}" text-anchor="{{ 'start' if loop.first else 'middle' }}" class="fill-slate-500 font-mono" font-size="10">N{{ label }}</text>
+    {% endfor %}
+  </svg>
+  </div>
+  <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+    {% for s, n in lm.counts.items() %}
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
+    {% endfor %}
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lm.unexplored | thousands }}</span>
+    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. Dead neurons aren't recorded, so they count as unexplored.</span>
+  </figcaption>
+</figure>
+{% else %}
 {% set counts = model.layer_counts() %}
 {% set peak = (counts | max) or 1 %}
 <div class="mt-6 flex h-10 items-end gap-px" role="img" aria-label="Studied neurons per layer">
@@ -28,6 +61,7 @@
   {% endfor %}
 </div>
 <div class="mt-1 flex justify-between font-mono text-[10px] text-slate-500"><span>L0</span><span>L{{ model.n_layers - 1 }}</span></div>
+{% endif %}
 
 <div class="mt-8 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
