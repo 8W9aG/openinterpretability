@@ -98,6 +98,8 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     assert sub.identifier == evidence.identifier and sub.top_examples == evidence.top_examples
     assert all(cf.observed_delta is not None for cf in sub.counterfactuals)  # measured
     assert sub.input_attribution == evidence.input_attribution
+    # The scan read the other pole too, for the neuron page.
+    assert sub.opposite_pole == evidence.opposite_pole and sub.opposite_pole.pole == "negative"
     # The Patchscope reads the direction only after the proposer answered.
     assert sub.patchscope is not None and sub.patchscope.readings
     assert "patchscope" not in (flow.path / "ev.json").read_text()

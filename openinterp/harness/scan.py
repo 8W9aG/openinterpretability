@@ -54,6 +54,14 @@ class ScanResult:
     correlated: list[CorrelatedNeuron]
     confounds: ConfoundProfile
     windows: int = 0  # forward-pass inputs: documents, or windows of them
+    opposite: OppositeScan | None = None  # the neuron's other pole, from the same pass
+
+
+@dataclass
+class OppositeScan:
+    pole: Pole
+    examples: list[ActivatingExample]
+    values: list[float]
 
 
 @dataclass(frozen=True)
@@ -246,15 +254,19 @@ def scan_neuron(
     window_tokens: int | None = None,
     stride: int | None = None,
     cache: LayerCache | None = None,
+    opposite_k: int = 5,
 ) -> ScanResult:
-    """Scan ``texts`` for one neuron pole. With ``cache``, replay the layer's stored
-    activations if it holds this scan, and store them if not."""
+    """Scan ``texts`` for one neuron pole, and for its other pole's top ``opposite_k``
+    examples and histogram (free: the pass reads the whole activation). With ``cache``,
+    replay the layer's stored activations if it holds this scan, and store them if not."""
     if runner.tokenizer is None:
         raise ValueError("scan_neuron requires a tokenizer")
     partners = PartnerSearch(runner.mlp_width(layer))
     confounds = ConfoundAccumulator()
-    top = TopExamples()
+    top, other_top = TopExamples(), TopExamples()
     values: list[float] = []
+    other_values: list[float] = []
+    other: Pole = "negative" if pole == "positive" else "positive"
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
     for chunk in scan_chunks(runner, pieces, layer, batch_tokens, cache):
@@ -265,6 +277,9 @@ def scan_neuron(
         confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
         values.extend(strengths[counted].tolist())
         top.update_chunk(chunk, strengths)
+        other_strengths = pole_strength(acts[:, neuron_idx], other)
+        other_values.extend(other_strengths[counted].tolist())
+        other_top.update_chunk(chunk, other_strengths)
 
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
@@ -274,4 +289,5 @@ def scan_neuron(
         correlated=partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
         confounds=confounds.finalize(runner.tokenizer, min_count),
         windows=len(pieces),
+        opposite=OppositeScan(other, other_top.top(runner.tokenizer, opposite_k), other_values),
     )

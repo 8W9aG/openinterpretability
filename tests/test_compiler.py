@@ -11,9 +11,11 @@ from openinterp.builder.compiler import compile_site, load_records
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import (
+    ActivatingExample,
     AdversarialTestResult,
     AuditRecord,
     CausalPairEffect,
+    OppositePole,
     PatchEffect,
     ReviewPolicy,
 )
@@ -716,3 +718,34 @@ def test_reviewer_agreement(records):
     assert agreement["claims"] == 1 and agreement["unanimous"] == 0
     assert agreement["pairs"] == 3 and agreement["pair_agreement"] == round(1 / 3, 4)
     assert agreement["cross_model_pairs"] == 3
+
+
+def _with_opposite(rec):
+    example = ActivatingExample(
+        text="x, y", tokens=["x", ",", " y"], activations=[0.0, 0.9, 0.1],
+        max_activation=0.9, max_token_index=1,
+    )  # fmt: skip
+    opposite = OppositePole(pole="negative", top_examples=[example])
+    return rec.model_copy(
+        update={"submission": rec.submission.model_copy(update={"opposite_pole": opposite})}
+    )
+
+
+def test_neuron_page_shows_both_poles(tmp_path, records):
+    # Without an opposite-pole scan, each pole's newest experiment supplies its examples.
+    compile_site(records, tmp_path)
+    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    section = page.split('id="both-poles"')[1].split("</section>")[0]
+    assert "newest experiment" in section and section.count("From <a") == 2
+    assert "--heat-rgb: 234 88 12" in section and "--heat-rgb: 2 132 199" in section
+
+    # N9 has only a positive experiment; its negative column waits for a scan.
+    page = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    assert "Not scanned yet." in page.split('id="both-poles"')[1]
+
+    # One scan that read both poles supplies both columns.
+    compile_site([*records[:3], _with_opposite(records[3])], tmp_path)
+    page = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    section = page.split('id="both-poles"')[1].split("</section>")[0]
+    assert "from one scan" in section and "Not scanned yet." not in section
+    assert 'data-v="0.900 · peak"' in section and "max 0.90" in section

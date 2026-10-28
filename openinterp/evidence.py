@@ -67,6 +67,7 @@ def scan_evidence(
         FeatureIdentifier,
         HeadIdentifier,
         NeuronIdentifier,
+        OppositePole,
         ScanEvidence,
     )
     from openinterp.harness.dictionaries import dictionary_spec, load_spec
@@ -150,6 +151,14 @@ def scan_evidence(
         click.echo("Attributing the top examples' peaks to their context tokens…", err=True)
         with costs.stage("input_attribution"):
             attribution = input_attribution(runner, scan.examples, layer, index, ident.pole)
+    other = scan.opposite  # a neuron's other pole, recorded if it ever fired
+    opposite = None
+    if other is not None and other.examples and other.examples[0].max_activation > 0:
+        opposite = OppositePole(
+            pole=other.pole,
+            top_examples=other.examples,
+            activation_histogram=activation_histogram(other.values),
+        )
     return ScanEvidence(
         identifier=ident,
         top_examples=scan.examples,
@@ -177,6 +186,7 @@ def scan_evidence(
         head_profile=scan.profile if unit == "head" else None,
         model_n_heads=runner.n_heads if unit == "head" else None,
         dictionary_profile=scan.profile if unit == "feature" else None,
+        opposite_pole=opposite,
     )
 
 
