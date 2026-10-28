@@ -119,10 +119,23 @@ def backfill(
         if _runner_key(record) != loaded:
             runner, loaded = load_runner(record), _runner_key(record)
         row = wire(runner, record)
+        _release_cached_memory()
         with out.open("a") as f:
             f.write(row.model_dump_json() + "\n")
         echo(f"[{n}/{len(todo)}] {row.slug} {row.experiment_id}")
     return len(todo)
+
+
+def _release_cached_memory() -> None:
+    """Hand the accelerator allocator's cached blocks back. Each record's prompts have
+    their own shapes, so on MPS the cache otherwise grows record by record until the
+    machine swaps (73 GB after ~640 records)."""
+    import torch
+
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def _runner_key(record: AuditRecord) -> tuple:
