@@ -4,3 +4,4 @@
 # CI reads this file from the pull request's base branch, so a pull request can't add
 # its own key: a new signer has to land on main first.
 8W9aG namespaces="openinterp-record" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIqEox4VWoOevD6XjbEL/deUlohM5pbqy25SDbKZJIxD openinterp record signing (8W9aG)
+8W9aG namespaces="openinterp-record" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBkANRLBF0s5MrNdD2sPrxTbhGi7ipXpOzyquRVUiqt3 openinterp record signing (8W9aG, linux)

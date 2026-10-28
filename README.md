@@ -47,7 +47,7 @@ The record notes whether the reviewer was a different model from the proposer (`
 **A scan corpus.** The built-in corpus is only a smoke test. This samples 500 documents from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) (its 10B-token sample, about a minute, reading only the Parquet row groups it needs; git-ignored):
 
 ```bash
-uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k, pile-uncopyrighted, c4 or wikitext for another corpus, --seed N for another sample
+uv run openinterp corpus --out corpus.jsonl            # --dataset pile-10k, pile-uncopyrighted, c4, wikitext or tinystories for another corpus, --seed N for another sample
 ```
 
 It also writes `corpus.source.json`, which pins the dataset commit, files, seed and licence. `openinterp audit --corpus corpus.jsonl` records it in the submission, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time (`--max-tokens`, `--sample-seed`; `--max-tokens 0` scans all of it), and records the sample in provenance. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
@@ -151,7 +151,7 @@ make build          # build dist/ from the wiki archive, plus the Pagefind index
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
 
-`dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`.
+`dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`. If the agents answering prompt files sit behind a proxy that hides the real model (e.g. Claude Code routed through LiteLLM to Grok), set `OPENINTERP_MODEL_ALIASES` so records name the model that answered: `claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`, or one bare name for every `external/` model.
 
 ## Experiment wiki
 
