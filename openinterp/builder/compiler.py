@@ -20,6 +20,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
+from openinterp.builder.circuits import circuits, unit_circuits
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
@@ -28,6 +29,7 @@ from openinterp.builder.tree import (
     SIDES,
     Experiment,
     build_tree,
+    circuits_href,
     false_discovery,
     feature_href,
     head_href,
@@ -35,6 +37,7 @@ from openinterp.builder.tree import (
 )
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord
+from openinterp.wiring_backfill import record_wiring
 
 
 @dataclass
@@ -368,8 +371,13 @@ def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:
     }
 
 
-def _experiment_view(e: Experiment, studied: set[str]) -> dict:
+def _experiment_view(
+    e: Experiment, studied: set[str], rows: dict | None = None, circuit: str | None = None
+) -> dict:
+    """``rows``: backfilled wiring (see :mod:`openinterp.wiring_backfill`); ``circuit``:
+    the link to the circuit the unit is in, if any."""
     sub, verdict = e.record.submission, e.record.verdict
+    weights, activations, backfilled = record_wiring(e.record, rows or {})
     ident = sub.identifier
     correlated = []
     for c in sub.correlated_neurons:  # neuron poles only
@@ -390,9 +398,11 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
         "wiring": [
             view
-            for w in (sub.wiring, verdict.wiring)
+            for w in (weights, activations)
             if (view := wiring_view(w, ident.model_slug, studied)) is not None
         ],
+        "wiring_backfilled": backfilled,
+        "circuit": circuit,
     }
 
 
@@ -437,8 +447,12 @@ def compile_site(
     output_dir: Path,
     *,
     site_title: str = "Open Interpretability",
+    wiring_rows: dict | None = None,
 ) -> BuildReport:
-    """Render every reviewed experiment in ``records`` (normally the wiki archive)."""
+    """Render every reviewed experiment in ``records`` (normally the wiki archive), with
+    ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) for records that
+    predate wiring."""
+    rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -467,11 +481,19 @@ def compile_site(
 
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
-        render(model.href, "model.html", model=model)
+        found = circuits(model, rows)
+        circuit_of = unit_circuits(model, found)
+        page = circuits_href(model.slug)
+        render(model.href, "model.html", model=model, circuits=found, circuits_page=page)
+        if found:
+            n_units = sum(len(c.units) for c in found)
+            render(page, "circuits.html", model=model, found=found, n_units=n_units)
         for layer in model.layers:
             render(layer.href, "layer.html", model=model, layer=layer)
             for neuron in layer.units:
-                views = [_experiment_view(e, studied) for e in neuron.experiments]
+                n = circuit_of.get(neuron.href)
+                circuit = f"{page}#circuit-{n}" if n else None
+                views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
                 render(
                     neuron.href,
                     "neuron.html",

@@ -1,16 +1,16 @@
-{# A neuron pole's wiring for _experiment.html. Expects `v.wiring` from compiler.wiring_view and `root`. #}
+{# A unit's wiring for _experiment.html. Expects `v.wiring` from compiler.wiring_view, `what` and `root`. #}
   {% if v.wiring %}
   <section class="mb-10" data-pagefind-ignore>
     <h3 class="mb-1 text-base font-semibold" title="Elhage et al., 2021; Syed et al., 2023">Wiring</h3>
-    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this pole's input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Linked units have pages in the registry. Reported, not gated.</p>
+    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this {{ what }}'s input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Linked units have pages in the registry. Reported, not gated.{% if v.wiring_backfilled %} Backfilled after the review by <code>openinterp wiring-backfill</code>, from the record's model revision and the review's prompts; it is not part of the record.{% endif %}{% if v.circuit %} <a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ v.circuit }}">See its circuit</a>.{% endif %}</p>
     {% for view in v.wiring %}
     {% set w = view.w %}
     <h4 class="mb-1 text-sm font-medium">{{ "From the weights" if w.method == "weights" else "From activations" }}</h4>
     <p class="mb-3 max-w-3xl text-xs text-slate-500">
       {% if w.method == "weights" %}
-      Virtual weights with each norm's gain folded in; they rank units but have no absolute scale. Upstream neurons: their write against this pole's read (+ means their positive activation raises it). Heads: the norm of the OV circuit's read (upstream) or of the Q/K/V read of this pole's write (downstream). Downstream neurons: their read of this pole's write. Read after the proposer answered and shown to neither agent.
+      Virtual weights with each norm's gain folded in; they rank units but have no absolute scale. Each number is how much one unit reads of the other's write: signed when one vector reads another (+ means a positive activation raises the read), otherwise a norm. Heads count through their OV circuit upstream and their Q, K and V reads downstream; channels are on hover.
       {% else %}
-      Averaged over this pole's peak on {{ w.prompts }} of the review's prompts where it fired. Upstream: the first-order change in pole strength from removing a unit's direct write (+ excites). Downstream neurons: the change in their activation when this pole's write is removed from their input alone.
+      Averaged over this {{ what }}'s peak on {{ w.prompts }} of the review's prompts where it fired. Upstream: the first-order change in its strength from removing a unit's direct write (+ excites). Downstream: the change in a later neuron's activation, or how far a later head's write moves, when this {{ what }}'s write is removed from that unit's input (one of Q, K or V for a head) alone.
       {% endif %}
     </p>
     <div class="mb-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
