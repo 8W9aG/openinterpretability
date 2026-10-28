@@ -22,6 +22,34 @@ T = TypeVar("T", bound=BaseModel)
 
 DEFAULT_MODEL = os.environ.get("OPENINTERP_AGENT_MODEL", "anthropic/claude-opus-5-5")
 EXTERNAL_PREFIX = "external/"
+MODEL_ALIASES_ENV = "OPENINTERP_MODEL_ALIASES"
+
+
+def recorded_model(model: str | None) -> str | None:
+    """The name to record for ``model``, after ``$OPENINTERP_MODEL_ALIASES``.
+
+    For external answerers behind a proxy, e.g. Claude Code routed through a LiteLLM
+    proxy to Grok, whose subagents report the Claude model they think they are. The
+    variable holds ``reported=actual`` pairs separated by commas
+    (``claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4``), or one bare name that
+    replaces every external model. Only ``external/<name>`` is rewritten: a LiteLLM
+    string is what gets called, so it already names the model.
+    """
+    spec = os.environ.get(MODEL_ALIASES_ENV, "").strip()
+    if not model or not spec or not model.startswith(EXTERNAL_PREFIX):
+        return model
+    name = model.removeprefix(EXTERNAL_PREFIX)
+    aliases, default = {}, None
+    for entry in filter(None, (e.strip() for e in spec.split(","))):
+        reported, sep, actual = entry.partition("=")
+        if not sep:
+            default = entry.removeprefix(EXTERNAL_PREFIX)
+        elif reported.strip() and actual.strip():
+            aliases[reported.strip().removeprefix(EXTERNAL_PREFIX)] = actual.strip()
+        else:
+            raise ValueError(f"${MODEL_ALIASES_ENV}: malformed entry {entry!r}")
+    actual = aliases.get(name, default or name)
+    return EXTERNAL_PREFIX + actual.removeprefix(EXTERNAL_PREFIX)
 
 
 class LLMAgent:
