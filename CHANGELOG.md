@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-10-27
+
+Ships with protocol version **0.7**.
+
 ### Added
 
 - **Transcoder baseline on GPT-2 small: latents beat positive neuron poles, 37 of 40 against 20 of 40** (`docs/analyses/transcoder-baseline.md`). This is the full run of the learned-basis baseline in `TODO.md`. It audited 40 random `gpt2-small-transcoders` latents and 40 random positive neuron poles under protocol 0.7. Scans read `corpus.jsonl` in 128-token windows. The proposer was claude-opus-5-5, the reviewer claude-sonnet-5-5 and the judges claude-haiku-5-5. Every draw is logged in order in `transcoder-baseline.jsonl`, with its verdict and record.
