@@ -159,6 +159,7 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
          "refs/convert/parquet", None),
         ("wikitext", "Salesforce/wikitext", "wikitext-103-raw-v1/train-*.parquet", None,
          "wikitext"),
+        ("tinystories", "roneneldan/TinyStories", "data/train-*.parquet", None, None),
     ],
 )  # fmt: skip
 def test_cli_uses_the_presets_revision_and_layout(
