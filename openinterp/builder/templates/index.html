@@ -63,7 +63,7 @@
     Are a model's own neurons as explainable as the latents of a sparse dictionary trained on its MLPs?
     Randomly selected latents and randomly selected neuron poles of the same model and layers, scanned the same way and audited under the same protocol.
     Each unit counts once, by its first experiment, so follow-ups don't favour either side. Intervals are 95% Wilson intervals;
-    p is a two-sided Fisher exact test of latents against all neuron poles.
+    p is a two-sided Fisher exact test of latents against positive poles (and against all poles). In a GELU MLP, such as GPT-2's, the negative pole sits in the activation's dip on most tokens, so no hard negative can pass; there the positive poles are the comparison.
   </p>
   {% for b in stats.baseline %}
   <div class="mb-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
@@ -71,7 +71,7 @@
       <caption class="bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-400">
         <span class="font-mono">{{ b.model_name }}</span> · <span class="font-mono">{{ b.dictionary }}</span> · layers {{ b.layers | first }}–{{ b.layers | last }} ·
         {% if b.window_tokens %}{{ b.window_tokens }}-token windows{% else %}whole documents{% endif %} of corpus <span class="font-mono" title="{{ b.corpus_sha256 }}">{{ (b.corpus_sha256 or "?")[:8] }}</span> ·
-        explained variance {{ b.explained_variance | pct }} · mean L0 {{ b.mean_l0 | num(0) }}{% if b.dead_share is not none %} · <span title="Latents inactive on every scanned token: a random draw of one can't be audited, so they are not in the latents' row">dead latents {{ b.dead_share | pct }}</span>{% endif %}{% if b.p_value is not none %} · p = {{ b.p_value | num(2) }}{% endif %}
+        explained variance {{ b.explained_variance | pct }} · mean L0 {{ b.mean_l0 | num(0) }}{% if b.dead_share is not none %} · <span title="Latents inactive on every scanned token: a random draw of one can't be audited, so they are not in the latents' row">dead latents {{ b.dead_share | pct }}</span>{% endif %}{% if b.p_positive is not none %} · p = {{ b.p_positive | pval }} vs positive poles{% endif %}{% if b.p_value is not none %} ({{ b.p_value | pval }} vs all){% endif %}
       </caption>
       <thead class="text-xs uppercase tracking-wide text-slate-500">
         <tr><th class="px-3 py-2">Random units</th><th class="px-3 py-2 text-right">Audited</th><th class="px-3 py-2 text-right">Verified</th><th class="px-3 py-2 text-right">Share (95% CI)</th><th class="px-3 py-2 text-right">Balanced accuracy</th></tr>

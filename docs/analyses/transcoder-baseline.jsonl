@@ -1,0 +1,111 @@
+{"arm": "latent", "seed": 1, "unit": "L2/F18651", "outcome": "dead", "run": "pilot"}
+{"arm": "latent", "seed": 2, "unit": "L0/F3001", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L0/gpt2-small-transcoders/F3001/20261024T143806Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 3, "unit": "L3/F19419", "outcome": "dead", "run": "pilot"}
+{"arm": "latent", "seed": 4, "unit": "L3/F9938", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/gpt2-small-transcoders/F9938/20261024T143615Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 5, "unit": "L9/F8370", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L9/gpt2-small-transcoders/F8370/20261024T143144Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 6, "unit": "L9/F2640", "outcome": "dead", "run": "pilot"}
+{"arm": "latent", "seed": 7, "unit": "L5/F4943", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L5/gpt2-small-transcoders/F4943/20261024T143109Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 8, "unit": "L3/F12137", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/gpt2-small-transcoders/F12137/20261024T143325Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 9, "unit": "L7/F20093", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F20093/20261024T143638Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 10, "unit": "L9/F1067", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L9/gpt2-small-transcoders/F1067/20261024T143823Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 11, "unit": "L7/F18342", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F18342/20261024T143655Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 12, "unit": "L7/F8814", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F8814/20261024T143953Z.json", "run": "pilot"}
+{"arm": "latent", "seed": 13, "unit": "L4/F9527", "outcome": "dead", "run": "pilot"}
+{"arm": "latent", "seed": 14, "unit": "L1/F20181", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L1/gpt2-small-transcoders/F20181/20261024T144006Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 1, "unit": "L2/N2331+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L2/N2331-positive/20261024T144248Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 2, "unit": "L0/N375+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L0/N375-positive/20261024T144020Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 3, "unit": "L3/N2427+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N2427-positive/20261024T144034Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 4, "unit": "L3/N1242+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N1242-positive/20261024T144212Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 5, "unit": "L9/N1046-", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L9/N1046-negative/20261024T144226Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 6, "unit": "L9/N330-", "outcome": "live", "verdict": "REJECTED", "record": "wiki/experiments/openai-community--gpt2/L9/N330-negative/20261024T144436Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 7, "unit": "L5/N617-", "outcome": "live", "verdict": "REJECTED", "record": "wiki/experiments/openai-community--gpt2/L5/N617-negative/20261024T144526Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 8, "unit": "L3/N1517-", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L3/N1517-negative/20261024T144546Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 9, "unit": "L7/N2511-", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L7/N2511-negative/20261024T144450Z.json", "run": "pilot"}
+{"arm": "neuron_pole", "seed": 10, "unit": "L9/N133-", "outcome": "live", "verdict": "REJECTED", "record": "wiki/experiments/openai-community--gpt2/L9/N133-negative/20261024T145116Z.json", "run": "pilot"}
+{"run": "full", "arm": "positive_pole", "seed": 1, "unit": "L2/N2331+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L2/N2331-positive/20261024T144248Z.json", "note": "pilot record"}
+{"run": "full", "arm": "positive_pole", "seed": 2, "unit": "L0/N375+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L0/N375-positive/20261024T144020Z.json", "note": "pilot record"}
+{"run": "full", "arm": "positive_pole", "seed": 3, "unit": "L3/N2427+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N2427-positive/20261024T144034Z.json", "note": "pilot record"}
+{"run": "full", "arm": "positive_pole", "seed": 4, "unit": "L3/N1242+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N1242-positive/20261024T144212Z.json", "note": "pilot record"}
+{"run": "full", "arm": "positive_pole", "seed": 5, "unit": "L9/N1046+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L9/N1046-positive/20261027T200117Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 6, "unit": "L9/N330+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L9/N330-positive/20261027T200433Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 7, "unit": "L5/N617+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L5/N617-positive/20261027T200032Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 8, "unit": "L3/N1517+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N1517-positive/20261027T200050Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 9, "unit": "L7/N2511+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L7/N2511-positive/20261027T200105Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 10, "unit": "L9/N133+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L9/N133-positive/20261027T200215Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 11, "unit": "L7/N2292+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L7/N2292-positive/20261027T200228Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 12, "unit": "L7/N1101+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/N1101-positive/20261027T200251Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 13, "unit": "L4/N1190+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L4/N1190-positive/20261027T200239Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 14, "unit": "L1/N2522+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L1/N2522-positive/20261027T200527Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 15, "unit": "L3/N47+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L3/N47-positive/20261027T200538Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 16, "unit": "L5/N1921+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L5/N1921-positive/20261027T200734Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 17, "unit": "L8/N1696+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/N1696-positive/20261027T200638Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 18, "unit": "L2/N503+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L2/N503-positive/20261027T200549Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 19, "unit": "L10/N177+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L10/N177-positive/20261027T200450Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 20, "unit": "L11/N2810+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L11/N2810-positive/20261027T200649Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 21, "unit": "L2/N1712+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L2/N1712-positive/20261027T200701Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 22, "unit": "L2/N993+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L2/N993-positive/20261027T200747Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 23, "unit": "L4/N342+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L4/N342-positive/20261027T200806Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 24, "unit": "L11/N1568+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L11/N1568-positive/20261027T200818Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 25, "unit": "L6/N62+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L6/N62-positive/20261027T200758Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 26, "unit": "L11/N830+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L11/N830-positive/20261027T200830Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 27, "unit": "L10/N1965+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L10/N1965-positive/20261027T201447Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 28, "unit": "L1/N3040+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L1/N3040-positive/20261027T201203Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 29, "unit": "L8/N311+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L8/N311-positive/20261027T201214Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 30, "unit": "L8/N1184+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L8/N1184-positive/20261027T201227Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 31, "unit": "L0/N1923+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L0/N1923-positive/20261027T201500Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 32, "unit": "L1/N874+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L1/N874-positive/20261028T013116Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 33, "unit": "L9/N685+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L9/N685-positive/20261028T013140Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 34, "unit": "L8/N1462+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L8/N1462-positive/20261028T013151Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 35, "unit": "L8/N1373+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/N1373-positive/20261028T013127Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 36, "unit": "L5/N239+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L5/N239-positive/20261028T013202Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 37, "unit": "L10/N2489+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L10/N2489-positive/20261028T013256Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 38, "unit": "L10/N1724+", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L10/N1724-positive/20261028T013307Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 39, "unit": "L3/N1063+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/N1063-positive/20261028T013242Z.json"}
+{"run": "full", "arm": "positive_pole", "seed": 40, "unit": "L7/N2373+", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/N2373-positive/20261028T013341Z.json"}
+{"run": "full", "arm": "latent", "seed": 15, "unit": "L3/F381", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 16, "unit": "L5/F15375", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L5/gpt2-small-transcoders/F15375/20261027T201416Z.json"}
+{"run": "full", "arm": "latent", "seed": 17, "unit": "L8/F13571", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F13571/20261027T201434Z.json"}
+{"run": "full", "arm": "latent", "seed": 18, "unit": "L2/F4024", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 19, "unit": "L10/F1417", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L10/gpt2-small-transcoders/F1417/20261027T201516Z.json"}
+{"run": "full", "arm": "latent", "seed": 20, "unit": "L11/F22487", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L11/gpt2-small-transcoders/F22487/20261027T201531Z.json"}
+{"run": "full", "arm": "latent", "seed": 21, "unit": "L2/F13696", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 22, "unit": "L2/F7950", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 23, "unit": "L4/F2737", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L4/gpt2-small-transcoders/F2737/20261027T201542Z.json"}
+{"run": "full", "arm": "latent", "seed": 24, "unit": "L11/F12545", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L11/gpt2-small-transcoders/F12545/20261028T013455Z.json"}
+{"run": "full", "arm": "latent", "seed": 25, "unit": "L6/F502", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L6/gpt2-small-transcoders/F502/20261028T013358Z.json"}
+{"run": "full", "arm": "latent", "seed": 26, "unit": "L11/F6643", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L11/gpt2-small-transcoders/F6643/20261028T013411Z.json"}
+{"run": "full", "arm": "latent", "seed": 27, "unit": "L10/F15724", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 28, "unit": "L1/F24325", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 29, "unit": "L8/F2494", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F2494/20261028T014020Z.json"}
+{"run": "full", "arm": "latent", "seed": 30, "unit": "L8/F9476", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F9476/20261028T014030Z.json"}
+{"run": "full", "arm": "latent", "seed": 31, "unit": "L0/F15387", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L0/gpt2-small-transcoders/F15387/20261028T014041Z.json"}
+{"run": "full", "arm": "latent", "seed": 32, "unit": "L1/F6999", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 33, "unit": "L9/F5480", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L9/gpt2-small-transcoders/F5480/20261028T014052Z.json"}
+{"run": "full", "arm": "latent", "seed": 34, "unit": "L8/F11700", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F11700/20261028T014103Z.json"}
+{"run": "full", "arm": "latent", "seed": 35, "unit": "L8/F10989", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F10989/20261028T014114Z.json"}
+{"run": "full", "arm": "latent", "seed": 36, "unit": "L5/F1912", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 37, "unit": "L10/F19914", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L10/gpt2-small-transcoders/F19914/20261028T014124Z.json"}
+{"run": "full", "arm": "latent", "seed": 38, "unit": "L10/F13799", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 39, "unit": "L3/F8508", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 40, "unit": "L7/F18988", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F18988/20261028T014134Z.json"}
+{"run": "full", "arm": "latent", "seed": 41, "unit": "L6/F10886", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 42, "unit": "L10/F3648", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L10/gpt2-small-transcoders/F3648/20261028T014145Z.json"}
+{"run": "full", "arm": "latent", "seed": 43, "unit": "L0/F9374", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L0/gpt2-small-transcoders/F9374/20261028T014156Z.json"}
+{"run": "full", "arm": "latent", "seed": 44, "unit": "L6/F17040", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 45, "unit": "L4/F13686", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L4/gpt2-small-transcoders/F13686/20261028T014207Z.json"}
+{"run": "full", "arm": "latent", "seed": 46, "unit": "L1/F13107", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L1/gpt2-small-transcoders/F13107/20261028T014218Z.json"}
+{"run": "full", "arm": "latent", "seed": 47, "unit": "L5/F2048", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 48, "unit": "L8/F10336", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F10336/20261028T014517Z.json"}
+{"run": "full", "arm": "latent", "seed": 49, "unit": "L1/F11283", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L1/gpt2-small-transcoders/F11283/20261028T014657Z.json"}
+{"run": "full", "arm": "latent", "seed": 50, "unit": "L7/F8721", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F8721/20261028T014708Z.json"}
+{"run": "full", "arm": "latent", "seed": 51, "unit": "L3/F16456", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 52, "unit": "L4/F1786", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L4/gpt2-small-transcoders/F1786/20261028T014759Z.json"}
+{"run": "full", "arm": "latent", "seed": 53, "unit": "L9/F7079", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 54, "unit": "L2/F14383", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 55, "unit": "L1/F6430", "outcome": "dead"}
+{"run": "full", "arm": "latent", "seed": 56, "unit": "L8/F376", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L8/gpt2-small-transcoders/F376/20261028T014718Z.json"}
+{"run": "full", "arm": "latent", "seed": 57, "unit": "L0/F12050", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L0/gpt2-small-transcoders/F12050/20261028T014728Z.json"}
+{"run": "full", "arm": "latent", "seed": 58, "unit": "L9/F6460", "outcome": "live", "verdict": "NEEDS_REVISION", "record": "wiki/experiments/openai-community--gpt2/L9/gpt2-small-transcoders/F6460/20261028T014840Z.json"}
+{"run": "full", "arm": "latent", "seed": 59, "unit": "L3/F2772", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L3/gpt2-small-transcoders/F2772/20261028T014738Z.json"}
+{"run": "full", "arm": "latent", "seed": 60, "unit": "L4/F9287", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L4/gpt2-small-transcoders/F9287/20261028T014748Z.json"}
+{"run": "full", "arm": "latent", "seed": 61, "unit": "L7/F5954", "outcome": "live", "verdict": "VERIFIED", "record": "wiki/experiments/openai-community--gpt2/L7/gpt2-small-transcoders/F5954/20261028T014850Z.json"}

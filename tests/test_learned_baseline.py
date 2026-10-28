@@ -3,7 +3,7 @@
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.compiler import compile_site, registry_stats
+from openinterp.builder.compiler import _environment, compile_site, registry_stats
 from openinterp.builder.learned_baseline import fisher_exact, wilson
 from openinterp.core.schemas import (
     AuditRecord,
@@ -96,11 +96,18 @@ def test_random_latents_against_random_poles_of_the_same_layers(tmp_path, baseli
     assert (b.positive_poles.units, b.positive_poles.verified) == (2, 1)
     assert (b.negative_poles.units, b.negative_poles.verified) == (1, 1)
     assert b.p_value == pytest.approx(1.0)
+    assert b.p_positive == pytest.approx(fisher_exact(1, 3, 1, 2))
 
     home = (tmp_path / "index.html").read_text()
     assert 'id="learned-baseline"' in home and "dead latents 25%" in home
     assert "33% (6%–79%)" in home  # 1 of 3, Wilson interval
     assert "128-token windows of corpus" in home
+    assert "p = 1.000 vs positive poles (1.000 vs all)" in home
+
+
+def test_small_p_values_are_not_rounded_to_zero():
+    pval = _environment().filters["pval"]
+    assert (pval(None), pval(0.18), pval(4.3e-5)) == ("—", "0.180", "4.3e-05")
 
 
 def test_no_baseline_without_random_latents(tmp_path, baseline_records):
