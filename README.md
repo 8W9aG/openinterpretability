@@ -40,6 +40,8 @@ make install                                      # creates .venv with everythin
 
   Every review also records explanation scores. `openinterp score` scores the explanation on held-out text the proposer never saw: Delphi's detection, fuzzing and embedding scores, with the `explanation-judge` subagent answering its prompts. `review --explanation-scores` records the result, and `review` refuses `--probes` without it. A one-step review (no `--probes`) scores the explanation itself on `--corpus`. The scores are reported, not gated (docs/PROTOCOL.md §4).
 
+  To record what each subagent cost, run `uv run openinterp usage <agent ID> --answer <its answer file>` after it finishes, before the command that reads the answer. It reads the subagent's Claude Code transcript and writes `<answer>.usage.json` next to the answer, and `audit`, `review` and `score` then record its tokens and list-price cost (`openinterp/core/pricing.py`) instead of only the prompt's length. `openinterp costs --wiki-dir wiki` reports cost per experiment by role and model.
+
   The reviewer subagent has no tool that runs the model, so it can't see probe activations before its probe set is final. The two subagents run on different models (Opus and Sonnet), so the review counts as independent. Pass each one's reported model ID to `--agent-model`.
 
 The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
