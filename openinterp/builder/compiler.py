@@ -357,6 +357,42 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
     }
 
 
+def pole_scans(neuron, n: int = 3) -> dict | None:
+    """Both poles' top examples for a neuron page, side by side.
+
+    The newest experiment that recorded its other pole supplies both, so they come from
+    one scan. Without one (records from before both poles were scanned), each pole's
+    newest experiment supplies its own, and a pole with none has no column.
+    """
+    if not neuron.is_neuron:
+        return None
+    newest = sorted(neuron.experiments, key=lambda e: e.record.verdict.timestamp, reverse=True)
+    both = next((e for e in newest if e.record.submission.opposite_pole), None)
+    found: dict[str, tuple[list[ActivatingExample], Experiment]] = {}
+    if both is not None:
+        sub = both.record.submission
+        found[sub.identifier.pole] = (sub.top_examples, both)
+        found[sub.opposite_pole.pole] = (sub.opposite_pole.top_examples, both)
+    else:
+        for e in newest:
+            found.setdefault(e.side, (e.record.submission.top_examples, e))
+    poles = []
+    for pole in neuron.sides:
+        examples, e = found.get(pole, ([], None))
+        scale = max((ex.max_activation for ex in examples), default=0.0)
+        poles.append(
+            {
+                "pole": pole,
+                "max": scale,
+                "examples": [token_heat(ex, scale, before=20, after=5) for ex in examples[:n]],
+                "source": e,
+            }
+        )
+    if not any(p["examples"] for p in poles):
+        return None
+    return {"poles": poles, "shared": both}
+
+
 def compile_site(
     records: Sequence[AuditRecord],
     output_dir: Path,
@@ -398,7 +434,13 @@ def compile_site(
             for neuron in layer.units:
                 views = [_experiment_view(e, studied) for e in neuron.experiments]
                 render(
-                    neuron.href, "neuron.html", model=model, layer=layer, neuron=neuron, views=views
+                    neuron.href,
+                    "neuron.html",
+                    model=model,
+                    layer=layer,
+                    neuron=neuron,
+                    views=views,
+                    poles=pole_scans(neuron),
                 )
     render(
         "index.html",

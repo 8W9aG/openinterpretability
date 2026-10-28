@@ -151,7 +151,7 @@ make build          # build dist/ from the wiki archive, plus the Pagefind index
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
 
-`dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`.
+`dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`. If the agents answering prompt files sit behind a proxy that hides the real model (e.g. Claude Code routed through LiteLLM to Grok), set `OPENINTERP_MODEL_ALIASES` so records name the model that answered: `claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`, or one bare name for every `external/` model.
 
 ## Experiment wiki
 

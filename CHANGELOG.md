@@ -11,7 +11,17 @@ The project has two version numbers:
 
 ### Added
 
+- **Both poles of a neuron are scanned, and shown together on its page.** A neuron scan already reads the whole signed activation, so it now also keeps the other pole's 5 strongest non-overlapping examples and its histogram over the same tokens (`ScanEvidence.opposite_pole`, carried into `NeuronAuditSubmission.opposite_pole`; left out if that pole never fires). The scan's time is unchanged. Neuron pages gain a *Both poles* section under the pole cards: each pole's top 3 examples as heatmaps, each shaded by its own pole's max. The newest experiment that recorded its other pole supplies both columns, so they come from one scan. Older records fall back to each pole's newest experiment, and a pole with none says "Not scanned yet". Neither agent's prompt shows the other pole. Reported, not gated; the protocol version is unchanged. `Histogram`, `ActivatingExample` and the new `OppositePole` move to `openinterp/core/examples.py` and are re-exported from `core.schemas`.
+
+- **`$OPENINTERP_MODEL_ALIASES` renames the recorded external model.** When Claude Code is proxied (e.g. through LiteLLM to Grok), its subagents report the Claude model they were asked for, and that name was recorded as the proposer, reviewer or judge. The variable rewrites `external/<name>` in `--agent-model` and `--judge-model` before it is recorded: `reported=actual` pairs separated by commas (`claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`), or one bare name for every external model. LiteLLM model strings are left alone, since they're the model that gets called.
+
 - **`tinystories` corpus preset** (`roneneldan/TinyStories`, CDLA-Sharing-1.0): simple English stories for a low-confound control corpus and small models. `openinterp corpus --dataset tinystories` samples its train split, which is on the dataset's main branch.
+
+## [0.0.8] - 2026-10-27
+
+Ships with protocol version **0.7**.
+
+### Added
 
 - **Transcoder baseline on GPT-2 small: latents beat positive neuron poles, 37 of 40 against 20 of 40** (`docs/analyses/transcoder-baseline.md`). This is the full run of the learned-basis baseline in `TODO.md`. It audited 40 random `gpt2-small-transcoders` latents and 40 random positive neuron poles under protocol 0.7. Scans read `corpus.jsonl` in 128-token windows. The proposer was claude-opus-5-5, the reviewer claude-sonnet-5-5 and the judges claude-haiku-5-5. Every draw is logged in order in `transcoder-baseline.jsonl`, with its verdict and record.
   - *Result.* Latents: 92% VERIFIED (Wilson 80–97%), mean balanced accuracy 0.95. Positive poles: 50% (35–65%), 0.90. Fisher p = 4.3 × 10⁻⁵.

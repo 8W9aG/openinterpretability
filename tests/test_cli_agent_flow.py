@@ -98,6 +98,8 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     assert sub.identifier == evidence.identifier and sub.top_examples == evidence.top_examples
     assert all(cf.observed_delta is not None for cf in sub.counterfactuals)  # measured
     assert sub.input_attribution == evidence.input_attribution
+    # The scan read the other pole too, for the neuron page.
+    assert sub.opposite_pole == evidence.opposite_pole and sub.opposite_pole.pole == "negative"
     # The Patchscope reads the direction only after the proposer answered.
     assert sub.patchscope is not None and sub.patchscope.readings
     assert "patchscope" not in (flow.path / "ev.json").read_text()
@@ -202,6 +204,27 @@ def test_rereviewing_a_record_keeps_only_the_new_review_costs(flow, toy_runner):
     stages = [s.stage for s in new.submission.provenance.costs.stages]
     assert stages[0] == "heldout_windows" and "probe_measurement" in stages
     assert not {"scan", "proposer"} & set(stages)  # the audit was another experiment's
+
+
+def test_model_aliases_rename_the_recorded_answerer(flow, monkeypatch):
+    # e.g. Claude Code proxied to Grok: the subagent reports the Claude model it was asked for.
+    monkeypatch.setenv("OPENINTERP_MODEL_ALIASES", "claude-opus-5-5=grok-4")
+    run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+        "--evidence-out", "ev.json")  # fmt: skip
+    (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
+    run("audit", "--evidence", "ev.json", "--hypothesis", "ev.hypothesis.json",
+        "--agent-model", "external/claude-opus-5-5", "--out", "sub.json")  # fmt: skip
+    sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
+    assert sub.submitting_agent_model == "external/grok-4"
+
+    monkeypatch.setenv("OPENINTERP_MODEL_ALIASES", "claude-opus-5-5")
+    result = CliRunner().invoke(cli, ["review", "--audit-file", "sub.json", "--agent-model",
+                                      "external/r", "--emit-prompt", "x.md"])  # fmt: skip
+    assert result.exit_code == 0  # a bare name is a default, not malformed
+    monkeypatch.setenv("OPENINTERP_MODEL_ALIASES", "=grok-4")
+    result = CliRunner().invoke(cli, ["review", "--audit-file", "sub.json", "--agent-model",
+                                      "external/r", "--emit-prompt", "x.md"])  # fmt: skip
+    assert result.exit_code != 0 and "malformed entry" in result.output
 
 
 def test_audit_records_the_experiment_it_supersedes(flow, record):

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli, with_model_options
+from openinterp.cli import cli, recorded_model_option, with_model_options
 from openinterp.harness.explanation_scores import DEFAULT_EMBEDDING_MODEL
 
 
@@ -51,6 +51,7 @@ def _threshold(submission) -> float:
 @click.option(
     "--judge-model",
     default=None,
+    callback=recorded_model_option,
     help="Judge for detection and fuzzing: a LiteLLM model string, or external/<name>. "
     "With --task, the name recorded for whoever answered.",
 )
