@@ -4,6 +4,10 @@ Every experiment's wiring (its own, or a backfilled row) names its unit's strong
 direct connections. An edge between two units that both have pages is kept; the units
 it joins, followed edge to edge, form one circuit per connected group. Each circuit
 is laid out by layer, so chains read left to right from earlier to later layers.
+
+A unit wired to a large share of the model's studied units (a *hub*, such as a late
+neuron that every earlier unit's write moves a little) would join them all into one
+star-shaped circuit, so its edges don't join circuits; the page lists hubs separately.
 :func:`wiring_view` is one experiment's wiring, with each edge's page linked.
 """
 
@@ -17,6 +21,9 @@ from openinterp.wiring_backfill import record_wiring
 
 HREF = {"mlp_neuron": neuron_href, "attn_head": head_href}
 COLUMN, ROW, PAD = 120, 44, 40
+# A hub is wired to at least this share of the model's units with pages, and this many.
+HUB_SHARE, HUB_MIN = 0.05, 10
+HUB_RULE = {"hub_share": HUB_SHARE, "hub_min": HUB_MIN}  # for the page
 
 
 @dataclass
@@ -89,9 +96,55 @@ def circuit_edges(model: ModelNode, rows: dict) -> list[CircuitEdge]:
     )
 
 
+@dataclass
+class Hub:
+    unit: UnitNode
+    edges: list[CircuitEdge]  # every edge touching it, in layer order
+
+    @property
+    def anchor(self) -> str:
+        return f"hub-L{self.unit.layer}-{self.unit.label}"
+
+    @property
+    def neighbours(self) -> list[UnitNode]:
+        found = {}
+        for e in self.edges:
+            other = e.target if e.source is self.unit else e.source
+            found[other.href] = other
+        return sorted(found.values(), key=lambda u: (u.layer, not u.is_head, u.idx))
+
+
+def hubs(model: ModelNode, edges: list[CircuitEdge]) -> list[Hub]:
+    """Units wired to at least ``HUB_SHARE`` of ``model``'s units with pages (and at least
+    ``HUB_MIN``), most connected first."""
+    n_units = sum(len(layer.units) for layer in model.layers)
+    bar = max(HUB_MIN, HUB_SHARE * n_units)
+    touching: dict[str, list[CircuitEdge]] = defaultdict(list)
+    units = {}
+    for e in edges:
+        for u in (e.source, e.target):
+            touching[u.href].append(e)
+            units[u.href] = u
+    found = [
+        Hub(units[h], es)
+        for h, es in touching.items()
+        if len({o.href for e in es for o in (e.source, e.target)} - {h}) >= bar
+    ]
+    return sorted(found, key=lambda hub: (-len(hub.neighbours), hub.unit.href))
+
+
 def circuits(model: ModelNode, rows: dict) -> list[Circuit]:
     """``model``'s circuits, largest first: groups of units joined by wiring edges."""
+    return circuits_and_hubs(model, rows)[0]
+
+
+def circuits_and_hubs(model: ModelNode, rows: dict) -> tuple[list[Circuit], list[Hub]]:
+    """``model``'s circuits, largest first, joined by the edges that don't touch a hub;
+    and its hubs."""
     edges = circuit_edges(model, rows)
+    found_hubs = hubs(model, edges)
+    hub_hrefs = {hub.unit.href for hub in found_hubs}
+    edges = [e for e in edges if not {e.source.href, e.target.href} & hub_hrefs]
     parent: dict[str, str] = {}
 
     def find(h: str) -> str:
@@ -106,7 +159,7 @@ def circuits(model: ModelNode, rows: dict) -> list[Circuit]:
     for edge in edges:
         groups[find(edge.source.href)].append(edge)
     found = [_layout(group) for group in groups.values()]
-    return sorted(found, key=lambda c: (-len(c.units), c.layers, c.units[0].href))
+    return sorted(found, key=lambda c: (-len(c.units), c.layers, c.units[0].href)), found_hubs
 
 
 def _layout(edges: list[CircuitEdge]) -> Circuit:
@@ -125,9 +178,19 @@ def _layout(edges: list[CircuitEdge]) -> Circuit:
     return Circuit(ordered, edges, positions, width, height)
 
 
-def unit_circuits(model: ModelNode, found: list[Circuit]) -> dict[str, int]:
-    """Each unit's circuit number (1-based, as on the page), by href."""
-    return {u.href: n for n, c in enumerate(found, 1) for u in c.units}
+def unit_anchors(found: list[Circuit], found_hubs: list[Hub]) -> dict[str, str]:
+    """Where each unit appears on the circuits page, by href: its circuit, else the hub it
+    is (or the first hub it is wired to)."""
+    anchors = {}
+    for hub in found_hubs:
+        for u in hub.neighbours:
+            anchors.setdefault(u.href, hub.anchor)
+    for hub in found_hubs:
+        anchors[hub.unit.href] = hub.anchor
+    for n, c in enumerate(found, 1):
+        for u in c.units:
+            anchors[u.href] = f"circuit-{n}"
+    return anchors
 
 
 def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:

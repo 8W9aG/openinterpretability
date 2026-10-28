@@ -2,7 +2,7 @@
 
 from click.testing import CliRunner
 
-from openinterp.builder.circuits import circuits
+from openinterp.builder.circuits import circuits, circuits_and_hubs
 from openinterp.builder.compiler import compile_site
 from openinterp.builder.tree import build_tree
 from openinterp.builder.wiki import archive_record
@@ -71,6 +71,30 @@ def test_circuits_chain_edges_between_studied_units(tmp_path, record):
     assert "circuits.html#circuit-1" in unit_page
     lone = (tmp_path / "models" / MODEL / "L12" / "N1.html").read_text()
     assert "circuits.html" not in lone
+
+
+def test_hubs_dont_join_circuits(tmp_path, record):
+    spoke = wiring("activations", down=[("mlp_neuron", 12, 1, 0.1)])
+    records = [
+        at(record, 1, 5, weights=wiring("weights", down=[("mlp_neuron", 3, 117, 0.4)])),
+        at(record, 3, 117, activations=spoke),
+        *(at(record, 2, i, activations=spoke) for i in range(9)),
+        at(record, 12, 1),  # 10 units are wired into it, of 12
+    ]
+    (model,) = build_tree(records)
+    found, (hub,) = circuits_and_hubs(model, {})
+    (circuit,) = found
+    assert [(u.layer, u.idx) for u in circuit.units] == [(1, 5), (3, 117)]
+    assert (hub.unit.layer, hub.unit.idx, len(hub.neighbours)) == (12, 1, 10)
+
+    compile_site(records, tmp_path)
+    page = (tmp_path / "models" / MODEL / "circuits.html").read_text()
+    assert 'id="hub-L12-N1"' in page and "wired to 10 studied units (10 edges in, 0 out)" in page
+    assert "1 circuit, 1 hub</a>" in (tmp_path / "models" / MODEL / "index.html").read_text()
+    spoke_page = (tmp_path / "models" / MODEL / "L2" / "N4.html").read_text()
+    assert "circuits.html#hub-L12-N1" in spoke_page
+    unit_page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "circuits.html#circuit-1" in unit_page
 
 
 def test_no_circuits_no_page(tmp_path, record):
