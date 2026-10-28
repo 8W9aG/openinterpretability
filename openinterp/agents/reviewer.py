@@ -33,7 +33,7 @@ from openinterp.harness.covariance import joint_ablation
 from openinterp.harness.hooks import NeuronHookRunner, run_environment
 from openinterp.harness.lookahead import ablation_profile
 from openinterp.harness.units import max_strength, submission_unit
-from openinterp.harness.wiring import activation_wiring
+from openinterp.harness.wiring_activations import activation_wiring
 
 
 class AdversarialProbe(BaseModel):
@@ -124,7 +124,11 @@ def evaluate_submission(
     probes: Sequence[AdversarialProbe],
     reviewer_model: str,
     policy: ReviewPolicy = DEFAULT_POLICY,
+    *,
+    wire: bool = True,
 ) -> VerificationVerdict:
+    """Measure ``probes`` and the submission's own claims, and decide. ``wire=False``
+    skips the activation wiring (reported, not gated), e.g. when reproducing a record."""
     lap = costs.laps()
     unit = submission_unit(submission)
     scale = submission.max_activation or max(
@@ -196,8 +200,9 @@ def evaluate_submission(
     )
     joint = _joint_ablation(submission, runner, probes, policy)
     lap("causal_metrics")
-    wiring = _activation_wiring(submission, runner, probes, threshold)
-    lap("wiring")
+    wiring = _activation_wiring(submission, runner, probes, threshold) if wire else None
+    if wire:
+        lap("wiring")
     return VerificationVerdict(
         status=decide(metrics, policy),
         confidence_score=metrics.balanced_accuracy,
@@ -279,14 +284,14 @@ def _joint_ablation(submission, runner, probes, policy):
 
 
 def _activation_wiring(submission, runner, probes, threshold):
-    """Wiring by attribution at the pole's peak on the prompts it should fire on (the
+    """Wiring by attribution at the unit's peak on the prompts it should fire on (the
     counterfactuals' base prompts and the holdouts), counting those where it did."""
-    if submission.identifier.kind != "mlp_neuron_pole" or threshold <= 0:
+    if threshold <= 0:
         return None
     prompts = [p.base_prompt for p in submission.counterfactuals]
     prompts += [p.text for p in probes if p.expected_active]
     try:
-        return activation_wiring(runner, submission.identifier, prompts, threshold)
+        return activation_wiring(runner, submission_unit(submission), prompts, threshold)
     except ArchitectureNotSupportedError:
         return None
 

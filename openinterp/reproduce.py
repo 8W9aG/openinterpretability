@@ -161,7 +161,12 @@ def reproduce_record(
 
     # 3. The review, under the record's own policy and reviewer.
     redo = evaluate_submission(
-        sub, runner, probes_from_verdict(verdict), verdict.reviewer_agent_model, verdict.policy
+        sub,
+        runner,
+        probes_from_verdict(verdict),
+        verdict.reviewer_agent_model,
+        verdict.policy,
+        wire=False,  # reported, not gated: nothing to compare
     )
     _compare_verdicts(verdict, redo, tolerance, scale, report)
 

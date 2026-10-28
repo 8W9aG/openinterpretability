@@ -19,7 +19,8 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
+from openinterp.builder import charts
+from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
@@ -27,7 +28,9 @@ from openinterp.builder.tree import (
     LABEL_PREFIX,
     SIDES,
     Experiment,
+    agent_costs,
     build_tree,
+    circuits_href,
     false_discovery,
     feature_href,
     head_href,
@@ -35,6 +38,7 @@ from openinterp.builder.tree import (
 )
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord
+from openinterp.wiring_backfill import record_wiring
 
 
 @dataclass
@@ -334,42 +338,13 @@ def _clean_owned_paths(output_dir: Path) -> None:
             path.unlink()
 
 
-def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:
-    """A wiring's edge lists with each edge's page linked when the registry has one."""
-    if wiring is None:
-        return None
-    href = {"mlp_neuron": neuron_href, "attn_head": head_href}
-
-    def rows(edges):
-        if edges is None:
-            return None
-        out = []
-        for edge in edges:
-            page = href[edge.kind](slug, edge.layer, edge.index)
-            # The channel the weight came from, when there are several to choose from.
-            via = max(edge.channels, key=lambda c: abs(edge.channels[c]), default=None)
-            out.append(
-                {
-                    "e": edge,
-                    "href": page if page in studied else None,
-                    "via": via if len(edge.channels) > 1 else None,
-                }
-            )
-        return out
-
-    return {
-        "w": wiring,
-        "groups": [
-            ("Upstream neurons", rows(wiring.upstream_neurons)),
-            ("Upstream heads", rows(wiring.upstream_heads)),
-            ("Downstream neurons", rows(wiring.downstream_neurons)),
-            ("Downstream heads", rows(wiring.downstream_heads)),
-        ],
-    }
-
-
-def _experiment_view(e: Experiment, studied: set[str]) -> dict:
+def _experiment_view(
+    e: Experiment, studied: set[str], rows: dict | None = None, circuit: str | None = None
+) -> dict:
+    """``rows``: backfilled wiring (see :mod:`openinterp.wiring_backfill`); ``circuit``:
+    the link to the circuit the unit is in, if any."""
     sub, verdict = e.record.submission, e.record.verdict
+    weights, activations, backfilled = record_wiring(e.record, rows or {})
     ident = sub.identifier
     correlated = []
     for c in sub.correlated_neurons:  # neuron poles only
@@ -381,18 +356,20 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "verdict": verdict,
         "ident": ident,
         "c": verdict.causal_metrics,
-        "bars": histogram_bars(sub.activation_histogram),
-        "probes": probe_chart(verdict, sub.max_activation),
-        "causal": causal_chart(verdict.causal_metrics, sub.counterfactuals),
-        "vocab": vocab_chart(sub.vocabulary_lens),
+        "bars": charts.histogram_bars(sub.activation_histogram),
+        "probes": charts.probe_chart(verdict, sub.max_activation),
+        "causal": charts.causal_chart(verdict.causal_metrics, sub.counterfactuals),
+        "vocab": charts.vocab_chart(sub.vocabulary_lens),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
         "wiring": [
             view
-            for w in (sub.wiring, verdict.wiring)
+            for w in (weights, activations)
             if (view := wiring_view(w, ident.model_slug, studied)) is not None
         ],
+        "wiring_backfilled": backfilled,
+        "circuit": circuit,
     }
 
 
@@ -437,8 +414,12 @@ def compile_site(
     output_dir: Path,
     *,
     site_title: str = "Open Interpretability",
+    wiring_rows: dict | None = None,
 ) -> BuildReport:
-    """Render every reviewed experiment in ``records`` (normally the wiki archive)."""
+    """Render every reviewed experiment in ``records`` (normally the wiki archive), with
+    ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) for records that
+    predate wiring."""
+    rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -467,11 +448,28 @@ def compile_site(
 
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
-        render(model.href, "model.html", model=model)
+        found, found_hubs = circuits_and_hubs(model, rows)
+        anchor_of = unit_anchors(found, found_hubs)
+        page = circuits_href(model.slug)
+        render(
+            model.href,
+            "model.html",
+            model=model,
+            layer_map=charts.layer_map(model),
+            circuits=found,
+            hubs=found_hubs,
+            circuits_page=page,
+        )
+        if found or found_hubs:
+            n_units = sum(len(c.units) for c in found)
+            view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
+            render(page, "circuits.html", model=model, **view)
         for layer in model.layers:
             render(layer.href, "layer.html", model=model, layer=layer)
             for neuron in layer.units:
-                views = [_experiment_view(e, studied) for e in neuron.experiments]
+                anchor = anchor_of.get(neuron.href)
+                circuit = f"{page}#{anchor}" if anchor else None
+                views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
                 render(
                     neuron.href,
                     "neuron.html",
@@ -486,6 +484,7 @@ def compile_site(
         "index.html",
         models=models,
         stats=registry_stats(report.parquet),
+        agent_costs=agent_costs(experiments),
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
         contested=[

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb %}
+
+{% block title %}Circuits · {{ model.name }} · {{ site_title }}{% endblock %}
+
+{% macro unit_name(u) %}L{{ u.layer }}/{{ u.label }}{% if u.dictionary %} ({{ u.dictionary }}){% endif %}{% endmacro %}
+
+{% block content %}
+{{ breadcrumb(root, model) }}
+<h1 class="font-mono text-2xl font-semibold">Circuits in {{ model.name }}</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  Units in the registry joined by their wiring: each experiment records its unit's strongest direct connections, from the weights and from activations on its review's prompts, and an edge is kept when the unit at its other end has a page too. Units joined edge to edge form one circuit, laid out by layer (attention heads above neurons in a layer, since attention runs first). A hub, a unit wired to at least {{ (hub_share * 100) | round | int }}% of the model's studied units (and at least {{ hub_min }}), would join them all into one star, so its edges don't join circuits; hubs are listed after the circuits. Edges are direct effects only, and a unit's wiring lists only its top connections, so a missing edge is not evidence of no connection. Reported, not gated.
+</p>
+<p class="mt-2 text-xs text-slate-500">
+  {{ found | length }} circuit{{ "" if found | length == 1 else "s" }} over {{ n_units }} units{% if hubs %} · <a class="underline" href="#hubs">{{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}</a>{% endif %} ·
+  <span class="text-emerald-600 dark:text-emerald-400">━</span> found by both readings ·
+  <span class="text-sky-600 dark:text-sky-400">━</span> activations only ·
+  <span class="text-slate-400">━</span> weights only
+</p>
+
+{% for c in found %}
+{% set n = loop.index %}
+<section id="circuit-{{ n }}" class="mt-10 scroll-mt-4" data-pagefind-ignore>
+  <h2 class="text-base font-semibold">Circuit {{ n }} <span class="font-normal text-slate-500">· {{ c.units | length }} units, layers {{ c.layers[0] }}–{{ c.layers[1] }}</span></h2>
+  <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <svg viewBox="0 0 {{ c.width }} {{ c.height }}" width="{{ c.width }}" height="{{ c.height }}" class="max-w-none" role="img" aria-label="Circuit {{ n }}: {{ c.units | length }} units joined by wiring edges">
+      <defs>
+        <marker id="arrow-{{ n }}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L8,4 L0,8 z" fill="context-stroke"/>
+        </marker>
+      </defs>
+      {% for e in c.edges %}
+      {% set x1, y1 = c.positions[e.source.href] %}{% set x2, y2 = c.positions[e.target.href] %}
+      {% set both = e.methods | length == 2 %}
+      {% set cls = "stroke-emerald-500" if both else ("stroke-sky-500" if e.methods[0] == "activations" else "stroke-slate-400") %}
+      {% if x1 == x2 %}
+      <path d="M{{ x1 + 40 }},{{ y1 }} Q{{ x1 + 80 }},{{ (y1 + y2) / 2 }} {{ x2 + 40 }},{{ y2 }}" fill="none" class="{{ cls }}" stroke-width="1.5" marker-end="url(#arrow-{{ n }})"><title>{{ unit_name(e.source) }} → {{ unit_name(e.target) }}</title></path>
+      {% else %}
+      <line x1="{{ x1 + 40 }}" y1="{{ y1 }}" x2="{{ x2 - 40 }}" y2="{{ y2 }}" class="{{ cls }}" stroke-width="1.5" marker-end="url(#arrow-{{ n }})"><title>{{ unit_name(e.source) }} → {{ unit_name(e.target) }}</title></line>
+      {% endif %}
+      {% endfor %}
+      {% for u in c.units %}
+      {% set x, y = c.positions[u.href] %}
+      <a href="{{ root }}{{ u.href }}">
+        <rect x="{{ x - 40 }}" y="{{ y - 13 }}" width="80" height="26" rx="5" class="{{ 'fill-emerald-50 stroke-emerald-600 dark:fill-emerald-950' if u.verified else 'fill-white stroke-slate-400 dark:fill-slate-950' }}" stroke-width="1"/>
+        <text x="{{ x }}" y="{{ y + 4 }}" text-anchor="middle" font-size="11" class="fill-slate-800 font-mono dark:fill-slate-200">L{{ u.layer }}/{{ u.label }}</text>
+        <title>{{ unit_name(u) }}{{ " · verified" if u.verified }}</title>
+      </a>
+      {% endfor %}
+    </svg>
+  </div>
+  <table class="mt-3 w-full font-mono text-xs">
+    <thead class="text-slate-500">
+      <tr><th class="pb-1 text-left font-normal">Edge</th><th class="pb-1 text-left font-normal">Found by</th></tr>
+    </thead>
+    <tbody>
+      {% for e in c.edges %}
+      <tr class="align-top">
+        <td class="py-0.5 pr-4"><a class="underline" href="{{ root }}{{ e.source.href }}">{{ unit_name(e.source) }}</a> → <a class="underline" href="{{ root }}{{ e.target.href }}">{{ unit_name(e.target) }}</a></td>
+        <td class="py-0.5">
+          {% for r in e.readings %}
+          <a class="underline" href="{{ root }}{{ r.unit.href }}#{{ r.experiment.anchor }}" title="{% for ch, x in r.channels.items() %}{{ ch }} {{ '%+.3g' | format(x) }}{{ ' · ' if not loop.last }}{% endfor %}">{{ r.experiment.id }}</a>
+          {{ r.method }} {{ '%+.3g' | format(r.weight) }}{{ " (backfilled)" if r.backfilled }}{{ "; " if not loop.last }}
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<p class="mt-8 text-sm text-slate-500">No two units in the registry are wired to each other{{ " except through a hub" if hubs }}.</p>
+{% endfor %}
+
+{% if hubs %}
+<section id="hubs" class="mt-12 scroll-mt-4" data-pagefind-ignore>
+  <h2 class="text-base font-semibold">Hubs</h2>
+  {% for hub in hubs %}
+  {% set inbound = hub.edges | selectattr("target", "sameas", hub.unit) | list %}
+  <div id="{{ hub.anchor }}" class="mt-4 scroll-mt-4">
+    <h3 class="font-mono text-sm"><a class="underline" href="{{ root }}{{ hub.unit.href }}">{{ unit_name(hub.unit) }}</a> <span class="font-sans font-normal text-slate-500">· wired to {{ hub.neighbours | length }} studied units ({{ inbound | length }} edges in, {{ hub.edges | length - inbound | length }} out)</span></h3>
+    <p class="mt-1 font-mono text-xs leading-relaxed">
+      {% for u in hub.neighbours %}<a class="underline" href="{{ root }}{{ u.href }}">L{{ u.layer }}/{{ u.label }}</a>{{ " · " if not loop.last }}{% endfor %}
+    </p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}
