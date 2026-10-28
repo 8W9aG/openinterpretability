@@ -1,0 +1,44 @@
+{# A neuron pole's wiring for _experiment.html. Expects `v.wiring` from compiler.wiring_view and `root`. #}
+  {% if v.wiring %}
+  <section class="mb-10" data-pagefind-ignore>
+    <h3 class="mb-1 text-base font-semibold" title="Elhage et al., 2021; Syed et al., 2023">Wiring</h3>
+    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this pole's input (upstream) and read most directly from its output (downstream), along the residual stream without passing through other units. Linked units have pages in the registry. Reported, not gated.</p>
+    {% for view in v.wiring %}
+    {% set w = view.w %}
+    <h4 class="mb-1 text-sm font-medium">{{ "From the weights" if w.method == "weights" else "From activations" }}</h4>
+    <p class="mb-3 max-w-3xl text-xs text-slate-500">
+      {% if w.method == "weights" %}
+      Virtual weights with each norm's gain folded in; they rank units but have no absolute scale. Upstream neurons: their write against this pole's read (+ means their positive activation raises it). Heads: the norm of the OV circuit's read (upstream) or of the Q/K/V read of this pole's write (downstream). Downstream neurons: their read of this pole's write. Read after the proposer answered and shown to neither agent.
+      {% else %}
+      Averaged over this pole's peak on {{ w.prompts }} of the review's prompts where it fired. Upstream: the first-order change in pole strength from removing a unit's direct write (+ excites). Downstream neurons: the change in their activation when this pole's write is removed from their input alone.
+      {% endif %}
+    </p>
+    <div class="mb-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {% for title, rows in view.groups %}
+      <div>
+        <h5 class="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{{ title }}</h5>
+        {% if rows is none %}
+        <p class="text-xs text-slate-500">Not measured.</p>
+        {% elif not rows %}
+        <p class="text-xs text-slate-500">None: {{ "no earlier layer" if title.startswith("Upstream") else "no later layer" }}.</p>
+        {% else %}
+        <table class="w-full font-mono text-xs">
+          <tbody>
+            {% for row in rows %}
+            {% set e = row.e %}
+            {% set label = "L" ~ e.layer ~ ("/N" if e.kind == "mlp_neuron" else "/H") ~ e.index %}
+            <tr title="{% for c, x in e.channels.items() %}{{ c }} {{ '%+.3g' | format(x) }}{{ ' · ' if not loop.last }}{% endfor %}">
+              <td>{% if row.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ row.href }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</td>
+              <td class="text-slate-500">{{ row.via or "" }}</td>
+              <td class="text-right tabular-nums">{{ '%+.3g' | format(e.weight) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}

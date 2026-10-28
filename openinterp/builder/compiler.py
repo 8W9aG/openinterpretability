@@ -334,6 +334,40 @@ def _clean_owned_paths(output_dir: Path) -> None:
             path.unlink()
 
 
+def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:
+    """A wiring's edge lists with each edge's page linked when the registry has one."""
+    if wiring is None:
+        return None
+    href = {"mlp_neuron": neuron_href, "attn_head": head_href}
+
+    def rows(edges):
+        if edges is None:
+            return None
+        out = []
+        for edge in edges:
+            page = href[edge.kind](slug, edge.layer, edge.index)
+            # The channel the weight came from, when there are several to choose from.
+            via = max(edge.channels, key=lambda c: abs(edge.channels[c]), default=None)
+            out.append(
+                {
+                    "e": edge,
+                    "href": page if page in studied else None,
+                    "via": via if len(edge.channels) > 1 else None,
+                }
+            )
+        return out
+
+    return {
+        "w": wiring,
+        "groups": [
+            ("Upstream neurons", rows(wiring.upstream_neurons)),
+            ("Upstream heads", rows(wiring.upstream_heads)),
+            ("Downstream neurons", rows(wiring.downstream_neurons)),
+            ("Downstream heads", rows(wiring.downstream_heads)),
+        ],
+    }
+
+
 def _experiment_view(e: Experiment, studied: set[str]) -> dict:
     sub, verdict = e.record.submission, e.record.verdict
     ident = sub.identifier
@@ -354,6 +388,11 @@ def _experiment_view(e: Experiment, studied: set[str]) -> dict:
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
+        "wiring": [
+            view
+            for w in (sub.wiring, verdict.wiring)
+            if (view := wiring_view(w, ident.model_slug, studied)) is not None
+        ],
     }
 
 
