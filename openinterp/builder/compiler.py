@@ -19,13 +19,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder.charts import (
-    causal_chart,
-    histogram_bars,
-    layer_map,
-    probe_chart,
-    vocab_chart,
-)
+from openinterp.builder import charts
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_registry
@@ -362,10 +356,10 @@ def _experiment_view(
         "verdict": verdict,
         "ident": ident,
         "c": verdict.causal_metrics,
-        "bars": histogram_bars(sub.activation_histogram),
-        "probes": probe_chart(verdict, sub.max_activation),
-        "causal": causal_chart(verdict.causal_metrics, sub.counterfactuals),
-        "vocab": vocab_chart(sub.vocabulary_lens),
+        "bars": charts.histogram_bars(sub.activation_histogram),
+        "probes": charts.probe_chart(verdict, sub.max_activation),
+        "causal": charts.causal_chart(verdict.causal_metrics, sub.counterfactuals),
+        "vocab": charts.vocab_chart(sub.vocabulary_lens),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
@@ -461,7 +455,7 @@ def compile_site(
             model.href,
             "model.html",
             model=model,
-            layer_map=layer_map(model),
+            layer_map=charts.layer_map(model),
             circuits=found,
             hubs=found_hubs,
             circuits_page=page,
