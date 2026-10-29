@@ -276,11 +276,22 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     help="Backfilled wiring (`openinterp wiring-backfill`) for records without their own; "
     "skipped if missing.",
 )
-def build(wiki_dir, output_dir, wiring_path):
+@click.option(
+    "--corpus-sources",
+    "source_paths",
+    multiple=True,
+    default=[Path("corpus.source.json")],
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Corpus sidecars that give the source of records which scanned their corpus "
+    "(matched by SHA-256) without recording one, shown as inferred; skipped if missing.",
+)
+def build(wiki_dir, output_dir, wiring_path, source_paths):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import load_archive
     from openinterp.core.draws import load_draws
+    from openinterp.corpus import load_sources
     from openinterp.wiring_backfill import load_rows
 
     report = compile_site(
@@ -288,6 +299,7 @@ def build(wiki_dir, output_dir, wiring_path):
         output_dir,
         wiring_rows=load_rows(wiring_path),
         draws=load_draws(wiki_dir),
+        corpus_sources=load_sources(source_paths),
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "

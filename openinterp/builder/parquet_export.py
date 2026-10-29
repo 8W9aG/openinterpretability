@@ -24,14 +24,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from openinterp.builder.tree import SIDES, Experiment
-from openinterp.core.schemas import AuditRecord
+from openinterp.core.schemas import AuditRecord, CorpusSource
+
+Sources = Mapping[str, CorpusSource] | None
 
 COUNTERFACTUAL_TYPE = pa.struct(
     [
@@ -86,6 +88,10 @@ REGISTRY_SCHEMA = pa.schema(
         ("supersedes", pa.string()),
         ("selection", pa.string()),
         ("corpus_sha256", pa.string()),
+        ("corpus_dataset", pa.string()),
+        ("corpus_revision", pa.string()),
+        ("corpus_license", pa.string()),
+        ("corpus_source_inferred", pa.bool_()),
         ("window_tokens", pa.int32()),
         ("balanced_accuracy", pa.float64()),
         ("effective_hard_negatives", pa.int32()),
@@ -167,8 +173,15 @@ def record_to_row(record: AuditRecord) -> dict:
     }
 
 
-def experiment_row(exp: Experiment) -> dict:
+def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
+    """``corpus_sources``: committed sidecars by SHA-256 (:func:`openinterp.corpus.load_sources`),
+    which give the corpus of records that didn't record one, marked as inferred."""
     sub, verdict = exp.record.submission, exp.record.verdict
+    prov = sub.provenance
+    source = prov.corpus_source if prov else None
+    corpus_sources = corpus_sources or {}
+    inferred = source is None and prov is not None and prov.corpus_sha256 in corpus_sources
+    source = corpus_sources[prov.corpus_sha256] if inferred else source
     metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
     lens, scores, head = sub.vocabulary_lens, verdict.explanation_scores, sub.head_profile
     dictionary = sub.dictionary_profile
@@ -189,6 +202,10 @@ def experiment_row(exp: Experiment) -> dict:
         "supersedes": exp.record.submission.supersedes,
         "selection": sub.provenance.selection if sub.provenance else None,
         "corpus_sha256": sub.provenance.corpus_sha256 if sub.provenance else None,
+        "corpus_dataset": source.dataset if source else None,
+        "corpus_revision": source.revision if source else None,
+        "corpus_license": source.license if source else None,
+        "corpus_source_inferred": inferred if source else None,
         "window_tokens": sub.provenance.snippet_tokens if sub.provenance else None,
         "balanced_accuracy": metrics.balanced_accuracy if metrics else None,
         "effective_hard_negatives": exp.sig.negatives.clusters,
@@ -229,9 +246,9 @@ def _balanced(score) -> float | None:
     return score.balanced_accuracy if score else None
 
 
-def records_to_table(experiments: Sequence[Experiment]) -> pa.Table:
+def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources = None) -> pa.Table:
     rows = sorted(
-        (experiment_row(e) for e in experiments),
+        (experiment_row(e, corpus_sources) for e in experiments),
         key=lambda row: (
             row["model_name"],
             row["layer"],
@@ -245,7 +262,9 @@ def records_to_table(experiments: Sequence[Experiment]) -> pa.Table:
     return pa.Table.from_pylist(rows, schema=REGISTRY_SCHEMA)
 
 
-def export_registry(experiments: Sequence[Experiment], output_dir: Path) -> Path:
+def export_registry(
+    experiments: Sequence[Experiment], output_dir: Path, corpus_sources: Sources = None
+) -> Path:
     """Write the registry parquet, a content-addressed snapshot and a manifest.
 
     Returns the path of ``data/registry.parquet``.
@@ -253,7 +272,7 @@ def export_registry(experiments: Sequence[Experiment], output_dir: Path) -> Path
     data_dir = Path(output_dir) / "data"
     (data_dir / "snapshots").mkdir(parents=True, exist_ok=True)
     latest = data_dir / "registry.parquet"
-    pq.write_table(records_to_table(experiments), latest, compression="zstd")
+    pq.write_table(records_to_table(experiments, corpus_sources), latest, compression="zstd")
 
     digest = hashlib.sha256(latest.read_bytes()).hexdigest()[:16]
     snapshot = data_dir / "snapshots" / f"registry-{digest}.parquet"
