@@ -17,12 +17,6 @@ Open work, roughly in priority order. Move items to `CHANGELOG.md` under `[Unrel
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number (reported, not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)") and becomes a gate only through a protocol change.
 
-- [ ] Linear-probe comparison for VERIFIED concepts. Using labelled data from `sparse-probing-search`, train logistic and mass-mean probes (Marks & Tegmark, 2023) on the layer's MLP hidden activations and on the residual stream. Report:
-  - probe accuracy against the neuron alone;
-  - the cosine between the probe direction and the neuron's basis vector;
-  - the k-sparse probing curve, i.e. how many neurons the concept needs (Gurnee et al., 2023).
-
-  This shows whether a concept is localised in the neuron or only partly carried by it.
 - [ ] Causal-abstraction check (Geiger et al., 2024; `stanfordnlp/pyvene`). For a hypothesis that names a variable ("inside a quotation"), compare the interchange-intervention accuracy of swapping the pole between counterfactual pairs with that of a learned one-dimensional DAS direction for the same variable. The probe comparison above is correlational; this is its causal counterpart. A neuron close to the DAS ceiling is the model's variable; one far below it is a partial view of it.
 - [ ] Multi-dimensional features (Engels et al., 2024): check whether the pole and its partner poles together trace a circular or ordinal manifold, such as days of the week, months or small numbers. Fit PCA to their joint activations on the activating set. Allow hypotheses of the form "one coordinate of a k-dimensional feature" so these neurons aren't forced into a single-concept story and rejected.
 - [ ] Adversarial input search, the text analogue of feature visualisation. Optimise prompts to maximise, or exactly hit, the pole's activation, using GCG/EPO-style fluent optimisation (Thompson et al., "Fluent dreaming", 2024), and check the hypothesis on the results. This automated reviewer arm hunts for false positives and negatives an LLM reviewer wouldn't think of. Record how many optimised inputs the hypothesis mispredicts.
