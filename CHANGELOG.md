@@ -9,6 +9,14 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- `openinterp review --check-probes <probes.json>` shows a reviewer its own probes as the model's tokens, and for an attention head the token runs each probe repeats. It writes `<name>.check.prompt.md`, loads only the tokenizer, so the reviewer still sees no activations, and is answered by rewriting the probe file. In the GPT-2 L5H1 positive control, 5 of the reviewer's first 11 hard negatives had exact 2–3-token repeats once tokenized (e.g. 'Zanzibar' → 'Z','anz','ib','ar'). The token check is now step 5 of the subagent flow in `choose-next-experiment`.
+
+### Changed
+
+- Reviewer prompts for attention heads now say that the head reads tokens, not words: a repeat is a repeat of token IDs, a token usually includes its leading space, and a short sequence such as '. My' repeats however common it is. In the L5H1 dry run, reviewers labelled exact token repeats as hard negatives because they read words.
+
 ## [0.0.9] - 2026-10-28
 
 Ships with protocol version **0.8**.

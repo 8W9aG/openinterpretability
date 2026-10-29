@@ -59,6 +59,11 @@ HEAD_ACTIVITY = (
     "probe is active if any of its tokens after the first is. Probes are measured on their "
     "own, so any earlier context a probe relies on (e.g. a repeated phrase) must be inside "
     "it.\n"
+    "The head reads tokens, not words. When a hypothesis talks about repeats or matches, "
+    "they are of tokens, and a token usually includes the space before it, so ' My' "
+    "(after a space) and 'My' (at the start of the text or after a newline) are different "
+    "tokens, while '. My' later in the text repeats '. My' earlier, however short or "
+    "common. Label each probe by the repeats its tokens make, not by the words you read.\n"
 )
 
 
@@ -109,6 +114,44 @@ class ReviewerAgent(LLMAgent):
             + f"Write {n} probes."
         )
 
+    @staticmethod
+    def token_check_prompt(
+        submission: NeuronAuditSubmission, probes: Sequence[AdversarialProbe], tokenizer
+    ) -> str:
+        """A second pass for the reviewer: its probes as the model's tokens, so it can fix
+        labels that it gave by reading words. It shows no activations: only the tokenizer
+        runs. For a head, each probe also lists the token runs that repeat an earlier one."""
+        is_head = submission.identifier.kind == "attn_head"
+        blocks = []
+        for n, probe in enumerate(probes):
+            ids = tokenizer.encode(probe.text)
+            tokens = [tokenizer.decode([i]) for i in ids]
+            label = "active" if probe.expected_active else "inactive"
+            lines = [
+                f"{n}. expected {label}: {probe.text!r}",
+                f"   tokens: {' | '.join(repr(t) for t in tokens)}",
+            ]
+            if is_head:
+                runs = [f"{''.join(tokens[a:b])!r} ({b - a})" for a, b in repeated_runs(ids)]
+                lines.append(f"   repeated token runs: {', '.join(runs) or 'none'}")
+            blocks.append("\n".join(lines))
+        repeats = (
+            "Each 'repeated token runs' entry is a longest run of tokens that also occurs "
+            "earlier in the probe, with its length in tokens.\n"
+            if is_head
+            else ""
+        )
+        return (
+            ReviewerAgent.probe_prompt(submission, len(probes))
+            + "\n\nYou wrote the probes below. Here they are as the model's tokens. "
+            + repeats
+            + "Check each label against what the hypothesis predicts for these tokens, not "
+            "for the words. Where a label is wrong, rewrite the probe so it tests what you "
+            "meant (preferred, to keep the share of hard negatives), or relabel it. Leave "
+            "the other probes unchanged and write the whole probe set again.\n\n"
+            + "\n\n".join(blocks)
+        )
+
     def review(
         self,
         submission: NeuronAuditSubmission,
@@ -120,6 +163,25 @@ class ReviewerAgent(LLMAgent):
         if probes is None:
             probes = self.generate_probes(submission).probes
         return evaluate_submission(submission, runner, probes, self.model, policy)
+
+
+def repeated_runs(ids: Sequence[int]) -> list[tuple[int, int]]:
+    """Maximal runs ``ids[a:b]`` that also occur ending earlier in ``ids``, as ``(a, b)``.
+
+    ``match[j]`` is the longest run ending at ``j`` that ends at some earlier position
+    too; a run is reported where it stops growing."""
+    match = [0] * len(ids)
+    for j in range(len(ids)):
+        for i in range(j):
+            k = 0
+            while k <= i and ids[i - k] == ids[j - k]:
+                k += 1
+            match[j] = max(match[j], k)
+    return [
+        (j - match[j] + 1, j + 1)
+        for j in range(len(ids))
+        if match[j] and (j + 1 == len(ids) or match[j + 1] != match[j] + 1)
+    ]
 
 
 def evaluate_submission(
