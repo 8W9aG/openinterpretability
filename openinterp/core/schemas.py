@@ -113,12 +113,16 @@ class CorpusSource(StrictModel):
         default=None,
         description="How rows were joined into documents (e.g. 'wikitext'); None: one per row.",
     )
+    first: bool = False  # the first documents in file order, not a seeded sample (no strip)
+    ascii: bool = False  # non-ASCII \u-escaped in the JSONL, as in the registry's corpus
     license: str | None = None
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
 
     def __str__(self) -> str:
         at = f"@{self.revision[:8]}" if self.revision else ""
-        return f"{self.dataset}{at} ({self.files}, {self.documents} docs, seed {self.seed})"
+        how = f"{self.documents} docs, seed {self.seed}"
+        how = f"first {self.documents} docs" if self.first else how
+        return f"{self.dataset}{at} ({self.files}, {how})"
 
 
 class CorpusSample(StrictModel):
