@@ -45,6 +45,19 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "Default: the preset's, or 20.",
 )
 @click.option(
+    "--first",
+    is_flag=True,
+    help="Take the dataset's first --docs documents in file order, cut but not stripped, "
+    "instead of a seeded sample.",
+)
+@click.option(
+    "--ascii",
+    "ascii_",
+    is_flag=True,
+    help="Escape non-ASCII characters in the JSONL. With --first, rebuilds the registry's "
+    "corpus from pile-10k (README).",
+)
+@click.option(
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
 )
 def corpus(
@@ -57,6 +70,8 @@ def corpus(
     seed,
     max_chars,
     docs_per_row_group,
+    first,
+    ascii_,
     out,
 ):
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
@@ -81,6 +96,8 @@ def corpus(
         seed=seed,
         max_chars=max_chars,
         docs_per_row_group=docs_per_row_group or (preset.docs_per_row_group if preset else 20),
+        first=first,
+        ascii=ascii_,
     )
     click.echo(f"Wrote {source.documents} documents to {out}: {source}")
     if source.documents < documents:

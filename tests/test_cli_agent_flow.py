@@ -48,6 +48,18 @@ def run(*args):
     return result
 
 
+def test_audit_warns_about_a_corpus_without_a_matching_sidecar(flow):
+    from openinterp.corpus import write_corpus
+
+    args = ["audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--evidence-out", "ev.json"]
+    assert "has no corpus.source.json" in run(*args, "--corpus", "corpus.txt").output
+    source = write_corpus(TEXTS, flow.path / "built.jsonl", dataset="d/x", files="*",
+                          seed=0, max_chars=99, docs_per_row_group=1)  # fmt: skip
+    assert "warning" not in run(*args, "--corpus", "built.jsonl").output
+    evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
+    assert evidence.provenance.corpus_source == source
+
+
 def test_audit_scans_windows_and_records_them(flow):
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--window-tokens", 4, "--evidence-out", "ev.json")  # fmt: skip
