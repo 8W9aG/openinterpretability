@@ -133,6 +133,7 @@ def test_a_head_is_audited_reviewed_and_reproduced(runner, scan):
 
     prompt = ReviewerAgent.probe_prompt(sub)
     assert prompt.startswith("Attention head: tiny-gpt2 L1/H1") and "residual stream" in prompt
+    assert "reads tokens, not words" in prompt
 
 
 def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path):
