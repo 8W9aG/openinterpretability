@@ -22,6 +22,7 @@ You are the **reviewer** in an Open Interpretability experiment (see `docs/PROTO
    - Keep probes distinct. Near-duplicates (word-set Jaccard ≥ 0.5) count as a single observation.
    - If the prompt says the unit has a first-token floor, a probe's first token is not measured: every probe needs at least two tokens, and a trigger that opens a probe is not seen. A one-token probe then counts for nothing.
 3. Give each probe a one-sentence `rationale` saying what it tests.
+4. You may later be sent a token check (`<name>.check.prompt.md`): your probes as the model's tokens, with no activations. Check every label against what the hypothesis predicts for those tokens. Rewrite (preferred) or relabel the probes whose labels were wrong, and write the whole probe set back to the same `<name>.probes.json`. Read that file first so your Write succeeds.
 
 ## Output
 
