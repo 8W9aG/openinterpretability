@@ -11,11 +11,12 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from functools import partial
 
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
-from openinterp.agents.proposer import format_input_attribution
+from openinterp.agents.proposer import FIRST_TOKEN_UNMEASURED, format_input_attribution
 from openinterp.core import costs
 from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import (
@@ -32,7 +33,8 @@ from openinterp.harness.confounds import baseline_predictions
 from openinterp.harness.covariance import joint_ablation
 from openinterp.harness.hooks import NeuronHookRunner, run_environment
 from openinterp.harness.lookahead import ablation_profile
-from openinterp.harness.units import max_strength, submission_unit
+from openinterp.harness.scan import has_first_token_floor
+from openinterp.harness.units import peak_strength, submission_unit
 from openinterp.harness.wiring_activations import activation_wiring
 
 
@@ -54,8 +56,9 @@ DEFAULT_POLICY = ReviewPolicy()
 HEAD_ACTIVITY = (
     "A head counts as active at a token when its write to the residual stream there is far "
     "from its average write: what it attends to and copies at that token is unusual. A "
-    "probe is active if any of its tokens is. Probes are measured on their own, so any "
-    "earlier context a probe relies on (e.g. a repeated phrase) must be inside it.\n"
+    "probe is active if any of its tokens after the first is. Probes are measured on their "
+    "own, so any earlier context a probe relies on (e.g. a repeated phrase) must be inside "
+    "it.\n"
 )
 
 
@@ -96,6 +99,7 @@ class ReviewerAgent(LLMAgent):
         return (
             f"{submission.identifier.noun.capitalize()}: {submission.identifier}\n"
             + (HEAD_ACTIVITY if is_head else "")
+            + (FIRST_TOKEN_UNMEASURED if submission.first_token_floor else "")
             + f"Hypothesis: {submission.natural_language_explanation}\n"
             f"Claimed activating tokens: {submission.activating_tokens}\n"
             f"Claimed mechanism: {mechanism}"
@@ -132,38 +136,51 @@ def evaluate_submission(
     lap = costs.laps()
     unit = submission_unit(submission)
     scale = submission.max_activation or max(
-        max_strength(runner, unit, p.base_prompt) for p in submission.counterfactuals
+        peak_strength(runner, unit, p.base_prompt) or 0.0 for p in submission.counterfactuals
     )
     threshold = policy.activation_threshold * scale
+    if submission.first_token_floor is None:  # judged at the scan since protocol 0.8
+        read = partial(unit.strengths, runner)
+        floor = has_first_token_floor(runner, read, scale, policy)
+        submission = submission.model_copy(update={"first_token_floor": floor})
+        unit = submission_unit(submission)
 
     results: list[AdversarialTestResult] = []
+    measured_probes: list[AdversarialProbe] = []
     actual: list[bool] = []
+    # A one-token prompt to a unit with a first-token floor has nothing measured: it is
+    # recorded as unmeasured and counts in no metric.
     for probe in probes:
-        strength = max_strength(runner, unit, probe.text)
-        active = scale > 0 and strength >= threshold
-        actual.append(active)
+        strength = peak_strength(runner, unit, probe.text)
+        active = strength is not None and scale > 0 and strength >= threshold
+        if strength is not None:
+            measured_probes.append(probe)
+            actual.append(active)
         results.append(
             AdversarialTestResult(
                 kind="positive_holdout" if probe.expected_active else "hard_negative",
                 prompt=probe.text,
-                passed=active == probe.expected_active,
+                passed=strength is not None and active == probe.expected_active,
                 expected_active=probe.expected_active,
-                activation=round(strength, 6),
+                activation=None if strength is None else round(strength, 6),
                 detail=probe.rationale,
+                measured=strength is not None,
             )
         )
 
     for pair in submission.counterfactuals:
-        base = max_strength(runner, unit, pair.base_prompt)
-        cf = max_strength(runner, unit, pair.counterfactual_prompt)
-        observed = (base - cf) / scale if scale > 0 else 0.0
+        base = peak_strength(runner, unit, pair.base_prompt)
+        cf = peak_strength(runner, unit, pair.counterfactual_prompt)
+        both = base is not None and cf is not None
+        observed = (base - cf) / scale if both and scale > 0 else 0.0
         results.append(
             AdversarialTestResult(
                 kind="counterfactual",
                 prompt=f"{pair.base_prompt} -> {pair.counterfactual_prompt}",
-                passed=scale > 0 and _delta_agrees(pair.expected_delta, observed, policy),
+                passed=both and scale > 0 and _delta_agrees(pair.expected_delta, observed, policy),
                 expected_delta=pair.expected_delta,
-                observed_delta=round(observed, 6),
+                observed_delta=round(observed, 6) if both else None,
+                measured=both,
             )
         )
 
@@ -188,7 +205,9 @@ def evaluate_submission(
         results,
         policy,
         independent=reviewer_model != submission.submitting_agent_model,
-        baseline=confound_baseline(submission, runner, probes, actual, threshold, policy),
+        baseline=confound_baseline(submission, runner, measured_probes, actual, threshold, policy),
+        active_share=scan_active_share(submission, policy),
+        first_token_floor=submission.first_token_floor,
     )
     lap("gates")
     causal = causal_metrics(
@@ -256,7 +275,10 @@ def confound_baseline(
     if submission.confounds is None or runner.tokenizer is None or not probes:
         return None
     texts = [p.text for p in probes]
-    candidates = baseline_predictions(submission.confounds, runner.tokenizer, texts, threshold)
+    skip_first = bool(submission.first_token_floor)
+    candidates = baseline_predictions(
+        submission.confounds, runner.tokenizer, texts, threshold, skip_first
+    )
     candidates["never active"] = [False] * len(probes)
     scored = {name: _probe_score(probes, pred, actual, policy) for name, pred in candidates.items()}
     best = max(sorted(scored), key=lambda name: scored[name])
@@ -310,7 +332,7 @@ def _delta_agrees(expected: float, observed: float, policy: ReviewPolicy) -> boo
 
 
 def _pass_rate(results: Sequence[AdversarialTestResult], kinds: set[str]) -> float | None:
-    subset = [r for r in results if r.kind in kinds]
+    subset = [r for r in results if r.kind in kinds and r.measured]
     return sum(r.passed for r in subset) / len(subset) if subset else None
 
 
@@ -320,9 +342,11 @@ def review_metrics(
     *,
     independent: bool,
     baseline: tuple[str, float] | None = None,
+    active_share: float | None = None,
+    first_token_floor: bool | None = None,
 ) -> ReviewMetrics:
     def counts(kind: str):
-        rows = [r for r in results if r.kind == kind]
+        rows = [r for r in results if r.kind == kind and r.measured]
         return effective_counts(
             [r.prompt for r in rows], [r.passed for r in rows], policy.probe_cluster_threshold
         )
@@ -331,8 +355,10 @@ def review_metrics(
     reproduction = _pass_rate(results, {"counterfactual"})
     lookahead = all(r.passed for r in results if r.kind == "lookahead_consistency")
     balanced = balanced_accuracy(negatives, holdouts)
+    # The baseline's accuracy is stored rounded, so compare at the same precision: a tie
+    # passes (protocol 0.8; before, 10/11 lost to a rounded-up 10/11).
     beats_baseline = not policy.require_confound_control or (
-        baseline is not None and balanced >= baseline[1] - 1e-9
+        baseline is not None and round(balanced, 6) >= baseline[1]
     )
 
     gates = {
@@ -345,6 +371,7 @@ def review_metrics(
         "lookahead_consistent": lookahead,
         "independent_review": independent or not policy.require_independent_review,
         "beats_confound_baseline": beats_baseline,
+        "not_default_on": active_share is None or active_share < policy.max_active_share,
     }
     return ReviewMetrics(
         specificity=None if negatives.rate is None else round(negatives.rate, 6),
@@ -358,7 +385,18 @@ def review_metrics(
         effective_holdouts=holdouts.clusters,
         confound_baseline=baseline[0] if baseline else None,
         confound_baseline_accuracy=baseline[1] if baseline else None,
+        active_share=None if active_share is None else round(active_share, 6),
+        first_token_floor=first_token_floor,
     )
+
+
+def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:
+    """The share of the scan's tokens the unit is active on, from the submission's
+    histogram; ``None`` without one."""
+    histogram, scale = submission.activation_histogram, submission.max_activation
+    if histogram is None or not scale:
+        return None
+    return histogram.share_at_least(policy.activation_threshold * scale)
 
 
 def decide(metrics: ReviewMetrics, policy: ReviewPolicy) -> VerdictStatus:

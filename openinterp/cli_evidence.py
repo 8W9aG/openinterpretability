@@ -9,7 +9,12 @@ import click
 
 from openinterp.cli import cli, recorded_model_option, with_model_options
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
-from openinterp.evidence import read_corpus, scan_evidence, sha256  # noqa: F401  (re-exported)
+from openinterp.evidence import (  # noqa: F401  (re-exported)
+    Unauditable,
+    read_corpus,
+    scan_evidence,
+    sha256,
+)
 
 scan_cache_option = click.option(
     "--scan-cache/--no-scan-cache",
@@ -101,6 +106,16 @@ def read_wiring(runner, submission):
             return None
 
 
+def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
+    """Keep a random draw the scan stopped on, so random-selection statistics count it."""
+    from openinterp.cli import _skip_wiki
+    from openinterp.core.draws import write_draw
+
+    if random_pick and exc.draw is not None and not _skip_wiki(wiki_dir):
+        path = write_draw(exc.draw, wiki_dir)
+        click.echo(f"Recorded the {exc.draw.outcome.replace('_', '-')} draw: {path}", err=True)
+
+
 def write_evidence(evidence, path: Path) -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
@@ -121,6 +136,7 @@ def write_evidence(evidence, path: Path) -> None:
         evidence.head_profile,
         evidence.input_attribution,
         evidence.dictionary_profile,
+        bool(evidence.first_token_floor),
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -237,6 +253,14 @@ def write_evidence(evidence, path: Path) -> None:
 @click.option(
     "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
 )
+@click.option(
+    "--wiki-dir",
+    default=Path("wiki"),
+    show_default=True,
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Registry root. A --random draw the scan stops on (dead or default-on) is recorded "
+    "in draws/<slug>/, as an outcome of random selection. Pass --wiki-dir '' to skip.",
+)
 @with_model_options
 def audit(
     model_name,
@@ -262,6 +286,7 @@ def audit(
     hypothesis_file,
     superseded_file,
     out,
+    wiki_dir,
     device,
     dtype,
 ):
@@ -338,27 +363,31 @@ def audit(
             raise click.UsageError("--model is required unless --evidence is given.")
         attn = "eager" if unit == "head" else None  # heads need attention patterns
         runner = _load_runner(model_name, device, dtype, None, attn)
-        evidence = scan_evidence(
-            runner,
-            model_name,
-            layer,
-            neuron,
-            pole,
-            random_pick,
-            seed,
-            corpus,
-            top_k,
-            dtype,
-            window_tokens=window_tokens,
-            stride=stride,
-            head=head,
-            unit=unit,
-            max_tokens=max_tokens,
-            sample_seed=sample_seed,
-            scan_cache=open_scan_cache(use_scan_cache),
-            feature=feature,
-            dictionary=dictionary,
-        )
+        try:
+            evidence = scan_evidence(
+                runner,
+                model_name,
+                layer,
+                neuron,
+                pole,
+                random_pick,
+                seed,
+                corpus,
+                top_k,
+                dtype,
+                window_tokens=window_tokens,
+                stride=stride,
+                head=head,
+                unit=unit,
+                max_tokens=max_tokens,
+                sample_seed=sample_seed,
+                scan_cache=open_scan_cache(use_scan_cache),
+                feature=feature,
+                dictionary=dictionary,
+            )
+        except Unauditable as exc:
+            record_draw(exc, random_pick, wiki_dir)
+            raise
         if evidence_out is not None:
             write_evidence(evidence, evidence_out)
             return
@@ -373,6 +402,7 @@ def audit(
             evidence.head_profile,
             evidence.input_attribution,
             evidence.dictionary_profile,
+            bool(evidence.first_token_floor),
         )
 
     ident = evidence.identifier
@@ -382,20 +412,24 @@ def audit(
             f"not on {ident}."
         )
     with costs.stage("counterfactuals"):
-        submission = agent.build_submission(
-            ident,
-            draft,
-            runner=runner,
-            examples=evidence.top_examples,
-            histogram=evidence.activation_histogram,
-            provenance=evidence.provenance,
-            confounds=evidence.confounds,
-            correlated=evidence.correlated_neurons,
-            vocabulary_lens=evidence.vocabulary_lens,
-            input_attribution=evidence.input_attribution,
-            head_profile=evidence.head_profile,
-            dictionary_profile=evidence.dictionary_profile,
-        )
+        try:
+            submission = agent.build_submission(
+                ident,
+                draft,
+                runner=runner,
+                examples=evidence.top_examples,
+                histogram=evidence.activation_histogram,
+                provenance=evidence.provenance,
+                confounds=evidence.confounds,
+                correlated=evidence.correlated_neurons,
+                vocabulary_lens=evidence.vocabulary_lens,
+                input_attribution=evidence.input_attribution,
+                head_profile=evidence.head_profile,
+                dictionary_profile=evidence.dictionary_profile,
+                first_token_floor=evidence.first_token_floor,
+            )
+        except ValueError as exc:  # e.g. a one-token counterfactual prompt
+            raise click.ClickException(f"Counterfactual: {exc}") from exc
     readout = read_patchscope(runner, submission)
     steering = read_steering(runner, submission)
     wiring = read_wiring(runner, submission)

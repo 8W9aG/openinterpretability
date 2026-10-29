@@ -86,6 +86,11 @@ def test_fuzzing_label_needs_exactly_the_active_tokens():
     assert [s.label for s in detection] == [True, True, True, False]
     assert detection[0].quantile == 1  # peak 3.0 is past the 2.5 edge
 
+    # A unit with a first-token floor isn't read at the first token (protocol 0.8).
+    floor = [Window("x", list("abcd"), [5.0, 0.0, 0.0, 0.0], (0,), start=start) for start in (0, 1)]
+    assert [w.peak for w in floor] == [5.0, 0.0]
+    assert [s.label for s in label_windows(floor, 1.0, [2.5], fuzzing=True)] == [True, False]
+
 
 def test_sample_heldout_is_seeded_and_held_out(toy_runner):
     threshold = _threshold(toy_runner)
@@ -290,3 +295,25 @@ def test_one_step_review_scores_the_explanation_itself(flow, monkeypatch):
     (record_path,) = (flow.path / "wiki" / "experiments").rglob("*.json")
     scores = AuditRecord.model_validate_json(record_path.read_text()).verdict.explanation_scores
     assert judged == ["openai/reviewer"] and scores.judge_model == "openai/reviewer"
+
+
+def test_a_floor_units_task_scores_without_the_first_token(flow):
+    # The task carries the floor, so `score --task` labels windows as its unit reads them.
+    sub = flow.sub.model_copy(update={"first_token_floor": True})
+    (flow.path / "floor.json").write_text(sub.model_dump_json())
+    run("score", "--audit-file", "floor.json", "--corpus", "corpus.txt", "--seed", 3,
+        "--window-tokens", 8, "--quantiles", 2, "--per-quantile", 3,
+        "--emit-task", "score.task.json")  # fmt: skip
+    task = ScoringTask.model_validate_json((flow.path / "score.task.json").read_text())
+    assert task.first_token_floor is True
+    (flow.path / "score.detection.json").write_text(DetectionAnswer(active=[]).model_dump_json())
+    (flow.path / "score.fuzzing.json").write_text(FuzzingAnswer(correct=[]).model_dump_json())
+    run("score", "--task", "score.task.json", "--judge-model", "external/judge")
+    scores = ExplanationScores.model_validate_json((flow.path / "score.scores.json").read_text())
+    threshold = scores.threshold
+    for w in scores.detection_windows:
+        assert w.label == any(a >= threshold for a in w.activations[1:])
+    # Scoring re-measures with the unit the task names, so the task must keep the floor.
+    from openinterp.harness.units import submission_unit
+
+    assert submission_unit(task).skip_first

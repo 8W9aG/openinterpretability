@@ -74,7 +74,7 @@
         explained variance {{ b.explained_variance | pct }} · mean L0 {{ b.mean_l0 | num(0) }}{% if b.dead_share is not none %} · <span title="Latents inactive on every scanned token: a random draw of one can't be audited, so they are not in the latents' row">dead latents {{ b.dead_share | pct }}</span>{% endif %}{% if b.p_positive is not none %} · p = {{ b.p_positive | pval }} vs positive poles{% endif %}{% if b.p_value is not none %} ({{ b.p_value | pval }} vs all){% endif %}
       </caption>
       <thead class="text-xs uppercase tracking-wide text-slate-500">
-        <tr><th class="px-3 py-2">Random units</th><th class="px-3 py-2 text-right">Audited</th><th class="px-3 py-2 text-right">Verified</th><th class="px-3 py-2 text-right">Share (95% CI)</th><th class="px-3 py-2 text-right">Balanced accuracy</th></tr>
+        <tr><th class="px-3 py-2">Random units</th><th class="px-3 py-2 text-right">Audited</th><th class="px-3 py-2 text-right">Verified</th><th class="px-3 py-2 text-right">Share (95% CI)</th><th class="px-3 py-2 text-right">Balanced accuracy</th><th class="px-3 py-2 text-right" title="Random draws the scan stopped on, recorded in wiki/draws/: never active (dead), or active on at least half the scan's tokens (default-on)">Not auditable</th></tr>
       </thead>
       <tbody class="divide-y divide-slate-200 tabular-nums dark:divide-slate-800">
         {% for label, arm in [("Dictionary latents", b.features), ("Neuron poles", b.neurons), ("↳ positive poles", b.positive_poles), ("↳ negative poles", b.negative_poles)] %}
@@ -84,6 +84,7 @@
           <td class="px-3 py-2 text-right font-mono">{{ arm.verified }}</td>
           <td class="px-3 py-2 text-right font-mono">{% if arm.units %}{{ arm.share | pct }} ({{ arm.interval[0] | pct }}–{{ arm.interval[1] | pct }}){% else %}—{% endif %}</td>
           <td class="px-3 py-2 text-right font-mono">{{ arm.mean_balanced_accuracy | num(2) }}</td>
+          <td class="px-3 py-2 text-right font-mono">{% if arm.dead or arm.default_on %}{% if arm.dead %}{{ arm.dead }} dead{% endif %}{% if arm.dead and arm.default_on %}, {% endif %}{% if arm.default_on %}{{ arm.default_on }} default-on{% endif %}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

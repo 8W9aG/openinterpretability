@@ -16,7 +16,15 @@ from openinterp.core.stats import (
 from openinterp.harness.confounds import ConfoundAccumulator, baseline_predictions
 from openinterp.harness.covariance import CovarianceAccumulator, PartnerSearch, joint_ablation
 from openinterp.harness.hooks import pole_strength
-from openinterp.harness.scan import cut_pieces, plan_batches, scan_neuron
+from openinterp.harness.scan import (
+    Piece,
+    TopExamples,
+    cut_pieces,
+    first_position_share,
+    plan_batches,
+    scan_neuron,
+    settle,
+)
 from tests.conftest import D_MLP, FakeTokenizer
 
 TEXTS = ["abcde", "hello world", "zzzz", "quoted 'text'", "mixed Case 123", "aaaa bbbb"]
@@ -142,6 +150,9 @@ def test_token_identity_r2_and_baseline():
     with_trigger = next(chr(c) for c in range(97, 123) if 1 + c % 15 == 1)
     preds = baseline_predictions(profile, tok, [with_trigger, "b"], threshold=1.0)
     assert preds["token identity"] == [True, False]
+    # A unit with a first-token floor isn't read at the first token, nor are its baselines.
+    late = baseline_predictions(profile, tok, ["b" + with_trigger, with_trigger + "b"], 1.0, True)
+    assert late["token identity"] == [True, False]
 
 
 def test_scan_gathers_everything(toy_runner):
@@ -162,10 +173,13 @@ def test_scan_gathers_everything(toy_runner):
     partner = pole_strength(acts[:, top.neuron_idx], top.pole)
     assert top.spearman == pytest.approx(spearman(target, partner), abs=1e-4)
 
-    # The same pass reads the other pole.
+    # The same pass reads the other pole. In the toy model (no attention) it is active on
+    # most tokens wherever they are, so it has a first-token floor and leaves them out.
     other = scan.opposite
-    assert other.pole == "negative" and len(other.values) == len(scan.values)
-    negative = pole_strength(acts[:, 2], "negative")
+    assert not scan.first_token_floor and other.first_token_floor
+    first = (enc["attention_mask"].cumsum(1) == 1)[enc["attention_mask"].bool()]
+    negative = pole_strength(acts[:, 2], "negative")[~first]
+    assert other.pole == "negative" and len(other.values) == len(scan.values) - len(TEXTS)
     assert sorted(other.values) == pytest.approx(sorted(negative.tolist()), abs=1e-5)
     assert other.examples[0].max_activation == pytest.approx(float(negative.max()), abs=1e-5)
 
@@ -259,3 +273,42 @@ def test_reused_probes_are_not_independent(record):
     fdr = false_discovery([model])
     assert fdr["claims"] == 1  # one claim per neuron pole, however often re-measured
     assert 0 <= fdr["expected_false"] < 0.5
+
+
+def test_top_examples_rank_by_the_measured_peak():
+    top = TopExamples()
+    top.add(Piece(0, 0, 1, "abc"), [1, 2, 3], [9.0, 0.5, 0.0])  # high only at the first
+    top.add(Piece(1, 0, 1, "def"), [4, 5, 6], [0.0, 0.0, 2.0])
+    top.add(Piece(2, 0, 1, "g"), [7], [5.0])  # one token: nothing after the first
+    tok = FakeTokenizer()
+    peaks = [(e.text, e.max_activation, e.max_token_index) for e in top.top(tok, k=5)]
+    assert peaks == [("abc", 9.0, 0), ("g", 5.0, 0), ("def", 2.0, 2)]
+    later = [(e.text, e.max_activation, e.max_token_index) for e in top.top(tok, 5, True)]
+    assert later == [("def", 2.0, 2), ("abc", 0.5, 1)]
+
+
+def test_a_first_token_floor_is_judged_over_the_vocabulary(toy_runner):
+    def constant(level):
+        return lambda inputs: torch.full(inputs["input_ids"].shape, level)
+
+    assert first_position_share(toy_runner, constant(1.0), line=0.5) == 1.0
+    assert first_position_share(toy_runner, constant(0.4), line=0.5) == 0.0
+    top = TopExamples()
+    top.add(Piece(0, 0, 1, "abc"), [1, 2, 3], [9.0, 2.0, 0.0])
+    top.add(Piece(1, 0, 1, "de"), [4, 5], [9.0, 1.0])
+    values, first = [9.0, 2.0, 0.0, 9.0, 1.0], [True, False, False, True, False]
+    # Active at the first position on the whole vocabulary, against the line 2.0 sets.
+    examples, kept, floor = settle(toy_runner, constant(1.0), values, first, top, 5)
+    assert floor and kept == [2.0, 0.0, 1.0] and examples[0].max_activation == 2.0
+    examples, kept, floor = settle(toy_runner, constant(0.1), values, first, top, 5)
+    assert not floor and kept == values and examples[0].max_activation == 9.0
+
+
+def test_scan_stops_on_a_default_on_unit():
+    import click
+
+    from openinterp.evidence import check_default_on
+
+    check_default_on("u", [1.0] * 4 + [0.0] * 6, 1.0)  # active on 40%: auditable
+    with pytest.raises(click.ClickException, match="default-on: it is active on 60%"):
+        check_default_on("u", [1.0] * 6 + [0.0] * 4, 1.0)

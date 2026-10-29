@@ -153,3 +153,22 @@ def test_self_review_marked(tmp_path, record):
     assert "**Self-reviewed.**" in page.read_text()
     assert "VERIFIED (self-reviewed)" in (page.parent / "README.md").read_text()
     assert "VERIFIED (self-reviewed)" in (tmp_path / "wiki" / "README.md").read_text()
+
+
+def test_unmeasured_probes_are_shown_but_not_failed(tmp_path, record):
+    from openinterp.core.schemas import AdversarialTestResult
+
+    one_token = AdversarialTestResult(
+        kind="hard_negative", prompt="Love", passed=False, expected_active=False, measured=False
+    )
+    failed = _failed_record(record)
+    verdict = failed.verdict.model_copy(
+        update={"adversarial_test_results": [*failed.verdict.adversarial_test_results, one_token]}
+    )
+    rec = AuditRecord(submission=failed.submission, verdict=verdict)
+    text = write_experiment_page(rec, tmp_path / "wiki").read_text()
+    assert "| — | hard negative | Love | inactive | unmeasured (one token) |" in text
+    assert text.count("Love") == 1  # in the probe table, not among the failed probes
+    compile_site([rec], tmp_path / "dist")
+    pages = [p.read_text() for p in (tmp_path / "dist").rglob("*.html")]
+    assert any("unmeasured: one token" in page for page in pages)

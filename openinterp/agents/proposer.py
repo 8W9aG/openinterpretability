@@ -143,6 +143,17 @@ def format_input_attribution(attribution: InputAttribution) -> str:
     return "\n".join(lines) + "\n"
 
 
+# Protocol 0.8: how a unit with a first-token floor is read, for every agent that writes
+# prompts for one.
+FIRST_TOKEN_UNMEASURED = (
+    "This unit has a first-token floor: at a text's first token it is active whatever the "
+    "token is, so it is not measured there. A prompt's strength is its peak over every "
+    "token but the first, so every prompt needs at least two tokens, and a trigger that "
+    "opens a prompt is not seen. Its examples show the first token's strength, but it "
+    "never counts.\n"
+)
+
+
 class ProposerAgent(LLMAgent):
     role = "proposer"
     system_prompt = (
@@ -169,6 +180,7 @@ class ProposerAgent(LLMAgent):
         head_profile: HeadProfile | None = None,
         attribution: InputAttribution | None = None,
         dictionary_profile: DictionaryProfile | None = None,
+        first_token_floor: bool = False,
     ) -> HypothesisDraft:
         prompt = self.proposal_prompt(
             identifier,
@@ -179,6 +191,7 @@ class ProposerAgent(LLMAgent):
             head_profile,
             attribution,
             dictionary_profile,
+            first_token_floor,
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -192,9 +205,12 @@ class ProposerAgent(LLMAgent):
         head_profile: HeadProfile | None = None,
         attribution: InputAttribution | None = None,
         dictionary_profile: DictionaryProfile | None = None,
+        first_token_floor: bool = False,
     ) -> str:
         """The task text the proposer answers: the scan evidence for one unit."""
         prompt = f"{identifier.noun.capitalize()}: {identifier}\n\n"
+        if first_token_floor:
+            prompt += FIRST_TOKEN_UNMEASURED + "\n"
         if head_profile is not None:
             prompt += format_head_profile(head_profile) + "\n"
         if dictionary_profile is not None:
@@ -245,6 +261,7 @@ class ProposerAgent(LLMAgent):
         input_attribution: InputAttribution | None = None,
         head_profile: HeadProfile | None = None,
         dictionary_profile: DictionaryProfile | None = None,
+        first_token_floor: bool | None = None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
@@ -264,7 +281,7 @@ class ProposerAgent(LLMAgent):
         )
         is_head = identifier.kind == "attn_head"
         if runner is not None and max_act:
-            unit = unit_of(identifier, head_profile, dictionary_profile)
+            unit = unit_of(identifier, head_profile, dictionary_profile, bool(first_token_floor))
             pairs = [
                 pair.model_copy(
                     update={"observed_delta": observed_delta(runner, unit, pair, max_act)}
@@ -286,6 +303,7 @@ class ProposerAgent(LLMAgent):
             max_activation=max_act,
             top_examples=list(examples),
             activation_histogram=histogram,
+            first_token_floor=first_token_floor,
             model_num_layers=runner.n_layers if runner is not None else None,
             model_mlp_width=runner.mlp_width(identifier.layer) if runner is not None else None,
             model_n_heads=runner.n_heads if runner is not None and is_head else None,

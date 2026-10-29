@@ -22,7 +22,7 @@ from openinterp import __version__
 from openinterp.builder import charts
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.learned_baseline import learned_baseline
-from openinterp.builder.parquet_export import export_registry
+from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     LABEL_PREFIX,
@@ -219,7 +219,7 @@ def _unit_label(row: dict) -> str:
 RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
 
 
-def registry_stats(parquet: Path) -> dict:
+def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
     """Totals and leaderboards, queried with DuckDB over the exported parquet."""
     con = duckdb.connect()
     con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{parquet.as_posix()}')")
@@ -309,7 +309,7 @@ def registry_stats(parquet: Path) -> dict:
         FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
         """
     )
-    baseline = learned_baseline(con)
+    baseline = learned_baseline(con, draws)
     con.close()
     for row in verified + conclusive + recent:
         row["href"] = _anchor_href(row)
@@ -415,6 +415,7 @@ def compile_site(
     *,
     site_title: str = "Open Interpretability",
     wiring_rows: dict | None = None,
+    draws: Sequence = (),
 ) -> BuildReport:
     """Render every reviewed experiment in ``records`` (normally the wiki archive), with
     ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) for records that
@@ -430,6 +431,7 @@ def compile_site(
     ]
     report = BuildReport(output_dir, len(records), len(experiments))
     report.parquet = export_registry(experiments, output_dir)
+    export_draws(draws, output_dir)  # random draws no experiment could audit
 
     env = _environment()
     common = {
@@ -483,7 +485,7 @@ def compile_site(
         "index.html",
         "index.html",
         models=models,
-        stats=registry_stats(report.parquet),
+        stats=registry_stats(report.parquet, draws),
         agent_costs=agent_costs(experiments),
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),

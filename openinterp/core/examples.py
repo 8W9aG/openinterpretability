@@ -19,6 +19,13 @@ class Histogram(StrictModel):
             raise ValueError("counts must have exactly len(bin_edges) - 1 entries")
         return self
 
+    def share_at_least(self, line: float) -> float:
+        """The share of values at or above ``line``, counting only bins wholly above it:
+        a lower bound, within one bin of the exact share."""
+        total = sum(self.counts)
+        above = sum(n for lo, n in zip(self.bin_edges, self.counts, strict=False) if lo >= line)
+        return above / total if total else 0.0
+
 
 class ActivatingExample(StrictModel):
     """A text snippet with per-token strengths (non-negative magnitudes).
