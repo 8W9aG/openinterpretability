@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-10-28
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **`make stats` / `openinterp stats`: the state of the registry in one command.** It prints the number of experiments, units and models, the VERIFIED share, the self-reviewed share (of reviewed records) and how many verdicts each protocol version computed, overall and per model, so nobody has to rerun ad-hoc scripts for these numbers. As of 2026-10-28: 988 experiments on 779 units across Qwen2.5-0.5B and GPT-2, 37% VERIFIED, 72% self-reviewed, and 80 verdicts still under protocols 0.2–0.5.
