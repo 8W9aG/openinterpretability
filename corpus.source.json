@@ -1,0 +1,15 @@
+{
+  "dataset": "NeelNanda/pile-10k",
+  "revision": "127bfedcd5047750df5ccf3a12979a47bfa0bafa",
+  "files": "data/*.parquet",
+  "text_column": "text",
+  "documents": 500,
+  "seed": 0,
+  "max_chars": 3000,
+  "docs_per_row_group": 20,
+  "layout": null,
+  "first": true,
+  "ascii": true,
+  "license": "bigscience-bloom-rail-1.0",
+  "sha256": "ded48cfc4898c00bd663c4e26dd02baddc48f54f53469988097030686dd2a2ad"
+}
