@@ -1,4 +1,4 @@
-"""Registry-maintenance commands: ``wiki``, ``check`` and ``next``."""
+"""Registry-maintenance commands: ``wiki``, ``check``, ``stats`` and ``next``."""
 
 from __future__ import annotations
 
@@ -64,6 +64,58 @@ def check(wiki_dir, base_ref):
             fh.writelines(f"- `{p.path}`: {p.message}\n" for p in report.problems)
     if not report.ok:
         raise SystemExit(1)
+
+
+def registry_stats(records) -> str:
+    """State of the registry: experiments, units, models, VERIFIED and self-reviewed shares,
+    and the protocol versions their verdicts were computed under."""
+    from collections import Counter
+
+    def share(n: int, of: int) -> str:
+        return f"{n}/{of} ({100 * n / of:.0f}%)" if of else "0/0"
+
+    def summary(rs) -> str:
+        units = {r.submission.identifier.slug for r in rs}
+        reviewed = [r for r in rs if r.verdict is not None]
+        verified = sum(r.is_verified for r in rs)
+        self_reviewed = sum(r.self_reviewed for r in reviewed)
+        return (
+            f"{len(rs)} experiments on {len(units)} units; VERIFIED {share(verified, len(rs))}, "
+            f"self-reviewed {share(self_reviewed, len(reviewed))}"
+        )
+
+    by_model: dict[str, list] = {}
+    for r in records:
+        by_model.setdefault(r.submission.identifier.model_name, []).append(r)
+    versions = Counter(
+        (r.verdict.policy.protocol_version if r.verdict.policy else "< 0.2")
+        for r in records
+        if r.verdict is not None
+    )
+    lines = [f"Registry: {summary(records)}, {len(by_model)} models"]
+    lines += [f"  {model}: {summary(rs)}" for model, rs in sorted(by_model.items())]
+    lines.append(
+        "Protocol versions: "
+        + (", ".join(f"{v} ×{n}" for v, n in sorted(versions.items(), key=_newest)) or "none")
+    )
+    return "\n".join(lines)
+
+
+def _newest(item) -> tuple:
+    version = item[0]
+    return (1,) if version == "< 0.2" else (0, *(-int(p) for p in version.split(".")))
+
+
+@cli.command()
+@click.option(
+    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
+)
+def stats(wiki_dir):
+    """Print the state of the registry: experiments, units, models, VERIFIED share,
+    self-reviewed share and the protocol versions in use."""
+    from openinterp.builder.compiler import load_records
+
+    click.echo(registry_stats(load_records(wiki_dir / "experiments")))
 
 
 @cli.command(name="next")
