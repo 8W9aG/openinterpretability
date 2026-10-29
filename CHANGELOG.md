@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **`make stats` / `openinterp stats`: the state of the registry in one command.** It prints the number of experiments, units and models, the VERIFIED share, the self-reviewed share (of reviewed records) and how many verdicts each protocol version computed, overall and per model, so nobody has to rerun ad-hoc scripts for these numbers. As of 2026-10-28: 988 experiments on 779 units across Qwen2.5-0.5B and GPT-2, 37% VERIFIED, 72% self-reviewed, and 80 verdicts still under protocols 0.2–0.5.
+
 - **Layer map on model pages.** The *Studied neurons per layer* histogram is replaced by a layer × neuron-index map drawn as static SVG (`layer_map` in `openinterp/builder/charts.py`). Each studied neuron is a mark at its index in its layer's row, linked to its page and coloured by its best pole's status (VERIFIED, CONTESTED, NEEDS REVISION, REJECTED). The legend counts each status and the unexplored neurons. Records don't say whether a neuron is dead, so dead neurons count as unexplored. A model whose MLP width no record gives keeps the histogram.
 
 - **What each agent costs, for Claude Code runs too.** Prompts answered from files (`external/<name>`) used to record only the prompt's length. Now:
