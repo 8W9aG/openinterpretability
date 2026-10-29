@@ -353,6 +353,7 @@ from openinterp import (  # noqa: E402, F401
     cli_corpus,
     cli_costs,
     cli_evidence,
+    cli_probing,
     cli_registry,
     cli_review,
     cli_scan,
