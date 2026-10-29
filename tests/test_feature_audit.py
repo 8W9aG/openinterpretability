@@ -280,7 +280,7 @@ def test_cli_samples_a_random_latent_of_the_dictionary(runner, spec, tmp_path, m
     monkeypatch.setattr("openinterp.cli._load_runner", load)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
-    args = ["audit", "--dictionary", "tiny-tc", "--random", "--seed", "3",
+    args = ["audit", "--dictionary", "tiny-tc", "--random", "--seed", "8",
             "--corpus", "corpus.txt", "--evidence-out", "ev.json"]  # fmt: skip
     result = CliRunner().invoke(cli, args)
     assert result.exit_code == 0, result.output

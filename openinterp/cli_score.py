@@ -212,6 +212,16 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
     seed = secrets.randbits(32) if seed is None else seed
     threshold = _threshold(submission)
+    floor = submission.first_token_floor
+    if floor is None:  # a record from before protocol 0.8: judged as a review judges it
+        from functools import partial
+
+        from openinterp.core.schemas import ReviewPolicy
+        from openinterp.harness.scan import has_first_token_floor
+
+        read = partial(submission_unit(submission).strengths, runner)
+        floor = has_first_token_floor(runner, read, submission.max_activation, ReviewPolicy())
+        submission = submission.model_copy(update={"first_token_floor": floor})
     click.echo(f"Measuring held-out {window_tokens}-token windows (seed {seed})…", err=True)
     try:
         with costs.stage("heldout_windows"):
@@ -239,6 +249,7 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
         identifier=submission.identifier,
         head_profile=submission.head_profile,
         dictionary_profile=submission.dictionary_profile,
+        first_token_floor=floor,
         explanation=submission.natural_language_explanation,
         threshold=threshold,
         window_tokens=window_tokens,
