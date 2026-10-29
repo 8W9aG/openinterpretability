@@ -40,10 +40,9 @@ from openinterp.corpus import LAYOUTS, PRESETS
 )
 @click.option(
     "--docs-per-row-group",
-    default=20,
-    show_default=True,
     type=click.IntRange(1),
-    help="Documents taken from each Parquet row group read; lower spreads the sample wider.",
+    help="Documents taken from each Parquet row group read; lower spreads the sample wider. "
+    "Default: the preset's, or 20.",
 )
 @click.option(
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
@@ -81,7 +80,7 @@ def corpus(
         documents=documents,
         seed=seed,
         max_chars=max_chars,
-        docs_per_row_group=docs_per_row_group,
+        docs_per_row_group=docs_per_row_group or (preset.docs_per_row_group if preset else 20),
     )
     click.echo(f"Wrote {source.documents} documents to {out}: {source}")
     if source.documents < documents:

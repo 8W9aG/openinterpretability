@@ -152,18 +152,21 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
 
 
 @pytest.mark.parametrize(
-    "preset, dataset, files, revision, layout",
+    "preset, dataset, files, revision, layout, column, per_group",
     [
-        ("c4", "allenai/c4", "en/partial-validation/*.parquet", "refs/convert/parquet", None),
+        ("c4", "allenai/c4", "en/partial-validation/*.parquet", "refs/convert/parquet", None,
+         "text", 20),
         ("pile-uncopyrighted", "monology/pile-uncopyrighted", "default/partial-train/*.parquet",
-         "refs/convert/parquet", None),
+         "refs/convert/parquet", None, "text", 20),
         ("wikitext", "Salesforce/wikitext", "wikitext-103-raw-v1/train-*.parquet", None,
-         "wikitext"),
-        ("tinystories", "roneneldan/TinyStories", "data/train-*.parquet", None, None),
+         "wikitext", "text", 20),
+        ("tinystories", "roneneldan/TinyStories", "data/train-*.parquet", None, None, "text", 20),
+        ("github-code", "codeparrot/github-code-clean", "data/train-*.parquet", None, None,
+         "code", 100),
     ],
 )  # fmt: skip
-def test_cli_uses_the_presets_revision_and_layout(
-    monkeypatch, tmp_path, preset, dataset, files, revision, layout
+def test_cli_uses_the_presets_settings(
+    monkeypatch, tmp_path, preset, dataset, files, revision, layout, column, per_group
 ):
     calls = {}
 
@@ -176,8 +179,9 @@ def test_cli_uses_the_presets_revision_and_layout(
     assert CliRunner().invoke(cli, args).exit_code == 0
     assert calls["dataset"] == dataset and calls["revision"] == revision
     assert (calls["files"], calls["layout"]) == (files, layout)
-    CliRunner().invoke(cli, [*args, "--revision", "abc123"])
-    assert calls["revision"] == "abc123"
+    assert (calls["text_column"], calls["docs_per_row_group"]) == (column, per_group)
+    CliRunner().invoke(cli, [*args, "--revision", "abc123", "--docs-per-row-group", "7"])
+    assert (calls["revision"], calls["docs_per_row_group"]) == ("abc123", 7)
 
 
 def test_cli_needs_files_for_non_presets():
