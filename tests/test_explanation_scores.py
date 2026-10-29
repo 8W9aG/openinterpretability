@@ -279,7 +279,7 @@ def test_one_step_review_scores_the_explanation_itself(flow, monkeypatch):
     probes = ProbeSet(probes=[AdversarialProbe(text=t, expected_active=i < 4, rationale="r")
                               for i, t in enumerate(CORPUS[:10])])  # fmt: skip
     monkeypatch.setattr("openinterp.agents.reviewer.ReviewerAgent.generate_probes",
-                        lambda self, sub, n: probes)  # fmt: skip
+                        lambda self, sub, n, **_: probes)  # fmt: skip
     judged = []
 
     def detect(self, explanation, windows, noun="neuron"):
