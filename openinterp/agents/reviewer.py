@@ -18,10 +18,8 @@ from pydantic import BaseModel, Field
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
-    distinct_examples,
-    dropped_note,
     format_input_attribution,
-    snippet,
+    format_review_examples,
 )
 from openinterp.core import costs
 from openinterp.core.exceptions import ArchitectureNotSupportedError
@@ -100,15 +98,6 @@ class ReviewerAgent(LLMAgent):
     ) -> str:
         """The task text the reviewer answers. It shows no activations of candidate probes."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
-        if full_snippets:  # the prompt before windowing, for A/B comparison
-            top = list(enumerate(submission.top_examples[:10], 1))
-            examples = "\n".join(f"{i}. {e.text}" for i, e in top) or "(none)"
-            heading = "Top-activating examples"
-        else:
-            top, dropped = distinct_examples(submission.top_examples, 10)
-            examples = "\n".join(f"{i}. {snippet(e)}" for i, e in top) or "(none)"
-            examples += "\n" + dropped_note(dropped).rstrip() if dropped else ""
-            heading = "Top-activating examples (peak token in [[ ]], … where cut)"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
         if submission.input_attribution is not None:
@@ -126,7 +115,7 @@ class ReviewerAgent(LLMAgent):
             f"Claimed activating tokens: {submission.activating_tokens}\n"
             f"Claimed mechanism: {mechanism}"
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
-            f"{heading}:\n{examples}\n\n"
+            + format_review_examples(submission.top_examples, full_snippets)
             + (f"{context}\n" if context else "")
             + f"Write {n} probes."
         )

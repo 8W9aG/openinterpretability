@@ -110,6 +110,17 @@ def dropped_note(dropped: Sequence[int]) -> str:
     return f"(Omitted as near-duplicates of an earlier example: {numbers}.)\n"
 
 
+def format_review_examples(examples: Sequence[ActivatingExample], full: bool = False) -> str:
+    """The reviewer's view of the top 10 examples: text only, no strengths."""
+    if full:  # the prompt before windowing, for A/B comparison
+        listed = "\n".join(f"{n}. {e.text}" for n, e in enumerate(examples[:10], 1))
+        return f"Top-activating examples:\n{listed or '(none)'}\n\n"
+    kept, dropped = distinct_examples(examples, 10)
+    listed = "\n".join(f"{n}. {snippet(e)}" for n, e in kept) or "(none)"
+    note = "\n" + dropped_note(dropped).rstrip() if dropped else ""
+    return f"Top-activating examples (peak token in [[ ]], … where cut):\n{listed}{note}\n\n"
+
+
 def format_examples(
     examples: Sequence[ActivatingExample], max_examples: int = 20, full: bool = False
 ) -> str:
