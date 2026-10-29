@@ -32,6 +32,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **Shorter agent prompts.** The proposer and reviewer prompts now show each top example as a window around its peak: 48 tokens before and 16 after, with `…` where the text is cut. They used to show the whole scanned document. They also drop an example whose window shares at least 80% of its distinct tokens with an earlier example's, and say which numbers were dropped. The numbers that remain are the scan's own, which input attribution refers to. The reviewer now sees the peak token in `[[ ]]` too. Re-rendered from the 146 scan evidence files in `exchange/`, the proposer's task text shrinks to 0.18 of its old size for Qwen2.5-0.5B (median 49.5k to 9.0k characters) and to 0.60 for GPT-2, and the reviewer's to 0.60. `--full-snippets` on `openinterp audit` and `openinterp review` brings back the old prompts byte for byte. An A/B comparison on 8 units (`docs/analyses/prompt-trim-ab.md`) found no change in verdicts beyond run-to-run noise. Rerunning the trimmed prompt matched its own first run's verdict on only 3 of 8 units, the same rate as full against trimmed. Proposer input tokens fell by about 47% on Qwen.
 - Reviewer prompts for attention heads now say that the head reads tokens, not words: a repeat is a repeat of token IDs, a token usually includes its leading space, and a short sequence such as '. My' repeats however common it is. In the L5H1 dry run, reviewers labelled exact token repeats as hard negatives because they read words.
 
 ## [0.0.9] - 2026-10-28

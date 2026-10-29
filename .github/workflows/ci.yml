@@ -65,13 +65,43 @@ jobs:
             openinterp check
           fi
 
+  record-changes:
+    name: Record changes
+    # Whether a pull request adds or changes a record, by the same rule as
+    # `openinterp reproduce --base-ref` (openinterp/checks.py changed_records), so PRs
+    # without record changes never wait in the reproduce queue.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      records: ${{ steps.diff.outputs.records }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff --name-only --no-renames --diff-filter=AM "origin/$BASE_REF...HEAD" \
+            -- wiki/experiments | grep '\.json$' | tee records.txt || true
+          echo "records=$([ -s records.txt ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
   reproduce:
     name: Reproduce records
     # Re-runs every record a pull request adds or changes against the model it pins
-    # (docs/PROTOCOL.md §5). Pull requests without record changes finish at once, so the
-    # job always reports and can be made a required check. Fork PRs get a read-only token
+    # (docs/PROTOCOL.md §5). Skipped when the PR changes no record; a skipped job counts
+    # as passing, so it can still be a required check. Fork PRs get a read-only token
     # and no secrets, and only allow-listed models are downloaded.
-    if: github.event_name == 'pull_request'
+    needs: record-changes
+    if: needs.record-changes.outputs.records == 'true'
+    # One reproduction at a time across all PRs, so cost can't explode with PR volume.
+    # `queue: max` keeps up to 100 pending runs in order; without it a new pending run
+    # cancels the previous one. A newer push to the same PR still cancels its old run
+    # through the workflow-level group above.
+    concurrency:
+      group: reproduce-records
+      cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:

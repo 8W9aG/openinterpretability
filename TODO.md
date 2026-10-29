@@ -103,14 +103,8 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 - **Time:** an explore draw takes 25–40 min, and a replicate that skips the scan about 5 min. The CPU corpus scan is roughly 13–15 min of an explore draw.
 - **Prompt sizes:** proposer prompts (`ev.prompt.md`) are 57–62 KB, about 15k tokens. Reviewer prompts are about 30 KB, and the scan evidence (`ev.json`) about 500 KB.
 
-Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
+Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time, so an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Trim the proposer prompt.
-  - Top-activating snippets currently include whole documents: the first example for L13/N1706+ is an entire film review. Show a window of a fixed number of tokens around the peak instead.
-  - Drop near-duplicate snippets.
-  - Cap the token-strip and lens lists at what the hypothesis actually uses.
-  - Do the same pass on the reviewer prompt.
-  - A/B the trimmed prompts against the current ones on a fixed set of neurons before switching.
 - [ ] Order prompts for provider prompt caching. Put the stable parts (system prompt, methodology, answer schema) first and the neuron's evidence last, and pass cache-control hints through LiteLLM, so repeated experiments reuse the cached prefix.
 - [ ] Cut the driving session's tokens. In Claude Code, the driver reads skills, docs and large JSON files on every experiment, and the proposer subagent re-reads the evidence.
   - Make `openinterp next` print the exact commands for the draw, so the driver doesn't need to re-derive them from `SKILL.md` and `docs/PROTOCOL.md`.
@@ -122,9 +116,8 @@ Measure before optimising, and check that any change to what the agents see does
 
 ## Merge verification
 
-At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), and CI's "Reproduce records" job runs it on every pull request, on GitHub-hosted CPU runners with cached weights and a model allow-list. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
+At the moment CI's "Experiment records" job (`openinterp check`) only confirms that a PR adds a valid JSON record and its wiki page. Nothing in CI re-runs the experiment, so a record with edited activations or a hand-written verdict would pass. `openinterp reproduce --base-ref origin/main` now does that check (docs/PROTOCOL.md §5), and CI's "Reproduce records" job runs it on every pull request, on GitHub-hosted CPU runners with cached weights and a model allow-list. Reproductions run one at a time across all pull requests, in a queue. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
-- [ ] Make CI a queue: run only one job at a time, to prevent a cost explosion. GitHub Actions `concurrency:` does this: one group per workflow (or one shared group for the costly jobs) with `cancel-in-progress: false` queues runs; a per-PR group with `cancel-in-progress: true` also drops runs superseded by a newer push. Add `paths:` filters so "Reproduce records" runs only when `wiki/experiments/` changes. Note that a concurrency group keeps only one pending run and cancels older pending ones.
 - [ ] Report back to GitHub as a commit status or check run on the PR's head SHA ("Reproduction: passed / failed / queued"), with a link to the log, and make it a required check for `main` once it is reliable.
 - [ ] Auto-merge experiment-only PRs: when every changed file is under `wiki/` (experiment records, their `.sig` files, pages and generated indexes) and "Experiment records" and "Reproduce records" pass (reproduced, or signed by an allowed signer), merge the PR automatically. Any change outside `wiki/` (code, workflows, `.github/allowed_signers`) keeps the PR manual. Make those checks required first, so GitHub's auto-merge waits for them. Fork PRs need a separate `pull_request_target` workflow that only reads the PR's file list through the API and enables auto-merge, and never checks out or runs the PR's code with a write token. Squash-merge so `main` gets one commit per experiment.
 - [ ] Re-queue automatically when a PR's record changes, and let maintainers re-run or skip a job by hand (e.g. a label) for records whose model the worker can't load yet.
