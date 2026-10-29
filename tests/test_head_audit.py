@@ -8,7 +8,13 @@ import torch
 from click.testing import CliRunner
 
 from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
-from openinterp.agents.reviewer import AdversarialProbe, ReviewerAgent, evaluate_submission
+from openinterp.agents.reviewer import (
+    AdversarialProbe,
+    ProbeSet,
+    ReviewerAgent,
+    evaluate_submission,
+    repeated_runs,
+)
 from openinterp.builder.compiler import compile_site
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.cli import cli
@@ -134,6 +140,40 @@ def test_a_head_is_audited_reviewed_and_reproduced(runner, scan):
     prompt = ReviewerAgent.probe_prompt(sub)
     assert prompt.startswith("Attention head: tiny-gpt2 L1/H1") and "residual stream" in prompt
     assert "reads tokens, not words" in prompt
+
+
+def test_repeated_runs_are_maximal_token_matches():
+    # "x a b y a b a": "a b" repeats at 4-5, then "a" alone at 6 ("b a" is new).
+    assert repeated_runs([7, 1, 2, 8, 1, 2, 1]) == [(4, 6), (6, 7)]
+    assert repeated_runs([1, 2, 3]) == []
+    assert repeated_runs([5, 5, 5]) == [(1, 3)]  # overlapping self-repeat
+
+
+def test_review_check_probes_shows_tokens_and_repeats(runner, scan, tmp_path, monkeypatch):
+    sub = _record(runner, scan).submission
+    (tmp_path / "sub.json").write_text(sub.model_dump_json())
+    probes = ProbeSet(
+        probes=[
+            AdversarialProbe(text=t, expected_active=i < 4, rationale="r")
+            for i, t in enumerate(["abab", "xyz", "abcd", "qq", "mn", "op", "rs", "tu", "vw", "jk"])
+        ]
+    )
+    (tmp_path / "review.probes.json").write_text(probes.model_dump_json())
+    monkeypatch.setattr(
+        "transformers.AutoTokenizer.from_pretrained", lambda *a, **k: FakeTokenizer()
+    )
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a: pytest.fail("loaded a model"))
+    args = ["review", "--audit-file", str(tmp_path / "sub.json"),
+            "--check-probes", str(tmp_path / "review.probes.json")]  # fmt: skip
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0, result.output
+    prompt = (tmp_path / "review.check.prompt.md").read_text()
+    assert "reads tokens, not words" in prompt and "review.probes.json" in prompt
+    tok = FakeTokenizer()
+    ab = "".join(tok.decode([i]) for i in tok.encode("ab"))
+    assert "0. expected active: 'abab'" in prompt
+    assert f"repeated token runs: {ab!r} (2)" in prompt
+    assert "1. expected active: 'xyz'" in prompt and "repeated token runs: none" in prompt
 
 
 def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path):
