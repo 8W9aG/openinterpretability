@@ -8,6 +8,10 @@ without downloading whole datasets: Parquet row groups are read over HTTP, so a
 Sampling is deterministic given the dataset revision and seed: row groups are visited
 in a seeded random order across all files, and a seeded handful of documents is taken
 from each, which spreads the corpus over sources and crawl dumps.
+
+The registry's scan corpus is not such a sample: it is pile-10k's first 500 documents,
+each cut to 3,000 characters, written with non-ASCII characters escaped. Rebuild it
+byte for byte with ``openinterp corpus --dataset pile-10k --first --ascii`` (README).
 """
 
 from __future__ import annotations
@@ -161,6 +165,31 @@ def sample_documents(
     return out
 
 
+def first_documents(
+    fs,
+    paths: list[str],
+    *,
+    text_column: str,
+    documents: int,
+    max_chars: int,
+    layout: str | None = None,
+) -> list[str]:
+    """The first ``documents`` non-empty texts of the Parquet files on ``fs``, in sorted
+    file order, cut to ``max_chars`` but not stripped (as the registry's corpus was)."""
+    out: list[str] = []
+    for path in sorted(paths):
+        groups = [(path, i) for i in range(_row_groups(fs, path))]
+        for texts in _read_groups(fs, groups, text_column):
+            if layout is not None:
+                texts = LAYOUTS[layout](texts)
+            for text in texts:
+                if (text or "").strip():
+                    out.append(text[:max_chars])
+                    if len(out) >= documents:
+                        return out
+    return out
+
+
 def _row_groups(fs, path: str) -> int:
     with fs.open(path, "rb") as fh:
         return pq.ParquetFile(fh).num_row_groups
@@ -172,9 +201,10 @@ def _read_groups(fs, groups, column: str) -> Iterator[list]:
             yield pq.ParquetFile(fh).read_row_group(i, columns=[column]).column(column).to_pylist()
 
 
-def jsonl_bytes(texts: Sequence[str]) -> bytes:
-    """``texts`` as a JSONL corpus: one ``{"text": ...}`` per line."""
-    return "".join(json.dumps({"text": t}, ensure_ascii=False) + "\n" for t in texts).encode()
+def jsonl_bytes(texts: Sequence[str], ascii: bool = False) -> bytes:
+    """``texts`` as a JSONL corpus: one ``{"text": ...}`` per line, with non-ASCII
+    characters \\u-escaped if ``ascii``."""
+    return "".join(json.dumps({"text": t}, ensure_ascii=ascii) + "\n" for t in texts).encode()
 
 
 def sample_tokens(
@@ -204,12 +234,14 @@ def sample_tokens(
     )
 
 
-def write_corpus(texts: list[str], out: Path, **source) -> CorpusSource:
+def write_corpus(texts: list[str], out: Path, *, ascii: bool = False, **source) -> CorpusSource:
     """Write the JSONL corpus and its source sidecar; returns the source."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = jsonl_bytes(texts)
+    data = jsonl_bytes(texts, ascii)
     out.write_bytes(data)
-    record = CorpusSource(documents=len(texts), sha256=hashlib.sha256(data).hexdigest(), **source)
+    record = CorpusSource(
+        documents=len(texts), sha256=hashlib.sha256(data).hexdigest(), ascii=ascii, **source
+    )
     source_path(out).write_text(record.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return record
 
@@ -235,8 +267,11 @@ def build_from_hub(
     max_chars: int = 3000,
     docs_per_row_group: int = 20,
     layout: str | None = None,
+    first: bool = False,
+    ascii: bool = False,
 ) -> CorpusSource:
-    """Sample a corpus from a Hugging Face dataset at a pinned revision."""
+    """Sample a corpus from a Hugging Face dataset at a pinned revision, or with ``first``
+    take its first documents."""
     from huggingface_hub import HfApi, HfFileSystem
 
     api = HfApi()
@@ -251,16 +286,26 @@ def build_from_hub(
     paths = fs.glob(f"datasets/{dataset}@{info.sha}/{files}")
     if not paths:
         raise FileNotFoundError(f"no files match {files!r} in {dataset}@{info.sha}")
-    texts = sample_documents(
-        fs,
-        paths,
-        text_column=text_column,
-        documents=documents,
-        seed=seed,
-        max_chars=max_chars,
-        docs_per_row_group=docs_per_row_group,
-        layout=layout,
-    )
+    if first:
+        texts = first_documents(
+            fs,
+            paths,
+            text_column=text_column,
+            documents=documents,
+            max_chars=max_chars,
+            layout=layout,
+        )
+    else:
+        texts = sample_documents(
+            fs,
+            paths,
+            text_column=text_column,
+            documents=documents,
+            seed=seed,
+            max_chars=max_chars,
+            docs_per_row_group=docs_per_row_group,
+            layout=layout,
+        )
     return write_corpus(
         texts,
         out,
@@ -272,5 +317,7 @@ def build_from_hub(
         max_chars=max_chars,
         docs_per_row_group=docs_per_row_group,
         layout=layout,
+        first=first,
+        ascii=ascii,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )

@@ -14,6 +14,7 @@ from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.corpus import (
     build_from_hub,
+    first_documents,
     jsonl_bytes,
     load_source,
     sample_documents,
@@ -102,6 +103,26 @@ def test_source_sidecar_pins_the_exact_corpus(tmp_path):
     assert read_corpus(out)[1] == "corpus.jsonl"
 
 
+def test_first_documents_are_the_leading_non_empty_rows_cut_but_not_stripped(tmp_path, shards):
+    path = tmp_path / "padded.parquet"
+    pq.write_table(pa.table({"text": ["  lead ", "", "second doc\n", "third"]}), path)
+    fs = fsspec.filesystem("file")
+    docs = first_documents(fs, [str(path)], text_column="text", documents=2, max_chars=6)
+    assert docs == ["  lead", "second"]
+    # Across files and row groups, in sorted file order.
+    docs = first_documents(fs, shards[::-1], text_column="text", documents=12, max_chars=99)
+    assert docs[0].startswith("file0 doc1 ") and docs[-1].startswith("file0 doc13 ")
+
+
+def test_ascii_corpora_escape_non_ascii_and_say_so(tmp_path):
+    out = tmp_path / "corpus.jsonl"
+    source = write_corpus(["caf\u00e9 \u201cq\u201d"], out, ascii=True, first=True, dataset="d/x",
+                          files="*", seed=0, max_chars=99, docs_per_row_group=1)  # fmt: skip
+    assert out.read_bytes() == b'{"text": "caf\\u00e9 \\u201cq\\u201d"}\n'
+    assert source.ascii and source.sha256 == hashlib.sha256(out.read_bytes()).hexdigest()
+    assert read_corpus(out)[:2] == (["caf\u00e9 \u201cq\u201d"], "d/x (*, first 1 docs)")
+
+
 def test_build_from_hub_pins_revision_and_licence(tmp_path, shards, monkeypatch):
     local = fsspec.filesystem("file")
 
@@ -182,6 +203,9 @@ def test_cli_uses_the_presets_settings(
     assert (calls["text_column"], calls["docs_per_row_group"]) == (column, per_group)
     CliRunner().invoke(cli, [*args, "--revision", "abc123", "--docs-per-row-group", "7"])
     assert (calls["revision"], calls["docs_per_row_group"]) == ("abc123", 7)
+    assert (calls["first"], calls["ascii"]) == (False, False)
+    CliRunner().invoke(cli, [*args, "--first", "--ascii"])
+    assert (calls["first"], calls["ascii"]) == (True, True)
 
 
 def test_cli_needs_files_for_non_presets():
