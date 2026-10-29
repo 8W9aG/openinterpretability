@@ -10,9 +10,12 @@ import torch
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
+    SNIPPET_AFTER,
+    SNIPPET_BEFORE,
     CounterfactualDraft,
     HypothesisDraft,
     ProposerAgent,
+    format_examples,
 )
 from openinterp.agents.reviewer import (
     AdversarialProbe,
@@ -26,7 +29,12 @@ from openinterp.agents.reviewer import (
     review_metrics,
 )
 from openinterp.core.exceptions import AgentError
-from openinterp.core.schemas import AdversarialTestResult, CounterfactualPair, NeuronIdentifier
+from openinterp.core.schemas import (
+    ActivatingExample,
+    AdversarialTestResult,
+    CounterfactualPair,
+    NeuronIdentifier,
+)
 from openinterp.harness.causal import (
     _matched_units,
     _percentile,
@@ -554,3 +562,39 @@ def test_matched_neurons_are_closest_in_change():
 def test_percentile_counts_ties_as_half():
     assert _percentile(2.0, [1.0, 2.0, 3.0, 0.0]) == pytest.approx(0.625)
     assert math.isnan(_percentile(1.0, []))
+
+
+def _long_example(words: list[str], peak: int) -> ActivatingExample:
+    acts = [0.0] * len(words)
+    acts[peak] = 5.0
+    return ActivatingExample(
+        text="".join(words),
+        tokens=words,
+        activations=acts,
+        max_activation=5.0,
+        max_token_index=peak,
+    )
+
+
+def test_agents_see_a_window_around_the_peak_without_near_duplicates(ident, toy_runner, draft):
+    words = [f" w{i}" for i in range(300)]
+    other = [f" v{i}" for i in range(300)]
+    examples = [_long_example(words, 150), _long_example(words, 151), _long_example(other, 10)]
+    text = format_examples(examples)
+    assert "[[ w150]]" in text and f" w{150 - SNIPPET_BEFORE}" in text
+    assert (
+        f" w{150 - SNIPPET_BEFORE - 1} " not in text and f" w{150 + SNIPPET_AFTER + 1}" not in text
+    )
+    assert "1. (max 5.000) … w102" in text
+    # Example 2 shares nearly all its window with example 1; example 3 keeps its number,
+    # which input attribution cites, and is not cut at the start.
+    assert "\n2. " not in text and "\n3. (max 5.000)  v0" in text
+    assert "near-duplicates of an earlier example: 2." in text
+    full = format_examples(examples, full=True)
+    assert "".join(words[:150]) in full and "\n2. " in full and "near-duplicates" not in full
+
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    sub = sub.model_copy(update={"top_examples": examples})
+    prompt = ReviewerAgent.probe_prompt(sub)
+    assert "[[ w150]]" in prompt and " w0 " not in prompt and "\n2. " not in prompt
+    assert ReviewerAgent.probe_prompt(sub, full_snippets=True).count("".join(words)) == 2
