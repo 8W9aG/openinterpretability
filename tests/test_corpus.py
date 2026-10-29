@@ -17,6 +17,7 @@ from openinterp.corpus import (
     first_documents,
     jsonl_bytes,
     load_source,
+    load_sources,
     sample_documents,
     sample_tokens,
     source_path,
@@ -271,3 +272,40 @@ def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
     assert "licence odc-by" in wiki
     shown = f"seeded sample of {sample.documents}/40 docs (≤ 200 tokens, seed 0)"
     assert shown in page and shown in wiki
+
+
+def test_build_infers_the_source_of_records_that_predate_their_corpus_sidecar(tmp_path, record):
+    from openinterp.builder.compiler import compile_site
+    from openinterp.core.schemas import AuditRecord, ExperimentProvenance
+
+    out = tmp_path / "corpus.jsonl"
+    source = write_corpus(DOCS, out, first=True, ascii=True, dataset="NeelNanda/pile-10k",
+                          revision="127bfedc", files="data/*.parquet", seed=0, max_chars=3000,
+                          docs_per_row_group=20, license="some-licence")  # fmt: skip
+    assert load_sources([source_path(out), tmp_path / "missing.source.json"]) == {
+        source.sha256: source
+    }
+
+    def built(corpus_source):
+        provenance = ExperimentProvenance(
+            dtype="float32", corpus="corpus.jsonl", corpus_sha256=source.sha256, n_snippets=40,
+            tokens_scanned=1000, selection="random", harness_version="test",
+            corpus_source=corpus_source,
+        )  # fmt: skip
+        sub = record.submission.model_copy(update={"provenance": provenance})
+        site = tmp_path / f"site-{corpus_source is None}"
+        report = compile_site([AuditRecord(submission=sub, verdict=record.verdict)], site,
+                              corpus_sources={source.sha256: source})  # fmt: skip
+        page = next((site / "models").rglob("N*.html")).read_text()
+        return page, pq.read_table(report.parquet).to_pylist()[0]
+
+    page, row = built(None)  # scanned before the sidecar existed
+    assert "pile-10k@127bfedc (data/*.parquet, first 40 docs) (inferred)" in page
+    assert "licence some-licence" in page
+    assert (row["corpus_dataset"], row["corpus_license"]) == ("NeelNanda/pile-10k", "some-licence")
+    assert row["corpus_source_inferred"] is True
+    assert '"corpus_source":null' in row["record_json"]  # the record itself is unchanged
+
+    page, row = built(source)  # recorded: shown as is
+    assert "(inferred)" not in page and "licence some-licence" in page
+    assert row["corpus_source_inferred"] is False

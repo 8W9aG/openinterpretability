@@ -416,10 +416,11 @@ def compile_site(
     site_title: str = "Open Interpretability",
     wiring_rows: dict | None = None,
     draws: Sequence = (),
+    corpus_sources: dict | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records`` (normally the wiki archive), with
-    ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) for records that
-    predate wiring."""
+    ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) and ``corpus_sources``
+    (:func:`openinterp.corpus.load_sources`) for records that predate wiring or sidecars."""
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
@@ -430,12 +431,13 @@ def compile_site(
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
     report = BuildReport(output_dir, len(records), len(experiments))
-    report.parquet = export_registry(experiments, output_dir)
+    report.parquet = export_registry(experiments, output_dir, corpus_sources)
     export_draws(draws, output_dir)  # random draws no experiment could audit
 
     env = _environment()
     common = {
         "site_title": site_title,
+        "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
         "version": __version__,
         # Derived from the data, never the clock: an unchanged registry must rebuild
         # byte-for-byte so the deploy uploads (and purges) nothing.

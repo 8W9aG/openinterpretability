@@ -255,6 +255,20 @@ def load_source(corpus_path: Path, sha256: str) -> CorpusSource | None:
     return source if source.sha256 == sha256 else None
 
 
+def load_sources(paths: Sequence[Path]) -> dict[str, CorpusSource]:
+    """Committed source sidecars by the SHA-256 they describe; missing paths are skipped.
+
+    The build uses them to show the source of records that scanned a corpus before its
+    sidecar existed, matched by ``provenance.corpus_sha256``, as inferred, not recorded.
+    """
+    sources = {}
+    for path in paths:
+        if Path(path).exists():
+            source = CorpusSource.model_validate_json(Path(path).read_text(encoding="utf-8"))
+            sources[source.sha256] = source
+    return sources
+
+
 def build_from_hub(
     dataset: str,
     out: Path,
