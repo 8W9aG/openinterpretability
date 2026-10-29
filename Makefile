@@ -1,4 +1,4 @@
-.PHONY: install test lint format check build search-index sample-run serve loop clean
+.PHONY: install test lint format check stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -16,6 +16,10 @@ lint:
 
 check:
 	uv run openinterp check
+
+# Experiments, units, models, VERIFIED and self-reviewed shares, and protocol versions.
+stats:
+	uv run openinterp stats --wiki-dir $(WIKI_DIR)
 
 format:
 	uv run ruff format .

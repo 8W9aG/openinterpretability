@@ -164,7 +164,6 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Code: `bigcode/the-stack-smol` or `codeparrot/github-code-clean`, for syntax, bracket and indentation neurons.
 - [ ] Multilingual: `wikimedia/wikipedia` (non-English configs) or `uonlp/CulturaX`, for language-identity and script neurons.
 - [ ] Maths: `open-web-math/open-web-math` and `openai/gsm8k`, for number, operator and LaTeX neurons.
 - [ ] Chat/instruction text: `HuggingFaceH4/ultrachat_200k` or `lmsys/lmsys-chat-1m` (gated), formatted with the model's chat template, for instruct models.
@@ -192,7 +191,6 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 
 ## Housekeeping
 
-- [ ] Keep a short "State of the registry" note at the top of this file (or a `make stats` target that prints it): experiments, units, models, VERIFIED share, self-reviewed share and protocol versions in use. As of 2026-10-20: 79 experiments on 67 units, all Qwen2.5-0.5B, 46 VERIFIED, and 8 records still under protocols 0.2–0.4. Several items above depend on these numbers, and nobody should have to rerun ad-hoc scripts to see them.
 - [ ] Say in `CHANGELOG.md` that only records reviewed after the explanation-scores change have scores. "Every review records them" reads as if the whole registry has them, but the site shows them on 2 pages.
 
 ## Later stage
