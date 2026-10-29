@@ -11,6 +11,13 @@ The project has two version numbers:
 
 ### Added
 
+- **Induction-head positive control** (GPT-2 small; records under `wiki/experiments/openai-community--gpt2/L5/H1/` and the four transfer heads). The protocol VERIFIES a known induction head given its own explanation, but no single explanation verified across the family.
+  - **L5H1 took four rounds.** The two unrecorded dry-run rounds and round three (the first registry record) were NEEDS_REVISION, all on specificity only. The dry runs excluded fuzzy and template repeats, and their reviewer labelled probes by words, not tokens. Round three said a single repeated token is inactive, but a single repeated content token fires when the token before it is *similar* to the one before the earlier copy (`purple green` after `red green`).
+  - **Round four VERIFIED** (confidence 0.90; hard negatives 11/11, holdouts 4/5, counterfactuals 9/9, sufficiency 0.95, necessity 1.0). Its explanation: an induction head with a fuzzy match on the preceding token. The reviewer was Haiku 5.5, whose hard negatives were easy, so this is the weaker half of the result.
+  - **Stopping rule.** It was fixed before round four (two more registry rounds; reviewer-mislabel rounds don't count; fresh, alternating reviewers; the unchanged gate; pass means the explanation also transfers to the other known induction heads). Applied **unchanged**, with counterfactual pairs and expected deltas, to L5H5, L6H9, L7H2 and L7H10 (reviewer Sonnet 5.5), it was NEEDS_REVISION on all four. Counterfactual reproduction failed everywhere (2–4 of 9): the fuzzy-preceding-token behaviour is L5H1's own. L5H5 (hard negatives 4/11) and L6H9 (8/11) also match differently. L7H2 (11/11) and L7H10 (10/11) fit the probe-level description.
+  - **Conclusion.** Under the rule, revising narrowed the explanation to one head. Auditing each head on its own is in TODO.
+  - **Token check.** Across the four Sonnet probe sets, the token check caught eight mislabelled hard negatives.
+
 - `openinterp review --check-probes <probes.json>` shows a reviewer its own probes as the model's tokens, and for an attention head the token runs each probe repeats. It writes `<name>.check.prompt.md`, loads only the tokenizer, so the reviewer still sees no activations, and is answered by rewriting the probe file. In the GPT-2 L5H1 positive control, 5 of the reviewer's first 11 hard negatives had exact 2–3-token repeats once tokenized (e.g. 'Zanzibar' → 'Z','anz','ib','ar'). The token check is now step 5 of the subagent flow in `choose-next-experiment`.
 
 ### Changed
