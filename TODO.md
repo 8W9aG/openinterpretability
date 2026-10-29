@@ -103,14 +103,8 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 - **Time:** an explore draw takes 25–40 min, and a replicate that skips the scan about 5 min. The CPU corpus scan is roughly 13–15 min of an explore draw.
 - **Prompt sizes:** proposer prompts (`ev.prompt.md`) are 57–62 KB, about 15k tokens. Reviewer prompts are about 30 KB, and the scan evidence (`ev.json`) about 500 KB.
 
-Measure before optimising, and check that any change to what the agents see doesn't move verdict rates.
+Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time, so an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Trim the proposer prompt.
-  - Top-activating snippets currently include whole documents: the first example for L13/N1706+ is an entire film review. Show a window of a fixed number of tokens around the peak instead.
-  - Drop near-duplicate snippets.
-  - Cap the token-strip and lens lists at what the hypothesis actually uses.
-  - Do the same pass on the reviewer prompt.
-  - A/B the trimmed prompts against the current ones on a fixed set of neurons before switching.
 - [ ] Order prompts for provider prompt caching. Put the stable parts (system prompt, methodology, answer schema) first and the neuron's evidence last, and pass cache-control hints through LiteLLM, so repeated experiments reuse the cached prefix.
 - [ ] Cut the driving session's tokens. In Claude Code, the driver reads skills, docs and large JSON files on every experiment, and the proposer subagent re-reads the evidence.
   - Make `openinterp next` print the exact commands for the draw, so the driver doesn't need to re-derive them from `SKILL.md` and `docs/PROTOCOL.md`.

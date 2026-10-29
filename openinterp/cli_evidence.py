@@ -116,7 +116,7 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
         click.echo(f"Recorded the {exc.draw.outcome.replace('_', '-')} draw: {path}", err=True)
 
 
-def write_evidence(evidence, path: Path) -> None:
+def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
 
@@ -137,6 +137,7 @@ def write_evidence(evidence, path: Path) -> None:
         evidence.input_attribution,
         evidence.dictionary_profile,
         bool(evidence.first_token_floor),
+        full_snippets,
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -205,6 +206,12 @@ def write_evidence(evidence, path: Path) -> None:
     "the same documents.",
 )
 @click.option("--top-k", default=20, show_default=True, help="Examples shown to the proposer.")
+@click.option(
+    "--full-snippets",
+    is_flag=True,
+    help="Show the proposer whole scanned documents, without windowing or dropping "
+    "near-duplicates: the prompt before trimming, for A/B comparison.",
+)
 @click.option(
     "--window-tokens",
     type=click.IntRange(2),
@@ -277,6 +284,7 @@ def audit(
     max_tokens,
     sample_seed,
     top_k,
+    full_snippets,
     window_tokens,
     stride,
     use_scan_cache,
@@ -389,7 +397,7 @@ def audit(
             record_draw(exc, random_pick, wiki_dir)
             raise
         if evidence_out is not None:
-            write_evidence(evidence, evidence_out)
+            write_evidence(evidence, evidence_out, full_snippets)
             return
         agent = ProposerAgent(agent_model or DEFAULT_MODEL)
         click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
@@ -403,6 +411,7 @@ def audit(
             evidence.input_attribution,
             evidence.dictionary_profile,
             bool(evidence.first_token_floor),
+            full_snippets,
         )
 
     ident = evidence.identifier

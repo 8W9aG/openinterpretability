@@ -46,6 +46,12 @@ from openinterp.cli import (
     "token runs each probe repeats): writes <name>.check.prompt.md, answered by "
     "rewriting the same file, and exits. Loads only the tokenizer.",
 )
+@click.option(
+    "--full-snippets",
+    is_flag=True,
+    help="Show the reviewer whole scanned documents, without windowing or dropping "
+    "near-duplicates: the prompt before trimming, for A/B comparison.",
+)
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @explanation_scores_option
 @click.option(
@@ -67,6 +73,7 @@ def verify(
     emit_prompt,
     probes_file,
     check_probes,
+    full_snippets,
     out,
     scores_file,
     corpus,
@@ -103,7 +110,7 @@ def verify(
         submission = NeuronAuditSubmission.model_validate_json(raw)
     if emit_prompt is not None:
         answer = answer_path(emit_prompt, ".probes.json")
-        task = ReviewerAgent.probe_prompt(submission, n=n_probes)
+        task = ReviewerAgent.probe_prompt(submission, n=n_probes, full_snippets=full_snippets)
         emit_prompt.parent.mkdir(parents=True, exist_ok=True)
         emit_prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, answer))
         click.echo(f"Reviewer prompt: {emit_prompt} (answer in {answer})")
@@ -150,7 +157,8 @@ def verify(
         costs.add_external("reviewer", reviewer.model, prompt_file, probes_file)
     else:
         click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
-        probes = reviewer.generate_probes(submission, n=n_probes).probes
+        probe_set = reviewer.generate_probes(submission, n=n_probes, full_snippets=full_snippets)
+        probes = probe_set.probes
     runner = _load_unit_runner(submission.identifier, device, dtype)
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)

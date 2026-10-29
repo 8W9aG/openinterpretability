@@ -59,13 +59,65 @@ class HypothesisDraft(BaseModel):
     counterfactuals: list[CounterfactualDraft] = Field(min_length=3, max_length=10)
 
 
-def format_examples(examples: Sequence[ActivatingExample], max_examples: int = 20) -> str:
+# Agents see a window of tokens around each example's peak, not the whole scanned
+# document, and not near-duplicates of an earlier example (--full-snippets turns both off).
+SNIPPET_BEFORE = 48
+SNIPPET_AFTER = 16
+NEAR_DUPLICATE = 0.8
+
+
+def snippet_window(ex: ActivatingExample, full: bool = False) -> range:
+    if full:
+        return range(len(ex.tokens))
+    peak = ex.max_token_index
+    return range(max(0, peak - SNIPPET_BEFORE), min(len(ex.tokens), peak + SNIPPET_AFTER + 1))
+
+
+def snippet(ex: ActivatingExample, full: bool = False) -> str:
+    """The example's text with the peak token in [[ ]], cut to its window with … marks."""
+    window = snippet_window(ex, full)
+    marked = "".join(
+        f"[[{ex.tokens[i]}]]" if i == ex.max_token_index else ex.tokens[i] for i in window
+    )
+    start = "…" if window.start > 0 else ""
+    end = "…" if window.stop < len(ex.tokens) else ""
+    return start + marked + end
+
+
+def distinct_examples(
+    examples: Sequence[ActivatingExample], limit: int, full: bool = False
+) -> tuple[list[tuple[int, ActivatingExample]], list[int]]:
+    """The first ``limit`` examples, numbered from 1, without those whose window shares at
+    least NEAR_DUPLICATE of its distinct tokens with an earlier kept one's; and the numbers
+    dropped. Numbers stay those of the scan's order, which input attribution cites."""
+    kept: list[tuple[int, ActivatingExample]] = []
+    dropped: list[int] = []
+    seen: list[set[str]] = []
+    for n, ex in enumerate(examples[:limit], 1):
+        tokens = {ex.tokens[i] for i in snippet_window(ex)}
+        if not full and any(len(tokens & s) >= NEAR_DUPLICATE * len(tokens | s) for s in seen):
+            dropped.append(n)
+            continue
+        seen.append(tokens)
+        kept.append((n, ex))
+    return kept, dropped
+
+
+def dropped_note(dropped: Sequence[int]) -> str:
+    if not dropped:
+        return ""
+    numbers = ", ".join(map(str, dropped))
+    return f"(Omitted as near-duplicates of an earlier example: {numbers}.)\n"
+
+
+def format_examples(
+    examples: Sequence[ActivatingExample], max_examples: int = 20, full: bool = False
+) -> str:
     """Render examples with the peak token in [[double brackets]] and per-token strengths."""
     lines = []
-    for n, ex in enumerate(examples[:max_examples], 1):
-        marked = "".join(
-            f"[[{tok}]]" if i == ex.max_token_index else tok for i, tok in enumerate(ex.tokens)
-        )
+    kept, dropped = distinct_examples(examples, max_examples, full)
+    for n, ex in kept:
+        marked = snippet(ex, full)
         window = range(max(0, ex.max_token_index - 3), min(len(ex.tokens), ex.max_token_index + 2))
         context = ", ".join(f"{ex.tokens[i]!r}:{ex.activations[i]:.2f}" for i in window)
         lines.append(f"{n}. (max {ex.max_activation:.3f}) {marked}\n   around peak: {context}")
@@ -75,7 +127,7 @@ def format_examples(examples: Sequence[ActivatingExample], max_examples: int = 2
                 for i, w in zip(ex.attends_to, ex.attention_weights, strict=True)
             )
             lines.append(f"   peak attends to: {attended}")
-    return "\n".join(lines)
+    return "\n".join(lines) + ("\n" + dropped_note(dropped).rstrip() if dropped else "")
 
 
 def format_head_profile(profile: HeadProfile) -> str:
@@ -181,6 +233,7 @@ class ProposerAgent(LLMAgent):
         attribution: InputAttribution | None = None,
         dictionary_profile: DictionaryProfile | None = None,
         first_token_floor: bool = False,
+        full_snippets: bool = False,
     ) -> HypothesisDraft:
         prompt = self.proposal_prompt(
             identifier,
@@ -192,6 +245,7 @@ class ProposerAgent(LLMAgent):
             attribution,
             dictionary_profile,
             first_token_floor,
+            full_snippets,
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -206,6 +260,7 @@ class ProposerAgent(LLMAgent):
         attribution: InputAttribution | None = None,
         dictionary_profile: DictionaryProfile | None = None,
         first_token_floor: bool = False,
+        full_snippets: bool = False,
     ) -> str:
         """The task text the proposer answers: the scan evidence for one unit."""
         prompt = f"{identifier.noun.capitalize()}: {identifier}\n\n"
@@ -215,7 +270,15 @@ class ProposerAgent(LLMAgent):
             prompt += format_head_profile(head_profile) + "\n"
         if dictionary_profile is not None:
             prompt += format_dictionary_profile(dictionary_profile) + "\n"
-        prompt += f"Top-activating snippets (peak token in [[ ]]):\n{format_examples(examples)}\n\n"
+        window = (
+            ""
+            if full_snippets
+            else f"; up to {SNIPPET_BEFORE} tokens before it and {SNIPPET_AFTER} after, … where cut"
+        )
+        prompt += (
+            f"Top-activating snippets (peak token in [[ ]]{window}):\n"
+            f"{format_examples(examples, full=full_snippets)}\n\n"
+        )
         if lens is not None:
             prompt += (
                 f"Tokens this {'pole' if identifier.pole else identifier.noun} promotes via the "

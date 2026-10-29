@@ -16,7 +16,13 @@ from functools import partial
 from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
-from openinterp.agents.proposer import FIRST_TOKEN_UNMEASURED, format_input_attribution
+from openinterp.agents.proposer import (
+    FIRST_TOKEN_UNMEASURED,
+    distinct_examples,
+    dropped_note,
+    format_input_attribution,
+    snippet,
+)
 from openinterp.core import costs
 from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import (
@@ -83,15 +89,26 @@ class ReviewerAgent(LLMAgent):
         "probe with what the hypothesis predicts, not with what you believe the neuron will do."
     )
 
-    def generate_probes(self, submission: NeuronAuditSubmission, n: int = 16) -> ProbeSet:
-        return self.structured(ProbeSet, self.probe_prompt(submission, n))
+    def generate_probes(
+        self, submission: NeuronAuditSubmission, n: int = 16, full_snippets: bool = False
+    ) -> ProbeSet:
+        return self.structured(ProbeSet, self.probe_prompt(submission, n, full_snippets))
 
     @staticmethod
-    def probe_prompt(submission: NeuronAuditSubmission, n: int = 16) -> str:
+    def probe_prompt(
+        submission: NeuronAuditSubmission, n: int = 16, full_snippets: bool = False
+    ) -> str:
         """The task text the reviewer answers. It shows no activations of candidate probes."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
-        top = submission.top_examples[:10]
-        examples = "\n".join(f"{n}. {e.text}" for n, e in enumerate(top, 1)) or "(none)"
+        if full_snippets:  # the prompt before windowing, for A/B comparison
+            top = list(enumerate(submission.top_examples[:10], 1))
+            examples = "\n".join(f"{i}. {e.text}" for i, e in top) or "(none)"
+            heading = "Top-activating examples"
+        else:
+            top, dropped = distinct_examples(submission.top_examples, 10)
+            examples = "\n".join(f"{i}. {snippet(e)}" for i, e in top) or "(none)"
+            examples += "\n" + dropped_note(dropped).rstrip() if dropped else ""
+            heading = "Top-activating examples (peak token in [[ ]], … where cut)"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
         if submission.input_attribution is not None:
@@ -109,7 +126,7 @@ class ReviewerAgent(LLMAgent):
             f"Claimed activating tokens: {submission.activating_tokens}\n"
             f"Claimed mechanism: {mechanism}"
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
-            f"Top-activating examples:\n{examples}\n\n"
+            f"{heading}:\n{examples}\n\n"
             + (f"{context}\n" if context else "")
             + f"Write {n} probes."
         )
