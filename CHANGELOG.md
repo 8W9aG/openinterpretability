@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- Reviewer prompts for attention heads now say that the head reads tokens, not words: a repeat is a repeat of token IDs, a token usually includes its leading space, and a short sequence such as '. My' repeats however common it is. In the L5H1 dry run, reviewers labelled exact token repeats as hard negatives because they read words.
+
 ## [0.0.9] - 2026-10-28
 
 Ships with protocol version **0.8**.
