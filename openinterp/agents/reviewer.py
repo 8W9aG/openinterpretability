@@ -59,6 +59,11 @@ HEAD_ACTIVITY = (
     "probe is active if any of its tokens after the first is. Probes are measured on their "
     "own, so any earlier context a probe relies on (e.g. a repeated phrase) must be inside "
     "it.\n"
+    "The head reads tokens, not words. When a hypothesis talks about repeats or matches, "
+    "they are of tokens, and a token usually includes the space before it, so ' My' "
+    "(after a space) and 'My' (at the start of the text or after a newline) are different "
+    "tokens, while '. My' later in the text repeats '. My' earlier, however short or "
+    "common. Label each probe by the repeats its tokens make, not by the words you read.\n"
 )
 
 
