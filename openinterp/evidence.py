@@ -105,6 +105,15 @@ def scan_evidence(
             model_name=model_name, layer=layer, neuron_idx=index, pole=pole or "positive"
         )
     texts, corpus_name, corpus_sha, corpus_source = read_corpus(corpus)
+    if corpus is not None and corpus_source is None:
+        from openinterp.corpus import source_path
+
+        click.echo(
+            f"warning: {corpus} has no {source_path(corpus).name} describing these bytes, "
+            "so nobody can rebuild this scan's corpus. Build corpora with `openinterp corpus`; "
+            "for the registry's corpus, see the README.",
+            err=True,
+        )
     sample = None
     if max_tokens:
         from openinterp.corpus import sample_tokens

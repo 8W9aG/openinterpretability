@@ -14,8 +14,10 @@ from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.corpus import (
     build_from_hub,
+    first_documents,
     jsonl_bytes,
     load_source,
+    load_sources,
     sample_documents,
     sample_tokens,
     source_path,
@@ -102,6 +104,26 @@ def test_source_sidecar_pins_the_exact_corpus(tmp_path):
     assert read_corpus(out)[1] == "corpus.jsonl"
 
 
+def test_first_documents_are_the_leading_non_empty_rows_cut_but_not_stripped(tmp_path, shards):
+    path = tmp_path / "padded.parquet"
+    pq.write_table(pa.table({"text": ["  lead ", "", "second doc\n", "third"]}), path)
+    fs = fsspec.filesystem("file")
+    docs = first_documents(fs, [str(path)], text_column="text", documents=2, max_chars=6)
+    assert docs == ["  lead", "second"]
+    # Across files and row groups, in sorted file order.
+    docs = first_documents(fs, shards[::-1], text_column="text", documents=12, max_chars=99)
+    assert docs[0].startswith("file0 doc1 ") and docs[-1].startswith("file0 doc13 ")
+
+
+def test_ascii_corpora_escape_non_ascii_and_say_so(tmp_path):
+    out = tmp_path / "corpus.jsonl"
+    source = write_corpus(["caf\u00e9 \u201cq\u201d"], out, ascii=True, first=True, dataset="d/x",
+                          files="*", seed=0, max_chars=99, docs_per_row_group=1)  # fmt: skip
+    assert out.read_bytes() == b'{"text": "caf\\u00e9 \\u201cq\\u201d"}\n'
+    assert source.ascii and source.sha256 == hashlib.sha256(out.read_bytes()).hexdigest()
+    assert read_corpus(out)[:2] == (["caf\u00e9 \u201cq\u201d"], "d/x (*, first 1 docs)")
+
+
 def test_build_from_hub_pins_revision_and_licence(tmp_path, shards, monkeypatch):
     local = fsspec.filesystem("file")
 
@@ -182,6 +204,9 @@ def test_cli_uses_the_presets_settings(
     assert (calls["text_column"], calls["docs_per_row_group"]) == (column, per_group)
     CliRunner().invoke(cli, [*args, "--revision", "abc123", "--docs-per-row-group", "7"])
     assert (calls["revision"], calls["docs_per_row_group"]) == ("abc123", 7)
+    assert (calls["first"], calls["ascii"]) == (False, False)
+    CliRunner().invoke(cli, [*args, "--first", "--ascii"])
+    assert (calls["first"], calls["ascii"]) == (True, True)
 
 
 def test_cli_needs_files_for_non_presets():
@@ -247,3 +272,40 @@ def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
     assert "licence odc-by" in wiki
     shown = f"seeded sample of {sample.documents}/40 docs (≤ 200 tokens, seed 0)"
     assert shown in page and shown in wiki
+
+
+def test_build_infers_the_source_of_records_that_predate_their_corpus_sidecar(tmp_path, record):
+    from openinterp.builder.compiler import compile_site
+    from openinterp.core.schemas import AuditRecord, ExperimentProvenance
+
+    out = tmp_path / "corpus.jsonl"
+    source = write_corpus(DOCS, out, first=True, ascii=True, dataset="NeelNanda/pile-10k",
+                          revision="127bfedc", files="data/*.parquet", seed=0, max_chars=3000,
+                          docs_per_row_group=20, license="some-licence")  # fmt: skip
+    assert load_sources([source_path(out), tmp_path / "missing.source.json"]) == {
+        source.sha256: source
+    }
+
+    def built(corpus_source):
+        provenance = ExperimentProvenance(
+            dtype="float32", corpus="corpus.jsonl", corpus_sha256=source.sha256, n_snippets=40,
+            tokens_scanned=1000, selection="random", harness_version="test",
+            corpus_source=corpus_source,
+        )  # fmt: skip
+        sub = record.submission.model_copy(update={"provenance": provenance})
+        site = tmp_path / f"site-{corpus_source is None}"
+        report = compile_site([AuditRecord(submission=sub, verdict=record.verdict)], site,
+                              corpus_sources={source.sha256: source})  # fmt: skip
+        page = next((site / "models").rglob("N*.html")).read_text()
+        return page, pq.read_table(report.parquet).to_pylist()[0]
+
+    page, row = built(None)  # scanned before the sidecar existed
+    assert "pile-10k@127bfedc (data/*.parquet, first 40 docs) (inferred)" in page
+    assert "licence some-licence" in page
+    assert (row["corpus_dataset"], row["corpus_license"]) == ("NeelNanda/pile-10k", "some-licence")
+    assert row["corpus_source_inferred"] is True
+    assert '"corpus_source":null' in row["record_json"]  # the record itself is unchanged
+
+    page, row = built(source)  # recorded: shown as is
+    assert "(inferred)" not in page and "licence some-licence" in page
+    assert row["corpus_source_inferred"] is False
