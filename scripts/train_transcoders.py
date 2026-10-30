@@ -24,6 +24,7 @@ import json
 import random
 import time
 from contextlib import suppress
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -215,115 +216,156 @@ class TopKTranscoder(nn.Module):
 @click.option("--device", default="auto", show_default=True)
 @click.option("--scan-corpus", type=click.Path(exists=True, path_type=Path), default="corpus.jsonl")
 @click.option("--out", type=click.Path(path_type=Path), required=True)
-def main(
-    model_name, revision, layers, tokens, width, k, k_aux, aux_coef, dead_after, seq_len,
-    forward_rows, batch, lr, seed, device, scan_corpus, out,
-):  # fmt: skip
+def main(**options):
     from openinterp.cli import _load_runner
 
-    torch.manual_seed(seed)
-    out.mkdir(parents=True, exist_ok=True)
-    runner = _load_runner(model_name, device, "float32", revision)
+    cfg = Settings(**options)
+    torch.manual_seed(cfg.seed)
+    cfg.out.mkdir(parents=True, exist_ok=True)
+    runner = _load_runner(cfg.model_name, cfg.device, "float32", cfg.revision)
     runner.model.requires_grad_(False)
-    layers = range(runner.n_layers) if layers == "all" else map(int, layers.split(","))
+    layers = range(runner.n_layers) if cfg.layers == "all" else map(int, cfg.layers.split(","))
     layers = list(layers)
-    train_texts, valid_texts, excluded = training_texts(scan_corpus)
+    train_texts, valid_texts, excluded = training_texts(cfg.scan_corpus)
     click.echo(f"{len(train_texts)} training documents; {excluded} scan documents left out")
-    rows = sequences(runner.tokenizer, train_texts, seq_len, seed)
-    valid_rows = sequences(runner.tokenizer, valid_texts, seq_len, seed)
+    rows = sequences(runner.tokenizer, train_texts, cfg.seq_len, cfg.seed)
+    valid_rows = sequences(runner.tokenizer, valid_texts, cfg.seq_len, cfg.seed)
     total = sum(len(r) - 1 for r in rows)
-    budget = min(tokens or total, total)
+    budget = min(cfg.tokens or total, total)
     click.echo(f"{total:,} training tokens available; training on {budget:,}")
 
     d = runner.model.config.hidden_size
-    gen = torch.Generator().manual_seed(seed)
-    tcs = {layer: TopKTranscoder(d, d, width, k, k_aux, gen).to(runner.device) for layer in layers}
-    opts = {layer: torch.optim.Adam(tc.parameters(), lr=lr) for layer, tc in tcs.items()}
-    steps = budget // batch
+    gen = torch.Generator().manual_seed(cfg.seed)
+    tcs = {
+        layer: TopKTranscoder(d, d, cfg.width, cfg.k, cfg.k_aux, gen).to(runner.device)
+        for layer in layers
+    }
+    seen = train(runner, cfg, tcs, rows, budget)
+    # Held-out text: choose each threshold on half of it, evaluate on the other half.
+    io = mlp_io(runner, valid_rows[: 2 * cfg.forward_rows], layers)
+    for layer in layers:
+        export_layer(cfg, layer, tcs[layer], io[layer], excluded, seen)
+    click.echo(f"Wrote {cfg.out}")
+
+
+@dataclass(frozen=True)
+class Settings:
+    """``main``'s options."""
+
+    model_name: str
+    revision: str | None
+    layers: str
+    tokens: int | None
+    width: int
+    k: int
+    k_aux: int
+    aux_coef: float
+    dead_after: int
+    seq_len: int
+    forward_rows: int
+    batch: int
+    lr: float
+    seed: int
+    device: str
+    scan_corpus: Path
+    out: Path
+
+
+def lr_at(step: int, lr: float, steps: int) -> float:
+    """Linear warm-up over the first 10% of steps (at most 500), then flat, then a linear
+    decay to zero over the last 20%."""
     warmup, decay_from = min(500, steps // 10), int(steps * 0.8)
+    if step < warmup:
+        return lr * (step + 1) / warmup
+    if step >= decay_from:
+        return lr * max(0.0, (steps - step) / max(1, steps - decay_from))
+    return lr
 
-    def lr_at(step: int) -> float:
-        if step < warmup:
-            return lr * (step + 1) / warmup
-        if step >= decay_from:
-            return lr * max(0.0, (steps - step) / max(1, steps - decay_from))
-        return lr
 
-    log = (out / "train.jsonl").open("w")
+def train(runner, cfg: Settings, tcs: dict, rows, budget: int) -> int:
+    """One pass over ``rows`` (up to ``budget`` tokens), each forward pass feeding every
+    layer's transcoder. Returns the number of tokens trained on."""
+    opts = {layer: torch.optim.Adam(tc.parameters(), lr=cfg.lr) for layer, tc in tcs.items()}
+    steps = budget // cfg.batch
+    log = (cfg.out / "train.jsonl").open("w")
     step, seen, start = 0, 0, time.time()
-    for i in range(0, len(rows), forward_rows):
+    for i in range(0, len(rows), cfg.forward_rows):
         if seen >= budget:
             break
-        io = mlp_io(runner, rows[i : i + forward_rows], layers)
+        io = mlp_io(runner, rows[i : i + cfg.forward_rows], list(tcs))
         n_tokens = next(iter(io.values()))[0].shape[0]
         order = torch.randperm(n_tokens, device=runner.device)
-        for layer in layers:
-            x, y = io[layer]
-            tc = tcs[layer]
-            if float(tc.scale_in) == 0:  # average norm sqrt(d), from the first batch
-                tc.scale_in.fill_(d**0.5 / float(x.norm(dim=-1).mean()))
-                tc.scale_out.fill_(d**0.5 / float(y.norm(dim=-1).mean()))
-            x, y = x[order] * tc.scale_in, y[order] * tc.scale_out
-            for b, s in enumerate(range(0, n_tokens - batch + 1, batch)):
-                for group in opts[layer].param_groups:
-                    group["lr"] = lr_at(step + b)
-                result = tc.loss(x[s : s + batch], y[s : s + batch], dead_after, aux_coef)
-                opts[layer].zero_grad(set_to_none=True)
-                result["loss"].backward()
-                opts[layer].step()
-                tc.renorm()
+        for layer, tc in tcs.items():
+            result = train_layer(cfg, tc, opts[layer], io[layer], order, step, steps)
             log.write(json.dumps({"step": step, "layer": layer, "tokens": seen,
                                   "fvu": round(result["fvu"], 4),
                                   "dead": round(result["dead"], 4)}) + "\n")  # fmt: skip
-        step += n_tokens // batch
+        step += n_tokens // cfg.batch
         seen += n_tokens
         log.flush()
-        if (i // forward_rows) % 20 == 0:
+        if (i // cfg.forward_rows) % 20 == 0:
             rate = seen / (time.time() - start)
             eta = (budget - seen) / max(rate, 1) / 3600
             click.echo(f"{seen:,}/{budget:,} tokens, {rate:,.0f} tok/s, ~{eta:.1f} h left")
+    return seen
 
-    # Held-out text: choose each threshold on half of it, evaluate on the other half.
-    io = mlp_io(runner, valid_rows[: 2 * forward_rows], layers)
-    for layer in layers:
-        tc = tcs[layer]
-        x, y = io[layer]
-        x, y = x * tc.scale_in, y * tc.scale_out
-        half = x.shape[0] // 2
-        threshold = tc.threshold_for(x[:half])
-        stats = {
-            "model": model_name,
-            "revision": revision,
-            "layer": layer,
-            "input_site": "mlp_in",
-            "data": {
-                "dataset": PILE[0],
-                "revision": PILE[1],
-                "excluded_scan_docs": excluded,
-                "validation_docs": VALIDATION_DOCS,
-            },  # fmt: skip
-            "tokens": seen,
-            "width": width,
-            "k": k,
-            "k_aux": k_aux,
-            "aux_coef": aux_coef,
-            "dead_after": dead_after,
-            "lr": lr,
-            "batch": batch,
-            "seq_len": seq_len,
-            "seed": seed,
-            "threshold": threshold,
-            "held_out_tokens": x.shape[0] - half,
-            "topk": tc.evaluate(x[half:], y[half:], None),
-            "jumprelu": tc.evaluate(x[half:], y[half:], threshold),
-        }
-        from safetensors.torch import save_file
 
-        save_file({k_: v.cpu() for k_, v in tc.export(threshold).items()},
-                  out / f"layer_{layer}.safetensors")  # fmt: skip
-        (out / f"layer_{layer}.json").write_text(json.dumps(stats, indent=2) + "\n")
-        click.echo(f"L{layer}: top-k {stats['topk']}  JumpReLU {stats['jumprelu']}")
-    click.echo(f"Wrote {out}")
+def train_layer(cfg: Settings, tc, opt, io, order, step: int, steps: int) -> dict:
+    """The optimiser steps for one layer on one forward pass; the last batch's loss terms."""
+    x, y = io
+    d = x.shape[-1]
+    if float(tc.scale_in) == 0:  # average norm sqrt(d), from the first batch
+        tc.scale_in.fill_(d**0.5 / float(x.norm(dim=-1).mean()))
+        tc.scale_out.fill_(d**0.5 / float(y.norm(dim=-1).mean()))
+    x, y = x[order] * tc.scale_in, y[order] * tc.scale_out
+    batch = cfg.batch
+    for b, s in enumerate(range(0, x.shape[0] - batch + 1, batch)):
+        for group in opt.param_groups:
+            group["lr"] = lr_at(step + b, cfg.lr, steps)
+        result = tc.loss(x[s : s + batch], y[s : s + batch], cfg.dead_after, cfg.aux_coef)
+        opt.zero_grad(set_to_none=True)
+        result["loss"].backward()
+        opt.step()
+        tc.renorm()
+    return result
+
+
+def export_layer(cfg: Settings, layer: int, tc, io, excluded: int, seen: int) -> None:
+    """Choose the JumpReLU threshold, evaluate on held-out tokens, and write the weights."""
+    from safetensors.torch import save_file
+
+    x, y = io
+    x, y = x * tc.scale_in, y * tc.scale_out
+    half = x.shape[0] // 2
+    threshold = tc.threshold_for(x[:half])
+    stats = {
+        "model": cfg.model_name,
+        "revision": cfg.revision,
+        "layer": layer,
+        "input_site": "mlp_in",
+        "data": {
+            "dataset": PILE[0],
+            "revision": PILE[1],
+            "excluded_scan_docs": excluded,
+            "validation_docs": VALIDATION_DOCS,
+        },  # fmt: skip
+        "tokens": seen,
+        **{key: getattr(cfg, key) for key in HYPERPARAMETERS},
+        "threshold": threshold,
+        "held_out_tokens": x.shape[0] - half,
+        "topk": tc.evaluate(x[half:], y[half:], None),
+        "jumprelu": tc.evaluate(x[half:], y[half:], threshold),
+    }
+    save_file({k_: v.cpu() for k_, v in tc.export(threshold).items()},
+              cfg.out / f"layer_{layer}.safetensors")  # fmt: skip
+    (cfg.out / f"layer_{layer}.json").write_text(json.dumps(stats, indent=2) + "\n")
+    click.echo(f"L{layer}: top-k {stats['topk']}  JumpReLU {stats['jumprelu']}")
+
+
+# Recorded in each layer's statistics, in this order.
+HYPERPARAMETERS = (
+    "width", "k", "k_aux", "aux_coef", "dead_after", "lr", "batch", "seq_len", "seed",
+)  # fmt: skip
 
 
 if __name__ == "__main__":

@@ -4,8 +4,6 @@
 # function is split to 40 lines or fewer. Do not add entries.
 openinterp/agents/proposer.py::ProposerAgent.build_submission 52
 openinterp/agents/proposer.py::ProposerAgent.proposal_prompt 46
-openinterp/agents/reviewer.py::evaluate_submission 104
-openinterp/agents/reviewer.py::review_metrics 44
 openinterp/baseline.py::report 49
 openinterp/builder/charts.py::causal_chart 60
 openinterp/builder/charts.py::layer_map 45
@@ -44,4 +42,3 @@ openinterp/planner.py::plan_next 41
 openinterp/reproduce.py::_compare_verdicts 41
 openinterp/reproduce.py::reproduce_record 86
 scripts/position_zero.py::layer_rows 48
-scripts/train_transcoders.py::main 106
