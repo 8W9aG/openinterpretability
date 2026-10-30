@@ -168,7 +168,8 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
 @click.option(
     "--dictionary",
     help="Sparse dictionary (transcoder or SAE) whose latent to audit, e.g. "
-    "gpt2-small-transcoders; it implies --model. See openinterp/harness/dictionaries.py.",
+    "gpt2-small-transcoders or gemma-scope-2b-mlp-saes; it implies --model. See "
+    "openinterp/harness/dictionaries.py.",
 )
 @click.option(
     "--unit",

@@ -25,7 +25,6 @@ from openinterp.core.schemas import (
     DictionarySite,
     Histogram,
     Pole,
-    RunEnvironment,
 )
 
 # Probed in order; the first path that resolves on the model wins.
@@ -66,6 +65,10 @@ PRE_MLP_NORM_PATHS = (
     "ln_2",  # GPT-2
     "final_layer_norm",  # OPT
 )
+
+# Normalisation of the MLP's output before it joins the residual stream, where there is
+# one; TransformerLens's ``hook_mlp_out``, which dictionaries reconstruct, is after it.
+POST_MLP_NORM_PATHS = ("post_feedforward_layernorm",)  # Gemma 2/3
 
 # Final normalisation before the unembedding; its *input* is the final residual stream.
 FINAL_NORM_PATHS = (
@@ -258,6 +261,15 @@ class NeuronHookRunner:
             f"Could not find the norm before the MLP under {self.layer_path}[{layer}]"
         )
 
+    def mlp_write(self, layer: int) -> nn.Module:
+        """The module whose output is what ``layer``'s MLP adds to the residual stream: the
+        norm after the MLP if it has one, else the down projection."""
+        for path in POST_MLP_NORM_PATHS:
+            module = _try_path(self.layers[layer], path)
+            if isinstance(module, nn.Module):
+                return module
+        return self.down_proj(layer)
+
     def mlp(self, layer: int) -> nn.Module:
         """``layer``'s MLP block: the module that owns the down projection."""
         parent, _, _ = self.down_proj_path.rpartition(".")
@@ -312,8 +324,8 @@ class NeuronHookRunner:
         projection's output ``[batch, seq, d_model]``, and ``head_interventions[layer]``
         for the attention heads' concatenated outputs ``[batch, seq, n_heads * head_dim]``.
         ``dictionary_interventions[layer] = (site, fn)`` calls ``fn(x, out)`` with a
-        dictionary's input ``x`` read at ``site`` (see ``DictionaryProfile``) and the down
-        projection's output, which ``fn`` may replace.
+        dictionary's input ``x`` read at ``site`` (see ``DictionaryProfile``) and the MLP's
+        write to the residual stream (:meth:`mlp_write`), which ``fn`` may replace.
         """
         handles = []
 
@@ -435,28 +447,6 @@ class NeuronHookRunner:
 
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:
         return float(self.neuron_activations(text, layer, neuron_idx, pole).max())
-
-
-def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
-    """The device, weights dtype, model revision and library versions of ``runner``."""
-    from openinterp import __version__
-
-    try:
-        import transformers
-
-        transformers_version = transformers.__version__
-    except ImportError:
-        transformers_version = None
-    config = getattr(runner.model, "config", None)
-    return RunEnvironment(
-        device=str(runner.device),
-        dtype=str(next(runner.model.parameters()).dtype).removeprefix("torch."),
-        model_revision=getattr(runner, "model_revision", None)
-        or getattr(config, "_commit_hash", None),
-        openinterp_version=__version__,
-        torch_version=torch.__version__,
-        transformers_version=transformers_version,
-    )
 
 
 def top_activating_examples(

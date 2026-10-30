@@ -2,7 +2,8 @@
 
 A ``dictionary_interventions`` entry of :meth:`NeuronHookRunner.hooks` is ``(site, fn)``:
 the hooks read the dictionary's input x at ``site`` (see ``DictionaryProfile``), then call
-``fn(x, out)`` with the down projection's output, which ``fn`` may replace.
+``fn(x, out)`` with the MLP's write to the residual stream (the down projection's output,
+or the norm after it where there is one), which ``fn`` may replace.
 """
 
 from __future__ import annotations
@@ -35,16 +36,16 @@ def site_hooks(
     runner: NeuronHookRunner, layer: int, site: DictionarySite, fn: DictionaryIntervention
 ) -> list:
     """Hooks for one ``dictionary_interventions`` entry: read x at ``site``, then call
-    ``fn(x, out)`` on the down projection's output."""
+    ``fn(x, out)`` on the MLP's write to the residual stream."""
     seen: list[torch.Tensor] = []
     handles = []
-    if site in ("mlp_in", "mlp_in_normalized"):
+    if site in ("resid_mid", "mlp_in", "mlp_in_normalized"):
         norm = runner.mlp_norm(layer) if site == "mlp_in_normalized" else None
 
         def record(_module, args):
             seen.append(args[0] if norm is None else normalize_without_affine(norm, args[0]))
 
-        module = runner.mlp(layer) if norm is None else norm
+        module = runner.mlp(layer) if site == "mlp_in" else runner.mlp_norm(layer)
         handles.append(module.register_forward_pre_hook(record))
     elif site != "mlp_out":
         raise ValueError(f"unknown dictionary site {site!r}")
@@ -52,7 +53,7 @@ def site_hooks(
     def output(_module, _args, out):
         return fn(out if site == "mlp_out" else seen.pop(), out)
 
-    handles.append(runner.down_proj(layer).register_forward_hook(output))
+    handles.append(runner.mlp_write(layer).register_forward_hook(output))
     return handles
 
 
@@ -60,8 +61,9 @@ def site_hooks(
 def dictionary_io(
     runner: NeuronHookRunner, inputs: Inputs, layer: int, site: DictionarySite
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """A dictionary's input at ``site`` and the MLP output it reconstructs, both
-    ``[batch, seq, d]``. The forward pass stops at ``layer``'s MLP."""
+    """A dictionary's input at ``site`` and the MLP output it reconstructs (the MLP's write
+    to the residual stream), both ``[batch, seq, d]``. The forward pass stops at
+    ``layer``'s MLP."""
     captured: list[tuple[torch.Tensor, torch.Tensor]] = []
 
     def capture(x: torch.Tensor, out: torch.Tensor) -> None:

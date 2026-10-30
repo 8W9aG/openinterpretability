@@ -4,8 +4,9 @@ A latent's strength is its activation (see :mod:`openinterp.harness.units`). The
 reads the dictionary's input at its site in one pass that stops at the feature's layer,
 and counts the same tokens as a neuron scan (see :mod:`scan`), so the top examples,
 histogram and confound profile mean the same thing for every kind of unit. The same
-pass measures how well the whole dictionary reconstructs the MLP output there, so a
-record says whether the baseline it belongs to was a faithful one.
+pass measures how well the whole dictionary reconstructs the MLP output there, leaving
+out each piece's first token, so a record says whether the baseline it belongs to was a
+faithful one.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ class _Fit:
             xs, target = x[start : start + ENCODE_CHUNK], out[start : start + ENCODE_CHUNK]
             target = target.float().to(dictionary.w_dec.device)
             acts = dictionary.encode(xs)
-            self.error += float(((dictionary.decode(acts) - target) ** 2).sum())
+            self.error += float(((dictionary.reconstruct(xs, acts) - target) ** 2).sum())
             self.l0 += float((acts > 0).sum())
             fired = (acts > 0).any(0)
             self.fired = fired if self.fired is None else self.fired | fired
@@ -107,8 +108,10 @@ def scan_feature(
         values.extend(strengths[counted].tolist())
         first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)
-        on_device = counted.to(x.device)
-        fit.update(dictionary, x[on_device], out[on_device])
+        # Not a piece's first token: dictionaries aren't trained on that attention sink,
+        # whose error can be 10^8 times the output's variance and would swamp the fit.
+        fitted = (counted & ~batch.first).to(x.device)
+        fit.update(dictionary, x[fitted], out[fitted])
     if not values:
         raise ValueError("the corpus has no tokens to scan")
 
