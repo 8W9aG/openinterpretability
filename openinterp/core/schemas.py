@@ -103,7 +103,10 @@ class CorpusSource(StrictModel):
 
     dataset: str = Field(min_length=1, examples=["HuggingFaceFW/fineweb-edu"])
     revision: str | None = Field(default=None, description="Dataset commit hash.")
-    files: str = Field(description="Glob of the Parquet files sampled, within the dataset.")
+    files: str = Field(
+        description="Glob of the Parquet files sampled, within the dataset; several, "
+        "comma-separated, each gave an equal share of the documents."
+    )
     text_column: str = "text"
     documents: int = Field(ge=0)
     seed: int
