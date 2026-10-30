@@ -222,3 +222,37 @@ def test_a_features_read_matches_its_strength_at_each_site(gpt2_runner, spec, si
     handle.remove()
     t = target_of(gpt2_runner, unit)
     torch.testing.assert_close(t.strength(seen[-1]), expected, atol=1e-5, rtol=0)
+
+
+def test_residual_feature_wiring(gpt2_runner, spec):  # noqa: F811
+    from dataclasses import replace
+
+    ident = FeatureIdentifier(model_name="tiny-gpt2", layer=0, dictionary="tiny-tc", feature_idx=5)
+    residual = replace(spec, kind="sae", input_site="resid_post")
+    profile = scan_feature(gpt2_runner, TEXTS, ident, residual, k=2).profile
+    unit = FeatureUnit(ident, profile)
+    seen = []  # the residual stream after layer 0, which the latent reads
+    block = gpt2_runner.model.transformer.h[0]
+    handle = block.register_forward_hook(lambda _m, _a, o: seen.append(o))
+    expected = unit.strengths(gpt2_runner, TEXTS[0])
+    handle.remove()
+    t = target_of(gpt2_runner, unit)
+    read = seen[-1][0] if isinstance(seen[-1], tuple) else seen[-1]
+    torch.testing.assert_close(t.strength(read), expected, atol=1e-5, rtol=0)
+
+    wiring = weight_wiring(gpt2_runner, unit, k=5)  # reads layer 0's MLP and heads too
+    assert {e.layer for e in wiring.upstream_neurons} == {0}
+    assert {e.layer for e in wiring.upstream_heads} == {0}
+    assert {e.layer for e in wiring.downstream_neurons} == {1}
+
+    acts = activation_wiring(gpt2_runner, unit, TEXTS, threshold=1e-6, k=200)
+    edge = next(e for e in acts.upstream_neurons if e.layer == 0)
+
+    def strength(scale: float) -> float:
+        with scaled(gpt2_runner, 0, edge.index, scale):
+            values = [unit.strengths(gpt2_runner, p).max() for p in TEXTS]
+        return sum(float(v) for v in values if v >= 1e-6)
+
+    eps = 1e-3
+    slope = (strength(1.0) - strength(1 - eps)) / eps / acts.prompts
+    assert slope == pytest.approx(edge.weight, rel=2e-2, abs=1e-5)

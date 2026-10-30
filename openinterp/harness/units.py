@@ -10,8 +10,9 @@ ablation the lookahead profile uses:
   :class:`~openinterp.core.schemas.HeadProfile`); ablation replaces z with z̄ (mean
   ablation), so strength is exactly how far ablating the head moves the residual;
 * a dictionary feature: its latent's activation ``a_f`` (non-negative); ablation removes
-  its write ``a_f · W_dec[f]`` from the MLP output, leaving the dictionary's error and
-  every other latent as they were.
+  its write ``a_f · W_dec[f]`` from the MLP output (from the residual stream, for a
+  residual-stream SAE), leaving the dictionary's error and every other latent as they
+  were.
 
 A unit with a *first-token floor* (protocol 0.8) is not measured at a text's first
 token. The first token has no context and is the attention sink, and some early-layer

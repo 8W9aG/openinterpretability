@@ -15,7 +15,12 @@ from openinterp.agents.reviewer import AdversarialProbe, ReviewerAgent, evaluate
 from openinterp.builder.compiler import compile_site
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.cli import cli
-from openinterp.core.schemas import AuditRecord, FeatureIdentifier, ScanEvidence
+from openinterp.core.schemas import (
+    AuditRecord,
+    DictionaryProfile,
+    FeatureIdentifier,
+    ScanEvidence,
+)
 from openinterp.harness import dictionaries
 from openinterp.harness.dictionaries import DictionarySpec, load_spec
 from openinterp.harness.features import patch_features, scan_feature
@@ -224,6 +229,57 @@ def test_a_dictionary_reconstructs_and_writes_after_the_post_mlp_norm(gemma2_run
     write = dictionary.feature(x, 5).unsqueeze(-1) * dictionary.w_dec[5]
     assert float(write.abs().max()) > 0
     torch.testing.assert_close(after[-1], written - write, atol=1e-6, rtol=0)
+
+
+@pytest.fixture
+def residual_spec(spec, monkeypatch):
+    residual = replace(spec, kind="sae", input_site="resid_post")
+    monkeypatch.setitem(dictionaries.DICTIONARIES, "tiny-tc", residual)
+    return residual
+
+
+def test_a_residual_sae_reads_and_writes_the_residual_after_its_layer(runner, residual_spec):
+    block = runner.model.transformer.h[1]
+    seen = []
+    handle = block.register_forward_hook(lambda _m, _a, o: seen.append(o))
+    with torch.no_grad():
+        runner.forward(runner.encode(TEXTS[1]))
+    handle.remove()
+    residual = seen[-1][0] if isinstance(seen[-1], tuple) else seen[-1]
+    x, out = dictionary_io(runner, TEXTS[1], 1, "resid_post")
+    torch.testing.assert_close(x, residual)
+    torch.testing.assert_close(out, residual)
+
+    profile = scan_feature(runner, TEXTS, FEATURE, residual_spec, k=2).profile
+    assert (profile.input_site, profile.output_site) == ("resid_post", "resid_post")
+    with pytest.raises(ValueError, match="writes to resid_post, not mlp_out"):
+        DictionaryProfile.model_validate({**profile.model_dump(), "output_site": "mlp_out"})
+
+    unit = FeatureUnit(FEATURE, profile)
+    dictionary = unit.dictionary(runner)
+    after = []
+    with runner.hooks(**unit.ablation(runner)):  # registered after the ablation, so it sees it
+        handle = block.register_forward_hook(lambda _m, _a, o: after.append(o))
+        runner.forward(runner.encode(TEXTS[1]))
+    handle.remove()
+    ablated = after[-1][0] if isinstance(after[-1], tuple) else after[-1]
+    write = dictionary.feature(x, 5).unsqueeze(-1) * dictionary.w_dec[5]
+    assert float(write.abs().max()) > 0
+    torch.testing.assert_close(ablated, residual - write, atol=1e-6, rtol=0)
+
+
+def test_a_residual_latent_is_audited_and_reproduced(runner, residual_spec, tmp_path):
+    scan = scan_feature(runner, TEXTS, FEATURE, residual_spec, k=4)
+    record = _record(runner, scan)
+    assert record.submission.dictionary_profile.output_site == "resid_post"
+    assert record.verdict.causal_metrics is not None
+    report = reproduce_record(record, runner)
+    assert report.ok, report.mismatches
+
+    task = ProposerAgent.proposal_prompt(FEATURE, scan.examples, dictionary_profile=scan.profile)
+    assert "decoder vector to the residual stream after this layer" in task
+    page = write_experiment_page(record, tmp_path / "wiki").read_text()
+    assert "of the residual stream's variance" in page
 
 
 def test_ablation_removes_exactly_the_latents_write(runner, scan):
