@@ -4,12 +4,6 @@
 # function is split to 40 lines or fewer. Do not add entries.
 openinterp/agents/proposer.py::ProposerAgent.build_submission 52
 openinterp/agents/proposer.py::ProposerAgent.proposal_prompt 46
-openinterp/baseline.py::report 49
-openinterp/cli_baseline.py::patchscope_baseline 91
 openinterp/cli_probing.py::probe_compare 49
-openinterp/cli_scan.py::activations 78
-openinterp/cli_score.py::_draw_task 61
-openinterp/cli_score.py::_score_task 53
-openinterp/cli_score.py::score 54
 openinterp/corpus.py::build_from_hub 56
 scripts/position_zero.py::layer_rows 48

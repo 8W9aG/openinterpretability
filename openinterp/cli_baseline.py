@@ -47,20 +47,7 @@ def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):
     run writes whatever can be compared so far. The embedding score uses the encoder the
     record's own scores used, so it needs no judge.
     """
-    from openinterp.agents.judge import DetectionAnswer, FuzzingAnswer, answered
-    from openinterp.baseline import (
-        DEV_SLUGS,
-        METRICS,
-        BaselineRow,
-        blind_explanation,
-        blind_reading,
-        metric,
-        report,
-        rescored,
-    )
-    from openinterp.builder.wiki import experiment_id, load_archive_paths
-    from openinterp.cli_score import _sibling, _write_task
-    from openinterp.harness.explanation_scores import embedding_similarities
+    from openinterp.builder.wiki import load_archive_paths
 
     records = [
         r
@@ -73,60 +60,93 @@ def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):
     readouts = _readouts(records, work_dir / "readouts", device, dtype)
     rows, pending = [], 0
     for record in records:
-        sub, scores = record.submission, record.verdict.explanation_scores
-        eid, slug = experiment_id(record), sub.identifier.slug
-        readout = readouts[slug]
-        explanation = blind_explanation(readout)
-        agent = {name: metric(scores, name) for name in METRICS}
-        row = dict(
-            experiment_id=eid,
-            slug=slug,
-            status=record.verdict.status,
-            selection=sub.provenance.selection if sub.provenance else None,
-            dev=slug in DEV_SLUGS,
-            reading=(blind_reading(readout) or readout.readings[0]).text,
-            agent_explanation=scores.explanation,
-            baseline_explanation=explanation,
-            judge_model=scores.judge_model,
-            agent=agent,
-            baseline=dict.fromkeys(METRICS),
-        )
-        if explanation is None:
-            rows.append(BaselineRow(**row))
-            continue
-        sims = None
-        if scores.embedding_model and agent["embedding"] is not None:
-            texts = [w.text for w in scores.detection_windows]
-            sims = embedding_similarities(scores.embedding_model, explanation, texts)
-        detection = fuzzing = None
+        row, waiting = _baseline_row(record, readouts, work_dir, judge_model)
+        rows.append(row)
+        pending += waiting
+    _write_report(rows, out, pending, work_dir)
+
+
+def _baseline_row(record, readouts: dict, work_dir: Path, judge_model: str):
+    """(the record's BaselineRow, whether it still awaits judge answers)."""
+    from openinterp.baseline import METRICS, BaselineRow, blind_explanation, metric, rescored
+    from openinterp.builder.wiki import experiment_id
+    from openinterp.harness.explanation_scores import embedding_similarities
+
+    scores = record.verdict.explanation_scores
+    eid, slug = experiment_id(record), record.submission.identifier.slug
+    explanation = blind_explanation(readouts[slug])
+    row = _row_fields(record, readouts[slug], explanation)
+    agent = row["agent"]
+    if explanation is None:
+        return BaselineRow(**row), False
+    sims = None
+    if scores.embedding_model and agent["embedding"] is not None:
+        texts = [w.text for w in scores.detection_windows]
+        sims = embedding_similarities(scores.embedding_model, explanation, texts)
+    detection = fuzzing = None
+    waiting = False
+    if scores.judge_model == judge_model:
         task_path = work_dir / "judge" / slug / f"{eid}.task.json"
-        if scores.judge_model == judge_model:
-            det_path = _sibling(task_path, ".detection.json")
-            fuz_path = _sibling(task_path, ".fuzzing.json")
-            need_fuzzing = bool(scores.fuzzing_windows)  # no prompt without fuzzing windows
-            if det_path.exists() and (fuz_path.exists() or not need_fuzzing):
-                det = _answer(DetectionAnswer, det_path).active
-                detection = answered(det, len(scores.detection_windows), "detection")
-                fuz = None
-                if need_fuzzing:
-                    fuz = _answer(FuzzingAnswer, fuz_path).correct
-                    fuzzing = answered(fuz, len(scores.fuzzing_windows), "fuzzing")
-                row |= {"baseline_judge_model": judge_model, "detection_answer": det}
-                row |= {"fuzzing_answer": fuz}
-            else:
-                pending += 1
-                if not task_path.exists():
-                    _write_task(_task(record, explanation), task_path)
-        base = rescored(
-            scores,
-            explanation,
-            judge_model=row.get("baseline_judge_model"),
-            detection=detection,
-            fuzzing=fuzzing,
-            similarities=sims,
-        )
-        row["baseline"] = {name: metric(base, name) for name in METRICS}
-        rows.append(BaselineRow(**row))
+        judged = _judged(record, explanation, task_path)
+        if judged is None:
+            waiting = True
+        else:
+            detection, fuzzing, answers = judged
+            row |= {"baseline_judge_model": judge_model, **answers}
+    judge = row.get("baseline_judge_model")
+    judged = {"detection": detection, "fuzzing": fuzzing, "similarities": sims}
+    base = rescored(scores, explanation, judge_model=judge, **judged)
+    row["baseline"] = {name: metric(base, name) for name in METRICS}
+    return BaselineRow(**row), waiting
+
+
+def _row_fields(record, readout, explanation: str | None) -> dict:
+    """The row before the baseline is scored: the agent's metrics and the readout."""
+    from openinterp.baseline import DEV_SLUGS, METRICS, blind_reading, metric
+    from openinterp.builder.wiki import experiment_id
+
+    sub, scores = record.submission, record.verdict.explanation_scores
+    slug = sub.identifier.slug
+    return dict(
+        experiment_id=experiment_id(record),
+        slug=slug,
+        status=record.verdict.status,
+        selection=sub.provenance.selection if sub.provenance else None,
+        dev=slug in DEV_SLUGS,
+        reading=(blind_reading(readout) or readout.readings[0]).text,
+        agent_explanation=scores.explanation,
+        baseline_explanation=explanation,
+        judge_model=scores.judge_model,
+        agent={name: metric(scores, name) for name in METRICS},
+        baseline=dict.fromkeys(METRICS),
+    )
+
+
+def _judged(record, explanation: str, task_path: Path):
+    """(detection, fuzzing, the raw answers) from the judge's answers next to ``task_path``;
+    ``None`` while they are missing, after writing the task if it isn't there yet."""
+    from openinterp.agents.judge import DetectionAnswer, FuzzingAnswer, answered
+    from openinterp.cli_score import _sibling, _write_task
+
+    scores = record.verdict.explanation_scores
+    det_path = _sibling(task_path, ".detection.json")
+    fuz_path = _sibling(task_path, ".fuzzing.json")
+    need_fuzzing = bool(scores.fuzzing_windows)  # no prompt without fuzzing windows
+    if not det_path.exists() or not (fuz_path.exists() or not need_fuzzing):
+        if not task_path.exists():
+            _write_task(_task(record, explanation), task_path)
+        return None
+    det = _answer(DetectionAnswer, det_path).active
+    detection = answered(det, len(scores.detection_windows), "detection")
+    fuz = fuzzing = None
+    if need_fuzzing:
+        fuz = _answer(FuzzingAnswer, fuz_path).correct
+        fuzzing = answered(fuz, len(scores.fuzzing_windows), "fuzzing")
+    return detection, fuzzing, {"detection_answer": det, "fuzzing_answer": fuz}
+
+
+def _write_report(rows, out: Path, pending: int, work_dir: Path) -> None:
+    from openinterp.baseline import report
 
     out.parent.mkdir(parents=True, exist_ok=True)
     jsonl = out.with_suffix(".jsonl")

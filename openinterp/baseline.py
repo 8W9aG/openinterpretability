@@ -161,15 +161,7 @@ def report(rows: Sequence[BaselineRow]) -> str:
     experiments, randomly selected and VERIFIED units and the dev set, and the readings."""
     from collections import Counter
 
-    groups = [
-        ("Held-out experiments", [r for r in rows if not r.dev]),
-        (
-            "Held-out, randomly selected units",
-            [r for r in rows if not r.dev and r.selection == "random"],
-        ),
-        ("Held-out, VERIFIED", [r for r in rows if not r.dev and r.status == "VERIFIED"]),
-        ("Dev set (inspected while choosing the rule)", [r for r in rows if r.dev]),
-    ]
+    groups = _groups(rows)
     readings = Counter(r.reading for r in rows)
     judged = sum(r.baseline_judge_model is not None for r in rows)
     lines = [
@@ -190,16 +182,8 @@ def report(rows: Sequence[BaselineRow]) -> str:
         "| Sign test p |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
-    for label, group in groups:
-        for name in METRICS:
-            s = summarise(group, name)
-            if s is None:
-                continue
-            p = "—" if s["sign_test_p"] is None else f"{s['sign_test_p']:.2g}"
-            lines.append(
-                f"| {label} | {name} | {s['n']} | {s['agent']:.2f} | {s['baseline']:.2f} | "
-                f"{s['difference']:+.2f} | {s['baseline_at_least_agent']:.0%} | {p} |"
-            )
+    lines += [_metric_row(label, group, name) for label, group in groups for name in METRICS]
+    lines = [line for line in lines if line is not None]
     common = ", ".join(f"{text!r} ×{n}" for text, n in readings.most_common(10))
     lines += [
         "",
@@ -207,3 +191,27 @@ def report(rows: Sequence[BaselineRow]) -> str:
         f"{common}.",
     ]
     return "\n".join(lines) + "\n"
+
+
+def _groups(rows: Sequence[BaselineRow]) -> list[tuple[str, list[BaselineRow]]]:
+    return [
+        ("Held-out experiments", [r for r in rows if not r.dev]),
+        (
+            "Held-out, randomly selected units",
+            [r for r in rows if not r.dev and r.selection == "random"],
+        ),
+        ("Held-out, VERIFIED", [r for r in rows if not r.dev and r.status == "VERIFIED"]),
+        ("Dev set (inspected while choosing the rule)", [r for r in rows if r.dev]),
+    ]
+
+
+def _metric_row(label: str, group: Sequence[BaselineRow], name: str) -> str | None:
+    """One table row comparing the agent and the baseline on ``name``; ``None`` if unpaired."""
+    s = summarise(group, name)
+    if s is None:
+        return None
+    p = "—" if s["sign_test_p"] is None else f"{s['sign_test_p']:.2g}"
+    return (
+        f"| {label} | {name} | {s['n']} | {s['agent']:.2f} | {s['baseline']:.2f} | "
+        f"{s['difference']:+.2f} | {s['baseline_at_least_agent']:.0%} | {p} |"
+    )

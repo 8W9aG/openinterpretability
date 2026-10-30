@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
 from openinterp.cli import cli, with_model_options
 from openinterp.cli_evidence import open_scan_cache, read_corpus, scan_cache_option
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
+
+if TYPE_CHECKING:
+    import torch
 
 COLUMNS = ("doc", "window_start", "index", "token_id", "token", "strength", "context")
 
@@ -76,11 +81,8 @@ def activations(
     Each token counts once, as in the audit's histogram. Use this rather than writing
     a scan loop: e.g. every occurrence of a token with --token ' the' --top 0.
     """
-    import torch
-
     from openinterp.cli import _load_runner
-    from openinterp.harness.hooks import pole_strength
-    from openinterp.harness.scan import cut_pieces, scan_chunks
+    from openinterp.harness.scan import cut_pieces
 
     if stride is not None and (window_tokens is None or stride > window_tokens):
         raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
@@ -92,7 +94,37 @@ def activations(
 
         texts, _ = sample_tokens(tokenizer, texts, max_tokens, sample_seed)
     pieces = list(cut_pieces(tokenizer, texts, window_tokens, stride))
-    cache = open_scan_cache(use_scan_cache)
+    scan = _neuron_strengths(runner, pieces, layer, neuron, pole, open_scan_cache(use_scan_cache))
+    rows = _select(scan, tokenizer, min_strength, tokens, top)
+    windowed = window_tokens is not None
+    lines = [_format(scan, pieces, row, tokenizer, context, windowed, fmt) for row in rows.tolist()]
+    if fmt == "tsv":
+        lines.insert(0, "\t".join(COLUMNS))
+    text = "\n".join(lines) + "\n"
+    if out is None:
+        click.echo(text, nl=False)
+    else:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+        click.echo(f"Wrote {len(rows):,} tokens to {out}", err=True)
+
+
+@dataclass
+class _Strengths:
+    """Every scanned token: its id, pole strength, whether it counts, piece and index."""
+
+    ids: torch.Tensor
+    values: torch.Tensor
+    counted: torch.Tensor
+    piece_of: list[int]
+    index: list[int]
+
+
+def _neuron_strengths(runner, pieces, layer: int, neuron: int, pole, cache) -> _Strengths:
+    import torch
+
+    from openinterp.harness.hooks import pole_strength
+    from openinterp.harness.scan import scan_chunks
 
     ids, strengths, counted, piece_of, index = [], [], [], [], []
     next_piece = 0
@@ -107,8 +139,15 @@ def activations(
     if cache is not None and cache.last is not None:
         verb = "Replayed" if cache.replayed else "Cached"
         click.echo(f"{verb} layer {layer}'s scan: {cache.last}", err=True)
-    ids_t, values = torch.cat(ids), torch.cat(strengths)
-    keep = torch.cat(counted).clone()
+    return _Strengths(torch.cat(ids), torch.cat(strengths), torch.cat(counted), piece_of, index)
+
+
+def _select(scan: _Strengths, tokenizer, min_strength, tokens, top: int) -> torch.Tensor:
+    """The rows to print, after reporting the scan's size, peak and active count."""
+    import torch
+
+    ids_t, values = scan.ids, scan.values
+    keep = scan.counted.clone()
     peak = float(values[keep].max()) if keep.any() else 0.0
     active = int((values[keep] >= 0.25 * peak).sum()) if peak > 0 else 0
     click.echo(
@@ -125,34 +164,26 @@ def activations(
     rows = keep.nonzero().flatten()
     if top:
         rows = rows[values[rows].argsort(descending=True, stable=True)[:top]]
+    return rows
 
-    lines = []
-    for row in rows.tolist():
-        piece = pieces[piece_of[row]]
-        first = row - index[row]
-        left = ids_t[max(first, row - context) : row].tolist() if context else []
-        record = {
-            "doc": piece.doc,
-            "window_start": piece.start if window_tokens is not None else 0,
-            "index": index[row],
-            "token_id": int(ids_t[row]),
-            "token": tokenizer.decode([int(ids_t[row])]),
-            "strength": round(float(values[row]), 5),
-            "context": tokenizer.decode(left) if left else "",
-        }
-        if fmt == "jsonl":
-            lines.append(json.dumps(record, ensure_ascii=False))
-        else:
-            lines.append("\t".join(_tsv(record[c]) for c in COLUMNS))
-    if fmt == "tsv":
-        lines.insert(0, "\t".join(COLUMNS))
-    text = "\n".join(lines) + "\n"
-    if out is None:
-        click.echo(text, nl=False)
-    else:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(text, encoding="utf-8")
-        click.echo(f"Wrote {len(rows):,} tokens to {out}", err=True)
+
+def _format(scan: _Strengths, pieces, row: int, tokenizer, context, windowed, fmt) -> str:
+    ids_t, index = scan.ids, scan.index
+    piece = pieces[scan.piece_of[row]]
+    first = row - index[row]
+    left = ids_t[max(first, row - context) : row].tolist() if context else []
+    record = {
+        "doc": piece.doc,
+        "window_start": piece.start if windowed else 0,
+        "index": index[row],
+        "token_id": int(ids_t[row]),
+        "token": tokenizer.decode([int(ids_t[row])]),
+        "strength": round(float(scan.values[row]), 5),
+        "context": tokenizer.decode(left) if left else "",
+    }
+    if fmt == "jsonl":
+        return json.dumps(record, ensure_ascii=False)
+    return "\t".join(_tsv(record[c]) for c in COLUMNS)
 
 
 @cli.command("scan-cache")
