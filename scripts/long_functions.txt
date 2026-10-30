@@ -19,13 +19,8 @@ openinterp/harness/attribution.py::attribution_patching 42
 openinterp/harness/causal.py::causal_metrics 59
 openinterp/harness/features.py::scan_feature 53
 openinterp/harness/heads.py::scan_head 51
-openinterp/harness/input_attribution.py::input_attribution 87
 openinterp/harness/layer_cache.py::LayerCache._record 42
 openinterp/harness/scan.py::scan_neuron 43
-openinterp/harness/wiring.py::target_of 65
-openinterp/harness/wiring.py::weight_wiring 56
-openinterp/harness/wiring_activations.py::_downstream_head_effects 49
-openinterp/harness/wiring_activations.py::activation_wiring 77
 openinterp/planner.py::candidates_for 95
 openinterp/planner.py::plan_next 41
 openinterp/reproduce.py::_compare_verdicts 41
