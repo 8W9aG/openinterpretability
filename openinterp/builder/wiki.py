@@ -155,11 +155,18 @@ def write_experiment_page(
     if page.exists():
         return None
 
+    meta = _page_meta(record, kind)
+    body = _page_body(record, wiki_dir, meta, kind, previous_status)
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(_front_matter(meta) + "\n" + body, encoding="utf-8")
+    rebuild_indexes(wiki_dir)
+    return page
+
+
+def _page_meta(record: AuditRecord, kind: ExperimentKind) -> dict:
+    """The page's front matter."""
     sub, verdict = record.submission, record.verdict
-    ident = sub.identifier
-    metrics, policy = verdict.metrics, verdict.policy
-    failed = [g for g, ok in (metrics.gates.items() if metrics else []) if not ok]
-    advice = [GATE_ADVICE[g].format(**(policy.model_dump() if policy else {})) for g in failed]
+    ident, policy = sub.identifier, verdict.policy
     if ident.kind == "attn_head":
         unit = {"head": ident.head_idx}
     elif ident.kind == "dictionary_feature":
@@ -183,7 +190,16 @@ def write_experiment_page(
     }
     if sub.supersedes:
         meta["supersedes"] = sub.supersedes
-    body = (
+    return meta
+
+
+def _page_body(record: AuditRecord, wiki_dir: Path, meta: dict, kind, previous_status) -> str:
+    sub, verdict = record.submission, record.verdict
+    metrics, policy = verdict.metrics, verdict.policy
+    failed = [g for g, ok in (metrics.gates.items() if metrics else []) if not ok]
+    advice = [GATE_ADVICE[g].format(**(policy.model_dump() if policy else {})) for g in failed]
+    probe_kinds = {"hard_negative", "positive_holdout"}
+    return (
         _environment()
         .get_template("experiment.md")
         .render(
@@ -198,20 +214,16 @@ def write_experiment_page(
             failed_probes=[
                 t
                 for t in verdict.adversarial_test_results
-                if not t.passed and t.measured and t.kind in {"hard_negative", "positive_holdout"}
+                if not t.passed and t.measured and t.kind in probe_kinds
             ],
             examples=[(e.max_activation, _context(e)) for e in sub.top_examples[:10]],
             kind=kind,
             previous_status=previous_status,
             record_link=archive_path(wiki_dir, record).name,
             self_reviewed=record.self_reviewed,
-            home=home_link(ident.slug),
+            home=home_link(sub.identifier.slug),
         )
     )
-    page.parent.mkdir(parents=True, exist_ok=True)
-    page.write_text(_front_matter(meta) + "\n" + body, encoding="utf-8")
-    rebuild_indexes(wiki_dir)
-    return page
 
 
 def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:

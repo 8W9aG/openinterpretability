@@ -5,15 +5,6 @@
 openinterp/agents/proposer.py::ProposerAgent.build_submission 52
 openinterp/agents/proposer.py::ProposerAgent.proposal_prompt 46
 openinterp/baseline.py::report 49
-openinterp/builder/charts.py::causal_chart 60
-openinterp/builder/charts.py::layer_map 45
-openinterp/builder/charts.py::probe_chart 71
-openinterp/builder/charts.py::vocab_chart 68
-openinterp/builder/learned_baseline.py::learned_baseline 42
-openinterp/builder/parquet_export.py::experiment_row 65
-openinterp/builder/parquet_export.py::record_to_row 41
-openinterp/builder/tree.py::build_tree 60
-openinterp/builder/wiki.py::write_experiment_page 65
 openinterp/cli_baseline.py::patchscope_baseline 91
 openinterp/cli_probing.py::probe_compare 49
 openinterp/cli_registry.py::next_experiment 41
