@@ -3,6 +3,7 @@ random transcoder stored locally (no download)."""
 
 from dataclasses import replace
 
+import numpy as np
 import pyarrow.parquet as pq
 import pytest
 import torch
@@ -85,12 +86,13 @@ def _captured(runner, text, layer=1):
     return seen
 
 
-def test_dictionary_sites_read_the_mlp_input_its_normalisation_and_output(runner):
+def test_dictionary_sites_read_the_residual_the_mlp_input_its_normalisation_and_output(runner):
     seen = _captured(runner, TEXTS[0])
     pre = seen["pre"]
     variance = pre.var(-1, correction=0, keepdim=True)
     standardised = (pre - pre.mean(-1, keepdim=True)) / (variance + 1e-5).sqrt()
     for site, expected in [
+        ("resid_mid", pre),
         ("mlp_in", seen["in"]),
         ("mlp_in_normalized", standardised),
         ("mlp_out", seen["out"]),
@@ -124,6 +126,102 @@ def test_scan_measures_the_latent_and_the_dictionarys_fit(runner, spec, scan):
         len(scan.values),
         "tc1/sae.safetensors",
     )
+
+
+def test_npz_dictionaries_by_layer_with_a_skip_connection(runner, tmp_path):
+    torch.manual_seed(2)
+    weights = {
+        "W_enc": torch.randn(32, N_FEATURES) / 32**0.5,
+        "b_enc": torch.zeros(N_FEATURES),
+        "W_dec": torch.randn(N_FEATURES, 32) * 0.1,
+        "b_dec": torch.zeros(32),
+        "threshold": torch.full((N_FEATURES,), 0.1),
+        "W_skip": torch.randn(32, 32) * 0.1,  # [d_out, d_in]
+    }
+    (tmp_path / "l1").mkdir()
+    np.savez(tmp_path / "l1" / "params.npz", **{k: v.numpy() for k, v in weights.items()})
+    spec = DictionarySpec(
+        model_name="tiny-gpt2",
+        kind="transcoder",
+        repo=str(tmp_path),
+        revision="local",
+        path={1: "l1/params.npz"},
+        layers=(1,),
+        input_site="resid_mid",
+        activation="jumprelu",
+    )
+    assert spec.file(1) == "l1/params.npz"
+    with pytest.raises(ValueError, match="no layer 0"):
+        spec.file(0)
+
+    dictionary = load_spec(spec, 1)
+    x, out = dictionary_io(runner, TEXTS[0], 1, "resid_mid")
+    x, out = x[0], out[0]
+    pre = x @ weights["W_enc"] + weights["b_enc"]
+    acts = pre * (pre > 0.1)
+    expected = acts @ weights["W_dec"] + x @ weights["W_skip"].T
+    torch.testing.assert_close(dictionary.reconstruct(x), expected, atol=1e-5, rtol=0)
+
+    scan = scan_feature(runner, [TEXTS[0]], FEATURE, spec, k=1)  # the fit includes the skip
+    error = ((expected - out) ** 2).sum()
+    assert scan.profile.explained_variance == pytest.approx(
+        float(1 - error / ((out - out.mean(0)) ** 2).sum()), rel=1e-4
+    )
+
+
+@pytest.fixture
+def gemma2_runner():
+    """A random Gemma 2, whose MLP output is normalised before it joins the residual."""
+    from transformers import Gemma2Config, Gemma2ForCausalLM
+
+    torch.manual_seed(0)
+    config = Gemma2Config(
+        vocab_size=64,
+        hidden_size=32,
+        intermediate_size=48,
+        num_hidden_layers=2,
+        num_attention_heads=2,
+        num_key_value_heads=1,
+        head_dim=16,
+    )
+    return NeuronHookRunner(Gemma2ForCausalLM(config).eval(), FakeTokenizer())
+
+
+def test_a_dictionary_reconstructs_and_writes_after_the_post_mlp_norm(gemma2_runner, spec):
+    runner = gemma2_runner
+    block = runner.model.model.layers[1]
+    seen = {}
+    hooks = [
+        block.pre_feedforward_layernorm.register_forward_pre_hook(
+            lambda _m, a: seen.__setitem__("pre", a[0])
+        ),
+        block.post_feedforward_layernorm.register_forward_hook(
+            lambda _m, _a, o: seen.__setitem__("out", o)
+        ),
+    ]
+    with torch.no_grad():
+        runner.forward(runner.encode(TEXTS[1]))
+    for h in hooks:
+        h.remove()
+    pre, written = seen["pre"].float(), seen["out"]
+    x, out = dictionary_io(runner, TEXTS[1], 1, "mlp_in_normalized")
+    torch.testing.assert_close(x, pre * (pre.pow(2).mean(-1, keepdim=True) + 1e-6).rsqrt())
+    torch.testing.assert_close(out, written)
+    torch.testing.assert_close(dictionary_io(runner, TEXTS[1], 1, "mlp_out")[0], written)
+
+    profile = scan_feature(runner, TEXTS, FEATURE, spec, k=2).profile
+    unit = FeatureUnit(FEATURE, profile)
+    dictionary = unit.dictionary(runner)
+    after = []
+    with runner.hooks(**unit.ablation(runner)):  # registered after the ablation, so it sees it
+        handle = block.post_feedforward_layernorm.register_forward_hook(
+            lambda _m, _a, o: after.append(o)
+        )
+        runner.forward(runner.encode(TEXTS[1]))
+    handle.remove()
+    write = dictionary.feature(x, 5).unsqueeze(-1) * dictionary.w_dec[5]
+    assert float(write.abs().max()) > 0
+    torch.testing.assert_close(after[-1], written - write, atol=1e-6, rtol=0)
 
 
 def test_ablation_removes_exactly_the_latents_write(runner, scan):

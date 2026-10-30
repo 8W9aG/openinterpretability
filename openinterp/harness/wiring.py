@@ -7,7 +7,7 @@ writes back (:class:`Target`):
 
 * a neuron pole reads its MLP's input (``gate``/``up``, or ``in``) and writes ``w_out``;
 * a dictionary feature reads its dictionary's input site with its encoder row and writes
-  its decoder row into the MLP output;
+  its decoder row into the MLP's write to the residual stream;
 * an attention head reads its layer's attention input through ``q``, ``k`` and ``v`` and
   writes a subspace, ``W_O``.
 
@@ -201,13 +201,15 @@ def target_of(runner: NeuronHookRunner, unit: Unit) -> Target:
     if isinstance(unit, FeatureUnit):
         dictionary, f = unit.dictionary(runner), unit.ident.feature_idx
         site = unit.profile.input_site
-        norm = runner.mlp_norm(layer) if site == "mlp_in_normalized" else None
+        norm = runner.mlp_norm(layer) if site in ("mlp_in", "mlp_in_normalized") else None
         read = dictionary.w_enc[:, f].float()[None]
-        if site == "mlp_in_normalized":  # standardised without the gain
-            read = _fold(norm, read, gain=False)
+        if norm is not None:  # back through the norm, without its gain if normalised
+            read = _fold(norm, read, gain=site == "mlp_in")
 
         def feature(x: torch.Tensor) -> torch.Tensor:
-            if norm is not None:
+            if site == "mlp_in":  # the norm itself, in the model's dtype
+                x = norm(x.to(norm.weight.dtype)).float()
+            elif norm is not None:
                 x = normalize_without_affine(norm, x)
             return dictionary.feature(x, f)
 

@@ -53,7 +53,7 @@ class _Fit:
             xs, target = x[start : start + ENCODE_CHUNK], out[start : start + ENCODE_CHUNK]
             target = target.float().to(dictionary.w_dec.device)
             acts = dictionary.encode(xs)
-            self.error += float(((dictionary.decode(acts) - target) ** 2).sum())
+            self.error += float(((dictionary.reconstruct(xs, acts) - target) ** 2).sum())
             self.l0 += float((acts > 0).sum())
             fired = (acts > 0).any(0)
             self.fired = fired if self.fired is None else self.fired | fired

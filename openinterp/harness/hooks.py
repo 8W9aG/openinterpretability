@@ -67,6 +67,10 @@ PRE_MLP_NORM_PATHS = (
     "final_layer_norm",  # OPT
 )
 
+# Normalisation of the MLP's output before it joins the residual stream, where there is
+# one; TransformerLens's ``hook_mlp_out``, which dictionaries reconstruct, is after it.
+POST_MLP_NORM_PATHS = ("post_feedforward_layernorm",)  # Gemma 2/3
+
 # Final normalisation before the unembedding; its *input* is the final residual stream.
 FINAL_NORM_PATHS = (
     "model.norm",  # Llama, Qwen2, Mistral, Gemma
@@ -258,6 +262,15 @@ class NeuronHookRunner:
             f"Could not find the norm before the MLP under {self.layer_path}[{layer}]"
         )
 
+    def mlp_write(self, layer: int) -> nn.Module:
+        """The module whose output is what ``layer``'s MLP adds to the residual stream: the
+        norm after the MLP if it has one, else the down projection."""
+        for path in POST_MLP_NORM_PATHS:
+            module = _try_path(self.layers[layer], path)
+            if isinstance(module, nn.Module):
+                return module
+        return self.down_proj(layer)
+
     def mlp(self, layer: int) -> nn.Module:
         """``layer``'s MLP block: the module that owns the down projection."""
         parent, _, _ = self.down_proj_path.rpartition(".")
@@ -312,8 +325,8 @@ class NeuronHookRunner:
         projection's output ``[batch, seq, d_model]``, and ``head_interventions[layer]``
         for the attention heads' concatenated outputs ``[batch, seq, n_heads * head_dim]``.
         ``dictionary_interventions[layer] = (site, fn)`` calls ``fn(x, out)`` with a
-        dictionary's input ``x`` read at ``site`` (see ``DictionaryProfile``) and the down
-        projection's output, which ``fn`` may replace.
+        dictionary's input ``x`` read at ``site`` (see ``DictionaryProfile``) and the MLP's
+        write to the residual stream (:meth:`mlp_write`), which ``fn`` may replace.
         """
         handles = []
 

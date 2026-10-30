@@ -37,21 +37,25 @@ class HeadProfile(StrictModel):
     pattern_seed: int
 
 
-DictionarySite = Literal["mlp_in", "mlp_in_normalized", "mlp_out"]
+DictionarySite = Literal["resid_mid", "mlp_in", "mlp_in_normalized", "mlp_out"]
 
 
 class DictionaryProfile(StrictModel):
     """The dictionary a feature belongs to, pinned, and how well it fits the scan corpus.
 
     A latent's strength is its activation ``act(W_enc[:, f] · x + b_enc[f])``, where x is
-    read at ``input_site`` of the feature's layer: the MLP's input (``mlp_in``), that
-    input's normalisation without the norm's gain and bias (``mlp_in_normalized``, the
-    TransformerLens ``ln2.hook_normalized`` convention most public transcoders were
-    trained on), or the MLP's output (``mlp_out``, an SAE). With
-    ``subtract_decoder_bias``, ``b_dec`` is subtracted from x first, as SAEs often do.
-    The latent writes ``a_f · W_dec[f]`` to the MLP's output; ablating it removes that
-    write. Every measurement reads the weights at ``repo``/``revision``/``path``, so a
-    record reproduces even if the preset that named them changes.
+    read at ``input_site`` of the feature's layer: the residual stream the MLP reads,
+    before its norm (``resid_mid``), the MLP's input (``mlp_in``), the norm's input
+    normalised without its gain and bias (``mlp_in_normalized``, the TransformerLens
+    ``ln2.hook_normalized`` convention most public transcoders were trained on), or the
+    MLP's output (``mlp_out``, an SAE). With ``subtract_decoder_bias``, ``b_dec`` is
+    subtracted from x first, as SAEs often do. The MLP's output is what it adds to the
+    residual stream, after the norm that follows it in Gemma 2 (TransformerLens's
+    ``hook_mlp_out``). The latent writes ``a_f · W_dec[f]`` there; ablating it removes
+    that write. A skip transcoder's linear skip term is part of its reconstruction, not of
+    any latent's write. Every measurement reads the weights at
+    ``repo``/``revision``/``path``, so a record reproduces even if the preset that named
+    them changes.
 
     ``explained_variance`` (the fraction of the MLP output's variance the whole
     dictionary reconstructs) and ``mean_l0`` (active latents per token) are measured on

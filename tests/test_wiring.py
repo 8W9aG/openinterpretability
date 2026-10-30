@@ -206,3 +206,19 @@ def test_feature_wiring(gpt2_runner, spec):  # noqa: F811
     eps = 1e-3
     slope = (strength(1.0) - strength(1 - eps)) / eps / acts.prompts
     assert slope == pytest.approx(edge.weight, rel=2e-2, abs=1e-5)
+
+
+@pytest.mark.parametrize("site", ["resid_mid", "mlp_in", "mlp_in_normalized"])
+def test_a_features_read_matches_its_strength_at_each_site(gpt2_runner, spec, site):  # noqa: F811
+    from dataclasses import replace
+
+    ident = FeatureIdentifier(model_name="tiny-gpt2", layer=1, dictionary="tiny-tc", feature_idx=5)
+    profile = scan_feature(gpt2_runner, TEXTS, ident, replace(spec, input_site=site), k=2).profile
+    unit = FeatureUnit(ident, profile)
+    seen = []  # the residual stream the MLP reads: its norm's input
+    ln_2 = gpt2_runner.model.transformer.h[1].ln_2
+    handle = ln_2.register_forward_pre_hook(lambda _m, a: seen.append(a[0]))
+    expected = unit.strengths(gpt2_runner, TEXTS[0])
+    handle.remove()
+    t = target_of(gpt2_runner, unit)
+    torch.testing.assert_close(t.strength(seen[-1]), expected, atol=1e-5, rtol=0)

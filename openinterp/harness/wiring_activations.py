@@ -55,7 +55,7 @@ def _clean_pass(runner, t: Target, encoded, attention: bool) -> dict:
     mlp_out: dict[int, torch.Tensor] = {}
     if t.site == "mlp_out":
         handles.append(
-            runner.down_proj(t.layer).register_forward_hook(keep(mlp_out, t.layer, out=True))
+            runner.mlp_write(t.layer).register_forward_hook(keep(mlp_out, t.layer, out=True))
         )
     try:
         with torch.no_grad():
