@@ -39,7 +39,7 @@ apply.
 
 ```python
 pre = x @ W_enc + b_enc
-acts = pre * (pre > threshold)          # JumpReLU
+acts = pre * (pre > threshold)  # JumpReLU
 out = acts @ W_dec + b_dec + x @ W_skip.T
 ```
 
