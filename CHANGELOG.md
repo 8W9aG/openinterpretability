@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **A 40-line limit on functions**, checked by `scripts/check_line_limit.py` in `make lint` and CI beside the 500-line file limit. A function is measured from its `def` to its last line, leaving out decorators (so long Click option lists don't count) and the docstring; tests are exempt. It is ratcheted in: the 53 functions over the limit today are listed with their lengths in `scripts/long_functions.txt`, a listed function may not grow, and stale entries (shrunk, split or removed) fail until the list is updated, so it only goes down. Mark the rare function that reads better whole with `# long-function: <reason>` on its `def` line; this is not a `# noqa`, because ruff warns on codes it doesn't know.
+
 ## [0.0.10] - 2026-10-30
 
 Ships with protocol version **0.8**.
