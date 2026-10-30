@@ -123,7 +123,7 @@ class TopKTranscoder(nn.Module):
     def pre(self, x: torch.Tensor) -> torch.Tensor:
         return x @ self.w_enc + self.b_enc
 
-    def loss(self, x: torch.Tensor, y: torch.Tensor, dead_after: int) -> dict:
+    def loss(self, x: torch.Tensor, y: torch.Tensor, dead_after: int, aux_coef: float) -> dict:
         pre = self.pre(x)
         top = pre.topk(self.k, dim=-1)
         acts = torch.zeros_like(pre).scatter(-1, top.indices, top.values.relu())
@@ -139,13 +139,15 @@ class TopKTranscoder(nn.Module):
         if dead.any():  # dead latents learn to explain what the live ones miss
             k_aux = min(self.k_aux, int(dead.sum()))
             masked = pre.masked_fill(~dead, -torch.inf).topk(k_aux, dim=-1)
-            aux_acts = torch.zeros_like(pre).scatter(-1, masked.indices, masked.values.relu())
+            # No ReLU: a dead latent's pre-activation is usually negative, and a ReLU
+            # would zero the very gradient that is meant to revive it.
+            aux_acts = torch.zeros_like(pre).scatter(-1, masked.indices, masked.values)
             target = error.detach()
             aux_err = (aux_acts @ self.w_dec - target).pow(2).sum(-1).mean()
             aux = aux_err / target.pow(2).sum(-1).mean().clamp(min=1e-8)
         variance = (y - y.mean(0)).pow(2).sum(-1).mean()
         return {
-            "loss": mse / variance + aux / 32,
+            "loss": mse / variance + aux_coef * aux,
             "fvu": float((mse / variance).detach()),
             "dead": float(dead.float().mean()),
         }
@@ -203,6 +205,7 @@ class TopKTranscoder(nn.Module):
 @click.option("--width", type=int, default=16384, show_default=True)
 @click.option("--k", type=int, default=32, show_default=True)
 @click.option("--k-aux", type=int, default=256, show_default=True)
+@click.option("--aux-coef", type=float, default=1 / 32, show_default=True)
 @click.option("--dead-after", type=int, default=2_000_000, show_default=True)
 @click.option("--seq-len", type=int, default=1024, show_default=True)
 @click.option("--forward-rows", type=int, default=16, show_default=True)
@@ -213,8 +216,8 @@ class TopKTranscoder(nn.Module):
 @click.option("--scan-corpus", type=click.Path(exists=True, path_type=Path), default="corpus.jsonl")
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(
-    model_name, revision, layers, tokens, width, k, k_aux, dead_after, seq_len, forward_rows,
-    batch, lr, seed, device, scan_corpus, out,
+    model_name, revision, layers, tokens, width, k, k_aux, aux_coef, dead_after, seq_len,
+    forward_rows, batch, lr, seed, device, scan_corpus, out,
 ):  # fmt: skip
     from openinterp.cli import _load_runner
 
@@ -264,7 +267,7 @@ def main(
             for b, s in enumerate(range(0, n_tokens - batch + 1, batch)):
                 for group in opts[layer].param_groups:
                     group["lr"] = lr_at(step + b)
-                result = tc.loss(x[s : s + batch], y[s : s + batch], dead_after)
+                result = tc.loss(x[s : s + batch], y[s : s + batch], dead_after, aux_coef)
                 opts[layer].zero_grad(set_to_none=True)
                 result["loss"].backward()
                 opts[layer].step()
@@ -303,6 +306,7 @@ def main(
             "width": width,
             "k": k,
             "k_aux": k_aux,
+            "aux_coef": aux_coef,
             "dead_after": dead_after,
             "lr": lr,
             "batch": batch,
