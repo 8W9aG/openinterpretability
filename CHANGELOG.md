@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-10-30
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **`wikipedia-multilingual` corpus preset** (`wikimedia/wikipedia`, the November 2023 dump), for language-identity and script neurons. `openinterp corpus --dataset wikipedia-multilingual` takes an equal share of articles from ten languages in eight scripts: English, German and French (Latin), Russian (Cyrillic), Greek, Arabic, Hindi (Devanagari), Chinese (Han), Japanese (kana and kanji) and Korean (Hangul). To make this possible, `--files` (and a preset's `files`) can now hold several comma-separated globs, and each glob gives an equal share of the documents in the order given, the first taking any remainder. Each language's articles are sampled as before, and the source sidecar records the globs. Row groups hold 1,000 articles (10–22 MB), so the preset takes 50 documents per row group: 500 documents read one row group per language and take about 20 seconds. They come to about 347,000 Qwen2.5 tokens (median 584 per document, cut at 3,000 characters; 20,600 for Korean to 59,600 for Greek) and 588,000 GPT-2 tokens. Rebuilding at the recorded commit gives a byte-identical corpus. Licence: CC BY-SA 3.0 and GFDL, so excerpts in the wiki need attribution and the same licence. `uonlp/CulturaX` was passed over because it is gated.
