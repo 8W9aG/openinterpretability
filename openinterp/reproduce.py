@@ -30,7 +30,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord, RunEnvironment
-from openinterp.harness.hooks import NeuronHookRunner, run_environment
+from openinterp.harness.environment import run_environment
+from openinterp.harness.hooks import NeuronHookRunner
 
 
 @dataclass(frozen=True)
