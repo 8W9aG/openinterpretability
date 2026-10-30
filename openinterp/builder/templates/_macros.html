@@ -1,3 +1,11 @@
+{# Fill per neuron status on the layer map and pieces bars. #}
+{% set map_fill = {
+  "VERIFIED": "fill-emerald-500",
+  "CONTESTED": "fill-sky-500",
+  "NEEDS_REVISION": "fill-amber-500",
+  "REJECTED": "fill-rose-500",
+} %}
+
 {% macro status_badge(status) -%}
 {% set cls = {
   "VERIFIED": "bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100",

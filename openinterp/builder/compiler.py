@@ -76,6 +76,7 @@ def _environment() -> Environment:
     # p-values below 0.001 would round to 0.000, so show them in scientific notation.
     env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
+    env.globals["charts"] = charts  # page-level charts: the layer map and pieces bars
     return env
 
 
@@ -459,7 +460,6 @@ def compile_site(
             model.href,
             "model.html",
             model=model,
-            layer_map=charts.layer_map(model),
             circuits=found,
             hubs=found_hubs,
             circuits_page=page,
