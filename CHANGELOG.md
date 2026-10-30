@@ -11,6 +11,18 @@ The project has two version numbers:
 
 ### Added
 
+- **Llama Scope presets for Llama-3.1-8B** (He et al., 2024; the 8x, 32k-latent dictionaries): `llama-scope-8b-res-saes`, `llama-scope-8b-mlp-saes` and `llama-scope-8b-transcoders`. Scan them with `--dtype bfloat16`; in float32 the model takes 32 GB.
+  - **Format.** OpenMOSS `lm_sae` checkpoints (`encoder.weight` …, with `hyperparams.json` beside `checkpoints/`) now load. The dataset-norm input and output scaling and the single JumpReLU threshold are folded into the weights. The record still pins only the repository, revision and file, and the hyperparameters live at that same revision.
+  - **Read as Neuronpedia reads them.** A latent is active where its pre-activation exceeds θ × the input scale (SAELens's convention), at strength pre × ‖W_dec[f]‖ ÷ input scale.
+    - On one sentence, two layer-15 residual latents fire on the same tokens with the same values as Neuronpedia's `15-llamascope-res-32k`, to bf16 precision.
+    - That reading fits about 4 points worse than the raw threshold (residual 62.8% against 66.5% at layer 15), with L0 33 instead of 228.
+    - The scales match the corpus: the mean `resid_post` norm is 10.80 against 10.81 recorded.
+  - **Fits** at layers 0, 8, 15, 24 and 31, through position 1024, leaving out the first token:
+    - Residual SAEs: 54–86%.
+    - MLP-output SAEs: 30–84%, weakest in the middle layers.
+    - Transcoders at `mlp_in_normalized`: 44–87%, the best of the three input sites at every layer. The others fit too (−0.2 to 0.85), mostly near the last layer.
+    - Unlike Gemma Scope's, the fits fall 2–8 points from the first 256 positions to positions 512–1024.
+  - **Records** for this model must be signed, like every model CI doesn't reproduce.
 - **Residual-stream SAEs** (`gemma-scope-2b-res-saes`: Gemma Scope's canonical 16k SAEs for Gemma 2 2B). They introduce a new site, `resid_post`, the residual stream after the feature's layer (TransformerLens's `hook_resid_post`). The latent reads that site, writes back to it, and is ablated, steered and patched there.
   - **`DictionaryProfile.output_site`** can now be `resid_post`. It always follows from the input site: only a `resid_post` dictionary writes to the residual stream.
   - **Wiring** counts the feature's own layer's MLP neurons and heads as upstream.

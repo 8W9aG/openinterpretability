@@ -149,7 +149,7 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Scope expansion
 
-- [ ] More dictionary presets. Llama Scope (`fnlp/Llama3_1-8B-Base-LXM-8x` and its transcoders) is for Llama-3.1-8B, a gated model the maintainer's token can't download yet. It also scales its input and output by a dataset-wide norm and takes a scalar JumpReLU threshold from `hyperparams.json`, and `DictionaryProfile` would have to pin both. No public dictionary covers Qwen2.5-0.5B, the registry's default model, so its baseline would need one trained on the scan corpus. Check each new preset's input site by its reconstruction, as the existing ones were.
+- [ ] A dictionary for Qwen2.5-0.5B, the registry's default model. No public dictionary covers it, so its learned-basis baseline needs one trained on the scan corpus and hosted where records can pin it. Check its input site by its reconstruction, as the existing presets' were.
 - [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
 - [ ] Cross-model universality links: match verified neurons across sibling models (Qwen2.5-0.5B ↔ 1.5B).

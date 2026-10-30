@@ -1,6 +1,7 @@
 """Auditing a sparse-dictionary latent end to end, on a randomly initialised GPT-2 and a
 random transcoder stored locally (no download)."""
 
+import json
 from dataclasses import replace
 
 import numpy as np
@@ -174,6 +175,48 @@ def test_npz_dictionaries_by_layer_with_a_skip_connection(runner, tmp_path):
     assert scan.profile.explained_variance == pytest.approx(
         float(1 - error / ((out - out.mean(0)) ** 2).sum()), rel=1e-4
     )
+
+
+def test_an_lm_sae_checkpoint_reads_as_neuronpedia_reads_it(runner, tmp_path):
+    torch.manual_seed(3)
+    d, n, theta = 32, N_FEATURES, 0.02
+    w = {
+        "encoder.weight": torch.randn(n, d) / d**0.5,  # [n, d_in]
+        "encoder.bias": torch.randn(n) * 0.1,
+        "decoder.weight": torch.randn(d, n) * 0.3,  # [d_out, n], rows not unit-norm
+        "decoder.bias": torch.randn(d) * 0.1,
+    }
+    norms = {"in": 0.2, "out": 0.1}  # the tiny model's residual norm is about 0.17
+    folder = tmp_path / "L1R" / "checkpoints"
+    folder.mkdir(parents=True)
+    save_file(w, folder / "final.safetensors")
+    (tmp_path / "L1R" / "hyperparams.json").write_text(
+        json.dumps({"jump_relu_threshold": theta, "dataset_average_activation_norm": norms})
+    )
+    spec = DictionarySpec(
+        model_name="tiny-gpt2",
+        kind="sae",
+        repo=str(tmp_path),
+        revision="local",
+        path="L{layer}R/checkpoints/final.safetensors",
+        layers=(1,),
+        input_site="resid_post",
+        activation="jumprelu",
+    )
+    dictionary = load_spec(spec, 1)
+    x, _ = dictionary_io(runner, TEXTS[0], 1, "resid_post")
+    x = x[0]
+
+    s_in, s_out = d**0.5 / norms["in"], d**0.5 / norms["out"]
+    h = (x * s_in) @ w["encoder.weight"].T + w["encoder.bias"]
+    active = h > theta * s_in  # SAELens's threshold
+    assert 0 < int(active.sum()) < active.numel()
+    dec_norm = w["decoder.weight"].norm(dim=0)
+    expected = torch.where(active, h * dec_norm / s_in, torch.zeros_like(h))
+    acts = dictionary.encode(x)
+    torch.testing.assert_close(acts.clamp(min=0), expected, atol=1e-5, rtol=1e-5)
+    reconstruction = (torch.where(active, h, 0) @ w["decoder.weight"].T + w["decoder.bias"]) / s_out
+    torch.testing.assert_close(dictionary.reconstruct(x), reconstruction, atol=1e-5, rtol=1e-5)
 
 
 @pytest.fixture
