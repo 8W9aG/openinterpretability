@@ -111,15 +111,16 @@ def test_scan_measures_the_latent_and_the_dictionarys_fit(runner, spec, scan):
 
     dictionary = load_spec(spec, 1)
     xs, outs = zip(*(dictionary_io(runner, t, 1, spec.input_site) for t in TEXTS), strict=True)
-    x, out = torch.cat([v[0] for v in xs]), torch.cat([v[0] for v in outs])
-    acts = dictionary.encode(x)
+    x, out = torch.cat([v[0, 1:] for v in xs]), torch.cat([v[0, 1:] for v in outs])
+    acts = dictionary.encode(x)  # the fit leaves out each text's first token
     error = ((dictionary.decode(acts) - out) ** 2).sum()
     profile = scan.profile
     assert profile.explained_variance == pytest.approx(
         float(1 - error / ((out - out.mean(0)) ** 2).sum()), rel=1e-5
     )
     assert profile.mean_l0 == pytest.approx(float((acts > 0).sum(-1).float().mean()), abs=1e-3)
-    assert profile.density == pytest.approx(float((acts[:, 5] > 0).float().mean()), abs=1e-5)
+    every = dictionary.encode(torch.cat([v[0] for v in xs]))  # density counts every token
+    assert profile.density == pytest.approx(float((every[:, 5] > 0).float().mean()), abs=1e-5)
     assert profile.dead_share == pytest.approx(float((acts.amax(0) == 0).float().mean()))
     assert (profile.n_features, profile.tokens, profile.path) == (
         N_FEATURES,
@@ -163,6 +164,7 @@ def test_npz_dictionaries_by_layer_with_a_skip_connection(runner, tmp_path):
     torch.testing.assert_close(dictionary.reconstruct(x), expected, atol=1e-5, rtol=0)
 
     scan = scan_feature(runner, [TEXTS[0]], FEATURE, spec, k=1)  # the fit includes the skip
+    expected, out = expected[1:], out[1:]  # and leaves out the first token
     error = ((expected - out) ** 2).sum()
     assert scan.profile.explained_variance == pytest.approx(
         float(1 - error / ((out - out.mean(0)) ** 2).sum()), rel=1e-4

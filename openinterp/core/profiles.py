@@ -79,4 +79,6 @@ class DictionaryProfile(StrictModel):
     dead_share: UnitFloat | None = Field(
         default=None, description="Share of the latents inactive on every scanned token."
     )
-    tokens: int = Field(gt=0, description="Scanned tokens the fit statistics cover.")
+    tokens: int = Field(
+        gt=0, description="Scanned tokens; the fit statistics leave out each piece's first."
+    )

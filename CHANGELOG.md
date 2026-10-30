@@ -15,6 +15,7 @@ The project has two version numbers:
   - **New input site `resid_mid`**: the residual stream before the MLP's norm, which the Llama transcoders read.
   - **Skip transcoders.** A `W_skip` in the file is added to the reconstruction as `x @ W_skip.T`, circuit-tracer's convention; a latent's write doesn't include it. For Llama 3.2 1B the skip carries most of the fit: the latents alone explain 9–27%.
   - **Gemma 2's post-MLP norm.** A dictionary's output, and the write that ablating a latent removes, are now what the MLP adds to the residual stream, after `post_feedforward_layernorm` where there is one (TransformerLens's `hook_mlp_out`). Against the down projection's output, Gemma Scope fits at −180 (transcoders) and −14 (SAEs). Nothing changes for models without that norm, which covers every existing record.
+  - **The fit leaves out each piece's first token.** Dictionaries aren't trained on that attention sink. With it included, a Llama 3.2 1B scan reported a fit of −14,133; without it, 79%. This changes only the reported `explained_variance`, `mean_l0` and `dead_share` of new records, which reproduction doesn't compare. A latent's `density` still counts every token.
   - **Loading.** NumPy `.npz` weights load, and a preset can name a different file for each layer (Gemma Scope's L0 varies by layer).
   - **Fixed:** wiring for a dictionary that reads `mlp_in` measured the latent on the residual stream without first applying the norm. No earlier preset read that site.
 
