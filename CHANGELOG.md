@@ -11,6 +11,36 @@ The project has two version numbers:
 
 ### Added
 
+- **A dictionary for Qwen2.5-0.5B**, the registry's default model, which no public dictionary covers: `qwen2.5-0.5b-transcoders`, skip transcoders for all 24 layers (16,384 latents each), hosted at [`sackfield/qwen2.5-0.5b-transcoders`](https://huggingface.co/sackfield/qwen2.5-0.5b-transcoders). Scan with `--window-tokens 1024`.
+  - **Training.** `scripts/train_transcoders.py` trains top-k (k = 32) skip transcoders with AuxK and exports them as JumpReLU with one global threshold per layer. The data is 13.5M tokens of `NeelNanda/pile-10k`, one pass, leaving out the documents the scan corpus draws from.
+  - **Fit** on the scan corpus, at `mlp_in` (after the MLP norm and its gain), through position 1024 and leaving out the first token: 59–93% of the MLP output, with L0 about 32 and at most 0.6% of latents dead. Without the skip path, at most 34%.
+  - **`hf_models/`** holds the Hub repository's card, metadata and training log; the weights are ignored by git.
+- **Llama Scope presets for Llama-3.1-8B** (He et al., 2024; the 8x, 32k-latent dictionaries): `llama-scope-8b-res-saes`, `llama-scope-8b-mlp-saes` and `llama-scope-8b-transcoders`. Scan them with `--dtype bfloat16`; in float32 the model takes 32 GB.
+  - **Format.** OpenMOSS `lm_sae` checkpoints (`encoder.weight` …, with `hyperparams.json` beside `checkpoints/`) now load. The dataset-norm input and output scaling and the single JumpReLU threshold are folded into the weights. The record still pins only the repository, revision and file, and the hyperparameters live at that same revision.
+  - **Read as Neuronpedia reads them.** A latent is active where its pre-activation exceeds θ × the input scale (SAELens's convention), at strength pre × ‖W_dec[f]‖ ÷ input scale.
+    - On one sentence, two layer-15 residual latents fire on the same tokens with the same values as Neuronpedia's `15-llamascope-res-32k`, to bf16 precision.
+    - That reading fits about 4 points worse than the raw threshold (residual 62.8% against 66.5% at layer 15), with L0 33 instead of 228.
+    - The scales match the corpus: the mean `resid_post` norm is 10.80 against 10.81 recorded.
+  - **Fits** at layers 0, 8, 15, 24 and 31, through position 1024, leaving out the first token:
+    - Residual SAEs: 54–86%.
+    - MLP-output SAEs: 30–84%, weakest in the middle layers.
+    - Transcoders at `mlp_in_normalized`: 44–87%, the best of the three input sites at every layer. The others fit too (−0.2 to 0.85), mostly near the last layer.
+    - Unlike Gemma Scope's, the fits fall 2–8 points from the first 256 positions to positions 512–1024.
+  - **Records** for this model must be signed, like every model CI doesn't reproduce.
+- **Residual-stream SAEs** (`gemma-scope-2b-res-saes`: Gemma Scope's canonical 16k SAEs for Gemma 2 2B). They introduce a new site, `resid_post`, the residual stream after the feature's layer (TransformerLens's `hook_resid_post`). The latent reads that site, writes back to it, and is ablated, steered and patched there.
+  - **`DictionaryProfile.output_site`** can now be `resid_post`. It always follows from the input site: only a `resid_post` dictionary writes to the residual stream.
+  - **Wiring** counts the feature's own layer's MLP neurons and heads as upstream.
+  - **Prompts and pages** describe the fit against the residual stream, not the MLP output.
+  - **Fit:** 76–93% of the residual stream's variance at layers 0, 5, 12, 20 and 25 (L0 65–116), flat through position 1024. Read one step earlier, before the MLP, the fit is −3 to −8.
+  - **Comparing with neurons:** the learned-basis comparison sets these latents against the same layers' MLP neurons, so it changes the site as well as the basis.
+- **Four more dictionary presets** in `openinterp/harness/dictionaries.py`, for the learned-basis baseline: `gemma-scope-2b-transcoders` and `gemma-scope-2b-mlp-saes` (Gemma 2 2B, JumpReLU), `llama-3.2-1b-transcoders` and `qwen3-0.6b-transcoders` (circuit-tracer). Each input site was checked by reconstruction on 16 corpus documents through position 1024, leaving out the first token. At every checked layer the chosen site was the only one with a positive fit. Gemma transcoders 54–93% of the MLP output's variance at layers 0, 5, 20 and 25 (32% at layer 12, L0 6). Gemma MLP SAEs 62–95%. Llama 69–81%. Qwen3 41–73%. No fit fell off with position.
+  - **New input site `resid_mid`**: the residual stream before the MLP's norm, which the Llama transcoders read.
+  - **Skip transcoders.** A `W_skip` in the file is added to the reconstruction as `x @ W_skip.T`, circuit-tracer's convention; a latent's write doesn't include it. For Llama 3.2 1B the skip carries most of the fit: the latents alone explain 9–27%.
+  - **Gemma 2's post-MLP norm.** A dictionary's output, and the write that ablating a latent removes, are now what the MLP adds to the residual stream, after `post_feedforward_layernorm` where there is one (TransformerLens's `hook_mlp_out`). Against the down projection's output, Gemma Scope fits at −180 (transcoders) and −14 (SAEs). Nothing changes for models without that norm, which covers every existing record.
+  - **The fit leaves out each piece's first token.** Dictionaries aren't trained on that attention sink. With it included, a Llama 3.2 1B scan reported a fit of −14,133; without it, 79%. This changes only the reported `explained_variance`, `mean_l0` and `dead_share` of new records, which reproduction doesn't compare. A latent's `density` still counts every token.
+  - **Loading.** NumPy `.npz` weights load, and a preset can name a different file for each layer (Gemma Scope's L0 varies by layer).
+  - **Fixed:** wiring for a dictionary that reads `mlp_in` measured the latent on the residual stream without first applying the norm. No earlier preset read that site.
+
 - **Induction-head positive control** (GPT-2 small; records under `wiki/experiments/openai-community--gpt2/L5/H1/` and the four transfer heads). The protocol VERIFIES a known induction head given its own explanation, but no single explanation verified across the family.
   - **L5H1 took four rounds.** The two unrecorded dry-run rounds and round three (the first registry record) were NEEDS_REVISION, all on specificity only. The dry runs excluded fuzzy and template repeats, and their reviewer labelled probes by words, not tokens. Round three said a single repeated token is inactive, but a single repeated content token fires when the token before it is *similar* to the one before the earlier copy (`purple green` after `red green`).
   - **Round four VERIFIED** (confidence 0.90; hard negatives 11/11, holdouts 4/5, counterfactuals 9/9, sufficiency 0.95, necessity 1.0). Its explanation: an induction head with a fuzzy match on the preceding token. The reviewer was Haiku 5.5, whose hard negatives were easy, so this is the weaker half of the result.
