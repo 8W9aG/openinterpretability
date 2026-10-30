@@ -9,8 +9,6 @@ openinterp/builder/charts.py::causal_chart 60
 openinterp/builder/charts.py::layer_map 45
 openinterp/builder/charts.py::probe_chart 71
 openinterp/builder/charts.py::vocab_chart 68
-openinterp/builder/compiler.py::compile_site 77
-openinterp/builder/compiler.py::registry_stats 102
 openinterp/builder/learned_baseline.py::learned_baseline 42
 openinterp/builder/parquet_export.py::experiment_row 65
 openinterp/builder/parquet_export.py::record_to_row 41
