@@ -151,6 +151,38 @@ def test_layer_map(tmp_path, records):
     assert "Studied neurons per layer" not in page  # the map replaces the histogram
 
 
+def test_pieces_bars(tmp_path, record, records):
+    from openinterp.builder.charts import layer_pieces, model_pieces
+    from openinterp.builder.tree import ModelNode, build_tree
+
+    # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
+    records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
+    (model,) = build_tree(records)
+    bars = model_pieces(model)
+    assert bars["block"] == 38 and bars["cells"] == 24 * 128 and bars["lit"] == 2
+    assert len(bars["rows"]) == 24 and not bars["rows"][0]["cells"]
+    n9, n117 = bars["rows"][3]["cells"]
+    assert (n9["x"], n9["status"]) == (0, "REJECTED")
+    assert (n117["x"], n117["status"]) == (3 * 5, "VERIFIED")
+    assert n117["label"].startswith("L3 N114–151: N117 positive VERIFIED")
+    assert "N120 positive REJECTED" in n117["label"]
+
+    grid = layer_pieces(model, model.layers[0])
+    assert len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
+    assert grid["counts"] == {"VERIFIED": 1, "CONTESTED": 0, "NEEDS_REVISION": 0, "REJECTED": 2}
+    cell = next(c for c in grid["cells"] if c["href"].endswith("/N120.html"))
+    assert (cell["x"], cell["y"]) == (grid["left"] + 120 * 5, 0)
+    assert model_pieces(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no bars
+
+    compile_site(records, tmp_path)
+    index = (tmp_path / "index.html").read_text()
+    assert "Studied neurons per layer" not in index  # the pieces bars replace the histogram
+    assert "2 of 3,072 cells hold a studied neuron" in index
+    layer = (tmp_path / "models" / MODEL / "L3" / "index.html").read_text()
+    assert "Pieces map of layer 3: one cell per neuron, 128 to a row, 3 of 4,864 studied" in layer
+    assert '<a href="../../../models/Qwen--Qwen2.5-0.5B/L3/N120.html"><title>' in layer
+
+
 def test_pct_fine():
     from openinterp.builder.compiler import _pct_fine
 
