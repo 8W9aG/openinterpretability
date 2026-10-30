@@ -40,12 +40,14 @@ DEFAULT_SAMPLE_SEED = 0
 @dataclass(frozen=True)
 class Preset:
     dataset: str
-    files: str  # glob within the dataset repo
+    files: str  # glob within the dataset repo; comma-separated globs are sampled equally
     text_column: str = "text"
     revision: str | None = None  # default branch or tag; pinned to a commit on use
     layout: str | None = None  # how rows become documents (see LAYOUTS); None: one per row
     docs_per_row_group: int = 20
 
+
+WIKIPEDIA_LANGUAGES = ("en", "de", "fr", "ru", "el", "ar", "hi", "zh", "ja", "ko")
 
 PRESETS = {
     # Clean, educational web text (FineWeb filtered by an educational-quality classifier),
@@ -82,6 +84,17 @@ PRESETS = {
     # file keeps its repo's licence (its `license` column: mostly MIT and GPL).
     "github-code": Preset(
         "codeparrot/github-code-clean", "data/train-*.parquet", "code", docs_per_row_group=100
+    ),
+    # Wikipedia (November 2023 dump) in ten languages and eight scripts, an equal share of
+    # documents each, for language-identity and script neurons: English, German, French
+    # (Latin), Russian (Cyrillic), Greek, Arabic, Hindi (Devanagari), Chinese (Han), Japanese
+    # (kana and kanji) and Korean (Hangul). Row groups are 1,000 articles of 10-22 MB, so
+    # take 50 from each: 500 documents read one row group per language. CC BY-SA 3.0 and
+    # GFDL: attribute and share excerpts alike.
+    "wikipedia-multilingual": Preset(
+        "wikimedia/wikipedia",
+        ",".join(f"20231101.{lang}/train-*.parquet" for lang in WIKIPEDIA_LANGUAGES),
+        docs_per_row_group=50,
     ),
 }
 
@@ -297,29 +310,35 @@ def build_from_hub(
         card_data = info.card_data
     license_ = card_data.to_dict().get("license") if card_data else None
     fs = HfFileSystem()
-    paths = fs.glob(f"datasets/{dataset}@{info.sha}/{files}")
-    if not paths:
-        raise FileNotFoundError(f"no files match {files!r} in {dataset}@{info.sha}")
-    if first:
-        texts = first_documents(
-            fs,
-            paths,
-            text_column=text_column,
-            documents=documents,
-            max_chars=max_chars,
-            layout=layout,
-        )
-    else:
-        texts = sample_documents(
-            fs,
-            paths,
-            text_column=text_column,
-            documents=documents,
-            seed=seed,
-            max_chars=max_chars,
-            docs_per_row_group=docs_per_row_group,
-            layout=layout,
-        )
+    texts = []
+    # Several globs (e.g. one per language): an equal share of the documents from each, the
+    # first globs taking any remainder, in the order given.
+    globs = files.split(",")
+    for i, glob in enumerate(globs):
+        paths = fs.glob(f"datasets/{dataset}@{info.sha}/{glob}")
+        if not paths:
+            raise FileNotFoundError(f"no files match {glob!r} in {dataset}@{info.sha}")
+        share = documents // len(globs) + (i < documents % len(globs))
+        if first:
+            texts += first_documents(
+                fs,
+                paths,
+                text_column=text_column,
+                documents=share,
+                max_chars=max_chars,
+                layout=layout,
+            )
+        else:
+            texts += sample_documents(
+                fs,
+                paths,
+                text_column=text_column,
+                documents=share,
+                seed=seed,
+                max_chars=max_chars,
+                docs_per_row_group=docs_per_row_group,
+                layout=layout,
+            )
     return write_corpus(
         texts,
         out,

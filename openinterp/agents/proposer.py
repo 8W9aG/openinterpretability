@@ -153,18 +153,21 @@ def format_head_profile(profile: HeadProfile) -> str:
 
 
 def format_dictionary_profile(profile: DictionaryProfile) -> str:
+    residual = profile.output_site == "resid_post"
+    output = "the residual stream after this layer" if residual else "the MLP output"
     fit = ""
     if profile.explained_variance is not None:
         fit = (
             f" On the scan the whole dictionary reconstructs "
-            f"{profile.explained_variance:.0%} of the MLP output's variance with "
+            f"{profile.explained_variance:.0%} of {output}'s variance with "
             f"{profile.mean_l0:.0f} active latents per token."
         )
+    trained = output if residual else "this layer's MLP"
     return (
         f"This is one latent of a sparse {profile.kind} ({profile.n_features} latents) "
-        f"trained on this layer's MLP, not a native neuron. Strength is the latent's "
-        f"activation (non-negative); it writes activation x its decoder vector to the MLP "
-        f"output. It is non-zero on {profile.density:.2%} of scanned tokens.{fit}\n"
+        f"trained on {trained}, not a native neuron. Strength is the latent's "
+        f"activation (non-negative); it writes activation x its decoder vector to "
+        f"{output}. It is non-zero on {profile.density:.2%} of scanned tokens.{fit}\n"
     )
 
 

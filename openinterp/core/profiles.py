@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from openinterp.core.strict import StrictModel, UnitFloat
 
@@ -37,23 +37,37 @@ class HeadProfile(StrictModel):
     pattern_seed: int
 
 
-DictionarySite = Literal["mlp_in", "mlp_in_normalized", "mlp_out"]
+DictionarySite = Literal["resid_mid", "mlp_in", "mlp_in_normalized", "mlp_out", "resid_post"]
+DictionaryOutputSite = Literal["mlp_out", "resid_post"]
+
+
+def output_site_of(input_site: DictionarySite) -> DictionaryOutputSite:
+    """Where a dictionary reading ``input_site`` writes: a residual-stream SAE reconstructs
+    the residual stream it reads; every other dictionary reconstructs the MLP's output."""
+    return "resid_post" if input_site == "resid_post" else "mlp_out"
 
 
 class DictionaryProfile(StrictModel):
     """The dictionary a feature belongs to, pinned, and how well it fits the scan corpus.
 
     A latent's strength is its activation ``act(W_enc[:, f] · x + b_enc[f])``, where x is
-    read at ``input_site`` of the feature's layer: the MLP's input (``mlp_in``), that
-    input's normalisation without the norm's gain and bias (``mlp_in_normalized``, the
-    TransformerLens ``ln2.hook_normalized`` convention most public transcoders were
-    trained on), or the MLP's output (``mlp_out``, an SAE). With
-    ``subtract_decoder_bias``, ``b_dec`` is subtracted from x first, as SAEs often do.
-    The latent writes ``a_f · W_dec[f]`` to the MLP's output; ablating it removes that
+    read at ``input_site`` of the feature's layer: the residual stream the MLP reads,
+    before its norm (``resid_mid``), the MLP's input (``mlp_in``), the norm's input
+    normalised without its gain and bias (``mlp_in_normalized``, the TransformerLens
+    ``ln2.hook_normalized`` convention most public transcoders were trained on), or the
+    MLP's output (``mlp_out``, an SAE). With ``subtract_decoder_bias``, ``b_dec`` is
+    subtracted from x first, as SAEs often do. The MLP's output is what it adds to the
+    residual stream, after the norm that follows it in Gemma 2 (TransformerLens's
+    ``hook_mlp_out``). A residual-stream SAE reads the residual stream after the
+    feature's layer (``resid_post``, TransformerLens's ``hook_resid_post``).
+
+    The latent writes ``a_f · W_dec[f]`` to ``output_site``: the MLP's output, or for a
+    residual-stream SAE the residual stream it reads; ablating it removes that write. A
+    skip transcoder's linear skip term is part of its reconstruction, not of any latent's
     write. Every measurement reads the weights at ``repo``/``revision``/``path``, so a
     record reproduces even if the preset that named them changes.
 
-    ``explained_variance`` (the fraction of the MLP output's variance the whole
+    ``explained_variance`` (the fraction of ``output_site``'s variance the whole
     dictionary reconstructs) and ``mean_l0`` (active latents per token) are measured on
     the scan's tokens: reported, not gated. A poorly fitting dictionary makes a weak
     baseline. So does one with many ``dead_share`` latents, which a random draw can't
@@ -65,7 +79,7 @@ class DictionaryProfile(StrictModel):
     revision: str | None = Field(default=None, description="Commit hash of ``repo``.")
     path: str = Field(min_length=1, description="Safetensors file within ``repo``.")
     input_site: DictionarySite
-    output_site: Literal["mlp_out"] = "mlp_out"
+    output_site: DictionaryOutputSite = "mlp_out"
     activation: Literal["relu", "jumprelu"]
     subtract_decoder_bias: bool = False
     n_features: int = Field(gt=0)
@@ -75,4 +89,15 @@ class DictionaryProfile(StrictModel):
     dead_share: UnitFloat | None = Field(
         default=None, description="Share of the latents inactive on every scanned token."
     )
-    tokens: int = Field(gt=0, description="Scanned tokens the fit statistics cover.")
+    tokens: int = Field(
+        gt=0, description="Scanned tokens; the fit statistics leave out each piece's first."
+    )
+
+    @model_validator(mode="after")
+    def _sites_agree(self) -> DictionaryProfile:
+        if self.output_site != output_site_of(self.input_site):
+            raise ValueError(
+                f"a dictionary reading {self.input_site} writes to "
+                f"{output_site_of(self.input_site)}, not {self.output_site}"
+            )
+        return self

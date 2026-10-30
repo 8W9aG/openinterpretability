@@ -146,6 +146,33 @@ def test_build_from_hub_pins_revision_and_licence(tmp_path, shards, monkeypatch)
     assert (source.revision, source.license, source.documents) == ("sha1", "mit", 5)
 
 
+def test_several_globs_each_give_an_equal_share_in_order(tmp_path, shards, monkeypatch):
+    local = fsspec.filesystem("file")
+    by_glob = {"datasets/org/data@sha1/a/*.parquet": shards[:1],
+               "datasets/org/data@sha1/b/*.parquet": shards[1:]}  # fmt: skip
+
+    class FakeFS:
+        def glob(self, pattern):
+            return by_glob[pattern]
+
+        def open(self, path, mode):
+            return local.open(path, mode)
+
+    info = SimpleNamespace(sha="sha1", card_data=None)
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", FakeFS)
+    monkeypatch.setattr(
+        "huggingface_hub.HfApi", lambda: SimpleNamespace(dataset_info=lambda d, revision: info)
+    )
+    out = tmp_path / "c.jsonl"
+    for first in (False, True):
+        source = build_from_hub(
+            "org/data", out, files="a/*.parquet,b/*.parquet", documents=7, first=first
+        )
+        texts = [json.loads(line)["text"] for line in out.read_text().splitlines()]
+        assert [t.split()[0] for t in texts] == ["file0"] * 4 + ["file1"] * 3
+        assert (source.files, source.documents) == ("a/*.parquet,b/*.parquet", 7)
+
+
 def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, monkeypatch):
     local = fsspec.filesystem("file")
 
@@ -185,6 +212,11 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
         ("tinystories", "roneneldan/TinyStories", "data/train-*.parquet", None, None, "text", 20),
         ("github-code", "codeparrot/github-code-clean", "data/train-*.parquet", None, None,
          "code", 100),
+        ("wikipedia-multilingual", "wikimedia/wikipedia",
+         "20231101.en/train-*.parquet,20231101.de/train-*.parquet,20231101.fr/train-*.parquet,"
+         "20231101.ru/train-*.parquet,20231101.el/train-*.parquet,20231101.ar/train-*.parquet,"
+         "20231101.hi/train-*.parquet,20231101.zh/train-*.parquet,20231101.ja/train-*.parquet,"
+         "20231101.ko/train-*.parquet", None, None, "text", 50),
     ],
 )  # fmt: skip
 def test_cli_uses_the_presets_settings(

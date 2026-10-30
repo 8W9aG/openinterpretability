@@ -35,7 +35,8 @@ from openinterp.core.stats import balanced_accuracy, effective_counts
 from openinterp.harness.causal import causal_metrics
 from openinterp.harness.confounds import baseline_predictions
 from openinterp.harness.covariance import joint_ablation
-from openinterp.harness.hooks import NeuronHookRunner, run_environment
+from openinterp.harness.environment import run_environment
+from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.lookahead import ablation_profile
 from openinterp.harness.scan import has_first_token_floor
 from openinterp.harness.units import peak_strength, submission_unit

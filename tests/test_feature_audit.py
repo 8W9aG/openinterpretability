@@ -1,8 +1,10 @@
 """Auditing a sparse-dictionary latent end to end, on a randomly initialised GPT-2 and a
 random transcoder stored locally (no download)."""
 
+import json
 from dataclasses import replace
 
+import numpy as np
 import pyarrow.parquet as pq
 import pytest
 import torch
@@ -14,7 +16,12 @@ from openinterp.agents.reviewer import AdversarialProbe, ReviewerAgent, evaluate
 from openinterp.builder.compiler import compile_site
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.cli import cli
-from openinterp.core.schemas import AuditRecord, FeatureIdentifier, ScanEvidence
+from openinterp.core.schemas import (
+    AuditRecord,
+    DictionaryProfile,
+    FeatureIdentifier,
+    ScanEvidence,
+)
 from openinterp.harness import dictionaries
 from openinterp.harness.dictionaries import DictionarySpec, load_spec
 from openinterp.harness.features import patch_features, scan_feature
@@ -85,12 +92,13 @@ def _captured(runner, text, layer=1):
     return seen
 
 
-def test_dictionary_sites_read_the_mlp_input_its_normalisation_and_output(runner):
+def test_dictionary_sites_read_the_residual_the_mlp_input_its_normalisation_and_output(runner):
     seen = _captured(runner, TEXTS[0])
     pre = seen["pre"]
     variance = pre.var(-1, correction=0, keepdim=True)
     standardised = (pre - pre.mean(-1, keepdim=True)) / (variance + 1e-5).sqrt()
     for site, expected in [
+        ("resid_mid", pre),
         ("mlp_in", seen["in"]),
         ("mlp_in_normalized", standardised),
         ("mlp_out", seen["out"]),
@@ -109,21 +117,212 @@ def test_scan_measures_the_latent_and_the_dictionarys_fit(runner, spec, scan):
 
     dictionary = load_spec(spec, 1)
     xs, outs = zip(*(dictionary_io(runner, t, 1, spec.input_site) for t in TEXTS), strict=True)
-    x, out = torch.cat([v[0] for v in xs]), torch.cat([v[0] for v in outs])
-    acts = dictionary.encode(x)
+    x, out = torch.cat([v[0, 1:] for v in xs]), torch.cat([v[0, 1:] for v in outs])
+    acts = dictionary.encode(x)  # the fit leaves out each text's first token
     error = ((dictionary.decode(acts) - out) ** 2).sum()
     profile = scan.profile
     assert profile.explained_variance == pytest.approx(
         float(1 - error / ((out - out.mean(0)) ** 2).sum()), rel=1e-5
     )
     assert profile.mean_l0 == pytest.approx(float((acts > 0).sum(-1).float().mean()), abs=1e-3)
-    assert profile.density == pytest.approx(float((acts[:, 5] > 0).float().mean()), abs=1e-5)
+    every = dictionary.encode(torch.cat([v[0] for v in xs]))  # density counts every token
+    assert profile.density == pytest.approx(float((every[:, 5] > 0).float().mean()), abs=1e-5)
     assert profile.dead_share == pytest.approx(float((acts.amax(0) == 0).float().mean()))
     assert (profile.n_features, profile.tokens, profile.path) == (
         N_FEATURES,
         len(scan.values),
         "tc1/sae.safetensors",
     )
+
+
+def test_npz_dictionaries_by_layer_with_a_skip_connection(runner, tmp_path):
+    torch.manual_seed(2)
+    weights = {
+        "W_enc": torch.randn(32, N_FEATURES) / 32**0.5,
+        "b_enc": torch.zeros(N_FEATURES),
+        "W_dec": torch.randn(N_FEATURES, 32) * 0.1,
+        "b_dec": torch.zeros(32),
+        "threshold": torch.full((N_FEATURES,), 0.1),
+        "W_skip": torch.randn(32, 32) * 0.1,  # [d_out, d_in]
+    }
+    (tmp_path / "l1").mkdir()
+    np.savez(tmp_path / "l1" / "params.npz", **{k: v.numpy() for k, v in weights.items()})
+    spec = DictionarySpec(
+        model_name="tiny-gpt2",
+        kind="transcoder",
+        repo=str(tmp_path),
+        revision="local",
+        path={1: "l1/params.npz"},
+        layers=(1,),
+        input_site="resid_mid",
+        activation="jumprelu",
+    )
+    assert spec.file(1) == "l1/params.npz"
+    with pytest.raises(ValueError, match="no layer 0"):
+        spec.file(0)
+
+    dictionary = load_spec(spec, 1)
+    x, out = dictionary_io(runner, TEXTS[0], 1, "resid_mid")
+    x, out = x[0], out[0]
+    pre = x @ weights["W_enc"] + weights["b_enc"]
+    acts = pre * (pre > 0.1)
+    expected = acts @ weights["W_dec"] + x @ weights["W_skip"].T
+    torch.testing.assert_close(dictionary.reconstruct(x), expected, atol=1e-5, rtol=0)
+
+    scan = scan_feature(runner, [TEXTS[0]], FEATURE, spec, k=1)  # the fit includes the skip
+    expected, out = expected[1:], out[1:]  # and leaves out the first token
+    error = ((expected - out) ** 2).sum()
+    assert scan.profile.explained_variance == pytest.approx(
+        float(1 - error / ((out - out.mean(0)) ** 2).sum()), rel=1e-4
+    )
+
+
+def test_an_lm_sae_checkpoint_reads_as_neuronpedia_reads_it(runner, tmp_path):
+    torch.manual_seed(3)
+    d, n, theta = 32, N_FEATURES, 0.02
+    w = {
+        "encoder.weight": torch.randn(n, d) / d**0.5,  # [n, d_in]
+        "encoder.bias": torch.randn(n) * 0.1,
+        "decoder.weight": torch.randn(d, n) * 0.3,  # [d_out, n], rows not unit-norm
+        "decoder.bias": torch.randn(d) * 0.1,
+    }
+    norms = {"in": 0.2, "out": 0.1}  # the tiny model's residual norm is about 0.17
+    folder = tmp_path / "L1R" / "checkpoints"
+    folder.mkdir(parents=True)
+    save_file(w, folder / "final.safetensors")
+    (tmp_path / "L1R" / "hyperparams.json").write_text(
+        json.dumps({"jump_relu_threshold": theta, "dataset_average_activation_norm": norms})
+    )
+    spec = DictionarySpec(
+        model_name="tiny-gpt2",
+        kind="sae",
+        repo=str(tmp_path),
+        revision="local",
+        path="L{layer}R/checkpoints/final.safetensors",
+        layers=(1,),
+        input_site="resid_post",
+        activation="jumprelu",
+    )
+    dictionary = load_spec(spec, 1)
+    x, _ = dictionary_io(runner, TEXTS[0], 1, "resid_post")
+    x = x[0]
+
+    s_in, s_out = d**0.5 / norms["in"], d**0.5 / norms["out"]
+    h = (x * s_in) @ w["encoder.weight"].T + w["encoder.bias"]
+    active = h > theta * s_in  # SAELens's threshold
+    assert 0 < int(active.sum()) < active.numel()
+    dec_norm = w["decoder.weight"].norm(dim=0)
+    expected = torch.where(active, h * dec_norm / s_in, torch.zeros_like(h))
+    acts = dictionary.encode(x)
+    torch.testing.assert_close(acts.clamp(min=0), expected, atol=1e-5, rtol=1e-5)
+    reconstruction = (torch.where(active, h, 0) @ w["decoder.weight"].T + w["decoder.bias"]) / s_out
+    torch.testing.assert_close(dictionary.reconstruct(x), reconstruction, atol=1e-5, rtol=1e-5)
+
+
+@pytest.fixture
+def gemma2_runner():
+    """A random Gemma 2, whose MLP output is normalised before it joins the residual."""
+    from transformers import Gemma2Config, Gemma2ForCausalLM
+
+    torch.manual_seed(0)
+    config = Gemma2Config(
+        vocab_size=64,
+        hidden_size=32,
+        intermediate_size=48,
+        num_hidden_layers=2,
+        num_attention_heads=2,
+        num_key_value_heads=1,
+        head_dim=16,
+    )
+    return NeuronHookRunner(Gemma2ForCausalLM(config).eval(), FakeTokenizer())
+
+
+def test_a_dictionary_reconstructs_and_writes_after_the_post_mlp_norm(gemma2_runner, spec):
+    runner = gemma2_runner
+    block = runner.model.model.layers[1]
+    seen = {}
+    hooks = [
+        block.pre_feedforward_layernorm.register_forward_pre_hook(
+            lambda _m, a: seen.__setitem__("pre", a[0])
+        ),
+        block.post_feedforward_layernorm.register_forward_hook(
+            lambda _m, _a, o: seen.__setitem__("out", o)
+        ),
+    ]
+    with torch.no_grad():
+        runner.forward(runner.encode(TEXTS[1]))
+    for h in hooks:
+        h.remove()
+    pre, written = seen["pre"].float(), seen["out"]
+    x, out = dictionary_io(runner, TEXTS[1], 1, "mlp_in_normalized")
+    torch.testing.assert_close(x, pre * (pre.pow(2).mean(-1, keepdim=True) + 1e-6).rsqrt())
+    torch.testing.assert_close(out, written)
+    torch.testing.assert_close(dictionary_io(runner, TEXTS[1], 1, "mlp_out")[0], written)
+
+    profile = scan_feature(runner, TEXTS, FEATURE, spec, k=2).profile
+    unit = FeatureUnit(FEATURE, profile)
+    dictionary = unit.dictionary(runner)
+    after = []
+    with runner.hooks(**unit.ablation(runner)):  # registered after the ablation, so it sees it
+        handle = block.post_feedforward_layernorm.register_forward_hook(
+            lambda _m, _a, o: after.append(o)
+        )
+        runner.forward(runner.encode(TEXTS[1]))
+    handle.remove()
+    write = dictionary.feature(x, 5).unsqueeze(-1) * dictionary.w_dec[5]
+    assert float(write.abs().max()) > 0
+    torch.testing.assert_close(after[-1], written - write, atol=1e-6, rtol=0)
+
+
+@pytest.fixture
+def residual_spec(spec, monkeypatch):
+    residual = replace(spec, kind="sae", input_site="resid_post")
+    monkeypatch.setitem(dictionaries.DICTIONARIES, "tiny-tc", residual)
+    return residual
+
+
+def test_a_residual_sae_reads_and_writes_the_residual_after_its_layer(runner, residual_spec):
+    block = runner.model.transformer.h[1]
+    seen = []
+    handle = block.register_forward_hook(lambda _m, _a, o: seen.append(o))
+    with torch.no_grad():
+        runner.forward(runner.encode(TEXTS[1]))
+    handle.remove()
+    residual = seen[-1][0] if isinstance(seen[-1], tuple) else seen[-1]
+    x, out = dictionary_io(runner, TEXTS[1], 1, "resid_post")
+    torch.testing.assert_close(x, residual)
+    torch.testing.assert_close(out, residual)
+
+    profile = scan_feature(runner, TEXTS, FEATURE, residual_spec, k=2).profile
+    assert (profile.input_site, profile.output_site) == ("resid_post", "resid_post")
+    with pytest.raises(ValueError, match="writes to resid_post, not mlp_out"):
+        DictionaryProfile.model_validate({**profile.model_dump(), "output_site": "mlp_out"})
+
+    unit = FeatureUnit(FEATURE, profile)
+    dictionary = unit.dictionary(runner)
+    after = []
+    with runner.hooks(**unit.ablation(runner)):  # registered after the ablation, so it sees it
+        handle = block.register_forward_hook(lambda _m, _a, o: after.append(o))
+        runner.forward(runner.encode(TEXTS[1]))
+    handle.remove()
+    ablated = after[-1][0] if isinstance(after[-1], tuple) else after[-1]
+    write = dictionary.feature(x, 5).unsqueeze(-1) * dictionary.w_dec[5]
+    assert float(write.abs().max()) > 0
+    torch.testing.assert_close(ablated, residual - write, atol=1e-6, rtol=0)
+
+
+def test_a_residual_latent_is_audited_and_reproduced(runner, residual_spec, tmp_path):
+    scan = scan_feature(runner, TEXTS, FEATURE, residual_spec, k=4)
+    record = _record(runner, scan)
+    assert record.submission.dictionary_profile.output_site == "resid_post"
+    assert record.verdict.causal_metrics is not None
+    report = reproduce_record(record, runner)
+    assert report.ok, report.mismatches
+
+    task = ProposerAgent.proposal_prompt(FEATURE, scan.examples, dictionary_profile=scan.profile)
+    assert "decoder vector to the residual stream after this layer" in task
+    page = write_experiment_page(record, tmp_path / "wiki").read_text()
+    assert "of the residual stream's variance" in page
 
 
 def test_ablation_removes_exactly_the_latents_write(runner, scan):

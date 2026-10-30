@@ -40,8 +40,10 @@ def _clean_pass(runner, t: Target, encoded, attention: bool) -> dict:
     cap = {"acts": {}, "z": {}, "mlp_in": {}, "attn_in": {}}
 
     def keep(store, i, out=False):
-        if out:
-            return lambda _m, _a, o: store.__setitem__(i, o.detach().float())
+        if out:  # a decoder layer may return a tuple whose first item is the residual
+            return lambda _m, _a, o: store.__setitem__(
+                i, (o[0] if isinstance(o, tuple) else o).detach().float()
+            )
         return lambda _m, args: store.__setitem__(i, args[0].detach().float())
 
     hooks = [(runner.down_proj(i), keep(cap["acts"], i)) for i in {*up_n, t.layer}]
@@ -52,20 +54,18 @@ def _clean_pass(runner, t: Target, encoded, attention: bool) -> dict:
             (_attn_read_point(runner, i), keep(cap["attn_in"], i)) for i in {*down_h, t.layer}
         ]
     handles = [m.register_forward_pre_hook(fn) for m, fn in hooks]
-    mlp_out: dict[int, torch.Tensor] = {}
-    if t.site == "mlp_out":
-        handles.append(
-            runner.down_proj(t.layer).register_forward_hook(keep(mlp_out, t.layer, out=True))
-        )
+    written: dict[int, torch.Tensor] = {}  # the read of a unit reading its layer's output
+    if t.site in ("mlp_out", "resid_post"):
+        module = runner.mlp_write(t.layer) if t.site == "mlp_out" else runner.layers[t.layer]
+        handles.append(module.register_forward_hook(keep(written, t.layer, out=True)))
     try:
         with torch.no_grad():
             runner.forward(encoded)
     finally:
         for h in handles:
             h.remove()
-    cap["read"] = {"mlp_in": cap["mlp_in"], "attn_in": cap["attn_in"], "mlp_out": mlp_out}[t.site][
-        t.layer
-    ]
+    reads = {"mlp_in": cap["mlp_in"], "attn_in": cap["attn_in"]}
+    cap["read"] = reads.get(t.site, written)[t.layer]
     return cap
 
 

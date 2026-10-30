@@ -149,7 +149,6 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 ## Scope expansion
 
-- [ ] More dictionary presets in `openinterp/harness/dictionaries.py`: Gemma Scope transcoders (Gemma 2 2B, JumpReLU), the circuit-tracer transcoders (Qwen3, Llama 3.2 1B), Llama Scope, and an MLP-output SAE. A residual-stream SAE needs a new input and output site. Check each preset's input site by its reconstruction, as the GPT-2 one was. No public dictionary covers Qwen2.5-0.5B, the registry's default model, so its baseline would need one trained on the scan corpus.
 - [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
 - [ ] Cross-model universality links: match verified neurons across sibling models (Qwen2.5-0.5B ↔ 1.5B).
@@ -159,7 +158,6 @@ Experiment pages currently show the activation histogram and token heatmaps of t
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Multilingual: `wikimedia/wikipedia` (non-English configs) or `uonlp/CulturaX`, for language-identity and script neurons.
 - [ ] Maths: `open-web-math/open-web-math` and `openai/gsm8k`, for number, operator and LaTeX neurons.
 - [ ] Chat/instruction text: `HuggingFaceH4/ultrachat_200k` or `lmsys/lmsys-chat-1m` (gated), formatted with the model's chat template, for instruct models.
 - [ ] Labelled concept sets for `sparse-probing-search` and positive holdouts: `conll2003` (NER), `universal_dependencies` (POS/syntax), `papluca/language-identification`, `ag_news` (topic).
