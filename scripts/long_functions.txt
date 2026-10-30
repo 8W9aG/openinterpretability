@@ -1,9 +1,0 @@
-# Functions already over the 40-line limit when the check was added, with
-# their current lengths. Checked by scripts/check_line_limit.py: an entry may
-# only go down. Lower it when the function shrinks; remove it when the
-# function is split to 40 lines or fewer. Do not add entries.
-openinterp/agents/proposer.py::ProposerAgent.build_submission 52
-openinterp/agents/proposer.py::ProposerAgent.proposal_prompt 46
-openinterp/cli_probing.py::probe_compare 49
-openinterp/corpus.py::build_from_hub 56
-scripts/position_zero.py::layer_rows 48

@@ -5,13 +5,9 @@ Files: at most 500 lines. Tests, configuration, lockfiles and generated data
 
 Functions: at most 40 lines: the signature as one line, plus the body.
 Decorators, the parameter list and the docstring do not count, so long Click
-option lists are free. The limit is ratcheted: `scripts/long_functions.txt` lists the functions
-that were already longer, with their lengths. A listed function may not grow,
-and a function that is not listed may not pass the limit. When a listed
-function shrinks, lower its entry; when it is split, remove the entry (the
-check fails on stale entries, so the list only ratchets down). For the
-rare function that reads better whole, put `# long-function: <reason>` on its
-`def` line. (Ruff warns on unknown `# noqa` codes, so the marker is not a noqa.)
+option lists are free. Tests are exempt, as for files. For the rare function
+that reads better whole, put `# long-function: <reason>` on its `def` line.
+(Ruff warns on unknown `# noqa` codes, so the marker is not a noqa.)
 
 Run via `make lint`; CI runs it in the lint step.
 """
@@ -27,7 +23,6 @@ from pathlib import Path
 
 MAX_LINES = 500
 MAX_FUNCTION_LINES = 40
-ALLOWLIST = Path(__file__).with_name("long_functions.txt")
 EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 
 EXEMPT = (
@@ -92,20 +87,8 @@ def function_lengths(source: str) -> dict[str, tuple[int, bool]]:
     return found
 
 
-def read_allowlist() -> dict[str, int]:
-    allowed = {}
-    for line in ALLOWLIST.read_text(encoding="utf-8").splitlines():
-        line = line.split("#", 1)[0].strip()
-        if line:
-            key, length = line.rsplit(maxsplit=1)
-            allowed[key] = int(length)
-    return allowed
-
-
 def check_functions(files: list[str]) -> list[str]:
-    allowed = read_allowlist()
     errors = []
-    seen: dict[str, int] = {}
     for name in files:
         if not name.endswith(".py"):
             continue
@@ -114,27 +97,11 @@ def check_functions(files: list[str]) -> list[str]:
         except FileNotFoundError:
             continue  # deleted but still tracked
         for func, (length, exempt) in function_lengths(source).items():
-            key = f"{name}::{func}"
-            seen[key] = length
-            if key in allowed or exempt or length <= MAX_FUNCTION_LINES:
-                continue
-            errors.append(
-                f"{key}: {length} lines (max {MAX_FUNCTION_LINES}); split it, "
-                "or mark the def with `# long-function: <reason>`"
-            )
-    for key, limit in sorted(allowed.items()):
-        length = seen.get(key)
-        if length is None:
-            errors.append(f"{ALLOWLIST.name}: {key} no longer exists; remove its entry")
-        elif length > limit:
-            errors.append(
-                f"{key}: {length} lines, grew from {limit}; "
-                f"split it to at most {MAX_FUNCTION_LINES} lines rather than adding to it"
-            )
-        elif length <= MAX_FUNCTION_LINES:
-            errors.append(f"{ALLOWLIST.name}: {key} is {length} lines now; remove its entry")
-        elif length < limit:
-            errors.append(f"{ALLOWLIST.name}: {key} shrank to {length}; lower its entry")
+            if length > MAX_FUNCTION_LINES and not exempt:
+                errors.append(
+                    f"{name}::{func}: {length} lines (max {MAX_FUNCTION_LINES}); split it, "
+                    "or mark the def with `# long-function: <reason>`"
+                )
     return errors
 
 
