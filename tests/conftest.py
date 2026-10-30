@@ -20,6 +20,10 @@ from openinterp.core.schemas import (
     VerificationVerdict,
 )
 
+# Tiny models gain nothing from threads, and competing for CPU with other jobs has
+# hung the suite. Covers bare `pytest` and CI too, not just `make test`.
+torch.set_num_threads(1)
+
 VOCAB, D_MODEL, D_MLP, N_LAYERS = 16, 8, 12, 3
 
 
