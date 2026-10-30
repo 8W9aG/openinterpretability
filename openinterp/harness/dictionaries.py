@@ -13,13 +13,16 @@ reads, so changing a preset never changes an old record.
 Weights are one safetensors or NumPy ``.npz`` file per layer with ``W_enc``
 ``[d_in, n]``, ``b_enc`` ``[n]``, ``W_dec`` ``[n, d_out]``, ``b_dec`` ``[d_out]`` (and
 ``threshold`` ``[n]`` for JumpReLU). Matrices stored the other way round are transposed on
-load. A skip transcoder also has ``W_skip`` ``[d_out, d_in]``, a linear map from its input
-that it adds to its reconstruction (circuit-tracer's convention); a latent's write doesn't
-include it.
+load. An OpenMOSS ``lm_sae`` checkpoint (``encoder.weight`` …, with ``hyperparams.json``
+beside its ``checkpoints/`` directory, as Llama Scope ships) is converted on load; see
+:func:`_from_lm_sae`. A skip transcoder also has ``W_skip`` ``[d_out, d_in]``, a linear
+map from its input that it adds to its reconstruction (circuit-tracer's convention); a
+latent's write doesn't include it.
 """
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
@@ -148,6 +151,55 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         context_tokens=1024,
         reference="Lieberum et al., 2024, arXiv:2408.05147",
     ),
+    # Llama Scope (He et al., 2024, arXiv:2410.20526): top-k SAEs and transcoders for
+    # Llama-3.1-8B, converted to JumpReLU, in OpenMOSS's lm_sae format (see _from_lm_sae).
+    # Read as Neuronpedia reads them: on the sentence "The quick brown fox jumps over the
+    # lazy dog. Paris is the capital of France.", L15R latents 1791 and 2290 fire on the
+    # same tokens with the same values as Neuronpedia's 15-llamascope-res-32k, to bf16
+    # precision. At layer 15 that reading fits 4 points worse than taking θ unscaled
+    # (residual: 62.8% vs 66.5%), with L0 33 instead of 228; the scaling, measured on the
+    # corpus, matches the hyperparameters' (resid_post 10.80 vs 10.81, mlp_out 5.34 vs
+    # 5.28). Over layers 0, 8, 15, 24 and 31 through position 1024 the residual SAEs fit
+    # 54–86%, the MLP SAEs 30–84% (weakest mid-network) and the transcoders, reading
+    # mlp_in_normalized as their hook_point_in says, 44–87%, the best of the three input
+    # sites at every layer. Fits fall 2–8 points from the first 256 positions to 512–1024.
+    # The 8x (32k-latent) dictionaries, which the Llama Scope README recommends.
+    "llama-scope-8b-res-saes": DictionarySpec(
+        model_name="meta-llama/Llama-3.1-8B",
+        kind="sae",
+        repo="fnlp/Llama3_1-8B-Base-LXR-8x",
+        revision="8dbc1d85edfced43081c03c38b05514dbab1368b",
+        path="Llama3_1-8B-Base-L{layer}R-8x/checkpoints/final.safetensors",
+        layers=tuple(range(32)),
+        input_site="resid_post",
+        activation="jumprelu",
+        context_tokens=1024,
+        reference="He et al., 2024, arXiv:2410.20526",
+    ),
+    "llama-scope-8b-mlp-saes": DictionarySpec(
+        model_name="meta-llama/Llama-3.1-8B",
+        kind="sae",
+        repo="fnlp/Llama3_1-8B-Base-LXM-8x",
+        revision="69284f67f460bc42c91abe494b3166810179bbba",
+        path="Llama3_1-8B-Base-L{layer}M-8x/checkpoints/final.safetensors",
+        layers=tuple(range(32)),
+        input_site="mlp_out",
+        activation="jumprelu",
+        context_tokens=1024,
+        reference="He et al., 2024, arXiv:2410.20526",
+    ),
+    "llama-scope-8b-transcoders": DictionarySpec(
+        model_name="meta-llama/Llama-3.1-8B",
+        kind="transcoder",
+        repo="fnlp/Llama3_1-8B-Base-LXTC-8x",
+        revision="a51e5499031b69022363a73f1fd1dece523668dd",
+        path="Llama3_1-8B-Base-L{layer}TC-8x/checkpoints/final.safetensors",
+        layers=tuple(range(32)),
+        input_site="mlp_in_normalized",
+        activation="jumprelu",
+        context_tokens=1024,
+        reference="He et al., 2024, arXiv:2410.20526",
+    ),
     # circuit-tracer's skip transcoders read the residual stream before the MLP's norm
     # (hook_resid_mid): 78% of the variance at layer 5 with L0 47. The skip term carries
     # most of it: without it, the latents alone explain 9%. Applied the other way round
@@ -259,15 +311,50 @@ def _read(local: Path) -> dict[str, torch.Tensor]:
     return load_file(str(local))
 
 
+def _fetch(repo: str, revision: str | None, path: str) -> Path:
+    local = Path(repo) / path
+    if local.exists():  # a local directory in tests
+        return local
+    from huggingface_hub import hf_hub_download
+
+    return Path(hf_hub_download(repo, path, revision=revision))
+
+
+def _from_lm_sae(w: dict[str, torch.Tensor], hyperparams: dict) -> dict[str, torch.Tensor]:
+    """An OpenMOSS ``lm_sae`` checkpoint (Llama Scope's format) as plain JumpReLU weights.
+
+    lm_sae scales its input by ``s_in = sqrt(d) / dataset_average_activation_norm["in"]``
+    and its reconstruction back by ``s_out``, and has one ``jump_relu_threshold`` θ.
+    Neuronpedia (through SAELens) reads it with a latent active where its pre-activation
+    ``h = s_in·x·W_enc + b_enc`` exceeds ``θ·s_in``, at strength ``h·‖W_dec[f]‖ / s_in``.
+    Folding those into the weights gives the same activations, so a latent here reads as
+    it does there.
+    """
+    d = w["decoder.bias"].shape[0]
+    norms = hyperparams["dataset_average_activation_norm"]
+    s_in, s_out = d**0.5 / norms["in"], d**0.5 / norms["out"]
+    w_enc, w_dec = w["encoder.weight"].T, w["decoder.weight"].T  # [d_in, n], [n, d_out]
+    dec_norm = w_dec.norm(dim=-1)  # [n]
+    return {
+        # a = h·‖W_dec[f]‖ / s_in, so a > θ·‖W_dec[f]‖ exactly where h > θ·s_in
+        "W_enc": w_enc * dec_norm,
+        "b_enc": w["encoder.bias"] * dec_norm / s_in,
+        "threshold": hyperparams["jump_relu_threshold"] * dec_norm,
+        # h·W_dec / s_out = a·W_dec·s_in / (‖W_dec[f]‖·s_out)
+        "W_dec": w_dec * (s_in / s_out) / dec_norm[:, None],
+        "b_dec": w["decoder.bias"] / s_out,
+    }
+
+
 @lru_cache(maxsize=2)  # one layer's weights can be hundreds of MB
 def _load(repo, revision, path, device, activation, subtract_decoder_bias) -> Dictionary:
-    local = Path(repo) / path
-    if not local.exists():  # a Hugging Face repository; a local directory in tests
-        from huggingface_hub import hf_hub_download
-
-        local = Path(hf_hub_download(repo, path, revision=revision))
+    local = _fetch(repo, revision, path)
     # Copied: a tensor left on the file's memory map can be misaligned (see cli._load).
     w = {k: v.to(device, torch.float32, copy=True) for k, v in _read(local).items()}
+    if "encoder.weight" in w:  # lm_sae: its hyperparameters sit beside "checkpoints/"
+        hyperparams_path = str(Path(path).parent.parent / "hyperparams.json")
+        hyperparams = json.loads(_fetch(repo, revision, hyperparams_path).read_text())
+        w = _from_lm_sae(w, hyperparams)
     n = w["b_enc"].shape[0]
     w_enc = w["W_enc"] if w["W_enc"].shape[1] == n else w["W_enc"].T
     w_dec = w["W_dec"] if w["W_dec"].shape[0] == n else w["W_dec"].T
