@@ -11,6 +11,12 @@ The project has two version numbers:
 
 ### Added
 
+- **Residual-stream SAEs** (`gemma-scope-2b-res-saes`: Gemma Scope's canonical 16k SAEs for Gemma 2 2B). They introduce a new site, `resid_post`, the residual stream after the feature's layer (TransformerLens's `hook_resid_post`). The latent reads that site, writes back to it, and is ablated, steered and patched there.
+  - **`DictionaryProfile.output_site`** can now be `resid_post`. It always follows from the input site: only a `resid_post` dictionary writes to the residual stream.
+  - **Wiring** counts the feature's own layer's MLP neurons and heads as upstream.
+  - **Prompts and pages** describe the fit against the residual stream, not the MLP output.
+  - **Fit:** 76–93% of the residual stream's variance at layers 0, 5, 12, 20 and 25 (L0 65–116), flat through position 1024. Read one step earlier, before the MLP, the fit is −3 to −8.
+  - **Comparing with neurons:** the learned-basis comparison sets these latents against the same layers' MLP neurons, so it changes the site as well as the basis.
 - **Four more dictionary presets** in `openinterp/harness/dictionaries.py`, for the learned-basis baseline: `gemma-scope-2b-transcoders` and `gemma-scope-2b-mlp-saes` (Gemma 2 2B, JumpReLU), `llama-3.2-1b-transcoders` and `qwen3-0.6b-transcoders` (circuit-tracer). Each input site was checked by reconstruction on 16 corpus documents through position 1024, leaving out the first token. At every checked layer the chosen site was the only one with a positive fit. Gemma transcoders 54–93% of the MLP output's variance at layers 0, 5, 20 and 25 (32% at layer 12, L0 6). Gemma MLP SAEs 62–95%. Llama 69–81%. Qwen3 41–73%. No fit fell off with position.
   - **New input site `resid_mid`**: the residual stream before the MLP's norm, which the Llama transcoders read.
   - **Skip transcoders.** A `W_skip` in the file is added to the reconstruction as `x @ W_skip.T`, circuit-tracer's convention; a latent's write doesn't include it. For Llama 3.2 1B the skip carries most of the fit: the latents alone explain 9–27%.

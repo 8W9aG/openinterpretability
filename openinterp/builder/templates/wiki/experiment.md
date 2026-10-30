@@ -44,7 +44,7 @@
 {% endif %}
 {% if sub.dictionary_profile %}
 {% set dp = sub.dictionary_profile %}
-- **Dictionary** (a learned-basis baseline, not a native unit): a {{ dp.kind }} with {{ dp.n_features }} latents, `{{ dp.repo }}`{% if dp.revision %}@{{ dp.revision[:8] }}{% endif %} `{{ dp.path }}`, reading `{{ dp.input_site }}`. On the scan it explains {{ dp.explained_variance | num(2) if dp.explained_variance is not none else 'unmeasured' }} of the MLP output's variance with mean L0 {{ dp.mean_l0 | num(1) if dp.mean_l0 is not none else 'unmeasured' }}; this latent is active on {{ dp.density | num(4) }} of tokens (reported, not gated).
+- **Dictionary** (a learned-basis baseline, not a native unit): a {{ dp.kind }} with {{ dp.n_features }} latents, `{{ dp.repo }}`{% if dp.revision %}@{{ dp.revision[:8] }}{% endif %} `{{ dp.path }}`, reading `{{ dp.input_site }}`. On the scan it explains {{ dp.explained_variance | num(2) if dp.explained_variance is not none else 'unmeasured' }} of the {{ 'residual stream' if dp.output_site == 'resid_post' else 'MLP output' }}'s variance with mean L0 {{ dp.mean_l0 | num(1) if dp.mean_l0 is not none else 'unmeasured' }}; this latent is active on {{ dp.density | num(4) }} of tokens (reported, not gated).
 {% endif %}
 
 {% if examples %}

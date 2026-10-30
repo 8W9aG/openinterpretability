@@ -27,6 +27,7 @@ from pathlib import Path
 
 import torch
 
+from openinterp.core.profiles import output_site_of
 from openinterp.core.schemas import DictionaryProfile, DictionarySite
 
 
@@ -119,6 +120,30 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         },
         layers=tuple(range(26)),
         input_site="mlp_out",
+        activation="jumprelu",
+        context_tokens=1024,
+        reference="Lieberum et al., 2024, arXiv:2408.05147",
+    ),
+    # A residual-stream SAE, reading and writing the residual stream after each layer
+    # (hook_resid_post): 76–93% of its variance at layers 0, 5, 12, 20 and 25 with L0
+    # 65–116; read one step earlier, before the MLP (resid_mid), the fit is −3 to −8.
+    # Gemma Scope's canonical 16k SAEs, as for the MLP SAEs (Neuronpedia's
+    # gemmascope-res-16k). A latent here isn't an MLP unit: compared with native neurons,
+    # it is a different site, not only a different basis.
+    "gemma-scope-2b-res-saes": DictionarySpec(
+        model_name="google/gemma-2-2b",
+        kind="sae",
+        repo="google/gemma-scope-2b-pt-res",
+        revision="fd571b47c1c64851e9b1989792367b9babb4af63",
+        path={
+            layer: f"layer_{layer}/width_16k/average_l0_{l0}/params.npz"
+            for layer, l0 in enumerate(
+                (105, 102, 141, 59, 124, 68, 70, 69, 71, 73, 77, 80, 82)
+                + (84, 84, 78, 78, 77, 74, 73, 71, 70, 72, 75, 73, 116)
+            )
+        },
+        layers=tuple(range(26)),
+        input_site="resid_post",
         activation="jumprelu",
         context_tokens=1024,
         reference="Lieberum et al., 2024, arXiv:2408.05147",
@@ -268,6 +293,7 @@ def spec_profile(spec: DictionarySpec, layer: int, **measured) -> DictionaryProf
         revision=spec.revision,
         path=spec.file(layer),
         input_site=spec.input_site,
+        output_site=output_site_of(spec.input_site),
         activation=spec.activation,
         subtract_decoder_bias=spec.subtract_decoder_bias,
         **measured,
