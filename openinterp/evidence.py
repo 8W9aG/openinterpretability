@@ -71,9 +71,10 @@ def scan_evidence(
         ScanEvidence,
     )
     from openinterp.harness.dictionaries import dictionary_spec, load_spec
+    from openinterp.harness.environment import run_environment
     from openinterp.harness.features import scan_feature
     from openinterp.harness.heads import scan_head
-    from openinterp.harness.hooks import activation_histogram, run_environment
+    from openinterp.harness.hooks import activation_histogram
     from openinterp.harness.input_attribution import input_attribution
     from openinterp.harness.jlens import direction_lens, vocabulary_lens
     from openinterp.harness.scan import cut_pieces, default_stride, scan_neuron

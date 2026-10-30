@@ -25,7 +25,6 @@ from openinterp.core.schemas import (
     DictionarySite,
     Histogram,
     Pole,
-    RunEnvironment,
 )
 
 # Probed in order; the first path that resolves on the model wins.
@@ -448,28 +447,6 @@ class NeuronHookRunner:
 
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:
         return float(self.neuron_activations(text, layer, neuron_idx, pole).max())
-
-
-def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
-    """The device, weights dtype, model revision and library versions of ``runner``."""
-    from openinterp import __version__
-
-    try:
-        import transformers
-
-        transformers_version = transformers.__version__
-    except ImportError:
-        transformers_version = None
-    config = getattr(runner.model, "config", None)
-    return RunEnvironment(
-        device=str(runner.device),
-        dtype=str(next(runner.model.parameters()).dtype).removeprefix("torch."),
-        model_revision=getattr(runner, "model_revision", None)
-        or getattr(config, "_commit_hash", None),
-        openinterp_version=__version__,
-        torch_version=torch.__version__,
-        transformers_version=transformers_version,
-    )
 
 
 def top_activating_examples(

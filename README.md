@@ -209,6 +209,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | `openinterp/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
 | `openinterp/harness/dictionaries.py` | Published transcoders/SAEs (presets, pinned weights, how each is read) |
 | `openinterp/harness/sites.py` | Where a dictionary reads its input and writes its output: the hooks behind `dictionary_interventions` |
+| `openinterp/harness/environment.py` | The device, dtype, model revision and library versions recorded with each run |
 | `openinterp/harness/features.py` | Dictionary-latent scan (with the dictionary's fit) and latent patching |
 | `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
 | `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
