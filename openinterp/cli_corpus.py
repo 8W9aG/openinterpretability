@@ -17,7 +17,11 @@ from openinterp.corpus import LAYOUTS, PRESETS
     show_default=True,
     help=f"A preset ({', '.join(PRESETS)}) or a Hugging Face dataset ID (then pass --files).",
 )
-@click.option("--files", help="Glob of Parquet files within the dataset. Default: the preset's.")
+@click.option(
+    "--files",
+    help="Glob of Parquet files within the dataset; comma-separate several to take an equal "
+    "share of documents from each. Default: the preset's.",
+)
 @click.option("--text-column", help="Column holding the text. Default: the preset's, or 'text'.")
 @click.option(
     "--revision",
