@@ -16,6 +16,7 @@ EXEMPT = (
     "tests/*",
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows
+    "hf_models/*.jsonl",  # dictionary training logs
     "uv.lock",
     "*.toml",
     "*.yml",

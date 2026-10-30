@@ -1,0 +1,34 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B",
+  "revision": null,
+  "layer": 16,
+  "input_site": "mlp_in",
+  "data": {
+    "dataset": "NeelNanda/pile-10k",
+    "revision": "127bfedcd5047750df5ccf3a12979a47bfa0bafa",
+    "excluded_scan_docs": 518,
+    "validation_docs": 100
+  },
+  "tokens": 13496316,
+  "width": 16384,
+  "k": 32,
+  "k_aux": 256,
+  "aux_coef": 0.03125,
+  "dead_after": 500000,
+  "lr": 0.001,
+  "batch": 4096,
+  "seq_len": 1024,
+  "seed": 0,
+  "threshold": 0.6717773079872131,
+  "held_out_tokens": 11479,
+  "topk": {
+    "explained_variance": 0.7708,
+    "mean_l0": 32.0,
+    "fired_share": 0.3129
+  },
+  "jumprelu": {
+    "explained_variance": 0.7717,
+    "mean_l0": 31.69,
+    "fired_share": 0.3635
+  }
+}

@@ -229,6 +229,22 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         context_tokens=1024,
         reference="circuit-tracer, github.com/safety-research/circuit-tracer",
     ),
+    # No public dictionary covers Qwen2.5-0.5B, so these were trained here, with
+    # scripts/train_transcoders.py on 13.5M pile-10k tokens that leave out the scan
+    # corpus's documents. They fit 59–93% of the scan corpus's MLP output (L0 ~32);
+    # without the skip path, at most 34%. The card is in hf_models/.
+    "qwen2.5-0.5b-transcoders": DictionarySpec(
+        model_name="Qwen/Qwen2.5-0.5B",
+        kind="transcoder",
+        repo="sackfield/qwen2.5-0.5b-transcoders",
+        revision="d10da828bcd803ffac8cf3db6550f5a1dff4eb13",
+        path="layer_{layer}.safetensors",
+        layers=tuple(range(24)),
+        input_site="mlp_in",
+        activation="jumprelu",
+        context_tokens=1024,
+        reference="openinterp, scripts/train_transcoders.py",
+    ),
 }
 
 
