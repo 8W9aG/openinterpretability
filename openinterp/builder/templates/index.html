@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark %}
+{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark %}
 {% set t = stats.totals %}
 
 {% block content %}
@@ -99,8 +99,7 @@
   {% if models %}
   <div class="space-y-4">
     {% for m in models %}
-    {% set counts = m.layer_counts() %}
-    {% set peak = (counts | max) or 1 %}
+    {% set pc = charts.model_pieces(m) %}
     <a href="{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <span class="font-mono text-sm font-medium">{{ m.name }}</span>
@@ -110,12 +109,19 @@
           {{ m.verified }}/{{ m.total_neurons | thousands }} verified ({{ m.verified_share | pct_fine }})
         </span>
       </div>
-      <div class="mt-3 flex h-8 items-end gap-px" role="img" aria-label="Studied neurons per layer">
-        {% for n in counts %}
-        <div class="flex-1 {{ 'bg-emerald-500' if n else 'bg-slate-200 dark:bg-slate-800' }}"
-             style="height: {{ (100 * n / peak) | round(0) if n else 8 }}%" title="Layer {{ loop.index0 }}: {{ n }} neurons"></div>
+      {% if pc %}
+      <svg viewBox="0 0 {{ pc.width }} {{ 4 * pc.rows | length - 1 }}" class="mt-3 w-full" role="img" data-pagefind-ignore
+           aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons; {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron.">
+        <defs><pattern id="pieces-{{ loop.index }}" width="{{ pc.pitch }}" height="4" patternUnits="userSpaceOnUse"><rect width="{{ pc.pitch - 1 }}" height="3" class="fill-slate-200 dark:fill-slate-800"/></pattern></defs>
+        <rect width="{{ pc.width + 1 }}" height="{{ 4 * pc.rows | length }}" fill="url(#pieces-{{ loop.index }})"/>
+        {% for row in pc.rows %}
+        {% for c in row.cells %}
+        <rect x="{{ c.x }}" y="{{ 4 * row.layer }}" width="{{ pc.pitch - 1 }}" height="3" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
         {% endfor %}
-      </div>
+        {% endfor %}
+      </svg>
+      <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top; each cell is {{ pc.block }} neurons, lit when any is studied and coloured by the best status among them.</p>
+      {% endif %}
     </a>
     {% endfor %}
   </div>
