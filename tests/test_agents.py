@@ -476,15 +476,18 @@ def test_review_records_confounds_and_joint_ablation(ident, toy_runner, draft):
     assert ja.kl_joint >= 0 and ja.kl_single >= 0
 
 
+PAIR = {"base_prompt": "a", "counterfactual_prompt": "b", "expected_delta": 0.5}
+EXTERNAL_ANSWER = {
+    "explanation": "fires on x",
+    "activating_tokens": ["x"],
+    "mechanism": "retrospective",
+    "counterfactuals": [dict(PAIR, rationale=str(i)) for i in range(3)],
+}
+
+
 def test_external_agent_reads_response_file(tmp_path):
     agent = ProposerAgent("external/test-llm", exchange_dir=tmp_path, poll_interval=0.01)
-    pair = {"base_prompt": "a", "counterfactual_prompt": "b", "expected_delta": 0.5}
-    answer = {
-        "explanation": "fires on x",
-        "activating_tokens": ["x"],
-        "mechanism": "retrospective",
-        "counterfactuals": [dict(pair, rationale=str(i)) for i in range(3)],
-    }
+    answer = EXTERNAL_ANSWER
 
     def respond():
         prompt = tmp_path / "ProposerAgent.prompt.md"
@@ -499,6 +502,25 @@ def test_external_agent_reads_response_file(tmp_path):
     threading.Thread(target=respond, daemon=True).start()
     draft = agent.structured(HypothesisDraft, "describe the neuron")
     assert draft.explanation == "fires on x"
+    assert not (tmp_path / "ProposerAgent.error.txt").exists()
+
+
+def test_external_agent_waits_out_a_write_in_progress(tmp_path):
+    # A responder that opens the file before filling it must not have the empty file
+    # rejected and deleted under it: its answer would land in the deleted file, and the
+    # agent would wait out its whole timeout.
+    agent = ProposerAgent("external/x", exchange_dir=tmp_path, timeout=3, poll_interval=0.01)
+
+    def respond():
+        while not (tmp_path / "ProposerAgent.prompt.md").exists():
+            threading.Event().wait(0.01)
+        with open(tmp_path / "ProposerAgent.response.json", "w") as f:
+            f.flush()
+            threading.Event().wait(0.1)
+            f.write(json.dumps(EXTERNAL_ANSWER))
+
+    threading.Thread(target=respond, daemon=True).start()
+    assert agent.structured(HypothesisDraft, "describe").explanation == "fires on x"
     assert not (tmp_path / "ProposerAgent.error.txt").exists()
 
 

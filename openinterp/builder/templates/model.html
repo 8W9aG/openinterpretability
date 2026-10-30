@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb %}
+{% from "_macros.html" import breadcrumb, map_fill %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -19,14 +19,8 @@
 <p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
 
-{% set map_fill = {
-  "VERIFIED": "fill-emerald-500",
-  "CONTESTED": "fill-sky-500",
-  "NEEDS_REVISION": "fill-amber-500",
-  "REJECTED": "fill-rose-500",
-} %}
-{% if layer_map %}
-{% set lm = layer_map %}
+{% set lm = charts.layer_map(model) %}
+{% if lm %}
 <figure class="mt-6" data-pagefind-ignore>
   <div class="overflow-x-auto">
   <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="img" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">

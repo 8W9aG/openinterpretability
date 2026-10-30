@@ -166,15 +166,22 @@ class LLMAgent:
         error_path = self.exchange_dir / f"{name}.error.txt"
         for stale in (response_path, error_path):
             stale.unlink(missing_ok=True)
-        prompt_path.write_text(self.render_prompt(response_model, prompt, response_path))
+        _write_whole(prompt_path, self.render_prompt(response_model, prompt, response_path))
         print(f"Waiting for {response_path} (prompt: {prompt_path})…", file=sys.stderr)
         deadline = time.monotonic() + self.timeout
+        seen = None  # the last unparseable response, rejected only once it stops changing
         while time.monotonic() < deadline:
-            if response_path.exists():
+            text = response_path.read_text() if response_path.exists() else ""
+            if text.strip():
                 try:
-                    result = response_model.model_validate_json(response_path.read_text())
+                    result = response_model.model_validate_json(text)
                 except ValidationError as exc:
-                    error_path.write_text(str(exc))
+                    if text != seen:  # possibly caught mid-write: look again next poll
+                        seen = text
+                        time.sleep(self.poll_interval)
+                        continue
+                    seen = None
+                    _write_whole(error_path, str(exc))
                     response_path.unlink()
                     print(f"Invalid response, see {error_path}", file=sys.stderr)
                 else:
@@ -182,3 +189,10 @@ class LLMAgent:
                     return result
             time.sleep(self.poll_interval)
         raise AgentError(f"{name} ({self.model}) got no response at {response_path}.")
+
+
+def _write_whole(path: Path, text: str) -> None:
+    """Write ``text`` so a reader polling for ``path`` never sees it half-written."""
+    partial = path.with_name(f".{path.name}.partial")
+    partial.write_text(text)
+    partial.replace(path)
