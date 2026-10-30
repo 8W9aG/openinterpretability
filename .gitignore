@@ -229,3 +229,6 @@ logs/
 # review and reevaluate). Not committed, so parallel experiment PRs never conflict.
 wiki/README.md
 wiki/experiments/**/README.md
+
+# Dictionary weights live on the Hugging Face Hub; only their cards and metadata are tracked.
+hf_models/**/*.safetensors

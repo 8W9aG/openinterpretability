@@ -11,6 +11,10 @@ The project has two version numbers:
 
 ### Added
 
+- **A dictionary for Qwen2.5-0.5B**, the registry's default model, which no public dictionary covers: `qwen2.5-0.5b-transcoders`, skip transcoders for all 24 layers (16,384 latents each), hosted at [`sackfield/qwen2.5-0.5b-transcoders`](https://huggingface.co/sackfield/qwen2.5-0.5b-transcoders). Scan with `--window-tokens 1024`.
+  - **Training.** `scripts/train_transcoders.py` trains top-k (k = 32) skip transcoders with AuxK and exports them as JumpReLU with one global threshold per layer. The data is 13.5M tokens of `NeelNanda/pile-10k`, one pass, leaving out the documents the scan corpus draws from.
+  - **Fit** on the scan corpus, at `mlp_in` (after the MLP norm and its gain), through position 1024 and leaving out the first token: 59–93% of the MLP output, with L0 about 32 and at most 0.6% of latents dead. Without the skip path, at most 34%.
+  - **`hf_models/`** holds the Hub repository's card, metadata and training log; the weights are ignored by git.
 - **Llama Scope presets for Llama-3.1-8B** (He et al., 2024; the 8x, 32k-latent dictionaries): `llama-scope-8b-res-saes`, `llama-scope-8b-mlp-saes` and `llama-scope-8b-transcoders`. Scan them with `--dtype bfloat16`; in float32 the model takes 32 GB.
   - **Format.** OpenMOSS `lm_sae` checkpoints (`encoder.weight` …, with `hyperparams.json` beside `checkpoints/`) now load. The dataset-norm input and output scaling and the single JumpReLU threshold are folded into the weights. The record still pins only the repository, revision and file, and the hyperparameters live at that same revision.
   - **Read as Neuronpedia reads them.** A latent is active where its pre-activation exceeds θ × the input scale (SAELens's convention), at strength pre × ‖W_dec[f]‖ ÷ input scale.
