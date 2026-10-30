@@ -16,11 +16,7 @@ openinterp/cli_score.py::_score_task 53
 openinterp/cli_score.py::score 54
 openinterp/corpus.py::build_from_hub 56
 openinterp/harness/attribution.py::attribution_patching 42
-openinterp/harness/causal.py::causal_metrics 59
-openinterp/harness/features.py::scan_feature 53
-openinterp/harness/heads.py::scan_head 51
 openinterp/harness/layer_cache.py::LayerCache._record 42
-openinterp/harness/scan.py::scan_neuron 43
 openinterp/planner.py::candidates_for 95
 openinterp/planner.py::plan_next 41
 openinterp/reproduce.py::_compare_verdicts 41

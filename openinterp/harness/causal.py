@@ -135,41 +135,48 @@ def causal_metrics(
             "sufficiency": (pair.base_prompt, pair.counterfactual_prompt),
             "necessity": (pair.counterfactual_prompt, pair.base_prompt),
         }
+        options = {"effect": effect, "positions": positions, "freeze_downstream": freeze_downstream}
         patched: dict[str, PatchEffect] = {}
         for kind, (source, target_prompt) in runs.items():
-            units = [ident.index, *null]
-            options = {
-                "effect": effect,
-                "positions": positions,
-                "freeze_downstream": freeze_downstream,
-            }
-            own, *others = patch(source, target_prompt, units, **options)
-            null_effects = sorted(abs(o) for o in others)
-            percentile = _percentile(abs(own), null_effects)
+            own, *others = patch(source, target_prompt, [ident.index, *null], **options)
+            patched[kind], percentile = _patch_effect(own, others)
             effects[kind].append(own)
             scores[kind].append(percentile)
-            patched[kind] = PatchEffect(
-                effect=round(own, 9),
-                percentile=round(percentile, 6) if math.isfinite(percentile) else None,
-                null_median=round(statistics.median(null_effects), 9) if null_effects else 0.0,
-                null_max=round(null_effects[-1], 9) if null_effects else 0.0,
-            )
         pairs.append(CausalPairEffect(pair_index=index, **patched))
 
     if not effects["sufficiency"]:
         return None
+    tokens = claimed[1] if claimed else []
+    return _metrics(scores, effects, nulls, pairs, target, tokens, freeze_downstream)
+
+
+def _metrics(scores, effects, nulls, pairs, target, tokens, freeze_downstream) -> CausalMetrics:
+    """The medians over the scored pairs."""
     return CausalMetrics(
         sufficiency_score=_robust_unit(scores["sufficiency"]),
         necessity_score=_robust_unit(scores["necessity"]),
         hydra_mitigated=freeze_downstream,
         target=target,
-        target_tokens=claimed[1] if claimed else [],
+        target_tokens=tokens,
         sufficiency_effect=round(statistics.median(effects["sufficiency"]), 9),
         necessity_effect=round(statistics.median(effects["necessity"]), 9),
         null_neurons=min(nulls),
         pairs_scored=len(effects["sufficiency"]),
         pairs=pairs,
     )
+
+
+def _patch_effect(own: float, others: list[float]) -> tuple[PatchEffect, float]:
+    """The unit's patch effect against its matched units', and its |effect| percentile."""
+    null_effects = sorted(abs(o) for o in others)
+    percentile = _percentile(abs(own), null_effects)
+    effect = PatchEffect(
+        effect=round(own, 9),
+        percentile=round(percentile, 6) if math.isfinite(percentile) else None,
+        null_median=round(statistics.median(null_effects), 9) if null_effects else 0.0,
+        null_max=round(null_effects[-1], 9) if null_effects else 0.0,
+    )
+    return effect, percentile
 
 
 def _unit_patching(submission: NeuronAuditSubmission, runner: NeuronHookRunner):
