@@ -3,9 +3,9 @@
 Files: at most 500 lines. Tests, configuration, lockfiles and generated data
 (audit records and wiki pages) are exempt.
 
-Functions: at most 40 lines, measured from the `def` line to the last line.
-Decorators and the docstring do not count, so long Click option lists are
-free. The limit is ratcheted: `scripts/long_functions.txt` lists the functions
+Functions: at most 40 lines: the signature as one line, plus the body.
+Decorators, the parameter list and the docstring do not count, so long Click
+option lists are free. The limit is ratcheted: `scripts/long_functions.txt` lists the functions
 that were already longer, with their lengths. A listed function may not grow,
 and a function that is not listed may not pass the limit. When a listed
 function shrinks, lower its entry; when it is split, remove the entry (the
@@ -58,8 +58,10 @@ def tracked_files() -> list[str]:
 def function_lengths(source: str) -> dict[str, tuple[int, bool]]:
     """Map each function's qualified name to (length, exempt by marker).
 
-    Length runs from the `def` line to the last line, without the docstring.
-    `node.lineno` is the `def` line, so decorators are already left out.
+    The signature counts as one line, however it is wrapped, so a Click
+    command's parameter list (one per option) doesn't count; nor do the
+    decorators or the docstring. The body counts from the first line after the
+    docstring (or the first statement) to the last line.
     """
     lines = source.splitlines()
     found: dict[str, tuple[int, bool]] = {}
@@ -68,14 +70,16 @@ def function_lengths(source: str) -> dict[str, tuple[int, bool]]:
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
                 name = f"{prefix}{child.name}"
-                length = child.end_lineno - child.lineno + 1
-                body = child.body[0]
+                first = child.body[0]
                 if (
-                    isinstance(body, ast.Expr)
-                    and isinstance(body.value, ast.Constant)
-                    and isinstance(body.value.value, str)
+                    isinstance(first, ast.Expr)
+                    and isinstance(first.value, ast.Constant)
+                    and isinstance(first.value.value, str)
                 ):
-                    length -= body.end_lineno - body.lineno + 1
+                    start = first.end_lineno + 1
+                else:
+                    start = first.lineno
+                length = 1 + max(0, child.end_lineno - start + 1)
                 exempt = bool(EXEMPT_MARKER.search(lines[child.lineno - 1]))
                 found[name] = (length, exempt)
                 visit(child, f"{name}.")
