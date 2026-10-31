@@ -852,3 +852,24 @@ def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
     assert "- **Downstream heads:** L5/H0 +1.5" in wiki
     assert "- **Upstream heads:** not measured." in wiki
     assert "on 4 of the review's prompts" in wiki
+
+
+def test_label_confounds_rendered(tmp_path, record):
+    from openinterp.builder.wiki import write_experiment_page
+    from openinterp.core.schemas import ConfoundProfile, LabelConfound, LabelStat
+
+    language = LabelConfound(
+        r2=0.07, mutual_information_bits=0.313, labelled_tokens=327, unlabelled_tokens=0,
+        levels=[LabelStat(label="fr", count=63, mean_strength=0.05, active=21)],
+    )  # fmt: skip
+    confounds = ConfoundProfile(
+        token_r2=0.9, position_r2=0.2, frequency_correlation=0.1, min_count=3,
+        trigger_tokens=[], position_means=[0.0], labels={"language": language},
+    )  # fmt: skip
+    sub = record.submission.model_copy(update={"confounds": confounds})
+    rec = record.model_copy(update={"submission": sub})
+    compile_site([rec], tmp_path / "site")
+    page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
+    wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
+    assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki

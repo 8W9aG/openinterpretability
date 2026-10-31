@@ -46,7 +46,7 @@ make install                                      # creates .venv with everythin
 
 The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
 
-**A scan corpus.** The built-in corpus is only a smoke test. Almost every record in the registry scanned `corpus.jsonl`, the first 500 documents of [pile-10k](https://huggingface.co/datasets/NeelNanda/pile-10k), each cut to 3,000 characters (SHA-256 `ded48cfc…`, git-ignored). Rebuild it byte for byte, so your scans are comparable with the registry's:
+**A scan corpus.** `audit` scans `./corpus.jsonl` unless given `--corpus`, and stops if it isn't there. Almost every record in the registry scanned `corpus.jsonl`, the first 500 documents of [pile-10k](https://huggingface.co/datasets/NeelNanda/pile-10k), each cut to 3,000 characters (SHA-256 `ded48cfc…`, git-ignored). Rebuild it byte for byte, so your scans are comparable with the registry's:
 
 ```bash
 uv run openinterp corpus --dataset pile-10k --first --ascii --revision 127bfedcd5047750df5ccf3a12979a47bfa0bafa --out corpus.jsonl
@@ -103,11 +103,13 @@ Two `experiment-loop.sh` runs need different `--worktree` directories, since bot
 
 ```bash
 uv run openinterp next                    # what to do next, e.g. "explore" a random neuron
+                                          #   (--steps prints every step as exact commands)
 uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
 #   → scans the neuron (~5–10 min on CPU), asks the proposer for a hypothesis,
 #     writes submissions/<model>/L<layer>/N<idx>-<pole>.json
 uv run openinterp verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
 #   → probes, measured on the model; writes a new experiment (record + page) under wiki/experiments/
+uv run openinterp show wiki/experiments/<model>/L<layer>/N<idx>-<pole>   # compact summary
 ```
 
 Attention heads go through the same commands: `--layer 5 --head 1` audits one head (`--unit head --random` samples one), and every later step reads the head from the submission. A head's strength at a token is the distance between its write to the residual stream and its mean write over the scan, `|W_O (z − z̄)|` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §1).

@@ -16,9 +16,9 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
 1. **Start from a fresh `main`.** Run `git pull`. The planner reads every experiment in `wiki/experiments/`, so stale state means stale choices.
 2. **Ask the planner, with fresh randomness:**
    ```bash
-   uv run openinterp next --top 5
+   uv run openinterp next --top 5 --steps
    ```
-   Don't pass `--seed` unless you are reproducing a previous choice, and never reuse another agent's seed. Don't lower `--epsilon` or `--temperature` unless the user asks.
+   `--steps` prints every step of the draw below as exact commands, with the key, branch, paths (`exchange/<key>/`) and corpus filled in: follow them in order rather than re-deriving them from this skill. Add `--proposer`/`--reviewer` for API-key models (the default is the subagents) and `--corpus` for another corpus. Don't pass `--seed` unless you are reproducing a previous choice, and never reuse another agent's seed. Don't lower `--epsilon` or `--temperature` unless the user asks.
 3. **Accept the draw.** Don't re-run until you get an experiment you like better. That is cherry-picking, and it brings the herd back. You may re-draw only if the chosen experiment is infeasible. For example, an independent review needs a reviewer model different from the proposer, and none is available. Say why in the PR description. An `explore` scan that stops because the unit never fires or is *default-on* (active on at least half its tokens, protocol 0.8; most of GPT-2's negative poles) is a result, not a cherry-pick: note the unit and seed in the PR and draw again.
 4. **Claim it at once.** Create a branch and a draft PR before doing any work, so other agents' planners down-weight the neuron (they read open PR titles and branches via `gh`):
    ```bash
@@ -29,7 +29,7 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
    gh pr create --draft --title "experiment: $KEY (<kind>)" --body "openinterp next seed: <seed>"
    ```
    For `explore`, run `openinterp audit --random` first; the neuron it picks becomes the key.
-5. **Read the history.** Before writing anything, run `uv run openinterp wiki` (the indexes are generated, not committed), then read `wiki/experiments/<slug>/README.md` and every experiment page it lists, including Discussion sections. Revisions must address the failed gates and failed probes recorded there.
+5. **Read the history.** Before writing anything, run `uv run openinterp wiki` (the indexes are generated, not committed), then `uv run openinterp show wiki/experiments/<slug>`: a compact summary of every experiment on the unit (verdict, failed gates and probes, scores, Discussion). Use `show` for any record or `ev.json` instead of opening the JSON, which runs to hundreds of KB; `--full` uncuts it. Revisions must address the failed gates and failed probes recorded there.
 6. **Run the experiment** using the table below and the skills the planner lists.
 7. **Post the result, whatever it is.** Run `openinterp wiki`, then `make check lint test`, then mark the PR ready. Commit `wiki/`; the gitignore keeps the generated `README.md` indexes out. If `verify` printed "Signed as …", commit the `<id>.json.sig` next to the record: CI then skips reproducing it. A failed hypothesis gets committed exactly like a verified one. Never abandon a claimed experiment silently: if you stop, close the PR with a note saying why.
 

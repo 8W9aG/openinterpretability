@@ -36,6 +36,7 @@ from openinterp.core.schemas import (
     Pole,
     ReviewPolicy,
 )
+from openinterp.harness.annotations import LabelAccumulator, Tagger, TokenLabels
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.covariance import PartnerSearch
 from openinterp.harness.hooks import Inputs, NeuronHookRunner, pole_strength
@@ -331,15 +332,18 @@ def scan_neuron(
     stride: int | None = None,
     cache: LayerCache | None = None,
     opposite_k: int = 5,
+    taggers: Sequence[Tagger] = (),
 ) -> ScanResult:
     """Scan ``texts`` for one neuron pole, and for its other pole's top ``opposite_k``
     examples and histogram (free: the pass reads the whole activation). With ``cache``,
-    replay the layer's stored activations if it holds this scan, and store them if not."""
+    replay the layer's stored activations if it holds this scan, and store them if not.
+    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's."""
     if runner.tokenizer is None:
         raise ValueError("scan_neuron requires a tokenizer")
     other: Pole = "negative" if pole == "positive" else "positive"
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
-    scan = _pole_pass(runner, pieces, layer, neuron_idx, (pole, other), batch_tokens, cache)
+    labels = TokenLabels(runner.tokenizer, texts, taggers)
+    scan = _pole_pass(runner, pieces, layer, neuron_idx, (pole, other), batch_tokens, cache, labels)
     read, read_other = (_reader(runner, layer, neuron_idx, p) for p in (pole, other))
     examples, values, floor = settle(runner, read, scan.values, scan.first, scan.top, k)
     other_examples, other_values, other_floor = settle(
@@ -347,11 +351,15 @@ def scan_neuron(
     )
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
+    confounds = scan.confounds.finalize(runner.tokenizer, min_count)
+    if taggers:
+        by_label = {n: a.finalize(labels.names[n], active) for n, a in scan.labels.items()}
+        confounds = confounds.model_copy(update={"labels": by_label})
     return ScanResult(
         examples=examples,
         values=values,
         correlated=scan.partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
-        confounds=scan.confounds.finalize(runner.tokenizer, min_count),
+        confounds=confounds,
         windows=len(pieces),
         opposite=OppositeScan(other, other_examples, other_values, other_floor),
         first_token_floor=floor,
@@ -369,17 +377,20 @@ class _PolePass:
     values: list[float] = field(default_factory=list)
     other_values: list[float] = field(default_factory=list)
     first: list[bool] = field(default_factory=list)
+    labels: dict[str, LabelAccumulator] = field(default_factory=dict)
 
 
-def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens, cache):
+def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens, cache, labels):
     pole, other = poles
     scan = _PolePass(PartnerSearch(runner.mlp_width(layer)))
+    scan.labels = {t.name: LabelAccumulator() for t in labels.taggers}
     for chunk in scan_chunks(runner, pieces, layer, batch_tokens, cache):
         acts = chunk.acts.float()  # [n, d_mlp]
         strengths = pole_strength(acts[:, neuron_idx], pole)
         counted = chunk.counted
         scan.partners.update(strengths[counted], acts[counted])
         scan.confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
+        _update_labels(scan.labels, labels, chunk, strengths)
         scan.values.extend(strengths[counted].tolist())
         scan.first.extend(chunk.first[counted].tolist())
         scan.top.update_chunk(chunk, strengths)
@@ -387,6 +398,16 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
         scan.other_values.extend(other_strengths[counted].tolist())
         scan.other_top.update_chunk(chunk, other_strengths)
     return scan
+
+
+def _update_labels(accumulators, labels: TokenLabels, chunk: Chunk, strengths) -> None:
+    """Add the chunk's counted tokens to each label set's accumulator."""
+    if not accumulators:
+        return
+    rows = [labels.of(piece, chunk.ids[r]) for piece, r in chunk.rows()]
+    for name, accumulator in accumulators.items():
+        every = torch.cat([row[name] for row in rows])
+        accumulator.update(every[chunk.counted], strengths[chunk.counted])
 
 
 def _reader(runner, layer: int, neuron_idx: int, pole: Pole) -> Strengths:

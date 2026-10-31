@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import click
@@ -28,6 +28,22 @@ def read_corpus(path: Path | None):
     digest = sha256(raw)
     source = load_source(path, digest)
     return lines, str(source) if source else path.name, digest, source
+
+
+def read_labels(path: Path | None) -> dict[str, list[str | None]]:
+    """The corpus's document labels (:data:`~openinterp.corpus.DOCUMENT_LABELS`), by label
+    set, one per document in :func:`read_corpus` order; only the sets some document has."""
+    from openinterp.corpus import DOCUMENT_LABELS
+
+    if path is None or path.suffix != ".jsonl":
+        return {}
+    lines = path.read_bytes().decode("utf-8").splitlines()  # as read_corpus splits them
+    rows = [json.loads(line) for line in lines if line.strip()]
+    return {
+        name: [row.get(field) for row in rows]
+        for field, name in DOCUMENT_LABELS.items()
+        if any(row.get(field) is not None for row in rows)
+    }
 
 
 def sha256(data: bytes) -> str:
@@ -69,6 +85,13 @@ class _Texts:
     source: object
     sample: object
     stride: int | None
+    labels: dict[str, list[str | None]] = field(default_factory=dict)  # by label set
+
+    def taggers(self):
+        """One document tagger per label set the corpus carries."""
+        from openinterp.harness.annotations import DocumentLabels
+
+        return [DocumentLabels(name, labels) for name, labels in self.labels.items()]
 
 
 def scan_evidence(runner, request: ScanRequest, scan_cache=None):
@@ -166,20 +189,22 @@ def load_texts(runner, request: ScanRequest) -> _Texts:
             "for the registry's corpus, see the README.",
             err=True,
         )
-    sample = None
+    sample, labels = None, read_labels(corpus)
     if request.max_tokens:
-        from openinterp.corpus import sample_tokens
+        from openinterp.corpus import sample_indices
 
-        texts, sample = sample_tokens(
+        picked, sample = sample_indices(
             runner.tokenizer, texts, request.max_tokens, request.sample_seed
         )
+        texts = [texts[i] for i in picked]
+        labels = {name: [values[i] for i in picked] for name, values in labels.items()}
         click.echo(f"Sampled {sample}", err=True)
     stride = request.stride
     if request.window_tokens is not None:
         stride = stride or default_stride(request.window_tokens)
     else:
         check_context(runner, texts)
-    return _Texts(texts, corpus_name, corpus_sha, corpus_source, sample, stride)
+    return _Texts(texts, corpus_name, corpus_sha, corpus_source, sample, stride, labels)
 
 
 def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cache):
@@ -208,6 +233,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
                 ident.pole,
                 k=top_k,
                 cache=scan_cache,
+                taggers=corpus.taggers(),
                 **windows,
             )
     if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:

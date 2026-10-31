@@ -214,7 +214,7 @@ Share of |attribution| by distance from the peak, over converged examples; mean 
 - **Independent observations:** {{ metrics.effective_hard_negatives }} hard-negative and {{ metrics.effective_holdouts }} holdout clusters (near-duplicate probes count once).
 {% endif %}
 {% if sub.confounds %}
-- **Confounds:** token identity R² {{ sub.confounds.token_r2 | num(2) }}, position R² {{ sub.confounds.position_r2 | num(2) }}, frequency r {{ sub.confounds.frequency_correlation | num(2) }}.{% if metrics and metrics.confound_baseline %} Best trivial baseline: {{ metrics.confound_baseline }} at {{ metrics.confound_baseline_accuracy | num(2) }}; the hypothesis scores {{ metrics.balanced_accuracy | num(2) }}.{% endif %}
+- **Confounds:** token identity R² {{ sub.confounds.token_r2 | num(2) }}, position R² {{ sub.confounds.position_r2 | num(2) }}, frequency r {{ sub.confounds.frequency_correlation | num(2) }}{% for name, lc in (sub.confounds.labels or {}).items() %}, {{ name }} R² {{ lc.r2 | num(2) }} ({{ lc.mutual_information_bits | num(3) }} bits){% endfor %}.{% if metrics and metrics.confound_baseline %} Best trivial baseline: {{ metrics.confound_baseline }} at {{ metrics.confound_baseline_accuracy | num(2) }}; the hypothesis scores {{ metrics.balanced_accuracy | num(2) }}.{% endif %}
 
 {% else %}
 - **Confounds:** no confound profile (the scan predates protocol 0.3).

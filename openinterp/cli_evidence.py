@@ -17,6 +17,8 @@ from openinterp.evidence import (  # noqa: F401  (re-exported)
     sha256,
 )
 
+REGISTRY_CORPUS = Path("corpus.jsonl")
+
 scan_cache_option = click.option(
     "--scan-cache/--no-scan-cache",
     "use_scan_cache",
@@ -141,7 +143,8 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
 @click.option(
     "--corpus",
     type=click.Path(exists=True, path_type=Path),
-    help="Text file (one snippet per line) or .jsonl with a 'text' field.",
+    help="Text file (one snippet per line) or .jsonl with a 'text' field. "
+    "Default: ./corpus.jsonl, the registry's scan corpus (see the README).",
 )
 @click.option(
     "--max-tokens",
@@ -286,7 +289,7 @@ def audit(
             dictionary=dictionary,
             random_pick=random_pick,
             seed=seed,
-            corpus=corpus,
+            corpus=scan_corpus(corpus),
             top_k=top_k,
             dtype=dtype,
             window_tokens=window_tokens,
@@ -360,6 +363,20 @@ def check_scan(evidence_file, model_name, stride, window_tokens) -> None:
         raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
     if evidence_file is None and model_name is None:
         raise click.UsageError("--model is required unless --evidence is given.")
+
+
+def scan_corpus(corpus: Path | None) -> Path:
+    """The corpus to scan: ``--corpus``, else the registry's ``corpus.jsonl`` if it's here.
+    Never the built-in sample, whose ~552 tokens make a scan that says little."""
+    if corpus is not None:
+        return corpus
+    if REGISTRY_CORPUS.exists():
+        click.echo(f"Scanning {REGISTRY_CORPUS} (no --corpus given).", err=True)
+        return REGISTRY_CORPUS
+    raise click.UsageError(
+        f"No --corpus given and no {REGISTRY_CORPUS} here. Build the registry's scan corpus "
+        "with `openinterp corpus` (see the README), copy it in, or pass --corpus."
+    )
 
 
 def load_answer(evidence_file, hypothesis_file, agent_model, device, dtype):

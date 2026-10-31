@@ -62,6 +62,11 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "corpus from pile-10k (README).",
 )
 @click.option(
+    "--lang-pattern",
+    help="Regular expression whose group, matched in each --files glob, is the language its "
+    "documents record as 'lang' (e.g. '^\\d+\\.(\\w+)/' for Wikipedia). Default: the preset's.",
+)
+@click.option(
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
 )
 def corpus(
@@ -76,6 +81,7 @@ def corpus(
     docs_per_row_group,
     first,
     ascii_,
+    lang_pattern,
     out,
 ):
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
@@ -102,6 +108,7 @@ def corpus(
         docs_per_row_group=docs_per_row_group or (preset.docs_per_row_group if preset else 20),
         first=first,
         ascii=ascii_,
+        lang_pattern=lang_pattern or (preset.lang_pattern if preset else None),
     )
     click.echo(f"Wrote {source.documents} documents to {out}: {source}")
     if source.documents < documents:

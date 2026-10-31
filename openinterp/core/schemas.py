@@ -19,6 +19,12 @@ from openinterp.core.causal import (  # noqa: F401  (re-exported)
     CausalTarget,
     PatchEffect,
 )
+from openinterp.core.confounds import (  # noqa: F401  (re-exported)
+    ConfoundProfile,
+    LabelConfound,
+    LabelStat,
+    TokenStat,
+)
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.examples import (  # noqa: F401  (re-exported)
     ActivatingExample,
@@ -118,6 +124,11 @@ class CorpusSource(StrictModel):
     )
     first: bool = False  # the first documents in file order, not a seeded sample (no strip)
     ascii: bool = False  # non-ASCII \u-escaped in the JSONL, as in the registry's corpus
+    lang_pattern: str | None = Field(
+        default=None,
+        description="Regular expression whose group, matched in each file glob, gave its "
+        "documents' 'lang' field; None: documents carry no language.",
+    )
     license: str | None = None
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
 
@@ -214,29 +225,6 @@ class CorrelatedNeuron(StrictModel):
     coactive_tokens: int = Field(ge=0)
     spearman: float = Field(ge=-1.0, le=1.0)
     pearson: float = Field(ge=-1.0, le=1.0)
-
-
-class TokenStat(StrictModel):
-    token: str
-    token_id: int = Field(ge=0)
-    mean_strength: float = Field(ge=0.0)
-    count: int = Field(gt=0)
-
-
-class ConfoundProfile(StrictModel):
-    """How much of the pole's activation simple confounds explain over the scan corpus.
-
-    ``token_r2`` / ``position_r2`` are the variance explained by a per-token-id / per-
-    position mean model. ``trigger_tokens`` (highest mean strength, ``count >= min_count``)
-    and ``position_means`` drive the trivial baselines a hypothesis must match or beat.
-    """
-
-    token_r2: UnitFloat
-    position_r2: UnitFloat
-    frequency_correlation: float = Field(ge=-1.0, le=1.0)
-    min_count: int = Field(gt=0)
-    trigger_tokens: list[TokenStat]
-    position_means: list[float]
 
 
 class VocabularyLens(StrictModel):
