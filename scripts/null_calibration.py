@@ -328,11 +328,16 @@ def null_submission(sub, null, scan):
 
 
 def review_null(record: AuditRecord, runner, sub) -> dict:
+    """The record's probes, reviewed against the null neuron's submission ``sub``."""
+    probes = probes_from_verdict(record.verdict)
+    return review_probes(sub, runner, probes, record.verdict.reviewer_agent_model)
+
+
+def review_probes(sub, runner, probes, reviewer_model: str) -> dict:
     """``evaluate_submission`` without causal metrics or wiring, which aren't gated."""
     from openinterp.agents.reviewer import confound_baseline
 
     policy = DEFAULT_POLICY
-    probes = probes_from_verdict(record.verdict)
     sub, unit, scale = settle_first_token_floor(sub, runner, policy)
     threshold = policy.activation_threshold * scale
     results, measured, actual = measure_probes(runner, unit, probes, scale, threshold)
@@ -341,7 +346,7 @@ def review_null(record: AuditRecord, runner, sub) -> dict:
     metrics = review_metrics(
         results,
         policy,
-        independent=record.verdict.reviewer_agent_model != sub.submitting_agent_model,
+        independent=reviewer_model != sub.submitting_agent_model,
         baseline=confound_baseline(sub, runner, measured, actual, threshold, policy),
         active_share=scan_active_share(sub, policy),
         first_token_floor=sub.first_token_floor,

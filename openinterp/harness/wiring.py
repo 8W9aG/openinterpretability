@@ -213,6 +213,8 @@ def _feature_target(runner: NeuronHookRunner, unit: FeatureUnit) -> Target:
     layer = unit.ident.layer
     dictionary, f = unit.dictionary(runner), unit.ident.feature_idx
     site = unit.profile.input_site
+    if site == "mlp_hidden":
+        raise ArchitectureNotSupportedError("wiring doesn't read a basis of the MLP's hidden space")
     norm = runner.mlp_norm(layer) if site in ("mlp_in", "mlp_in_normalized") else None
     read = dictionary.w_enc[:, f].float()[None]
     if norm is not None:  # back through the norm, without its gain if normalised

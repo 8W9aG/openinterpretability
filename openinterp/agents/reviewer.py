@@ -89,13 +89,13 @@ class ReviewerAgent(LLMAgent):
     )
 
     def generate_probes(
-        self, submission: NeuronAuditSubmission, n: int = 16, full_snippets: bool = False
+        self, submission: NeuronAuditSubmission, n: int = 20, full_snippets: bool = False
     ) -> ProbeSet:
         return self.structured(ProbeSet, self.probe_prompt(submission, n, full_snippets))
 
     @staticmethod
     def probe_prompt(
-        submission: NeuronAuditSubmission, n: int = 16, full_snippets: bool = False
+        submission: NeuronAuditSubmission, n: int = 20, full_snippets: bool = False
     ) -> str:
         """The task text the reviewer answers. It shows no activations of candidate probes."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"

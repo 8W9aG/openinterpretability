@@ -37,7 +37,9 @@ class HeadProfile(StrictModel):
     pattern_seed: int
 
 
-DictionarySite = Literal["resid_mid", "mlp_in", "mlp_in_normalized", "mlp_out", "resid_post"]
+DictionarySite = Literal[
+    "resid_mid", "mlp_in", "mlp_in_normalized", "mlp_out", "resid_post", "mlp_hidden"
+]
 DictionaryOutputSite = Literal["mlp_out", "resid_post"]
 
 
@@ -59,7 +61,12 @@ class DictionaryProfile(StrictModel):
     subtracted from x first, as SAEs often do. The MLP's output is what it adds to the
     residual stream, after the norm that follows it in Gemma 2 (TransformerLens's
     ``hook_mlp_out``). A residual-stream SAE reads the residual stream after the
-    feature's layer (``resid_post``, TransformerLens's ``hook_resid_post``).
+    feature's layer (``resid_post``, TransformerLens's ``hook_resid_post``). A ``basis``
+    reads the MLP's hidden activations (``mlp_hidden``, the down projection's input, where
+    native neurons live): each latent is the positive part of one direction there, and
+    writes it through the down projection. With the identity basis its latents are the
+    native positive poles; with a random orthogonal one, rotated units
+    (``docs/analyses/null-calibration.md``).
 
     The latent writes ``a_f · W_dec[f]`` to ``output_site``: the MLP's output, or for a
     residual-stream SAE the residual stream it reads; ablating it removes that write. A
@@ -74,7 +81,7 @@ class DictionaryProfile(StrictModel):
     audit. ``density`` is the share of scanned tokens on which this latent is non-zero.
     """
 
-    kind: Literal["transcoder", "sae"]
+    kind: Literal["transcoder", "sae", "basis"]
     repo: str = Field(min_length=1, description="Hugging Face repository of the weights.")
     revision: str | None = Field(default=None, description="Commit hash of ``repo``.")
     path: str = Field(min_length=1, description="Safetensors file within ``repo``.")
