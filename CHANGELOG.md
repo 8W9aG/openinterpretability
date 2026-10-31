@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Added
 
+- **Null calibration of the review** (`scripts/null_calibration.py`, results in `docs/analyses/null-calibration.md`). It measures the protocol's false-positive rate on claims that should fail, without LLM calls. *Shuffled labels*: the hypothesis's labels are permuted among each record's measured probes, and the stored activations are re-decided. Over 1,151 native records, 2% of permutations are VERIFIED, and 4% on the probe sets of VERIFIED records; 20-probe sets give 0.5% against 2.1% for 16-probe sets. *Swapped unit*: each VERIFIED pole's hypothesis and probes are reviewed against a random neuron of the same layer and pole, scanned as its own audit would scan it. 0 of 255 are VERIFIED, all stopped by `counterfactual_reproduction`; without the proposer's gates, 5 of 255 (2%) pass. Reported, not gated.
 - **A 40-line limit on functions**, checked by `scripts/check_line_limit.py` in `make lint` and CI beside the 500-line file limit. A function is measured as its signature (one line, however it wraps) plus its body, leaving out decorators and the parameter list (so long Click option lists don't count) and the docstring; tests are exempt. Mark the rare function that reads better whole with `# long-function: <reason>` on its `def` line; this is not a `# noqa`, because ruff warns on codes it doesn't know.
 
 ### Changed
