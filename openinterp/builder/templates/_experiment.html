@@ -417,6 +417,9 @@
           <dt class="text-slate-500" title="Variance explained by a per-token-id mean">Token identity R²</dt><dd class="font-mono">{{ cf.token_r2 | num(2) }}</dd>
           <dt class="text-slate-500" title="Variance explained by a per-position mean">Position R²</dt><dd class="font-mono">{{ cf.position_r2 | num(2) }}</dd>
           <dt class="text-slate-500" title="log token frequency vs mean strength">Frequency r</dt><dd class="font-mono">{{ cf.frequency_correlation | num(2) }}</dd>
+          {% for name, lc in (cf.labels or {}).items() %}
+          <dt class="text-slate-500" title="Variance explained by a per-{{ name }} mean, and binned mutual information, over {{ lc.labelled_tokens }} labelled tokens">{{ name | capitalize }} R² · MI</dt><dd class="font-mono">{{ lc.r2 | num(2) }} · {{ lc.mutual_information_bits | num(3) }} bits</dd>
+          {% endfor %}
           {% if m and m.confound_baseline %}
           <dt class="text-slate-500">Best trivial baseline</dt><dd class="font-mono text-xs">{{ m.confound_baseline }} · {{ m.confound_baseline_accuracy | num(2) }}</dd>
           <dt class="text-slate-500">Hypothesis</dt><dd class="font-mono text-xs">{{ m.balanced_accuracy | num(2) }} {{ '✓' if m.gates.get('beats_confound_baseline') else '✗' }}</dd>
