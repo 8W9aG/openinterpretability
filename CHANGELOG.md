@@ -23,6 +23,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **`openinterp audit` no longer falls back to the built-in sample corpus.** Without `--corpus` it scans `./corpus.jsonl`, the registry's scan corpus, and says so; if that file isn't there it stops and says how to build it. The ~552-token built-in sample made scans that said little and was easy to run by mistake. Other commands (`scan`, `score`, `review`) are unchanged.
 - **The reviewer writes 20 probes by default** (`openinterp review --n-probes`, was 16), the protocol's maximum. In the null calibration, 20-probe sets verified under shuffled labels a quarter as often as 16-probe sets. No gate or threshold changes, so the protocol version is unchanged.
 - **The 45 functions over 40 lines are split**, so none needs the exemption. The longest were `audit` (`cli_evidence.py`, 154 lines), `scan_evidence` (`evidence.py`, 147), `main` (`scripts/train_transcoders.py`, 106) and `evaluate_submission` (`agents/reviewer.py`, 104). Behaviour is unchanged: the built site is byte-identical, and scans, submissions, reviews, reproductions, score tasks, plans, `activations` output and the Patchscope baseline report match the code before the split. Along the way, `scan_evidence` takes a `ScanRequest` instead of 17 parameters, and new modules hold what moved out of files near the 500-line limit: `cli_submission.py` (the steps of `audit` after the proposer answers), `agents/review_measurements.py` (what the reviewer measures) and `builder/registry_stats.py` (the home page's queries).
 
