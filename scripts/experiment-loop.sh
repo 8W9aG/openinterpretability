@@ -61,6 +61,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 REVIEWER=${REVIEWER:-$PROPOSER}
+# `next --steps` writes the subagent flow for external/ models, one command for API models.
+STEP_MODELS=""
+[[ $PROPOSER != external/* ]] && STEP_MODELS+=" --proposer $PROPOSER"
+[[ $REVIEWER != external/* ]] && STEP_MODELS+=" --reviewer $REVIEWER"
 
 command -v "$CLAUDE_BIN" >/dev/null || { echo "claude not found; set CLAUDE_BIN" >&2; exit 1; }
 command -v gh >/dev/null || { echo "gh is required to claim and post experiments" >&2; exit 1; }
@@ -92,7 +96,8 @@ Run exactly one experiment end to end and land it, following the land-experiment
 (which builds on choose-next-experiment), then stop. You are in an unattended loop: don't ask questions; make the call the skill
 describes and note it in the PR description.
 
-- Plan with: uv run openinterp next --top 5 --epsilon $EPSILON
+- Plan with: uv run openinterp next --top 5 --epsilon $EPSILON --steps --corpus $CORPUS$STEP_MODELS
+  and follow the steps it prints.
 - Proposer: pass --agent-model $PROPOSER to every \`openinterp audit\`.
 - Reviewer: pass --agent-model $REVIEWER to every \`openinterp verify\`, replacing any
   <model …> placeholder in the planner's commands. If the draw needs a reviewer

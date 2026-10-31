@@ -9,12 +9,12 @@ You are the **proposer** in an Open Interpretability experiment (see `docs/PROTO
 
 ## Input
 
-The caller gives you the path of a proposer prompt, `<name>.prompt.md`. It contains the system prompt, the scan evidence (top-activating snippets with the peak token in `[[ ]]`, the vocabulary lenses, confounds, co-activating neurons) and the JSON schema of your answer. The full evidence is in `<name>.json` next to it.
+The caller gives you the path of a proposer prompt, `<name>.prompt.md`. It contains the system prompt, the scan evidence (top-activating snippets with the peak token in `[[ ]]`, the vocabulary lenses, confounds, co-activating neurons) and the JSON schema of your answer. The full evidence is in `<name>.json` next to it, but the prompt already holds what you need: don't open that file (about 500 KB) unless you need per-token activations the prompt leaves out.
 
 ## Method
 
 1. Read the prompt and these methodology skills, and follow them: `.claude/skills/native-neuron-audit/SKILL.md`, `.claude/skills/vocab-projection-lookahead/SKILL.md` and `.claude/skills/neuron-family-triage/SKILL.md`.
-2. Read the neuron's history if it has one: `wiki/experiments/<model slug>/L<layer>/N<idx>-<pole>/README.md` and the experiment pages it lists. A revision must address the failed gates and probes recorded there. Never copy an earlier hypothesis that was REJECTED.
+2. Read the neuron's history if it has one: `uv run openinterp show wiki/experiments/<model slug>/L<layer>/N<idx>-<pole>` summarises every experiment on it (verdict, failed gates and probes, Discussion); add `--full` if a cut probe or Discussion matters. A revision must address the failed gates and probes recorded there. Never copy an earlier hypothesis that was REJECTED.
 3. You may measure your own minimal pairs before answering (the protocol allows it), with `uv run python` and `openinterp.harness.hooks.NeuronHookRunner`. Only run `uv run` commands. Don't edit any file other than your answer.
 4. Write the hypothesis:
    - `explanation`: one or two sentences precise enough that a third party can label new text "predicted active" or "predicted inactive". It must predict activity better than "fires on the trigger tokens" in the confound profile.
