@@ -68,6 +68,8 @@ class Candidate:
     slug: str | None = None
     skills: list[str] = field(default_factory=list)
     layer: int | None = None
+    record: str | None = None  # the record a follow-up builds on
+    audit: str | None = None  # `openinterp audit` options, for kinds that scan
 
 
 @dataclass
@@ -204,7 +206,17 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             slug=slug or ident.slug,
             skills=SKILLS[kind],
             layer=ident.layer,
+            record=state.record_path.as_posix(),
+            audit=_audit_options(commands),
         )
+
+
+def _audit_options(commands: list[str]) -> str | None:
+    """The options of the ``openinterp audit`` among ``commands``, without --supersedes."""
+    for command in commands:
+        if command.startswith("openinterp audit "):
+            return command.removeprefix("openinterp audit ").split(" --supersedes ")[0]
+    return None
 
 
 @dataclass(frozen=True)
@@ -359,4 +371,5 @@ def _explore(rng: random.Random, pool: list[str], explore: dict, pyproject: Path
         rationale=rationale,
         commands=[audit],
         skills=SKILLS["explore"],
+        audit=_audit_options([audit]),
     )

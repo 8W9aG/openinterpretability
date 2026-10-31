@@ -119,6 +119,22 @@ def stats(wiki_dir):
     click.echo(registry_stats(load_records(wiki_dir / "experiments")))
 
 
+@cli.command()
+@click.argument("path", type=click.Path(exists=True, path_type=Path))
+@click.option("--full", is_flag=True, help="Don't cut probes, examples or the Discussion.")
+def show(path, full):
+    """Summarise a record, submission, scan evidence (ev.json) or a unit's directory.
+
+    Read this instead of opening the JSON: verdict, failed gates and probes, scores and
+    each page's Discussion, or a scan's corpus, peak and top examples."""
+    from openinterp.show import show as summarise
+
+    try:
+        click.echo(summarise(path, full))
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), param_hint="PATH") from exc
+
+
 @cli.command(name="next")
 @click.option(
     "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
@@ -152,7 +168,37 @@ def stats(wiki_dir):
 )
 @click.option("--top", default=0, show_default=True, help="Also list the N heaviest candidates.")
 @click.option("--json", "as_json", is_flag=True, help="Print the full plan as JSON.")
-def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, as_json):
+@click.option(
+    "--steps",
+    is_flag=True,
+    help="Also print every step of the draw as exact commands: claim, history, run, post.",
+)
+@click.option(
+    "--corpus", default="corpus.jsonl", show_default=True, help="Scan corpus, for --steps."
+)
+@click.option(
+    "--proposer",
+    help="For --steps: a LiteLLM model for `audit`. Default: the neuron-proposer subagent.",
+)
+@click.option(
+    "--reviewer",
+    help="For --steps: a LiteLLM model for `verify`. Default: the neuron-reviewer and "
+    "explanation-judge subagents.",
+)
+def next_experiment(
+    wiki_dir,
+    seed,
+    epsilon,
+    temperature,
+    models,
+    claims,
+    top,
+    as_json,
+    steps,
+    corpus,
+    proposer,
+    reviewer,
+):
     """Pick the next experiment (randomised; balances exploration and follow-ups)."""
     from openinterp.planner import open_pr_claims, plan_next
 
@@ -181,6 +227,12 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
         f"{'explored' if plan.explored else 'exploited'})"
     )
     _list_candidates(plan, top)
+    if steps:
+        from openinterp.draw_steps import render
+        from openinterp.draw_steps import steps as draw_steps
+
+        click.echo("\nSteps:")
+        click.echo(render(draw_steps(plan, corpus, proposer, reviewer)))
 
 
 def _scan_cache_note(c) -> None:
