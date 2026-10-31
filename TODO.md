@@ -198,11 +198,7 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time, so an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Cut the driving session's tokens. In Claude Code, the driver reads skills, docs and large JSON files on every experiment, and the proposer subagent re-reads the evidence.
-  - Make `openinterp next` print the exact commands for the draw, so the driver doesn't need to re-derive them from `SKILL.md` and `docs/PROTOCOL.md`.
-  - Add a compact `openinterp show <record|evidence>` summary, so agents never open `ev.json` or a full record.
-  - Keep CLI output terse by default (`--quiet` for progress bars and warnings).
-  - Measure whether a smaller driver model (`--driver`) completes experiments as reliably, since the CLI does the substantive work.
+- [ ] Measure whether a smaller driver model (`--driver`) completes experiments as reliably, now that `openinterp next --steps` and `openinterp show` do what the driver used to work out from the skills and the JSON. Compare driver tokens per experiment before and after those landed too (`openinterp costs --session`).
 - [ ] Try prompt compression with LLMLingua ([microsoft/LLMLingua](https://github.com/microsoft/LLMLingua): LLMLingua, LongLLMLingua and LLMLingua-2, which use a small model to drop low-information tokens). Proposer prompts are about 15k tokens, so it could cut cost, but it must never touch the evidence: the token windows and activations are the data, and dropping or merging tokens changes what the proposer explains and the reviewer tests.
   - Compress only the prose parts (methodology, instructions, skill text), offline, and commit the result so prompts stay deterministic and cacheable (see the prompt-caching item below); compressing per call would break the cached prefix.
   - As analysis even if not adopted: LLMLingua's per-token keep scores show which parts of the prompts carry information, a cheap guide to what to trim by hand.

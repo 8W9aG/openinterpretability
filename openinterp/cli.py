@@ -63,7 +63,7 @@ def _load(model_name, device, torch_dtype, revision, attn_implementation):
     tokenizer = AutoTokenizer.from_pretrained(model_name, revision=commit)
     extra = {"attn_implementation": attn_implementation} if attn_implementation else {}
     model = AutoModelForCausalLM.from_pretrained(
-        model_name, torch_dtype=torch_dtype, revision=commit, **extra
+        model_name, dtype=torch_dtype, revision=commit, **extra
     ).to(device)
     model.eval()
     _align_parameters(model)
@@ -198,6 +198,27 @@ def _add_costs(submission, *parts):
     return submission.model_copy(update={"provenance": provenance})
 
 
+def quiet_libraries(quiet: bool) -> None:
+    """Keep Hugging Face and torch noise out of the output agents read.
+
+    Always drop torch's macOS note about redirects; drop progress bars when stderr
+    isn't a terminal or ``quiet``; with ``quiet``, also library warnings. Set before
+    ``transformers`` and ``huggingface_hub`` are imported, which read the environment
+    then; variables the user set win."""
+    import logging
+    import os
+    import sys
+    import warnings
+
+    logging.getLogger("torch.distributed.elastic.multiprocessing.redirects").setLevel(logging.ERROR)
+    if quiet or not sys.stderr.isatty():
+        os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    if quiet:
+        os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+        os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+        warnings.filterwarnings("ignore")
+
+
 def with_model_options(fn):
     for option in reversed(model_options):
         fn = option(fn)
@@ -206,13 +227,21 @@ def with_model_options(fn):
 
 @click.group()
 @click.version_option(package_name="openinterp")
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    help="No progress bars or library warnings. Progress bars are already off when "
+    "stderr isn't a terminal (an agent reading the output).",
+)
 @click.pass_context
-def cli(ctx) -> None:
+def cli(ctx, quiet) -> None:
     """Open Interpretability: agent-audited registry of native neurons."""
     import time
 
     from openinterp.core import costs
 
+    quiet_libraries(quiet)
     costs.reset()
     start = time.perf_counter()
     command = ctx.invoked_subcommand or "openinterp"
