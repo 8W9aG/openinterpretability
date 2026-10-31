@@ -151,35 +151,37 @@ def learned_baseline(con: duckdb.DuckDBPyConnection, draws: Sequence = ()) -> li
         if r["kind"] == "dictionary_feature":
             scan = (r["model_name"], r["corpus_sha256"], r["window_tokens"])
             features.setdefault((*scan, r["dictionary"]), []).append(r)
-    comparisons = []
-    for (*scan, name), latents in sorted(features.items(), key=lambda kv: str(kv[0])):
-        spec = DICTIONARIES.get(name)
-        layers = spec.layers if spec else tuple(sorted({r["layer"] for r in latents}))
-        neurons = [
-            r
-            for r in random
-            if r["kind"] == "mlp_neuron_pole"
-            and (r["model_name"], r["corpus_sha256"], r["window_tokens"]) == tuple(scan)
-            and r["layer"] in layers
-        ]
-        same = [d for d in draws if _scan_of(d) == tuple(scan) and d.identifier.layer in layers]
-        latent_draws = [d for d in same if getattr(d.identifier, "dictionary", None) == name]
-        pole_draws = [d for d in same if d.identifier.kind == "mlp_neuron_pole"]
+    return [
+        _comparison(tuple(scan), name, latents, random, draws)
+        for (*scan, name), latents in sorted(features.items(), key=lambda kv: str(kv[0]))
+    ]
 
-        comparisons.append(
-            Comparison(
-                model_name=scan[0],
-                dictionary=name,
-                layers=layers,
-                corpus_sha256=scan[1],
-                window_tokens=scan[2],
-                features=_arm(latents, latent_draws),
-                neurons=_arm(neurons, pole_draws),
-                positive_poles=_pole_arm(neurons, pole_draws, "positive"),
-                negative_poles=_pole_arm(neurons, pole_draws, "negative"),
-                explained_variance=_mean(r["dictionary_explained_variance"] for r in latents),
-                mean_l0=_mean(r["dictionary_mean_l0"] for r in latents),
-                dead_share=_mean(r["dictionary_dead_share"] for r in latents),
-            )
-        )
-    return comparisons
+
+def _comparison(scan: tuple, name: str, latents, random, draws) -> Comparison:
+    """A dictionary's latents against the native poles from the same scan and layers."""
+    spec = DICTIONARIES.get(name)
+    layers = spec.layers if spec else tuple(sorted({r["layer"] for r in latents}))
+    neurons = [
+        r
+        for r in random
+        if r["kind"] == "mlp_neuron_pole"
+        and (r["model_name"], r["corpus_sha256"], r["window_tokens"]) == scan
+        and r["layer"] in layers
+    ]
+    same = [d for d in draws if _scan_of(d) == scan and d.identifier.layer in layers]
+    latent_draws = [d for d in same if getattr(d.identifier, "dictionary", None) == name]
+    pole_draws = [d for d in same if d.identifier.kind == "mlp_neuron_pole"]
+    return Comparison(
+        model_name=scan[0],
+        dictionary=name,
+        layers=layers,
+        corpus_sha256=scan[1],
+        window_tokens=scan[2],
+        features=_arm(latents, latent_draws),
+        neurons=_arm(neurons, pole_draws),
+        positive_poles=_pole_arm(neurons, pole_draws, "positive"),
+        negative_poles=_pole_arm(neurons, pole_draws, "negative"),
+        explained_variance=_mean(r["dictionary_explained_variance"] for r in latents),
+        mean_l0=_mean(r["dictionary_mean_l0"] for r in latents),
+        dead_share=_mean(r["dictionary_dead_share"] for r in latents),
+    )

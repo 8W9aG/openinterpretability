@@ -131,11 +131,25 @@ REGISTRY_SCHEMA = pa.schema(
 
 
 def record_to_row(record: AuditRecord) -> dict:
-    sub, verdict = record.submission, record.verdict
-    ident = sub.identifier
-    causal = verdict.causal_metrics if verdict else None
-    # A one-token prompt (protocol 0.8) is recorded but not measured, so it isn't a test.
-    tests = [t for t in verdict.adversarial_test_results if t.measured] if verdict else []
+    sub = record.submission
+    return {
+        **_unit_columns(sub.identifier),
+        "model_num_layers": sub.model_num_layers,
+        "model_mlp_width": sub.model_mlp_width,
+        "model_n_heads": sub.model_n_heads,
+        "explanation": sub.natural_language_explanation,
+        "activating_tokens": sub.activating_tokens,
+        "is_lookahead": sub.lookahead.is_lookahead,
+        "target_upcoming_tokens": sub.lookahead.target_upcoming_tokens,
+        "kl_divergence": sub.lookahead.kl_divergence,
+        "max_activation": sub.max_activation,
+        "counterfactuals": [cf.model_dump() for cf in sub.counterfactuals],
+        **_verdict_columns(record),
+        "record_json": record.model_dump_json(),
+    }
+
+
+def _unit_columns(ident) -> dict:
     kind = ident.kind
     return {
         "slug": ident.slug,
@@ -147,50 +161,108 @@ def record_to_row(record: AuditRecord) -> dict:
         "head_idx": ident.head_idx if kind == "attn_head" else None,
         "dictionary": ident.dictionary if kind == "dictionary_feature" else None,
         "feature_idx": ident.feature_idx if kind == "dictionary_feature" else None,
-        "model_num_layers": sub.model_num_layers,
-        "model_mlp_width": sub.model_mlp_width,
-        "model_n_heads": sub.model_n_heads,
-        "explanation": sub.natural_language_explanation,
-        "activating_tokens": sub.activating_tokens,
-        "is_lookahead": sub.lookahead.is_lookahead,
-        "target_upcoming_tokens": sub.lookahead.target_upcoming_tokens,
-        "kl_divergence": sub.lookahead.kl_divergence,
-        "max_activation": sub.max_activation,
-        "counterfactuals": [cf.model_dump() for cf in sub.counterfactuals],
+    }
+
+
+def _verdict_columns(record: AuditRecord) -> dict:
+    verdict = record.verdict
+    causal = verdict.causal_metrics if verdict else None
+    # A one-token prompt (protocol 0.8) is recorded but not measured, so it isn't a test.
+    tests = [t for t in verdict.adversarial_test_results if t.measured] if verdict else []
+    return {
         "status": verdict.status if verdict else None,
         "confidence_score": verdict.confidence_score if verdict else None,
-        "sufficiency_score": causal.sufficiency_score if causal else None,
-        "necessity_score": causal.necessity_score if causal else None,
-        "hydra_mitigated": causal.hydra_mitigated if causal else None,
-        "causal_target": causal.target if causal else None,
+        **_columns(causal, CAUSAL_COLUMNS),
         "tests_total": len(tests),
         "tests_passed": sum(t.passed for t in tests),
-        "submitting_agent_model": sub.submitting_agent_model,
+        "submitting_agent_model": record.submission.submitting_agent_model,
         "reviewer_agent_model": verdict.reviewer_agent_model if verdict else None,
         "self_reviewed": record.self_reviewed if verdict else None,
         "reviewed_at": verdict.timestamp if verdict else None,
-        "record_json": record.model_dump_json(),
     }
+
+
+def _columns(obj, columns: dict[str, str]) -> dict:
+    """``column -> obj.<attribute>`` for each pair in ``columns``; all ``None`` without ``obj``."""
+    return {col: getattr(obj, attr) if obj else None for col, attr in columns.items()}
+
+
+# Parquet column -> attribute, per object a row reads; the order is the column order.
+CAUSAL_COLUMNS = {
+    "sufficiency_score": "sufficiency_score",
+    "necessity_score": "necessity_score",
+    "hydra_mitigated": "hydra_mitigated",
+    "causal_target": "target",
+}
+CONFOUND_COLUMNS = {"token_r2": "token_r2", "position_r2": "position_r2"}
+PARTNER_COLUMNS = {
+    "top_partner_neuron": "neuron_idx",
+    "top_partner_pole": "pole",
+    "top_partner_lift": "coactivation_lift_lower",
+    "top_partner_spearman": "spearman",
+}
+LENS_COLUMNS = {
+    "jacobian_promoted": "jacobian_promoted",
+    "logit_promoted": "logit_promoted",
+    "jacobian_promoted_z": "jacobian_promoted_z",
+    "logit_promoted_z": "logit_promoted_z",
+    "lens_overlap": "overlap",
+    "lens_direction_cosine": "direction_cosine",
+    "jacobian_kurtosis": "jacobian_kurtosis",
+}
+ATTRIBUTION_COLUMNS = {
+    "current_token_share": "current_token_share",
+    "context_mean_distance": "mean_distance",
+    "context_ablation_agreement": "ablation_agreement",
+}
+HEAD_COLUMNS = {
+    "previous_token_score": "previous_token_score",
+    "duplicate_token_score": "duplicate_token_score",
+    "induction_score": "induction_score",
+}
+DICTIONARY_COLUMNS = {
+    "dictionary_explained_variance": "explained_variance",
+    "dictionary_mean_l0": "mean_l0",
+    "dictionary_dead_share": "dead_share",
+    "feature_density": "density",
+}
 
 
 def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
     """``corpus_sources``: committed sidecars by SHA-256 (:func:`openinterp.corpus.load_sources`),
     which give the corpus of records that didn't record one, marked as inferred."""
     sub, verdict = exp.record.submission, exp.record.verdict
-    prov = sub.provenance
-    source = prov.corpus_source if prov else None
-    corpus_sources = corpus_sources or {}
-    inferred = source is None and prov is not None and prov.corpus_sha256 in corpus_sources
-    source = corpus_sources[prov.corpus_sha256] if inferred else source
-    metrics, confounds, joint = verdict.metrics, sub.confounds, verdict.joint_ablation
-    lens, scores, head = sub.vocabulary_lens, verdict.explanation_scores, sub.head_profile
-    dictionary = sub.dictionary_profile
+    metrics, scores = verdict.metrics, verdict.explanation_scores
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None
     attribution = sub.input_attribution
     if attribution is not None and not attribution.examples:
         attribution = None  # every example was skipped: nothing measured
     return {
         **record_to_row(exp.record),
+        **_standing_columns(exp),
+        **_corpus_columns(sub.provenance, corpus_sources or {}),
+        "balanced_accuracy": metrics.balanced_accuracy if metrics else None,
+        "effective_hard_negatives": exp.sig.negatives.clusters,
+        "effective_holdouts": exp.sig.holdouts.clusters,
+        "confound_baseline": metrics.confound_baseline if metrics else None,
+        "confound_baseline_accuracy": metrics.confound_baseline_accuracy if metrics else None,
+        **_columns(sub.confounds, CONFOUND_COLUMNS),
+        **_columns(top, PARTNER_COLUMNS),
+        "redundancy_ratio": verdict.joint_ablation.redundancy_ratio
+        if verdict.joint_ablation
+        else None,
+        **_columns(sub.vocabulary_lens, LENS_COLUMNS),
+        **_columns(attribution, ATTRIBUTION_COLUMNS),
+        "detection_score": _balanced(scores.detection if scores else None),
+        "fuzzing_score": _balanced(scores.fuzzing if scores else None),
+        "embedding_auroc": scores.embedding_auroc if scores else None,
+        **_columns(sub.head_profile, HEAD_COLUMNS),
+        **_columns(sub.dictionary_profile, DICTIONARY_COLUMNS),
+    }
+
+
+def _standing_columns(exp: Experiment) -> dict:
+    return {
         "experiment_id": exp.id,
         "is_latest": exp.is_latest,
         "unit_status": exp.standing.status if exp.standing else None,
@@ -200,45 +272,22 @@ def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
         "evidence_direction": exp.sig.direction,
         "reuses_probes_of": exp.reuses,
         "supersedes": exp.record.submission.supersedes,
-        "selection": sub.provenance.selection if sub.provenance else None,
-        "corpus_sha256": sub.provenance.corpus_sha256 if sub.provenance else None,
+    }
+
+
+def _corpus_columns(prov, corpus_sources: dict) -> dict:
+    """The scan's corpus, inferred from the committed sidecars when the record has none."""
+    source = prov.corpus_source if prov else None
+    inferred = source is None and prov is not None and prov.corpus_sha256 in corpus_sources
+    source = corpus_sources[prov.corpus_sha256] if inferred else source
+    return {
+        "selection": prov.selection if prov else None,
+        "corpus_sha256": prov.corpus_sha256 if prov else None,
         "corpus_dataset": source.dataset if source else None,
         "corpus_revision": source.revision if source else None,
         "corpus_license": source.license if source else None,
         "corpus_source_inferred": inferred if source else None,
-        "window_tokens": sub.provenance.snippet_tokens if sub.provenance else None,
-        "balanced_accuracy": metrics.balanced_accuracy if metrics else None,
-        "effective_hard_negatives": exp.sig.negatives.clusters,
-        "effective_holdouts": exp.sig.holdouts.clusters,
-        "confound_baseline": metrics.confound_baseline if metrics else None,
-        "confound_baseline_accuracy": metrics.confound_baseline_accuracy if metrics else None,
-        "token_r2": confounds.token_r2 if confounds else None,
-        "position_r2": confounds.position_r2 if confounds else None,
-        "top_partner_neuron": top.neuron_idx if top else None,
-        "top_partner_pole": top.pole if top else None,
-        "top_partner_lift": top.coactivation_lift_lower if top else None,
-        "top_partner_spearman": top.spearman if top else None,
-        "redundancy_ratio": joint.redundancy_ratio if joint else None,
-        "jacobian_promoted": lens.jacobian_promoted if lens else None,
-        "logit_promoted": lens.logit_promoted if lens else None,
-        "jacobian_promoted_z": lens.jacobian_promoted_z if lens else None,
-        "logit_promoted_z": lens.logit_promoted_z if lens else None,
-        "lens_overlap": lens.overlap if lens else None,
-        "lens_direction_cosine": lens.direction_cosine if lens else None,
-        "jacobian_kurtosis": lens.jacobian_kurtosis if lens else None,
-        "current_token_share": attribution.current_token_share if attribution else None,
-        "context_mean_distance": attribution.mean_distance if attribution else None,
-        "context_ablation_agreement": attribution.ablation_agreement if attribution else None,
-        "detection_score": _balanced(scores.detection if scores else None),
-        "fuzzing_score": _balanced(scores.fuzzing if scores else None),
-        "embedding_auroc": scores.embedding_auroc if scores else None,
-        "previous_token_score": head.previous_token_score if head else None,
-        "duplicate_token_score": head.duplicate_token_score if head else None,
-        "induction_score": head.induction_score if head else None,
-        "dictionary_explained_variance": dictionary.explained_variance if dictionary else None,
-        "dictionary_mean_l0": dictionary.mean_l0 if dictionary else None,
-        "dictionary_dead_share": dictionary.dead_share if dictionary else None,
-        "feature_density": dictionary.density if dictionary else None,
+        "window_tokens": prov.snippet_tokens if prov else None,
     }
 
 

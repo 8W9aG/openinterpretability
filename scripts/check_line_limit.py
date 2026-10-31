@@ -1,16 +1,29 @@
-"""Fail if any source or documentation file exceeds the line limit.
+"""Fail if any source file or function exceeds its line limit.
 
-Tests, configuration, lockfiles and generated data (audit records and wiki
-pages) are exempt. Run via `make lint`; CI runs it in the lint step.
+Files: at most 500 lines. Tests, configuration, lockfiles and generated data
+(audit records and wiki pages) are exempt.
+
+Functions: at most 40 lines: the signature as one line, plus the body.
+Decorators, the parameter list and the docstring do not count, so long Click
+option lists are free. Tests are exempt, as for files. For the rare function
+that reads better whole, put `# long-function: <reason>` on its `def` line.
+(Ruff warns on unknown `# noqa` codes, so the marker is not a noqa.)
+
+Run via `make lint`; CI runs it in the lint step.
 """
 
 from __future__ import annotations
 
+import ast
+import re
 import subprocess
 import sys
 from fnmatch import fnmatch
+from pathlib import Path
 
 MAX_LINES = 500
+MAX_FUNCTION_LINES = 40
+EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 
 EXEMPT = (
     "tests/*",
@@ -37,9 +50,65 @@ def tracked_files() -> list[str]:
     return [f for f in out.splitlines() if f and not any(fnmatch(f, p) for p in EXEMPT)]
 
 
+def function_lengths(source: str) -> dict[str, tuple[int, bool]]:
+    """Map each function's qualified name to (length, exempt by marker).
+
+    The signature counts as one line, however it is wrapped, so a Click
+    command's parameter list (one per option) doesn't count; nor do the
+    decorators or the docstring. The body counts from the first line after the
+    docstring (or the first statement) to the last line.
+    """
+    lines = source.splitlines()
+    found: dict[str, tuple[int, bool]] = {}
+
+    def visit(node: ast.AST, prefix: str) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
+                name = f"{prefix}{child.name}"
+                first = child.body[0]
+                if (
+                    isinstance(first, ast.Expr)
+                    and isinstance(first.value, ast.Constant)
+                    and isinstance(first.value.value, str)
+                ):
+                    start = first.end_lineno + 1
+                else:
+                    start = first.lineno
+                length = 1 + max(0, child.end_lineno - start + 1)
+                exempt = bool(EXEMPT_MARKER.search(lines[child.lineno - 1]))
+                found[name] = (length, exempt)
+                visit(child, f"{name}.")
+            elif isinstance(child, ast.ClassDef):
+                visit(child, f"{prefix}{child.name}.")
+            else:
+                visit(child, prefix)
+
+    visit(ast.parse(source), "")
+    return found
+
+
+def check_functions(files: list[str]) -> list[str]:
+    errors = []
+    for name in files:
+        if not name.endswith(".py"):
+            continue
+        try:
+            source = Path(name).read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue  # deleted but still tracked
+        for func, (length, exempt) in function_lengths(source).items():
+            if length > MAX_FUNCTION_LINES and not exempt:
+                errors.append(
+                    f"{name}::{func}: {length} lines (max {MAX_FUNCTION_LINES}); split it, "
+                    "or mark the def with `# long-function: <reason>`"
+                )
+    return errors
+
+
 def main() -> int:
+    files = tracked_files()
     too_long = []
-    for name in tracked_files():
+    for name in files:
         try:
             with open(name, encoding="utf-8") as fh:
                 count = sum(1 for _ in fh)
@@ -49,7 +118,10 @@ def main() -> int:
             too_long.append((count, name))
     for count, name in sorted(too_long, reverse=True):
         print(f"{name}: {count} lines (max {MAX_LINES}); split it into smaller modules")
-    return 1 if too_long else 0
+    function_errors = check_functions(files)
+    for error in function_errors:
+        print(error)
+    return 1 if too_long or function_errors else 0
 
 
 if __name__ == "__main__":

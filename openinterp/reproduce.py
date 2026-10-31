@@ -102,9 +102,6 @@ def reproduce_record(
 ) -> ReproductionReport:
     """Reproduce ``record`` with ``runner``. ``corpus`` is (documents, SHA-256 of the
     corpus file), to re-draw the scan's sample from."""
-    from openinterp.agents.proposer import observed_delta
-    from openinterp.agents.reviewer import evaluate_submission, probes_from_verdict
-
     report = ReproductionReport(path=path, record=record)
     reason = check_protocol(record)
     if reason:
@@ -117,6 +114,45 @@ def reproduce_record(
     _compare_environment(record, run_environment(runner), report)
 
     scale = sub.max_activation or 0.0
+    _check_scale(sub, unit, runner, scale, report)
+
+    # 1. Scan evidence.
+    if corpus is not None:
+        _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
+    for n, ex in enumerate(sub.top_examples, 1):
+        _check_example(n, ex, unit, runner, tolerance, scale, report)
+
+    # 2. Counterfactuals as submitted.
+    _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
+
+    # 3. The review, under the record's own policy and reviewer.
+    _compare_verdicts(verdict, _review_again(record, runner), tolerance, scale, report)
+
+    # 4. Explanation scores (reported, not gated): re-measure the windows, keep the answers.
+    if verdict.explanation_scores is not None:
+        _compare_explanation_scores(
+            verdict.explanation_scores, runner, unit, tolerance, scale, report
+        )
+    return report
+
+
+def _review_again(record: AuditRecord, runner):
+    """The record's probes and pairs measured again, under its own policy and reviewer."""
+    from openinterp.agents.reviewer import evaluate_submission, probes_from_verdict
+
+    verdict = record.verdict
+    return evaluate_submission(
+        record.submission,
+        runner,
+        probes_from_verdict(verdict),
+        verdict.reviewer_agent_model,
+        verdict.policy,
+        wire=False,  # reported, not gated: nothing to compare
+    )
+
+
+def _check_scale(sub, unit, runner, scale: float, report) -> None:
+    """``max_activation`` is the top example's peak, and the first-token floor reproduces."""
     peak = max((e.max_activation for e in sub.top_examples), default=None)
     if peak is not None and not math.isclose(scale, peak, rel_tol=1e-9, abs_tol=1e-12):
         report.fail(f"max_activation {scale} is not the top example's peak {peak}")
@@ -130,35 +166,10 @@ def reproduce_record(
         if has_first_token_floor(runner, read, scale, ReviewPolicy()) != sub.first_token_floor:
             report.fail(f"first_token_floor {sub.first_token_floor} does not reproduce")
 
-    # 1. Scan evidence.
-    if corpus is not None:
-        _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
-    for n, ex in enumerate(sub.top_examples, 1):
-        strengths = unit.strengths(runner, ex.text)
-        tokens = runner.encode(ex.text)["input_ids"][0].tolist()
-        words = [runner.tokenizer.decode([i]) for i in tokens] if runner.tokenizer else None
-        if words is not None and words != ex.tokens:
-            report.fail(f"top example {n}: tokens differ from the record")
-            continue
-        values = strengths[0].tolist()
-        report.compared += len(values)
-        bad = [
-            i
-            for i, (a, b) in enumerate(zip(ex.activations, values, strict=False))
-            if not tolerance.close(a, b, scale)
-        ]
-        if len(values) != len(ex.activations) or bad:
-            where = f"token {bad[0]}" if bad else "length"
-            report.fail(
-                f"top example {n}: activations differ at {where} "
-                f"(recorded {ex.activations[bad[0]] if bad else len(ex.activations)}, "
-                f"reproduced {round(values[bad[0]], 6) if bad else len(values)})"
-            )
-        measured = values[int(unit.skip_first) :]
-        if not tolerance.close(ex.max_activation, max(measured, default=0.0), scale):
-            report.fail(f"top example {n}: max_activation differs")
 
-    # 2. Counterfactuals as submitted.
+def _check_counterfactuals(sub, unit, runner, tolerance: Tolerance, scale: float, report):
+    from openinterp.agents.proposer import observed_delta
+
     for n, pair in enumerate(sub.counterfactuals, 1):
         if pair.observed_delta is None or not scale:
             continue
@@ -170,23 +181,32 @@ def reproduce_record(
                 f"reproduced {delta}"
             )
 
-    # 3. The review, under the record's own policy and reviewer.
-    redo = evaluate_submission(
-        sub,
-        runner,
-        probes_from_verdict(verdict),
-        verdict.reviewer_agent_model,
-        verdict.policy,
-        wire=False,  # reported, not gated: nothing to compare
-    )
-    _compare_verdicts(verdict, redo, tolerance, scale, report)
 
-    # 4. Explanation scores (reported, not gated): re-measure the windows, keep the answers.
-    if verdict.explanation_scores is not None:
-        _compare_explanation_scores(
-            verdict.explanation_scores, runner, unit, tolerance, scale, report
+def _check_example(n: int, ex, unit, runner, tolerance: Tolerance, scale: float, report) -> None:
+    """Top example ``n``'s tokens and per-token activations, and its peak."""
+    strengths = unit.strengths(runner, ex.text)
+    tokens = runner.encode(ex.text)["input_ids"][0].tolist()
+    words = [runner.tokenizer.decode([i]) for i in tokens] if runner.tokenizer else None
+    if words is not None and words != ex.tokens:
+        report.fail(f"top example {n}: tokens differ from the record")
+        return
+    values = strengths[0].tolist()
+    report.compared += len(values)
+    bad = [
+        i
+        for i, (a, b) in enumerate(zip(ex.activations, values, strict=False))
+        if not tolerance.close(a, b, scale)
+    ]
+    if len(values) != len(ex.activations) or bad:
+        where = f"token {bad[0]}" if bad else "length"
+        report.fail(
+            f"top example {n}: activations differ at {where} "
+            f"(recorded {ex.activations[bad[0]] if bad else len(ex.activations)}, "
+            f"reproduced {round(values[bad[0]], 6) if bad else len(values)})"
         )
-    return report
+    measured = values[int(unit.skip_first) :]
+    if not tolerance.close(ex.max_activation, max(measured, default=0.0), scale):
+        report.fail(f"top example {n}: max_activation differs")
 
 
 def _check_sample(prov, examples, runner, texts, corpus_sha, report) -> None:
@@ -268,6 +288,11 @@ def _compare_verdicts(old, new, tolerance: Tolerance, scale: float, report) -> N
         if a.passed != b.passed:
             report.fail(f"{label}: recorded passed={a.passed}, reproduced passed={b.passed}")
 
+    _compare_decision(old, new, report)
+
+
+def _compare_decision(old, new, report) -> None:
+    """Gates, balanced accuracy and status must match; causal metrics only warn."""
     if old.metrics is None or old.metrics.gates != new.metrics.gates:
         report.fail(
             f"gates recorded {old.metrics.gates if old.metrics else None}, "

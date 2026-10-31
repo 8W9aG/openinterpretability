@@ -54,36 +54,14 @@ def first_position(runner, layer: int, batch_size: int = 8192) -> torch.Tensor:
 def layer_rows(runner, pieces, layer: int) -> list[dict]:
     """Two passes over ``pieces`` (each pole's maxima, then its shares above its line)
     and one over the vocabulary."""
-
-    def counted():
-        for batch in batches(runner, pieces, BATCH_TOKENS):
-            _, cache = runner.run_with_cache(batch.encoded, [layer])
-            acts = cache[layer].float().cpu()[batch.counted]
-            yield acts, batch.first[batch.counted]
-
     width = runner.mlp_width(layer)
-    top = {(p, w): torch.zeros(width) for p in POLES for w in ("all", "rest")}
-    for acts, first in counted():
-        for pole in POLES:
-            s = strengths(acts, pole)
-            top[pole, "all"] = torch.maximum(top[pole, "all"], s.max(0).values)
-            if (~first).any():
-                top[pole, "rest"] = torch.maximum(top[pole, "rest"], s[~first].max(0).values)
-
+    top = _maxima(_counted(runner, pieces, layer), width)
     vocab = first_position(runner, layer)
     floor = {
         p: (strengths(vocab, p) >= 0.25 * top[p, "rest"]).float().mean(0) >= 0.5 for p in POLES
     }
     scale = {p: torch.where(floor[p], top[p, "rest"], top[p, "all"]) for p in POLES}
-    above = {p: torch.zeros(width) for p in POLES}
-    kept = {p: torch.zeros(width) for p in POLES}
-    for acts, first in counted():
-        for pole in POLES:
-            hot = strengths(acts, pole) >= 0.25 * scale[pole]
-            keep = ~(first.unsqueeze(1) & floor[pole])  # [tokens, width]
-            above[pole] += (hot & keep).sum(0)
-            kept[pole] += keep.sum(0)
-
+    above, kept = _above_line(_counted(runner, pieces, layer), width, scale, floor)
     rows = []
     for pole in POLES:
         share = above[pole] / kept[pole].clamp(min=1)
@@ -101,6 +79,41 @@ def layer_rows(runner, pieces, layer: int) -> list[dict]:
             }
         )
     return rows
+
+
+def _counted(runner, pieces, layer: int):
+    """Each batch's counted tokens: their activations ``[tokens, width]`` and whether each
+    is a piece's first token."""
+    for batch in batches(runner, pieces, BATCH_TOKENS):
+        _, cache = runner.run_with_cache(batch.encoded, [layer])
+        acts = cache[layer].float().cpu()[batch.counted]
+        yield acts, batch.first[batch.counted]
+
+
+def _maxima(counted, width: int) -> dict:
+    """(pole, "all" or "rest") -> each neuron's maximum, over all tokens or all but the first."""
+    top = {(p, w): torch.zeros(width) for p in POLES for w in ("all", "rest")}
+    for acts, first in counted:
+        for pole in POLES:
+            s = strengths(acts, pole)
+            top[pole, "all"] = torch.maximum(top[pole, "all"], s.max(0).values)
+            if (~first).any():
+                top[pole, "rest"] = torch.maximum(top[pole, "rest"], s[~first].max(0).values)
+    return top
+
+
+def _above_line(counted, width: int, scale: dict, floor: dict) -> tuple[dict, dict]:
+    """Per pole, each neuron's count of tokens at or above 0.25 × its scale, and of tokens
+    counted at all (a floored neuron's first tokens are not)."""
+    above = {p: torch.zeros(width) for p in POLES}
+    kept = {p: torch.zeros(width) for p in POLES}
+    for acts, first in counted:
+        for pole in POLES:
+            hot = strengths(acts, pole) >= 0.25 * scale[pole]
+            keep = ~(first.unsqueeze(1) & floor[pole])  # [tokens, width]
+            above[pole] += (hot & keep).sum(0)
+            kept[pole] += keep.sum(0)
+    return above, kept
 
 
 @click.command()

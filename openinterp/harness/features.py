@@ -94,24 +94,9 @@ def scan_feature(
     if f >= dictionary.n_features:
         raise ValueError(f"{ident}: the dictionary has {dictionary.n_features} latents")
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
-
-    confounds = ConfoundAccumulator()
-    top = TopExamples()
-    fit = _Fit()
-    values: list[float] = []
-    first: list[bool] = []
-    for batch in batches(runner, pieces, batch_tokens):
-        x, out = dictionary_io(runner, batch.encoded, layer, spec.input_site)
-        strengths = dictionary.feature(x, f).cpu()
-        counted = batch.counted
-        confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
-        values.extend(strengths[counted].tolist())
-        first.extend(batch.first[counted].tolist())
-        top.update(batch, strengths)
-        # Not a piece's first token: dictionaries aren't trained on that attention sink,
-        # whose error can be 10^8 times the output's variance and would swamp the fit.
-        fitted = (counted & ~batch.first).to(x.device)
-        fit.update(dictionary, x[fitted], out[fitted])
+    confounds, top, fit, values, first = _feature_pass(
+        runner, dictionary, spec, layer, f, pieces, batch_tokens
+    )
     if not values:
         raise ValueError("the corpus has no tokens to scan")
 
@@ -139,6 +124,29 @@ def scan_feature(
         first_token_floor=floor,
         profile=profile,
     )
+
+
+def _feature_pass(runner, dictionary, spec, layer: int, f: int, pieces, batch_tokens: int):
+    """One pass over ``pieces``: confounds, top examples, the dictionary's fit, and each
+    counted token's strength and whether it is a piece's first token."""
+    confounds = ConfoundAccumulator()
+    top = TopExamples()
+    fit = _Fit()
+    values: list[float] = []
+    first: list[bool] = []
+    for batch in batches(runner, pieces, batch_tokens):
+        x, out = dictionary_io(runner, batch.encoded, layer, spec.input_site)
+        strengths = dictionary.feature(x, f).cpu()
+        counted = batch.counted
+        confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
+        values.extend(strengths[counted].tolist())
+        first.extend(batch.first[counted].tolist())
+        top.update(batch, strengths)
+        # Not a piece's first token: dictionaries aren't trained on that attention sink,
+        # whose error can be 10^8 times the output's variance and would swamp the fit.
+        fitted = (counted & ~batch.first).to(x.device)
+        fit.update(dictionary, x[fitted], out[fitted])
+    return confounds, top, fit, values, first
 
 
 @torch.no_grad()

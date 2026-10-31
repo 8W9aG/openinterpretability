@@ -14,26 +14,21 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import duckdb
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder import charts
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
-from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.parquet_export import export_draws, export_registry
+from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
-    LABEL_PREFIX,
-    SIDES,
     Experiment,
     agent_costs,
     build_tree,
     circuits_href,
     false_discovery,
-    feature_href,
-    head_href,
     neuron_href,
 )
 from openinterp.core.exceptions import RegistryError
@@ -199,132 +194,6 @@ def explanation_view(scores, scale: float) -> dict | None:
     return {"s": scores, "detection": detection, "fuzzing": fuzzing, "counts": counts}
 
 
-def _anchor_href(row: dict) -> str:
-    model_slug = row["slug"].split("/", 1)[0]
-    kind, layer = row["kind"], row["layer"]
-    if kind == "attn_head":
-        page = head_href(model_slug, layer, row["head_idx"])
-    elif kind == "dictionary_feature":
-        page = feature_href(model_slug, layer, row["dictionary"], row["feature_idx"])
-    else:
-        page = neuron_href(model_slug, layer, row["neuron_idx"])
-    return f"{page}#{row['pole'] or SIDES[kind][0]}-{row['experiment_id']}"
-
-
-def _unit_label(row: dict) -> str:
-    """``N12``, ``H3`` or ``F40``; templates add the layer and the pole mark."""
-    column = {"attn_head": "head_idx", "dictionary_feature": "feature_idx"}
-    return f"{LABEL_PREFIX[row['kind']]}{row[column.get(row['kind'], 'neuron_idx')]}"
-
-
-RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
-
-
-def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
-    """Totals and leaderboards, queried with DuckDB over the exported parquet."""
-    con = duckdb.connect()
-    con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{parquet.as_posix()}')")
-
-    def rows(sql: str) -> list[dict]:
-        cur = con.execute(sql)
-        cols = [d[0] for d in cur.description]
-        return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
-
-    totals = rows(
-        """
-        SELECT count(*) AS experiments,
-               count(DISTINCT (model_name, layer, neuron_idx))
-                   FILTER (WHERE kind = 'mlp_neuron_pole') AS neurons,
-               count(DISTINCT (model_name, layer, head_idx))
-                   FILTER (WHERE kind = 'attn_head') AS heads,
-               count(DISTINCT slug) FILTER (WHERE kind = 'dictionary_feature') AS features,
-               count(DISTINCT model_name) AS models,
-               -- dictionary features are a baseline, not claims about native units
-               count(DISTINCT slug) FILTER (WHERE unit_status = 'VERIFIED'
-                                            AND kind != 'dictionary_feature') AS verified,
-               count(DISTINCT slug) FILTER (WHERE unit_status = 'VERIFIED'
-                                            AND kind = 'dictionary_feature') AS verified_features,
-               count(DISTINCT slug) FILTER (WHERE unit_status = 'CONTESTED'
-                                            AND kind != 'dictionary_feature') AS contested,
-               count(*) FILTER (WHERE conclusiveness >= 0.9 AND evidence_direction = 'refutes')
-                   AS conclusive_nulls,
-               count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
-               -- a standing rests on self-reviews only when no independent review exists
-               count(DISTINCT slug) FILTER (WHERE counts_toward_status AND self_reviewed
-                                            AND unit_status = 'VERIFIED'
-                                            AND kind != 'dictionary_feature')
-                   AS verified_self_reviewed
-        FROM r
-        """
-    )[0]
-    verified = rows(
-        """
-        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
-               experiment_id,
-               explanation, self_reviewed,
-               confidence_score, sufficiency_score, necessity_score, is_lookahead
-        FROM r
-        WHERE counts_toward_status AND unit_status = 'VERIFIED' AND kind != 'dictionary_feature'
-        QUALIFY row_number() OVER (
-            PARTITION BY slug ORDER BY reviewed_at DESC, experiment_id
-        ) = 1  -- one row per unit: its newest agreeing review
-        ORDER BY confidence_score DESC, slug
-        """
-    )
-    conclusive = rows(
-        """
-        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
-               experiment_id,
-               explanation, status,
-               conclusiveness, evidence_direction
-        FROM r
-        WHERE reuses_probes_of IS NULL  -- re-measurements are not independent evidence
-        QUALIFY row_number() OVER (
-            PARTITION BY slug ORDER BY conclusiveness DESC, reviewed_at DESC, experiment_id
-        ) = 1  -- one row per neuron pole, so repeated experiments don't crowd the list
-        ORDER BY conclusiveness DESC, reviewed_at DESC, slug LIMIT 15
-        """
-    )
-    recent = rows(
-        f"""
-        SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
-               experiment_id,
-               explanation, status,
-               conclusiveness, evidence_direction, submitting_agent_model,
-               -- formatted in SQL: returning TIMESTAMPTZ to Python would need pytz
-               strftime(timezone('UTC', reviewed_at), '%Y-%m-%dT%H:%M:%SZ') AS reviewed_iso,
-               strftime(timezone('UTC', reviewed_at), '%Y-%m-%d') AS reviewed_date,
-               strftime(timezone('UTC', reviewed_at), '%H:%M UTC') AS reviewed_time,
-               reviewer_agent_model, self_reviewed,
-               reuses_probes_of IS NOT NULL AS remeasurement
-        FROM r ORDER BY reviewed_at DESC, slug, experiment_id LIMIT {RECENT_EXPERIMENTS}
-        """
-    )
-    agents = rows(
-        """
-        SELECT submitting_agent_model AS agent, count(*) AS experiments,
-               count(DISTINCT slug)
-                   FILTER (WHERE counts_toward_status AND unit_status = 'VERIFIED') AS verified,
-               count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
-               avg(conclusiveness) AS mean_conclusiveness
-        FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
-        """
-    )
-    baseline = learned_baseline(con, draws)
-    con.close()
-    for row in verified + conclusive + recent:
-        row["href"] = _anchor_href(row)
-        row["unit"] = _unit_label(row)
-    return {
-        "totals": totals,
-        "verified": verified,
-        "conclusive": conclusive,
-        "recent": recent,
-        "agents": agents,
-        "baseline": baseline,
-    }
-
-
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.
 # They are removed before each build so deleted records leave no stale pages.
 OWNED_PATHS = ("index.html", "models", "neurons", "data", "pagefind")
@@ -435,54 +304,11 @@ def compile_site(
     report.parquet = export_registry(experiments, output_dir, corpus_sources)
     export_draws(draws, output_dir)  # random draws no experiment could audit
 
-    env = _environment()
-    common = {
-        "site_title": site_title,
-        "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
-        "version": __version__,
-        # Derived from the data, never the clock: an unchanged registry must rebuild
-        # byte-for-byte so the deploy uploads (and purges) nothing.
-        "updated_at": max((e.record.verdict.timestamp for e in experiments), default=None),
-    }
-
-    def render(rel: str, template: str, **context) -> None:
-        out = output_dir / rel
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(env.get_template(template).render(**common, root=_root_for(rel), **context))
-        report.pages.append(out)
-
+    common = _site_context(site_title, corpus_sources, experiments)
+    render = _Renderer(_environment(), output_dir, common, report)
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
-        found, found_hubs = circuits_and_hubs(model, rows)
-        anchor_of = unit_anchors(found, found_hubs)
-        page = circuits_href(model.slug)
-        render(
-            model.href,
-            "model.html",
-            model=model,
-            circuits=found,
-            hubs=found_hubs,
-            circuits_page=page,
-        )
-        if found or found_hubs:
-            n_units = sum(len(c.units) for c in found)
-            view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
-            render(page, "circuits.html", model=model, **view)
-        for layer in model.layers:
-            render(layer.href, "layer.html", model=model, layer=layer)
-            for neuron in layer.units:
-                anchor = anchor_of.get(neuron.href)
-                circuit = f"{page}#{anchor}" if anchor else None
-                views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
-                render(
-                    neuron.href,
-                    "neuron.html",
-                    model=model,
-                    layer=layer,
-                    neuron=neuron,
-                    views=views,
-                    poles=pole_scans(neuron),
-                )
+        _render_model(render, model, rows, studied)
     render(
         "index.html",
         "index.html",
@@ -498,3 +324,61 @@ def compile_site(
         ],
     )
     return report
+
+
+def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
+    """What every page's template gets."""
+    return {
+        "site_title": site_title,
+        "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
+        "version": __version__,
+        # Derived from the data, never the clock: an unchanged registry must rebuild
+        # byte-for-byte so the deploy uploads (and purges) nothing.
+        "updated_at": max((e.record.verdict.timestamp for e in experiments), default=None),
+    }
+
+
+@dataclass
+class _Renderer:
+    """Renders a template to a path under the output dir, with the site-wide context."""
+
+    env: Environment
+    output_dir: Path
+    common: dict
+    report: BuildReport
+
+    def __call__(self, rel: str, template: str, **context) -> None:
+        out = self.output_dir / rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        page = self.env.get_template(template)
+        out.write_text(page.render(**self.common, root=_root_for(rel), **context))
+        self.report.pages.append(out)
+
+
+def _render_model(render: _Renderer, model, rows: dict, studied: set) -> None:
+    """A model's page, its circuits page (if any), and its layer and unit pages."""
+    found, found_hubs = circuits_and_hubs(model, rows)
+    anchor_of = unit_anchors(found, found_hubs)
+    page = circuits_href(model.slug)
+    render(
+        model.href, "model.html", model=model, circuits=found, hubs=found_hubs, circuits_page=page
+    )
+    if found or found_hubs:
+        n_units = sum(len(c.units) for c in found)
+        view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
+        render(page, "circuits.html", model=model, **view)
+    for layer in model.layers:
+        render(layer.href, "layer.html", model=model, layer=layer)
+        for neuron in layer.units:
+            anchor = anchor_of.get(neuron.href)
+            circuit = f"{page}#{anchor}" if anchor else None
+            views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
+            render(
+                neuron.href,
+                "neuron.html",
+                model=model,
+                layer=layer,
+                neuron=neuron,
+                views=views,
+                poles=pole_scans(neuron),
+            )
