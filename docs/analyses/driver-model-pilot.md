@@ -46,6 +46,28 @@ Input tokens include cache reads, which make up about 97% of them.
 - Every session tried land-experiment's `SHA=$(gh pr view …) && gh pr merge …` and was refused by Claude Code's permission check ("quoted text in this command can't be checked"). Each driver recovered by pasting the SHA in. The skill now uses two separate commands.
 - The three Qwen draws followed up records whose scans used the 552-token built-in sample, not `corpus.jsonl`. The follow-ups inherit those scans' max activation, so their verdicts are as weak as the originals'. This isn't a driver problem: 568 records on 483 units are affected, and it is in TODO under Pipeline.
 
+## Second pilot: Haiku on harder draws
+
+Run the same day, after the first pilot: one `--driver claude-haiku-5-5` loop of 8 experiments, set up as before. I didn't pick the draws. Re-drawing until the planner offers a wanted kind would bias the registry's random-selection statistics. All 8 draws were explores, 5 of them on Qwen.
+
+| # | Unit | Verdict | PR | Turns | Input tokens | Output | Driver cost | Minutes | What happened |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | GPT-2 L2/N2914− | REJECTED | #1419 | 41 | 2.64M | 16.9k | $0.054 | 9.0 | Ran `next` twice and claimed one draw's key with the other's seed; renamed the claim when the scan named the unit. Started a new reviewer for the token check instead of messaging the first. |
+| 2 | Qwen L9/N416+ | NEEDS_REVISION | #1420 | 39 | 2.40M | 14.1k | $0.045 | 34.7 | Clean; waited out a ~25-minute scan |
+| 3 | GPT-2 L1/N2187− | REJECTED | #1428 | 59 | 4.36M | 20.1k | $0.069 | 13.4 | First draw, L10/N965−, stopped as default-on (76% active). Committed its draw record and drew again, but left that PR (#1427) as a draft, so I merged it afterwards. |
+| 4 | Qwen L23/N2950− | VERIFIED | #1430 | 45 | 2.87M | 14.1k | $0.050 | 11.4 | Tried `timeout` (not installed) in a watch, then recovered |
+| 5 | Qwen L23/N2284+ | NEEDS_REVISION | #1433 | 70 | 4.69M | 21.2k | $0.084 | 31.9 | Clean; waited for CI checks to register |
+| 6 | GPT-2 L7/N570+ | VERIFIED | #1438 | 42 | 2.63M | 14.4k | $0.045 | 8.0 | Clean (PR title not in the `experiment: <key> (<kind>)` form) |
+| 7 | Qwen L6/N4564+ | VERIFIED | #1440 | 52 | 3.59M | 15.2k | $0.058 | 17.0 | Clean |
+| 8 | Qwen L17/N2717+ | VERIFIED | #1443 | 43 | 2.58M | 14.8k | $0.045 | 9.9 | Landed, but the final message has no `RESULT` line, so the loop logged "no RESULT line" |
+
+- **Completion.** 8 of 8 experiments landed. Every record has random selection with its seed, `corpus.jsonl` (~200k tokens), the subagents' reported IDs, both judge scores and a signature. One by-product needed a human: the default-on draw's PR, which held a draw record and should have merged.
+- **Cost.** About $0.056 per experiment (median 44 turns, 2.76M input tokens). That is more than the first pilot's $0.04, because Qwen scans meant longer waits and more checks. It is still about 7 times cheaper than Sonnet's first-pilot $0.41, which came from easier draws.
+- **Errors.** Haiku makes more slips than Sonnet did, but it noticed and recovered from each one itself except the draft PR. Fixes from this pilot:
+  - `--steps` now says a stopped scan's PR must be landed, not left as a draft. It said "post it", which Haiku read as "comment on it".
+  - `experiment-loop.sh` runs `uv sync` before each session. A fresh worktree's venv build had buried the first `openinterp next` output, and that is why Haiku ran it twice.
+- **Still untested:** a `revise` or `new_hypothesis` draw (`--supersedes`), a failing CI check and a merge conflict. None came up in 16 draws.
+
 ## Conclusion
 
-A Haiku driver lands easy draws as reliably as Sonnet, at about a tenth of Sonnet's driver cost. Before making it the loop's default, run a second pilot that covers the cases above.
+Over both pilots, Haiku drove 12 experiments and landed 12 of them, at $0.02–0.08 each. These covered Qwen explores with long scan waits and a scan stopped on a default-on unit. It needed one rescue, and that came from an unclear instruction that is now fixed. Its slips are mostly ones it catches itself. A Haiku driver is good enough to be the loop's default. The cases that remain (`--supersedes`, CI failures) are worth watching in the first unattended runs, but they don't need another pilot first: both are spelled out step by step in `--steps` and land-experiment.

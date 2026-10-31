@@ -160,6 +160,8 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
     exit 1
   fi
   git -C "$WORKTREE" switch --quiet --detach origin/main
+  # Build the venv now, so its output doesn't bury the session's first `openinterp next`.
+  (cd "$WORKTREE" && uv sync --quiet) || true
 
   status=0
   (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "$CLAUDE_BIN" "${claude_args[@]}") \
