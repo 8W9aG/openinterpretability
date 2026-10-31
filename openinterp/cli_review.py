@@ -25,7 +25,7 @@ from openinterp.cli import (
     help="Reviewer. LiteLLM model string, or external/<name> to answer a prompt file. "
     "With --probes, the name recorded for whoever wrote them.",
 )
-@click.option("--n-probes", default=16, show_default=True, type=click.IntRange(10, 20))
+@click.option("--n-probes", default=20, show_default=True, type=click.IntRange(10, 20))
 @click.option(
     "--emit-prompt",
     type=click.Path(dir_okay=False, path_type=Path),

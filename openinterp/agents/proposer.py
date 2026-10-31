@@ -153,6 +153,15 @@ def format_head_profile(profile: HeadProfile) -> str:
 
 
 def format_dictionary_profile(profile: DictionaryProfile) -> str:
+    if profile.kind == "basis":  # says nothing of which basis, so a null arm stays blind
+        return (
+            f"This is one direction in this layer's MLP hidden space (one of a basis of "
+            f"{profile.n_features}), read where native neurons are: the input to the down "
+            f"projection. Strength is the positive part of the hidden activations' "
+            f"projection onto it; it writes that strength x the direction, through the "
+            f"down projection, to the MLP output. It is non-zero on {profile.density:.2%} of "
+            f"scanned tokens.\n"
+        )
     residual = profile.output_site == "resid_post"
     output = "the residual stream after this layer" if residual else "the MLP output"
     fit = ""
