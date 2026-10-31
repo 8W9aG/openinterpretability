@@ -59,6 +59,12 @@ def site_hooks(
 
         module = runner.mlp(layer) if site == "mlp_in" else runner.mlp_norm(layer)
         handles.append(module.register_forward_pre_hook(record))
+    elif site == "mlp_hidden":
+
+        def record_hidden(_module, args):
+            seen.append(args[0])
+
+        handles.append(runner.down_proj(layer).register_forward_pre_hook(record_hidden))
     elif site != "mlp_out":
         raise ValueError(f"unknown dictionary site {site!r}")
 
