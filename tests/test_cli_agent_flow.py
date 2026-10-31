@@ -60,6 +60,18 @@ def test_audit_warns_about_a_corpus_without_a_matching_sidecar(flow):
     assert evidence.provenance.corpus_source == source
 
 
+def test_audit_without_corpus_scans_corpus_jsonl_or_fails(flow):
+    args = ["audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--evidence-out", "ev.json"]
+    result = CliRunner().invoke(cli, [str(a) for a in args])
+    assert result.exit_code != 0 and "No --corpus given" in result.output
+    assert not (flow.path / "ev.json").exists()  # never the built-in sample
+
+    (flow.path / "corpus.jsonl").write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    assert "Scanning corpus.jsonl" in run(*args).output
+    evidence = ScanEvidence.model_validate_json((flow.path / "ev.json").read_text())
+    assert evidence.provenance.corpus == "corpus.jsonl"
+
+
 def test_audit_scans_windows_and_records_them(flow):
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--window-tokens", 4, "--evidence-out", "ev.json")  # fmt: skip

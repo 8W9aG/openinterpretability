@@ -45,6 +45,8 @@ class Preset:
     revision: str | None = None  # default branch or tag; pinned to a commit on use
     layout: str | None = None  # how rows become documents (see LAYOUTS); None: one per row
     docs_per_row_group: int = 20
+    # A regular expression whose group, matched in each file glob, is its documents' `lang`.
+    lang_pattern: str | None = None
 
 
 WIKIPEDIA_LANGUAGES = ("en", "de", "fr", "ru", "el", "ar", "hi", "zh", "ja", "ko")
@@ -95,6 +97,7 @@ PRESETS = {
         "wikimedia/wikipedia",
         ",".join(f"20231101.{lang}/train-*.parquet" for lang in WIKIPEDIA_LANGUAGES),
         docs_per_row_group=50,
+        lang_pattern=r"^\d+\.([\w-]+)/",
     ),
 }
 
@@ -136,6 +139,10 @@ def _wikitext_article(rows: Sequence[str | None]) -> str:
 
 # Row layouts other than one document per row: rows of one row group -> its documents.
 LAYOUTS = {"wikitext": wikitext_articles}
+
+# Document fields a corpus may carry besides "text", and the label set each gives the scan
+# (`harness/annotations.py`). Exact labels from the dataset, never detected.
+DOCUMENT_LABELS = {"lang": "language"}
 
 
 def source_path(corpus_path: Path) -> Path:
@@ -214,10 +221,15 @@ def _read_groups(fs, groups, column: str) -> Iterator[list]:
             yield pq.ParquetFile(fh).read_row_group(i, columns=[column]).column(column).to_pylist()
 
 
-def jsonl_bytes(texts: Sequence[str], ascii: bool = False) -> bytes:
-    """``texts`` as a JSONL corpus: one ``{"text": ...}`` per line, with non-ASCII
+def jsonl_bytes(
+    texts: Sequence[str], ascii: bool = False, labels: dict[str, Sequence[str]] | None = None
+) -> bytes:
+    """``texts`` as a JSONL corpus: one ``{"text": ...}`` per line, with each of ``labels``
+    (a field of :data:`DOCUMENT_LABELS` -> one value per document) after it, and non-ASCII
     characters \\u-escaped if ``ascii``."""
-    return "".join(json.dumps({"text": t}, ensure_ascii=ascii) + "\n" for t in texts).encode()
+    labels = labels or {}
+    rows = ({"text": t} | {k: v[i] for k, v in labels.items()} for i, t in enumerate(texts))
+    return "".join(json.dumps(row, ensure_ascii=ascii) + "\n" for row in rows).encode()
 
 
 def sample_tokens(
@@ -225,6 +237,14 @@ def sample_tokens(
 ) -> tuple[list[str], CorpusSample]:
     """A seeded sample of whole documents with at most ``max_tokens`` tokens (see
     :class:`CorpusSample`), in corpus order, and its description."""
+    picked, sample = sample_indices(tokenizer, texts, max_tokens, seed)
+    return [texts[i] for i in picked], sample
+
+
+def sample_indices(
+    tokenizer, texts: Sequence[str], max_tokens: int, seed: int
+) -> tuple[list[int], CorpusSample]:
+    """:func:`sample_tokens`, as the sampled documents' indices in corpus order."""
     if not texts:
         raise ValueError("the corpus has no documents to sample")
     order = random.Random(seed).sample(range(len(texts)), len(texts))
@@ -236,8 +256,9 @@ def sample_tokens(
             continue  # a shorter document later in the order may still fit
         picked.append(i)
         total += n
-    sample = [texts[i] for i in sorted(picked)]
-    return sample, CorpusSample(
+    picked.sort()
+    sample = [texts[i] for i in picked]
+    return picked, CorpusSample(
         seed=seed,
         max_tokens=max_tokens,
         documents=len(sample),
@@ -247,10 +268,13 @@ def sample_tokens(
     )
 
 
-def write_corpus(texts: list[str], out: Path, *, ascii: bool = False, **source) -> CorpusSource:
-    """Write the JSONL corpus and its source sidecar; returns the source."""
+def write_corpus(
+    texts: list[str], out: Path, *, ascii: bool = False, labels=None, **source
+) -> CorpusSource:
+    """Write the JSONL corpus (with each document's ``labels``) and its source sidecar;
+    returns the source."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = jsonl_bytes(texts, ascii)
+    data = jsonl_bytes(texts, ascii, labels)
     out.write_bytes(data)
     record = CorpusSource(
         documents=len(texts), sha256=hashlib.sha256(data).hexdigest(), ascii=ascii, **source
@@ -296,9 +320,11 @@ def build_from_hub(
     layout: str | None = None,
     first: bool = False,
     ascii: bool = False,
+    lang_pattern: str | None = None,
 ) -> CorpusSource:
     """Sample a corpus from a Hugging Face dataset at a pinned revision, or with ``first``
-    take its first documents."""
+    take its first documents. With ``lang_pattern`` (see :class:`Preset`), each document
+    records its glob's language as ``lang``."""
     from huggingface_hub import HfApi, HfFileSystem
 
     api = HfApi()
@@ -306,9 +332,8 @@ def build_from_hub(
     license_ = _license(api, dataset, info, revision)
     fs = HfFileSystem()
     read = {"text_column": text_column, "max_chars": max_chars, "layout": layout}
-    texts = []
-    # Several globs (e.g. one per language): an equal share of the documents from each, the
-    # first globs taking any remainder, in the order given.
+    texts, langs = [], []
+    # Several globs (e.g. one per language): an equal share from each, the first taking extras.
     globs = files.split(",")
     for i, glob in enumerate(globs):
         paths = fs.glob(f"datasets/{dataset}@{info.sha}/{glob}")
@@ -321,9 +346,11 @@ def build_from_hub(
             texts += sample_documents(
                 fs, paths, documents=share, seed=seed, docs_per_row_group=docs_per_row_group, **read
             )
+        langs += [_glob_lang(lang_pattern, glob)] * (len(texts) - len(langs))
     return write_corpus(
         texts,
         out,
+        labels={"lang": langs} if lang_pattern else None,
         dataset=dataset,
         revision=info.sha,
         files=files,
@@ -334,8 +361,16 @@ def build_from_hub(
         layout=layout,
         first=first,
         ascii=ascii,
+        lang_pattern=lang_pattern,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )
+
+
+def _glob_lang(pattern: str | None, glob: str) -> str | None:
+    match = re.search(pattern, glob) if pattern else None
+    if pattern and match is None:
+        raise ValueError(f"{glob!r} names no language under the pattern {pattern!r}")
+    return match.group(1) if match else None
 
 
 def _license(api, dataset: str, info, revision: str | None):

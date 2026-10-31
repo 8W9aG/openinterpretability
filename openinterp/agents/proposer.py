@@ -376,9 +376,15 @@ def format_lens(lens: VocabularyLens, identifier: ComponentIdentifier) -> str:
 
 def format_confounds(confounds: ConfoundProfile) -> str:
     top = ", ".join(repr(t.token) for t in confounds.trigger_tokens[:10])
+    labels = "".join(
+        f" {name.capitalize()} explains {c.r2:.0%} ({c.mutual_information_bits:.3f} bits); "
+        f"active tokens by {name}: "
+        f"{', '.join(f'{s.label} {s.active}/{s.count}' for s in c.levels[:10])}."
+        for name, c in (confounds.labels or {}).items()
+    )
     return (
         f"\nConfounds: token identity explains {confounds.token_r2:.0%} of activation "
-        f"variance, position {confounds.position_r2:.0%}. Highest mean-activation "
+        f"variance, position {confounds.position_r2:.0%}.{labels} Highest mean-activation "
         f"tokens: {top}. Your hypothesis must predict activity better than "
         f"'fires on these tokens'.\n"
     )
