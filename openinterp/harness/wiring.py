@@ -183,70 +183,83 @@ class Target:
 
 
 def target_of(runner: NeuronHookRunner, unit: Unit) -> Target:
-    layer = unit.ident.layer
     if isinstance(unit, NeuronUnit):
-        idx, pole = unit.ident.neuron_idx, unit.ident.pole
-        reads = {c: r[idx][None] for c, r in mlp_reads(runner, layer).items()}
-        w_out = runner.neuron_output_direction(layer, idx).float()
-        return Target(
-            layer,
-            "mlp_in",
-            reads,
-            -w_out if pole == "negative" else w_out,
-            strength=lambda x: pole_strength(_mlp_activations(runner, layer, x)[..., idx], pole),
-            written=lambda cap: (
-                isolate_pole(cap["acts"][layer][..., idx], pole)[..., None]
-                * w_out.to(cap["acts"][layer].device)
-            ),
-        )
+        return _neuron_target(runner, unit)
     if isinstance(unit, FeatureUnit):
-        dictionary, f = unit.dictionary(runner), unit.ident.feature_idx
-        site = unit.profile.input_site
-        norm = runner.mlp_norm(layer) if site in ("mlp_in", "mlp_in_normalized") else None
-        read = dictionary.w_enc[:, f].float()[None]
-        if norm is not None:  # back through the norm, without its gain if normalised
-            read = _fold(norm, read, gain=site == "mlp_in")
-
-        def feature(x: torch.Tensor) -> torch.Tensor:
-            if site == "mlp_in":  # the norm itself, in the model's dtype
-                x = norm(x.to(norm.weight.dtype)).float()
-            elif norm is not None:
-                x = normalize_without_affine(norm, x)
-            return dictionary.feature(x, f)
-
-        w_dec = dictionary.w_dec[f].float()
-        return Target(
-            layer,
-            site if site in ("mlp_out", "resid_post") else "mlp_in",
-            {"in": read},
-            w_dec,
-            strength=feature,
-            written=lambda cap: feature(cap["read"])[..., None] * w_dec.to(cap["read"].device),
-        )
+        return _feature_target(runner, unit)
     if isinstance(unit, HeadUnit):
-        reads = attention_reads(runner, layer)
-        if reads is None:
-            raise ArchitectureNotSupportedError("this model's attention reads aren't supported")
-        h = unit.ident.head_idx
-        w_o = runner.head_output_weights(layer, h).float()  # [d, hd]
-        mean = torch.tensor(unit.mean_output, dtype=torch.float32)
-
-        def head_write(cap):
-            z = cap["z"][layer]
-            z = z.reshape(*z.shape[:-1], runner.n_heads, -1)[..., h, :]
-            return (z - mean.to(z.device)) @ w_o.T.to(z.device)
-
-        return Target(
-            layer,
-            "attn_in",
-            {c: r[h] for c, r in reads.items()},
-            w_o,
-            strength=None,
-            written=head_write,
-            head=h,
-            mean_output=mean,
-        )
+        return _head_target(runner, unit)
     raise TypeError(f"no wiring for {type(unit).__name__}")
+
+
+def _neuron_target(runner: NeuronHookRunner, unit: NeuronUnit) -> Target:
+    layer, idx, pole = unit.ident.layer, unit.ident.neuron_idx, unit.ident.pole
+    reads = {c: r[idx][None] for c, r in mlp_reads(runner, layer).items()}
+    w_out = runner.neuron_output_direction(layer, idx).float()
+    return Target(
+        layer,
+        "mlp_in",
+        reads,
+        -w_out if pole == "negative" else w_out,
+        strength=lambda x: pole_strength(_mlp_activations(runner, layer, x)[..., idx], pole),
+        written=lambda cap: (
+            isolate_pole(cap["acts"][layer][..., idx], pole)[..., None]
+            * w_out.to(cap["acts"][layer].device)
+        ),
+    )
+
+
+def _feature_target(runner: NeuronHookRunner, unit: FeatureUnit) -> Target:
+    layer = unit.ident.layer
+    dictionary, f = unit.dictionary(runner), unit.ident.feature_idx
+    site = unit.profile.input_site
+    norm = runner.mlp_norm(layer) if site in ("mlp_in", "mlp_in_normalized") else None
+    read = dictionary.w_enc[:, f].float()[None]
+    if norm is not None:  # back through the norm, without its gain if normalised
+        read = _fold(norm, read, gain=site == "mlp_in")
+
+    def feature(x: torch.Tensor) -> torch.Tensor:
+        if site == "mlp_in":  # the norm itself, in the model's dtype
+            x = norm(x.to(norm.weight.dtype)).float()
+        elif norm is not None:
+            x = normalize_without_affine(norm, x)
+        return dictionary.feature(x, f)
+
+    w_dec = dictionary.w_dec[f].float()
+    return Target(
+        layer,
+        site if site in ("mlp_out", "resid_post") else "mlp_in",
+        {"in": read},
+        w_dec,
+        strength=feature,
+        written=lambda cap: feature(cap["read"])[..., None] * w_dec.to(cap["read"].device),
+    )
+
+
+def _head_target(runner: NeuronHookRunner, unit: HeadUnit) -> Target:
+    layer = unit.ident.layer
+    reads = attention_reads(runner, layer)
+    if reads is None:
+        raise ArchitectureNotSupportedError("this model's attention reads aren't supported")
+    h = unit.ident.head_idx
+    w_o = runner.head_output_weights(layer, h).float()  # [d, hd]
+    mean = torch.tensor(unit.mean_output, dtype=torch.float32)
+
+    def head_write(cap):
+        z = cap["z"][layer]
+        z = z.reshape(*z.shape[:-1], runner.n_heads, -1)[..., h, :]
+        return (z - mean.to(z.device)) @ w_o.T.to(z.device)
+
+    return Target(
+        layer,
+        "attn_in",
+        {c: r[h] for c, r in reads.items()},
+        w_o,
+        strength=None,
+        written=head_write,
+        head=h,
+        mean_output=mean,
+    )
 
 
 def _upstream_layers(t: Target) -> tuple[range, range]:
@@ -326,39 +339,10 @@ def weight_wiring(runner: NeuronHookRunner, unit: Unit, *, k: int = 10) -> Wirin
         for i in neuron_layers
     ]
     attention = _has_attention(runner)
-    up_heads = None
-    if attention:
-        up_heads = []
-        for i in head_layers:
-            ov = torch.einsum(
-                "ndz,nzh->ndh", _head_outputs(runner, i), attention_reads(runner, i)["v"]
-            )
-            # [n, d, d]: each head's OV circuit, read by each channel.
-            up_heads.append(
-                (i, torch.stack([(reads[c] @ ov).flatten(1).norm(dim=-1) for c in channels], -1))
-            )
-        up_heads = _top("attn_head", up_heads, channels, k)
-
-    write = t.write
+    up_heads = _upstream_heads(runner, reads, head_layers, k) if attention else None
     neuron_layers, head_layers = _downstream_layers(runner, t)
-    down_neurons, down_channels = [], [""]
-    for i in neuron_layers:
-        later = mlp_reads(runner, i)
-        if write.dim() == 1:
-            scores = [later[c] @ write for c in later]
-        else:
-            scores = [(later[c] @ write).norm(dim=-1) for c in later]
-        down_neurons.append((i, torch.stack(scores, -1)))
-        down_channels = list(later)
-    down_heads = None
-    if attention:
-        down_heads = []
-        for i in head_layers:
-            qkv = attention_reads(runner, i)
-            down_heads.append(
-                (i, torch.stack([(qkv[c] @ write).flatten(1).norm(dim=-1) for c in QKV], -1))
-            )
-        down_heads = _top("attn_head", down_heads, list(QKV), k)
+    down_neurons, down_channels = _downstream_neurons(runner, t.write, neuron_layers)
+    down_heads = _downstream_heads(runner, t.write, head_layers, k) if attention else None
     return Wiring(
         method="weights",
         upstream_neurons=_top("mlp_neuron", up_neurons, channels, k),
@@ -366,6 +350,40 @@ def weight_wiring(runner: NeuronHookRunner, unit: Unit, *, k: int = 10) -> Wirin
         downstream_neurons=_top("mlp_neuron", down_neurons, down_channels, k),
         downstream_heads=down_heads,
     )
+
+
+def _upstream_heads(runner: NeuronHookRunner, reads: dict, layers, k: int):
+    channels = list(reads)
+    found = []
+    for i in layers:
+        ov = torch.einsum("ndz,nzh->ndh", _head_outputs(runner, i), attention_reads(runner, i)["v"])
+        # [n, d, d]: each head's OV circuit, read by each channel.
+        found.append(
+            (i, torch.stack([(reads[c] @ ov).flatten(1).norm(dim=-1) for c in channels], -1))
+        )
+    return _top("attn_head", found, channels, k)
+
+
+def _downstream_neurons(runner: NeuronHookRunner, write: torch.Tensor, layers):
+    """Each later layer's neurons' read of ``write``, per channel, and the channel names."""
+    found, channels = [], [""]
+    for i in layers:
+        later = mlp_reads(runner, i)
+        if write.dim() == 1:
+            scores = [later[c] @ write for c in later]
+        else:
+            scores = [(later[c] @ write).norm(dim=-1) for c in later]
+        found.append((i, torch.stack(scores, -1)))
+        channels = list(later)
+    return found, channels
+
+
+def _downstream_heads(runner: NeuronHookRunner, write: torch.Tensor, layers, k: int):
+    found = []
+    for i in layers:
+        qkv = attention_reads(runner, i)
+        found.append((i, torch.stack([(qkv[c] @ write).flatten(1).norm(dim=-1) for c in QKV], -1)))
+    return _top("attn_head", found, list(QKV), k)
 
 
 # -- from activations -----------------------------------------------------------------------

@@ -88,58 +88,17 @@ def verify(
     them with --explanation-scores; in one step (no --probes), they are measured here.
     """
     from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
-    from openinterp.cli import (
-        _add_costs,
-        _clear_costs,
-        _load_unit_runner,
-        _skip_wiki,
-        _write_copy,
-        _write_wiki,
-    )
-    from openinterp.cli_evidence import answer_path
+    from openinterp.agents.reviewer import ReviewerAgent
+    from openinterp.cli import _add_costs, _load_unit_runner, _write_copy, _write_wiki
     from openinterp.cli_score import load_scores, score_submission
-    from openinterp.core import costs
-    from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
+    from openinterp.core.schemas import AuditRecord
 
-    raw = audit_file.read_text()
-    if "submission" in json.loads(raw):  # an existing audit record: re-review its submission
-        submission = AuditRecord.model_validate_json(raw).submission
-        submission = _clear_costs(submission)  # its audit belonged to another experiment
-    else:
-        submission = NeuronAuditSubmission.model_validate_json(raw)
+    submission = load_submission(audit_file)
     if emit_prompt is not None:
-        answer = answer_path(emit_prompt, ".probes.json")
-        task = ReviewerAgent.probe_prompt(submission, n=n_probes, full_snippets=full_snippets)
-        emit_prompt.parent.mkdir(parents=True, exist_ok=True)
-        emit_prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, answer))
-        click.echo(f"Reviewer prompt: {emit_prompt} (answer in {answer})")
-        return
+        return write_review_prompt(submission, emit_prompt, n_probes, full_snippets)
     if check_probes is not None:
-        from transformers import AutoTokenizer
-
-        probes = ProbeSet.model_validate_json(check_probes.read_text()).probes
-        revision = submission.provenance and submission.provenance.model_revision
-        tokenizer = AutoTokenizer.from_pretrained(
-            submission.identifier.model_name, revision=revision
-        )
-        task = ReviewerAgent.token_check_prompt(submission, probes, tokenizer)
-        stem = check_probes.name.removesuffix(".json").removesuffix(".probes")
-        prompt = check_probes.with_name(stem + ".check.prompt.md")
-        prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, check_probes))
-        click.echo(f"Token check: {prompt} (answer by rewriting {check_probes})")
-        return
-    if _skip_wiki(wiki_dir) and out is None:
-        raise click.UsageError("--out is required when --wiki-dir '' skips the registry.")
-    if probes_file is not None and not agent_model:
-        raise click.UsageError(
-            "--agent-model is required with --probes: name the model that wrote them."
-        )
-    if scores_file is None and (probes_file is not None or corpus is None):
-        raise click.UsageError(
-            "--explanation-scores is required (from `openinterp score`, docs/PROTOCOL.md §4); "
-            "without --probes, --corpus <the scan's corpus> also works."
-        )
+        return write_token_check(submission, check_probes)
+    check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus)
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     if reviewer.model == submission.submitting_agent_model:
@@ -149,16 +108,7 @@ def verify(
             "reviewer model is preferred (docs/PROTOCOL.md §2).",
             err=True,
         )
-    if probes_file is not None:
-        probes = ProbeSet.model_validate_json(probes_file.read_text()).probes
-        # --emit-prompt review.prompt.md is answered in review.probes.json.
-        stem = probes_file.name.removesuffix(".probes.json")
-        prompt_file = probes_file.with_name(stem + ".prompt.md")
-        costs.add_external("reviewer", reviewer.model, prompt_file, probes_file)
-    else:
-        click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
-        probe_set = reviewer.generate_probes(submission, n=n_probes, full_snippets=full_snippets)
-        probes = probe_set.probes
+    probes = review_probes(reviewer, submission, probes_file, n_probes, full_snippets)
     runner = _load_unit_runner(submission.identifier, device, dtype)
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
@@ -172,6 +122,76 @@ def verify(
     click.echo(f"{verdict.status} (confidence {verdict.confidence_score:.2f}) — {verdict.notes}")
     _write_copy(record, out)
     _write_wiki(record, wiki_dir, kind="review")
+
+
+def load_submission(audit_file: Path):
+    """The submission in ``audit_file``, or the one an existing audit record re-reviews."""
+    from openinterp.cli import _clear_costs
+    from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission
+
+    raw = audit_file.read_text()
+    if "submission" in json.loads(raw):  # an existing audit record: re-review its submission
+        submission = AuditRecord.model_validate_json(raw).submission
+        return _clear_costs(submission)  # its audit belonged to another experiment
+    return NeuronAuditSubmission.model_validate_json(raw)
+
+
+def write_review_prompt(submission, emit_prompt: Path, n_probes: int, full_snippets: bool):
+    from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
+    from openinterp.cli_evidence import answer_path
+
+    answer = answer_path(emit_prompt, ".probes.json")
+    task = ReviewerAgent.probe_prompt(submission, n=n_probes, full_snippets=full_snippets)
+    emit_prompt.parent.mkdir(parents=True, exist_ok=True)
+    emit_prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, answer))
+    click.echo(f"Reviewer prompt: {emit_prompt} (answer in {answer})")
+
+
+def write_token_check(submission, check_probes: Path):
+    from transformers import AutoTokenizer
+
+    from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
+
+    probes = ProbeSet.model_validate_json(check_probes.read_text()).probes
+    revision = submission.provenance and submission.provenance.model_revision
+    tokenizer = AutoTokenizer.from_pretrained(submission.identifier.model_name, revision=revision)
+    task = ReviewerAgent.token_check_prompt(submission, probes, tokenizer)
+    stem = check_probes.name.removesuffix(".json").removesuffix(".probes")
+    prompt = check_probes.with_name(stem + ".check.prompt.md")
+    prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, check_probes))
+    click.echo(f"Token check: {prompt} (answer by rewriting {check_probes})")
+
+
+def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus) -> None:
+    from openinterp.cli import _skip_wiki
+
+    if _skip_wiki(wiki_dir) and out is None:
+        raise click.UsageError("--out is required when --wiki-dir '' skips the registry.")
+    if probes_file is not None and not agent_model:
+        raise click.UsageError(
+            "--agent-model is required with --probes: name the model that wrote them."
+        )
+    if scores_file is None and (probes_file is not None or corpus is None):
+        raise click.UsageError(
+            "--explanation-scores is required (from `openinterp score`, docs/PROTOCOL.md §4); "
+            "without --probes, --corpus <the scan's corpus> also works."
+        )
+
+
+def review_probes(reviewer, submission, probes_file, n_probes: int, full_snippets: bool):
+    """The probes in ``probes_file`` (an external reviewer's), or the reviewer LLM's."""
+    from openinterp.agents.reviewer import ProbeSet
+    from openinterp.core import costs
+
+    if probes_file is not None:
+        probes = ProbeSet.model_validate_json(probes_file.read_text()).probes
+        # --emit-prompt review.prompt.md is answered in review.probes.json.
+        stem = probes_file.name.removesuffix(".probes.json")
+        prompt_file = probes_file.with_name(stem + ".prompt.md")
+        costs.add_external("reviewer", reviewer.model, prompt_file, probes_file)
+        return probes
+    click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
+    return reviewer.generate_probes(submission, n=n_probes, full_snippets=full_snippets).probes
 
 
 cli.add_command(verify, name="review")

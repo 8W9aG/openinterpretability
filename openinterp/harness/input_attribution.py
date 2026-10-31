@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from contextlib import suppress
+from dataclasses import dataclass
 
 import torch
 
@@ -224,87 +225,123 @@ def input_attribution(
     """
     if runner.tokenizer is None:
         raise ValueError("input_attribution requires a tokenizer")
-    tokenizer = runner.tokenizer
-    base_id = baseline_token_id(tokenizer)
+    base_id = baseline_token_id(runner.tokenizer)
     baseline = runner.model.get_input_embeddings().weight[base_id].detach()
     args = (layer, neuron_idx, pole)
-
+    settings = _Settings(steps, max_steps, tolerance, top_k, near, batch_size, skip_first)
     results: list[ContextExample] = []
     band_shares: list[list[float]] = []
     distances: list[float] = []
     checked_attr: list[float] = []
     checked_effect: list[float] = []
     for n, example in enumerate(examples[:n_examples]):
-        ids = runner.encode(example.text)["input_ids"][:1]
-        with torch.no_grad():
-            values = _pole_values(runner, ids, *args, lambda _out: None)[0]
-            start = int(skip_first and len(values) > 1)
-            peak = start + int(values[start:].argmax())
-            ids = ids[:, : peak + 1]
-            empty = _pole_values(
-                runner, ids, *args, lambda out, keep=peak > 0: reference(out, baseline, keep)
-            )
-        gap = float(values[peak] - empty[0, -1])
-        if gap <= 1e-6:
-            continue  # the reference input activates the pole as much: nothing to attribute
-
-        attr, used = _converged_attribution(
-            runner, ids, args, baseline, gap, steps, max_steps, tolerance
-        )
-        error = abs(float(attr.sum()) - 1.0)
-        top = attr.abs().topk(min(top_k, len(attr))).indices.tolist()
-        checked = sorted(set(top) | set(range(max(0, peak - near), peak + 1)))
-        ablated = ablate_positions(runner, ids, *args, baseline, checked, batch_size=batch_size)
-        effect = dict(
-            zip(checked, ((float(values[peak]) - ablated.cpu()) / gap).tolist(), strict=True)
-        )
-        if error <= tolerance:
-            checked_attr += [float(attr[i]) for i in checked]
-            checked_effect += [effect[i] for i in checked]
-            shares, mean_distance = _distance_shares(attr)
+        found = _attribute_example(runner, n, example, args, baseline, settings)
+        if found is None:
+            continue
+        result, converged = found
+        results.append(result)
+        if converged is not None:
+            attrs, effects, shares, mean_distance = converged
+            checked_attr += attrs
+            checked_effect += effects
             band_shares.append(shares)
             distances.append(mean_distance)
-        token_ids = ids[0].tolist()
-        results.append(
-            ContextExample(
-                example=n,
-                peak_token=tokenizer.decode([token_ids[peak]]),
-                tokens=peak + 1,
-                steps=used,
-                converged=error <= tolerance,
-                completeness_error=round(error, 4),
-                top=[
-                    AttributedToken(
-                        offset=i - peak,
-                        token=tokenizer.decode([token_ids[i]]),
-                        attribution=round(float(attr[i]), 4),
-                        ablation_effect=round(effect[i], 4),
-                    )
-                    for i in top
-                ],
-            )
-        )
-
     agreement = (
         spearman(torch.tensor(checked_attr), torch.tensor(checked_effect))
         if len(checked_attr) >= 3
         else None
     )
-    count = len(band_shares)
     return InputAttribution(
-        baseline_token=tokenizer.decode([base_id]),
+        baseline_token=runner.tokenizer.decode([base_id]),
         tolerance=tolerance,
         examples=results,
-        distances=[
-            DistanceShare(
-                min_distance=low,
-                max_distance=high,
-                share=round(min(1.0, sum(s[b] for s in band_shares) / count), 4),
-            )
-            for b, (low, high) in enumerate(DISTANCE_BANDS)
-        ]
-        if count
-        else [],
-        mean_distance=round(sum(distances) / count, 2) if count else None,
+        distances=_band_shares(band_shares),
+        mean_distance=round(sum(distances) / len(distances), 2) if distances else None,
         ablation_agreement=round(agreement, 4) if agreement is not None else None,
     )
+
+
+@dataclass(frozen=True)
+class _Settings:
+    """``input_attribution``'s options, as one example needs them."""
+
+    steps: int
+    max_steps: int
+    tolerance: float
+    top_k: int
+    near: int
+    batch_size: int
+    skip_first: bool
+
+
+def _attribute_example(runner, n: int, example, args, baseline, settings: _Settings):
+    """(the example's ContextExample, and if it converged its checked attributions, ablation
+    effects, distance-band shares and mean distance); ``None`` if there is no gap."""
+    ids, values, peak, gap = _peak_gap(runner, example, args, baseline, settings.skip_first)
+    if gap <= 1e-6:
+        return None  # the reference input activates the pole as much: nothing to attribute
+    tolerance = settings.tolerance
+    attr, used = _converged_attribution(
+        runner, ids, args, baseline, gap, settings.steps, settings.max_steps, tolerance
+    )
+    error = abs(float(attr.sum()) - 1.0)
+    top = attr.abs().topk(min(settings.top_k, len(attr))).indices.tolist()
+    checked = sorted(set(top) | set(range(max(0, peak - settings.near), peak + 1)))
+    ablated = ablate_positions(
+        runner, ids, *args, baseline, checked, batch_size=settings.batch_size
+    )
+    effect = dict(zip(checked, ((float(values[peak]) - ablated.cpu()) / gap).tolist(), strict=True))
+    converged = None
+    if error <= tolerance:
+        shares, mean_distance = _distance_shares(attr)
+        attrs = [float(attr[i]) for i in checked]
+        converged = (attrs, [effect[i] for i in checked], shares, mean_distance)
+    tokenizer, token_ids = runner.tokenizer, ids[0].tolist()
+    result = ContextExample(
+        example=n,
+        peak_token=tokenizer.decode([token_ids[peak]]),
+        tokens=peak + 1,
+        steps=used,
+        converged=error <= tolerance,
+        completeness_error=round(error, 4),
+        top=[
+            AttributedToken(
+                offset=i - peak,
+                token=tokenizer.decode([token_ids[i]]),
+                attribution=round(float(attr[i]), 4),
+                ablation_effect=round(effect[i], 4),
+            )
+            for i in top
+        ],
+    )
+    return result, converged
+
+
+def _peak_gap(runner, example, args, baseline, skip_first: bool):
+    """The example cut at its peak, its pole values, the peak, and the gap between the peak
+    and the reference input's activation there."""
+    ids = runner.encode(example.text)["input_ids"][:1]
+    with torch.no_grad():
+        values = _pole_values(runner, ids, *args, lambda _out: None)[0]
+        start = int(skip_first and len(values) > 1)
+        peak = start + int(values[start:].argmax())
+        ids = ids[:, : peak + 1]
+        empty = _pole_values(
+            runner, ids, *args, lambda out, keep=peak > 0: reference(out, baseline, keep)
+        )
+    return ids, values, peak, float(values[peak] - empty[0, -1])
+
+
+def _band_shares(band_shares: list[list[float]]) -> list[DistanceShare]:
+    """Each distance band's mean share of the attribution, over the converged examples."""
+    count = len(band_shares)
+    if not count:
+        return []
+    return [
+        DistanceShare(
+            min_distance=low,
+            max_distance=high,
+            share=round(min(1.0, sum(s[b] for s in band_shares) / count), 4),
+        )
+        for b, (low, high) in enumerate(DISTANCE_BANDS)
+    ]

@@ -91,16 +91,7 @@ def scan_head(
     layer, head = ident.layer, ident.head_idx
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
-    total, count = None, 0
-    for batch in batches(runner, pieces, batch_tokens):
-        z = runner.head_outputs(batch.encoded, layer)[..., head, :].float().cpu()
-        chunk = z[batch.counted].sum(0)
-        total = chunk if total is None else total + chunk
-        count += int(batch.counted.sum())
-    if not count:
-        raise ValueError("the corpus has no tokens to scan")
-    mean = [round(float(v), 6) for v in total / count]
-
+    mean, count = _mean_output(runner, pieces, layer, head, batch_tokens)
     confounds = ConfoundAccumulator()
     top = TopExamples()
     values: list[float] = []
@@ -116,17 +107,8 @@ def scan_head(
     unit = HeadUnit(ident, tuple(mean))
     examples, values, floor = settle(runner, partial(unit.strengths, runner), values, first, top, k)
 
-    scores = pattern_scores(
-        runner, layer, head, sequences=pattern_sequences, length=pattern_length, seed=pattern_seed
-    )
-    profile = HeadProfile(
-        mean_output=mean,
-        mean_tokens=count,
-        **{name: round(min(1.0, max(0.0, v)), 6) for name, v in scores.items()},
-        pattern_sequences=pattern_sequences,
-        pattern_length=pattern_length,
-        pattern_seed=pattern_seed,
-    )
+    patterns = (pattern_sequences, pattern_length, pattern_seed)
+    profile = _head_profile(runner, layer, head, mean, count, *patterns)
     return HeadScanResult(
         examples=[peak_attention(runner, e, layer, head) for e in examples],
         values=values,
@@ -135,6 +117,31 @@ def scan_head(
         windows=len(pieces),
         first_token_floor=floor,
         profile=profile,
+    )
+
+
+def _mean_output(runner, pieces, layer: int, head: int, batch_tokens: int):
+    """The head's mean output over every counted token (one pass), and how many there were."""
+    total, count = None, 0
+    for batch in batches(runner, pieces, batch_tokens):
+        z = runner.head_outputs(batch.encoded, layer)[..., head, :].float().cpu()
+        chunk = z[batch.counted].sum(0)
+        total = chunk if total is None else total + chunk
+        count += int(batch.counted.sum())
+    if not count:
+        raise ValueError("the corpus has no tokens to scan")
+    return [round(float(v), 6) for v in total / count], count
+
+
+def _head_profile(runner, layer, head, mean, count, sequences, length, seed) -> HeadProfile:
+    scores = pattern_scores(runner, layer, head, sequences=sequences, length=length, seed=seed)
+    return HeadProfile(
+        mean_output=mean,
+        mean_tokens=count,
+        **{name: round(min(1.0, max(0.0, v)), 6) for name, v in scores.items()},
+        pattern_sequences=sequences,
+        pattern_length=length,
+        pattern_seed=seed,
     )
 
 

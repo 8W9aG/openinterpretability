@@ -119,11 +119,6 @@ def score(
       openinterp score --task score.task.json --judge-model external/<model that answered>
     """
     from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.judge import (
-        DetectionAnswer,
-        FuzzingAnswer,
-        ScoringTask,
-    )
     from openinterp.cli import _load_unit_runner  # looked up per call, so tests can swap it
     from openinterp.core import costs
 
@@ -132,25 +127,8 @@ def score(
             raise click.UsageError("--task scores an emitted task; drop --audit-file/--emit-task.")
         if not judge_model:
             raise click.UsageError("--judge-model is required with --task: name who answered.")
-        task = ScoringTask.model_validate_json(task_file.read_text())
-        detection = DetectionAnswer.model_validate_json(
-            _sibling(task_file, ".detection.json").read_text()
-        )
-        fuzzing = (  # no fuzzing prompt when no held-out window was active
-            FuzzingAnswer.model_validate_json(_sibling(task_file, ".fuzzing.json").read_text())
-            if task.fuzzing
-            else FuzzingAnswer(correct=[])
-        )
+        scores = _score_answers(task_file, judge_model, embedding_model, device, dtype)
         out = out or _sibling(task_file, ".scores.json")
-        for kind in ("detection", "fuzzing") if task.fuzzing else ("detection",):
-            prompt, answer = (
-                _sibling(task_file, f".{kind}.prompt.md"),
-                _sibling(task_file, f".{kind}.json"),
-            )
-            costs.add_external("judge", judge_model, prompt, answer)
-        runner = _load_unit_runner(task.identifier, device, dtype)
-        scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
-        scores = scores.model_copy(update={"costs": costs.merge(task.costs, costs.measured())})
     else:
         if audit_file is None:
             raise click.UsageError("--audit-file is required unless --task is given.")
@@ -171,6 +149,32 @@ def score(
     out.write_text(scores.model_dump_json(indent=2))
     click.echo(_summary(scores))
     click.echo(f"Wrote {out}")
+
+
+def _score_answers(task_file: Path, judge_model: str, embedding_model, device, dtype):
+    """Step two: score an emitted task from the external judge's answers next to it."""
+    from openinterp.agents.judge import DetectionAnswer, FuzzingAnswer, ScoringTask
+    from openinterp.cli import _load_unit_runner  # looked up per call, so tests can swap it
+    from openinterp.core import costs
+
+    task = ScoringTask.model_validate_json(task_file.read_text())
+    detection = DetectionAnswer.model_validate_json(
+        _sibling(task_file, ".detection.json").read_text()
+    )
+    fuzzing = (  # no fuzzing prompt when no held-out window was active
+        FuzzingAnswer.model_validate_json(_sibling(task_file, ".fuzzing.json").read_text())
+        if task.fuzzing
+        else FuzzingAnswer(correct=[])
+    )
+    for kind in ("detection", "fuzzing") if task.fuzzing else ("detection",):
+        prompt, answer = (
+            _sibling(task_file, f".{kind}.prompt.md"),
+            _sibling(task_file, f".{kind}.json"),
+        )
+        costs.add_external("judge", judge_model, prompt, answer)
+    runner = _load_unit_runner(task.identifier, device, dtype)
+    scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
+    return scores.model_copy(update={"costs": costs.merge(task.costs, costs.measured())})
 
 
 def score_submission(
@@ -203,29 +207,49 @@ def score_submission(
 
 
 def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_quantile, cap):
-    from openinterp.agents.judge import ScoringTask, TaskWindow
+    from openinterp.agents.judge import ScoringTask
     from openinterp.cli_evidence import read_corpus
-    from openinterp.core import costs
-    from openinterp.harness.explanation_scores import sample_heldout
-    from openinterp.harness.units import submission_unit
 
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
     seed = secrets.randbits(32) if seed is None else seed
     threshold = _threshold(submission)
-    floor = submission.first_token_floor
-    if floor is None:  # a record from before protocol 0.8: judged as a review judges it
-        from functools import partial
-
-        from openinterp.core.schemas import ReviewPolicy
-        from openinterp.harness.scan import has_first_token_floor
-
-        read = partial(submission_unit(submission).strengths, runner)
-        floor = has_first_token_floor(runner, read, submission.max_activation, ReviewPolicy())
-        submission = submission.model_copy(update={"first_token_floor": floor})
+    submission = _with_first_token_floor(runner, submission)
     click.echo(f"Measuring held-out {window_tokens}-token windows (seed {seed})…", err=True)
+    sample = _sample(
+        runner, texts, submission, threshold, seed, window_tokens, cap, quantiles, per_quantile
+    )
+    windows = _task_windows
+    return ScoringTask(
+        identifier=submission.identifier,
+        head_profile=submission.head_profile,
+        dictionary_profile=submission.dictionary_profile,
+        first_token_floor=submission.first_token_floor,
+        explanation=submission.natural_language_explanation,
+        threshold=threshold,
+        window_tokens=window_tokens,
+        quantiles=quantiles,
+        quantile_edges=sample.quantile_edges,
+        seed=seed,
+        corpus=corpus_name,
+        corpus_sha256=corpus_sha,
+        candidate_windows=sample.candidate_windows,
+        active_windows=sample.active_windows,
+        detection=windows(sample.detection),
+        fuzzing=windows(sample.fuzzing),
+    )
+
+
+def _sample(
+    runner, texts, submission, threshold, seed, window_tokens, cap, quantiles, per_quantile
+):
+    """Held-out windows of the corpus, leaving out the top examples."""
+    from openinterp.core import costs
+    from openinterp.harness.explanation_scores import sample_heldout
+    from openinterp.harness.units import submission_unit
+
     try:
         with costs.stage("heldout_windows"):
-            sample = sample_heldout(
+            return sample_heldout(
                 runner,
                 texts,
                 submission_unit(submission),
@@ -240,29 +264,27 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
 
-    def windows(ws):
-        return [
-            TaskWindow(text=w.text, tokens=w.tokens, highlighted=list(w.highlighted)) for w in ws
-        ]
 
-    return ScoringTask(
-        identifier=submission.identifier,
-        head_profile=submission.head_profile,
-        dictionary_profile=submission.dictionary_profile,
-        first_token_floor=floor,
-        explanation=submission.natural_language_explanation,
-        threshold=threshold,
-        window_tokens=window_tokens,
-        quantiles=quantiles,
-        quantile_edges=sample.quantile_edges,
-        seed=seed,
-        corpus=corpus_name,
-        corpus_sha256=corpus_sha,
-        candidate_windows=sample.candidate_windows,
-        active_windows=sample.active_windows,
-        detection=windows(sample.detection),
-        fuzzing=windows(sample.fuzzing),
-    )
+def _with_first_token_floor(runner, submission):
+    """``submission``, with its first-token floor judged as a review judges it if it is a
+    record from before protocol 0.8."""
+    if submission.first_token_floor is not None:
+        return submission
+    from functools import partial
+
+    from openinterp.core.schemas import ReviewPolicy
+    from openinterp.harness.scan import has_first_token_floor
+    from openinterp.harness.units import submission_unit
+
+    read = partial(submission_unit(submission).strengths, runner)
+    floor = has_first_token_floor(runner, read, submission.max_activation, ReviewPolicy())
+    return submission.model_copy(update={"first_token_floor": floor})
+
+
+def _task_windows(ws):
+    from openinterp.agents.judge import TaskWindow
+
+    return [TaskWindow(text=w.text, tokens=w.tokens, highlighted=list(w.highlighted)) for w in ws]
 
 
 def _write_task(task, path: Path) -> None:
@@ -288,7 +310,7 @@ def _write_task(task, path: Path) -> None:
 def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
     from openinterp.agents.judge import answered
     from openinterp.core import costs
-    from openinterp.core.explanation import ExplanationScores, ScoredWindow
+    from openinterp.core.explanation import ExplanationScores
     from openinterp.harness.explanation_scores import embedding_similarities, remeasure
     from openinterp.harness.units import submission_unit
 
@@ -304,21 +326,7 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
             sims = embedding_similarities(
                 embedding_model, task.explanation, [w.text for w in task.detection]
             )
-
-    def unmeasured(windows, answers, similarities):
-        return [
-            ScoredWindow(
-                text=w.text,
-                tokens=w.tokens,
-                activations=[],
-                highlighted=w.highlighted,
-                label=False,  # re-derived from a fresh measurement below
-                judged=a,
-                similarity=s,
-            )
-            for w, a, s in zip(windows, answers, similarities, strict=True)
-        ]
-
+    unmeasured = _unmeasured
     scores = ExplanationScores(
         slug=task.identifier.slug,
         explanation=task.explanation,
@@ -338,6 +346,24 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
     )
     with costs.stage("remeasure"):
         return remeasure(scores, runner, submission_unit(task))
+
+
+def _unmeasured(windows, answers, similarities):
+    """Judged windows awaiting their activations; ``remeasure`` fills them and the labels."""
+    from openinterp.core.explanation import ScoredWindow
+
+    return [
+        ScoredWindow(
+            text=w.text,
+            tokens=w.tokens,
+            activations=[],
+            highlighted=w.highlighted,
+            label=False,  # re-derived from a fresh measurement below
+            judged=a,
+            similarity=s,
+        )
+        for w, a, s in zip(windows, answers, similarities, strict=True)
+    ]
 
 
 def _noun(identifier) -> str:

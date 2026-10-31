@@ -303,13 +303,9 @@ def build_from_hub(
 
     api = HfApi()
     info = api.dataset_info(dataset, revision=revision)
-    if info.card_data is None and revision is not None:
-        # Branches like refs/convert/parquet carry no dataset card: use the default branch's.
-        card_data = api.dataset_info(dataset).card_data
-    else:
-        card_data = info.card_data
-    license_ = card_data.to_dict().get("license") if card_data else None
+    license_ = _license(api, dataset, info, revision)
     fs = HfFileSystem()
+    read = {"text_column": text_column, "max_chars": max_chars, "layout": layout}
     texts = []
     # Several globs (e.g. one per language): an equal share of the documents from each, the
     # first globs taking any remainder, in the order given.
@@ -320,24 +316,10 @@ def build_from_hub(
             raise FileNotFoundError(f"no files match {glob!r} in {dataset}@{info.sha}")
         share = documents // len(globs) + (i < documents % len(globs))
         if first:
-            texts += first_documents(
-                fs,
-                paths,
-                text_column=text_column,
-                documents=share,
-                max_chars=max_chars,
-                layout=layout,
-            )
+            texts += first_documents(fs, paths, documents=share, **read)
         else:
             texts += sample_documents(
-                fs,
-                paths,
-                text_column=text_column,
-                documents=share,
-                seed=seed,
-                max_chars=max_chars,
-                docs_per_row_group=docs_per_row_group,
-                layout=layout,
+                fs, paths, documents=share, seed=seed, docs_per_row_group=docs_per_row_group, **read
             )
     return write_corpus(
         texts,
@@ -354,3 +336,13 @@ def build_from_hub(
         ascii=ascii,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )
+
+
+def _license(api, dataset: str, info, revision: str | None):
+    """The dataset card's licence (a string or a list), or ``None``."""
+    if info.card_data is None and revision is not None:
+        # Branches like refs/convert/parquet carry no dataset card: use the default branch's.
+        card_data = api.dataset_info(dataset).card_data
+    else:
+        card_data = info.card_data
+    return card_data.to_dict().get("license") if card_data else None

@@ -281,41 +281,7 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
     models: dict[str, ModelNode] = {}
     units: dict[tuple[str, int, int, str, int], UnitNode] = {}  # neurons, heads, features
     for r in reviewed:
-        ident = r.submission.identifier
-        mslug = ident.model_slug
-        model = models.get(ident.model_name)
-        if model is None:
-            model = models[ident.model_name] = ModelNode(
-                ident.model_name,
-                mslug,
-                0,
-                model_href(mslug),
-                KNOWN_MLP_WIDTHS.get(ident.model_name),
-            )
-        model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
-        if r.submission.model_mlp_width:
-            model.mlp_width = r.submission.model_mlp_width
-        dictionary = getattr(ident, "dictionary", None)
-        order = list(SIDES).index(ident.kind)
-        key = (ident.model_name, ident.layer, order, dictionary or "", ident.index)
-        if key not in units:
-            units[key] = UnitNode(
-                ident.model_name,
-                ident.layer,
-                ident.index,
-                unit_href(ident),
-                ident.kind,
-                dictionary=dictionary,
-            )
-        units[key].experiments.append(
-            Experiment(
-                r,
-                significance(r),
-                experiment_id(r),
-                latest[ident.slug] is r,
-                claim=r.submission.model_dump_json(exclude={"provenance"}),
-            )
-        )
+        _add_experiment(models, units, r, latest[r.submission.identifier.slug] is r)
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
@@ -330,6 +296,45 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
             model.layers.append(LayerNode(name, layer_idx, layer_href(model.slug, layer_idx)))
         model.layers[-1].units.append(node)
     return [models[name] for name in sorted(models)]
+
+
+def _add_experiment(models: dict, units: dict, r: AuditRecord, is_latest: bool) -> None:
+    """File ``r`` under its unit, creating the model and unit nodes on first sight."""
+    ident = r.submission.identifier
+    mslug = ident.model_slug
+    model = models.get(ident.model_name)
+    if model is None:
+        model = models[ident.model_name] = ModelNode(
+            ident.model_name,
+            mslug,
+            0,
+            model_href(mslug),
+            KNOWN_MLP_WIDTHS.get(ident.model_name),
+        )
+    model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
+    if r.submission.model_mlp_width:
+        model.mlp_width = r.submission.model_mlp_width
+    dictionary = getattr(ident, "dictionary", None)
+    order = list(SIDES).index(ident.kind)
+    key = (ident.model_name, ident.layer, order, dictionary or "", ident.index)
+    if key not in units:
+        units[key] = UnitNode(
+            ident.model_name,
+            ident.layer,
+            ident.index,
+            unit_href(ident),
+            ident.kind,
+            dictionary=dictionary,
+        )
+    units[key].experiments.append(
+        Experiment(
+            r,
+            significance(r),
+            experiment_id(r),
+            is_latest,
+            claim=r.submission.model_dump_json(exclude={"provenance"}),
+        )
+    )
 
 
 def _mark_reuse(experiments: list[Experiment]) -> None:

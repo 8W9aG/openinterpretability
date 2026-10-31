@@ -10,6 +10,7 @@ import click
 from openinterp.cli import cli, recorded_model_option, with_model_options
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 from openinterp.evidence import (  # noqa: F401  (re-exported)
+    ScanRequest,
     Unauditable,
     read_corpus,
     scan_evidence,
@@ -57,53 +58,6 @@ def with_costs(provenance, *parts):
     if provenance is None:
         return None
     return provenance.model_copy(update={"costs": merge(provenance.costs, *parts)})
-
-
-def read_patchscope(runner, submission):
-    """The model's own reading of the unit's output direction, once the proposer has
-    answered so it can't steer the hypothesis; ``None`` for a head, which writes a subspace."""
-    from openinterp.core import costs
-    from openinterp.harness.patchscope import patchscope, write_direction
-    from openinterp.harness.units import submission_unit
-
-    direction = write_direction(runner, submission_unit(submission))
-    if direction is None or runner.tokenizer is None:
-        return None
-    click.echo("Reading the output direction back through a Patchscope…", err=True)
-    with costs.stage("patchscope"):
-        return patchscope(runner, submission.identifier.layer, direction)
-
-
-def read_steering(runner, submission):
-    """Neutral prompts continued with the unit clamped high, at baseline and ablated, once
-    the proposer has answered; ``None`` for a head, which has no "high" to clamp to."""
-    from openinterp.core import costs
-    from openinterp.harness.steering import steering_samples
-    from openinterp.harness.units import HeadUnit, submission_unit
-
-    unit = submission_unit(submission)
-    if isinstance(unit, HeadUnit) or not submission.max_activation or runner.tokenizer is None:
-        return None
-    click.echo("Continuing neutral prompts with the unit clamped and ablated…", err=True)
-    with costs.stage("steering"):
-        return steering_samples(runner, unit, submission.max_activation)
-
-
-def read_wiring(runner, submission):
-    """The unit's top connections by virtual weight, once the proposer has answered;
-    ``None`` on an unsupported architecture."""
-    from openinterp.core import costs
-    from openinterp.core.exceptions import ArchitectureNotSupportedError
-    from openinterp.harness.units import submission_unit
-    from openinterp.harness.wiring import weight_wiring
-
-    click.echo("Reading the unit's wiring from the weights…", err=True)
-    with costs.stage("wiring"):
-        try:
-            return weight_wiring(runner, submission_unit(submission))
-        except ArchitectureNotSupportedError as exc:
-            click.echo(f"Skipping wiring: {exc}", err=True)
-            return None
 
 
 def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
@@ -310,15 +264,48 @@ def audit(
       openinterp audit --evidence ev.json --hypothesis ev.hypothesis.json \\
         --agent-model external/<model that wrote it>
     """
-    from openinterp.agents.base import DEFAULT_MODEL
-    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
-    from openinterp.builder.wiki import experiment_id
-    from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
-    from openinterp.core import costs
-    from openinterp.core.schemas import ScanEvidence
-    from openinterp.harness.dictionaries import dictionary_spec
-    from openinterp.harness.units import attn_implementation
+    unit = resolve_unit(unit, neuron, pole, head, feature, dictionary)
+    if unit == "feature" and evidence_file is None:
+        model_name = check_dictionary(dictionary, model_name, window_tokens)
+    check_steps(evidence_file, hypothesis_file, evidence_out, superseded_file, agent_model)
+    check_scan(evidence_file, model_name, stride, window_tokens)
+    superseded = superseded_file and load_superseded(superseded_file)
+    if evidence_file is not None:
+        evidence, draft, runner, agent = load_answer(
+            evidence_file, hypothesis_file, agent_model, device, dtype
+        )
+    else:
+        request = ScanRequest(
+            model_name=model_name,
+            unit=unit,
+            layer=layer,
+            neuron=neuron,
+            pole=pole,
+            head=head,
+            feature=feature,
+            dictionary=dictionary,
+            random_pick=random_pick,
+            seed=seed,
+            corpus=corpus,
+            top_k=top_k,
+            dtype=dtype,
+            window_tokens=window_tokens,
+            stride=stride,
+            max_tokens=max_tokens,
+            sample_seed=sample_seed,
+        )
+        runner, evidence = scan_or_record(request, use_scan_cache, wiki_dir, device)
+        if evidence_out is not None:
+            write_evidence(evidence, evidence_out, full_snippets)
+            return
+        agent, draft = ask_proposer(agent_model, evidence, full_snippets)
+    from openinterp.cli_submission import write_submission
 
+    write_submission(agent, draft, runner, evidence, superseded, out)
+
+
+def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:
+    """The unit ``--unit`` names, or the one the other options imply."""
     if unit is None:
         unit = "head" if head is not None else "neuron"
         unit = "feature" if feature is not None or dictionary is not None else unit
@@ -328,138 +315,99 @@ def audit(
         raise click.UsageError("--head needs --unit head (or no --unit).")
     if unit != "feature" and (feature is not None or dictionary is not None):
         raise click.UsageError("--feature and --dictionary need --unit feature (or no --unit).")
-    if unit == "feature" and evidence_file is None:
-        if dictionary is None:
-            raise click.UsageError("--unit feature needs --dictionary.")
-        try:
-            spec = dictionary_spec(dictionary)
-        except ValueError as exc:
-            raise click.BadParameter(str(exc), param_hint="--dictionary") from exc
-        if model_name not in (None, spec.model_name):
-            raise click.UsageError(f"{dictionary} is a dictionary for {spec.model_name}.")
-        model_name = spec.model_name
-        limit = spec.context_tokens
-        if limit and (window_tokens is None or window_tokens > limit):
-            raise click.UsageError(
-                f"{dictionary} only fits contexts of up to {limit} tokens; "
-                f"scan with --window-tokens {limit}."
-            )
+    return unit
+
+
+def check_dictionary(dictionary, model_name, window_tokens) -> str:
+    """The model ``--dictionary`` is for, after checking it fits the scan's windows."""
+    from openinterp.harness.dictionaries import dictionary_spec
+
+    if dictionary is None:
+        raise click.UsageError("--unit feature needs --dictionary.")
+    try:
+        spec = dictionary_spec(dictionary)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), param_hint="--dictionary") from exc
+    if model_name not in (None, spec.model_name):
+        raise click.UsageError(f"{dictionary} is a dictionary for {spec.model_name}.")
+    limit = spec.context_tokens
+    if limit and (window_tokens is None or window_tokens > limit):
+        raise click.UsageError(
+            f"{dictionary} only fits contexts of up to {limit} tokens; "
+            f"scan with --window-tokens {limit}."
+        )
+    return spec.model_name
+
+
+def check_steps(evidence_file, hypothesis_file, evidence_out, superseded_file, agent_model):
+    """Options that go together, or apart, across the one- and two-step audits."""
     if (evidence_file is None) != (hypothesis_file is None):
         raise click.UsageError("--evidence and --hypothesis go together.")
-    if stride is not None and (window_tokens is None or stride > window_tokens):
-        raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
     if superseded_file is not None and evidence_out is not None:
         raise click.UsageError(
             "--supersedes goes on the step that writes the submission (with --hypothesis)."
         )
-    superseded = superseded_file and load_superseded(superseded_file)
-    if evidence_file is not None:
-        if evidence_out is not None:
-            raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
-        if not agent_model:
-            raise click.UsageError(
-                "--agent-model is required with --hypothesis: name the model that wrote it."
-            )
-        evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
-        draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
-        prompt_file = evidence_file.with_suffix(".prompt.md")
-        costs.add_external("proposer", agent_model, prompt_file, hypothesis_file)
-        attn = attn_implementation(evidence.identifier)
-        runner = _load_runner(evidence.identifier.model_name, device, dtype, None, attn)
-        agent = ProposerAgent(agent_model)
-    else:
-        if model_name is None:
-            raise click.UsageError("--model is required unless --evidence is given.")
-        attn = "eager" if unit == "head" else None  # heads need attention patterns
-        runner = _load_runner(model_name, device, dtype, None, attn)
-        try:
-            evidence = scan_evidence(
-                runner,
-                model_name,
-                layer,
-                neuron,
-                pole,
-                random_pick,
-                seed,
-                corpus,
-                top_k,
-                dtype,
-                window_tokens=window_tokens,
-                stride=stride,
-                head=head,
-                unit=unit,
-                max_tokens=max_tokens,
-                sample_seed=sample_seed,
-                scan_cache=open_scan_cache(use_scan_cache),
-                feature=feature,
-                dictionary=dictionary,
-            )
-        except Unauditable as exc:
-            record_draw(exc, random_pick, wiki_dir)
-            raise
-        if evidence_out is not None:
-            write_evidence(evidence, evidence_out, full_snippets)
-            return
-        agent = ProposerAgent(agent_model or DEFAULT_MODEL)
-        click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
-        draft = agent.propose(
-            evidence.identifier,
-            evidence.top_examples,
-            evidence.vocabulary_lens,
-            evidence.confounds,
-            evidence.correlated_neurons,
-            evidence.head_profile,
-            evidence.input_attribution,
-            evidence.dictionary_profile,
-            bool(evidence.first_token_floor),
-            full_snippets,
+    if evidence_file is not None and evidence_out is not None:
+        raise click.UsageError("--evidence-out scans; --evidence reuses a scan. Pick one.")
+    if evidence_file is not None and not agent_model:
+        raise click.UsageError(
+            "--agent-model is required with --hypothesis: name the model that wrote it."
         )
 
-    ident = evidence.identifier
-    if superseded is not None and superseded.submission.identifier.slug != ident.slug:
-        raise click.UsageError(
-            f"--supersedes names an experiment on {superseded.submission.identifier}, "
-            f"not on {ident}."
-        )
-    with costs.stage("counterfactuals"):
-        try:
-            submission = agent.build_submission(
-                ident,
-                draft,
-                runner=runner,
-                examples=evidence.top_examples,
-                histogram=evidence.activation_histogram,
-                provenance=evidence.provenance,
-                confounds=evidence.confounds,
-                correlated=evidence.correlated_neurons,
-                vocabulary_lens=evidence.vocabulary_lens,
-                input_attribution=evidence.input_attribution,
-                head_profile=evidence.head_profile,
-                dictionary_profile=evidence.dictionary_profile,
-                first_token_floor=evidence.first_token_floor,
-            )
-        except ValueError as exc:  # e.g. a one-token counterfactual prompt
-            raise click.ClickException(f"Counterfactual: {exc}") from exc
-    readout = read_patchscope(runner, submission)
-    steering = read_steering(runner, submission)
-    wiring = read_wiring(runner, submission)
-    # An evidence file carries the scan's costs; a one-step audit measured them here.
-    provenance = with_costs(submission.provenance, costs.measured())
-    revises = superseded and experiment_id(superseded)
-    submission = submission.model_copy(
-        update={
-            "opposite_pole": evidence.opposite_pole,
-            "provenance": provenance,
-            "supersedes": revises,
-            "patchscope": readout,
-            "steering": steering,
-            "wiring": wiring,
-        }
+
+def check_scan(evidence_file, model_name, stride, window_tokens) -> None:
+    if stride is not None and (window_tokens is None or stride > window_tokens):
+        raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
+    if evidence_file is None and model_name is None:
+        raise click.UsageError("--model is required unless --evidence is given.")
+
+
+def load_answer(evidence_file, hypothesis_file, agent_model, device, dtype):
+    """Step two: the evidence, the external proposer's draft, the model and the agent."""
+    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
+    from openinterp.core import costs
+    from openinterp.core.schemas import ScanEvidence
+    from openinterp.harness.units import attn_implementation
+
+    evidence = ScanEvidence.model_validate_json(evidence_file.read_text())
+    draft = HypothesisDraft.model_validate_json(hypothesis_file.read_text())
+    prompt_file = evidence_file.with_suffix(".prompt.md")
+    costs.add_external("proposer", agent_model, prompt_file, hypothesis_file)
+    attn = attn_implementation(evidence.identifier)
+    runner = _load_runner(evidence.identifier.model_name, device, dtype, None, attn)
+    return evidence, draft, runner, ProposerAgent(agent_model)
+
+
+def scan_or_record(request, use_scan_cache: bool, wiki_dir: Path, device):
+    """Load the model and scan; keep a random draw the scan stops on (see record_draw)."""
+    from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
+
+    attn = "eager" if request.unit == "head" else None  # heads need attention patterns
+    runner = _load_runner(request.model_name, device, request.dtype, None, attn)
+    try:
+        return runner, scan_evidence(runner, request, open_scan_cache(use_scan_cache))
+    except Unauditable as exc:
+        record_draw(exc, request.random_pick, wiki_dir)
+        raise
+
+
+def ask_proposer(agent_model, evidence, full_snippets: bool):
+    from openinterp.agents.base import DEFAULT_MODEL
+    from openinterp.agents.proposer import ProposerAgent
+
+    agent = ProposerAgent(agent_model or DEFAULT_MODEL)
+    click.echo(f"Asking {agent.model} for a hypothesis…", err=True)
+    draft = agent.propose(
+        evidence.identifier,
+        evidence.top_examples,
+        evidence.vocabulary_lens,
+        evidence.confounds,
+        evidence.correlated_neurons,
+        evidence.head_profile,
+        evidence.input_attribution,
+        evidence.dictionary_profile,
+        bool(evidence.first_token_floor),
+        full_snippets,
     )
-    out = out or Path("submissions") / f"{ident.slug}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(submission.model_dump_json(indent=2))
-    click.echo(f"Hypothesis: {submission.natural_language_explanation}")
-    if revises:
-        click.echo(f"Supersedes: {revises} ({superseded.verdict.status})")
-    click.echo(f"Wrote {out}")
+    return agent, draft
