@@ -11,7 +11,11 @@ The project has two version numbers:
 
 ### Added
 
-- **A 40-line limit on functions**, checked by `scripts/check_line_limit.py` in `make lint` and CI beside the 500-line file limit. A function is measured as its signature (one line, however it wraps) plus its body, leaving out decorators and the parameter list (so long Click option lists don't count) and the docstring; tests are exempt. It is ratcheted in: the 45 functions over the limit today are listed with their lengths in `scripts/long_functions.txt`, a listed function may not grow, and stale entries (shrunk, split or removed) fail until the list is updated, so it only goes down. Mark the rare function that reads better whole with `# long-function: <reason>` on its `def` line; this is not a `# noqa`, because ruff warns on codes it doesn't know.
+- **A 40-line limit on functions**, checked by `scripts/check_line_limit.py` in `make lint` and CI beside the 500-line file limit. A function is measured as its signature (one line, however it wraps) plus its body, leaving out decorators and the parameter list (so long Click option lists don't count) and the docstring; tests are exempt. Mark the rare function that reads better whole with `# long-function: <reason>` on its `def` line; this is not a `# noqa`, because ruff warns on codes it doesn't know.
+
+### Changed
+
+- **The 45 functions over 40 lines are split**, so none needs the exemption. The longest were `audit` (`cli_evidence.py`, 154 lines), `scan_evidence` (`evidence.py`, 147), `main` (`scripts/train_transcoders.py`, 106) and `evaluate_submission` (`agents/reviewer.py`, 104). Behaviour is unchanged: the built site is byte-identical, and scans, submissions, reviews, reproductions, score tasks, plans, `activations` output and the Patchscope baseline report match the code before the split. Along the way, `scan_evidence` takes a `ScanRequest` instead of 17 parameters, and new modules hold what moved out of files near the 500-line limit: `cli_submission.py` (the steps of `audit` after the proposer answers), `agents/review_measurements.py` (what the reviewer measures) and `builder/registry_stats.py` (the home page's queries).
 
 ## [0.0.10] - 2026-10-30
 

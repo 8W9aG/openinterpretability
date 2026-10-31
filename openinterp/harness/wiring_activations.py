@@ -97,54 +97,60 @@ def _head_strength(runner, t: Target, encoded, x: torch.Tensor) -> torch.Tensor:
 def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peaks) -> torch.Tensor:
     """``[b, n_heads, 3]``: how far each head's write at the peak moves when ``delta`` is
     removed from what its ``q``, ``k`` or ``v`` reads, one channel at a time."""
-    block = runner.layers[layer]
-    norm = _attn_read_point(runner, layer)
-    modules = _qkv_modules(block)
+    modules = _qkv_modules(runner.layers[layer])
     w_o = _head_outputs(runner, layer)  # [n, d, hd]
     rows = torch.arange(len(peaks))
     clean = cap["z"][layer][rows, peaks].reshape(len(peaks), runner.n_heads, -1)
     effects = []
     for c in QKV:
         module, part = modules[c]
-        state: dict = {}
-
-        def before(_m, args, state=state):
-            if not state.get("busy"):
-                state["busy"] = True
-                try:
-                    state["normed"] = norm(args[0] - delta.to(args[0].dtype))
-                finally:
-                    state["busy"] = False
-
-        def swap(_m, _args, out, module=module, part=part, state=state):
-            alt = _project(module, state["normed"])
-            if part is None:
-                return alt
-            out = out.clone()
-            out[..., part] = alt[..., part]
-            return out
-
-        z: list[torch.Tensor] = []
-
-        def capture(_m, args, z=z):
-            z.append(args[0].float())
-            raise _StopForward
-
-        handles = [
-            norm.register_forward_pre_hook(before),
-            module.register_forward_hook(swap),
-            runner.attn_out(layer).register_forward_pre_hook(capture),
-        ]
-        try:
-            with torch.no_grad(), suppress(_StopForward):
-                runner.forward(encoded)
-        finally:
-            for h in handles:
-                h.remove()
-        changed = z[-1][rows, peaks].reshape(len(peaks), runner.n_heads, -1)
+        z = _z_without(runner, layer, module, part, delta, encoded)
+        changed = z[rows, peaks].reshape(len(peaks), runner.n_heads, -1)
         moved = torch.einsum("ndh,bnh->bnd", w_o.to(changed.device), clean - changed)
         effects.append(moved.norm(dim=-1))
     return torch.stack(effects, -1)
+
+
+def _z_without(runner, layer: int, module, part, delta, encoded) -> torch.Tensor:
+    """The layer's head outputs (float32) when one of ``q``, ``k`` or ``v`` (``module``,
+    or its ``part`` of a fused projection) reads the residual without ``delta``."""
+    norm = _attn_read_point(runner, layer)
+    state: dict = {}
+
+    def before(_m, args):
+        if not state.get("busy"):
+            state["busy"] = True
+            try:
+                state["normed"] = norm(args[0] - delta.to(args[0].dtype))
+            finally:
+                state["busy"] = False
+
+    def swap(_m, _args, out):
+        alt = _project(module, state["normed"])
+        if part is None:
+            return alt
+        out = out.clone()
+        out[..., part] = alt[..., part]
+        return out
+
+    z: list[torch.Tensor] = []
+
+    def capture(_m, args):
+        z.append(args[0].float())
+        raise _StopForward
+
+    handles = [
+        norm.register_forward_pre_hook(before),
+        module.register_forward_hook(swap),
+        runner.attn_out(layer).register_forward_pre_hook(capture),
+    ]
+    try:
+        with torch.no_grad(), suppress(_StopForward):
+            runner.forward(encoded)
+    finally:
+        for h in handles:
+            h.remove()
+    return z[-1]
 
 
 def activation_wiring(
@@ -169,68 +175,89 @@ def activation_wiring(
     w_out = {i: _matrix(runner.down_proj(i)) for i in up_n}  # [d, width]
     w_o = {i: _head_outputs(runner, i) for i in up_h} if attention else {}
     dtype = next(runner.model.parameters()).dtype
-    sums: dict[tuple[str, int], torch.Tensor] = {}
-    used = 0
-
-    def add(key, value):
-        sums[key] = sums[key] + value if key in sums else value
-
+    acc = _Sums()
     for start in range(0, len(prompts), batch_size):
         encoded = runner.encode(list(prompts[start : start + batch_size]))
-        mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
         cap = _clean_pass(runner, t, encoded, attention)
-        x = cap["read"].to(dtype).requires_grad_(True)
-        with torch.enable_grad():
-            s = t.strength(x) if t.strength is not None else _head_strength(runner, t, encoded, x)
-            measured = mask & (mask.cumsum(-1) > int(unit.skip_first))  # protocol 0.8
-            s = s.float().masked_fill(~measured.to(s.device), -1.0)
-            peak_values, peaks = s.max(-1)
-            fired = peak_values.detach() >= threshold
-            if not fired.any():
-                continue
-            (grad,) = torch.autograd.grad(peak_values[fired].sum(), x)
-        grad = grad.float()[fired]
-        peaks = peaks[fired]
-        used += int(fired.sum())
+        found = _peak_gradient(runner, t, unit, encoded, cap, dtype, threshold)
+        if found is None:
+            continue
+        grad, peaks, fired = found
+        acc.used += int(fired.sum())
         with torch.no_grad():
-            for i in up_n:
-                per_neuron = (grad @ w_out[i].to(grad.device)) * cap["acts"][i][fired]
-                add(("up_n", i), per_neuron.sum((0, 1)))
-            for i in up_h:
-                z = cap["z"][i][fired].reshape(*grad.shape[:2], runner.n_heads, -1)
-                per_head = torch.einsum("bsd,ndh,bsnh->n", grad, w_o[i].to(grad.device), z)
-                add(("up_h", i), per_head)
-            delta = t.written(cap)
-            rows = torch.arange(len(peaks))
-            at_peak = delta[fired][rows, peaks]
-            for i in down_n:
-                resid = cap["mlp_in"][i][fired][rows, peaks]
-                both = torch.cat([resid, resid - at_peak]).to(dtype)
-                after = _mlp_activations(runner, i, both).float()
-                add(("down_n", i), (after[: len(peaks)] - after[len(peaks) :]).sum(0))
-            if attention and down_h:
-                sub = {key: v[fired] for key, v in encoded.items()}
-                kept = {**cap, "z": {i: v[fired] for i, v in cap["z"].items()}}
-                for i in down_h:
-                    effects = _downstream_head_effects(runner, t, sub, kept, delta[fired], i, peaks)
-                    add(("down_h", i), effects.sum(0))
-    if not used:
+            _add_upstream(acc, runner, cap, grad, fired, up_n, up_h, w_out, w_o)
+            _add_downstream(acc, runner, t, encoded, cap, fired, peaks, down_n, down_h, dtype)
+    if not acc.used:
         return None
+    return Wiring(
+        method="activations",
+        upstream_neurons=_top("mlp_neuron", acc.mean("up_n", up_n), [""], k),
+        upstream_heads=_top("attn_head", acc.mean("up_h", up_h), [""], k) if attention else None,
+        downstream_neurons=_top("mlp_neuron", acc.mean("down_n", down_n), [""], k),
+        downstream_heads=_top("attn_head", acc.mean("down_h", down_h), list(QKV), k)
+        if attention
+        else None,
+        prompts=acc.used,
+    )
 
-    def mean(kind: str, layers) -> list[tuple[int, torch.Tensor]]:
+
+class _Sums:
+    """Per-(direction, layer) sums over the prompts where the unit fired, and their count."""
+
+    def __init__(self) -> None:
+        self.sums: dict[tuple[str, int], torch.Tensor] = {}
+        self.used = 0
+
+    def add(self, key, value) -> None:
+        self.sums[key] = self.sums[key] + value if key in self.sums else value
+
+    def mean(self, kind: str, layers) -> list[tuple[int, torch.Tensor]]:
         blocks = []
         for i in layers:
-            v = sums[(kind, i)] / used
+            v = self.sums[(kind, i)] / self.used
             blocks.append((i, v if v.dim() == 2 else v[:, None]))
         return blocks
 
-    return Wiring(
-        method="activations",
-        upstream_neurons=_top("mlp_neuron", mean("up_n", up_n), [""], k),
-        upstream_heads=_top("attn_head", mean("up_h", up_h), [""], k) if attention else None,
-        downstream_neurons=_top("mlp_neuron", mean("down_n", down_n), [""], k),
-        downstream_heads=_top("attn_head", mean("down_h", down_h), list(QKV), k)
-        if attention
-        else None,
-        prompts=used,
-    )
+
+def _peak_gradient(runner, t: Target, unit: Unit, encoded, cap, dtype, threshold: float):
+    """(the gradient of each firing prompt's peak strength with respect to the unit's read,
+    the peaks, the mask of prompts that fired); ``None`` if none did."""
+    mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
+    x = cap["read"].to(dtype).requires_grad_(True)
+    with torch.enable_grad():
+        s = t.strength(x) if t.strength is not None else _head_strength(runner, t, encoded, x)
+        measured = mask & (mask.cumsum(-1) > int(unit.skip_first))  # protocol 0.8
+        s = s.float().masked_fill(~measured.to(s.device), -1.0)
+        peak_values, peaks = s.max(-1)
+        fired = peak_values.detach() >= threshold
+        if not fired.any():
+            return None
+        (grad,) = torch.autograd.grad(peak_values[fired].sum(), x)
+    return grad.float()[fired], peaks[fired], fired
+
+
+def _add_upstream(acc: _Sums, runner, cap, grad, fired, up_n, up_h, w_out, w_o) -> None:
+    for i in up_n:
+        per_neuron = (grad @ w_out[i].to(grad.device)) * cap["acts"][i][fired]
+        acc.add(("up_n", i), per_neuron.sum((0, 1)))
+    for i in up_h:
+        z = cap["z"][i][fired].reshape(*grad.shape[:2], runner.n_heads, -1)
+        per_head = torch.einsum("bsd,ndh,bsnh->n", grad, w_o[i].to(grad.device), z)
+        acc.add(("up_h", i), per_head)
+
+
+def _add_downstream(acc: _Sums, runner, t, encoded, cap, fired, peaks, down_n, down_h, dtype):
+    delta = t.written(cap)
+    rows = torch.arange(len(peaks))
+    at_peak = delta[fired][rows, peaks]
+    for i in down_n:
+        resid = cap["mlp_in"][i][fired][rows, peaks]
+        both = torch.cat([resid, resid - at_peak]).to(dtype)
+        after = _mlp_activations(runner, i, both).float()
+        acc.add(("down_n", i), (after[: len(peaks)] - after[len(peaks) :]).sum(0))
+    if down_h:  # empty without supported attention
+        sub = {key: v[fired] for key, v in encoded.items()}
+        kept = {**cap, "z": {i: v[fired] for i, v in cap["z"].items()}}
+        for i in down_h:
+            effects = _downstream_head_effects(runner, t, sub, kept, delta[fired], i, peaks)
+            acc.add(("down_h", i), effects.sum(0))

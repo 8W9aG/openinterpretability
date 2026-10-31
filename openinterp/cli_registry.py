@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import click
@@ -172,20 +173,29 @@ def next_experiment(wiki_dir, seed, epsilon, temperature, models, claims, top, a
     for command in c.commands:
         click.echo(f"  $ {command}")
     if any(cmd.startswith("openinterp audit") and "--neuron" in cmd for cmd in c.commands):
-        from openinterp.harness.layer_cache import LayerCache
-
-        cache = LayerCache.default()
-        if cache is not None and c.layer in cache.cached_layers(c.model):
-            click.echo(
-                f"Scan cache: layer {c.layer} is cached, so the audit replays its scan "
-                "(when the corpus options match) instead of running the model."
-            )
+        _scan_cache_note(c)
     if c.skills:
         click.echo(f"Skills: {', '.join(c.skills)}")
     click.echo(
         f"(seed {plan.seed}; {len(plan.candidates)} follow-up candidates; "
         f"{'explored' if plan.explored else 'exploited'})"
     )
+    _list_candidates(plan, top)
+
+
+def _scan_cache_note(c) -> None:
+    from openinterp.harness.layer_cache import LayerCache
+
+    cache = LayerCache.default()
+    if cache is not None and c.layer in cache.cached_layers(c.model):
+        click.echo(
+            f"Scan cache: layer {c.layer} is cached, so the audit replays its scan "
+            "(when the corpus options match) instead of running the model."
+        )
+
+
+def _list_candidates(plan, top: int) -> None:
+    """The ``top`` heaviest follow-ups by share of the weight, and the explore draws."""
     total = sum(x.weight for x in plan.candidates) or 1.0
     for x in plan.candidates[:top]:
         click.echo(f"  {x.weight / total:6.1%}  {x.kind:18s} {x.slug}  — {x.rationale}")
@@ -250,16 +260,9 @@ def reproduce(
     """
     import os
 
-    from pydantic import ValidationError
-
     from openinterp.checks import changed_records
-    from openinterp.cli import _load_runner
     from openinterp.cli_evidence import read_corpus
-    from openinterp.core.schemas import AuditRecord
-    from openinterp.harness.units import attn_implementation
-    from openinterp.reproduce import Tolerance, check_protocol, pinned_environment
-    from openinterp.reproduce import reproduce_record as run
-    from openinterp.signing import SignatureError, verify_record
+    from openinterp.reproduce import Tolerance
 
     paths = list(records)
     if base_ref:
@@ -268,18 +271,52 @@ def reproduce(
         click.echo("No records to reproduce.")
         return
     in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
-    signers = _allowed_signers(allowed_signers, base_ref)
-    tolerance = Tolerance(atol=atol, rtol=rtol)
     scan_corpus = None
     if corpus is not None:
         texts, _, corpus_sha, _ = read_corpus(corpus)
         scan_corpus = (texts, corpus_sha)
-    runners: dict[tuple, object] = {}
+    reproducer = _Reproducer(
+        signers=_allowed_signers(allowed_signers, base_ref),
+        tolerance=Tolerance(atol=atol, rtol=rtol),
+        scan_corpus=scan_corpus,
+        allowed_models=allowed_models,
+        device=device,
+    )
     results: list[tuple[Path, list[str], list[str]]] = []
+    for path in paths:
+        status, problems, warnings = reproducer.check(path)
+        results.append((path, problems, warnings))
+        _report(path, status, problems, warnings, in_actions)
+    failed = sum(bool(problems) for _, problems, _ in results)
+    summary = f"{len(paths) - failed}/{len(paths)} record(s) reproduced."
+    click.echo(summary)
+    if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
+        _step_summary(os.environ["GITHUB_STEP_SUMMARY"], summary, results)
+    if failed:
+        raise SystemExit(1)
 
-    def check_one(path: Path) -> tuple[str, list[str], list[str]]:
+
+@dataclass
+class _Reproducer:
+    """Checks one record at a time, loading each pinned model once."""
+
+    signers: object
+    tolerance: object
+    scan_corpus: tuple[list[str], str] | None
+    allowed_models: tuple[str, ...]
+    device: str
+    runners: dict[tuple, object] = field(default_factory=dict)
+
+    def check(self, path: Path) -> tuple[str, list[str], list[str]]:
+        """(status, mismatches, warnings) for the record at ``path``."""
+        from pydantic import ValidationError
+
+        from openinterp.core.schemas import AuditRecord
+        from openinterp.reproduce import reproduce_record
+        from openinterp.signing import SignatureError, verify_record
+
         try:
-            signer = verify_record(path, signers)
+            signer = verify_record(path, self.signers)
         except SignatureError as exc:
             return "FAILED", [str(exc)], []
         if signer:
@@ -288,46 +325,54 @@ def reproduce(
             record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
         except ValidationError:
             return "FAILED", ["invalid experiment record"], []
-        model = record.submission.identifier.model_name
-        reason = check_protocol(record)
-        if allowed_models and model not in allowed_models:
-            reason = f"model {model} is not on the allow-list ({', '.join(allowed_models)})"
-        elif allowed_models and not _preset_dictionary(record):
-            reason = "its dictionary is not a preset's (openinterp/harness/dictionaries.py)"
+        reason = self.refusal(record)
         if reason:
             return "FAILED", [reason], []
+        runner = self.runner(record)
+        report = reproduce_record(record, runner, self.tolerance, path, self.scan_corpus)
+        return ("FAILED" if report.mismatches else "REPRODUCED"), report.mismatches, report.warnings
+
+    def refusal(self, record) -> str | None:
+        """Why ``record`` can't be reproduced here, or ``None``."""
+        from openinterp.reproduce import check_protocol
+
+        model, allowed = record.submission.identifier.model_name, self.allowed_models
+        reason = check_protocol(record)
+        if allowed and model not in allowed:
+            reason = f"model {model} is not on the allow-list ({', '.join(allowed)})"
+        elif allowed and not _preset_dictionary(record):
+            reason = "its dictionary is not a preset's (openinterp/harness/dictionaries.py)"
+        return reason
+
+    def runner(self, record):
+        from openinterp.cli import _load_runner
+        from openinterp.harness.units import attn_implementation
+        from openinterp.reproduce import pinned_environment
+
+        model = record.submission.identifier.model_name
         revision, dtype = pinned_environment(record)
         attn = attn_implementation(record.submission.identifier)
         key = (model, revision, dtype, attn)
-        if key not in runners:
-            runners[key] = _load_runner(model, device, dtype, revision, attn)
-        report = run(record, runners[key], tolerance, path, scan_corpus)
-        return ("FAILED" if report.mismatches else "REPRODUCED"), report.mismatches, report.warnings
+        if key not in self.runners:
+            self.runners[key] = _load_runner(model, self.device, dtype, revision, attn)
+        return self.runners[key]
 
-    for path in paths:
-        status, problems, warnings = check_one(path)
-        results.append((path, problems, warnings))
-        click.echo(f"{status}: {path}")
-        for message in problems:
-            click.echo(
-                f"::error file={path}::{message}" if in_actions else f"  mismatch: {message}"
-            )
-        for message in warnings:
-            click.echo(
-                f"::warning file={path}::{message}" if in_actions else f"  warning: {message}"
-            )
 
-    failed = sum(bool(problems) for _, problems, _ in results)
-    summary = f"{len(paths) - failed}/{len(paths)} record(s) reproduced."
-    click.echo(summary)
-    if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
-            fh.write(f"### Reproduction\n\n{summary}\n\n")
-            for path, problems, _ in results:
-                fh.write(f"- {'❌' if problems else '✅'} `{path}`\n")
-                fh.writelines(f"  - {message}\n" for message in problems)
-    if failed:
-        raise SystemExit(1)
+def _report(path: Path, status: str, problems, warnings, in_actions: bool) -> None:
+    """One record's result, as GitHub Actions annotations when running there."""
+    click.echo(f"{status}: {path}")
+    for message in problems:
+        click.echo(f"::error file={path}::{message}" if in_actions else f"  mismatch: {message}")
+    for message in warnings:
+        click.echo(f"::warning file={path}::{message}" if in_actions else f"  warning: {message}")
+
+
+def _step_summary(path: str, summary: str, results) -> None:
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(f"### Reproduction\n\n{summary}\n\n")
+        for record, problems, _ in results:
+            fh.write(f"- {'❌' if problems else '✅'} `{record}`\n")
+            fh.writelines(f"  - {message}\n" for message in problems)
 
 
 def _preset_dictionary(record) -> bool:

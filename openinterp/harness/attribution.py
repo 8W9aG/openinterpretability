@@ -41,6 +41,25 @@ def attribution_patching(
     if metric is None:
         metric = token_logit_metric(int(clean_logits[0, -1].argmax()))
 
+    ordered, grads = _corrupted_grads(runner, corrupted, layers, metric)
+    scores: dict[int, torch.Tensor] = {}
+    for layer, corrupt_act, grad in zip(layers, ordered, grads, strict=True):
+        clean_act, corrupt_act = clean_cache[layer], corrupt_act.detach()
+        if positions == "last":
+            clean_act, corrupt_act, grad = clean_act[:, -1:], corrupt_act[:, -1:], grad[:, -1:]
+        elif clean_act.shape != corrupt_act.shape:
+            raise ShapeMismatchError(
+                f"clean {tuple(clean_act.shape)} vs corrupted {tuple(corrupt_act.shape)}; "
+                "use positions='last' or align the prompts."
+            )
+        if pole is not None:
+            clean_act, corrupt_act = isolate_pole(clean_act, pole), isolate_pole(corrupt_act, pole)
+        scores[layer] = ((clean_act - corrupt_act) * grad).sum(dim=(0, 1)).detach().cpu()
+    return scores
+
+
+def _corrupted_grads(runner: NeuronHookRunner, corrupted: Inputs, layers, metric: Metric):
+    """Each layer's MLP activations on ``corrupted`` and the metric's gradient there."""
     captured: dict[int, torch.Tensor] = {}
 
     def capture(layer: int):
@@ -63,21 +82,7 @@ def attribution_patching(
             grads = torch.autograd.grad(value, ordered)
     finally:
         embed_handle.remove()
-
-    scores: dict[int, torch.Tensor] = {}
-    for layer, corrupt_act, grad in zip(layers, ordered, grads, strict=True):
-        clean_act, corrupt_act = clean_cache[layer], corrupt_act.detach()
-        if positions == "last":
-            clean_act, corrupt_act, grad = clean_act[:, -1:], corrupt_act[:, -1:], grad[:, -1:]
-        elif clean_act.shape != corrupt_act.shape:
-            raise ShapeMismatchError(
-                f"clean {tuple(clean_act.shape)} vs corrupted {tuple(corrupt_act.shape)}; "
-                "use positions='last' or align the prompts."
-            )
-        if pole is not None:
-            clean_act, corrupt_act = isolate_pole(clean_act, pole), isolate_pole(corrupt_act, pole)
-        scores[layer] = ((clean_act - corrupt_act) * grad).sum(dim=(0, 1)).detach().cpu()
-    return scores
+    return ordered, grads
 
 
 def top_attributed_neurons(

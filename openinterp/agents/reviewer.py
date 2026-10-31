@@ -8,10 +8,8 @@ reproduced from the record and the model weights (see docs/PROTOCOL.md).
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from functools import partial
 
 from pydantic import BaseModel, Field
 
@@ -21,8 +19,16 @@ from openinterp.agents.proposer import (
     format_input_attribution,
     format_review_examples,
 )
+from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agrees re-exported)
+    _activation_wiring,
+    _delta_agrees,
+    causal_readouts,
+    lookahead_result,
+    measure_counterfactuals,
+    measure_probes,
+    settle_first_token_floor,
+)
 from openinterp.core import costs
-from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -32,15 +38,9 @@ from openinterp.core.schemas import (
     VerificationVerdict,
 )
 from openinterp.core.stats import balanced_accuracy, effective_counts
-from openinterp.harness.causal import causal_metrics
 from openinterp.harness.confounds import baseline_predictions
-from openinterp.harness.covariance import joint_ablation
 from openinterp.harness.environment import run_environment
 from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.lookahead import ablation_profile
-from openinterp.harness.scan import has_first_token_floor
-from openinterp.harness.units import peak_strength, submission_unit
-from openinterp.harness.wiring_activations import activation_wiring
 
 
 class AdversarialProbe(BaseModel):
@@ -203,72 +203,11 @@ def evaluate_submission(
     """Measure ``probes`` and the submission's own claims, and decide. ``wire=False``
     skips the activation wiring (reported, not gated), e.g. when reproducing a record."""
     lap = costs.laps()
-    unit = submission_unit(submission)
-    scale = submission.max_activation or max(
-        peak_strength(runner, unit, p.base_prompt) or 0.0 for p in submission.counterfactuals
-    )
+    submission, unit, scale = settle_first_token_floor(submission, runner, policy)
     threshold = policy.activation_threshold * scale
-    if submission.first_token_floor is None:  # judged at the scan since protocol 0.8
-        read = partial(unit.strengths, runner)
-        floor = has_first_token_floor(runner, read, scale, policy)
-        submission = submission.model_copy(update={"first_token_floor": floor})
-        unit = submission_unit(submission)
-
-    results: list[AdversarialTestResult] = []
-    measured_probes: list[AdversarialProbe] = []
-    actual: list[bool] = []
-    # A one-token prompt to a unit with a first-token floor has nothing measured: it is
-    # recorded as unmeasured and counts in no metric.
-    for probe in probes:
-        strength = peak_strength(runner, unit, probe.text)
-        active = strength is not None and scale > 0 and strength >= threshold
-        if strength is not None:
-            measured_probes.append(probe)
-            actual.append(active)
-        results.append(
-            AdversarialTestResult(
-                kind="positive_holdout" if probe.expected_active else "hard_negative",
-                prompt=probe.text,
-                passed=strength is not None and active == probe.expected_active,
-                expected_active=probe.expected_active,
-                activation=None if strength is None else round(strength, 6),
-                detail=probe.rationale,
-                measured=strength is not None,
-            )
-        )
-
-    for pair in submission.counterfactuals:
-        base = peak_strength(runner, unit, pair.base_prompt)
-        cf = peak_strength(runner, unit, pair.counterfactual_prompt)
-        both = base is not None and cf is not None
-        observed = (base - cf) / scale if both and scale > 0 else 0.0
-        results.append(
-            AdversarialTestResult(
-                kind="counterfactual",
-                prompt=f"{pair.base_prompt} -> {pair.counterfactual_prompt}",
-                passed=both and scale > 0 and _delta_agrees(pair.expected_delta, observed, policy),
-                expected_delta=pair.expected_delta,
-                observed_delta=round(observed, 6) if both else None,
-                measured=both,
-            )
-        )
-
-    prompts = [p.base_prompt for p in submission.counterfactuals]
-    measured = ablation_profile(runner, prompts, unit.ablation(runner))
-    claimed = submission.lookahead.is_lookahead
-    results.append(
-        AdversarialTestResult(
-            kind="lookahead_consistency",
-            prompt="; ".join(p.base_prompt for p in submission.counterfactuals),
-            passed=measured.is_lookahead == claimed,
-            detail=(
-                f"claimed {'lookahead' if claimed else 'retrospective'}; measured "
-                f"{'lookahead' if measured.is_lookahead else 'retrospective'} "
-                f"(KL={measured.kl_divergence:.4g}, tokens={measured.target_upcoming_tokens[:5]})"
-            ),
-        )
-    )
-
+    results, measured_probes, actual = measure_probes(runner, unit, probes, scale, threshold)
+    results += measure_counterfactuals(runner, unit, submission, scale, policy)
+    results.append(lookahead_result(runner, unit, submission))
     lap("probe_measurement")
     metrics = review_metrics(
         results,
@@ -279,14 +218,7 @@ def evaluate_submission(
         first_token_floor=submission.first_token_floor,
     )
     lap("gates")
-    causal = causal_metrics(
-        submission,
-        runner,
-        freeze_downstream=policy.freeze_downstream,
-        null_neurons=policy.causal_null_neurons,
-        min_change=policy.delta_abs_tolerance * scale,
-    )
-    joint = _joint_ablation(submission, runner, probes, policy)
+    causal, joint = causal_readouts(submission, runner, probes, policy, scale)
     lap("causal_metrics")
     wiring = _activation_wiring(submission, runner, probes, threshold) if wire else None
     if wire:
@@ -354,52 +286,6 @@ def confound_baseline(
     return best, round(scored[best], 6)
 
 
-def _joint_ablation(submission, runner, probes, policy):
-    # Ranked by co-activation lift (the scan's order); Spearman is the fallback signal.
-    partners: list[int] = []
-    for c in submission.correlated_neurons:
-        lifted = c.coactivation_lift_lower >= policy.min_partner_lift and (
-            c.coactive_tokens >= policy.min_partner_coactive
-        )
-        if (lifted or abs(c.spearman) >= policy.min_partner_correlation) and (
-            c.neuron_idx not in partners
-        ):
-            partners.append(c.neuron_idx)
-    partners = partners[: policy.joint_ablation_partners]
-    if not partners or submission.identifier.kind != "mlp_neuron_pole":
-        return None
-    ident = submission.identifier
-    prompts = [p.base_prompt for p in submission.counterfactuals]
-    prompts += [p.text for p in probes if p.expected_active]
-    return joint_ablation(runner, prompts, ident.layer, ident.neuron_idx, ident.pole, partners)
-
-
-def _activation_wiring(submission, runner, probes, threshold):
-    """Wiring by attribution at the unit's peak on the prompts it should fire on (the
-    counterfactuals' base prompts and the holdouts), counting those where it did."""
-    if threshold <= 0:
-        return None
-    prompts = [p.base_prompt for p in submission.counterfactuals]
-    prompts += [p.text for p in probes if p.expected_active]
-    try:
-        return activation_wiring(runner, submission_unit(submission), prompts, threshold)
-    except ArchitectureNotSupportedError:
-        return None
-
-
-def _delta_agrees(expected: float, observed: float, policy: ReviewPolicy) -> bool:
-    """Observed Δ must land within max(abs_tol, rel_tol·|expected|) of the prediction.
-
-    Non-control pairs (|expected| > abs_tol) must also have the predicted sign.
-    """
-    tolerance = max(policy.delta_abs_tolerance, policy.delta_rel_tolerance * abs(expected))
-    if abs(observed - expected) > tolerance:
-        return False
-    if abs(expected) <= policy.delta_abs_tolerance:
-        return True
-    return math.copysign(1, observed) == math.copysign(1, expected)
-
-
 def _pass_rate(results: Sequence[AdversarialTestResult], kinds: set[str]) -> float | None:
     subset = [r for r in results if r.kind in kinds and r.measured]
     return sum(r.passed for r in subset) / len(subset) if subset else None
@@ -426,22 +312,13 @@ def review_metrics(
     balanced = balanced_accuracy(negatives, holdouts)
     # The baseline's accuracy is stored rounded, so compare at the same precision: a tie
     # passes (protocol 0.8; before, 10/11 lost to a rounded-up 10/11).
-    beats_baseline = not policy.require_confound_control or (
+    beats = not policy.require_confound_control or (
         baseline is not None and round(balanced, 6) >= baseline[1]
     )
 
-    gates = {
-        "enough_hard_negatives": negatives.clusters >= policy.min_hard_negatives,
-        "enough_holdouts": holdouts.clusters >= policy.min_holdouts,
-        "specificity": (negatives.rate or 0.0) >= policy.min_specificity,
-        "sensitivity": (holdouts.rate or 0.0) >= policy.min_sensitivity,
-        "counterfactual_reproduction": (reproduction or 0.0)
-        >= policy.min_counterfactual_reproduction,
-        "lookahead_consistent": lookahead,
-        "independent_review": independent or not policy.require_independent_review,
-        "beats_confound_baseline": beats_baseline,
-        "not_default_on": active_share is None or active_share < policy.max_active_share,
-    }
+    gates = _gates(
+        policy, negatives, holdouts, reproduction, lookahead, independent, beats, active_share
+    )
     return ReviewMetrics(
         specificity=None if negatives.rate is None else round(negatives.rate, 6),
         sensitivity=None if holdouts.rate is None else round(holdouts.rate, 6),
@@ -457,6 +334,23 @@ def review_metrics(
         active_share=None if active_share is None else round(active_share, 6),
         first_token_floor=first_token_floor,
     )
+
+
+def _gates(
+    policy, negatives, holdouts, reproduction, lookahead, independent, beats, active_share
+) -> dict[str, bool]:
+    return {
+        "enough_hard_negatives": negatives.clusters >= policy.min_hard_negatives,
+        "enough_holdouts": holdouts.clusters >= policy.min_holdouts,
+        "specificity": (negatives.rate or 0.0) >= policy.min_specificity,
+        "sensitivity": (holdouts.rate or 0.0) >= policy.min_sensitivity,
+        "counterfactual_reproduction": (reproduction or 0.0)
+        >= policy.min_counterfactual_reproduction,
+        "lookahead_consistent": lookahead,
+        "independent_review": independent or not policy.require_independent_review,
+        "beats_confound_baseline": beats,
+        "not_default_on": active_share is None or active_share < policy.max_active_share,
+    }
 
 
 def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:

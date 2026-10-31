@@ -24,7 +24,7 @@ stores its chunks, and a later scan of any neuron in that layer replays them.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import torch
@@ -337,43 +337,57 @@ def scan_neuron(
     replay the layer's stored activations if it holds this scan, and store them if not."""
     if runner.tokenizer is None:
         raise ValueError("scan_neuron requires a tokenizer")
-    partners = PartnerSearch(runner.mlp_width(layer))
-    confounds = ConfoundAccumulator()
-    top, other_top = TopExamples(), TopExamples()
-    values: list[float] = []
-    other_values: list[float] = []
-    first: list[bool] = []
     other: Pole = "negative" if pole == "positive" else "positive"
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
-
-    for chunk in scan_chunks(runner, pieces, layer, batch_tokens, cache):
-        acts = chunk.acts.float()  # [n, d_mlp]
-        strengths = pole_strength(acts[:, neuron_idx], pole)
-        counted = chunk.counted
-        partners.update(strengths[counted], acts[counted])
-        confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
-        values.extend(strengths[counted].tolist())
-        first.extend(chunk.first[counted].tolist())
-        top.update_chunk(chunk, strengths)
-        other_strengths = pole_strength(acts[:, neuron_idx], other)
-        other_values.extend(other_strengths[counted].tolist())
-        other_top.update_chunk(chunk, other_strengths)
-
-    def reader(p: Pole) -> Strengths:
-        return lambda inputs: runner.neuron_activations(inputs, layer, neuron_idx, p)
-
-    examples, values, floor = settle(runner, reader(pole), values, first, top, k)
+    scan = _pole_pass(runner, pieces, layer, neuron_idx, (pole, other), batch_tokens, cache)
+    read, read_other = (_reader(runner, layer, neuron_idx, p) for p in (pole, other))
+    examples, values, floor = settle(runner, read, scan.values, scan.first, scan.top, k)
     other_examples, other_values, other_floor = settle(
-        runner, reader(other), other_values, first, other_top, opposite_k
+        runner, read_other, scan.other_values, scan.first, scan.other_top, opposite_k
     )
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
     return ScanResult(
         examples=examples,
         values=values,
-        correlated=partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
-        confounds=confounds.finalize(runner.tokenizer, min_count),
+        correlated=scan.partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
+        confounds=scan.confounds.finalize(runner.tokenizer, min_count),
         windows=len(pieces),
         opposite=OppositeScan(other, other_examples, other_values, other_floor),
         first_token_floor=floor,
     )
+
+
+@dataclass
+class _PolePass:
+    """What one pass over the pieces gathers for a neuron's pole and its other pole."""
+
+    partners: PartnerSearch
+    confounds: ConfoundAccumulator = field(default_factory=ConfoundAccumulator)
+    top: TopExamples = field(default_factory=TopExamples)
+    other_top: TopExamples = field(default_factory=TopExamples)
+    values: list[float] = field(default_factory=list)
+    other_values: list[float] = field(default_factory=list)
+    first: list[bool] = field(default_factory=list)
+
+
+def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens, cache):
+    pole, other = poles
+    scan = _PolePass(PartnerSearch(runner.mlp_width(layer)))
+    for chunk in scan_chunks(runner, pieces, layer, batch_tokens, cache):
+        acts = chunk.acts.float()  # [n, d_mlp]
+        strengths = pole_strength(acts[:, neuron_idx], pole)
+        counted = chunk.counted
+        scan.partners.update(strengths[counted], acts[counted])
+        scan.confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
+        scan.values.extend(strengths[counted].tolist())
+        scan.first.extend(chunk.first[counted].tolist())
+        scan.top.update_chunk(chunk, strengths)
+        other_strengths = pole_strength(acts[:, neuron_idx], other)
+        scan.other_values.extend(other_strengths[counted].tolist())
+        scan.other_top.update_chunk(chunk, other_strengths)
+    return scan
+
+
+def _reader(runner, layer: int, neuron_idx: int, pole: Pole) -> Strengths:
+    return lambda inputs: runner.neuron_activations(inputs, layer, neuron_idx, pole)

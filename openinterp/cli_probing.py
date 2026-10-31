@@ -60,7 +60,7 @@ def probe_compare(
     from openinterp.cli import _load_runner
     from openinterp.core.probing import ProbeComparison
     from openinterp.core.schemas import AuditRecord
-    from openinterp.harness.probing import compare, read_labels, split_documents, windows
+    from openinterp.harness.probing import compare
 
     sub = AuditRecord.model_validate_json(record.read_text()).submission
     if sub.identifier.kind != "mlp_neuron_pole" or sub.max_activation is None:
@@ -69,11 +69,7 @@ def probe_compare(
     runner = _load_runner(
         sub.identifier.model_name, device, dtype, prov.model_revision if prov else None
     )
-    train_wins = windows(runner.tokenizer, read_labels(train_path), window_tokens)
-    if test_path is None:
-        train_wins, test_wins = split_documents(train_wins, test_share, seed)
-    else:
-        test_wins = windows(runner.tokenizer, read_labels(test_path), window_tokens)
+    train_wins, test_wins = _split(runner, train_path, test_path, test_share, window_tokens, seed)
     try:
         scores = compare(
             runner,
@@ -97,6 +93,20 @@ def probe_compare(
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(report.model_dump_json(indent=2) + "\n")
+    _echo_summary(report, out)
+
+
+def _split(runner, train_path: Path, test_path, test_share: float, window_tokens: int, seed):
+    """(training windows, test windows): a held-out source, or a split by document."""
+    from openinterp.harness.probing import read_labels, split_documents, windows
+
+    train_wins = windows(runner.tokenizer, read_labels(train_path), window_tokens)
+    if test_path is None:
+        return split_documents(train_wins, test_share, seed)
+    return train_wins, windows(runner.tokenizer, read_labels(test_path), window_tokens)
+
+
+def _echo_summary(report, out: Path) -> None:
     n, dense = report.neuron, report.sites[0].logistic
     click.echo(
         f"{report.slug}: neuron BA {n.balanced_accuracy:.3f}"

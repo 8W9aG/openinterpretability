@@ -239,20 +239,7 @@ class LayerCache:
                         rows["piece"].append(np.full(n, index, dtype=np.int32))
                         index += 1
                     yield chunk
-            for name, parts in rows.items():
-                np.save(tmp / f"{name}.npy", np.concatenate(parts) if parts else np.zeros(0))
-            (tmp / "pieces.json").write_text(json.dumps([asdict(p) for p in pieces]))
-            total = int(sum(len(p) for p in rows["ids"]))
-            meta = {
-                "fields": fields,
-                "rows": total,
-                "width": width or 0,
-                "dtype": fields["dtype"],
-                "storage": storage or "float32",
-                "batches": sizes,
-                "created": datetime.now(UTC).isoformat(timespec="seconds"),
-            }
-            (tmp / "meta.json").write_text(json.dumps(meta, indent=2))
+            _write_index(tmp, fields, pieces, rows, width, storage, sizes)
             with suppress(OSError):  # another scan stored it first
                 tmp.rename(final)
             self.evict(keep=final)
@@ -279,3 +266,22 @@ class LayerCache:
         for entry in entries:
             shutil.rmtree(entry.path, ignore_errors=True)
         return len(entries)
+
+
+def _write_index(tmp: Path, fields: dict, pieces, rows: dict, width, storage, sizes) -> None:
+    """Everything an entry holds besides ``acts.bin``: the per-row arrays, the pieces, and
+    ``meta.json``."""
+    for name, parts in rows.items():
+        np.save(tmp / f"{name}.npy", np.concatenate(parts) if parts else np.zeros(0))
+    (tmp / "pieces.json").write_text(json.dumps([asdict(p) for p in pieces]))
+    total = int(sum(len(p) for p in rows["ids"]))
+    meta = {
+        "fields": fields,
+        "rows": total,
+        "width": width or 0,
+        "dtype": fields["dtype"],
+        "storage": storage or "float32",
+        "batches": sizes,
+        "created": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
+    (tmp / "meta.json").write_text(json.dumps(meta, indent=2))

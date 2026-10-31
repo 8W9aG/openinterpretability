@@ -6,6 +6,7 @@ Each function returns plain coordinates and labels; the templates draw them.
 from __future__ import annotations
 
 import math
+from functools import partial
 
 from openinterp.core.schemas import Histogram
 
@@ -46,10 +47,9 @@ def probe_chart(verdict, scale: float | None, width: int = 640) -> dict | None:
     """
     if verdict is None or verdict.policy is None or not scale:
         return None
+    kinds = {kind for kind, *_ in PROBE_ROWS}
     tests = [
-        t
-        for t in verdict.adversarial_test_results
-        if t.kind in {kind for kind, *_ in PROBE_ROWS} and t.activation is not None
+        t for t in verdict.adversarial_test_results if t.kind in kinds and t.activation is not None
     ]
     if not tests:
         return None
@@ -58,45 +58,15 @@ def probe_chart(verdict, scale: float | None, width: int = 640) -> dict | None:
     hi = max(scale, *(t.activation for t in tests))
     left, right = 132, width - 12
     r, row_gap, top = 5, 64, 34
-
-    def x(v: float) -> float:
-        return round(left + (right - left) * (v - lo) / ((hi - lo) or 1.0), 2)
-
+    x = partial(_axis_x, lo=lo, hi=hi, left=left, right=right)
     rows = []
     for i, (kind, label, expect) in enumerate(PROBE_ROWS):
         cy = top + 24 + i * row_gap
-        placed: list[tuple[float, float]] = []
-        dots = []
         group = sorted((t for t in tests if t.kind == kind), key=lambda t: t.activation)
-        for t in group:
-            cx = x(t.activation)
-            for dy in (0, -10, 10, -20, 20):
-                if all(
-                    (cx - px) ** 2 + (cy + dy - py) ** 2 >= (2 * r + 1) ** 2 for px, py in placed
-                ):
-                    break
-            placed.append((cx, cy + dy))
-            prompt = t.prompt if len(t.prompt) <= 160 else t.prompt[:157] + "…"
-            dots.append(
-                {
-                    "cx": cx,
-                    "cy": cy + dy,
-                    "passed": t.passed,
-                    "label": f"{'passed' if t.passed else 'failed'} · {t.activation:.3f} "
-                    f"({t.activation / scale:.0%} of max)\n{prompt}",
-                }
-            )
+        dots = _probe_dots(group, x, cy, r, scale)
         passed = sum(d["passed"] for d in dots)
-        rows.append(
-            {
-                "label": label,
-                "expect": expect,
-                "y": cy,
-                "dots": dots,
-                "passed": passed,
-                "n": len(dots),
-            }
-        )
+        row = {"label": label, "expect": expect, "y": cy, "dots": dots}
+        rows.append({**row, "passed": passed, "n": len(dots)})
     axis_y = top + 24 + len(PROBE_ROWS) * row_gap - 24
     return {
         "width": width,
@@ -114,6 +84,33 @@ def probe_chart(verdict, scale: float | None, width: int = 640) -> dict | None:
         "max_x": x(scale),
         "scale": scale,
     }
+
+
+def _axis_x(v: float, *, lo: float, hi: float, left: float, right: float) -> float:
+    return round(left + (right - left) * (v - lo) / ((hi - lo) or 1.0), 2)
+
+
+def _probe_dots(group, x, cy: float, r: float, scale: float) -> list[dict]:
+    """One row's dots, each dodged vertically off the dots already placed."""
+    placed: list[tuple[float, float]] = []
+    dots = []
+    for t in group:
+        cx = x(t.activation)
+        for dy in (0, -10, 10, -20, 20):
+            if all((cx - px) ** 2 + (cy + dy - py) ** 2 >= (2 * r + 1) ** 2 for px, py in placed):
+                break
+        placed.append((cx, cy + dy))
+        prompt = t.prompt if len(t.prompt) <= 160 else t.prompt[:157] + "…"
+        dots.append(
+            {
+                "cx": cx,
+                "cy": cy + dy,
+                "passed": t.passed,
+                "label": f"{'passed' if t.passed else 'failed'} · {t.activation:.3f} "
+                f"({t.activation / scale:.0%} of max)\n{prompt}",
+            }
+        )
+    return dots
 
 
 LENSES = (
@@ -155,61 +152,28 @@ def vocab_chart(lens, width: int = 360) -> dict | None:
     token's label sits on the far side of zero from its bar. Records without z-scores get
     no chart; the page lists their tokens instead.
     """
-    if lens is None:
+    lists = _vocab_lists(lens)
+    if lists is None:
         return None
-    lists = {}
-    for key, *_ in LENSES:
-        for side in ("promoted", "suppressed"):
-            tokens, z = getattr(lens, f"{key}_{side}"), getattr(lens, f"{key}_{side}_z")
-            if z is None or len(z) != len(tokens):
-                return None
-            lists[key, side] = list(zip(tokens, z, strict=True))
     zmax = max((abs(v) for pairs in lists.values() for _, v in pairs), default=0.0) or 1.0
     step = _nice_step(zmax)
     reach = math.ceil(zmax / step) * step
     zero, half = width / 2, width / 2 - 6
     bar, pitch, gap, top = 11, 15, 10, 4
 
-    def x(v: float) -> float:
-        return round(zero + half * v / reach, 2)
-
+    x = partial(_zero_x, zero=zero, half=half, reach=reach)
     panels = []
     for key, title, hint in LENSES:
-        promoted, suppressed = lists[key, "promoted"], lists[key, "suppressed"]
-        rows, y = [], top
-        for side, pairs in (("promoted", promoted), ("suppressed", suppressed[::-1])):
-            for i, (token, z) in enumerate(pairs):
-                rank = i + 1 if side == "promoted" else len(pairs) - i
-                shown = token.translate(VISIBLE_WHITESPACE)
-                rows.append(
-                    {
-                        "promoted": side == "promoted",
-                        "y": y,
-                        "d": _bar_path(zero, x(z), y, bar),
-                        "text": shown if len(shown) <= 22 else shown[:21] + "…",
-                        "text_x": zero - 6 if z >= 0 else zero + 6,
-                        "anchor": "end" if z >= 0 else "start",
-                        "label": f"{shown} · z = {z:+.2f} · #{rank} {side}",
-                    }
-                )
-                y += pitch
-            y += gap
+        sides = (
+            ("promoted", lists[key, "promoted"]),
+            ("suppressed", lists[key, "suppressed"][::-1]),
+        )
+        rows = _vocab_rows(sides, x, zero, top, bar, pitch, gap)
         panels.append({"key": key, "title": title, "hint": hint, "rows": rows})
     axis_y = max((len(p["rows"]) for p in panels), default=0) * pitch + top + gap
     ticks = [
         (x(i * step), f"{i * step:+g}" if i else "0")
         for i in range(-round(reach / step), round(reach / step) + 1)
-    ]
-    table = [
-        {
-            "rank": i + 1,
-            **{
-                f"{key}_{side}": lists[key, side][i] if i < len(lists[key, side]) else None
-                for key, *_ in LENSES
-                for side in ("promoted", "suppressed")
-            },
-        }
-        for i in range(max(len(pairs) for pairs in lists.values()))
     ]
     return {
         "width": width,
@@ -220,8 +184,64 @@ def vocab_chart(lens, width: int = 360) -> dict | None:
         "axis_y": axis_y,
         "ticks": ticks,
         "panels": panels,
-        "table": table,
+        "table": _vocab_table(lists),
     }
+
+
+def _vocab_lists(lens) -> dict | None:
+    """(lens, side) -> [(token, z)], or ``None`` when a list has no z-scores."""
+    if lens is None:
+        return None
+    lists = {}
+    for key, *_ in LENSES:
+        for side in ("promoted", "suppressed"):
+            tokens, z = getattr(lens, f"{key}_{side}"), getattr(lens, f"{key}_{side}_z")
+            if z is None or len(z) != len(tokens):
+                return None
+            lists[key, side] = list(zip(tokens, z, strict=True))
+    return lists
+
+
+def _zero_x(v: float, *, zero: float, half: float, reach: float) -> float:
+    return round(zero + half * v / reach, 2)
+
+
+def _vocab_rows(sides, x, zero: float, top: float, bar: float, pitch: float, gap: float):
+    """One panel's rows: the promoted tokens, then the suppressed ones, most suppressed last."""
+    rows, y = [], top
+    for side, pairs in sides:
+        for i, (token, z) in enumerate(pairs):
+            rank = i + 1 if side == "promoted" else len(pairs) - i
+            shown = token.translate(VISIBLE_WHITESPACE)
+            rows.append(
+                {
+                    "promoted": side == "promoted",
+                    "y": y,
+                    "d": _bar_path(zero, x(z), y, bar),
+                    "text": shown if len(shown) <= 22 else shown[:21] + "…",
+                    "text_x": zero - 6 if z >= 0 else zero + 6,
+                    "anchor": "end" if z >= 0 else "start",
+                    "label": f"{shown} · z = {z:+.2f} · #{rank} {side}",
+                }
+            )
+            y += pitch
+        y += gap
+    return rows
+
+
+def _vocab_table(lists: dict) -> list[dict]:
+    """The same tokens as a table, one row per rank, for screen readers and copying."""
+    return [
+        {
+            "rank": i + 1,
+            **{
+                f"{key}_{side}": lists[key, side][i] if i < len(lists[key, side]) else None
+                for key, *_ in LENSES
+                for side in ("promoted", "suppressed")
+            },
+        }
+        for i in range(max(len(pairs) for pairs in lists.values()))
+    ]
 
 
 CAUSAL_KINDS = (("sufficiency", "Sufficiency"), ("necessity", "Necessity"))
@@ -241,37 +261,12 @@ def causal_chart(causal, counterfactuals, width: int = 640) -> dict | None:
     left, right = 132, width - 48
     bar, gap, row_h, top = 9, 2, 34, 30
 
-    def x(v: float) -> float:
-        return round(left + (right - left) * v, 2)
-
-    def bars(y: float, values: dict[str, tuple[float | None, str]]) -> list[dict]:
-        out = []
-        for i, (kind, label) in enumerate(CAUSAL_KINDS):
-            value, detail = values[kind]
-            out.append(
-                {
-                    "kind": kind,
-                    "y": round(y + i * (bar + gap), 2),
-                    "w": round(x(value) - left, 2) if value is not None else None,
-                    "value": value,
-                    "label": f"{label}: " + ("—" if value is None else f"{value:.2f}") + detail,
-                }
-            )
-        return out
-
+    x = partial(_fraction_x, left=left, right=right)
+    bars = partial(_causal_bars, x=x, left=left, bar=bar, gap=gap)
     rows = []
     for p in causal.pairs:
-        pair = counterfactuals[p.pair_index] if p.pair_index < len(counterfactuals) else None
-        prompts = f"\n{pair.base_prompt} → {pair.counterfactual_prompt}" if pair else ""
         y = top + len(rows) * row_h
-        values = {}
-        for kind, _ in CAUSAL_KINDS:
-            patch = getattr(p, kind)
-            values[kind] = (
-                patch.percentile,
-                f" · effect {patch.effect:.3g} (matched |effect| median "
-                f"{patch.null_median:.3g}, max {patch.null_max:.3g}){prompts}",
-            )
+        values = _pair_values(p, counterfactuals)
         rows.append({"label": f"Pair {p.pair_index + 1}", "y": y, "bars": bars(y, values)})
     median_y = top + len(rows) * row_h + (10 if rows else 0)
     detail = f" · median of {causal.pairs_scored} pairs" if causal.pairs_scored else ""
@@ -295,6 +290,41 @@ def causal_chart(causal, counterfactuals, width: int = 640) -> dict | None:
         "baseline_x": x(0.5),
         "ticks": [(x(v), f"{v:g}") for v in (0, 0.25, 0.5, 0.75, 1)],
     }
+
+
+def _fraction_x(v: float, *, left: float, right: float) -> float:
+    return round(left + (right - left) * v, 2)
+
+
+def _causal_bars(y: float, values: dict, *, x, left: float, bar: float, gap: float) -> list[dict]:
+    """A row's two bars, sufficiency above necessity; ``values`` is kind -> (value, detail)."""
+    out = []
+    for i, (kind, label) in enumerate(CAUSAL_KINDS):
+        value, detail = values[kind]
+        out.append(
+            {
+                "kind": kind,
+                "y": round(y + i * (bar + gap), 2),
+                "w": round(x(value) - left, 2) if value is not None else None,
+                "value": value,
+                "label": f"{label}: " + ("—" if value is None else f"{value:.2f}") + detail,
+            }
+        )
+    return out
+
+
+def _pair_values(p, counterfactuals) -> dict[str, tuple[float | None, str]]:
+    pair = counterfactuals[p.pair_index] if p.pair_index < len(counterfactuals) else None
+    prompts = f"\n{pair.base_prompt} → {pair.counterfactual_prompt}" if pair else ""
+    values = {}
+    for kind, _ in CAUSAL_KINDS:
+        patch = getattr(p, kind)
+        values[kind] = (
+            patch.percentile,
+            f" · effect {patch.effect:.3g} (matched |effect| median "
+            f"{patch.null_median:.3g}, max {patch.null_max:.3g}){prompts}",
+        )
+    return values
 
 
 # Neuron statuses on the layer map, best first: a neuron shows its best pole's status.
@@ -329,23 +359,7 @@ def layer_map(model, width: int = 640) -> dict | None:
     def x(idx: int) -> float:
         return round(left + (right - left - mark_w) * idx / max(model.mlp_width - 1, 1), 2)
 
-    counts = dict.fromkeys(MAP_STATUSES, 0)
-    marks = []
-    for layer in model.layers:
-        y = top + layer.layer * pitch
-        for n in layer.neurons:
-            status = _best_status(n)
-            counts[status] += 1
-            marks.append(
-                {
-                    "x": x(n.idx),
-                    "y": y,
-                    "status": status,
-                    "href": n.href,
-                    "label": f"L{layer.layer} {n.label} · {_poles(n)}",
-                }
-            )
-    marks.sort(key=lambda m: -MAP_STATUSES.index(m["status"]))
+    marks, counts = _layer_marks(model, x, top, pitch)
     axis_y = top + model.n_layers * pitch + 2
     step = _nice_step(model.mlp_width)
     ticks = [(x(i), f"{i:,}") for i in range(0, model.mlp_width, int(step))]
@@ -364,6 +378,28 @@ def layer_map(model, width: int = 640) -> dict | None:
         "counts": counts,
         "unexplored": model.total_neurons - model.neurons,
     }
+
+
+def _layer_marks(model, x, top: float, pitch: float) -> tuple[list[dict], dict[str, int]]:
+    """The map's marks, worst status first so the best draw on top, and a count per status."""
+    counts = dict.fromkeys(MAP_STATUSES, 0)
+    marks = []
+    for layer in model.layers:
+        y = top + layer.layer * pitch
+        for n in layer.neurons:
+            status = _best_status(n)
+            counts[status] += 1
+            marks.append(
+                {
+                    "x": x(n.idx),
+                    "y": y,
+                    "status": status,
+                    "href": n.href,
+                    "label": f"L{layer.layer} {n.label} · {_poles(n)}",
+                }
+            )
+    marks.sort(key=lambda m: -MAP_STATUSES.index(m["status"]))
+    return marks, counts
 
 
 # Pieces bars: BitTorrent-style coverage, one cell per neuron or block of neurons. Cells sit

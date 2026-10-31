@@ -294,31 +294,11 @@ class ProposerAgent(LLMAgent):
             f"{format_examples(examples, full=full_snippets)}\n\n"
         )
         if lens is not None:
-            prompt += (
-                f"Tokens this {'pole' if identifier.pole else identifier.noun} promotes via the "
-                f"Jacobian lens (its output direction "
-                f"transported to the final layer; reliable in middle layers): "
-                f"{', '.join(map(repr, lens.jacobian_promoted))}; suppresses: "
-                f"{', '.join(map(repr, lens.jacobian_suppressed))}. "
-                f"Logit lens (no transport): {', '.join(map(repr, lens.logit_promoted))}. "
-                f"Lens agreement {lens.overlap:.0%}; peakedness (kurtosis) "
-                f"{lens.jacobian_kurtosis:.1f}, where ~3 means no specific token set.\n"
-            )
+            prompt += format_lens(lens, identifier)
         if confounds is not None:
-            top = ", ".join(repr(t.token) for t in confounds.trigger_tokens[:10])
-            prompt += (
-                f"\nConfounds: token identity explains {confounds.token_r2:.0%} of activation "
-                f"variance, position {confounds.position_r2:.0%}. Highest mean-activation "
-                f"tokens: {top}. Your hypothesis must predict activity better than "
-                f"'fires on these tokens'.\n"
-            )
+            prompt += format_confounds(confounds)
         if correlated:
-            pairs = ", ".join(
-                f"N{c.neuron_idx}{'+' if c.pole == 'positive' else '-'} "
-                f"(co-activation lift >= {c.coactivation_lift_lower:.1f}, rho={c.spearman:+.2f})"
-                for c in correlated[:5]
-            )
-            prompt += f"Neuron poles in this layer that co-activate with it: {pairs}.\n"
+            prompt += format_correlated(correlated)
         if attribution is not None:
             prompt += "\n" + format_input_attribution(attribution)
         return prompt
@@ -342,33 +322,11 @@ class ProposerAgent(LLMAgent):
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
-        pairs = [
-            CounterfactualPair(
-                base_prompt=cf.base_prompt,
-                counterfactual_prompt=cf.counterfactual_prompt,
-                expected_delta=cf.expected_delta,
-            )
-            for cf in draft.counterfactuals
-            if cf.base_prompt != cf.counterfactual_prompt
-        ]
-        lookahead = LookaheadProfile(
-            is_lookahead=draft.mechanism == "lookahead",
-            target_upcoming_tokens=list(draft.target_upcoming_tokens),
-            kl_divergence=0.0,
-        )
+        pairs, lookahead = draft_claims(draft)
         is_head = identifier.kind == "attn_head"
         if runner is not None and max_act:
             unit = unit_of(identifier, head_profile, dictionary_profile, bool(first_token_floor))
-            pairs = [
-                pair.model_copy(
-                    update={"observed_delta": observed_delta(runner, unit, pair, max_act)}
-                )
-                for pair in pairs
-            ]
-            prompts = [p.base_prompt for p in pairs]
-            measured = ablation_profile(runner, prompts, unit.ablation(runner))
-            # Keep the proposer's claim; record the measured KL as evidence for review.
-            lookahead = lookahead.model_copy(update={"kl_divergence": measured.kl_divergence})
+            pairs, lookahead = measure_claims(runner, unit, pairs, lookahead, max_act)
 
         return NeuronAuditSubmission(
             identifier=identifier,
@@ -392,6 +350,69 @@ class ProposerAgent(LLMAgent):
             head_profile=head_profile,
             dictionary_profile=dictionary_profile,
         )
+
+
+def format_lens(lens: VocabularyLens, identifier: ComponentIdentifier) -> str:
+    return (
+        f"Tokens this {'pole' if identifier.pole else identifier.noun} promotes via the "
+        f"Jacobian lens (its output direction "
+        f"transported to the final layer; reliable in middle layers): "
+        f"{', '.join(map(repr, lens.jacobian_promoted))}; suppresses: "
+        f"{', '.join(map(repr, lens.jacobian_suppressed))}. "
+        f"Logit lens (no transport): {', '.join(map(repr, lens.logit_promoted))}. "
+        f"Lens agreement {lens.overlap:.0%}; peakedness (kurtosis) "
+        f"{lens.jacobian_kurtosis:.1f}, where ~3 means no specific token set.\n"
+    )
+
+
+def format_confounds(confounds: ConfoundProfile) -> str:
+    top = ", ".join(repr(t.token) for t in confounds.trigger_tokens[:10])
+    return (
+        f"\nConfounds: token identity explains {confounds.token_r2:.0%} of activation "
+        f"variance, position {confounds.position_r2:.0%}. Highest mean-activation "
+        f"tokens: {top}. Your hypothesis must predict activity better than "
+        f"'fires on these tokens'.\n"
+    )
+
+
+def format_correlated(correlated: Sequence[CorrelatedNeuron]) -> str:
+    pairs = ", ".join(
+        f"N{c.neuron_idx}{'+' if c.pole == 'positive' else '-'} "
+        f"(co-activation lift >= {c.coactivation_lift_lower:.1f}, rho={c.spearman:+.2f})"
+        for c in correlated[:5]
+    )
+    return f"Neuron poles in this layer that co-activate with it: {pairs}.\n"
+
+
+def draft_claims(draft: HypothesisDraft) -> tuple[list[CounterfactualPair], LookaheadProfile]:
+    """The draft's counterfactual pairs (dropping unedited ones) and mechanism, unmeasured."""
+    pairs = [
+        CounterfactualPair(
+            base_prompt=cf.base_prompt,
+            counterfactual_prompt=cf.counterfactual_prompt,
+            expected_delta=cf.expected_delta,
+        )
+        for cf in draft.counterfactuals
+        if cf.base_prompt != cf.counterfactual_prompt
+    ]
+    lookahead = LookaheadProfile(
+        is_lookahead=draft.mechanism == "lookahead",
+        target_upcoming_tokens=list(draft.target_upcoming_tokens),
+        kl_divergence=0.0,
+    )
+    return pairs, lookahead
+
+
+def measure_claims(runner, unit: Unit, pairs, lookahead: LookaheadProfile, max_act: float):
+    """Each pair's observed delta, and the ablation KL on the base prompts."""
+    pairs = [
+        pair.model_copy(update={"observed_delta": observed_delta(runner, unit, pair, max_act)})
+        for pair in pairs
+    ]
+    prompts = [p.base_prompt for p in pairs]
+    measured = ablation_profile(runner, prompts, unit.ablation(runner))
+    # Keep the proposer's claim; record the measured KL as evidence for review.
+    return pairs, lookahead.model_copy(update={"kl_divergence": measured.kl_divergence})
 
 
 def observed_delta(
