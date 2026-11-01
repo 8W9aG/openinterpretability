@@ -15,8 +15,8 @@
 | Date | {{ verdict.timestamp.strftime("%Y-%m-%d %H:%M UTC") }} |
 | Verdict | **{{ verdict.status }}**, balanced accuracy {{ verdict.confidence_score | num(2) }} |
 | Protocol | {{ ('v' ~ policy.protocol_version) if policy else 'unrecorded (pre-0.2)' }} |
-| Proposer | `{{ sub.submitting_agent_model | cell }}` |
-| Reviewer | `{{ verdict.reviewer_agent_model | cell }}`{% if self_reviewed %} (self-reviewed: same model as the proposer, so not an independent review){% endif %} |
+| Proposer | `{{ sub.submitting_agent_model | cell }}`{% if sub.contributor %}, run by {{ sub.contributor | cell }}{% endif %} |
+| Reviewer | `{{ verdict.reviewer_agent_model | cell }}`{% if verdict.contributor %}, run by {{ verdict.contributor | cell }}{% endif %}{% if self_reviewed %} (self-reviewed: same model as the proposer, so not an independent review){% endif %} |
 {% if sub.provenance %}
 {% set p = sub.provenance %}
 | Selection | {{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %} |

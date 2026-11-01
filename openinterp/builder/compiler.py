@@ -12,6 +12,8 @@ import math
 import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from email.utils import parseaddr
+from importlib.metadata import metadata
 from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
@@ -19,8 +21,14 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder import charts, statuses
-from openinterp.builder.agents import agent_href, agents_view, legacy_redirects
+from openinterp.builder.agents import (
+    agent_href,
+    agents_view,
+    contributors_view,
+    legacy_redirects,
+)
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
+from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.significance import evidence_strength
@@ -80,6 +88,7 @@ def _environment() -> Environment:
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands
+    env.globals["language_mix"] = language_mix  # a scan's tokens per language
     return env
 
 
@@ -321,31 +330,45 @@ def compile_site(
     for model in models:
         _render_model(render, model, rows, studied, alignment_rows or {})
     agents = agents_view(experiments)
-    render("agents/index.html", "agents.html", agents=agents)
+    contributors = contributors_view(experiments)
+    render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
     for agent in agents:
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
+    _render_index(render, models, experiments, agents, registry_stats(report.parquet, draws))
+    return report
+
+
+def _render_index(render, models, experiments, agents, stats) -> None:
     render(
         "index.html",
         "index.html",
         models=models,
-        stats=registry_stats(report.parquet, draws),
+        stats=stats,
         agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
+        corpora=corpora_view(experiments),
         contested=[
             {"model": n.model, "unit": n, "side": side, "standing": st}
             for n, side, st in native_standings(models)
             if st.contested
         ],
     )
-    return report
+
+
+def _project_links() -> dict:
+    """The repo URL and contact email for the footer, from pyproject.toml's metadata."""
+    meta = metadata("openinterp")
+    urls = dict(u.split(", ", 1) for u in meta.get_all("Project-URL") or [])
+    return {"repo_url": urls["Repository"], "contact_email": parseaddr(meta["Author-email"])[1]}
 
 
 def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
     """What every page's template gets."""
     return {
+        **_project_links(),
         "site_title": site_title,
         "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
         "version": __version__,

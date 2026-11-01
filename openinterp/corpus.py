@@ -24,11 +24,13 @@ import re
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from functools import partial
 from itertools import pairwise
 from pathlib import Path
 
 import pyarrow.parquet as pq
 
+from openinterp.core.confounds import LANGUAGE
 from openinterp.core.schemas import CorpusSample, CorpusSource
 
 # What `openinterp audit` scans by default (protocol 0.7): a fixed seed, so every audit
@@ -142,7 +144,7 @@ LAYOUTS = {"wikitext": wikitext_articles}
 
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
 # (`harness/annotations.py`). Exact labels from the dataset, never detected.
-DOCUMENT_LABELS = {"lang": "language"}
+DOCUMENT_LABELS = {"lang": LANGUAGE}
 
 
 def source_path(corpus_path: Path) -> Path:
@@ -321,10 +323,14 @@ def build_from_hub(
     first: bool = False,
     ascii: bool = False,
     lang_pattern: str | None = None,
+    detect_lang: bool = False,
 ) -> CorpusSource:
     """Sample a corpus from a Hugging Face dataset at a pinned revision, or with ``first``
     take its first documents. With ``lang_pattern`` (see :class:`Preset`), each document
-    records its glob's language as ``lang``."""
+    records its glob's language as ``lang``; with ``detect_lang``, the language
+    :mod:`openinterp.langid` detects, where it is sure of one."""
+    if lang_pattern and detect_lang:
+        raise ValueError("a corpus's languages come from lang_pattern or detect_lang, not both")
     from huggingface_hub import HfApi, HfFileSystem
 
     api = HfApi()
@@ -332,25 +338,22 @@ def build_from_hub(
     license_ = _license(api, dataset, info, revision)
     fs = HfFileSystem()
     read = {"text_column": text_column, "max_chars": max_chars, "layout": layout}
-    texts, langs = [], []
-    # Several globs (e.g. one per language): an equal share from each, the first taking extras.
-    globs = files.split(",")
-    for i, glob in enumerate(globs):
-        paths = fs.glob(f"datasets/{dataset}@{info.sha}/{glob}")
-        if not paths:
-            raise FileNotFoundError(f"no files match {glob!r} in {dataset}@{info.sha}")
-        share = documents // len(globs) + (i < documents % len(globs))
-        if first:
-            texts += first_documents(fs, paths, documents=share, **read)
-        else:
-            texts += sample_documents(
-                fs, paths, documents=share, seed=seed, docs_per_row_group=docs_per_row_group, **read
-            )
-        langs += [_glob_lang(lang_pattern, glob)] * (len(texts) - len(langs))
+    take = (
+        partial(first_documents, fs, **read)
+        if first
+        else partial(sample_documents, fs, seed=seed, docs_per_row_group=docs_per_row_group, **read)
+    )
+    texts, langs = _read_globs(fs, f"{dataset}@{info.sha}", files, documents, take)
+    langs = [_glob_lang(lang_pattern, glob) for glob in langs]
+    detector = None
+    if detect_lang:
+        from openinterp import langid
+
+        langs, detector = langid.detect(texts), langid.DETECTOR
     return write_corpus(
         texts,
         out,
-        labels={"lang": langs} if lang_pattern else None,
+        labels={"lang": langs} if lang_pattern or detect_lang else None,
         dataset=dataset,
         revision=info.sha,
         files=files,
@@ -362,8 +365,25 @@ def build_from_hub(
         first=first,
         ascii=ascii,
         lang_pattern=lang_pattern,
+        lang_detector=detector,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )
+
+
+def _read_globs(fs, repo: str, files: str, documents: int, take):
+    """The documents ``take(paths, documents=n)`` reads from ``files``' globs, and the glob
+    each came from. Several globs (e.g. one per language) give an equal share each, the
+    first taking extras."""
+    texts, origins = [], []
+    globs = files.split(",")
+    for i, glob in enumerate(globs):
+        paths = fs.glob(f"datasets/{repo}/{glob}")
+        if not paths:
+            raise FileNotFoundError(f"no files match {glob!r} in {repo}")
+        share = documents // len(globs) + (i < documents % len(globs))
+        texts += take(paths, documents=share)
+        origins += [glob] * (len(texts) - len(origins))
+    return texts, origins
 
 
 def _glob_lang(pattern: str | None, glob: str) -> str | None:

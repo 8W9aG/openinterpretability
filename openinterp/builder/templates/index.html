@@ -257,6 +257,39 @@
 </section>
 {% endif %}
 
+{% if corpora %}
+<section class="mb-10" id="corpora">
+  <h2 class="mb-1 text-lg font-semibold">Corpora</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    The corpora experiments were scanned on. Registry statistics over randomly selected units describe a model on its corpus, so they depend on what the corpus holds.
+    Where documents carry their language, the mix is each model's scanned tokens by language, from its largest scan of the corpus; a tokenizer splits some languages into more tokens than others.
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="text-xs uppercase tracking-wide text-slate-500">
+        <tr><th class="px-3 py-2">Corpus</th><th class="px-3 py-2 text-right">Experiments</th><th class="px-3 py-2">Language mix</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for c in corpora %}
+        {% set src = corpus_sources.get(c.sha256) %}
+        <tr class="align-top">
+          <td class="px-3 py-2"><span class="text-xs">{{ src or c.name }}</span> <span class="font-mono text-xs text-slate-500" title="{{ c.sha256 }}">{{ (c.sha256 or "?")[:8] }}</span></td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ c.experiments }}</td>
+          <td class="px-3 py-2 text-xs">
+            {% for mix in c.mixes %}
+            <div><span class="font-mono">{{ mix.model_name }}</span>{% if mix.sampled %} <span class="text-slate-500" title="From a --max-tokens sample of the corpus">(sample)</span>{% endif %}: <span class="font-mono" title="{{ "{:,}".format(mix.tokens) }} labelled tokens">{% for l in mix.shown %}{{ l.label }} {{ l.share | pct }}{{ " · " if not loop.last }}{% endfor %}{% if mix.other >= 0.005 %} · other {{ mix.other | pct }}{% endif %}</span></div>
+            {% else %}
+            <span class="text-slate-500">not labelled by language</span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 <section>
   <h2 class="mb-1 text-lg font-semibold">Query the registry</h2>
   <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">

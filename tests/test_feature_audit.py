@@ -524,3 +524,17 @@ def test_ci_reproduces_only_preset_dictionaries(runner, scan, tmp_path, monkeypa
     result = CliRunner().invoke(cli, args)
     assert f"REPRODUCED: {good}" in result.output, result.output
     assert f"FAILED: {bad}" in result.output and "not a preset's" in result.output
+
+
+def test_feature_scans_take_label_sets(runner, spec):
+    from openinterp.harness.annotations import DocumentLabels
+
+    langs = ["en", "fr"] * 3
+    tagged = scan_feature(
+        runner, TEXTS, FEATURE, spec, k=4, taggers=[DocumentLabels("language", langs)]
+    )
+    language = tagged.confounds.labels["language"]
+    assert language.labelled_tokens == tagged.profile.tokens
+    assert {s.label for s in language.levels} == {"en", "fr"}
+    for ex in tagged.examples:
+        assert ex.peak_labels == {"language": langs[TEXTS.index(ex.text)]}

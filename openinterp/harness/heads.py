@@ -16,11 +16,13 @@ from functools import partial
 import torch
 
 from openinterp.core.schemas import ActivatingExample, HeadIdentifier, HeadProfile
+from openinterp.harness.annotations import Tagger
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
 from openinterp.harness.scan import (
     BATCH_TOKENS,
+    LabelPass,
     ScanResult,
     TopExamples,
     batches,
@@ -81,8 +83,10 @@ def scan_head(
     pattern_sequences: int = 16,
     pattern_length: int = 32,
     pattern_seed: int = 0,
+    taggers: Sequence[Tagger] = (),
 ) -> HeadScanResult:
-    """Top examples, strengths, confounds and the :class:`HeadProfile` of one head.
+    """Top examples, strengths, confounds and the :class:`HeadProfile` of one head. Each
+    of ``taggers`` labels the counted tokens, and its confound joins the profile's.
 
     Needs eager attention (``attn_implementation="eager"``) for the attention patterns.
     """
@@ -93,6 +97,7 @@ def scan_head(
 
     mean, count = _mean_output(runner, pieces, layer, head, batch_tokens)
     confounds = ConfoundAccumulator()
+    labels = LabelPass(runner.tokenizer, texts, taggers)
     top = TopExamples()
     values: list[float] = []
     first: list[bool] = []
@@ -101,11 +106,13 @@ def scan_head(
         strengths = head_strength(runner, ident, z, mean).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
+        labels.update(batch, strengths)
         values.extend(strengths[counted].tolist())
         first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)
     unit = HeadUnit(ident, tuple(mean))
-    examples, values, floor = settle(runner, partial(unit.strengths, runner), values, first, top, k)
+    read = partial(unit.strengths, runner)
+    examples, values, floor = settle(runner, read, values, first, top, k, labels.tokens)
 
     patterns = (pattern_sequences, pattern_length, pattern_seed)
     profile = _head_profile(runner, layer, head, mean, count, *patterns)
@@ -113,7 +120,7 @@ def scan_head(
         examples=[peak_attention(runner, e, layer, head) for e in examples],
         values=values,
         correlated=[],
-        confounds=confounds.finalize(runner.tokenizer, min_count),
+        confounds=labels.finalize(confounds.finalize(runner.tokenizer, min_count), values),
         windows=len(pieces),
         first_token_floor=floor,
         profile=profile,

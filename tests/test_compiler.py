@@ -255,6 +255,13 @@ def test_empty_registry_builds(tmp_path):
     assert "No experiments yet" in (tmp_path / "index.html").read_text()
 
 
+def test_footer_links_repo_and_contact(tmp_path):
+    compile_site([], tmp_path)
+    index = (tmp_path / "index.html").read_text()
+    assert 'href="https://github.com/8W9aG/openinterpretability"' in index
+    assert 'href="mailto:will.sackfield@gmail.com"' in index
+
+
 def test_histogram_bars(submission):
     bars = histogram_bars(submission.activation_histogram)
     assert len(bars) == 3
@@ -875,6 +882,15 @@ def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
     assert "on 4 of the review's prompts" in wiki
 
 
+def scan_provenance(sample=None):
+    from openinterp.core.schemas import ExperimentProvenance
+
+    return ExperimentProvenance(
+        dtype="float32", corpus="wiki.jsonl", corpus_sha256="ab" * 32, n_snippets=4,
+        tokens_scanned=327, selection="random", harness_version="t", corpus_sample=sample,
+    )  # fmt: skip
+
+
 def test_label_confounds_rendered(tmp_path, record):
     from openinterp.builder.wiki import write_experiment_page
     from openinterp.core.schemas import ConfoundProfile, LabelConfound, LabelStat
@@ -887,11 +903,14 @@ def test_label_confounds_rendered(tmp_path, record):
         token_r2=0.9, position_r2=0.2, frequency_correlation=0.1, min_count=3,
         trigger_tokens=[], position_means=[0.0], labels={"language": language},
     )  # fmt: skip
-    sub = record.submission.model_copy(update={"confounds": confounds})
-    rec = record.model_copy(update={"submission": sub})
+    update = {"confounds": confounds, "provenance": scan_provenance()}
+    rec = record.model_copy(update={"submission": record.submission.model_copy(update=update)})
     compile_site([rec], tmp_path / "site")
     page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
+    assert "fr 19% · other 81%" in page  # 63 of 327 labelled tokens
+    index = (tmp_path / "site" / "index.html").read_text()
+    assert 'id="corpora"' in index and "fr 19% · other 81%" in index
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki
 
@@ -978,3 +997,77 @@ def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
         assert 'url=deepseek-flash.html"' in (tmp_path / "agents" / f"{old}.html").read_text()
     home = (tmp_path / "index.html").read_text()
     assert ">deepseek-flash</a>" in home and ">external/deepseek-flash[1m]</a>" not in home
+
+
+def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
+    from types import SimpleNamespace
+
+    from openinterp.builder.corpora import corpora_view, language_mix
+    from openinterp.core.schemas import ConfoundProfile, CorpusSample, LabelConfound, LabelStat
+
+    def experiment(tokens, sample=None, labelled=True):
+        levels = [LabelStat(label="en", count=tokens, mean_strength=0.0, active=0)]
+        language = LabelConfound(
+            r2=0.0, mutual_information_bits=0.0, labelled_tokens=tokens, unlabelled_tokens=0,
+            levels=levels,
+        )  # fmt: skip
+        confounds = ConfoundProfile(
+            token_r2=0.1, position_r2=0.1, frequency_correlation=0.0, min_count=3,
+            trigger_tokens=[], position_means=[0.0],
+            labels={"language": language} if labelled else None,
+        )  # fmt: skip
+        update = {"confounds": confounds, "provenance": scan_provenance(sample)}
+        sub = record.submission.model_copy(update=update)
+        return SimpleNamespace(record=record.model_copy(update={"submission": sub}))
+
+    sample = CorpusSample(
+        seed=0, max_tokens=10, documents=1, corpus_documents=2, tokens=9, sha256="x"
+    )
+    (corpus,) = corpora_view(
+        [experiment(50), experiment(90, sample), experiment(70), experiment(5, labelled=False)]
+    )
+    assert corpus.experiments == 4 and len(corpus.mixes) == 1
+    assert (corpus.mixes[0].tokens, corpus.mixes[0].sampled) == (70, False)
+    assert language_mix(experiment(5, labelled=False).record.submission) is None
+
+
+def test_agents_page_credits_contributors(tmp_path, records):
+    from openinterp.builder.agents import contributors_view
+    from openinterp.builder.tree import build_tree
+
+    def credited(rec, proposer=None, reviewer=None):
+        sub = rec.submission.model_copy(update={"contributor": proposer})
+        verdict = rec.verdict.model_copy(update={"contributor": reviewer})
+        return rec.model_copy(update={"submission": sub, "verdict": verdict})
+
+    records[1] = credited(records[1], "alice", "bob")  # N117+ VERIFIED
+    records[2] = credited(records[2], "alice", "bob")  # N117− well-probed null
+    records[3] = credited(records[3], "bob")  # N9+ REJECTED, thinly probed
+    compile_site(records, tmp_path)
+
+    (model,) = build_tree(records)
+    experiments = [e for layer in model.layers for n in layer.units for e in n.experiments]
+    rows = {c.handle: c for c in contributors_view(experiments)}
+    assert (rows["alice"].experiments, rows["alice"].verified) == (2, 1)
+    assert (rows["alice"].conclusive_nulls, rows["alice"].reviews) == (1, 0)
+    assert (rows["bob"].experiments, rows["bob"].conclusive_nulls, rows["bob"].reviews) == (1, 0, 2)
+    assert [c.handle for c in contributors_view(experiments)] == ["bob", "alice"]
+    page = (tmp_path / "agents" / "index.html").read_text()
+    assert 'id="contributors"' in page and ">alice</td>" in page
+    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "run by</span> alice" in neuron and "run by</span> bob" in neuron
+    row = {
+        r["neuron_idx"]: r
+        for r in pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
+        if r["pole"] == "positive" and r["is_latest"]
+    }
+    assert (row[117]["submitting_contributor"], row[117]["reviewer_contributor"]) == (
+        "alice",
+        "bob",
+    )
+    assert (row[9]["submitting_contributor"], row[9]["reviewer_contributor"]) == ("bob", None)
+
+
+def test_agents_page_without_contributors(tmp_path, records):
+    compile_site(records, tmp_path)
+    assert "No contributors recorded yet." in (tmp_path / "agents" / "index.html").read_text()

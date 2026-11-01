@@ -1,0 +1,73 @@
+name: Auto-merge
+
+# Turns on GitHub's auto-merge (squash) for pull requests that change only files under
+# wiki/: experiment records, their .sig files and pages. GitHub then merges once the
+# required checks ("Lint and tests", "Experiment records", "Reproduce records") pass on
+# the head commit. Any change outside wiki/ (code, workflows, .github/allowed_signers)
+# leaves the PR for a human, and turns auto-merge off if an earlier push had turned it on.
+#
+# pull_request_target runs this file from main with a write token, also for fork PRs, so
+# it must never check out or run the PR's code: it reads the PR's file list through the
+# API and nothing else. Same rule as land-experiment's step 7.
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+
+permissions: {}
+
+jobs:
+  enable:
+    name: Enable auto-merge
+    if: github.event.action != 'closed' && !github.event.pull_request.draft
+    concurrency:
+      group: auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Auto-merge if every change is under wiki/
+        run: |
+          set -euo pipefail
+          # A rename lists its old path too, so moving a file into wiki/ isn't wiki-only.
+          gh api --paginate "repos/$REPO/pulls/$PR/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > files.txt
+          : > outside.txt
+          if [ -s files.txt ] && ! grep -v '^wiki/' files.txt > outside.txt; then
+            # --match-head-commit: never auto-merge a commit whose files weren't listed.
+            gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
+            echo "Auto-merge on: every change is under wiki/." >> "$GITHUB_STEP_SUMMARY"
+          else
+            if [ "$(gh pr view "$PR" --repo "$REPO" --json autoMergeRequest \
+                  -q '.autoMergeRequest != null')" = true ]; then
+              gh pr merge "$PR" --repo "$REPO" --disable-auto
+            fi
+            {
+              echo "Left for review: changes outside wiki/."
+              echo
+              sed 's/^/- `/; s/$/`/' outside.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  deploy:
+    name: Deploy after auto-merge
+    # A merge made with the workflow token doesn't trigger push workflows, so the
+    # deploy wouldn't run until its 6-hourly schedule. A workflow_dispatch from the
+    # same token is allowed to start it.
+    if: >-
+      github.event.action == 'closed' && github.event.pull_request.merged &&
+      github.event.pull_request.merged_by.login == 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: gh workflow run deploy.yml --repo "${{ github.repository }}" --ref main

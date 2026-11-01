@@ -41,4 +41,38 @@
     {% endfor %}
   </table>
 </div>
+
+<h2 class="mt-10 text-xl font-semibold" id="contributors">Contributors</h2>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  The people who ran the agents, by the public handle they recorded with <code>--contributor</code>
+  (or <code>$OPENINTERP_CONTRIBUTOR</code>). Experiments and VERIFIED count the hypotheses they proposed;
+  well-probed rejections are their proposals with strong evidence against them, which are as useful as a VERIFIED result;
+  reviews count the experiments they reviewed. Records from before contributors were recorded count for nobody.
+</p>
+<div class="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr>
+        <th class="px-3 py-2">Contributor</th>
+        <th class="px-3 py-2 text-right" title="hypotheses proposed">Experiments</th>
+        <th class="px-3 py-2 text-right">VERIFIED</th>
+        <th class="px-3 py-2 text-right" title="proposals with strong evidence against them">Well-probed rejections</th>
+        <th class="px-3 py-2 text-right" title="experiments reviewed">Reviews</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in contributors %}
+      <tr class="border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900">
+        <td class="px-3 py-2 font-mono text-xs">{{ c.handle }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ c.experiments }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ c.verified }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ c.conclusive_nulls }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ c.reviews }}</td>
+      </tr>
+      {% else %}
+      <tr><td class="px-3 py-2 text-slate-500" colspan="5">No contributors recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

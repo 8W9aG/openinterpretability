@@ -8,7 +8,7 @@ are accepted for datetimes under strict mode.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
@@ -26,6 +26,8 @@ from openinterp.core.confounds import (  # noqa: F401  (re-exported)
     LabelStat,
     TokenStat,
 )
+from openinterp.core.contributors import CONTRIBUTOR_PATTERN
+from openinterp.core.corpora import CorpusSample, CorpusSource  # noqa: F401  (re-exported)
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.examples import (  # noqa: F401  (re-exported)
     ActivatingExample,
@@ -62,6 +64,14 @@ ACTIVATION_THRESHOLD = 0.25
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 # ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
 BUILTIN_CORPUS = "builtin:sample_corpus"
+Contributor = Annotated[
+    str,
+    Field(
+        pattern=CONTRIBUTOR_PATTERN,
+        description="The human behind this step: a public handle (e.g. a GitHub username), "
+        "never an email. None: not recorded.",
+    ),
+]
 
 
 class CounterfactualPair(StrictModel):
@@ -102,73 +112,6 @@ class RunEnvironment(StrictModel):
     openinterp_version: str
     torch_version: str
     transformers_version: str | None = None
-
-
-class CorpusSource(StrictModel):
-    """Where a scan corpus came from, written by ``openinterp corpus`` next to the corpus.
-
-    Enough to rebuild the same documents: the dataset at an exact commit, the files and
-    column read, the seed and sizes. ``license`` is the dataset card's licence, so pages
-    that show excerpts can attribute them.
-    """
-
-    dataset: str = Field(min_length=1, examples=["HuggingFaceFW/fineweb-edu"])
-    revision: str | None = Field(default=None, description="Dataset commit hash.")
-    files: str = Field(
-        description="Glob of the Parquet files sampled, within the dataset; several, "
-        "comma-separated, each gave an equal share of the documents."
-    )
-    text_column: str = "text"
-    documents: int = Field(ge=0)
-    seed: int
-    max_chars: int = Field(gt=0)
-    docs_per_row_group: int = Field(gt=0)
-    layout: str | None = Field(
-        default=None,
-        description="How rows were joined into documents (e.g. 'wikitext'); None: one per row.",
-    )
-    first: bool = False  # the first documents in file order, not a seeded sample (no strip)
-    ascii: bool = False  # non-ASCII \u-escaped in the JSONL, as in the registry's corpus
-    lang_pattern: str | None = Field(
-        default=None,
-        description="Regular expression whose group, matched in each file glob, gave its "
-        "documents' 'lang' field; None: documents carry no language.",
-    )
-    license: str | None = None
-    sha256: str = Field(description="SHA-256 of the corpus file this describes.")
-
-    def __str__(self) -> str:
-        at = f"@{self.revision[:8]}" if self.revision else ""
-        how = f"{self.documents} docs, seed {self.seed}"
-        how = f"first {self.documents} docs" if self.first else how
-        return f"{self.dataset}{at} ({self.files}, {how})"
-
-
-class CorpusSample(StrictModel):
-    """The seeded, token-bounded sample of the corpus a scan read (protocol 0.7).
-
-    Documents are visited in ``random.Random(seed)`` order, and each is taken whole if it
-    fits in what is left of ``max_tokens`` (the first always is), then kept in corpus
-    order. Tokens are counted by the model's tokenizer, without special tokens.
-    Re-drawing with the same corpus, tokenizer, seed and budget gives the same
-    documents, which ``sha256`` pins.
-    """
-
-    seed: int
-    max_tokens: int = Field(gt=0, description="Token budget the sample was drawn to.")
-    documents: int = Field(gt=0)
-    corpus_documents: int = Field(gt=0, description="Documents in the corpus it was drawn from.")
-    tokens: int = Field(ge=0, description="Tokenizer tokens in the sampled documents.")
-    sha256: str = Field(
-        description='SHA-256 of the sampled documents as JSONL ({"text": ...} per line), '
-        "the bytes `openinterp corpus` would write for them."
-    )
-
-    def __str__(self) -> str:
-        return (
-            f"{self.documents} of {self.corpus_documents} docs, {self.tokens:,} tokens "
-            f"(≤ {self.max_tokens:,}, seed {self.seed})"
-        )
 
 
 class ExperimentProvenance(StrictModel):
@@ -331,6 +274,7 @@ class NeuronAuditSubmission(StrictModel):
     counterfactuals: list[CounterfactualPair] = Field(min_length=1)
     lookahead: LookaheadProfile
     submitting_agent_model: str = Field(min_length=1)
+    contributor: Contributor | None = None
     # Evidence gathered by the harness. Optional so hand-written submissions validate.
     max_activation: float | None = Field(default=None, gt=0.0)
     top_examples: list[ActivatingExample] = Field(default_factory=list)
@@ -457,6 +401,7 @@ class VerificationVerdict(StrictModel):
     confidence_score: UnitFloat
     adversarial_test_results: list[AdversarialTestResult]
     reviewer_agent_model: str = Field(min_length=1)
+    contributor: Contributor | None = None
     timestamp: AwareDatetime
     causal_metrics: CausalMetrics | None = None
     metrics: ReviewMetrics | None = None
