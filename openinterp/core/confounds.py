@@ -11,6 +11,9 @@ from pydantic import Field
 
 from openinterp.core.strict import StrictModel, UnitFloat
 
+# The label set of a document's language (a corpus's ``lang`` field; ``corpus.py``).
+LANGUAGE = "language"
+
 
 class TokenStat(StrictModel):
     token: str

@@ -875,6 +875,15 @@ def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
     assert "on 4 of the review's prompts" in wiki
 
 
+def scan_provenance(sample=None):
+    from openinterp.core.schemas import ExperimentProvenance
+
+    return ExperimentProvenance(
+        dtype="float32", corpus="wiki.jsonl", corpus_sha256="ab" * 32, n_snippets=4,
+        tokens_scanned=327, selection="random", harness_version="t", corpus_sample=sample,
+    )  # fmt: skip
+
+
 def test_label_confounds_rendered(tmp_path, record):
     from openinterp.builder.wiki import write_experiment_page
     from openinterp.core.schemas import ConfoundProfile, LabelConfound, LabelStat
@@ -887,11 +896,14 @@ def test_label_confounds_rendered(tmp_path, record):
         token_r2=0.9, position_r2=0.2, frequency_correlation=0.1, min_count=3,
         trigger_tokens=[], position_means=[0.0], labels={"language": language},
     )  # fmt: skip
-    sub = record.submission.model_copy(update={"confounds": confounds})
-    rec = record.model_copy(update={"submission": sub})
+    update = {"confounds": confounds, "provenance": scan_provenance()}
+    rec = record.model_copy(update={"submission": record.submission.model_copy(update=update)})
     compile_site([rec], tmp_path / "site")
     page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
+    assert "fr 19% · other 81%" in page  # 63 of 327 labelled tokens
+    index = (tmp_path / "site" / "index.html").read_text()
+    assert 'id="corpora"' in index and "fr 19% · other 81%" in index
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki
 
@@ -978,3 +990,35 @@ def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
         assert 'url=deepseek-flash.html"' in (tmp_path / "agents" / f"{old}.html").read_text()
     home = (tmp_path / "index.html").read_text()
     assert ">deepseek-flash</a>" in home and ">external/deepseek-flash[1m]</a>" not in home
+
+
+def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
+    from types import SimpleNamespace
+
+    from openinterp.builder.corpora import corpora_view, language_mix
+    from openinterp.core.schemas import ConfoundProfile, CorpusSample, LabelConfound, LabelStat
+
+    def experiment(tokens, sample=None, labelled=True):
+        levels = [LabelStat(label="en", count=tokens, mean_strength=0.0, active=0)]
+        language = LabelConfound(
+            r2=0.0, mutual_information_bits=0.0, labelled_tokens=tokens, unlabelled_tokens=0,
+            levels=levels,
+        )  # fmt: skip
+        confounds = ConfoundProfile(
+            token_r2=0.1, position_r2=0.1, frequency_correlation=0.0, min_count=3,
+            trigger_tokens=[], position_means=[0.0],
+            labels={"language": language} if labelled else None,
+        )  # fmt: skip
+        update = {"confounds": confounds, "provenance": scan_provenance(sample)}
+        sub = record.submission.model_copy(update=update)
+        return SimpleNamespace(record=record.model_copy(update={"submission": sub}))
+
+    sample = CorpusSample(
+        seed=0, max_tokens=10, documents=1, corpus_documents=2, tokens=9, sha256="x"
+    )
+    (corpus,) = corpora_view(
+        [experiment(50), experiment(90, sample), experiment(70), experiment(5, labelled=False)]
+    )
+    assert corpus.experiments == 4 and len(corpus.mixes) == 1
+    assert (corpus.mixes[0].tokens, corpus.mixes[0].sampled) == (70, False)
+    assert language_mix(experiment(5, labelled=False).record.submission) is None

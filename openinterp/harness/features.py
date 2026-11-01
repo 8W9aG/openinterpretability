@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import torch
 
 from openinterp.core.schemas import DictionaryProfile, FeatureIdentifier
+from openinterp.harness.annotations import Tagger
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.dictionaries import Dictionary, DictionarySpec, load_spec, spec_profile
 from openinterp.harness.heads import _repeat
@@ -24,6 +25,7 @@ from openinterp.harness.hooks import Inputs, NeuronHookRunner
 from openinterp.harness.patcher import Effect, Positions
 from openinterp.harness.scan import (
     BATCH_TOKENS,
+    LabelPass,
     ScanResult,
     TopExamples,
     batches,
@@ -85,8 +87,10 @@ def scan_feature(
     min_count: int = 3,
     window_tokens: int | None = None,
     stride: int | None = None,
+    taggers: Sequence[Tagger] = (),
 ) -> FeatureScanResult:
-    """Top examples, strengths, confounds and the :class:`DictionaryProfile` of one latent."""
+    """Top examples, strengths, confounds and the :class:`DictionaryProfile` of one latent.
+    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's."""
     if runner.tokenizer is None:
         raise ValueError("scan_feature requires a tokenizer")
     layer, f = ident.layer, ident.feature_idx
@@ -94,8 +98,9 @@ def scan_feature(
     if f >= dictionary.n_features:
         raise ValueError(f"{ident}: the dictionary has {dictionary.n_features} latents")
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
+    labels = LabelPass(runner.tokenizer, texts, taggers)
     confounds, top, fit, values, first = _feature_pass(
-        runner, dictionary, spec, layer, f, pieces, batch_tokens
+        runner, dictionary, spec, layer, f, pieces, batch_tokens, labels
     )
     if not values:
         raise ValueError("the corpus has no tokens to scan")
@@ -106,7 +111,7 @@ def scan_feature(
 
     density = round(sum(v > 0 for v in values) / len(values), 6)
     tokens = len(values)
-    examples, values, floor = settle(runner, read, values, first, top, k)
+    examples, values, floor = settle(runner, read, values, first, top, k, labels.tokens)
     profile = spec_profile(
         spec,
         layer,
@@ -119,16 +124,19 @@ def scan_feature(
         examples=examples,
         values=values,
         correlated=[],
-        confounds=confounds.finalize(runner.tokenizer, min_count),
+        confounds=labels.finalize(confounds.finalize(runner.tokenizer, min_count), values),
         windows=len(pieces),
         first_token_floor=floor,
         profile=profile,
     )
 
 
-def _feature_pass(runner, dictionary, spec, layer: int, f: int, pieces, batch_tokens: int):
-    """One pass over ``pieces``: confounds, top examples, the dictionary's fit, and each
-    counted token's strength and whether it is a piece's first token."""
+def _feature_pass(
+    runner, dictionary, spec, layer: int, f: int, pieces, batch_tokens: int, labels: LabelPass
+):
+    """One pass over ``pieces``: confounds (and ``labels``' counts), top examples, the
+    dictionary's fit, and each counted token's strength and whether it is a piece's first
+    token."""
     confounds = ConfoundAccumulator()
     top = TopExamples()
     fit = _Fit()
@@ -139,6 +147,7 @@ def _feature_pass(runner, dictionary, spec, layer: int, f: int, pieces, batch_to
         strengths = dictionary.feature(x, f).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
+        labels.update(batch, strengths)
         values.extend(strengths[counted].tolist())
         first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)

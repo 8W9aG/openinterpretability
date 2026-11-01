@@ -226,7 +226,7 @@ def test_cli_uses_the_presets_settings(
 
     def fake_build(dataset, out, **kw):
         calls.update(kw, dataset=dataset)
-        return SimpleNamespace(documents=kw["documents"], license="odc-by")
+        return SimpleNamespace(documents=kw["documents"], license="odc-by", lang_detector=None)
 
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", preset, "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
@@ -239,6 +239,22 @@ def test_cli_uses_the_presets_settings(
     assert (calls["first"], calls["ascii"]) == (False, False)
     CliRunner().invoke(cli, [*args, "--first", "--ascii"])
     assert (calls["first"], calls["ascii"]) == (True, True)
+
+
+def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_build(dataset, out, **kw):
+        calls.update(kw)
+        return SimpleNamespace(documents=3, license=None, lang_detector="d")
+
+    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    out = ["--docs", "3", "--out", str(tmp_path / "c.jsonl")]
+    args = ["corpus", "--dataset", "wikipedia-multilingual", *out, "--detect-lang"]
+    assert CliRunner().invoke(cli, args).exit_code == 0
+    assert (calls["detect_lang"], calls["lang_pattern"]) == (True, None)
+    both = CliRunner().invoke(cli, [*args, "--lang-pattern", "x"])
+    assert both.exit_code != 0 and "both set the languages" in both.output
 
 
 def test_cli_needs_files_for_non_presets():

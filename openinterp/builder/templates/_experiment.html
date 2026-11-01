@@ -166,6 +166,10 @@
         {% set p = sub.provenance %}
         <dt class="text-slate-500">Selection</dt><dd class="font-mono text-xs">{{ p.selection }}{% if p.seed is not none %} (seed {{ p.seed }}){% endif %}</dd>
         <dt class="text-slate-500">Corpus</dt><dd class="font-mono text-xs">{{ p.corpus }} · {{ "{:,}".format(p.tokens_scanned) }} tokens{% if p.corpus_sample %} · seeded sample of {{ p.corpus_sample.documents }}/{{ p.corpus_sample.corpus_documents }} docs (≤ {{ "{:,}".format(p.corpus_sample.max_tokens) }} tokens, seed {{ p.corpus_sample.seed }}){% endif %}{% if p.snippet_tokens %} · {{ p.snippet_tokens }}-token windows{% if p.snippet_stride %} every {{ p.snippet_stride }} tokens{% endif %}{% endif %}{% set src = p.corpus_source or corpus_sources.get(p.corpus_sha256) %}{% if src and not p.corpus_source %} · <span title="Not recorded: the committed sidecar with this corpus's SHA-256">source {{ src }} (inferred)</span>{% endif %}{% if src and src.license %} · licence {{ src.license }}{% endif %}</dd>
+        {% set mix = language_mix(sub) %}
+        {% if mix %}
+        <dt class="text-slate-500" title="The scan's {{ "{:,}".format(mix.tokens) }} labelled tokens by their document's language, from the corpus's lang field">Languages</dt><dd class="font-mono text-xs">{% for l in mix.shown %}{{ l.label }} {{ l.share | pct }}{{ " · " if not loop.last }}{% endfor %}{% if mix.other >= 0.005 %} · other {{ mix.other | pct }}{% endif %}</dd>
+        {% endif %}
         <dt class="text-slate-500">Model revision</dt><dd class="font-mono text-xs">{{ (p.model_revision or "unrecorded")[:12] }} · {{ p.dtype }}</dd>
         {% if p.costs %}
         <dt class="text-slate-500">Run cost</dt><dd class="font-mono text-xs" title="Wall time and LLM usage of this experiment; reported, not gated">{{ p.costs.summary() }}</dd>
