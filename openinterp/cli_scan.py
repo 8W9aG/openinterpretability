@@ -11,6 +11,7 @@ import click
 
 from openinterp.cli import cli, with_model_options
 from openinterp.cli_evidence import open_scan_cache, read_corpus, scan_cache_option
+from openinterp.core.schemas import ACTIVATION_THRESHOLD
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 
 if TYPE_CHECKING:
@@ -149,10 +150,10 @@ def _select(scan: _Strengths, tokenizer, min_strength, tokens, top: int) -> torc
     ids_t, values = scan.ids, scan.values
     keep = scan.counted.clone()
     peak = float(values[keep].max()) if keep.any() else 0.0
-    active = int((values[keep] >= 0.25 * peak).sum()) if peak > 0 else 0
+    active = int((values[keep] >= ACTIVATION_THRESHOLD * peak).sum()) if peak > 0 else 0
     click.echo(
-        f"{int(keep.sum()):,} tokens; max {peak:.4g}; {active:,} at or above 0.25 × max "
-        "(the protocol's active threshold)",
+        f"{int(keep.sum()):,} tokens; max {peak:.4g}; {active:,} at or above "
+        f"{ACTIVATION_THRESHOLD:g} × max (the protocol's active threshold)",
         err=True,
     )
     if min_strength is not None:

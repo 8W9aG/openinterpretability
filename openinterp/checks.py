@@ -30,6 +30,7 @@ from pydantic import ValidationError
 
 from openinterp.builder.wiki import _read_front_matter, archive_path
 from openinterp.core.agent_names import spelling_problem
+from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
 
 DISCUSSION_HEADING = "## Discussion"
@@ -61,7 +62,7 @@ class CheckReport:
 
 
 def check_registry(
-    wiki_dir: Path = Path("wiki"),
+    wiki_dir: Path = DEFAULT_WIKI_DIR,
     *,
     base_ref: str | None = None,
     legacy_audits_dir: Path = LEGACY_AUDITS_DIR,
@@ -89,7 +90,7 @@ def _check_legacy(audits_dir: Path, report: CheckReport) -> None:
 
 
 def _check_records(wiki_dir: Path, report: CheckReport) -> None:
-    root = wiki_dir / "experiments"
+    root = experiments_dir(wiki_dir)
     if not root.is_dir():
         return
     for path in sorted(root.rglob("*.json")):
@@ -152,7 +153,7 @@ def _check_supersedes(path: Path, record: AuditRecord, report: CheckReport) -> N
 
 
 def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
-    root = wiki_dir / "experiments"
+    root = experiments_dir(wiki_dir)
     if not root.is_dir():
         return
     for page in sorted(root.rglob("*.md")):
@@ -245,6 +246,6 @@ def changed_records(wiki_dir: Path, base_ref: str) -> list[Path]:
         "--diff-filter=AM",
         f"{base_ref}...HEAD",
         "--",
-        str(Path(wiki_dir) / "experiments"),
+        str(experiments_dir(wiki_dir)),
     )
     return [Path(name) for name in diff.splitlines() if name.endswith(".json")]

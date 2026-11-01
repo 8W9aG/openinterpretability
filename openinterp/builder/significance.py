@@ -29,6 +29,18 @@ from typing import Literal
 from openinterp.core.schemas import AuditRecord, ReviewPolicy
 from openinterp.core.stats import EffectiveCounts, effective_counts, p_balanced_above
 
+# Conclusiveness at or above these is "strong" or "moderate" evidence, else "weak". The
+# site's badges and the home page's conclusive-null count read them from here.
+STRONG_EVIDENCE = 0.9
+MODERATE_EVIDENCE = 0.5
+
+
+def evidence_strength(conclusiveness: float) -> str:
+    """The word for how settled a result is: strong, moderate or weak."""
+    if conclusiveness >= STRONG_EVIDENCE:
+        return "strong"
+    return "moderate" if conclusiveness >= MODERATE_EVIDENCE else "weak"
+
 
 @dataclass(frozen=True)
 class Significance:
@@ -40,13 +52,7 @@ class Significance:
 
     @property
     def label(self) -> str:
-        strength = (
-            "strong"
-            if self.conclusiveness >= 0.9
-            else "moderate"
-            if self.conclusiveness >= 0.5
-            else "weak"
-        )
+        strength = evidence_strength(self.conclusiveness)
         return f"{strength} evidence {'for' if self.direction == 'supports' else 'against'}"
 
 
