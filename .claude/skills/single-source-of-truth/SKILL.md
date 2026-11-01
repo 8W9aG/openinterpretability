@@ -27,6 +27,7 @@ Every concept in this repo has one definition. Everything else imports it, reads
 | --- | --- |
 | Protocol values: thresholds, gate defaults, verdict statuses, probe kinds, `PROTOCOL_VERSION` | `openinterp/core/schemas.py` (`ReviewPolicy`, `VerdictStatus`, `ACTIVATION_THRESHOLD`, …) |
 | The wiki directory's default and layout (`experiments/`, `draws/`) | `openinterp/core/paths.py` (`DEFAULT_WIKI_DIR`, `experiments_dir`, `draws_dir`); CLI commands take `wiki_dir_option()` from `openinterp/cli.py` |
+| Planner: base weights, ε, windows per model | `openinterp/planner.py` (`BASE_WEIGHTS`, `DEFAULT_EPSILON`, `configured_windows`) |
 | Reproduction tolerances | `openinterp/reproduce.py` (`Tolerance`) |
 | Models the planner and CI may use | `[tool.openinterp] models` in `pyproject.toml` |
 | Site-wide display maps: unit statuses, their order and colours | `openinterp/builder/statuses.py` (`MAP_STATUSES`, `STATUS_FILL`, `STATUS_BADGE`) |
@@ -60,8 +61,10 @@ Some copies can't import their source:
 For each one:
 
 1. Add a test that the copy agrees with the source. Put it in `tests/test_single_source.py` unless an existing test module owns the concept (`tests/test_planner.py::test_configured_models_match_ci_allow_list` checks `ALLOWED_MODELS`). Format the value from the source in the test, and search for that text in the copy, so the test fails when either side moves.
-2. Comment at each copy naming the source and the test, e.g. `<!-- Defaults quote ReviewPolicy in core/schemas.py; tests/test_single_source.py checks them. -->`.
+2. Name the source at each copy: a comment (e.g. `<!-- Defaults quote ReviewPolicy in core/schemas.py; tests/test_single_source.py checks them. -->`), or in the prose itself when that reads naturally ("`BASE_WEIGHTS` in `openinterp/planner.py`"). Skip it when the text already points there (an env var or config key next to the number).
 3. Check the test catches drift: change the copy, see it fail, change it back.
+
+Docs, skills and agent files quoting a number go in the `_quotes()` list in `tests/test_single_source.py`. Numbers that can't drift need no test: maths ("0.5 is chance", the median percentile), and the protocol version a feature arrived in ("predates protocol 0.3").
 
 Prose that explains a value in passing ("the rejection line, balanced accuracy 0.6") in a docstring is fine when the docstring also names the source. Don't add a test for every passing mention; add one where a reader would act on the number.
 

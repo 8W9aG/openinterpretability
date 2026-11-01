@@ -32,13 +32,14 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from openinterp.builder.wiki import load_archive_paths
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.identifiers import model_slug
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
 
 # Expected information value per experiment kind, before decay.
+# Probability of an explore draw (a random new unit) instead of a follow-up.
+DEFAULT_EPSILON = 0.7
 BASE_WEIGHTS = {
     "reevaluate": 3.0,  # verdict predates the current protocol; cheap, no LLM calls
     "independent_review": 2.5,  # proposer reviewed its own hypothesis
@@ -159,6 +160,8 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
     Follow-ups are planned from the most recent experiment; the count, reviewers and
     recency cover every experiment on the neuron.
     """
+    from openinterp.builder.wiki import load_archive_paths  # Jinja: keep the CLI start light
+
     states: dict[str, NeuronState] = {}
     for path, record in load_archive_paths(Path(wiki_dir)):  # oldest first
         slug = record.submission.identifier.slug
@@ -331,7 +334,7 @@ def plan_next(
     wiki_dir: Path = DEFAULT_WIKI_DIR,
     *,
     seed: int | None = None,
-    epsilon: float = 0.7,
+    epsilon: float = DEFAULT_EPSILON,
     temperature: float = 1.0,
     models: Sequence[str] = (),
     claims: Sequence[str] = (),

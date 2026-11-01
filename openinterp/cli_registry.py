@@ -9,6 +9,7 @@ import click
 
 from openinterp.cli import cli, wiki_dir_option
 from openinterp.core.paths import experiments_dir
+from openinterp.planner import DEFAULT_EPSILON
 
 
 @cli.command()
@@ -135,7 +136,7 @@ def show(path, full):
 @click.option("--seed", type=int, help="Reproduce a previous choice. Default: fresh randomness.")
 @click.option(
     "--epsilon",
-    default=0.7,
+    default=DEFAULT_EPSILON,
     show_default=True,
     type=click.FloatRange(0, 1),
     help="Probability of exploring a uniformly random new neuron.",
