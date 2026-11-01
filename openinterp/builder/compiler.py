@@ -19,7 +19,7 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder import charts
-from openinterp.builder.agents import agent_href, agents_view
+from openinterp.builder.agents import agent_href, agents_view, legacy_redirects
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
@@ -32,6 +32,7 @@ from openinterp.builder.tree import (
     feature_href,
     neuron_href,
 )
+from openinterp.core.agent_names import canonical_agent
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord
 from openinterp.crossref import neuronpedia_url
@@ -75,6 +76,7 @@ def _environment() -> Environment:
     env.globals["roles"] = ROLES
     env.globals["charts"] = charts  # page-level charts: the layer map and pieces bars
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
+    env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     return env
 
 
@@ -319,6 +321,8 @@ def compile_site(
     render("agents/index.html", "agents.html", agents=agents)
     for agent in agents:
         render(agent.href, "agent.html", agent=agent)
+    for old, new in legacy_redirects(agents).items():
+        _write_redirect(output_dir / old, Path(new).name, report)
     render(
         "index.html",
         "index.html",
@@ -346,6 +350,18 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> 
         # byte-for-byte so the deploy uploads (and purges) nothing.
         "updated_at": max((e.record.verdict.timestamp for e in experiments), default=None),
     }
+
+
+def _write_redirect(out: Path, target: str, report: BuildReport) -> None:
+    """A page that used to live at ``out`` and now lives at ``target`` (relative to it)."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        f'<!doctype html><meta charset="utf-8"><title>Moved</title>'
+        f'<link rel="canonical" href="{target}"><meta name="robots" content="noindex">'
+        f'<meta http-equiv="refresh" content="0; url={target}">'
+        f'<p>This page moved to <a href="{target}">{target}</a>.</p>\n'
+    )
+    report.pages.append(out)
 
 
 @dataclass

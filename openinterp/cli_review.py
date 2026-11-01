@@ -98,6 +98,7 @@ def verify(
     from openinterp.agents.reviewer import ReviewerAgent
     from openinterp.cli import _add_costs, _load_unit_runner, _write_copy, _write_wiki
     from openinterp.cli_score import load_scores, score_submission
+    from openinterp.core.agent_names import same_agent
     from openinterp.core.schemas import AuditRecord
 
     submission = load_submission(audit_file)
@@ -109,7 +110,7 @@ def verify(
     check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus)
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
-    if reviewer.model == submission.submitting_agent_model:
+    if same_agent(reviewer.model, submission.submitting_agent_model):
         click.echo(
             f"warning: {reviewer.model} both proposed and reviewed this, so the review is not "
             "independent. It will be recorded and badged as self-reviewed; a different "
