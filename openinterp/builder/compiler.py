@@ -19,13 +19,13 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder import charts
+from openinterp.builder.agents import agent_href, agents_view
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     Experiment,
-    agent_costs,
     build_tree,
     circuits_href,
     false_discovery,
@@ -72,6 +72,7 @@ def _environment() -> Environment:
     env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
     env.globals["charts"] = charts  # page-level charts: the layer map and pieces bars
+    env.globals["agent_href"] = agent_href  # links from agent names to their pages
     return env
 
 
@@ -196,7 +197,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.
 # They are removed before each build so deleted records leave no stale pages.
-OWNED_PATHS = ("index.html", "models", "neurons", "data", "pagefind")
+OWNED_PATHS = ("index.html", "models", "agents", "neurons", "data", "pagefind")
 
 
 def _clean_owned_paths(output_dir: Path) -> None:
@@ -309,12 +310,16 @@ def compile_site(
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
         _render_model(render, model, rows, studied)
+    agents = agents_view(experiments)
+    render("agents/index.html", "agents.html", agents=agents)
+    for agent in agents:
+        render(agent.href, "agent.html", agent=agent)
     render(
         "index.html",
         "index.html",
         models=models,
         stats=registry_stats(report.parquet, draws),
-        agent_costs=agent_costs(experiments),
+        agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
         contested=[

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, self_review_badge, pole_mark %}
+
+{% block title %}{{ agent.model }} · Agents · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}agents/index.html">Agents</a> / {{ agent.model }}</nav>
+<h1 class="break-all font-mono text-2xl font-semibold">{{ agent.model }}</h1>
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Took part in {{ agent.experiments }} experiment{{ "" if agent.experiments == 1 else "s" }}. See <a class="underline" href="{{ root }}agents/index.html">all agents</a> for how the rate and costs are counted.</p>
+
+<section class="mt-6">
+  <h2 class="mb-3 text-lg font-semibold">By role</h2>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr>
+          <th class="px-3 py-2">Role</th>
+          <th class="px-3 py-2 text-right">Experiments</th>
+          <th class="px-3 py-2 text-right" title="VERIFIED / experiments, independent reviews only">VERIFIED rate</th>
+          <th class="px-3 py-2 text-right" title="self-reviewed experiments: VERIFIED / experiments">Self-reviewed</th>
+          <th class="px-3 py-2 text-right" title="experiments priced / experiments with calls in this role">Priced</th>
+          <th class="px-3 py-2 text-right">Mean cost</th>
+          <th class="px-3 py-2 text-right" title="total cost of the priced experiments / how many of them were VERIFIED">Per VERIFIED</th>
+          <th class="px-3 py-2 text-right" title="total cost of the priced experiments">Total</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for s in agent.role_rows %}
+        <tr>
+          {% include "_agent_role_cells.html" %}
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{% if s.costs and s.costs.priced %}${{ "%.2f" | format(s.costs.usd) }}{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mt-8">
+  <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ agent.recent | length }} experiments it took part in, newest first.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Role</th><th class="px-3 py-2">Result</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for r in agent.recent %}
+        {% set v = r.e.record.verdict %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ v.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ v.timestamp.strftime('%Y-%m-%d') }}</time></td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ r.href }}">{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <div class="text-slate-500">{{ r.model_name }}</div>
+          </td>
+          <td class="px-3 py-2 text-xs">{{ r.roles | join(", ") }}</td>
+          <td class="px-3 py-2">
+            <div class="mb-1 flex flex-wrap gap-1">{{ status_badge(v.status) }}{% if r.e.record.self_reviewed %} {{ self_review_badge() }}{% endif %}</div>
+            {{ r.e.record.submission.natural_language_explanation | truncate(140) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
