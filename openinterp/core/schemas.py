@@ -12,6 +12,7 @@ from typing import Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
+from openinterp.core.agent_names import same_agent
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.causal import (  # noqa: F401  (re-exported)
     CausalMetrics,
@@ -488,9 +489,10 @@ class AuditRecord(StrictModel):
 
     @property
     def self_reviewed(self) -> bool:
-        """The proposer's model also reviewed it: recorded and badged, not gated (§2)."""
+        """The proposer's model also reviewed it: recorded and badged, not gated (§2). Also
+        when the record calls it independent but spelled one model two ways (``[1m]``)."""
         if self.verdict is None:
             return False
-        if self.verdict.metrics is not None:
-            return not self.verdict.metrics.independent_review
-        return self.verdict.reviewer_agent_model == self.submission.submitting_agent_model
+        if self.verdict.metrics is not None and not self.verdict.metrics.independent_review:
+            return True
+        return same_agent(self.verdict.reviewer_agent_model, self.submission.submitting_agent_model)

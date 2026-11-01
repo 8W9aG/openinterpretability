@@ -13,7 +13,8 @@ checks enforce that:
    ``openinterp wiki --import-dir audits``);
 4. with ``base_ref``, existing experiment pages were not deleted or edited outside
    their Discussion section, archived records were not touched (write-once), and no
-   generated index (``README.md``) was committed.
+   generated index (``README.md``) was committed, and records added since name their
+   agents in canonical spelling (``openinterp.core.agent_names``).
 
 The indexes are rebuilt from the records whenever they are needed and are gitignored:
 every experiment PR used to edit the same index rows, so parallel PRs conflicted.
@@ -28,6 +29,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from openinterp.builder.wiki import _read_front_matter, archive_path
+from openinterp.core.agent_names import spelling_problem
 from openinterp.core.schemas import AuditRecord
 
 DISCUSSION_HEADING = "## Discussion"
@@ -72,6 +74,7 @@ def check_registry(
     _check_draws(wiki_dir, report)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, report)
+        _check_agent_names(changed_records(wiki_dir, base_ref), report)
     return report
 
 
@@ -167,6 +170,24 @@ def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
     for sig in sorted(root.rglob("*.json.sig")):
         if not sig.with_suffix("").exists():
             report.add(sig, f"signature for a missing record {sig.with_suffix('').name}")
+
+
+def _check_agent_names(paths: list[Path], report: CheckReport) -> None:
+    """New records spell their agents one way, so the site shows one model as one agent.
+    Older records keep their spellings (they're signed); the build maps them."""
+    for path in paths:
+        record = _load(path)
+        if record is None or record.verdict is None:
+            continue  # _check_records reports it
+        scores = record.verdict.explanation_scores
+        names = {
+            "submitting_agent_model": record.submission.submitting_agent_model,
+            "reviewer_agent_model": record.verdict.reviewer_agent_model,
+            "judge_model": scores.judge_model if scores else None,
+        }
+        for field_name, model in names.items():
+            if model and (problem := spelling_problem(model)):
+                report.add(path, f"{field_name}={model!r}: {problem}")
 
 
 def _load(path: Path) -> AuditRecord | None:
