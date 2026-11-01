@@ -359,3 +359,31 @@ def test_a_random_draw_the_scan_stops_on_is_recorded(flow):
     assert draw.provenance.selection == "random" and draw.active_share >= 0.5
     report = check_registry(flow.path / "wiki")
     assert report.ok and report.draws == 1
+
+
+def test_a_sister_study_tests_the_verified_explanation_unchanged(flow, record):
+    from openinterp.builder.wiki import archive_record
+
+    source = archive_record(record, flow.path / "wiki")  # Qwen, VERIFIED
+    scan = ["audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+            "--evidence-out", "ev.json", "--sister-of", source]  # fmt: skip
+    run(*scan)
+    prompt = (flow.path / "ev.prompt.md").read_text()
+    explanation = record.submission.natural_language_explanation
+    assert "sister-neuron study" in prompt and f"> {explanation}" in prompt
+
+    (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
+    result = run("audit", "--evidence", "ev.json", "--hypothesis", "ev.hypothesis.json",
+                 "--agent-model", "external/proposer", "--out", "sub.json",
+                 "--sister-of", source)  # fmt: skip
+    sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
+    assert sub.natural_language_explanation == explanation  # not the draft's
+    assert sub.sister_of == "Qwen--Qwen2.5-0.5B/L3/N117-positive/20261001T120000Z"
+    assert f"Sister study of: {sub.sister_of}" in result.output
+
+    rejected = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"status": "REJECTED"})}
+    )
+    bad = archive_record(rejected, flow.path / "bad")
+    result = CliRunner().invoke(cli, [str(a) for a in scan[:-1]] + [str(bad)])
+    assert result.exit_code != 0 and "not a VERIFIED experiment" in result.output

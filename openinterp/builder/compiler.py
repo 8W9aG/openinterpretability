@@ -45,6 +45,7 @@ from openinterp.core.agent_names import canonical_agent
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord
 from openinterp.crossref import neuronpedia_url
+from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
 from openinterp.wiring_backfill import record_wiring
 
 
@@ -257,6 +258,8 @@ def _experiment_view(
         ],
         "wiring_backfilled": backfilled,
         "circuit": circuit,
+        "sister_of": sub.sister_of
+        and {"ref": sub.sister_of, "href": sister_source_href(sub.sister_of)},
     }
 
 
@@ -305,12 +308,14 @@ def compile_site(
     draws: Sequence = (),
     corpus_sources: dict | None = None,
     alignment_rows: dict | None = None,
+    sister_rows: dict | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records`` (normally the wiki archive), with
     ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) and ``corpus_sources``
     (:func:`openinterp.corpus.load_sources`) for records that predate wiring or sidecars,
-    and each neuron pole's aligned dictionary latents, ``alignment_rows``
-    (:func:`openinterp.crossref.load_rows`)."""
+    each neuron pole's aligned dictionary latents, ``alignment_rows``
+    (:func:`openinterp.crossref.load_rows`), and its matches in other models,
+    ``sister_rows`` (:func:`openinterp.sisters.load_rows`)."""
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
@@ -328,7 +333,8 @@ def compile_site(
     render = _Renderer(_environment(), output_dir, common, report)
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
-        _render_model(render, model, rows, studied, alignment_rows or {})
+        sisters = (sister_rows or {}, sister_tests(experiments))
+        _render_model(render, model, rows, studied, alignment_rows or {}, sisters)
     agents = agents_view(experiments)
     contributors = contributors_view(experiments)
     render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
@@ -441,10 +447,17 @@ def aligned_latents(model, neuron, alignment: dict, studied: set) -> list[dict]:
 
 
 def _render_model(
-    render: _Renderer, model, rows: dict, studied: set, alignment: dict | None = None
+    render: _Renderer,
+    model,
+    rows: dict,
+    studied: set,
+    alignment: dict | None = None,
+    sisters: tuple[dict, dict] = ({}, {}),
 ) -> None:
     """A model's page, its circuits page (if any), and its layer and unit pages."""
     found, found_hubs = circuits_and_hubs(model, rows)
+    sister_rows, tests = sisters
+    named_by = by_match_slug(sister_rows)
     anchor_of = unit_anchors(found, found_hubs)
     page = circuits_href(model.slug)
     render(
@@ -469,4 +482,5 @@ def _render_model(
                 views=views,
                 poles=pole_scans(neuron),
                 aligned=aligned_latents(model, neuron, alignment or {}, studied),
+                sisters=sister_view(model.slug, neuron, sister_rows, named_by, studied, tests),
             )

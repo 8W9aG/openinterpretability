@@ -195,6 +195,8 @@ def _page_meta(record: AuditRecord, kind: ExperimentKind) -> dict:
         meta["reviewer_contributor"] = verdict.contributor
     if sub.supersedes:
         meta["supersedes"] = sub.supersedes
+    if sub.sister_of:
+        meta["sister_of"] = sub.sister_of
     return meta
 
 

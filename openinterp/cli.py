@@ -9,6 +9,7 @@ import click
 from openinterp.core.contributors import CONTRIBUTOR_ENV, contributor_problem
 from openinterp.core.exceptions import OpenInterpError
 from openinterp.core.paths import DEFAULT_WIKI_DIR
+from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
 
 
 def _load_runner(
@@ -347,13 +348,22 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     help="Dictionary latents aligned with each neuron pole (`openinterp crossref`); "
     "skipped if missing.",
 )
-def build(wiki_dir, output_dir, wiring_path, source_paths, alignment_path):
+@click.option(
+    "--sisters",
+    "sisters_path",
+    default=SISTERS_PATH,
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Each VERIFIED pole's matches in other models (`openinterp sisters`); skipped if missing.",
+)
+def build(wiki_dir, output_dir, wiring_path, source_paths, alignment_path, sisters_path):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import load_archive
     from openinterp.core.draws import load_draws
     from openinterp.corpus import load_sources
     from openinterp.crossref import load_rows as load_alignment
+    from openinterp.sisters import load_rows as load_sisters
     from openinterp.wiring_backfill import load_rows
 
     report = compile_site(
@@ -363,6 +373,7 @@ def build(wiki_dir, output_dir, wiring_path, source_paths, alignment_path):
         draws=load_draws(wiki_dir),
         corpus_sources=load_sources(source_paths),
         alignment_rows=load_alignment(alignment_path),
+        sister_rows=load_sisters(sisters_path),
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
@@ -435,6 +446,7 @@ from openinterp import (  # noqa: E402, F401
     cli_review,
     cli_scan,
     cli_score,
+    cli_sisters,
     cli_wiring,
 )
 
