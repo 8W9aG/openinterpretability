@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-10-31
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **Labelled concept sets from annotated datasets** (`openinterp concepts`, `openinterp/concepts.py`, `core.probing.ConceptSource`; TODO, Datasets). It writes the `{"text": ..., "spans": [[start, end], ...]}` JSON lines that `openinterp probe-compare --train/--test` reads, from human annotations instead of a regular expression, for `sparse-probing-search` and reviewers' positive holdouts. Presets: `conll2003-ner` (PER, ORG, LOC, MISC) and `conll2003-pos` (Penn Treebank tags), `ud-upos` and `ud-deprel` (any Universal Dependencies treebank via `--subset`, default `en_ewt`), `language-identification` (`papluca/language-identification`, 20 languages) and `ag_news` (four topics). Word tags give a span per tagged word, matching the label with or without a BIO prefix or subtype (`B-PER`, `nmod:poss`). CoNLL's pre-tokenised words are joined as written ("(AP) Smith doesn't"). UD words are located in each sentence's text, and a multiword token's words share its surface form (French "du" is DET and ADP). Sentences are joined into documents of up to `--max-chars`, by UD's `newdoc`/`newpar` where it has them. Document classes span the whole text, with half the sampled documents of the class. Without `--label` it lists the split's labels and counts. The `<name>.source.json` sidecar pins the dataset commit, split files, column, label, seed and licence, which for UD is the treebank's (en_gum is CC BY-NC-SA). CoNLL-2003 is Reuters text and ag_news's licence is unknown, so neither should be quoted in the wiki.
