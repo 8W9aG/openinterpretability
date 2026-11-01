@@ -84,6 +84,11 @@ def snippet(ex: ActivatingExample, full: bool = False) -> str:
     return start + marked + end
 
 
+def label_note(ex: ActivatingExample) -> str:
+    """The peak token's labels (``"language fr"``), or ``""`` if the scan had none."""
+    return ", ".join(f"{name} {label}" for name, label in (ex.peak_labels or {}).items())
+
+
 def distinct_examples(
     examples: Sequence[ActivatingExample], limit: int, full: bool = False
 ) -> tuple[list[tuple[int, ActivatingExample]], list[int]]:
@@ -113,12 +118,17 @@ def dropped_note(dropped: Sequence[int]) -> str:
 def format_review_examples(examples: Sequence[ActivatingExample], full: bool = False) -> str:
     """The reviewer's view of the top 10 examples: text only, no strengths."""
     if full:  # the prompt before windowing, for A/B comparison
-        listed = "\n".join(f"{n}. {e.text}" for n, e in enumerate(examples[:10], 1))
+        listed = "\n".join(f"{n}. {_noted(e)}{e.text}" for n, e in enumerate(examples[:10], 1))
         return f"Top-activating examples:\n{listed or '(none)'}\n\n"
     kept, dropped = distinct_examples(examples, 10)
-    listed = "\n".join(f"{n}. {snippet(e)}" for n, e in kept) or "(none)"
+    listed = "\n".join(f"{n}. {_noted(e)}{snippet(e)}" for n, e in kept) or "(none)"
     note = "\n" + dropped_note(dropped).rstrip() if dropped else ""
     return f"Top-activating examples (peak token in [[ ]], … where cut):\n{listed}{note}\n\n"
+
+
+def _noted(ex: ActivatingExample) -> str:
+    note = label_note(ex)
+    return f"({note}) " if note else ""
 
 
 def format_examples(
@@ -131,7 +141,9 @@ def format_examples(
         marked = snippet(ex, full)
         window = range(max(0, ex.max_token_index - 3), min(len(ex.tokens), ex.max_token_index + 2))
         context = ", ".join(f"{ex.tokens[i]!r}:{ex.activations[i]:.2f}" for i in window)
-        lines.append(f"{n}. (max {ex.max_activation:.3f}) {marked}\n   around peak: {context}")
+        note = label_note(ex)
+        head = f"max {ex.max_activation:.3f}" + (f", {note}" if note else "")
+        lines.append(f"{n}. ({head}) {marked}\n   around peak: {context}")
         if ex.attends_to:
             attended = ", ".join(
                 f"{ex.tokens[i]!r} (token {i - ex.max_token_index:+d}, weight {w:.2f})"

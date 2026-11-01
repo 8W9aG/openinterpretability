@@ -55,7 +55,7 @@ uv run openinterp corpus --dataset pile-10k --first --ascii --revision 127bfedcd
 Its sidecar, `corpus.source.json`, is committed, and `openinterp build` uses it to show the source of records that scanned this corpus before the sidecar existed, marked as inferred. The dataset card gives the licence as `bigscience-bloom-rail-1.0`, a model licence, and each Pile component keeps its own terms, so the corpus itself isn't published. For another corpus, `openinterp corpus` samples documents from a Hugging Face dataset, reading only the Parquet row groups it needs. Without `--dataset` it samples 500 documents from [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu)'s 10B-token sample in about a minute:
 
 ```bash
-uv run openinterp corpus --out fineweb.jsonl           # --dataset pile-10k, pile-uncopyrighted, c4, wikitext, tinystories, github-code or wikipedia-multilingual for another corpus, --seed N for another sample
+uv run openinterp corpus --out fineweb.jsonl           # --dataset pile-10k, pile-uncopyrighted, c4, wikitext, tinystories, github-code or wikipedia-multilingual for another corpus, --seed N for another sample, --detect-lang to label each document's language
 ```
 
 It also writes `<name>.source.json` (here `fineweb.source.json`), which pins the dataset commit, files, seed and licence. `openinterp audit --corpus fineweb.jsonl` records it in the submission, and warns about a corpus without one, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time (`--max-tokens`, `--sample-seed`; `--max-tokens 0` scans all of it), and records the sample in provenance. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
@@ -132,6 +132,8 @@ make check lint test                      # the same checks CI runs on your PR
 git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
 gh pr ready
 ```
+
+To be credited, set `OPENINTERP_CONTRIBUTOR` to a public handle such as your GitHub username (never an email), or pass `--contributor` to `audit` and `verify`. It is recorded beside the agent model, as the proposer's contributor on the submission and the reviewer's on the verdict, and the site's Agents page lists every contributor's experiments, VERIFIED results, well-probed rejections and reviews. Nothing is recorded without it: git config is never read. The loop script's sessions inherit the variable.
 
 Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id>.md`) and never edits another's, so any number of experiments on one neuron can be in flight at once. Never edit generated pages except their **Discussion** section. The indexes (`wiki/README.md` and each neuron's `README.md`) are rebuilt locally by `openinterp wiki` and are gitignored, so experiment PRs never conflict over them. CI rejects a PR whose record and page don't match, and once merged the deploy publishes the result within a minute or so. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
 

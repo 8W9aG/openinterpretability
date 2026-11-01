@@ -67,6 +67,13 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "documents record as 'lang' (e.g. '^\\d+\\.(\\w+)/' for Wikipedia). Default: the preset's.",
 )
 @click.option(
+    "--detect-lang",
+    is_flag=True,
+    help="Detect each document's language (fastText lid.176, downloaded once) and record "
+    "it as 'lang' where the detector is sure, for datasets that don't say. The source "
+    "sidecar records the detector. Replaces a preset's exact languages; not with --lang-pattern.",
+)
+@click.option(
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
 )
 def corpus(
@@ -82,6 +89,7 @@ def corpus(
     first,
     ascii_,
     lang_pattern,
+    detect_lang,
     out,
 ):
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
@@ -93,6 +101,8 @@ def corpus(
     from openinterp.corpus import build_from_hub
 
     preset = PRESETS.get(dataset)
+    if detect_lang and lang_pattern:
+        raise click.UsageError("--detect-lang and --lang-pattern both set the languages.")
     if preset is None and not files:
         raise click.UsageError(f"--files is required for {dataset!r}, which is not a preset.")
     source = build_from_hub(
@@ -108,9 +118,12 @@ def corpus(
         docs_per_row_group=docs_per_row_group or (preset.docs_per_row_group if preset else 20),
         first=first,
         ascii=ascii_,
-        lang_pattern=lang_pattern or (preset.lang_pattern if preset else None),
+        lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
+        detect_lang=detect_lang,
     )
     click.echo(f"Wrote {source.documents} documents to {out}: {source}")
+    if source.lang_detector:
+        click.echo(f"Languages detected by {source.lang_detector}", err=True)
     if source.documents < documents:
         click.echo(f"warning: only {source.documents} of {documents} documents found", err=True)
     click.echo(f"Licence: {source.license or 'not stated on the dataset card'}")
