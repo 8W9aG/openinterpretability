@@ -9,6 +9,18 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **A `single-source-of-truth` skill** (`.claude/skills/single-source-of-truth/`; TODO, Code quality and tooling). It says how to search for an existing definition before adding a literal, where shared definitions live, how to pass Python constants into templates, and how to pin a copy that has to exist with a test. `REVIEW.md` points code review at it.
+- **`tests/test_single_source.py`** pins the copies that can't import their source: `docs/PROTOCOL.md`'s title version, gate table and quoted `ReviewPolicy` / `Tolerance` defaults, and the site's statuses against `VerdictStatus` plus `CONTESTED`.
+- **Reviewer-effect crossover** (`docs/analyses/reviewer-crossover.md`, `scripts/reviewer_crossover.py`; TODO, Protocol and science). 30 random protocol-0.8 neuron-pole submissions, 10 each from deepseek-flash, muse-spark-1.3 and Opus 5.5, were reviewed again from scratch by Sonnet, Opus and Haiku 5.5 on the same prompt and measured under the current policy. The submission explains most of the variance (71% of balanced accuracy, 59% of VERIFIED) and the reviewer 6–8% (permutation p ≤ 0.005). Sonnet verified 13 of 30, Opus 7 and Haiku 5; Opus's hypotheses were VERIFIED 7 of 10 times by Sonnet but 3 by Opus or Haiku. None of muse-spark's 30 new reviews was VERIFIED. Two reviewers make the same VERIFIED call on about three submissions in four (κ 0.38–0.52).
+
+### Changed
+
+- **One definition each for values the sweep found retyped.** The active line (`ACTIVATION_THRESHOLD` in `core/schemas.py`, previously `0.25` in `cli_scan.py`, `show.py` and `harness/probing.py`); the evidence strength bands (`STRONG_EVIDENCE`, `evidence_strength` in `builder/significance.py`, previously also in `_macros.html` and the registry SQL); and the unit statuses with their colours (new `builder/statuses.py`, previously also the keys of `map_fill` and `status_badge` in `_macros.html`). No output changes.
+- **The wiki directory's default and layout are defined once** (`openinterp/core/paths.py`: `DEFAULT_WIKI_DIR`, `experiments_dir`, `draws_dir`), and every command's `--wiki-dir` comes from `wiki_dir_option()` in `cli.py`. Previously `Path("wiki")` was retyped in 14 options and defaults and `wiki_dir / "experiments"` joined by hand in seven places. `--wiki-dir` now rejects a file everywhere, as most commands already did. A test in `tests/test_single_source.py` keeps the joins from coming back.
+- **Numbers the README, skills and agent files quote from code are pinned by tests** (`tests/test_single_source.py`): the scan cache cap and sample size, the line limit, the 10–20 probe bounds (`ProbeSet`), GPT-2's window, ε, the active line and the planner's base weights. ε's default is now defined once (`DEFAULT_EPSILON` in `planner.py`, previously also typed in `openinterp next --epsilon`). The site templates' numbers turned out to be maths or protocol history, which can't drift, or display thresholds typed only once.
+
 ## [0.0.11] - 2026-10-31
 
 Ships with protocol version **0.8**.

@@ -200,6 +200,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | `sparse-probing-search` | Find neurons for a labelled concept | Gurnee et al. 2023; Bolukbasi et al. 2021 |
 | `interpretability-illusions-review` | Write probes as the reviewer; spot illusions | Bolukbasi et al. 2021; Huang et al. 2023; Makelov et al. 2023; Sun et al. 2024 |
 | `attention-head-audit` | Extend the registry to attention heads and transcoder baselines | Olsson et al. 2022; Wang et al. 2022; Conmy et al. 2023; Dunefsky et al. 2024; Paulo et al. 2025 |
+| `single-source-of-truth` | Define each constant, threshold or list once; pin copies that must exist with a test | — |
 
 ## Layout
 

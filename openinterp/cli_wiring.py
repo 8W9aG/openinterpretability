@@ -9,12 +9,12 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import _load_runner, cli
+from openinterp.cli import _load_runner, cli, wiki_dir_option
 from openinterp.wiring_backfill import DEFAULT_PATH
 
 
 @cli.command("wiring-backfill")
-@click.option("--wiki-dir", default="wiki", show_default=True, type=click.Path(path_type=Path))
+@wiki_dir_option()
 @click.option(
     "--out",
     default=DEFAULT_PATH,

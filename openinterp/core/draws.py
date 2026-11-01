@@ -16,6 +16,7 @@ from typing import Literal
 
 from pydantic import AwareDatetime
 
+from openinterp.core.paths import draws_dir
 from openinterp.core.schemas import (
     PROTOCOL_VERSION,
     ComponentIdentifier,
@@ -37,7 +38,7 @@ class UnauditableDraw(StrictModel):
 
 def draw_path(wiki_dir: Path, draw: UnauditableDraw) -> Path:
     stamp = draw.timestamp.strftime("%Y%m%dT%H%M%SZ")
-    return Path(wiki_dir) / "draws" / draw.identifier.slug / f"{stamp}.json"
+    return draws_dir(wiki_dir) / draw.identifier.slug / f"{stamp}.json"
 
 
 def write_draw(draw: UnauditableDraw, wiki_dir: Path) -> Path:
@@ -50,7 +51,7 @@ def write_draw(draw: UnauditableDraw, wiki_dir: Path) -> Path:
 
 
 def draw_files(wiki_dir: Path) -> Iterator[Path]:
-    root = Path(wiki_dir) / "draws"
+    root = draws_dir(wiki_dir)
     yield from sorted(root.rglob("*.json")) if root.is_dir() else ()
 
 
