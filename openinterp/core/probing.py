@@ -32,7 +32,9 @@ class ProbeScore(StrictModel):
 class NeuronScore(ProbeScore):
     """The pole's strength alone, read as a one-feature probe."""
 
-    line: float = Field(gt=0.0, description="The protocol's line: 0.25 × the record's scale.")
+    line: float = Field(
+        gt=0.0, description="The protocol's line: activation_threshold × the record's scale."
+    )
     balanced_accuracy_at_line: UnitFloat = Field(
         description="Counting a token as the concept when the pole is active at the line, "
         "as a review reads a probe: nothing is fitted."

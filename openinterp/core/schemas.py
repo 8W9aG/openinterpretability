@@ -56,6 +56,9 @@ ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "look
 SelectionMethod = Literal["random", "attribution", "manual"]
 
 PROTOCOL_VERSION = "0.8"
+# Fraction of a unit's max activation counted as "active" (docs/PROTOCOL.md §1). The
+# default of ReviewPolicy.activation_threshold; read it here, don't retype 0.25.
+ACTIVATION_THRESHOLD = 0.25
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 # ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
@@ -401,7 +404,7 @@ class ReviewPolicy(StrictModel):
     """The decision rule a verdict was computed under. See docs/PROTOCOL.md."""
 
     protocol_version: str = PROTOCOL_VERSION
-    activation_threshold: UnitFloat = 0.25  # fraction of max activation counted as "active"
+    activation_threshold: UnitFloat = ACTIVATION_THRESHOLD
     delta_abs_tolerance: float = Field(default=0.10, ge=0.0)
     delta_rel_tolerance: float = Field(default=0.50, ge=0.0)
     min_hard_negatives: int = Field(default=6, ge=0)

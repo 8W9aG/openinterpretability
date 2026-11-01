@@ -32,6 +32,7 @@ import torch
 
 from openinterp.core.identifiers import Pole
 from openinterp.core.probing import NeuronScore, ProbeScore, SiteProbes, SparsePoint
+from openinterp.core.schemas import ACTIVATION_THRESHOLD
 from openinterp.core.stats import rank_columns
 from openinterp.harness.hooks import NeuronHookRunner, _StopForward, pole_strength
 
@@ -342,7 +343,7 @@ def compare(
         site_probes("residual", train.residual, y, test.residual, yt, write, l2),
     ]
     sparse, rank = sparse_curve(train.hidden, y, test.hidden, yt, neuron, l2)
-    line = 0.25 * submission.max_activation
+    line = ACTIVATION_THRESHOLD * submission.max_activation
     (train_pos, train_neg), (test_pos, test_neg) = train.counts, test.counts
     return {
         "slug": ident.slug,
