@@ -10,6 +10,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli
+from openinterp.core.paths import experiments_dir
 
 
 def read_ledger(paths) -> list[dict]:
@@ -109,7 +110,7 @@ def registry_costs(wiki_dir: Path) -> str:
     from openinterp.builder.compiler import load_records
     from openinterp.core.costs import by_agent
 
-    records = load_records(wiki_dir / "experiments")
+    records = load_records(experiments_dir(wiki_dir))
     rows = by_agent(
         (
             r.verdict.status if r.verdict else None,

@@ -8,6 +8,7 @@ from __future__ import annotations
 import math
 from functools import partial
 
+from openinterp.builder.statuses import MAP_STATUSES
 from openinterp.core.schemas import Histogram
 
 
@@ -325,10 +326,6 @@ def _pair_values(p, counterfactuals) -> dict[str, tuple[float | None, str]]:
             f"{patch.null_median:.3g}, max {patch.null_max:.3g}){prompts}",
         )
     return values
-
-
-# Neuron statuses on the layer map, best first: a neuron shows its best pole's status.
-MAP_STATUSES = ("VERIFIED", "CONTESTED", "NEEDS_REVISION", "REJECTED")
 
 
 def _best_status(neuron) -> str:

@@ -72,7 +72,7 @@ Record the model IDs the subagents report, not the ones you expect. For an `inde
 
 ## How the planner decides
 
-- **Base weights** reflect expected information per unit of effort: `reevaluate` 3.0 > `independent_review` 2.5 > `revise` = `rescan` 2.0 > `replicate` 1.2 > `opposite_pole` 1.0 > `new_hypothesis` 0.8 > `challenge` 0.6.
+- **Base weights** (`BASE_WEIGHTS` in `openinterp/planner.py`) reflect expected information per unit of effort: `reevaluate` 3.0 > `independent_review` 2.5 > `revise` = `rescan` 2.0 > `replicate` 1.2 > `opposite_pole` 1.0 > `new_hypothesis` 0.8 > `challenge` 0.6.
 - **Repeat decay:** a weight is multiplied by `1/√(experiments on this neuron)`. Revisiting a neuron gets less likely, never impossible.
 - **Cooldown:** ×0.2 if the neuron was studied in the last 6 h, ×0.5 within 24 h, so a wave of agents spreads out.
 - **Claims:** ×0.05 if an open PR's title or branch contains the neuron's key. This is not zero, so abandoned claims can't block a neuron forever.
