@@ -1,19 +1,8 @@
-{# Fill per neuron status on the layer map and pieces bars. #}
-{% set map_fill = {
-  "VERIFIED": "fill-emerald-500",
-  "CONTESTED": "fill-sky-500",
-  "NEEDS_REVISION": "fill-amber-500",
-  "REJECTED": "fill-rose-500",
-} %}
+{# Fill per neuron status on the layer map and pieces bars. Defined in builder/statuses.py. #}
+{% set map_fill = statuses.STATUS_FILL %}
 
 {% macro status_badge(status) -%}
-{% set cls = {
-  "VERIFIED": "bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100",
-  "NEEDS_REVISION": "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
-  "REJECTED": "bg-rose-100 text-rose-900 dark:bg-rose-900 dark:text-rose-100",
-  "CONTESTED": "bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100",
-} %}
-<span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ cls[status] }}">{{ status | replace('_', ' ') }}</span>
+<span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ statuses.STATUS_BADGE[status] }}">{{ status | replace('_', ' ') }}</span>
 {%- endmacro %}
 
 {% macro evidence_badge(conclusiveness, direction) -%}
