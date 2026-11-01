@@ -103,7 +103,7 @@ Methods from the wider interpretability literature that the registry doesn't use
   - *positive controls*: bracket-matching and indentation neurons are known to exist in code models, so a syntax-labelled corpus can check that the pipeline finds them.
 
   It needs code to scan: pile-10k has some GitHub text, mixed in, and no preset is code-only. Add a code corpus preset first (Datasets; check the licence and gating, e.g. of `bigcode/the-stack-smol`), and tag each document's programming language there, as the language-tagging item above does for natural languages.
-- [ ] Investigate using part-of-speech (PoS) tags in the process. Tag the scan corpus (e.g. spaCy, or the `universal_dependencies` labels under Datasets), align word tags to model tokens, and report the PoS distribution of the pole's top activations against the corpus base rate. Uses to try:
+- [ ] Investigate using part-of-speech (PoS) tags in the process. Tag the scan corpus (e.g. spaCy, or Universal Dependencies' gold tags, which `openinterp concepts --dataset ud-upos` writes as spans), align word tags to model tokens, and report the PoS distribution of the pole's top activations against the corpus base rate. Uses to try:
   - *proposer*: give it the PoS enrichment as evidence, so syntactic neurons ("verbs after a modal") are easier to spot than from raw tokens;
   - *reviewer*: build hard negatives from the same word in a different role ("run" as noun vs verb) and check probe labels against the tags;
   - *triage*: flag poles whose activations are explained by PoS alone, as a cheap prior alongside `neuron-family-triage`.
@@ -276,8 +276,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission (`fineweb-edu` is the default preset). Adding a dataset below is mostly a new preset in `openinterp/corpus.py`. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Labelled concept sets for `sparse-probing-search` and positive holdouts: `conll2003` (NER), `universal_dependencies` (POS/syntax), `papluca/language-identification`, `ag_news` (topic).
-- [ ] A mixed default corpus: a fixed, versioned blend of the above, so random-selection statistics aren't biased toward one domain.
+- [ ] A mixed default corpus: a fixed, versioned blend of the corpus presets and the sets below, so random-selection statistics aren't biased toward one domain.
 - [ ] Code: a code corpus preset (e.g. `bigcode/the-stack-smol`, gated; check its terms and licences) with each document's programming language recorded, for syntax and identifier neurons and the syntax-tree item (Analyses per experiment).
 - [ ] Maths: `open-web-math/open-web-math` and `openai/gsm8k`, for number, operator and LaTeX neurons.
 - [ ] Chat/instruction text: `HuggingFaceH4/ultrachat_200k` or `lmsys/lmsys-chat-1m` (gated), formatted with the model's chat template, for instruct models.

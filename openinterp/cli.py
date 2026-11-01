@@ -402,6 +402,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 # Registers the registry-maintenance commands on `cli`.
 from openinterp import (  # noqa: E402, F401
     cli_baseline,
+    cli_concepts,
     cli_corpus,
     cli_costs,
     cli_crossref,

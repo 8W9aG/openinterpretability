@@ -96,3 +96,43 @@ class ProbeComparison(StrictModel):
         description="Smallest k whose sparse probe comes within 0.02 balanced accuracy of "
         "the better dense hidden-layer probe; None if no k tried does.",
     )
+
+
+class ConceptSource(StrictModel):
+    """Where a labelled concept set came from, written by ``openinterp concepts`` next to
+    it. Enough to rebuild the same file: the dataset at an exact commit, the split's
+    files, the label column and label, the seed and sizes. ``license`` is the dataset
+    card's (or, for a Universal Dependencies treebank, the treebank's)."""
+
+    preset: str = Field(examples=["conll2003-ner"])
+    dataset: str = Field(min_length=1, examples=["eriktks/conll2003"])
+    revision: str = Field(description="Dataset commit hash.")
+    files: str = Field(description="Glob of the split's Parquet files, within the dataset.")
+    column: str = Field(description="The column labels were read from.", examples=["ner_tags"])
+    label: str = Field(
+        description="The label marked: tags equal to it, or to it with a BIO prefix or a "
+        "subtype (B-PER, nmod:poss), or the documents of that class.",
+        examples=["PER"],
+    )
+    level: Literal["token", "document"] = Field(
+        description="token: spans over tagged words; document: a span over the whole text "
+        "of each document of the class, half the documents being of it."
+    )
+    documents: int = Field(ge=0)
+    positive_documents: int = Field(ge=0, description="Documents with at least one span.")
+    spans: int = Field(ge=0)
+    skipped_sentences: int = Field(
+        default=0,
+        ge=0,
+        description="Sentences left out because their words weren't found in their text.",
+    )
+    seed: int
+    max_chars: int = Field(gt=0)
+    license: str | None = None
+    sha256: str = Field(description="SHA-256 of the concept set file this describes.")
+
+    def __str__(self) -> str:
+        return (
+            f"{self.dataset}@{self.revision[:8]} ({self.files}, {self.column} = {self.label}: "
+            f"{self.spans} spans in {self.positive_documents} of {self.documents} docs)"
+        )
