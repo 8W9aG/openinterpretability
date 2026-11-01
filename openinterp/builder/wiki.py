@@ -189,6 +189,10 @@ def _page_meta(record: AuditRecord, kind: ExperimentKind) -> dict:
         "proposer": sub.submitting_agent_model,
         "reviewer": verdict.reviewer_agent_model,
     }
+    if sub.contributor:
+        meta["proposer_contributor"] = sub.contributor
+    if verdict.contributor:
+        meta["reviewer_contributor"] = verdict.contributor
     if sub.supersedes:
         meta["supersedes"] = sub.supersedes
     return meta

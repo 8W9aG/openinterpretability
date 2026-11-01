@@ -19,7 +19,12 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder import charts, statuses
-from openinterp.builder.agents import agent_href, agents_view, legacy_redirects
+from openinterp.builder.agents import (
+    agent_href,
+    agents_view,
+    contributors_view,
+    legacy_redirects,
+)
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.parquet_export import export_draws, export_registry
@@ -323,7 +328,8 @@ def compile_site(
     for model in models:
         _render_model(render, model, rows, studied, alignment_rows or {})
     agents = agents_view(experiments)
-    render("agents/index.html", "agents.html", agents=agents)
+    contributors = contributors_view(experiments)
+    render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
     for agent in agents:
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():

@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Added
 
+- **The human contributor behind each experiment** (TODO, Pipeline). Submissions and verdicts take an optional `contributor`: a public handle such as a GitHub username, never an email (`core/contributors.py`; the schema rejects `@`). `audit` records the proposer's and `verify`/`review` the reviewer's, from `--contributor` or `$OPENINTERP_CONTRIBUTOR`; nothing is recorded without one, and git config is never read. `reevaluate` keeps the original reviewer's, since its probes are still theirs. The Parquet export gains `submitting_contributor` and `reviewer_contributor`, experiment pages say who ran each agent, and the Agents page has a contributor leaderboard: experiments proposed, VERIFIED, well-probed rejections (strong evidence against, as in the home page's conclusive-null count) and reviews done. Older records have no contributor and count for nobody.
 - **Language labels reach the agents, the site and every kind of unit** (TODO, Analyses per experiment). On a corpus whose documents carry `lang` (`wikipedia-multilingual`):
   - *Top examples.* Each records its peak token's label in each label set (`ActivatingExample.peak_labels`, e.g. `{"language": "fr"}`; `None` without labels, so old records read as before).
   - *Proposer.* Each top example shows its language (`(max 0.394, language fr)`).
