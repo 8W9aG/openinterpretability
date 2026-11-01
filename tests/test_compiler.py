@@ -894,3 +894,45 @@ def test_label_confounds_rendered(tmp_path, record):
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki
+
+
+def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
+    from openinterp.builder.agents import agent_slug
+    from openinterp.core.costs import ExperimentCosts, LLMCall
+    from openinterp.core.schemas import ExperimentProvenance
+
+    records[1] = _self_reviewed(records[1])  # N117+'s VERIFIED review, by the proposer's model
+    costs = ExperimentCosts(
+        llm_calls=[
+            LLMCall(agent="proposer", model="openai/gpt-test", cost_usd=0.5),
+            LLMCall(agent="reviewer", model="anthropic/claude-test", cost_usd=0.25),
+        ]
+    )
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus="c",
+        n_snippets=1,
+        tokens_scanned=1,
+        selection="random",
+        harness_version="t",
+        costs=costs,
+    )
+    sub = records[3].submission.model_copy(update={"provenance": provenance})
+    records[3] = records[3].model_copy(update={"submission": sub})  # N9+, REJECTED
+    compile_site(records, tmp_path)
+
+    assert agent_slug("external/deepseek-flash[1m]") == "external-deepseek-flash-1m"
+    page = (tmp_path / "agents" / "index.html").read_text()
+    proposer = (tmp_path / "agents" / "openai-gpt-test.html").read_text()
+    reviewer = (tmp_path / "agents" / "anthropic-claude-test.html").read_text()
+    # The proposer's model proposed 4 and reviewed 1 of them itself; that VERIFIED one
+    # is left out of both its rates, so 0 of 3 independent proposals were verified.
+    assert '0% <span class="text-slate-500">(0/3)</span>' in proposer
+    assert '<td class="px-3 py-2">reviewer</td>' in proposer
+    assert "$0.500" in page and "$0.250" in reviewer
+    assert "Took part in 3 experiments" in reviewer
+    # Agent names link to their pages from the home page and experiment pages.
+    home = (tmp_path / "index.html").read_text()
+    assert 'href="agents/openai-gpt-test.html"' in home and "Agent costs" not in home
+    neuron = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    assert 'href="../../../agents/anthropic-claude-test.html"' in neuron
