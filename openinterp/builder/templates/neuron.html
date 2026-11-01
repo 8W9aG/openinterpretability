@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
@@ -17,7 +17,7 @@
       <div class="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
         <div class="flex items-center gap-2">
           <span class="text-slate-500">{% if neuron.is_head %}Attention head{% elif neuron.is_feature %}Latent of {{ neuron.dictionary }}{% else %}{{ pole | capitalize }} pole {{ pole_mark(pole) }}{% endif %}</span>
-          {% if s %}{{ status_badge(s.status) }}<span class="hidden" data-pagefind-filter="status">{{ s.status }}</span>{% if s.self_reviewed %}{{ self_review_badge() }}{% endif %}{% endif %}
+          {% if s %}{{ status_badge(s.status) }}<span class="hidden" data-pagefind-filter="status">{{ s.status }}</span>{% if s.self_reviewed %}{{ self_review_badge() }}{% endif %}{% if s.lead.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}{% endif %}
         </div>
         {% if s %}
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -27,7 +27,7 @@
         <p class="mt-2 text-xs">{{ s.lead.record.submission.natural_language_explanation | truncate(120) }}</p>
         {% if s.readings | length > 1 %}
         <p class="mt-2 text-xs text-slate-500">{% if s.contested %}Reviews of this hypothesis disagree:{% else %}Every review of this hypothesis agrees:{% endif %}
-          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="#{{ r.anchor }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <span class="font-mono">{{ r.record.verdict.reviewer_agent_model }}</span>{{ "; " if not loop.last }}{% endfor %}.
+          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="#{{ r.anchor }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <a class="font-mono underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}">{{ r.record.verdict.reviewer_agent_model }}</a>{{ "; " if not loop.last }}{% endfor %}.
         </p>
         {% endif %}
         {% else %}

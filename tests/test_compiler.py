@@ -643,6 +643,27 @@ def test_self_reviews_badged_and_counted(tmp_path, records):
     assert "1 of 4 experiments were" in home and "So were 1 of the 1 current verified" in home
 
 
+def test_builtin_sample_scans_badged(tmp_path, records):
+    from openinterp.core.schemas import BUILTIN_CORPUS, ExperimentProvenance
+
+    rec = records[1]  # N117+'s latest
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus=BUILTIN_CORPUS,
+        n_snippets=1,
+        tokens_scanned=552,
+        selection="random",
+        harness_version="t",
+    )
+    sub = rec.submission.model_copy(update={"provenance": provenance})
+    records[1] = rec.model_copy(update={"submission": sub})
+    compile_site(records, tmp_path)
+    layer = tmp_path / "models" / MODEL / "L3"
+    neuron = (layer / "N117.html").read_text()
+    assert neuron.count(">built-in sample</span>") == 2  # the positive pole's card and experiment
+    assert ">built-in sample</span>" not in (layer / "N9.html").read_text()
+
+
 def _reviewed_by(rec, reviewer, *, status, hours, counts=(10, 0, 5, 0)):
     """A re-review of ``rec``'s submission: a new probe set from ``reviewer``."""
     verdict = rec.verdict.model_copy(
@@ -873,3 +894,45 @@ def test_label_confounds_rendered(tmp_path, record):
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki
+
+
+def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
+    from openinterp.builder.agents import agent_slug
+    from openinterp.core.costs import ExperimentCosts, LLMCall
+    from openinterp.core.schemas import ExperimentProvenance
+
+    records[1] = _self_reviewed(records[1])  # N117+'s VERIFIED review, by the proposer's model
+    costs = ExperimentCosts(
+        llm_calls=[
+            LLMCall(agent="proposer", model="openai/gpt-test", cost_usd=0.5),
+            LLMCall(agent="reviewer", model="anthropic/claude-test", cost_usd=0.25),
+        ]
+    )
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus="c",
+        n_snippets=1,
+        tokens_scanned=1,
+        selection="random",
+        harness_version="t",
+        costs=costs,
+    )
+    sub = records[3].submission.model_copy(update={"provenance": provenance})
+    records[3] = records[3].model_copy(update={"submission": sub})  # N9+, REJECTED
+    compile_site(records, tmp_path)
+
+    assert agent_slug("external/deepseek-flash[1m]") == "external-deepseek-flash-1m"
+    page = (tmp_path / "agents" / "index.html").read_text()
+    proposer = (tmp_path / "agents" / "openai-gpt-test.html").read_text()
+    reviewer = (tmp_path / "agents" / "anthropic-claude-test.html").read_text()
+    # The proposer's model proposed 4 and reviewed 1 of them itself; that VERIFIED one
+    # is left out of both its rates, so 0 of 3 independent proposals were verified.
+    assert '0% <span class="text-slate-500">(0/3)</span>' in proposer
+    assert '<td class="px-3 py-2">reviewer</td>' in proposer
+    assert "$0.500" in page and "$0.250" in reviewer
+    assert "Took part in 3 experiments" in reviewer
+    # Agent names link to their pages from the home page and experiment pages.
+    home = (tmp_path / "index.html").read_text()
+    assert 'href="agents/openai-gpt-test.html"' in home and "Agent costs" not in home
+    neuron = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    assert 'href="../../../agents/anthropic-claude-test.html"' in neuron

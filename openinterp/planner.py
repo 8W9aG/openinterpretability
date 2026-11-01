@@ -2,7 +2,8 @@
 
 Every neuron in the registry generates candidate follow-up experiments (re-evaluate
 under the current protocol, independent re-review, revise, replicate, challenge,
-audit the opposite pole, try a new hypothesis after a rejection). Each candidate
+audit the opposite pole, try a new hypothesis after a rejection, or rescan a record
+scanned on the built-in sample). Each candidate
 gets a weight from its expected information value, decayed by how often the neuron
 has been studied, by recent activity and by open PRs that already claim it. Weights
 are never zero: repeating an experiment is allowed, and a null result is data.
@@ -40,6 +41,7 @@ BASE_WEIGHTS = {
     "reevaluate": 3.0,  # verdict predates the current protocol; cheap, no LLM calls
     "independent_review": 2.5,  # proposer reviewed its own hypothesis
     "revise": 2.0,  # NEEDS_REVISION: failed gates say exactly what to fix
+    "rescan": 2.0,  # scanned on the built-in sample: its max activation means little
     "replicate": 1.2,  # VERIFIED by one reviewer model, or never by an independent one
     "opposite_pole": 1.0,  # the other half of a studied neuron
     "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
@@ -50,6 +52,7 @@ SKILLS = {
     "reevaluate": [],
     "independent_review": ["interpretability-illusions-review"],
     "revise": ["native-neuron-audit", "explanation-simulation-scoring"],
+    "rescan": ["native-neuron-audit", "neuron-family-triage"],
     "replicate": ["interpretability-illusions-review"],
     "opposite_pole": ["native-neuron-audit", "vocab-projection-lookahead"],
     "new_hypothesis": ["native-neuron-audit", "neuron-steering-tests"],
@@ -188,12 +191,18 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
     record, verdict = state.record, state.record.verdict
     ident = record.submission.identifier
     commands = _commands(state)
-    kinds = _review_kinds(state, commands) + _opposite_pole(state, slugs, commands)
     gates = verdict.metrics.gates if verdict.metrics else {}
-    if gates.get("not_default_on") is False:
-        # A default-on unit can't be audited as a detector, so no revision or review of it
-        # can pass; only its other pole is still open.
-        kinds = [k for k in kinds if k[0] in ("reevaluate", "opposite_pole")]
+    if record.scanned_on_builtin_sample:
+        # Every review kind would inherit a 552-token scan, and so would its default-on
+        # gate: rescan on the real corpus instead.
+        kinds = _rescan(commands)
+    else:
+        kinds = _review_kinds(state, commands)
+        if gates.get("not_default_on") is False:
+            # A default-on unit can't be audited as a detector, so no revision or review of
+            # it can pass; only its other pole is still open.
+            kinds = [k for k in kinds if k[0] == "reevaluate"]
+    kinds += _opposite_pole(state, slugs, commands)
 
     factor, notes = _decay(state, claims, now)
     for kind, why, commands, slug in kinds:
@@ -284,6 +293,14 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
         why = "verified and replicated; look for counterexamples"
         kinds.append(("challenge", why, [c.review], None))
     return kinds
+
+
+def _rescan(c: _Commands) -> list[Kind]:
+    """A new audit on the scan corpus that supersedes a record scanned on the built-in
+    sample. Re-evaluating or re-reviewing it would reuse that scan."""
+    why = "scanned on the 552-token built-in sample; rescan on the corpus"
+    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    return [("rescan", why, [c.revise, verify], None)]
 
 
 def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Kind]:

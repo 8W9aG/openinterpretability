@@ -1,5 +1,5 @@
 {# One experiment on a neuron, head or feature page. Expects `v` from compiler._experiment_view. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
@@ -16,6 +16,7 @@
       {{ status_badge(verdict.status) }}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
+      {% if e.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}
       <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-500' }}" title="How this experiment counts toward the {{ what }}'s status">{{ roles[e.role] }}</span>
       {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
@@ -155,9 +156,9 @@
       <p class="mt-1 text-xs text-slate-500">A latent of a {{ dp.kind }} with {{ "{:,}".format(dp.n_features) }} latents ({{ dp.repo }}{% if dp.revision %}@{{ dp.revision[:8] }}{% endif %}, <code>{{ dp.path }}</code>), reading <code>{{ dp.input_site }}</code>: a learned-basis baseline, not a native unit. Fit measured on {{ "{:,}".format(dp.tokens) }} scanned tokens (reported, not gated).</p>
       {% endif %}
       <dl class="mt-4 grid grid-cols-2 gap-2 text-sm">
-        <dt class="text-slate-500">Submitted by</dt><dd class="font-mono text-xs">{{ sub.submitting_agent_model }}</dd>
+        <dt class="text-slate-500">Submitted by</dt><dd class="font-mono text-xs"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(sub.submitting_agent_model) }}">{{ sub.submitting_agent_model }}</a></dd>
         {% if verdict %}
-        <dt class="text-slate-500">Reviewed by</dt><dd class="font-mono text-xs">{{ verdict.reviewer_agent_model }}{% if e.record.self_reviewed %} <span class="font-sans text-amber-700 dark:text-amber-400">(same model as the proposer: not an independent review)</span>{% endif %}</dd>
+        <dt class="text-slate-500">Reviewed by</dt><dd class="font-mono text-xs"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(verdict.reviewer_agent_model) }}">{{ verdict.reviewer_agent_model }}</a>{% if e.record.self_reviewed %} <span class="font-sans text-amber-700 dark:text-amber-400">(same model as the proposer: not an independent review)</span>{% endif %}</dd>
         <dt class="text-slate-500">Reviewed at</dt><dd class="font-mono text-xs">{{ verdict.timestamp.strftime("%Y-%m-%d %H:%M UTC") }}</dd>
         <dt class="text-slate-500">Max activation</dt><dd class="font-mono text-xs">{{ sub.max_activation | num(4) }}</dd>
         {% endif %}
@@ -365,7 +366,7 @@
       </div>
       {% endif %}
       <dl class="grid grid-cols-2 content-start gap-1 text-sm">
-        <dt class="text-slate-500">Judge</dt><dd class="font-mono text-xs">{{ es.judge_model or '—' }}</dd>
+        <dt class="text-slate-500">Judge</dt><dd class="font-mono text-xs">{% if es.judge_model %}<a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(es.judge_model) }}">{{ es.judge_model }}</a>{% else %}—{% endif %}</dd>
         <dt class="text-slate-500">Held-out windows</dt><dd class="font-mono text-xs">{{ "{:,}".format(es.active_windows) }} active of {{ "{:,}".format(es.candidate_windows) }}</dd>
         <dt class="text-slate-500">Judged</dt><dd class="font-mono text-xs">{{ es.detection_windows | length }} detection · {{ es.fuzzing_windows | length }} fuzzing</dd>
         <dt class="text-slate-500">Detection outcomes</dt><dd class="font-mono text-xs">{% for o, n in xs.counts.items() %}{{ n }} {{ o }}{{ ' · ' if not loop.last }}{% endfor %}</dd>

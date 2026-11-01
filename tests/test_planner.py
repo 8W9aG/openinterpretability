@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from openinterp.builder.wiki import write_experiment_page
-from openinterp.core.schemas import AuditRecord, ExperimentProvenance, ReviewMetrics, ReviewPolicy
+from openinterp.core.schemas import (
+    BUILTIN_CORPUS,
+    AuditRecord,
+    ExperimentProvenance,
+    ReviewMetrics,
+    ReviewPolicy,
+)
 from openinterp.planner import BASE_WEIGHTS, claim_key, configured_models, plan_next
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
@@ -81,6 +87,53 @@ def test_default_on_units_get_no_follow_ups_but_their_other_pole(tmp_path, recor
     wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", idx=6, gates=gates))
     kinds = _kinds(plan_next(wiki, seed=1, epsilon=0.0, now=NOW))
     assert kinds == {("opposite_pole", "N6-negative")}
+
+
+def _scanned_on(rec, corpus):
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus=corpus,
+        n_snippets=1,
+        tokens_scanned=552,
+        selection="random",
+        harness_version="t",
+    )
+    return rec.model_copy(
+        update={"submission": rec.submission.model_copy(update={"provenance": provenance})}
+    )
+
+
+@pytest.mark.parametrize(
+    ("status", "gates", "policy"),
+    [
+        ("VERIFIED", {"independent_review": False}, True),  # would be independent_review
+        ("VERIFIED", {}, False),  # would be reevaluate
+        ("REJECTED", {"specificity": False}, True),  # would be new_hypothesis
+        ("NEEDS_REVISION", {"not_default_on": False}, True),  # default-on on 552 tokens
+    ],
+)
+def test_builtin_sample_records_are_rescanned_not_followed_up(
+    tmp_path, record, status, gates, policy
+):
+    rec = _scanned_on(
+        _record(record, status=status, idx=7, gates=gates, policy=policy), BUILTIN_CORPUS
+    )
+    assert rec.scanned_on_builtin_sample
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW)
+    assert _kinds(plan) == {("rescan", "N7-positive"), ("opposite_pole", "N7-negative")}
+    rescan = next(c for c in plan.candidates if c.kind == "rescan")
+    assert rescan.weight == BASE_WEIGHTS["rescan"]
+    assert rescan.commands[0].startswith("openinterp audit --model ")
+    assert rescan.commands[0].endswith("N7-positive/20261001T120000Z.json")  # --supersedes it
+    assert "--supersedes" not in rescan.audit
+
+
+def test_records_on_a_corpus_are_not_rescanned(tmp_path, record):
+    rec = _scanned_on(_record(record, status="VERIFIED", idx=8, gates={}), "corpus.jsonl")
+    assert not rec.scanned_on_builtin_sample
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW)
+    assert ("replicate", "N8-positive") in _kinds(plan)
+    assert not any(c.kind == "rescan" for c in plan.candidates)
 
 
 def test_opposite_pole_skipped_when_studied(tmp_path, record):
