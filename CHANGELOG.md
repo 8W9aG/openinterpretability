@@ -13,6 +13,7 @@ The project has two version numbers:
 
 - **A `single-source-of-truth` skill** (`.claude/skills/single-source-of-truth/`; TODO, Code quality and tooling). It says how to search for an existing definition before adding a literal, where shared definitions live, how to pass Python constants into templates, and how to pin a copy that has to exist with a test. `REVIEW.md` points code review at it.
 - **`tests/test_single_source.py`** pins the copies that can't import their source: `docs/PROTOCOL.md`'s title version, gate table and quoted `ReviewPolicy` / `Tolerance` defaults, and the site's statuses against `VerdictStatus` plus `CONTESTED`.
+- **Reviewer-effect crossover** (`docs/analyses/reviewer-crossover.md`, `scripts/reviewer_crossover.py`; TODO, Protocol and science). 30 random protocol-0.8 neuron-pole submissions, 10 each from deepseek-flash, muse-spark-1.3 and Opus 5.5, were reviewed again from scratch by Sonnet, Opus and Haiku 5.5 on the same prompt and measured under the current policy. The submission explains most of the variance (71% of balanced accuracy, 59% of VERIFIED) and the reviewer 6–8% (permutation p ≤ 0.005). Sonnet verified 13 of 30, Opus 7 and Haiku 5; Opus's hypotheses were VERIFIED 7 of 10 times by Sonnet but 3 by Opus or Haiku. None of muse-spark's 30 new reviews was VERIFIED. Two reviewers make the same VERIFIED call on about three submissions in four (κ 0.38–0.52).
 
 ### Changed
 
