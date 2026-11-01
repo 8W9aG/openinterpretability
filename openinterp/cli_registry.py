@@ -7,7 +7,9 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli
+from openinterp.cli import cli, wiki_dir_option
+from openinterp.core.paths import experiments_dir
+from openinterp.planner import DEFAULT_EPSILON
 
 
 @cli.command()
@@ -16,9 +18,7 @@ from openinterp.cli import cli
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     help="Import loose audit records (*.json) found here as experiments.",
 )
-@click.option(
-    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
-)
+@wiki_dir_option()
 def wiki(import_dir, wiki_dir):
     """Rebuild the wiki indexes, importing loose records as experiments if asked."""
     from openinterp.builder.compiler import load_records
@@ -31,9 +31,7 @@ def wiki(import_dir, wiki_dir):
 
 
 @cli.command()
-@click.option(
-    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
-)
+@wiki_dir_option()
 @click.option(
     "--base-ref",
     help="Git ref to diff against (e.g. origin/main) to enforce write-once wiki pages.",
@@ -108,15 +106,13 @@ def _newest(item) -> tuple:
 
 
 @cli.command()
-@click.option(
-    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
-)
+@wiki_dir_option()
 def stats(wiki_dir):
     """Print the state of the registry: experiments, units, models, VERIFIED share,
     self-reviewed share and the protocol versions in use."""
     from openinterp.builder.compiler import load_records
 
-    click.echo(registry_stats(load_records(wiki_dir / "experiments")))
+    click.echo(registry_stats(load_records(experiments_dir(wiki_dir))))
 
 
 @cli.command()
@@ -136,13 +132,11 @@ def show(path, full):
 
 
 @cli.command(name="next")
-@click.option(
-    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
-)
+@wiki_dir_option()
 @click.option("--seed", type=int, help="Reproduce a previous choice. Default: fresh randomness.")
 @click.option(
     "--epsilon",
-    default=0.7,
+    default=DEFAULT_EPSILON,
     show_default=True,
     type=click.FloatRange(0, 1),
     help="Probability of exploring a uniformly random new neuron.",
@@ -263,9 +257,7 @@ def _list_candidates(plan, top: int) -> None:
     "--base-ref",
     help="Reproduce every record added or changed since this git ref (e.g. origin/main).",
 )
-@click.option(
-    "--wiki-dir", default=Path("wiki"), show_default=True, type=click.Path(path_type=Path)
-)
+@wiki_dir_option()
 @click.option(
     "--atol",
     default=1e-3,

@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from openinterp.core.exceptions import OpenInterpError
+from openinterp.core.paths import DEFAULT_WIKI_DIR
 
 
 def _load_runner(
@@ -118,12 +119,20 @@ model_options = [
 ]
 
 
-wiki_option = click.option(
-    "--wiki-dir",
-    default=Path("wiki"),
-    show_default=True,
-    type=click.Path(file_okay=False, path_type=Path),
-    help="Registry root: the experiment's record and page go in experiments/<slug>/. "
+def wiki_dir_option(help: str | None = None, *, exists: bool = False):
+    """The ``--wiki-dir`` option every command shares: the registry root, by default
+    :data:`~openinterp.core.paths.DEFAULT_WIKI_DIR`."""
+    return click.option(
+        "--wiki-dir",
+        default=DEFAULT_WIKI_DIR,
+        show_default=True,
+        type=click.Path(exists=exists, file_okay=False, path_type=Path),
+        help=help,
+    )
+
+
+wiki_option = wiki_dir_option(
+    "Registry root: the experiment's record and page go in experiments/<slug>/. "
     "Pass --wiki-dir '' to skip (then --out is required).",
 )
 
@@ -286,13 +295,7 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
 
 
 @cli.command()
-@click.option(
-    "--wiki-dir",
-    default=Path("wiki"),
-    show_default=True,
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    help="Experiment archive (wiki/experiments/**/<id>.json).",
-)
+@wiki_dir_option("Experiment archive (wiki/experiments/**/<id>.json).", exists=True)
 @click.option(
     "--output-dir", default=Path("dist"), show_default=True, type=click.Path(path_type=Path)
 )

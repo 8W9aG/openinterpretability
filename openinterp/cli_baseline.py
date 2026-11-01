@@ -9,11 +9,11 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli, recorded_model_option, with_model_options
+from openinterp.cli import cli, recorded_model_option, wiki_dir_option, with_model_options
 
 
 @cli.command("patchscope-baseline")
-@click.option("--wiki-dir", default="wiki", show_default=True, type=click.Path(path_type=Path))
+@wiki_dir_option()
 @click.option(
     "--work-dir",
     default="exchange/patchscope-baseline",

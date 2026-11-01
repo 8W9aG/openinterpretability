@@ -29,6 +29,7 @@ from typing import Literal
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from openinterp.core.paths import experiments_dir
 from openinterp.core.schemas import ActivatingExample, AuditRecord
 
 ExperimentKind = Literal["review", "reevaluation", "backfill"]
@@ -81,7 +82,7 @@ def unit_label(meta: dict) -> str:
 
 
 def neuron_dir(wiki_dir: Path, record: AuditRecord) -> Path:
-    return Path(wiki_dir) / "experiments" / record.submission.identifier.slug
+    return experiments_dir(wiki_dir) / record.submission.identifier.slug
 
 
 def home_link(slug: str) -> str:
@@ -241,7 +242,7 @@ def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
 
 def load_archive_paths(wiki_dir: Path) -> list[tuple[Path, AuditRecord]]:
     """Every archived experiment record with its path, oldest first."""
-    root = Path(wiki_dir) / "experiments"
+    root = experiments_dir(wiki_dir)
     pairs = [
         (p, AuditRecord.model_validate_json(p.read_text(encoding="utf-8")))
         for p in sorted(root.rglob("*.json"))
@@ -255,7 +256,7 @@ def load_archive(wiki_dir: Path) -> list[AuditRecord]:
 
 
 def load_entries(wiki_dir: Path) -> list[WikiEntry]:
-    root = Path(wiki_dir) / "experiments"
+    root = experiments_dir(wiki_dir)
     entries = [
         WikiEntry(path, _read_front_matter(path))
         for path in root.rglob("*.md")
@@ -274,7 +275,7 @@ def rebuild_indexes(wiki_dir: Path) -> None:
     for entry in entries:
         by_neuron.setdefault(entry.meta["slug"], []).append(entry)
     for slug, history in by_neuron.items():
-        index = wiki_dir / "experiments" / slug / "README.md"
+        index = experiments_dir(wiki_dir) / slug / "README.md"
         latest = history[0].meta
         index.write_text(
             env.get_template("neuron.md").render(
