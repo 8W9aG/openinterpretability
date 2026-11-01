@@ -57,6 +57,8 @@ SelectionMethod = Literal["random", "attribution", "manual"]
 PROTOCOL_VERSION = "0.8"
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
+# ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
+BUILTIN_CORPUS = "builtin:sample_corpus"
 
 
 class CounterfactualPair(StrictModel):
@@ -476,6 +478,13 @@ class AuditRecord(StrictModel):
     @property
     def is_verified(self) -> bool:
         return self.verdict is not None and self.verdict.status == "VERIFIED"
+
+    @property
+    def scanned_on_builtin_sample(self) -> bool:
+        """Scanned on the 552-token built-in sample, too small for a meaningful max
+        activation: follow-ups rescan it instead of reusing the scan."""
+        provenance = self.submission.provenance
+        return provenance is not None and provenance.corpus == BUILTIN_CORPUS
 
     @property
     def self_reviewed(self) -> bool:

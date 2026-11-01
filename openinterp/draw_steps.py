@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 
 from openinterp.planner import Candidate, Plan, claim_key
 
-SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis")
+SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan")
+SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
 REVIEW_KINDS = ("independent_review", "replicate", "challenge")
 
 
@@ -138,7 +139,7 @@ def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
 
 
 def _scan(c, out, corpus, proposer, submission) -> list[Step]:
-    supersedes = f" --supersedes {c.record}" if c.kind in ("revise", "new_hypothesis") else ""
+    supersedes = f" --supersedes {c.record}" if c.kind in SUPERSEDING_KINDS else ""
     stopped = _STOPPED if "--random" in (c.audit or "").split() else _STOPPED_CHOSEN
     audit = f"uv run openinterp audit {c.audit} --corpus {corpus}"
     if proposer:
@@ -268,6 +269,7 @@ _VERBS = {
     "independent_review": "Independent review of",
     "revise": "Revise",
     "new_hypothesis": "New hypothesis for",
+    "rescan": "Rescan",
     "replicate": "Replicate",
     "challenge": "Challenge",
     "opposite_pole": "Explore",

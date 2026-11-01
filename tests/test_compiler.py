@@ -643,6 +643,27 @@ def test_self_reviews_badged_and_counted(tmp_path, records):
     assert "1 of 4 experiments were" in home and "So were 1 of the 1 current verified" in home
 
 
+def test_builtin_sample_scans_badged(tmp_path, records):
+    from openinterp.core.schemas import BUILTIN_CORPUS, ExperimentProvenance
+
+    rec = records[1]  # N117+'s latest
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus=BUILTIN_CORPUS,
+        n_snippets=1,
+        tokens_scanned=552,
+        selection="random",
+        harness_version="t",
+    )
+    sub = rec.submission.model_copy(update={"provenance": provenance})
+    records[1] = rec.model_copy(update={"submission": sub})
+    compile_site(records, tmp_path)
+    layer = tmp_path / "models" / MODEL / "L3"
+    neuron = (layer / "N117.html").read_text()
+    assert neuron.count(">built-in sample</span>") == 2  # the positive pole's card and experiment
+    assert ">built-in sample</span>" not in (layer / "N9.html").read_text()
+
+
 def _reviewed_by(rec, reviewer, *, status, hours, counts=(10, 0, 5, 0)):
     """A re-review of ``rec``'s submission: a new probe set from ``reviewer``."""
     verdict = rec.verdict.model_copy(

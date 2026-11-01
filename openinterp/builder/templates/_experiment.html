@@ -1,5 +1,5 @@
 {# One experiment on a neuron, head or feature page. Expects `v` from compiler._experiment_view. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
@@ -16,6 +16,7 @@
       {{ status_badge(verdict.status) }}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
+      {% if e.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}
       <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-500' }}" title="How this experiment counts toward the {{ what }}'s status">{{ roles[e.role] }}</span>
       {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>

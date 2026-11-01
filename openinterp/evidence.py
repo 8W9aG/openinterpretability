@@ -17,10 +17,11 @@ def read_corpus(path: Path | None):
     from openinterp.corpus import load_source
 
     if path is None:
+        from openinterp.core.schemas import BUILTIN_CORPUS
         from openinterp.data import sample_corpus
 
         texts = sample_corpus()
-        return texts, "builtin:sample_corpus", sha256("\n".join(texts).encode()), None
+        return texts, BUILTIN_CORPUS, sha256("\n".join(texts).encode()), None
     raw = path.read_bytes()
     lines = [line for line in raw.decode("utf-8").splitlines() if line.strip()]
     if path.suffix == ".jsonl":
