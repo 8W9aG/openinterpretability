@@ -47,7 +47,7 @@ Two sister studies, the strongest sister in each direction between GPT-2 and Qwe
 
 **The separator detector carries over only in part.** Every hard negative and counterfactual passed: the GPT-2 pole fires on detached dashes, slashes, pipes and bullets and not on the same glyphs attached. But it ignores ` >` and ` +`, which the Qwen explanation puts in its strongest family, so two holdouts failed. Its line-start weakening didn't hold either (the proposer measured 0.96 of max after a newline). At layer 0 token identity explains it fully (baseline 1.00), so the explanation's conditions add nothing a token list doesn't: the same concept, with a narrower set of glyphs.
 
-The source poles' pages now link to these sisters with each study's verdict, and the sisters' pages link back to the experiment they tested. The other 17 GPT-2 ↔ Qwen sisters are open `sister` draws in `openinterp next`. The 53 in Qwen2.5-1.5B wait until that model is onboarded, so CI can reproduce their records.
+The source poles' pages now link to these sisters with each study's verdict, and the sisters' pages link back to the experiment they tested. The other 17 GPT-2 ↔ Qwen sisters are open `sister` draws in `openinterp next`. So are their other matches and random poles of the other model, at much lower weight; the random poles are the control for whether matching finds explanations that carry over. The 53 in Qwen2.5-1.5B wait until that model is onboarded, so CI can reproduce their records.
 
 ## Limits
 

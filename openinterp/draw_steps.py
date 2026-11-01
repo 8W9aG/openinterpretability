@@ -59,10 +59,11 @@ def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None
 
 
 def draw_slug(choice: Candidate) -> str | None:
-    """The unit the draw studies; for an explore draw, worked out from its seed."""
-    if choice.slug or choice.kind != "explore":
-        return choice.slug
+    """The unit the draw studies; for a random pick (an explore draw, or a sister study
+    of a random pole), worked out from its seed."""
     options = (choice.audit or "").split()
+    if choice.slug or "--random" not in options:
+        return choice.slug
     if "--seed" not in options or (dims := model_dims(choice.model)) is None:
         return None
     seed = int(options[options.index("--seed") + 1])

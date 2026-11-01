@@ -69,7 +69,7 @@ Record the model IDs the subagents report, not the ones you expect. For an `inde
 | `replicate` | VERIFIED by only one reviewer model, or every review so far was a self-review | Independent review with a new probe set from a different model. |
 | `challenge` | VERIFIED, replicated, and independently reviewed at least once | Look for counterexamples: cross-dataset holdouts, long-context probes, steering (`neuron-steering-tests`). |
 | `opposite_pole` | The other pole of a studied neuron is unstudied | `openinterp audit … --pole <other>`. The negative pole often encodes the distinction the positive one draws. |
-| `sister` | A VERIFIED pole has a sister (`openinterp sisters`, `docs/analyses/sister-neurons.md`) in another configured model that is unstudied | `openinterp audit … --sister-of <the VERIFIED record>` on both steps, then verify. The VERIFIED explanation is the hypothesis, recorded word for word whatever the draft says: choose activating tokens and counterfactuals it predicts for the sister, and don't rewrite it. Any verdict is the result: it says whether the explanation carries over. |
+| `sister` | A VERIFIED pole has an unstudied pole in another configured model: its sister (`openinterp sisters`, `docs/analyses/sister-neurons.md`; full weight), another match it found (0.05 × r) or a random pole no search matched (0.01, `--random`, the control) | `openinterp audit … --sister-of <the VERIFIED record>` on both steps, then verify. The VERIFIED explanation is the hypothesis, recorded word for word whatever the draft says: choose activating tokens and counterfactuals it predicts for the sister, and don't rewrite it. Any verdict is the result: it says whether the explanation carries over. |
 
 ## How the planner decides
 

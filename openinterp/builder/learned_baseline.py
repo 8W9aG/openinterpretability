@@ -36,6 +36,7 @@ SELECT kind, model_name, layer, pole, dictionary, status, selection, balanced_ac
        dictionary_explained_variance, dictionary_mean_l0, dictionary_dead_share
 FROM r
 WHERE kind IN ('mlp_neuron_pole', 'dictionary_feature') AND status IS NOT NULL
+  AND sister_of IS NULL  -- a sister study tests a borrowed explanation, not a fresh audit
 QUALIFY row_number() OVER (PARTITION BY slug ORDER BY reviewed_at, experiment_id) = 1
 """
 

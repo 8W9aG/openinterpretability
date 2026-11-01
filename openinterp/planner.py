@@ -3,8 +3,10 @@
 Every neuron in the registry generates candidate follow-up experiments (re-evaluate
 under the current protocol, independent re-review, revise, replicate, challenge,
 audit the opposite pole, try a new hypothesis after a rejection, or rescan a record
-scanned on the built-in sample). A VERIFIED pole also offers its unstudied sisters in
-other configured models (``openinterp sisters``), audited with its explanation. Each candidate
+scanned on the built-in sample). A VERIFIED pole also offers its unstudied matches in
+other configured models (``openinterp sisters``), audited with its explanation: any
+match can be drawn, and any pole of another model at random, but its sister far more
+often than the rest. Each candidate
 gets a weight from its expected information value, decayed by how often the neuron
 has been studied, by recent activity and by open PRs that already claim it. Weights
 are never zero: repeating an experiment is allowed, and a null result is data.
@@ -50,7 +52,7 @@ BASE_WEIGHTS = {
     "opposite_pole": 1.0,  # the other half of a studied neuron
     "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
     "challenge": 0.6,  # VERIFIED and replicated: hunt for counterexamples
-    "sister": 1.0,  # a VERIFIED pole's unstudied sister in another model: does it carry over?
+    "sister": 1.0,  # a VERIFIED pole's sister in another model (other matches: LINK_WEIGHT)
 }
 SKILLS = {
     "explore": ["native-neuron-audit", "neuron-family-triage", "vocab-projection-lookahead"],
@@ -321,46 +323,100 @@ def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Ki
     return [("opposite_pole", f"the {other} pole is unstudied", [audit], other_slug)]
 
 
-def sister_candidates(states, claims, now, pool: Sequence[str], root: Path) -> list[Candidate]:
-    """A ``sister`` draw for each VERIFIED pole's unstudied sister (``openinterp sisters``,
-    read from ``root``) in a model of ``pool``: audit it with the pole's explanation,
-    unchanged. Only models in the pool, so CI can reproduce the record."""
+# A match of a VERIFIED pole that isn't its sister is drawable too, at this share of a
+# sister's weight times its correlation: any link can be tested, but the draws lean
+# heavily towards the sisters, where the explanation is likeliest to carry over.
+LINK_WEIGHT = 0.05
+# So is any pole of another configured model, found by the search or not: one draw per
+# VERIFIED pole and model picks a random pole there, at this share of a sister's weight.
+# It is also the control for the matched draws.
+UNMATCHED_WEIGHT = 0.01
+
+
+def link_affinity(row, match) -> float:
+    """How strongly to draw a study of ``match``: 1 for the pole's sister, else
+    :data:`LINK_WEIGHT` × its correlation (never zero, as every weight here)."""
+    return 1.0 if row.sister is match else LINK_WEIGHT * max(match.pearson, 0.01)
+
+
+def sister_candidates(
+    states, claims, now, pool: Sequence[str], root: Path, seed: int = 0
+) -> list[Candidate]:
+    """``sister`` draws that audit a pole of another model of ``pool`` with a VERIFIED
+    pole's explanation, unchanged: every unstudied match ``openinterp sisters`` found
+    (read from ``root``), weighted by :func:`link_affinity`, and per model a random pole
+    (:data:`UNMATCHED_WEIGHT`, seeded from ``seed``). Only models in the pool, so CI can
+    reproduce the record."""
     from openinterp.sisters import DEFAULT_PATH, load_rows
 
-    rows, windows, out = (
-        load_rows(root / DEFAULT_PATH),
-        configured_windows(root / "pyproject.toml"),
-        [],
-    )
+    rows, windows = load_rows(root / DEFAULT_PATH), configured_windows(root / "pyproject.toml")
+    out = []
     for slug, state in states.items():
-        for row in rows.get(slug, []) if state.record.verdict.status == "VERIFIED" else []:
-            m, target = row.sister, row.sister and row.sister.slug(row.other)
-            if m is None or row.other not in pool or target in states:
-                continue
-            factor, notes = _decay(state, claims, now)
-            if any(claim_key(target) in c for c in claims):
-                factor, notes = factor * 0.05, [*notes, "an open PR already claims the sister"]
-            audit = f"--model {row.other} --layer {m.layer} --neuron {m.neuron_idx} --pole {m.pole}"
-            if window := windows.get(row.other):
-                audit += f" --window-tokens {window}"
-            audit += f" --sister-of {state.record_path.as_posix()}"
-            why = f"sister of {slug} (r {m.pearson:+.2f}): does its explanation carry over?"
-            verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
-            out.append(
-                Candidate(
-                    kind="sister",
-                    model=row.other,
-                    weight=BASE_WEIGHTS["sister"] * factor,
-                    rationale="; ".join([why, *notes]),
-                    commands=[f"openinterp audit {audit}", verify],
-                    slug=target,
-                    skills=SKILLS["sister"],
-                    layer=m.layer,
-                    record=state.record_path.as_posix(),
-                    audit=audit,
-                )
-            )
+        ident = state.record.submission.identifier
+        if state.record.verdict.status != "VERIFIED" or ident.kind != "mlp_neuron_pole":
+            continue
+        for row in rows.get(slug, []):
+            for m in row.matches if row.other in pool else []:
+                if m.slug(row.other) not in states:
+                    out.append(_sister(state, row, m, windows.get(row.other), claims, now))
+        for other in pool:
+            if other != ident.model_name:
+                out.append(_unmatched(state, other, windows.get(other), seed, claims, now))
     return out
+
+
+def _unmatched(state, other: str, window: int | None, seed: int, claims, now) -> Candidate:
+    """The draw that audits a random pole of ``other`` with ``state``'s explanation."""
+    import hashlib
+
+    digest = hashlib.sha256(f"{seed} {state.slug} {other}".encode()).digest()
+    audit = f"--model {other} --random --seed {int.from_bytes(digest[:4])}"
+    if window:
+        audit += f" --window-tokens {window}"
+    audit += f" --sister-of {state.record_path.as_posix()}"
+    factor, notes = _decay(state, claims, now)
+    why = (
+        f"a random pole of {other}, matched by no search, with {state.slug}'s explanation: "
+        "the control for its matches"
+    )
+    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    return Candidate(
+        kind="sister",
+        model=other,
+        weight=BASE_WEIGHTS["sister"] * UNMATCHED_WEIGHT * factor,
+        rationale="; ".join([why, *notes]),
+        commands=[f"openinterp audit {audit}", verify],
+        skills=SKILLS["sister"],
+        record=state.record_path.as_posix(),
+        audit=audit,
+    )
+
+
+def _sister(state, row, m, window: int | None, claims, now) -> Candidate:
+    """The draw that audits ``m`` with ``state``'s explanation."""
+    target = m.slug(row.other)
+    factor, notes = _decay(state, claims, now)
+    if any(claim_key(target) in c for c in claims):
+        factor, notes = factor * 0.05, [*notes, "an open PR already claims the match"]
+    audit = f"--model {row.other} --layer {m.layer} --neuron {m.neuron_idx} --pole {m.pole}"
+    if window:
+        audit += f" --window-tokens {window}"
+    audit += f" --sister-of {state.record_path.as_posix()}"
+    link = "sister" if row.sister is m else "correlated match (not a sister)"
+    why = f"{link} of {state.slug} (r {m.pearson:+.2f}): does its explanation carry over?"
+    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    return Candidate(
+        kind="sister",
+        model=row.other,
+        weight=BASE_WEIGHTS["sister"] * link_affinity(row, m) * factor,
+        rationale="; ".join([why, *notes]),
+        commands=[f"openinterp audit {audit}", verify],
+        slug=target,
+        skills=SKILLS["sister"],
+        layer=m.layer,
+        record=state.record_path.as_posix(),
+        audit=audit,
+    )
 
 
 @dataclass
@@ -397,7 +453,7 @@ def plan_next(
     slugs = set(states)
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
-    sisters = sister_candidates(states, claims, now, pool, Path(wiki_dir).parent)
+    sisters = sister_candidates(states, claims, now, pool, Path(wiki_dir).parent, seed)
     candidates = sorted(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
         key=lambda c: -c.weight,

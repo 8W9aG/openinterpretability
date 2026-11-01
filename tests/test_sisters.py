@@ -236,7 +236,8 @@ def test_the_proposer_prompt_ends_with_related_research(record):
 
 
 def _sister_registry(tmp_path, record, other="o/m"):
-    """A VERIFIED Qwen pole (the `record` fixture's) with a sister L2/N9- in ``other``."""
+    """A VERIFIED Qwen pole (the `record` fixture's) with a sister L2/N9- in ``other``,
+    and a weaker match L4/N1+ that isn't its sister."""
     from openinterp.builder.wiki import write_experiment_page
 
     write_experiment_page(record, tmp_path / "wiki")
@@ -245,29 +246,37 @@ def _sister_registry(tmp_path, record, other="o/m"):
         f'[tool.openinterp.window_tokens]\n"{other}" = 64\n'
     )
     slug = record.submission.identifier.slug
-    row = _sister_row(slug, other, [(2, 9, "negative", 0.7, slug, 0.7)])
+    matches = [(2, 9, "negative", 0.7, slug, 0.7), (4, 1, "positive", 0.4, "x/L0/N0-positive", 0.6)]
     rows = tmp_path / "docs/analyses/sister-neurons.jsonl"
     rows.parent.mkdir(parents=True)
-    rows.write_text(row.model_dump_json() + "\n")
+    rows.write_text(_sister_row(slug, other, matches).model_dump_json() + "\n")
     return tmp_path / "wiki"
 
 
-def test_the_planner_offers_unstudied_sisters_in_configured_models(tmp_path, record):
+def test_any_pole_of_another_model_is_drawable_but_sisters_most(tmp_path, record):
     from datetime import UTC, datetime
 
     from openinterp.draw_steps import render, steps
-    from openinterp.planner import plan_next
+    from openinterp.planner import LINK_WEIGHT, UNMATCHED_WEIGHT, plan_next
 
     now = datetime(2026, 10, 20, 12, tzinfo=UTC)
     wiki = _sister_registry(tmp_path, record)
     plan = plan_next(wiki, seed=1, epsilon=0.0, now=now)
-    (sister,) = [c for c in plan.candidates if c.kind == "sister"]
+    sister, match, unmatched = sorted(
+        (c for c in plan.candidates if c.kind == "sister"), key=lambda c: -c.weight
+    )
     assert sister.slug == "o--m/L2/N9-negative" and sister.model == "o/m"
     assert sister.audit.startswith("--model o/m --layer 2 --neuron 9 --pole negative")
     assert "--window-tokens 64 --sister-of " in sister.audit
+    assert match.slug == "o--m/L4/N1-positive" and "not a sister" in match.rationale
+    assert match.weight == pytest.approx(sister.weight * LINK_WEIGHT * 0.4)
+    # A pole no search matched: drawn at random, as the control for the matches.
+    assert unmatched.slug is None and "--model o/m --random --seed " in unmatched.audit
+    assert unmatched.weight == pytest.approx(sister.weight * UNMATCHED_WEIGHT)
+    assert plan_next(wiki, seed=1, now=now).candidates[-1].audit == unmatched.audit  # seeded
     claimed = plan_next(wiki, seed=1, epsilon=0.0, now=now, claims=["o--m-L2-N9-negative"])
-    (c,) = [c for c in claimed.candidates if c.kind == "sister"]
-    assert c.weight < sister.weight and "claims the sister" in c.rationale
+    c = next(c for c in claimed.candidates if c.slug == sister.slug)
+    assert c.weight < sister.weight and "claims the match" in c.rationale
 
     plan.choice = sister
     text = render(steps(plan, corpus="c.jsonl"))
