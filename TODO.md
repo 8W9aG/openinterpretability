@@ -269,7 +269,6 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Cross-reference existing feature dictionaries. For models with public SAEs or transcoders (Gemma Scope, Llama Scope, the circuit-tracer transcoders), list the latents whose decoder aligns with the pole's `w_out` or whose encoder aligns with its `w_in`, and pull their descriptions from the Neuronpedia API. Agreement is supporting evidence; disagreement is something for the reviewer to probe. Store the dictionary ID and latent index, not copies of the descriptions.
 - [ ] Cross-model universality ("sister neurons"): a new kind of study that determines whether two neurons in different models represent the same concept. Start by matching verified neurons across sibling models (Qwen2.5-0.5B ↔ 1.5B), then link matched neurons on the site, and later draw a cross-model graph of them.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
 

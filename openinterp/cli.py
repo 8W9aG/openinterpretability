@@ -315,12 +315,22 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     help="Corpus sidecars that give the source of records which scanned their corpus "
     "(matched by SHA-256) without recording one, shown as inferred; skipped if missing.",
 )
-def build(wiki_dir, output_dir, wiring_path, source_paths):
+@click.option(
+    "--alignment",
+    "alignment_path",
+    default=Path("docs/analyses/dictionary-alignment.jsonl"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Dictionary latents aligned with each neuron pole (`openinterp crossref`); "
+    "skipped if missing.",
+)
+def build(wiki_dir, output_dir, wiring_path, source_paths, alignment_path):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import load_archive
     from openinterp.core.draws import load_draws
     from openinterp.corpus import load_sources
+    from openinterp.crossref import load_rows as load_alignment
     from openinterp.wiring_backfill import load_rows
 
     report = compile_site(
@@ -329,6 +339,7 @@ def build(wiki_dir, output_dir, wiring_path, source_paths):
         wiring_rows=load_rows(wiring_path),
         draws=load_draws(wiki_dir),
         corpus_sources=load_sources(source_paths),
+        alignment_rows=load_alignment(alignment_path),
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
@@ -393,6 +404,7 @@ from openinterp import (  # noqa: E402, F401
     cli_baseline,
     cli_corpus,
     cli_costs,
+    cli_crossref,
     cli_evidence,
     cli_probing,
     cli_registry,
