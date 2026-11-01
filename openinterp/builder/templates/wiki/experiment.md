@@ -12,6 +12,9 @@
 {% if sub.supersedes %}
 | Revises | [{{ sub.supersedes }}]({{ sub.supersedes }}.md) |
 {% endif %}
+{% if sub.sister_of %}
+| Sister study of | [{{ sub.sister_of }}](../../../{{ sub.sister_of }}.md) (its explanation, unchanged) |
+{% endif %}
 | Date | {{ verdict.timestamp.strftime("%Y-%m-%d %H:%M UTC") }} |
 | Verdict | **{{ verdict.status }}**, balanced accuracy {{ verdict.confidence_score | num(2) }} |
 | Protocol | {{ ('v' ~ policy.protocol_version) if policy else 'unrecorded (pre-0.2)' }} |

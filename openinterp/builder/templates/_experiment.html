@@ -29,6 +29,9 @@
       P(useful) {{ e.sig.p_useful | num(2) }}
       {% if not e.independent %}· <span class="text-amber-700 dark:text-amber-400">re-measures the probes of {{ e.reuses }}; not independent evidence</span>{% endif %}
     </p>
+    {% if v.sister_of %}
+    <p class="mt-1 text-xs text-slate-500">Sister study: tests the explanation of <a class="font-mono underline" href="{{ root }}{{ v.sister_of.href }}">{{ v.sister_of.ref }}</a>, unchanged</p>
+    {% endif %}
     {% if e.revises or e.revised_by %}
     <p class="mt-1 text-xs text-slate-500">
       {% if e.revises %}Revises <a class="font-mono underline" href="#{{ e.revises.anchor }}">{{ e.revises.id }}</a> ({{ e.revises.record.verdict.status }}){% endif %}

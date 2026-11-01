@@ -69,10 +69,11 @@ Record the model IDs the subagents report, not the ones you expect. For an `inde
 | `replicate` | VERIFIED by only one reviewer model, or every review so far was a self-review | Independent review with a new probe set from a different model. |
 | `challenge` | VERIFIED, replicated, and independently reviewed at least once | Look for counterexamples: cross-dataset holdouts, long-context probes, steering (`neuron-steering-tests`). |
 | `opposite_pole` | The other pole of a studied neuron is unstudied | `openinterp audit … --pole <other>`. The negative pole often encodes the distinction the positive one draws. |
+| `sister` | A VERIFIED pole has a sister (`openinterp sisters`, `docs/analyses/sister-neurons.md`) in another configured model that is unstudied | `openinterp audit … --sister-of <the VERIFIED record>` on both steps, then verify. The VERIFIED explanation is the hypothesis, recorded word for word whatever the draft says: choose activating tokens and counterfactuals it predicts for the sister, and don't rewrite it. Any verdict is the result: it says whether the explanation carries over. |
 
 ## How the planner decides
 
-- **Base weights** (`BASE_WEIGHTS` in `openinterp/planner.py`) reflect expected information per unit of effort: `reevaluate` 3.0 > `independent_review` 2.5 > `revise` = `rescan` 2.0 > `replicate` 1.2 > `opposite_pole` 1.0 > `new_hypothesis` 0.8 > `challenge` 0.6.
+- **Base weights** (`BASE_WEIGHTS` in `openinterp/planner.py`) reflect expected information per unit of effort: `reevaluate` 3.0 > `independent_review` 2.5 > `revise` = `rescan` 2.0 > `replicate` 1.2 > `opposite_pole` = `sister` 1.0 > `new_hypothesis` 0.8 > `challenge` 0.6.
 - **Repeat decay:** a weight is multiplied by `1/√(experiments on this neuron)`. Revisiting a neuron gets less likely, never impossible.
 - **Cooldown:** ×0.2 if the neuron was studied in the last 6 h, ×0.5 within 24 h, so a wave of agents spreads out.
 - **Claims:** ×0.05 if an open PR's title or branch contains the neuron's key. This is not zero, so abandoned claims can't block a neuron forever.

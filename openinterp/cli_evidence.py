@@ -78,11 +78,24 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
         click.echo(f"Recorded the {exc.draw.outcome.replace('_', '-')} draw: {path}", err=True)
 
 
-def proposer_context(evidence, wiki_dir: Path, sisters: bool) -> str:
-    """What other research links to the unit, for the proposer: its studied sisters."""
+def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None) -> str:
+    """What other research links to the unit, for the proposer: the brief of a sister
+    study (``sister_file``), then its studied sisters."""
     from openinterp.cli_review import sisters_text
+    from openinterp.sisters import sister_brief
 
-    return sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
+    brief = sister_brief(load_sister(sister_file, evidence.identifier)) if sister_file else ""
+    return brief + (sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else "")
+
+
+def load_sister(path: Path, unit):
+    """The record ``audit --sister-of`` names, checked against the audited ``unit``."""
+    from openinterp.sisters import load_sister_source
+
+    try:
+        return load_sister_source(path, unit)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), param_hint="--sister-of") from exc
 
 
 def write_evidence(evidence, path: Path, full_snippets: bool = False, related: str = "") -> None:
@@ -224,6 +237,13 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
     help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
 )
 @click.option(
+    "--sister-of",
+    "sister_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="A sister-neuron study: the archived VERIFIED record of a pole in another model "
+    "whose explanation this pole is tested on, unchanged. Give it to both steps.",
+)
+@click.option(
     "--sisters/--no-sisters",
     default=True,
     show_default=True,
@@ -269,6 +289,7 @@ def audit(
     evidence_out,
     evidence_file,
     hypothesis_file,
+    sister_file,
     sisters,
     superseded_file,
     out,
@@ -318,14 +339,14 @@ def audit(
             sample_seed=sample_seed,
         )
         runner, evidence = scan_or_record(request, use_scan_cache, wiki_dir, device)
-        related = proposer_context(evidence, wiki_dir, sisters)
+        related = proposer_context(evidence, wiki_dir, sisters, sister_file)
         if evidence_out is not None:
             write_evidence(evidence, evidence_out, full_snippets, related)
             return
         agent, draft = ask_proposer(agent_model, evidence, full_snippets, related)
     from openinterp.cli_submission import write_submission
 
-    write_submission(agent, draft, runner, evidence, superseded, out, contributor)
+    write_submission(agent, draft, runner, evidence, superseded, out, contributor, sister_file)
 
 
 def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:

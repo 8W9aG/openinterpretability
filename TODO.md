@@ -300,7 +300,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Sister-neuron studies: test whether a sister (`openinterp sisters`, `docs/analyses/sister-neurons.md`) represents the same concept as its VERIFIED pole. Audit the sibling pole with the pole's explanation as the hypothesis and fresh reviewer probes, as a new draw kind in `openinterp next`, so the sibling model gets pages the matches link to.
+- [ ] Sister studies in Qwen2.5-1.5B: 53 of the 72 sisters (`docs/analyses/sister-neurons.md`) are there, and `openinterp next` only draws sister studies in configured models, which CI can reproduce. They follow once Qwen2.5-1.5B passes the checks under *Models* and joins `[tool.openinterp] models` and `ALLOWED_MODELS`.
 - [ ] Cross-model graph of sister neurons: draw matched poles of both models by layer depth, joined by their correlation, on each model's page.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
 

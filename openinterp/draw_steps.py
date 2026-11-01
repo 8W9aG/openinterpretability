@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 from openinterp.planner import Candidate, Plan, claim_key
 
-SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan")
+SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan", "sister")
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
 REVIEW_KINDS = ("independent_review", "replicate", "challenge")
 
@@ -121,10 +121,12 @@ def _claim(c: Candidate, key: str, seed: int, known: bool) -> Step:
 
 def _history(c: Candidate) -> Step:
     unit_dir = c.record.rsplit("/", 1)[0] if c.record else f"wiki/experiments/{c.slug}"
-    return Step(
-        "Read the history (revisions must address the failed gates and probes it lists)",
-        [f"uv run openinterp show {unit_dir}"],
+    title = (
+        "Read the VERIFIED pole's history (its explanation is the hypothesis under test)"
+        if c.kind == "sister"
+        else "Read the history (revisions must address the failed gates and probes it lists)"
     )
+    return Step(title, [f"uv run openinterp show {unit_dir}"])
 
 
 def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
@@ -140,10 +142,13 @@ def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
 
 def _scan(c, out, corpus, proposer, submission) -> list[Step]:
     supersedes = f" --supersedes {c.record}" if c.kind in SUPERSEDING_KINDS else ""
+    if c.kind == "sister":  # the scan's options carry it; the submit step needs it too
+        supersedes = f" --sister-of {c.record}"
     stopped = _STOPPED if "--random" in (c.audit or "").split() else _STOPPED_CHOSEN
     audit = f"uv run openinterp audit {c.audit} --corpus {corpus}"
     if proposer:
-        command = f"{audit} --agent-model {proposer}{supersedes} --out {submission}"
+        once = "" if c.kind == "sister" else supersedes  # already in c.audit
+        command = f"{audit} --agent-model {proposer}{once} --out {submission}"
         return [Step(f"Scan and propose ({_SLOW})", [command], stopped)]
     submit = (
         f"uv run openinterp audit --evidence {out}/ev.json "
@@ -273,6 +278,7 @@ _VERBS = {
     "replicate": "Replicate",
     "challenge": "Challenge",
     "opposite_pole": "Explore",
+    "sister": "Sister study of",
 }
 
 

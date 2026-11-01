@@ -230,3 +230,76 @@ def test_the_proposer_prompt_ends_with_related_research(record):
     prompt = ProposerAgent.proposal_prompt(sub.identifier, sub.top_examples, related="SISTERS\n")
     assert prompt.endswith("SISTERS\n")
     assert "SISTERS" not in ProposerAgent.proposal_prompt(sub.identifier, sub.top_examples)
+
+
+def _sister_registry(tmp_path, record, other="o/m"):
+    """A VERIFIED Qwen pole (the `record` fixture's) with a sister L2/N9- in ``other``."""
+    from openinterp.builder.wiki import write_experiment_page
+
+    write_experiment_page(record, tmp_path / "wiki")
+    (tmp_path / "pyproject.toml").write_text(
+        f'[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "{other}"]\n'
+        f'[tool.openinterp.window_tokens]\n"{other}" = 64\n'
+    )
+    slug = record.submission.identifier.slug
+    row = _sister_row(slug, other, [(2, 9, "negative", 0.7, slug, 0.7)])
+    rows = tmp_path / "docs/analyses/sister-neurons.jsonl"
+    rows.parent.mkdir(parents=True)
+    rows.write_text(row.model_dump_json() + "\n")
+    return tmp_path / "wiki"
+
+
+def test_the_planner_offers_unstudied_sisters_in_configured_models(tmp_path, record):
+    from datetime import UTC, datetime
+
+    from openinterp.draw_steps import render, steps
+    from openinterp.planner import plan_next
+
+    now = datetime(2026, 10, 20, 12, tzinfo=UTC)
+    wiki = _sister_registry(tmp_path, record)
+    plan = plan_next(wiki, seed=1, epsilon=0.0, now=now)
+    (sister,) = [c for c in plan.candidates if c.kind == "sister"]
+    assert sister.slug == "o--m/L2/N9-negative" and sister.model == "o/m"
+    assert sister.audit.startswith("--model o/m --layer 2 --neuron 9 --pole negative")
+    assert "--window-tokens 64 --sister-of " in sister.audit
+    claimed = plan_next(wiki, seed=1, epsilon=0.0, now=now, claims=["o--m-L2-N9-negative"])
+    (c,) = [c for c in claimed.candidates if c.kind == "sister"]
+    assert c.weight < sister.weight and "claims the sister" in c.rationale
+
+    plan.choice = sister
+    text = render(steps(plan, corpus="c.jsonl"))
+    assert "experiment/o--m-L2-N9-negative-sister" in text and "VERIFIED pole's history" in text
+    scan, submit = [line for line in text.splitlines() if "openinterp audit" in line]
+    assert scan.count("--sister-of") == submit.count("--sister-of") == 1
+
+    other = _sister_registry(tmp_path / "x", record, other="not/configured")
+    (tmp_path / "x/pyproject.toml").write_text(
+        '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B"]\n'
+    )
+    plan = plan_next(other, seed=1, epsilon=0.0, now=now)
+    assert not any(c.kind == "sister" for c in plan.candidates)  # CI couldn't reproduce it
+
+
+def test_pages_link_a_sister_study_to_its_source(tmp_path, record):
+    from openinterp.builder.wiki import experiment_id
+
+    source = record  # VERIFIED, Qwen L3/N117+
+    ref = f"{source.submission.identifier.slug}/{experiment_id(source)}"
+    study = _record(record, "o/m", 2, 9, "negative")
+    later = study.verdict.timestamp.replace(day=2)
+    study = study.model_copy(
+        update={
+            "submission": study.submission.model_copy(update={"sister_of": ref}),
+            "verdict": study.verdict.model_copy(update={"timestamp": later}),
+        }
+    )
+    slug = source.submission.identifier.slug
+    rows = {slug: [_sister_row(slug, "o/m", [(2, 9, "negative", 0.7, slug, 0.7)])]}
+    site = tmp_path / "site"
+    compile_site([source, study], site, sister_rows=rows)
+    page = (site / "models/o--m/L2/N9.html").read_text()
+    assert "Sister study: tests the explanation of" in page
+    assert f"models/Qwen--Qwen2.5-0.5B/L3/N117.html#positive-{experiment_id(source)}" in page
+    assert "tested here: VERIFIED" in page
+    source_page = (site / "models/Qwen--Qwen2.5-0.5B/L3/N117.html").read_text()
+    assert "models/o--m/L2/N9.html" in source_page

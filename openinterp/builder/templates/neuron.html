@@ -104,7 +104,7 @@
     <section class="mt-6" aria-labelledby="sister-neurons" data-pagefind-ignore>
       <h2 id="sister-neurons" class="text-base font-semibold">Sister neurons</h2>
       <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        Poles of other models whose activity over the corpus correlates best with this pole's, from <code>openinterp sisters</code>. The two models are compared where both have read the same text (where a token ends in both tokenizations), leaving out first tokens; <em>coverage</em> is the share of this model's tokens that pairs. <em>r</em>: Pearson correlation of the two poles' strengths. <em>Back</em>: the matched pole's best correlation with any pole of this model; ✓ when that best partner is this pole (a mutual best match). <em>Rotated</em>: the best correlation this pole reaches with a unit of a random rotation of the top match's layer. A mutual best match above it is a <em>sister</em>: a candidate for the same feature, not yet a test that the explanation carries over. Reported, not gated.
+        Poles of other models whose activity over the corpus correlates best with this pole's, from <code>openinterp sisters</code>. The two models are compared where both have read the same text (where a token ends in both tokenizations), leaving out first tokens; <em>coverage</em> is the share of this model's tokens that pairs. <em>r</em>: Pearson correlation of the two poles' strengths. <em>Back</em>: the matched pole's best correlation with any pole of this model; ✓ when that best partner is this pole (a mutual best match). <em>Rotated</em>: the best correlation this pole reaches with a unit of a random rotation of the top match's layer. A mutual best match above it is a <em>sister</em>: a candidate for the same feature. A badge gives the verdict of a <em>sister study</em>, which audits the match with this pole's explanation, unchanged. Reported, not gated.
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         {% for p in sisters %}
@@ -120,6 +120,7 @@
                 <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">L{{ x.m.layer }}/N{{ x.m.neuron_idx }}</a>{% else %}L{{ x.m.layer }}/N{{ x.m.neuron_idx }}{% endif %} {{ pole_mark(x.m.pole) }}</td>
                 <td class="text-right tabular-nums">r {{ '%+.2f' | format(x.m.pearson) }}</td>
                 <td class="text-right tabular-nums">back {{ '%+.2f' | format(x.m.back_pearson) }}{{ ' ✓' if x.mutual else '' }}</td>
+                <td class="text-right">{% if x.tested %}{{ status_badge(x.tested) }}{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -129,7 +130,7 @@
           <div class="mt-2 text-xs font-medium">Matched from</div>
           <ul class="mt-1 font-mono text-xs">
             {% for x in p.named_by %}
-            <li>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}</li>
+            <li>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
             {% endfor %}
           </ul>
           {% endif %}

@@ -218,11 +218,15 @@ def _href(slug: str) -> str:
     return neuron_href(model, int(layer[1:]), int(unit[1:].split("-")[0]))
 
 
-def sister_view(model_slug_: str, neuron, rows: dict, named_by: dict, studied: set) -> list[dict]:
+def sister_view(
+    model_slug_: str, neuron, rows: dict, named_by: dict, studied: set, tests: dict | None = None
+) -> list[dict]:
     """Each pole's matches for a neuron page: its best-correlated poles in other models
     (``matches``), and the poles of other models that name it as one of theirs
     (``named_by``, from :func:`by_match_slug`). Each links to its page where the
-    registry has one."""
+    registry has one, and carries the verdict of a sister study between the two
+    (``tests``, from :func:`sister_tests`), if any."""
+    tests = tests or {}
     if not neuron.is_neuron:
         return []
     poles = []
@@ -238,6 +242,7 @@ def sister_view(model_slug_: str, neuron, rows: dict, named_by: dict, studied: s
                         "m": m,
                         "href": href if href in studied else None,
                         "mutual": m.back_slug == slug,
+                        "tested": tests.get((m.slug(row.other), slug)),
                     }
                 )
             out.append({"row": row, "matches": matches, "sister": row.sister})
@@ -245,7 +250,10 @@ def sister_view(model_slug_: str, neuron, rows: dict, named_by: dict, studied: s
         for row in named_by.get(slug, []):
             m = next(m for m in row.matches if m.slug(row.other) == slug)
             href = _href(row.slug)
-            back.append({"row": row, "m": m, "href": href if href in studied else None})
+            tested = tests.get((slug, row.slug))
+            back.append(
+                {"row": row, "m": m, "href": href if href in studied else None, "tested": tested}
+            )
         if out or back:
             poles.append({"pole": pole, "rows": out, "named_by": back})
     return poles
@@ -334,3 +342,59 @@ def sister_context(identifier, wiki_dir: Path, role: str, path: Path = DEFAULT_P
     if identifier.kind != "mlp_neuron_pole" or not rows or not Path(wiki_dir).exists():
         return ""
     return format_sisters(identifier.slug, rows, pole_findings(load_archive(wiki_dir)), role)
+
+
+def load_sister_source(path: Path, unit) -> AuditRecord:
+    """The archived record ``audit --sister-of`` names, checked: a VERIFIED experiment on
+    a neuron pole of a model other than ``unit``'s (raises ValueError otherwise)."""
+    record = AuditRecord.model_validate_json(Path(path).read_text())
+    ident = record.submission.identifier
+    if record.verdict is None or record.verdict.status != "VERIFIED":
+        raise ValueError(f"{path} is not a VERIFIED experiment")
+    if ident.kind != "mlp_neuron_pole" or unit.kind != "mlp_neuron_pole":
+        raise ValueError("sister studies are between neuron poles")
+    if ident.model_name == unit.model_name:
+        raise ValueError(f"{ident} is in {unit.model_name} too; a sister is in another model")
+    return record
+
+
+def sister_ref(record: AuditRecord) -> str:
+    """``<pole slug>/<experiment id>``: what a submission's ``sister_of`` names."""
+    from openinterp.builder.wiki import experiment_id
+
+    return f"{record.submission.identifier.slug}/{experiment_id(record)}"
+
+
+def sister_brief(source: AuditRecord) -> str:
+    """The proposer's brief for a sister study: the explanation under test is fixed."""
+    ident = source.submission.identifier
+    return (
+        f"This is a sister-neuron study. The hypothesis under test is fixed: the explanation "
+        f"VERIFIED for {ident} in {ident.model_name}, a pole whose activity correlates with "
+        f"this one's (`openinterp sisters`). It is recorded as this submission's explanation "
+        f"word for word, whatever you write, so the review tests whether it carries over:\n\n"
+        f"> {source.submission.natural_language_explanation}\n\n"
+        f"Write `explanation` as exactly that text. Choose the activating tokens, mechanism and "
+        f"counterfactuals that this explanation predicts for this pole, using the evidence "
+        f"above; where the evidence disagrees with it, keep to the explanation anyway.\n"
+    )
+
+
+def sister_source_href(ref: str) -> str:
+    """The page and anchor of the experiment a ``sister_of`` names."""
+    slug, experiment = ref.rsplit("/", 1)
+    return f"{_href(slug)}#{slug.rsplit('-', 1)[1]}-{experiment}"
+
+
+def sister_tests(experiments) -> dict[tuple[str, str], str]:
+    """``{(sister's slug, source pole's slug): status}``: the newest verdict of each sister
+    study, by the pole it tested and the pole whose explanation it tested."""
+    newest: dict[tuple[str, str], object] = {}
+    for e in experiments:
+        ref = e.record.submission.sister_of
+        if ref:
+            key = (e.record.submission.identifier.slug, ref.rsplit("/", 1)[0])
+            old = newest.get(key)
+            if old is None or e.record.verdict.timestamp > old.record.verdict.timestamp:
+                newest[key] = e
+    return {key: e.record.verdict.status for key, e in newest.items()}

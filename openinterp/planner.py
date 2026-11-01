@@ -3,7 +3,8 @@
 Every neuron in the registry generates candidate follow-up experiments (re-evaluate
 under the current protocol, independent re-review, revise, replicate, challenge,
 audit the opposite pole, try a new hypothesis after a rejection, or rescan a record
-scanned on the built-in sample). Each candidate
+scanned on the built-in sample). A VERIFIED pole also offers its unstudied sisters in
+other configured models (``openinterp sisters``), audited with its explanation. Each candidate
 gets a weight from its expected information value, decayed by how often the neuron
 has been studied, by recent activity and by open PRs that already claim it. Weights
 are never zero: repeating an experiment is allowed, and a null result is data.
@@ -49,6 +50,7 @@ BASE_WEIGHTS = {
     "opposite_pole": 1.0,  # the other half of a studied neuron
     "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
     "challenge": 0.6,  # VERIFIED and replicated: hunt for counterexamples
+    "sister": 1.0,  # a VERIFIED pole's unstudied sister in another model: does it carry over?
 }
 SKILLS = {
     "explore": ["native-neuron-audit", "neuron-family-triage", "vocab-projection-lookahead"],
@@ -60,6 +62,7 @@ SKILLS = {
     "opposite_pole": ["native-neuron-audit", "vocab-projection-lookahead"],
     "new_hypothesis": ["native-neuron-audit", "neuron-steering-tests"],
     "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
+    "sister": ["native-neuron-audit", "interpretability-illusions-review"],
 }
 DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
 
@@ -318,6 +321,48 @@ def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Ki
     return [("opposite_pole", f"the {other} pole is unstudied", [audit], other_slug)]
 
 
+def sister_candidates(states, claims, now, pool: Sequence[str], root: Path) -> list[Candidate]:
+    """A ``sister`` draw for each VERIFIED pole's unstudied sister (``openinterp sisters``,
+    read from ``root``) in a model of ``pool``: audit it with the pole's explanation,
+    unchanged. Only models in the pool, so CI can reproduce the record."""
+    from openinterp.sisters import DEFAULT_PATH, load_rows
+
+    rows, windows, out = (
+        load_rows(root / DEFAULT_PATH),
+        configured_windows(root / "pyproject.toml"),
+        [],
+    )
+    for slug, state in states.items():
+        for row in rows.get(slug, []) if state.record.verdict.status == "VERIFIED" else []:
+            m, target = row.sister, row.sister and row.sister.slug(row.other)
+            if m is None or row.other not in pool or target in states:
+                continue
+            factor, notes = _decay(state, claims, now)
+            if any(claim_key(target) in c for c in claims):
+                factor, notes = factor * 0.05, [*notes, "an open PR already claims the sister"]
+            audit = f"--model {row.other} --layer {m.layer} --neuron {m.neuron_idx} --pole {m.pole}"
+            if window := windows.get(row.other):
+                audit += f" --window-tokens {window}"
+            audit += f" --sister-of {state.record_path.as_posix()}"
+            why = f"sister of {slug} (r {m.pearson:+.2f}): does its explanation carry over?"
+            verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+            out.append(
+                Candidate(
+                    kind="sister",
+                    model=row.other,
+                    weight=BASE_WEIGHTS["sister"] * factor,
+                    rationale="; ".join([why, *notes]),
+                    commands=[f"openinterp audit {audit}", verify],
+                    slug=target,
+                    skills=SKILLS["sister"],
+                    layer=m.layer,
+                    record=state.record_path.as_posix(),
+                    audit=audit,
+                )
+            )
+    return out
+
+
 @dataclass
 class Plan:
     seed: int
@@ -350,12 +395,13 @@ def plan_next(
     now = now or datetime.now(UTC)
     states = load_states(wiki_dir)
     slugs = set(states)
-    candidates = sorted(
-        (c for s in states.values() for c in candidates_for(s, slugs, claims, now)),
-        key=lambda c: -c.weight,
-    )
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
+    sisters = sister_candidates(states, claims, now, pool, Path(wiki_dir).parent)
+    candidates = sorted(
+        [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
+        key=lambda c: -c.weight,
+    )
     explore = explore_weights(pool, states, claims)
     if not candidates or rng.random() < epsilon:
         choice = _explore(rng, pool, explore, pyproject)

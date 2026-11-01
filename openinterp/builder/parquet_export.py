@@ -88,6 +88,7 @@ REGISTRY_SCHEMA = pa.schema(
         ("evidence_direction", pa.string()),
         ("reuses_probes_of", pa.string()),
         ("supersedes", pa.string()),
+        ("sister_of", pa.string()),
         ("selection", pa.string()),
         ("corpus_sha256", pa.string()),
         ("corpus_dataset", pa.string()),
@@ -276,6 +277,7 @@ def _standing_columns(exp: Experiment) -> dict:
         "evidence_direction": exp.sig.direction,
         "reuses_probes_of": exp.reuses,
         "supersedes": exp.record.submission.supersedes,
+        "sister_of": exp.record.submission.sister_of,
     }
 
 
