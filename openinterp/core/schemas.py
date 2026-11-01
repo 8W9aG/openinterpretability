@@ -56,8 +56,7 @@ ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "look
 SelectionMethod = Literal["random", "attribution", "manual"]
 
 PROTOCOL_VERSION = "0.8"
-# Fraction of a unit's max activation counted as "active" (docs/PROTOCOL.md §1). The
-# default of ReviewPolicy.activation_threshold; read it here, don't retype 0.25.
+# Share of max activation counted as "active" (PROTOCOL.md §1); ReviewPolicy's default.
 ACTIVATION_THRESHOLD = 0.25
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
@@ -401,7 +400,7 @@ class AdversarialTestResult(StrictModel):
 
 
 class ReviewPolicy(StrictModel):
-    """The decision rule a verdict was computed under. See docs/PROTOCOL.md."""
+    """The decision rule a verdict was computed under; docs/PROTOCOL.md quotes its defaults."""
 
     protocol_version: str = PROTOCOL_VERSION
     activation_threshold: UnitFloat = ACTIVATION_THRESHOLD
