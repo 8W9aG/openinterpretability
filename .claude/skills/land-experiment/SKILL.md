@@ -32,7 +32,7 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
    ```
    Checks can take a minute to register after a push. If `gh` reports no checks, wait and retry; don't treat that as green. Give up after 45 minutes pending: comment on the PR that checks didn't finish, and go to step 9.
    - **A check fails:** read the log (`gh run view <run-id> --log-failed`). Fix it if the failure is yours: lint, a committed `README.md` index, or a record CI can't reproduce because of something you changed. Then push and wait again. After two failed fix attempts, or if the failure isn't caused by this PR (flaky runner, broken `main`), comment with what you found and go to step 9.
-7. **Decide whether you may merge.** Merge only when all of these hold:
+7. **Decide whether you may merge.** First check `gh pr view --json state -q .state`: the auto-merge workflow (`.github/workflows/auto-merge.yml`) squash-merges a green PR that only touches `wiki/`, so it may print `MERGED` already. If it does, skip to deleting the branch in step 8. Otherwise merge only when all of these hold:
    - every check passed on the current head commit;
    - every changed file is under `wiki/`: run `gh pr diff --name-only` and check each path. A PR that touches code, workflows, skills or `.github/allowed_signers` always waits for a human;
    - you have write access: `gh repo view --json viewerPermission -q .viewerPermission` prints `ADMIN`, `MAINTAIN` or `WRITE`;
@@ -42,10 +42,10 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
 8. **Merge:**
    ```bash
    gh pr view --json headRefOid -q .headRefOid     # the head commit; paste it below
-   gh pr merge --merge --match-head-commit <that SHA>
+   gh pr merge --squash --match-head-commit <that SHA>
    git push origin --delete "experiment/$KEY"
    ```
-   `--match-head-commit` refuses the merge if someone pushed after your checks ran. Don't pass `--admin` or use any other way around a failing or pending check, even though `main` isn't branch-protected. Delete the remote branch yourself rather than with `gh pr merge --delete-branch`, which tries to switch the local checkout to `main` and fails if `main` is checked out in another worktree. If the merge is refused, go back to step 5 once. If it's refused again, comment and move on.
+   `--match-head-commit` refuses the merge if someone pushed after your checks ran. Squash, as auto-merge does, so `main` gets one commit per experiment. Don't pass `--admin` or use any other way around a failing or pending check. Delete the remote branch yourself rather than with `gh pr merge --delete-branch`, which tries to switch the local checkout to `main` and fails if `main` is checked out in another worktree. If the merge is refused because auto-merge got there first, that's done. If it's refused for another reason, go back to step 5 once. If it's refused again, comment and move on.
 9. **Continue.** If you were asked for one experiment (e.g. by `scripts/experiment-loop.sh`), stop. Make sure the working tree is clean, and end with the result line the caller asked for. Otherwise go back to step 1. An unmerged PR stays open for a maintainer: don't wait on it, and don't close it unless the experiment itself was abandoned.
 
 ## Rules

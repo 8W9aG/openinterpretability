@@ -57,7 +57,9 @@ def read_wiring(runner, submission):
             return None
 
 
-def write_submission(agent, draft, runner, evidence, superseded, out: Path | None) -> None:
+def write_submission(
+    agent, draft, runner, evidence, superseded, out: Path | None, contributor: str | None = None
+) -> None:
     """Build the submission (counterfactuals, Patchscope, steering, wiring) and write it."""
     from openinterp.builder.wiki import experiment_id
     from openinterp.core import costs
@@ -77,6 +79,7 @@ def write_submission(agent, draft, runner, evidence, superseded, out: Path | Non
     revises = superseded and experiment_id(superseded)
     submission = submission.model_copy(
         update={
+            "contributor": contributor,
             "opposite_pole": evidence.opposite_pole,
             "provenance": provenance,
             "supersedes": revises,

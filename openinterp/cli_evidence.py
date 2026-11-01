@@ -7,7 +7,13 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli, recorded_model_option, wiki_dir_option, with_model_options
+from openinterp.cli import (
+    cli,
+    contributor_option,
+    recorded_model_option,
+    wiki_dir_option,
+    with_model_options,
+)
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 from openinterp.evidence import (  # noqa: F401  (re-exported)
     ScanRequest,
@@ -190,6 +196,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
     help="Proposer. LiteLLM model string, or external/<name> to answer a prompt file. "
     "With --hypothesis, the name recorded for whoever wrote it (e.g. external/claude-opus-5-5).",
 )
+@contributor_option("proposer")
 @click.option(
     "--evidence-out",
     type=click.Path(dir_okay=False, path_type=Path),
@@ -243,6 +250,7 @@ def audit(
     stride,
     use_scan_cache,
     agent_model,
+    contributor,
     evidence_out,
     evidence_file,
     hypothesis_file,
@@ -300,7 +308,7 @@ def audit(
         agent, draft = ask_proposer(agent_model, evidence, full_snippets)
     from openinterp.cli_submission import write_submission
 
-    write_submission(agent, draft, runner, evidence, superseded, out)
+    write_submission(agent, draft, runner, evidence, superseded, out, contributor)
 
 
 def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:

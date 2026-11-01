@@ -9,6 +9,7 @@ import click
 
 from openinterp.cli import (
     cli,
+    contributor_option,
     explanation_scores_option,
     recorded_model_option,
     wiki_option,
@@ -25,6 +26,7 @@ from openinterp.cli import (
     help="Reviewer. LiteLLM model string, or external/<name> to answer a prompt file. "
     "With --probes, the name recorded for whoever wrote them.",
 )
+@contributor_option("reviewer")
 @click.option("--n-probes", default=20, show_default=True, type=click.IntRange(10, 20))
 @click.option(
     "--emit-prompt",
@@ -75,6 +77,7 @@ from openinterp.cli import (
 def verify(
     audit_file,
     agent_model,
+    contributor,
     n_probes,
     emit_prompt,
     probes_file,
@@ -125,7 +128,7 @@ def verify(
     # The scores' costs move into the record's provenance with everything else.
     scored = scores and scores.costs
     scores = scores and scores.model_copy(update={"costs": None})
-    verdict = verdict.model_copy(update={"explanation_scores": scores})
+    verdict = verdict.model_copy(update={"explanation_scores": scores, "contributor": contributor})
 
     record = AuditRecord(submission=_add_costs(submission, scored), verdict=verdict)
     click.echo(f"{verdict.status} (confidence {verdict.confidence_score:.2f}) — {verdict.notes}")

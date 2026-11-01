@@ -8,6 +8,9 @@ since a model passing its own probes inflates it.
 Records spell one model several ways, so pages are per canonical name
 (:func:`openinterp.core.agent_names.canonical_agent`), and each old per-spelling page
 redirects to its model's page (:func:`legacy_redirects`).
+
+The same page credits the people who ran the agents, by the ``contributor`` handle a
+submission or verdict records (:func:`contributors_view`).
 """
 
 from __future__ import annotations
@@ -16,6 +19,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from openinterp.builder.significance import STRONG_EVIDENCE
 from openinterp.builder.tree import LABEL_PREFIX, Experiment, unit_href
 from openinterp.core.agent_names import NOTES, canonical_agent
 from openinterp.core.costs import ROLE_ORDER, by_agent
@@ -164,6 +168,37 @@ def _recent_row(e: Experiment, roles: list[str]) -> dict:
         "unit": f"L{ident.layer}/{LABEL_PREFIX[ident.kind]}{ident.index}",
         "pole": ident.pole,
     }
+
+
+@dataclass
+class ContributorStats:
+    """One human contributor's part in the registry, as proposer and as reviewer."""
+
+    handle: str
+    experiments: int = 0  # proposed
+    verified: int = 0
+    conclusive_nulls: int = 0  # well-probed rejections: strong evidence against
+    reviews: int = 0
+
+
+def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStats]:
+    """One row per recorded contributor, most experiments and reviews first. Records
+    without a contributor (all before it was recorded) count for nobody."""
+    people: dict[str, ContributorStats] = {}
+    for e in experiments:
+        sub, verdict = e.record.submission, e.record.verdict
+        if sub.contributor:
+            row = people.setdefault(sub.contributor, ContributorStats(sub.contributor))
+            row.experiments += 1
+            row.verified += e.record.is_verified
+            row.conclusive_nulls += (
+                e.sig.direction == "refutes" and e.sig.conclusiveness >= STRONG_EVIDENCE
+            )
+        if verdict.contributor:
+            people.setdefault(
+                verdict.contributor, ContributorStats(verdict.contributor)
+            ).reviews += 1
+    return sorted(people.values(), key=lambda c: (-c.experiments - c.reviews, c.handle.lower()))
 
 
 def legacy_redirects(agents: Sequence[AgentView]) -> dict[str, str]:

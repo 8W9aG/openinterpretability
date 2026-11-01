@@ -6,6 +6,7 @@ from pathlib import Path
 
 import click
 
+from openinterp.core.contributors import CONTRIBUTOR_ENV, contributor_problem
 from openinterp.core.exceptions import OpenInterpError
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 
@@ -157,6 +158,23 @@ def recorded_model_option(_ctx, _param, value):
         raise click.BadParameter(str(exc)) from exc
 
 
+def _contributor(_ctx, _param, value):
+    if value and (problem := contributor_problem(value)):
+        raise click.BadParameter(f"{value!r}: {problem}")
+    return value or None
+
+
+def contributor_option(role: str):
+    """``--contributor``: the human behind this step, recorded beside the agent model."""
+    return click.option(
+        "--contributor",
+        envvar=CONTRIBUTOR_ENV,
+        callback=_contributor,
+        help=f"Your public handle (e.g. GitHub username, never an email), recorded as the "
+        f"{role}'s contributor (or ${CONTRIBUTOR_ENV}). Default: none recorded.",
+    )
+
+
 def _skip_wiki(wiki_dir) -> bool:
     return not str(wiki_dir) or str(wiki_dir) == "."
 
@@ -286,7 +304,9 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     )
     scored = scores and scores.costs
     scores = scores and scores.model_copy(update={"costs": None})
-    verdict = verdict.model_copy(update={"explanation_scores": scores})
+    # The stored probes are still the old reviewer's, so are its model and contributor.
+    update = {"explanation_scores": scores, "contributor": old.verdict.contributor}
+    verdict = verdict.model_copy(update=update)
     new = AuditRecord(submission=_add_costs(submission, scored), verdict=verdict)
     click.echo(f"{old.verdict.status} -> {verdict.status} — {verdict.notes}")
     _write_wiki(old, wiki_dir, kind="backfill")  # no-op when the original is already archived
