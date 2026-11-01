@@ -7,6 +7,8 @@
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}agents/index.html">Agents</a> / {{ agent.model }}</nav>
 <h1 class="break-all font-mono text-2xl font-semibold">{{ agent.model }}</h1>
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Took part in {{ agent.experiments }} experiment{{ "" if agent.experiments == 1 else "s" }}. See <a class="underline" href="{{ root }}agents/index.html">all agents</a> for how the rate and costs are counted.</p>
+{% if agent.other_spellings %}<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Recorded as {% for s in agent.other_spellings %}<span class="font-mono text-xs">{{ s }}</span>{{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
+{% if agent.note %}<p class="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">{{ agent.note }}</p>{% endif %}
 
 <section class="mt-6">
   <h2 class="mb-3 text-lg font-semibold">By role</h2>

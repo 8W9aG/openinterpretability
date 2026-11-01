@@ -12,7 +12,13 @@ description: Feature-first neuron search with sparse probing. Given a labelled c
 
 ## Procedure
 
-1. **Build a labelled set.** Collect token-level or sequence-level examples with and without the concept from **two independent sources** (e.g. GitHub vs StackOverflow for "Python code"). Balance the classes.
+1. **Build a labelled set.** Collect token-level or sequence-level examples with and without the concept from **two independent sources** (e.g. GitHub vs StackOverflow for "Python code"). Balance the classes. For concepts with human annotations, `openinterp concepts` writes them as spans, with a sidecar pinning the source:
+   ```bash
+   uv run openinterp concepts --dataset ud-upos                     # list the labels and counts
+   uv run openinterp concepts --dataset ud-upos --label PROPN --out propn-ud.jsonl
+   uv run openinterp concepts --dataset conll2003-pos --label NNP --out nnp-conll.jsonl  # second source
+   ```
+   Presets: `conll2003-ner` (PER, ORG, LOC, MISC), `conll2003-pos` (Penn tags), `ud-upos` and `ud-deprel` (`--subset <treebank>`, e.g. `en_gum`, `fr_gsd`), `language-identification` (20 languages) and `ag_news` (World, Sports, Business, Sci/Tech). Document classes are balanced already; word tags are not. The files are `probe-compare`'s `--train`/`--test` format. Pairs of sources: UD `en_ewt` vs `en_gum` or CoNLL Penn tags for parts of speech; `language-identification` vs a `wikipedia-multilingual` corpus for language. NER and topic have one preset each, so take their second source from elsewhere.
 2. **Cache activations.**
    ```python
    _, cache = runner.run_with_cache(batch, layers)  # cache[layer]: [b, seq, d_mlp]

@@ -295,18 +295,22 @@ def append_ledger(command: str, seconds: float) -> None:
 ROLE_ORDER = ("proposer", "reviewer", "judge")
 
 
-def by_agent(experiments: Iterable[tuple[str | None, ExperimentCosts | None]]) -> list[dict]:
+def by_agent(
+    experiments: Iterable[tuple[str | None, ExperimentCosts | None]],
+    name: Callable[[str], str] = str,
+) -> list[dict]:
     """LLM cost per experiment for each (role, model), from (verdict status, costs) pairs.
 
     An experiment counts as priced for a role and model when every one of its calls there
     has a cost. ``mean_usd`` averages over priced experiments, and ``usd_per_verified``
-    divides their total by how many of them were VERIFIED.
+    divides their total by how many of them were VERIFIED. ``name`` maps a call's model to
+    the name it is grouped under (e.g. ``openinterp.core.agent_names.canonical_agent``).
     """
     groups: dict[tuple[str, str], dict] = {}
     for status, run in experiments:
         calls: dict[tuple[str, str], list[LLMCall]] = {}
         for call in run.llm_calls if run else ():
-            calls.setdefault((call.agent, call.model), []).append(call)
+            calls.setdefault((call.agent, name(call.model)), []).append(call)
         for key, cs in calls.items():
             g = groups.setdefault(key, {"experiments": 0, "priced": 0, "usd": 0.0, "verified": 0})
             g["experiments"] += 1
