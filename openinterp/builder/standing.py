@@ -11,6 +11,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from openinterp.core.agent_names import same_agent
+
 if TYPE_CHECKING:
     from openinterp.builder.tree import Experiment, ModelNode
 
@@ -137,7 +139,7 @@ def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
                             pairs += 1
                             agreeing += agree
                             ra, rb = a.record.verdict, b.record.verdict
-                            if ra.reviewer_agent_model != rb.reviewer_agent_model:
+                            if not same_agent(ra.reviewer_agent_model, rb.reviewer_agent_model):
                                 cross_pairs += 1
                                 cross_agreeing += agree
     return {

@@ -921,10 +921,10 @@ def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
     records[3] = records[3].model_copy(update={"submission": sub})  # N9+, REJECTED
     compile_site(records, tmp_path)
 
-    assert agent_slug("external/deepseek-flash[1m]") == "external-deepseek-flash-1m"
+    assert agent_slug("external/deepseek-flash[1m]") == "deepseek-flash"
     page = (tmp_path / "agents" / "index.html").read_text()
-    proposer = (tmp_path / "agents" / "openai-gpt-test.html").read_text()
-    reviewer = (tmp_path / "agents" / "anthropic-claude-test.html").read_text()
+    proposer = (tmp_path / "agents" / "gpt-test.html").read_text()
+    reviewer = (tmp_path / "agents" / "claude-test.html").read_text()
     # The proposer's model proposed 4 and reviewed 1 of them itself; that VERIFIED one
     # is left out of both its rates, so 0 of 3 independent proposals were verified.
     assert '0% <span class="text-slate-500">(0/3)</span>' in proposer
@@ -933,6 +933,48 @@ def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
     assert "Took part in 3 experiments" in reviewer
     # Agent names link to their pages from the home page and experiment pages.
     home = (tmp_path / "index.html").read_text()
-    assert 'href="agents/openai-gpt-test.html"' in home and "Agent costs" not in home
+    assert 'href="agents/gpt-test.html"' in home and "Agent costs" not in home
     neuron = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
-    assert 'href="../../../agents/anthropic-claude-test.html"' in neuron
+    assert 'href="../../../agents/claude-test.html"' in neuron
+    # The old per-spelling pages redirect to the merged ones.
+    moved = (tmp_path / "agents" / "openai-gpt-test.html").read_text()
+    assert 'url=gpt-test.html"' in moved
+
+
+def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
+    from openinterp.core.costs import ExperimentCosts, LLMCall
+    from openinterp.core.schemas import ExperimentProvenance
+
+    def spelled(rec, proposer, reviewer):
+        sub = rec.submission.model_copy(update={"submitting_agent_model": proposer})
+        verdict = rec.verdict.model_copy(update={"reviewer_agent_model": reviewer})
+        return rec.model_copy(update={"submission": sub, "verdict": verdict})
+
+    records[0] = spelled(records[0], "external/deepseek-flash[1m]", "anthropic/claude-test")
+    records[1] = spelled(records[1], "external/deepseek-flash", "external/deepseek-flash[1m]")
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus="c",
+        n_snippets=1,
+        tokens_scanned=1,
+        selection="random",
+        harness_version="t",
+        costs=ExperimentCosts(
+            llm_calls=[LLMCall(agent="proposer", model="external/deepseek-flash", cost_usd=1.0)]
+        ),
+    )
+    for i in (0, 1):
+        sub = records[i].submission.model_copy(update={"provenance": provenance})
+        records[i] = records[i].model_copy(update={"submission": sub})
+    compile_site(records, tmp_path)
+
+    page = (tmp_path / "agents" / "deepseek-flash.html").read_text()
+    assert "Took part in 2 experiments" in page
+    assert "external/deepseek-flash[1m]" in page  # listed under "Recorded as"
+    assert "$2.00" in page  # both experiments' costs, under one name
+    # Spelled two ways, but one model proposed and reviewed it: a self-review.
+    assert records[1].self_reviewed
+    for old in ("external-deepseek-flash-1m", "external-deepseek-flash"):
+        assert 'url=deepseek-flash.html"' in (tmp_path / "agents" / f"{old}.html").read_text()
+    home = (tmp_path / "index.html").read_text()
+    assert ">deepseek-flash</a>" in home and ">external/deepseek-flash[1m]</a>" not in home

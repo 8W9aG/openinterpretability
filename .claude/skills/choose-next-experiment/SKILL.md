@@ -48,6 +48,8 @@ In Claude Code, use the `neuron-proposer`, `neuron-reviewer` and `explanation-ju
 8. `uv run openinterp score --task exchange/score.task.json --judge-model external/<judge model ID>` writes `exchange/score.scores.json`.
 9. `uv run openinterp review --audit-file <same file> --probes exchange/review.probes.json --agent-model external/<reviewer model ID> --explanation-scores exchange/score.scores.json`
 
+Write each model ID as a bare lowercase name: `external/deepseek-flash`, not `external/deepseek-flash[1m]`, `external/deepseek/deepseek-flash` or `external/claude-opus-5-5 (Claude Code session)`. The CLI and `openinterp check` reject other spellings and say which to use (`openinterp/core/agent_names.py`), so one model is one agent on the site.
+
 After each subagent finishes, and before the step that reads its answer, record what it cost: `uv run openinterp usage <agent ID> --answer <the answer it wrote>` (e.g. `--answer exchange/ev.hypothesis.json`, `exchange/review.probes.json`, `exchange/score.detection.json`, `exchange/score.fuzzing.json`). The agent ID is the one Claude Code reports when the subagent completes. This writes `<answer>.usage.json` from the subagent's transcript, and steps 3, 8 and 9 record its tokens and cost from it. If it fails (no transcript, e.g. outside Claude Code), carry on: the experiment is still valid, only unpriced.
 
 `review` refuses `--probes` without `--explanation-scores`. With an API-key reviewer (no `--probes`), `review` scores the explanation itself: pass `--corpus <the scan's corpus>`, and `--judge-model` if the judge shouldn't be the reviewer. `reevaluate` makes no LLM calls, so scores stay optional there.

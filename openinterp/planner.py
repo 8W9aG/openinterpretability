@@ -33,6 +33,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openinterp.builder.wiki import load_archive_paths
+from openinterp.core.agent_names import canonical_agent
 from openinterp.core.identifiers import model_slug
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
 
@@ -163,7 +164,7 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
         state = states.setdefault(slug, NeuronState(slug, record, path))
         state.record, state.record_path = record, path
         state.experiments += 1
-        state.reviewers.add(record.verdict.reviewer_agent_model)
+        state.reviewers.add(canonical_agent(record.verdict.reviewer_agent_model))
         state.independent_reviews += not record.self_reviewed
         state.last = record.verdict.timestamp
     return states

@@ -16,12 +16,12 @@ from typing import Any, ClassVar, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from openinterp.core import costs
+from openinterp.core.agent_names import EXTERNAL_PREFIX, spelling_problem
 from openinterp.core.exceptions import AgentError
 
 T = TypeVar("T", bound=BaseModel)
 
 DEFAULT_MODEL = os.environ.get("OPENINTERP_AGENT_MODEL", "anthropic/claude-opus-5-5")
-EXTERNAL_PREFIX = "external/"
 MODEL_ALIASES_ENV = "OPENINTERP_MODEL_ALIASES"
 
 
@@ -33,11 +33,15 @@ def recorded_model(model: str | None) -> str | None:
     variable holds ``reported=actual`` pairs separated by commas
     (``claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4``), or one bare name that
     replaces every external model. Only ``external/<name>`` is rewritten: a LiteLLM
-    string is what gets called, so it already names the model.
+    string is what gets called, so it already names the model. Raises ``ValueError`` for
+    an external name spelled other than the site would show it
+    (:func:`openinterp.core.agent_names.spelling_problem`), so one model keeps one name.
     """
     spec = os.environ.get(MODEL_ALIASES_ENV, "").strip()
-    if not model or not spec or not model.startswith(EXTERNAL_PREFIX):
+    if not model or not model.startswith(EXTERNAL_PREFIX):
         return model
+    if not spec:
+        return _checked(model)
     name = model.removeprefix(EXTERNAL_PREFIX)
     aliases, default = {}, None
     for entry in filter(None, (e.strip() for e in spec.split(","))):
@@ -49,7 +53,13 @@ def recorded_model(model: str | None) -> str | None:
         else:
             raise ValueError(f"${MODEL_ALIASES_ENV}: malformed entry {entry!r}")
     actual = aliases.get(name, default or name)
-    return EXTERNAL_PREFIX + actual.removeprefix(EXTERNAL_PREFIX)
+    return _checked(EXTERNAL_PREFIX + actual.removeprefix(EXTERNAL_PREFIX))
+
+
+def _checked(model: str) -> str:
+    if problem := spelling_problem(model):
+        raise ValueError(f"{model!r}: {problem}")
+    return model
 
 
 class LLMAgent:

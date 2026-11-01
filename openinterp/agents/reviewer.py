@@ -29,6 +29,7 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
     settle_first_token_floor,
 )
 from openinterp.core import costs
+from openinterp.core.agent_names import same_agent
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -223,7 +224,7 @@ def evaluate_submission(
     metrics = review_metrics(
         results,
         policy,
-        independent=reviewer_model != submission.submitting_agent_model,
+        independent=not same_agent(reviewer_model, submission.submitting_agent_model),
         baseline=confound_baseline(submission, runner, measured_probes, actual, threshold, policy),
         active_share=scan_active_share(submission, policy),
         first_token_floor=submission.first_token_floor,
