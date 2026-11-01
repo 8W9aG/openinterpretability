@@ -27,7 +27,7 @@
         <p class="mt-2 text-xs">{{ s.lead.record.submission.natural_language_explanation | truncate(120) }}</p>
         {% if s.readings | length > 1 %}
         <p class="mt-2 text-xs text-slate-500">{% if s.contested %}Reviews of this hypothesis disagree:{% else %}Every review of this hypothesis agrees:{% endif %}
-          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="#{{ r.anchor }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <span class="font-mono">{{ r.record.verdict.reviewer_agent_model }}</span>{{ "; " if not loop.last }}{% endfor %}.
+          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="#{{ r.anchor }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <a class="font-mono underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}">{{ r.record.verdict.reviewer_agent_model }}</a>{{ "; " if not loop.last }}{% endfor %}.
         </p>
         {% endif %}
         {% else %}

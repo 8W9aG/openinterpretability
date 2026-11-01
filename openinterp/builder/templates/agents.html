@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Agents · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Agents</nav>
+<h1 class="text-2xl font-semibold">Agents</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  Every agent model that proposed a hypothesis, reviewed one or judged an explanation, with one row per role.
+  The VERIFIED rate is VERIFIED experiments over experiments, with the sample size beside it. It leaves out
+  self-reviewed experiments (the proposer's model also wrote the probes), which are counted in their own column,
+  since a model passing its own probes inflates the rate. A judge scores explanations after the verdict, so it has no rate.
+  Costs cover experiments where every call of that role was priced. All of this is reported, not gated.
+</p>
+
+<div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr>
+        <th class="px-3 py-2">Model</th>
+        <th class="px-3 py-2">Role</th>
+        <th class="px-3 py-2 text-right">Experiments</th>
+        <th class="px-3 py-2 text-right" title="VERIFIED / experiments, independent reviews only">VERIFIED rate</th>
+        <th class="px-3 py-2 text-right" title="self-reviewed experiments: VERIFIED / experiments">Self-reviewed</th>
+        <th class="px-3 py-2 text-right" title="experiments priced / experiments with calls in this role">Priced</th>
+        <th class="px-3 py-2 text-right">Mean cost</th>
+        <th class="px-3 py-2 text-right" title="total cost of the priced experiments / how many of them were VERIFIED">Per VERIFIED</th>
+      </tr>
+    </thead>
+    {% for a in agents %}
+    <tbody class="border-t border-slate-200 dark:border-slate-800">
+      {% for s in a.role_rows %}
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+        {% if loop.first %}<td class="px-3 py-2 align-top font-mono text-xs" rowspan="{{ a.role_rows | length }}"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ a.href }}">{{ a.model }}</a></td>{% endif %}
+        {% include "_agent_role_cells.html" %}
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% else %}
+    <tbody><tr><td class="px-3 py-2 text-slate-500" colspan="8">No agents yet.</td></tr></tbody>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
