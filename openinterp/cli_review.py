@@ -52,6 +52,12 @@ from openinterp.cli import (
     help="Show the reviewer whole scanned documents, without windowing or dropping "
     "near-duplicates: the prompt before trimming, for A/B comparison.",
 )
+@click.option(
+    "--dictionary-latents",
+    is_flag=True,
+    help="Show the reviewer the published dictionary latents aligned with the pole "
+    "(`openinterp crossref`) and their descriptions, fetched from Neuronpedia.",
+)
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @explanation_scores_option
 @click.option(
@@ -74,6 +80,7 @@ def verify(
     probes_file,
     check_probes,
     full_snippets,
+    dictionary_latents,
     out,
     scores_file,
     corpus,
@@ -94,8 +101,9 @@ def verify(
     from openinterp.core.schemas import AuditRecord
 
     submission = load_submission(audit_file)
+    latents = aligned_latents_text(submission, wiki_dir) if dictionary_latents else ""
     if emit_prompt is not None:
-        return write_review_prompt(submission, emit_prompt, n_probes, full_snippets)
+        return write_review_prompt(submission, emit_prompt, n_probes, full_snippets, latents)
     if check_probes is not None:
         return write_token_check(submission, check_probes)
     check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus)
@@ -108,7 +116,7 @@ def verify(
             "reviewer model is preferred (docs/PROTOCOL.md §2).",
             err=True,
         )
-    probes = review_probes(reviewer, submission, probes_file, n_probes, full_snippets)
+    probes = review_probes(reviewer, submission, probes_file, n_probes, full_snippets, latents)
     runner = _load_unit_runner(submission.identifier, device, dtype)
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
@@ -136,12 +144,29 @@ def load_submission(audit_file: Path):
     return NeuronAuditSubmission.model_validate_json(raw)
 
 
-def write_review_prompt(submission, emit_prompt: Path, n_probes: int, full_snippets: bool):
+def aligned_latents_text(submission, wiki_dir) -> str:
+    """The reviewer's section on aligned dictionary latents, or "" if there are none."""
+    from openinterp.builder.wiki import load_archive
+    from openinterp.cli import _skip_wiki
+    from openinterp.crossref import describe, format_for_reviewer, load_rows
+    from openinterp.crossref import registry_explanations as explanations
+
+    rows = load_rows().get(submission.identifier.slug, [])
+    if not rows:
+        click.echo(f"warning: no aligned latents for {submission.identifier.slug}", err=True)
+        return ""
+    registry = {} if _skip_wiki(wiki_dir) else explanations(load_archive(wiki_dir))
+    return format_for_reviewer(describe(rows, registry))
+
+
+def write_review_prompt(
+    submission, emit_prompt: Path, n_probes: int, full_snippets: bool, latents: str = ""
+):
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
 
     answer = answer_path(emit_prompt, ".probes.json")
-    task = ReviewerAgent.probe_prompt(submission, n=n_probes, full_snippets=full_snippets)
+    task = ReviewerAgent.probe_prompt(submission, n_probes, full_snippets, latents)
     emit_prompt.parent.mkdir(parents=True, exist_ok=True)
     emit_prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, answer))
     click.echo(f"Reviewer prompt: {emit_prompt} (answer in {answer})")
@@ -178,7 +203,9 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
         )
 
 
-def review_probes(reviewer, submission, probes_file, n_probes: int, full_snippets: bool):
+def review_probes(
+    reviewer, submission, probes_file, n_probes: int, full_snippets: bool, latents: str = ""
+):
     """The probes in ``probes_file`` (an external reviewer's), or the reviewer LLM's."""
     from openinterp.agents.reviewer import ProbeSet
     from openinterp.core import costs
@@ -191,7 +218,9 @@ def review_probes(reviewer, submission, probes_file, n_probes: int, full_snippet
         costs.add_external("reviewer", reviewer.model, prompt_file, probes_file)
         return probes
     click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
-    return reviewer.generate_probes(submission, n=n_probes, full_snippets=full_snippets).probes
+    return reviewer.generate_probes(
+        submission, n=n_probes, full_snippets=full_snippets, dictionary_latents=latents
+    ).probes
 
 
 cli.add_command(verify, name="review")

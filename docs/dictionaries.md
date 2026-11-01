@@ -62,4 +62,4 @@ The Qwen transcoders bring several advantages over the other presets:
 
 1. Run the Qwen2.5-0.5B baseline, about 40 random latents and 40 random neuron poles at `--window-tokens 1024`, as `docs/analyses/transcoder-baseline.md` did for GPT-2.
 2. Repeat it on one Gemma 2 or Llama 3.1 dictionary of each kind (transcoder, MLP-output SAE, residual SAE), to separate the effect of the basis from that of the site.
-3. Cross-reference dictionaries with verified neurons (`TODO.md`, *Scope expansion*). The new presets supply the latents to align against.
+3. Read the cross-reference (`openinterp crossref`, `docs/analyses/dictionary-alignment.jsonl`) against verdicts: whether VERIFIED poles have aligned latents more often than rejected ones, and whether aligned latents' descriptions agree with the poles' explanations. Only the GPT-2 and Qwen2.5-0.5B transcoders cover the registry's models so far; the other presets join as their models do.

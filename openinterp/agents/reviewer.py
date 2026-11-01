@@ -89,15 +89,25 @@ class ReviewerAgent(LLMAgent):
     )
 
     def generate_probes(
-        self, submission: NeuronAuditSubmission, n: int = 20, full_snippets: bool = False
+        self,
+        submission: NeuronAuditSubmission,
+        n: int = 20,
+        full_snippets: bool = False,
+        dictionary_latents: str = "",
     ) -> ProbeSet:
-        return self.structured(ProbeSet, self.probe_prompt(submission, n, full_snippets))
+        prompt = self.probe_prompt(submission, n, full_snippets, dictionary_latents)
+        return self.structured(ProbeSet, prompt)
 
     @staticmethod
     def probe_prompt(
-        submission: NeuronAuditSubmission, n: int = 20, full_snippets: bool = False
+        submission: NeuronAuditSubmission,
+        n: int = 20,
+        full_snippets: bool = False,
+        dictionary_latents: str = "",
     ) -> str:
-        """The task text the reviewer answers. It shows no activations of candidate probes."""
+        """The task text the reviewer answers. It shows no activations of candidate probes.
+        ``dictionary_latents`` (:func:`openinterp.crossref.format_for_reviewer`) lists
+        published latents aligned with the pole, to probe where they disagree."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
@@ -118,6 +128,7 @@ class ReviewerAgent(LLMAgent):
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (f"{context}\n" if context else "")
+            + (f"{dictionary_latents}\n" if dictionary_latents else "")
             + f"Write {n} probes."
         )
 
