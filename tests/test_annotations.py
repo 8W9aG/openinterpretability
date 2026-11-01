@@ -113,6 +113,10 @@ def test_label_confound_counts_r2_and_active_tokens():
 TEXTS = ["the cat sat", "le chat noir", "the dog ran far", "un chien court"]
 
 
+def unlabelled(examples):
+    return [e.model_copy(update={"peak_labels": None}) for e in examples]
+
+
 def test_the_scan_records_label_confounds_without_changing_anything_else(toy_runner):
     plain = scan_neuron(toy_runner, TEXTS, 1, 2, "positive")
     tagged = scan_neuron(
@@ -120,7 +124,11 @@ def test_the_scan_records_label_confounds_without_changing_anything_else(toy_run
         taggers=[DocumentLabels("language", ["en", "fr", "en", "fr"])],
     )  # fmt: skip
     assert plain.confounds.labels is None
-    assert tagged.examples == plain.examples and tagged.values == plain.values
+    assert all(e.peak_labels is None for e in plain.examples)
+    assert unlabelled(tagged.examples) == plain.examples and tagged.values == plain.values
+    assert unlabelled(tagged.opposite.examples) == plain.opposite.examples
+    for ex in tagged.examples + tagged.opposite.examples:
+        assert ex.peak_labels == {"language": "en" if ex.text in TEXTS[::2] else "fr"}
     assert tagged.confounds.model_copy(update={"labels": None}) == plain.confounds
     language = tagged.confounds.labels["language"]
     assert language.labelled_tokens == sum(map(len, TEXTS)) and language.unlabelled_tokens == 0
@@ -133,6 +141,33 @@ def test_windowed_scans_label_each_token_once(toy_runner):
         taggers=[DocumentLabels("language", ["en", "fr", "en", "fr"])],
     )  # fmt: skip
     assert tagged.confounds.labels["language"].labelled_tokens == sum(map(len, TEXTS))
+
+
+def test_token_labels_at_a_token():
+    texts = ["ab", "cd"]
+    labels = TokenLabels(CharTokenizer(), texts, [DocumentLabels("language", ["en", None])])
+    ids = CharTokenizer().encode("ab")
+    assert labels.at(Piece(0, 0, 1, "ab"), ids, 1) == {"language": "en"}
+    assert labels.at(Piece(0, 0, 1, "ab"), ids, 0) is None  # BOS
+    assert labels.at(Piece(1, 0, 1, "cd"), CharTokenizer().encode("cd"), 1) is None
+    assert TokenLabels(CharTokenizer(), texts, []).at(Piece(0, 0, 1, "ab"), ids, 1) is None
+
+
+def test_the_agents_see_each_examples_language(toy_runner, submission):
+    from openinterp.agents.proposer import format_examples, format_review_examples
+    from openinterp.agents.reviewer import LANGUAGE_PROBES, ReviewerAgent
+
+    scan = scan_neuron(
+        toy_runner, TEXTS, 1, 2, "positive",
+        taggers=[DocumentLabels("language", ["en", "fr", "en", "fr"])],
+    )  # fmt: skip
+    assert ", language " in format_examples(scan.examples)
+    assert "(language " in format_review_examples(scan.examples)
+    assert "language" not in format_examples(unlabelled(scan.examples))
+    sub = submission.model_copy(update={"top_examples": scan.examples})
+    assert LANGUAGE_PROBES in ReviewerAgent.probe_prompt(sub)
+    plain = sub.model_copy(update={"top_examples": unlabelled(scan.examples)})
+    assert LANGUAGE_PROBES not in ReviewerAgent.probe_prompt(plain)
 
 
 def test_the_proposer_sees_label_confounds(toy_runner):

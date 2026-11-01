@@ -92,6 +92,14 @@ class TokenLabels:
             self._pieces[piece] = {t.name: self._align(t, piece, ids) for t in self.taggers}
         return self._pieces[piece]
 
+    def at(self, piece, ids: Sequence[int], index: int) -> dict[str, str] | None:
+        """Each tagger's label of token ``index`` of the piece's real tokens ``ids``, for
+        the taggers that label it; ``None`` if none does."""
+        row = self.of(piece, torch.as_tensor(ids, dtype=torch.long))
+        found = {name: int(labels[index]) for name, labels in row.items()}
+        out = {name: self.names[name][i] for name, i in found.items() if i != UNLABELLED}
+        return out or None
+
     def _align(self, tagger: Tagger, piece, ids: torch.Tensor) -> torch.Tensor:
         key = (tagger.name, piece.doc)
         if key not in self._spans:

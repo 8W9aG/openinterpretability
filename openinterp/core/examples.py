@@ -32,6 +32,9 @@ class ActivatingExample(StrictModel):
 
     For an attention head, ``attends_to`` lists the tokens the peak token attends to
     most, strongest first, with their attention weights in ``attention_weights``.
+    ``peak_labels`` gives the peak token's label in each of the scan's label sets (a
+    document label, such as its language, is its document's); ``None`` when the scan had
+    none or the peak token is unlabelled in all of them.
     """
 
     text: str
@@ -41,6 +44,7 @@ class ActivatingExample(StrictModel):
     max_token_index: int = Field(ge=0)
     attends_to: list[int] = Field(default_factory=list)
     attention_weights: list[UnitFloat] = Field(default_factory=list)
+    peak_labels: dict[str, str] | None = None
 
     @model_validator(mode="after")
     def _aligned(self) -> ActivatingExample:

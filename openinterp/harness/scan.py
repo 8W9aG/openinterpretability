@@ -115,16 +115,18 @@ def settle(
     first: Sequence[bool],
     top: TopExamples,
     k: int,
+    labels: TokenLabels | None = None,
 ) -> tuple[list[ActivatingExample], list[float], bool]:
     """A scan's top examples, counted values and whether the unit has a first-token floor.
     The floor is judged against the scale the unit would have without first tokens (the
     top example's peak after its first token), which is the scale it records if it has the
-    floor; with it, first tokens are left out of the examples' ranking and of the values."""
+    floor; with it, first tokens are left out of the examples' ranking and of the values.
+    Each example carries its peak token's ``labels``."""
     best = top.top(runner.tokenizer, 1, skip_first=True)
     scale = best[0].max_activation if best else 0.0
     floor = has_first_token_floor(runner, strengths, scale, ReviewPolicy())
     kept = [v for v, f in zip(values, first, strict=True) if not f] if floor else list(values)
-    return top.top(runner.tokenizer, k, skip_first=floor), kept, floor
+    return top.top(runner.tokenizer, k, skip_first=floor, labels=labels), kept, floor
 
 
 @dataclass(frozen=True)
@@ -292,9 +294,11 @@ class TopExamples:
         if values:
             self.candidates.append((piece, ids, values))
 
-    def top(self, tokenizer, k: int, skip_first: bool = False) -> list[ActivatingExample]:
+    def top(
+        self, tokenizer, k: int, skip_first: bool = False, labels: TokenLabels | None = None
+    ) -> list[ActivatingExample]:
         """The ``k`` strongest pieces by their peak, after their first token if
-        ``skip_first``."""
+        ``skip_first``, each with its peak token's ``labels``."""
         start = int(skip_first)
         ranked = [(max(v[start:]), p, i, v) for p, i, v in self.candidates if len(v) > start]
         examples: list[ActivatingExample] = []
@@ -305,13 +309,15 @@ class TopExamples:
             if any(piece.overlaps(c) for c in chosen):
                 continue
             chosen.append(piece)
+            peak = row_vals.index(peak_value, start)
             examples.append(
                 ActivatingExample(
                     text=piece.text,
                     tokens=[tokenizer.decode([i]) for i in row_ids],
                     activations=[round(v, 5) for v in row_vals],
                     max_activation=peak_value,
-                    max_token_index=row_vals.index(peak_value, start),
+                    max_token_index=peak,
+                    peak_labels=labels.at(piece, row_ids, peak) if labels else None,
                 )
             )
         return examples
@@ -342,19 +348,17 @@ def scan_neuron(
         raise ValueError("scan_neuron requires a tokenizer")
     other: Pole = "negative" if pole == "positive" else "positive"
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
-    labels = TokenLabels(runner.tokenizer, texts, taggers)
+    labels = LabelPass(runner.tokenizer, texts, taggers)
     scan = _pole_pass(runner, pieces, layer, neuron_idx, (pole, other), batch_tokens, cache, labels)
     read, read_other = (_reader(runner, layer, neuron_idx, p) for p in (pole, other))
-    examples, values, floor = settle(runner, read, scan.values, scan.first, scan.top, k)
+    tokens = labels.tokens
+    examples, values, floor = settle(runner, read, scan.values, scan.first, scan.top, k, tokens)
     other_examples, other_values, other_floor = settle(
-        runner, read_other, scan.other_values, scan.first, scan.other_top, opposite_k
+        runner, read_other, scan.other_values, scan.first, scan.other_top, opposite_k, tokens
     )
     # "Active" for co-activation uses the protocol's own definition for the target.
     active = ReviewPolicy().activation_threshold * max(values, default=0.0)
-    confounds = scan.confounds.finalize(runner.tokenizer, min_count)
-    if taggers:
-        by_label = {n: a.finalize(labels.names[n], active) for n, a in scan.labels.items()}
-        confounds = confounds.model_copy(update={"labels": by_label})
+    confounds = labels.finalize(scan.confounds.finalize(runner.tokenizer, min_count), values)
     return ScanResult(
         examples=examples,
         values=values,
@@ -377,20 +381,18 @@ class _PolePass:
     values: list[float] = field(default_factory=list)
     other_values: list[float] = field(default_factory=list)
     first: list[bool] = field(default_factory=list)
-    labels: dict[str, LabelAccumulator] = field(default_factory=dict)
 
 
 def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens, cache, labels):
     pole, other = poles
     scan = _PolePass(PartnerSearch(runner.mlp_width(layer)))
-    scan.labels = {t.name: LabelAccumulator() for t in labels.taggers}
     for chunk in scan_chunks(runner, pieces, layer, batch_tokens, cache):
         acts = chunk.acts.float()  # [n, d_mlp]
         strengths = pole_strength(acts[:, neuron_idx], pole)
         counted = chunk.counted
         scan.partners.update(strengths[counted], acts[counted])
         scan.confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
-        _update_labels(scan.labels, labels, chunk, strengths)
+        labels.update_chunk(chunk, strengths)
         scan.values.extend(strengths[counted].tolist())
         scan.first.extend(chunk.first[counted].tolist())
         scan.top.update_chunk(chunk, strengths)
@@ -400,14 +402,41 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
     return scan
 
 
-def _update_labels(accumulators, labels: TokenLabels, chunk: Chunk, strengths) -> None:
-    """Add the chunk's counted tokens to each label set's accumulator."""
-    if not accumulators:
-        return
-    rows = [labels.of(piece, chunk.ids[r]) for piece, r in chunk.rows()]
-    for name, accumulator in accumulators.items():
-        every = torch.cat([row[name] for row in rows])
-        accumulator.update(every[chunk.counted], strengths[chunk.counted])
+class LabelPass:
+    """Each tagger's labels of a scan's counted tokens, with their strengths, gathered
+    pass by pass, and the label confounds they give (see ``harness/annotations.py``)."""
+
+    def __init__(self, tokenizer, texts: Sequence[str], taggers: Sequence[Tagger]) -> None:
+        self.tokens = TokenLabels(tokenizer, texts, taggers)
+        self.accumulators = {t.name: LabelAccumulator() for t in self.tokens.taggers}
+
+    def update_chunk(self, chunk: Chunk, strengths: torch.Tensor) -> None:
+        """Add a chunk's counted tokens; ``strengths`` is ``[n]``, one per real token."""
+        if self.accumulators:
+            rows = [self.tokens.of(piece, chunk.ids[r]) for piece, r in chunk.rows()]
+            self._add(rows, chunk.counted, strengths)
+
+    def update(self, batch: Batch, strengths: torch.Tensor) -> None:
+        """Add a batch's counted tokens; ``strengths`` is ``[b, seq]``, padding included."""
+        if self.accumulators:
+            mask = batch.mask
+            rows = [self.tokens.of(p, batch.ids[i][mask[i]]) for i, p in enumerate(batch.pieces)]
+            self._add(rows, batch.counted[mask], strengths.cpu()[mask])
+
+    def _add(self, rows, counted: torch.Tensor, strengths: torch.Tensor) -> None:
+        for name, accumulator in self.accumulators.items():
+            every = torch.cat([row[name] for row in rows])
+            accumulator.update(every[counted], strengths[counted])
+
+    def finalize(self, confounds: ConfoundProfile, values: Sequence[float]) -> ConfoundProfile:
+        """``confounds`` with each label set's, counting a token active at or above the
+        protocol's line for the scan's settled ``values``."""
+        if not self.accumulators:
+            return confounds
+        line = ReviewPolicy().activation_threshold * max(values, default=0.0)
+        names = self.tokens.names
+        by_label = {n: a.finalize(names[n], line) for n, a in self.accumulators.items()}
+        return confounds.model_copy(update={"labels": by_label})
 
 
 def _reader(runner, layer: int, neuron_idx: int, pole: Pole) -> Strengths:
