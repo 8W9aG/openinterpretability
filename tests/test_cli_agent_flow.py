@@ -11,6 +11,7 @@ from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft
 from openinterp.agents.reviewer import AdversarialProbe, ProbeSet
 from openinterp.cli import cli
 from openinterp.cli_costs import read_ledger
+from openinterp.core.contributors import CONTRIBUTOR_ENV
 from openinterp.core.costs import LEDGER_ENV
 from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission, ScanEvidence
 from tests.test_agents import TEXTS
@@ -27,6 +28,7 @@ def flow(tmp_path, monkeypatch, toy_runner):
 
     monkeypatch.setattr("openinterp.cli._load_runner", load)
     monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv(CONTRIBUTOR_ENV, raising=False)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     draft = HypothesisDraft(
         explanation="Fires on repeated letters.",
@@ -116,9 +118,10 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
 
     (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
     run("audit", "--evidence", "ev.json", "--hypothesis", "ev.hypothesis.json",
-        "--agent-model", "external/proposer", "--out", "sub.json")  # fmt: skip
+        "--agent-model", "external/proposer", "--contributor", "alice",
+        "--out", "sub.json")  # fmt: skip
     sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
-    assert sub.submitting_agent_model == "external/proposer"
+    assert sub.submitting_agent_model == "external/proposer" and sub.contributor == "alice"
     assert sub.identifier == evidence.identifier and sub.top_examples == evidence.top_examples
     assert all(cf.observed_delta is not None for cf in sub.counterfactuals)  # measured
     assert sub.input_attribution == evidence.input_attribution
@@ -158,12 +161,16 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     (flow.path / "score.fuzzing.json").write_text('{"correct": []}')
     run("score", "--task", "score.task.json", "--judge-model", "external/judge",
         "--embedding-model", "")  # fmt: skip
+    monkeypatch.setenv(CONTRIBUTOR_ENV, "bob")
     run("review", "--audit-file", "sub.json", "--probes", "review.probes.json",
         "--agent-model", "external/reviewer", "--explanation-scores", "score.scores.json",
         "--wiki-dir", "wiki")  # fmt: skip
     (record_path,) = (flow.path / "wiki" / "experiments").rglob("*.json")
     record = AuditRecord.model_validate_json(record_path.read_text())
     assert record.verdict.reviewer_agent_model == "external/reviewer"
+    assert (record.submission.contributor, record.verdict.contributor) == ("alice", "bob")
+    page = record_path.with_suffix(".md").read_text()
+    assert 'reviewer_contributor: "bob"' in page and "`external/proposer`, run by alice" in page
     scores = record.verdict.explanation_scores
     assert scores.judge_model == "external/judge" and len(scores.detection_windows) == len(
         task.detection
@@ -235,6 +242,20 @@ def test_rereviewing_a_record_keeps_only_the_new_review_costs(flow, toy_runner):
     stages = [s.stage for s in new.submission.provenance.costs.stages]
     assert stages[0] == "heldout_windows" and "probe_measurement" in stages
     assert not {"scan", "proposer"} & set(stages)  # the audit was another experiment's
+
+
+def test_contributor_is_optional_and_never_an_email(flow, monkeypatch):
+    run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
+        "--evidence-out", "ev.json")  # fmt: skip
+    (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
+    step = ["audit", "--evidence", "ev.json", "--hypothesis", "ev.hypothesis.json",
+            "--agent-model", "external/proposer", "--out", "sub.json"]  # fmt: skip
+    run(*step)
+    sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
+    assert sub.contributor is None  # nothing given: nobody recorded, git config unread
+    monkeypatch.setenv(CONTRIBUTOR_ENV, "someone@example.com")
+    result = CliRunner().invoke(cli, step)
+    assert result.exit_code != 0 and "never an email" in result.output
 
 
 def test_model_aliases_rename_the_recorded_answerer(flow, monkeypatch):

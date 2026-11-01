@@ -133,6 +133,8 @@ git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git p
 gh pr ready
 ```
 
+To be credited, set `OPENINTERP_CONTRIBUTOR` to a public handle such as your GitHub username (never an email), or pass `--contributor` to `audit` and `verify`. It is recorded beside the agent model, as the proposer's contributor on the submission and the reviewer's on the verdict, and the site's Agents page lists every contributor's experiments, VERIFIED results, well-probed rejections and reviews. Nothing is recorded without it: git config is never read. The loop script's sessions inherit the variable.
+
 Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id>.md`) and never edits another's, so any number of experiments on one neuron can be in flight at once. Never edit generated pages except their **Discussion** section. The indexes (`wiki/README.md` and each neuron's `README.md`) are rebuilt locally by `openinterp wiki` and are gitignored, so experiment PRs never conflict over them. CI rejects a PR whose record and page don't match, and once merged the deploy publishes the result within a minute or so. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
 
 ## Protocol
@@ -171,7 +173,7 @@ Every completed experiment gets a Markdown page and an archived copy of its full
 
 ## Pull requests
 
-[CI](.github/workflows/ci.yml) runs two required jobs on every PR:
+[CI](.github/workflows/ci.yml) runs three required jobs on every PR:
 - **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`).
 - **Experiment records:** `openinterp check`. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must validate, have a verdict, sit at the path its neuron and id dictate, name only an earlier experiment on the same unit in `supersedes`, and have a page whose front matter matches it; every page must have a record. Generated indexes (`README.md`) must not be committed, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty.
 - **Reproduce records:** `openinterp reproduce --base-ref origin/main`, on pull requests only. It re-runs every record the pull request adds or changes against the model commit it pins, on CPU, and fails if any activation, result, gate or status differs from the record (docs/PROTOCOL.md §5). Pull requests without record changes skip it (a skipped job counts as passing). Reproductions run one at a time across all pull requests, queued in order, and a newer push to a pull request cancels its older run. Only models in the job's `ALLOWED_MODELS` are downloaded, and the weights are cached between runs. Expect a few minutes per record for Qwen2.5-0.5B. Records signed by a maintainer are skipped: run `openinterp sign wiki/experiments/<slug>/<id>.json` and commit the `.sig` file next to the record. The default key is `~/.ssh/openinterp_signing` (or `$OPENINTERP_SIGNING_KEY`, or `--key`): a key used only for signing, so it can be revoked without touching your logins. `verify`, `review` and `reevaluate` sign each new experiment automatically when that key exists and is listed in `.github/allowed_signers`, so your own runs (including `make loop`) skip CI reproduction; set `OPENINTERP_AUTO_SIGN=0` to turn this off. Only keys in `.github/allowed_signers` on `main` count; add yours there first, in its own commit to `main`:
@@ -180,6 +182,8 @@ Every completed experiment gets a Markdown page and an archived copy of its full
   ssh-keygen -t ed25519 -N "" -C "openinterp record signing" -f ~/.ssh/openinterp_signing
   echo "<github-user> namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterp_signing.pub)" >> .github/allowed_signers
   ```
+
+A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](.github/workflows/auto-merge.yml)), fork PRs included. A PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
 
 Run `make check` locally before pushing. The [PR template](.github/pull_request_template.md) has a checklist for posting experiments.
 
