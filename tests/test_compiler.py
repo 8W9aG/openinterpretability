@@ -1022,3 +1022,45 @@ def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
     assert corpus.experiments == 4 and len(corpus.mixes) == 1
     assert (corpus.mixes[0].tokens, corpus.mixes[0].sampled) == (70, False)
     assert language_mix(experiment(5, labelled=False).record.submission) is None
+
+
+def test_agents_page_credits_contributors(tmp_path, records):
+    from openinterp.builder.agents import contributors_view
+    from openinterp.builder.tree import build_tree
+
+    def credited(rec, proposer=None, reviewer=None):
+        sub = rec.submission.model_copy(update={"contributor": proposer})
+        verdict = rec.verdict.model_copy(update={"contributor": reviewer})
+        return rec.model_copy(update={"submission": sub, "verdict": verdict})
+
+    records[1] = credited(records[1], "alice", "bob")  # N117+ VERIFIED
+    records[2] = credited(records[2], "alice", "bob")  # N117− well-probed null
+    records[3] = credited(records[3], "bob")  # N9+ REJECTED, thinly probed
+    compile_site(records, tmp_path)
+
+    (model,) = build_tree(records)
+    experiments = [e for layer in model.layers for n in layer.units for e in n.experiments]
+    rows = {c.handle: c for c in contributors_view(experiments)}
+    assert (rows["alice"].experiments, rows["alice"].verified) == (2, 1)
+    assert (rows["alice"].conclusive_nulls, rows["alice"].reviews) == (1, 0)
+    assert (rows["bob"].experiments, rows["bob"].conclusive_nulls, rows["bob"].reviews) == (1, 0, 2)
+    assert [c.handle for c in contributors_view(experiments)] == ["bob", "alice"]
+    page = (tmp_path / "agents" / "index.html").read_text()
+    assert 'id="contributors"' in page and ">alice</td>" in page
+    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "run by</span> alice" in neuron and "run by</span> bob" in neuron
+    row = {
+        r["neuron_idx"]: r
+        for r in pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
+        if r["pole"] == "positive" and r["is_latest"]
+    }
+    assert (row[117]["submitting_contributor"], row[117]["reviewer_contributor"]) == (
+        "alice",
+        "bob",
+    )
+    assert (row[9]["submitting_contributor"], row[9]["reviewer_contributor"]) == ("bob", None)
+
+
+def test_agents_page_without_contributors(tmp_path, records):
+    compile_site(records, tmp_path)
+    assert "No contributors recorded yet." in (tmp_path / "agents" / "index.html").read_text()

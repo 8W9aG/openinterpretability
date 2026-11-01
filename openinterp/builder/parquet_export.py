@@ -79,6 +79,8 @@ REGISTRY_SCHEMA = pa.schema(
         ("tests_passed", pa.int32()),
         ("submitting_agent_model", pa.string()),
         ("reviewer_agent_model", pa.string()),
+        ("submitting_contributor", pa.string()),
+        ("reviewer_contributor", pa.string()),
         ("self_reviewed", pa.bool_()),
         ("reviewed_at", pa.timestamp("us", tz="UTC")),
         ("p_useful", pa.float64()),
@@ -177,6 +179,8 @@ def _verdict_columns(record: AuditRecord) -> dict:
         "tests_passed": sum(t.passed for t in tests),
         "submitting_agent_model": record.submission.submitting_agent_model,
         "reviewer_agent_model": verdict.reviewer_agent_model if verdict else None,
+        "submitting_contributor": record.submission.contributor,
+        "reviewer_contributor": verdict.contributor if verdict else None,
         "self_reviewed": record.self_reviewed if verdict else None,
         "reviewed_at": verdict.timestamp if verdict else None,
     }

@@ -8,7 +8,7 @@ are accepted for datetimes under strict mode.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
@@ -26,6 +26,7 @@ from openinterp.core.confounds import (  # noqa: F401  (re-exported)
     LabelStat,
     TokenStat,
 )
+from openinterp.core.contributors import CONTRIBUTOR_PATTERN
 from openinterp.core.corpora import CorpusSample, CorpusSource  # noqa: F401  (re-exported)
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.examples import (  # noqa: F401  (re-exported)
@@ -63,6 +64,14 @@ ACTIVATION_THRESHOLD = 0.25
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 # ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
 BUILTIN_CORPUS = "builtin:sample_corpus"
+Contributor = Annotated[
+    str,
+    Field(
+        pattern=CONTRIBUTOR_PATTERN,
+        description="The human behind this step: a public handle (e.g. a GitHub username), "
+        "never an email. None: not recorded.",
+    ),
+]
 
 
 class CounterfactualPair(StrictModel):
@@ -265,6 +274,7 @@ class NeuronAuditSubmission(StrictModel):
     counterfactuals: list[CounterfactualPair] = Field(min_length=1)
     lookahead: LookaheadProfile
     submitting_agent_model: str = Field(min_length=1)
+    contributor: Contributor | None = None
     # Evidence gathered by the harness. Optional so hand-written submissions validate.
     max_activation: float | None = Field(default=None, gt=0.0)
     top_examples: list[ActivatingExample] = Field(default_factory=list)
@@ -391,6 +401,7 @@ class VerificationVerdict(StrictModel):
     confidence_score: UnitFloat
     adversarial_test_results: list[AdversarialTestResult]
     reviewer_agent_model: str = Field(min_length=1)
+    contributor: Contributor | None = None
     timestamp: AwareDatetime
     causal_metrics: CausalMetrics | None = None
     metrics: ReviewMetrics | None = None

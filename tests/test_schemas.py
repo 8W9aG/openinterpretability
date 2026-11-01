@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 import pytest
@@ -119,3 +120,14 @@ def test_histogram_share_counts_bins_wholly_above_the_line():
     assert h.share_at_least(1.5) == pytest.approx(0.4)  # the straddling bin is left out
     assert h.share_at_least(0.0) == 1.0
     assert Histogram(bin_edges=[0.0, 1.0], counts=[0]).share_at_least(0.5) == 0.0
+
+
+@pytest.mark.parametrize("handle", ["someone@example.com", "-dash", "has space", "x" * 40])
+def test_contributor_is_a_public_handle(submission, handle):
+    def with_contributor(name):
+        data = submission.model_dump(mode="json") | {"contributor": name}
+        return NeuronAuditSubmission.model_validate_json(json.dumps(data))
+
+    assert with_contributor("8W9aG").contributor == "8W9aG"
+    with pytest.raises(ValidationError):
+        with_contributor(handle)
