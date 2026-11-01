@@ -254,7 +254,6 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] Add a contact email and a link to the GitHub repo to the site footer (`openinterp/builder/templates/base.html`), beside the registry links.
 - [ ] An About page (`openinterp/builder/templates/about.html`, rendered by `compiler.py` and linked from the `base.html` header):
   - why this is being done, in the spirit of SETI@home: volunteers contribute agent time and compute to a shared, verified map of what each neuron in a model does;
   - how the proposer/reviewer protocol decides a verdict (linking `docs/PROTOCOL.md` and the current `PROTOCOL_VERSION`), and what VERIFIED does and doesn't mean;
