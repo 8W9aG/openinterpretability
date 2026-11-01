@@ -41,8 +41,8 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
    If any of these fails, leave the PR ready for review, say in a comment which condition failed, and go to step 9.
 8. **Merge:**
    ```bash
-   SHA=$(gh pr view --json headRefOid -q .headRefOid)
-   gh pr merge --merge --match-head-commit "$SHA"
+   gh pr view --json headRefOid -q .headRefOid     # the head commit; paste it below
+   gh pr merge --merge --match-head-commit <that SHA>
    git push origin --delete "experiment/$KEY"
    ```
    `--match-head-commit` refuses the merge if someone pushed after your checks ran. Don't pass `--admin` or use any other way around a failing or pending check, even though `main` isn't branch-protected. Delete the remote branch yourself rather than with `gh pr merge --delete-branch`, which tries to switch the local checkout to `main` and fails if `main` is checked out in another worktree. If the merge is refused, go back to step 5 once. If it's refused again, comment and move on.

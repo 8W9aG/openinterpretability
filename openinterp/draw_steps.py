@@ -164,7 +164,8 @@ _STOPPED_CHOSEN = (
 _STOPPED = (
     "If the scan stops because the unit never fires or is default-on, that is a result: "
     "commit the draw record it writes under wiki/draws/, note the unit and seed in the PR, "
-    "post it (last step) and draw again."
+    "then mark it ready and land it like any other result (it must be merged, not left as "
+    "a draft) before drawing again."
 )
 _INDEPENDENT = (
     "The reviewer's model must differ from the record's proposer; if it doesn't, "
