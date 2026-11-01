@@ -28,6 +28,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **`scripts/experiment-loop.sh` drives sessions with Haiku by default** (`--driver claude-haiku-5-5`; pass `--driver ''` for claude's own model). Proposer, reviewer and judges are subagents with their own models, so this changes only the cost of driving: $0.02–0.08 per experiment, against $0.41 for Sonnet. `revise`/`new_hypothesis` draws and failing CI checks didn't come up in the pilots, so check the first unattended runs for them.
 - **`openinterp next --steps` says to land a stopped scan's PR**, which holds the draw record. Before, it said to "post it", and a Haiku driver left one as a draft. **`experiment-loop.sh` runs `uv sync` before each session**, so a fresh venv's build output no longer buries the first `openinterp next`.
 - **`land-experiment` merges in two commands.** It reads the head SHA, then passes it to `gh pr merge --match-head-commit`, instead of `SHA=$(…)`, which Claude Code's permission check refused in every pilot session.
 - **`openinterp audit` no longer falls back to the built-in sample corpus.** Without `--corpus` it scans `./corpus.jsonl`, the registry's scan corpus, and says so; if that file isn't there it stops and says how to build it. The ~552-token built-in sample made scans that said little and was easy to run by mistake. Other commands (`scan`, `score`, `review`) are unchanged.
