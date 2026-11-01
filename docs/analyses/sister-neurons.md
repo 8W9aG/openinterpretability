@@ -34,7 +34,20 @@ The 0.5B → 1.5B pair took about 30 minutes for each pass; each GPT-2 pair took
 
 **Across families, sisters are rarer.** Only 4% of Qwen2.5-0.5B's VERIFIED poles have a GPT-2 sister, and 12% of GPT-2's have a Qwen one. No pair was found from both sides: the GPT-2 sisters of VERIFIED Qwen poles are not themselves VERIFIED here, and the reverse. Different training data, tokenizer and size all leave fewer one-to-one matches than a sibling trained the same way.
 
-**No sister has been studied yet.** None of the 72 sisters is a pole with an experiment in this registry, so the sister section that `openinterp audit` and `openinterp review` give their agents is empty for every pole today. Sister studies fill it in: `openinterp next` offers one for each of the 19 sisters in GPT-2 and Qwen2.5-0.5B. The 53 in Qwen2.5-1.5B wait until that model is onboarded, so CI can reproduce their records.
+## First sister studies
+
+Two sister studies, the strongest sister in each direction between GPT-2 and Qwen2.5-0.5B, run 2026-11-01 through `openinterp audit --sister-of` (proposer claude-opus-5-5, reviewer claude-sonnet-5-5, judges claude-haiku-5-5). Each tests the VERIFIED explanation on its sister unchanged.
+
+| Sister | Explanation tested | r | Verdict | Balanced accuracy | Failed |
+| --- | --- | --- | --- | --- | --- |
+| Qwen2.5-0.5B L5/N3833+ | GPT-2 L3/N1037+: the distal demonstrative *that*/*those* picking out a specific referent | 0.73 | **VERIFIED** | 0.89 | 1 of 13 hard negatives (*so that*), 1 of 7 holdouts |
+| GPT-2 L0/N2495+ | Qwen2.5-0.5B L0/N4325−: a detached, space-prefixed separator glyph, graded by glyph | 0.77 | NEEDS_REVISION | 0.86 | 2 of 7 holdouts (` >`, ` +`); `beats_confound_baseline` |
+
+**The demonstrative carries over.** GPT-2's explanation of a layer-3 pole, written from GPT-2's own examples, verifies on its Qwen sister two layers deeper. Detection scores 0.92 and fuzzing 0.79 on held-out Qwen text. The weak content-word offshoot it describes was not seen in Qwen (*quarterly revenue*: 0.01 of max), and the probes didn't test it.
+
+**The separator detector carries over only in part.** Every hard negative and counterfactual passed: the GPT-2 pole fires on detached dashes, slashes, pipes and bullets and not on the same glyphs attached. But it ignores ` >` and ` +`, which the Qwen explanation puts in its strongest family, so two holdouts failed. Its line-start weakening didn't hold either (the proposer measured 0.96 of max after a newline). At layer 0 token identity explains it fully (baseline 1.00), so the explanation's conditions add nothing a token list doesn't: the same concept, with a narrower set of glyphs.
+
+The source poles' pages now link to these sisters with each study's verdict, and the sisters' pages link back to the experiment they tested. The other 17 GPT-2 ↔ Qwen sisters are open `sister` draws in `openinterp next`. The 53 in Qwen2.5-1.5B wait until that model is onboarded, so CI can reproduce their records.
 
 ## Limits
 
