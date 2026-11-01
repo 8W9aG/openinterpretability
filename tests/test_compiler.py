@@ -255,6 +255,13 @@ def test_empty_registry_builds(tmp_path):
     assert "No experiments yet" in (tmp_path / "index.html").read_text()
 
 
+def test_footer_links_repo_and_contact(tmp_path):
+    compile_site([], tmp_path)
+    index = (tmp_path / "index.html").read_text()
+    assert 'href="https://github.com/8W9aG/openinterpretability"' in index
+    assert 'href="mailto:will.sackfield@gmail.com"' in index
+
+
 def test_histogram_bars(submission):
     bars = histogram_bars(submission.activation_histogram)
     assert len(bars) == 3
