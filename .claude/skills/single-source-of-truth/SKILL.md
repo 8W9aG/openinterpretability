@@ -26,6 +26,7 @@ Every concept in this repo has one definition. Everything else imports it, reads
 | Concept | Source |
 | --- | --- |
 | Protocol values: thresholds, gate defaults, verdict statuses, probe kinds, `PROTOCOL_VERSION` | `openinterp/core/schemas.py` (`ReviewPolicy`, `VerdictStatus`, `ACTIVATION_THRESHOLD`, …) |
+| The wiki directory's default and layout (`experiments/`, `draws/`) | `openinterp/core/paths.py` (`DEFAULT_WIKI_DIR`, `experiments_dir`, `draws_dir`); CLI commands take `wiki_dir_option()` from `openinterp/cli.py` |
 | Reproduction tolerances | `openinterp/reproduce.py` (`Tolerance`) |
 | Models the planner and CI may use | `[tool.openinterp] models` in `pyproject.toml` |
 | Site-wide display maps: unit statuses, their order and colours | `openinterp/builder/statuses.py` (`MAP_STATUSES`, `STATUS_FILL`, `STATUS_BADGE`) |

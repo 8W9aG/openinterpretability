@@ -35,6 +35,7 @@ from pathlib import Path
 from openinterp.builder.wiki import load_archive_paths
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.identifiers import model_slug
+from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
 
 # Expected information value per experiment kind, before decay.
@@ -327,7 +328,7 @@ class Plan:
 
 
 def plan_next(
-    wiki_dir: Path = Path("wiki"),
+    wiki_dir: Path = DEFAULT_WIKI_DIR,
     *,
     seed: int | None = None,
     epsilon: float = 0.7,

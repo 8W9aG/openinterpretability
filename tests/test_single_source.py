@@ -62,3 +62,16 @@ def test_protocol_prose_quotes_the_policy_defaults():
     ]
     for quote in quotes:
         assert quote in PROTOCOL, f"PROTOCOL.md no longer quotes: {quote}"
+
+
+def test_registry_paths_come_from_core_paths():
+    """The wiki directory's default and layout are written in core/paths.py only."""
+    retyped = re.compile(r'Path\("wiki"\)|default="wiki"|/ "experiments"|/ "draws"')
+    hits = [
+        f"{path.relative_to(ROOT)}:{n}"
+        for path in sorted((ROOT / "openinterp").rglob("*.py"))
+        if path.name != "paths.py"
+        for n, line in enumerate(path.read_text().splitlines(), 1)
+        if retyped.search(line)
+    ]
+    assert not hits, f"use openinterp.core.paths instead: {hits}"

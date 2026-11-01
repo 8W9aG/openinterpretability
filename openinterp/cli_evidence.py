@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import cli, recorded_model_option, with_model_options
+from openinterp.cli import cli, recorded_model_option, wiki_dir_option, with_model_options
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 from openinterp.evidence import (  # noqa: F401  (re-exported)
     ScanRequest,
@@ -218,12 +218,8 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
 @click.option(
     "--out", type=click.Path(path_type=Path), help="Output JSON (default: submissions/<slug>.json)"
 )
-@click.option(
-    "--wiki-dir",
-    default=Path("wiki"),
-    show_default=True,
-    type=click.Path(file_okay=False, path_type=Path),
-    help="Registry root. A --random draw the scan stops on (dead or default-on) is recorded "
+@wiki_dir_option(
+    "Registry root. A --random draw the scan stops on (dead or default-on) is recorded "
     "in draws/<slug>/, as an outcome of random selection. Pass --wiki-dir '' to skip.",
 )
 @with_model_options

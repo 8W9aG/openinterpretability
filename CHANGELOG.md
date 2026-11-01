@@ -17,6 +17,7 @@ The project has two version numbers:
 ### Changed
 
 - **One definition each for values the sweep found retyped.** The active line (`ACTIVATION_THRESHOLD` in `core/schemas.py`, previously `0.25` in `cli_scan.py`, `show.py` and `harness/probing.py`); the evidence strength bands (`STRONG_EVIDENCE`, `evidence_strength` in `builder/significance.py`, previously also in `_macros.html` and the registry SQL); and the unit statuses with their colours (new `builder/statuses.py`, previously also the keys of `map_fill` and `status_badge` in `_macros.html`). No output changes.
+- **The wiki directory's default and layout are defined once** (`openinterp/core/paths.py`: `DEFAULT_WIKI_DIR`, `experiments_dir`, `draws_dir`), and every command's `--wiki-dir` comes from `wiki_dir_option()` in `cli.py`. Previously `Path("wiki")` was retyped in 14 options and defaults and `wiki_dir / "experiments"` joined by hand in seven places. `--wiki-dir` now rejects a file everywhere, as most commands already did. A test in `tests/test_single_source.py` keeps the joins from coming back.
 
 ## [0.0.11] - 2026-10-31
 
