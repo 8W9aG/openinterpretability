@@ -20,7 +20,8 @@ Usage: scripts/experiment-loop.sh [options]
                        (default: $OPENINTERP_AGENT_MODEL, else anthropic/claude-opus-5-5)
   --reviewer MODEL     LiteLLM model or external/<name> for `openinterp verify`
                        (default: same as the proposer; records are then not independent)
-  --driver MODEL       Claude model that drives each session (default: claude's own)
+  --driver MODEL       Claude model that drives each session (default: claude-haiku-5-5;
+                       '' for claude's own; see docs/analyses/driver-model-pilot.md)
   --corpus PATH        Scan corpus (default: corpus.jsonl in the repo root)
   --max N              Stop after N experiments; 0 = until claude fails (default: 0)
   --epsilon P          Exploration probability passed to `openinterp next` (default: 0.7)
@@ -38,7 +39,7 @@ EOF
 REPO=$(git rev-parse --show-toplevel)
 PROPOSER=${OPENINTERP_AGENT_MODEL:-anthropic/claude-opus-5-5}
 REVIEWER=""
-DRIVER=""
+DRIVER=claude-haiku-5-5 # lands as reliably as larger drivers at a fraction of the cost
 CORPUS="$REPO/corpus.jsonl"
 MAX=0
 EPSILON=0.7
@@ -160,6 +161,8 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
     exit 1
   fi
   git -C "$WORKTREE" switch --quiet --detach origin/main
+  # Build the venv now, so its output doesn't bury the session's first `openinterp next`.
+  (cd "$WORKTREE" && uv sync --quiet) || true
 
   status=0
   (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "$CLAUDE_BIN" "${claude_args[@]}") \
