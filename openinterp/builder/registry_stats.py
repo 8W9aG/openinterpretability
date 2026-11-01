@@ -9,12 +9,13 @@ from pathlib import Path
 import duckdb
 
 from openinterp.builder.learned_baseline import learned_baseline
+from openinterp.builder.significance import STRONG_EVIDENCE
 from openinterp.builder.tree import LABEL_PREFIX, SIDES, feature_href, head_href, neuron_href
 
 RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
 
 
-TOTALS = """
+TOTALS = f"""
     SELECT count(*) AS experiments,
            count(DISTINCT (model_name, layer, neuron_idx))
                FILTER (WHERE kind = 'mlp_neuron_pole') AS neurons,
@@ -29,8 +30,8 @@ TOTALS = """
                                         AND kind = 'dictionary_feature') AS verified_features,
            count(DISTINCT slug) FILTER (WHERE unit_status = 'CONTESTED'
                                         AND kind != 'dictionary_feature') AS contested,
-           count(*) FILTER (WHERE conclusiveness >= 0.9 AND evidence_direction = 'refutes')
-               AS conclusive_nulls,
+           count(*) FILTER (WHERE conclusiveness >= {STRONG_EVIDENCE}
+                                  AND evidence_direction = 'refutes') AS conclusive_nulls,
            count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
            -- a standing rests on self-reviews only when no independent review exists
            count(DISTINCT slug) FILTER (WHERE counts_toward_status AND self_reviewed

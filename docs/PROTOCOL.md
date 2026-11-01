@@ -93,6 +93,8 @@ A hypothesis that can't at least match the best of these adds nothing beyond "fi
 
 A verdict is **VERIFIED** only if every gate passes:
 
+<!-- Defaults quote ReviewPolicy in core/schemas.py; tests/test_single_source.py checks them. -->
+
 | Gate | Default | Why |
 | --- | --- | --- |
 | `enough_hard_negatives` | ≥ 6 clusters | Specificity is meaningless on a handful of independent probes. |

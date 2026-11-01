@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.cli import _load_runner, cli
+from openinterp.cli import _load_runner, cli, wiki_dir_option
 from openinterp.crossref import DEFAULT_PATH
 
 out_option = click.option(
@@ -21,7 +21,7 @@ out_option = click.option(
 
 
 @cli.command("crossref")
-@click.option("--wiki-dir", default="wiki", show_default=True, type=click.Path(path_type=Path))
+@wiki_dir_option()
 @out_option
 @click.option("-k", "k", default=5, show_default=True, help="Latents kept per side.")
 @click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto.")
@@ -46,7 +46,7 @@ def crossref_command(wiki_dir, path, k, device):
 @cli.command("aligned-latents")
 @click.argument("slug")
 @out_option
-@click.option("--wiki-dir", default="wiki", show_default=True, type=click.Path(path_type=Path))
+@wiki_dir_option()
 def aligned_latents(slug, path, wiki_dir):
     """Show a pole's aligned latents (e.g. Qwen--Qwen2.5-0.5B/L3/N12-positive) with their
     descriptions, from this registry or Neuronpedia."""

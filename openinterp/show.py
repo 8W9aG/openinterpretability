@@ -11,7 +11,12 @@ import json
 import re
 from pathlib import Path
 
-from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission, ScanEvidence
+from openinterp.core.schemas import (
+    ACTIVATION_THRESHOLD,
+    AuditRecord,
+    NeuronAuditSubmission,
+    ScanEvidence,
+)
 
 PROMPT_CHARS = 160  # probes and examples are cut to this unless full=True
 TOP_EXAMPLES = 5
@@ -124,8 +129,8 @@ def show_evidence(ev: ScanEvidence, full: bool = False) -> str:
     top = ev.top_examples[0].max_activation if ev.top_examples else 0.0
     line = f"Max activation {top:.3f}"
     if ev.activation_histogram is not None and top > 0:
-        share = ev.activation_histogram.share_at_least(0.25 * top)
-        line += f" · ≥ 0.25×max on at least {share:.1%} of tokens"
+        share = ev.activation_histogram.share_at_least(ACTIVATION_THRESHOLD * top)
+        line += f" · ≥ {ACTIVATION_THRESHOLD:g}×max on at least {share:.1%} of tokens"
     if ev.first_token_floor:
         line += " · first-token floor"
     lines.append(line)
