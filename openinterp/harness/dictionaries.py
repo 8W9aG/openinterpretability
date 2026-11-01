@@ -50,6 +50,12 @@ class DictionarySpec:
     # Longest context the dictionary fits; feature scans must use windows no longer.
     context_tokens: int | None = None
     reference: str = ""
+    # Neuronpedia's source for a layer (``{model}/{layer}-{set}``), where it hosts these
+    # same latents under the same indices; ``None`` where it doesn't or that's unchecked.
+    neuronpedia: str | None = None
+
+    def neuronpedia_source(self, layer: int) -> str | None:
+        return self.neuronpedia.format(layer=layer) if self.neuronpedia else None
 
     def file(self, layer: int) -> str:
         if layer not in self.layers:
@@ -66,7 +72,10 @@ DICTIONARIES: dict[str, DictionarySpec] = {
     # MLP's (affine) input, which is why the site matters. Read through position 128 the
     # fit holds (layers 0–2: 45–90% of variance), then falls; past position ~200 it goes
     # negative there (−154% at layer 2 over 512-token windows), so scans use 128-token
-    # windows, as if the dictionaries were trained on 128-token contexts.
+    # windows, as if the dictionaries were trained on 128-token contexts. Neuronpedia's
+    # tres-dc are these latents: on the top example of 24 latents across layers 2–11, each
+    # peaks on the same token here as there (activations correlate at 0.94–1.0; the peak's
+    # size differs because Neuronpedia's snippets are cut from longer contexts).
     "gpt2-small-transcoders": DictionarySpec(
         model_name="openai-community/gpt2",
         kind="transcoder",
@@ -77,6 +86,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         input_site="mlp_in_normalized",
         context_tokens=128,
         reference="Dunefsky, Chlenski & Nanda, 2024, arXiv:2406.11944",
+        neuronpedia="gpt2-small/{layer}-tres-dc",
     ),
     # The checks below each read 16 corpus documents through position 1024 with the first
     # token left out, and found the fit flat with position. Each site was the only one of
@@ -126,6 +136,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         activation="jumprelu",
         context_tokens=1024,
         reference="Lieberum et al., 2024, arXiv:2408.05147",
+        neuronpedia="gemma-2-2b/{layer}-gemmascope-mlp-16k",
     ),
     # A residual-stream SAE, reading and writing the residual stream after each layer
     # (hook_resid_post): 76–93% of its variance at layers 0, 5, 12, 20 and 25 with L0
@@ -150,6 +161,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         activation="jumprelu",
         context_tokens=1024,
         reference="Lieberum et al., 2024, arXiv:2408.05147",
+        neuronpedia="gemma-2-2b/{layer}-gemmascope-res-16k",
     ),
     # Llama Scope (He et al., 2024, arXiv:2410.20526): top-k SAEs and transcoders for
     # Llama-3.1-8B, converted to JumpReLU, in OpenMOSS's lm_sae format (see _from_lm_sae).
@@ -175,6 +187,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         activation="jumprelu",
         context_tokens=1024,
         reference="He et al., 2024, arXiv:2410.20526",
+        neuronpedia="llama3.1-8b/{layer}-llamascope-res-32k",
     ),
     "llama-scope-8b-mlp-saes": DictionarySpec(
         model_name="meta-llama/Llama-3.1-8B",

@@ -80,22 +80,12 @@ RECENT = f"""
     FROM r ORDER BY reviewed_at DESC, slug, experiment_id LIMIT {RECENT_EXPERIMENTS}
     """
 
-AGENTS = """
-    SELECT submitting_agent_model AS agent, count(*) AS experiments,
-           count(DISTINCT slug)
-               FILTER (WHERE counts_toward_status AND unit_status = 'VERIFIED') AS verified,
-           count(*) FILTER (WHERE self_reviewed) AS self_reviewed,
-           avg(conclusiveness) AS mean_conclusiveness
-    FROM r GROUP BY ALL ORDER BY experiments DESC, verified DESC, agent
-    """
-
 # The queries in the order the page's stats come in; TOTALS is one row.
 QUERIES = {
     "totals": TOTALS,
     "verified": VERIFIED,
     "conclusive": CONCLUSIVE,
     "recent": RECENT,
-    "agents": AGENTS,
 }
 
 

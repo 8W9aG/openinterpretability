@@ -1,0 +1,9 @@
+{# One role's cells in an agents table; `s` is an agents.RoleStats. #}
+<td class="px-3 py-2">{{ s.role }}</td>
+<td class="px-3 py-2 text-right tabular-nums">{{ s.experiments }}</td>
+<td class="px-3 py-2 text-right tabular-nums">{% if s.rate is not none %}{{ s.rate | pct }} <span class="text-slate-500">({{ s.independent_verified }}/{{ s.independent }})</span>{% else %}–{% endif %}</td>
+<td class="px-3 py-2 text-right tabular-nums">{% if s.self_reviewed %}{{ s.self_verified }}/{{ s.self_reviewed }}{% else %}–{% endif %}</td>
+{% set c = s.costs %}
+<td class="px-3 py-2 text-right tabular-nums">{% if c %}{{ c.priced }}/{{ c.experiments }}{% else %}–{% endif %}</td>
+<td class="px-3 py-2 text-right font-mono tabular-nums">{% if c and c.mean_usd is not none %}${{ "%.3f" | format(c.mean_usd) }}{% else %}–{% endif %}</td>
+<td class="px-3 py-2 text-right font-mono tabular-nums">{% if c and c.usd_per_verified is not none %}${{ "%.2f" | format(c.usd_per_verified) }}{% else %}–{% endif %}</td>

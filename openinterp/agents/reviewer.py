@@ -29,6 +29,7 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
     settle_first_token_floor,
 )
 from openinterp.core import costs
+from openinterp.core.agent_names import same_agent
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -89,15 +90,25 @@ class ReviewerAgent(LLMAgent):
     )
 
     def generate_probes(
-        self, submission: NeuronAuditSubmission, n: int = 20, full_snippets: bool = False
+        self,
+        submission: NeuronAuditSubmission,
+        n: int = 20,
+        full_snippets: bool = False,
+        dictionary_latents: str = "",
     ) -> ProbeSet:
-        return self.structured(ProbeSet, self.probe_prompt(submission, n, full_snippets))
+        prompt = self.probe_prompt(submission, n, full_snippets, dictionary_latents)
+        return self.structured(ProbeSet, prompt)
 
     @staticmethod
     def probe_prompt(
-        submission: NeuronAuditSubmission, n: int = 20, full_snippets: bool = False
+        submission: NeuronAuditSubmission,
+        n: int = 20,
+        full_snippets: bool = False,
+        dictionary_latents: str = "",
     ) -> str:
-        """The task text the reviewer answers. It shows no activations of candidate probes."""
+        """The task text the reviewer answers. It shows no activations of candidate probes.
+        ``dictionary_latents`` (:func:`openinterp.crossref.format_for_reviewer`) lists
+        published latents aligned with the pole, to probe where they disagree."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
@@ -118,6 +129,7 @@ class ReviewerAgent(LLMAgent):
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (f"{context}\n" if context else "")
+            + (f"{dictionary_latents}\n" if dictionary_latents else "")
             + f"Write {n} probes."
         )
 
@@ -212,7 +224,7 @@ def evaluate_submission(
     metrics = review_metrics(
         results,
         policy,
-        independent=reviewer_model != submission.submitting_agent_model,
+        independent=not same_agent(reviewer_model, submission.submitting_agent_model),
         baseline=confound_baseline(submission, runner, measured_probes, actual, threshold, policy),
         active_share=scan_active_share(submission, policy),
         first_token_floor=submission.first_token_floor,

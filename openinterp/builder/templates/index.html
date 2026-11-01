@@ -158,8 +158,8 @@
             {{ r.explanation | truncate(140) }}
           </td>
           <td class="hidden px-3 py-2 font-mono text-xs text-slate-500 md:table-cell">
-            <div title="proposer">{{ r.submitting_agent_model }}</div>
-            <div title="reviewer">↳ {{ r.reviewer_agent_model }}</div>
+            <div title="proposer"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.submitting_agent_model) }}" title="recorded as {{ r.submitting_agent_model }}">{{ agent_name(r.submitting_agent_model) }}</a></div>
+            <div title="reviewer">↳ <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.reviewer_agent_model) }}" title="recorded as {{ r.reviewer_agent_model }}">{{ agent_name(r.reviewer_agent_model) }}</a></div>
           </td>
         </tr>
         {% else %}
@@ -170,70 +170,35 @@
   </div>
 </section>
 
-<section class="mb-10 grid gap-8 lg:grid-cols-3">
-  <div class="lg:col-span-2">
-    <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>
-    <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Strongest evidence in either direction, from every experiment.</p>
-    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-      <table class="w-full text-left text-sm">
-        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-          {% for r in stats.conclusive %}
-          <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
-            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-              <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
-              <div class="text-slate-500">{{ r.model_name }}</div>
-            </td>
-            <td class="px-3 py-2">
-              <div class="mb-1 flex flex-wrap gap-1">{{ evidence_badge(r.conclusiveness, r.evidence_direction) }} {{ status_badge(r.status) }}</div>
-              {{ r.explanation | truncate(140) }}
-            </td>
-          </tr>
-          {% else %}
-          <tr><td class="px-3 py-2 text-slate-500">No experiments yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <div>
-    <h2 class="mb-3 text-lg font-semibold">Submitting agents</h2>
-    <ol class="divide-y divide-slate-200 rounded-lg border border-slate-200 text-sm dark:divide-slate-800 dark:border-slate-800">
-      {% for a in stats.agents %}
-      <li class="flex items-center justify-between gap-3 px-3 py-2">
-        <span class="truncate font-mono text-xs">{{ a.agent }}</span>
-        <span class="whitespace-nowrap tabular-nums text-slate-600 dark:text-slate-400" title="experiments · verified · self-reviewed">{{ a.experiments }} · {{ a.verified }} · {{ a.self_reviewed }}</span>
-      </li>
-      {% else %}
-      <li class="px-3 py-2 text-slate-500">None yet.</li>
-      {% endfor %}
-    </ol>
-  </div>
-</section>
-
-{% if agent_costs %}
 <section class="mb-10">
-  <h2 class="mb-1 text-lg font-semibold">Agent costs</h2>
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">LLM cost per experiment for each role and model, over experiments where every call of that role was priced: by LiteLLM, or from a subagent's token usage at list price. Reported, not gated.</p>
+  <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Strongest evidence in either direction, from every experiment.</p>
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
-      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-        <tr><th class="px-3 py-2">Role</th><th class="px-3 py-2">Model</th><th class="px-3 py-2 text-right" title="experiments priced / experiments">Priced</th><th class="px-3 py-2 text-right">Mean</th><th class="px-3 py-2 text-right" title="total cost of the priced experiments / how many of them were VERIFIED">Per VERIFIED</th></tr>
-      </thead>
       <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-        {% for c in agent_costs %}
-        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
-          <td class="px-3 py-2">{{ c.agent }}</td>
-          <td class="px-3 py-2 font-mono text-xs">{{ c.model }}</td>
-          <td class="px-3 py-2 text-right tabular-nums">{{ c.priced }}/{{ c.experiments }}</td>
-          <td class="px-3 py-2 text-right font-mono tabular-nums">${{ "%.3f" | format(c.mean_usd) }}</td>
-          <td class="px-3 py-2 text-right font-mono tabular-nums">{% if c.usd_per_verified is not none %}${{ "%.2f" | format(c.usd_per_verified) }}{% else %}–{% endif %}</td>
+        {% for r in stats.conclusive %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <div class="text-slate-500">{{ r.model_name }}</div>
+          </td>
+          <td class="px-3 py-2">
+            <div class="mb-1 flex flex-wrap gap-1">{{ evidence_badge(r.conclusiveness, r.evidence_direction) }} {{ status_badge(r.status) }}</div>
+            {{ r.explanation | truncate(140) }}
+          </td>
         </tr>
+        {% else %}
+        <tr><td class="px-3 py-2 text-slate-500">No experiments yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </section>
-{% endif %}
+
+<p class="mb-10 text-sm text-slate-600 dark:text-slate-400">
+  {{ agents | length }} agent model{{ "" if agents | length == 1 else "s" }} proposed, reviewed or judged these experiments{% if agents %}, most often {% for a in agents[:3] %}<a class="font-mono text-xs underline" href="{{ root }}{{ a.href }}">{{ a.model }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}.
+  <a class="underline" href="{{ root }}agents/index.html">Agents</a> has each one's VERIFIED rate and costs by role.
+</p>
 
 <section class="mb-10">
   <h2 class="mb-3 text-lg font-semibold">Verified neurons and heads</h2>
@@ -281,7 +246,7 @@
           <td class="px-3 py-2">{% if c.standing.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ c.standing.lead.record.submission.natural_language_explanation | truncate(140) }}</td>
           <td class="space-y-1 px-3 py-2 text-xs">
             {% for r in c.standing.readings %}
-            <div class="flex flex-wrap items-center gap-2"><a href="{{ c.unit.href }}#{{ r.anchor }}">{{ status_badge(r.record.verdict.status) }}</a><span class="font-mono text-slate-500">{{ r.record.verdict.reviewer_agent_model }}</span></div>
+            <div class="flex flex-wrap items-center gap-2"><a href="{{ c.unit.href }}#{{ r.anchor }}">{{ status_badge(r.record.verdict.status) }}</a><a class="font-mono text-slate-500 underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a></div>
             {% endfor %}
           </td>
         </tr>

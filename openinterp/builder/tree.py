@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING
 from openinterp.builder.significance import Significance, significance
 from openinterp.builder.standing import native_standings, pole_standing
 from openinterp.builder.wiki import experiment_id
-from openinterp.core.costs import by_agent
 from openinterp.core.schemas import AuditRecord
 
 if TYPE_CHECKING:
@@ -384,13 +383,3 @@ def false_discovery(models: Sequence[ModelNode]) -> dict:
         "expected_false": round(expected, 2),
         "rate": round(expected / len(claims), 4) if claims else None,
     }
-
-
-def agent_costs(experiments: Sequence[Experiment]) -> list[dict]:
-    """LLM cost per experiment by role and model, for the rows with any priced experiment."""
-    rows = by_agent(
-        (e.record.verdict.status, e.record.submission.provenance.costs)
-        for e in experiments
-        if e.record.submission.provenance
-    )
-    return [r for r in rows if r["priced"]]

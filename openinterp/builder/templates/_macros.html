@@ -31,6 +31,12 @@
       title="The proposer's model also wrote the probes, so this is not an independent review. Allowed, but a re-review by a different model is worth more: openinterp next draws these.">self-reviewed</span>
 {%- endmacro %}
 
+{# Scanned on the 552-token built-in sample: the max activation behind every "active" line means little. #}
+{% macro builtin_sample_badge() -%}
+<span class="whitespace-nowrap rounded border border-dashed border-amber-400 px-2 py-0.5 text-xs text-amber-800 dark:border-amber-700 dark:text-amber-300"
+      title="Scanned on the 552-token built-in sample, not the registry corpus, so its max activation (the denominator of every 'active' line) means little. openinterp next draws a rescan instead of re-reviewing it.">built-in sample</span>
+{%- endmacro %}
+
 {% macro pole_mark(pole) -%}
 <span class="{{ 'text-orange-600' if pole == 'positive' else 'text-sky-600' }}">{{ '+' if pole == 'positive' else '−' }}</span>
 {%- endmacro %}

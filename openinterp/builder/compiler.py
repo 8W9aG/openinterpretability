@@ -19,20 +19,23 @@ from pydantic import ValidationError
 
 from openinterp import __version__
 from openinterp.builder import charts
+from openinterp.builder.agents import agent_href, agents_view, legacy_redirects
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     Experiment,
-    agent_costs,
     build_tree,
     circuits_href,
     false_discovery,
+    feature_href,
     neuron_href,
 )
+from openinterp.core.agent_names import canonical_agent
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord
+from openinterp.crossref import neuronpedia_url
 from openinterp.wiring_backfill import record_wiring
 
 
@@ -72,6 +75,8 @@ def _environment() -> Environment:
     env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
     env.globals["charts"] = charts  # page-level charts: the layer map and pieces bars
+    env.globals["agent_href"] = agent_href  # links from agent names to their pages
+    env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     return env
 
 
@@ -196,7 +201,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.
 # They are removed before each build so deleted records leave no stale pages.
-OWNED_PATHS = ("index.html", "models", "neurons", "data", "pagefind")
+OWNED_PATHS = ("index.html", "models", "agents", "neurons", "data", "pagefind")
 
 
 def _clean_owned_paths(output_dir: Path) -> None:
@@ -287,10 +292,13 @@ def compile_site(
     wiring_rows: dict | None = None,
     draws: Sequence = (),
     corpus_sources: dict | None = None,
+    alignment_rows: dict | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records`` (normally the wiki archive), with
     ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) and ``corpus_sources``
-    (:func:`openinterp.corpus.load_sources`) for records that predate wiring or sidecars."""
+    (:func:`openinterp.corpus.load_sources`) for records that predate wiring or sidecars,
+    and each neuron pole's aligned dictionary latents, ``alignment_rows``
+    (:func:`openinterp.crossref.load_rows`)."""
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
@@ -308,13 +316,19 @@ def compile_site(
     render = _Renderer(_environment(), output_dir, common, report)
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     for model in models:
-        _render_model(render, model, rows, studied)
+        _render_model(render, model, rows, studied, alignment_rows or {})
+    agents = agents_view(experiments)
+    render("agents/index.html", "agents.html", agents=agents)
+    for agent in agents:
+        render(agent.href, "agent.html", agent=agent)
+    for old, new in legacy_redirects(agents).items():
+        _write_redirect(output_dir / old, Path(new).name, report)
     render(
         "index.html",
         "index.html",
         models=models,
         stats=registry_stats(report.parquet, draws),
-        agent_costs=agent_costs(experiments),
+        agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
         contested=[
@@ -338,6 +352,18 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> 
     }
 
 
+def _write_redirect(out: Path, target: str, report: BuildReport) -> None:
+    """A page that used to live at ``out`` and now lives at ``target`` (relative to it)."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        f'<!doctype html><meta charset="utf-8"><title>Moved</title>'
+        f'<link rel="canonical" href="{target}"><meta name="robots" content="noindex">'
+        f'<meta http-equiv="refresh" content="0; url={target}">'
+        f'<p>This page moved to <a href="{target}">{target}</a>.</p>\n'
+    )
+    report.pages.append(out)
+
+
 @dataclass
 class _Renderer:
     """Renders a template to a path under the output dir, with the site-wide context."""
@@ -355,7 +381,42 @@ class _Renderer:
         self.report.pages.append(out)
 
 
-def _render_model(render: _Renderer, model, rows: dict, studied: set) -> None:
+def aligned_latents(model, neuron, alignment: dict, studied: set) -> list[dict]:
+    """Each pole's aligned dictionary latents for a neuron page, with each latent's page
+    here (if it was audited) and on Neuronpedia (if hosted there)."""
+    if not neuron.is_neuron:
+        return []
+    poles = []
+    for pole in neuron.sides:
+        rows = alignment.get(f"{model.slug}/L{neuron.layer}/N{neuron.idx}-{pole}", [])
+        views = []
+        for row in rows:
+            sides = []
+            for name in ("writes", "reads"):
+                side = getattr(row, name)
+                if side is None:
+                    continue
+                matches = []
+                for m in side.matches:
+                    href = feature_href(model.slug, neuron.layer, row.dictionary, m.feature_idx)
+                    matches.append(
+                        {
+                            "m": m,
+                            "href": href if href in studied else None,
+                            "neuronpedia": neuronpedia_url(row, m.feature_idx),
+                            "above": m.cosine > side.chance,
+                        }
+                    )
+                sides.append({"name": name, "side": side, "matches": matches})
+            views.append({"row": row, "sides": sides})
+        if views:
+            poles.append({"pole": pole, "rows": views})
+    return poles
+
+
+def _render_model(
+    render: _Renderer, model, rows: dict, studied: set, alignment: dict | None = None
+) -> None:
     """A model's page, its circuits page (if any), and its layer and unit pages."""
     found, found_hubs = circuits_and_hubs(model, rows)
     anchor_of = unit_anchors(found, found_hubs)
@@ -381,4 +442,5 @@ def _render_model(render: _Renderer, model, rows: dict, studied: set) -> None:
                 neuron=neuron,
                 views=views,
                 poles=pole_scans(neuron),
+                aligned=aligned_latents(model, neuron, alignment or {}, studied),
             )

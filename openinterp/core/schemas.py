@@ -12,6 +12,7 @@ from typing import Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
+from openinterp.core.agent_names import same_agent
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.causal import (  # noqa: F401  (re-exported)
     CausalMetrics,
@@ -57,6 +58,8 @@ SelectionMethod = Literal["random", "attribution", "manual"]
 PROTOCOL_VERSION = "0.8"
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
+# ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
+BUILTIN_CORPUS = "builtin:sample_corpus"
 
 
 class CounterfactualPair(StrictModel):
@@ -478,10 +481,18 @@ class AuditRecord(StrictModel):
         return self.verdict is not None and self.verdict.status == "VERIFIED"
 
     @property
+    def scanned_on_builtin_sample(self) -> bool:
+        """Scanned on the 552-token built-in sample, too small for a meaningful max
+        activation: follow-ups rescan it instead of reusing the scan."""
+        provenance = self.submission.provenance
+        return provenance is not None and provenance.corpus == BUILTIN_CORPUS
+
+    @property
     def self_reviewed(self) -> bool:
-        """The proposer's model also reviewed it: recorded and badged, not gated (§2)."""
+        """The proposer's model also reviewed it: recorded and badged, not gated (§2). Also
+        when the record calls it independent but spelled one model two ways (``[1m]``)."""
         if self.verdict is None:
             return False
-        if self.verdict.metrics is not None:
-            return not self.verdict.metrics.independent_review
-        return self.verdict.reviewer_agent_model == self.submission.submitting_agent_model
+        if self.verdict.metrics is not None and not self.verdict.metrics.independent_review:
+            return True
+        return same_agent(self.verdict.reviewer_agent_model, self.submission.submitting_agent_model)
