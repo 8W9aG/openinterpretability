@@ -60,6 +60,13 @@ from openinterp.cli import (
     help="Show the reviewer the published dictionary latents aligned with the pole "
     "(`openinterp crossref`) and their descriptions, fetched from Neuronpedia.",
 )
+@click.option(
+    "--sisters/--no-sisters",
+    default=True,
+    show_default=True,
+    help="Show the reviewer the pole's sister neurons in other models that this registry "
+    "has studied (`openinterp sisters`), with their explanations.",
+)
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @explanation_scores_option
 @click.option(
@@ -84,6 +91,7 @@ def verify(
     check_probes,
     full_snippets,
     dictionary_latents,
+    sisters,
     out,
     scores_file,
     corpus,
@@ -106,6 +114,7 @@ def verify(
 
     submission = load_submission(audit_file)
     latents = aligned_latents_text(submission, wiki_dir) if dictionary_latents else ""
+    latents += sisters_text(submission.identifier, wiki_dir, "reviewer") if sisters else ""
     if emit_prompt is not None:
         return write_review_prompt(submission, emit_prompt, n_probes, full_snippets, latents)
     if check_probes is not None:
@@ -146,6 +155,19 @@ def load_submission(audit_file: Path):
         submission = AuditRecord.model_validate_json(raw).submission
         return _clear_costs(submission)  # its audit belonged to another experiment
     return NeuronAuditSubmission.model_validate_json(raw)
+
+
+def sisters_text(identifier, wiki_dir, role: str) -> str:
+    """The agent's section on the unit's studied sister neurons, or "" if there are none."""
+    from openinterp.cli import _skip_wiki
+    from openinterp.sisters import sister_context
+
+    if _skip_wiki(wiki_dir):
+        return ""
+    text = sister_context(identifier, wiki_dir, role)
+    if text:
+        click.echo(f"Showing the {role} {text.count(chr(10)) - 1} studied sister neurons", err=True)
+    return text
 
 
 def aligned_latents_text(submission, wiki_dir) -> str:
@@ -223,7 +245,7 @@ def review_probes(
         return probes
     click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)
     return reviewer.generate_probes(
-        submission, n=n_probes, full_snippets=full_snippets, dictionary_latents=latents
+        submission, n=n_probes, full_snippets=full_snippets, related=latents
     ).probes
 
 

@@ -269,6 +269,7 @@ class ProposerAgent(LLMAgent):
         dictionary_profile: DictionaryProfile | None = None,
         first_token_floor: bool = False,
         full_snippets: bool = False,
+        related: str = "",
     ) -> HypothesisDraft:
         prompt = self.proposal_prompt(
             identifier,
@@ -281,6 +282,7 @@ class ProposerAgent(LLMAgent):
             dictionary_profile,
             first_token_floor,
             full_snippets,
+            related,
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -296,8 +298,11 @@ class ProposerAgent(LLMAgent):
         dictionary_profile: DictionaryProfile | None = None,
         first_token_floor: bool = False,
         full_snippets: bool = False,
+        related: str = "",
     ) -> str:
-        """The task text the proposer answers: the scan evidence for one unit."""
+        """The task text the proposer answers: the scan evidence for one unit, then what
+        other research links to it (``related``: its studied sister neurons,
+        :func:`openinterp.sisters.format_sisters`)."""
         prompt = f"{identifier.noun.capitalize()}: {identifier}\n\n"
         if first_token_floor:
             prompt += FIRST_TOKEN_UNMEASURED + "\n"
@@ -322,6 +327,8 @@ class ProposerAgent(LLMAgent):
             prompt += format_correlated(correlated)
         if attribution is not None:
             prompt += "\n" + format_input_attribution(attribution)
+        if related:
+            prompt += "\n" + related
         return prompt
 
     def build_submission(
