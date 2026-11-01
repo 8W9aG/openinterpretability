@@ -5,7 +5,12 @@ import pytest
 
 from openinterp import draw_steps
 from openinterp.builder.wiki import write_experiment_page
-from openinterp.core.schemas import ReviewMetrics, ReviewPolicy
+from openinterp.core.schemas import (
+    BUILTIN_CORPUS,
+    ExperimentProvenance,
+    ReviewMetrics,
+    ReviewPolicy,
+)
 from openinterp.draw_steps import random_neuron, render, steps
 from openinterp.evidence import ScanRequest, pick_unit
 from openinterp.planner import plan_next
@@ -80,6 +85,32 @@ def test_revise_steps_read_the_history_and_supersede(tmp_path, record):
     assert "--supersedes" not in scan and "--corpus c.jsonl" in scan
     assert "--supersedes" in submit  # with the hypothesis, not the scan
     assert "--explanation-scores" in text
+
+
+def test_rescan_steps_scan_the_corpus_and_supersede(tmp_path, record):
+    wiki = tmp_path / "wiki"
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus=BUILTIN_CORPUS,
+        n_snippets=1,
+        tokens_scanned=552,
+        selection="random",
+        harness_version="t",
+    )
+    sub = record.submission.model_copy(update={"provenance": provenance})
+    write_experiment_page(record.model_copy(update={"submission": sub}), wiki)
+    plan = next(
+        p
+        for p in (plan_next(wiki, seed=s, epsilon=0.0, now=NOW) for s in range(50))
+        if p.choice.kind == "rescan"
+    )
+    text = _text(plan, corpus="c.jsonl")
+    assert "experiment/Qwen--Qwen2.5-0.5B-L3-N117-positive-rescan" in text
+    assert "openinterp show " in text
+    scan, submit = [line for line in text.splitlines() if "openinterp audit" in line]
+    assert "--supersedes" not in scan and "--corpus c.jsonl" in scan
+    assert f"--supersedes {plan.choice.record}" in submit
+    assert 'git commit -m "Rescan ' in text
 
 
 def test_review_steps_with_api_models(tmp_path, record):

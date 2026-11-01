@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
@@ -17,7 +17,7 @@
       <div class="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
         <div class="flex items-center gap-2">
           <span class="text-slate-500">{% if neuron.is_head %}Attention head{% elif neuron.is_feature %}Latent of {{ neuron.dictionary }}{% else %}{{ pole | capitalize }} pole {{ pole_mark(pole) }}{% endif %}</span>
-          {% if s %}{{ status_badge(s.status) }}<span class="hidden" data-pagefind-filter="status">{{ s.status }}</span>{% if s.self_reviewed %}{{ self_review_badge() }}{% endif %}{% endif %}
+          {% if s %}{{ status_badge(s.status) }}<span class="hidden" data-pagefind-filter="status">{{ s.status }}</span>{% if s.self_reviewed %}{{ self_review_badge() }}{% endif %}{% if s.lead.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}{% endif %}
         </div>
         {% if s %}
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
