@@ -9,6 +9,15 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **A `single-source-of-truth` skill** (`.claude/skills/single-source-of-truth/`; TODO, Code quality and tooling). It says how to search for an existing definition before adding a literal, where shared definitions live, how to pass Python constants into templates, and how to pin a copy that has to exist with a test. `REVIEW.md` points code review at it.
+- **`tests/test_single_source.py`** pins the copies that can't import their source: `docs/PROTOCOL.md`'s title version, gate table and quoted `ReviewPolicy` / `Tolerance` defaults, and the site's statuses against `VerdictStatus` plus `CONTESTED`.
+
+### Changed
+
+- **One definition each for values the sweep found retyped.** The active line (`ACTIVATION_THRESHOLD` in `core/schemas.py`, previously `0.25` in `cli_scan.py`, `show.py` and `harness/probing.py`); the evidence strength bands (`STRONG_EVIDENCE`, `evidence_strength` in `builder/significance.py`, previously also in `_macros.html` and the registry SQL); and the unit statuses with their colours (new `builder/statuses.py`, previously also the keys of `map_fill` and `status_badge` in `_macros.html`). No output changes.
+
 ## [0.0.11] - 2026-10-31
 
 Ships with protocol version **0.8**.
