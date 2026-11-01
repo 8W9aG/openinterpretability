@@ -172,3 +172,17 @@ def test_archive_edits_rejected_by_write_once(repo):
     assert "archived experiment records are write-once" in messages(
         check_registry(base_ref="main~1")
     )
+
+
+def test_new_records_spell_agents_canonically(repo, record):
+    sub = record.submission.model_copy(
+        update={"submitting_agent_model": "external/deepseek-flash[1m]"}
+    )
+    write_experiment_page(_later(record.model_copy(update={"submission": sub}), 1), repo / "wiki")
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "new"], check=True)
+    assert "submitting_agent_model='external/deepseek-flash[1m]': spell it " in messages(
+        check_registry(base_ref="main~1")
+    )
+    assert check_registry().ok  # without a base ref, old records keep their spellings

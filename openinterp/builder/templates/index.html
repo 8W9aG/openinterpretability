@@ -158,8 +158,8 @@
             {{ r.explanation | truncate(140) }}
           </td>
           <td class="hidden px-3 py-2 font-mono text-xs text-slate-500 md:table-cell">
-            <div title="proposer"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.submitting_agent_model) }}">{{ r.submitting_agent_model }}</a></div>
-            <div title="reviewer">↳ <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.reviewer_agent_model) }}">{{ r.reviewer_agent_model }}</a></div>
+            <div title="proposer"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.submitting_agent_model) }}" title="recorded as {{ r.submitting_agent_model }}">{{ agent_name(r.submitting_agent_model) }}</a></div>
+            <div title="reviewer">↳ <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.reviewer_agent_model) }}" title="recorded as {{ r.reviewer_agent_model }}">{{ agent_name(r.reviewer_agent_model) }}</a></div>
           </td>
         </tr>
         {% else %}
@@ -246,7 +246,7 @@
           <td class="px-3 py-2">{% if c.standing.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ c.standing.lead.record.submission.natural_language_explanation | truncate(140) }}</td>
           <td class="space-y-1 px-3 py-2 text-xs">
             {% for r in c.standing.readings %}
-            <div class="flex flex-wrap items-center gap-2"><a href="{{ c.unit.href }}#{{ r.anchor }}">{{ status_badge(r.record.verdict.status) }}</a><a class="font-mono text-slate-500 underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}">{{ r.record.verdict.reviewer_agent_model }}</a></div>
+            <div class="flex flex-wrap items-center gap-2"><a href="{{ c.unit.href }}#{{ r.anchor }}">{{ status_badge(r.record.verdict.status) }}</a><a class="font-mono text-slate-500 underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a></div>
             {% endfor %}
           </td>
         </tr>
