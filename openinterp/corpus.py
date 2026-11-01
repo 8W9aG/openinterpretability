@@ -29,6 +29,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
+from openinterp.core.confounds import LANGUAGE
 from openinterp.core.schemas import CorpusSample, CorpusSource
 
 # What `openinterp audit` scans by default (protocol 0.7): a fixed seed, so every audit
@@ -142,7 +143,7 @@ LAYOUTS = {"wikitext": wikitext_articles}
 
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
 # (`harness/annotations.py`). Exact labels from the dataset, never detected.
-DOCUMENT_LABELS = {"lang": "language"}
+DOCUMENT_LABELS = {"lang": LANGUAGE}
 
 
 def source_path(corpus_path: Path) -> Path:

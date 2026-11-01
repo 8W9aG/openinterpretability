@@ -30,6 +30,7 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
 )
 from openinterp.core import costs
 from openinterp.core.agent_names import same_agent
+from openinterp.core.confounds import LANGUAGE
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -71,6 +72,20 @@ HEAD_ACTIVITY = (
     "tokens, while '. My' later in the text repeats '. My' earlier, however short or "
     "common. Label each probe by the repeats its tokens make, not by the words you read.\n"
 )
+
+LANGUAGE_PROBES = (
+    "The scan corpus is labelled by language, and each example above gives its language. "
+    "If the hypothesis claims the feature whatever the language, include positive holdouts "
+    "that express it in other languages, translated. If it names or implies one language, "
+    "include hard negatives in another language written in the same script (e.g. Spanish "
+    "against Portuguese, Russian against Ukrainian) that keep the examples' words and "
+    "topic as far as that language allows.\n"
+)
+
+
+def has_language_labels(submission: NeuronAuditSubmission) -> bool:
+    """Do the submission's top examples say which language each is in?"""
+    return any(LANGUAGE in (e.peak_labels or {}) for e in submission.top_examples)
 
 
 class ReviewerAgent(LLMAgent):
@@ -128,6 +143,7 @@ class ReviewerAgent(LLMAgent):
             f"Claimed mechanism: {mechanism}"
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
+            + (LANGUAGE_PROBES if has_language_labels(submission) else "")
             + (f"{context}\n" if context else "")
             + (f"{dictionary_latents}\n" if dictionary_latents else "")
             + f"Write {n} probes."

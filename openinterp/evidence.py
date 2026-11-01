@@ -216,15 +216,16 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
 
     texts, unit, top_k = corpus.texts, request.unit, request.top_k
     windows = {"window_tokens": request.window_tokens, "stride": corpus.stride}
+    taggers = corpus.taggers()
     how = ""
     if request.window_tokens is not None:
         how = f" as {request.window_tokens}-token windows every {corpus.stride} tokens"
     click.echo(f"Scanning {len(texts)} snippets{how} for {ident}…", err=True)
     with costs.stage("scan"):
         if unit == "head":
-            scan = scan_head(runner, texts, ident, k=top_k, **windows)
+            scan = scan_head(runner, texts, ident, k=top_k, taggers=taggers, **windows)
         elif unit == "feature":
-            scan = scan_feature(runner, texts, ident, spec, k=top_k, **windows)
+            scan = scan_feature(runner, texts, ident, spec, k=top_k, taggers=taggers, **windows)
         else:
             scan = scan_neuron(
                 runner,
@@ -234,7 +235,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
                 ident.pole,
                 k=top_k,
                 cache=scan_cache,
-                taggers=corpus.taggers(),
+                taggers=taggers,
                 **windows,
             )
     if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:

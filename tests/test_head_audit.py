@@ -230,3 +230,18 @@ def test_cli_samples_a_random_head_with_eager_attention(runner, tmp_path, monkey
     bad = CliRunner().invoke(cli, ["audit", "--model", "m", "--head", "1", "--pole", "positive"])
     assert bad.exit_code != 0 and "a head has neither" in bad.output
     assert json.loads((tmp_path / "ev.json").read_text())["identifier"]["kind"] == "attn_head"
+
+
+def test_head_scans_take_label_sets(runner):
+    from openinterp.harness.annotations import DocumentLabels
+
+    langs = ["en", "fr"] * 3
+    tagged = scan_head(
+        runner, TEXTS, HEAD, k=4, pattern_sequences=2, pattern_length=6,
+        taggers=[DocumentLabels("language", langs)],
+    )  # fmt: skip
+    language = tagged.confounds.labels["language"]
+    assert language.labelled_tokens == tagged.profile.mean_tokens
+    assert {s.label for s in language.levels} == {"en", "fr"}
+    for ex in tagged.examples:
+        assert ex.peak_labels == {"language": langs[TEXTS.index(ex.text)]}
