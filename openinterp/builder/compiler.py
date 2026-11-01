@@ -23,6 +23,7 @@ from openinterp.builder.agents import agent_href, agents_view, legacy_redirects
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
+from openinterp.builder.significance import evidence_strength
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     Experiment,
@@ -77,6 +78,7 @@ def _environment() -> Environment:
     env.globals["charts"] = charts  # page-level charts: the layer map and pieces bars
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
+    env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands
     return env
 
 

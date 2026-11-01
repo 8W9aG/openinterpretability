@@ -17,7 +17,7 @@
 {%- endmacro %}
 
 {% macro evidence_badge(conclusiveness, direction) -%}
-{% set strength = 'strong' if conclusiveness >= 0.9 else ('moderate' if conclusiveness >= 0.5 else 'weak') %}
+{% set strength = evidence_strength(conclusiveness) %}
 {% set supports = direction == 'supports' %}
 <span class="whitespace-nowrap rounded border px-2 py-0.5 text-xs {{ 'border-emerald-300 text-emerald-800 dark:border-emerald-800 dark:text-emerald-300' if supports else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}"
       title="Conclusiveness {{ conclusiveness | num(2) }}: how settled the probe evidence is, in either direction">
