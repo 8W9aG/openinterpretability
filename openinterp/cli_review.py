@@ -114,7 +114,8 @@ def verify(
 
     submission = load_submission(audit_file)
     latents = aligned_latents_text(submission, wiki_dir) if dictionary_latents else ""
-    latents += sisters_text(submission.identifier, wiki_dir, "reviewer") if sisters else ""
+    tested = [submission.sister_of.rsplit("/", 1)[0]] if submission.sister_of else []
+    latents += sisters_text(submission.identifier, wiki_dir, "reviewer", tested) if sisters else ""
     if emit_prompt is not None:
         return write_review_prompt(submission, emit_prompt, n_probes, full_snippets, latents)
     if check_probes is not None:
@@ -157,14 +158,15 @@ def load_submission(audit_file: Path):
     return NeuronAuditSubmission.model_validate_json(raw)
 
 
-def sisters_text(identifier, wiki_dir, role: str) -> str:
-    """The agent's section on the unit's studied sister neurons, or "" if there are none."""
+def sisters_text(identifier, wiki_dir, role: str, exclude=()) -> str:
+    """The agent's section on the unit's studied sister neurons, or "" if there are none;
+    ``exclude`` leaves out the pole a sister study tests."""
     from openinterp.cli import _skip_wiki
     from openinterp.sisters import sister_context
 
     if _skip_wiki(wiki_dir):
         return ""
-    text = sister_context(identifier, wiki_dir, role)
+    text = sister_context(identifier, wiki_dir, role, exclude=exclude)
     if text:
         click.echo(f"Showing the {role} {text.count(chr(10)) - 1} studied sister neurons", err=True)
     return text

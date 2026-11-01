@@ -316,11 +316,14 @@ ADVICE = {
 }
 
 
-def format_sisters(slug: str, rows: dict, findings: dict, role: str) -> str:
+def format_sisters(slug: str, rows: dict, findings: dict, role: str, exclude=()) -> str:
     """The prompt section on ``slug``'s studied sister neurons for ``role`` (proposer or
-    reviewer), strongest first, or "" if none has been studied."""
+    reviewer), strongest first, leaving out ``exclude`` (the pole a sister study tests,
+    whose explanation is the hypothesis); "" if none is left."""
     best: dict[str, tuple[float, bool]] = {}
     for other, r, sister in _linked(slug, rows, by_match_slug(rows)):
+        if other in exclude:
+            continue
         if other in findings and (other not in best or r > best[other][0]):
             best[other] = (r, sister)
     lines = []
@@ -333,7 +336,9 @@ def format_sisters(slug: str, rows: dict, findings: dict, role: str) -> str:
     return f"{INTRO} {ADVICE[role]}\n" + "\n".join(lines) + "\n"
 
 
-def sister_context(identifier, wiki_dir: Path, role: str, path: Path = DEFAULT_PATH) -> str:
+def sister_context(
+    identifier, wiki_dir: Path, role: str, path: Path = DEFAULT_PATH, exclude=()
+) -> str:
     """:func:`format_sisters` for the unit ``identifier`` names, from the rows in
     ``path`` and the archive in ``wiki_dir``; "" for a unit that isn't a neuron pole."""
     from openinterp.builder.wiki import load_archive
@@ -341,7 +346,8 @@ def sister_context(identifier, wiki_dir: Path, role: str, path: Path = DEFAULT_P
     rows = load_rows(path)
     if identifier.kind != "mlp_neuron_pole" or not rows or not Path(wiki_dir).exists():
         return ""
-    return format_sisters(identifier.slug, rows, pole_findings(load_archive(wiki_dir)), role)
+    findings = pole_findings(load_archive(wiki_dir))
+    return format_sisters(identifier.slug, rows, findings, role, exclude)
 
 
 def load_sister_source(path: Path, unit) -> AuditRecord:
@@ -370,7 +376,7 @@ def sister_brief(source: AuditRecord) -> str:
     ident = source.submission.identifier
     return (
         f"This is a sister-neuron study. The hypothesis under test is fixed: the explanation "
-        f"VERIFIED for {ident} in {ident.model_name}, a pole whose activity correlates with "
+        f"VERIFIED for {ident}, a pole whose activity correlates with "
         f"this one's (`openinterp sisters`). It is recorded as this submission's explanation "
         f"word for word, whatever you write, so the review tests whether it carries over:\n\n"
         f"> {source.submission.natural_language_explanation}\n\n"

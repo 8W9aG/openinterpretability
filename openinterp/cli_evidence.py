@@ -79,13 +79,14 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
 
 
 def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None) -> str:
-    """What other research links to the unit, for the proposer: the brief of a sister
-    study (``sister_file``), then its studied sisters."""
+    """What other research links to the unit, for the proposer: its studied sisters, or in
+    a sister study (``sister_file``) only its brief, since the explanation is fixed."""
     from openinterp.cli_review import sisters_text
     from openinterp.sisters import sister_brief
 
-    brief = sister_brief(load_sister(sister_file, evidence.identifier)) if sister_file else ""
-    return brief + (sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else "")
+    if sister_file:
+        return sister_brief(load_sister(sister_file, evidence.identifier))
+    return sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
 
 
 def load_sister(path: Path, unit):

@@ -221,6 +221,9 @@ def test_agents_see_studied_sisters_in_both_directions():
     ]
     assert "tell them apart" in text
     assert format_sisters("a/L1/N6-positive", rows, findings, "proposer") == ""
+    # A sister study's reviewer isn't shown the pole whose explanation is the hypothesis.
+    tested = format_sisters("a/L1/N5-positive", rows, findings, "reviewer", ["b/L2/N9-negative"])
+    assert "b/L2/N9" not in tested and "c/L0/N2" in tested
 
 
 def test_the_proposer_prompt_ends_with_related_research(record):
