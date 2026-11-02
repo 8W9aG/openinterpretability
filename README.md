@@ -241,9 +241,10 @@ The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.
 | Model | MLP | Negative pole | Scan |
 | --- | --- | --- | --- |
 | `Qwen/Qwen2.5-0.5B` | SwiGLU, `silu(gate(x)) * up(x)` | Unbounded: `up(x)` carries the sign | Whole documents |
+| `Qwen/Qwen2.5-1.5B` | SwiGLU, as Qwen2.5-0.5B: 28 layers × 8,960 neurons | Unbounded: `up(x)` carries the sign (about half of all values are negative in every layer) | Whole documents |
 | `openai-community/gpt2` | GELU, `gelu_new(c_fc(x))` | GELU's dip, at most 0.170 in every layer and reached at a pre-activation of about −0.75. 73–88% of tokens are below zero, and a strongly negative input reads as inactive | 128-token windows (`[tool.openinterp.window_tokens]`), matching its transcoders. GPT-2 itself reads 1,024 positions |
 
-GPT-2's final norm is `transformer.ln_f` and its MLP norm `ln_2`, which the transcoders' `mlp_in_normalized` site standardises.
+Qwen2.5-1.5B's final norm is `model.norm` (RMSNorm) and its unembedding is tied to the input embedding, as in 0.5B. GPT-2's final norm is `transformer.ln_f` and its MLP norm `ln_2`, which the transcoders' `mlp_in_normalized` site standardises.
 
 ## Static site & data
 
