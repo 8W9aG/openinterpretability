@@ -13,6 +13,8 @@ from openinterp.core.strict import StrictModel, UnitFloat
 
 # The label set of a document's language (a corpus's ``lang`` field; ``corpus.py``).
 LANGUAGE = "language"
+# The label set of a blended corpus's document's preset (its ``source`` field).
+SOURCE = "source"
 
 
 class TokenStat(StrictModel):

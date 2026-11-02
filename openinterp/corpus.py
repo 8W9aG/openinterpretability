@@ -30,7 +30,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from openinterp.core.confounds import LANGUAGE
+from openinterp.core.confounds import LANGUAGE, SOURCE
 from openinterp.core.schemas import CorpusSample, CorpusSource
 
 # What `openinterp audit` scans by default (protocol 0.7): a fixed seed, so every audit
@@ -103,6 +103,37 @@ PRESETS = {
     ),
 }
 
+# Fixed blends of presets, by versioned name: each preset's weight in the blend's documents.
+# A blend is never edited once released; a new mix is a new version, so a corpus's name
+# says what it holds. `mixed` (the latest version, `openinterp corpus`'s default) spreads
+# random-selection statistics over domains instead of one dataset's: web text, the Pile's
+# mix of sources (papers, legal text, forums, code), long encyclopedic articles, source code
+# and nine languages besides English.
+BLENDS = {
+    "mixed-v1": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+    },
+}
+BLEND_ALIASES = {"mixed": "mixed-v1"}
+DEFAULT_DATASET = "mixed"
+
+
+def blend_shares(name: str, documents: int) -> dict[str, int]:
+    """Each of the blend's presets' documents out of ``documents``, by weight, rounded down,
+    with the remainder going one each to the presets listed first."""
+    weights = BLENDS[BLEND_ALIASES.get(name, name)]
+    total = sum(weights.values())
+    shares = {preset: documents * w // total for preset, w in weights.items()}
+    for preset in list(shares)[: documents - sum(shares.values())]:
+        shares[preset] += 1
+    return shares
+
+
 # WikiText's top-level heading row (" = Title = \n") starts an article; sections are
 # " = = Section = = \n". Its text is tokenised: "1 @,@ 000", "well @-@ known", "lobster ,".
 _WIKITEXT_TITLE = re.compile(r" = [^=].* = \n?")
@@ -144,7 +175,7 @@ LAYOUTS = {"wikitext": wikitext_articles}
 
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
 # (`harness/annotations.py`). Exact labels from the dataset, never detected.
-DOCUMENT_LABELS = {"lang": LANGUAGE}
+DOCUMENT_LABELS = {"lang": LANGUAGE, "source": SOURCE}
 
 
 def source_path(corpus_path: Path) -> Path:
@@ -329,6 +360,97 @@ def build_from_hub(
     take its first documents. With ``lang_pattern`` (see :class:`Preset`), each document
     records its glob's language as ``lang``; with ``detect_lang``, the language
     :mod:`openinterp.langid` detects, where it is sure of one."""
+    texts, labels, source = _sample_hub(
+        dataset,
+        files=files,
+        text_column=text_column,
+        revision=revision,
+        documents=documents,
+        seed=seed,
+        max_chars=max_chars,
+        docs_per_row_group=docs_per_row_group,
+        layout=layout,
+        first=first,
+        lang_pattern=lang_pattern,
+        detect_lang=detect_lang,
+    )
+    return write_corpus(texts, out, ascii=ascii, labels=labels, **source)
+
+
+def build_blend(
+    name: str,
+    out: Path,
+    *,
+    documents: int = 500,
+    seed: int = 0,
+    max_chars: int = 3000,
+    ascii: bool = False,
+) -> CorpusSource:
+    """Sample each of a blend's presets (:data:`BLENDS`) for its share of ``documents``,
+    with one seed, and write them in the blend's order as one corpus. Each document records
+    its preset as ``source``, and Wikipedia's their language as ``lang``. The sidecar lists
+    every preset's own source, as ``openinterp corpus --dataset <preset>`` writes it alone,
+    so each part can be rebuilt and checked separately."""
+    name = BLEND_ALIASES.get(name, name)
+    texts: list[str] = []
+    labels: dict[str, list[str | None]] = {"lang": [], "source": []}
+    components = []
+    for preset, share in blend_shares(name, documents).items():
+        p = PRESETS[preset]
+        part, part_labels, source = _sample_hub(
+            p.dataset,
+            files=p.files,
+            text_column=p.text_column,
+            revision=p.revision,
+            documents=share,
+            seed=seed,
+            max_chars=max_chars,
+            docs_per_row_group=p.docs_per_row_group,
+            layout=p.layout,
+            lang_pattern=p.lang_pattern,
+        )
+        data = jsonl_bytes(part, ascii, part_labels)
+        components.append(
+            CorpusSource(
+                documents=len(part), sha256=hashlib.sha256(data).hexdigest(), ascii=ascii, **source
+            )
+        )
+        texts += part
+        labels["lang"] += (part_labels or {}).get("lang", [None] * len(part))
+        labels["source"] += [preset] * len(part)
+    return write_corpus(
+        texts,
+        out,
+        ascii=ascii,
+        labels=labels,
+        dataset=name,
+        files=",".join(c.dataset for c in components),
+        seed=seed,
+        max_chars=max_chars,
+        docs_per_row_group=None,
+        license="; ".join(f"{c.dataset}: {c.license or 'not stated'}" for c in components),
+        blend=name,
+        components=components,
+    )
+
+
+def _sample_hub(
+    dataset: str,
+    *,
+    files: str,
+    text_column: str,
+    revision: str | None,
+    documents: int,
+    seed: int,
+    max_chars: int,
+    docs_per_row_group: int,
+    layout: str | None,
+    first: bool = False,
+    lang_pattern: str | None = None,
+    detect_lang: bool = False,
+) -> tuple[list[str], dict | None, dict]:
+    """The documents :func:`build_from_hub` samples, their labels, and the fields of their
+    :class:`CorpusSource` besides those of the written file."""
     if lang_pattern and detect_lang:
         raise ValueError("a corpus's languages come from lang_pattern or detect_lang, not both")
     from huggingface_hub import HfApi, HfFileSystem
@@ -350,10 +472,7 @@ def build_from_hub(
         from openinterp import langid
 
         langs, detector = langid.detect(texts), langid.DETECTOR
-    return write_corpus(
-        texts,
-        out,
-        labels={"lang": langs} if lang_pattern or detect_lang else None,
+    source = dict(
         dataset=dataset,
         revision=info.sha,
         files=files,
@@ -363,11 +482,11 @@ def build_from_hub(
         docs_per_row_group=docs_per_row_group,
         layout=layout,
         first=first,
-        ascii=ascii,
         lang_pattern=lang_pattern,
         lang_detector=detector,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )
+    return texts, {"lang": langs} if lang_pattern or detect_lang else None, source
 
 
 def _read_globs(fs, repo: str, files: str, documents: int, take):

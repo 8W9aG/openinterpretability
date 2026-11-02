@@ -7,15 +7,17 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli
-from openinterp.corpus import LAYOUTS, PRESETS
+from openinterp.corpus import BLEND_ALIASES, BLENDS, DEFAULT_DATASET, LAYOUTS, PRESETS
 
 
 @cli.command()
 @click.option(
     "--dataset",
-    default="fineweb-edu",
+    default=DEFAULT_DATASET,
     show_default=True,
-    help=f"A preset ({', '.join(PRESETS)}) or a Hugging Face dataset ID (then pass --files).",
+    help=f"A blend of presets ({', '.join([*BLEND_ALIASES, *BLENDS])}; '{DEFAULT_DATASET}' is "
+    f"the latest), a preset ({', '.join(PRESETS)}) or a Hugging Face dataset ID (then pass "
+    "--files).",
 )
 @click.option(
     "--files",
@@ -98,8 +100,25 @@ def corpus(
     pins the dataset commit, files, seed and licence. `openinterp audit --corpus <out>`
     records that source in the submission's provenance.
     """
-    from openinterp.corpus import build_from_hub
+    from openinterp.corpus import build_blend, build_from_hub
 
+    if dataset in BLENDS or dataset in BLEND_ALIASES:
+        per_dataset = {
+            "--files": files, "--text-column": text_column, "--revision": revision,
+            "--layout": layout, "--docs-per-row-group": docs_per_row_group, "--first": first,
+            "--lang-pattern": lang_pattern, "--detect-lang": detect_lang,
+        }  # fmt: skip
+        if given := [name for name, value in per_dataset.items() if value]:
+            raise click.UsageError(
+                f"{', '.join(given)}: set per preset, so not with the blend {dataset!r}."
+            )
+        source = build_blend(
+            dataset, out, documents=documents, seed=seed, max_chars=max_chars, ascii=ascii_
+        )
+        _report(source, out, documents)
+        for part in source.components:
+            click.echo(f"  {part.documents} from {part}")
+        return
     preset = PRESETS.get(dataset)
     if detect_lang and lang_pattern:
         raise click.UsageError("--detect-lang and --lang-pattern both set the languages.")
@@ -121,6 +140,10 @@ def corpus(
         lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
         detect_lang=detect_lang,
     )
+    _report(source, out, documents)
+
+
+def _report(source, out: Path, documents: int) -> None:
     click.echo(f"Wrote {source.documents} documents to {out}: {source}")
     if source.lang_detector:
         click.echo(f"Languages detected by {source.lang_detector}", err=True)
