@@ -13,7 +13,9 @@ from click.testing import CliRunner
 from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.corpus import (
+    BLEND_ALIASES,
     BLENDS,
+    NOT_BLENDED,
     PRESETS,
     Preset,
     blend_shares,
@@ -272,6 +274,13 @@ def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
     shares = blend_shares("mixed", 23)
     assert sum(shares.values()) == 23 and list(shares.values()) == [5, 5, 5, 2, 3, 3]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
+
+
+def test_every_preset_is_in_the_latest_mixed_blend_or_says_why_not():
+    latest = BLENDS[BLEND_ALIASES["mixed"]]
+    assert set(latest) | set(NOT_BLENDED) == set(PRESETS), "a new preset needs a new mixed-vN"
+    assert not set(latest) & set(NOT_BLENDED)
+    assert BLEND_ALIASES["mixed"] == max(BLENDS, key=lambda name: int(name.split("-v")[1]))
 
 
 def test_a_blend_concatenates_its_presets_samples_and_labels_their_source(

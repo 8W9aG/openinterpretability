@@ -120,6 +120,12 @@ BLENDS = {
     },
 }
 BLEND_ALIASES = {"mixed": "mixed-v1"}
+# Presets left out of `mixed`, and why. Every other preset is in its latest version, so
+# adding a preset means adding a version of the blend (tests/test_corpus.py checks).
+NOT_BLENDED = {
+    "pile-10k": "pile-uncopyrighted covers the Pile, without its copyrighted components",
+    "tinystories": "synthetic children's stories, a control corpus rather than natural text",
+}
 DEFAULT_DATASET = "mixed"
 
 
