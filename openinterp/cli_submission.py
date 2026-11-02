@@ -58,11 +58,20 @@ def read_wiring(runner, submission):
 
 
 def write_submission(
-    agent, draft, runner, evidence, superseded, out: Path | None, contributor: str | None = None
+    agent,
+    draft,
+    runner,
+    evidence,
+    superseded,
+    out: Path | None,
+    contributor: str | None = None,
+    sister_file: Path | None = None,
 ) -> None:
-    """Build the submission (counterfactuals, Patchscope, steering, wiring) and write it."""
+    """Build the submission (counterfactuals, Patchscope, steering, wiring) and write it.
+    In a sister study (``sister_file``) the explanation is the sister's, word for word."""
     from openinterp.builder.wiki import experiment_id
     from openinterp.core import costs
+    from openinterp.sisters import sister_ref
 
     ident = evidence.identifier
     if superseded is not None and superseded.submission.identifier.slug != ident.slug:
@@ -70,6 +79,7 @@ def write_submission(
             f"--supersedes names an experiment on {superseded.submission.identifier}, "
             f"not on {ident}."
         )
+    sister, draft = sister_draft(sister_file, ident, draft)
     submission = build_submission(agent, draft, runner, evidence)
     readout = read_patchscope(runner, submission)
     steering = read_steering(runner, submission)
@@ -83,6 +93,7 @@ def write_submission(
             "opposite_pole": evidence.opposite_pole,
             "provenance": provenance,
             "supersedes": revises,
+            "sister_of": sister and sister_ref(sister),
             "patchscope": readout,
             "steering": steering,
             "wiring": wiring,
@@ -94,7 +105,21 @@ def write_submission(
     click.echo(f"Hypothesis: {submission.natural_language_explanation}")
     if revises:
         click.echo(f"Supersedes: {revises} ({superseded.verdict.status})")
+    if sister:
+        click.echo(f"Sister study of: {submission.sister_of}")
     click.echo(f"Wrote {out}")
+
+
+def sister_draft(sister_file, ident, draft):
+    """``(sister record, draft)``: in a sister study, the draft with the sister's
+    explanation, word for word; otherwise ``(None, draft)``."""
+    from openinterp.cli_evidence import load_sister
+
+    if sister_file is None:
+        return None, draft
+    sister = load_sister(sister_file, ident)
+    text = sister.submission.natural_language_explanation
+    return sister, draft.model_copy(update={"explanation": text})
 
 
 def build_submission(agent, draft, runner, evidence):

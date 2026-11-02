@@ -109,9 +109,9 @@ class ReviewerAgent(LLMAgent):
         submission: NeuronAuditSubmission,
         n: int = 20,
         full_snippets: bool = False,
-        dictionary_latents: str = "",
+        related: str = "",
     ) -> ProbeSet:
-        prompt = self.probe_prompt(submission, n, full_snippets, dictionary_latents)
+        prompt = self.probe_prompt(submission, n, full_snippets, related)
         return self.structured(ProbeSet, prompt)
 
     @staticmethod
@@ -119,11 +119,12 @@ class ReviewerAgent(LLMAgent):
         submission: NeuronAuditSubmission,
         n: int = 20,
         full_snippets: bool = False,
-        dictionary_latents: str = "",
+        related: str = "",
     ) -> str:
         """The task text the reviewer answers. It shows no activations of candidate probes.
-        ``dictionary_latents`` (:func:`openinterp.crossref.format_for_reviewer`) lists
-        published latents aligned with the pole, to probe where they disagree."""
+        ``related`` is what other analyses link to the unit: published latents aligned with
+        it (:func:`openinterp.crossref.format_for_reviewer`) and its studied sister neurons
+        (:func:`openinterp.sisters.format_sisters`), to probe where they disagree."""
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
@@ -145,7 +146,7 @@ class ReviewerAgent(LLMAgent):
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
             + (f"{context}\n" if context else "")
-            + (f"{dictionary_latents}\n" if dictionary_latents else "")
+            + (f"{related}\n" if related else "")
             + f"Write {n} probes."
         )
 

@@ -78,7 +78,28 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
         click.echo(f"Recorded the {exc.draw.outcome.replace('_', '-')} draw: {path}", err=True)
 
 
-def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
+def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None) -> str:
+    """What other research links to the unit, for the proposer: its studied sisters, or in
+    a sister study (``sister_file``) only its brief, since the explanation is fixed."""
+    from openinterp.cli_review import sisters_text
+    from openinterp.sisters import sister_brief
+
+    if sister_file:
+        return sister_brief(load_sister(sister_file, evidence.identifier))
+    return sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
+
+
+def load_sister(path: Path, unit):
+    """The record ``audit --sister-of`` names, checked against the audited ``unit``."""
+    from openinterp.sisters import load_sister_source
+
+    try:
+        return load_sister_source(path, unit)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), param_hint="--sister-of") from exc
+
+
+def write_evidence(evidence, path: Path, full_snippets: bool = False, related: str = "") -> None:
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
 
@@ -100,6 +121,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
         evidence.dictionary_profile,
         bool(evidence.first_token_floor),
         full_snippets,
+        related,
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -216,6 +238,20 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False) -> None:
     help="HypothesisDraft JSON answering the --evidence-out prompt. No LLM is called.",
 )
 @click.option(
+    "--sister-of",
+    "sister_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="A sister-neuron study: the archived VERIFIED record of a pole in another model "
+    "whose explanation this pole is tested on, unchanged. Give it to both steps.",
+)
+@click.option(
+    "--sisters/--no-sisters",
+    default=True,
+    show_default=True,
+    help="Show the proposer the pole's sister neurons in other models that this registry "
+    "has studied (`openinterp sisters`), with their explanations.",
+)
+@click.option(
     "--supersedes",
     "superseded_file",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
@@ -254,6 +290,8 @@ def audit(
     evidence_out,
     evidence_file,
     hypothesis_file,
+    sister_file,
+    sisters,
     superseded_file,
     out,
     wiki_dir,
@@ -302,13 +340,14 @@ def audit(
             sample_seed=sample_seed,
         )
         runner, evidence = scan_or_record(request, use_scan_cache, wiki_dir, device)
+        related = proposer_context(evidence, wiki_dir, sisters, sister_file)
         if evidence_out is not None:
-            write_evidence(evidence, evidence_out, full_snippets)
+            write_evidence(evidence, evidence_out, full_snippets, related)
             return
-        agent, draft = ask_proposer(agent_model, evidence, full_snippets)
+        agent, draft = ask_proposer(agent_model, evidence, full_snippets, related)
     from openinterp.cli_submission import write_submission
 
-    write_submission(agent, draft, runner, evidence, superseded, out, contributor)
+    write_submission(agent, draft, runner, evidence, superseded, out, contributor, sister_file)
 
 
 def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:
@@ -413,7 +452,7 @@ def scan_or_record(request, use_scan_cache: bool, wiki_dir: Path, device):
         raise
 
 
-def ask_proposer(agent_model, evidence, full_snippets: bool):
+def ask_proposer(agent_model, evidence, full_snippets: bool, related: str = ""):
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.proposer import ProposerAgent
 
@@ -430,5 +469,6 @@ def ask_proposer(agent_model, evidence, full_snippets: bool):
         evidence.dictionary_profile,
         bool(evidence.first_token_floor),
         full_snippets,
+        related,
     )
     return agent, draft

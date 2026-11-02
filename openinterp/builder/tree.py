@@ -222,6 +222,7 @@ class ModelNode:
 # write-once, so the width can't be backfilled into them; a width on any record wins.
 KNOWN_MLP_WIDTHS = {
     "Qwen/Qwen2.5-0.5B": 4864,
+    "Qwen/Qwen2.5-1.5B": 8960,
 }
 
 
