@@ -28,7 +28,7 @@ The 0.5B → 1.5B pair took about 30 minutes for each pass; each GPT-2 pair took
 
 **A fifth of Qwen2.5-0.5B's VERIFIED poles have a sister in Qwen2.5-1.5B.** Every mutual best match also beat the rotated reference, which is low throughout (median 0.08): no unit of a randomly rotated basis tracks a pole the way the sibling's own neurons do. The best matches of sisters correlate more strongly than those of other poles (median 0.42, interquartile range 0.27–0.65), and 12 of the 13 poles whose best match reaches 0.7 have a sister. The strongest is L22/N2511− → L22/N2260− (r 0.92, rotated 0.39).
 
-**Sisters sit at the same relative depth.** The median gap between a pole's depth (layer / 23) and its sister's (layer / 27) is 0.045, about one layer. That is how Gurnee et al. (2024) found universal neurons across GPT-2 seeds. The search covered every layer, so this was not imposed.
+**Sisters sit at the same relative depth.** The median gap between a pole's depth (layer / 23) and its sister's (layer / 27) is 0.045, about one layer. That is how Gurnee et al. (2024) found universal neurons across GPT-2 seeds. The search covered every layer, so this was not imposed. Each model's page on the site draws the pairs by relative depth: the 0.5B ↔ 1.5B sisters run level across the two columns, and the 19 GPT-2 ↔ Qwen2.5-0.5B sisters scatter more widely (median gap 0.075).
 
 **The sign of a sister is arbitrary.** 24 of the 53 sisters match a positive pole with a negative one, or the reverse. A gated neuron's sign depends on the sign of its `up` weights, which training needn't preserve across models, so a neuron's two poles are matched separately and either may be the sister.
 

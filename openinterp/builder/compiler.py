@@ -32,6 +32,7 @@ from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.significance import evidence_strength
+from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
 from openinterp.builder.tree import (
     Experiment,
@@ -460,9 +461,9 @@ def _render_model(
     named_by = by_match_slug(sister_rows)
     anchor_of = unit_anchors(found, found_hubs)
     page = circuits_href(model.slug)
-    render(
-        model.href, "model.html", model=model, circuits=found, hubs=found_hubs, circuits_page=page
-    )
+    graphs = sister_graphs(model, sister_rows, studied)
+    shown = {"circuits": found, "hubs": found_hubs, "circuits_page": page, "sister_graphs": graphs}
+    render(model.href, "model.html", model=model, **shown)
     if found or found_hubs:
         n_units = sum(len(c.units) for c in found)
         view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}

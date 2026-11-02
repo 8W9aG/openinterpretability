@@ -48,7 +48,9 @@ class SisterRow(StrictModel):
     """One VERIFIED pole against one other model: its best-correlated poles there,
     strongest first, and ``rotated``, the best correlation it reaches with a unit of a
     random rotation of the first match's layer. ``tokens`` positions were paired, the
-    share ``coverage`` of the source model's (each text's first token left out)."""
+    share ``coverage`` of the source model's (each text's first token left out).
+    ``layers`` and ``other_layers`` are the two models' depths, so a pole's relative depth
+    is known for a model the registry has no page for."""
 
     slug: str
     other: str
@@ -60,6 +62,8 @@ class SisterRow(StrictModel):
     coverage: float
     matches: list[SisterMatch]
     rotated: float
+    layers: int | None = None
+    other_layers: int | None = None
 
     @property
     def top(self) -> SisterMatch | None:
@@ -173,6 +177,8 @@ def sisters(
         "corpus_sha256": corpus_sha256,
         "tokens": tokens,
         "coverage": round(tokens / max(readable, 1), 4),
+        "layers": source.n_layers,
+        "other_layers": oth.n_layers,
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("a") as f:
@@ -210,7 +216,7 @@ def by_match_slug(rows: dict[str, list[SisterRow]]) -> dict[str, list[SisterRow]
     return out
 
 
-def _href(slug: str) -> str:
+def pole_href(slug: str) -> str:
     """A pole slug's neuron page: ``M/L3/N7-positive`` → ``models/M/L3/N7.html``."""
     from openinterp.builder.tree import neuron_href
 
@@ -236,7 +242,7 @@ def sister_view(
         for row in rows.get(slug, []):
             matches = []
             for m in row.matches:
-                href = _href(m.slug(row.other))
+                href = pole_href(m.slug(row.other))
                 matches.append(
                     {
                         "m": m,
@@ -249,7 +255,7 @@ def sister_view(
         back = []
         for row in named_by.get(slug, []):
             m = next(m for m in row.matches if m.slug(row.other) == slug)
-            href = _href(row.slug)
+            href = pole_href(row.slug)
             tested = tests.get((slug, row.slug))
             back.append(
                 {"row": row, "m": m, "href": href if href in studied else None, "tested": tested}
@@ -389,7 +395,7 @@ def sister_brief(source: AuditRecord) -> str:
 def sister_source_href(ref: str) -> str:
     """The page and anchor of the experiment a ``sister_of`` names."""
     slug, experiment = ref.rsplit("/", 1)
-    return f"{_href(slug)}#{slug.rsplit('-', 1)[1]}-{experiment}"
+    return f"{pole_href(slug)}#{slug.rsplit('-', 1)[1]}-{experiment}"
 
 
 def sister_tests(experiments) -> dict[tuple[str, str], str]:

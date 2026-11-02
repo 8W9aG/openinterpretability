@@ -8,6 +8,7 @@ import pytest
 import torch
 
 from openinterp.builder.compiler import compile_site
+from openinterp.builder.sister_graph import sister_graphs
 from openinterp.core.schemas import NeuronIdentifier
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.sisters import Correlations, find_sisters, paired_rows, shared_boundaries
@@ -132,6 +133,7 @@ def test_rows_cover_verified_poles_and_link_both_ways(tmp_path, qwen_runner, tex
     (row,) = rows["tiny/L1/N5-positive"]
     assert row.mutual and row.sister is not None and row.coverage == 1.0
     assert row.sister.slug("tiny-twin") == "tiny-twin/L1/N5-positive"
+    assert row.layers == row.other_layers == qwen_runner.n_layers
     assert sisters(records, load, out, texts, echo=lambda _: None, **kw) == 0  # already done
 
     site = tmp_path / "site"
@@ -140,6 +142,8 @@ def test_rows_cover_verified_poles_and_link_both_ways(tmp_path, qwen_runner, tex
     assert "Sister neurons" in page and "models/tiny-twin/L1/N5.html" in page
     back = (site / "models/tiny-twin/L1/N5.html").read_text()
     assert "Matched from" in back and "models/tiny/L1/N5.html" in back
+    for model, other in (("tiny", "tiny-twin"), ("tiny-twin", "tiny")):
+        assert f"{model} ↔ {other}" in (site / f"models/{model}/index.html").read_text()
 
 
 def test_a_sister_must_be_mutual_and_beat_the_rotated_basis():
@@ -315,3 +319,34 @@ def test_pages_link_a_sister_study_to_its_source(tmp_path, record):
     assert "tested here: VERIFIED" in page
     source_page = (site / "models/Qwen--Qwen2.5-0.5B/L3/N117.html").read_text()
     assert "models/o--m/L2/N9.html" in source_page
+
+
+def test_the_sister_graph_joins_both_searches_by_relative_depth():
+    a, b = "org/a", "org/b"
+    rows = {
+        "org--a/L3/N1-positive": [  # a's sister in b, found from a: a is 4 layers, b 7
+            _sister_row(
+                "org--a/L3/N1-positive", b, [(6, 2, "negative", 0.8, "org--a/L3/N1-positive", 0.8)]
+            )
+        ],
+        "org--b/L6/N2-negative": [  # the same pair found from b: drawn once
+            _sister_row(
+                "org--b/L6/N2-negative", a, [(3, 1, "positive", 0.8, "org--b/L6/N2-negative", 0.8)]
+            )
+        ],
+        "org--b/L0/N4-positive": [  # b's weak best match in a, not mutual
+            _sister_row(
+                "org--b/L0/N4-positive", a, [(1, 7, "positive", 0.2, "org--b/L5/N5-positive", 0.3)]
+            )
+        ],
+    }
+    rows["org--a/L3/N1-positive"][0] = rows["org--a/L3/N1-positive"][0].model_copy(
+        update={"layers": 4, "other_layers": 7}
+    )
+    model = type("M", (), {"name": a, "n_layers": 4})()
+    (g,) = sister_graphs(model, rows, studied=set())
+    assert (g["other"], g["n_edges"], g["n_sisters"]) == (b, 2, 1)
+    assert g["depth_gap"] == 0.0  # L3 of 4 and L6 of 7 are both the last layer
+    (sister,) = g["sisters"]
+    assert sister["a"]["y"] == sister["b"]["y"] and sister["a"]["label"] == "L3/N1+"
+    assert g["lines"][-1]["sister"]  # drawn on top
