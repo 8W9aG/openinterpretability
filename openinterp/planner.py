@@ -52,7 +52,7 @@ BASE_WEIGHTS = {
     "opposite_pole": 1.0,  # the other half of a studied neuron
     "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
     "challenge": 0.6,  # VERIFIED and replicated: hunt for counterexamples
-    "sister": 1.0,  # a VERIFIED pole's sister in another model (other matches: LINK_WEIGHT)
+    "sister": 10.0,  # a ready hypothesis on its likeliest carrier (others: LINK_WEIGHT)
 }
 SKILLS = {
     "explore": ["native-neuron-audit", "neuron-family-triage", "vocab-projection-lookahead"],
