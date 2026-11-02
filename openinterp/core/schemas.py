@@ -62,6 +62,8 @@ PROTOCOL_VERSION = "0.8"
 ACTIVATION_THRESHOLD = 0.25
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.
 EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
+# An experiment on a neuron pole anywhere in the registry: its pole's slug, then its id.
+SISTER_OF_PATTERN = r"^[A-Za-z0-9._-]+/L\d+/N\d+-(positive|negative)/\d{8}T\d{6}Z$"
 # ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
 BUILTIN_CORPUS = "builtin:sample_corpus"
 Contributor = Annotated[
@@ -311,6 +313,13 @@ class NeuronAuditSubmission(StrictModel):
         pattern=EXPERIMENT_ID_PATTERN,
         description="Experiment id of the earlier experiment on the same unit that this "
         "submission revises (reported, not gated).",
+    )
+    sister_of: str | None = Field(
+        default=None,
+        pattern=SISTER_OF_PATTERN,
+        description="A sister-neuron study: the experiment (``<pole slug>/<experiment id>``) "
+        "on a VERIFIED pole of another model whose explanation this submission tests on its "
+        "sister, unchanged (reported, not gated).",
     )
     opposite_pole: OppositePole | None = Field(
         default=None,

@@ -30,7 +30,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from openinterp.core.confounds import LANGUAGE
+from openinterp.core.confounds import LANGUAGE, SOURCE
 from openinterp.core.schemas import CorpusSample, CorpusSource
 
 # What `openinterp audit` scans by default (protocol 0.7): a fixed seed, so every audit
@@ -144,7 +144,7 @@ LAYOUTS = {"wikitext": wikitext_articles}
 
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
 # (`harness/annotations.py`). Exact labels from the dataset, never detected.
-DOCUMENT_LABELS = {"lang": LANGUAGE}
+DOCUMENT_LABELS = {"lang": LANGUAGE, "source": SOURCE}
 
 
 def source_path(corpus_path: Path) -> Path:
@@ -329,6 +329,40 @@ def build_from_hub(
     take its first documents. With ``lang_pattern`` (see :class:`Preset`), each document
     records its glob's language as ``lang``; with ``detect_lang``, the language
     :mod:`openinterp.langid` detects, where it is sure of one."""
+    texts, labels, source = _sample_hub(
+        dataset,
+        files=files,
+        text_column=text_column,
+        revision=revision,
+        documents=documents,
+        seed=seed,
+        max_chars=max_chars,
+        docs_per_row_group=docs_per_row_group,
+        layout=layout,
+        first=first,
+        lang_pattern=lang_pattern,
+        detect_lang=detect_lang,
+    )
+    return write_corpus(texts, out, ascii=ascii, labels=labels, **source)
+
+
+def _sample_hub(
+    dataset: str,
+    *,
+    files: str,
+    text_column: str,
+    revision: str | None,
+    documents: int,
+    seed: int,
+    max_chars: int,
+    docs_per_row_group: int,
+    layout: str | None,
+    first: bool = False,
+    lang_pattern: str | None = None,
+    detect_lang: bool = False,
+) -> tuple[list[str], dict | None, dict]:
+    """The documents :func:`build_from_hub` samples, their labels, and the fields of their
+    :class:`CorpusSource` besides those of the written file."""
     if lang_pattern and detect_lang:
         raise ValueError("a corpus's languages come from lang_pattern or detect_lang, not both")
     from huggingface_hub import HfApi, HfFileSystem
@@ -350,10 +384,7 @@ def build_from_hub(
         from openinterp import langid
 
         langs, detector = langid.detect(texts), langid.DETECTOR
-    return write_corpus(
-        texts,
-        out,
-        labels={"lang": langs} if lang_pattern or detect_lang else None,
+    source = dict(
         dataset=dataset,
         revision=info.sha,
         files=files,
@@ -363,11 +394,11 @@ def build_from_hub(
         docs_per_row_group=docs_per_row_group,
         layout=layout,
         first=first,
-        ascii=ascii,
         lang_pattern=lang_pattern,
         lang_detector=detector,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )
+    return texts, {"lang": langs} if lang_pattern or detect_lang else None, source
 
 
 def _read_globs(fs, repo: str, files: str, documents: int, take):
