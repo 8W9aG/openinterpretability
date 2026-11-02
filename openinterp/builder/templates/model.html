@@ -81,4 +81,58 @@
     </tbody>
   </table>
 </div>
+
+{% if sister_graphs %}
+<section class="mt-10" data-pagefind-ignore>
+  <h2 class="text-lg font-semibold">Sister neurons</h2>
+  <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model, from either model's sister search (<code>openinterp sisters</code>). Poles sit at their relative depth, so the same depth is level in both columns. A <em>sister</em> is a mutual best match above the rotated basis: a candidate for the same concept, which a sister study tests.</p>
+  {% for g in sister_graphs %}
+  <figure class="mt-6">
+    <h3 class="font-mono text-sm font-medium">{{ model.name }} ↔ {{ g.other }}</h3>
+    <div class="overflow-x-auto">
+    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-[720px]" role="img" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
+      <text x="{{ g.columns[0] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ model.name }}</text>
+      <text x="{{ g.columns[1] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ g.other }}</text>
+      {% for t in g.ticks %}
+      <text x="{{ t.x }}" y="{{ t.y + 3 }}" text-anchor="{{ t.anchor }}" class="fill-slate-500 font-mono" font-size="9">{{ t.label }}</text>
+      {% endfor %}
+      {% for l in g.lines %}
+      <path d="{{ l.d }}" fill="none" class="{{ 'stroke-emerald-600 dark:stroke-emerald-400' if l.sister else 'stroke-slate-400 dark:stroke-slate-500' }}" stroke-width="{{ 1.6 if l.sister else 0.8 }}" stroke-opacity="{{ l.opacity }}"><title>{{ l.label }}{{ ' (sister)' if l.sister }}</title></path>
+      {% endfor %}
+      {% for n in g.nodes %}
+      {% if n.href %}<a href="{{ root }}{{ n.href }}">{% endif %}<circle cx="{{ n.x }}" cy="{{ n.y }}" r="2.2" class="{{ 'fill-emerald-700 dark:fill-emerald-300' if n.href else 'fill-slate-500 dark:fill-slate-400' }}"><title>{{ n.label }}</title></circle>{% if n.href %}</a>{% endif %}
+      {% endfor %}
+    </svg>
+    </div>
+    <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+      <span><svg class="inline align-middle" width="16" height="10" aria-hidden="true"><line x1="1" y1="5" x2="15" y2="5" class="stroke-emerald-600 dark:stroke-emerald-400" stroke-width="2"/></svg> sister {{ g.n_sisters }}</span>
+      <span><svg class="inline align-middle" width="16" height="10" aria-hidden="true"><line x1="1" y1="5" x2="15" y2="5" class="stroke-slate-400" stroke-width="1"/></svg> other best match {{ g.n_edges - g.n_sisters }}</span>
+      {% if g.depth_gap is not none %}<span>median depth gap of sisters {{ '%.3f' | format(g.depth_gap) }}</span>{% endif %}
+      <span>Lines are darker the higher the correlation; hover one for r. Dark poles have a page here.</span>
+    </figcaption>
+    {% if g.sisters %}
+    <details class="mt-2">
+      <summary class="cursor-pointer text-xs text-slate-500">{{ g.n_sisters }} sister{{ "" if g.n_sisters == 1 else "s" }}</summary>
+      <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+            <tr><th class="px-3 py-2">{{ model.name }}</th><th class="px-3 py-2">{{ g.other }}</th><th class="px-3 py-2 text-right">r</th><th class="px-3 py-2 text-right">Rotated</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-mono dark:divide-slate-800">
+            {% for s in g.sisters %}
+            <tr>
+              {% for n in (s.a, s.b) %}<td class="px-3 py-1">{% if n.href %}<a class="text-emerald-700 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% else %}{{ n.label }}{% endif %}</td>{% endfor %}
+              <td class="px-3 py-1 text-right tabular-nums">{{ '%.2f' | format(s.pearson) }}</td>
+              <td class="px-3 py-1 text-right tabular-nums">{{ '%.2f' | format(s.rotated) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+  </figure>
+  {% endfor %}
+</section>
+{% endif %}
 {% endblock %}
