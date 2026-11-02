@@ -27,7 +27,7 @@ class CorpusSource(StrictModel):
     documents: int = Field(ge=0)
     seed: int
     max_chars: int = Field(gt=0)
-    docs_per_row_group: int = Field(gt=0)
+    docs_per_row_group: int | None = Field(default=None, gt=0, description="None: a blend.")
     layout: str | None = Field(
         default=None,
         description="How rows were joined into documents (e.g. 'wikitext'); None: one per row.",
@@ -47,10 +47,23 @@ class CorpusSource(StrictModel):
     )
     license: str | None = None
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
+    blend: str | None = Field(
+        default=None,
+        description="The versioned blend of presets this corpus is (openinterp.blends.BLENDS), "
+        "e.g. 'mixed-v1'; its documents are its components' in order, each recording its "
+        "preset as 'source'. None: one dataset.",
+    )
+    components: list[CorpusSource] | None = Field(
+        default=None,
+        description="A blend's samples, one per preset, each as `openinterp corpus` writes "
+        "that preset alone with the same seed and its share of the documents.",
+    )
 
     def __str__(self) -> str:
-        at = f"@{self.revision[:8]}" if self.revision else ""
         how = f"{self.documents} docs, seed {self.seed}"
+        if self.blend:
+            return f"{self.blend} ({len(self.components or [])} presets, {how})"
+        at = f"@{self.revision[:8]}" if self.revision else ""
         how = f"first {self.documents} docs" if self.first else how
         return f"{self.dataset}{at} ({self.files}, {how})"
 

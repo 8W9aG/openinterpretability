@@ -10,9 +10,12 @@ import pyarrow.parquet as pq
 import pytest
 from click.testing import CliRunner
 
+from openinterp.blends import BLEND_ALIASES, BLENDS, NOT_BLENDED, blend_shares, build_blend
 from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.corpus import (
+    PRESETS,
+    Preset,
     build_from_hub,
     first_documents,
     jsonl_bytes,
@@ -24,6 +27,7 @@ from openinterp.corpus import (
     wikitext_articles,
     write_corpus,
 )
+from openinterp.evidence import read_labels
 from tests.conftest import FakeTokenizer
 
 
@@ -255,6 +259,92 @@ def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_pat
     assert (calls["detect_lang"], calls["lang_pattern"]) == (True, None)
     both = CliRunner().invoke(cli, [*args, "--lang-pattern", "x"])
     assert both.exit_code != 0 and "both set the languages" in both.output
+
+
+def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
+    assert blend_shares("mixed", 500) == {
+        "fineweb-edu": 100, "c4": 100, "pile-uncopyrighted": 100, "wikitext": 50,
+        "github-code": 75, "wikipedia-multilingual": 75,
+    }  # fmt: skip
+    assert blend_shares("mixed-v1", 500) == blend_shares("mixed", 500)
+    shares = blend_shares("mixed", 23)
+    assert sum(shares.values()) == 23 and list(shares.values()) == [5, 5, 5, 2, 3, 3]
+    assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
+
+
+def test_every_preset_is_in_the_latest_mixed_blend_or_says_why_not():
+    latest = BLENDS[BLEND_ALIASES["mixed"]]
+    assert set(latest) | set(NOT_BLENDED) == set(PRESETS), "a new preset needs a new mixed-vN"
+    assert not set(latest) & set(NOT_BLENDED)
+    assert BLEND_ALIASES["mixed"] == max(BLENDS, key=lambda name: int(name.split("-v")[1]))
+
+
+def test_a_blend_concatenates_its_presets_samples_and_labels_their_source(
+    tmp_path, shards, monkeypatch
+):
+    local = fsspec.filesystem("file")
+    by_dataset = {"org/web": shards[:1], "org/wiki": shards[1:]}
+
+    class FakeFS:
+        def glob(self, pattern):
+            repo = pattern.removeprefix("datasets/").split("@")[0]
+            return by_dataset[repo]
+
+        def open(self, path, mode):
+            return local.open(path, mode)
+
+    def info(dataset, revision=None):
+        card = SimpleNamespace(to_dict=lambda: {"license": dataset.split("/")[1] + "-licence"})
+        return SimpleNamespace(sha=dataset.split("/")[1] + "-sha", card_data=card)
+
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", FakeFS)
+    monkeypatch.setattr("huggingface_hub.HfApi", lambda: SimpleNamespace(dataset_info=info))
+    monkeypatch.setitem(PRESETS, "web", Preset("org/web", "data/*.parquet"))
+    monkeypatch.setitem(
+        PRESETS,
+        "wiki",
+        Preset("org/wiki", "1.en/*.parquet,1.de/*.parquet", lang_pattern=r"^1\.(\w+)/"),
+    )
+    monkeypatch.setitem(BLENDS, "test-v1", {"web": 2, "wiki": 1})
+
+    out = tmp_path / "mixed.jsonl"
+    source = build_blend("test-v1", out, documents=9, seed=3, max_chars=99)
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    assert [r["source"] for r in rows] == ["web"] * 6 + ["wiki"] * 3
+    assert [r["lang"] for r in rows] == [None] * 6 + ["en", "en", "de"]
+    assert read_labels(out) == {"language": [r["lang"] for r in rows],
+                                "source": [r["source"] for r in rows]}  # fmt: skip
+    assert (source.blend, source.dataset, source.documents) == ("test-v1", "test-v1", 9)
+    assert source.license == "org/web: web-licence; org/wiki: wiki-licence"
+    assert str(source) == "test-v1 (2 presets, 9 docs, seed 3)"
+    assert read_corpus(out)[3] == source  # the sidecar round-trips
+
+    # Each component is exactly what building its preset alone writes.
+    for part in source.components:
+        name = next(k for k, v in PRESETS.items() if v.dataset == part.dataset)
+        preset, alone = PRESETS[name], tmp_path / f"{name}.jsonl"
+        built = build_from_hub(
+            preset.dataset, alone, files=preset.files, documents=part.documents, seed=3,
+            max_chars=99, lang_pattern=preset.lang_pattern,
+        )  # fmt: skip
+        assert built == part
+
+
+def test_cli_builds_the_mixed_blend_by_default(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_blend(name, out, **kw):
+        calls.update(kw, name=name)
+        return SimpleNamespace(documents=kw["documents"], license=None, lang_detector=None,
+                               components=[])  # fmt: skip
+
+    monkeypatch.setattr("openinterp.blends.build_blend", fake_blend)
+    args = ["corpus", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
+    assert CliRunner().invoke(cli, args).exit_code == 0
+    assert calls == {"name": "mixed", "documents": 3, "seed": 0, "max_chars": 3000,
+                     "ascii": False}  # fmt: skip
+    wrong = CliRunner().invoke(cli, [*args, "--first", "--revision", "abc"])
+    assert wrong.exit_code != 0 and "--revision, --first: set per preset" in wrong.output
 
 
 def test_cli_needs_files_for_non_presets():
