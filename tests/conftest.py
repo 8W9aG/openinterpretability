@@ -161,7 +161,11 @@ class FakeTokenizer:
     def _id(self, ch: str) -> int:
         return 1 + ord(ch) % (VOCAB - 1)
 
-    def __call__(self, texts, return_tensors="pt", padding=True):
+    def __call__(self, texts, return_tensors="pt", padding=True, return_offsets_mapping=False):
+        if isinstance(texts, str):  # one text, as lists, with each token's character span
+            ids = self.encode(texts)
+            spans = [(i, i + 1) for i in range(len(ids))]
+            return {"input_ids": ids, "attention_mask": [1] * len(ids), "offset_mapping": spans}
         ids = [[self._id(c) for c in t] or [0] for t in texts]
         width = max(map(len, ids))
         return {

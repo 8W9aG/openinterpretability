@@ -300,7 +300,6 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Cross-model universality ("sister neurons"): a new kind of study that determines whether two neurons in different models represent the same concept. Start by matching verified neurons across sibling models (Qwen2.5-0.5B ↔ 1.5B), then link matched neurons on the site, and later draw a cross-model graph of them.
 - [ ] Parameter-space decomposition as a second baseline: compare verified neurons with APD/SPD components (Braun et al., 2025; Bushnaq et al., 2025) on the small models where those methods run.
 
 ## Datasets
@@ -316,7 +315,7 @@ Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Huggin
 
 The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test, a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means) and a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml` and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
 
-- [ ] Qwen2.5 family: 1.5B, 3B and the `-Instruct` variants, for base ↔ instruct and size-scaling comparisons with the default model.
+- [ ] Qwen2.5 family: 3B and the `-Instruct` variants, for base ↔ instruct and size-scaling comparisons with the default model (1.5B is in).
 - [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate, which makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
 - [ ] GPT-2 medium (GPT-2 small is in): the best-documented model family in the circuits literature; good for the positive-control task.
 - [ ] SmolLM2 (135M, 360M, 1.7B): fully open data, cheap enough for CI smoke tests.

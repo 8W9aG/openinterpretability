@@ -60,7 +60,7 @@ packages = ["openinterp"]
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
 # CI can reproduce every record the planner asks for. A new model also needs the checks
 # under "Models" in TODO.md first.
-models = ["Qwen/Qwen2.5-0.5B", "openai-community/gpt2"]
+models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2"]
 
 [tool.openinterp.window_tokens]
 # Scan window for models that read fewer positions than the corpus's longest documents.
