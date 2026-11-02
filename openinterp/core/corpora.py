@@ -49,7 +49,7 @@ class CorpusSource(StrictModel):
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
     blend: str | None = Field(
         default=None,
-        description="The versioned blend of presets this corpus is (openinterp.corpus.BLENDS), "
+        description="The versioned blend of presets this corpus is (openinterp.blends.BLENDS), "
         "e.g. 'mixed-v1'; its documents are its components' in order, each recording its "
         "preset as 'source'. None: one dataset.",
     )

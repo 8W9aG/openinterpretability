@@ -6,8 +6,9 @@ from pathlib import Path
 
 import click
 
+from openinterp.blends import BLEND_ALIASES, BLENDS, DEFAULT_DATASET
 from openinterp.cli import cli
-from openinterp.corpus import BLEND_ALIASES, BLENDS, DEFAULT_DATASET, LAYOUTS, PRESETS
+from openinterp.corpus import LAYOUTS, PRESETS
 
 
 @cli.command()
@@ -100,7 +101,7 @@ def corpus(
     pins the dataset commit, files, seed and licence. `openinterp audit --corpus <out>`
     records that source in the submission's provenance.
     """
-    from openinterp.corpus import build_blend, build_from_hub
+    from openinterp.corpus import build_from_hub
 
     if dataset in BLENDS or dataset in BLEND_ALIASES:
         per_dataset = {
@@ -108,17 +109,7 @@ def corpus(
             "--layout": layout, "--docs-per-row-group": docs_per_row_group, "--first": first,
             "--lang-pattern": lang_pattern, "--detect-lang": detect_lang,
         }  # fmt: skip
-        if given := [name for name, value in per_dataset.items() if value]:
-            raise click.UsageError(
-                f"{', '.join(given)}: set per preset, so not with the blend {dataset!r}."
-            )
-        source = build_blend(
-            dataset, out, documents=documents, seed=seed, max_chars=max_chars, ascii=ascii_
-        )
-        _report(source, out, documents)
-        for part in source.components:
-            click.echo(f"  {part.documents} from {part}")
-        return
+        return _blend(dataset, per_dataset, out, documents, seed, max_chars, ascii_)
     preset = PRESETS.get(dataset)
     if detect_lang and lang_pattern:
         raise click.UsageError("--detect-lang and --lang-pattern both set the languages.")
@@ -141,6 +132,21 @@ def corpus(
         detect_lang=detect_lang,
     )
     _report(source, out, documents)
+
+
+def _blend(dataset, per_dataset: dict, out: Path, documents, seed, max_chars, ascii_) -> None:
+    from openinterp.blends import build_blend
+
+    if given := [name for name, value in per_dataset.items() if value]:
+        raise click.UsageError(
+            f"{', '.join(given)}: set per preset, so not with the blend {dataset!r}."
+        )
+    source = build_blend(
+        dataset, out, documents=documents, seed=seed, max_chars=max_chars, ascii=ascii_
+    )
+    _report(source, out, documents)
+    for part in source.components:
+        click.echo(f"  {part.documents} from {part}")
 
 
 def _report(source, out: Path, documents: int) -> None:

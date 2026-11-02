@@ -10,16 +10,12 @@ import pyarrow.parquet as pq
 import pytest
 from click.testing import CliRunner
 
+from openinterp.blends import BLEND_ALIASES, BLENDS, NOT_BLENDED, blend_shares, build_blend
 from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.corpus import (
-    BLEND_ALIASES,
-    BLENDS,
-    NOT_BLENDED,
     PRESETS,
     Preset,
-    blend_shares,
-    build_blend,
     build_from_hub,
     first_documents,
     jsonl_bytes,
@@ -342,7 +338,7 @@ def test_cli_builds_the_mixed_blend_by_default(monkeypatch, tmp_path):
         return SimpleNamespace(documents=kw["documents"], license=None, lang_detector=None,
                                components=[])  # fmt: skip
 
-    monkeypatch.setattr("openinterp.corpus.build_blend", fake_blend)
+    monkeypatch.setattr("openinterp.blends.build_blend", fake_blend)
     args = ["corpus", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     assert CliRunner().invoke(cli, args).exit_code == 0
     assert calls == {"name": "mixed", "documents": 3, "seed": 0, "max_chars": 3000,
