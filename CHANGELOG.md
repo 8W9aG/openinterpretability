@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Added
 
+- **Registry-wide statistics over random neuron poles** (`docs/analyses/registry-stats.md`, `scripts/registry_stats.py`; TODO, Protocol and science). Over the 1,088 randomly selected poles, 27.3% are VERIFIED on their first reading, 30.6% by standing and 32.4% ever. Since draws were first recorded, 41% of GPT-2 small's random draws stopped at the scan (all default-on negative poles), no Qwen draw stopped, and no neuron pole was dead. With those draws counted, GPT-2 small's share VERIFIED falls from 19.4% to 11.5%. No layer effect is detectable. A later reading of a hypothesis agrees with its first in 56% of pairs (73% on VERIFIED or not, κ = 0.44). The proposer–reviewer pair and the 552-token built-in scan sample move the rates more than the model does.
 - **Docstrings and comments in ASD-STE100 Simplified Technical English, checked** (TODO, Code quality and tooling). Every comment and docstring in `openinterp/`, `scripts/` and `tests/` now passes three checks, which `make lint`, `make vale` and CI run:
   - *Ruff* selects `D` (pydocstyle, Google convention) and `ERA` (commented-out code). Tests are exempt from `D1` only: a test's name says what it checks. The LLM response models keep no docstring (`# noqa: D101`), because Pydantic copies a class docstring into the JSON schema the agents read.
   - *interrogate* holds docstring coverage of `openinterp/` at `fail-under = 94`, up from 69%. It skips magic, `__init__` and private names, as the `D` rules do.
