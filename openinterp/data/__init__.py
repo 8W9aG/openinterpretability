@@ -1,3 +1,5 @@
+"""Data files shipped with the package: the built-in sample corpus."""
+
 from importlib.resources import files
 
 

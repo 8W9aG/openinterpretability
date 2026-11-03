@@ -1,5 +1,7 @@
-"""``openinterp audit``, and its helpers: scan caching and prompt/answer files. Corpus
-loading and the scan itself are in :mod:`openinterp.evidence`."""
+"""``openinterp audit`` and its helpers: scan caching and prompt/answer files.
+
+Corpus loading and the scan itself are in :mod:`openinterp.evidence`.
+"""
 
 from __future__ import annotations
 
@@ -35,6 +37,7 @@ scan_cache_option = click.option(
 
 
 def open_scan_cache(enabled: bool):
+    """The default layer-scan cache, or ``None`` when ``enabled`` is false."""
     from openinterp.harness.layer_cache import LayerCache
 
     return LayerCache.default() if enabled else None
@@ -79,8 +82,11 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
 
 
 def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None) -> str:
-    """What other research links to the unit, for the proposer: its studied sisters, or in
-    a sister study (``sister_file``) only its brief, since the explanation is fixed."""
+    """Return what other research links to the unit, for the proposer.
+
+    That is the unit's studied sisters. In a sister study (``sister_file``), it is only
+    the study's brief, because the explanation is fixed.
+    """
     from openinterp.cli_review import sisters_text
     from openinterp.sisters import sister_brief
 
@@ -100,6 +106,7 @@ def load_sister(path: Path, unit):
 
 
 def write_evidence(evidence, path: Path, full_snippets: bool = False, related: str = "") -> None:
+    """Write ``evidence`` to ``path`` with this run's costs, and the proposer prompt beside it."""
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.core import costs
 
@@ -298,11 +305,12 @@ def audit(
     device,
     dtype,
 ):
-    """Scan a neuron pole, attention head or dictionary feature, get a hypothesis, and write
-    a submission.
+    """Scan a unit, get a hypothesis, and write a submission.
+
+    The unit is a neuron pole, an attention head or a dictionary feature.
 
     \b
-    In one step, the proposer is an LLM (or external/<name>, answered via exchange/).
+    In one step, the proposer is an LLM (or external/<name>, answered through exchange/).
     In two steps, any agent can propose without an API key or a waiting process:
       openinterp audit --model M --random --evidence-out ev.json
       (answer ev.prompt.md by writing ev.hypothesis.json)
@@ -402,6 +410,7 @@ def check_steps(evidence_file, hypothesis_file, evidence_out, superseded_file, a
 
 
 def check_scan(evidence_file, model_name, stride, window_tokens) -> None:
+    """Reject scan options that do not go together, before any model loads."""
     if stride is not None and (window_tokens is None or stride > window_tokens):
         raise click.UsageError("--stride needs --window-tokens, and can't exceed it.")
     if evidence_file is None and model_name is None:
@@ -409,8 +418,10 @@ def check_scan(evidence_file, model_name, stride, window_tokens) -> None:
 
 
 def scan_corpus(corpus: Path | None) -> Path:
-    """The corpus to scan: ``--corpus``, else the registry's ``corpus.jsonl`` if it's here.
-    Never the built-in sample, whose ~552 tokens make a scan that says little."""
+    """Return the corpus to scan: ``--corpus``, else the registry's ``corpus.jsonl``.
+
+    Never the built-in sample, whose ~552 tokens make a scan that says little.
+    """
     if corpus is not None:
         return corpus
     if REGISTRY_CORPUS.exists():
@@ -453,6 +464,7 @@ def scan_or_record(request, use_scan_cache: bool, wiki_dir: Path, device):
 
 
 def ask_proposer(agent_model, evidence, full_snippets: bool, related: str = ""):
+    """Ask the LLM proposer for a hypothesis about ``evidence``'s unit."""
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.proposer import ProposerAgent
 

@@ -1,5 +1,8 @@
-"""What a scan shows of a unit: its top-activating examples and the histogram of its
-strengths, and for a neuron the same for its other pole."""
+"""What a scan shows of a unit.
+
+A scan shows a unit's top-activating examples and the histogram of its strengths. For a
+neuron, it shows the same for the other pole.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +13,8 @@ from openinterp.core.strict import StrictModel, UnitFloat
 
 
 class Histogram(StrictModel):
+    """Counts of strengths in bins; ``bin_edges`` has one more entry than ``counts``."""
+
     bin_edges: list[float] = Field(min_length=2)
     counts: list[int]
 
@@ -20,8 +25,11 @@ class Histogram(StrictModel):
         return self
 
     def share_at_least(self, line: float) -> float:
-        """The share of values at or above ``line``, counting only bins wholly above it:
-        a lower bound, within one bin of the exact share."""
+        """Return the share of values at or above ``line``.
+
+        Only bins wholly above ``line`` count, so the result is a lower bound, within one
+        bin of the exact share.
+        """
         total = sum(self.counts)
         above = sum(n for lo, n in zip(self.bin_edges, self.counts, strict=False) if lo >= line)
         return above / total if total else 0.0
@@ -32,9 +40,9 @@ class ActivatingExample(StrictModel):
 
     For an attention head, ``attends_to`` lists the tokens the peak token attends to
     most, strongest first, with their attention weights in ``attention_weights``.
-    ``peak_labels`` gives the peak token's label in each of the scan's label sets (a
-    document label, such as its language, is its document's); ``None`` when the scan had
-    none or the peak token is unlabelled in all of them.
+    ``peak_labels`` gives the peak token's label in each of the scan's label sets. A
+    document label, such as language, is the label of the token's document. It is
+    ``None`` when the scan had no label sets, or the peak token has no label in any.
     """
 
     text: str
@@ -60,8 +68,11 @@ class ActivatingExample(StrictModel):
 
 
 class OppositePole(StrictModel):
-    """A neuron's other pole, read from the same scan as the audited one: what its page
-    shows beside the audited pole (reported, not gated, and shown to neither agent)."""
+    """A neuron's other pole, read from the same scan as the audited pole.
+
+    The neuron's page shows it beside the audited pole. It is reported, not gated, and
+    neither agent sees it.
+    """
 
     pole: Pole
     top_examples: list[ActivatingExample]
@@ -69,6 +80,10 @@ class OppositePole(StrictModel):
 
 
 def check_opposite_pole(model) -> None:
+    """Reject an ``opposite_pole`` that the unit cannot have.
+
+    Only a neuron pole has an opposite pole, and it must not be the audited pole.
+    """
     if model.opposite_pole is None:
         return
     pole = model.identifier.pole

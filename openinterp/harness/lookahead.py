@@ -3,8 +3,8 @@
 Two complementary measurements on native weights:
 
 * :func:`output_token_projection` reads the neuron's output direction through the
-  unembedding (a logit-lens approximation that skips the final norm) to list the
-  tokens the pole directly promotes.
+  unembedding, to list the tokens that the pole directly promotes. This is a logit-lens
+  approximation that skips the final norm.
 * :func:`measure_lookahead` zero-ablates the pole on real prompts and compares the
   next-token distributions. A lookahead neuron's ablation moves probability mass
   in a concentrated way onto/off a small set of upcoming tokens. :func:`ablation_profile`
@@ -25,7 +25,7 @@ from openinterp.harness.hooks import Inputs, Intervention, NeuronHookRunner, abl
 def output_token_projection(
     runner: NeuronHookRunner, layer: int, neuron_idx: int, pole: Pole, k: int = 10
 ) -> list[tuple[int, float]]:
-    """Top-``k`` ``(token_id, score)`` pairs promoted by the pole via the direct path."""
+    """Top-``k`` ``(token_id, score)`` pairs promoted by the pole through the direct path."""
     unembed = runner.model.get_output_embeddings().weight.detach()  # [vocab, d_model]
     direction = runner.neuron_output_direction(layer, neuron_idx).to(unembed.dtype)
     scores = unembed @ direction
@@ -63,9 +63,9 @@ def ablation_profile(
 
     ``ablation`` holds :meth:`NeuronHookRunner.run_with_interventions` keyword arguments
     (a unit's ``ablation()``). ``kl_divergence`` is KL(clean || ablated) averaged over
-    non-padding positions. The unit is flagged as lookahead when that KL exceeds
-    ``kl_threshold`` and the ``k`` tokens losing the most probability account for at
-    least ``concentration_threshold`` of the total probability mass moved.
+    non-padding positions. The unit is flagged as lookahead when two things are true.
+    That KL exceeds ``kl_threshold``. And the ``k`` tokens that lose the most probability
+    hold at least ``concentration_threshold`` of the total probability mass moved.
     """
     encoded = runner.encode(prompts)
     mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()

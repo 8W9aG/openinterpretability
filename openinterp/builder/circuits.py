@@ -1,13 +1,14 @@
 """Circuit pages: the registry's units joined by their wiring edges.
 
 Every experiment's wiring (its own, or a backfilled row) names its unit's strongest
-direct connections. An edge between two units that both have pages is kept; the units
-it joins, followed edge to edge, form one circuit per connected group. Each circuit
+direct connections. An edge between two units that both have pages is kept. The units
+that edges join form one circuit per connected group. Each circuit
 is laid out by layer, so chains read left to right from earlier to later layers.
 
-A unit wired to a large share of the model's studied units (a *hub*, such as a late
-neuron that every earlier unit's write moves a little) would join them all into one
-star-shaped circuit, so its edges don't join circuits; the page lists hubs separately.
+A *hub* is a unit wired to a large share of the model's studied units. An example is a
+late neuron that every earlier unit's write moves a little. A hub would join them all
+into one star-shaped circuit. So a hub's edges don't join circuits, and the page lists
+hubs separately.
 :func:`wiring_view` is one experiment's wiring, with each edge's page linked.
 """
 
@@ -40,17 +41,22 @@ class Reading:
 
 @dataclass
 class CircuitEdge:
+    """One connection between two units, with every reading that names it."""
+
     source: UnitNode
     target: UnitNode
     readings: list[Reading] = field(default_factory=list)
 
     @property
     def methods(self) -> list[str]:
+        """The wiring methods that found this edge, sorted."""
         return sorted({r.method for r in self.readings})
 
 
 @dataclass
 class Circuit:
+    """One connected group of units, laid out by layer."""
+
     units: list[UnitNode]
     edges: list[CircuitEdge]
     positions: dict[str, tuple[int, int]]  # href -> (x, y) of the node's centre
@@ -59,12 +65,15 @@ class Circuit:
 
     @property
     def layers(self) -> tuple[int, int]:
+        """The first and last layer of the circuit."""
         return min(u.layer for u in self.units), max(u.layer for u in self.units)
 
 
 def circuit_edges(model: ModelNode, rows: dict) -> list[CircuitEdge]:
-    """Edges between two of ``model``'s units with pages, from every experiment's wiring,
-    each found once per reading that names it."""
+    """Return the edges between two of ``model``'s units with pages.
+
+    They come from every experiment's wiring. Each is found once per reading that names it.
+    """
     units = {u.href: u for layer in model.layers for u in layer.units}
     edges: dict[tuple[str, str], CircuitEdge] = {}
     for unit in units.values():
@@ -98,15 +107,19 @@ def circuit_edges(model: ModelNode, rows: dict) -> list[CircuitEdge]:
 
 @dataclass
 class Hub:
+    """A unit wired to so many others that its edges don't join circuits."""
+
     unit: UnitNode
     edges: list[CircuitEdge]  # every edge touching it, in layer order
 
     @property
     def anchor(self) -> str:
+        """The hub's anchor on the circuits page."""
         return f"hub-L{self.unit.layer}-{self.unit.label}"
 
     @property
     def neighbours(self) -> list[UnitNode]:
+        """The units wired to the hub, in layer order, neurons before heads."""
         found = {}
         for e in self.edges:
             other = e.target if e.source is self.unit else e.source
@@ -115,8 +128,10 @@ class Hub:
 
 
 def hubs(model: ModelNode, edges: list[CircuitEdge]) -> list[Hub]:
-    """Units wired to at least ``HUB_SHARE`` of ``model``'s units with pages (and at least
-    ``HUB_MIN``), most connected first."""
+    """Return the units wired to at least ``HUB_SHARE`` of ``model``'s units with pages.
+
+    A hub also needs at least ``HUB_MIN`` edges. Most connected first.
+    """
     n_units = sum(len(layer.units) for layer in model.layers)
     bar = max(HUB_MIN, HUB_SHARE * n_units)
     touching: dict[str, list[CircuitEdge]] = defaultdict(list)
@@ -139,8 +154,10 @@ def circuits(model: ModelNode, rows: dict) -> list[Circuit]:
 
 
 def circuits_and_hubs(model: ModelNode, rows: dict) -> tuple[list[Circuit], list[Hub]]:
-    """``model``'s circuits, largest first, joined by the edges that don't touch a hub;
-    and its hubs."""
+    """Return ``model``'s circuits, largest first, and its hubs.
+
+    The circuits are joined by the edges that don't touch a hub.
+    """
     edges = circuit_edges(model, rows)
     found_hubs = hubs(model, edges)
     hub_hrefs = {hub.unit.href for hub in found_hubs}
@@ -179,8 +196,10 @@ def _layout(edges: list[CircuitEdge]) -> Circuit:
 
 
 def unit_anchors(found: list[Circuit], found_hubs: list[Hub]) -> dict[str, str]:
-    """Where each unit appears on the circuits page, by href: its circuit, else the hub it
-    is (or the first hub it is wired to)."""
+    """Return where each unit appears on the circuits page, by href.
+
+    That is its circuit, else the hub that it is, or the first hub that it is wired to.
+    """
     anchors = {}
     for hub in found_hubs:
         for u in hub.neighbours:

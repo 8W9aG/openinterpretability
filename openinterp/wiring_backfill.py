@@ -1,11 +1,13 @@
 """Wiring for archived records that predate it (`openinterp wiring-backfill`).
 
 Archived records are write-once and many are signed, so their wiring is not written into
-them. It goes to ``docs/analyses/wiring.jsonl``, one row per experiment, and the site
-builder shows it for any record that has no wiring of its own. Both readings are taken
-the way an audit takes them: the weights from the unit alone, and activations on the
-prompts the review should have fired on (the counterfactuals' base prompts and the
-positive holdouts), at the record's activation threshold, model revision and dtype.
+them. It goes to ``docs/analyses/wiring.jsonl``, one row per experiment. The site
+builder shows it for any record that has no wiring of its own.
+
+Both readings are taken as an audit takes them. The weights reading uses the unit alone.
+The activations reading uses the prompts that the review should have fired on: the
+counterfactuals' base prompts and the positive holdouts. Both use the record's
+activation threshold, model revision and dtype.
 """
 
 from __future__ import annotations
@@ -30,6 +32,7 @@ class WiringRow(StrictModel):
 
 
 def row_key(record: AuditRecord) -> tuple[str, str]:
+    """The key of ``record``'s row: its unit's slug and experiment id."""
     from openinterp.builder.wiki import experiment_id
 
     return record.submission.identifier.slug, experiment_id(record)
@@ -59,6 +62,7 @@ def record_wiring(record: AuditRecord, rows: dict) -> tuple[Wiring | None, Wirin
 
 
 def needs_backfill(record: AuditRecord) -> bool:
+    """True when ``record`` has a verdict but no wiring of its own."""
     return (
         record.verdict is not None
         and record.submission.wiring is None
@@ -107,8 +111,10 @@ def backfill(
     limit: int | None = None,
     echo: Callable[[str], None] = print,
 ) -> int:
-    """Append a row to ``out`` for each record with no wiring and no row yet, loading
-    models in the order records need them. Returns how many rows it wrote."""
+    """Append a row to ``out`` for each record with no wiring and no row yet.
+
+    Loads models in the order that records need them. Returns how many rows it wrote.
+    """
     done = load_rows(out)
     todo = [r for r in records if needs_backfill(r) and row_key(r) not in done]
     todo.sort(key=lambda r: _runner_key(r))
@@ -128,9 +134,11 @@ def backfill(
 
 
 def _release_cached_memory() -> None:
-    """Hand the accelerator allocator's cached blocks back. Each record's prompts have
-    their own shapes, so on MPS the cache otherwise grows record by record until the
-    machine swaps (73 GB after ~640 records)."""
+    """Give the accelerator allocator's cached blocks back.
+
+    Each record's prompts have their own shapes. So on MPS, the cache otherwise grows
+    record by record until the machine swaps (73 GB after ~640 records).
+    """
     import torch
 
     if torch.backends.mps.is_available():
@@ -140,8 +148,10 @@ def _release_cached_memory() -> None:
 
 
 def _runner_key(record: AuditRecord) -> tuple:
-    """What loading a record's model depends on: name, revision, dtype and whether heads
-    need eager attention."""
+    """Return what loading a record's model depends on.
+
+    That is the name, revision, dtype, and whether heads need eager attention.
+    """
     from openinterp.harness.units import attn_implementation
 
     sub = record.submission

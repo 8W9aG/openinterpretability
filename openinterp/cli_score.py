@@ -266,8 +266,10 @@ def _sample(
 
 
 def _with_first_token_floor(runner, submission):
-    """``submission``, with its first-token floor judged as a review judges it if it is a
-    record from before protocol 0.8."""
+    """Return ``submission`` with its first-token floor set.
+
+    A record from before protocol 0.8 has no floor, so judge it as a review does.
+    """
     if submission.first_token_floor is not None:
         return submission
     from functools import partial

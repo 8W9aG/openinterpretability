@@ -1,11 +1,12 @@
 """What an experiment cost to run: wall time per stage and usage per LLM call.
 
 Reported, never gated. Each command measures its own stages in a per-process collector
-(:func:`stage`, :func:`add_call`); the files it writes carry the costs forward
-(evidence → submission → record, and score task → scores → record), so a record holds
-the cost of every step of the experiment that produced it. With ``OPENINTERP_COSTS_LOG``
-set, every command also appends what it measured to that JSON-lines ledger, which
-``openinterp costs`` summarises.
+(:func:`stage`, :func:`add_call`). The files that it writes carry the costs forward:
+evidence → submission → record, and score task → scores → record. So a record holds the
+cost of every step of the experiment that produced it.
+
+When ``OPENINTERP_COSTS_LOG`` is set, every command also appends its measurements to
+that JSON-lines ledger. ``openinterp costs`` summarises the ledger.
 """
 
 from __future__ import annotations
@@ -28,6 +29,8 @@ LEDGER_ENV = "OPENINTERP_COSTS_LOG"
 
 
 class StageTiming(StrictModel):
+    """Wall-clock seconds that one stage of a command took."""
+
     stage: str = Field(
         min_length=1,
         examples=["model_load", "scan", "lenses", "proposer", "probe_measurement", "gates"],
@@ -36,9 +39,12 @@ class StageTiming(StrictModel):
 
 
 class LLMCall(StrictModel):
-    """One structured LLM request, counting every retry. Token counts and cost are what
+    """One structured LLM request, counting every retry.
+
+    Token counts and cost are what
     LiteLLM reported, or, for an external answerer, what its usage file says (priced from
-    :mod:`openinterp.core.pricing`). ``None`` when nobody reported them."""
+    :mod:`openinterp.core.pricing`). ``None`` when nobody reported them.
+    """
 
     agent: str = Field(min_length=1, examples=["proposer", "reviewer", "judge"])
     model: str = Field(min_length=1)
@@ -75,11 +81,14 @@ class RequestUsage(StrictModel):
 
 
 class ExternalUsage(RequestUsage):
-    """Tokens an external answerer used, written next to its answer as
-    ``<answer>.usage.json`` (``openinterp usage``): totals, plus each request when known,
+    """Tokens an external answerer used.
+
+    ``openinterp usage`` writes it next to the answer as ``<answer>.usage.json``. It
+    holds totals, plus each request when known,
     since prices can depend on a request's size and time. ``cost_usd`` is for a provider
     that reports its own cost; otherwise the requests are priced at list price for the
-    model the command records."""
+    model the command records.
+    """
 
     model: str | None = Field(default=None, description="The model the transcript reports.")
     requests: int = Field(default=0, ge=0)
@@ -122,10 +131,12 @@ class ExperimentCosts(StrictModel):
 
     @property
     def seconds(self) -> float:
+        """Total seconds over every stage."""
         return sum(s.seconds for s in self.stages)
 
     @property
     def cost_usd(self) -> float | None:
+        """Total cost of the calls that report one, or ``None`` when none does."""
         known = [c.cost_usd for c in self.llm_calls if c.cost_usd is not None]
         return sum(known) if known else None
 
@@ -157,6 +168,7 @@ class ExperimentCosts(StrictModel):
 
 
 def merge(*parts: ExperimentCosts | None) -> ExperimentCosts | None:
+    """Join the costs of several commands of one experiment, or ``None`` when all are ``None``."""
     parts = tuple(p for p in parts if p is not None)
     if not parts:
         return None
@@ -173,20 +185,24 @@ _calls: list[LLMCall] = []
 
 
 def reset() -> None:
+    """Clear this process's measurements, so that one command does not count another's."""
     _stages.clear()
     _calls.clear()
 
 
 def add_stage(name: str, seconds: float) -> None:
+    """Record that stage ``name`` took ``seconds``, rounded to the millisecond."""
     _stages.append(StageTiming(stage=name, seconds=round(max(seconds, 0.0), 3)))
 
 
 def add_call(call: LLMCall) -> None:
+    """Record one LLM request of this process."""
     _calls.append(call)
 
 
 @contextmanager
 def stage(name: str) -> Iterator[None]:
+    """Time the ``with`` block as stage ``name``, also when it raises."""
     start = time.perf_counter()
     try:
         yield
@@ -218,9 +234,12 @@ def usage_path(answer: Path) -> Path:
 
 
 def add_external(agent: str, model: str, prompt: Path, answer: Path) -> None:
-    """Record a prompt answered from a file: its size, the time between the prompt and the
-    answer being written (no stage when the prompt file is gone), and the answerer's
-    tokens and cost when ``usage_path(answer)`` exists."""
+    """Record a prompt answered from a file.
+
+    Records the prompt's size and the time between the prompt and the answer being
+    written (no stage when the prompt file is gone). Also records the answerer's tokens
+    and cost when ``usage_path(answer)`` exists.
+    """
     if prompt.exists() and answer.exists():
         add_stage(agent, answer.stat().st_mtime - prompt.stat().st_mtime)
     chars = len(prompt.read_text()) if prompt.exists() else None
@@ -233,8 +252,11 @@ def add_external(agent: str, model: str, prompt: Path, answer: Path) -> None:
 
 
 def _check_model(usage: ExternalUsage, model: str, usage_file: Path) -> None:
-    """Warn when the transcript names another model than the one being recorded, unless
-    ``$OPENINTERP_MODEL_ALIASES`` says a proxy renamed it (the recorded one is priced)."""
+    """Warn when the transcript names a different model from the recorded one.
+
+    No warning when ``$OPENINTERP_MODEL_ALIASES`` says a proxy renamed the model. The
+    recorded model is the one priced.
+    """
     from openinterp.agents.base import MODEL_ALIASES_ENV
 
     reported = usage.model and {pricing.price_key(m) for m in usage.model.split(",")}

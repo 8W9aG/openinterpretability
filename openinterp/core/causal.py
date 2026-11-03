@@ -37,18 +37,21 @@ class CausalPairEffect(StrictModel):
 class CausalMetrics(StrictModel):
     """Causal effect of the neuron pole on the model's next-token prediction.
 
-    Since protocol 0.5 each minimal pair is patched both ways and scored on a target that
-    favours no particular neuron: the mean logit of a lookahead claim's upcoming tokens
-    (``claimed_tokens``), otherwise the next-token KL caused by the patch
-    (``next_token_kl``). The pole's effect is ranked against the ``null_neurons``
-    same-layer neurons whose strength changes most similarly between the pair's prompts,
-    patched the same way and scored on the same target. ``sufficiency_score`` (clean →
-    corrupted) and ``necessity_score`` (corrupted → clean) are the median percentile of
-    the pole's |effect| among theirs, so 0.5 means "no more influential than a neuron
-    that changes as much". Control pairs, where the pole barely moves, are skipped.
+    Since protocol 0.5, the harness patches each minimal pair in both directions. It
+    scores each patch on a target that favours no particular neuron:
 
-    Records with ``target = None`` predate 0.5: their scores are the fraction of the
-    clean/corrupted gap in the top-1 next-token logit restored by the patch.
+    - ``claimed_tokens``: for a lookahead claim, the mean logit of the upcoming tokens.
+    - ``next_token_kl``: for other claims, the next-token KL that the patch causes.
+
+    The comparison set is the ``null_neurons`` same-layer neurons whose strength changes
+    most like the pole's between the pair's prompts. The harness patches them the same
+    way and scores them on the same target. ``sufficiency_score`` (clean → corrupted) and
+    ``necessity_score`` (corrupted → clean) give the median percentile of the pole's
+    |effect| among theirs. So 0.5 means "no more influential than a neuron that changes
+    as much". The harness skips control pairs, where the pole barely moves.
+
+    Records with ``target = None`` predate 0.5. Their scores are the fraction of the
+    clean/corrupted gap in the top-1 next-token logit that the patch restores.
     """
 
     sufficiency_score: UnitFloat

@@ -28,7 +28,7 @@ from openinterp.harness.lookahead import ablation_profile
 from openinterp.harness.units import Unit, max_strength, unit_of
 
 
-class CounterfactualDraft(BaseModel):
+class CounterfactualDraft(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
     base_prompt: str = Field(
         description="A prompt the hypothesis predicts strongly activates the pole."
     )
@@ -43,7 +43,7 @@ class CounterfactualDraft(BaseModel):
     rationale: str
 
 
-class HypothesisDraft(BaseModel):
+class HypothesisDraft(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
     explanation: str = Field(
         description="One or two precise sentences: what input feature or upcoming-token "
         "preparation makes this pole fire."
@@ -60,13 +60,15 @@ class HypothesisDraft(BaseModel):
 
 
 # Agents see a window of tokens around each example's peak, not the whole scanned
-# document, and not near-duplicates of an earlier example (--full-snippets turns both off).
+# document. They also don't see near-duplicates of an earlier example. --full-snippets
+# turns both off.
 SNIPPET_BEFORE = 48
 SNIPPET_AFTER = 16
 NEAR_DUPLICATE = 0.8
 
 
 def snippet_window(ex: ActivatingExample, full: bool = False) -> range:
+    """The token positions that the agents see of ``ex``: around its peak, or all with ``full``."""
     if full:
         return range(len(ex.tokens))
     peak = ex.max_token_index
@@ -92,9 +94,12 @@ def label_note(ex: ActivatingExample) -> str:
 def distinct_examples(
     examples: Sequence[ActivatingExample], limit: int, full: bool = False
 ) -> tuple[list[tuple[int, ActivatingExample]], list[int]]:
-    """The first ``limit`` examples, numbered from 1, without those whose window shares at
-    least NEAR_DUPLICATE of its distinct tokens with an earlier kept one's; and the numbers
-    dropped. Numbers stay those of the scan's order, which input attribution cites."""
+    """Return the first ``limit`` examples, numbered from 1, and the numbers dropped.
+
+    An example is dropped when its window shares at least NEAR_DUPLICATE of its distinct
+    tokens with the window of an earlier kept example. Numbers stay those of the scan's
+    order, which input attribution cites.
+    """
     kept: list[tuple[int, ActivatingExample]] = []
     dropped: list[int] = []
     seen: list[set[str]] = []
@@ -109,6 +114,7 @@ def distinct_examples(
 
 
 def dropped_note(dropped: Sequence[int]) -> str:
+    """The note that lists examples left out as near-duplicates, or "" for none."""
     if not dropped:
         return ""
     numbers = ", ".join(map(str, dropped))
@@ -154,6 +160,7 @@ def format_examples(
 
 
 def format_head_profile(profile: HeadProfile) -> str:
+    """The proposer's note on what a head's strength is, and its pattern scores."""
     return (
         f"Strength is |W_O (z - mean z)|: how far the head's write to the residual stream is "
         f"from its average write. Attention-pattern scores on {profile.pattern_sequences} "
@@ -165,6 +172,7 @@ def format_head_profile(profile: HeadProfile) -> str:
 
 
 def format_dictionary_profile(profile: DictionaryProfile) -> str:
+    """The proposer's note on what a dictionary latent's strength is, and its fit."""
     if profile.kind == "basis":  # says nothing of which basis, so a null arm stays blind
         return (
             f"This is one direction in this layer's MLP hidden space (one of a basis of "
@@ -242,6 +250,8 @@ FIRST_TOKEN_UNMEASURED = (
 
 
 class ProposerAgent(LLMAgent):
+    """The proposer: writes a falsifiable hypothesis from the scan evidence."""
+
     role = "proposer"
     system_prompt = (
         "You are a mechanistic interpretability researcher auditing a single unit, a native "
@@ -271,6 +281,7 @@ class ProposerAgent(LLMAgent):
         full_snippets: bool = False,
         related: str = "",
     ) -> HypothesisDraft:
+        """Ask the proposer for a hypothesis about ``identifier``."""
         prompt = self.proposal_prompt(
             identifier,
             examples,
@@ -300,9 +311,12 @@ class ProposerAgent(LLMAgent):
         full_snippets: bool = False,
         related: str = "",
     ) -> str:
-        """The task text the proposer answers: the scan evidence for one unit, then what
-        other research links to it (``related``: its studied sister neurons,
-        :func:`openinterp.sisters.format_sisters`)."""
+        """Return the task text that the proposer answers.
+
+        It gives the scan evidence for one unit, then what other research links to it.
+        ``related`` is the unit's studied sister neurons
+        (:func:`openinterp.sisters.format_sisters`).
+        """
         prompt = f"{identifier.noun.capitalize()}: {identifier}\n\n"
         if first_token_floor:
             prompt += FIRST_TOKEN_UNMEASURED + "\n"
@@ -381,6 +395,7 @@ class ProposerAgent(LLMAgent):
 
 
 def format_lens(lens: VocabularyLens, identifier: ComponentIdentifier) -> str:
+    """The proposer's note on the tokens that the unit promotes and suppresses."""
     return (
         f"Tokens this {'pole' if identifier.pole else identifier.noun} promotes via the "
         f"Jacobian lens (its output direction "
@@ -394,6 +409,7 @@ def format_lens(lens: VocabularyLens, identifier: ComponentIdentifier) -> str:
 
 
 def format_confounds(confounds: ConfoundProfile) -> str:
+    """The proposer's note on how much token identity, position and labels explain."""
     top = ", ".join(repr(t.token) for t in confounds.trigger_tokens[:10])
     labels = "".join(
         f" {name.capitalize()} explains {c.r2:.0%} ({c.mutual_information_bits:.3f} bits); "
@@ -410,6 +426,7 @@ def format_confounds(confounds: ConfoundProfile) -> str:
 
 
 def format_correlated(correlated: Sequence[CorrelatedNeuron]) -> str:
+    """The proposer's note on the poles in the layer that co-activate with the unit."""
     pairs = ", ".join(
         f"N{c.neuron_idx}{'+' if c.pole == 'positive' else '-'} "
         f"(co-activation lift >= {c.coactivation_lift_lower:.1f}, rho={c.spearman:+.2f})"

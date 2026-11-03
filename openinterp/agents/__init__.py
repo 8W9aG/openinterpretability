@@ -1,3 +1,5 @@
+"""The LLM agents: the proposer, the reviewer and the judge."""
+
 from openinterp.agents.base import DEFAULT_MODEL, LLMAgent
 from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
 from openinterp.agents.reviewer import (

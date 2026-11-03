@@ -8,10 +8,10 @@ explanation by a rule fixed before any baseline was scored:
   earlier), at ``BASELINE_SCALE``;
 * wrapped as ``TEMPLATE``.
 
-The baseline is then scored on exactly the held-out windows the agent's explanation was
-scored on, which the record stores with their labels, so the two are paired and nothing
-is re-measured. Detection and fuzzing need a judge; a pair counts only when the same
-judge model answered both. The embedding score needs none. The units looked at while
+The baseline is then scored on the same held-out windows as the agent's explanation.
+The record stores those windows with their labels, so the two scores are paired and
+nothing is measured again. Detection and fuzzing need a judge. A pair counts only when
+the same judge model answered both. The embedding score needs none. The units looked at while
 choosing the prompts and the rule (``DEV_SLUGS``) are reported apart.
 """
 
@@ -57,6 +57,7 @@ def blind_reading(readout: PatchscopeReadout) -> PatchscopeReading | None:
 
 
 def blind_explanation(readout: PatchscopeReadout) -> str | None:
+    """The baseline explanation for ``readout``: its blind reading in ``TEMPLATE``, or ``None``."""
     reading = blind_reading(readout)
     return TEMPLATE.format(reading.text) if reading and reading.text else None
 
@@ -70,8 +71,11 @@ def rescored(
     fuzzing: Sequence[bool] | None = None,
     similarities: Sequence[float] | None = None,
 ) -> ExplanationScores:
-    """``scores``'s windows and labels with another explanation's answers: what that
-    explanation scores on the same held-out text. Answers not given are left unjudged."""
+    """Score another explanation on the windows and labels of ``scores``.
+
+    The result is what that explanation scores on the same held-out text. Answers not
+    given are left unjudged.
+    """
     from openinterp.harness.explanation_scores import finalize_scores
 
     def swap(windows, answers, sims=None):
@@ -102,6 +106,7 @@ def rescored(
 
 
 def metric(scores: ExplanationScores | None, name: str) -> float | None:
+    """One metric of ``scores`` (a judge's balanced accuracy, or embedding AUROC), or ``None``."""
     if scores is None:
         return None
     if name == "embedding":
@@ -157,8 +162,11 @@ def summarise(rows: Sequence[BaselineRow], name: str) -> dict | None:
 
 
 def report(rows: Sequence[BaselineRow]) -> str:
-    """The comparison as a Markdown page: the rule, every metric over held-out
-    experiments, randomly selected and VERIFIED units and the dev set, and the readings."""
+    """Return the comparison as a Markdown page.
+
+    The page gives the rule and the readings. It also gives every metric over held-out
+    experiments, over randomly selected and VERIFIED units, and over the dev set.
+    """
     from collections import Counter
 
     groups = _groups(rows)

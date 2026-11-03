@@ -1,6 +1,9 @@
-"""What defines the strength of a unit that is not a neuron pole: an attention head's mean
-output, or a dictionary feature's dictionary. Stored in the record, so every later
-measurement of the experiment uses the same definition."""
+"""What defines the strength of a unit that is not a neuron pole.
+
+For an attention head it is the head's mean output. For a dictionary feature it is the
+dictionary. Stored in the record, so every later
+measurement of the experiment uses the same definition.
+"""
 
 from __future__ import annotations
 
@@ -14,17 +17,22 @@ from openinterp.core.strict import StrictModel, UnitFloat
 class HeadProfile(StrictModel):
     """What defines an attention head's activity, and its standard attention-pattern scores.
 
-    A head's strength at token t is ``|W_O (z_t − mean_output)|``: how far its write to
-    the residual stream is from its mean write over the scan, i.e. how far mean-ablating
-    the head would move the residual stream there. ``mean_output`` (z̄, one value per
-    head dimension) is measured once, by the scan, and every later measurement of the
-    experiment uses this stored value, so a record reproduces without the corpus.
+    A head's strength at token t is ``|W_O (z_t − mean_output)|``. This is the distance
+    from its write to the residual stream to its mean write over the scan. It is also how
+    far mean-ablating the head would move the residual stream at t. The scan measures
+    ``mean_output`` (z̄, one value per head dimension) once. Every later measurement of
+    the experiment uses this stored value, so a record reproduces without the corpus.
 
-    The pattern scores are mean attention weights on ``pattern_sequences`` sequences of
-    ``pattern_length`` uniformly random tokens repeated twice (Olsson et al., 2022):
-    ``previous_token`` to the token before, ``duplicate_token`` from the second copy to
-    the same token in the first, ``induction`` from the second copy to the token *after*
-    the same token in the first. Each is between 0 and 1; reported, not gated.
+    The pattern scores are mean attention weights on ``pattern_sequences`` sequences.
+    Each sequence is ``pattern_length`` uniformly random tokens, repeated twice (Olsson et
+    al., 2022). The scores are:
+
+    - ``previous_token``: attention to the token before.
+    - ``duplicate_token``: attention from the second copy to the same token in the first.
+    - ``induction``: attention from the second copy to the token *after* the same token
+      in the first.
+
+    Each score is between 0 and 1. Reported, not gated.
     """
 
     mean_output: list[float] = Field(min_length=1)
@@ -44,41 +52,53 @@ DictionaryOutputSite = Literal["mlp_out", "resid_post"]
 
 
 def output_site_of(input_site: DictionarySite) -> DictionaryOutputSite:
-    """Where a dictionary reading ``input_site`` writes: a residual-stream SAE reconstructs
-    the residual stream it reads; every other dictionary reconstructs the MLP's output."""
+    """Return where a dictionary that reads ``input_site`` writes.
+
+    A residual-stream SAE reconstructs the residual stream it reads. Every other
+    dictionary reconstructs the MLP's output.
+    """
     return "resid_post" if input_site == "resid_post" else "mlp_out"
 
 
 class DictionaryProfile(StrictModel):
     """The dictionary a feature belongs to, pinned, and how well it fits the scan corpus.
 
-    A latent's strength is its activation ``act(W_enc[:, f] · x + b_enc[f])``, where x is
-    read at ``input_site`` of the feature's layer: the residual stream the MLP reads,
-    before its norm (``resid_mid``), the MLP's input (``mlp_in``), the norm's input
-    normalised without its gain and bias (``mlp_in_normalized``, the TransformerLens
-    ``ln2.hook_normalized`` convention most public transcoders were trained on), or the
-    MLP's output (``mlp_out``, an SAE). With ``subtract_decoder_bias``, ``b_dec`` is
-    subtracted from x first, as SAEs often do. The MLP's output is what it adds to the
-    residual stream, after the norm that follows it in Gemma 2 (TransformerLens's
-    ``hook_mlp_out``). A residual-stream SAE reads the residual stream after the
-    feature's layer (``resid_post``, TransformerLens's ``hook_resid_post``). A ``basis``
-    reads the MLP's hidden activations (``mlp_hidden``, the down projection's input, where
-    native neurons live): each latent is the positive part of one direction there, and
-    writes it through the down projection. With the identity basis its latents are the
-    native positive poles; with a random orthogonal one, rotated units
-    (``docs/analyses/null-calibration.md``).
+    A latent's strength is its activation ``act(W_enc[:, f] · x + b_enc[f])``. The
+    harness reads x at ``input_site`` of the feature's layer:
 
-    The latent writes ``a_f · W_dec[f]`` to ``output_site``: the MLP's output, or for a
-    residual-stream SAE the residual stream it reads; ablating it removes that write. A
-    skip transcoder's linear skip term is part of its reconstruction, not of any latent's
-    write. Every measurement reads the weights at ``repo``/``revision``/``path``, so a
-    record reproduces even if the preset that named them changes.
+    - ``resid_mid``: the residual stream that the MLP reads, before its norm.
+    - ``mlp_in``: the MLP's input.
+    - ``mlp_in_normalized``: the norm's input, normalised without its gain and bias. This
+      is the TransformerLens ``ln2.hook_normalized`` convention, which most public
+      transcoders were trained on.
+    - ``mlp_out``: the MLP's output, for an SAE.
+    - ``resid_post``: the residual stream after the feature's layer, for a residual-stream
+      SAE (TransformerLens's ``hook_resid_post``).
+    - ``mlp_hidden``: the MLP's hidden activations, for a ``basis``. These are the down
+      projection's input, where native neurons live.
 
-    ``explained_variance`` (the fraction of ``output_site``'s variance the whole
-    dictionary reconstructs) and ``mean_l0`` (active latents per token) are measured on
-    the scan's tokens: reported, not gated. A poorly fitting dictionary makes a weak
-    baseline. So does one with many ``dead_share`` latents, which a random draw can't
-    audit. ``density`` is the share of scanned tokens on which this latent is non-zero.
+    With ``subtract_decoder_bias``, the harness first subtracts ``b_dec`` from x, as SAEs
+    often do. The MLP's output is what the MLP adds to the residual stream. In Gemma 2
+    this is after the norm that follows the MLP (TransformerLens's ``hook_mlp_out``).
+
+    Each latent of a ``basis`` is the positive part of one direction in the hidden
+    activations, and writes through the down projection. With the identity basis, the
+    latents are the native positive poles. With a random orthogonal basis, they are
+    rotated units (``docs/analyses/null-calibration.md``).
+
+    The latent writes ``a_f · W_dec[f]`` to ``output_site``. That is the MLP's output, or
+    for a residual-stream SAE, the residual stream that it reads. Ablating the latent
+    removes that write. A skip transcoder's linear skip term is part of its
+    reconstruction, not of a latent's write. Every measurement reads the weights at
+    ``repo``/``revision``/``path``. So a record reproduces even if its preset changes.
+
+    The harness measures two fits on the scan's tokens. ``explained_variance`` is the
+    fraction of ``output_site``'s variance that the whole dictionary reconstructs.
+    ``mean_l0`` is the number of active latents per token. Reported, not gated.
+
+    A dictionary that fits poorly makes a weak baseline. So does a dictionary with a
+    high ``dead_share``, because a random draw cannot audit a dead latent. ``density`` is
+    the share of scanned tokens on which this latent is non-zero.
     """
 
     kind: Literal["transcoder", "sae", "basis"]

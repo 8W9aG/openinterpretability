@@ -6,8 +6,8 @@ positive one when the evidence is strong. So experiments are ranked by
 
 Probe outcomes give two binomial samples: hard negatives correctly inactive
 (specificity) and positive holdouts correctly active (sensitivity). Near-duplicate
-probes are clustered and count once (:mod:`openinterp.core.stats`). With uniform
-Beta(1, 1) priors, the posterior probability that the hypothesis is useful is
+probes are clustered and count once (:mod:`openinterp.core.stats`). Take uniform
+Beta(1, 1) priors. Then the posterior probability that the hypothesis is useful is
 
     P(useful) = P((specificity + sensitivity) / 2 > threshold)
 
@@ -44,6 +44,8 @@ def evidence_strength(conclusiveness: float) -> str:
 
 @dataclass(frozen=True)
 class Significance:
+    """How conclusive one experiment is, and in which direction."""
+
     p_useful: float
     conclusiveness: float
     direction: Literal["supports", "refutes"]
@@ -52,11 +54,13 @@ class Significance:
 
     @property
     def label(self) -> str:
+        """The strength and direction as words, for example "strong evidence against"."""
         strength = evidence_strength(self.conclusiveness)
         return f"{strength} evidence {'for' if self.direction == 'supports' else 'against'}"
 
 
 def significance(record: AuditRecord) -> Significance:
+    """How conclusive ``record``'s result is (see the module docstring)."""
     verdict = record.verdict
     policy = verdict.policy if verdict and verdict.policy else ReviewPolicy()
     results = verdict.adversarial_test_results if verdict else []

@@ -1,6 +1,9 @@
-"""Schemas for where a scan's corpus came from: the dataset sample ``openinterp corpus``
-wrote (:class:`CorpusSource`, its sidecar) and the token-bounded sample of it an audit
-read (:class:`CorpusSample`). Built by ``openinterp.corpus``."""
+"""Schemas for where a scan's corpus came from.
+
+:class:`CorpusSource` is the sidecar of the dataset sample that ``openinterp corpus``
+wrote. :class:`CorpusSample` is the token-bounded part of it that an audit read. Both
+are built by ``openinterp.corpus``.
+"""
 
 from __future__ import annotations
 
@@ -71,9 +74,10 @@ class CorpusSource(StrictModel):
 class CorpusSample(StrictModel):
     """The seeded, token-bounded sample of the corpus a scan read (protocol 0.7).
 
-    Documents are visited in ``random.Random(seed)`` order, and each is taken whole if it
-    fits in what is left of ``max_tokens`` (the first always is), then kept in corpus
-    order. Tokens are counted by the model's tokenizer, without special tokens.
+    The sampler visits documents in ``random.Random(seed)`` order. It takes each document
+    whole if it fits in what is left of ``max_tokens``, and always takes the first. Then
+    it puts the documents back in corpus order. The model's tokenizer counts the tokens,
+    without special tokens.
     Re-drawing with the same corpus, tokenizer, seed and budget gives the same
     documents, which ``sha256`` pins.
     """

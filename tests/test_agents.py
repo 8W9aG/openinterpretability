@@ -506,9 +506,9 @@ def test_external_agent_reads_response_file(tmp_path):
 
 
 def test_external_agent_waits_out_a_write_in_progress(tmp_path):
-    # A responder that opens the file before filling it must not have the empty file
-    # rejected and deleted under it: its answer would land in the deleted file, and the
-    # agent would wait out its whole timeout.
+    # A responder may open the file before filling it. The empty file must not be
+    # rejected and deleted under it. Otherwise its answer would land in the deleted file,
+    # and the agent would wait out its whole timeout.
     agent = ProposerAgent("external/x", exchange_dir=tmp_path, timeout=3, poll_interval=0.01)
 
     def respond():
@@ -608,7 +608,7 @@ def test_agents_see_a_window_around_the_peak_without_near_duplicates(ident, toy_
         f" w{150 - SNIPPET_BEFORE - 1} " not in text and f" w{150 + SNIPPET_AFTER + 1}" not in text
     )
     assert "1. (max 5.000) … w102" in text
-    # Example 2 shares nearly all its window with example 1; example 3 keeps its number,
+    # Example 2 shares nearly all its window with example 1. Example 3 keeps its number,
     # which input attribution cites, and is not cut at the start.
     assert "\n2. " not in text and "\n3. (max 5.000)  v0" in text
     assert "near-duplicates of an earlier example: 2." in text

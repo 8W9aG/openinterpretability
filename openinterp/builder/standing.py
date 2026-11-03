@@ -34,14 +34,17 @@ class Standing:
 
     @property
     def lead(self) -> Experiment:
+        """The newest experiment that the standing rests on."""
         return self.readings[0]
 
     @property
     def verified(self) -> bool:
+        """True when the standing is VERIFIED."""
         return self.status == "VERIFIED"
 
     @property
     def contested(self) -> bool:
+        """True when the readings disagree."""
         return self.status == "CONTESTED"
 
     @property
@@ -55,8 +58,11 @@ def _newest_first(experiments: Sequence[Experiment]) -> list[Experiment]:
 
 
 def _readings(experiments: Sequence[Experiment]) -> list[Experiment]:
-    """The newest experiment per probe set, newest first: a re-measurement (e.g. under a
-    newer protocol) replaces the reading it repeats instead of counting twice."""
+    """Return the newest experiment per probe set, newest first.
+
+    A re-measurement (for example, under a newer protocol) replaces the reading that it
+    repeats, so it does not count twice.
+    """
     seen: set[str] = set()
     out = []
     for e in _newest_first(experiments):
@@ -100,8 +106,11 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
 
 
 def native_standings(models: Sequence[ModelNode]):
-    """``(unit, side, standing)`` for every native neuron pole and head (dictionary features
-    are a baseline, not claims about the model's own units)."""
+    """Return ``(unit, side, standing)`` for every native neuron pole and head.
+
+    Dictionary features are left out: they are a baseline, not claims about the model's
+    own units.
+    """
     for m in models:
         for layer in m.layers:
             for n in layer.units:
@@ -114,8 +123,9 @@ def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
     """How often reviews of the same hypothesis agree on VERIFIED versus not.
 
     Counts every hypothesis about a native unit with more than one probe set (re-reviews,
-    replications, independent re-reviews), each probe set read by its newest experiment,
-    self-reviews included: this measures the reviews, not the standing rule.
+    replications, independent re-reviews). Each probe set is read by its newest
+    experiment. Self-reviews are included, because this measures the reviews, not the
+    standing rule.
     """
     claims = unanimous = pairs = agreeing = 0
     cross_pairs = cross_agreeing = 0

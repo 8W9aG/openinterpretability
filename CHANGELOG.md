@@ -9,6 +9,17 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **Docstrings and comments in ASD-STE100 Simplified Technical English, checked** (TODO, Code quality and tooling). Every comment and docstring in `openinterp/`, `scripts/` and `tests/` now passes three checks, which `make lint`, `make vale` and CI run:
+  - *Ruff* selects `D` (pydocstyle, Google convention) and `ERA` (commented-out code). Tests are exempt from `D1` only: a test's name says what it checks. The LLM response models keep no docstring (`# noqa: D101`), because Pydantic copies a class docstring into the JSON schema the agents read.
+  - *interrogate* holds docstring coverage of `openinterp/` at `fail-under = 94`, up from 69%. It skips magic, `__init__` and private names, as the `D` rules do.
+  - *Vale* (`make vale`, `.vale/styles/STE`, our own small style): at most 25 words a sentence and a banned-word list are errors, passive voice is a suggestion. CI runs Vale 3.26.0, a release binary checked against its SHA-256. The sentence rule splits sentences itself, since Vale doesn't in source code, and skips literal blocks and command examples.
+
+  320 missing docstrings were written, and 249 multi-line summaries and 306 sentences of more than 25 words were rewritten, keeping their meaning. The new docstrings put `planner.py` over the 500-line limit, so its sister draws move to `openinterp/planner_sisters.py`.
+- **A `commenting` skill** (`.claude/skills/commenting/`). When to comment and when to make the code clearer, the docstring and STE rules with before/after examples from this codebase, how Vale counts a sentence, and how to cite the protocol or a paper. `REVIEW.md` points code review at it.
+- **An `asd-ste100` skill, and the skills' Markdown held to STE** (`.claude/skills/asd-ste100/`, vendored from [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill) at `ffc6618`, MIT). It rewrites prose into STE and brings a standard-library linter. `make ste` (in `make lint` and CI) runs that linter on every skill's Markdown: no semicolons, at most 25 words a sentence, one verb for one action. 114 violations in the 14 skills were rewritten, keeping their meaning. ASD-STE100 Issue 9 forbids reproducing its dictionary without ASD's written authority, so `.vale/styles/STE/Words.yml` stays our own list.
+
 ### Fixed
 
 - **The agent recorded as `claude-3-5-sonnet-20241022` is Grok Build 0.1** (`ALIASES` in `core/agent_names.py`; TODO, Housekeeping). One 2026-10-26 session ran Grok Build and reported the Claude name it thought it was. Its records are signed, so the site and cost report map the name rather than rewriting them: the agent's page is now `grok-build-0.1`, with a note saying the name was remapped, and the session's calls are priced as Grok Build. Pricing now applies `ALIASES` too.

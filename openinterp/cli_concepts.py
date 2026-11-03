@@ -34,9 +34,11 @@ from openinterp.concepts import CONCEPT_PRESETS
 )
 @click.option("--out", type=click.Path(path_type=Path), help="Concept set JSONL.")
 def concepts(preset, label, split, subset, column, documents, seed, max_chars, out):
-    """Write a concept set from human-annotated labels: JSON lines
-    {"text": ..., "spans": [[start, end], ...]} for `openinterp probe-compare --train/--test`,
-    sparse-probing searches and reviewers' positive holdouts.
+    """Write a concept set from human-annotated labels.
+
+    The set is JSON lines of {"text": ..., "spans": [[start, end], ...]}. Use it for
+    `openinterp probe-compare --train/--test`, sparse-probing searches and reviewers'
+    positive holdouts.
 
     Word tags (conll2003-*, ud-*) mark each tagged word; document classes
     (language-identification, ag_news) mark whole documents, half of them of the class.
