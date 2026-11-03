@@ -225,7 +225,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time, so an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Order prompts for provider prompt caching. Put the stable parts (system prompt, methodology, answer schema) first and the neuron's evidence last, and pass cache-control hints through LiteLLM, so repeated experiments reuse the cached prefix.
 - [ ] Keep per-experiment checks proportional to the change. `openinterp check` and the wiki index rebuild walk every record, so their cost grows with the registry. Check only the records a branch adds or changes (`--base-ref origin/main`, as `reproduce` does), and keep the full check for CI on `main`.
 - [ ] Skip lint and tests on experiment PRs. When every changed file is under `wiki/` (the rule `.github/workflows/auto-merge.yml` uses), the code is the same as on `main`, so CI's "Lint and tests" job and the skills' local `make check lint test` re-test code the PR didn't change.
   - In `.github/workflows/ci.yml`, add a job that lists the changed files, as `record-changes` does, and gate `tests` on it with a job-level `if`. Don't use `paths-ignore` on the workflow: a required check that never starts blocks the merge, while a skipped job counts as passed. Keep running it on pushes to `main`.

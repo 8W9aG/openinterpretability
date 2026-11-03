@@ -87,8 +87,16 @@ def test_structured_call_passes_model_and_messages(mocker, draft, ident, toy_run
     assert kwargs["model"] == "openai/test-model"
     assert kwargs["response_model"] is HypothesisDraft
     assert "temperature" not in kwargs
-    assert kwargs["messages"][0]["role"] == "system"
+    # OpenAI caches a repeated prefix itself, so the system prompt stays a plain string.
+    assert kwargs["messages"][0] == {"role": "system", "content": ProposerAgent.system_prompt}
     assert "[[" in kwargs["messages"][1]["content"]  # peak token marked
+
+
+def test_external_prompt_puts_the_unit_after_the_stable_parts(tmp_path):
+    rendered = ProposerAgent.render_prompt(HypothesisDraft, "the unit's evidence", tmp_path / "a")
+    system, schema = rendered.index(ProposerAgent.system_prompt), rendered.index("counterfactuals")
+    task, path = rendered.index("the unit's evidence"), rendered.index(str(tmp_path / "a"))
+    assert system < schema < task < path
 
 
 @pytest.mark.parametrize(
@@ -153,11 +161,14 @@ def test_structured_call_records_usage_across_retries(draft):
             self.hooks.remove(fn)
 
         def create(self, **kwargs):
+            self.messages = kwargs["messages"]
             for cost in (0.01, 0.02):
                 usage = SimpleNamespace(
                     prompt_tokens=100,
                     completion_tokens=10,
-                    prompt_tokens_details=SimpleNamespace(cached_tokens=40),
+                    prompt_tokens_details=SimpleNamespace(
+                        cached_tokens=40, cache_creation_tokens=30
+                    ),
                 )
                 response = SimpleNamespace(usage=usage, _hidden_params={"response_cost": cost})
                 for hook in self.hooks:
@@ -170,7 +181,11 @@ def test_structured_call_records_usage_across_retries(draft):
     (call,) = costs.measured().llm_calls
     assert (call.agent, call.model, call.attempts) == ("proposer", "anthropic/m", 2)
     assert (call.prompt_tokens, call.completion_tokens, call.cached_tokens) == (200, 20, 80)
+    assert call.cache_write_tokens == 60
     assert call.cost_usd == pytest.approx(0.03)
+    system, user = client.messages
+    assert system["content"][0]["cache_control"] == {"type": "ephemeral"}
+    assert user == {"role": "user", "content": "go"}
     assert call.prompt_chars == len(ProposerAgent.system_prompt) + 2
     assert [s.stage for s in costs.measured().stages] == ["proposer"]
     assert client.hooks == []  # unregistered after the call
