@@ -28,14 +28,16 @@ MODEL_ALIASES_ENV = "OPENINTERP_MODEL_ALIASES"
 def recorded_model(model: str | None) -> str | None:
     """The name to record for ``model``, after ``$OPENINTERP_MODEL_ALIASES``.
 
-    For external answerers behind a proxy, e.g. Claude Code routed through a LiteLLM
-    proxy to Grok, whose subagents report the Claude model they think they are. The
-    variable holds ``reported=actual`` pairs separated by commas
-    (``claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4``), or one bare name that
-    replaces every external model. Only ``external/<name>`` is rewritten: a LiteLLM
-    string is what gets called, so it already names the model. Raises ``ValueError`` for
-    an external name spelled other than the site would show it
-    (:func:`openinterp.core.agent_names.spelling_problem`), so one model keeps one name.
+    This is for external answerers behind a proxy. An example is Claude Code routed
+    through a LiteLLM proxy to Grok, whose subagents report the Claude model they think
+    they are. The variable holds ``reported=actual`` pairs separated by commas
+    (``claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4``). Or it holds one bare name
+    that replaces every external model.
+
+    Only ``external/<name>`` is rewritten. A LiteLLM string is what gets called, so it
+    already names the model. Raises ``ValueError`` for an external name spelled other
+    than the site would show it (:func:`openinterp.core.agent_names.spelling_problem`).
+    So one model keeps one name.
     """
     spec = os.environ.get(MODEL_ALIASES_ENV, "").strip()
     if not model or not model.startswith(EXTERNAL_PREFIX):
@@ -67,8 +69,8 @@ class LLMAgent:
 
     ``model`` is either a LiteLLM model string (``"anthropic/..."``, ``"openai/..."``,
     ``"ollama/..."``) or ``"external/<name>"``. An external model is answered through
-    files in ``exchange_dir``: the agent writes ``<Agent>.prompt.md`` (with the response's
-    JSON schema) and waits for ``<Agent>.response.json``. The full model string is what
+    files in ``exchange_dir``. The agent writes ``<Agent>.prompt.md``, with the response's
+    JSON schema. Then it waits for ``<Agent>.response.json``. The full model string is what
     gets recorded, so name the model that actually answered, e.g. ``external/gpt-5``.
     Pass ``client`` to inject a pre-built instructor client (useful in tests).
     """
@@ -99,6 +101,7 @@ class LLMAgent:
 
     @property
     def client(self) -> Any:
+        """The instructor client over LiteLLM, made on first use."""
         if self._client is None:
             import instructor
             import litellm
@@ -119,6 +122,7 @@ class LLMAgent:
         )
 
     def structured(self, response_model: type[T], prompt: str) -> T:
+        """Ask the model for a ``response_model`` and record the call's cost under this role."""
         with costs.stage(self.role):
             if self.model.startswith(EXTERNAL_PREFIX):
                 result = self._external(response_model, prompt)

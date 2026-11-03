@@ -1,5 +1,7 @@
-"""The home page's totals and leaderboards, queried with DuckDB over the exported
-registry parquet (see :func:`openinterp.builder.parquet_export.export_registry`).
+"""The home page's totals and leaderboards.
+
+They are queried with DuckDB over the exported registry parquet (see
+:func:`openinterp.builder.parquet_export.export_registry`).
 """
 
 from __future__ import annotations

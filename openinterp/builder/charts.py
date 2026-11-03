@@ -149,7 +149,7 @@ def vocab_chart(lens, width: int = 360) -> dict | None:
     """Diverging bars of each lens's top promoted and suppressed tokens by vocabulary z-score.
 
     One panel per lens, on a shared axis (z-scores are scale-invariant, so the lenses are
-    comparable). Rows run from the most promoted token down to the most suppressed; each
+    comparable). Rows run from the most promoted token down to the most suppressed. Each
     token's label sits on the far side of zero from its bar. Records without z-scores get
     no chart; the page lists their tokens instead.
     """
@@ -251,11 +251,11 @@ CAUSAL_KINDS = (("sufficiency", "Sufficiency"), ("necessity", "Necessity"))
 def causal_chart(causal, counterfactuals, width: int = 640) -> dict | None:
     """Bar geometry: each pair's sufficiency and necessity percentile against the 0.5 line.
 
-    A percentile ranks the unit's |effect| among the matched units' (protocol ≥ 0.5),
-    so 0.5 is the baseline: as influential as a unit that changes as much. Each pair gets
+    A percentile ranks the unit's |effect| among the matched units' (protocol ≥ 0.5).
+    So 0.5 is the baseline: as influential as a unit that changes as much. Each pair gets
     a row of two bars, and a final row holds the medians, which are the recorded scores.
     Records without per-pair effects get the median row alone. Records before 0.5 scored
-    a fraction of the gap instead, which has no such baseline, so they get no chart.
+    a fraction of the gap instead. That has no such baseline, so they get no chart.
     """
     if causal is None or causal.target is None:
         return None
@@ -342,9 +342,10 @@ def _poles(neuron) -> str:
 def layer_map(model, width: int = 640) -> dict | None:
     """Layer × neuron-index geometry: one row per layer, one mark per studied neuron.
 
-    Each mark sits at the neuron's index and takes its best pole's status (``MAP_STATUSES``
-    order), so coverage and where the verified neurons sit both show. Marks are drawn worst
-    status first, so a verified neuron is never hidden under a neighbour. Models whose MLP
+    Each mark sits at the neuron's index, and takes its best pole's status (in
+    ``MAP_STATUSES`` order). So the map shows coverage, and where the verified neurons are.
+    Marks are drawn worst status first, so a verified neuron is never hidden under a
+    neighbour. Models whose MLP
     width no record gives get no map: the index axis would have no end.
     """
     if not model.mlp_width or not model.neurons:
@@ -446,8 +447,9 @@ def model_pieces(model) -> dict | None:
 
 
 def layer_pieces(model, layer) -> dict | None:
-    """The layer's neurons as a grid of ``PIECE_ROW``-wide rows, one cell per neuron, so each
-    studied neuron is a lit cell coloured by its best pole's status and linking to its page.
+    """Return the layer's neurons as a grid of ``PIECE_ROW``-wide rows, one cell per neuron.
+
+    Each studied neuron is a lit cell, coloured by its best pole's status, linked to its page.
     """
     if not model.mlp_width:
         return None

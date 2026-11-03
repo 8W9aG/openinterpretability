@@ -2,9 +2,11 @@
 # Vale cannot tell an instruction from a description, so it checks the larger limit.
 # A script, not `extends: occurrence` with `scope: sentence`: in source code Vale gives
 # a rule each comment or docstring whole and never splits it into sentences. A sentence
-# ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one. A colon at the
-# end of a line also ends one: it opens a list or a block, such as command examples.
-# Indented command examples (Click help text) are not prose, so their words do not count.
+# ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one; a closing quote
+# or bracket may come between. A colon at the end of a line also ends one: it opens a
+# list or a block. Some lines are not prose, so their words do not count: lines indented
+# 4 or more spaces (Vale dedents docstrings, so these are literal blocks, such as a
+# formula or a file layout) and indented command examples (Click help text).
 extends: script
 message: "Keep sentences to 25 words or fewer (20 for an instruction)."
 level: error
@@ -12,8 +14,9 @@ scope: text
 script: |
   text := import("text")
   matches := []
-  for s in text.re_find(`(?s).*?(?:[.!?](?:\s|$)|:\n|$)`, scope, -1) {
-    prose := text.re_replace(`(?m)^ {2,}(?:openinterp|uv|make|git|python) [^\n]*`, s[0].text, "")
+  for s in text.re_find(`(?s).*?(?:[.!?]["')\]]*(?:\s|$)|:\n|$)`, scope, -1) {
+    literal := `(?m)^(?: {4,}\S| {2,}(?:openinterp|uv|make|git|python) )[^\n]*`
+    prose := text.re_replace(literal, s[0].text, "")
     words := text.re_find(`\w+`, prose, -1)
     if words != undefined && len(words) > 25 {
       matches = append(matches, {begin: s[0].begin, end: s[0].end})

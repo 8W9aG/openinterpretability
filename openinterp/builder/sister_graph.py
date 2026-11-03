@@ -1,11 +1,13 @@
 """The cross-model graph of sister neurons on a model's page.
 
-One panel per other model the sister search compared it with (`openinterp sisters`,
-``docs/analyses/sister-neurons.jsonl``). Each model is a column, its poles placed by
-relative depth (layer over the deepest layer), so poles at the same depth in two models
-of different depths sit level. A line joins each VERIFIED pole to its best match, from
-either side's search, drawn more strongly the higher their correlation; sisters (mutual
-best matches above the rotated basis) are drawn in colour, on top.
+There is one panel per other model that the sister search compared it with
+(`openinterp sisters`, ``docs/analyses/sister-neurons.jsonl``). Each model is a column.
+Its poles are placed by relative depth (layer over the deepest layer). So poles at the
+same depth in two models of different depths sit level.
+
+A line joins each VERIFIED pole to its best match, from either side's search. The higher
+their correlation, the stronger the line. Sisters (mutual best matches above the rotated
+basis) are drawn in colour, on top.
 """
 
 from __future__ import annotations
@@ -40,8 +42,10 @@ def _layer(slug: str) -> int:
 
 
 def _edges(name: str, rows: dict) -> dict[str, dict[tuple[str, str], _Edge]]:
-    """Each other model's edges with ``name``: every row's best match, from either side,
-    kept once per pair of poles (as a sister if either side's search says so).
+    """Return each other model's edges with ``name``.
+
+    An edge is every row's best match, from either side, kept once per pair of poles. It
+    is a sister if either side's search says so.
     """
     prefix = model_slug(name) + "/"
     names = _names(rows)
@@ -70,8 +74,9 @@ def _source(row) -> str:
 
 
 def _names(rows: dict) -> dict[str, str]:
-    """Model names by slug, from the models the rows were compared with; a model only
-    ever searched from falls back to undoing :func:`model_slug`.
+    """Return model names by slug, from the models that the rows were compared with.
+
+    For a model that was only ever searched from, it undoes :func:`model_slug`.
     """
     known = {model_slug(r.other): r.other for rs in rows.values() for r in rs}
     sources = {_source(r) for rs in rows.values() for r in rs}

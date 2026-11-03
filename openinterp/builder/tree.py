@@ -1,11 +1,12 @@
 """Group every archived experiment into Model → Layer → Unit → Experiments.
 
 A unit is an MLP neuron (both poles on one page), an attention head, or a latent of a
-sparse dictionary (the learned-basis baseline, kept apart from native-unit counts).
+sparse dictionary. Latents are the learned-basis baseline, kept apart from native-unit
+counts.
 
-All experiments are published, whatever their verdict. Within a neuron they are
-ordered by how conclusive the result is (see :mod:`significance`), so a strong null
-result sits next to a strong positive one rather than being hidden.
+All experiments are published, whatever their verdict. Within a neuron, they are
+ordered by how conclusive the result is (see :mod:`significance`). So a strong null
+result sits next to a strong positive one, and is not hidden.
 
 A pole's status is derived from its experiments by :mod:`standing`.
 """
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class Experiment:
+    """One experiment, with what the site needs to place it."""
+
     record: AuditRecord
     sig: Significance
     id: str
@@ -41,21 +44,25 @@ class Experiment:
 
     @property
     def independent(self) -> bool:
-        """False when this re-measures an earlier experiment's probes (e.g. a re-evaluation):
-        the two are not independent evidence and must not be counted twice.
+        """False when this re-measures an earlier experiment's probes.
+
+        An example is a re-evaluation. The two are not independent evidence, and must not
+        be counted twice.
         """
         return self.reuses is None
 
     @property
     def side(self) -> str:
-        """A neuron experiment's pole, else ``head`` or ``feature``: what the unit page
-        groups it under.
+        """What the unit page groups the experiment under.
+
+        That is a neuron experiment's pole, else ``head`` or ``feature``.
         """
         ident = self.record.submission.identifier
         return ident.pole or SIDES[ident.kind][0]
 
     @property
     def anchor(self) -> str:
+        """The experiment's anchor on its unit's page."""
         return f"{self.side}-{self.id}"
 
     @property
@@ -81,8 +88,9 @@ NOUNS = {"mlp_neuron_pole": "neuron", "attn_head": "head", "dictionary_feature":
 
 @dataclass
 class UnitNode:
-    """One neuron (both poles), attention head or dictionary feature, with all of its
-    experiments.
+    """One unit with all of its experiments.
+
+    The unit is a neuron (both poles), an attention head or a dictionary feature.
     """
 
     model: str
@@ -96,39 +104,49 @@ class UnitNode:
 
     @property
     def is_head(self) -> bool:
+        """True for an attention head."""
         return self.kind == "attn_head"
 
     @property
     def is_neuron(self) -> bool:
+        """True for an MLP neuron."""
         return self.kind == "mlp_neuron_pole"
 
     @property
     def is_feature(self) -> bool:
+        """True for a dictionary feature."""
         return self.kind == "dictionary_feature"
 
     @property
     def sides(self) -> tuple[str, ...]:
+        """The sides that the unit page groups experiments under."""
         return SIDES[self.kind]
 
     @property
     def noun(self) -> str:
+        """The unit's kind as a noun, for page text."""
         return NOUNS[self.kind]
 
     @property
     def label(self) -> str:
+        """The unit within its layer, for example ``N7`` or ``H3``."""
         return f"{LABEL_PREFIX[self.kind]}{self.idx}"
 
     @property
     def verified(self) -> bool:
+        """True when any side of the unit stands VERIFIED."""
         return any(s.verified for s in self.standings.values())
 
     @property
     def top(self) -> Experiment:
+        """The most conclusive experiment."""
         return self.experiments[0]
 
 
 @dataclass
 class LayerNode:
+    """One layer of a model, with its studied units."""
+
     model: str
     layer: int
     href: str
@@ -136,18 +154,22 @@ class LayerNode:
 
     @property
     def neurons(self) -> list[UnitNode]:
+        """The layer's studied neurons."""
         return [u for u in self.units if u.is_neuron]
 
     @property
     def heads(self) -> list[UnitNode]:
+        """The layer's studied heads."""
         return [u for u in self.units if u.is_head]
 
     @property
     def features(self) -> list[UnitNode]:
+        """The layer's studied dictionary features."""
         return [u for u in self.units if u.is_feature]
 
     @property
     def experiments(self) -> int:
+        """Experiments on the layer's units."""
         return sum(len(n.experiments) for n in self.units)
 
     @property
@@ -157,15 +179,19 @@ class LayerNode:
 
     @property
     def verified_heads(self) -> int:
+        """Heads with a VERIFIED standing."""
         return sum(n.verified for n in self.heads)
 
     @property
     def verified_features(self) -> int:
+        """Dictionary features with a VERIFIED standing."""
         return sum(n.verified for n in self.features)
 
 
 @dataclass
 class ModelNode:
+    """One model, with its studied layers."""
+
     name: str
     slug: str
     n_layers: int
@@ -175,34 +201,42 @@ class ModelNode:
 
     @property
     def neurons(self) -> int:
+        """Studied neurons over every layer."""
         return sum(len(layer.neurons) for layer in self.layers)
 
     @property
     def heads(self) -> int:
+        """Studied heads over every layer."""
         return sum(len(layer.heads) for layer in self.layers)
 
     @property
     def verified_heads(self) -> int:
+        """VERIFIED heads over every layer."""
         return sum(layer.verified_heads for layer in self.layers)
 
     @property
     def features(self) -> int:
+        """Studied dictionary features over every layer."""
         return sum(len(layer.features) for layer in self.layers)
 
     @property
     def verified_features(self) -> int:
+        """VERIFIED dictionary features over every layer."""
         return sum(layer.verified_features for layer in self.layers)
 
     @property
     def experiments(self) -> int:
+        """Experiments over every layer."""
         return sum(layer.experiments for layer in self.layers)
 
     @property
     def verified(self) -> int:
+        """Neurons with a VERIFIED pole, over every layer."""
         return sum(layer.verified for layer in self.layers)
 
     @property
     def total_neurons(self) -> int | None:
+        """Every MLP neuron in the model, or ``None`` when no record gives the width."""
         return self.n_layers * self.mlp_width if self.mlp_width else None
 
     @property
@@ -230,26 +264,32 @@ KNOWN_MLP_WIDTHS = {
 
 
 def model_href(slug: str) -> str:
+    """The model's index page."""
     return f"models/{slug}/index.html"
 
 
 def circuits_href(slug: str) -> str:
+    """The model's circuits page."""
     return f"models/{slug}/circuits.html"
 
 
 def layer_href(slug: str, layer: int) -> str:
+    """The layer's index page."""
     return f"models/{slug}/L{layer}/index.html"
 
 
 def neuron_href(slug: str, layer: int, idx: int) -> str:
+    """The neuron's page (both poles)."""
     return f"models/{slug}/L{layer}/N{idx}.html"
 
 
 def head_href(slug: str, layer: int, idx: int) -> str:
+    """The head's page."""
     return f"models/{slug}/L{layer}/H{idx}.html"
 
 
 def feature_href(slug: str, layer: int, dictionary: str, idx: int) -> str:
+    """The dictionary feature's page."""
     return f"models/{slug}/L{layer}/{dictionary}/F{idx}.html"
 
 
@@ -262,8 +302,10 @@ def unit_href(ident) -> str:
 
 
 def experiment_order(e: Experiment) -> tuple:
-    """Most conclusive first; on ties independent evidence before re-measurements, then
-    newest first, then deterministically.
+    """The sort key of a unit's experiments: most conclusive first.
+
+    On ties, independent evidence comes before re-measurements, then newest first, then
+    a fixed order.
     """
     return (
         -e.sig.conclusiveness,
@@ -275,6 +317,7 @@ def experiment_order(e: Experiment) -> tuple:
 
 
 def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
+    """Group the reviewed records into models, layers and units."""
     reviewed = [r for r in records if r.verdict is not None]
     latest: dict[str, AuditRecord] = {}
     for r in reviewed:
@@ -366,13 +409,14 @@ def _link_revisions(experiments: list[Experiment]) -> None:
 
 
 def false_discovery(models: Sequence[ModelNode]) -> dict:
-    """Expected false discoveries among the current VERIFIED claims about native units (one
-    per neuron pole or head; dictionary features are a baseline, not claims about the model's
-    own units).
+    """Return the expected false discoveries among the current VERIFIED claims.
 
-    Each claim is false with probability 1 − P(useful), so the expected number of
-    false claims is their sum and the estimated false discovery rate is that over the
-    number of claims.
+    There is one claim per native neuron pole or head. Dictionary features are left out:
+    they are a baseline, not claims about the model's own units.
+
+    Each claim is false with probability 1 − P(useful). So the expected number of false
+    claims is their sum. The estimated false discovery rate is that sum over the number
+    of claims.
     """
     from openinterp.core.stats import expected_false_discoveries
 

@@ -1,9 +1,9 @@
 """The corpora the registry's experiments were scanned on, and each one's language mix.
 
 A scan of a corpus whose documents carry ``lang`` counts its tokens per language
-(``ConfoundProfile.labels``), so a record knows the language mix of what it scanned.
+(``ConfoundProfile.labels``). So a record knows the language mix of what it scanned.
 Registry statistics over ``selection = "random"`` draws depend on that mix, so the site
-shows it for each corpus. Tokens are the model's, so the mix is per model: one corpus
+shows it for each corpus. Tokens are the model's, so the mix is per model. One corpus
 splits into more tokens of some languages under one tokenizer than under another.
 """
 
@@ -19,6 +19,8 @@ SHOWN_LANGUAGES = 8  # languages listed per mix; the rest are summed as "other"
 
 @dataclass(frozen=True)
 class LanguageShare:
+    """One language's tokens in a scan."""
+
     label: str
     tokens: int
     share: float  # of the scan's labelled tokens
@@ -35,12 +37,14 @@ class LanguageMix:
 
     @property
     def shown(self) -> list[LanguageShare]:
+        """The languages that the page lists by name."""
         return self.shares[:SHOWN_LANGUAGES]
 
     @property
     def other(self) -> float:
-        """The share of labelled tokens in languages not :attr:`shown` (the record lists
-        at most 50 languages, so this includes any it left out).
+        """The share of labelled tokens in languages not :attr:`shown`.
+
+        The record lists at most 50 languages, so this includes any that it left out.
         """
         return max(0.0, 1.0 - sum(s.share for s in self.shown))
 
@@ -59,6 +63,8 @@ def language_mix(submission) -> LanguageMix | None:
 
 @dataclass
 class CorpusView:
+    """One scan corpus on the index: its experiments and language mixes."""
+
     sha256: str | None
     name: str  # the provenance's description of the corpus
     experiments: int = 0
@@ -66,9 +72,10 @@ class CorpusView:
 
 
 def corpora_view(experiments: Sequence) -> list[CorpusView]:
-    """Every corpus some experiment's provenance names, most used first, with its language
-    mix under each model that scanned it with labels. Each mix is from the scan with the
-    most labelled tokens, preferring scans of the whole corpus to samples of it.
+    """Return every corpus that some experiment's provenance names, most used first.
+
+    Each has its language mix under each model that scanned it with labels. Each mix is
+    from the scan with the most labelled tokens, preferring whole-corpus scans to samples.
     """
     corpora: dict[str | None, CorpusView] = {}
     best: dict[tuple[str | None, str], LanguageMix] = {}
