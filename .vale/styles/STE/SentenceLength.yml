@@ -1,8 +1,18 @@
 # ASD-STE100: at most 20 words in a sentence of a procedure, 25 in a description.
 # Vale cannot tell an instruction from a description, so it checks the larger limit.
-extends: occurrence
+# A script, not `extends: occurrence` with `scope: sentence`: in source code Vale gives
+# a rule each comment or docstring whole and never splits it into sentences. A sentence
+# ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one.
+extends: script
 message: "Keep sentences to 25 words or fewer (20 for an instruction)."
 level: warning
-scope: sentence
-max: 25
-token: \b(\w+)\b
+scope: text
+script: |
+  text := import("text")
+  matches := []
+  for s in text.re_find(`(?s).*?(?:[.!?](?:\s|$)|$)`, scope, -1) {
+    words := text.re_find(`\w+`, s[0].text, -1)
+    if words != undefined && len(words) > 25 {
+      matches = append(matches, {begin: s[0].begin, end: s[0].end})
+    }
+  }
