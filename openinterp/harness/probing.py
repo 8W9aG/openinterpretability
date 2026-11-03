@@ -91,7 +91,8 @@ def choose_tokens(
     wins: Sequence[Window], max_positive: int, max_negative: int, seed: int
 ) -> list[list[int]]:
     """Positions to keep in each window: every position but the first, sampled down to
-    at most ``max_positive`` positive and ``max_negative`` negative tokens."""
+    at most ``max_positive`` positive and ``max_negative`` negative tokens.
+    """
     pos, neg = [], []
     for w, win in enumerate(wins):
         for i in range(1, len(win.ids)):
@@ -190,7 +191,8 @@ def fit_logistic(
     x: torch.Tensor, y: torch.Tensor, l2: float = DEFAULT_L2, steps: int = 200
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Class-balanced logistic regression on standardised ``x``; returns the weights in
-    raw activation space and the bias, so ``x @ w + b`` is the logit."""
+    raw activation space and the bias, so ``x @ w + b`` is the logit.
+    """
     mean, std = standardiser(x)
     z = (x - mean) / std
     weight = torch.where(y, 0.5 / y.sum(), 0.5 / (~y).sum())
@@ -295,7 +297,8 @@ def neuron_score(
 
 def neurons_needed(points: Sequence[SparsePoint], dense: SiteProbes) -> int | None:
     """Smallest k within the margin of the better dense probe on the hidden layer (a
-    logistic probe's threshold can transfer worse across sources than a mass-mean's)."""
+    logistic probe's threshold can transfer worse across sources than a mass-mean's).
+    """
     best = max(dense.logistic.balanced_accuracy, dense.mass_mean.balanced_accuracy)
     for p in points:
         if p.score.balanced_accuracy >= best - NEEDED_MARGIN:

@@ -40,7 +40,8 @@ class LanguageMix:
     @property
     def other(self) -> float:
         """The share of labelled tokens in languages not :attr:`shown` (the record lists
-        at most 50 languages, so this includes any it left out)."""
+        at most 50 languages, so this includes any it left out).
+        """
         return max(0.0, 1.0 - sum(s.share for s in self.shown))
 
 
@@ -67,7 +68,8 @@ class CorpusView:
 def corpora_view(experiments: Sequence) -> list[CorpusView]:
     """Every corpus some experiment's provenance names, most used first, with its language
     mix under each model that scanned it with labels. Each mix is from the scan with the
-    most labelled tokens, preferring scans of the whole corpus to samples of it."""
+    most labelled tokens, preferring scans of the whole corpus to samples of it.
+    """
     corpora: dict[str | None, CorpusView] = {}
     best: dict[tuple[str | None, str], LanguageMix] = {}
     for e in experiments:

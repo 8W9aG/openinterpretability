@@ -83,7 +83,8 @@ def test_ranks_average_ties_and_spearman_is_rank_based():
 
 def _planted(n=6000, seed=0):
     """Target fires on ~3% of tokens. Neuron 3's positive pole and neuron 4's negative
-    pole fire with it; neuron 5 has huge outliers on the target's three strongest tokens."""
+    pole fire with it; neuron 5 has huge outliers on the target's three strongest tokens.
+    """
     g = torch.Generator().manual_seed(seed)
     acts = torch.randn(n, 8, generator=g) * 0.1
     fires = torch.rand(n, generator=g) < 0.03

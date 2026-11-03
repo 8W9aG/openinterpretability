@@ -43,7 +43,8 @@ def agent_href(model: str) -> str:
 
 def legacy_href(model: str) -> str:
     """The page a recorded spelling had before spellings were merged:
-    ``external/deepseek-flash[1m]`` → ``agents/external-deepseek-flash-1m.html``."""
+    ``external/deepseek-flash[1m]`` → ``agents/external-deepseek-flash-1m.html``.
+    """
     return f"agents/{_slug(model)}.html"
 
 
@@ -67,7 +68,8 @@ class RoleStats:
     @property
     def rate(self) -> float | None:
         """VERIFIED / experiments, over independent reviews only. A judge scores
-        explanations after the verdict, so its experiments' verdicts aren't its rate."""
+        explanations after the verdict, so its experiments' verdicts aren't its rate.
+        """
         if self.role == "judge" or not self.independent:
             return None
         return self.independent_verified / self.independent
@@ -183,7 +185,8 @@ class ContributorStats:
 
 def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStats]:
     """One row per recorded contributor, most experiments and reviews first. Records
-    without a contributor (all before it was recorded) count for nobody."""
+    without a contributor (all before it was recorded) count for nobody.
+    """
     people: dict[str, ContributorStats] = {}
     for e in experiments:
         sub, verdict = e.record.submission, e.record.verdict

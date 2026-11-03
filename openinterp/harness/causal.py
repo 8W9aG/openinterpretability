@@ -181,7 +181,8 @@ def _patch_effect(own: float, others: list[float]) -> tuple[PatchEffect, float]:
 
 def _unit_patching(submission: NeuronAuditSubmission, runner: NeuronHookRunner):
     """``changes(base, cf)`` and ``patch(source, target, units, **options)`` for the kind
-    of unit ``submission`` is about."""
+    of unit ``submission`` is about.
+    """
     from openinterp.harness.features import patch_features, write_changes
     from openinterp.harness.heads import patch_heads
     from openinterp.harness.units import FeatureUnit, submission_unit

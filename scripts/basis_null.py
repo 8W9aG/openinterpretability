@@ -151,7 +151,8 @@ def runner():
 @click.option("--unit", "names", multiple=True, help="Default: every unit not yet done.")
 def scan(plan_file, names):
     """Scan units and write their proposer prompts (ev.prompt.md), or outcome.json if
-    the scan stops on them (dead or default-on)."""
+    the scan stops on them (dead or default-on).
+    """
     from openinterp.cli_evidence import write_evidence
     from openinterp.evidence import ScanRequest, Unauditable, scan_evidence
 
@@ -188,7 +189,8 @@ def scan(plan_file, names):
 def strengths(unit_dir, texts):
     """The proposer's measuring tool: each text's per-token strengths and its peak as a
     fraction of the unit's scale, read from the unit's own ev.json (so it says nothing of
-    which arm the unit is in). Runs on the CPU."""
+    which arm the unit is in). Runs on the CPU.
+    """
     from openinterp.cli import _load_runner
     from openinterp.core.schemas import ScanEvidence
     from openinterp.harness.units import unit_of
@@ -213,7 +215,8 @@ def strengths(unit_dir, texts):
 @click.option("--agent-model", required=True, help="The proposer's model, as recorded.")
 def submit(plan_file, names, agent_model):
     """Build each submission from its scan and the proposer's draft (measuring the
-    counterfactuals) and write the reviewer's prompt (review.prompt.md)."""
+    counterfactuals) and write the reviewer's prompt (review.prompt.md).
+    """
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.cli_review import write_review_prompt
     from openinterp.cli_submission import build_submission
@@ -236,7 +239,8 @@ def submit(plan_file, names, agent_model):
 @click.option("--agent-model", required=True, help="The reviewer's model, as recorded.")
 def measure(plan_file, names, agent_model):
     """Run each review's probes and decide (result.json), without causal metrics or
-    wiring, which aren't gated."""
+    wiring, which aren't gated.
+    """
     from null_calibration import review_probes  # beside this script
 
     from openinterp.agents.reviewer import ProbeSet

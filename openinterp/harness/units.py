@@ -125,7 +125,8 @@ def unit_of(
     ident: ComponentIdentifier, head_profile=None, dictionary_profile=None, skip_first=False
 ) -> Unit:
     """The unit ``ident`` names; a head or a feature needs the profile its strength is
-    defined by."""
+    defined by.
+    """
     if isinstance(ident, HeadIdentifier):
         if head_profile is None:
             raise ValueError(f"{ident} has no head profile, so its strength is undefined")
@@ -139,7 +140,8 @@ def unit_of(
 
 def submission_unit(submission) -> Unit:
     """The unit a submission, scan evidence or scoring task is about. A record from before
-    protocol 0.8 has no ``first_token_floor`` and is measured at every token."""
+    protocol 0.8 has no ``first_token_floor`` and is measured at every token.
+    """
     floor = bool(getattr(submission, "first_token_floor", None))
     return unit_of(
         submission.identifier, submission.head_profile, submission.dictionary_profile, floor
@@ -148,7 +150,8 @@ def submission_unit(submission) -> Unit:
 
 def peak_strength(runner: NeuronHookRunner, unit: Unit, text: str) -> float | None:
     """The peak strength of ``text`` over its measured tokens; ``None`` when it has none
-    (one token, for a unit that skips the first)."""
+    (one token, for a unit that skips the first).
+    """
     strengths = unit.strengths(runner, text)[0][int(unit.skip_first) :]
     return float(strengths.max()) if strengths.numel() else None
 
@@ -166,5 +169,6 @@ def max_strength(runner: NeuronHookRunner, unit: Unit, text: str) -> float:
 
 def attn_implementation(ident: ComponentIdentifier) -> str | None:
     """Heads load with eager attention: SDPA and flash attention return no patterns, and
-    every measurement of a head experiment should run the same attention kernel."""
+    every measurement of a head experiment should run the same attention kernel.
+    """
     return "eager" if isinstance(ident, HeadIdentifier) else None

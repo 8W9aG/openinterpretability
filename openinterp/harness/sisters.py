@@ -61,7 +61,8 @@ def _unit(layer: int, column: int, width: int) -> Unit:
 class Correlations:
     """Streaming Pearson correlation between ``P`` source series and every column of
         some target matrices (one per layer). Each batch's sums are taken on the device in
-    the inputs' dtype (MPS has no float64); the running totals are float64 on the CPU."""
+    the inputs' dtype (MPS has no float64); the running totals are float64 on the CPU.
+    """
 
     def __init__(self, n_sources: int) -> None:
         self.n = 0
@@ -105,7 +106,8 @@ def _seed(model_name: str, layer: int) -> int:
 
 def rotation(model_name: str, layer: int, width: int) -> torch.Tensor:
     """A Haar-random orthogonal ``[width, width]`` matrix (QR of a Gaussian, signs
-    fixed), seeded by model and layer so a rerun draws the same one."""
+    fixed), seeded by model and layer so a rerun draws the same one.
+    """
     generator = torch.Generator().manual_seed(_seed(model_name, layer))
     q, r = torch.linalg.qr(torch.randn(width, width, generator=generator, dtype=torch.float64))
     return (q * torch.sign(torch.diagonal(r))).float()
@@ -114,7 +116,8 @@ def rotation(model_name: str, layer: int, width: int) -> torch.Tensor:
 @dataclass(frozen=True)
 class Tokens:
     """One text as one model reads it: token ids, and the character offset each token
-    ends at (-1 for a token that covers no characters, such as a special token)."""
+    ends at (-1 for a token that covers no characters, such as a special token).
+    """
 
     ids: list[int]
     ends: list[int]
@@ -136,7 +139,8 @@ def tokenize(runner: NeuronHookRunner, text: str) -> Tokens:
 def shared_boundaries(a: Sequence[int], b: Sequence[int]) -> tuple[list[int], list[int]]:
     """The positions in two tokenizations (token end offsets ``a`` and ``b``) where both
     have just read the same text: tokens that end at the same character. Where several
-    tokens end at one character, the last counts. Each text's first token is left out."""
+    tokens end at one character, the last counts. Each text's first token is left out.
+    """
     last_a = {end: i for i, end in enumerate(a) if end >= 0 and i > 0}
     last_b = {end: i for i, end in enumerate(b) if end >= 0 and i > 0}
     shared = sorted(last_a.keys() & last_b.keys())
@@ -152,7 +156,8 @@ def paired_rows(
     batch_tokens: int = BATCH_TOKENS,
 ) -> Iterator[tuple[dict[int, torch.Tensor], dict[int, torch.Tensor]]]:
     """Both models' activations ``{layer: [n, width]}`` at the shared boundaries of each
-    group of documents, row for row. Each document is one forward pass of each model."""
+    group of documents, row for row. Each document is one forward pass of each model.
+    """
     docs = [(tokenize(a, t), tokenize(b, t)) for t in texts]
     docs = [(x, y) for x, y in docs if x.ids and y.ids]
     lengths = [max(len(x.ids), len(y.ids)) for x, y in docs]
@@ -203,7 +208,8 @@ def _top(corr: Correlations, keys: Iterable[int], widths: dict[int, int], k: int
 @dataclass(frozen=True)
 class Sisters:
     """One source pole's best matches in the other model, with each match's own best partner
-    back in the source model (``back``) and the rotated-basis reference."""
+    back in the source model (``back``) and the rotated-basis reference.
+    """
 
     matches: list[Match]
     back: list[Match]  # per match: its best partner among the source model's units
@@ -224,7 +230,8 @@ def find_sisters(
     """Each of ``units`` (in ``source``) with its sisters in ``other``, over ``texts``,
     and how many token positions were paired. Two passes over the corpus: the first finds
     each unit's ``k`` best poles over all of ``other``'s layers; the second, each of those
-    poles' best partner over all of ``source``'s layers, and the rotated reference."""
+    poles' best partner over all of ``source``'s layers, and the rotated reference.
+    """
     units = list(dict.fromkeys(units))
     pair = _Pair(source, other, texts, batch_tokens, progress or (lambda *_: None))
     matches = _forward(pair, units, k)
@@ -270,7 +277,8 @@ def _forward(pair: _Pair, units: Sequence[Unit], k: int) -> list[list[Match]]:
 def _backward(pair: _Pair, units: Sequence[Unit], matches: list[list[Match]], name: str):
     """Pass 2: each match's best pole over every source layer (``{unit: Match}``), each
     unit's rotated reference at its top match's layer (``{unit index: r}``), and how many
-    positions were paired."""
+    positions were paired.
+    """
     found = list(dict.fromkeys((m.layer, m.neuron_idx, m.pole) for ms in matches for m in ms))
     by_layer: dict[int, list[int]] = {}
     for i, ms in enumerate(matches):

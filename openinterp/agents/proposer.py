@@ -94,7 +94,8 @@ def distinct_examples(
 ) -> tuple[list[tuple[int, ActivatingExample]], list[int]]:
     """The first ``limit`` examples, numbered from 1, without those whose window shares at
     least NEAR_DUPLICATE of its distinct tokens with an earlier kept one's; and the numbers
-    dropped. Numbers stay those of the scan's order, which input attribution cites."""
+    dropped. Numbers stay those of the scan's order, which input attribution cites.
+    """
     kept: list[tuple[int, ActivatingExample]] = []
     dropped: list[int] = []
     seen: list[set[str]] = []
@@ -302,7 +303,8 @@ class ProposerAgent(LLMAgent):
     ) -> str:
         """The task text the proposer answers: the scan evidence for one unit, then what
         other research links to it (``related``: its studied sister neurons,
-        :func:`openinterp.sisters.format_sisters`)."""
+        :func:`openinterp.sisters.format_sisters`).
+        """
         prompt = f"{identifier.noun.capitalize()}: {identifier}\n\n"
         if first_token_floor:
             prompt += FIRST_TOKEN_UNMEASURED + "\n"

@@ -1,7 +1,7 @@
 """Fixed, versioned blends of corpus presets (`openinterp corpus --dataset mixed`).
 
-A blend samples each of its presets for its share of the documents, with one seed, and
-writes them in order as one corpus, each document recording its preset as ``source``.
+A blend samples each of its presets for its share of the documents, with one seed. It
+writes them in order as one corpus. Each document records its preset as ``source``.
 """
 
 from __future__ import annotations
@@ -12,12 +12,12 @@ from pathlib import Path
 from openinterp.core.schemas import CorpusSource
 from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 
-# Fixed blends of presets, by versioned name: each preset's weight in the blend's documents.
-# A blend is never edited once released; a new mix is a new version, so a corpus's name
-# says what it holds. `mixed` (the latest version, `openinterp corpus`'s default) spreads
-# random-selection statistics over domains instead of one dataset's: web text, the Pile's
-# mix of sources (papers, legal text, forums, code), long encyclopedic articles, source code
-# and nine languages besides English.
+# Fixed blends of presets, by versioned name. Each value is a preset's weight in the blend.
+# A blend is never edited once released. A new mix is a new version, so a corpus's name
+# says what it holds. `mixed` is the latest version and `openinterp corpus`'s default. It
+# spreads random-selection statistics over domains, not one dataset's. They are web
+# text, the Pile's mix of sources (papers, legal text, forums, code), long encyclopedic
+# articles, source code and nine languages besides English.
 BLENDS = {
     "mixed-v1": {
         "fineweb-edu": 4,
@@ -39,8 +39,10 @@ DEFAULT_DATASET = "mixed"
 
 
 def blend_shares(name: str, documents: int) -> dict[str, int]:
-    """Each of the blend's presets' documents out of ``documents``, by weight, rounded down,
-    with the remainder going one each to the presets listed first."""
+    """Split ``documents`` among the blend's presets by weight, rounded down.
+
+    The remainder goes one each to the presets listed first.
+    """
     weights = BLENDS[BLEND_ALIASES.get(name, name)]
     total = sum(weights.values())
     shares = {preset: documents * w // total for preset, w in weights.items()}
@@ -58,11 +60,14 @@ def build_blend(
     max_chars: int = 3000,
     ascii: bool = False,
 ) -> CorpusSource:
-    """Sample each of a blend's presets (:data:`BLENDS`) for its share of ``documents``,
-    with one seed, and write them in the blend's order as one corpus. Each document records
-    its preset as ``source``, and Wikipedia's their language as ``lang``. The sidecar lists
-    every preset's own source, as ``openinterp corpus --dataset <preset>`` writes it alone,
-    so each part can be rebuilt and checked separately."""
+    """Sample each of a blend's presets (:data:`BLENDS`) and write one corpus.
+
+    Each preset gives its share of ``documents``, with one seed, in the blend's order. Each
+    document records its preset as ``source``, and Wikipedia's documents record their
+    language as ``lang``. The sidecar lists the source of every preset, as
+    ``openinterp corpus --dataset <preset>`` writes it alone. So you can rebuild and check
+    each part separately.
+    """
     name = BLEND_ALIASES.get(name, name)
     texts: list[str] = []
     labels: dict[str, list[str | None]] = {"lang": [], "source": []}

@@ -96,7 +96,8 @@ def _head_strength(runner, t: Target, encoded, x: torch.Tensor) -> torch.Tensor:
 
 def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peaks) -> torch.Tensor:
     """``[b, n_heads, 3]``: how far each head's write at the peak moves when ``delta`` is
-    removed from what its ``q``, ``k`` or ``v`` reads, one channel at a time."""
+    removed from what its ``q``, ``k`` or ``v`` reads, one channel at a time.
+    """
     modules = _qkv_modules(runner.layers[layer])
     w_o = _head_outputs(runner, layer)  # [n, d, hd]
     rows = torch.arange(len(peaks))
@@ -113,7 +114,8 @@ def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peak
 
 def _z_without(runner, layer: int, module, part, delta, encoded) -> torch.Tensor:
     """The layer's head outputs (float32) when one of ``q``, ``k`` or ``v`` (``module``,
-    or its ``part`` of a fused projection) reads the residual without ``delta``."""
+    or its ``part`` of a fused projection) reads the residual without ``delta``.
+    """
     norm = _attn_read_point(runner, layer)
     state: dict = {}
 
@@ -163,7 +165,8 @@ def activation_wiring(
     batch_size: int = 8,
 ) -> Wiring | None:
     """The unit's top connections by attribution at its peak on each prompt where it
-    reaches ``threshold``; ``None`` if it reaches it on none. See :class:`Wiring`."""
+    reaches ``threshold``; ``None`` if it reaches it on none. See :class:`Wiring`.
+    """
     t = target_of(runner, unit)
     attention = _has_attention(runner)
     if t.site == "attn_in" and not attention:
@@ -221,7 +224,8 @@ class _Sums:
 
 def _peak_gradient(runner, t: Target, unit: Unit, encoded, cap, dtype, threshold: float):
     """(the gradient of each firing prompt's peak strength with respect to the unit's read,
-    the peaks, the mask of prompts that fired); ``None`` if none did."""
+    the peaks, the mask of prompts that fired); ``None`` if none did.
+    """
     mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
     x = cap["read"].to(dtype).requires_grad_(True)
     with torch.enable_grad():

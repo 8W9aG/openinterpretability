@@ -112,7 +112,8 @@ def shuffle(wiki_dir, permutations, seed, out):
 def shuffle_record(record: AuditRecord, tokenizer, permutations: int, seed: int):
     """Counts of VERIFIED (all gates, and without the proposer's) over label permutations,
     and the unpermuted verdict re-derived the same way as a check. ``None`` if the record
-    has no measured probes or no scale."""
+    has no measured probes or no scale.
+    """
     sub = record.submission
     results = record.verdict.adversarial_test_results
     probes = [r for r in results if r.kind in PROBE_KINDS and r.measured]
@@ -135,7 +136,8 @@ def shuffle_record(record: AuditRecord, tokenizer, permutations: int, seed: int)
 
 def relabel(record: AuditRecord, probes, labels, baselines):
     """The verdict and gates with ``labels`` as the probes' expected activity, from the
-    activity the record measured."""
+    activity the record measured.
+    """
     from openinterp.agents.reviewer import AdversarialProbe
 
     sub, policy = record.submission, DEFAULT_POLICY
@@ -167,7 +169,8 @@ def relabel(record: AuditRecord, probes, labels, baselines):
 
 def shuffle_baselines(sub, tokenizer, texts, policy) -> dict[str, list[bool]] | None:
     """The confound baselines' predictions, or ``None`` without a confound profile (the
-    gate then fails, as in a review)."""
+    gate then fails, as in a review).
+    """
     from openinterp.harness.confounds import baseline_predictions
 
     if sub.confounds is None:
@@ -231,7 +234,8 @@ def swap(wiki_dir, corpora, models, seed, device, out):
 
 class _NoPartners:
     """Stands in for the scan's partner search, which feeds only joint ablation (not
-    gated, and skipped here) and costs most of a replayed scan."""
+    gated, and skipped here) and costs most of a replayed scan.
+    """
 
     def __init__(self, width: int) -> None:
         pass
@@ -258,7 +262,8 @@ def verified_units(wiki_dir: Path, models):
 
 def swap_record(record: AuditRecord, runner, corpus, seed: int, cache, samples) -> dict:
     """Scan a random other neuron of the record's layer and pole and review the record's
-    submission and probes against it."""
+    submission and probes against it.
+    """
     from openinterp.evidence import Unauditable, check_default_on, run_scan
 
     sub = record.submission
@@ -394,7 +399,8 @@ def short(model: str) -> str:
 
 def shuffle_table(rows) -> str:
     """Per model and original verdict: records, the mean per-record VERIFIED rate over
-    permutations, and the share of records any permutation verified."""
+    permutations, and the share of records any permutation verified.
+    """
     groups = defaultdict(list)
     for r in rows:
         groups[(short(r["model"]), r["status"])].append(r)

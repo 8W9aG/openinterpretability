@@ -77,7 +77,8 @@ def read(path: Path) -> list[dict]:
 
 def mixed_documents(wiki: list[dict], n: int = 200, chars: int = 1500, seed: int = 0):
     """English followed by another language, English a quarter, half or three quarters of
-    the characters; the right answer is the majority language (either, at half)."""
+    the characters; the right answer is the majority language (either, at half).
+    """
     rng = random.Random(seed)
     english = [r for r in wiki if r["lang"] == "en"]
     others = [r for r in wiki if r["lang"] != "en"]

@@ -96,7 +96,8 @@ def _pole_values(
 
 def reference(x: torch.Tensor, baseline: torch.Tensor, keep_first: bool) -> torch.Tensor:
     """The baseline input for embeddings ``x`` ``[batch, seq, d]``: ``baseline`` at every
-    position, except the first when ``keep_first``."""
+    position, except the first when ``keep_first``.
+    """
     base = baseline.to(x.dtype).expand_as(x).clone()
     if keep_first:
         base[:, 0] = x[:, 0]
@@ -117,7 +118,8 @@ def integrated_gradients(
 ) -> torch.Tensor:
     """Attribution ``[seq]`` of the last token's signed pole activation, one row ``ids``.
 
-    With ``keep_first`` the first token is not interpolated and gets no attribution."""
+    With ``keep_first`` the first token is not interpolated and gets no attribution.
+    """
     alphas = (torch.arange(steps, dtype=torch.float32) + 0.5) / steps
     grad_sum: torch.Tensor | None = None
     diff: torch.Tensor | None = None
@@ -187,7 +189,8 @@ def _converged_attribution(
     runner, ids, args, baseline, gap: float, steps: int, max_steps: int, tolerance: float
 ) -> tuple[torch.Tensor, int]:
     """Attribution as shares of ``gap``, doubling the steps until Σ is within ``tolerance``
-    of 1 or ``max_steps`` is reached. Returns the attribution and the steps it took."""
+    of 1 or ``max_steps`` is reached. Returns the attribution and the steps it took.
+    """
     keep_first = ids.shape[1] > 1
     while True:
         attr = integrated_gradients(
@@ -276,7 +279,8 @@ class _Settings:
 
 def _attribute_example(runner, n: int, example, args, baseline, settings: _Settings):
     """(the example's ContextExample, and if it converged its checked attributions, ablation
-    effects, distance-band shares and mean distance); ``None`` if there is no gap."""
+    effects, distance-band shares and mean distance); ``None`` if there is no gap.
+    """
     ids, values, peak, gap = _peak_gap(runner, example, args, baseline, settings.skip_first)
     if gap <= 1e-6:
         return None  # the reference input activates the pole as much: nothing to attribute
@@ -319,7 +323,8 @@ def _attribute_example(runner, n: int, example, args, baseline, settings: _Setti
 
 def _peak_gap(runner, example, args, baseline, skip_first: bool):
     """The example cut at its peak, its pole values, the peak, and the gap between the peak
-    and the reference input's activation there."""
+    and the reference input's activation there.
+    """
     ids = runner.encode(example.text)["input_ids"][:1]
     with torch.no_grad():
         values = _pole_values(runner, ids, *args, lambda _out: None)[0]

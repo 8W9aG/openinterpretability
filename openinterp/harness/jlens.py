@@ -88,7 +88,8 @@ def transported_direction(
 
 def _through_final_norm(runner: NeuronHookRunner, vector: torch.Tensor) -> torch.Tensor:
     """Apply the final norm's direction-relevant part: centring for LayerNorm and the
-    gain. The bias is a constant offset, unrelated to the direction, so it is dropped."""
+    gain. The bias is a constant offset, unrelated to the direction, so it is dropped.
+    """
     norm = runner.final_norm()
     v = vector.float()
     if isinstance(norm, nn.LayerNorm):
@@ -135,7 +136,8 @@ def direction_lens(
     k: int = 10,
 ) -> VocabularyLens:
     """Read any vector written after ``layer``'s MLP (a pole's, or a dictionary latent's
-    decoder row) through both lenses."""
+    decoder row) through both lenses.
+    """
     direction = direction.float()
     transported = transported_direction(runner, prompts, layer, direction)
 

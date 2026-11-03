@@ -81,7 +81,8 @@ def first_position_share(
 ) -> float:
     """The share of the vocabulary (special tokens left out) on which ``strengths`` is at
     or above ``line`` at a text's first position. Attention there sees only the token
-    itself, so this is a property of the weights, the same for every corpus."""
+    itself, so this is a property of the weights, the same for every corpus.
+    """
     tokenizer = runner.tokenizer
     try:
         size = len(tokenizer)
@@ -101,7 +102,8 @@ def has_first_token_floor(
     runner: NeuronHookRunner, strengths: Strengths, scale: float, policy: ReviewPolicy
 ) -> bool:
     """Protocol 0.8: is the unit active at the first position on at least
-    ``policy.max_active_share`` of the vocabulary, against its line ``scale`` sets?"""
+    ``policy.max_active_share`` of the vocabulary, against its line ``scale`` sets?
+    """
     if scale <= 0:
         return False
     line = policy.activation_threshold * scale
@@ -121,7 +123,8 @@ def settle(
     The floor is judged against the scale the unit would have without first tokens (the
     top example's peak after its first token), which is the scale it records if it has the
     floor; with it, first tokens are left out of the examples' ranking and of the values.
-    Each example carries its peak token's ``labels``."""
+    Each example carries its peak token's ``labels``.
+    """
     best = top.top(runner.tokenizer, 1, skip_first=True)
     scale = best[0].max_activation if best else 0.0
     floor = has_first_token_floor(runner, strengths, scale, ReviewPolicy())
@@ -189,7 +192,8 @@ class Batch:
 
 def plan_batches(lengths: Sequence[int], batch_tokens: int) -> list[int]:
     """How many consecutive pieces each forward pass takes: as many as fit in
-    ``batch_tokens`` once padded to the longest, and at least one."""
+    ``batch_tokens`` once padded to the longest, and at least one.
+    """
     sizes: list[int] = []
     size = longest = 0
     for n in lengths:
@@ -270,7 +274,8 @@ def scan_chunks(
     cache: LayerCache | None = None,
 ) -> Iterator[Chunk]:
     """``layer``'s chunks: replayed from ``cache`` if it holds them, else from the model
-    (and stored in ``cache``)."""
+    (and stored in ``cache``).
+    """
     chunks = layer_chunks(runner, pieces, layer, batch_tokens)
     return chunks if cache is None else cache.through(runner, layer, pieces, batch_tokens, chunks)
 
@@ -298,7 +303,8 @@ class TopExamples:
         self, tokenizer, k: int, skip_first: bool = False, labels: TokenLabels | None = None
     ) -> list[ActivatingExample]:
         """The ``k`` strongest pieces by their peak, after their first token if
-        ``skip_first``, each with its peak token's ``labels``."""
+        ``skip_first``, each with its peak token's ``labels``.
+        """
         start = int(skip_first)
         ranked = [(max(v[start:]), p, i, v) for p, i, v in self.candidates if len(v) > start]
         examples: list[ActivatingExample] = []
@@ -343,7 +349,8 @@ def scan_neuron(
     """Scan ``texts`` for one neuron pole, and for its other pole's top ``opposite_k``
     examples and histogram (free: the pass reads the whole activation). With ``cache``,
     replay the layer's stored activations if it holds this scan, and store them if not.
-    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's."""
+    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's.
+    """
     if runner.tokenizer is None:
         raise ValueError("scan_neuron requires a tokenizer")
     other: Pole = "negative" if pole == "positive" else "positive"
@@ -404,7 +411,8 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
 
 class LabelPass:
     """Each tagger's labels of a scan's counted tokens, with their strengths, gathered
-    pass by pass, and the label confounds they give (see ``harness/annotations.py``)."""
+    pass by pass, and the label confounds they give (see ``harness/annotations.py``).
+    """
 
     def __init__(self, tokenizer, texts: Sequence[str], taggers: Sequence[Tagger]) -> None:
         self.tokens = TokenLabels(tokenizer, texts, taggers)
@@ -430,7 +438,8 @@ class LabelPass:
 
     def finalize(self, confounds: ConfoundProfile, values: Sequence[float]) -> ConfoundProfile:
         """``confounds`` with each label set's, counting a token active at or above the
-        protocol's line for the scan's settled ``values``."""
+        protocol's line for the scan's settled ``values``.
+        """
         if not self.accumulators:
             return confounds
         line = ReviewPolicy().activation_threshold * max(values, default=0.0)

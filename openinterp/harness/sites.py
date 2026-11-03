@@ -25,7 +25,8 @@ from openinterp.harness.hooks import (
 
 def normalize_without_affine(norm: nn.Module, x: torch.Tensor) -> torch.Tensor:
     """What ``norm`` makes of ``x`` before its gain and bias: standardised for LayerNorm,
-    divided by its root mean square for RMSNorm (float32)."""
+    divided by its root mean square for RMSNorm (float32).
+    """
     eps = getattr(norm, "eps", None) or getattr(norm, "variance_epsilon", None) or 1e-6
     x = x.float()
     if isinstance(norm, nn.LayerNorm):
@@ -38,7 +39,8 @@ def site_hooks(
 ) -> list:
     """Hooks for one ``dictionary_interventions`` entry: read x at ``site``, then call
     ``fn(x, out)`` on the MLP's write to the residual stream, or for ``resid_post`` on the
-    residual stream after the layer, which is also x."""
+    residual stream after the layer, which is also x.
+    """
     if site == "resid_post":
 
         def residual(_module, _args, out):
@@ -80,7 +82,8 @@ def dictionary_io(
     runner: NeuronHookRunner, inputs: Inputs, layer: int, site: DictionarySite
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """A dictionary's input at ``site`` and the output it reconstructs (see
-    :func:`site_hooks`), both ``[batch, seq, d]``. The forward pass stops there."""
+    :func:`site_hooks`), both ``[batch, seq, d]``. The forward pass stops there.
+    """
     captured: list[tuple[torch.Tensor, torch.Tensor]] = []
 
     def capture(x: torch.Tensor, out: torch.Tensor) -> None:

@@ -231,7 +231,8 @@ def _experiment_view(
     e: Experiment, studied: set[str], rows: dict | None = None, circuit: str | None = None
 ) -> dict:
     """``rows``: backfilled wiring (see :mod:`openinterp.wiring_backfill`); ``circuit``:
-    the link to the circuit the unit is in, if any."""
+    the link to the circuit the unit is in, if any.
+    """
     sub, verdict = e.record.submission, e.record.verdict
     weights, activations, backfilled = record_wiring(e.record, rows or {})
     ident = sub.identifier
@@ -316,7 +317,8 @@ def compile_site(
     (:func:`openinterp.corpus.load_sources`) for records that predate wiring or sidecars,
     each neuron pole's aligned dictionary latents, ``alignment_rows``
     (:func:`openinterp.crossref.load_rows`), and its matches in other models,
-    ``sister_rows`` (:func:`openinterp.sisters.load_rows`)."""
+    ``sister_rows`` (:func:`openinterp.sisters.load_rows`).
+    """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
@@ -416,7 +418,8 @@ class _Renderer:
 
 def aligned_latents(model, neuron, alignment: dict, studied: set) -> list[dict]:
     """Each pole's aligned dictionary latents for a neuron page, with each latent's page
-    here (if it was audited) and on Neuronpedia (if hosted there)."""
+    here (if it was audited) and on Neuronpedia (if hosted there).
+    """
     if not neuron.is_neuron:
         return []
     poles = []

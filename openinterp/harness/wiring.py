@@ -83,7 +83,8 @@ def _norm(block: nn.Module, paths: Sequence[str]) -> nn.Module | None:
 def _fold(norm: nn.Module | None, rows: torch.Tensor, *, gain: bool = True) -> torch.Tensor:
     """Read vectors ``[..., d]`` taken through ``norm`` back to the residual stream: the gain
     (unless ``gain`` is False), then centring for LayerNorm. The per-token scale (1/σ) is
-    dropped."""
+    dropped.
+    """
     rows = rows.float()
     weight = getattr(norm, "weight", None) if gain else None
     if weight is not None:
@@ -121,7 +122,8 @@ def _qkv_modules(block: nn.Module) -> dict[str, tuple[nn.Module, slice | None]] 
 def attention_reads(runner: NeuronHookRunner, layer: int) -> dict[str, torch.Tensor] | None:
     """``{"q"|"k"|"v": [n_heads, head_dim, d_model]}`` with the input norm folded in; keys
     and values are repeated across the query heads that share them. ``None`` when the
-    architecture's attention isn't supported."""
+    architecture's attention isn't supported.
+    """
     block = runner.layers[layer]
     try:
         n, hd = runner.n_heads, runner.head_dim(layer)
@@ -318,7 +320,8 @@ def _top(
 
 def _read_vectors(read: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     """How much a read ``[m, d]`` picks up of each vector in ``x`` ``[n, d]``: signed for a
-    vector read (``m = 1``), else the norm of what it reads."""
+    vector read (``m = 1``), else the norm of what it reads.
+    """
     projected = x @ read.T  # [n, m]
     return projected[:, 0] if read.shape[0] == 1 else projected.norm(dim=-1)
 

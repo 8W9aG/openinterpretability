@@ -10,7 +10,8 @@ IDS = torch.tensor([[1, 5, 7, 2, 9], [3, 3, 8, 1, 4]])
 
 def exact_transport(runner, ids, layer, direction):
     """d/dε of Σ_t' h_final,t' with ε·direction added at every position, by autograd,
-    divided by the number of (t ≤ t') pairs: the quantity the lens estimates."""
+    divided by the number of (t ≤ t') pairs: the quantity the lens estimates.
+    """
     eps = torch.zeros((), requires_grad=True)
     captured = []
     module = runner.final_norm() or runner.model.get_output_embeddings()
@@ -43,7 +44,8 @@ def test_finite_difference_matches_autograd(toy_model, layer):
 
 def test_last_layer_jacobian_is_scaled_identity(toy_model):
     """Nothing follows the last MLP: J_{t,t'} is I when t' = t and 0 for later t'. The
-    average over (t <= t') pairs is therefore I * 2/(seq+1), and both lenses agree."""
+    average over (t <= t') pairs is therefore I * 2/(seq+1), and both lenses agree.
+    """
     runner = NeuronHookRunner(toy_model)
     direction = runner.neuron_output_direction(N_LAYERS - 1, 3)
     transported = transported_direction(runner, IDS, N_LAYERS - 1, direction)

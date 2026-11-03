@@ -39,7 +39,8 @@ VALIDATION_DOCS = 100
 
 def training_texts(scan_corpus: Path) -> tuple[list[str], list[str], int]:
     """pile-10k's documents outside the scan corpus, split into training and validation
-    documents, and how many scan documents were left out."""
+    documents, and how many scan documents were left out.
+    """
     import pyarrow.parquet as pq
     from huggingface_hub import hf_hub_download
 
@@ -160,7 +161,8 @@ class TopKTranscoder(nn.Module):
     @torch.no_grad()
     def threshold_for(self, x: torch.Tensor) -> float:
         """The single JumpReLU threshold that keeps the k·T largest pre-activations of these
-        T tokens, so the converted L0 is k on average."""
+        T tokens, so the converted L0 is k on average.
+        """
         pre = self.pre(x).relu().flatten().cpu()  # hundreds of millions of values
         keep = self.k * x.shape[0]
         return float(pre.kthvalue(pre.numel() - keep + 1).values)
@@ -185,7 +187,8 @@ class TopKTranscoder(nn.Module):
     @torch.no_grad()
     def export(self, threshold: float) -> dict[str, torch.Tensor]:
         """Weights on the model's own scale: x is the raw MLP input, the output the raw MLP
-        output (W_skip ``[d_out, d_in]``, applied as ``x @ W_skip.T``)."""
+        output (W_skip ``[d_out, d_in]``, applied as ``x @ W_skip.T``).
+        """
         s_in, s_out = float(self.scale_in), float(self.scale_out)
         n = self.b_enc.shape[0]
         return {
@@ -273,7 +276,8 @@ class Settings:
 
 def lr_at(step: int, lr: float, steps: int) -> float:
     """Linear warm-up over the first 10% of steps (at most 500), then flat, then a linear
-    decay to zero over the last 20%."""
+    decay to zero over the last 20%.
+    """
     warmup, decay_from = min(500, steps // 10), int(steps * 0.8)
     if step < warmup:
         return lr * (step + 1) / warmup
@@ -284,7 +288,8 @@ def lr_at(step: int, lr: float, steps: int) -> float:
 
 def train(runner, cfg: Settings, tcs: dict, rows, budget: int) -> int:
     """One pass over ``rows`` (up to ``budget`` tokens), each forward pass feeding every
-    layer's transcoder. Returns the number of tokens trained on."""
+    layer's transcoder. Returns the number of tokens trained on.
+    """
     opts = {layer: torch.optim.Adam(tc.parameters(), lr=cfg.lr) for layer, tc in tcs.items()}
     steps = budget // cfg.batch
     log = (cfg.out / "train.jsonl").open("w")

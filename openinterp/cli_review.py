@@ -159,8 +159,10 @@ def load_submission(audit_file: Path):
 
 
 def sisters_text(identifier, wiki_dir, role: str, exclude=()) -> str:
-    """The agent's section on the unit's studied sister neurons, or "" if there are none;
-    ``exclude`` leaves out the pole a sister study tests."""
+    """Return the agent's section on the unit's studied sister neurons.
+
+    Returns "" if there are none. ``exclude`` leaves out the pole that a sister study tests.
+    """
     from openinterp.cli import _skip_wiki
     from openinterp.sisters import sister_context
 
@@ -190,6 +192,7 @@ def aligned_latents_text(submission, wiki_dir) -> str:
 def write_review_prompt(
     submission, emit_prompt: Path, n_probes: int, full_snippets: bool, latents: str = ""
 ):
+    """Write the reviewer's prompt for ``submission`` to ``emit_prompt``."""
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
 
@@ -201,6 +204,7 @@ def write_review_prompt(
 
 
 def write_token_check(submission, check_probes: Path):
+    """Write a prompt that shows the reviewer how its probes tokenize."""
     from transformers import AutoTokenizer
 
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
@@ -216,6 +220,7 @@ def write_token_check(submission, check_probes: Path):
 
 
 def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus) -> None:
+    """Reject review options that do not go together, before any model loads."""
     from openinterp.cli import _skip_wiki
 
     if _skip_wiki(wiki_dir) and out is None:

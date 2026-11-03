@@ -76,13 +76,15 @@ class Comparison:
     @property
     def p_value(self) -> float | None:
         """Two-sided Fisher exact test of equal shares VERIFIED, latents against every
-        neuron pole."""
+        neuron pole.
+        """
         return _fisher(self.features, self.neurons)
 
     @property
     def p_positive(self) -> float | None:
         """The same against positive poles only: the comparison for a GELU MLP, whose
-        negative poles no hard negative can pass (docs/PROTOCOL.md §1)."""
+        negative poles no hard negative can pass (docs/PROTOCOL.md §1).
+        """
         return _fisher(self.features, self.positive_poles)
 
 
@@ -142,7 +144,8 @@ def _mean(values) -> float | None:
 
 def learned_baseline(con: duckdb.DuckDBPyConnection, draws: Sequence = ()) -> list[Comparison]:
     """One comparison per dictionary and scan setting (corpus, window) with a randomly
-    selected latent, over view ``r``, with the unauditable ``draws`` of each arm."""
+    selected latent, over view ``r``, with the unauditable ``draws`` of each arm.
+    """
     cur = con.execute(FIRST_AUDITS)
     cols = [d[0] for d in cur.description]
     first = [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]

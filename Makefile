@@ -21,9 +21,7 @@ lint:
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
-VALE_PATHS ?= openinterp/core openinterp/signing.py openinterp/cli_scan.py \
-	openinterp/cli_concepts.py openinterp/cli_probing.py openinterp/cli_sisters.py \
-	openinterp/cli_score.py openinterp/langid.py openinterp/cli_corpus.py openinterp/cli_wiring.py
+VALE_PATHS ?= openinterp/*.py openinterp/core openinterp/data openinterp/sync
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
 	vale $(VALE_PATHS)

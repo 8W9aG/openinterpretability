@@ -698,7 +698,8 @@ def _standing(records, idx=117, pole="positive"):
 
 def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
     """An independent VERIFIED and a later independent NEEDS_REVISION of the same hypothesis:
-    the pole is CONTESTED, not NEEDS_REVISION, and not counted as verified."""
+    the pole is CONTESTED, not NEEDS_REVISION, and not counted as verified.
+    """
     from openinterp.builder.compiler import registry_stats
 
     verified = records[1]
@@ -756,7 +757,8 @@ def test_self_reviews_alone_can_contest(records):
 
 def test_remeasurement_replaces_its_reading(records):
     """Re-evaluating a probe set under a newer protocol replaces that reading: the old
-    reading can't contest the new one."""
+    reading can't contest the new one.
+    """
     verified = records[1]
     remeasured = verified.model_copy(
         update={

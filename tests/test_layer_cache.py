@@ -30,7 +30,8 @@ def cache(tmp_path):
 
 def no_model(runner, monkeypatch):
     """Fail if the runner reads text. The first-token floor's pass over the vocabulary
-    (one token per input) still runs: a replayed layer holds no first positions."""
+    (one token per input) still runs: a replayed layer holds no first positions.
+    """
     run = runner.run_with_cache
 
     def fail(inputs, *args, **kwargs):

@@ -1,5 +1,6 @@
 """Auditing a sparse-dictionary latent end to end, on a randomly initialised GPT-2 and a
-random transcoder stored locally (no download)."""
+random transcoder stored locally (no download).
+"""
 
 import json
 from dataclasses import replace
@@ -508,7 +509,8 @@ def test_cli_samples_a_random_latent_of_the_dictionary(runner, spec, tmp_path, m
 
 def test_ci_reproduces_only_preset_dictionaries(runner, scan, tmp_path, monkeypatch):
     """The model allow-list also bounds what CI downloads: a feature record must pin its
-    preset's weights."""
+    preset's weights.
+    """
     monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: runner)
     record = _record(runner, scan)
     elsewhere = scan.profile.model_copy(update={"repo": "someone/else"})

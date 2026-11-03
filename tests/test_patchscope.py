@@ -37,7 +37,8 @@ def test_readings_cover_prompts_layers_and_scales(toy_runner):
 
 def test_injecting_the_residual_it_replaces_changes_nothing(runner):
     """Replacing the placeholder's residual with itself, at its own norm, must leave the
-    continuation exactly as an unpatched model writes it."""
+    continuation exactly as an unpatched model writes it.
+    """
     ids = [runner.tokenizer._id(c) for c in "ab?c"]
     captured = []
     handle = runner.layers[0].register_forward_hook(

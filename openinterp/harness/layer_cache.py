@@ -270,7 +270,8 @@ class LayerCache:
 
 def _write_index(tmp: Path, fields: dict, pieces, rows: dict, width, storage, sizes) -> None:
     """Everything an entry holds besides ``acts.bin``: the per-row arrays, the pieces, and
-    ``meta.json``."""
+    ``meta.json``.
+    """
     for name, parts in rows.items():
         np.save(tmp / f"{name}.npy", np.concatenate(parts) if parts else np.zeros(0))
     (tmp / "pieces.json").write_text(json.dumps([asdict(p) for p in pieces]))

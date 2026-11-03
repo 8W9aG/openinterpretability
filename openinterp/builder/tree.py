@@ -42,13 +42,15 @@ class Experiment:
     @property
     def independent(self) -> bool:
         """False when this re-measures an earlier experiment's probes (e.g. a re-evaluation):
-        the two are not independent evidence and must not be counted twice."""
+        the two are not independent evidence and must not be counted twice.
+        """
         return self.reuses is None
 
     @property
     def side(self) -> str:
         """A neuron experiment's pole, else ``head`` or ``feature``: what the unit page
-        groups it under."""
+        groups it under.
+        """
         ident = self.record.submission.identifier
         return ident.pole or SIDES[ident.kind][0]
 
@@ -80,7 +82,8 @@ NOUNS = {"mlp_neuron_pole": "neuron", "attn_head": "head", "dictionary_feature":
 @dataclass
 class UnitNode:
     """One neuron (both poles), attention head or dictionary feature, with all of its
-    experiments."""
+    experiments.
+    """
 
     model: str
     layer: int
@@ -260,7 +263,8 @@ def unit_href(ident) -> str:
 
 def experiment_order(e: Experiment) -> tuple:
     """Most conclusive first; on ties independent evidence before re-measurements, then
-    newest first, then deterministically."""
+    newest first, then deterministically.
+    """
     return (
         -e.sig.conclusiveness,
         not e.independent,

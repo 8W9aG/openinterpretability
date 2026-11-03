@@ -64,7 +64,8 @@ class DocumentLabels:
 
 def align(offsets: Sequence[tuple[int, int]], spans: Sequence[Span]) -> list[str | None]:
     """Each token's label: that of the span covering most of its characters (the first on
-    a tie), or ``None``. Tokens with no characters (special tokens) are unlabelled."""
+    a tie), or ``None``. Tokens with no characters (special tokens) are unlabelled.
+    """
     out: list[str | None] = []
     for start, end in offsets:
         best, most = None, 0
@@ -94,7 +95,8 @@ class TokenLabels:
 
     def at(self, piece, ids: Sequence[int], index: int) -> dict[str, str] | None:
         """Each tagger's label of token ``index`` of the piece's real tokens ``ids``, for
-        the taggers that label it; ``None`` if none does."""
+        the taggers that label it; ``None`` if none does.
+        """
         row = self.of(piece, torch.as_tensor(ids, dtype=torch.long))
         found = {name: int(labels[index]) for name, labels in row.items()}
         out = {name: self.names[name][i] for name, i in found.items() if i != UNLABELLED}
@@ -127,7 +129,8 @@ class TokenLabels:
 
     def _shift(self, piece, text: str) -> int | None:
         """Where the piece's text starts in its document, or ``None`` if it isn't there
-        (a window's decoded text need not match the document's characters)."""
+        (a window's decoded text need not match the document's characters).
+        """
         if piece.start == 0:
             return 0 if text.startswith(piece.text) else None
         doc_offsets = self._offsets(text, special=False)
@@ -138,7 +141,8 @@ class TokenLabels:
 
     def _offsets(self, text: str, special: bool = True) -> list[tuple[int, int]] | None:
         """Character offsets of ``text``'s tokens as the scan encodes them, or ``None``
-        if the tokenizer can't give them (only fast tokenizers can)."""
+        if the tokenizer can't give them (only fast tokenizers can).
+        """
         try:
             enc = self.tokenizer(text, return_offsets_mapping=True, add_special_tokens=special)
         except (TypeError, NotImplementedError):
@@ -199,7 +203,8 @@ def _r2(values: torch.Tensor, n: torch.Tensor, s: torch.Tensor) -> float:
 
 def activation_bins(values: torch.Tensor, bins: int = ACTIVATION_BINS) -> torch.Tensor:
     """Bin 0 for zero strength, then ``bins`` equal-count bins of the positive strengths
-    (fewer where ties make edges coincide)."""
+    (fewer where ties make edges coincide).
+    """
     out = torch.zeros(values.numel(), dtype=torch.long)
     positive = values > 0
     if positive.any():

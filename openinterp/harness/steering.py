@@ -43,7 +43,8 @@ def steering_interventions(
 ) -> dict[str, Mapping[int, Any]] | None:
     """``hooks`` keyword arguments that ablate the unit in the batch rows where ``ablate``
     is true and clamp it to ``clamp`` (a strength) where that is not NaN; ``None`` for a
-    head."""
+    head.
+    """
     clamped = ~torch.isnan(clamp)
     if isinstance(unit, NeuronUnit):
         idx, pole = unit.ident.neuron_idx, unit.ident.pole
@@ -83,7 +84,8 @@ def _continue(
 ) -> list[str]:
     """Greedy continuations of every row of token ids, each cut at end-of-text. A model
     with ``generate`` decodes with its cache; one without (a test double) reruns the
-    whole sequence each step."""
+    whole sequence each step.
+    """
     tok = runner.tokenizer
     eos = getattr(tok, "eos_token_id", None)
     pad = getattr(tok, "pad_token_id", None)
@@ -125,7 +127,8 @@ def steering_samples(
     max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> SteeringSamples:
     """Continue every prompt at baseline, ablated, and clamped at each multiple of
-    ``max_activation``."""
+    ``max_activation``.
+    """
     if runner.tokenizer is None:
         raise ValueError("steering samples need a tokenizer")
     # Each prompt's rows: baseline, ablated, then clamped at each multiple.

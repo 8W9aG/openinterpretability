@@ -235,7 +235,8 @@ DICTIONARY_COLUMNS = {
 
 def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
     """``corpus_sources``: committed sidecars by SHA-256 (:func:`openinterp.corpus.load_sources`),
-    which give the corpus of records that didn't record one, marked as inferred."""
+    which give the corpus of records that didn't record one, marked as inferred.
+    """
     sub, verdict = exp.record.submission, exp.record.verdict
     metrics, scores = verdict.metrics, verdict.explanation_scores
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None

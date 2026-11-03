@@ -447,7 +447,8 @@ def model_pieces(model) -> dict | None:
 
 def layer_pieces(model, layer) -> dict | None:
     """The layer's neurons as a grid of ``PIECE_ROW``-wide rows, one cell per neuron, so each
-    studied neuron is a lit cell coloured by its best pole's status and linking to its page."""
+    studied neuron is a lit cell coloured by its best pole's status and linking to its page.
+    """
     if not model.mlp_width:
         return None
     left, top = 8 * PIECE_PITCH, 0  # room for row labels; multiples of the pitch keep

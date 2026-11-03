@@ -69,7 +69,8 @@ def latent_reads(
     runner: NeuronHookRunner, spec: DictionarySpec, layer: int, d: Dictionary
 ) -> torch.Tensor | None:
     """Each latent's read ``[n, d_model]`` of the residual stream, or ``None`` when its
-    dictionary doesn't read the MLP's input."""
+    dictionary doesn't read the MLP's input.
+    """
     if spec.input_site not in READS_MLP_INPUT:
         return None
     read = d.w_enc.T.float()
@@ -81,13 +82,15 @@ def latent_reads(
 def _seed(name: str) -> int:
     """A seed no training run is likely to share. A dictionary's dead latents keep their
     initial weights, and with a small seed such as 0 the "random" directions would be
-    those weights (cosine 0.93 with Qwen2.5-0.5B's layer-0 transcoder)."""
+    those weights (cosine 0.93 with Qwen2.5-0.5B's layer-0 transcoder).
+    """
     return int.from_bytes(hashlib.sha256(f"openinterp crossref {name}".encode()).digest()[:8])
 
 
 def _null(runner: NeuronHookRunner, layer: int, latents: torch.Tensor, name: str) -> float:
     """The 99th percentile of the best cosine between a random direction and any latent.
-    Directions are centred as LayerNorm centres a read, so they live where reads do."""
+    Directions are centred as LayerNorm centres a read, so they live where reads do.
+    """
     g = torch.Generator().manual_seed(_seed(f"{name} {layer}"))
     r = torch.randn(CHANCE_DRAWS, latents.shape[1], generator=g).to(latents.device)
     if isinstance(runner.mlp_norm(layer), nn.LayerNorm):
@@ -100,7 +103,8 @@ def orientation(channel: str, pole: str) -> float:
     """The sign of a vector that drives ``pole`` along ``channel``. A latent fires
     non-negatively, so only its own direction counts. A pole writes ``±w_out``. A gated
     neuron fires when its gate opens, whatever the pole, with the sign of ``up``; an
-    ungated one with the sign of its pre-activation."""
+    ungated one with the sign of its pre-activation.
+    """
     return 1.0 if channel == "gate" or pole == "positive" else -1.0
 
 
@@ -112,7 +116,8 @@ def _align(
 ) -> tuple[dict[tuple[int, str], list[Match]], dict[str, torch.Tensor]]:
     """The top ``k`` latents by oriented cosine for each ``(neuron, pole)``, over all the
     neuron's channels (a latent appears once, at its best channel), and every neuron's
-    best oriented cosine, by pole."""
+    best oriented cosine, by pole.
+    """
     poles = sorted(set(poles))
     width = next(iter(channels.values())).shape[0]
     best = {p: torch.full((width,), -1.0) for p in ("positive", "negative")}
@@ -146,7 +151,8 @@ def align_layer(
     k: int = 5,
 ) -> dict[tuple[int, str], tuple[Side, Side | None]]:
     """``{(neuron, pole): (write, read)}`` against ``spec``'s dictionary for ``layer``;
-    ``read`` is ``None`` when the dictionary doesn't read the MLP's input."""
+    ``read`` is ``None`` when the dictionary doesn't read the MLP's input.
+    """
     poles = list(poles)
     device = runner.device
     d = load_spec(spec, layer, device)

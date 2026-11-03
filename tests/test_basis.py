@@ -1,5 +1,6 @@
 """A `basis` over the MLP's hidden activations (the rotated-basis null): with the identity
-basis, its latents are exactly the native positive poles."""
+basis, its latents are exactly the native positive poles.
+"""
 
 import pytest
 import torch

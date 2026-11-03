@@ -40,7 +40,8 @@ CONTROL_SEED = 0
 def write_direction(runner: NeuronHookRunner, unit: Unit) -> torch.Tensor | None:
     """The vector one unit of the unit's strength adds to the residual stream: a pole's
     signed ``w_out``, or a dictionary latent's decoder row. A head writes a subspace,
-    not one direction, so it has none."""
+    not one direction, so it has none.
+    """
     if isinstance(unit, NeuronUnit):
         ident = unit.ident
         direction = runner.neuron_output_direction(ident.layer, ident.neuron_idx).float()
@@ -93,7 +94,8 @@ def _continue(
 ) -> list[str]:
     """Greedy continuations of ``ids``, one per row of ``vectors``, each with the residual
     after ``layer``'s block at ``pos`` replaced by that row. Each stops at a line break
-    or the end-of-text token."""
+    or the end-of-text token.
+    """
     tok = runner.tokenizer
     eos = getattr(tok, "eos_token_id", None)
 
@@ -136,7 +138,8 @@ def patchscope(
     control_seed: int = CONTROL_SEED,
 ) -> PatchscopeReadout:
     """Read ``direction``, written after ``layer``'s MLP, through every inspection prompt
-    at ``layer`` and at ``early_layer`` (when that is earlier), at each scale."""
+    at ``layer`` and at ``early_layer`` (when that is earlier), at each scale.
+    """
     if runner.tokenizer is None:
         raise ValueError("a Patchscope needs a tokenizer")
     direction = direction.float().cpu()

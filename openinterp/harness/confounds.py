@@ -113,7 +113,8 @@ def baseline_predictions(
     skip_first: bool = False,
 ) -> dict[str, list[bool]]:
     """Predicted "active" for each text under each trivial baseline. Like the unit's own
-    peak, a baseline doesn't read the first token when ``skip_first`` (protocol 0.8)."""
+    peak, a baseline doesn't read the first token when ``skip_first`` (protocol 0.8).
+    """
     triggers = {t.token_id for t in profile.trigger_tokens if t.mean_strength >= threshold}
     hot_positions = {p for p, m in enumerate(profile.position_means) if m >= threshold}
     start = int(skip_first)

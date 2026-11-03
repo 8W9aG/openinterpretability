@@ -124,7 +124,8 @@ class ReviewerAgent(LLMAgent):
         """The task text the reviewer answers. It shows no activations of candidate probes.
         ``related`` is what other analyses link to the unit: published latents aligned with
         it (:func:`openinterp.crossref.format_for_reviewer`) and its studied sister neurons
-        (:func:`openinterp.sisters.format_sisters`), to probe where they disagree."""
+        (:func:`openinterp.sisters.format_sisters`), to probe where they disagree.
+        """
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
@@ -156,7 +157,8 @@ class ReviewerAgent(LLMAgent):
     ) -> str:
         """A second pass for the reviewer: its probes as the model's tokens, so it can fix
         labels that it gave by reading words. It shows no activations: only the tokenizer
-        runs. For a head, each probe also lists the token runs that repeat an earlier one."""
+        runs. For a head, each probe also lists the token runs that repeat an earlier one.
+        """
         is_head = submission.identifier.kind == "attn_head"
         blocks = []
         for n, probe in enumerate(probes):
@@ -205,7 +207,8 @@ def repeated_runs(ids: Sequence[int]) -> list[tuple[int, int]]:
     """Maximal runs ``ids[a:b]`` that also occur ending earlier in ``ids``, as ``(a, b)``.
 
     ``match[j]`` is the longest run ending at ``j`` that ends at some earlier position
-    too; a run is reported where it stops growing."""
+    too; a run is reported where it stops growing.
+    """
     match = [0] * len(ids)
     for j in range(len(ids)):
         for i in range(j):
@@ -230,7 +233,8 @@ def evaluate_submission(
     wire: bool = True,
 ) -> VerificationVerdict:
     """Measure ``probes`` and the submission's own claims, and decide. ``wire=False``
-    skips the activation wiring (reported, not gated), e.g. when reproducing a record."""
+    skips the activation wiring (reported, not gated), e.g. when reproducing a record.
+    """
     lap = costs.laps()
     submission, unit, scale = settle_first_token_floor(submission, runner, policy)
     threshold = policy.activation_threshold * scale
@@ -275,7 +279,8 @@ def _probe_score(
     policy: ReviewPolicy,
 ) -> float:
     """Balanced accuracy of ``predicted`` vs ``actual`` activity, split by the hypothesis's
-    labels (hard negatives / holdouts), with near-duplicate probes clustered."""
+    labels (hard negatives / holdouts), with near-duplicate probes clustered.
+    """
 
     def subset(expected: bool):
         rows = [
@@ -384,7 +389,8 @@ def _gates(
 
 def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:
     """The share of the scan's tokens the unit is active on, from the submission's
-    histogram; ``None`` without one."""
+    histogram; ``None`` without one.
+    """
     histogram, scale = submission.activation_histogram, submission.max_activation
     if histogram is None or not scale:
         return None

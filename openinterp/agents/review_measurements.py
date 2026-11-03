@@ -1,6 +1,7 @@
 """What the reviewer measures on the model: probe and counterfactual activity, the
 lookahead check, and the causal and wiring readouts. :mod:`openinterp.agents.reviewer`
-turns these into metrics and a verdict."""
+turns these into metrics and a verdict.
+"""
 
 from __future__ import annotations
 
@@ -19,7 +20,8 @@ from openinterp.harness.wiring_activations import activation_wiring
 
 def settle_first_token_floor(submission, runner, policy: ReviewPolicy):
     """(submission, unit, scale), with ``first_token_floor`` judged here if the scan
-    predates protocol 0.8, which judges it at the scan."""
+    predates protocol 0.8, which judges it at the scan.
+    """
     unit = submission_unit(submission)
     scale = submission.max_activation or max(
         peak_strength(runner, unit, p.base_prompt) or 0.0 for p in submission.counterfactuals
@@ -36,7 +38,8 @@ def measure_probes(runner, unit, probes, scale: float, threshold: float):
     """Each probe's result, plus the measured probes and whether each was active.
 
     A one-token prompt to a unit with a first-token floor has nothing measured: it is
-    recorded as unmeasured and counts in no metric."""
+    recorded as unmeasured and counts in no metric.
+    """
     results: list[AdversarialTestResult] = []
     measured_probes, actual = [], []
     for probe in probes:
@@ -130,7 +133,8 @@ def _joint_ablation(submission, runner, probes, policy):
 
 def _activation_wiring(submission, runner, probes, threshold):
     """Wiring by attribution at the unit's peak on the prompts it should fire on (the
-    counterfactuals' base prompts and the holdouts), counting those where it did."""
+    counterfactuals' base prompts and the holdouts), counting those where it did.
+    """
     if threshold <= 0:
         return None
     prompts = [p.base_prompt for p in submission.counterfactuals]

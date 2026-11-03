@@ -263,7 +263,8 @@ class NeuronHookRunner:
 
     def mlp_write(self, layer: int) -> nn.Module:
         """The module whose output is what ``layer``'s MLP adds to the residual stream: the
-        norm after the MLP if it has one, else the down projection."""
+        norm after the MLP if it has one, else the down projection.
+        """
         for path in POST_MLP_NORM_PATHS:
             module = _try_path(self.layers[layer], path)
             if isinstance(module, nn.Module):

@@ -53,7 +53,8 @@ def first_position(runner, layer: int, batch_size: int = 8192) -> torch.Tensor:
 
 def layer_rows(runner, pieces, layer: int) -> list[dict]:
     """Two passes over ``pieces`` (each pole's maxima, then its shares above its line)
-    and one over the vocabulary."""
+    and one over the vocabulary.
+    """
     width = runner.mlp_width(layer)
     top = _maxima(_counted(runner, pieces, layer), width)
     vocab = first_position(runner, layer)
@@ -83,7 +84,8 @@ def layer_rows(runner, pieces, layer: int) -> list[dict]:
 
 def _counted(runner, pieces, layer: int):
     """Each batch's counted tokens: their activations ``[tokens, width]`` and whether each
-    is a piece's first token."""
+    is a piece's first token.
+    """
     for batch in batches(runner, pieces, BATCH_TOKENS):
         _, cache = runner.run_with_cache(batch.encoded, [layer])
         acts = cache[layer].float().cpu()[batch.counted]
@@ -104,7 +106,8 @@ def _maxima(counted, width: int) -> dict:
 
 def _above_line(counted, width: int, scale: dict, floor: dict) -> tuple[dict, dict]:
     """Per pole, each neuron's count of tokens at or above 0.25 × its scale, and of tokens
-    counted at all (a floored neuron's first tokens are not)."""
+    counted at all (a floored neuron's first tokens are not).
+    """
     above = {p: torch.zeros(width) for p in POLES}
     kept = {p: torch.zeros(width) for p in POLES}
     for acts, first in counted:

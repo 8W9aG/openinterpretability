@@ -94,34 +94,10 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # The docstring ratchet: paths not yet held to the D rules. Remove a line once its
-# path passes `ruff check --select D`; never add one. (A `*` here also matches `/`,
-# so top-level modules are listed one by one.)
-"openinterp/baseline.py" = ["D"]
-"openinterp/blends.py" = ["D"]
-"openinterp/checks.py" = ["D"]
-"openinterp/cli.py" = ["D"]
-"openinterp/cli_baseline.py" = ["D"]
-"openinterp/cli_costs.py" = ["D"]
-"openinterp/cli_crossref.py" = ["D"]
-"openinterp/cli_evidence.py" = ["D"]
-"openinterp/cli_registry.py" = ["D"]
-"openinterp/cli_review.py" = ["D"]
-"openinterp/cli_submission.py" = ["D"]
-"openinterp/concepts.py" = ["D"]
-"openinterp/corpus.py" = ["D"]
-"openinterp/crossref.py" = ["D"]
-"openinterp/draw_steps.py" = ["D"]
-"openinterp/evidence.py" = ["D"]
-"openinterp/planner.py" = ["D"]
-"openinterp/reproduce.py" = ["D"]
-"openinterp/show.py" = ["D"]
-"openinterp/sisters.py" = ["D"]
-"openinterp/wiring_backfill.py" = ["D"]
+# path passes `ruff check --select D`; never add one.
 "openinterp/agents/**" = ["D"]
 "openinterp/builder/**" = ["D"]
-"openinterp/data/**" = ["D"]
 "openinterp/harness/**" = ["D"]
-"openinterp/sync/**" = ["D"]
 "scripts/**" = ["D"]
 "tests/**" = ["D"]
 

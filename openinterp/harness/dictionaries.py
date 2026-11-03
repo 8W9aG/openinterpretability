@@ -301,7 +301,8 @@ class Dictionary:
 
     def feature(self, x: torch.Tensor, f: int | torch.Tensor) -> torch.Tensor:
         """Latent ``f``'s activation ``[...]`` (``[..., k]`` for a tensor of k indices),
-        without encoding the rest."""
+        without encoding the rest.
+        """
         pre = self._input(x) @ self.w_enc[:, f] + self.b_enc[f]
         return self._activate(pre, None if self.threshold is None else self.threshold[f])
 
@@ -310,7 +311,8 @@ class Dictionary:
 
     def reconstruct(self, x: torch.Tensor, acts: torch.Tensor | None = None) -> torch.Tensor:
         """The dictionary's estimate of its output from its input ``x`` (whose latent
-        activations are ``acts``, if already encoded), with any skip connection."""
+        activations are ``acts``, if already encoded), with any skip connection.
+        """
         out = self.decode(self.encode(x) if acts is None else acts)
         if self.w_skip is not None:
             out = out + x.float().to(self.w_skip.device) @ self.w_skip

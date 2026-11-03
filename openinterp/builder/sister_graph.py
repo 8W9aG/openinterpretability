@@ -41,7 +41,8 @@ def _layer(slug: str) -> int:
 
 def _edges(name: str, rows: dict) -> dict[str, dict[tuple[str, str], _Edge]]:
     """Each other model's edges with ``name``: every row's best match, from either side,
-    kept once per pair of poles (as a sister if either side's search says so)."""
+    kept once per pair of poles (as a sister if either side's search says so).
+    """
     prefix = model_slug(name) + "/"
     names = _names(rows)
     out: dict[str, dict[tuple[str, str], _Edge]] = defaultdict(dict)
@@ -70,7 +71,8 @@ def _source(row) -> str:
 
 def _names(rows: dict) -> dict[str, str]:
     """Model names by slug, from the models the rows were compared with; a model only
-    ever searched from falls back to undoing :func:`model_slug`."""
+    ever searched from falls back to undoing :func:`model_slug`.
+    """
     known = {model_slug(r.other): r.other for rs in rows.values() for r in rs}
     sources = {_source(r) for rs in rows.values() for r in rs}
     return {s: known.get(s, s.replace("--", "/", 1)) for s in sources | set(known)}

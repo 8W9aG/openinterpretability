@@ -90,7 +90,8 @@ def scan_feature(
     taggers: Sequence[Tagger] = (),
 ) -> FeatureScanResult:
     """Top examples, strengths, confounds and the :class:`DictionaryProfile` of one latent.
-    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's."""
+    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's.
+    """
     if runner.tokenizer is None:
         raise ValueError("scan_feature requires a tokenizer")
     layer, f = ident.layer, ident.feature_idx
@@ -136,7 +137,8 @@ def _feature_pass(
 ):
     """One pass over ``pieces``: confounds (and ``labels``' counts), top examples, the
     dictionary's fit, and each counted token's strength and whether it is a piece's first
-    token."""
+    token.
+    """
     confounds = ConfoundAccumulator()
     top = TopExamples()
     fit = _Fit()

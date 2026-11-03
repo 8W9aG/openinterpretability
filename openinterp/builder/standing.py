@@ -56,7 +56,8 @@ def _newest_first(experiments: Sequence[Experiment]) -> list[Experiment]:
 
 def _readings(experiments: Sequence[Experiment]) -> list[Experiment]:
     """The newest experiment per probe set, newest first: a re-measurement (e.g. under a
-    newer protocol) replaces the reading it repeats instead of counting twice."""
+    newer protocol) replaces the reading it repeats instead of counting twice.
+    """
     seen: set[str] = set()
     out = []
     for e in _newest_first(experiments):
@@ -101,7 +102,8 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
 
 def native_standings(models: Sequence[ModelNode]):
     """``(unit, side, standing)`` for every native neuron pole and head (dictionary features
-    are a baseline, not claims about the model's own units)."""
+    are a baseline, not claims about the model's own units).
+    """
     for m in models:
         for layer in m.layers:
             for n in layer.units:
