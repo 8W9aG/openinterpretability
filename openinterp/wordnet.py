@@ -23,7 +23,7 @@ downloads it on first use. Without it, the agents get no WordNet note.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import cache
 from typing import Protocol
@@ -42,6 +42,10 @@ WORD = re.compile(r"[^\W\d_]+")
 
 class Lexicon(Protocol):
     """The parts of WordNet that this module reads. Synsets are named ``"city.n.01"``."""
+
+    def has(self, synset: str) -> bool:
+        """Is ``synset`` a noun synset in WordNet?"""
+        ...
 
     def senses(self, word: str) -> list[str]:
         """The noun synsets of ``word``, most frequent first."""
@@ -77,6 +81,15 @@ class WordNet:
 
     def __init__(self, wn) -> None:
         self.wn = wn
+
+    def has(self, synset: str) -> bool:
+        """Is ``synset`` a noun synset in WordNet?"""
+        from nltk.corpus.reader.wordnet import WordNetError
+
+        try:
+            return self.wn.synset(synset).pos() == self.wn.NOUN
+        except (ValueError, WordNetError):  # a malformed name, or no such synset
+            return False
 
     def senses(self, word: str) -> list[str]:
         """The noun synsets of ``word``, most frequent first."""
@@ -237,35 +250,74 @@ def format_for_proposer(examples: Sequence[ActivatingExample], lex: Lexicon | No
         + "\n".join(lines)
         + "\n"
         + missing
+        + "If your hypothesis claims a WordNet noun category (one of these or another), put "
+        "its synset in wordnet_synset. After you answer, the unit is measured on other "
+        "words of that category and on words of its sibling categories.\n"
     )
 
 
-def holdouts(lex: Lexicon, category: Category, limit: int = MAX_LISTED) -> list[str]:
-    """Return lemmas of hyponyms of ``category`` that are not peak words, most frequent first."""
-    seen, todo, found = set(), list(lex.hyponyms(category.synset)), []
+def descendants(lex: Lexicon, synset: str) -> list[str]:
+    """The hyponyms of ``synset``, transitively, in the order they are found."""
+    seen, todo, found = set(), list(lex.hyponyms(synset)), []
     while todo:
         s = todo.pop()
         if s not in seen:
             seen.add(s)
             found.append(s)
             todo.extend(lex.hyponyms(s))
+    return found
+
+
+def ranked_lemmas(
+    lex: Lexicon, synsets: Sequence[str], exclude: Collection[str], limit: int
+) -> list[str]:
+    """Return the first lemmas of ``synsets``, most frequent first.
+
+    A lemma whose lower-case form is in ``exclude`` is left out.
+    """
     lemmas: dict[str, int] = {}
-    for s in found:
+    for s in synsets:
         lemma = lex.lemma(s)
-        if lemma.lower() not in category.words:
+        if lemma.lower() not in exclude:
             lemmas[lemma] = max(lemmas.get(lemma, 0), lex.count(s))
     return sorted(lemmas, key=lambda w: (-lemmas[w], w))[:limit]
 
 
+def holdouts(
+    lex: Lexicon, synset: str, exclude: Collection[str], limit: int = MAX_LISTED
+) -> list[str]:
+    """Return lemmas of hyponyms of ``synset`` not in ``exclude``, most frequent first."""
+    return ranked_lemmas(lex, descendants(lex, synset), exclude, limit)
+
+
+def sibling_synsets(lex: Lexicon, synset: str) -> list[str]:
+    """The other hyponyms of ``synset``'s hypernyms, most frequent first."""
+    found = {s for parent in lex.hypernyms(synset) for s in lex.hyponyms(parent) if s != synset}
+    return sorted(found, key=lambda s: (-lex.count(s), s))
+
+
 def siblings(lex: Lexicon, category: Category, limit: int = MAX_LISTED) -> list[str]:
     """The lemmas of the other hyponyms of ``category``'s hypernyms, most frequent first."""
-    found = {
-        s
-        for parent in lex.hypernyms(category.synset)
-        for s in lex.hyponyms(parent)
-        if s != category.synset
-    }
-    return [lex.lemma(s) for s in sorted(found, key=lambda s: (-lex.count(s), s))][:limit]
+    return [lex.lemma(s) for s in sibling_synsets(lex, category.synset)][:limit]
+
+
+def sibling_words(
+    lex: Lexicon, synset: str, exclude: Collection[str], limit: int
+) -> tuple[list[str], list[str]]:
+    """Return ``synset``'s sibling synsets and up to ``limit`` words from them.
+
+    Each sibling gives its lemma and its hyponyms' lemmas, most frequent first. The
+    siblings give a word in turn, so that one large sibling doesn't fill the list.
+    Words in ``exclude`` are left out.
+    """
+    near = sibling_synsets(lex, synset)
+    queues = [ranked_lemmas(lex, [s, *descendants(lex, s)], exclude, limit) for s in near]
+    words: list[str] = []
+    for turn in range(limit):
+        for queue in queues:
+            if turn < len(queue) and queue[turn] not in words and len(words) < limit:
+                words.append(queue[turn])
+    return near, words
 
 
 def other_senses(
@@ -300,7 +352,7 @@ def format_for_reviewer(examples: Sequence[ActivatingExample], lex: Lexicon | No
         f"under '{top.lemma}' ({', '.join(top.words)}). If the hypothesis claims this "
         "category or one near it, WordNet suggests:"
     ]
-    if more := holdouts(lex, top):
+    if more := holdouts(lex, top.synset, top.words):
         lines.append(f"- other '{top.lemma}' words, for positive holdouts: {', '.join(more)}")
     if near := siblings(lex, top):
         lines.append(f"- sibling categories, for hard negatives: {', '.join(near)}")

@@ -49,6 +49,7 @@ from openinterp.core.profiles import (  # noqa: F401  (re-exported)
     DictionarySite,
     HeadProfile,
 )
+from openinterp.core.specificity import WordnetSpecificity, WordStrength  # noqa: F401
 from openinterp.core.steering import SteeringSamples
 from openinterp.core.strict import StrictModel, UnitFloat
 from openinterp.core.wiring import Wiring, WiringEdge  # noqa: F401  (re-exported)
@@ -315,6 +316,12 @@ class NeuronAuditSubmission(StrictModel):
         description="Neutral prompts continued with the unit clamped high, at baseline and "
         "ablated, taken after the proposer answered and shown to neither agent (reported, "
         "not gated).",
+    )
+    wordnet_specificity: WordnetSpecificity | None = Field(
+        default=None,
+        description="The unit on held-out words of a WordNet category against words of its "
+        "sibling categories, measured after the proposer answered and shown to neither "
+        "agent (reported, not gated).",
     )
     supersedes: str | None = Field(
         default=None,
