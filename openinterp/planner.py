@@ -394,7 +394,7 @@ def plan_next(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
         key=lambda c: -c.weight,
     )
-    coverage = model_coverage(pool, (s.record for s in states.values()), claims)
+    coverage = model_coverage(pool, (s.record for s in states.values()), claims, dead(wiki_dir))
     target = coverage_target(pyproject)
     explore = explore_weights(coverage, target, others_share(pyproject))
     focus = focus_model(coverage.values(), target)
@@ -405,6 +405,13 @@ def plan_next(
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
     choice = rng.choices(candidates, weights=weights, k=1)[0]
     return Plan(seed, choice, False, candidates, explore, coverage, focus)
+
+
+def dead(wiki_dir: Path) -> list:
+    """Every neuron pole that a random draw found dead and the weights proved dead."""
+    from openinterp.core.draws import load_draws
+
+    return [d.identifier for d in load_draws(Path(wiki_dir)) if d.proven_dead]
 
 
 def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:

@@ -107,7 +107,7 @@
         <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
           {{ m.experiments }} experiments ·
           {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }}) ·
-          {{ m.verified }}/{{ m.total_neurons | thousands }} verified ({{ m.verified_share | pct_fine }}; target {{ '{:g}%'.format(100 * explore.target) }})
+          {% set v = explore.models[m.name] %}{{ v.verified }}/{{ m.total_neurons | thousands }} verified ({{ (v.verified / m.total_neurons if m.total_neurons else none) | pct_fine }}; target {{ '{:g}%'.format(100 * explore.target) }}){% if v.dead %}, {{ v.dead }} of them proven dead{% endif %}
         </span>
       </div>
       {% if pc %}
