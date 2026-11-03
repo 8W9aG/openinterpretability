@@ -255,6 +255,19 @@ class ModelNode:
         return [counts.get(i, 0) for i in range(self.n_layers)]
 
 
+def explore_focus(models: Sequence[ModelNode]) -> dict:
+    """The coverage target and the model that ``openinterp next`` explores most.
+
+    Open claims are not counted here, so the focus can differ from a draw's for a time.
+    """
+    from openinterp.planner import coverage_target  # it reads pyproject.toml
+    from openinterp.planner_models import ModelCoverage, focus_model
+
+    target = coverage_target()
+    covered = (ModelCoverage(m.name, m.neurons, m.total_neurons) for m in models)
+    return {"target": target, "model": focus_model(covered, target)}
+
+
 # MLP width of models whose early records predate ``model_mlp_width``. Records are
 # write-once, so the width can't be backfilled into them; a width on any record wins.
 KNOWN_MLP_WIDTHS = {

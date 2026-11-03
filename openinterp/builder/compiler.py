@@ -33,11 +33,12 @@ from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.significance import evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
-from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
+from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
 from openinterp.builder.tree import (
     Experiment,
     build_tree,
     circuits_href,
+    explore_focus,
     false_discovery,
     feature_href,
     neuron_href,
@@ -362,16 +363,13 @@ def _render_index(render, models, experiments, agents, stats) -> None:
         "index.html",
         "index.html",
         models=models,
+        explore=explore_focus(models),  # the coverage target and the model drawn most
         stats=stats,
         agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
         corpora=corpora_view(experiments),
-        contested=[
-            {"model": n.model, "unit": n, "side": side, "standing": st}
-            for n, side, st in native_standings(models)
-            if st.contested
-        ],
+        contested=contested_units(models),
     )
 
 

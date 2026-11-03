@@ -8,11 +8,11 @@ for the draw.
 
 from __future__ import annotations
 
-import json
 import random
 from dataclasses import dataclass, field
 
 from openinterp.planner import Candidate, Plan, claim_key
+from openinterp.planner_models import model_dims
 
 SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan", "sister")
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
@@ -26,26 +26,6 @@ class Step:
     title: str
     commands: list[str] = field(default_factory=list)
     note: str = ""
-
-
-def model_dims(model: str) -> tuple[int, int] | None:
-    """(layers, MLP width) from the model's ``config.json``, or None if it can't be read.
-
-    The file is in the Hugging Face cache once the model has been used; reading it never
-    loads weights.
-    """
-    from huggingface_hub import hf_hub_download
-
-    try:
-        with open(hf_hub_download(model, "config.json")) as fh:
-            config = json.load(fh)
-    except Exception:  # offline with nothing cached, or an unknown model
-        return None
-    layers = config.get("num_hidden_layers") or config.get("n_layer")
-    width = config.get("intermediate_size") or config.get("n_inner")
-    if width is None and config.get("n_embd"):  # GPT-2: n_inner null means 4 × n_embd
-        width = 4 * config["n_embd"]
-    return (layers, width) if layers and width else None
 
 
 def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None = None) -> str:

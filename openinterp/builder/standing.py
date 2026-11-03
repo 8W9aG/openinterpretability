@@ -119,6 +119,15 @@ def native_standings(models: Sequence[ModelNode]):
                         yield n, side, standing
 
 
+def contested_units(models: Sequence[ModelNode]) -> list[dict]:
+    """Every CONTESTED native pole or head, as rows for the index page."""
+    return [
+        {"model": n.model, "unit": n, "side": side, "standing": st}
+        for n, side, st in native_standings(models)
+        if st.contested
+    ]
+
+
 def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
     """How often reviews of the same hypothesis agree on VERIFIED versus not.
 

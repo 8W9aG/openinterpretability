@@ -97,15 +97,16 @@
 <section class="mb-10">
   <h2 class="mb-3 text-lg font-semibold">Models</h2>
   {% if models %}
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">New neurons are drawn mostly from the smallest model whose coverage is below the {{ '{:g}%'.format(100 * explore.target) }} target, so that one model is covered well before the next.</p>
   <div class="space-y-4">
     {% for m in models %}
     {% set pc = charts.model_pieces(m) %}
     <a href="{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <span class="font-mono text-sm font-medium">{{ m.name }}</span>
+        <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the coverage target: openinterp next draws most new neurons from it.">explore focus</span>{% endif %}</span>
         <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
           {{ m.experiments }} experiments ·
-          {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }}) ·
+          {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }} of a {{ '{:g}%'.format(100 * explore.target) }} target) ·
           {{ m.verified }}/{{ m.total_neurons | thousands }} verified ({{ m.verified_share | pct_fine }})
         </span>
       </div>

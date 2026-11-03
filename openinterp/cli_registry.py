@@ -254,9 +254,10 @@ def _list_candidates(plan, top: int) -> None:
     for x in plan.candidates[:top]:
         click.echo(f"  {x.weight / total:6.1%}  {x.kind:18s} {x.slug}  — {x.rationale}")
     if top and len(plan.explore_models) > 1:
-        click.echo("Explore draws by model:")
+        click.echo("Explore draws by model (neurons covered):")
         for model, p in sorted(plan.explore_models.items(), key=lambda kv: -kv[1]):
-            click.echo(f"  {p:6.1%}  {model}")
+            focus = "  ← smallest model below the coverage target" if model == plan.focus else ""
+            click.echo(f"  {p:6.1%}  {model}  {plan.coverage[model]}{focus}")
 
 
 @cli.command()
