@@ -42,7 +42,7 @@
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
     {% endfor %}
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lm.unexplored | thousands }}</span>
-    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. Dead neurons aren't recorded, so they count as unexplored.</span>
+    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. Dead neurons have no record, so they count as unexplored here. The home page counts the ones that the weights prove dead as verified.</span>
   </figcaption>
 </figure>
 {% else %}

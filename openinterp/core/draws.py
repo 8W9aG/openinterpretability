@@ -4,7 +4,9 @@ A random draw is one of the registry's unbiased samples. Statistics over random 
 (share VERIFIED, share dead) need every draw, not only the draws that could be audited.
 Two kinds of unit cannot be audited:
 
-- *dead*: a unit that never fires on the scan.
+- *dead*: a unit that never fires on the scan. For a neuron pole, the scan then checks
+  the weights (``openinterp.harness.dead``). When they prove that no input can make the
+  pole fire, the draw is ``proven_dead``, and the planner counts the pole as verified.
 - *default-on* (protocol 0.8): a unit active on at least half its tokens.
 
 The scan stops on both. It writes an :class:`UnauditableDraw` instead of evidence, once
@@ -39,6 +41,8 @@ class UnauditableDraw(StrictModel):
     identifier: ComponentIdentifier
     outcome: DrawOutcome
     active_share: UnitFloat | None = None  # default-on: the share the scan stopped on
+    proven_dead: bool = False  # dead: the weights prove that no input makes it fire
+    dead_bound: float | None = None  # dead: the largest pre-activation any input gives
     provenance: ExperimentProvenance
     protocol_version: str = PROTOCOL_VERSION
     timestamp: AwareDatetime

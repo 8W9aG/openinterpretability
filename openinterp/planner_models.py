@@ -3,8 +3,9 @@
 One fully interpretable model is worth more than a little coverage of many. So the
 models are ordered by size (MLP neurons, ``layers × width``). The smallest one whose
 verified share is below the target gets most of the explore draws: the *focus*. A
-neuron is verified when the latest record of one of its poles is VERIFIED. When the
-focus passes the target, the focus moves to the next model. The other models share
+neuron is verified when the latest record of one of its poles is VERIFIED. A pole that
+the weights prove dead also counts (``openinterp.harness.dead``). When the focus passes
+the target, the focus moves to the next model. The other models share
 the rest of the draws, ``∝ 1/√(1 + neurons covered)``, so sister draws and cross-model
 comparisons still happen. Neurons within a model are still drawn at random, so each
 model's statistics stay unbiased.
@@ -22,7 +23,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from openinterp.core.identifiers import NeuronIdentifier, model_slug
-from openinterp.core.schemas import AuditRecord
+from openinterp.core.schemas import AuditRecord, ComponentIdentifier
 
 # The focus moves on when this share of its neurons is verified.
 DEFAULT_COVERAGE_TARGET = 0.8
@@ -79,13 +80,17 @@ def model_dims(model: str, download: bool = True) -> tuple[int, int] | None:
 
 
 def model_coverage(
-    pool: Sequence[str], records: Iterable[AuditRecord], claims: Sequence[str]
+    pool: Sequence[str],
+    records: Iterable[AuditRecord],
+    claims: Sequence[str],
+    dead: Iterable[ComponentIdentifier] = (),
 ) -> dict[str, ModelCoverage]:
     """Coverage of each model in ``pool``.
 
-    ``records`` are the latest record of each pole: a neuron is verified when one of them
-    is VERIFIED. The size comes from the records (``model_num_layers × model_mlp_width``), else from
-    the model's cached ``config.json``.
+    ``records`` are the latest record of each pole. A neuron is verified when one of
+    them is VERIFIED. A pole in ``dead`` (proven dead by the weights) also counts. The
+    size comes from the records (``model_num_layers × model_mlp_width``), else from the
+    model's cached ``config.json``.
     """
     neurons: dict[str, set[tuple[int, int]]] = {m: set() for m in pool}
     verified: dict[str, set[tuple[int, int]]] = {m: set() for m in pool}
@@ -99,6 +104,10 @@ def model_coverage(
             verified[ident.model_name].add((ident.layer, ident.neuron_idx))
         if sub.model_num_layers and sub.model_mlp_width:
             dims[ident.model_name] = (sub.model_num_layers, sub.model_mlp_width)
+    for ident in dead:
+        if ident.model_name in neurons and isinstance(ident, NeuronIdentifier):
+            neurons[ident.model_name].add((ident.layer, ident.neuron_idx))
+            verified[ident.model_name].add((ident.layer, ident.neuron_idx))
     coverage = {}
     for model in pool:
         claim = re.compile(rf"{re.escape(model_slug(model))}-L(\d+)-N(\d+)-")  # see claim_key
