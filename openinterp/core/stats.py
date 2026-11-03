@@ -25,6 +25,7 @@ def _words(text: str) -> frozenset[str]:
 
 
 def jaccard(a: frozenset[str], b: frozenset[str]) -> float:
+    """Word-set overlap of two probes; two empty sets count as identical."""
     union = a | b
     return len(a & b) / len(union) if union else 1.0
 
@@ -53,18 +54,26 @@ def cluster_texts(texts: Sequence[str], threshold: float) -> list[int]:
 
 @dataclass(frozen=True)
 class EffectiveCounts:
+    """Probe counts after near-duplicates are clustered (docs/PROTOCOL.md §4)."""
+
     raw: int  # probes
     clusters: int  # independent observations
     passed: float  # sum over clusters of the cluster's pass rate
 
     @property
     def rate(self) -> float | None:
+        """The cluster-weighted pass rate, or ``None`` when there are no probes."""
         return self.passed / self.clusters if self.clusters else None
 
 
 def effective_counts(
     texts: Sequence[str], passed: Sequence[bool], threshold: float
 ) -> EffectiveCounts:
+    """Cluster near-duplicate probes and count each cluster as one observation.
+
+    One reviewer writes every probe, often as variations on one theme, so probes are not
+    independent. A cluster's score is the mean pass rate of its probes (docs/PROTOCOL.md §4).
+    """
     labels = cluster_texts(texts, threshold)
     groups: dict[int, list[bool]] = {}
     for label, ok in zip(labels, passed, strict=True):
@@ -77,6 +86,7 @@ def effective_counts(
 
 
 def balanced_accuracy(specificity: EffectiveCounts, sensitivity: EffectiveCounts) -> float:
+    """The mean of the rates that exist, or 0 when neither rate exists."""
     rates = [r for r in (specificity.rate, sensitivity.rate) if r is not None]
     return sum(rates) / len(rates) if rates else 0.0
 
@@ -110,8 +120,8 @@ def expected_false_discoveries(p_useful: Sequence[float]) -> float:
 def rank_columns(x: torch.Tensor, chunk: int = 1024) -> torch.Tensor:
     """Ranks (0-based) down each column of ``x`` [n, c], averaging ties.
 
-    Pole strengths are mostly exact zeros, so tie handling matters: every tied value
-    gets the mean of the ranks it spans, as in ``scipy.stats.rankdata``.
+    Pole strengths are mostly exact zeros, so tie handling matters. Each tied value gets
+    the mean of the ranks that it spans, as in ``scipy.stats.rankdata``.
     """
     n = x.shape[0]
     out = torch.empty_like(x, dtype=torch.float32)
@@ -146,6 +156,7 @@ def spearman_columns(target: torch.Tensor, others: torch.Tensor, chunk: int = 10
 
 
 def spearman(x: torch.Tensor, y: torch.Tensor) -> float:
+    """Spearman's rho between ``x`` and ``y``; 0 with fewer than three points."""
     if x.numel() < 3:
         return 0.0
     return float(spearman_columns(x.float(), y.float()[:, None])[0])

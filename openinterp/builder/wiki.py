@@ -10,13 +10,15 @@ Layout under ``wiki/``::
     experiments/<model>/L<l>/N<n>-<pole>/<id>.json      its full audit record (write-once)
 
 The experiment, not the neuron, is the unit of storage. The ``<id>.json`` archive is
-the registry's only source of truth: a neuron can have any number of experiments,
-each adds new files and none edits another's, so parallel experiments on one neuron
-never conflict. A neuron's standing (latest or most conclusive verdict) is always
-derived from its experiments, never stored. Each page's "Discussion" section is left
-for people and agents to edit. Indexes (the ``README.md`` files) are regenerated from
-the pages' front matter and are gitignored, never committed: every experiment would
-otherwise edit the same index rows, and parallel PRs would conflict.
+the registry's only source of truth. A neuron can have any number of experiments. Each
+adds new files, and none edits another's, so parallel experiments on one neuron never
+conflict. A neuron's standing (latest or most conclusive verdict) is always derived from
+its experiments, never stored. Each page's "Discussion" section is left for people and
+agents to edit.
+
+Indexes (the ``README.md`` files) are regenerated from the pages' front matter. They are
+gitignored, never committed. Otherwise every experiment would edit the same index rows,
+and parallel PRs would conflict.
 """
 
 from __future__ import annotations
@@ -63,11 +65,14 @@ GATE_ADVICE = {
 
 @dataclass(frozen=True)
 class WikiEntry:
+    """One experiment page and its front matter."""
+
     path: Path
     meta: dict
 
 
 def experiment_id(record: AuditRecord) -> str:
+    """The experiment's id: its verdict's UTC timestamp."""
     assert record.verdict is not None
     return record.verdict.timestamp.strftime("%Y%m%dT%H%M%SZ")
 
@@ -82,6 +87,7 @@ def unit_label(meta: dict) -> str:
 
 
 def neuron_dir(wiki_dir: Path, record: AuditRecord) -> Path:
+    """The directory of the record's unit."""
     return experiments_dir(wiki_dir) / record.submission.identifier.slug
 
 
@@ -234,6 +240,7 @@ def _page_body(record: AuditRecord, wiki_dir: Path, meta: dict, kind, previous_s
 
 
 def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:
+    """Where the record's archived JSON goes."""
     return neuron_dir(wiki_dir, record) / f"{experiment_id(record)}.json"
 
 
@@ -262,6 +269,7 @@ def load_archive(wiki_dir: Path) -> list[AuditRecord]:
 
 
 def load_entries(wiki_dir: Path) -> list[WikiEntry]:
+    """Every experiment page with front matter, newest first."""
     root = experiments_dir(wiki_dir)
     entries = [
         WikiEntry(path, _read_front_matter(path))
@@ -272,6 +280,7 @@ def load_entries(wiki_dir: Path) -> list[WikiEntry]:
 
 
 def rebuild_indexes(wiki_dir: Path) -> None:
+    """Regenerate the gitignored README indexes from the pages' front matter."""
     wiki_dir = Path(wiki_dir)
     wiki_dir.mkdir(parents=True, exist_ok=True)
     entries = load_entries(wiki_dir)

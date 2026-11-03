@@ -1,16 +1,16 @@
 """Covariance between neurons: correlated partners and joint ablation.
 
-A single neuron rarely acts alone. If neuron A's pole co-varies with neuron B, then
-(a) a probe that "fails" on A may be handled by B, and (b) ablating A alone can show
-no effect because B compensates. We therefore record A's partner neuron *poles* during
-the scan, and the reviewer ablates A together with them.
+A single neuron rarely acts alone. Say that neuron A's pole co-varies with neuron B.
+Then a probe that "fails" on A may be handled by B. Also, ablating A alone can show no
+effect, because B compensates. So we record A's partner neuron *poles* during the scan,
+and the reviewer ablates A together with them.
 
-Pole strengths are sparse and heavy-tailed (most tokens are exactly zero), so a global
-Pearson correlation mostly measures agreement on "nothing is happening" and is driven
-by a few large values. :class:`PartnerSearch` therefore ranks partners by the 95%
-lower bound of their co-activation lift, which looks only at the regime where
-redundancy matters and does not reward a handful of chance coincidences, and
-reports a rank (Spearman) correlation per partner pole. Pearson on signed
+Pole strengths are sparse and heavy-tailed: most tokens are exactly zero. So a global
+Pearson correlation mostly measures agreement on "nothing is happening", and a few
+large values drive it. :class:`PartnerSearch` ranks partners by the 95% lower bound of
+their co-activation lift instead. That looks only at the regime where redundancy
+matters, and does not reward a handful of chance coincidences. It also reports a rank
+(Spearman) correlation per partner pole. Pearson on signed
 activations is kept for reference.
 """
 
@@ -48,6 +48,7 @@ class CovarianceAccumulator:
         self.sxy += (x[:, None] * y).sum(0)
 
     def correlations(self) -> torch.Tensor:
+        """Pearson's r between the target and each column; 0 where either has no variance."""
         n = max(self.n, 1)
         cov = self.sxy / n - (self.sx / n) * (self.sy / n)
         var_x = self.sxx / n - (self.sx / n) ** 2
@@ -64,7 +65,7 @@ class PartnerSearch:
     * a uniform reservoir sample of tokens (target strength + whole-layer activations),
       for partner base rates, 99th-percentile "active" thresholds and Spearman;
     * the ``top_k`` tokens where the target is strongest, which hold the target's
-      active regime (it is rare, so a uniform sample would barely contain it).
+      active regime. It is rare, so a uniform sample would barely contain it.
     """
 
     def __init__(self, width: int, *, reservoir: int = 8192, top_k: int = 2048, seed: int = 0):
@@ -78,6 +79,7 @@ class PartnerSearch:
         self.top_rows = torch.empty(0, width, dtype=torch.float16)
 
     def update(self, target: torch.Tensor, layer_acts: torch.Tensor) -> None:
+        """Add a batch to the Pearson sums, the reservoir and the top-k tokens."""
         target, rows = target.float(), layer_acts.half()
         self.pearson.update(target, layer_acts)
 
@@ -112,6 +114,7 @@ class PartnerSearch:
     def partners(
         self, exclude: int, active_threshold: float, *, k: int = 10, quantile: float = 0.99
     ) -> list[CorrelatedNeuron]:
+        """The ``k`` poles with the highest lower-bound co-activation lift, besides ``exclude``."""
         if self.res_target.numel() < 3:
             return []
         width = self.res_rows.shape[1]

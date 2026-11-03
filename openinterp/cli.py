@@ -19,8 +19,11 @@ def _load_runner(
     revision: str | None = None,
     attn_implementation: str | None = None,
 ):
-    """Load ``model_name`` at ``revision``. Pass ``attn_implementation="eager"`` when
-    attention patterns are needed (SDPA and flash attention don't return them)."""
+    """Load ``model_name`` at ``revision``.
+
+    Pass ``attn_implementation="eager"`` when you need attention patterns. SDPA and flash
+    attention don't return them.
+    """
     import torch
 
     from openinterp.core import costs
@@ -38,8 +41,11 @@ def _load_runner(
 
 
 def resolve_device(device: str) -> str:
-    """``auto``: CUDA, else Apple's GPU (MPS), else the CPU. float32 activations on MPS
-    match the CPU's to about 1e-4 of a neuron's peak, inside reproduce's tolerance."""
+    """Resolve ``auto`` to CUDA, else Apple's GPU (MPS), else the CPU.
+
+    float32 activations on MPS match the CPU's to about 1e-4 of a neuron's peak. That is
+    inside the tolerance of ``openinterp reproduce``.
+    """
     import torch
 
     if device != "auto":
@@ -79,9 +85,9 @@ def _load(model_name, device, torch_dtype, revision, attn_implementation):
 def _align_parameters(model, alignment: int = 64) -> None:
     """Copy parameters that sit at a misaligned address into fresh memory.
 
-    Weights memory-mapped from a safetensors file start wherever the file puts them;
-    GPT-2's are not even 4-byte aligned, and a matrix-vector product on them (the
-    vocabulary lens's) dies with SIGBUS in Apple's BLAS. Shared (tied) parameters are
+    Weights memory-mapped from a safetensors file start where the file puts them.
+    GPT-2's weights are not even 4-byte aligned. A matrix-vector product on them (as the
+    vocabulary lens does) dies with SIGBUS in Apple's BLAS. Shared (tied) parameters are
     one object, so they stay tied.
     """
     for param in model.parameters():
@@ -122,8 +128,10 @@ model_options = [
 
 
 def wiki_dir_option(help: str | None = None, *, exists: bool = False):
-    """The ``--wiki-dir`` option every command shares: the registry root, by default
-    :data:`~openinterp.core.paths.DEFAULT_WIKI_DIR`."""
+    """The ``--wiki-dir`` option that every command shares.
+
+    It is the registry root, by default :data:`~openinterp.core.paths.DEFAULT_WIKI_DIR`.
+    """
     return click.option(
         "--wiki-dir",
         default=DEFAULT_WIKI_DIR,
@@ -149,8 +157,11 @@ explanation_scores_option = click.option(
 
 
 def recorded_model_option(_ctx, _param, value):
-    """Click callback for model options: the name to record, after
-    ``$OPENINTERP_MODEL_ALIASES`` (``openinterp.agents.base.recorded_model``)."""
+    """Click callback for model options: return the name to record.
+
+    The name is after ``$OPENINTERP_MODEL_ALIASES``
+    (``openinterp.agents.base.recorded_model``).
+    """
     from openinterp.agents.base import recorded_model
 
     try:
@@ -232,7 +243,8 @@ def quiet_libraries(quiet: bool) -> None:
     Always drop torch's macOS note about redirects; drop progress bars when stderr
     isn't a terminal or ``quiet``; with ``quiet``, also library warnings. Set before
     ``transformers`` and ``huggingface_hub`` are imported, which read the environment
-    then; variables the user set win."""
+    then; variables the user set win.
+    """
     import logging
     import os
     import sys
@@ -248,6 +260,7 @@ def quiet_libraries(quiet: bool) -> None:
 
 
 def with_model_options(fn):
+    """Add the shared model options (:data:`model_options`) to a command."""
     for option in reversed(model_options):
         fn = option(fn)
     return fn
@@ -452,6 +465,7 @@ from openinterp import (  # noqa: E402, F401
 
 
 def main() -> None:
+    """The console entry point: run the CLI, and turn an ``OpenInterpError`` into a message."""
     try:
         cli(standalone_mode=True)
     except OpenInterpError as exc:

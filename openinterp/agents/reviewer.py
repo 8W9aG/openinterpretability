@@ -1,9 +1,9 @@
 """Reviewer agent: stress-tests a submitted hypothesis against the model itself.
 
-The LLM's only job is to write adversarial probes. The verdict is computed
-deterministically from measurements in :func:`evaluate_submission` under a
-:class:`ReviewPolicy` that is stored in the verdict, so any decision can be
-reproduced from the record and the model weights (see docs/PROTOCOL.md).
+The LLM's only job is to write adversarial probes. :func:`evaluate_submission` computes
+the verdict deterministically from measurements. It uses a :class:`ReviewPolicy`, which
+is stored in the verdict. So any decision can be reproduced from the record and the model
+weights (see docs/PROTOCOL.md).
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
+from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
@@ -45,7 +46,7 @@ from openinterp.harness.environment import run_environment
 from openinterp.harness.hooks import NeuronHookRunner
 
 
-class AdversarialProbe(BaseModel):
+class AdversarialProbe(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
     text: str
     expected_active: bool = Field(
         description="What the *hypothesis* predicts. Hard negatives are near-misses predicted "
@@ -54,7 +55,7 @@ class AdversarialProbe(BaseModel):
     rationale: str
 
 
-class ProbeSet(BaseModel):
+class ProbeSet(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
     probes: list[AdversarialProbe] = Field(min_length=10, max_length=20)
 
 
@@ -89,6 +90,8 @@ def has_language_labels(submission: NeuronAuditSubmission) -> bool:
 
 
 class ReviewerAgent(LLMAgent):
+    """The reviewer: writes probes designed to break the hypothesis."""
+
     role = "reviewer"
     system_prompt = (
         "You are an adversarial peer reviewer for mechanistic interpretability claims. Given "
@@ -111,6 +114,7 @@ class ReviewerAgent(LLMAgent):
         full_snippets: bool = False,
         related: str = "",
     ) -> ProbeSet:
+        """Ask the reviewer for ``n`` probes."""
         prompt = self.probe_prompt(submission, n, full_snippets, related)
         return self.structured(ProbeSet, prompt)
 
@@ -121,10 +125,14 @@ class ReviewerAgent(LLMAgent):
         full_snippets: bool = False,
         related: str = "",
     ) -> str:
-        """The task text the reviewer answers. It shows no activations of candidate probes.
-        ``related`` is what other analyses link to the unit: published latents aligned with
-        it (:func:`openinterp.crossref.format_for_reviewer`) and its studied sister neurons
-        (:func:`openinterp.sisters.format_sisters`), to probe where they disagree."""
+        """Return the task text that the reviewer answers.
+
+        It shows no activations of candidate probes. ``related`` is what other analyses
+        link to the unit, so that the reviewer can probe where they disagree. That is
+        published latents aligned with the unit
+        (:func:`openinterp.crossref.format_for_reviewer`), and its studied sister neurons
+        (:func:`openinterp.sisters.format_sisters`).
+        """
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         is_head = submission.identifier.kind == "attn_head"
         context = ""
@@ -145,6 +153,7 @@ class ReviewerAgent(LLMAgent):
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
+            + wordnet.format_for_reviewer(submission.top_examples, wordnet.lexicon())
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
             + f"Write {n} probes."
@@ -154,9 +163,12 @@ class ReviewerAgent(LLMAgent):
     def token_check_prompt(
         submission: NeuronAuditSubmission, probes: Sequence[AdversarialProbe], tokenizer
     ) -> str:
-        """A second pass for the reviewer: its probes as the model's tokens, so it can fix
-        labels that it gave by reading words. It shows no activations: only the tokenizer
-        runs. For a head, each probe also lists the token runs that repeat an earlier one."""
+        """Return a second-pass prompt for the reviewer: its probes as the model's tokens.
+
+        Then the reviewer can fix labels that it gave by reading words. It shows no
+        activations: only the tokenizer runs. For a head, each probe also lists the token
+        runs that repeat an earlier one.
+        """
         is_head = submission.identifier.kind == "attn_head"
         blocks = []
         for n, probe in enumerate(probes):
@@ -196,6 +208,7 @@ class ReviewerAgent(LLMAgent):
         probes: Sequence[AdversarialProbe] | None = None,
         policy: ReviewPolicy = DEFAULT_POLICY,
     ) -> VerificationVerdict:
+        """Get probes (unless given), measure them and return the verdict."""
         if probes is None:
             probes = self.generate_probes(submission).probes
         return evaluate_submission(submission, runner, probes, self.model, policy)
@@ -205,7 +218,8 @@ def repeated_runs(ids: Sequence[int]) -> list[tuple[int, int]]:
     """Maximal runs ``ids[a:b]`` that also occur ending earlier in ``ids``, as ``(a, b)``.
 
     ``match[j]`` is the longest run ending at ``j`` that ends at some earlier position
-    too; a run is reported where it stops growing."""
+    too; a run is reported where it stops growing.
+    """
     match = [0] * len(ids)
     for j in range(len(ids)):
         for i in range(j):
@@ -229,8 +243,11 @@ def evaluate_submission(
     *,
     wire: bool = True,
 ) -> VerificationVerdict:
-    """Measure ``probes`` and the submission's own claims, and decide. ``wire=False``
-    skips the activation wiring (reported, not gated), e.g. when reproducing a record."""
+    """Measure ``probes`` and the submission's own claims, and decide.
+
+    ``wire=False`` skips the activation wiring (reported, not gated), for example when
+    reproducing a record.
+    """
     lap = costs.laps()
     submission, unit, scale = settle_first_token_floor(submission, runner, policy)
     threshold = policy.activation_threshold * scale
@@ -274,8 +291,11 @@ def _probe_score(
     actual: Sequence[bool],
     policy: ReviewPolicy,
 ) -> float:
-    """Balanced accuracy of ``predicted`` vs ``actual`` activity, split by the hypothesis's
-    labels (hard negatives / holdouts), with near-duplicate probes clustered."""
+    """Return the balanced accuracy of ``predicted`` vs ``actual`` activity.
+
+    It is split by the hypothesis's labels (hard negatives / holdouts), with near-duplicate
+    probes clustered.
+    """
 
     def subset(expected: bool):
         rows = [
@@ -329,6 +349,8 @@ def review_metrics(
     active_share: float | None = None,
     first_token_floor: bool | None = None,
 ) -> ReviewMetrics:
+    """The rates and gates of the decision rule, from the measured results (docs/PROTOCOL.md §4)."""
+
     def counts(kind: str):
         rows = [r for r in results if r.kind == kind and r.measured]
         return effective_counts(
@@ -339,8 +361,8 @@ def review_metrics(
     reproduction = _pass_rate(results, {"counterfactual"})
     lookahead = all(r.passed for r in results if r.kind == "lookahead_consistency")
     balanced = balanced_accuracy(negatives, holdouts)
-    # The baseline's accuracy is stored rounded, so compare at the same precision: a tie
-    # passes (protocol 0.8; before, 10/11 lost to a rounded-up 10/11).
+    # The baseline's accuracy is stored rounded, so compare at the same precision. A tie
+    # passes (protocol 0.8). Before 0.8, 10/11 lost to a rounded-up 10/11.
     beats = not policy.require_confound_control or (
         baseline is not None and round(balanced, 6) >= baseline[1]
     )
@@ -383,8 +405,10 @@ def _gates(
 
 
 def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:
-    """The share of the scan's tokens the unit is active on, from the submission's
-    histogram; ``None`` without one."""
+    """Return the share of the scan's tokens that the unit is active on.
+
+    It comes from the submission's histogram. ``None`` without one.
+    """
     histogram, scale = submission.activation_histogram, submission.max_activation
     if histogram is None or not scale:
         return None

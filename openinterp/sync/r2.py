@@ -47,8 +47,8 @@ CONTENT_TYPES = {
     ".css": "text/css",
     ".svg": "image/svg+xml",
 }
-# Pagefind's index shards are content-addressed; its entry files (pagefind.js,
-# pagefind-entry.json, pagefind-ui.*) are not and must stay on the short cache.
+# Pagefind's index shards are content-addressed. Its entry files are not, so they must
+# stay on the short cache: pagefind.js, pagefind-entry.json and pagefind-ui.*.
 HASHED_NAME = re.compile(r"[_.-][0-9a-f]{7,}\.[A-Za-z0-9_]+$")
 PAGEFIND_SHARD_SUFFIXES = {".pf_fragment", ".pf_index", ".pf_filter", ".pf_meta", ".pagefind"}
 
@@ -64,11 +64,13 @@ def cache_control_for(key: str) -> str:
 
 
 def content_type_for(key: str) -> str:
+    """The Content-Type to upload ``key`` with, from its suffix."""
     suffix = PurePosixPath(key).suffix
     return CONTENT_TYPES.get(suffix) or mimetypes.guess_type(key)[0] or "application/octet-stream"
 
 
 def file_md5(path: Path) -> str:
+    """The MD5 of ``path``, which equals a single-part upload's ETag."""
     digest = hashlib.md5(usedforsecurity=False)
     with path.open("rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
@@ -78,16 +80,20 @@ def file_md5(path: Path) -> str:
 
 @dataclass(frozen=True)
 class R2Config:
+    """The R2 account and credentials to sync with."""
+
     account_id: str
     access_key_id: str
     secret_access_key: str
 
     @property
     def endpoint_url(self) -> str:
+        """The account's S3 API endpoint."""
         return f"https://{self.account_id}.r2.cloudflarestorage.com"
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] = os.environ) -> R2Config:
+        """Read the config from the environment; raise SyncError when a variable is missing."""
         names = ("CF_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY")
         missing = [n for n in names if not env.get(n)]
         if missing:
@@ -96,6 +102,7 @@ class R2Config:
 
 
 def make_client(config: R2Config) -> Any:
+    """An S3 client for R2, made with ``config``."""
     import boto3
 
     return boto3.client(
@@ -109,6 +116,8 @@ def make_client(config: R2Config) -> Any:
 
 @dataclass
 class SyncPlan:
+    """What a sync uploads, deletes, leaves alone and skips."""
+
     uploads: list[str] = field(default_factory=list)
     deletes: list[str] = field(default_factory=list)
     unchanged: list[str] = field(default_factory=list)
@@ -116,10 +125,12 @@ class SyncPlan:
 
     @property
     def changed(self) -> bool:
+        """True when the sync uploads or deletes anything."""
         return bool(self.uploads or self.deletes)
 
 
 def local_files(dist_dir: Path, prefix: str = "") -> dict[str, Path]:
+    """Every file in ``dist_dir`` by its bucket key, except dotfiles."""
     dist_dir = Path(dist_dir)
     return {
         prefix + path.relative_to(dist_dir).as_posix(): path
@@ -129,6 +140,7 @@ def local_files(dist_dir: Path, prefix: str = "") -> dict[str, Path]:
 
 
 def remote_etags(client: Any, bucket: str, prefix: str = "") -> dict[str, str]:
+    """The ETag of every object in ``bucket`` under ``prefix``, by key."""
     etags: dict[str, str] = {}
     for page in client.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
@@ -151,6 +163,10 @@ def plan_sync(
     derived: Sequence[str] = DERIVED_PREFIXES,
     protected: Sequence[str] = PROTECTED_PREFIXES,
 ) -> SyncPlan:
+    """Compare local files with the bucket, and decide what to upload and delete.
+
+    The module docstring gives the rules.
+    """
     plan = SyncPlan()
 
     def rel(key: str) -> str:
@@ -184,6 +200,7 @@ def sync_directory(
     dry_run: bool = False,
     log: Callable[[str], None] = lambda _msg: None,
 ) -> SyncPlan:
+    """Sync ``dist_dir`` to ``bucket``; with ``dry_run``, only log what would change."""
     dist_dir = Path(dist_dir)
     if not dist_dir.is_dir():
         raise SyncError(f"{dist_dir} is not a directory; run `openinterp build` first")

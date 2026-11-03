@@ -1,0 +1,21 @@
+{# The WordNet specificity check for _experiment.html. Expects `sub` and `what`. #}
+  {% if sub.wordnet_specificity %}
+  {% set sp = sub.wordnet_specificity %}
+  {% macro words(label, items, hint) %}
+        <div class="bg-white p-3 dark:bg-slate-950">
+          <div class="text-[11px] font-medium uppercase tracking-wide text-slate-500" title="{{ hint }}">{{ label }}</div>
+          <p class="mt-1 text-xs leading-relaxed">
+            {% for w in items %}<span class="mr-2 whitespace-nowrap"><span class="font-mono">{{ w.word }}</span> <span class="text-slate-500">{{ (w.strength / sp.scale) | num(2) }}</span></span>{% endfor %}
+          </p>
+        </div>
+  {% endmacro %}
+  <section class="mb-10" data-pagefind-ignore>
+    <h3 class="mb-1 text-base font-semibold">WordNet specificity</h3>
+    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">This {{ what }} measured on words that WordNet puts under <span class="font-mono">{{ sp.synset }}</span> ({{ sp.lemma }}{{ ", named by the proposer" if sp.source == "proposer" else ", the largest category of the peak words" }}) and on words of its sibling categories, each in {{ sp.carriers | length }} neutral sentences. Peak words are left out. AUROC <strong>{{ sp.auroc | num(2) }}</strong>: the chance that a category word is stronger than a sibling word (0.5: no difference). Active: {{ sp.category_active | pct }} of category words, {{ sp.siblings_active | pct }} of sibling words. Strengths are fractions of the top activation in the scan.</p>
+    <div class="grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-800">
+      {{ words(sp.lemma, sp.category, "Hyponyms of " ~ sp.synset) }}
+      {{ words("Siblings", sp.siblings, sp.sibling_synsets | join(", ")) }}
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Measured after the proposer answered and shown to neither agent · reported, not gated</p>
+  </section>
+  {% endif %}

@@ -37,6 +37,24 @@ jobs:
           ruff check .
           ruff format --check .
           python scripts/check_line_limit.py
+          interrogate openinterp
+      - name: Install Vale
+        # A release binary, pinned and checked: Vale is a Go program, not a Python package.
+        env:
+          VALE_VERSION: 3.26.0
+          VALE_SHA256: 22aa69a556558e4a9dfc63c17030777383d8d3c48dcdfad655fa98e839d666ed
+        run: |
+          tarball="vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/$tarball"
+          echo "$VALE_SHA256  $RUNNER_TEMP/$tarball" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/vale"
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP/vale" vale
+          echo "$RUNNER_TEMP/vale" >> "$GITHUB_PATH"
+      - name: Comment and docstring prose (Vale)
+        run: make vale
+      - name: Markdown prose (STE linter)
+        run: make ste
       - name: Tests
         run: pytest
 

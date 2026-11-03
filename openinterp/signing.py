@@ -1,8 +1,8 @@
 """Maintainer signatures on experiment records (`openinterp sign`).
 
 A trusted signer can vouch for a record with their SSH key, so CI need not reproduce
-it. The signature is a separate file, ``<id>.json.sig`` next to the write-once record,
-made with ``ssh-keygen -Y sign`` in the ``openinterp-record`` namespace. It covers the
+it. The signature is a separate file, ``<id>.json.sig``, next to the write-once record.
+``ssh-keygen -Y sign`` makes it in the ``openinterp-record`` namespace. It covers the
 record's exact bytes, so editing the record invalidates it.
 
 Signers are listed in ``.github/allowed_signers`` (OpenSSH format, one per line:
@@ -35,6 +35,7 @@ class SignatureError(Exception):
 
 
 def signature_path(record_path: Path) -> Path:
+    """Where the signature of ``record_path`` goes: the same name plus ``.sig``."""
     return record_path.with_name(record_path.name + ".sig")
 
 
@@ -49,9 +50,9 @@ def sign_record(record_path: Path, key: Path) -> Path:
 def auto_sign(record_path: Path, allowed_signers: Path = ALLOWED_SIGNERS) -> str | None:
     """Sign a newly archived record if this machine holds a trusted signing key.
 
-    Returns the signer's principal, or ``None`` when signing is off
-    (``OPENINTERP_AUTO_SIGN=0``), there is no key, or the key isn't in
-    ``allowed_signers`` (an untrusted signature would only make CI fail).
+    Returns the signer's principal. Returns ``None`` when signing is off
+    (``OPENINTERP_AUTO_SIGN=0``), when there is no key, or when the key isn't in
+    ``allowed_signers``. An untrusted signature would only make CI fail.
     """
     if os.environ.get("OPENINTERP_AUTO_SIGN", "1").lower() in {"0", "false", "no"}:
         return None

@@ -7,8 +7,8 @@ description: Feature-first neuron search with sparse probing. Given a labelled c
 
 ## Papers
 
-- Gurnee, Nanda, Pauly, Harvey, Troitskii & Bertsimas, 2023, *Finding Neurons in a Haystack: Case Studies with Sparse Probing*, arXiv:2305.01610. Train k-sparse linear probes on neuron activations for labelled features, then sweep k. Features that a k=1 probe recovers well have a dedicated neuron; others are spread across neurons. Early layers show more superposition, middle layers more dedicated neurons.
-- Bolukbasi et al., 2021, *An Interpretability Illusion for BERT*, arXiv:2104.07143. A concept found on one dataset may not transfer to another. Always validate on a second dataset.
+- Gurnee, Nanda, Pauly, Harvey, Troitskii & Bertsimas, 2023, *Finding Neurons in a Haystack: Case Studies with Sparse Probing*, arXiv:2305.01610. Train k-sparse linear probes on neuron activations for labelled features, then sweep k. Features that a k=1 probe recovers well have a dedicated neuron. Others are spread across neurons. Early layers show more superposition, middle layers more dedicated neurons.
+- Bolukbasi et al., 2021, *An Interpretability Illusion for BERT*, arXiv:2104.07143. A concept found on one dataset may not transfer to another. Always check on a second dataset.
 
 ## Procedure
 
@@ -18,12 +18,12 @@ description: Feature-first neuron search with sparse probing. Given a labelled c
    uv run openinterp concepts --dataset ud-upos --label PROPN --out propn-ud.jsonl
    uv run openinterp concepts --dataset conll2003-pos --label NNP --out nnp-conll.jsonl  # second source
    ```
-   Presets: `conll2003-ner` (PER, ORG, LOC, MISC), `conll2003-pos` (Penn tags), `ud-upos` and `ud-deprel` (`--subset <treebank>`, e.g. `en_gum`, `fr_gsd`), `language-identification` (20 languages) and `ag_news` (World, Sports, Business, Sci/Tech). Document classes are balanced already; word tags are not. The files are `probe-compare`'s `--train`/`--test` format. Pairs of sources: UD `en_ewt` vs `en_gum` or CoNLL Penn tags for parts of speech; `language-identification` vs a `wikipedia-multilingual` corpus for language. NER and topic have one preset each, so take their second source from elsewhere.
+   Presets: `conll2003-ner` (PER, ORG, LOC, MISC), `conll2003-pos` (Penn tags), `ud-upos` and `ud-deprel` (`--subset <treebank>`, e.g. `en_gum`, `fr_gsd`), `language-identification` (20 languages) and `ag_news` (World, Sports, Business, Sci/Tech). Document classes are balanced already. Word tags are not. The files are `probe-compare`'s `--train`/`--test` format. Pairs of sources: UD `en_ewt` vs `en_gum` or CoNLL Penn tags for parts of speech. `language-identification` vs a `wikipedia-multilingual` corpus for language. NER and topic have one preset each, so take their second source from elsewhere.
 2. **Cache activations.**
    ```python
    _, cache = runner.run_with_cache(batch, layers)  # cache[layer]: [b, seq, d_mlp]
    ```
-   Mask padding with `attention_mask`. For sequence-level labels, max-pool over tokens; pool per pole by applying `pole_strength` to each neuron first.
+   Mask padding with `attention_mask`. For sequence-level labels, max-pool over tokens. Pool per pole by applying `pole_strength` to each neuron first.
 3. **Rank neurons (k=1).** For each neuron and pole, compute the AUROC separating the classes. That uses only torch and avoids adding a dependency:
    ```python
    def auroc(scores, labels):  # scores [n], labels bool [n]

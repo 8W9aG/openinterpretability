@@ -1,17 +1,17 @@
 """Reproduce an experiment record from its JSON before it merges (`openinterp reproduce`).
 
-`openinterp check` only validates a record's shape. This re-runs, against the model
-revision and dtype the record pins, every measurement its verdict rests on:
+`openinterp check` only validates a record's shape. This runs again every measurement
+that the verdict rests on. It uses the model revision and dtype that the record pins:
 
-1. the scan evidence: each top example's per-token strengths, and the scale
-   (``max_activation``) that every "active" threshold is a fraction of;
-2. each counterfactual pair's observed Δ;
-3. the review itself, with the record's stored probes and its own ``ReviewPolicy``
-   (no LLM calls): every probe's activation and pass/fail, every gate and the status.
+1. The scan evidence: each top example's per-token strengths. Also the scale
+   (``max_activation``) that every "active" threshold is a fraction of.
+2. Each counterfactual pair's observed Δ.
+3. The review itself, with the record's stored probes and its own ``ReviewPolicy`` (no
+   LLM calls). That is every probe's activation and pass/fail, every gate and the status.
 
-Given the scan's corpus, it also re-draws the record's corpus sample (protocol 0.7)
-from its seed and token budget, and checks that it hashes the same and holds every top
-example.
+Given the scan's corpus, it also draws the record's corpus sample again (protocol 0.7),
+from its seed and token budget. It checks that the sample hashes the same and holds
+every top example.
 
 Numbers must agree within ``atol × scale + rtol × |recorded|``. Anything the decision
 rule reads (pass/fail, gates, status) must agree exactly. Causal metrics, joint
@@ -46,6 +46,7 @@ class Tolerance:
     rtol: float = 1e-2
 
     def close(self, recorded: float | None, reproduced: float | None, scale: float) -> bool:
+        """True when ``reproduced`` is within tolerance of ``recorded``, or both are ``None``."""
         if recorded is None or reproduced is None:
             return recorded is None and reproduced is None
         return abs(reproduced - recorded) <= self.atol * scale + self.rtol * abs(recorded)
@@ -56,6 +57,8 @@ DEFAULT_TOLERANCE = Tolerance()
 
 @dataclass
 class ReproductionReport:
+    """The result of reproducing one record: the mismatches, the warnings and what was compared."""
+
     path: Path | None
     record: AuditRecord
     mismatches: list[str] = field(default_factory=list)
@@ -64,9 +67,11 @@ class ReproductionReport:
 
     @property
     def ok(self) -> bool:
+        """True when nothing that the decision rule reads differed."""
         return not self.mismatches
 
     def fail(self, message: str) -> None:
+        """Record a mismatch."""
         self.mismatches.append(message)
 
 
@@ -100,8 +105,10 @@ def reproduce_record(
     path: Path | None = None,
     corpus: tuple[list[str], str] | None = None,
 ) -> ReproductionReport:
-    """Reproduce ``record`` with ``runner``. ``corpus`` is (documents, SHA-256 of the
-    corpus file), to re-draw the scan's sample from."""
+    """Reproduce ``record`` with ``runner``.
+
+    ``corpus`` is (documents, SHA-256 of the corpus file), to draw the scan's sample from.
+    """
     report = ReproductionReport(path=path, record=record)
     reason = check_protocol(record)
     if reason:

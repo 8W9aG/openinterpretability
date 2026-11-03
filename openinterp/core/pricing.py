@@ -1,13 +1,16 @@
 """List prices for token usage nobody priced, e.g. Claude Code subagents answering a prompt.
 
-LiteLLM prices its own calls. An external answerer's tokens (``external/<name>``) are priced
-here instead, one request at a time, and each priced call records :data:`TABLE`, since list
-prices change. When they do, add a dated row rather than editing one, and bump the table's
-date: older records keep the table they were priced with. A model missing from the table,
-or a request older than its first row, stays unpriced, never guessed.
+LiteLLM prices its own calls. This module prices an external answerer's tokens
+(``external/<name>``), one request at a time. List prices change, so each priced call
+records :data:`TABLE`. When a price changes, add a dated row; do not edit a row. Then
+change the table's date, so that older records keep the table that priced them. A model
+that is not in the table, or a request older than its first row, stays unpriced. We
+never guess a price.
 
-Not priced: cache storage billed per hour (Gemini, and Z.ai once its free period ends),
-and DeepSeek's off-peak rate on Chinese public holidays (peak rates are charged).
+Not priced:
+
+- Cache storage billed per hour (Gemini, and Z.ai when its free period ends).
+- DeepSeek's off-peak rate on Chinese public holidays. We charge the peak rate.
 """
 
 from __future__ import annotations
@@ -18,13 +21,15 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Protocol
 
-# When every row below was last checked against its vendor's pricing page:
-#   Anthropic, first-party API          2026-10-06
-#   DeepSeek   api-docs.deepseek.com    2026-10-28
-#   Google     ai.google.dev            2026-10-28
-#   Z.ai       docs.z.ai                2026-10-28
-#   xAI        docs.x.ai                2026-10-28
-#   Meta       OpenRouter's listing     2026-10-28 (Meta publishes no Contributor rates)
+from openinterp.core.agent_names import ALIASES
+
+# When we last checked each vendor's rows against its pricing page:
+#   Anthropic, first-party API          2026-10-06.
+#   DeepSeek   api-docs.deepseek.com    2026-10-28.
+#   Google     ai.google.dev            2026-10-28.
+#   Z.ai       docs.z.ai                2026-10-28.
+#   xAI        docs.x.ai                2026-10-28.
+#   Meta       OpenRouter's listing     2026-10-28 (Meta publishes no Contributor rates).
 TABLE = "2026-10-28"
 
 ANTHROPIC_WRITE_5M = 1.25  # × input price
@@ -82,6 +87,7 @@ class Price:
 
 
 def anthropic(input: float, output: float, cache_read: float, **kw) -> Price:
+    """An Anthropic price, with the cache-write prices derived from ``input`` as Anthropic does."""
     return Price(
         input,
         output,
@@ -133,12 +139,14 @@ FAMILIES: dict[str, list[tuple[date, Price]]] = {
 
 
 def price_key(model: str) -> str:
-    """``external/anthropic/claude-opus-5-5[1m]`` → ``claude-opus-5-5``."""
+    """``external/anthropic/claude-opus-5-5[1m]`` → ``claude-opus-5-5``, after ``ALIASES``."""
     name = model.removeprefix("external/").rsplit("/", 1)[-1]
-    return re.sub(r"\[[^\]]*\]$", "", name).strip().lower()
+    name = re.sub(r"\[[^\]]*\]$", "", name).strip().lower()
+    return ALIASES.get(name, name)
 
 
 def prices_of(model: str) -> list[tuple[date, Price]] | None:
+    """The dated price rows of ``model``, from its own entry or its family's, or ``None``."""
     key = price_key(model)
     if key in PRICES:
         return PRICES[key]
@@ -146,6 +154,7 @@ def prices_of(model: str) -> list[tuple[date, Price]] | None:
 
 
 def price_on(model: str, day: date) -> Price | None:
+    """The price of ``model`` on ``day``: the latest row from that day or before, or ``None``."""
     rows = prices_of(model) or []
     return next((p for since, p in reversed(rows) if since <= day), None)
 
@@ -153,10 +162,13 @@ def price_on(model: str, day: date) -> Price | None:
 def cost_usd(
     model: str, requests: Iterable[Tokens], *, prompt: float | None = None
 ) -> float | None:
-    """What these requests cost at list price, or ``None`` when any of them has no price
-    (an unlisted model, or a request before the model's first row). A request with no
+    """Return what these requests cost at list price.
+
+    ``None`` when a request has no price: an unlisted model, or a request before the
+    model's first row. A request with no
     time is priced as of today. ``prompt`` sets the prompt size that picks a tier, for
-    totals over several requests."""
+    totals over several requests.
+    """
     total = 0.0
     for t in requests:
         price = price_on(model, (t.at or datetime.now(UTC)).astimezone(UTC).date())

@@ -5,8 +5,8 @@ the MLP's down/output projection. For gated MLPs (Llama, Qwen, Mistral) that is
 ``act(gate(x)) * up(x)``; for GPT-2 style MLPs it is ``act(fc(x))``. Hooking the
 down projection's *input* gives the same definition on every architecture.
 
-Each neuron has two poles, isolated with ``torch.clamp``: the positive pole is
-``clamp(act, min=0)`` and the negative pole is ``clamp(act, max=0)``.
+Each neuron has two poles, isolated with ``torch.clamp``. The positive pole is
+``clamp(act, min=0)``, and the negative pole is ``clamp(act, max=0)``.
 """
 
 from __future__ import annotations
@@ -141,6 +141,7 @@ def replace_pole(target: torch.Tensor, source: torch.Tensor, pole: Pole) -> torc
 
 
 def logits_of(output: Any) -> torch.Tensor:
+    """The logits of a model output, or the output itself if it is a tensor."""
     return output.logits if hasattr(output, "logits") else output
 
 
@@ -192,13 +193,16 @@ class NeuronHookRunner:
 
     @property
     def n_layers(self) -> int:
+        """The number of transformer layers."""
         return len(self.layers)
 
     @property
     def device(self) -> torch.device:
+        """The device of the model's parameters."""
         return next(self.model.parameters()).device
 
     def down_proj(self, layer: int) -> nn.Module:
+        """The MLP down projection of ``layer``, whose input is the neuron basis."""
         if not 0 <= layer < self.n_layers:
             raise IndexError(f"layer {layer} out of range for {self.n_layers}-layer model")
         return _get_path(self.layers[layer], self.down_proj_path)
@@ -221,6 +225,7 @@ class NeuronHookRunner:
 
     @property
     def n_heads(self) -> int:
+        """The number of attention heads, from the model config."""
         config = getattr(self.model, "config", None)
         for name in ("num_attention_heads", "n_head", "num_heads"):
             if isinstance(getattr(config, name, None), int):
@@ -228,6 +233,7 @@ class NeuronHookRunner:
         raise ArchitectureNotSupportedError("model config does not give the number of heads")
 
     def head_dim(self, layer: int) -> int:
+        """The width of one head's output at ``layer``."""
         proj = self.attn_out(layer)
         width = int(proj.in_features) if hasattr(proj, "in_features") else proj.weight.shape[0]
         if width % self.n_heads:
@@ -245,6 +251,7 @@ class NeuronHookRunner:
         return weight[:, head * d : (head + 1) * d].detach()
 
     def mlp_width(self, layer: int) -> int:
+        """The number of MLP neurons at ``layer``."""
         proj = self.down_proj(layer)
         if hasattr(proj, "in_features"):
             return int(proj.in_features)
@@ -262,8 +269,7 @@ class NeuronHookRunner:
         )
 
     def mlp_write(self, layer: int) -> nn.Module:
-        """The module whose output is what ``layer``'s MLP adds to the residual stream: the
-        norm after the MLP if it has one, else the down projection."""
+        """The module whose output ``layer``'s MLP adds: a post-MLP norm, else the down proj."""
         for path in POST_MLP_NORM_PATHS:
             module = _try_path(self.layers[layer], path)
             if isinstance(module, nn.Module):
@@ -280,6 +286,7 @@ class NeuronHookRunner:
         return _get_path(self.layers[layer], parent)
 
     def final_norm(self) -> nn.Module | None:
+        """The norm before the unembedding, or ``None`` if there is none."""
         for path in FINAL_NORM_PATHS:
             module = _try_path(self.model, path)
             if isinstance(module, nn.Module):
@@ -296,6 +303,7 @@ class NeuronHookRunner:
     # -- running -------------------------------------------------------------
 
     def encode(self, inputs: Inputs) -> dict[str, torch.Tensor]:
+        """Token ids (and attention mask) for ``inputs``, on the model's device."""
         if isinstance(inputs, torch.Tensor):
             ids = inputs if inputs.dim() == 2 else inputs.unsqueeze(0)
             return {"input_ids": ids.to(self.device)}
@@ -320,12 +328,12 @@ class NeuronHookRunner:
 
         ``interventions[layer]`` receives the intermediate activation
         ``[batch, seq, d_mlp]`` and may return a replacement (or ``None`` to only
-        observe). ``output_interventions[layer]`` does the same for the down
-        projection's output ``[batch, seq, d_model]``, and ``head_interventions[layer]``
-        for the attention heads' concatenated outputs ``[batch, seq, n_heads * head_dim]``.
-        ``dictionary_interventions[layer] = (site, fn)`` calls ``fn(x, out)`` with a
-        dictionary's input ``x`` read at ``site`` (see ``DictionaryProfile``) and the MLP's
-        write to the residual stream (:meth:`mlp_write`), which ``fn`` may replace.
+        observe). ``output_interventions[layer]`` does the same for the down projection's
+        output ``[batch, seq, d_model]``. ``head_interventions[layer]`` does it for the
+        heads' concatenated outputs ``[batch, seq, n_heads * head_dim]``. With
+        ``dictionary_interventions[layer] = (site, fn)``, ``fn(x, out)`` gets a dictionary's
+        input ``x`` read at ``site`` (see ``DictionaryProfile``). ``out`` is the MLP's write
+        to the residual stream (:meth:`mlp_write`), which ``fn`` may replace.
         """
         handles = []
 
@@ -359,6 +367,7 @@ class NeuronHookRunner:
                 handle.remove()
 
     def forward(self, encoded: Mapping[str, torch.Tensor]) -> torch.Tensor:
+        """Run the model and return its logits."""
         return logits_of(self.model(**encoded))
 
     @torch.no_grad()
@@ -389,6 +398,7 @@ class NeuronHookRunner:
         dictionary_interventions: Mapping[int, tuple[DictionarySite, DictionaryIntervention]]
         | None = None,
     ) -> torch.Tensor:
+        """Run the model with the hooks of :meth:`hooks`, and return its logits."""
         encoded = self.encode(inputs)
         with self.hooks(
             interventions, output_interventions, head_interventions, dictionary_interventions
@@ -446,6 +456,7 @@ class NeuronHookRunner:
         return act if pole is None else pole_strength(act, pole)
 
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:
+        """The pole's peak strength over ``text``."""
         return float(self.neuron_activations(text, layer, neuron_idx, pole).max())
 
 
@@ -472,6 +483,7 @@ def top_activating_examples(
 
 
 def activation_histogram(values: Sequence[float], bins: int = 30) -> Histogram:
+    """A ``bins``-bin histogram of ``values``."""
     tensor = torch.tensor(list(values) or [0.0], dtype=torch.float32)
     low, high = float(tensor.min()), float(tensor.max())
     if high <= low:

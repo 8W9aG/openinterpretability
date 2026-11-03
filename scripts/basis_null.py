@@ -1,11 +1,11 @@
-"""The rotated-basis null: do random directions in the MLP's hidden space verify as often
-as native neurons? (``docs/analyses/null-calibration.md``)
+"""The rotated-basis null (``docs/analyses/null-calibration.md``).
 
-Both arms are audited as latents of a ``basis`` (``DictionaryProfile``) reading the
-MLP's hidden activations (``mlp_hidden``): the *identity* basis, whose latents are the
-native positive poles, and a random orthogonal *rotation*. The two share one dictionary
-name and one prompt, and their weights sit in directories named by a hash, so the
-proposer and the reviewer can't tell which arm a unit is in. Units are drawn in pairs,
+Do random directions in the MLP's hidden space verify as often as native neurons? Both
+arms are audited as latents of a ``basis`` (``DictionaryProfile``) that reads the MLP's
+hidden activations (``mlp_hidden``). One arm is the *identity* basis, whose latents are
+the native positive poles. The other is a random orthogonal *rotation*. The two share
+one dictionary name and one prompt. Their weights sit in directories named by a hash.
+So the proposer and the reviewer can't tell which arm a unit is in. Units are drawn in pairs,
 one per arm at the same layer and index.
 
     uv run python scripts/basis_null.py plan --pairs 30 --out $S/plan.json
@@ -41,11 +41,13 @@ WINDOW_TOKENS = 512
 
 
 def weights_dir(arm: str, seed: int) -> Path:
+    """Where an arm's basis weights go: a directory named by a hash, so the name hides the arm."""
     digest = hashlib.sha256(f"{arm}/{seed}".encode()).hexdigest()[:12]
     return Path.home() / ".cache" / "openinterp" / "bases" / digest
 
 
 def spec(arm: str, seed: int, layers):
+    """The ``basis`` preset of one arm."""
     from openinterp.harness.dictionaries import DictionarySpec
 
     return DictionarySpec(
@@ -60,6 +62,7 @@ def spec(arm: str, seed: int, layers):
 
 
 def load_plan(path: Path) -> dict:
+    """The plan file as a dict."""
     return json.loads(path.read_text())
 
 
@@ -141,6 +144,7 @@ def pending(plan: dict, names, needs: str, makes: tuple[str, ...]) -> list[dict]
 
 
 def runner():
+    """The model runner for :data:`MODEL`, in float32."""
     from openinterp.cli import _load_runner
 
     return _load_runner(MODEL, "auto", "float32")
@@ -150,8 +154,10 @@ def runner():
 @click.option("--plan", "plan_file", required=True, type=click.Path(exists=True, path_type=Path))
 @click.option("--unit", "names", multiple=True, help="Default: every unit not yet done.")
 def scan(plan_file, names):
-    """Scan units and write their proposer prompts (ev.prompt.md), or outcome.json if
-    the scan stops on them (dead or default-on)."""
+    """Scan units and write their proposer prompts (ev.prompt.md).
+
+    Writes outcome.json instead if the scan stops on a unit (dead or default-on).
+    """
     from openinterp.cli_evidence import write_evidence
     from openinterp.evidence import ScanRequest, Unauditable, scan_evidence
 
@@ -186,9 +192,11 @@ def scan(plan_file, names):
 @click.argument("unit_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.argument("texts", nargs=-1, required=True)
 def strengths(unit_dir, texts):
-    """The proposer's measuring tool: each text's per-token strengths and its peak as a
-    fraction of the unit's scale, read from the unit's own ev.json (so it says nothing of
-    which arm the unit is in). Runs on the CPU."""
+    """The proposer's measuring tool: each text's per-token strengths and its peak.
+
+    The peak is a fraction of the unit's scale, read from the unit's own ev.json. So it
+    says nothing of which arm the unit is in. Runs on the CPU.
+    """
     from openinterp.cli import _load_runner
     from openinterp.core.schemas import ScanEvidence
     from openinterp.harness.units import unit_of
@@ -212,8 +220,11 @@ def strengths(unit_dir, texts):
 @click.option("--unit", "names", multiple=True, help="Default: every unit not yet done.")
 @click.option("--agent-model", required=True, help="The proposer's model, as recorded.")
 def submit(plan_file, names, agent_model):
-    """Build each submission from its scan and the proposer's draft (measuring the
-    counterfactuals) and write the reviewer's prompt (review.prompt.md)."""
+    """Build each submission, and write the reviewer's prompt (review.prompt.md).
+
+    The submission comes from the unit's scan and the proposer's draft, with the
+    counterfactuals measured.
+    """
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.cli_review import write_review_prompt
     from openinterp.cli_submission import build_submission
@@ -235,8 +246,10 @@ def submit(plan_file, names, agent_model):
 @click.option("--unit", "names", multiple=True, help="Default: every unit not yet done.")
 @click.option("--agent-model", required=True, help="The reviewer's model, as recorded.")
 def measure(plan_file, names, agent_model):
-    """Run each review's probes and decide (result.json), without causal metrics or
-    wiring, which aren't gated."""
+    """Run each review's probes and decide (result.json).
+
+    Causal metrics and wiring are left out, because they aren't gated.
+    """
     from null_calibration import review_probes  # beside this script
 
     from openinterp.agents.reviewer import ProbeSet

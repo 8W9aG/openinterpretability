@@ -1,5 +1,8 @@
-"""The steps of ``openinterp audit`` after the proposer answers: counterfactuals, the
-Patchscope, steering and wiring readouts, and writing the submission."""
+"""The steps of ``openinterp audit`` after the proposer answers.
+
+The steps are counterfactuals, the Patchscope, steering, WordNet specificity and wiring
+readouts, and writing the submission.
+"""
 
 from __future__ import annotations
 
@@ -11,8 +14,11 @@ from openinterp.cli_evidence import with_costs
 
 
 def read_patchscope(runner, submission):
-    """The model's own reading of the unit's output direction, once the proposer has
-    answered so it can't steer the hypothesis; ``None`` for a head, which writes a subspace."""
+    """Return the model's own reading of the unit's output direction.
+
+    It runs after the proposer answers, so it can't steer the hypothesis. ``None`` for a
+    head, which writes a subspace.
+    """
     from openinterp.core import costs
     from openinterp.harness.patchscope import patchscope, write_direction
     from openinterp.harness.units import submission_unit
@@ -26,8 +32,11 @@ def read_patchscope(runner, submission):
 
 
 def read_steering(runner, submission):
-    """Neutral prompts continued with the unit clamped high, at baseline and ablated, once
-    the proposer has answered; ``None`` for a head, which has no "high" to clamp to."""
+    """Return neutral prompts continued at baseline, with the unit ablated and clamped high.
+
+    It runs after the proposer answers. ``None`` for a head, which has no "high" to clamp
+    to.
+    """
     from openinterp.core import costs
     from openinterp.harness.steering import steering_samples
     from openinterp.harness.units import HeadUnit, submission_unit
@@ -40,9 +49,42 @@ def read_steering(runner, submission):
         return steering_samples(runner, unit, submission.max_activation)
 
 
+def read_specificity(runner, submission, draft):
+    """Return the unit on a WordNet category's held-out words against its siblings' words.
+
+    The category is the draft's ``wordnet_synset``, or else the largest category of the
+    peak words. It runs after the proposer answers. ``None`` without WordNet, without a
+    category, or when either side has too few words.
+    """
+    from openinterp import wordnet
+    from openinterp.core import costs
+    from openinterp.harness.specificity import specificity
+    from openinterp.harness.units import submission_unit
+
+    lex = wordnet.lexicon()
+    if lex is None or not submission.max_activation or runner.tokenizer is None:
+        return None
+    peaks = wordnet.peak_words(submission.top_examples)
+    synset, source = draft.wordnet_synset, "proposer"
+    if synset is not None and not lex.has(synset):
+        click.echo(f"Skipping the WordNet check: no noun synset {synset!r}.", err=True)
+        return None
+    if synset is None:
+        groups = wordnet.categorise(peaks, lex).groups
+        if not groups:
+            return None
+        synset, source = groups[0].synset, "peak_words"
+    click.echo(f"Measuring {synset} words against its sibling categories…", err=True)
+    with costs.stage("specificity"):
+        unit = submission_unit(submission)
+        return specificity(runner, unit, lex, synset, source, submission.max_activation, peaks)
+
+
 def read_wiring(runner, submission):
-    """The unit's top connections by virtual weight, once the proposer has answered;
-    ``None`` on an unsupported architecture."""
+    """Return the unit's top connections by virtual weight.
+
+    It runs after the proposer answers. ``None`` on an unsupported architecture.
+    """
     from openinterp.core import costs
     from openinterp.core.exceptions import ArchitectureNotSupportedError
     from openinterp.harness.units import submission_unit
@@ -57,6 +99,16 @@ def read_wiring(runner, submission):
             return None
 
 
+def readouts(runner, submission, draft) -> dict:
+    """The readouts taken after the proposer answers, by submission field."""
+    return {
+        "patchscope": read_patchscope(runner, submission),
+        "steering": read_steering(runner, submission),
+        "wordnet_specificity": read_specificity(runner, submission, draft),
+        "wiring": read_wiring(runner, submission),
+    }
+
+
 def write_submission(
     agent,
     draft,
@@ -67,8 +119,10 @@ def write_submission(
     contributor: str | None = None,
     sister_file: Path | None = None,
 ) -> None:
-    """Build the submission (counterfactuals, Patchscope, steering, wiring) and write it.
-    In a sister study (``sister_file``) the explanation is the sister's, word for word."""
+    """Build the submission (counterfactuals, Patchscope, steering, specificity, wiring), write it.
+
+    In a sister study (``sister_file``), the explanation is the sister's, word for word.
+    """
     from openinterp.builder.wiki import experiment_id
     from openinterp.core import costs
     from openinterp.sisters import sister_ref
@@ -81,9 +135,7 @@ def write_submission(
         )
     sister, draft = sister_draft(sister_file, ident, draft)
     submission = build_submission(agent, draft, runner, evidence)
-    readout = read_patchscope(runner, submission)
-    steering = read_steering(runner, submission)
-    wiring = read_wiring(runner, submission)
+    after = readouts(runner, submission, draft)
     # An evidence file carries the scan's costs; a one-step audit measured them here.
     provenance = with_costs(submission.provenance, costs.measured())
     revises = superseded and experiment_id(superseded)
@@ -94,9 +146,7 @@ def write_submission(
             "provenance": provenance,
             "supersedes": revises,
             "sister_of": sister and sister_ref(sister),
-            "patchscope": readout,
-            "steering": steering,
-            "wiring": wiring,
+            **after,
         }
     )
     out = out or Path("submissions") / f"{ident.slug}.json"
@@ -111,8 +161,11 @@ def write_submission(
 
 
 def sister_draft(sister_file, ident, draft):
-    """``(sister record, draft)``: in a sister study, the draft with the sister's
-    explanation, word for word; otherwise ``(None, draft)``."""
+    """Return ``(sister record, draft)``.
+
+    In a sister study, the draft has the sister's explanation, word for word. Otherwise
+    the result is ``(None, draft)``.
+    """
     from openinterp.cli_evidence import load_sister
 
     if sister_file is None:
@@ -123,6 +176,7 @@ def sister_draft(sister_file, ident, draft):
 
 
 def build_submission(agent, draft, runner, evidence):
+    """Build the submission from the proposer's draft, timed as the counterfactuals stage."""
     from openinterp.core import costs
 
     with costs.stage("counterfactuals"):

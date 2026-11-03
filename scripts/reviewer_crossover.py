@@ -1,9 +1,9 @@
 """Reviewer-effect crossover: how much of a verdict is the reviewer (``TODO.md``).
 
 The registry confounds proposer and reviewer: most records were proposed and reviewed by
-one agent pair. Here a fixed set of registry submissions, drawn evenly from three proposer
-models, is reviewed again from scratch by several reviewer models on the same prompt, and
-every probe set is measured under the current policy
+one agent pair. Here a fixed set of registry submissions is drawn evenly from three
+proposer models. Several reviewer models review them again from scratch, on the same
+prompt. Every probe set is measured under the current policy
 (``docs/analyses/reviewer-crossover.md``).
 
     uv run python scripts/reviewer_crossover.py prepare
@@ -159,6 +159,7 @@ def load_rows():
 
 
 def short(agent: str) -> str:
+    """A short agent name for tables."""
     return agent.removeprefix("external/").removesuffix("[1m]").removesuffix("-contributor")
 
 
@@ -201,6 +202,7 @@ def agreement_table(rows) -> str:
 
 
 def kappa(x: list[bool], y: list[bool]) -> float:
+    """Cohen's kappa of two raters' yes/no calls."""
     n = len(x)
     observed = sum(p == q for p, q in zip(x, y, strict=True)) / n
     px, py = sum(x) / n, sum(y) / n
@@ -251,6 +253,7 @@ def two_way(grid: list[list[float]]):
 
 
 def cochran_q(grid: list[list[float]]) -> float:
+    """Cochran's Q over a grid of subjects (rows) by raters (columns)."""
     k = len(grid[0])
     cols = [sum(r[j] for r in grid) for j in range(k)]
     rows = [sum(r) for r in grid]

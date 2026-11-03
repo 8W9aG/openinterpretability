@@ -82,8 +82,11 @@ def test_ranks_average_ties_and_spearman_is_rank_based():
 
 
 def _planted(n=6000, seed=0):
-    """Target fires on ~3% of tokens. Neuron 3's positive pole and neuron 4's negative
-    pole fire with it; neuron 5 has huge outliers on the target's three strongest tokens."""
+    """Target fires on ~3% of tokens.
+
+    Neuron 3's positive pole and neuron 4's negative pole fire with it. Neuron 5 has huge
+    outliers on the target's three strongest tokens.
+    """
     g = torch.Generator().manual_seed(seed)
     acts = torch.randn(n, 8, generator=g) * 0.1
     fires = torch.rand(n, generator=g) < 0.03
@@ -173,8 +176,8 @@ def test_scan_gathers_everything(toy_runner):
     partner = pole_strength(acts[:, top.neuron_idx], top.pole)
     assert top.spearman == pytest.approx(spearman(target, partner), abs=1e-4)
 
-    # The same pass reads the other pole. In the toy model (no attention) it is active on
-    # most tokens wherever they are, so it has a first-token floor and leaves them out.
+    # The same pass reads the other pole. In the toy model (no attention), it is active on
+    # most tokens wherever they are. So it has a first-token floor, and leaves them out.
     other = scan.opposite
     assert not scan.first_token_floor and other.first_token_floor
     first = (enc["attention_mask"].cumsum(1) == 1)[enc["attention_mask"].bool()]

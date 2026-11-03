@@ -168,6 +168,18 @@ Neutral prompts continued greedily for up to {{ st.max_new_tokens }} tokens with
 {% endfor %}
 
 {% endif %}
+{% if sub.wordnet_specificity %}
+{% set sp = sub.wordnet_specificity %}
+### WordNet specificity
+
+The unit on words that WordNet puts under `{{ sp.synset }}` ({{ sp.lemma }}; {{ "named by the proposer" if sp.source == "proposer" else "the largest category of the peak words" }}) and on words of its sibling categories ({{ sp.sibling_synsets[:8] | join(", ") }}{{ ", …" if sp.sibling_synsets | length > 8 }}), each in {{ sp.carriers | length }} neutral sentences, peak words left out. AUROC {{ sp.auroc | num(2) }} (the chance that a category word is stronger than a sibling word); active: {{ sp.category_active | pct }} of category words, {{ sp.siblings_active | pct }} of sibling words. Strengths are fractions of the top activation in the scan. Measured after the proposer answered and shown to neither agent; reported, not gated.
+
+- **{{ sp.lemma }}:** {% for w in sp.category %}{{ w.word }} {{ (w.strength / sp.scale) | num(2) }}{{ ", " if not loop.last }}{% endfor %}
+
+- **Siblings:** {% for w in sp.siblings %}{{ w.word }} {{ (w.strength / sp.scale) | num(2) }}{{ ", " if not loop.last }}{% endfor %}
+
+
+{% endif %}
 {% for w in [sub.wiring, verdict.wiring] if w %}
 {% if loop.first %}
 ### Wiring

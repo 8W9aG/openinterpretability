@@ -1,13 +1,13 @@
 ---
 name: neuron-family-triage
-description: Classify neurons into known families (dead, unigram/token, positional, prediction, suppression, entropy, token-frequency) from weight statistics and cheap activation stats, before auditing. Use when sweeping a layer for audit candidates, when a neuron has a tiny or huge output norm, when ablation changes confidence but not the top token, or when forming a prior hypothesis.
+description: Classify neurons into known families (dead, unigram/token, positional, prediction, suppression, entropy, token-frequency) from weight statistics and cheap activation stats, before auditing. Use when sweeping a layer for audit candidates, or when a neuron has a tiny or huge output norm. Also use when ablation changes confidence but not the top token, or when forming a prior hypothesis.
 ---
 
 # Neuron family triage
 
 ## Papers
 
-- Gurnee et al., 2024, *Universal Neurons in GPT2 Language Models*, arXiv:2401.12181. Neurons that recur across random seeds fall into families: unigram, alphabet, position, syntax, semantic, plus functional types such as **prediction**, **suppression** and **partition** neurons, identified by the moments (kurtosis, skew) of `W_U · w_out`.
+- Gurnee et al., 2024, *Universal Neurons in GPT2 Language Models*, arXiv:2401.12181. Neurons that recur across random seeds fall into families: unigram, alphabet, position, syntax and semantic. There are also functional types such as **prediction**, **suppression** and **partition** neurons. The moments (kurtosis, skew) of `W_U · w_out` identify them.
 - Stolfo, Wu, Gurnee, Belinkov, Song, Sachan & Nanda, 2024, *Confidence Regulation Neurons in Language Models*, arXiv:2406.16254 (NeurIPS 2024). **Entropy neurons** have a large output norm but write into the unembedding's (near) null space, adjusting confidence through the final LayerNorm. **Token-frequency neurons** shift logits in proportion to log token frequency.
 - Voita, Ferrando & Nalmpantis, 2023, *Neurons in LLMs: Dead, N-gram, Positional*, arXiv:2309.04827. They report many dead neurons in large OPT models, plus token/n-gram detectors and positional neurons.
 
@@ -46,10 +46,10 @@ def weight_stats(runner, layer):
 | Active at the first position on most of the vocabulary | First-token floor | Audited without each text's first token (protocol 0.8). About 1,400 of GPT-2's layer-1 and -2 positive poles |
 | Activation depends on position, not content | Positional | Test with shuffled-content probes at a fixed position |
 
-Get token frequencies by counting token ids over the scan corpus. Find positional neurons by correlating activation with position index across the scan. `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl --top 0 --format jsonl` gives every scanned token's id, position in its piece and strength, from the layer's cached scan when there is one, so don't write your own scan loop.
+Get token frequencies by counting token ids over the scan corpus. Find positional neurons by correlating activation with position index across the scan. `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl --top 0 --format jsonl` gives every scanned token's id, position in its piece and strength. It reads the layer's cached scan when there is one, so don't write your own scan loop.
 
 ## Fit with the protocol
 
 - Triage is a *selection* aid. Neurons picked because their statistics stood out have `provenance.selection = "manual"`, not `random`.
-- Entropy and token-frequency neurons would fail a top-1-logit causal metric by design. Protocol 0.5 scores retrospective claims on next-token KL, which does see them; a test of the specific claim should measure output entropy or KL to the unigram distribution. See `activation-patching-practice`.
+- Entropy and token-frequency neurons would fail a top-1-logit causal metric by design. Protocol 0.5 scores retrospective claims on next-token KL, which does see them. A test of the specific claim should measure output entropy or KL to the unigram distribution. See `activation-patching-practice`.
 - Universality (Gurnee et al.) suggests checking whether a verified neuron has a counterpart in a sibling model (e.g. Qwen2.5-0.5B vs 1.5B). That is a natural registry cross-reference to add.

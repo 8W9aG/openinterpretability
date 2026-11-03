@@ -1,8 +1,9 @@
 """Compact summaries of records, submissions, scan evidence and a unit's history.
 
-``openinterp show`` prints these so agents never open a 300 KB record, a 500 KB
-``ev.json`` or a 25 KB experiment page just to learn a verdict, the failed gates and
-probes, or what a scan found. The files stay the source of truth; this only reads them.
+``openinterp show`` prints these, so agents need not open a big file to learn a little.
+A record can be 300 KB, an ``ev.json`` 500 KB and an experiment page 25 KB. An agent
+often needs only a verdict, the failed gates and probes, or what a scan found. The files
+stay the source of truth, and this only reads them.
 """
 
 from __future__ import annotations
@@ -24,8 +25,11 @@ CONTEXT_TOKENS = 8  # tokens shown before an example's peak
 
 
 def show(path: Path, full: bool = False) -> str:
-    """Summarise ``path``: a record, submission or evidence JSON, or a unit's directory
-    (every experiment on it, oldest first, with each page's Discussion)."""
+    """Summarise ``path``: a record, submission or evidence JSON, or a unit's directory.
+
+    For a directory, it lists every experiment on the unit, oldest first, with each
+    page's Discussion.
+    """
     if path.is_dir():
         return show_unit(path, full)
     text = path.read_text(encoding="utf-8")
@@ -40,6 +44,7 @@ def show(path: Path, full: bool = False) -> str:
 
 
 def show_unit(unit_dir: Path, full: bool = False) -> str:
+    """Every experiment on the unit in ``unit_dir``, oldest first, with each page's Discussion."""
     records = sorted(
         (
             (AuditRecord.model_validate_json(p.read_text(encoding="utf-8")), p)
@@ -55,6 +60,7 @@ def show_unit(unit_dir: Path, full: bool = False) -> str:
 
 
 def show_record(record: AuditRecord, path: Path | None = None, full: bool = False) -> str:
+    """A record's verdict, failed gates and probes, scores and hypothesis."""
     sub, verdict = record.submission, record.verdict
     name = f"{sub.identifier.slug}" + (f" · {path.stem}" if path else "")
     if verdict is None:
@@ -110,6 +116,7 @@ def _metrics(verdict) -> list[str]:
 
 
 def show_submission(sub: NeuronAuditSubmission, full: bool = False) -> str:
+    """A submission's unit, proposer, selection and hypothesis."""
     lines = [
         f"== {sub.identifier.slug} · submission by {sub.submitting_agent_model}{_selection(sub)}"
     ]
@@ -119,6 +126,7 @@ def show_submission(sub: NeuronAuditSubmission, full: bool = False) -> str:
 
 
 def show_evidence(ev: ScanEvidence, full: bool = False) -> str:
+    """What a scan found: its corpus, peak and top examples."""
     lines = [f"== {ev.identifier.slug} · scan evidence"]
     if (p := ev.provenance) is not None:
         window = f", {p.snippet_tokens}-token windows" if p.snippet_tokens else ""

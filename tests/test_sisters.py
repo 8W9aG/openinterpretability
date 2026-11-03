@@ -1,5 +1,7 @@
-"""Sister neurons across models (`openinterp sisters`), on random tiny Qwen2 and GPT-2 models
-(no download)."""
+"""Sister neurons across models (`openinterp sisters`).
+
+The models are random tiny Qwen2 and GPT-2 models (no download).
+"""
 
 import copy
 import random
@@ -240,8 +242,11 @@ def test_the_proposer_prompt_ends_with_related_research(record):
 
 
 def _sister_registry(tmp_path, record, other="o/m"):
-    """A VERIFIED Qwen pole (the `record` fixture's) with a sister L2/N9- in ``other``,
-    and a weaker match L4/N1+ that isn't its sister."""
+    """Write a registry with a VERIFIED Qwen pole (the `record` fixture's).
+
+    The pole has a sister L2/N9- in ``other``. It also has a weaker match L4/N1+ that
+    isn't its sister.
+    """
     from openinterp.builder.wiki import write_experiment_page
 
     write_experiment_page(record, tmp_path / "wiki")
@@ -261,7 +266,8 @@ def test_any_pole_of_another_model_is_drawable_but_sisters_most(tmp_path, record
     from datetime import UTC, datetime
 
     from openinterp.draw_steps import render, steps
-    from openinterp.planner import LINK_WEIGHT, UNMATCHED_WEIGHT, plan_next
+    from openinterp.planner import plan_next
+    from openinterp.planner_sisters import LINK_WEIGHT, UNMATCHED_WEIGHT
 
     now = datetime(2026, 10, 20, 12, tzinfo=UTC)
     wiki = _sister_registry(tmp_path, record)

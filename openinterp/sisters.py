@@ -1,15 +1,16 @@
 """Sister neurons across models (`openinterp sisters`).
 
-For every VERIFIED neuron pole of a model, the poles of another model whose activity over
-the corpus correlates best with it, each with its own best partner back in the first
-model and a rotated-basis reference (:mod:`openinterp.harness.sisters`). The models may
-tokenize differently: they are compared where both have read the same text. Rows go to
+This takes every VERIFIED neuron pole of a model. It finds the poles of another model
+whose activity over the corpus correlates best with it. Each match has its own best
+partner back in the first model, and a rotated-basis reference
+(:mod:`openinterp.harness.sisters`). The models may tokenize differently. So they are
+compared where both have read the same text. Rows go to
 ``docs/analyses/sister-neurons.jsonl``, one per pole and other model.
 
 A *sister* is a mutual best match above the rotated reference: a candidate for the same
 feature in both models. Whether the two do represent the same concept is a further
-experiment (the pole's explanation tested on its sister); a row is observational
-evidence for one. Reported, not gated.
+experiment: the pole's explanation tested on its sister. A row is observational evidence
+for that. Reported, not gated.
 """
 
 from __future__ import annotations
@@ -24,14 +25,16 @@ from openinterp.core.strict import StrictModel
 
 DEFAULT_PATH = Path("docs/analyses/sister-neurons.jsonl")
 
-# Models searched for a model's sisters besides the registry's other models: a larger
-# sibling of the same family, which the registry doesn't audit.
+# Models searched for a model's sisters, besides the registry's other models. Each is a
+# larger sibling of the same family, which the registry doesn't audit.
 SIBLINGS = {"Qwen/Qwen2.5-0.5B": ("Qwen/Qwen2.5-1.5B",)}
 
 
 class SisterMatch(StrictModel):
-    """A pole of the other model and how its activity correlates with the source pole's.
-    ``back`` is its best partner among all of the source model's poles."""
+    """A pole of the other model, and how its activity correlates with the source pole's.
+
+    ``back`` is its best partner among all of the source model's poles.
+    """
 
     layer: int
     neuron_idx: int
@@ -41,16 +44,20 @@ class SisterMatch(StrictModel):
     back_pearson: float
 
     def slug(self, other: str) -> str:
+        """This pole's slug in model ``other``."""
         return f"{model_slug(other)}/L{self.layer}/N{self.neuron_idx}-{self.pole}"
 
 
 class SisterRow(StrictModel):
-    """One VERIFIED pole against one other model: its best-correlated poles there,
-    strongest first, and ``rotated``, the best correlation it reaches with a unit of a
-    random rotation of the first match's layer. ``tokens`` positions were paired, the
-    share ``coverage`` of the source model's (each text's first token left out).
+    """One VERIFIED pole against one other model.
+
+    ``matches`` are its best-correlated poles there, strongest first. ``rotated`` is the
+    best correlation that it reaches with a unit of a random rotation of the first
+    match's layer. ``tokens`` positions were paired. They are the share ``coverage`` of
+    the source model's positions, with each text's first token left out.
     ``layers`` and ``other_layers`` are the two models' depths, so a pole's relative depth
-    is known for a model the registry has no page for."""
+    is known for a model the registry has no page for.
+    """
 
     slug: str
     other: str
@@ -67,6 +74,7 @@ class SisterRow(StrictModel):
 
     @property
     def top(self) -> SisterMatch | None:
+        """The best match, or ``None`` when there are no matches."""
         return self.matches[0] if self.matches else None
 
     @property
@@ -102,8 +110,10 @@ def sort_rows(path: Path) -> None:
 
 
 def verified_poles(records: Sequence[AuditRecord], model_name: str):
-    """``{slug: (identifier, revision)}`` for each neuron pole of ``model_name`` whose
-    standing is VERIFIED, with the model revision its records pin most often."""
+    """Return ``{slug: (identifier, revision)}`` for each VERIFIED pole of ``model_name``.
+
+    The revision is the model revision that the pole's records pin most often.
+    """
     from openinterp.builder.tree import build_tree
 
     revisions: dict[str, Counter] = defaultdict(Counter)
@@ -151,8 +161,10 @@ def sisters(
     k: int = 5,
     echo: Callable[[str], None] = print,
 ) -> int:
-    """Append a row to ``out`` for each VERIFIED pole of ``model_name`` without one for
-    ``other`` yet. Returns how many rows it wrote."""
+    """Append a row to ``out`` for each VERIFIED pole of ``model_name`` without one yet.
+
+    The rows are for ``other``. Returns how many rows it wrote.
+    """
     from openinterp.harness.environment import run_environment
     from openinterp.harness.sisters import find_sisters, tokenize
 
@@ -190,8 +202,11 @@ def sisters(
 
 
 def _row(slug: str, prefix: str, found, common: dict) -> SisterRow:
-    """A :class:`SisterRow` from :func:`~openinterp.harness.sisters.find_sisters`'s
-    result for one pole; ``prefix`` is the source model's slug."""
+    """Make a :class:`SisterRow` from one pole's result of ``find_sisters``.
+
+    ``find_sisters`` is :func:`~openinterp.harness.sisters.find_sisters`. ``prefix`` is
+    the source model's slug.
+    """
     matches = [
         SisterMatch(
             layer=m.layer,
@@ -227,11 +242,13 @@ def pole_href(slug: str) -> str:
 def sister_view(
     model_slug_: str, neuron, rows: dict, named_by: dict, studied: set, tests: dict | None = None
 ) -> list[dict]:
-    """Each pole's matches for a neuron page: its best-correlated poles in other models
-    (``matches``), and the poles of other models that name it as one of theirs
-    (``named_by``, from :func:`by_match_slug`). Each links to its page where the
-    registry has one, and carries the verdict of a sister study between the two
-    (``tests``, from :func:`sister_tests`), if any."""
+    """Return each pole's matches for a neuron page.
+
+    ``matches`` are its best-correlated poles in other models. ``named_by`` are the poles
+    of other models that name it as one of theirs (from :func:`by_match_slug`). Each
+    links to its page where the registry has one. Each also carries the verdict of a
+    sister study between the two (``tests``, from :func:`sister_tests`), if any.
+    """
     tests = tests or {}
     if not neuron.is_neuron:
         return []
@@ -266,8 +283,10 @@ def sister_view(
 
 
 def pole_findings(records: Sequence[AuditRecord]) -> dict[str, tuple[str, str]]:
-    """``{slug: (status, explanation)}`` for every studied neuron pole: its standing and
-    the explanation of the experiment that standing rests on."""
+    """Return ``{slug: (status, explanation)}`` for every studied neuron pole.
+
+    That is its standing, and the explanation of the experiment that the standing rests on.
+    """
     from openinterp.builder.tree import build_tree
 
     out = {}
@@ -289,9 +308,11 @@ MIN_PROMPT_PEARSON = 0.5
 
 
 def _linked(slug: str, rows: dict, named_by: dict) -> list[tuple[str, float, bool]]:
-    """``(other pole's slug, r, sister)`` for every pole linked to ``slug`` strongly
-    enough to show an agent: a sister either way, or a match with r of at least
-    :data:`MIN_PROMPT_PEARSON`."""
+    """Return ``(other pole's slug, r, sister)`` for each pole linked to ``slug``.
+
+    Only links strong enough to show an agent are included. That is a sister either way,
+    or a match with r of at least :data:`MIN_PROMPT_PEARSON`.
+    """
     out = []
     for row in rows.get(slug, []):
         for m in row.matches:
@@ -323,9 +344,12 @@ ADVICE = {
 
 
 def format_sisters(slug: str, rows: dict, findings: dict, role: str, exclude=()) -> str:
-    """The prompt section on ``slug``'s studied sister neurons for ``role`` (proposer or
-    reviewer), strongest first, leaving out ``exclude`` (the pole a sister study tests,
-    whose explanation is the hypothesis); "" if none is left."""
+    """Return the prompt section on ``slug``'s studied sister neurons for ``role``.
+
+    ``role`` is proposer or reviewer. The sisters are strongest first. ``exclude`` is
+    left out: it is the pole that a sister study tests, whose explanation is the
+    hypothesis. Returns "" if none is left.
+    """
     best: dict[str, tuple[float, bool]] = {}
     for other, r, sister in _linked(slug, rows, by_match_slug(rows)):
         if other in exclude:
@@ -345,8 +369,11 @@ def format_sisters(slug: str, rows: dict, findings: dict, role: str, exclude=())
 def sister_context(
     identifier, wiki_dir: Path, role: str, path: Path = DEFAULT_PATH, exclude=()
 ) -> str:
-    """:func:`format_sisters` for the unit ``identifier`` names, from the rows in
-    ``path`` and the archive in ``wiki_dir``; "" for a unit that isn't a neuron pole."""
+    """Return :func:`format_sisters` for the unit that ``identifier`` names.
+
+    It reads the rows in ``path`` and the archive in ``wiki_dir``. Returns "" for a unit
+    that isn't a neuron pole.
+    """
     from openinterp.builder.wiki import load_archive
 
     rows = load_rows(path)
@@ -357,8 +384,11 @@ def sister_context(
 
 
 def load_sister_source(path: Path, unit) -> AuditRecord:
-    """The archived record ``audit --sister-of`` names, checked: a VERIFIED experiment on
-    a neuron pole of a model other than ``unit``'s (raises ValueError otherwise)."""
+    """Return the archived record that ``audit --sister-of`` names, after checks.
+
+    It must be a VERIFIED experiment on a neuron pole of a model other than ``unit``'s.
+    Raises ValueError otherwise.
+    """
     record = AuditRecord.model_validate_json(Path(path).read_text())
     ident = record.submission.identifier
     if record.verdict is None or record.verdict.status != "VERIFIED":
@@ -399,8 +429,11 @@ def sister_source_href(ref: str) -> str:
 
 
 def sister_tests(experiments) -> dict[tuple[str, str], str]:
-    """``{(sister's slug, source pole's slug): status}``: the newest verdict of each sister
-    study, by the pole it tested and the pole whose explanation it tested."""
+    """Return ``{(sister's slug, source pole's slug): status}`` for each sister study.
+
+    The status is the newest verdict. The keys are the pole that the study tested, and
+    the pole whose explanation it tested.
+    """
     newest: dict[tuple[str, str], object] = {}
     for e in experiments:
         ref = e.record.submission.sister_of
