@@ -255,18 +255,32 @@ class ModelNode:
         return [counts.get(i, 0) for i in range(self.n_layers)]
 
 
-def explore_focus(models: Sequence[ModelNode]) -> dict:
-    """The coverage target and the model that ``openinterp next`` explores most.
+def explore_focus(models: Sequence[ModelNode], draws: Sequence = ()) -> dict:
+    """The coverage target, the explore focus, and each model's verified neurons.
 
-    The site counts a pole as verified by its standing. The planner uses the latest
-    record. So the two can name a different focus for a time.
+    A neuron counts as verified when a pole stands VERIFIED or is proven dead in
+    ``draws``. The site reads a standing and the planner reads the latest record. So the
+    two can name a different focus for a time.
     """
     from openinterp.planner import coverage_target  # it reads pyproject.toml
     from openinterp.planner_models import ModelCoverage, focus_model
 
+    dead = {
+        (d.identifier.model_name, d.identifier.layer, d.identifier.neuron_idx)
+        for d in draws
+        if d.proven_dead
+    }
+    counts = {}
+    for m in models:
+        verified = {(lay.layer, n.idx) for lay in m.layers for n in lay.neurons if n.verified}
+        proven = {(layer, idx) for name, layer, idx in dead if name == m.name}
+        counts[m.name] = {"verified": len(verified | proven), "dead": len(proven)}
     target = coverage_target()
-    covered = (ModelCoverage(m.name, m.neurons, m.total_neurons, m.verified) for m in models)
-    return {"target": target, "model": focus_model(covered, target)}
+    covered = (
+        ModelCoverage(m.name, m.neurons, m.total_neurons, counts[m.name]["verified"])
+        for m in models
+    )
+    return {"target": target, "model": focus_model(covered, target), "models": counts}
 
 
 # MLP width of models whose early records predate ``model_mlp_width``. Records are

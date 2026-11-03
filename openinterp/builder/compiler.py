@@ -354,16 +354,17 @@ def compile_site(
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
-    _render_index(render, models, experiments, agents, registry_stats(report.parquet, draws))
+    stats = registry_stats(report.parquet, draws)
+    _render_index(render, models, experiments, agents, stats, draws)
     return report
 
 
-def _render_index(render, models, experiments, agents, stats) -> None:
+def _render_index(render, models, experiments, agents, stats, draws) -> None:
     render(
         "index.html",
         "index.html",
         models=models,
-        explore=explore_focus(models),  # the coverage target and the model drawn most
+        explore=explore_focus(models, draws),  # the coverage target and the model drawn most
         stats=stats,
         agents=agents,
         fdr=false_discovery(models),
