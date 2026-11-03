@@ -250,6 +250,14 @@ Measure before optimising, and check that any change to what the agents see does
 
   Lower precision and quantisation change activations, so check that records made this way still reproduce (records already pin their dtype, which `openinterp/reproduce.py` checks; quantisation would need pinning too). Document the minimum memory per model in the README.
 
+- [ ] Make the sister search fast, so it stays part of the release (`release` skill, step 3) without a release waiting hours on it. The 0.0.12 run (2026-11-02) took over two hours for five pairs, and its last pair (GPT-2 → Qwen2.5-1.5B, 74 poles, a first search because Qwen2.5-1.5B was newly configured) swapped on a 64 GB Mac and was still unfinished after another two. Today each ordered pair with any new VERIFIED pole runs both models over all of `corpus.jsonl` twice (forward, then backward), so cost scales with the number of pairs (n² in models), not poles: 2 poles cost as much as 74. Three models and six pairs is 24 corpus passes. In rough order of payoff:
+  - **One pass per model, not per pair.** A pole's own series is tiny (one number per token, ~212k). Compute every new pole's series once, then run each model once, correlating its layers with every incoming series from all other models at once, aligning tokenizers on the CPU from character offsets. Run a second pass per model for the backward partners and rotations. That's 2 passes per model (6, not 24, for three models), whatever the number of models. Rows must come out identical to today's (pin with a test on a small corpus).
+  - **Cut peak memory.** `run_with_cache` clones every requested layer at full `[batch, seq, width]` and `_gather` then keeps only the boundary rows; gather them inside the hook. `_backward` holds a `[width, width]` rotation per matched layer on the device at once (8960² floats ≈ 320 MB each, up to ~9 GB for Qwen2.5-1.5B); process them a few layers at a time. Empty the MPS cache between batches. The 0.0.12 run held 27 GB through the forward pass and 50 GB in the backward pass, and swapping slowed it from ~850 to ~365 positions a minute.
+  - **Stop the forward pass at the deepest layer needed** on the side whose poles are fixed.
+  - **Try bf16/fp16 on MPS**, checking that the correlations and which matches are sisters don't move.
+
+  Don't subsample the corpus: rows over a different sample aren't comparable with the existing ones. Target: a run with no new model in ~15–25 min on an M-series Mac (an estimate; measure it).
+
 Running several loops on one machine is under Pipeline.
 
 ## Merge verification
