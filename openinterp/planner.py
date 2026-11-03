@@ -20,8 +20,8 @@ a null result is data.
 With probability ``epsilon``, the planner explores instead. It picks a uniformly random
 new neuron, the only selection that supports unbiased registry statistics. The model
 comes from the configured list (``[tool.openinterp] models`` in ``pyproject.toml``).
-Each model's weight is ``1/√(1 + units studied or claimed)``. So models with little
-coverage get explored, and the well-covered ones are not dropped. Otherwise, the planner
+The smallest model below its coverage target gets most of these draws, and the others
+share the rest (``openinterp.planner_models``). Otherwise, the planner
 samples a candidate in proportion to ``weight ** (1 / temperature)``. Sampling,
 rather than taking the best candidate, keeps independent agents from piling onto
 the same neuron. The seed is reported so any choice can be reproduced.
@@ -35,16 +35,22 @@ import random
 import shutil
 import subprocess
 import tomllib
-from collections import Counter
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openinterp.core.agent_names import canonical_agent
-from openinterp.core.identifiers import model_slug
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
+from openinterp.planner_models import (
+    DEFAULT_COVERAGE_TARGET,
+    DEFAULT_OTHERS_SHARE,
+    ModelCoverage,
+    explore_weights,
+    focus_model,
+    model_coverage,
+)
 
 # Expected information value per experiment kind, before decay.
 # Probability of an explore draw (a random new unit) instead of a follow-up.
@@ -158,18 +164,20 @@ def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, in
     return dict(_config(pyproject).get("window_tokens", {}))
 
 
-def explore_weights(
-    pool: Sequence[str], states: dict[str, NeuronState], claims: Sequence[str]
-) -> dict[str, float]:
-    """Explore probability per model, ∝ ``1/√(1 + units studied or claimed)``."""
-    studied = Counter(s.record.submission.identifier.model_name for s in states.values())
-    weights = {}
-    for model in pool:
-        key = f"{model_slug(model)}-L"  # how a claim on this model's units starts
-        claimed = sum(key in c for c in claims)
-        weights[model] = 1.0 / math.sqrt(1 + studied[model] + claimed)
-    total = sum(weights.values())
-    return {m: w / total for m, w in weights.items()}
+def coverage_target(pyproject: Path = Path("pyproject.toml")) -> float:
+    """Return ``[tool.openinterp] coverage_target``, or the default.
+
+    A model's verified share must pass it before most explore draws move to the next model.
+    """
+    return float(_config(pyproject).get("coverage_target", DEFAULT_COVERAGE_TARGET))
+
+
+def others_share(pyproject: Path = Path("pyproject.toml")) -> float:
+    """Return ``[tool.openinterp] others_share``, or the default.
+
+    It is the share of explore draws for the models that are not the focus.
+    """
+    return float(_config(pyproject).get("others_share", DEFAULT_OTHERS_SHARE))
 
 
 def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
@@ -348,6 +356,8 @@ class Plan:
     explored: bool
     candidates: list[Candidate]
     explore_models: dict[str, float] = field(default_factory=dict)
+    coverage: dict[str, ModelCoverage] = field(default_factory=dict)
+    focus: str | None = None  # the model that explore draws favour
 
     def to_json(self) -> str:
         """The plan as indented JSON."""
@@ -384,14 +394,17 @@ def plan_next(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
         key=lambda c: -c.weight,
     )
-    explore = explore_weights(pool, states, claims)
+    coverage = model_coverage(pool, (s.record for s in states.values()), claims)
+    target = coverage_target(pyproject)
+    explore = explore_weights(coverage, target, others_share(pyproject))
+    focus = focus_model(coverage.values(), target)
     if not candidates or rng.random() < epsilon:
-        choice = _explore(rng, pool, explore, pyproject)
-        return Plan(seed, choice, True, candidates, explore)
+        choice = _explore(rng, pool, explore, pyproject, focus)
+        return Plan(seed, choice, True, candidates, explore, coverage, focus)
 
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
     choice = rng.choices(candidates, weights=weights, k=1)[0]
-    return Plan(seed, choice, False, candidates, explore)
+    return Plan(seed, choice, False, candidates, explore, coverage, focus)
 
 
 def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:
@@ -404,13 +417,16 @@ def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:
     )
 
 
-def _explore(rng: random.Random, pool: list[str], explore: dict, pyproject: Path) -> Candidate:
-    """A random new unit of a model drawn by coverage (two draws from ``rng``)."""
+def _explore(
+    rng: random.Random, pool: list[str], explore: dict, pyproject: Path, focus: str | None
+) -> Candidate:
+    """A random new unit of a model drawn by size and coverage (two draws from ``rng``)."""
     model = rng.choices(pool, weights=[explore[m] for m in pool], k=1)[0]
     audit_seed = rng.getrandbits(32)
     rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
     if len(pool) > 1:
-        rationale += f"; {model} drawn with probability {explore[model]:.0%} by coverage"
+        why = "the smallest model below its verified target" if model == focus else "coverage"
+        rationale += f"; {model} drawn with probability {explore[model]:.0%} by {why}"
     audit = f"openinterp audit --model {model} --random --seed {audit_seed}"
     if window := configured_windows(pyproject).get(model):
         audit += f" --window-tokens {window}"

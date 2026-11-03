@@ -121,7 +121,7 @@ def test_coverage_uses_recorded_mlp_width(tmp_path, records):
     compile_site(narrow, tmp_path)
     index = (tmp_path / "index.html").read_text()
     assert "2/96 neurons studied (2.1%)" in index
-    assert "1/96 verified (1.0%)" in index
+    assert "1/96 verified (1.0%; target 80%)" in index
 
 
 def test_layer_map(tmp_path, records):
