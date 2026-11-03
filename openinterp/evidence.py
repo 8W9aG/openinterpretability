@@ -122,10 +122,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     scan = run_scan(runner, request, ident, spec, corpus, scan_cache)
     provenance = scan_provenance(runner, request, seed, corpus, len(scan.values))
     if not scan.examples or scan.examples[0].max_activation <= 0:
-        raise Unauditable(
-            f"{ident} never activates on this corpus; try a larger --corpus.",
-            draw(ident, "dead", None, provenance),
-        )
+        raise dead_unit(runner, ident, provenance)
     check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
     lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
     return ScanEvidence(
@@ -363,6 +360,25 @@ def draw(ident, outcome, share, provenance):
         active_share=share,
         provenance=provenance,
         timestamp=datetime.now(UTC),
+    )
+
+
+def dead_unit(runner, ident, provenance) -> Unauditable:
+    """The stop for a unit that never fires on the scan, with the weight check on a neuron."""
+    from openinterp.core.identifiers import NeuronIdentifier
+    from openinterp.harness.dead import prove_dead
+
+    stop = draw(ident, "dead", None, provenance)
+    if not isinstance(ident, NeuronIdentifier):
+        return Unauditable(f"{ident} never activates on this corpus; try a larger --corpus.", stop)
+    proof = prove_dead(runner, ident)
+    stop = stop.model_copy(update={"proven_dead": proof.proven, "dead_bound": proof.bound})
+    if proof.proven:
+        return Unauditable(f"{ident} is dead: no input can make it fire ({proof.reason}).", stop)
+    return Unauditable(
+        f"{ident} never activates on this corpus, but the weights don't prove it dead "
+        f"({proof.reason}); try a larger --corpus.",
+        stop,
     )
 
 
