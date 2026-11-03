@@ -53,6 +53,8 @@ jobs:
           echo "$RUNNER_TEMP/vale" >> "$GITHUB_PATH"
       - name: Comment and docstring prose (Vale)
         run: make vale
+      - name: Markdown prose (STE linter)
+        run: make ste
       - name: Tests
         run: pytest
 

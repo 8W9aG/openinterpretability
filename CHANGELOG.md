@@ -18,6 +18,7 @@ The project has two version numbers:
 
   320 missing docstrings were written, and 249 multi-line summaries and 306 sentences of more than 25 words were rewritten, keeping their meaning. The new docstrings put `planner.py` over the 500-line limit, so its sister draws move to `openinterp/planner_sisters.py`.
 - **A `commenting` skill** (`.claude/skills/commenting/`). When to comment and when to make the code clearer, the docstring and STE rules with before/after examples from this codebase, how Vale counts a sentence, and how to cite the protocol or a paper. `REVIEW.md` points code review at it.
+- **An `asd-ste100` skill, and the skills' Markdown held to STE** (`.claude/skills/asd-ste100/`, vendored from [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill) at `ffc6618`, MIT). It rewrites prose into STE and brings a standard-library linter. `make ste` (in `make lint` and CI) runs that linter on every skill's Markdown: no semicolons, at most 25 words a sentence, one verb for one action. 114 violations in the 14 skills were rewritten, keeping their meaning. ASD-STE100 Issue 9 forbids reproducing its dictionary without ASD's written authority, so `.vale/styles/STE/Words.yml` stays our own list.
 
 ### Fixed
 

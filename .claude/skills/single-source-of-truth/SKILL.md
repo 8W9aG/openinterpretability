@@ -1,6 +1,6 @@
 ---
 name: single-source-of-truth
-description: Keep one definition for each constant, threshold, list of names or rule, and import or read it everywhere else. Use before adding a literal (a number, a status, a model name, a path, a class name) to code, templates, docs or workflows, when changing a value that may be copied elsewhere, and when reviewing a diff.
+description: Keep one definition for each constant, threshold, list of names or rule, and import or read it everywhere else. Use before adding a literal (a number, a status, a model name, a path, a class name) to code, templates, docs or workflows. Also use when changing a value that may be copied elsewhere, and when reviewing a diff.
 ---
 
 # Single source of truth
@@ -9,7 +9,7 @@ Every concept in this repo has one definition. Everything else imports it, reads
 
 ## Before you add a literal
 
-1. **Name the concept**, not the value. "The active line" is the concept; `0.25` is the value.
+1. **Name the concept**, not the value. "The active line" is the concept. `0.25` is the value.
 2. **Search for the value and the concept** across everything, not only Python:
 
    ```bash
@@ -26,7 +26,7 @@ Every concept in this repo has one definition. Everything else imports it, reads
 | Concept | Source |
 | --- | --- |
 | Protocol values: thresholds, gate defaults, verdict statuses, probe kinds, `PROTOCOL_VERSION` | `openinterp/core/schemas.py` (`ReviewPolicy`, `VerdictStatus`, `ACTIVATION_THRESHOLD`, …) |
-| The wiki directory's default and layout (`experiments/`, `draws/`) | `openinterp/core/paths.py` (`DEFAULT_WIKI_DIR`, `experiments_dir`, `draws_dir`); CLI commands take `wiki_dir_option()` from `openinterp/cli.py` |
+| The wiki directory's default and layout (`experiments/`, `draws/`) | `openinterp/core/paths.py` (`DEFAULT_WIKI_DIR`, `experiments_dir`, `draws_dir`). CLI commands take `wiki_dir_option()` from `openinterp/cli.py` |
 | Planner: base weights, ε, windows per model | `openinterp/planner.py` (`BASE_WEIGHTS`, `DEFAULT_EPSILON`, `configured_windows`) |
 | Reproduction tolerances | `openinterp/reproduce.py` (`Tolerance`) |
 | Models the planner and CI may use | `[tool.openinterp] models` in `pyproject.toml` |
@@ -38,11 +38,11 @@ Every concept in this repo has one definition. Everything else imports it, reads
 
 A value used by one module only stays a module-level constant there, with a comment saying what it is. Move it to a shared place when a second module needs it, not before.
 
-A policy default that a record also stores (`verdict.policy`) is read from the record when one is at hand, and from the default (`ReviewPolicy()` or the named constant) otherwise. Never retype it.
+A record also stores some policy defaults (`verdict.policy`). Read such a default from the record when one is at hand, and from the default (`ReviewPolicy()` or the named constant) otherwise. Never retype it.
 
 ## Templates
 
-Jinja templates can't import Python, so pass values in; never retype a Python list or map in a template.
+Jinja templates can't import Python, so pass values in. Never retype a Python list or map in a template.
 
 - Site-wide values go in `env.globals` in `openinterp/builder/compiler.py` (`_environment`). Whole modules can be globals: `statuses` is, so a template reads `statuses.STATUS_FILL` with no per-constant wiring. Functions work too: `evidence_strength(c)` is a global, and `_macros.html` calls it.
 - Page-specific values go in the view the page renders from.
@@ -66,7 +66,7 @@ For each one:
 
 Docs, skills and agent files quoting a number go in the `_quotes()` list in `tests/test_single_source.py`. Numbers that can't drift need no test: maths ("0.5 is chance", the median percentile), and the protocol version a feature arrived in ("predates protocol 0.3").
 
-Prose that explains a value in passing ("the rejection line, balanced accuracy 0.6") in a docstring is fine when the docstring also names the source. Don't add a test for every passing mention; add one where a reader would act on the number.
+Prose that explains a value in passing ("the rejection line, balanced accuracy 0.6") in a docstring is fine when the docstring also names the source. Don't add a test for every passing mention. Add one where a reader would act on the number.
 
 ## Changing a value
 
@@ -78,9 +78,9 @@ Prose that explains a value in passing ("the rejection line, balanced accuracy 0
 
 Flag:
 
-- a new literal that equals an existing constant, or a new list whose members match an existing list;
-- a template `{% set … = { … } %}` map keyed by values that exist in Python;
-- a number in docs or a workflow with no test pinning it and no comment naming its source;
+- a new literal that equals an existing constant, or a new list whose members match an existing list.
+- a template `{% set … = { … } %}` map keyed by values that exist in Python.
+- a number in docs or a workflow with no test pinning it and no comment naming its source.
 - a source changed without its copies.
 
 Suggest the import or global to use, not only "this is duplicated".

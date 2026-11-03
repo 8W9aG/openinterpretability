@@ -7,14 +7,15 @@ description: Write and review comments and docstrings so that what the code does
 
 A comment tells the reader what the code cannot: the reason, the constraint or the source. Write it in ASD-STE100 Simplified Technical English (STE), so that a reader whose first language is not English, or an agent, reads one meaning only.
 
-Linters check the form. This skill is for what they cannot judge. To rewrite a sentence into STE, load the `asd-ste100` skill (`.claude/skills/asd-ste100/`). Its linter, `scripts/ste-lint.py`, checks prose outside Vale's paths, such as skills and docs.
+Linters check the form. This skill is for what they cannot judge. To rewrite a sentence into STE, load the `asd-ste100` skill (`.claude/skills/asd-ste100/`). Its linter, `scripts/ste-lint.py`, checks Markdown outside Vale's paths.
 
 | Check | Tool | Scope |
 | --- | --- | --- |
-| Missing or malformed docstrings | ruff `D` rules, Google convention (`pyproject.toml`) | everything; `tests/` needs no docstrings (`D1`) |
+| Missing or malformed docstrings | ruff `D` rules, Google convention (`pyproject.toml`) | everything (`tests/` needs no docstrings, `D1`) |
 | Commented-out code | ruff `ERA` | everything |
 | Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`, never lowered) | `openinterp/` |
 | Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile`: `openinterp`, `scripts`, `tests` |
+| Semicolons, sentence length, synonym rotation in Markdown | `make ste` (the `asd-ste100` skill's linter) | `STE_PATHS` in the `Makefile`: the skills |
 
 ## When to comment
 
@@ -30,7 +31,7 @@ Do not comment when the code can say it:
 - **A comment that restates the code.** Delete it, or replace it with the reason.
 - **A comment that names a variable's meaning.** Rename the variable.
 - **A comment that explains a long block.** Extract a function with a name that explains it.
-- **A step number** (`# 1. Scan evidence.`). Keep the text, remove the number. The code already gives the order.
+- **A step number** (`# 1. Scan evidence.`). Keep the text, delete the number. The code already gives the order.
 - **Commented-out code.** Delete it. Git keeps the history.
 
 ## Docstrings
@@ -48,10 +49,10 @@ One exception: a Pydantic model that an LLM agent answers in (`HypothesisDraft`,
 
 - **Short sentences.** At most 20 words in an instruction and 25 in a description. Vale checks 25.
 - **One topic in each sentence.** Split at a semicolon or a colon that starts a new idea.
-- **Active voice.** Name who or what does it: "The scan writes…", not "…is written". Schemas often have no actor; there, the passive is acceptable.
+- **Active voice.** Name who or what does it: "The scan writes…", not "…is written". Schemas often have no actor. There, the passive is acceptable.
 - **One meaning for each word, one word for each meaning.** Do not use "unit" and "component" for the same thing in one docstring.
-- **Approved words.** Use simple words: "use", not "utilize"; "get", not "obtain"; "through", not "via". `.vale/styles/STE/Words.yml` is the banned list, with the word to use. Add to it when you find a new one. Our list is not the ASD dictionary. ASD's terms do not let us copy from it.
-- **Technical names are approved.** Use them exactly, with the meaning that `docs/PROTOCOL.md` gives: pole, unit, neuron, head, feature, dictionary, latent, probe, hard negative, holdout, verdict, VERIFIED, gate, scan, record, draw, proposer, reviewer, judge, protocol version, strength, activation line.
+- **Approved words.** Use simple words: `use`, not `utilize`. `get`, not `obtain`. `through`, not `via`. `.vale/styles/STE/Words.yml` is the banned list, with the word to use. Add to it when you find a new one. Our list is not the ASD dictionary. ASD's terms do not let us copy from it.
+- **Technical names are approved.** Use them exactly, with the meaning that `docs/PROTOCOL.md` gives: `pole`, `unit`, `neuron`, `head`, `feature`, `dictionary`, `latent`, `probe`, `hard negative`, `holdout`, `verdict`, `VERIFIED`, `gate`, `scan`, `record`, `draw`, `proposer`, `reviewer`, `judge`, `protocol version`, `strength`, `activation line`.
 
 ## Before and after, from this codebase
 
@@ -107,7 +108,7 @@ class StrictModel(BaseModel):
     """
 ```
 
-A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russian (Cyrillic), Greek, …` in `openinterp/corpus.py`). Restructure the sentence; do not add `# noqa`.
+A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russian (Cyrillic), Greek, …` in `openinterp/corpus.py`). Restructure the sentence. Do not add `# noqa`.
 
 ## Citing a source
 
@@ -120,14 +121,14 @@ A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russ
 
 Flag:
 
-- a docstring that only restates the name, written to satisfy ruff `D1`;
-- a comment that restates the code, or that a rename or an extracted function could replace;
-- a value, threshold or rule with no source;
-- a sentence of more than 25 words, a banned word, or two meanings for one word;
+- a docstring that only restates the name, written to satisfy ruff `D1`.
+- a comment that restates the code, or that a rename or an extracted function could replace.
+- a value, threshold or rule with no source.
+- a sentence of more than 25 words, a banned word, or two meanings for one word.
 - a comment that the change made wrong. Comments go stale when the code changes and nothing fails.
 
 ## How Vale counts a sentence
 
-`.vale/styles/STE/SentenceLength.yml` splits each comment or docstring into sentences itself, because Vale does not do this for source code. A sentence ends at `.`, `!` or `?` before a space (a closing quote or bracket may come between), at a colon that ends a line, and where a list item (`-` or `*`) starts. So `0.5` and `e.g.` do not end a sentence. End each list item with a full stop.
+`.vale/styles/STE/SentenceLength.yml` splits each comment or docstring into sentences itself, because Vale does not do this for source code. A sentence ends at `.`, `!` or `?` before a space. A closing quote or bracket may come between. A sentence also ends at a colon that ends a line, and where a list item (`-` or `*`) starts. So `0.5` and `e.g.` do not end a sentence. End each list item with a full stop.
 
-Some lines do not count, because they are not prose: lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block) and indented command examples (`openinterp …`, `uv …`, `make …`, `git …`, `python …`). Vale's `vale off` comments do not work in Python files, so restructure the text instead.
+Some lines do not count, because they are not prose. These are lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block). Indented command examples (`openinterp …`, `uv …`, `make …`, `git …`, `python …`) do not count either. Vale's `vale off` comments do not work in Python files, so restructure the text instead.
