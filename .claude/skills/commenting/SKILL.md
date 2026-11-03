@@ -7,7 +7,7 @@ description: Write and review comments and docstrings so that what the code does
 
 A comment tells the reader what the code cannot: the reason, the constraint or the source. Write it in ASD-STE100 Simplified Technical English (STE), so that a reader whose first language is not English, or an agent, reads one meaning only.
 
-Linters check the form. This skill is for what they cannot judge.
+Linters check the form. This skill is for what they cannot judge. To rewrite a sentence into STE, load the `asd-ste100` skill (`.claude/skills/asd-ste100/`). Its linter, `scripts/ste-lint.py`, checks prose outside Vale's paths, such as skills and docs.
 
 | Check | Tool | Scope |
 | --- | --- | --- |
@@ -50,7 +50,7 @@ One exception: a Pydantic model that an LLM agent answers in (`HypothesisDraft`,
 - **One topic in each sentence.** Split at a semicolon or a colon that starts a new idea.
 - **Active voice.** Name who or what does it: "The scan writes…", not "…is written". Schemas often have no actor; there, the passive is acceptable.
 - **One meaning for each word, one word for each meaning.** Do not use "unit" and "component" for the same thing in one docstring.
-- **Approved words.** Use simple words: "use", not "utilize"; "get", not "obtain"; "through", not "via". `.vale/styles/STE/Words.yml` is the banned list, with the word to use. Add to it when you find a new one. Our list is not the ASD dictionary; check ASD's terms before you copy from it.
+- **Approved words.** Use simple words: "use", not "utilize"; "get", not "obtain"; "through", not "via". `.vale/styles/STE/Words.yml` is the banned list, with the word to use. Add to it when you find a new one. Our list is not the ASD dictionary. ASD's terms do not let us copy from it.
 - **Technical names are approved.** Use them exactly, with the meaning that `docs/PROTOCOL.md` gives: pole, unit, neuron, head, feature, dictionary, latent, probe, hard negative, holdout, verdict, VERIFIED, gate, scan, record, draw, proposer, reviewer, judge, protocol version, strength, activation line.
 
 ## Before and after, from this codebase
