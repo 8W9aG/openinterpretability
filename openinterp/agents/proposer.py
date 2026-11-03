@@ -7,6 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.schemas import (
@@ -337,6 +338,7 @@ class ProposerAgent(LLMAgent):
             prompt += format_lens(lens, identifier)
         if confounds is not None:
             prompt += format_confounds(confounds)
+        prompt += wordnet.format_for_proposer(examples, wordnet.lexicon())
         if correlated:
             prompt += format_correlated(correlated)
         if attribution is not None:
