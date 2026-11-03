@@ -58,6 +58,11 @@ class HypothesisDraft(BaseModel):  # noqa: D101 (a docstring would join the JSON
         default_factory=list, description="For lookahead neurons: the tokens being prepared."
     )
     counterfactuals: list[CounterfactualDraft] = Field(min_length=3, max_length=10)
+    wordnet_synset: str | None = Field(
+        default=None,
+        description="If the hypothesis claims a WordNet noun category, its synset "
+        "(e.g. 'city.n.01'); otherwise null.",
+    )
 
 
 # Agents see a window of tokens around each example's peak, not the whole scanned
