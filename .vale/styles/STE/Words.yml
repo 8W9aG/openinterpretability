@@ -4,7 +4,7 @@
 # lists them.
 extends: substitution
 message: "Use '%s', not '%s'."
-level: warning
+level: error
 ignorecase: true
 swap:
   accomplish: do

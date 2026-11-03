@@ -19,8 +19,11 @@ lint:
 
 # Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
-# Same paths as the ruff D ratchet in pyproject.toml.
-VALE_PATHS ?= openinterp/core
+# CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
+# non-zero only on errors, so the STE rules that gate are at level `error`.
+VALE_PATHS ?= openinterp/core openinterp/signing.py openinterp/cli_scan.py \
+	openinterp/cli_concepts.py openinterp/cli_probing.py openinterp/cli_sisters.py \
+	openinterp/cli_score.py openinterp/langid.py openinterp/cli_corpus.py openinterp/cli_wiring.py
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
 	vale $(VALE_PATHS)

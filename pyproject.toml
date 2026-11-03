@@ -85,8 +85,9 @@ target-version = "py311"
 # D: docstrings, held to the commenting skill (.claude/skills/commenting/SKILL.md).
 # ERA: commented-out code.
 select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA"]
-# Magic methods and __init__ are described by their class's docstring.
-ignore = ["D105", "D107"]
+# Magic methods and __init__ are described by their class's docstring. D301 asks for r"""
+# when a docstring has a backslash, but Click's `\b` (no rewrapping) must stay a real \b.
+ignore = ["D105", "D107", "D301"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -100,27 +101,20 @@ convention = "google"
 "openinterp/checks.py" = ["D"]
 "openinterp/cli.py" = ["D"]
 "openinterp/cli_baseline.py" = ["D"]
-"openinterp/cli_concepts.py" = ["D"]
 "openinterp/cli_costs.py" = ["D"]
 "openinterp/cli_crossref.py" = ["D"]
 "openinterp/cli_evidence.py" = ["D"]
-"openinterp/cli_probing.py" = ["D"]
 "openinterp/cli_registry.py" = ["D"]
 "openinterp/cli_review.py" = ["D"]
-"openinterp/cli_scan.py" = ["D"]
-"openinterp/cli_score.py" = ["D"]
-"openinterp/cli_sisters.py" = ["D"]
 "openinterp/cli_submission.py" = ["D"]
 "openinterp/concepts.py" = ["D"]
 "openinterp/corpus.py" = ["D"]
 "openinterp/crossref.py" = ["D"]
 "openinterp/draw_steps.py" = ["D"]
 "openinterp/evidence.py" = ["D"]
-"openinterp/langid.py" = ["D"]
 "openinterp/planner.py" = ["D"]
 "openinterp/reproduce.py" = ["D"]
 "openinterp/show.py" = ["D"]
-"openinterp/signing.py" = ["D"]
 "openinterp/sisters.py" = ["D"]
 "openinterp/wiring_backfill.py" = ["D"]
 "openinterp/agents/**" = ["D"]

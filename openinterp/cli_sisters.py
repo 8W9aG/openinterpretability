@@ -1,5 +1,7 @@
-"""``openinterp sisters``: VERIFIED neuron poles matched to other models'. See
-:mod:`openinterp.sisters`."""
+"""``openinterp sisters``: VERIFIED neuron poles matched to other models' poles.
+
+See :mod:`openinterp.sisters`.
+"""
 
 from __future__ import annotations
 
@@ -48,10 +50,11 @@ from openinterp.sisters import DEFAULT_PATH
 def sisters_command(wiki_dir, model_name, others, corpus, path, k, device):
     """Find each VERIFIED pole's best-correlated poles in other models.
 
-    Both models read --corpus and are compared where both have read the same text (token
-    ends they share), so they may tokenize differently. Every pole of every layer of the
-    other model is correlated with each VERIFIED pole, then each match with every pole of
-    the first, so a row says whether the match is mutual. Poles already in --out for that
+    Both models read --corpus. They are compared where both have read the same text
+    (token ends they share), so they may tokenize differently. Every pole of every layer
+    of the other model is correlated with each VERIFIED pole. Then each match is
+    correlated with every pole of the first model, so a row says whether the match is
+    mutual. Poles already in --out for that
     model are skipped, so a run can resume.
     """
     from openinterp.builder.wiki import load_archive

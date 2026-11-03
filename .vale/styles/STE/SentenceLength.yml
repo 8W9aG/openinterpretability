@@ -2,16 +2,19 @@
 # Vale cannot tell an instruction from a description, so it checks the larger limit.
 # A script, not `extends: occurrence` with `scope: sentence`: in source code Vale gives
 # a rule each comment or docstring whole and never splits it into sentences. A sentence
-# ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one.
+# ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one. A colon at the
+# end of a line also ends one: it opens a list or a block, such as command examples.
+# Indented command examples (Click help text) are not prose, so their words do not count.
 extends: script
 message: "Keep sentences to 25 words or fewer (20 for an instruction)."
-level: warning
+level: error
 scope: text
 script: |
   text := import("text")
   matches := []
-  for s in text.re_find(`(?s).*?(?:[.!?](?:\s|$)|$)`, scope, -1) {
-    words := text.re_find(`\w+`, s[0].text, -1)
+  for s in text.re_find(`(?s).*?(?:[.!?](?:\s|$)|:\n|$)`, scope, -1) {
+    prose := text.re_replace(`(?m)^ {2,}(?:openinterp|uv|make|git|python) [^\n]*`, s[0].text, "")
+    words := text.re_find(`\w+`, prose, -1)
     if words != undefined && len(words) > 25 {
       matches = append(matches, {begin: s[0].begin, end: s[0].end})
     }
