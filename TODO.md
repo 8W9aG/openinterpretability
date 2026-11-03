@@ -6,8 +6,6 @@ Open work, grouped by topic. Within each section, items are roughly in priority 
 
 Small fixes, mostly quick.
 
-- [ ] Map the agent recorded as `claude-3-5-sonnet-20241022` to Grok. That 2026-10-26 session (e.g. `wiki/experiments/Qwen--Qwen2.5-0.5B/L20/N2846-positive/20261026T214717Z`) actually ran Grok and reported the Claude name it thought it was. Records are signed, so add an entry to `ALIASES` in `openinterp/core/agent_names.py` naming the actual Grok model (confirm which one), replace its `NOTES` entry with one saying the name was remapped, and update `tests/test_costs.py`, which expects no price for that name.
-
 - [ ] Normalise the record schema. Records disagree on model fields: `model_n_heads` is sometimes `None`, sometimes absent; `model_mlp_width` is sometimes `None`. Have `openinterp check` require one shape for new records and have the site build fill in old ones (records are signed, so don't rewrite them).
 - [ ] Clean up the README so people who want to start quickly can.
   - "Set up (once)" alone is ~50 lines before the first experiment. Lead with the shortest path to a first contributed experiment, and move details (provider setup, worktrees, development, layout, deploy) further down or into `docs/`.

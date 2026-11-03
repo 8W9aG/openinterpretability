@@ -99,7 +99,9 @@ def test_pricing_normalises_names_and_skips_unknown_models():
         cache_write_1h_tokens=m,
     )
     assert pricing.cost_usd("external/claude-opus-5-5", [big]) == 4 + 20 + 0.2 + 5 + 8
-    assert pricing.cost_usd("external/claude-3-5-sonnet-20241022", [big]) is None
+    # A Grok Build session that recorded itself as Claude 3.5 Sonnet
+    sonnet = pricing.cost_usd("external/claude-3-5-sonnet-20241022", [big])
+    assert sonnet is not None and sonnet == pricing.cost_usd("external/grok-build-0.1", [big])
     # Muse Spark at its Contributor tier, any version
     small = _req(input_tokens=m, output_tokens=m)
     for name in ("muse-spark-1.3-contributor", "muse-spark-1.3.3"):

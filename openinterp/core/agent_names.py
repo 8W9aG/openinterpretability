@@ -16,10 +16,12 @@ import re
 EXTERNAL_PREFIX = "external/"
 
 # Spellings that name the same model, after the generic clean-up in canonical_agent.
-# Muse Spark sessions report their version inconsistently, and "-contributor" is its
-# pricing tier (openinterp.core.pricing.FAMILIES), not part of the model's name; every
-# run so far was 1.3 at the Contributor tier.
+# One 2026-10-26 session ran Grok Build but reported itself as Claude 3.5 Sonnet. Muse
+# Spark sessions report their version inconsistently, and "-contributor" is its pricing
+# tier (openinterp.core.pricing.FAMILIES), not part of the model's name; every run so far
+# was 1.3 at the Contributor tier.
 ALIASES: dict[str, str] = {
+    "claude-3-5-sonnet-20241022": "grok-build-0.1",
     "muse-spark": "muse-spark-1.3",
     "muse-spark-1.3-contributor": "muse-spark-1.3",
     "muse-spark-1.3.3": "muse-spark-1.3",
@@ -29,9 +31,9 @@ ALIASES: dict[str, str] = {
 
 # Shown on an agent's page when its recorded name is doubtful.
 NOTES: dict[str, str] = {
-    "claude-3-5-sonnet-20241022": (
-        "Self-reported by one Claude Code session on 2026-10-26, and probably wrong: this "
-        "model was retired long before. Its records can't say which model actually ran."
+    "grok-build-0.1": (
+        "One session on 2026-10-26 ran this model but recorded itself as "
+        "claude-3-5-sonnet-20241022; its records are signed, so the name is remapped here."
     ),
 }
 

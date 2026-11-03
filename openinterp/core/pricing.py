@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Protocol
 
+from openinterp.core.agent_names import ALIASES
+
 # When every row below was last checked against its vendor's pricing page:
 #   Anthropic, first-party API          2026-10-06
 #   DeepSeek   api-docs.deepseek.com    2026-10-28
@@ -133,9 +135,10 @@ FAMILIES: dict[str, list[tuple[date, Price]]] = {
 
 
 def price_key(model: str) -> str:
-    """``external/anthropic/claude-opus-5-5[1m]`` → ``claude-opus-5-5``."""
+    """``external/anthropic/claude-opus-5-5[1m]`` → ``claude-opus-5-5``, after ``ALIASES``."""
     name = model.removeprefix("external/").rsplit("/", 1)[-1]
-    return re.sub(r"\[[^\]]*\]$", "", name).strip().lower()
+    name = re.sub(r"\[[^\]]*\]$", "", name).strip().lower()
+    return ALIASES.get(name, name)
 
 
 def prices_of(model: str) -> list[tuple[date, Price]] | None:

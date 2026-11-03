@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Fixed
+
+- **The agent recorded as `claude-3-5-sonnet-20241022` is Grok Build 0.1** (`ALIASES` in `core/agent_names.py`; TODO, Housekeeping). One 2026-10-26 session ran Grok Build and reported the Claude name it thought it was. Its records are signed, so the site and cost report map the name rather than rewriting them: the agent's page is now `grok-build-0.1`, with a note saying the name was remapped, and the session's calls are priced as Grok Build. Pricing now applies `ALIASES` too.
+
 ## [0.0.12] - 2026-11-02
 
 Ships with protocol version **0.8**.
