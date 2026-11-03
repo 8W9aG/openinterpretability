@@ -11,6 +11,7 @@ from openinterp.builder.compiler import compile_site, load_records
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import (
+    PROTOCOL_VERSION,
     ActivatingExample,
     AdversarialTestResult,
     AuditRecord,
@@ -260,6 +261,17 @@ def test_footer_links_repo_and_contact(tmp_path):
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
     assert 'href="mailto:will.sackfield@gmail.com"' in index
+
+
+def test_about_page_quotes_protocol_and_licence(tmp_path):
+    compile_site([], tmp_path)
+    assert 'href="about.html"' in (tmp_path / "index.html").read_text()
+    about = (tmp_path / "about.html").read_text()
+    assert 'href="index.html"' in about  # root-relative links resolve from the site root
+    assert f'<span class="font-mono">{PROTOCOL_VERSION}</span>' in about
+    assert f"at least {ReviewPolicy().min_hard_negatives} hard negatives" in about
+    assert "/blob/main/docs/PROTOCOL.md" in about
+    assert "MIT licence" in about
 
 
 def test_histogram_bars(submission):

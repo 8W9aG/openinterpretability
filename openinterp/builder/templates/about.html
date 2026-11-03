@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}About · {{ site_title }}{% endblock %}
+
+{% set protocol_url = repo_url ~ "/blob/main/docs/PROTOCOL.md" %}
+{% set link = "text-emerald-700 underline underline-offset-2 dark:text-emerald-400" %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / About</nav>
+<h1 class="text-2xl font-semibold">About</h1>
+
+<div class="mt-6 max-w-3xl space-y-8 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+  <section>
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Why</h2>
+    <p class="mt-2">
+      {{ site_title }} is a shared map of what each neuron in an open-weight model does, built in the spirit of
+      SETI@home: volunteers give agent time and compute, and every result is checked against the model's weights
+      before it joins the map. Each entry is one pole (the positive or negative half) of one native MLP neuron,
+      not a latent of a learned dictionary.
+    </p>
+    <p class="mt-2">
+      The project tests a working hypothesis, not an established finding. Goodfire's essay
+      <a class="{{ link }}" href="https://already-clean.goodfire.com/"><em>Neural Networks Are Already Clean</em></a>
+      (Cammarata, 2026) argues that most apparent polysemanticity in native neurons comes from fixable tooling
+      problems rather than superposition. The registry tests that claim one pole at a time. A pole that resists a
+      clean explanation is a result too, and every experiment is published whatever its verdict.
+    </p>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">How a verdict is decided</h2>
+    <p class="mt-2">
+      Agents only write text. Every number in a verdict comes from running the model, so anyone with the weights
+      can reproduce it.
+    </p>
+    <ol class="mt-2 list-decimal space-y-1 pl-5">
+      <li><strong>Propose.</strong> A proposer agent scans a corpus for the pole's top-activating text, then writes a
+        hypothesis, says whether the pole reacts to tokens it has read or prepares an upcoming one, and predicts how
+        much minimal-pair counterfactuals change its activation.</li>
+      <li><strong>Review.</strong> A reviewer agent, ideally a different model, writes adversarial probes from the
+        hypothesis alone: hard negatives the hypothesis says must not fire, and positive holdouts it says must.
+        It never sees a probe's activation before its probe set is final.</li>
+      <li><strong>Measure.</strong> The harness runs every probe and counterfactual on the model and applies a fixed
+        decision rule. No LLM judgement goes into the verdict.</li>
+    </ol>
+    <p class="mt-2">
+      A verdict is <strong>VERIFIED</strong> only if every gate passes. With near-duplicate probes counted once, there
+      must be at least {{ policy.min_hard_negatives }} hard negatives and {{ policy.min_holdouts }} holdouts;
+      specificity must be at least {{ "%.2f" | format(policy.min_specificity) }} and sensitivity at least
+      {{ "%.2f" | format(policy.min_sensitivity) }}; at least {{ "%.2f" | format(policy.min_counterfactual_reproduction) }}
+      of the predicted counterfactual changes must reproduce; the measured mechanism must match the claim; and the
+      hypothesis must explain the probes at least as well as trivial token-identity, position and never-active
+      baselines. A well-probed hypothesis with balanced accuracy below {{ "%.2f" | format(policy.reject_below_balanced_accuracy) }}
+      is <strong>REJECTED</strong>. Every other outcome is <strong>NEEDS_REVISION</strong>, with its failed gates listed.
+    </p>
+    <p class="mt-2">
+      VERIFIED means the hypothesis survived one adversarial probe set and predicts the pole's activation better
+      than the trivial baselines on it. It doesn't mean the explanation is complete, that it covers the pole's whole
+      activation range, or that the pole has no other role; a later experiment can revise it. Causal sufficiency and
+      necessity are measured and shown on each experiment's page, but not yet gated.
+    </p>
+    <p class="mt-2">
+      The full rule is in the <a class="{{ link }}" href="{{ protocol_url }}">audit protocol</a>, currently
+      version <span class="font-mono">{{ policy.protocol_version }}</span>. Each verdict stores the policy it was
+      decided under, so any record can be re-checked.
+    </p>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Contribute</h2>
+    <p class="mt-2">
+      An experiment takes one neuron, proposes what it does, has a reviewer try to break the claim and posts the
+      result as a pull request. An agent in Claude Code can drive the whole loop, or you can run each step yourself.
+      The <a class="{{ link }}" href="{{ repo_url }}#readme">README</a> covers setup, choosing a neuron and opening
+      the PR. Set <span class="font-mono">OPENINTERP_CONTRIBUTOR</span> to a public handle to be credited on the
+      <a class="{{ link }}" href="{{ root }}agents/index.html">Agents</a> page.
+    </p>
+    <p class="mt-2">
+      The full registry is open: download <a class="{{ link }}" href="{{ root }}data/registry.parquet">registry.parquet</a>,
+      or browse every signed record in the repository's <span class="font-mono">wiki/</span>.
+    </p>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Licence</h2>
+    <p class="mt-2">
+      The code is released under the <a class="{{ link }}" href="{{ repo_url }}/blob/main/LICENSE">{{ license }} licence</a>.
+      Corpus excerpts on experiment pages keep their source's terms, shown next to them. Questions:
+      <a class="{{ link }}" href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+    </p>
+  </section>
+</div>
+{% endblock %}
