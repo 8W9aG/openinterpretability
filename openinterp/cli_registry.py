@@ -256,7 +256,7 @@ def _list_candidates(plan, top: int) -> None:
     if top and len(plan.explore_models) > 1:
         click.echo("Explore draws by model (neurons covered):")
         for model, p in sorted(plan.explore_models.items(), key=lambda kv: -kv[1]):
-            focus = "  ← smallest model below the coverage target" if model == plan.focus else ""
+            focus = "  ← smallest model below the verified target" if model == plan.focus else ""
             click.echo(f"  {p:6.1%}  {model}  {plan.coverage[model]}{focus}")
 
 

@@ -298,24 +298,31 @@ def _claims(model_slug, n):
     return [f"experiment: {model_slug}-L0-N{i}-positive" for i in range(n)]
 
 
-def test_smallest_model_below_target_is_the_focus(tmp_path, monkeypatch):
-    """The smallest model gets most draws until it passes the target; then the next does."""
+def _on(record, model, idx, status):
+    """A record of ``model``'s L3/N``idx``+ with ``status``."""
+    rec = _record(record, status=status, idx=idx)
+    ident = rec.submission.identifier.model_copy(update={"model_name": model})
+    return rec.model_copy(
+        update={"submission": rec.submission.model_copy(update={"identifier": ident})}
+    )
+
+
+def test_smallest_model_below_target_is_the_focus(tmp_path, record, monkeypatch):
+    """The smallest model gets most draws until 80% of it is verified; then the next does."""
     sizes = {"small/m": (2, 10), "mid/m": (4, 100), "big/m": (8, 100)}
     monkeypatch.setattr(planner_models, "model_dims", lambda model, download=True: sizes[model])
-    (tmp_path / "pyproject.toml").write_text(
-        '[tool.openinterp]\nmodels = ["big/m", "mid/m", "small/m"]\n'
-    )
+    for d in (tmp_path, tmp_path / "a", tmp_path / "b"):
+        d.mkdir(exist_ok=True)
+        (d / "pyproject.toml").write_text(
+            '[tool.openinterp]\nmodels = ["big/m", "mid/m", "small/m"]\n'
+        )
     plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW, claims=_claims("mid--m", 3))
     assert plan.focus == "small/m"
     # The others share 20%, by 1/√(1 + covered): 1/√4 for mid/m, 1/√1 for big/m.
     assert plan.explore_models == pytest.approx(
         {"small/m": 0.8, "mid/m": 0.2 / 3, "big/m": 0.4 / 3}
     )
-
-    plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW, claims=_claims("small--m", 1))
-    assert plan.coverage["small/m"].share == pytest.approx(0.05)  # 1 of 20: the target
-    assert plan.focus == "mid/m" and plan.explore_models["mid/m"] == pytest.approx(0.8)
-    picks = _explored_models(tmp_path / "wiki", n=200)  # no claims: small/m is the focus again
+    picks = _explored_models(tmp_path / "wiki", n=200)
     assert 0.72 < picks["small/m"] / picks.total() < 0.88
     seed = next(
         s
@@ -324,6 +331,18 @@ def test_smallest_model_below_target_is_the_focus(tmp_path, monkeypatch):
     )
     rationale = plan_next(tmp_path / "wiki", seed=seed, epsilon=1.0, now=NOW).choice.rationale
     assert "small/m drawn with probability 80% by the smallest model below" in rationale
+
+    # Every neuron studied, 15 of 20 verified: still below the target.
+    statuses = ["VERIFIED"] * 15 + ["REJECTED"] * 5
+    recs = [_on(record, "small/m", i, st) for i, st in enumerate(statuses)]
+    plan = plan_next(_registry(tmp_path / "a", *recs), seed=1, epsilon=1.0, now=NOW)
+    assert plan.coverage["small/m"].covered == 20 and plan.coverage["small/m"].verified == 15
+    assert plan.focus == "small/m"
+
+    recs = [_on(record, "small/m", i, "VERIFIED") for i in range(16)]  # 16 of 20: the target
+    plan = plan_next(_registry(tmp_path / "b", *recs), seed=1, epsilon=1.0, now=NOW)
+    assert plan.coverage["small/m"].verified_share == pytest.approx(0.8)
+    assert plan.focus == "mid/m" and plan.explore_models["mid/m"] == pytest.approx(0.8)
 
 
 def test_open_claims_count_as_coverage(tmp_path):
@@ -347,7 +366,7 @@ def test_coverage_target_and_share_are_configurable(tmp_path, record):
     )
     plan = plan_next(wiki, seed=1, epsilon=1.0, now=NOW)
     assert plan.coverage["Qwen/Qwen2.5-0.5B"].total == 20
-    assert plan.focus == "Qwen/Qwen2.5-0.5B"  # 3 of 20 neurons is below 50%
+    assert plan.focus == "Qwen/Qwen2.5-0.5B"  # 3 of 20 verified is below 50%
     assert plan.explore_models == pytest.approx({"Qwen/Qwen2.5-0.5B": 0.9, "new/model": 0.1})
 
 

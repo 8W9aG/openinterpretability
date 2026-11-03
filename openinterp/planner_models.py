@@ -2,8 +2,9 @@
 
 One fully interpretable model is worth more than a little coverage of many. So the
 models are ordered by size (MLP neurons, ``layers × width``). The smallest one whose
-coverage is below the target gets most of the explore draws: the *focus*. When its
-coverage passes the target, the focus moves to the next model. The other models share
+verified share is below the target gets most of the explore draws: the *focus*. A
+neuron is verified when the latest record of one of its poles is VERIFIED. When the
+focus passes the target, the focus moves to the next model. The other models share
 the rest of the draws, ``∝ 1/√(1 + neurons covered)``, so sister draws and cross-model
 comparisons still happen. Neurons within a model are still drawn at random, so each
 model's statistics stay unbiased.
@@ -23,9 +24,9 @@ from dataclasses import dataclass
 from openinterp.core.identifiers import NeuronIdentifier, model_slug
 from openinterp.core.schemas import AuditRecord
 
-# Coverage a model must pass before the focus moves on, and the share of explore draws
-# left for the other models. ``[tool.openinterp]`` can set both.
-DEFAULT_COVERAGE_TARGET = 0.05
+# The focus moves on when this share of its neurons is verified.
+DEFAULT_COVERAGE_TARGET = 0.8
+# The share of explore draws left for the other models. ``[tool.openinterp]`` can set both.
 DEFAULT_OTHERS_SHARE = 0.2
 
 
@@ -36,18 +37,20 @@ class ModelCoverage:
     model: str
     covered: int  # neurons with a record or an open claim
     total: int | None  # every MLP neuron (layers × width); None when unknown
+    verified: int = 0  # neurons with a VERIFIED pole
 
     @property
-    def share(self) -> float | None:
-        """Covered share of the model's neurons, or None when its size is unknown."""
-        return self.covered / self.total if self.total else None
+    def verified_share(self) -> float | None:
+        """Verified share of the model's neurons, or None when its size is unknown."""
+        return self.verified / self.total if self.total else None
 
     def __str__(self) -> str:
-        """``319/36,864 (0.87%)``, or the covered count alone when the size is unknown."""
+        """``319 covered, 62/36,864 verified (0.17%)``; no total when the size is unknown."""
+        if not self.total:
+            return f"{self.covered:,} covered, {self.verified:,} verified"
         return (
-            f"{self.covered:,}/{self.total:,} ({self.share:.2%})"
-            if self.total
-            else f"{self.covered:,}"
+            f"{self.covered:,} covered, {self.verified:,}/{self.total:,} verified "
+            f"({self.verified_share:.2%})"
         )
 
 
@@ -80,16 +83,20 @@ def model_coverage(
 ) -> dict[str, ModelCoverage]:
     """Coverage of each model in ``pool``.
 
-    The size comes from the records (``model_num_layers × model_mlp_width``), else from
+    ``records`` are the latest record of each pole: a neuron is verified when one of them
+    is VERIFIED. The size comes from the records (``model_num_layers × model_mlp_width``), else from
     the model's cached ``config.json``.
     """
     neurons: dict[str, set[tuple[int, int]]] = {m: set() for m in pool}
+    verified: dict[str, set[tuple[int, int]]] = {m: set() for m in pool}
     dims: dict[str, tuple[int, int]] = {}
     for record in records:
         sub, ident = record.submission, record.submission.identifier
         if ident.model_name not in neurons or not isinstance(ident, NeuronIdentifier):
             continue
         neurons[ident.model_name].add((ident.layer, ident.neuron_idx))
+        if record.verdict.status == "VERIFIED":
+            verified[ident.model_name].add((ident.layer, ident.neuron_idx))
         if sub.model_num_layers and sub.model_mlp_width:
             dims[ident.model_name] = (sub.model_num_layers, sub.model_mlp_width)
     coverage = {}
@@ -99,13 +106,13 @@ def model_coverage(
             neurons[model].update((int(m[1]), int(m[2])) for m in claim.finditer(c))
         layers_width = dims.get(model) or model_dims(model, download=False)
         total = layers_width[0] * layers_width[1] if layers_width else None
-        coverage[model] = ModelCoverage(model, len(neurons[model]), total)
+        coverage[model] = ModelCoverage(model, len(neurons[model]), total, len(verified[model]))
     return coverage
 
 
 def focus_model(coverage: Iterable[ModelCoverage], target: float) -> str | None:
-    """The smallest model of known size whose coverage is below ``target``, if any."""
-    below = [c for c in coverage if c.total and c.covered / c.total < target]
+    """The smallest model of known size whose verified share is below ``target``, if any."""
+    below = [c for c in coverage if c.total and c.verified / c.total < target]
     return min(below, key=lambda c: (c.total, c.model)).model if below else None
 
 

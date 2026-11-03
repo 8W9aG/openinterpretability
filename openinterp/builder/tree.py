@@ -258,13 +258,14 @@ class ModelNode:
 def explore_focus(models: Sequence[ModelNode]) -> dict:
     """The coverage target and the model that ``openinterp next`` explores most.
 
-    Open claims are not counted here, so the focus can differ from a draw's for a time.
+    The site counts a pole as verified by its standing. The planner uses the latest
+    record. So the two can name a different focus for a time.
     """
     from openinterp.planner import coverage_target  # it reads pyproject.toml
     from openinterp.planner_models import ModelCoverage, focus_model
 
     target = coverage_target()
-    covered = (ModelCoverage(m.name, m.neurons, m.total_neurons) for m in models)
+    covered = (ModelCoverage(m.name, m.neurons, m.total_neurons, m.verified) for m in models)
     return {"target": target, "model": focus_model(covered, target)}
 
 

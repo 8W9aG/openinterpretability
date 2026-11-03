@@ -167,7 +167,7 @@ def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, in
 def coverage_target(pyproject: Path = Path("pyproject.toml")) -> float:
     """Return ``[tool.openinterp] coverage_target``, or the default.
 
-    A model must pass this coverage before most explore draws move to the next model.
+    A model's verified share must pass it before most explore draws move to the next model.
     """
     return float(_config(pyproject).get("coverage_target", DEFAULT_COVERAGE_TARGET))
 
@@ -425,7 +425,7 @@ def _explore(
     audit_seed = rng.getrandbits(32)
     rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
     if len(pool) > 1:
-        why = "the smallest model below its coverage target" if model == focus else "coverage"
+        why = "the smallest model below its verified target" if model == focus else "coverage"
         rationale += f"; {model} drawn with probability {explore[model]:.0%} by {why}"
     audit = f"openinterp audit --model {model} --random --seed {audit_seed}"
     if window := configured_windows(pyproject).get(model):
