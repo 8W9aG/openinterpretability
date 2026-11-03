@@ -89,12 +89,12 @@ PRESETS = {
     "github-code": Preset(
         "codeparrot/github-code-clean", "data/train-*.parquet", "code", docs_per_row_group=100
     ),
-    # Wikipedia (November 2023 dump) in ten languages and eight scripts, an equal share of
-    # documents each, for language-identity and script neurons: English, German, French
-    # (Latin), Russian (Cyrillic), Greek, Arabic, Hindi (Devanagari), Chinese (Han), Japanese
-    # (kana and kanji) and Korean (Hangul). Row groups are 1,000 articles of 10-22 MB, so
-    # take 50 from each: 500 documents read one row group per language. CC BY-SA 3.0 and
-    # GFDL: attribute and share excerpts alike.
+    # Wikipedia (November 2023 dump) in ten languages and eight scripts, with an equal share
+    # of documents each, for language-identity and script neurons. Latin script: English,
+    # German and French. Other scripts: Russian (Cyrillic), Greek, Arabic, Hindi
+    # (Devanagari), Chinese (Han), Japanese (kana and kanji) and Korean (Hangul). Row groups
+    # are 1,000 articles of 10-22 MB, so take 50 from each: 500 documents read one row group
+    # per language. CC BY-SA 3.0 and GFDL: attribute and share excerpts alike.
     "wikipedia-multilingual": Preset(
         "wikimedia/wikipedia",
         ",".join(f"20231101.{lang}/train-*.parquet" for lang in WIKIPEDIA_LANGUAGES),

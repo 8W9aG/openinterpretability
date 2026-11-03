@@ -25,12 +25,16 @@ def _time(value) -> datetime | None:
 
 
 def claude_dir() -> Path:
+    """Claude Code's config directory: ``$CLAUDE_CONFIG_DIR``, else ``~/.claude``."""
     return Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
 
 
 def find_transcript(agent: str) -> Path:
-    """``agent`` is a transcript path, or the agent ID Claude Code reports when a subagent
-    finishes (``a1b2c3…``, with or without the ``agent-`` prefix)."""
+    """Return the transcript file of ``agent``.
+
+    ``agent`` is a transcript path, or the agent ID that Claude Code reports when a
+    subagent finishes (``a1b2c3…``, with or without the ``agent-`` prefix).
+    """
     path = Path(agent).expanduser()
     if path.suffix == ".jsonl" and path.is_file():
         return path
@@ -44,6 +48,11 @@ def find_transcript(agent: str) -> Path:
 
 
 def usage_from_transcript(path: Path) -> ExternalUsage:
+    """Tokens per API request in a Claude Code transcript, for ``openinterp usage``.
+
+    Claude Code writes one line per content block, so a request can have many lines. The
+    last line of each request holds its final usage.
+    """
     last: dict[str, tuple] = {}  # API response id → (time, its last line's message)
     for line in path.read_text().splitlines():
         try:

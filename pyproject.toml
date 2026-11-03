@@ -34,6 +34,7 @@ openinterp = "openinterp.cli:main"
 
 [dependency-groups]
 dev = [
+    "interrogate>=1.7.0",
     "pagefind[bin]>=1.3.0",
     "pytest>=8.0.0",
     "pytest-mock>=3.12.0",
@@ -81,4 +82,61 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "SIM"]
+# D: docstrings, held to the commenting skill (.claude/skills/commenting/SKILL.md).
+# ERA: commented-out code.
+select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA"]
+# Magic methods and __init__ are described by their class's docstring.
+ignore = ["D105", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# The docstring ratchet: paths not yet held to the D rules. Remove a line once its
+# path passes `ruff check --select D`; never add one. (A `*` here also matches `/`,
+# so top-level modules are listed one by one.)
+"openinterp/baseline.py" = ["D"]
+"openinterp/blends.py" = ["D"]
+"openinterp/checks.py" = ["D"]
+"openinterp/cli.py" = ["D"]
+"openinterp/cli_baseline.py" = ["D"]
+"openinterp/cli_concepts.py" = ["D"]
+"openinterp/cli_costs.py" = ["D"]
+"openinterp/cli_crossref.py" = ["D"]
+"openinterp/cli_evidence.py" = ["D"]
+"openinterp/cli_probing.py" = ["D"]
+"openinterp/cli_registry.py" = ["D"]
+"openinterp/cli_review.py" = ["D"]
+"openinterp/cli_scan.py" = ["D"]
+"openinterp/cli_score.py" = ["D"]
+"openinterp/cli_sisters.py" = ["D"]
+"openinterp/cli_submission.py" = ["D"]
+"openinterp/concepts.py" = ["D"]
+"openinterp/corpus.py" = ["D"]
+"openinterp/crossref.py" = ["D"]
+"openinterp/draw_steps.py" = ["D"]
+"openinterp/evidence.py" = ["D"]
+"openinterp/langid.py" = ["D"]
+"openinterp/planner.py" = ["D"]
+"openinterp/reproduce.py" = ["D"]
+"openinterp/show.py" = ["D"]
+"openinterp/signing.py" = ["D"]
+"openinterp/sisters.py" = ["D"]
+"openinterp/wiring_backfill.py" = ["D"]
+"openinterp/agents/**" = ["D"]
+"openinterp/builder/**" = ["D"]
+"openinterp/data/**" = ["D"]
+"openinterp/harness/**" = ["D"]
+"openinterp/sync/**" = ["D"]
+"scripts/**" = ["D"]
+"tests/**" = ["D"]
+
+[tool.interrogate]
+# Docstring coverage of openinterp/, a ratchet like the D rules above: raise fail-under
+# when coverage rises, never lower it. Skips what the D rules skip.
+fail-under = 69
+ignore-magic = true
+ignore-init-method = true
+ignore-private = true
+ignore-semiprivate = true
+ignore-module = false

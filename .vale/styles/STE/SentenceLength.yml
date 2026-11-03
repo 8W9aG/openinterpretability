@@ -1,0 +1,8 @@
+# ASD-STE100: at most 20 words in a sentence of a procedure, 25 in a description.
+# Vale cannot tell an instruction from a description, so it checks the larger limit.
+extends: occurrence
+message: "Keep sentences to 25 words or fewer (20 for an instruction)."
+level: warning
+scope: sentence
+max: 25
+token: \b(\w+)\b

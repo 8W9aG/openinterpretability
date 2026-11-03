@@ -1,5 +1,7 @@
-"""Schemas for confound profiles: how much trivial explanations (token identity,
-position, per-token labels such as language) account for a unit's activation.
+"""Schemas for confound profiles.
+
+A confound profile says how much trivial explanations (token identity, position,
+per-token labels such as language) account for a unit's activation.
 
 Recorded in every scan, never gated (docs/PROTOCOL.md §4). The harness that measures
 them is ``openinterp.harness.confounds`` and, for labels, ``openinterp.harness.annotations``.
@@ -18,6 +20,8 @@ SOURCE = "source"
 
 
 class TokenStat(StrictModel):
+    """One token's mean strength over the scan, for the strongest-tokens table."""
+
     token: str
     token_id: int = Field(ge=0)
     mean_strength: float = Field(ge=0.0)
@@ -25,6 +29,8 @@ class TokenStat(StrictModel):
 
 
 class LabelStat(StrictModel):
+    """One label's count, mean strength and active tokens over the labelled tokens."""
+
     label: str
     count: int = Field(gt=0)
     mean_strength: float = Field(ge=0.0)
@@ -32,10 +38,13 @@ class LabelStat(StrictModel):
 
 
 class LabelConfound(StrictModel):
-    """How much one label set (a token's language, its part of speech) explains of the
-    pole's activation: ``r2`` as ``token_r2`` does for token identity, and the binned,
+    """How much one label set explains of the pole's activation.
+
+    A label set is, for example, a token's language or its part of speech. The fields
+    are ``r2``, as ``token_r2`` is for token identity, and the binned,
     bias-corrected mutual information between strength and label, in bits. Both are
-    over labelled tokens only. ``levels`` lists the most frequent labels."""
+    over labelled tokens only. ``levels`` lists the most frequent labels.
+    """
 
     r2: UnitFloat
     mutual_information_bits: float = Field(ge=0.0)

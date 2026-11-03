@@ -28,6 +28,11 @@ DrawOutcome = Literal["dead", "default_on"]
 
 
 class UnauditableDraw(StrictModel):
+    """One random draw that the scan stopped on.
+
+    It is kept because rates over random units are biased without every draw.
+    """
+
     identifier: ComponentIdentifier
     outcome: DrawOutcome
     active_share: UnitFloat | None = None  # default-on: the share the scan stopped on
@@ -37,6 +42,7 @@ class UnauditableDraw(StrictModel):
 
 
 def draw_path(wiki_dir: Path, draw: UnauditableDraw) -> Path:
+    """Where ``draw`` is stored: ``draws/<slug>/<timestamp>.json`` under ``wiki_dir``."""
     stamp = draw.timestamp.strftime("%Y%m%dT%H%M%SZ")
     return draws_dir(wiki_dir) / draw.identifier.slug / f"{stamp}.json"
 
@@ -51,6 +57,7 @@ def write_draw(draw: UnauditableDraw, wiki_dir: Path) -> Path:
 
 
 def draw_files(wiki_dir: Path) -> Iterator[Path]:
+    """Every draw file under ``wiki_dir``, sorted by path; none without a draws directory."""
     root = draws_dir(wiki_dir)
     yield from sorted(root.rglob("*.json")) if root.is_dir() else ()
 

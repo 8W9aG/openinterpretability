@@ -56,6 +56,7 @@ class DistanceShare(StrictModel):
 
     @property
     def label(self) -> str:
+        """The distance band as the page shows it: ``0``, ``1–3`` or ``8+``."""
         if self.max_distance is None:
             return f"{self.min_distance}+"
         if self.max_distance == self.min_distance:
@@ -88,8 +89,10 @@ class InputAttribution(StrictModel):
 
     @property
     def converged(self) -> int:
+        """How many examples converged; only these count in the shares."""
         return sum(ex.converged for ex in self.examples)
 
     @property
     def current_token_share(self) -> float | None:
+        """The share at distance 0, the first band, or ``None`` with no converged example."""
         return self.distances[0].share if self.distances else None

@@ -101,10 +101,13 @@ class ProbeComparison(StrictModel):
 
 
 class ConceptSource(StrictModel):
-    """Where a labelled concept set came from, written by ``openinterp concepts`` next to
-    it. Enough to rebuild the same file: the dataset at an exact commit, the split's
+    """Where a labelled concept set came from.
+
+    ``openinterp concepts`` writes it next to the set. It holds enough to rebuild the
+    same file: the dataset at an exact commit, the split's
     files, the label column and label, the seed and sizes. ``license`` is the dataset
-    card's (or, for a Universal Dependencies treebank, the treebank's)."""
+    card's (or, for a Universal Dependencies treebank, the treebank's).
+    """
 
     preset: str = Field(examples=["conll2003-ner"])
     dataset: str = Field(min_length=1, examples=["eriktks/conll2003"])

@@ -12,3 +12,13 @@ Load the `single-source-of-truth` skill (`.claude/skills/single-source-of-truth/
 - a changed source whose copies were not updated.
 
 Name the constant, global or test to use instead.
+
+## Comments and docstrings
+
+Load the `commenting` skill (`.claude/skills/commenting/SKILL.md`) and apply its "Reviewing a diff" checklist. In short, flag:
+
+- a new public definition with no docstring;
+- a comment that restates the code, or that a rename or an extracted function could replace;
+- a value, threshold or rule with no source (a `docs/PROTOCOL.md` section, a paper, a page);
+- a sentence of more than 25 words, a word from `.vale/styles/STE/Words.yml`, or two meanings for one word;
+- a comment that the change made wrong.

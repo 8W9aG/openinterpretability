@@ -1,6 +1,9 @@
-"""Schemas for where a scan's corpus came from: the dataset sample ``openinterp corpus``
-wrote (:class:`CorpusSource`, its sidecar) and the token-bounded sample of it an audit
-read (:class:`CorpusSample`). Built by ``openinterp.corpus``."""
+"""Schemas for where a scan's corpus came from.
+
+:class:`CorpusSource` is the sidecar of the dataset sample that ``openinterp corpus``
+wrote. :class:`CorpusSample` is the token-bounded part of it that an audit read. Both
+are built by ``openinterp.corpus``.
+"""
 
 from __future__ import annotations
 

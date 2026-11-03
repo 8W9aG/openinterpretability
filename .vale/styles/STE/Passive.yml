@@ -1,0 +1,24 @@
+# ASD-STE100: use the active voice in procedures, and as much as possible in
+# descriptions. A suggestion, not a warning: schema docs often have no actor to name
+# ("recorded, not gated"). Show suggestions with `vale --minAlertLevel=suggestion`.
+extends: existence
+message: "'%s' may be passive; say who or what does it."
+level: suggestion
+ignorecase: true
+raw:
+  - \b(am|are|were|being|is|been|was|be)\b\s+
+tokens:
+  - '\w+ed'
+  - built
+  - done
+  - found
+  - given
+  - kept
+  - known
+  - made
+  - read
+  - run
+  - seen
+  - shown
+  - taken
+  - written

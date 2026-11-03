@@ -47,6 +47,7 @@ class PatchscopeReadout(StrictModel):
 
     @property
     def scales(self) -> list[float]:
+        """Every scale that a reading used, ascending: the columns of the page's table."""
         return sorted({r.scale for r in self.readings})
 
     @property

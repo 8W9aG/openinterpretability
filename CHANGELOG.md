@@ -9,6 +9,11 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **Docstring and comment checks, ratcheted in** (TODO, Code quality and tooling). Ruff now selects `D` (pydocstyle, Google convention) and `ERA` (commented-out code). `D` applies to `openinterp/core/` and the top-level modules that already pass; the paths still to do are listed under `[tool.ruff.lint.per-file-ignores]`, a list that only shrinks. `make lint` and CI run `interrogate openinterp` with `fail-under = 69` (coverage is 69.4%, skipping magic, `__init__` and private names as the `D` rules do). `openinterp/core/` gains 45 docstrings and splits 21 two-sentence summaries. `make vale` lints the prose of comments and docstrings with [Vale](https://vale.sh) and a small STE style of our own (`.vale/styles/STE`: sentence length, a banned-word list, passive voice as a suggestion); it needs the `vale` binary and is not yet in CI.
+- **A `commenting` skill** (`.claude/skills/commenting/`). When to comment and when to make the code clearer, the docstring and STE rules with before/after examples from this codebase, how to cite the protocol or a paper, and how to widen the ratchet. `REVIEW.md` points code review at it.
+
 ### Fixed
 
 - **The agent recorded as `claude-3-5-sonnet-20241022` is Grok Build 0.1** (`ALIASES` in `core/agent_names.py`; TODO, Housekeeping). One 2026-10-26 session ran Grok Build and reported the Claude name it thought it was. Its records are signed, so the site and cost report map the name rather than rewriting them: the agent's page is now `grok-build-0.1`, with a note saying the name was remapped, and the session's calls are priced as Grok Build. Pricing now applies `ALIASES` too.

@@ -1,6 +1,9 @@
-"""What defines the strength of a unit that is not a neuron pole: an attention head's mean
-output, or a dictionary feature's dictionary. Stored in the record, so every later
-measurement of the experiment uses the same definition."""
+"""What defines the strength of a unit that is not a neuron pole.
+
+For an attention head it is the head's mean output. For a dictionary feature it is the
+dictionary. Stored in the record, so every later
+measurement of the experiment uses the same definition.
+"""
 
 from __future__ import annotations
 
@@ -44,8 +47,11 @@ DictionaryOutputSite = Literal["mlp_out", "resid_post"]
 
 
 def output_site_of(input_site: DictionarySite) -> DictionaryOutputSite:
-    """Where a dictionary reading ``input_site`` writes: a residual-stream SAE reconstructs
-    the residual stream it reads; every other dictionary reconstructs the MLP's output."""
+    """Return where a dictionary that reads ``input_site`` writes.
+
+    A residual-stream SAE reconstructs the residual stream it reads. Every other
+    dictionary reconstructs the MLP's output.
+    """
     return "resid_post" if input_site == "resid_post" else "mlp_out"
 
 

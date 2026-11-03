@@ -84,6 +84,7 @@ class Price:
 
 
 def anthropic(input: float, output: float, cache_read: float, **kw) -> Price:
+    """An Anthropic price, with the cache-write prices derived from ``input`` as Anthropic does."""
     return Price(
         input,
         output,
@@ -142,6 +143,7 @@ def price_key(model: str) -> str:
 
 
 def prices_of(model: str) -> list[tuple[date, Price]] | None:
+    """The dated price rows of ``model``, from its own entry or its family's, or ``None``."""
     key = price_key(model)
     if key in PRICES:
         return PRICES[key]
@@ -149,6 +151,7 @@ def prices_of(model: str) -> list[tuple[date, Price]] | None:
 
 
 def price_on(model: str, day: date) -> Price | None:
+    """The price of ``model`` on ``day``: the latest row from that day or before, or ``None``."""
     rows = prices_of(model) or []
     return next((p for since, p in reversed(rows) if since <= day), None)
 
@@ -156,10 +159,13 @@ def price_on(model: str, day: date) -> Price | None:
 def cost_usd(
     model: str, requests: Iterable[Tokens], *, prompt: float | None = None
 ) -> float | None:
-    """What these requests cost at list price, or ``None`` when any of them has no price
-    (an unlisted model, or a request before the model's first row). A request with no
+    """Return what these requests cost at list price.
+
+    ``None`` when a request has no price: an unlisted model, or a request before the
+    model's first row. A request with no
     time is priced as of today. ``prompt`` sets the prompt size that picks a tier, for
-    totals over several requests."""
+    totals over several requests.
+    """
     total = 0.0
     for t in requests:
         price = price_on(model, (t.at or datetime.now(UTC)).astimezone(UTC).date())

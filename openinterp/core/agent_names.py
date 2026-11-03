@@ -50,6 +50,7 @@ def canonical_agent(model: str) -> str:
 
 
 def same_agent(a: str | None, b: str | None) -> bool:
+    """True when both names are set and name one model after ``ALIASES`` and spelling fixes."""
     return a is not None and b is not None and canonical_agent(a) == canonical_agent(b)
 
 

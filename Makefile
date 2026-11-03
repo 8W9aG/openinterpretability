@@ -1,4 +1,4 @@
-.PHONY: install test lint format check stats build search-index sample-run serve loop clean
+.PHONY: install test lint vale format check stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -15,6 +15,15 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
+	uv run interrogate openinterp
+
+# Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
+# a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
+# Same paths as the ruff D ratchet in pyproject.toml.
+VALE_PATHS ?= openinterp/core
+vale:
+	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
+	vale $(VALE_PATHS)
 
 check:
 	uv run openinterp check
