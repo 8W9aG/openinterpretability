@@ -261,10 +261,6 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] An About page (`openinterp/builder/templates/about.html`, rendered by `compiler.py` and linked from the `base.html` header):
-  - why this is being done, in the spirit of SETI@home: volunteers contribute agent time and compute to a shared, verified map of what each neuron in a model does;
-  - how the proposer/reviewer protocol decides a verdict (linking `docs/PROTOCOL.md` and the current `PROTOCOL_VERSION`), and what VERIFIED does and doesn't mean;
-  - how to contribute, and the licence.
 - [ ] A Models page (e.g. `openinterp/builder/templates/models.html`, linked from the `base.html` header) listing the supported models. Read the list from `[tool.openinterp] models` in `pyproject.toml`, not a copy. Each row links to the model's page (`model.html`) and gives its size, layers, MLP width and activation, plus its experiment and VERIFIED counts. A supported model with no records yet still gets a row.
 - [ ] Serve the site at open-interpretability.com and use it everywhere:
   - attach it as the R2 bucket's custom domain;
