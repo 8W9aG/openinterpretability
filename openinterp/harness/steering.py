@@ -6,12 +6,12 @@ prompt and of the continuation:
 * baseline: no intervention;
 * ablated: the unit's own ablation (a neuron's pole zeroed, or a dictionary latent's
   write removed), as in the causal and lookahead measurements;
-* clamped: a neuron's activation set to the pole's signed top activation
-  (``max_activation``) times each multiple, or a latent's activation set to that value.
+* clamped: a neuron's activation is set to the pole's signed top activation
+  (``max_activation``) times each multiple. A latent's activation is set to that value.
 
 All prompts and interventions decode as one left-padded batch, greedily, so a sample
 is deterministic given the weights. The prompts are fixed and unrelated to any
-hypothesis, so a coherent drift at 1–2× says what the unit makes the model write; drift
+hypothesis. So a coherent drift at 1–2× says what the unit makes the model write. Drift
 only at 4× is off-distribution and weak evidence. A head writes a subspace with no
 "high" setting, so heads get no samples.
 """
@@ -41,9 +41,10 @@ MAX_NEW_TOKENS = 24
 def steering_interventions(
     runner: NeuronHookRunner, unit: Unit, ablate: torch.Tensor, clamp: torch.Tensor
 ) -> dict[str, Mapping[int, Any]] | None:
-    """``hooks`` keyword arguments that ablate the unit in the batch rows where ``ablate``
-    is true and clamp it to ``clamp`` (a strength) where that is not NaN; ``None`` for a
-    head.
+    """Return ``hooks`` keyword arguments that ablate or clamp the unit, row by row.
+
+    They ablate the unit in the batch rows where ``ablate`` is true. They clamp it to
+    ``clamp`` (a strength) where that is not NaN. ``None`` for a head.
     """
     clamped = ~torch.isnan(clamp)
     if isinstance(unit, NeuronUnit):
@@ -82,9 +83,10 @@ def _continue(
     interventions: Mapping[str, Mapping[int, Any]],
     max_new_tokens: int,
 ) -> list[str]:
-    """Greedy continuations of every row of token ids, each cut at end-of-text. A model
-    with ``generate`` decodes with its cache; one without (a test double) reruns the
-    whole sequence each step.
+    """Return greedy continuations of every row of token ids, each cut at end-of-text.
+
+    A model with ``generate`` decodes with its cache. One without (a test double) runs
+    the whole sequence again at each step.
     """
     tok = runner.tokenizer
     eos = getattr(tok, "eos_token_id", None)
@@ -126,8 +128,9 @@ def steering_samples(
     multiples: Sequence[float] = MULTIPLES,
     max_new_tokens: int = MAX_NEW_TOKENS,
 ) -> SteeringSamples:
-    """Continue every prompt at baseline, ablated, and clamped at each multiple of
-    ``max_activation``.
+    """Continue every prompt at baseline, ablated, and clamped.
+
+    The clamp is at each multiple of ``max_activation``.
     """
     if runner.tokenizer is None:
         raise ValueError("steering samples need a tokenizer")

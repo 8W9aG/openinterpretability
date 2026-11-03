@@ -1,22 +1,23 @@
 """Per-token labels for the scan, and the confound any label set gives.
 
-A :class:`Tagger` labels character spans of a document: a document label (its language)
-is one span over the whole text, a word tagger (part of speech) one span per word. The
-scan aligns each tagger's spans to the model's tokens once per piece, through the
-tokenizer's character offsets, and keeps the labels next to the activations it counts.
+A :class:`Tagger` labels character spans of a document. A document label (its language)
+is one span over the whole text. A word tagger (part of speech) gives one span per word.
+The scan aligns each tagger's spans to the model's tokens once per piece, through the
+tokenizer's character offsets. It keeps the labels next to the activations it counts.
 
 For every label set, :class:`LabelAccumulator` reports what ``token_r2`` reports for
 token identity, and in information units:
 
 * ``r2``: variance explained by a per-label mean model, over labelled tokens;
 * ``mutual_information_bits``: I(activation; label) in bits. Pole strengths are sparse
-  and heavy-tailed, so the estimate is binned, not Gaussian: zero is a bin of its own
+  and heavy-tailed, so the estimate is binned, not Gaussian. Zero is a bin of its own,
   and positive strengths fall in ``ACTIVATION_BINS`` equal-count bins. Each entropy has
-  the Miller–Madow correction, since the plug-in estimate is biased upwards by about
+  the Miller–Madow correction. The plug-in estimate is biased upwards by about
   (labels − 1)(bins − 1) / 2N nats when the two are independent.
 
-Tokens a tagger leaves unlabelled (special tokens, words it doesn't cover, pieces whose
-text can't be found in their document) are left out of both numbers.
+Some tokens are left out of both numbers: those that a tagger leaves unlabelled. They
+are special tokens, words that it doesn't cover, and pieces whose text is not in their
+document.
 """
 
 from __future__ import annotations
@@ -45,9 +46,13 @@ class Span:
 
 
 class Tagger(Protocol):
+    """Anything that labels character spans of a document, under one label set's name."""
+
     name: str  # the label set's name in the record (``"language"``)
 
-    def spans(self, doc: int, text: str) -> list[Span]: ...
+    def spans(self, doc: int, text: str) -> list[Span]:
+        """The labelled spans of document ``doc``, whose text is ``text``."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -58,13 +63,16 @@ class DocumentLabels:
     labels: Sequence[str | None]
 
     def spans(self, doc: int, text: str) -> list[Span]:
+        """One span over the whole text, or none when the document has no label."""
         label = self.labels[doc]
         return [] if label is None else [Span(0, len(text), label)]
 
 
 def align(offsets: Sequence[tuple[int, int]], spans: Sequence[Span]) -> list[str | None]:
-    """Each token's label: that of the span covering most of its characters (the first on
-    a tie), or ``None``. Tokens with no characters (special tokens) are unlabelled.
+    """Return each token's label: that of the span that covers most of its characters.
+
+    The first span wins a tie. ``None`` when no span covers the token. Tokens with no
+    characters (special tokens) are unlabelled.
     """
     out: list[str | None] = []
     for start, end in offsets:
@@ -94,8 +102,9 @@ class TokenLabels:
         return self._pieces[piece]
 
     def at(self, piece, ids: Sequence[int], index: int) -> dict[str, str] | None:
-        """Each tagger's label of token ``index`` of the piece's real tokens ``ids``, for
-        the taggers that label it; ``None`` if none does.
+        """Return each tagger's label of token ``index`` of the piece's real tokens ``ids``.
+
+        Only the taggers that label it are included. ``None`` if none does.
         """
         row = self.of(piece, torch.as_tensor(ids, dtype=torch.long))
         found = {name: int(labels[index]) for name, labels in row.items()}
@@ -128,8 +137,10 @@ class TokenLabels:
         return align([(a + shift, b + shift) for a, b in offsets], spans)
 
     def _shift(self, piece, text: str) -> int | None:
-        """Where the piece's text starts in its document, or ``None`` if it isn't there
-        (a window's decoded text need not match the document's characters).
+        """Return where the piece's text starts in its document.
+
+        ``None`` if it isn't there. A window's decoded text need not match the document's
+        characters.
         """
         if piece.start == 0:
             return 0 if text.startswith(piece.text) else None
@@ -140,8 +151,9 @@ class TokenLabels:
         return shift if text[shift : shift + len(piece.text)] == piece.text else None
 
     def _offsets(self, text: str, special: bool = True) -> list[tuple[int, int]] | None:
-        """Character offsets of ``text``'s tokens as the scan encodes them, or ``None``
-        if the tokenizer can't give them (only fast tokenizers can).
+        """Return the character offsets of ``text``'s tokens as the scan encodes them.
+
+        ``None`` if the tokenizer can't give them. Only fast tokenizers can.
         """
         try:
             enc = self.tokenizer(text, return_offsets_mapping=True, add_special_tokens=special)
@@ -158,6 +170,7 @@ class LabelAccumulator:
         self.values: list[torch.Tensor] = []
 
     def update(self, labels: torch.Tensor, strengths: torch.Tensor) -> None:
+        """Add a batch of label indices and strengths."""
         self.labels.append(labels.long())
         self.values.append(strengths.double())
 
@@ -202,8 +215,10 @@ def _r2(values: torch.Tensor, n: torch.Tensor, s: torch.Tensor) -> float:
 
 
 def activation_bins(values: torch.Tensor, bins: int = ACTIVATION_BINS) -> torch.Tensor:
-    """Bin 0 for zero strength, then ``bins`` equal-count bins of the positive strengths
-    (fewer where ties make edges coincide).
+    """Return each value's bin: 0 for zero strength, then equal-count bins of the rest.
+
+    There are ``bins`` bins of the positive strengths, or fewer where ties make edges
+    coincide.
     """
     out = torch.zeros(values.numel(), dtype=torch.long)
     positive = values > 0

@@ -4,19 +4,19 @@ One forward pass over the corpus captures every neuron of a layer, so a scan sto
 all of them. Later audits of any neuron in that layer, and per-token analysis
 (``openinterp activations``), replay the stored tokens instead of re-running the model.
 
-An entry is keyed by everything that sets its numbers: the model, its revision, the
-weights' dtype, the device type, the torch and transformers versions, the layer, the
-token budget per batch (which sets padding) and the exact pieces scanned (texts and
-windows). Replaying an entry gives the same scan result as running the model, bit for
-bit.
+An entry is keyed by everything that sets its numbers. That is the model, its revision,
+the weights' dtype and the device type. It is also the torch and transformers versions
+and the layer. Last, it is the token budget per batch (which sets padding), and the
+exact pieces scanned (texts and windows). Replaying an entry gives the same scan result
+as running the model, bit for bit.
 
-Each entry is a directory ``<root>/<model>/L<layer>/<key>/`` holding ``meta.json``,
-``pieces.json``, ``acts.bin`` (``[rows, width]`` in the activation dtype) and per-row
-``ids.npy``, ``positions.npy``, ``piece.npy`` and ``counted.npy``. The rows are every
-real (non-padding) token of every piece, in scan order, and ``meta.json`` lists how many
-pieces each forward pass took. Entries are written to a temporary directory and renamed
-into place, so concurrent scans never see a partial one. Once the cache outgrows its
-size cap, the least recently used entries go.
+Each entry is a directory ``<root>/<model>/L<layer>/<key>/``. It holds ``meta.json``,
+``pieces.json`` and ``acts.bin`` (``[rows, width]`` in the activation dtype). It also
+holds the per-row ``ids.npy``, ``positions.npy``, ``piece.npy`` and ``counted.npy``.
+The rows are every real (non-padding) token of every piece, in scan order. ``meta.json``
+lists how many pieces each forward pass took. Entries are written to a temporary
+directory and renamed into place, so concurrent scans never see a partial one. Once the
+cache outgrows its size cap, the least recently used entries go.
 """
 
 from __future__ import annotations
@@ -65,13 +65,16 @@ class Entry:
 
     @property
     def size(self) -> int:
+        """The entry's size on disk, in bytes."""
         return sum(f.stat().st_size for f in self.path.iterdir())
 
     @property
     def last_used(self) -> float:
+        """When the entry was last read or written, as a timestamp."""
         return (self.path / "meta.json").stat().st_mtime
 
     def pieces(self) -> list[Piece]:
+        """The pieces that the entry scanned, in scan order."""
         return [Piece(**p) for p in json.loads((self.path / "pieces.json").read_text())]
 
     def rows(self, name: str) -> np.ndarray:
@@ -79,6 +82,7 @@ class Entry:
         return np.load(self.path / f"{name}.npy", mmap_mode="r")
 
     def acts(self) -> np.memmap:
+        """The whole layer's activations, ``[rows, width]``, memory-mapped."""
         shape = (self.meta["rows"], self.meta["width"])
         return np.memmap(self.path / "acts.bin", dtype=self.meta["storage"], mode="r", shape=shape)
 
@@ -114,6 +118,8 @@ class Entry:
 
 
 class LayerCache:
+    """The cache of whole-layer scans under ``root``, capped at ``max_bytes``."""
+
     def __init__(self, root: Path, max_bytes: int | None = None) -> None:
         self.root = Path(root)
         if max_bytes is None:
@@ -124,6 +130,7 @@ class LayerCache:
 
     @classmethod
     def default(cls) -> LayerCache | None:
+        """The cache at the default location, or ``None`` when caching is off."""
         root = default_root()
         return None if root is None else cls(root)
 
@@ -161,6 +168,7 @@ class LayerCache:
         }
 
     def path(self, fields: dict) -> Path:
+        """The entry directory for ``fields``."""
         key = hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest()[:20]
         return self.root / fields["model"].replace("/", "--") / f"L{fields['layer']}" / key
 
@@ -169,6 +177,7 @@ class LayerCache:
     def lookup(
         self, runner: NeuronHookRunner, layer: int, pieces: Sequence[Piece], batch_tokens: int
     ) -> Entry | None:
+        """The entry for this scan, or ``None`` when there is none."""
         fields = self.fields(runner, layer, pieces, batch_tokens)
         if fields is None:
             return None
@@ -181,6 +190,7 @@ class LayerCache:
         return Entry(path, meta)
 
     def entries(self) -> list[Entry]:
+        """Every complete entry in the cache."""
         found = []
         for meta in self.root.glob("*/L*/*/meta.json"):
             if meta.parent.name.startswith("."):
@@ -192,6 +202,7 @@ class LayerCache:
         return sorted(found, key=lambda e: e.last_used)
 
     def cached_layers(self, model: str) -> set[int]:
+        """The layers of ``model`` that the cache holds."""
         entries = self.entries()
         return {e.meta["fields"]["layer"] for e in entries if e.meta["fields"]["model"] == model}
 
@@ -262,6 +273,7 @@ class LayerCache:
         return removed
 
     def clear(self) -> int:
+        """Delete every entry; returns how many there were."""
         entries = self.entries()
         for entry in entries:
             shutil.rmtree(entry.path, ignore_errors=True)
@@ -269,8 +281,9 @@ class LayerCache:
 
 
 def _write_index(tmp: Path, fields: dict, pieces, rows: dict, width, storage, sizes) -> None:
-    """Everything an entry holds besides ``acts.bin``: the per-row arrays, the pieces, and
-    ``meta.json``.
+    """Write everything that an entry holds besides ``acts.bin``.
+
+    That is the per-row arrays, the pieces, and ``meta.json``.
     """
     for name, parts in rows.items():
         np.save(tmp / f"{name}.npy", np.concatenate(parts) if parts else np.zeros(0))

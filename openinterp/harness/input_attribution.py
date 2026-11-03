@@ -1,28 +1,27 @@
 """Input attribution: which context tokens drive a neuron pole at its peak.
 
-For each top example the pole's *signed* activation at the peak token (positive for
-the positive pole, negated for the negative pole, so larger is more active and the
-gradient is non-zero below the clamp) is attributed to every token up to the peak
-with integrated gradients (Sundararajan et al., 2017) over the input token
-embeddings:
+Take each top example and the pole's *signed* activation at the peak token. It is
+positive for the positive pole and negated for the negative pole. So larger is more
+active, and the gradient is non-zero below the clamp. Integrated gradients (Sundararajan
+et al., 2017) over the input token embeddings attribute it to every token up to the peak:
 
     attr_i = (x_i − b) · (1/m) Σ_k ∂f/∂x_i |_{b + α_k (x − b)},   α_k = (k + ½)/m
 
-where b is the embedding of one reference token (the pad token) at every position
-but the first. The first token stays as it is: most of the model's attention rests on
-it (the attention sink), so replacing it moves the whole path off-distribution, and on
-Qwen2.5-0.5B the integral then fails to converge and credits the first few tokens of a
-window with much of the activation that replacing any one of them doesn't remove. A
-peak on the first token is attributed to it alone; for a pole with a first-token floor
-(``skip_first``, protocol 0.8) the peak is over the other tokens. Position embeddings,
+Here b is the embedding of one reference token (the pad token) at every position but the
+first. The first token stays as it is. Most of the model's attention rests on it (the
+attention sink), so replacing it moves the whole path off-distribution. On Qwen2.5-0.5B,
+the integral then fails to converge. It credits the first few tokens of a window with
+much of the activation, but replacing any one of them doesn't remove it. A peak on the
+first token is attributed to it alone. For a pole with a first-token floor
+(``skip_first``, protocol 0.8), the peak is over the other tokens. Position embeddings,
 where a model has them, are left alone. By completeness the attributions sum to
 f(x) − f(b), and each is reported as a share of that gap.
 
-The path integral is linear in each token's contribution, so it is checked by
-replacing one token at a time with the reference token and re-measuring: the peak
-itself, the few tokens before it, and the most attributed tokens. Tokens after the
-peak cannot affect it (attention is causal), so each example is cut at its peak, and
-every forward pass stops at the audited layer.
+The path integral is linear in each token's contribution. So a second check replaces
+one token at a time with the reference token, and measures again. It checks the peak
+itself, the few tokens before it, and the most attributed tokens. Tokens after the peak
+cannot affect it (attention is causal). So each example is cut at its peak, and every
+forward pass stops at the audited layer.
 """
 
 from __future__ import annotations
@@ -95,8 +94,9 @@ def _pole_values(
 
 
 def reference(x: torch.Tensor, baseline: torch.Tensor, keep_first: bool) -> torch.Tensor:
-    """The baseline input for embeddings ``x`` ``[batch, seq, d]``: ``baseline`` at every
-    position, except the first when ``keep_first``.
+    """Return the baseline input for embeddings ``x`` ``[batch, seq, d]``.
+
+    It is ``baseline`` at every position, except the first when ``keep_first``.
     """
     base = baseline.to(x.dtype).expand_as(x).clone()
     if keep_first:
@@ -188,8 +188,9 @@ def _distance_shares(attr: torch.Tensor) -> tuple[list[float], float]:
 def _converged_attribution(
     runner, ids, args, baseline, gap: float, steps: int, max_steps: int, tolerance: float
 ) -> tuple[torch.Tensor, int]:
-    """Attribution as shares of ``gap``, doubling the steps until Σ is within ``tolerance``
-    of 1 or ``max_steps`` is reached. Returns the attribution and the steps it took.
+    """Return the attribution as shares of ``gap``, and the steps that it took.
+
+    The steps double until Σ is within ``tolerance`` of 1, or ``max_steps`` is reached.
     """
     keep_first = ids.shape[1] > 1
     while True:
@@ -278,8 +279,10 @@ class _Settings:
 
 
 def _attribute_example(runner, n: int, example, args, baseline, settings: _Settings):
-    """(the example's ContextExample, and if it converged its checked attributions, ablation
-    effects, distance-band shares and mean distance); ``None`` if there is no gap.
+    """Attribute one example, and return its ContextExample and the numbers for the shares.
+
+    If it converged, the numbers are its checked attributions, ablation effects,
+    distance-band shares and mean distance. ``None`` if there is no gap.
     """
     ids, values, peak, gap = _peak_gap(runner, example, args, baseline, settings.skip_first)
     if gap <= 1e-6:
@@ -322,8 +325,9 @@ def _attribute_example(runner, n: int, example, args, baseline, settings: _Setti
 
 
 def _peak_gap(runner, example, args, baseline, skip_first: bool):
-    """The example cut at its peak, its pole values, the peak, and the gap between the peak
-    and the reference input's activation there.
+    """Return the example cut at its peak, its pole values, the peak, and the gap.
+
+    The gap is between the peak and the reference input's activation there.
     """
     ids = runner.encode(example.text)["input_ids"][:1]
     with torch.no_grad():

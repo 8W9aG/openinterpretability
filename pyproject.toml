@@ -95,7 +95,6 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 # The docstring ratchet: paths not yet held to the D rules. Remove a line once its
 # path passes `ruff check --select D`; never add one.
-"openinterp/harness/**" = ["D"]
 "scripts/**" = ["D"]
 "tests/**" = ["D"]
 

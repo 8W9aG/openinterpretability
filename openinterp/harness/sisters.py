@@ -1,26 +1,29 @@
 """Sister neurons: the poles of another model whose activity tracks a pole's.
 
-Both models read the same corpus, and are compared where both have just read the same
-text: at *shared boundaries*, character offsets where a token ends in both models'
-tokenizations. Models that share a tokenizer share every boundary; across tokenizers
-(GPT-2 and Qwen2.5) most word ends are shared. Since both models are causal, each sees
-exactly the same text up to a shared boundary, so a pole of one and a pole of the other
-give two series over the same positions. Their Pearson correlation says how far they
-fire together; a pole whose best match correlates strongly, and is in
-turn that match's best partner in the first model (a *mutual* best match), is a
-candidate for the same feature in both models (Gurnee et al., 2024, "Universal Neurons
-in GPT2 Language Models", match neurons across seeds this way).
+Both models read the same corpus. They are compared where both have just read the same
+text: at *shared boundaries*. These are character offsets where a token ends in both
+models' tokenizations. Models that share a tokenizer share every boundary. Across
+tokenizers (GPT-2 and Qwen2.5), most word ends are shared. Both models are causal, so
+each sees exactly the same text up to a shared boundary. So a pole of one and a pole of
+the other give two series over the same positions.
+
+Their Pearson correlation says how far they fire together. Take a pole whose best match
+correlates strongly, and is in turn that match's best partner in the first model (a
+*mutual* best match). It is a candidate for the same feature in both models. Gurnee et
+al. (2024, "Universal Neurons in GPT2 Language Models") match neurons across seeds this
+way.
 
 Each series is a pole strength (:func:`~openinterp.harness.hooks.pole_strength`), so a
-neuron's two poles are matched separately. A text's first token is left out: attention
+neuron's two poles are matched separately. A text's first token is left out. Attention
 there sees only the token itself, and many units take extreme values on it that would
 dominate the correlation.
 
-``rotated`` puts a match in context. It is the best correlation the pole reaches with any
-unit of a Haar-random rotation of the match's layer (as ``docs/analyses/
-null-calibration.md`` rotates a basis): the same number of candidates, mixing the same
-activations, but not the model's own neurons. A sister well above it is a fact about the
-other model's neuron basis, not only about what the layer can represent.
+``rotated`` puts a match in context. It is the best correlation that the pole reaches
+with any unit of a Haar-random rotation of the match's layer.
+(``docs/analyses/null-calibration.md`` rotates a basis in the same way.) That is the same
+number of candidates, mixing the same activations, but not the model's own neurons. A
+sister well above it is a fact about the other model's neuron basis, not only about what
+the layer can represent.
 """
 
 from __future__ import annotations
@@ -43,6 +46,8 @@ Unit = tuple[int, int, Pole]
 
 @dataclass(frozen=True)
 class Match:
+    """One pole of the other model and its Pearson correlation with the source pole."""
+
     layer: int
     neuron_idx: int
     pole: Pole
@@ -59,9 +64,11 @@ def _unit(layer: int, column: int, width: int) -> Unit:
 
 
 class Correlations:
-    """Streaming Pearson correlation between ``P`` source series and every column of
-        some target matrices (one per layer). Each batch's sums are taken on the device in
-    the inputs' dtype (MPS has no float64); the running totals are float64 on the CPU.
+    """Streaming Pearson correlation between ``P`` source series and target columns.
+
+    The targets are every column of some matrices, one per layer. Each batch's sums are
+    taken on the device in the inputs' dtype (MPS has no float64). The running totals are
+    float64 on the CPU.
     """
 
     def __init__(self, n_sources: int) -> None:
@@ -105,8 +112,10 @@ def _seed(model_name: str, layer: int) -> int:
 
 
 def rotation(model_name: str, layer: int, width: int) -> torch.Tensor:
-    """A Haar-random orthogonal ``[width, width]`` matrix (QR of a Gaussian, signs
-    fixed), seeded by model and layer so a rerun draws the same one.
+    """Return a Haar-random orthogonal ``[width, width]`` matrix.
+
+    It is the QR of a Gaussian, with signs fixed. It is seeded by model and layer, so a
+    rerun draws the same one.
     """
     generator = torch.Generator().manual_seed(_seed(model_name, layer))
     q, r = torch.linalg.qr(torch.randn(width, width, generator=generator, dtype=torch.float64))
@@ -115,8 +124,10 @@ def rotation(model_name: str, layer: int, width: int) -> torch.Tensor:
 
 @dataclass(frozen=True)
 class Tokens:
-    """One text as one model reads it: token ids, and the character offset each token
-    ends at (-1 for a token that covers no characters, such as a special token).
+    """One text as one model reads it: token ids, and where each token ends.
+
+    ``ends`` is the character offset that each token ends at. It is -1 for a token that
+    covers no characters, such as a special token.
     """
 
     ids: list[int]
@@ -137,9 +148,11 @@ def tokenize(runner: NeuronHookRunner, text: str) -> Tokens:
 
 
 def shared_boundaries(a: Sequence[int], b: Sequence[int]) -> tuple[list[int], list[int]]:
-    """The positions in two tokenizations (token end offsets ``a`` and ``b``) where both
-    have just read the same text: tokens that end at the same character. Where several
-    tokens end at one character, the last counts. Each text's first token is left out.
+    """Return the positions in two tokenizations where both have just read the same text.
+
+    ``a`` and ``b`` are token end offsets. The positions are tokens that end at the same
+    character. Where several tokens end at one character, the last counts. Each text's
+    first token is left out.
     """
     last_a = {end: i for i, end in enumerate(a) if end >= 0 and i > 0}
     last_b = {end: i for i, end in enumerate(b) if end >= 0 and i > 0}
@@ -155,8 +168,10 @@ def paired_rows(
     layers_b: Iterable[int],
     batch_tokens: int = BATCH_TOKENS,
 ) -> Iterator[tuple[dict[int, torch.Tensor], dict[int, torch.Tensor]]]:
-    """Both models' activations ``{layer: [n, width]}`` at the shared boundaries of each
-    group of documents, row for row. Each document is one forward pass of each model.
+    """Yield both models' activations ``{layer: [n, width]}``, row for row.
+
+    The rows are the shared boundaries of each group of documents. Each document is one
+    forward pass of each model.
     """
     docs = [(tokenize(a, t), tokenize(b, t)) for t in texts]
     docs = [(x, y) for x, y in docs if x.ids and y.ids]
@@ -207,8 +222,10 @@ def _top(corr: Correlations, keys: Iterable[int], widths: dict[int, int], k: int
 
 @dataclass(frozen=True)
 class Sisters:
-    """One source pole's best matches in the other model, with each match's own best partner
-    back in the source model (``back``) and the rotated-basis reference.
+    """One source pole's best matches in the other model.
+
+    ``back`` is each match's own best partner back in the source model. ``rotated`` is the
+    rotated-basis reference.
     """
 
     matches: list[Match]
@@ -227,10 +244,12 @@ def find_sisters(
     batch_tokens: int = BATCH_TOKENS,
     progress=None,
 ) -> tuple[dict[Unit, Sisters], int]:
-    """Each of ``units`` (in ``source``) with its sisters in ``other``, over ``texts``,
-    and how many token positions were paired. Two passes over the corpus: the first finds
-    each unit's ``k`` best poles over all of ``other``'s layers; the second, each of those
-    poles' best partner over all of ``source``'s layers, and the rotated reference.
+    """Return each of ``units`` (in ``source``) with its sisters in ``other``, over ``texts``.
+
+    Also returns how many token positions were paired. There are two passes over the
+    corpus. The first finds each unit's ``k`` best poles over all of ``other``'s layers.
+    The second finds each of those poles' best partner over all of ``source``'s layers,
+    and the rotated reference.
     """
     units = list(dict.fromkeys(units))
     pair = _Pair(source, other, texts, batch_tokens, progress or (lambda *_: None))
@@ -275,9 +294,11 @@ def _forward(pair: _Pair, units: Sequence[Unit], k: int) -> list[list[Match]]:
 
 
 def _backward(pair: _Pair, units: Sequence[Unit], matches: list[list[Match]], name: str):
-    """Pass 2: each match's best pole over every source layer (``{unit: Match}``), each
-    unit's rotated reference at its top match's layer (``{unit index: r}``), and how many
-    positions were paired.
+    """Run pass 2, and return its three results.
+
+    The first is each match's best pole over every source layer (``{unit: Match}``). The
+    second is each unit's rotated reference at its top match's layer (``{unit index: r}``).
+    The third is how many positions were paired.
     """
     found = list(dict.fromkeys((m.layer, m.neuron_idx, m.pole) for ms in matches for m in ms))
     by_layer: dict[int, list[int]] = {}

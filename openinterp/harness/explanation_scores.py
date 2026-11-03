@@ -1,9 +1,9 @@
 """Held-out windows and the arithmetic of detection, fuzzing and embedding scores.
 
-The judge only ever sees a window's text, so each window is measured on its own, the
-way probes are, rather than inside the snippet it was cut from. Labels are always
-re-derived from a fresh measurement, so a task handed to a judge carries no
-activations and a stored score can be re-checked (`openinterp reproduce`).
+The judge only ever sees a window's text. So each window is measured on its own, as
+probes are, not inside the snippet that it was cut from. Labels always come from a new
+measurement. So a task handed to a judge carries no activations, and a stored score can
+be checked again (`openinterp reproduce`).
 """
 
 from __future__ import annotations
@@ -24,6 +24,8 @@ DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 @dataclass(frozen=True)
 class Window:
+    """One held-out window: its text, tokens, strengths and marked tokens."""
+
     text: str
     tokens: list[str]
     activations: list[float]
@@ -40,11 +42,14 @@ class Window:
         return [i for i, a in enumerate(self.activations) if i >= self.start and a >= threshold]
 
     def cold(self, threshold: float) -> list[int]:
+        """The measured tokens below ``threshold``."""
         return [i for i, a in enumerate(self.activations) if i >= self.start and a < threshold]
 
 
 @dataclass(frozen=True)
 class HeldOutSample:
+    """The detection and fuzzing windows, and how many windows they were drawn from."""
+
     detection: list[Window]
     fuzzing: list[Window]
     quantile_edges: list[float]
@@ -116,11 +121,11 @@ def sample_heldout(
     """Draw detection and fuzzing windows from the ``texts`` containing no ``exclude``.
 
     Active windows (peak ≥ ``threshold``) are sorted by peak and split into ``quantiles``
-    equal bins; each bin gives ``per_quantile`` windows to detection and as many to
-    fuzzing, so the weakest activations count as much as the top ones. Detection gets as
-    many inactive windows as active ones. Fuzzing marks the active tokens of half its
-    active windows and as many random inactive tokens in the other half, and adds half
-    as many inactive windows with random tokens marked. With no active window at all,
+    equal bins. Each bin gives ``per_quantile`` windows to detection and as many to
+    fuzzing. So the weakest activations count as much as the top ones. Detection gets as
+    many inactive windows as active ones. In half its active windows, fuzzing marks the
+    active tokens. In the other half, it marks as many random inactive tokens. It also
+    adds half as many inactive windows, with random tokens marked. With no active window at all,
     detection gets ``quantiles × per_quantile`` inactive ones and fuzzing none.
     """
     rng = random.Random(seed)
@@ -172,6 +177,7 @@ def label_windows(
     judged: Sequence[bool | None] | None = None,
     similarities: Sequence[float | None] | None = None,
 ) -> list[ScoredWindow]:
+    """Label each window as the judge should answer it, with the judge's answer if given."""
     out = []
     for n, w in enumerate(windows):
         hot = set(w.hot(threshold))

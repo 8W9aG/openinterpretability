@@ -3,8 +3,8 @@
 Labelled text is JSON lines ``{"text": ..., "spans": [[start, end], ...]}``: character
 spans where the concept holds, marked by a rule that never sees the model. A token is
 positive when its characters overlap a span. Texts are cut into windows as a scan cuts
-them, and each window's first token is dropped (it is the attention sink, and some
-early-layer poles have a floor there).
+them. Each window's first token is dropped: it is the attention sink, and some
+early-layer poles have a floor there.
 
 At each kept token the probe reads the layer's MLP hidden activation (signed, every
 neuron) and the residual stream after the layer's block. It fits:
@@ -43,6 +43,8 @@ DEFAULT_L2 = 1e-3
 
 @dataclass(frozen=True)
 class Window:
+    """One window of labelled text: its token ids, their labels and its document."""
+
     ids: list[int]
     labels: list[bool]
     document: int
@@ -50,17 +52,21 @@ class Window:
 
 @dataclass(frozen=True)
 class TokenSet:
+    """The kept tokens' hidden activations, residual stream and labels."""
+
     hidden: torch.Tensor  # [n, d_mlp]
     residual: torch.Tensor  # [n, d_model]
     labels: torch.Tensor  # [n] bool
 
     @property
     def counts(self) -> tuple[int, int]:
+        """(positive, negative) token counts."""
         pos = int(self.labels.sum())
         return pos, len(self.labels) - pos
 
 
 def read_labels(path: Path) -> list[tuple[str, list[tuple[int, int]]]]:
+    """The labelled texts in a concept set file, with their spans."""
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
@@ -77,6 +83,7 @@ def label_tokens(tokenizer, text: str, spans: Sequence[tuple[int, int]]):
 
 
 def windows(tokenizer, rows, window_tokens: int) -> list[Window]:
+    """Cut each labelled text into windows of at most ``window_tokens`` tokens."""
     out = []
     for doc, (text, spans) in enumerate(rows):
         ids, labels = label_tokens(tokenizer, text, spans)
@@ -90,8 +97,10 @@ def windows(tokenizer, rows, window_tokens: int) -> list[Window]:
 def choose_tokens(
     wins: Sequence[Window], max_positive: int, max_negative: int, seed: int
 ) -> list[list[int]]:
-    """Positions to keep in each window: every position but the first, sampled down to
-    at most ``max_positive`` positive and ``max_negative`` negative tokens.
+    """Return the positions to keep in each window.
+
+    That is every position but the first, sampled down to at most ``max_positive``
+    positive and ``max_negative`` negative tokens.
     """
     pos, neg = [], []
     for w, win in enumerate(wins):
@@ -160,6 +169,7 @@ def auroc(scores: torch.Tensor, labels: torch.Tensor) -> float:
 
 
 def balanced_accuracy(predicted: torch.Tensor, labels: torch.Tensor) -> float:
+    """The mean of the true positive and true negative rates."""
     tpr = (predicted & labels).sum() / labels.sum()
     tnr = (~predicted & ~labels).sum() / (~labels).sum()
     return float((tpr + tnr) / 2)
@@ -177,6 +187,7 @@ def fit_threshold(scores: torch.Tensor, labels: torch.Tensor) -> float:
 def held_out_score(
     train: torch.Tensor, train_y: torch.Tensor, test: torch.Tensor, test_y: torch.Tensor
 ) -> ProbeScore:
+    """Fit a threshold on the training scores, and score the test scores with it."""
     t = fit_threshold(train, train_y)
     return ProbeScore(
         balanced_accuracy=balanced_accuracy(test >= t, test_y), auroc=auroc(test, test_y)
@@ -184,14 +195,16 @@ def held_out_score(
 
 
 def standardiser(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """The mean and standard deviation of each column, the deviation at least 1e-6."""
     return x.mean(0), x.std(0).clamp(min=1e-6)
 
 
 def fit_logistic(
     x: torch.Tensor, y: torch.Tensor, l2: float = DEFAULT_L2, steps: int = 200
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Class-balanced logistic regression on standardised ``x``; returns the weights in
-    raw activation space and the bias, so ``x @ w + b`` is the logit.
+    """Fit class-balanced logistic regression on standardised ``x``.
+
+    Returns the weights in raw activation space and the bias, so ``x @ w + b`` is the logit.
     """
     mean, std = standardiser(x)
     z = (x - mean) / std
@@ -218,10 +231,12 @@ def fit_logistic(
 
 
 def mass_mean(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """The mass-mean direction: the positive mean minus the negative mean."""
     return x[y].mean(0) - x[~y].mean(0)
 
 
 def cosine(a: torch.Tensor, b: torch.Tensor) -> float:
+    """The cosine of ``a`` and ``b``."""
     return float(torch.nn.functional.cosine_similarity(a, b, dim=0).clamp(-1, 1))
 
 
@@ -234,6 +249,7 @@ def site_probes(
     pole_direction: torch.Tensor,
     l2: float,
 ) -> SiteProbes:
+    """Fit logistic and mass-mean probes at one site, and compare them with the pole."""
     w, b = fit_logistic(train, train_y, l2)
     d = mass_mean(train, train_y)
     return SiteProbes(
@@ -285,6 +301,7 @@ def sparse_curve(
 def neuron_score(
     train: TokenSet, test: TokenSet, neuron: int, pole: Pole, line: float, rank: int
 ) -> NeuronScore:
+    """Score one neuron pole as a probe for the concept."""
     strength = [pole_strength(s.hidden[:, neuron], pole) for s in (train, test)]
     score = held_out_score(strength[0], train.labels, strength[1], test.labels)
     return NeuronScore(
@@ -296,8 +313,10 @@ def neuron_score(
 
 
 def neurons_needed(points: Sequence[SparsePoint], dense: SiteProbes) -> int | None:
-    """Smallest k within the margin of the better dense probe on the hidden layer (a
-    logistic probe's threshold can transfer worse across sources than a mass-mean's).
+    """Return the smallest k within the margin of the better dense probe on the hidden layer.
+
+    The better of the two, because a logistic probe's threshold can transfer worse across
+    sources than a mass-mean's.
     """
     best = max(dense.logistic.balanced_accuracy, dense.mass_mean.balanced_accuracy)
     for p in points:

@@ -1,8 +1,8 @@
 """Causal metrics of a unit: sufficiency and necessity, ranked against comparable units.
 
 Recorded in every verdict, never gated (docs/PROTOCOL.md §4). A neuron pole is ranked
-against the same layer's neurons, an attention head against the same layer's heads, a
-dictionary feature against the same dictionary's other latents.
+against the same layer's neurons. An attention head is ranked against the same layer's
+heads. A dictionary feature is ranked against the same dictionary's other latents.
 """
 
 from __future__ import annotations
@@ -88,21 +88,21 @@ def causal_metrics(
     """Sufficiency and necessity of the unit, each ranked against comparable units.
 
     Every minimal pair is patched clean → corrupted (sufficiency) and corrupted → clean
-    (necessity) at the position where the unit differs most between the two prompts
-    (the final position when their lengths differ, since only it can be patched). A
-    neuron pole's difference is its strength change; a head's or a dictionary latent's is
-    the change in its write to the residual stream. The effect is scored there on a
-    target no unit is favoured by:
+    (necessity). The patch is at the position where the unit differs most between the two
+    prompts. When their lengths differ, it is the final position, since only that can be
+    patched. A neuron pole's difference is its strength change. A head's or a dictionary
+    latent's difference is the change in its write to the residual stream. The effect is
+    scored there on a target that favours no unit:
 
     * ``claimed_tokens``: a lookahead claim's upcoming tokens, as their mean logit minus
       the vocabulary mean (signed);
     * ``next_token_kl``: otherwise, KL(unpatched ‖ patched) of the next-token distribution.
 
-    The same patch is applied, one unit at a time, to the ``null_neurons`` units of the
-    same kind and layer (neurons, the other heads, or the dictionary's other latents) whose
-    change between the two prompts is most similar. A score is the median over pairs of
-    the unit's |effect| percentile among theirs: 0.5 means "no more influential than a
-    unit that changes as much".
+    The same patch is applied, one unit at a time, to ``null_neurons`` comparable units.
+    They are the units of the same kind and layer whose change between the two prompts is
+    most similar. That is neurons, the other heads, or the dictionary's other latents. A score is
+    the median over pairs of the unit's |effect| percentile among theirs. So 0.5 means
+    "no more influential than a unit that changes as much".
 
     Pairs where the unit moves by at most ``min_change`` (controls) carry no causal
     signal and are skipped; with none left the result is ``None``.
@@ -180,8 +180,9 @@ def _patch_effect(own: float, others: list[float]) -> tuple[PatchEffect, float]:
 
 
 def _unit_patching(submission: NeuronAuditSubmission, runner: NeuronHookRunner):
-    """``changes(base, cf)`` and ``patch(source, target, units, **options)`` for the kind
-    of unit ``submission`` is about.
+    """Return ``changes(base, cf)`` and ``patch(source, target, units, **options)``.
+
+    They are the functions for the kind of unit that ``submission`` is about.
     """
     from openinterp.harness.features import patch_features, write_changes
     from openinterp.harness.heads import patch_heads

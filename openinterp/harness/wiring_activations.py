@@ -1,7 +1,8 @@
-"""A unit's wiring from activations: attribution patching (Syed et al., 2023) upstream,
-and its write removed from each later unit's input downstream, at the peaks of prompts
-where it fires. :class:`~openinterp.core.wiring.Wiring` defines each number; the unit is
-described as in :mod:`openinterp.harness.wiring`.
+"""A unit's wiring from activations, at the peaks of prompts where it fires.
+
+Upstream, it uses attribution patching (Syed et al., 2023). Downstream, it removes the
+unit's write from each later unit's input. :class:`~openinterp.core.wiring.Wiring`
+defines each number. The unit is described as in :mod:`openinterp.harness.wiring`.
 """
 
 from __future__ import annotations
@@ -95,8 +96,10 @@ def _head_strength(runner, t: Target, encoded, x: torch.Tensor) -> torch.Tensor:
 
 
 def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peaks) -> torch.Tensor:
-    """``[b, n_heads, 3]``: how far each head's write at the peak moves when ``delta`` is
-    removed from what its ``q``, ``k`` or ``v`` reads, one channel at a time.
+    """Return ``[b, n_heads, 3]``: how far each head's write at the peak moves.
+
+    It moves when ``delta`` is removed from what the head's ``q``, ``k`` or ``v`` reads,
+    one channel at a time.
     """
     modules = _qkv_modules(runner.layers[layer])
     w_o = _head_outputs(runner, layer)  # [n, d, hd]
@@ -113,8 +116,10 @@ def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peak
 
 
 def _z_without(runner, layer: int, module, part, delta, encoded) -> torch.Tensor:
-    """The layer's head outputs (float32) when one of ``q``, ``k`` or ``v`` (``module``,
-    or its ``part`` of a fused projection) reads the residual without ``delta``.
+    """Return the layer's head outputs (float32) when one channel reads without ``delta``.
+
+    The channel is one of ``q``, ``k`` or ``v``: ``module``, or its ``part`` of a fused
+    projection.
     """
     norm = _attn_read_point(runner, layer)
     state: dict = {}
@@ -164,8 +169,10 @@ def activation_wiring(
     k: int = 10,
     batch_size: int = 8,
 ) -> Wiring | None:
-    """The unit's top connections by attribution at its peak on each prompt where it
-    reaches ``threshold``; ``None`` if it reaches it on none. See :class:`Wiring`.
+    """Return the unit's top connections by attribution, at its peak on each firing prompt.
+
+    A prompt fires when the unit reaches ``threshold``. ``None`` if it reaches it on none.
+    See :class:`Wiring`.
     """
     t = target_of(runner, unit)
     attention = _has_attention(runner)
@@ -223,8 +230,10 @@ class _Sums:
 
 
 def _peak_gradient(runner, t: Target, unit: Unit, encoded, cap, dtype, threshold: float):
-    """(the gradient of each firing prompt's peak strength with respect to the unit's read,
-    the peaks, the mask of prompts that fired); ``None`` if none did.
+    """Return the read gradients, the peaks, and the mask of prompts that fired.
+
+    Each gradient is of a firing prompt's peak strength with respect to the unit's read.
+    ``None`` if no prompt fired.
     """
     mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
     x = cap["read"].to(dtype).requires_grad_(True)

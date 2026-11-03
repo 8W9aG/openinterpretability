@@ -4,28 +4,26 @@ Every measurement in an audit reads one non-negative strength per token: the sca
 top examples, probes, counterfactual Δ, held-out windows. A unit supplies it, and the
 ablation the lookahead profile uses:
 
-* an MLP neuron pole: its pole strength; ablation zeroes the pole;
-* an attention head: ``|W_O (z_t − z̄)|``, the distance between its write to the
-  residual stream and its mean write over the scan (z̄, stored in
-  :class:`~openinterp.core.schemas.HeadProfile`); ablation replaces z with z̄ (mean
-  ablation), so strength is exactly how far ablating the head moves the residual;
-* a dictionary feature: its latent's activation ``a_f`` (non-negative); ablation removes
-  its write ``a_f · W_dec[f]`` from the MLP output (from the residual stream, for a
-  residual-stream SAE), leaving the dictionary's error and every other latent as they
-  were.
+* An MLP neuron pole: its pole strength. Ablation zeroes the pole.
+* An attention head: ``|W_O (z_t − z̄)|``. This is the distance between its write to the
+  residual stream and its mean write over the scan. z̄ is stored in
+  :class:`~openinterp.core.schemas.HeadProfile`. Ablation replaces z with z̄ (mean
+  ablation). So strength is exactly how far ablating the head moves the residual.
+* A dictionary feature: its latent's activation ``a_f`` (non-negative). Ablation removes
+  its write ``a_f · W_dec[f]`` from the MLP output, or from the residual stream for a
+  residual-stream SAE. The dictionary's error and every other latent stay as they were.
 
 A unit with a *first-token floor* (protocol 0.8) is not measured at a text's first
-token. The first token has no context and is the attention sink, and some early-layer
-units sit above their line there whatever the token, so every probe would fire. A unit
+token. The first token has no context and is the attention sink. Some early-layer units
+sit above their line there whatever the token, so every probe would fire. A unit
 has the floor if it is active at the first position on at least half the vocabulary
 (:func:`openinterp.harness.scan.first_position_share`). A prompt's peak is then over
 its other tokens (``skip_first``). Every other unit is measured at every token, so one
 that detects *which* token opens a text can still be audited.
 
-The raw write norm ``|W_O z_t|`` would not do: most heads write a sizeable resting
-vector (often while attending to the first token), so in GPT-2 small an induction
-head's median token sits at a quarter of its maximum and half of all text would count
-as "active".
+The raw write norm ``|W_O z_t|`` would not do. Most heads write a sizeable resting
+vector, often while attending to the first token. So in GPT-2 small, an induction head's
+median token sits at a quarter of its maximum. Half of all text would count as "active".
 """
 
 from __future__ import annotations
@@ -50,6 +48,8 @@ from openinterp.harness.sites import dictionary_io
 
 @dataclass(frozen=True)
 class NeuronUnit:
+    """An MLP neuron pole as an auditable unit."""
+
     ident: NeuronIdentifier
     skip_first: bool = False
 
@@ -66,6 +66,8 @@ class NeuronUnit:
 
 @dataclass(frozen=True)
 class HeadUnit:
+    """An attention head as an auditable unit, with the mean output that defines its strength."""
+
     ident: HeadIdentifier
     mean_output: tuple[float, ...]
     skip_first: bool = False
@@ -85,11 +87,14 @@ class HeadUnit:
 
 @dataclass(frozen=True)
 class FeatureUnit:
+    """A dictionary feature as an auditable unit, with its pinned dictionary."""
+
     ident: FeatureIdentifier
     profile: DictionaryProfile
     skip_first: bool = False
 
     def dictionary(self, runner: NeuronHookRunner) -> Dictionary:
+        """The feature's dictionary, loaded on the runner's device."""
         return load_dictionary(self.profile, runner.device)
 
     def strengths(self, runner: NeuronHookRunner, inputs: Inputs) -> torch.Tensor:
@@ -124,8 +129,9 @@ def head_strength(
 def unit_of(
     ident: ComponentIdentifier, head_profile=None, dictionary_profile=None, skip_first=False
 ) -> Unit:
-    """The unit ``ident`` names; a head or a feature needs the profile its strength is
-    defined by.
+    """Return the unit that ``ident`` names.
+
+    A head or a feature needs the profile that defines its strength.
     """
     if isinstance(ident, HeadIdentifier):
         if head_profile is None:
@@ -139,8 +145,10 @@ def unit_of(
 
 
 def submission_unit(submission) -> Unit:
-    """The unit a submission, scan evidence or scoring task is about. A record from before
-    protocol 0.8 has no ``first_token_floor`` and is measured at every token.
+    """Return the unit that a submission, scan evidence or scoring task is about.
+
+    A record from before protocol 0.8 has no ``first_token_floor``, and is measured at
+    every token.
     """
     floor = bool(getattr(submission, "first_token_floor", None))
     return unit_of(
@@ -149,8 +157,9 @@ def submission_unit(submission) -> Unit:
 
 
 def peak_strength(runner: NeuronHookRunner, unit: Unit, text: str) -> float | None:
-    """The peak strength of ``text`` over its measured tokens; ``None`` when it has none
-    (one token, for a unit that skips the first).
+    """Return the peak strength of ``text`` over its measured tokens.
+
+    ``None`` when it has none: one token, for a unit that skips the first.
     """
     strengths = unit.strengths(runner, text)[0][int(unit.skip_first) :]
     return float(strengths.max()) if strengths.numel() else None
@@ -168,7 +177,9 @@ def max_strength(runner: NeuronHookRunner, unit: Unit, text: str) -> float:
 
 
 def attn_implementation(ident: ComponentIdentifier) -> str | None:
-    """Heads load with eager attention: SDPA and flash attention return no patterns, and
-    every measurement of a head experiment should run the same attention kernel.
+    """Return the attention implementation to load the model with: ``"eager"`` for a head.
+
+    SDPA and flash attention return no patterns. Every measurement of a head experiment
+    should run the same attention kernel.
     """
     return "eager" if isinstance(ident, HeadIdentifier) else None

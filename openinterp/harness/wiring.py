@@ -1,14 +1,16 @@
-"""A unit's top upstream and downstream connections: from its weights (virtual weights,
-Elhage et al., 2021) and from activations on prompts where it fires (attribution patching,
-Syed et al., 2023). :class:`~openinterp.core.wiring.Wiring` defines each number.
+"""A unit's top upstream and downstream connections, from weights and from activations.
+
+The weights reading is virtual weights (Elhage et al., 2021). The activations reading is
+attribution patching on prompts where the unit fires (Syed et al., 2023).
+:class:`~openinterp.core.wiring.Wiring` defines each number.
 
 Every unit is described the same way, by where it reads the residual stream and what it
 writes back (:class:`Target`):
 
 * a neuron pole reads its MLP's input (``gate``/``up``, or ``in``) and writes ``w_out``;
-* a dictionary feature reads its dictionary's input site with its encoder row and writes
-  its decoder row into the MLP's write to the residual stream (a residual-stream SAE's
-  latent reads and writes the residual stream after its layer);
+* a dictionary feature reads its dictionary's input site with its encoder row. It writes
+  its decoder row into the MLP's write to the residual stream. (A residual-stream SAE's
+  latent reads and writes the residual stream after its layer.)
 * an attention head reads its layer's attention input through ``q``, ``k`` and ``v`` and
   writes a subspace, ``W_O``.
 
@@ -81,9 +83,10 @@ def _norm(block: nn.Module, paths: Sequence[str]) -> nn.Module | None:
 
 
 def _fold(norm: nn.Module | None, rows: torch.Tensor, *, gain: bool = True) -> torch.Tensor:
-    """Read vectors ``[..., d]`` taken through ``norm`` back to the residual stream: the gain
-    (unless ``gain`` is False), then centring for LayerNorm. The per-token scale (1/σ) is
-    dropped.
+    """Take read vectors ``[..., d]`` through ``norm`` back to the residual stream.
+
+    That applies the gain (unless ``gain`` is False), then centring for LayerNorm. The
+    per-token scale (1/σ) is dropped.
     """
     rows = rows.float()
     weight = getattr(norm, "weight", None) if gain else None
@@ -120,9 +123,10 @@ def _qkv_modules(block: nn.Module) -> dict[str, tuple[nn.Module, slice | None]] 
 
 
 def attention_reads(runner: NeuronHookRunner, layer: int) -> dict[str, torch.Tensor] | None:
-    """``{"q"|"k"|"v": [n_heads, head_dim, d_model]}`` with the input norm folded in; keys
-    and values are repeated across the query heads that share them. ``None`` when the
-    architecture's attention isn't supported.
+    """Return ``{"q"|"k"|"v": [n_heads, head_dim, d_model]}``, with the input norm folded in.
+
+    Keys and values are repeated across the query heads that share them. ``None`` when
+    the architecture's attention isn't supported.
     """
     block = runner.layers[layer]
     try:
@@ -163,10 +167,10 @@ class Target:
     """Where a unit reads and writes, in the terms both readings need.
 
     ``reads`` are residual-space read matrices ``[m, d]`` by channel (``m = 1`` for a
-    vector); ``write`` is ``[d]`` (a direction) or ``[d, h]`` (a head's subspace). It reads
-    at ``site`` of ``layer`` and writes after that layer's attention (heads) or MLP.
+    vector). ``write`` is ``[d]`` (a direction) or ``[d, h]`` (a head's subspace). It reads
+    at ``site`` of ``layer``. It writes after that layer's attention (heads) or MLP.
     ``strength`` maps the residual stream at its read point ``[b, seq, d]`` to strength
-    ``[b, seq]`` (``None`` for a head, which runs the model's attention instead), and
+    ``[b, seq]``. It is ``None`` for a head, which runs the model's attention instead.
     ``written`` maps the clean pass's captures to its write ``[b, seq, d]``.
     """
 
@@ -181,10 +185,12 @@ class Target:
 
     @property
     def writes_after_attention(self) -> bool:
+        """True for a head, which writes after its layer's attention, not its MLP."""
         return self.site == "attn_in"
 
 
 def target_of(runner: NeuronHookRunner, unit: Unit) -> Target:
+    """Where ``unit`` reads and writes; raises TypeError for an unknown kind of unit."""
     if isinstance(unit, NeuronUnit):
         return _neuron_target(runner, unit)
     if isinstance(unit, FeatureUnit):
@@ -319,8 +325,9 @@ def _top(
 
 
 def _read_vectors(read: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-    """How much a read ``[m, d]`` picks up of each vector in ``x`` ``[n, d]``: signed for a
-    vector read (``m = 1``), else the norm of what it reads.
+    """Return how much a read ``[m, d]`` picks up of each vector in ``x`` ``[n, d]``.
+
+    The result is signed for a vector read (``m = 1``), else the norm of what it reads.
     """
     projected = x @ read.T  # [n, m]
     return projected[:, 0] if read.shape[0] == 1 else projected.norm(dim=-1)

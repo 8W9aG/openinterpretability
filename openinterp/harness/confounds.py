@@ -11,8 +11,8 @@ of squares of the pole strength. From that we derive:
 * trivial *baselines* for the reviewer's probes: "active if any token is a trigger
   token" and "active if any position is a high-activation position".
 
-A hypothesis that cannot match the best trivial baseline on the same probes adds
-nothing beyond "this neuron fires on token X" (or "at position p").
+Take a hypothesis that cannot match the best trivial baseline on the same probes. It
+adds nothing beyond "this neuron fires on token X" (or "at position p").
 """
 
 from __future__ import annotations
@@ -29,6 +29,8 @@ MAX_TRIGGER_TOKENS = 200
 
 
 class ConfoundAccumulator:
+    """Per-token and per-position sums of a pole's strength over a scan."""
+
     def __init__(self) -> None:
         self.token: dict[str, torch.Tensor] = {}
         self.position: dict[str, torch.Tensor] = {}
@@ -52,6 +54,7 @@ class ConfoundAccumulator:
             store[name] = current
 
     def update(self, ids: torch.Tensor, positions: torch.Tensor, strengths: torch.Tensor) -> None:
+        """Add a batch of token ids, positions and strengths."""
         values = strengths.double()
         self._add(self.token, ids.long(), values)
         self._add(self.position, positions.long(), values)
@@ -69,6 +72,7 @@ class ConfoundAccumulator:
         return min(1.0, max(0.0, between / total)) if total > 1e-12 else 0.0
 
     def finalize(self, tokenizer: Any, min_count: int = 3) -> ConfoundProfile:
+        """The confound profile of everything added (see the module docstring)."""
         if not self.token:
             return ConfoundProfile(
                 token_r2=0.0,
@@ -112,8 +116,10 @@ def baseline_predictions(
     threshold: float,
     skip_first: bool = False,
 ) -> dict[str, list[bool]]:
-    """Predicted "active" for each text under each trivial baseline. Like the unit's own
-    peak, a baseline doesn't read the first token when ``skip_first`` (protocol 0.8).
+    """Return the predicted "active" for each text under each trivial baseline.
+
+    Like the unit's own peak, a baseline doesn't read the first token when
+    ``skip_first`` (protocol 0.8).
     """
     triggers = {t.token_id for t in profile.trigger_tokens if t.mean_strength >= threshold}
     hot_positions = {p for p, m in enumerate(profile.position_means) if m >= threshold}

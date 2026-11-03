@@ -1,10 +1,11 @@
 """Where a sparse dictionary reads its input and writes its output in the model.
 
-A ``dictionary_interventions`` entry of :meth:`NeuronHookRunner.hooks` is ``(site, fn)``:
-the hooks read the dictionary's input x at ``site`` (see ``DictionaryProfile``), then call
-``fn(x, out)`` with what the dictionary reconstructs, which ``fn`` may replace: the MLP's
-write to the residual stream (the down projection's output, or the norm after it where
-there is one), or for a residual-stream SAE the residual stream after the layer.
+A ``dictionary_interventions`` entry of :meth:`NeuronHookRunner.hooks` is ``(site, fn)``.
+The hooks read the dictionary's input x at ``site`` (see ``DictionaryProfile``). Then
+they call ``fn(x, out)`` with what the dictionary reconstructs, which ``fn`` may replace.
+That is the MLP's write to the residual stream: the down projection's output, or the
+norm after it where there is one. For a residual-stream SAE, it is the residual stream
+after the layer.
 """
 
 from __future__ import annotations
@@ -24,8 +25,10 @@ from openinterp.harness.hooks import (
 
 
 def normalize_without_affine(norm: nn.Module, x: torch.Tensor) -> torch.Tensor:
-    """What ``norm`` makes of ``x`` before its gain and bias: standardised for LayerNorm,
-    divided by its root mean square for RMSNorm (float32).
+    """Return what ``norm`` makes of ``x`` before its gain and bias, in float32.
+
+    For LayerNorm, ``x`` is standardised. For RMSNorm, it is divided by its root mean
+    square.
     """
     eps = getattr(norm, "eps", None) or getattr(norm, "variance_epsilon", None) or 1e-6
     x = x.float()
@@ -37,9 +40,11 @@ def normalize_without_affine(norm: nn.Module, x: torch.Tensor) -> torch.Tensor:
 def site_hooks(
     runner: NeuronHookRunner, layer: int, site: DictionarySite, fn: DictionaryIntervention
 ) -> list:
-    """Hooks for one ``dictionary_interventions`` entry: read x at ``site``, then call
-    ``fn(x, out)`` on the MLP's write to the residual stream, or for ``resid_post`` on the
-    residual stream after the layer, which is also x.
+    """Return the hooks for one ``dictionary_interventions`` entry.
+
+    They read x at ``site``, then call ``fn(x, out)`` on the MLP's write to the residual
+    stream. For ``resid_post``, ``out`` is the residual stream after the layer, which is
+    also x.
     """
     if site == "resid_post":
 
@@ -81,8 +86,9 @@ def site_hooks(
 def dictionary_io(
     runner: NeuronHookRunner, inputs: Inputs, layer: int, site: DictionarySite
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """A dictionary's input at ``site`` and the output it reconstructs (see
-    :func:`site_hooks`), both ``[batch, seq, d]``. The forward pass stops there.
+    """Return a dictionary's input at ``site`` and the output that it reconstructs.
+
+    Both are ``[batch, seq, d]`` (see :func:`site_hooks`). The forward pass stops there.
     """
     captured: list[tuple[torch.Tensor, torch.Tensor]] = []
 

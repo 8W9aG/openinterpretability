@@ -4,7 +4,7 @@
 # a rule each comment or docstring whole and never splits it into sentences. A sentence
 # ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one; a closing quote
 # or bracket may come between. A colon at the end of a line also ends one: it opens a
-# list or a block. Some lines are not prose, so their words do not count: lines indented
+# list or a block. So does the start of a list item (`-` or `*`). Some lines are not prose, so their words do not count: lines indented
 # 4 or more spaces (Vale dedents docstrings, so these are literal blocks, such as a
 # formula or a file layout) and indented command examples (Click help text).
 extends: script
@@ -14,7 +14,7 @@ scope: text
 script: |
   text := import("text")
   matches := []
-  for s in text.re_find(`(?s).*?(?:[.!?]["')\]]*(?:\s|$)|:\n|$)`, scope, -1) {
+  for s in text.re_find(`(?s).*?(?:[.!?]["')\]]*(?:\s|$)|:\n|\n\s*[-*]\s|$)`, scope, -1) {
     literal := `(?m)^(?: {4,}\S| {2,}(?:openinterp|uv|make|git|python) )[^\n]*`
     prose := text.re_replace(literal, s[0].text, "")
     words := text.re_find(`\w+`, prose, -1)

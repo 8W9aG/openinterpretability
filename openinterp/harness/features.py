@@ -1,11 +1,12 @@
 """Scanning and patching one latent of a sparse dictionary (a transcoder or SAE).
 
 A latent's strength is its activation (see :mod:`openinterp.harness.units`). The scan
-reads the dictionary's input at its site in one pass that stops at the feature's layer,
-and counts the same tokens as a neuron scan (see :mod:`scan`), so the top examples,
-histogram and confound profile mean the same thing for every kind of unit. The same
-pass measures how well the whole dictionary reconstructs its output there, leaving
-out each piece's first token, so a record says whether the baseline it belongs to was a
+reads the dictionary's input at its site, in one pass that stops at the feature's layer.
+It counts the same tokens as a neuron scan (see :mod:`scan`). So the top examples,
+histogram and confound profile mean the same for every kind of unit.
+
+The same pass measures how well the whole dictionary reconstructs its output there. It
+leaves out each piece's first token. So a record says whether its baseline was a
 faithful one.
 """
 
@@ -39,6 +40,8 @@ ENCODE_CHUNK = 1024  # tokens encoded through the whole dictionary at once
 
 @dataclass
 class FeatureScanResult(ScanResult):
+    """A latent's scan result, with its :class:`DictionaryProfile`."""
+
     profile: DictionaryProfile | None = None
 
 
@@ -89,7 +92,8 @@ def scan_feature(
     stride: int | None = None,
     taggers: Sequence[Tagger] = (),
 ) -> FeatureScanResult:
-    """Top examples, strengths, confounds and the :class:`DictionaryProfile` of one latent.
+    """Scan one latent: its top examples, strengths, confounds and :class:`DictionaryProfile`.
+
     Each of ``taggers`` labels the counted tokens, and its confound joins the profile's.
     """
     if runner.tokenizer is None:
@@ -135,9 +139,10 @@ def scan_feature(
 def _feature_pass(
     runner, dictionary, spec, layer: int, f: int, pieces, batch_tokens: int, labels: LabelPass
 ):
-    """One pass over ``pieces``: confounds (and ``labels``' counts), top examples, the
-    dictionary's fit, and each counted token's strength and whether it is a piece's first
-    token.
+    """Make one pass over ``pieces``, and return what it measured.
+
+    That is the confounds (and ``labels``' counts), the top examples, and the dictionary's
+    fit. It is also each counted token's strength, and whether it is a piece's first token.
     """
     confounds = ConfoundAccumulator()
     top = TopExamples()
@@ -153,8 +158,8 @@ def _feature_pass(
         values.extend(strengths[counted].tolist())
         first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)
-        # Not a piece's first token: dictionaries aren't trained on that attention sink,
-        # whose error can be 10^8 times the output's variance and would swamp the fit.
+        # Not a piece's first token. Dictionaries aren't trained on that attention sink.
+        # Its error can be 10^8 times the output's variance, and would swamp the fit.
         fitted = (counted & ~batch.first).to(x.device)
         fit.update(dictionary, x[fitted], out[fitted])
     return confounds, top, fit, values, first
@@ -178,11 +183,13 @@ def write_changes(
     base: str,
     cf: str,
 ) -> tuple[Positions, int, torch.Tensor]:
-    """Where to patch and score, and every latent's write change ``|Δa| · |W_dec[f]|`` up
-    to there, in units of the audited latent's activation (so its own entry is ``|Δa|``).
+    """Return where to patch and score, and every latent's write change up to there.
 
-    Latents' decoder norms differ, so comparing writes, as heads do, matches the null
-    latents to the audited one by how much each moves the output they write to.
+    The write change is ``|Δa| · |W_dec[f]|``, in units of the audited latent's activation.
+    So the audited latent's own entry is ``|Δa|``.
+
+    Latents' decoder norms differ. So comparing writes, as heads do, matches the null
+    latents to the audited one by how much each moves the output that they write to.
     """
     a_b, a_c = (latent_activations(runner, dictionary, t, ident.layer, site) for t in (base, cf))
     norms = dictionary.w_dec.norm(dim=-1)
@@ -208,12 +215,13 @@ def patch_features(
     freeze_downstream: bool = False,
     batch_size: int = 8,
 ) -> list[float]:
-    """``effect`` of patching each latent's activation, one at a time, from source into
-    target: the dictionary's output (the MLP's, or the residual stream) gains
+    """``effect`` of patching each latent's activation, one at a time, from source into target.
+
+    The dictionary's output (the MLP's, or the residual stream) gains
     ``(a_source − a_target) · W_dec[f]``.
 
-    The dictionary counterpart of :meth:`ActivationPatcher.patch_many`: each latent gets
-    its own row of a batch, and later MLP outputs can be frozen against self-repair.
+    The dictionary counterpart of :meth:`ActivationPatcher.patch_many`. Each latent gets
+    its own row of a batch. Later MLP outputs can be frozen against self-repair.
     """
     from openinterp.harness.patcher import ActivationPatcher
 

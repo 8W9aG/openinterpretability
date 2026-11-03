@@ -1,23 +1,23 @@
 """Published sparse dictionaries (transcoders, SAEs) whose latents can be audited.
 
-The learned-basis baseline for the native-neuron premise: audit randomly chosen latents
-of a dictionary trained on the same layers, under the same protocol, and compare the
-share VERIFIED with native neurons' (Dunefsky et al., 2024, arXiv:2406.11944; Paulo et
-al., 2025, arXiv:2501.18823).
+This is the learned-basis baseline for the native-neuron premise. Audit randomly chosen
+latents of a dictionary trained on the same layers, under the same protocol. Then compare
+the share VERIFIED with native neurons' (Dunefsky et al., 2024, arXiv:2406.11944; Paulo
+et al., 2025, arXiv:2501.18823).
 
 A preset (:data:`DICTIONARIES`) names a dictionary family: where its per-layer weights
 live and how to read them. A submission pins the exact file in its
-:class:`~openinterp.core.schemas.DictionaryProfile`, which is all a later measurement
-reads, so changing a preset never changes an old record.
+:class:`~openinterp.core.schemas.DictionaryProfile`. A later measurement reads only
+that, so changing a preset never changes an old record.
 
-Weights are one safetensors or NumPy ``.npz`` file per layer with ``W_enc``
-``[d_in, n]``, ``b_enc`` ``[n]``, ``W_dec`` ``[n, d_out]``, ``b_dec`` ``[d_out]`` (and
-``threshold`` ``[n]`` for JumpReLU). Matrices stored the other way round are transposed on
-load. An OpenMOSS ``lm_sae`` checkpoint (``encoder.weight`` …, with ``hyperparams.json``
-beside its ``checkpoints/`` directory, as Llama Scope ships) is converted on load; see
-:func:`_from_lm_sae`. A skip transcoder also has ``W_skip`` ``[d_out, d_in]``, a linear
-map from its input that it adds to its reconstruction (circuit-tracer's convention); a
-latent's write doesn't include it.
+Weights are one safetensors or NumPy ``.npz`` file per layer. The arrays are ``W_enc``
+``[d_in, n]``, ``b_enc`` ``[n]``, ``W_dec`` ``[n, d_out]`` and ``b_dec`` ``[d_out]``.
+JumpReLU also has ``threshold`` ``[n]``. Matrices stored the other way round are
+transposed on load. An OpenMOSS ``lm_sae`` checkpoint (``encoder.weight`` …, with
+``hyperparams.json`` beside its ``checkpoints/`` directory, as Llama Scope ships) is
+converted on load; see :func:`_from_lm_sae`. A skip transcoder also has ``W_skip``
+``[d_out, d_in]``. This is a linear map from its input that it adds to its
+reconstruction (circuit-tracer's convention). A latent's write doesn't include it.
 """
 
 from __future__ import annotations
@@ -51,13 +51,15 @@ class DictionarySpec:
     context_tokens: int | None = None
     reference: str = ""
     # Neuronpedia's source for a layer (``{model}/{layer}-{set}``), where it hosts these
-    # same latents under the same indices; ``None`` where it doesn't or that's unchecked.
+    # same latents under the same indices. ``None`` where it doesn't, or where unchecked.
     neuronpedia: str | None = None
 
     def neuronpedia_source(self, layer: int) -> str | None:
+        """Neuronpedia's source for ``layer``, or ``None`` where it hosts none."""
         return self.neuronpedia.format(layer=layer) if self.neuronpedia else None
 
     def file(self, layer: int) -> str:
+        """The weights file of ``layer``; raises ValueError for a layer not covered."""
         if layer not in self.layers:
             raise ValueError(f"the dictionary has no layer {layer}; it covers {self.layers}")
         if isinstance(self.path, Mapping):
@@ -66,16 +68,18 @@ class DictionarySpec:
 
 
 DICTIONARIES: dict[str, DictionarySpec] = {
-    # Checked against openai-community/gpt2 at layer 8: on 16 corpus documents the
-    # dictionary explains 66% of the MLP output's variance with ~69 active latents per
-    # token when it reads the LayerNorm-standardised input, and nothing when it reads the
-    # MLP's (affine) input, which is why the site matters. Read through position 128 the
-    # fit holds (layers 0–2: 45–90% of variance), then falls; past position ~200 it goes
-    # negative there (−154% at layer 2 over 512-token windows), so scans use 128-token
-    # windows, as if the dictionaries were trained on 128-token contexts. Neuronpedia's
-    # tres-dc are these latents: on the top example of 24 latents across layers 2–11, each
-    # peaks on the same token here as there (activations correlate at 0.94–1.0; the peak's
-    # size differs because Neuronpedia's snippets are cut from longer contexts).
+    # Checked against openai-community/gpt2 at layer 8, on 16 corpus documents. When it
+    # reads the LayerNorm-standardised input, the dictionary explains 66% of the MLP
+    # output's variance, with ~69 active latents per token. When it reads the MLP's
+    # (affine) input, it explains nothing. That is why the site matters.
+    # Read through position 128, the fit holds (layers 0–2: 45–90% of variance), then
+    # falls. Past position ~200, it goes negative (−154% at layer 2 over 512-token
+    # windows). So scans use 128-token windows, as if the dictionaries were trained on
+    # 128-token contexts.
+    # Neuronpedia's tres-dc are these latents. We took the top example of 24 latents
+    # across layers 2–11. Each peaks on the same token here as there (activations
+    # correlate at 0.94–1.0). The peak's size differs, because Neuronpedia's snippets are
+    # cut from longer contexts.
     "gpt2-small-transcoders": DictionarySpec(
         model_name="openai-community/gpt2",
         kind="transcoder",
@@ -92,11 +96,12 @@ DICTIONARIES: dict[str, DictionarySpec] = {
     # token left out, and found the fit flat with position. Each site was the only one of
     # resid_mid, mlp_in and mlp_in_normalized that fit; the others explain less than 0.
     #
-    # Read at mlp_in_normalized: 63% of the MLP output's variance at layer 5 with 88 active
-    # latents per token (the file says 87) and 32% at layer 12 (L0 6). Gemma 2 normalises
-    # its MLP's output before adding it to the residual stream, and the transcoders
-    # reconstruct that normalised output: against the down projection's output, the fit is
-    # −180. These are the lowest-L0 transcoders circuit-tracer uses, layer by layer.
+    # Read at mlp_in_normalized, they explain 63% of the MLP output's variance at layer
+    # 5, with 88 active latents per token (the file says 87). At layer 12 it is 32% (L0
+    # 6). Gemma 2 normalises its MLP's output before adding it to the residual stream.
+    # The transcoders reconstruct that normalised output. Against the down projection's
+    # output, the fit is −180. These are the lowest-L0 transcoders circuit-tracer uses,
+    # layer by layer.
     "gemma-scope-2b-transcoders": DictionarySpec(
         model_name="google/gemma-2-2b",
         kind="transcoder",
@@ -115,8 +120,9 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         context_tokens=1024,
         reference="Lieberum et al., 2024, arXiv:2408.05147",
     ),
-    # An MLP-output SAE: 70% of the variance at layer 5 (L0 114), 63% at layer 12 (L0
-    # 113), reading the normalised output Gemma 2 adds to the residual stream; read
+    # An MLP-output SAE. It reads the normalised output that Gemma 2 adds to the residual
+    # stream. It explains 70% of the variance at layer 5 (L0 114), 63% at layer 12 (L0
+    # 113). Read
     # before that norm, the fit is −14. Each layer has Gemma Scope's canonical 16k SAE,
     # the one whose L0 is closest to 100 (Neuronpedia's gemmascope-mlp-16k).
     "gemma-scope-2b-mlp-saes": DictionarySpec(
@@ -139,8 +145,8 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         neuronpedia="gemma-2-2b/{layer}-gemmascope-mlp-16k",
     ),
     # A residual-stream SAE, reading and writing the residual stream after each layer
-    # (hook_resid_post): 76–93% of its variance at layers 0, 5, 12, 20 and 25 with L0
-    # 65–116; read one step earlier, before the MLP (resid_mid), the fit is −3 to −8.
+    # (hook_resid_post). It explains 76–93% of its variance at layers 0, 5, 12, 20 and 25,
+    # with L0 65–116. Read one step earlier, before the MLP (resid_mid), the fit is −3 to −8.
     # Gemma Scope's canonical 16k SAEs, as for the MLP SAEs (Neuronpedia's
     # gemmascope-res-16k). A latent here isn't an MLP unit: compared with native neurons,
     # it is a different site, not only a different basis.
@@ -164,17 +170,19 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         neuronpedia="gemma-2-2b/{layer}-gemmascope-res-16k",
     ),
     # Llama Scope (He et al., 2024, arXiv:2410.20526): top-k SAEs and transcoders for
-    # Llama-3.1-8B, converted to JumpReLU, in OpenMOSS's lm_sae format (see _from_lm_sae).
-    # Read as Neuronpedia reads them: on the sentence "The quick brown fox jumps over the
-    # lazy dog. Paris is the capital of France.", L15R latents 1791 and 2290 fire on the
-    # same tokens with the same values as Neuronpedia's 15-llamascope-res-32k, to bf16
-    # precision. At layer 15 that reading fits 4 points worse than taking θ unscaled
-    # (residual: 62.8% vs 66.5%), with L0 33 instead of 228; the scaling, measured on the
-    # corpus, matches the hyperparameters' (resid_post 10.80 vs 10.81, mlp_out 5.34 vs
-    # 5.28). Over layers 0, 8, 15, 24 and 31 through position 1024 the residual SAEs fit
-    # 54–86%, the MLP SAEs 30–84% (weakest mid-network) and the transcoders, reading
-    # mlp_in_normalized as their hook_point_in says, 44–87%, the best of the three input
-    # sites at every layer. Fits fall 2–8 points from the first 256 positions to 512–1024.
+    # Llama-3.1-8B, converted to JumpReLU. They are in OpenMOSS's lm_sae format (see
+    # _from_lm_sae). We read them as Neuronpedia reads them. On one test sentence, L15R
+    # latents 1791 and 2290 fire on the same tokens as Neuronpedia's
+    # 15-llamascope-res-32k. Their values are the same, to bf16 precision. The sentence
+    # is "The quick brown fox jumps over the lazy dog. Paris is the capital of France."
+    # At layer 15, that reading fits 4 points worse than taking θ unscaled (residual:
+    # 62.8% vs 66.5%), with L0 33 instead of 228. The scaling, measured on the corpus,
+    # matches the hyperparameters' (resid_post 10.80 vs 10.81, mlp_out 5.34 vs 5.28).
+    # We read layers 0, 8, 15, 24 and 31 through position 1024. The residual SAEs fit
+    # 54–86%, and the MLP SAEs 30–84% (weakest mid-network). The transcoders fit 44–87%,
+    # reading mlp_in_normalized as their hook_point_in says. That is the best of the three
+    # input sites at every layer. Fits fall 2–8 points from the first 256 positions to
+    # 512–1024.
     # The 8x (32k-latent) dictionaries, which the Llama Scope README recommends.
     "llama-scope-8b-res-saes": DictionarySpec(
         model_name="meta-llama/Llama-3.1-8B",
@@ -243,7 +251,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
         reference="circuit-tracer, github.com/safety-research/circuit-tracer",
     ),
     # No public dictionary covers Qwen2.5-0.5B, so these were trained here, with
-    # scripts/train_transcoders.py on 13.5M pile-10k tokens that leave out the scan
+    # scripts/train_transcoders.py. They used 13.5M pile-10k tokens, without the scan
     # corpus's documents. They fit 59–93% of the scan corpus's MLP output (L0 ~32);
     # without the skip path, at most 34%. The card is in hf_models/.
     "qwen2.5-0.5b-transcoders": DictionarySpec(
@@ -262,6 +270,7 @@ DICTIONARIES: dict[str, DictionarySpec] = {
 
 
 def dictionary_spec(name: str) -> DictionarySpec:
+    """The preset named ``name``; raises ValueError for an unknown name."""
     try:
         return DICTIONARIES[name]
     except KeyError:
@@ -284,6 +293,7 @@ class Dictionary:
 
     @property
     def n_features(self) -> int:
+        """The number of latents."""
         return self.w_enc.shape[1]
 
     def _input(self, x: torch.Tensor) -> torch.Tensor:
@@ -300,18 +310,22 @@ class Dictionary:
         return self._activate(self._input(x) @ self.w_enc + self.b_enc, self.threshold)
 
     def feature(self, x: torch.Tensor, f: int | torch.Tensor) -> torch.Tensor:
-        """Latent ``f``'s activation ``[...]`` (``[..., k]`` for a tensor of k indices),
-        without encoding the rest.
+        """Return latent ``f``'s activation ``[...]``, without encoding the rest.
+
+        For a tensor of k indices, it is ``[..., k]``.
         """
         pre = self._input(x) @ self.w_enc[:, f] + self.b_enc[f]
         return self._activate(pre, None if self.threshold is None else self.threshold[f])
 
     def decode(self, acts: torch.Tensor) -> torch.Tensor:
+        """The decoder's output for latent activations ``acts``, without the skip path."""
         return acts @ self.w_dec + self.b_dec
 
     def reconstruct(self, x: torch.Tensor, acts: torch.Tensor | None = None) -> torch.Tensor:
-        """The dictionary's estimate of its output from its input ``x`` (whose latent
-        activations are ``acts``, if already encoded), with any skip connection.
+        """Return the dictionary's estimate of its output from its input ``x``.
+
+        ``acts`` are the latent activations of ``x``, if already encoded. Any skip
+        connection is included.
         """
         out = self.decode(self.encode(x) if acts is None else acts)
         if self.w_skip is not None:
@@ -356,8 +370,9 @@ def _from_lm_sae(w: dict[str, torch.Tensor], hyperparams: dict) -> dict[str, tor
 
     lm_sae scales its input by ``s_in = sqrt(d) / dataset_average_activation_norm["in"]``
     and its reconstruction back by ``s_out``, and has one ``jump_relu_threshold`` θ.
-    Neuronpedia (through SAELens) reads it with a latent active where its pre-activation
-    ``h = s_in·x·W_enc + b_enc`` exceeds ``θ·s_in``, at strength ``h·‖W_dec[f]‖ / s_in``.
+    Neuronpedia (through SAELens) reads a latent as active where its pre-activation
+    ``h = s_in·x·W_enc + b_enc`` exceeds ``θ·s_in``. Its strength is then
+    ``h·‖W_dec[f]‖ / s_in``.
     Folding those into the weights gives the same activations, so a latent here reads as
     it does there.
     """
