@@ -77,8 +77,8 @@ def activations(
 ):
     """Per-token pole strengths of one neuron over the scan corpus.
 
-    Reads the layer's cached scan when there is one (an audit of any neuron in the
-    layer, with the same corpus options, stores it), else scans and caches the layer.
+    Reads the layer's cached scan when there is one, else scans and caches the layer.
+    An audit of any neuron in the layer, with the same corpus options, stores that scan.
     Each token counts once, as in the audit's histogram. Use this rather than writing
     a scan loop: e.g. every occurrence of a token with --token ' the' --top 0.
     """

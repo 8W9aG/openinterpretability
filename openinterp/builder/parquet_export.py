@@ -1,14 +1,20 @@
 """Bundle every experiment into a columnar registry for bulk analysis.
 
 One row per experiment, whatever its verdict. ``unit_status`` is the standing of the row's
-neuron pole, head or feature (``docs/PROTOCOL.md`` §3 step 9; CONTESTED when its reviews
-disagree), repeated on each of its rows, and ``counts_toward_status`` marks the rows it
-rests on. ``is_latest`` marks the newest experiment for each, which is not necessarily one
-of those. ``kind`` tells the units apart: a
-neuron pole row has ``neuron_idx`` and ``pole``, an attention head row ``head_idx``, and a
-dictionary feature row (the learned-basis baseline) ``dictionary`` and ``feature_idx``.
-Filter on ``kind`` before computing native-neuron statistics. Writes
-two copies of the same table:
+neuron pole, head or feature (``docs/PROTOCOL.md`` §3 step 9). It is CONTESTED when the
+unit's reviews disagree, and is repeated on each of its rows. ``counts_toward_status``
+marks the rows that the standing rests on. ``is_latest`` marks the newest experiment for
+each unit, which is not necessarily one of those.
+
+``kind`` tells the units apart:
+
+- A neuron pole row has ``neuron_idx`` and ``pole``.
+- An attention head row has ``head_idx``.
+- A dictionary feature row (the learned-basis baseline) has ``dictionary`` and
+  ``feature_idx``.
+
+Filter on ``kind`` before computing native-neuron statistics. Writes two copies of the
+same table:
 
 * ``data/registry.parquet`` -- stable URL, always the latest build (short cache).
 * ``data/snapshots/registry-<sha256>.parquet`` -- content-addressed, cached forever.
@@ -134,6 +140,7 @@ REGISTRY_SCHEMA = pa.schema(
 
 
 def record_to_row(record: AuditRecord) -> dict:
+    """The registry columns that come from ``record`` alone."""
     sub = record.submission
     return {
         **_unit_columns(sub.identifier),
@@ -234,8 +241,12 @@ DICTIONARY_COLUMNS = {
 
 
 def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
-    """``corpus_sources``: committed sidecars by SHA-256 (:func:`openinterp.corpus.load_sources`),
-    which give the corpus of records that didn't record one, marked as inferred."""
+    """Return one experiment's row.
+
+    ``corpus_sources`` is committed sidecars by SHA-256
+    (:func:`openinterp.corpus.load_sources`). They give the corpus of records that didn't
+    record one, marked as inferred.
+    """
     sub, verdict = exp.record.submission, exp.record.verdict
     metrics, scores = verdict.metrics, verdict.explanation_scores
     top = sub.correlated_neurons[0] if sub.correlated_neurons else None
@@ -302,6 +313,7 @@ def _balanced(score) -> float | None:
 
 
 def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources = None) -> pa.Table:
+    """The registry table: one row per experiment, in a fixed order."""
     rows = sorted(
         (experiment_row(e, corpus_sources) for e in experiments),
         key=lambda row: (

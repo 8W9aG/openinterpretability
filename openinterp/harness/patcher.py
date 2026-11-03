@@ -9,10 +9,10 @@ Two directions are supported:
   from the corrupted run (a resample ablation). The normalised movement towards
   the corrupted behaviour measures *necessity*.
 
-Only the requested pole is swapped; the opposite pole keeps its own value. With
-``freeze_downstream=True`` the outputs of every later MLP are pinned to their
-values from the unpatched run, which blocks MLP-mediated self-repair (the "hydra
-effect") so that the measured effect is closer to the neuron's direct effect.
+Only the requested pole is swapped. The opposite pole keeps its own value. With
+``freeze_downstream=True``, the outputs of every later MLP are pinned to their values
+from the unpatched run. This blocks MLP-mediated self-repair (the "hydra effect"), so
+the measured effect is closer to the neuron's direct effect.
 """
 
 from __future__ import annotations
@@ -35,6 +35,8 @@ Positions = Literal["all", "last"]
 
 
 class NeuronRef(Protocol):
+    """Anything that names one neuron pole."""
+
     layer: int
     neuron_idx: int
     pole: Pole
@@ -46,6 +48,7 @@ def token_logit_metric(token_id: int, position: int = -1) -> Metric:
 
 
 def logit_diff_metric(correct_id: int, incorrect_id: int, position: int = -1) -> Metric:
+    """Logit of ``correct_id`` minus logit of ``incorrect_id`` at ``position`` (batch mean)."""
     return lambda logits: (
         logits[:, position, correct_id] - logits[:, position, incorrect_id]
     ).mean()
@@ -103,6 +106,7 @@ class PatchResult:
 
     @property
     def metric_delta(self) -> float:
+        """The patched metric minus the baseline metric."""
         return self.patched_metric - self.baseline_metric
 
     @property
@@ -113,19 +117,25 @@ class PatchResult:
 
 @dataclass(frozen=True)
 class AblationResult:
+    """The patch results of one ablation over several source prompts."""
+
     per_source: list[PatchResult] = field(default_factory=list)
 
     @property
     def mean_metric_delta(self) -> float:
+        """The mean metric delta over the source prompts."""
         return sum(r.metric_delta for r in self.per_source) / len(self.per_source)
 
     @property
     def mean_recovery(self) -> float:
+        """The mean recovery over the prompts where it is defined; NaN when none is."""
         finite = [r.recovery for r in self.per_source if math.isfinite(r.recovery)]
         return sum(finite) / len(finite) if finite else math.nan
 
 
 class ActivationPatcher:
+    """Patch one neuron pole's activation between two runs (see the module docstring)."""
+
     def __init__(self, runner: NeuronHookRunner) -> None:
         self.runner = runner
 

@@ -1,22 +1,23 @@
 """Jacobian lens readings of a neuron pole's output direction.
 
-The Jacobian lens (Gurnee et al., 2026, "Verbalizable Representations Form a Global
-Workspace in Language Models", arXiv:2607.15495) decodes a layer-ℓ residual vector h as
+The Jacobian lens is from Gurnee et al., 2026, "Verbalizable Representations Form a
+Global Workspace in Language Models" (arXiv:2607.15495). It decodes a layer-ℓ residual
+vector h as follows:
 
     lens(h) = softmax(W_U · norm(J_ℓ h)),   J_ℓ = E[∂h_final,t' / ∂h_ℓ,t]
 
-averaged over source positions t, every later position t' ≥ t, and a corpus of
+The average is over source positions t, every later position t' ≥ t, and a corpus of
 prompts. The logit lens is the special case J_ℓ = I. The two agree in late layers and
 diverge earlier, where the logit lens is unreliable.
 
 For one neuron we only need J_ℓ w for its output direction w, not the full matrix.
-Adding ε·w to the residual at *every* position changes the final residual at t' by
-Σ_{t ≤ t'} J_{t,t'} w to first order (the causal mask stops later positions acting
-on earlier ones). Summing that over t' and dividing by the number of (t, t') pairs
-gives the paper's average from one perturbed pass per sign (central differences).
+Add ε·w to the residual at *every* position. To first order, this changes the final
+residual at t' by Σ_{t ≤ t'} J_{t,t'} w. (The causal mask stops later positions acting on
+earlier ones.) Sum that over t', and divide by the number of (t, t') pairs. This gives
+the paper's average from one perturbed pass per sign (central differences).
 
-The average includes pairs where t' > t contributes nothing, so its overall scale
-shrinks with context length (at the last layer it is I · 2/(seq+1)). Every reading
+The average includes pairs where t' > t contributes nothing. So its overall scale
+shrinks with context length: at the last layer it is I · 2/(seq+1). Every reading
 we take (top-k ranking, cosine, kurtosis) is scale-invariant.
 """
 
@@ -87,8 +88,11 @@ def transported_direction(
 
 
 def _through_final_norm(runner: NeuronHookRunner, vector: torch.Tensor) -> torch.Tensor:
-    """Apply the final norm's direction-relevant part: centring for LayerNorm and the
-    gain. The bias is a constant offset, unrelated to the direction, so it is dropped."""
+    """Apply the part of the final norm that affects a direction.
+
+    That is centring for LayerNorm, and the gain. The bias is a constant offset,
+    unrelated to the direction, so it is dropped.
+    """
     norm = runner.final_norm()
     v = vector.float()
     if isinstance(norm, nn.LayerNorm):
@@ -134,8 +138,10 @@ def direction_lens(
     *,
     k: int = 10,
 ) -> VocabularyLens:
-    """Read any vector written after ``layer``'s MLP (a pole's, or a dictionary latent's
-    decoder row) through both lenses."""
+    """Read any vector written after ``layer``'s MLP through both lenses.
+
+    The vector is a pole's output direction, or a dictionary latent's decoder row.
+    """
     direction = direction.float()
     transported = transported_direction(runner, prompts, layer, direction)
 

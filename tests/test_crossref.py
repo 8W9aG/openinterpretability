@@ -1,5 +1,8 @@
-"""Dictionary latents aligned with neuron poles (`openinterp crossref`), on a random GPT-2
-and Qwen2 with planted latents stored locally (no download)."""
+"""Dictionary latents aligned with neuron poles (`openinterp crossref`).
+
+The models are a random GPT-2 and Qwen2, with planted latents stored locally (no
+download).
+"""
 
 import pytest
 import torch
@@ -62,8 +65,10 @@ def gpt2_runner(tiny_gpt2):
 
 @pytest.fixture
 def planted(tmp_path, monkeypatch, gpt2_runner):
-    """A transcoder on GPT-2's normalised MLP input whose latent PLANTED writes neuron
-    NEURON's w_out and reads what it reads."""
+    """A transcoder on GPT-2's normalised MLP input, with one planted latent.
+
+    Its latent PLANTED writes neuron NEURON's w_out, and reads what the neuron reads.
+    """
     torch.manual_seed(3)
     block = gpt2_runner.layers[1]
     w_enc, w_dec = torch.randn(32, N_FEATURES), torch.randn(N_FEATURES, 32)

@@ -1,12 +1,13 @@
 """The agents page: per agent model and role, its experiments, VERIFIED rate and costs.
 
-A model takes part in an experiment as its proposer (``submitting_agent_model``), its
-reviewer (``reviewer_agent_model``) or the judge that scored its explanation. Self-reviewed
-experiments (the proposer's model also wrote the probes) are counted apart from the rate,
-since a model passing its own probes inflates it.
+A model takes part in an experiment in one of three roles. It is the proposer
+(``submitting_agent_model``), the reviewer (``reviewer_agent_model``), or the judge that
+scored the explanation. Self-reviewed experiments are counted apart from the rate. In
+them, the proposer's model also wrote the probes. A model that passes its own probes
+inflates the rate.
 
-Records spell one model several ways, so pages are per canonical name
-(:func:`openinterp.core.agent_names.canonical_agent`), and each old per-spelling page
+Records spell one model in several ways. So pages are per canonical name
+(:func:`openinterp.core.agent_names.canonical_agent`). Each old per-spelling page
 redirects to its model's page (:func:`legacy_redirects`).
 
 The same page credits the people who ran the agents, by the ``contributor`` handle a
@@ -38,17 +39,22 @@ def agent_slug(model: str) -> str:
 
 
 def agent_href(model: str) -> str:
+    """The agent page of ``model``, by its canonical name."""
     return f"agents/{agent_slug(model)}.html"
 
 
 def legacy_href(model: str) -> str:
-    """The page a recorded spelling had before spellings were merged:
-    ``external/deepseek-flash[1m]`` → ``agents/external-deepseek-flash-1m.html``."""
+    """Return the page that a recorded spelling had before spellings were merged.
+
+    For example, ``external/deepseek-flash[1m]`` → ``agents/external-deepseek-flash-1m.html``.
+    """
     return f"agents/{_slug(model)}.html"
 
 
 @dataclass
 class RoleStats:
+    """One agent's experiments in one role, and how many were VERIFIED."""
+
     role: str
     experiments: int = 0
     verified: int = 0
@@ -58,16 +64,21 @@ class RoleStats:
 
     @property
     def independent(self) -> int:
+        """Experiments that another model reviewed."""
         return self.experiments - self.self_reviewed
 
     @property
     def independent_verified(self) -> int:
+        """VERIFIED experiments that another model reviewed."""
         return self.verified - self.self_verified
 
     @property
     def rate(self) -> float | None:
-        """VERIFIED / experiments, over independent reviews only. A judge scores
-        explanations after the verdict, so its experiments' verdicts aren't its rate."""
+        """VERIFIED / experiments, over independent reviews only.
+
+        A judge scores explanations after the verdict, so its experiments' verdicts aren't
+        its rate.
+        """
         if self.role == "judge" or not self.independent:
             return None
         return self.independent_verified / self.independent
@@ -75,6 +86,8 @@ class RoleStats:
 
 @dataclass
 class AgentView:
+    """One agent model's page: its roles, spellings and recent experiments."""
+
     model: str  # canonical name
     href: str
     roles: dict[str, RoleStats] = field(default_factory=dict)
@@ -84,10 +97,12 @@ class AgentView:
 
     @property
     def role_rows(self) -> list[RoleStats]:
+        """The agent's roles in ``ROLE_ORDER``."""
         return [self.roles[r] for r in ROLE_ORDER if r in self.roles]
 
     @property
     def note(self) -> str | None:
+        """The page's note on this model (for example, a remapped name), if any."""
         return NOTES.get(self.model)
 
     @property
@@ -182,8 +197,10 @@ class ContributorStats:
 
 
 def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStats]:
-    """One row per recorded contributor, most experiments and reviews first. Records
-    without a contributor (all before it was recorded) count for nobody."""
+    """Return one row per recorded contributor, most experiments and reviews first.
+
+    Records without a contributor (all before it was recorded) count for nobody.
+    """
     people: dict[str, ContributorStats] = {}
     for e in experiments:
         sub, verdict = e.record.submission, e.record.verdict

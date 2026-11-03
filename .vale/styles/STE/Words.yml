@@ -1,0 +1,30 @@
+# The banned-word list: words outside the STE dictionary, each with an approved word to
+# use. Our own list, not the ASD dictionary: ASD-STE100 Issue 9 forbids reproduction of
+# it without ASD's written authority (TODO.md, Code quality and tooling).
+# Technical names ("pole", "probe", "verdict", "scan") are allowed; the commenting skill
+# lists them.
+extends: substitution
+message: "Use '%s', not '%s'."
+level: error
+ignorecase: true
+swap:
+  accomplish: do
+  additional: more
+  approximately: about
+  commence: start
+  consequently: so
+  demonstrate: show
+  facilitate: help
+  in order to: to
+  leverage: use
+  numerous: many
+  obtain: get
+  perform: do
+  prior to: before
+  subsequently: then
+  sufficient: enough
+  terminate: stop
+  thus: so
+  utili[sz]e: use
+  via: through
+  whilst: while

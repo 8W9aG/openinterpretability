@@ -1,15 +1,17 @@
 """Cross-reference neuron poles with published dictionaries (`openinterp crossref`).
 
-For every neuron pole in the archive whose model has a dictionary preset covering its
-layer, the latents whose decoder aligns with the pole's write and whose encoder aligns
-with its read (:mod:`openinterp.harness.crossref`). Rows go to
-``docs/analyses/dictionary-alignment.jsonl``, one per pole and dictionary. They name the
-dictionary and each latent's index only: a latent's description lives with the
-dictionary's host (Neuronpedia, where :attr:`DictionarySpec.neuronpedia` says it has
-them) or in this registry if the latent was audited here, and is looked up when shown.
+This takes every neuron pole in the archive whose model has a dictionary preset for its
+layer. It finds the latents whose decoder aligns with the pole's write, and whose encoder
+aligns with its read (:mod:`openinterp.harness.crossref`). Rows go to
+``docs/analyses/dictionary-alignment.jsonl``, one per pole and dictionary.
 
-Agreement between a pole's explanation and an aligned latent's is supporting evidence;
-disagreement is something for the reviewer to probe (`openinterp review
+A row names only the dictionary and each latent's index. A latent's description is with
+the dictionary's host, or in this registry if the latent was audited here. The host is
+Neuronpedia, where :attr:`DictionarySpec.neuronpedia` says it has them. The description
+is looked up when shown.
+
+Agreement between a pole's explanation and an aligned latent's is supporting evidence.
+Disagreement is something for the reviewer to probe (`openinterp review
 --dictionary-latents`). Neither is gated.
 """
 
@@ -29,14 +31,19 @@ NEURONPEDIA = "https://www.neuronpedia.org"
 
 
 class LatentMatch(StrictModel):
+    """One latent of a dictionary, and how well it aligns with the pole."""
+
     feature_idx: int
     cosine: float
     channel: str | None = None  # the neuron's read channel (gate, up, in), for a read
 
 
 class AlignmentSide(StrictModel):
-    """One side's best matches, by |cosine|, with what a random direction reaches
-    (``chance``) and the share of the layer's neurons whose best match is weaker."""
+    """One side's best matches, by |cosine|.
+
+    ``chance`` is what a random direction reaches. Also the share of the layer's neurons
+    whose best match is weaker.
+    """
 
     matches: list[LatentMatch]
     chance: float
@@ -44,10 +51,14 @@ class AlignmentSide(StrictModel):
 
 
 class AlignmentRow(StrictModel):
-    """One pole against one dictionary. ``writes`` compares each latent's decoder row with
-    the pole's write (+: the latent writes what the pole writes); ``reads`` its encoder
-    with the neuron's reads (+: the latent reads what raises the neuron's pre-activation),
-    ``None`` for a dictionary that doesn't read the MLP's input."""
+    """One pole against one dictionary.
+
+    ``writes`` compares each latent's decoder row with the pole's write. + means that the
+    latent writes what the pole writes. ``reads`` compares each latent's encoder with the
+    neuron's reads. + means that the latent reads what raises the neuron's
+    pre-activation. ``reads`` is ``None`` for a dictionary that doesn't read the MLP's
+    input.
+    """
 
     slug: str
     dictionary: str
@@ -72,6 +83,7 @@ def load_rows(path: Path | None = DEFAULT_PATH) -> dict[str, list[AlignmentRow]]
 
 
 def dictionaries_for(model_name: str, layer: int) -> list[str]:
+    """The dictionary presets that cover ``layer`` of ``model_name``, sorted by name."""
     from openinterp.harness.dictionaries import DICTIONARIES
 
     return sorted(
@@ -95,8 +107,11 @@ def _poles(records: Iterable[AuditRecord]) -> dict[str, tuple[NeuronIdentifier, 
 
 
 def _todo(records: Iterable[AuditRecord], out: Path):
-    """``({(model, dictionary, layer): poles}, {model: revision})`` for the pairs ``out``
-    has no row for. A model is read at the revision its records pin most often."""
+    """Return ``({(model, dictionary, layer): poles}, {model: revision})`` still to do.
+
+    These are the pairs that ``out`` has no row for. A model is read at the revision that
+    its records pin most often.
+    """
     done = {(r.slug, r.dictionary) for rows in load_rows(out).values() for r in rows}
     todo: dict[tuple[str, str, int], list[NeuronIdentifier]] = defaultdict(list)
     revisions: dict[str, Counter] = defaultdict(Counter)
@@ -116,8 +131,10 @@ def crossref(
     k: int = 5,
     echo: Callable[[str], None] = print,
 ) -> int:
-    """Append a row to ``out`` for each pole and covering dictionary without one yet,
-    loading each model once. Returns how many rows it wrote."""
+    """Append a row to ``out`` for each pole and covering dictionary without one yet.
+
+    Loads each model once. Returns how many rows it wrote.
+    """
     from openinterp.core.exceptions import ArchitectureNotSupportedError
     from openinterp.harness.crossref import align_layer
     from openinterp.harness.dictionaries import dictionary_spec
@@ -179,6 +196,7 @@ def sort_rows(path: Path) -> None:
 
 
 def layer_of(row: AlignmentRow) -> int:
+    """The layer of the pole that ``row`` is about, read from its slug."""
     return int(row.slug.split("/L")[1].split("/")[0])
 
 
@@ -194,8 +212,10 @@ def neuronpedia_url(row: AlignmentRow, feature_idx: int, *, api: bool = False) -
 
 
 def neuronpedia_description(row: AlignmentRow, feature_idx: int, timeout: float = 20):
-    """The latent's first Neuronpedia explanation, or ``None`` if it has none or the
-    request fails."""
+    """Return the latent's first Neuronpedia explanation.
+
+    ``None`` if it has none or the request fails.
+    """
     url = neuronpedia_url(row, feature_idx, api=True)
     if url is None:
         return None
@@ -222,8 +242,11 @@ def describe(
     fetch: Callable = neuronpedia_description,
     min_percentile: float = 0.0,
 ) -> list[dict]:
-    """Each aligned latent of ``rows`` with its description: the registry's explanation
-    (``registry`` maps feature slugs to it) or else Neuronpedia's."""
+    """Return each aligned latent of ``rows`` with its description.
+
+    The description is the registry's explanation (``registry`` maps feature slugs to it),
+    or else Neuronpedia's.
+    """
     registry = registry or {}
     out = []
     for row in rows:
@@ -264,8 +287,11 @@ def registry_explanations(records: Iterable[AuditRecord]) -> dict[str, str]:
 
 
 def format_for_reviewer(described: list[dict]) -> str:
-    """Aligned latents for the reviewer's prompt: what published dictionaries say a
-    latent with this pole's weights does. Only latents above chance are listed."""
+    """Return aligned latents for the reviewer's prompt.
+
+    They say what published dictionaries think a latent with this pole's weights does.
+    Only latents above chance are listed.
+    """
     lines = []
     for d in described:
         if not d["description"]:

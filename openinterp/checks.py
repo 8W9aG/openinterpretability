@@ -4,20 +4,20 @@ An experiment is posted as an archived record ``<id>.json`` plus its page ``<id>
 in ``wiki/experiments/<slug>/``. A neuron may have any number of experiments. The
 checks enforce that:
 
-1. every archived record validates, has a verdict, and sits at the path its neuron
-   slug and experiment id dictate;
-2. every record has its page and every page its record, and the page's front matter
-   matches the record;
-   a record that ``supersedes`` another names an earlier experiment on the same unit;
-3. the retired ``audits/`` directory holds no records (import them with
-   ``openinterp wiki --import-dir audits``);
-4. with ``base_ref``, existing experiment pages were not deleted or edited outside
-   their Discussion section, archived records were not touched (write-once), and no
-   generated index (``README.md``) was committed, and records added since name their
+1. Every archived record validates, has a verdict, and sits at the path that its
+   neuron slug and experiment id give.
+2. Every record has its page, and every page has its record. The page's front matter
+   matches the record. A record that ``supersedes`` another names an earlier experiment
+   on the same unit.
+3. The retired ``audits/`` directory holds no records. Import them with
+   ``openinterp wiki --import-dir audits``.
+4. With ``base_ref``: existing experiment pages were not deleted, or edited outside
+   their Discussion section. Archived records were not touched (write-once). No
+   generated index (``README.md``) was committed. Records added since then name their
    agents in canonical spelling (``openinterp.core.agent_names``).
 
-The indexes are rebuilt from the records whenever they are needed and are gitignored:
-every experiment PR used to edit the same index rows, so parallel PRs conflicted.
+The indexes are rebuilt from the records when they are needed, and are gitignored.
+Every experiment PR used to edit the same index rows, so parallel PRs conflicted.
 """
 
 from __future__ import annotations
@@ -39,6 +39,8 @@ LEGACY_AUDITS_DIR = Path("audits")
 
 @dataclass
 class Problem:
+    """One failed check: the file and what is wrong with it."""
+
     path: Path
     message: str
 
@@ -48,6 +50,8 @@ class Problem:
 
 @dataclass
 class CheckReport:
+    """What ``openinterp check`` found: the problems and how many files it read."""
+
     problems: list[Problem] = field(default_factory=list)
     records: int = 0
     pages: int = 0
@@ -55,9 +59,11 @@ class CheckReport:
 
     @property
     def ok(self) -> bool:
+        """True when no check failed."""
         return not self.problems
 
     def add(self, path: Path, message: str) -> None:
+        """Record a problem with ``path``."""
         self.problems.append(Problem(Path(path), message))
 
 
@@ -67,6 +73,7 @@ def check_registry(
     base_ref: str | None = None,
     legacy_audits_dir: Path = LEGACY_AUDITS_DIR,
 ) -> CheckReport:
+    """Run every registry check on ``wiki_dir`` (see the module docstring)."""
     report = CheckReport()
     wiki_dir = Path(wiki_dir)
     _check_legacy(Path(legacy_audits_dir), report)
@@ -174,8 +181,11 @@ def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
 
 
 def _check_agent_names(paths: list[Path], report: CheckReport) -> None:
-    """New records spell their agents one way, so the site shows one model as one agent.
-    Older records keep their spellings (they're signed); the build maps them."""
+    """Require new records to spell their agents one way.
+
+    Then the site shows one model as one agent. Older records keep their spellings,
+    because they are signed. The build maps them.
+    """
     for path in paths:
         record = _load(path)
         if record is None or record.verdict is None:

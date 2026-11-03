@@ -1,8 +1,8 @@
 """Copies that have to exist agree with their source.
 
-Each concept is defined once in code. Where a second copy can't import it (docs quote
-numbers, a template or workflow retypes a list), a test here pins the copy to the
-source. See .claude/skills/single-source-of-truth/.
+Each concept is defined once in code. Sometimes a second copy can't import it: docs
+quote numbers, or a template or workflow types a list again. Then a test here pins the
+copy to the source. See .claude/skills/single-source-of-truth/.
 """
 
 import importlib.util
@@ -129,7 +129,7 @@ def test_docs_quote_the_code(path, quote):
 
 
 def test_next_experiment_skill_quotes_the_base_weights():
-    """choose-next-experiment lists BASE_WEIGHTS as `kind` w > `kind` = `kind` w > …"""
+    """choose-next-experiment lists BASE_WEIGHTS as `kind` w > `kind` = `kind` w > …."""
     skill = (ROOT / ".claude/skills/choose-next-experiment/SKILL.md").read_text()
     line = next(x for x in skill.splitlines() if x.startswith("- **Base weights**"))
     quoted = {}

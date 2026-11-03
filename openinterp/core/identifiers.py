@@ -1,5 +1,8 @@
-"""Identifiers of the units an experiment can audit: MLP neuron poles, attention heads and
-the latents of published sparse dictionaries (transcoders, SAEs)."""
+"""Identifiers of the units an experiment can audit.
+
+The units are MLP neuron poles, attention heads and the latents of published sparse
+dictionaries (transcoders, SAEs).
+"""
 
 from __future__ import annotations
 
@@ -40,10 +43,12 @@ class NeuronIdentifier(_Component):
 
     @property
     def slug(self) -> str:
+        """``Qwen--Qwen2.5-0.5B/L3/N7-positive``: the path of the unit's record and page."""
         return f"{self.model_slug}/L{self.layer}/N{self.neuron_idx}-{self.pole}"
 
     @property
     def index(self) -> int:
+        """The neuron's index in its layer, under the name that every unit kind shares."""
         return self.neuron_idx
 
     noun: ClassVar[str] = "neuron"
@@ -74,16 +79,19 @@ class HeadIdentifier(_Component):
 
     @property
     def slug(self) -> str:
+        """``Qwen--Qwen2.5-0.5B/L3/H7``: the path of the unit's record and page."""
         return f"{self.model_slug}/L{self.layer}/H{self.head_idx}"
 
     @property
     def index(self) -> int:
+        """The head's index in its layer, under the name that every unit kind shares."""
         return self.head_idx
 
     noun: ClassVar[str] = "attention head"
 
     @property
     def label(self) -> str:
+        """``L3/H7``: the unit within its model."""
         return f"L{self.layer}/H{self.head_idx}"
 
     def __str__(self) -> str:
@@ -93,11 +101,11 @@ class HeadIdentifier(_Component):
 class FeatureIdentifier(_Component):
     """Addresses one latent of a published sparse dictionary (a transcoder or SAE) on an MLP.
 
-    The learned-basis baseline for the native-neuron premise: its experiments run under
-    the same protocol but never count towards native-neuron statistics. ``dictionary``
-    names a preset in :mod:`openinterp.harness.dictionaries`; the weights it was measured
-    with (repository, commit, file) are pinned in the submission's
-    :class:`~openinterp.core.schemas.DictionaryProfile`. Latents are non-negative, so no pole.
+    The learned-basis baseline for the native-neuron premise. Its experiments run under
+    the same protocol, but never count towards native-neuron statistics. ``dictionary``
+    names a preset in :mod:`openinterp.harness.dictionaries`. The submission's
+    :class:`~openinterp.core.schemas.DictionaryProfile` pins the weights of the
+    measurement (repository, commit, file). Latents are non-negative, so there is no pole.
     """
 
     kind: Literal["dictionary_feature"] = "dictionary_feature"
@@ -111,16 +119,19 @@ class FeatureIdentifier(_Component):
 
     @property
     def slug(self) -> str:
+        """``<model>/L3/<dictionary>/F7``: the path of the unit's record and page."""
         return f"{self.model_slug}/L{self.layer}/{self.dictionary}/F{self.feature_idx}"
 
     @property
     def index(self) -> int:
+        """The latent's index in its dictionary, under the name that every unit kind shares."""
         return self.feature_idx
 
     noun: ClassVar[str] = "dictionary feature"
 
     @property
     def label(self) -> str:
+        """``L3/F7``: the unit within its model and dictionary."""
         return f"L{self.layer}/F{self.feature_idx}"
 
     def __str__(self) -> str:

@@ -1,10 +1,12 @@
 """Schemas for scoring an explanation on held-out text (detection, fuzzing, embedding).
 
-These follow Delphi (Paulo et al., 2025): a judge that sees only the explanation picks
-out which held-out windows activate the pole (*detection*), or whether the tokens
-marked in a window are the ones that activate it (*fuzzing*); an embedding model ranks
-windows by similarity to the explanation (*embedding*). The scores are reported, not
-gated (docs/PROTOCOL.md §4).
+These follow Delphi (Paulo et al., 2025). A judge sees only the explanation.
+
+- *detection*: the judge picks out the held-out windows that activate the pole.
+- *fuzzing*: the judge says whether the marked tokens in a window activate the pole.
+- *embedding*: an embedding model ranks windows by similarity to the explanation.
+
+The scores are reported, not gated (docs/PROTOCOL.md §4).
 """
 
 from __future__ import annotations
@@ -44,8 +46,8 @@ class JudgeScore(StrictModel):
     """How well the judge's answers match the labels.
 
     ``recall_by_quantile[q]`` is the share of positive windows in activation bin ``q``
-    the judge got right (``None`` when the bin had none), so weak activations are not
-    hidden behind the top ones.
+    that the judge got right. It is ``None`` when the bin had no positive windows. It
+    shows the weak activations, which the top activations can otherwise hide.
     """
 
     balanced_accuracy: UnitFloat

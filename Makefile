@@ -1,4 +1,4 @@
-.PHONY: install test lint format check stats build search-index sample-run serve loop clean
+.PHONY: install test lint vale ste format check stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -15,6 +15,26 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
+	uv run interrogate openinterp
+	$(MAKE) ste
+
+# Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
+# a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
+# CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
+# non-zero only on errors, so the STE rules that gate are at level `error`.
+VALE_PATHS ?= openinterp scripts tests
+vale:
+	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
+	vale $(VALE_PATHS)
+
+# Markdown prose against the structural ASD-STE100 rules: semicolons, sentences over 25
+# words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
+# only the standard library. Passive voice and compound tenses are advisory and never fail.
+# A ratchet: add a path here once it passes. Next are docs/ and the top-level Markdown
+# (TODO.md, Code quality and tooling).
+STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' ':!.claude/skills/asd-ste100')
+ste:
+	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
 
 check:
 	uv run openinterp check

@@ -313,8 +313,11 @@ def test_configured_models_match_ci_allow_list():
 
 
 def test_short_context_models_are_scanned_in_windows(tmp_path, record):
-    """GPT-2 is scanned in windows: its explore draws, and follow-ups on a record scanned
-    in windows, rescan with the window length."""
+    """GPT-2 is scanned in windows.
+
+    Its explore draws, and follow-ups on a record scanned in windows, rescan with the
+    window length.
+    """
     (tmp_path / "pyproject.toml").write_text(
         '[tool.openinterp]\nmodels = ["a/x"]\n[tool.openinterp.window_tokens]\n"a/x" = 128\n'
     )

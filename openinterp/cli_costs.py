@@ -1,5 +1,8 @@
-"""``openinterp costs``: summarise what experiments cost, from ledgers of commands or from
-the registry's records; ``openinterp usage``: record what an external answerer used."""
+"""``openinterp costs`` and ``openinterp usage``: what experiments cost.
+
+``openinterp costs`` summarises costs from ledgers of commands or from the registry's
+records. ``openinterp usage`` records what an external answerer used.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from openinterp.core.paths import experiments_dir
 
 
 def read_ledger(paths) -> list[dict]:
+    """Every entry of the ledgers at ``paths``; a missing ledger counts as empty."""
     entries = []
     for path in paths:
         if not path.exists():
@@ -34,6 +38,7 @@ def read_session(path: Path) -> dict | None:
 
 
 def summarise(entries: list[dict], sessions: list[dict]) -> str:
+    """Tables of wall time per command and stage, and of LLM usage, from ledgers and sessions."""
     commands: dict[str, list[float]] = defaultdict(list)
     stages: dict[str, list[float]] = defaultdict(list)
     for e in entries:
@@ -153,8 +158,10 @@ def registry_costs(wiki_dir: Path) -> str:
     "model, mean and per VERIFIED result.",
 )
 def costs(ledgers, sessions, wiki_dir):
-    """Summarise wall time and LLM usage from $OPENINTERP_COSTS_LOG ledgers, or the
-    registry's LLM costs by role and model (--wiki-dir).
+    """Summarise wall time and LLM usage, from ledgers or from the registry.
+
+    The ledgers are $OPENINTERP_COSTS_LOG files. With --wiki-dir, it gives the registry's
+    LLM costs by role and model.
 
     Set OPENINTERP_COSTS_LOG=<file> and every openinterp command appends what it measured
     there: its wall time, its stages and its LLM calls. Records hold the same numbers for
@@ -182,12 +189,13 @@ def costs(ledgers, sessions, wiki_dir):
 def usage(agent, answer):
     """Record a Claude Code subagent's token usage next to the answer it wrote.
 
-    AGENT is the agent ID Claude Code reports when the subagent finishes, or the path of
-    its transcript (~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl).
-    Writes <answer>.usage.json, which `audit --hypothesis`, `review --probes` and
-    `score --task` read to record the call's tokens and cost, priced at list price for
-    the model they record (after $OPENINTERP_MODEL_ALIASES, so a proxied model is priced
-    as the model that actually answered).
+    AGENT is the agent ID that Claude Code reports when the subagent finishes. It can also
+    be the path of the subagent's transcript:
+    ~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl.
+    Writes <answer>.usage.json. `audit --hypothesis`, `review --probes` and
+    `score --task` read it to record the call's tokens and cost. They price it at list
+    price for the model that they record. That is after $OPENINTERP_MODEL_ALIASES, so a
+    proxied model is priced as the model that actually answered.
     """
     from openinterp.core.costs import usage_path
     from openinterp.core.transcripts import find_transcript, usage_from_transcript

@@ -1,5 +1,8 @@
-"""The steps of ``openinterp audit`` after the proposer answers: counterfactuals, the
-Patchscope, steering and wiring readouts, and writing the submission."""
+"""The steps of ``openinterp audit`` after the proposer answers.
+
+The steps are counterfactuals, the Patchscope, steering and wiring readouts, and writing
+the submission.
+"""
 
 from __future__ import annotations
 
@@ -11,8 +14,11 @@ from openinterp.cli_evidence import with_costs
 
 
 def read_patchscope(runner, submission):
-    """The model's own reading of the unit's output direction, once the proposer has
-    answered so it can't steer the hypothesis; ``None`` for a head, which writes a subspace."""
+    """Return the model's own reading of the unit's output direction.
+
+    It runs after the proposer answers, so it can't steer the hypothesis. ``None`` for a
+    head, which writes a subspace.
+    """
     from openinterp.core import costs
     from openinterp.harness.patchscope import patchscope, write_direction
     from openinterp.harness.units import submission_unit
@@ -26,8 +32,11 @@ def read_patchscope(runner, submission):
 
 
 def read_steering(runner, submission):
-    """Neutral prompts continued with the unit clamped high, at baseline and ablated, once
-    the proposer has answered; ``None`` for a head, which has no "high" to clamp to."""
+    """Return neutral prompts continued at baseline, with the unit ablated and clamped high.
+
+    It runs after the proposer answers. ``None`` for a head, which has no "high" to clamp
+    to.
+    """
     from openinterp.core import costs
     from openinterp.harness.steering import steering_samples
     from openinterp.harness.units import HeadUnit, submission_unit
@@ -41,8 +50,10 @@ def read_steering(runner, submission):
 
 
 def read_wiring(runner, submission):
-    """The unit's top connections by virtual weight, once the proposer has answered;
-    ``None`` on an unsupported architecture."""
+    """Return the unit's top connections by virtual weight.
+
+    It runs after the proposer answers. ``None`` on an unsupported architecture.
+    """
     from openinterp.core import costs
     from openinterp.core.exceptions import ArchitectureNotSupportedError
     from openinterp.harness.units import submission_unit
@@ -68,7 +79,9 @@ def write_submission(
     sister_file: Path | None = None,
 ) -> None:
     """Build the submission (counterfactuals, Patchscope, steering, wiring) and write it.
-    In a sister study (``sister_file``) the explanation is the sister's, word for word."""
+
+    In a sister study (``sister_file``), the explanation is the sister's, word for word.
+    """
     from openinterp.builder.wiki import experiment_id
     from openinterp.core import costs
     from openinterp.sisters import sister_ref
@@ -111,8 +124,11 @@ def write_submission(
 
 
 def sister_draft(sister_file, ident, draft):
-    """``(sister record, draft)``: in a sister study, the draft with the sister's
-    explanation, word for word; otherwise ``(None, draft)``."""
+    """Return ``(sister record, draft)``.
+
+    In a sister study, the draft has the sister's explanation, word for word. Otherwise
+    the result is ``(None, draft)``.
+    """
     from openinterp.cli_evidence import load_sister
 
     if sister_file is None:
@@ -123,6 +139,7 @@ def sister_draft(sister_file, ident, draft):
 
 
 def build_submission(agent, draft, runner, evidence):
+    """Build the submission from the proposer's draft, timed as the counterfactuals stage."""
     from openinterp.core import costs
 
     with costs.stage("counterfactuals"):

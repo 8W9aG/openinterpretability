@@ -16,9 +16,9 @@ class WiringEdge(StrictModel):
 
     ``kind`` and ``layer``/``index`` name the other unit: a neuron (either pole) or an
     attention head. What ``weight`` measures depends on :attr:`Wiring.method`.
-    ``channels`` breaks a weights reading down by the read it goes through: ``in``, or
-    ``gate`` and ``up`` for a gated MLP; ``q``, ``k`` and ``v`` for a head downstream.
-    ``weight`` is then the channel of largest magnitude.
+    ``channels`` splits a weights reading by the read that it goes through. The reads
+    are ``in``, or ``gate`` and ``up`` for a gated MLP, or ``q``, ``k`` and ``v`` for a
+    head downstream. ``weight`` is then the channel of largest magnitude.
     """
 
     kind: Literal["mlp_neuron", "attn_head"]
@@ -31,30 +31,38 @@ class WiringEdge(StrictModel):
 class Wiring(StrictModel):
     """A unit's top connections, from its weights or from activations.
 
-    A neuron pole reads its MLP input (``gate``/``up``, or ``in``) and writes ``w_out``
-    (negated for the negative pole); a dictionary feature reads with its encoder row and
-    writes its decoder row; a head reads through ``q``, ``k`` and ``v`` and writes the
-    subspace ``W_O``. Upstream units write before the unit reads (a head's own layer's
-    MLP runs after it, and reads it downstream).
+    How each kind of unit reads and writes:
+
+    - A neuron pole reads its MLP input (``gate``/``up``, or ``in``). It writes ``w_out``,
+      negated for the negative pole.
+    - A dictionary feature reads with its encoder row and writes its decoder row.
+    - A head reads through ``q``, ``k`` and ``v``, and writes the subspace ``W_O``.
+
+    Upstream units write before the unit reads. A head's own layer's MLP runs after the
+    head, so it reads the head downstream.
 
     *weights* (virtual weights, Elhage et al., 2021). The norms before each read are
-    folded in as their gain (and centring, for LayerNorm); their per-token scale is
-    ignored, so weights rank units but have no absolute meaning. Each number is how much
-    one unit's read picks up of the other's write: ``w · r̂`` when a vector reads a
-    vector (``+`` means a positive activation raises the read; the unit's own reads are
-    unit-normalised upstream), else a norm (≥ 0): of ``R·w`` for a matrix read, of
-    ``R·W_O·W_V`` for an upstream head's OV circuit, of ``W_Q/K/V·w`` downstream.
+    folded in as their gain, and centring for LayerNorm. Their per-token scale is
+    ignored. So weights rank units, but have no absolute meaning. Each number is how much
+    one unit's read picks up of the other unit's write:
 
-    *activations* (attribution patching, Syed et al., 2023), averaged over the peaks of
-    the review's prompts where the unit fired:
+    - When a vector reads a vector: ``w · r̂``. ``+`` means that a positive activation
+      raises the read. Upstream, the unit's own reads are unit-normalised.
+    - Otherwise, a norm (≥ 0). For a matrix read, it is the norm of ``R·w``. For an
+      upstream head's OV circuit, it is the norm of ``R·W_O·W_V``. Downstream, it is the
+      norm of ``W_Q/K/V·w``.
 
-    * upstream: ``Σ_s write_s · ∂strength/∂x_s``, the first-order change in strength from
-      removing an earlier unit's direct write to its input (``+`` means it excites);
-    * downstream neurons: the exact change in a later neuron's signed activation at the
-      peak when the unit's write is removed from its input alone;
-    * downstream heads: how far a later head's write at the peak moves, ``|W_O Δz|``,
-      when the unit's write is removed from its ``q``, ``k`` or ``v`` input alone, every
-      position at once (one channel at a time).
+    *activations* (attribution patching, Syed et al., 2023). Each number is averaged over
+    the peaks of the review's prompts where the unit fired:
+
+    - Upstream: ``Σ_s write_s · ∂strength/∂x_s``. This is the first-order change in
+      strength when the earlier unit's direct write is removed from the input. ``+``
+      means that the earlier unit excites the unit.
+    - Downstream neurons: the exact change in a later neuron's signed activation at the
+      peak. The unit's write is removed from that neuron's input only.
+    - Downstream heads: ``|W_O Δz|``, how far a later head's write at the peak moves. The
+      harness removes the unit's write from one input of the head at a time (``q``,
+      ``k`` or ``v``). It removes the write at every position at once.
     """
 
     method: WiringMethod

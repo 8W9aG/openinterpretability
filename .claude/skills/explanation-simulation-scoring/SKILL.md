@@ -7,7 +7,7 @@ description: Score a neuron explanation by how well it predicts per-token activa
 
 ## Papers
 
-- Bills et al., 2023, *Language models can explain neurons in language models* (OpenAI): https://openaipublic.blob.core.windows.net/neuron-explainer/paper/index.html. An explainer model writes an explanation, a simulator model predicts per-token activations (0–10) from the explanation alone, and the score is the correlation between simulated and real activations. They evaluate on **top-activating plus randomly sampled** text, because top-only scoring rewards explanations that ignore false positives.
+- Bills et al., 2023, *Language models can explain neurons in language models* (OpenAI): https://openaipublic.blob.core.windows.net/neuron-explainer/paper/index.html. An explainer model writes an explanation. A simulator model predicts per-token activations (0–10) from the explanation alone. The score is the correlation between simulated and real activations. They evaluate on **top-activating plus randomly sampled** text, because top-only scoring rewards explanations that ignore false positives.
 - Huang, Geiger, D'Oosterlinck, Wu & Potts, 2023, *Rigorously Assessing Natural Language Explanations of Neurons*, arXiv:2309.10312. They split evaluation into **observational** (does the neuron fire on exactly the inputs the explanation covers? report precision and recall) and **interventional** (does the neuron causally mediate the concept?). GPT-4's most confident GPT-2 XL explanations scored precision 0.64 and recall 0.50, with no causal effect found.
 - Caveat from Goodfire's *Already Clean* essay (2026): simulation metrics "reward explanations that look good over ones that are right". Use simulation as a diagnostic, never as the only gate.
 
@@ -35,7 +35,7 @@ uv run openinterp review … --explanation-scores exchange/score.scores.json   #
 - Use the scan's corpus. The scan's top examples are left out, so every window is text the proposer never saw.
 - Give each prompt to a separate judge. Fuzzing marks real active tokens, so a judge that saw them would score detection on more than the explanation.
 - Read `recall_by_quantile` as well as the balanced accuracy. Explanations written from top examples typically miss the weaker bins.
-- A low score with a VERIFIED verdict is not a contradiction. The probes test the claim where the reviewer looked; these scores test where the pole fires in ordinary text. Say in the next revision which held-out activity the explanation leaves out.
+- A low score with a VERIFIED verdict is not a contradiction. The probes test the claim where the reviewer looked. These scores test where the pole fires in ordinary text. Say in the next revision which held-out activity the explanation leaves out.
 
 ## Procedure: simulation score
 
@@ -50,7 +50,7 @@ uv run openinterp review … --explanation-scores exchange/score.scores.json   #
 
 ## Calibrating the "active" threshold
 
-The protocol counts a probe as active at `0.25 × max_activation`. Before relying on that for a neuron, check it against the histogram: if the 99th percentile is already above the threshold (a "dial" neuron), the threshold will flag ordinary text as active and hard negatives will fail for reasons unrelated to the hypothesis. Report this in the submission explanation. Changing the threshold for one neuron is not allowed; changing the default is a protocol change (`docs/PROTOCOL.md` §6).
+The protocol counts a probe as active at `0.25 × max_activation`. Before relying on that for a neuron, check it against the histogram. The 99th percentile can already be above the threshold (a "dial" neuron). Then the threshold flags ordinary text as active, and hard negatives fail for reasons unrelated to the hypothesis. Report this in the submission explanation. Changing the threshold for one neuron is not allowed. Changing the default is a protocol change (`docs/PROTOCOL.md` §6).
 
 ## Pitfalls
 

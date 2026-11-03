@@ -1,16 +1,18 @@
 """Labelled concept sets from annotated Hugging Face datasets (`openinterp concepts`).
 
-A concept set is JSON lines ``{"text": ..., "spans": [[start, end], ...]}``, the labelled
-text that ``openinterp probe-compare`` reads: character spans where the concept holds,
-marked by human annotators, never by the model. It feeds sparse-probing searches and
-gives reviewers positive holdouts from a source the proposer never saw. A
+A concept set is JSON lines ``{"text": ..., "spans": [[start, end], ...]}``. It is the
+labelled text that ``openinterp probe-compare`` reads. The spans are the characters where
+the concept holds, marked by human annotators, never by the model. A concept set feeds
+sparse-probing searches. It also gives reviewers positive holdouts from a source that
+the proposer never saw. A
 ``<name>.source.json`` sidecar (:class:`~openinterp.core.probing.ConceptSource`) pins
 the dataset commit, split, label and licence.
 
 Two kinds of label are read:
 
-* *word tags* (CoNLL-2003 entities and Penn Treebank tags, Universal Dependencies parts
-  of speech and relations): a span over each word with the tag. A tag matches a label
+* *word tags*: a span over each word with the tag. The tags are CoNLL-2003 entities and
+  Penn Treebank tags, and Universal Dependencies parts of speech and relations. A tag
+  matches a label
   exactly, without its BIO prefix (``B-PER``, ``I-PER`` -> ``PER``) or without its
   subtype (``nmod:poss`` -> ``nmod``). Sentences are joined back into documents.
 * *document classes* (language, news topic): a span over the whole text of each
@@ -40,12 +42,14 @@ from openinterp.harness.annotations import Span
 
 @dataclass(frozen=True)
 class ConceptPreset:
+    """Where a concept preset's labels are, and how its rows become documents."""
+
     dataset: str
     files: str  # glob within the dataset repo, with {split} and, for treebanks, {subset}
     split: str  # the default split: a held-out one, which is small
     column: str  # word tags, or one class per row
-    # How rows become documents: "conll" (pre-tokenised words, joined with spaces), "ud"
-    # (words located in each sentence's text) or "document" (one per row, one class).
+    # How rows become documents. "conll": pre-tokenised words, joined with spaces. "ud":
+    # words found in each sentence's text. "document": one per row, with one class.
     layout: str
     revision: str | None = None
     subset: str | None = None  # default treebank, for "ud"
@@ -97,9 +101,9 @@ CONCEPT_PRESETS = {
         "ud",
         subset="en_ewt",
     ),
-    # Sentences and reviews in 20 languages (ar, bg, de, el, en, es, fr, hi, it, ja, nl,
-    # pl, pt, ru, sw, th, tr, ur, vi, zh). No licence on the card; its sources include
-    # Amazon reviews and XNLI (CC BY-NC 4.0). The main branch is CSV.
+    # Sentences and reviews in 20 languages. Their codes are ar, bg, de, el, en, es, fr,
+    # hi, it, ja, nl, pl, pt, ru, sw, th, tr, ur, vi and zh. No licence on the card; its
+    # sources include Amazon reviews and XNLI (CC BY-NC 4.0). The main branch is CSV.
     "language-identification": ConceptPreset(
         "papluca/language-identification",
         "default/{split}/*.parquet",
@@ -118,6 +122,8 @@ CONCEPT_PRESETS = {
 
 @dataclass(frozen=True)
 class Sentence:
+    """One annotated sentence, with a span per tagged word, and where it starts a document."""
+
     text: str
     spans: list[Span]  # one per tagged word
     newdoc: bool = False
@@ -143,9 +149,12 @@ def join_words(words: Sequence[str]) -> tuple[str, list[tuple[int, int]]]:
 def locate_words(
     text: str, words: Sequence[str], mwt: Sequence[dict] = ()
 ) -> list[tuple[int, int]] | None:
-    """Each word's characters in its sentence's ``text``. The words of a multiword token
-    (French "du" = "de" + "le") share its surface form's characters. ``None`` if a word
-    isn't where it should be, which would misplace every label after it."""
+    """Return each word's characters in its sentence's ``text``.
+
+    The words of a multiword token (French "du" = "de" + "le") share its surface form's
+    characters. ``None`` if a word isn't where it should be, because that would misplace
+    every label after it.
+    """
     fused = {}
     for token in mwt or ():
         first, last = token["id"].split("-")
@@ -164,10 +173,12 @@ def locate_words(
 
 
 def group_sentences(sentences: Sequence[Sentence], max_chars: int) -> list[tuple[str, list[Span]]]:
-    """Consecutive sentences joined into documents of at most ``max_chars``: a new one at
-    each new source document or when the next sentence wouldn't fit. Paragraphs are
-    separated by newlines, sentences within one by a space. A sentence longer than
-    ``max_chars`` is cut, and its spans with it."""
+    """Join consecutive sentences into documents of at most ``max_chars``.
+
+    A new document starts at each new source document, or when the next sentence wouldn't
+    fit. Newlines separate paragraphs, and a space separates the sentences in one. A
+    sentence longer than ``max_chars`` is cut, and its spans with it.
+    """
     docs: list[tuple[str, list[Span]]] = []
     text, spans = "", []
     for sent in sentences:
@@ -189,6 +200,7 @@ def group_sentences(sentences: Sequence[Sentence], max_chars: int) -> list[tuple
 
 
 def tag_matches(tag: str, label: str) -> bool:
+    """True when ``tag`` is ``label``, or ``label`` with a ``:subtype`` (``nmod:poss``)."""
     return tag == label or tag.split(":")[0] == label
 
 
@@ -203,8 +215,11 @@ def _tag(tag, names: list[str] | None, bio: bool) -> str | None:
 
 
 def class_names(schema, column: str) -> list[str] | None:
-    """The names of a Hugging Face ClassLabel column (or a sequence of them), stored as
-    integers in Parquet, from the file's ``huggingface`` schema metadata."""
+    """Return the names of a Hugging Face ClassLabel column, or a sequence of them.
+
+    Parquet stores them as integers. The names are in the file's ``huggingface`` schema
+    metadata.
+    """
     meta = (schema.metadata or {}).get(b"huggingface")
     if meta is None:
         return None
@@ -259,6 +274,8 @@ def _documents(preset: ConceptPreset, column: str, rows, names, max_chars: int):
 
 @dataclass
 class LoadedSplit:
+    """One split read whole: its documents with spans, and where they came from."""
+
     docs: list[tuple[str, list[Span]]]
     dataset: str
     revision: str
@@ -319,8 +336,10 @@ def load_split(
 def sample_concept(
     docs: Sequence[tuple[str, list[Span]]], label: str, documents: int, seed: int, balance: bool
 ) -> list[tuple[str, list[tuple[int, int]]]]:
-    """Up to ``documents`` documents with the spans of ``label``, in split order. With
-    ``balance``, half (rounded up) have a span and half don't, where there are enough."""
+    """Return up to ``documents`` documents with the spans of ``label``, in split order.
+
+    With ``balance``, half (rounded up) have a span and half don't, where there are enough.
+    """
     marked = [[(s.start, s.end) for s in spans if tag_matches(s.label, label)] for _, spans in docs]
     rng = random.Random(seed)
     if balance:

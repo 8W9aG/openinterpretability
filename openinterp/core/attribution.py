@@ -1,10 +1,10 @@
 """Schemas for input attribution: which context tokens drive a pole at its peak.
 
-Integrated gradients (Sundararajan et al., 2017) over the input token embeddings
-attribute the pole's activation at each top example's peak token to every token up to
-it, against a baseline that replaces every token with one reference token. Each
-token's share is then checked by replacing that token alone with the reference token
-and re-measuring. Reported, not gated (docs/PROTOCOL.md §4).
+Integrated gradients (Sundararajan et al., 2017) run over the input token embeddings.
+They attribute the pole's activation at each top example's peak token to every token up
+to the peak. The baseline replaces every token with one reference token. A second check
+replaces each token alone with the reference token and measures the pole again.
+Reported, not gated (docs/PROTOCOL.md §4).
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from openinterp.core.strict import StrictModel, UnitFloat
 class AttributedToken(StrictModel):
     """One context token's contribution to the pole at the peak.
 
-    Both numbers are fractions of the gap between the pole's activation on the example
-    and on the all-baseline input, so ``attribution`` sums to about 1 over the tokens
-    and the two are directly comparable.
+    Both numbers are fractions of one gap: the pole's activation on the example minus
+    its activation on the all-baseline input. So ``attribution`` sums to about 1 over
+    the tokens, and you can compare the two numbers directly.
     """
 
     offset: int = Field(le=0, description="Position relative to the peak token (0 = the peak).")
@@ -56,6 +56,7 @@ class DistanceShare(StrictModel):
 
     @property
     def label(self) -> str:
+        """The distance band as the page shows it: ``0``, ``1–3`` or ``8+``."""
         if self.max_distance is None:
             return f"{self.min_distance}+"
         if self.max_distance == self.min_distance:
@@ -67,13 +68,16 @@ class InputAttribution(StrictModel):
     """Where in the context a pole's activation comes from, over its top examples.
 
     ``distances`` splits each example's |attribution| by how far back each token is from
-    the peak and averages the shares over examples, so a high share at distance 0 means
-    the pole fires on the current token and a high share far back means it fires because
-    of earlier context. ``ablation_agreement`` is Spearman's ρ between attribution and
-    single-token ablation effect over every checked token (the peak, the tokens just
-    before it and the most attributed ones): low values mean the linear path integral
-    misreads this pole, and the ablation effects are the ones to trust. Both use only
-    the examples whose path integral converged; with none, they are empty.
+    the peak, then averages the shares over examples. A high share at distance 0 means
+    that the pole fires on the current token. A high share far back means that it fires
+    because of earlier context.
+
+    ``ablation_agreement`` is Spearman's ρ between attribution and single-token ablation
+    effect. It uses every checked token: the peak, the tokens just before it and the most
+    attributed ones. A low value means that the linear path integral misreads this pole,
+    so trust the ablation effects.
+
+    Both use only the examples whose path integral converged. With none, they are empty.
     """
 
     method: str = "integrated_gradients"
@@ -88,8 +92,10 @@ class InputAttribution(StrictModel):
 
     @property
     def converged(self) -> int:
+        """How many examples converged; only these count in the shares."""
         return sum(ex.converged for ex in self.examples)
 
     @property
     def current_token_share(self) -> float | None:
+        """The share at distance 0, the first band, or ``None`` with no converged example."""
         return self.distances[0].share if self.distances else None
