@@ -66,8 +66,11 @@ def check(wiki_dir, base_ref):
 
 
 def registry_stats(records) -> str:
-    """State of the registry: experiments, units, models, VERIFIED and self-reviewed shares,
-    and the protocol versions their verdicts were computed under."""
+    """Return the state of the registry.
+
+    That is the experiments, units and models, the VERIFIED and self-reviewed shares, and
+    the protocol versions that computed the verdicts.
+    """
     from collections import Counter
 
     def share(n: int, of: int) -> str:
@@ -108,8 +111,11 @@ def _newest(item) -> tuple:
 @cli.command()
 @wiki_dir_option()
 def stats(wiki_dir):
-    """Print the state of the registry: experiments, units, models, VERIFIED share,
-    self-reviewed share and the protocol versions in use."""
+    """Print the state of the registry.
+
+    It prints experiments, units, models, VERIFIED share, self-reviewed share and the
+    protocol versions in use.
+    """
     from openinterp.builder.compiler import load_records
 
     click.echo(registry_stats(load_records(experiments_dir(wiki_dir))))
@@ -121,8 +127,10 @@ def stats(wiki_dir):
 def show(path, full):
     """Summarise a record, submission, scan evidence (ev.json) or a unit's directory.
 
-    Read this instead of opening the JSON: verdict, failed gates and probes, scores and
-    each page's Discussion, or a scan's corpus, peak and top examples."""
+    Read this instead of opening the JSON. For a record, it shows the verdict, failed
+    gates and probes, scores and each page's Discussion. For a scan, it shows the corpus,
+    peak and top examples.
+    """
     from openinterp.show import show as summarise
 
     try:
@@ -246,9 +254,10 @@ def _list_candidates(plan, top: int) -> None:
     for x in plan.candidates[:top]:
         click.echo(f"  {x.weight / total:6.1%}  {x.kind:18s} {x.slug}  — {x.rationale}")
     if top and len(plan.explore_models) > 1:
-        click.echo("Explore draws by model:")
+        click.echo("Explore draws by model (neurons covered):")
         for model, p in sorted(plan.explore_models.items(), key=lambda kv: -kv[1]):
-            click.echo(f"  {p:6.1%}  {model}")
+            focus = "  ← smallest model below the verified target" if model == plan.focus else ""
+            click.echo(f"  {p:6.1%}  {model}  {plan.coverage[model]}{focus}")
 
 
 @cli.command()
@@ -420,8 +429,11 @@ def _step_summary(path: str, summary: str, results) -> None:
 
 
 def _preset_dictionary(record) -> bool:
-    """A feature record pins the weights of its dictionary's preset, so the allow-list also
-    limits which dictionaries are downloaded. Other records have none to check."""
+    """Check that a feature record's dictionary is on the allow-list.
+
+    A feature record pins the weights of its dictionary's preset. So the allow-list also
+    limits which dictionaries are downloaded. Other records have none to check.
+    """
     from openinterp.harness.dictionaries import DICTIONARIES
 
     ident, profile = record.submission.identifier, record.submission.dictionary_profile

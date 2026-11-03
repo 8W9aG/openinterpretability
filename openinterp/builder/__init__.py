@@ -1,3 +1,5 @@
+"""The static site and the Parquet registry, compiled from the archived records."""
+
 from openinterp.builder.compiler import BuildReport, compile_site, load_records
 from openinterp.builder.parquet_export import export_registry, records_to_table
 

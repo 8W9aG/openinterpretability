@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a package release of openinterp. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run, bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, tag the commit and open the release PR. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterp. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, tag the commit and open the release PR. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterp
@@ -25,7 +25,7 @@ The CHANGELOG's header explains the two version numbers. The **package version**
    ```bash
    uv run openinterp sisters --device auto
    ```
-   It searches every ordered pair of the configured models (`[tool.openinterp] models`) plus `SIBLINGS`. It skips every pole that already has a row for that model, so it only searches the poles VERIFIED since the last run and any pair a newly configured model adds. Each pair prints `N VERIFIED poles of A against B`, then its progress (`forward:` and `backward:` positions). A pair with nothing new prints nothing. If no accelerator is available, skip this step and say so in the PR body. The next release picks the poles up.
+   It searches every ordered pair of the configured models (`[tool.openinterp] models`) plus `SIBLINGS`. It skips every pole that already has a row for that model. So it only searches the poles VERIFIED since the last run, and any pair that a newly configured model adds. Each pair prints `N VERIFIED poles of A against B`, then its progress (`forward:` and `backward:` positions). A pair with nothing new prints nothing. If no accelerator is available, skip this step and say so in the PR body. The next release picks the poles up.
 4. **Record what changed.** If the run wrote rows (`git diff --stat docs/analyses/sister-neurons.jsonl`), count them:
    ```bash
    uv run python - <<'EOF'
@@ -62,4 +62,4 @@ The CHANGELOG's header explains the two version numbers. The **package version**
    ```bash
    gh pr create --title "Release <version> (protocol v<PROTOCOL_VERSION>)" --body "..."
    ```
-   The body says what the release bumps, whether the protocol version changed, the sister refresh (rows and sisters added, or why it was skipped) and the tag. A release touches code, so it always waits for a human to merge it (`land-experiment`, step 7).
+   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped) and the tag. A release touches code, so it always waits for a human to merge it (`land-experiment`, step 7).

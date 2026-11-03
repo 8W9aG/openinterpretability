@@ -1,3 +1,5 @@
+"""The measurement harness: hooks, scans, patching and readouts on the model itself."""
+
 from openinterp.harness.attribution import attribution_patching, top_attributed_neurons
 from openinterp.harness.hooks import (
     NeuronHookRunner,

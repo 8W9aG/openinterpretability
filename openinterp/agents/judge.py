@@ -1,9 +1,9 @@
 """Judge agent: scores an explanation on held-out windows from the explanation alone.
 
-Detection asks which windows activate the pole; fuzzing asks whether the tokens marked
+Detection asks which windows activate the pole. Fuzzing asks whether the marked tokens
 in each window are the ones that activate it (Paulo et al., 2025). The judge never sees
-activations: a :class:`ScoringTask` holds the windows' text and markings only, and the
-labels are re-measured when the answers are scored.
+activations. A :class:`ScoringTask` holds only the windows' text and markings. The
+labels are measured again when the answers are scored.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ MARK_OPEN, MARK_CLOSE = "<<", ">>"
 
 
 class TaskWindow(BaseModel):
+    """One held-out window as the judge sees it: text, tokens and the marked tokens."""
+
     text: str
     tokens: list[str]
     highlighted: list[int] = Field(default_factory=list)
@@ -48,14 +50,14 @@ class ScoringTask(BaseModel):
     costs: ExperimentCosts | None = None  # of drawing the windows
 
 
-class DetectionAnswer(BaseModel):
+class DetectionAnswer(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
     active: list[int] = Field(
         description="Numbers of the texts in which, going by the explanation, the neuron "
         "fires on at least one token. Leave out every other text."
     )
 
 
-class FuzzingAnswer(BaseModel):
+class FuzzingAnswer(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
     correct: list[int] = Field(
         description="Numbers of the texts whose marked tokens are exactly where, going by the "
         "explanation, the neuron fires. Leave out texts marked wrongly."
@@ -69,6 +71,8 @@ def _show(tokens: Sequence[str], marked: Sequence[int] = ()) -> str:
 
 
 class ExplanationJudge(LLMAgent):
+    """The judge: applies an explanation to windows, never seeing activations."""
+
     role = "judge"
     system_prompt = (
         "You test how well a short explanation of a neuron (or attention head, or dictionary "
@@ -84,6 +88,7 @@ class ExplanationJudge(LLMAgent):
     def detection_prompt(
         explanation: str, windows: Sequence[TaskWindow], noun: str = "neuron"
     ) -> str:
+        """The detection prompt: which of ``windows`` make the unit fire."""
         texts = "\n".join(f"{n}. {_show(w.tokens)}" for n, w in enumerate(windows, 1))
         return (
             f"Explanation of the {noun}:\n\n> {explanation}\n\n"
@@ -96,6 +101,7 @@ class ExplanationJudge(LLMAgent):
     def fuzzing_prompt(
         explanation: str, windows: Sequence[TaskWindow], noun: str = "neuron"
     ) -> str:
+        """The fuzzing prompt: in which ``windows`` the marked tokens are where the unit fires."""
         texts = "\n".join(
             f"{n}. {_show(w.tokens, w.highlighted)}" for n, w in enumerate(windows, 1)
         )
@@ -111,12 +117,14 @@ class ExplanationJudge(LLMAgent):
     def detect(
         self, explanation: str, windows: Sequence[TaskWindow], noun: str = "neuron"
     ) -> DetectionAnswer:
+        """Ask the judge the detection question."""
         prompt = self.detection_prompt(explanation, windows, noun)
         return self.structured(DetectionAnswer, prompt)
 
     def fuzz(
         self, explanation: str, windows: Sequence[TaskWindow], noun: str = "neuron"
     ) -> FuzzingAnswer:
+        """Ask the judge the fuzzing question."""
         return self.structured(FuzzingAnswer, self.fuzzing_prompt(explanation, windows, noun))
 
 

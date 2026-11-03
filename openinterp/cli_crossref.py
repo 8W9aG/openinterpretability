@@ -1,5 +1,7 @@
-"""``openinterp crossref`` and ``openinterp aligned-latents``: neuron poles against
-published dictionaries. See :mod:`openinterp.crossref`."""
+"""``openinterp crossref`` and ``openinterp aligned-latents``.
+
+They compare neuron poles with published dictionaries. See :mod:`openinterp.crossref`.
+"""
 
 from __future__ import annotations
 
@@ -48,8 +50,11 @@ def crossref_command(wiki_dir, path, k, device):
 @out_option
 @wiki_dir_option()
 def aligned_latents(slug, path, wiki_dir):
-    """Show a pole's aligned latents (e.g. Qwen--Qwen2.5-0.5B/L3/N12-positive) with their
-    descriptions, from this registry or Neuronpedia."""
+    """Show a pole's aligned latents with their descriptions.
+
+    The pole is a slug such as Qwen--Qwen2.5-0.5B/L3/N12-positive. The descriptions come
+    from this registry or Neuronpedia.
+    """
     from openinterp.builder.wiki import load_archive
     from openinterp.crossref import describe, load_rows, neuronpedia_url, registry_explanations
 

@@ -1,5 +1,8 @@
-"""Scanning one unit into :class:`~openinterp.core.schemas.ScanEvidence`: reading the
-corpus, picking the unit, the scan, and the lens and attribution that follow it."""
+"""Scan one unit into :class:`~openinterp.core.schemas.ScanEvidence`.
+
+The steps are reading the corpus, picking the unit, the scan, and the lens and
+attribution that follow it.
+"""
 
 from __future__ import annotations
 
@@ -32,8 +35,11 @@ def read_corpus(path: Path | None):
 
 
 def read_labels(path: Path | None) -> dict[str, list[str | None]]:
-    """The corpus's document labels (:data:`~openinterp.corpus.DOCUMENT_LABELS`), by label
-    set, one per document in :func:`read_corpus` order; only the sets some document has."""
+    """Return the corpus's document labels (:data:`~openinterp.corpus.DOCUMENT_LABELS`).
+
+    They are by label set, one per document in :func:`read_corpus` order. Only the sets
+    that some document has are included.
+    """
     from openinterp.corpus import DOCUMENT_LABELS
 
     if path is None or path.suffix != ".jsonl":
@@ -48,6 +54,7 @@ def read_labels(path: Path | None) -> dict[str, list[str | None]]:
 
 
 def sha256(data: bytes) -> str:
+    """The hex SHA-256 of ``data``."""
     return hashlib.sha256(data).hexdigest()
 
 
@@ -55,7 +62,8 @@ def sha256(data: bytes) -> str:
 class ScanRequest:
     """What ``openinterp audit`` scans: the unit (or how to draw it) and the corpus.
 
-    ``None`` for ``layer`` or the unit's index means "draw it" (with ``random_pick``)."""
+    ``None`` for ``layer`` or the unit's index means "draw it" (with ``random_pick``).
+    """
 
     model_name: str
     unit: str = "neuron"
@@ -96,10 +104,13 @@ class _Texts:
 
 
 def scan_evidence(runner, request: ScanRequest, scan_cache=None):
-    """Pick the unit, scan the corpus (or a ``max_tokens`` sample of it), then read the
-    vocabulary lens (neurons and dictionary features) and attribute the top examples'
-    peaks to their context tokens (neurons only). A neuron scan replays ``scan_cache``
-    when it holds the layer."""
+    """Pick the unit, scan the corpus, then read the lens and the attribution.
+
+    The scan reads the corpus, or a ``max_tokens`` sample of it. The vocabulary lens is
+    for neurons and dictionary features. The attribution assigns the top examples' peaks
+    to their context tokens, for neurons only. A neuron scan replays ``scan_cache`` when
+    it holds the layer.
+    """
     from openinterp.core.schemas import ScanEvidence
     from openinterp.harness.dictionaries import dictionary_spec
     from openinterp.harness.hooks import activation_histogram
@@ -111,10 +122,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     scan = run_scan(runner, request, ident, spec, corpus, scan_cache)
     provenance = scan_provenance(runner, request, seed, corpus, len(scan.values))
     if not scan.examples or scan.examples[0].max_activation <= 0:
-        raise Unauditable(
-            f"{ident} never activates on this corpus; try a larger --corpus.",
-            draw(ident, "dead", None, provenance),
-        )
+        raise dead_unit(runner, ident, provenance)
     check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
     lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
     return ScanEvidence(
@@ -135,8 +143,11 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
 
 
 def pick_unit(runner, request: ScanRequest, spec):
-    """The unit's identifier and the ``--random`` seed, drawing whatever ``request`` leaves
-    unset. The draws come in a fixed order (layer, index, pole), so a seed replays."""
+    """Return the unit's identifier and the ``--random`` seed.
+
+    Draws whatever ``request`` leaves unset. The draws come in a fixed order (layer,
+    index, pole), so a seed replays.
+    """
     import random
 
     from openinterp.harness.dictionaries import load_spec
@@ -161,6 +172,7 @@ def pick_unit(runner, request: ScanRequest, spec):
 
 
 def identifier(request: ScanRequest, layer: int, index: int, pole: str | None):
+    """The identifier of the unit that ``request`` scans, at ``layer`` and ``index``."""
     from openinterp.core.schemas import FeatureIdentifier, HeadIdentifier, NeuronIdentifier
 
     model_name = request.model_name
@@ -209,6 +221,7 @@ def load_texts(runner, request: ScanRequest) -> _Texts:
 
 
 def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cache):
+    """Scan the unit over the corpus with the scanner for its kind, timed as the scan stage."""
     from openinterp.core import costs
     from openinterp.harness.features import scan_feature
     from openinterp.harness.heads import scan_head
@@ -245,6 +258,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
 
 
 def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
+    """Where and how the scan ran, for the evidence's provenance."""
     from openinterp import __version__
     from openinterp.core.schemas import ExperimentProvenance
     from openinterp.harness.environment import run_environment
@@ -269,8 +283,11 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
 
 
 def read_lenses(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan):
-    """The vocabulary lens (not for a head, which writes a subspace, not one direction a
-    lens can read) and, for a neuron, the input attribution of the top examples."""
+    """Return the vocabulary lens and, for a neuron, the top examples' input attribution.
+
+    A head has no lens, because it writes a subspace, not one direction that a lens can
+    read.
+    """
     from openinterp.core import costs
     from openinterp.harness.dictionaries import load_spec
     from openinterp.harness.input_attribution import input_attribution
@@ -331,6 +348,7 @@ class Unauditable(click.ClickException):
 
 
 def draw(ident, outcome, share, provenance):
+    """An unauditable draw of ``ident``, stamped now."""
     from datetime import UTC, datetime
 
     from openinterp.core.draws import UnauditableDraw
@@ -345,11 +363,33 @@ def draw(ident, outcome, share, provenance):
     )
 
 
+def dead_unit(runner, ident, provenance) -> Unauditable:
+    """The stop for a unit that never fires on the scan, with the weight check on a neuron."""
+    from openinterp.core.identifiers import NeuronIdentifier
+    from openinterp.harness.dead import prove_dead
+
+    stop = draw(ident, "dead", None, provenance)
+    if not isinstance(ident, NeuronIdentifier):
+        return Unauditable(f"{ident} never activates on this corpus; try a larger --corpus.", stop)
+    proof = prove_dead(runner, ident)
+    stop = stop.model_copy(update={"proven_dead": proof.proven, "dead_bound": proof.bound})
+    if proof.proven:
+        return Unauditable(f"{ident} is dead: no input can make it fire ({proof.reason}).", stop)
+    return Unauditable(
+        f"{ident} never activates on this corpus, but the weights don't prove it dead "
+        f"({proof.reason}); try a larger --corpus.",
+        stop,
+    )
+
+
 def check_default_on(ident, values, scale: float, provenance=None) -> None:
-    """Stop if the unit is default-on (protocol 0.8): active on so much of the scan that a
-    hard negative of a few words would still fire, so it can't be audited as a detector.
-    Most of GPT-2's negative poles are (GELU's dip; docs/analyses/position-zero.md). The
-    share is read from the histogram, as the review's `not_default_on` gate reads it."""
+    """Stop if the unit is default-on (protocol 0.8).
+
+    A default-on unit is active on so much of the scan that a hard negative of a few
+    words would still fire. So it can't be audited as a detector. Most of GPT-2's negative
+    poles are default-on (GELU's dip; docs/analyses/position-zero.md). The share is read
+    from the histogram, as the review's `not_default_on` gate reads it.
+    """
     from openinterp.core.schemas import ReviewPolicy
     from openinterp.harness.hooks import activation_histogram
 

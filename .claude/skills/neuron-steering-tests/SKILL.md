@@ -1,6 +1,6 @@
 ---
 name: neuron-steering-tests
-description: Test a neuron hypothesis generatively by clamping the pole high (or ablating it) and reading what the model writes. Use when a hypothesis makes a claim about what the neuron makes the model say, when causal patching metrics are uninformative, or as an extra check before submitting.
+description: Test a neuron hypothesis generatively by clamping the pole high (or ablating it) and reading what the model writes. Use when a hypothesis makes a claim about what the neuron makes the model say, or when causal patching metrics are uninformative. Also use as an extra check before submitting.
 ---
 
 # Neuron steering tests
@@ -12,7 +12,7 @@ description: Test a neuron hypothesis generatively by clamping the pole high (or
 
 ## Procedure
 
-Every audit of a neuron pole or dictionary feature already records steering samples (`submission.steering`): five neutral prompts at baseline, ablated, and clamped at 1, 2 and 4 × `max_activation`, shown on the experiment page. Read those first. Use the procedure below for prompts of your own, or to write a prediction down before you look.
+Every audit of a neuron pole or dictionary feature already records steering samples (`submission.steering`), shown on the experiment page. These are five neutral prompts at baseline, ablated, and clamped at 1, 2 and 4 × `max_activation`. Read those first. Use the procedure below for prompts of your own, or to write a prediction down before you look.
 
 ```python
 import torch
@@ -41,8 +41,8 @@ def steer(runner, prompt, layer, idx, pole, value, max_new_tokens=40):
 
 - Coherent, predicted drift at 1–2× max supports the claim, and is strong evidence for lookahead neurons.
 - Drift that appears only at ≥ 4× is off-distribution and weak evidence.
-- No effect is common for single neurons in large models; redundancy and self-repair absorb it. That doesn't refute a detection claim. It refutes only an "it causes X" claim.
+- No effect is common for single neurons in large models. Redundancy and self-repair absorb it. That doesn't refute a detection claim. It refutes only an "it causes X" claim.
 
 ## Fit with the protocol
 
-Steering results are not yet gated. Put predictions and outcomes in the explanation text and keep any claim proportional. If steering should become a gate, it needs a pre-registered prediction format; propose that as a protocol change.
+Steering results are not yet gated. Put predictions and outcomes in the explanation text and keep any claim proportional. If steering should become a gate, it needs a pre-registered prediction format. Propose that as a protocol change.

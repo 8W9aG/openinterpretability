@@ -38,13 +38,16 @@ from openinterp.cli import cli, recorded_model_option, wiki_dir_option, with_mod
 )
 @with_model_options
 def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):
-    """Score each unit's Patchscope readout, turned into an explanation by a fixed rule,
-    on the held-out windows its agent's explanation was scored on.
+    """Score each unit's Patchscope readout as an explanation, against the agent's.
+
+    A fixed rule turns the readout into an explanation. It is scored on the held-out
+    windows that the agent's explanation was scored on.
 
     \b
-    Run it once to read every unit and write judge prompts under --work-dir, answer each
-    prompt with its own explanation-judge, then run it again to score the answers. Each
-    run writes whatever can be compared so far. The embedding score uses the encoder the
+    Run it once to read every unit and write judge prompts under --work-dir.
+    Answer each prompt with its own explanation-judge.
+    Then run it again to score the answers.
+    Each run writes what can be compared so far. The embedding score uses the encoder the
     record's own scores used, so it needs no judge.
     """
     from openinterp.builder.wiki import load_archive_paths
@@ -123,8 +126,11 @@ def _row_fields(record, readout, explanation: str | None) -> dict:
 
 
 def _judged(record, explanation: str, task_path: Path):
-    """(detection, fuzzing, the raw answers) from the judge's answers next to ``task_path``;
-    ``None`` while they are missing, after writing the task if it isn't there yet."""
+    """Return (detection, fuzzing, the raw answers) from the answers next to ``task_path``.
+
+    Returns ``None`` while the answers are missing. It first writes the task if the task
+    isn't there yet.
+    """
     from openinterp.agents.judge import DetectionAnswer, FuzzingAnswer, answered
     from openinterp.cli_score import _sibling, _write_task
 

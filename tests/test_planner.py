@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from openinterp import planner_models
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.core.schemas import (
     BUILTIN_CORPUS,
@@ -16,6 +17,12 @@ from openinterp.core.schemas import (
 from openinterp.planner import BASE_WEIGHTS, claim_key, configured_models, plan_next
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def _no_cached_configs(monkeypatch):
+    """Model sizes come from the records only, whatever the Hugging Face cache holds."""
+    monkeypatch.setattr(planner_models, "model_dims", lambda model, download=True: None)
 
 
 def _record(record, *, status, gates=None, policy=True, idx=117, pole="positive"):
@@ -273,7 +280,7 @@ def _explored_models(wiki, n=400, **kwargs):
 
 
 def test_explores_configured_models_by_coverage(tmp_path, record):
-    """A configured model with no records is explored; well-covered ones still are."""
+    """With no model size known, a model with no records gets most explore draws."""
     wiki = _registry(tmp_path, *(_record(record, status="VERIFIED", idx=i) for i in range(8)))
     (tmp_path / "pyproject.toml").write_text(
         '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
@@ -284,7 +291,58 @@ def test_explores_configured_models_by_coverage(tmp_path, record):
     assert picks["Qwen/Qwen2.5-0.5B"] > 0
     plan = plan_next(wiki, seed=1, epsilon=1.0, now=NOW)
     assert plan.explore_models == pytest.approx({"Qwen/Qwen2.5-0.5B": 0.25, "new/model": 0.75})
-    assert "by coverage" in plan.choice.rationale
+    assert plan.focus is None and "by coverage" in plan.choice.rationale
+
+
+def _claims(model_slug, n):
+    return [f"experiment: {model_slug}-L0-N{i}-positive" for i in range(n)]
+
+
+def _on(record, model, idx, status):
+    """A record of ``model``'s L3/N``idx``+ with ``status``."""
+    rec = _record(record, status=status, idx=idx)
+    ident = rec.submission.identifier.model_copy(update={"model_name": model})
+    return rec.model_copy(
+        update={"submission": rec.submission.model_copy(update={"identifier": ident})}
+    )
+
+
+def test_smallest_model_below_target_is_the_focus(tmp_path, record, monkeypatch):
+    """The smallest model gets most draws until 80% of it is verified; then the next does."""
+    sizes = {"small/m": (2, 10), "mid/m": (4, 100), "big/m": (8, 100)}
+    monkeypatch.setattr(planner_models, "model_dims", lambda model, download=True: sizes[model])
+    for d in (tmp_path, tmp_path / "a", tmp_path / "b"):
+        d.mkdir(exist_ok=True)
+        (d / "pyproject.toml").write_text(
+            '[tool.openinterp]\nmodels = ["big/m", "mid/m", "small/m"]\n'
+        )
+    plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW, claims=_claims("mid--m", 3))
+    assert plan.focus == "small/m"
+    # The others share 20%, by 1/√(1 + covered): 1/√4 for mid/m, 1/√1 for big/m.
+    assert plan.explore_models == pytest.approx(
+        {"small/m": 0.8, "mid/m": 0.2 / 3, "big/m": 0.4 / 3}
+    )
+    picks = _explored_models(tmp_path / "wiki", n=200)
+    assert 0.72 < picks["small/m"] / picks.total() < 0.88
+    seed = next(
+        s
+        for s in range(50)
+        if plan_next(tmp_path / "wiki", seed=s, epsilon=1.0, now=NOW).choice.model == "small/m"
+    )
+    rationale = plan_next(tmp_path / "wiki", seed=seed, epsilon=1.0, now=NOW).choice.rationale
+    assert "small/m drawn with probability 80% by the smallest model below" in rationale
+
+    # Every neuron studied, 15 of 20 verified: still below the target.
+    statuses = ["VERIFIED"] * 15 + ["REJECTED"] * 5
+    recs = [_on(record, "small/m", i, st) for i, st in enumerate(statuses)]
+    plan = plan_next(_registry(tmp_path / "a", *recs), seed=1, epsilon=1.0, now=NOW)
+    assert plan.coverage["small/m"].covered == 20 and plan.coverage["small/m"].verified == 15
+    assert plan.focus == "small/m"
+
+    recs = [_on(record, "small/m", i, "VERIFIED") for i in range(16)]  # 16 of 20: the target
+    plan = plan_next(_registry(tmp_path / "b", *recs), seed=1, epsilon=1.0, now=NOW)
+    assert plan.coverage["small/m"].verified_share == pytest.approx(0.8)
+    assert plan.focus == "mid/m" and plan.explore_models["mid/m"] == pytest.approx(0.8)
 
 
 def test_open_claims_count_as_coverage(tmp_path):
@@ -293,7 +351,23 @@ def test_open_claims_count_as_coverage(tmp_path):
         f"experiment: a--x-L{i}-N1-positive experiment/a--x-L{i}-N1-positive" for i in range(3)
     ]
     plan = plan_next(tmp_path / "wiki", seed=1, now=NOW, claims=claims)
+    assert plan.coverage["a/x"].covered == 3  # each claim names its branch twice
     assert plan.explore_models == pytest.approx({"a/x": 1 / 3, "b/y": 2 / 3})  # 1/√4 vs 1/√1
+
+
+def test_coverage_target_and_share_are_configurable(tmp_path, record):
+    """Records give the size; ``[tool.openinterp]`` can move the target and the share."""
+    sub = record.submission.model_copy(update={"model_num_layers": 2, "model_mlp_width": 10})
+    rec = record.model_copy(update={"submission": sub})
+    wiki = _registry(tmp_path, *(_record(rec, status="VERIFIED", idx=i) for i in range(3)))
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
+        "coverage_target = 0.5\nothers_share = 0.1\n"
+    )
+    plan = plan_next(wiki, seed=1, epsilon=1.0, now=NOW)
+    assert plan.coverage["Qwen/Qwen2.5-0.5B"].total == 20
+    assert plan.focus == "Qwen/Qwen2.5-0.5B"  # 3 of 20 verified is below 50%
+    assert plan.explore_models == pytest.approx({"Qwen/Qwen2.5-0.5B": 0.9, "new/model": 0.1})
 
 
 def test_model_option_overrides_config(tmp_path):
@@ -313,8 +387,11 @@ def test_configured_models_match_ci_allow_list():
 
 
 def test_short_context_models_are_scanned_in_windows(tmp_path, record):
-    """GPT-2 is scanned in windows: its explore draws, and follow-ups on a record scanned
-    in windows, rescan with the window length."""
+    """GPT-2 is scanned in windows.
+
+    Its explore draws, and follow-ups on a record scanned in windows, rescan with the
+    window length.
+    """
     (tmp_path / "pyproject.toml").write_text(
         '[tool.openinterp]\nmodels = ["a/x"]\n[tool.openinterp.window_tokens]\n"a/x" = 128\n'
     )

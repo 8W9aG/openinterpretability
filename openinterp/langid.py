@@ -1,13 +1,14 @@
-"""A document's language, for corpora whose dataset doesn't say (``openinterp corpus
---detect-lang``).
+"""A document's language, for corpora whose dataset doesn't say it.
 
-The detector is fastText's ``lid.176`` (compressed, 176 languages), chosen over lingua,
-langdetect and langid.py on labelled Wikipedia (``docs/analyses/language-detection.md``):
-it was the most accurate at every length and the fastest, and it alone is unsure of
-source code. A document is labelled only when the detector's confidence reaches
-``MIN_CONFIDENCE``, so code, markup and mixed text mostly stay unlabelled, which the scan
-leaves out of the language confound. Detection is per document, never per window: a
-window of a few dozen tokens is too short to detect reliably.
+Used by ``openinterp corpus --detect-lang``. The detector is fastText's ``lid.176``
+(compressed, 176 languages). We compared it with lingua, langdetect and langid.py on
+labelled Wikipedia (``docs/analyses/language-detection.md``). It was the most accurate
+at every length and the fastest, and it alone is unsure of source code.
+
+A document gets a label only when the detector's confidence reaches ``MIN_CONFIDENCE``.
+So code, markup and mixed text mostly stay unlabelled, and the scan leaves them out of
+the language confound. Detection is per document, never per window, because a window of
+a few dozen tokens is too short to detect reliably.
 
 The model (CC BY-SA 3.0) is downloaded once, checked against ``MODEL_SHA256`` and cached
 in ``$XDG_CACHE_HOME/openinterp`` (else ``~/.cache/openinterp``).
@@ -54,8 +55,10 @@ def _model():
 
 
 def predict(text: str) -> tuple[str, float]:
-    """The most likely language of ``text`` (the model's code, e.g. ``"en"``, ``"ceb"``)
-    and the detector's confidence in it."""
+    """Return the most likely language of ``text`` and the detector's confidence in it.
+
+    The language is the model's code, for example ``"en"`` or ``"ceb"``.
+    """
     # fastText reads one line; ``f.predict`` returns [(probability, label)] without numpy.
     ((p, label),) = _model().f.predict(" ".join(text.split()), 1, 0.0, "strict")
     return label.removeprefix("__label__"), float(p)

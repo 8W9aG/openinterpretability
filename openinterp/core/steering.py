@@ -1,10 +1,11 @@
 """Schemas for steering samples: what the model writes with a unit clamped high or ablated.
 
-Each neutral prompt is continued greedily at baseline, with the unit ablated, and with
-it clamped at several multiples of its own top activation at every position, so the
-continuations can be read side by side (Turner et al., 2023; Goodfire, "Neural Networks
-Are Already Clean", 2026). Reported, not gated (docs/PROTOCOL.md §4), and shown to
-neither the proposer nor the reviewer.
+The harness continues each neutral prompt greedily in three ways: at baseline, with the
+unit ablated, and with the unit clamped at every position. The clamp uses several
+multiples of the unit's own top activation. You can then read the continuations side
+by side (Turner et al., 2023; Goodfire, "Neural Networks Are Already Clean", 2026).
+Reported, not gated (docs/PROTOCOL.md §4). Neither the proposer nor the reviewer sees
+them.
 """
 
 from __future__ import annotations

@@ -1,17 +1,18 @@
 """The steps of one drawn experiment as exact commands: claim, read the history, run, post.
 
-``openinterp next --steps`` prints them, so a driving agent runs them in order instead of
-re-deriving them from the skills and ``docs/PROTOCOL.md`` on every experiment. The
-skills stay the reference for *why*; this is only the *what*, filled in for the draw.
+``openinterp next --steps`` prints them. A driving agent then runs them in order. It
+does not work them out again from the skills and ``docs/PROTOCOL.md`` on every
+experiment. The skills stay the reference for *why*. This is only the *what*, filled in
+for the draw.
 """
 
 from __future__ import annotations
 
-import json
 import random
 from dataclasses import dataclass, field
 
 from openinterp.planner import Candidate, Plan, claim_key
+from openinterp.planner_models import model_dims
 
 SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan", "sister")
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
@@ -20,35 +21,19 @@ REVIEW_KINDS = ("independent_review", "replicate", "challenge")
 
 @dataclass(frozen=True)
 class Step:
+    """One step of a draw: a title, the commands to run and a note."""
+
     title: str
     commands: list[str] = field(default_factory=list)
     note: str = ""
-
-
-def model_dims(model: str) -> tuple[int, int] | None:
-    """(layers, MLP width) from the model's ``config.json``, or None if it can't be read.
-
-    The file is in the Hugging Face cache once the model has been used; reading it never
-    loads weights."""
-    from huggingface_hub import hf_hub_download
-
-    try:
-        with open(hf_hub_download(model, "config.json")) as fh:
-            config = json.load(fh)
-    except Exception:  # offline with nothing cached, or an unknown model
-        return None
-    layers = config.get("num_hidden_layers") or config.get("n_layer")
-    width = config.get("intermediate_size") or config.get("n_inner")
-    if width is None and config.get("n_embd"):  # GPT-2: n_inner null means 4 × n_embd
-        width = 4 * config["n_embd"]
-    return (layers, width) if layers and width else None
 
 
 def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None = None) -> str:
     """The slug ``openinterp audit --model M --random --seed S`` scans, without a scan.
 
     Mirrors :func:`openinterp.evidence.pick_unit`'s draws (layer, neuron, pole), assuming
-    every layer has the same MLP width."""
+    every layer has the same MLP width.
+    """
     from openinterp.core.identifiers import NeuronIdentifier
 
     rng = random.Random(seed)
@@ -59,8 +44,11 @@ def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None
 
 
 def draw_slug(choice: Candidate) -> str | None:
-    """The unit the draw studies; for a random pick (an explore draw, or a sister study
-    of a random pole), worked out from its seed."""
+    """Return the unit that the draw studies.
+
+    For a random pick (an explore draw, or a sister study of a random pole), it is worked
+    out from the draw's seed.
+    """
     options = (choice.audit or "").split()
     if choice.slug or "--random" not in options:
         return choice.slug
@@ -77,8 +65,11 @@ def steps(
     proposer: str | None = None,
     reviewer: str | None = None,
 ) -> list[Step]:
-    """Every step of ``plan``'s draw. A ``proposer`` or ``reviewer`` of None, or one named
-    ``external/…``, means a Claude Code subagent answers a prompt the CLI writes."""
+    """Return every step of ``plan``'s draw.
+
+    A ``proposer`` or ``reviewer`` of None, or one named ``external/…``, means that a
+    Claude Code subagent answers a prompt that the CLI writes.
+    """
     c = plan.choice
     slug = draw_slug(c)
     key = claim_key(slug) if slug else "<KEY>"
@@ -284,6 +275,7 @@ _VERBS = {
 
 
 def render(steps_: list[Step]) -> str:
+    """The steps as a numbered list, with each command after a ``$``."""
     lines = []
     for n, step in enumerate(steps_, 1):
         lines.append(f"{n}. {step.title}")

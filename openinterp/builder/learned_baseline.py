@@ -1,23 +1,25 @@
 """The learned-basis baseline: random dictionary latents against random native neuron poles.
 
-The native-neuron premise says a model's own MLP neurons are as explainable as the latents
-of a sparse dictionary trained on the same layers. This compares the two under one
-protocol (docs/PROTOCOL.md §1): for each dictionary, the share VERIFIED and the mean
-balanced accuracy among its randomly selected latents, against the same among randomly
-selected neuron poles of the same model on the layers the dictionary covers, scanned on
-the same corpus with the same window (a scan's context changes what a unit is seen to do).
+The native-neuron premise: a model's own MLP neurons are as explainable as the latents
+of a sparse dictionary trained on the same layers. This compares the two under
+one protocol (docs/PROTOCOL.md §1). For each dictionary, it takes the share VERIFIED and
+the mean balanced accuracy among its randomly selected latents. It compares them with the
+same among randomly selected neuron poles of the same model. These poles are on the
+layers that the dictionary covers, scanned on the same corpus with the same window. (A
+scan's context changes what a unit is seen to do.)
 
 Each unit counts once, by its first reviewed experiment, and only if that experiment chose
 it at random. Follow-ups (revisions, re-reviews) are left out so that neither arm gains
-from being studied more. Neurons are also compared by pole: in a GELU MLP (GPT-2) the
-negative pole is the activation's dip, at most 0.17 and reached at a pre-activation of
-about −0.75. It sits in the dip on most tokens, so a probe's peak nearly always clears
-the activity line and no hard negative passes. There the baseline's native arm is
-positive poles (``audit --random --pole positive``), and :attr:`Comparison.p_positive`
-is the test that matters.
+from being studied more. Neurons are also compared by pole. In a GELU MLP (GPT-2), the
+negative pole is the activation's dip. The dip is at most 0.17, at a pre-activation of
+about −0.75. It sits in the dip on most tokens. So a probe's peak nearly always clears the
+activity line, and no hard negative passes. There the baseline's native arm is positive
+poles (``audit --random --pole positive``), and :attr:`Comparison.p_positive` is the test
+that matters.
 
-Random draws that couldn't be audited (``wiki/draws/``: dead, or default-on since protocol
-0.8) are counted per arm next to it, so a share VERIFIED can be read against every draw.
+Random draws that couldn't be audited are counted per arm next to it. They are in
+``wiki/draws/``: dead, or default-on since protocol 0.8. So a share VERIFIED can be read
+against every draw.
 """
 
 from __future__ import annotations
@@ -43,6 +45,8 @@ QUALIFY row_number() OVER (PARTITION BY slug ORDER BY reviewed_at, experiment_id
 
 @dataclass(frozen=True)
 class Arm:
+    """One arm of a comparison: its units, how many were VERIFIED, and its unauditable draws."""
+
     units: int
     verified: int
     mean_balanced_accuracy: float | None
@@ -51,15 +55,19 @@ class Arm:
 
     @property
     def share(self) -> float | None:
+        """The share VERIFIED, or ``None`` with no units."""
         return self.verified / self.units if self.units else None
 
     @property
     def interval(self) -> tuple[float, float] | None:
+        """The Wilson interval of the share VERIFIED, or ``None`` with no units."""
         return wilson(self.verified, self.units) if self.units else None
 
 
 @dataclass(frozen=True)
 class Comparison:
+    """One dictionary against native poles, on one scan setting."""
+
     model_name: str
     dictionary: str
     layers: tuple[int, ...]
@@ -75,14 +83,19 @@ class Comparison:
 
     @property
     def p_value(self) -> float | None:
-        """Two-sided Fisher exact test of equal shares VERIFIED, latents against every
-        neuron pole."""
+        """Two-sided Fisher exact test of equal shares VERIFIED.
+
+        It compares latents against every neuron pole.
+        """
         return _fisher(self.features, self.neurons)
 
     @property
     def p_positive(self) -> float | None:
-        """The same against positive poles only: the comparison for a GELU MLP, whose
-        negative poles no hard negative can pass (docs/PROTOCOL.md §1)."""
+        """The same test against positive poles only.
+
+        This is the comparison for a GELU MLP, whose negative poles no hard negative can
+        pass (docs/PROTOCOL.md §1).
+        """
         return _fisher(self.features, self.positive_poles)
 
 
@@ -141,8 +154,11 @@ def _mean(values) -> float | None:
 
 
 def learned_baseline(con: duckdb.DuckDBPyConnection, draws: Sequence = ()) -> list[Comparison]:
-    """One comparison per dictionary and scan setting (corpus, window) with a randomly
-    selected latent, over view ``r``, with the unauditable ``draws`` of each arm."""
+    """Return one comparison per dictionary and scan setting (corpus, window), over view ``r``.
+
+    Only settings with a randomly selected latent are compared. Each has the unauditable
+    ``draws`` of each arm.
+    """
     cur = con.execute(FIRST_AUDITS)
     cols = [d[0] for d in cur.description]
     first = [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]

@@ -1,10 +1,10 @@
 """Scanning and patching one attention head.
 
-A head's strength is ``|W_O (z_t − z̄)|`` (see :mod:`openinterp.harness.units`), so the
-scan makes two passes over the corpus: the first averages the head's output z over every
-counted token to get z̄, the second measures strengths against it. Each pass stops at the
-head's layer. Both count the same tokens as a neuron scan (see :mod:`scan`), so the top
-examples, histogram and confound profile mean the same thing for both kinds of unit.
+A head's strength is ``|W_O (z_t − z̄)|`` (see :mod:`openinterp.harness.units`). So the
+scan makes two passes over the corpus. The first averages the head's output z over every
+counted token to get z̄. The second measures strengths against it. Each pass stops at the
+head's layer. Both count the same tokens as a neuron scan (see :mod:`scan`). So the top
+examples, histogram and confound profile mean the same for both kinds of unit.
 """
 
 from __future__ import annotations
@@ -34,6 +34,8 @@ from openinterp.harness.units import HeadUnit, head_strength
 
 @dataclass
 class HeadScanResult(ScanResult):
+    """A head's scan result, with its :class:`HeadProfile`."""
+
     profile: HeadProfile | None = None
 
 
@@ -85,8 +87,9 @@ def scan_head(
     pattern_seed: int = 0,
     taggers: Sequence[Tagger] = (),
 ) -> HeadScanResult:
-    """Top examples, strengths, confounds and the :class:`HeadProfile` of one head. Each
-    of ``taggers`` labels the counted tokens, and its confound joins the profile's.
+    """Scan one head: its top examples, strengths, confounds and :class:`HeadProfile`.
+
+    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's.
 
     Needs eager attention (``attn_implementation="eager"``) for the attention patterns.
     """
@@ -178,8 +181,8 @@ def patch_heads(
 ) -> list[float]:
     """``effect`` of patching each head's output, one at a time, from source into target.
 
-    The attention-head counterpart of :meth:`ActivationPatcher.patch_many`: each head gets
-    its own row of a batch, and later MLP outputs can be frozen against self-repair.
+    The attention-head counterpart of :meth:`ActivationPatcher.patch_many`. Each head gets
+    its own row of a batch. Later MLP outputs can be frozen against self-repair.
     """
     from openinterp.harness.patcher import ActivationPatcher
 

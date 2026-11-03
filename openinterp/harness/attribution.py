@@ -1,12 +1,12 @@
 """Attribution patching: a first-order approximation of activation patching.
 
-For every neuron in the requested layers, the effect of patching the clean
-activation into the corrupted run is approximated as
+Take every neuron in the requested layers. The effect of patching its clean activation
+into the corrupted run is approximated as follows:
 
     (a_clean - a_corrupted) * d metric / d a  |_corrupted
 
-which needs one clean forward pass and one corrupted forward + backward pass,
-instead of one forward pass per neuron. Use it to triage candidates, then confirm
+This needs one clean forward pass and one corrupted forward + backward pass, not one
+forward pass per neuron. Use it to triage candidates, then confirm
 with exact patching in :mod:`openinterp.harness.patcher`.
 """
 

@@ -1,9 +1,9 @@
 """Compile every archived experiment into a static site under ``dist/``.
 
-Pages follow the registry hierarchy: ``index.html`` → ``models/<model>/index.html``
-→ ``models/<model>/L<layer>/index.html`` → ``models/<model>/L<layer>/N<idx>.html`` (a
-neuron) or ``H<idx>.html`` (an attention head). Each unit page lists all of its
-experiments, most conclusive first. Null results are published alongside positive ones.
+Pages follow the registry hierarchy: the index, then a page per model, layer and unit.
+A neuron's page is ``models/<model>/L<layer>/N<idx>.html``, and a head's is
+``H<idx>.html``. Each unit page lists all of its experiments, most conclusive first. Null
+results are published alongside positive ones.
 """
 
 from __future__ import annotations
@@ -33,11 +33,12 @@ from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.significance import evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
-from openinterp.builder.standing import ROLES, native_standings, reviewer_agreement
+from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
 from openinterp.builder.tree import (
     Experiment,
     build_tree,
     circuits_href,
+    explore_focus,
     false_discovery,
     feature_href,
     neuron_href,
@@ -52,6 +53,8 @@ from openinterp.wiring_backfill import record_wiring
 
 @dataclass
 class BuildReport:
+    """What a build wrote."""
+
     output_dir: Path
     records_loaded: int
     experiments_published: int
@@ -110,6 +113,8 @@ def _root_for(rel_path: str) -> str:
 
 @dataclass(frozen=True)
 class HeatToken:
+    """One token of a heatmap, shaded by its strength."""
+
     text: str
     shade: float  # 0..1 of the pole's max activation; the template caps the tint
     value: float  # the stored pole strength
@@ -119,6 +124,8 @@ class HeatToken:
 
 @dataclass(frozen=True)
 class Attended:
+    """One token that a head's peak attends to."""
+
     text: str
     weight: float
     offset: int  # tokens from the peak (≤ 0)
@@ -142,7 +149,7 @@ def token_heat(
     """Shade every token by its pole strength relative to ``scale`` (the neuron's max).
 
     The window keeps ``before`` tokens before the peak and ``after`` after it, so long
-    snippets stay readable; the full snippet is kept for an expandable view.
+    snippets stay readable. The full snippet is kept for an expandable view.
     """
     scale = scale or example.max_activation or 1.0
     tokens = [
@@ -230,8 +237,11 @@ def _clean_owned_paths(output_dir: Path) -> None:
 def _experiment_view(
     e: Experiment, studied: set[str], rows: dict | None = None, circuit: str | None = None
 ) -> dict:
-    """``rows``: backfilled wiring (see :mod:`openinterp.wiring_backfill`); ``circuit``:
-    the link to the circuit the unit is in, if any."""
+    """Render a unit's page.
+
+    ``rows`` is backfilled wiring (see :mod:`openinterp.wiring_backfill`). ``circuit`` is
+    the link to the unit's circuit, if any.
+    """
     sub, verdict = e.record.submission, e.record.verdict
     weights, activations, backfilled = record_wiring(e.record, rows or {})
     ident = sub.identifier
@@ -311,12 +321,13 @@ def compile_site(
     alignment_rows: dict | None = None,
     sister_rows: dict | None = None,
 ) -> BuildReport:
-    """Render every reviewed experiment in ``records`` (normally the wiki archive), with
-    ``wiring_rows`` (from :func:`openinterp.wiring_backfill.load_rows`) and ``corpus_sources``
-    (:func:`openinterp.corpus.load_sources`) for records that predate wiring or sidecars,
-    each neuron pole's aligned dictionary latents, ``alignment_rows``
-    (:func:`openinterp.crossref.load_rows`), and its matches in other models,
-    ``sister_rows`` (:func:`openinterp.sisters.load_rows`)."""
+    """Render every reviewed experiment in ``records``, normally the wiki archive.
+
+    Rows fill in what old records lack. ``wiring_rows`` and ``corpus_sources`` come from
+    :func:`openinterp.wiring_backfill.load_rows` and :func:`openinterp.corpus.load_sources`.
+    ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
+    latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
+    """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
@@ -343,25 +354,23 @@ def compile_site(
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
-    _render_index(render, models, experiments, agents, registry_stats(report.parquet, draws))
+    stats = registry_stats(report.parquet, draws)
+    _render_index(render, models, experiments, agents, stats, draws)
     return report
 
 
-def _render_index(render, models, experiments, agents, stats) -> None:
+def _render_index(render, models, experiments, agents, stats, draws) -> None:
     render(
         "index.html",
         "index.html",
         models=models,
+        explore=explore_focus(models, draws),  # the coverage target and the model drawn most
         stats=stats,
         agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
         corpora=corpora_view(experiments),
-        contested=[
-            {"model": n.model, "unit": n, "side": side, "standing": st}
-            for n, side, st in native_standings(models)
-            if st.contested
-        ],
+        contested=contested_units(models),
     )
 
 
@@ -415,8 +424,10 @@ class _Renderer:
 
 
 def aligned_latents(model, neuron, alignment: dict, studied: set) -> list[dict]:
-    """Each pole's aligned dictionary latents for a neuron page, with each latent's page
-    here (if it was audited) and on Neuronpedia (if hosted there)."""
+    """Return each pole's aligned dictionary latents for a neuron page.
+
+    Each latent links to its page here (if audited) and on Neuronpedia (if hosted there).
+    """
     if not neuron.is_neuron:
         return []
     poles = []

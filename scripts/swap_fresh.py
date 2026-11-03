@@ -1,8 +1,8 @@
 """The swapped-unit null with fresh probes (``docs/analyses/null-calibration.md``).
 
 ``null_calibration.py swap`` reuses neuron A's probes on neuron B. Here a sample of those
-swaps is reviewed again from scratch: the reviewer gets A's hypothesis with B's scan (its
-top examples, confounds and scale) and writes new probes, which are measured on B.
+swaps is reviewed again from scratch. The reviewer gets A's hypothesis with B's scan (its
+top examples, confounds and scale). It writes new probes, which are measured on B.
 
     uv run python scripts/swap_fresh.py prepare --swaps docs/analyses/null-calibration-swap.jsonl
     # each exchange/swap-fresh/sNN/review.prompt.md is answered in review.probes.json

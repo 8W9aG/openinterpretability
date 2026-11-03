@@ -1,11 +1,16 @@
 """Random draws that could not be audited, kept as outcomes of random selection.
 
-A random draw is one of the registry's unbiased samples, so statistics over random units
-(share VERIFIED, share dead) need every draw, not only the ones that could be audited.
-Two kinds can't be: a unit that never fires on the scan (*dead*), and one active on at
-least half its tokens (*default-on*, protocol 0.8). The scan stops on both and writes an
-:class:`UnauditableDraw` instead of evidence, write-once, at
-``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit --random``).
+A random draw is one of the registry's unbiased samples. Statistics over random units
+(share VERIFIED, share dead) need every draw, not only the draws that could be audited.
+Two kinds of unit cannot be audited:
+
+- *dead*: a unit that never fires on the scan. For a neuron pole, the scan then checks
+  the weights (``openinterp.harness.dead``). When they prove that no input can make the
+  pole fire, the draw is ``proven_dead``, and the planner counts the pole as verified.
+- *default-on* (protocol 0.8): a unit active on at least half its tokens.
+
+The scan stops on both. It writes an :class:`UnauditableDraw` instead of evidence, once
+only, at ``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit --random``).
 """
 
 from __future__ import annotations
@@ -28,15 +33,23 @@ DrawOutcome = Literal["dead", "default_on"]
 
 
 class UnauditableDraw(StrictModel):
+    """One random draw that the scan stopped on.
+
+    It is kept because rates over random units are biased without every draw.
+    """
+
     identifier: ComponentIdentifier
     outcome: DrawOutcome
     active_share: UnitFloat | None = None  # default-on: the share the scan stopped on
+    proven_dead: bool = False  # dead: the weights prove that no input makes it fire
+    dead_bound: float | None = None  # dead: the largest pre-activation any input gives
     provenance: ExperimentProvenance
     protocol_version: str = PROTOCOL_VERSION
     timestamp: AwareDatetime
 
 
 def draw_path(wiki_dir: Path, draw: UnauditableDraw) -> Path:
+    """Where ``draw`` is stored: ``draws/<slug>/<timestamp>.json`` under ``wiki_dir``."""
     stamp = draw.timestamp.strftime("%Y%m%dT%H%M%SZ")
     return draws_dir(wiki_dir) / draw.identifier.slug / f"{stamp}.json"
 
@@ -51,6 +64,7 @@ def write_draw(draw: UnauditableDraw, wiki_dir: Path) -> Path:
 
 
 def draw_files(wiki_dir: Path) -> Iterator[Path]:
+    """Every draw file under ``wiki_dir``, sorted by path; none without a draws directory."""
     root = draws_dir(wiki_dir)
     yield from sorted(root.rglob("*.json")) if root.is_dir() else ()
 

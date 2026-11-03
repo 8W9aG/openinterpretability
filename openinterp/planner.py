@@ -1,22 +1,28 @@
 """Choose the next experiment: randomised, exploration-balanced, herd-resistant.
 
-Every neuron in the registry generates candidate follow-up experiments (re-evaluate
-under the current protocol, independent re-review, revise, replicate, challenge,
-audit the opposite pole, try a new hypothesis after a rejection, or rescan a record
-scanned on the built-in sample). A VERIFIED pole also offers its unstudied matches in
-other configured models (``openinterp sisters``), audited with its explanation: any
-match can be drawn, and any pole of another model at random, but its sister far more
-often than the rest. Each candidate
-gets a weight from its expected information value, decayed by how often the neuron
-has been studied, by recent activity and by open PRs that already claim it. Weights
-are never zero: repeating an experiment is allowed, and a null result is data.
+Every neuron in the registry generates candidate follow-up experiments:
 
-With probability ``epsilon`` the planner explores instead: a uniformly random new
-neuron (the only selection that supports unbiased registry statistics), in a model
-drawn from the configured list (``[tool.openinterp] models`` in ``pyproject.toml``)
-with weight ``1/√(1 + units studied or claimed)``, so models with little coverage
-get explored without the well-covered ones being dropped. Otherwise
-it samples a candidate in proportion to ``weight ** (1 / temperature)``. Sampling,
+- Re-evaluate under the current protocol, or re-review independently.
+- Revise, replicate or challenge.
+- Audit the opposite pole, or try a new hypothesis after a rejection.
+- Rescan a record that was scanned on the built-in sample.
+
+A VERIFIED pole also offers its unstudied matches in other configured models
+(``openinterp sisters``), audited with its explanation. Any match can be drawn, and any
+pole of another model at random. But the pole's sister is drawn far more often than the
+rest.
+
+Each candidate gets a weight from its expected information value. The weight decays
+with how often the neuron has been studied, with recent activity, and with open PRs
+that already claim it. Weights are never zero: repeating an experiment is allowed, and
+a null result is data.
+
+With probability ``epsilon``, the planner explores instead. It picks a uniformly random
+new neuron, the only selection that supports unbiased registry statistics. The model
+comes from the configured list (``[tool.openinterp] models`` in ``pyproject.toml``).
+The smallest model below its coverage target gets most of these draws, and the others
+share the rest (``openinterp.planner_models``). Otherwise, the planner
+samples a candidate in proportion to ``weight ** (1 / temperature)``. Sampling,
 rather than taking the best candidate, keeps independent agents from piling onto
 the same neuron. The seed is reported so any choice can be reproduced.
 """
@@ -29,16 +35,22 @@ import random
 import shutil
 import subprocess
 import tomllib
-from collections import Counter
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openinterp.core.agent_names import canonical_agent
-from openinterp.core.identifiers import model_slug
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
+from openinterp.planner_models import (
+    DEFAULT_COVERAGE_TARGET,
+    DEFAULT_OTHERS_SHARE,
+    ModelCoverage,
+    explore_weights,
+    focus_model,
+    model_coverage,
+)
 
 # Expected information value per experiment kind, before decay.
 # Probability of an explore draw (a random new unit) instead of a follow-up.
@@ -71,6 +83,8 @@ DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
 
 @dataclass(frozen=True)
 class Candidate:
+    """One experiment the planner can draw, with its weight and the commands to run it."""
+
     kind: str
     model: str
     weight: float
@@ -85,6 +99,8 @@ class Candidate:
 
 @dataclass
 class NeuronState:
+    """What the registry holds on one unit: its latest record and how much it has been studied."""
+
     slug: str
     record: AuditRecord
     record_path: Path
@@ -140,23 +156,28 @@ def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ..
 
 
 def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, int]:
-    """``[tool.openinterp.window_tokens]``: the scan window of each model whose context is
-    shorter than the corpus's documents (GPT-2 reads 1,024 positions)."""
+    """Return ``[tool.openinterp.window_tokens]``, the scan window of some models.
+
+    These are the models whose context is shorter than the corpus's documents. GPT-2
+    reads 1,024 positions.
+    """
     return dict(_config(pyproject).get("window_tokens", {}))
 
 
-def explore_weights(
-    pool: Sequence[str], states: dict[str, NeuronState], claims: Sequence[str]
-) -> dict[str, float]:
-    """Explore probability per model, ∝ ``1/√(1 + units studied or claimed)``."""
-    studied = Counter(s.record.submission.identifier.model_name for s in states.values())
-    weights = {}
-    for model in pool:
-        key = f"{model_slug(model)}-L"  # how a claim on this model's units starts
-        claimed = sum(key in c for c in claims)
-        weights[model] = 1.0 / math.sqrt(1 + studied[model] + claimed)
-    total = sum(weights.values())
-    return {m: w / total for m, w in weights.items()}
+def coverage_target(pyproject: Path = Path("pyproject.toml")) -> float:
+    """Return ``[tool.openinterp] coverage_target``, or the default.
+
+    A model's verified share must pass it before most explore draws move to the next model.
+    """
+    return float(_config(pyproject).get("coverage_target", DEFAULT_COVERAGE_TARGET))
+
+
+def others_share(pyproject: Path = Path("pyproject.toml")) -> float:
+    """Return ``[tool.openinterp] others_share``, or the default.
+
+    It is the share of explore draws for the models that are not the focus.
+    """
+    return float(_config(pyproject).get("others_share", DEFAULT_OTHERS_SHARE))
 
 
 def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
@@ -198,6 +219,7 @@ def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[fl
 
 
 def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], now: datetime):
+    """The follow-up candidates for one studied unit, weighted."""
     record, verdict = state.record, state.record.verdict
     ident = record.submission.identifier
     commands = _commands(state)
@@ -210,7 +232,7 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
         kinds = _review_kinds(state, commands)
         if gates.get("not_default_on") is False:
             # A default-on unit can't be audited as a detector, so no revision or review of
-            # it can pass; only its other pole is still open.
+            # it can pass. Only its other pole is still open.
             kinds = [k for k in kinds if k[0] == "reevaluate"]
     kinds += _opposite_pole(state, slugs, commands)
 
@@ -306,8 +328,10 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
 
 
 def _rescan(c: _Commands) -> list[Kind]:
-    """A new audit on the scan corpus that supersedes a record scanned on the built-in
-    sample. Re-evaluating or re-reviewing it would reuse that scan."""
+    """Return a new audit on the scan corpus, to supersede a built-in-sample record.
+
+    Re-evaluating or re-reviewing the record would reuse its scan.
+    """
     why = "scanned on the 552-token built-in sample; rescan on the corpus"
     verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
     return [("rescan", why, [c.revise, verify], None)]
@@ -323,111 +347,20 @@ def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Ki
     return [("opposite_pole", f"the {other} pole is unstudied", [audit], other_slug)]
 
 
-# A match of a VERIFIED pole that isn't its sister is drawable too, at this share of a
-# sister's weight times its correlation: any link can be tested, but the draws lean
-# heavily towards the sisters, where the explanation is likeliest to carry over.
-LINK_WEIGHT = 0.05
-# So is any pole of another configured model, found by the search or not: one draw per
-# VERIFIED pole and model picks a random pole there, at this share of a sister's weight.
-# It is also the control for the matched draws.
-UNMATCHED_WEIGHT = 0.01
-
-
-def link_affinity(row, match) -> float:
-    """How strongly to draw a study of ``match``: 1 for the pole's sister, else
-    :data:`LINK_WEIGHT` × its correlation (never zero, as every weight here)."""
-    return 1.0 if row.sister is match else LINK_WEIGHT * max(match.pearson, 0.01)
-
-
-def sister_candidates(
-    states, claims, now, pool: Sequence[str], root: Path, seed: int = 0
-) -> list[Candidate]:
-    """``sister`` draws that audit a pole of another model of ``pool`` with a VERIFIED
-    pole's explanation, unchanged: every unstudied match ``openinterp sisters`` found
-    (read from ``root``), weighted by :func:`link_affinity`, and per model a random pole
-    (:data:`UNMATCHED_WEIGHT`, seeded from ``seed``). Only models in the pool, so CI can
-    reproduce the record."""
-    from openinterp.sisters import DEFAULT_PATH, load_rows
-
-    rows, windows = load_rows(root / DEFAULT_PATH), configured_windows(root / "pyproject.toml")
-    out = []
-    for slug, state in states.items():
-        ident = state.record.submission.identifier
-        if state.record.verdict.status != "VERIFIED" or ident.kind != "mlp_neuron_pole":
-            continue
-        for row in rows.get(slug, []):
-            for m in row.matches if row.other in pool else []:
-                if m.slug(row.other) not in states:
-                    out.append(_sister(state, row, m, windows.get(row.other), claims, now))
-        for other in pool:
-            if other != ident.model_name:
-                out.append(_unmatched(state, other, windows.get(other), seed, claims, now))
-    return out
-
-
-def _unmatched(state, other: str, window: int | None, seed: int, claims, now) -> Candidate:
-    """The draw that audits a random pole of ``other`` with ``state``'s explanation."""
-    import hashlib
-
-    digest = hashlib.sha256(f"{seed} {state.slug} {other}".encode()).digest()
-    audit = f"--model {other} --random --seed {int.from_bytes(digest[:4])}"
-    if window:
-        audit += f" --window-tokens {window}"
-    audit += f" --sister-of {state.record_path.as_posix()}"
-    factor, notes = _decay(state, claims, now)
-    why = (
-        f"a random pole of {other}, matched by no search, with {state.slug}'s explanation: "
-        "the control for its matches"
-    )
-    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
-    return Candidate(
-        kind="sister",
-        model=other,
-        weight=BASE_WEIGHTS["sister"] * UNMATCHED_WEIGHT * factor,
-        rationale="; ".join([why, *notes]),
-        commands=[f"openinterp audit {audit}", verify],
-        skills=SKILLS["sister"],
-        record=state.record_path.as_posix(),
-        audit=audit,
-    )
-
-
-def _sister(state, row, m, window: int | None, claims, now) -> Candidate:
-    """The draw that audits ``m`` with ``state``'s explanation."""
-    target = m.slug(row.other)
-    factor, notes = _decay(state, claims, now)
-    if any(claim_key(target) in c for c in claims):
-        factor, notes = factor * 0.05, [*notes, "an open PR already claims the match"]
-    audit = f"--model {row.other} --layer {m.layer} --neuron {m.neuron_idx} --pole {m.pole}"
-    if window:
-        audit += f" --window-tokens {window}"
-    audit += f" --sister-of {state.record_path.as_posix()}"
-    link = "sister" if row.sister is m else "correlated match (not a sister)"
-    why = f"{link} of {state.slug} (r {m.pearson:+.2f}): does its explanation carry over?"
-    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
-    return Candidate(
-        kind="sister",
-        model=row.other,
-        weight=BASE_WEIGHTS["sister"] * link_affinity(row, m) * factor,
-        rationale="; ".join([why, *notes]),
-        commands=[f"openinterp audit {audit}", verify],
-        slug=target,
-        skills=SKILLS["sister"],
-        layer=m.layer,
-        record=state.record_path.as_posix(),
-        audit=audit,
-    )
-
-
 @dataclass
 class Plan:
+    """The planner's choice, the candidates it drew from, and the seed that replays it."""
+
     seed: int
     choice: Candidate
     explored: bool
     candidates: list[Candidate]
     explore_models: dict[str, float] = field(default_factory=dict)
+    coverage: dict[str, ModelCoverage] = field(default_factory=dict)
+    focus: str | None = None  # the model that explore draws favour
 
     def to_json(self) -> str:
+        """The plan as indented JSON."""
         return json.dumps(asdict(self), indent=2)
 
 
@@ -453,19 +386,32 @@ def plan_next(
     slugs = set(states)
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
+    # Imported here: planner_sisters builds its candidates from this module's weights.
+    from openinterp.planner_sisters import sister_candidates
+
     sisters = sister_candidates(states, claims, now, pool, Path(wiki_dir).parent, seed)
     candidates = sorted(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
         key=lambda c: -c.weight,
     )
-    explore = explore_weights(pool, states, claims)
+    coverage = model_coverage(pool, (s.record for s in states.values()), claims, dead(wiki_dir))
+    target = coverage_target(pyproject)
+    explore = explore_weights(coverage, target, others_share(pyproject))
+    focus = focus_model(coverage.values(), target)
     if not candidates or rng.random() < epsilon:
-        choice = _explore(rng, pool, explore, pyproject)
-        return Plan(seed, choice, True, candidates, explore)
+        choice = _explore(rng, pool, explore, pyproject, focus)
+        return Plan(seed, choice, True, candidates, explore, coverage, focus)
 
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
     choice = rng.choices(candidates, weights=weights, k=1)[0]
-    return Plan(seed, choice, False, candidates, explore)
+    return Plan(seed, choice, False, candidates, explore, coverage, focus)
+
+
+def dead(wiki_dir: Path) -> list:
+    """Every neuron pole that a random draw found dead and the weights proved dead."""
+    from openinterp.core.draws import load_draws
+
+    return [d.identifier for d in load_draws(Path(wiki_dir)) if d.proven_dead]
 
 
 def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:
@@ -478,13 +424,16 @@ def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:
     )
 
 
-def _explore(rng: random.Random, pool: list[str], explore: dict, pyproject: Path) -> Candidate:
-    """A random new unit of a model drawn by coverage (two draws from ``rng``)."""
+def _explore(
+    rng: random.Random, pool: list[str], explore: dict, pyproject: Path, focus: str | None
+) -> Candidate:
+    """A random new unit of a model drawn by size and coverage (two draws from ``rng``)."""
     model = rng.choices(pool, weights=[explore[m] for m in pool], k=1)[0]
     audit_seed = rng.getrandbits(32)
     rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
     if len(pool) > 1:
-        rationale += f"; {model} drawn with probability {explore[model]:.0%} by coverage"
+        why = "the smallest model below its verified target" if model == focus else "coverage"
+        rationale += f"; {model} drawn with probability {explore[model]:.0%} by {why}"
     audit = f"openinterp audit --model {model} --random --seed {audit_seed}"
     if window := configured_windows(pyproject).get(model):
         audit += f" --window-tokens {window}"

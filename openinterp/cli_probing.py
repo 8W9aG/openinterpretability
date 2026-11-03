@@ -51,8 +51,10 @@ def probe_compare(
     device,
     dtype,
 ):
-    """Compare a neuron pole with logistic, mass-mean and k-sparse probes for its concept,
-    on the layer's MLP hidden activations and the residual stream after it.
+    """Compare a neuron pole with linear probes for its concept.
+
+    The probes are logistic, mass-mean and k-sparse. They read the layer's MLP hidden
+    activations and the residual stream after the layer.
 
     Reported, not gated: it shows whether the concept lives in the neuron or is only
     partly carried by it.

@@ -1,16 +1,19 @@
 """One pass over a corpus that gathers everything an audit needs about a neuron pole.
 
-For every non-padding token it records the pole strength (top examples and
-histogram), the whole layer's activations (partner neuron poles: co-activation lift,
-Spearman, Pearson) and the token id and position (confound profile).
+For every non-padding token, it records three things:
+
+- the pole strength, for the top examples and histogram;
+- the whole layer's activations, for partner neuron poles (co-activation lift, Spearman,
+  Pearson);
+- the token id and position, for the confound profile.
 
 Documents are scanned whole by default. With ``window_tokens``, each is cut into
-overlapping windows that start every ``stride`` tokens, so a long document is read in
-full without one huge forward pass. Every token still counts once in the statistics,
-in the first window that reaches it after the first, where it has at least
+overlapping windows that start every ``stride`` tokens. So a long document is read in
+full without one huge forward pass. Every token still counts once in the statistics. It
+counts in the first window after the first that reaches it. There it has at least
 ``window_tokens - stride`` tokens of context (the strided-perplexity convention).
-A unit with a first-token floor (protocol 0.8) is above its line at the first token
-whatever the token, so its scan leaves first tokens out of its scale, histogram and
+A unit with a first-token floor (protocol 0.8) is above its line at the first token,
+whatever the token. So its scan leaves first tokens out of its scale, histogram and
 top-example ranking (:func:`settle`). That is decided after the pass, so every scan
 keeps whether each counted token is its piece's first.
 Top examples are windows, decoded back to text so a record re-measures them as the
@@ -46,14 +49,16 @@ if TYPE_CHECKING:
 
 
 # Padded tokens per forward pass (pieces × the longest). Part of a cached scan's key, as
-# it sets padding. On Qwen2.5-0.5B over corpus.jsonl the model reads 27% fewer tokens,
-# padding included, than with 8 pieces a pass, and 2048 is near the fastest budget on
+# it sets padding. On Qwen2.5-0.5B over corpus.jsonl, the model reads 27% fewer tokens
+# (padding included) than with 8 pieces a pass. 2048 is near the fastest budget on
 # Apple's GPU.
 BATCH_TOKENS = 2048
 
 
 @dataclass
 class ScanResult:
+    """What one scan found: top examples, every counted strength, partners and confounds."""
+
     examples: list[ActivatingExample]
     values: list[float]  # every scanned token's pole strength, each token once
     correlated: list[CorrelatedNeuron]
@@ -66,6 +71,8 @@ class ScanResult:
 
 @dataclass
 class OppositeScan:
+    """The neuron's other pole, from the same pass: its top examples and strengths."""
+
     pole: Pole
     examples: list[ActivatingExample]
     values: list[float]
@@ -79,9 +86,12 @@ Strengths = Callable[[Inputs], torch.Tensor]
 def first_position_share(
     runner: NeuronHookRunner, strengths: Strengths, line: float, batch_size: int = 8192
 ) -> float:
-    """The share of the vocabulary (special tokens left out) on which ``strengths`` is at
-    or above ``line`` at a text's first position. Attention there sees only the token
-    itself, so this is a property of the weights, the same for every corpus."""
+    """Return the share of the vocabulary on which ``strengths`` is at or above ``line``.
+
+    This is at a text's first position, with special tokens left out. Attention there
+    sees only the token itself. So this is a property of the weights, the same for every
+    corpus.
+    """
     tokenizer = runner.tokenizer
     try:
         size = len(tokenizer)
@@ -100,8 +110,11 @@ def first_position_share(
 def has_first_token_floor(
     runner: NeuronHookRunner, strengths: Strengths, scale: float, policy: ReviewPolicy
 ) -> bool:
-    """Protocol 0.8: is the unit active at the first position on at least
-    ``policy.max_active_share`` of the vocabulary, against its line ``scale`` sets?"""
+    """Return whether the unit has a first-token floor (protocol 0.8).
+
+    It has one when it is active at the first position on at least
+    ``policy.max_active_share`` of the vocabulary. Its line comes from ``scale``.
+    """
     if scale <= 0:
         return False
     line = policy.activation_threshold * scale
@@ -117,11 +130,13 @@ def settle(
     k: int,
     labels: TokenLabels | None = None,
 ) -> tuple[list[ActivatingExample], list[float], bool]:
-    """A scan's top examples, counted values and whether the unit has a first-token floor.
-    The floor is judged against the scale the unit would have without first tokens (the
-    top example's peak after its first token), which is the scale it records if it has the
-    floor; with it, first tokens are left out of the examples' ranking and of the values.
-    Each example carries its peak token's ``labels``."""
+    """Return a scan's top examples, counted values, and whether it has a first-token floor.
+
+    The floor is judged against the scale that the unit would have without first tokens.
+    That is the top example's peak after its first token. It is the scale that the unit
+    records if it has the floor. With the floor, first tokens are left out of the
+    examples' ranking and of the values. Each example carries its peak token's ``labels``.
+    """
     best = top.top(runner.tokenizer, 1, skip_first=True)
     scale = best[0].max_activation if best else 0.0
     floor = has_first_token_floor(runner, strengths, scale, ReviewPolicy())
@@ -140,6 +155,7 @@ class Piece:
     fresh: int | None = None  # trailing tokens new to the scan; None: every token is
 
     def overlaps(self, other: Piece) -> bool:
+        """True when the two pieces share tokens of one document."""
         return self.doc == other.doc and self.start < other.end and other.start < self.end
 
 
@@ -188,8 +204,10 @@ class Batch:
 
 
 def plan_batches(lengths: Sequence[int], batch_tokens: int) -> list[int]:
-    """How many consecutive pieces each forward pass takes: as many as fit in
-    ``batch_tokens`` once padded to the longest, and at least one."""
+    """Return how many consecutive pieces each forward pass takes.
+
+    That is as many as fit in ``batch_tokens`` once padded to the longest, and at least one.
+    """
     sizes: list[int] = []
     size = longest = 0
     for n in lengths:
@@ -269,8 +287,10 @@ def scan_chunks(
     batch_tokens: int = BATCH_TOKENS,
     cache: LayerCache | None = None,
 ) -> Iterator[Chunk]:
-    """``layer``'s chunks: replayed from ``cache`` if it holds them, else from the model
-    (and stored in ``cache``)."""
+    """Yield ``layer``'s chunks, replayed from ``cache`` if it holds them.
+
+    Otherwise they come from the model, and are stored in ``cache``.
+    """
     chunks = layer_chunks(runner, pieces, layer, batch_tokens)
     return chunks if cache is None else cache.through(runner, layer, pieces, batch_tokens, chunks)
 
@@ -282,23 +302,29 @@ class TopExamples:
         self.candidates: list[tuple[Piece, list[int], list[float]]] = []
 
     def update(self, batch: Batch, strengths: torch.Tensor) -> None:
+        """Add a batch's pieces as candidates, with their real tokens' strengths."""
         for row, piece in enumerate(batch.pieces):
             mask = batch.mask[row]
             self.add(piece, batch.ids[row][mask].tolist(), strengths[row][mask].tolist())
 
     def update_chunk(self, chunk: Chunk, strengths: torch.Tensor) -> None:
+        """Add a chunk's pieces as candidates, with their strengths."""
         for piece, rows in chunk.rows():
             self.add(piece, chunk.ids[rows].tolist(), strengths[rows].tolist())
 
     def add(self, piece: Piece, ids: list[int], values: list[float]) -> None:
+        """Add one piece as a candidate, unless it has no strengths."""
         if values:
             self.candidates.append((piece, ids, values))
 
     def top(
         self, tokenizer, k: int, skip_first: bool = False, labels: TokenLabels | None = None
     ) -> list[ActivatingExample]:
-        """The ``k`` strongest pieces by their peak, after their first token if
-        ``skip_first``, each with its peak token's ``labels``."""
+        """Return the ``k`` strongest pieces by their peak.
+
+        With ``skip_first``, the peak is after the first token. Each has its peak token's
+        ``labels``.
+        """
         start = int(skip_first)
         ranked = [(max(v[start:]), p, i, v) for p, i, v in self.candidates if len(v) > start]
         examples: list[ActivatingExample] = []
@@ -340,10 +366,13 @@ def scan_neuron(
     opposite_k: int = 5,
     taggers: Sequence[Tagger] = (),
 ) -> ScanResult:
-    """Scan ``texts`` for one neuron pole, and for its other pole's top ``opposite_k``
-    examples and histogram (free: the pass reads the whole activation). With ``cache``,
-    replay the layer's stored activations if it holds this scan, and store them if not.
-    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's."""
+    """Scan ``texts`` for one neuron pole, and for its other pole.
+
+    The other pole gets its top ``opposite_k`` examples and histogram. That is free,
+    because the pass reads the whole activation. With ``cache``, replay the layer's stored
+    activations if it holds this scan, and store them if not. Each of ``taggers`` labels
+    the counted tokens, and its confound joins the profile's.
+    """
     if runner.tokenizer is None:
         raise ValueError("scan_neuron requires a tokenizer")
     other: Pole = "negative" if pole == "positive" else "positive"
@@ -403,8 +432,11 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
 
 
 class LabelPass:
-    """Each tagger's labels of a scan's counted tokens, with their strengths, gathered
-    pass by pass, and the label confounds they give (see ``harness/annotations.py``)."""
+    """Each tagger's labels of a scan's counted tokens, with their strengths.
+
+    They are gathered pass by pass. They give the label confounds (see
+    ``harness/annotations.py``).
+    """
 
     def __init__(self, tokenizer, texts: Sequence[str], taggers: Sequence[Tagger]) -> None:
         self.tokens = TokenLabels(tokenizer, texts, taggers)
@@ -429,8 +461,11 @@ class LabelPass:
             accumulator.update(every[counted], strengths[counted])
 
     def finalize(self, confounds: ConfoundProfile, values: Sequence[float]) -> ConfoundProfile:
-        """``confounds`` with each label set's, counting a token active at or above the
-        protocol's line for the scan's settled ``values``."""
+        """Return ``confounds`` with each label set's confound added.
+
+        A token counts as active at or above the protocol's line for the scan's settled
+        ``values``.
+        """
         if not self.accumulators:
             return confounds
         line = ReviewPolicy().activation_threshold * max(values, default=0.0)

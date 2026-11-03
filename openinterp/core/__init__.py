@@ -1,3 +1,5 @@
+"""Schemas, identifiers and statistics that every record and command depends on."""
+
 from openinterp.core.exceptions import (
     AgentError,
     ArchitectureNotSupportedError,

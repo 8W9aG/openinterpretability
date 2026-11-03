@@ -1,16 +1,17 @@
 """Verbalise a unit's output direction with a Patchscope (Ghandeharioun et al., 2024).
 
-The residual stream after layer ℓ's block, at a placeholder token of an inspection
-prompt, is replaced by the unit's output direction scaled to a multiple of the norm it
-replaces. The model then continues greedily, and so describes the direction without
+Take the residual stream after layer ℓ's block, at a placeholder token of an inspection
+prompt. It is replaced by the unit's output direction, scaled to a multiple of the norm
+that it replaces. The model then continues greedily, and so describes the direction without
 seeing a single example. A random direction injected the same way is the control: any
 text the two share comes from the prompt, not the unit.
 
-Two inspection prompts are used, a few-shot "word: category" list and a definition
-frame, at two layers: the unit's own layer ℓ (source layer = target layer), and an
-early layer, as SelfIE (Chen et al., 2024) does. On Qwen2.5-0.5B the few-shot list
-injected at layer 2 names the concept of several VERIFIED poles ("crop", "newspaper",
-"official", "culture") where the control gives "animal", "emotion" or "period".
+There are two inspection prompts: a few-shot "word: category" list and a definition
+frame. Each is used at the unit's own layer ℓ (source layer = target layer). Each is also
+used at an early layer, as SelfIE (Chen et al., 2024) does. On Qwen2.5-0.5B, the few-shot
+list injected at layer 2 names the concept of several VERIFIED poles. It gives "crop",
+"newspaper", "official" and "culture", where the control gives "animal", "emotion" or
+"period".
 Injected at their own layer, poles from layer 17 up mostly read back the control's
 text. The decoding is greedy, so a reading is deterministic given the weights.
 """
@@ -38,9 +39,11 @@ CONTROL_SEED = 0
 
 
 def write_direction(runner: NeuronHookRunner, unit: Unit) -> torch.Tensor | None:
-    """The vector one unit of the unit's strength adds to the residual stream: a pole's
-    signed ``w_out``, or a dictionary latent's decoder row. A head writes a subspace,
-    not one direction, so it has none."""
+    """Return the vector that one unit of the unit's strength adds to the residual stream.
+
+    That is a pole's signed ``w_out``, or a dictionary latent's decoder row. A head writes
+    a subspace, not one direction, so it has none.
+    """
     if isinstance(unit, NeuronUnit):
         ident = unit.ident
         direction = runner.neuron_output_direction(ident.layer, ident.neuron_idx).float()
@@ -91,9 +94,11 @@ def _continue(
     vectors: torch.Tensor,
     max_new_tokens: int,
 ) -> list[str]:
-    """Greedy continuations of ``ids``, one per row of ``vectors``, each with the residual
-    after ``layer``'s block at ``pos`` replaced by that row. Each stops at a line break
-    or the end-of-text token."""
+    """Return greedy continuations of ``ids``, one per row of ``vectors``.
+
+    In each, the residual after ``layer``'s block at ``pos`` is replaced by that row. Each
+    stops at a line break or the end-of-text token.
+    """
     tok = runner.tokenizer
     eos = getattr(tok, "eos_token_id", None)
 
@@ -135,8 +140,10 @@ def patchscope(
     max_new_tokens: int = MAX_NEW_TOKENS,
     control_seed: int = CONTROL_SEED,
 ) -> PatchscopeReadout:
-    """Read ``direction``, written after ``layer``'s MLP, through every inspection prompt
-    at ``layer`` and at ``early_layer`` (when that is earlier), at each scale."""
+    """Read ``direction``, written after ``layer``'s MLP, through every inspection prompt.
+
+    It is read at ``layer``, and at ``early_layer`` when that is earlier, at each scale.
+    """
     if runner.tokenizer is None:
         raise ValueError("a Patchscope needs a tokenizer")
     direction = direction.float().cpu()

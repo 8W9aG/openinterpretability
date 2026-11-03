@@ -51,6 +51,7 @@ CONCEPTS = {
 
 @click.group()
 def main() -> None:
+    """Compare neuron poles with linear probes for their concepts."""
     pass
 
 
