@@ -1,11 +1,11 @@
 """Schemas for a Patchscope readout: the model describing a unit's output direction.
 
 A Patchscope (Ghandeharioun et al., 2024) replaces the residual stream at one token of
-an inspection prompt and lets the model continue. Here the replacement is the unit's
-output direction alone (a pole's signed ``w_out``, or a dictionary latent's decoder
-row), so the text is an example-free description of what the unit writes, in the
-spirit of SelfIE (Chen et al., 2024). Reported, not gated (docs/PROTOCOL.md §4), and
-shown to neither the proposer nor the reviewer.
+an inspection prompt and lets the model continue. Here the replacement is only the
+unit's output direction: a pole's signed ``w_out``, or a dictionary latent's decoder row.
+So the text describes what the unit writes without examples, as in SelfIE (Chen et al.,
+2024). Reported, not gated (docs/PROTOCOL.md §4). Neither the proposer nor the reviewer
+sees it.
 """
 
 from __future__ import annotations

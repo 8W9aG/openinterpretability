@@ -120,8 +120,8 @@ def expected_false_discoveries(p_useful: Sequence[float]) -> float:
 def rank_columns(x: torch.Tensor, chunk: int = 1024) -> torch.Tensor:
     """Ranks (0-based) down each column of ``x`` [n, c], averaging ties.
 
-    Pole strengths are mostly exact zeros, so tie handling matters: every tied value
-    gets the mean of the ranks it spans, as in ``scipy.stats.rankdata``.
+    Pole strengths are mostly exact zeros, so tie handling matters. Each tied value gets
+    the mean of the ranks that it spans, as in ``scipy.stats.rankdata``.
     """
     n = x.shape[0]
     out = torch.empty_like(x, dtype=torch.float32)

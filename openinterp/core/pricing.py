@@ -1,13 +1,16 @@
 """List prices for token usage nobody priced, e.g. Claude Code subagents answering a prompt.
 
-LiteLLM prices its own calls. An external answerer's tokens (``external/<name>``) are priced
-here instead, one request at a time, and each priced call records :data:`TABLE`, since list
-prices change. When they do, add a dated row rather than editing one, and bump the table's
-date: older records keep the table they were priced with. A model missing from the table,
-or a request older than its first row, stays unpriced, never guessed.
+LiteLLM prices its own calls. This module prices an external answerer's tokens
+(``external/<name>``), one request at a time. List prices change, so each priced call
+records :data:`TABLE`. When a price changes, add a dated row; do not edit a row. Then
+change the table's date, so that older records keep the table that priced them. A model
+that is not in the table, or a request older than its first row, stays unpriced. We
+never guess a price.
 
-Not priced: cache storage billed per hour (Gemini, and Z.ai once its free period ends),
-and DeepSeek's off-peak rate on Chinese public holidays (peak rates are charged).
+Not priced:
+
+- Cache storage billed per hour (Gemini, and Z.ai when its free period ends).
+- DeepSeek's off-peak rate on Chinese public holidays. We charge the peak rate.
 """
 
 from __future__ import annotations
@@ -20,13 +23,13 @@ from typing import Protocol
 
 from openinterp.core.agent_names import ALIASES
 
-# When every row below was last checked against its vendor's pricing page:
-#   Anthropic, first-party API          2026-10-06
-#   DeepSeek   api-docs.deepseek.com    2026-10-28
-#   Google     ai.google.dev            2026-10-28
-#   Z.ai       docs.z.ai                2026-10-28
-#   xAI        docs.x.ai                2026-10-28
-#   Meta       OpenRouter's listing     2026-10-28 (Meta publishes no Contributor rates)
+# When we last checked each vendor's rows against its pricing page:
+#   Anthropic, first-party API          2026-10-06.
+#   DeepSeek   api-docs.deepseek.com    2026-10-28.
+#   Google     ai.google.dev            2026-10-28.
+#   Z.ai       docs.z.ai                2026-10-28.
+#   xAI        docs.x.ai                2026-10-28.
+#   Meta       OpenRouter's listing     2026-10-28 (Meta publishes no Contributor rates).
 TABLE = "2026-10-28"
 
 ANTHROPIC_WRITE_5M = 1.25  # × input price

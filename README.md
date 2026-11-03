@@ -158,14 +158,15 @@ The full experimental protocol (roles, lifecycle, decision rule and reproducibil
 ```bash
 make install        # uv sync
 make test           # pytest (CPU only, no downloads)
-make lint           # ruff + the 500-line limit
+make lint           # ruff (incl. docstrings), the 500-line limit, docstring coverage
+make vale           # comment and docstring prose against our STE rules (needs Vale)
 make check          # registry consistency (what CI's "Experiment records" job runs)
 make sample-run     # build dist/ from a few real records in the wiki
 make build          # build dist/ from the wiki archive, plus the Pagefind index
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
 
-`dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`. If the agents answering prompt files sit behind a proxy that hides the real model (e.g. Claude Code routed through LiteLLM to Grok), set `OPENINTERP_MODEL_ALIASES` so records name the model that answered: `claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`, or one bare name for every `external/` model.
+`make vale` needs [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk; search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`. If the agents answering prompt files sit behind a proxy that hides the real model (e.g. Claude Code routed through LiteLLM to Grok), set `OPENINTERP_MODEL_ALIASES` so records name the model that answered: `claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`, or one bare name for every `external/` model.
 
 ## Experiment wiki
 

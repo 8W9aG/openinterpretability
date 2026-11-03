@@ -1,9 +1,9 @@
 """Strict Pydantic v2 schemas for audits, hypotheses and evidence.
 
-Every model is strict (no implicit type coercion) and forbids unknown fields, so a
-record that validates here is safe to compile into the public registry. Records on
-disk are JSON; load them with ``Model.model_validate_json`` so that ISO-8601 strings
-are accepted for datetimes under strict mode.
+Every model is strict (no implicit type coercion) and forbids unknown fields. So a
+record that validates here is safe to compile into the public registry. Records on disk
+are JSON. Load them with ``Model.model_validate_json``: strict mode then accepts
+ISO-8601 strings for datetimes.
 """
 
 from __future__ import annotations
@@ -79,9 +79,9 @@ Contributor = Annotated[
 class CounterfactualPair(StrictModel):
     """A minimal pair predicted to change the neuron's pole activation.
 
-    Deltas are ``strength(base) - strength(counterfactual)`` normalised by the
-    neuron's maximum observed activation, so ``1.0`` means "the base prompt fully
-    activates the pole and the counterfactual does not activate it at all".
+    A delta is ``strength(base) - strength(counterfactual)``, divided by the neuron's
+    maximum observed activation. So ``1.0`` means that the base prompt fully activates
+    the pole, and the counterfactual does not activate it at all.
     """
 
     base_prompt: str = Field(min_length=1)
@@ -183,11 +183,11 @@ class CorrelatedNeuron(StrictModel):
 class VocabularyLens(StrictModel):
     """The pole's output direction read through the logit lens and the Jacobian lens.
 
-    The Jacobian lens (Gurnee et al., 2026) first transports the direction to the final
-    layer with the context-averaged Jacobian, so it stays reliable in middle layers
-    where the logit lens (J = I) does not. ``overlap`` is the shared fraction of the
-    two top-k lists; ``direction_cosine`` is cos(w, J·w), so low values mean later
-    layers substantially rotate what this neuron writes. Kurtosis of the vocabulary
+    The Jacobian lens (Gurnee et al., 2026) first moves the direction to the final layer
+    with the context-averaged Jacobian. So it stays reliable in middle layers, where the
+    logit lens (J = I) does not. ``overlap`` is the shared fraction of the two top-k
+    lists. ``direction_cosine`` is cos(w, J·w). A low value means that later layers
+    rotate what this neuron writes by a large angle. Kurtosis of the vocabulary
     z-scores is high when the pole promotes a small, specific token set.
 
     The ``*_z`` lists hold each listed token's z-score over the whole vocabulary,
@@ -391,9 +391,10 @@ class ReviewPolicy(StrictModel):
     min_partner_correlation: UnitFloat = 0.2
     min_partner_lift: float = Field(default=2.0, ge=1.0)
     min_partner_coactive: int = Field(default=5, ge=1)
-    # v0.8: a unit active on at least this share of its scan's tokens is default-on, and
-    # is not audited as a detector: no hard negative of a few words can stay inactive. One
-    # active at the first position on this share of the vocabulary has a first-token floor.
+    # v0.8: a unit active on at least this share of its scan's tokens is default-on. It
+    # is not audited as a detector, because no hard negative of a few words can stay
+    # inactive. A unit active at the first position on this share of the vocabulary has
+    # a first-token floor.
     max_active_share: UnitFloat = 0.5
 
 
@@ -411,8 +412,8 @@ class ReviewMetrics(StrictModel):
     effective_holdouts: int | None = None
     confound_baseline_accuracy: UnitFloat | None = None  # best trivial baseline, same probes
     confound_baseline: str | None = None
-    # v0.8: share of the scan's tokens at or above the "active" line (from its histogram),
-    # and whether the unit was measured without each text's first token.
+    # v0.8: the share of the scan's tokens at or above the "active" line (from its
+    # histogram). Also, whether the measurement left out each text's first token.
     active_share: UnitFloat | None = None
     first_token_floor: bool | None = None
 

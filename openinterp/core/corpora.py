@@ -74,9 +74,10 @@ class CorpusSource(StrictModel):
 class CorpusSample(StrictModel):
     """The seeded, token-bounded sample of the corpus a scan read (protocol 0.7).
 
-    Documents are visited in ``random.Random(seed)`` order, and each is taken whole if it
-    fits in what is left of ``max_tokens`` (the first always is), then kept in corpus
-    order. Tokens are counted by the model's tokenizer, without special tokens.
+    The sampler visits documents in ``random.Random(seed)`` order. It takes each document
+    whole if it fits in what is left of ``max_tokens``, and always takes the first. Then
+    it puts the documents back in corpus order. The model's tokenizer counts the tokens,
+    without special tokens.
     Re-drawing with the same corpus, tokenizer, seed and budget gives the same
     documents, which ``sha256`` pins.
     """

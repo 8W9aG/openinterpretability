@@ -1,12 +1,15 @@
 """One name per agent model, however a record spelled it.
 
-``submitting_agent_model``, ``reviewer_agent_model`` and ``judge_model`` are free text, and
-sessions spell one model several ways: ``external/deepseek-flash[1m]`` and
-``external/deepseek-flash``, ``external/gemini/gemini-3.8-flash`` and
-``external/gemini-3.8-flash``, ``anthropic/claude-opus-5-5 (Claude Code session)`` and
-``external/claude-opus-5-5``. Records are signed, so the site build maps them to one name
-with :func:`canonical_agent` rather than rewriting them, and :func:`spelling_problem`
-rejects new spellings at submission.
+``submitting_agent_model``, ``reviewer_agent_model`` and ``judge_model`` are free text.
+Sessions spell one model in several ways. For example:
+
+- ``external/deepseek-flash[1m]`` and ``external/deepseek-flash``.
+- ``external/gemini/gemini-3.8-flash`` and ``external/gemini-3.8-flash``.
+- ``anthropic/claude-opus-5-5 (Claude Code session)`` and ``external/claude-opus-5-5``.
+
+Records are signed, so the site build does not rewrite them. It maps each spelling to one
+name with :func:`canonical_agent`. :func:`spelling_problem` rejects new spellings at
+submission.
 """
 
 from __future__ import annotations
@@ -17,9 +20,9 @@ EXTERNAL_PREFIX = "external/"
 
 # Spellings that name the same model, after the generic clean-up in canonical_agent.
 # One 2026-10-26 session ran Grok Build but reported itself as Claude 3.5 Sonnet. Muse
-# Spark sessions report their version inconsistently, and "-contributor" is its pricing
-# tier (openinterp.core.pricing.FAMILIES), not part of the model's name; every run so far
-# was 1.3 at the Contributor tier.
+# Spark sessions report their version inconsistently. "-contributor" is the Muse Spark
+# pricing tier (openinterp.core.pricing.FAMILIES), not part of the model's name. Every
+# run so far was 1.3 at the Contributor tier.
 ALIASES: dict[str, str] = {
     "claude-3-5-sonnet-20241022": "grok-build-0.1",
     "muse-spark": "muse-spark-1.3",

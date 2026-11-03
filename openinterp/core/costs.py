@@ -1,11 +1,12 @@
 """What an experiment cost to run: wall time per stage and usage per LLM call.
 
 Reported, never gated. Each command measures its own stages in a per-process collector
-(:func:`stage`, :func:`add_call`); the files it writes carry the costs forward
-(evidence → submission → record, and score task → scores → record), so a record holds
-the cost of every step of the experiment that produced it. With ``OPENINTERP_COSTS_LOG``
-set, every command also appends what it measured to that JSON-lines ledger, which
-``openinterp costs`` summarises.
+(:func:`stage`, :func:`add_call`). The files that it writes carry the costs forward:
+evidence → submission → record, and score task → scores → record. So a record holds the
+cost of every step of the experiment that produced it.
+
+When ``OPENINTERP_COSTS_LOG`` is set, every command also appends its measurements to
+that JSON-lines ledger. ``openinterp costs`` summarises the ledger.
 """
 
 from __future__ import annotations

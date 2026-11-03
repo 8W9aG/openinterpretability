@@ -101,11 +101,11 @@ class HeadIdentifier(_Component):
 class FeatureIdentifier(_Component):
     """Addresses one latent of a published sparse dictionary (a transcoder or SAE) on an MLP.
 
-    The learned-basis baseline for the native-neuron premise: its experiments run under
-    the same protocol but never count towards native-neuron statistics. ``dictionary``
-    names a preset in :mod:`openinterp.harness.dictionaries`; the weights it was measured
-    with (repository, commit, file) are pinned in the submission's
-    :class:`~openinterp.core.schemas.DictionaryProfile`. Latents are non-negative, so no pole.
+    The learned-basis baseline for the native-neuron premise. Its experiments run under
+    the same protocol, but never count towards native-neuron statistics. ``dictionary``
+    names a preset in :mod:`openinterp.harness.dictionaries`. The submission's
+    :class:`~openinterp.core.schemas.DictionaryProfile` pins the weights of the
+    measurement (repository, commit, file). Latents are non-negative, so there is no pole.
     """
 
     kind: Literal["dictionary_feature"] = "dictionary_feature"

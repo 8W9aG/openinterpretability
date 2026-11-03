@@ -1,11 +1,14 @@
 """Random draws that could not be audited, kept as outcomes of random selection.
 
-A random draw is one of the registry's unbiased samples, so statistics over random units
-(share VERIFIED, share dead) need every draw, not only the ones that could be audited.
-Two kinds can't be: a unit that never fires on the scan (*dead*), and one active on at
-least half its tokens (*default-on*, protocol 0.8). The scan stops on both and writes an
-:class:`UnauditableDraw` instead of evidence, write-once, at
-``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit --random``).
+A random draw is one of the registry's unbiased samples. Statistics over random units
+(share VERIFIED, share dead) need every draw, not only the draws that could be audited.
+Two kinds of unit cannot be audited:
+
+- *dead*: a unit that never fires on the scan.
+- *default-on* (protocol 0.8): a unit active on at least half its tokens.
+
+The scan stops on both. It writes an :class:`UnauditableDraw` instead of evidence, once
+only, at ``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit --random``).
 """
 
 from __future__ import annotations

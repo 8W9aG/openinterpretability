@@ -2,8 +2,8 @@
 
 Claude Code keeps each subagent's transcript at
 ``~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl``, one JSON line per
-message part. Every part of one API response repeats that response's ``usage``, and the
-last part carries the final output count, so each response is counted once, from its
+message part. Every part of one API response repeats that response's ``usage``. The
+last part carries the final output count. So we count each response once, from its
 last line.
 """
 

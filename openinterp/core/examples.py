@@ -40,9 +40,9 @@ class ActivatingExample(StrictModel):
 
     For an attention head, ``attends_to`` lists the tokens the peak token attends to
     most, strongest first, with their attention weights in ``attention_weights``.
-    ``peak_labels`` gives the peak token's label in each of the scan's label sets (a
-    document label, such as its language, is its document's); ``None`` when the scan had
-    none or the peak token is unlabelled in all of them.
+    ``peak_labels`` gives the peak token's label in each of the scan's label sets. A
+    document label, such as language, is the label of the token's document. It is
+    ``None`` when the scan had no label sets, or the peak token has no label in any.
     """
 
     text: str

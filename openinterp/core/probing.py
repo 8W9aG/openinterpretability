@@ -1,12 +1,15 @@
 """Schemas for comparing a neuron pole with linear probes for its concept.
 
-A pole verified for a concept may be the model's whole representation of it or only
-part of one. Probes trained on labelled tokens show which: logistic and mass-mean
-probes (Marks & Tegmark, 2023) on the layer's MLP hidden activations and on the
-residual stream after the layer, and k-sparse probes over the hidden layer's neurons
-(Gurnee et al., 2023). Labels come from a rule over text that never looks at the
-model, and accuracy is measured on held-out documents, ideally from another source.
-Reported, not gated (docs/PROTOCOL.md §4).
+A pole verified for a concept can be the model's whole representation of it, or only
+part of one. Probes trained on labelled tokens show which. There are two kinds of probe.
+
+- Logistic and mass-mean probes (Marks & Tegmark, 2023), on the layer's MLP hidden
+  activations and on the residual stream after the layer.
+- k-sparse probes over the hidden layer's neurons (Gurnee et al., 2023).
+
+A rule over the text gives the labels, and the rule never looks at the model. Accuracy
+is measured on held-out documents, ideally from another source. Reported, not gated
+(docs/PROTOCOL.md §4).
 """
 
 from __future__ import annotations
@@ -104,9 +107,9 @@ class ConceptSource(StrictModel):
     """Where a labelled concept set came from.
 
     ``openinterp concepts`` writes it next to the set. It holds enough to rebuild the
-    same file: the dataset at an exact commit, the split's
-    files, the label column and label, the seed and sizes. ``license`` is the dataset
-    card's (or, for a Universal Dependencies treebank, the treebank's).
+    same file. It records the dataset at an exact commit, the split's files, the label
+    column and label, the seed and the sizes. ``license`` comes from the dataset card, or for a
+    Universal Dependencies treebank, from the treebank.
     """
 
     preset: str = Field(examples=["conll2003-ner"])
