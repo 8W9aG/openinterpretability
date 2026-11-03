@@ -9,7 +9,7 @@ option lists are free. Tests are exempt, as for files. For the rare function
 that reads better whole, put `# long-function: <reason>` on its `def` line.
 (Ruff warns on unknown `# noqa` codes, so the marker is not a noqa.)
 
-Run via `make lint`; CI runs it in the lint step.
+Run with `make lint`; CI runs it in the lint step.
 """
 
 from __future__ import annotations
@@ -41,6 +41,7 @@ EXEMPT = (
 
 
 def tracked_files() -> list[str]:
+    """Every tracked or new file that is not exempt."""
     out = subprocess.run(
         ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
         check=True,
@@ -53,9 +54,9 @@ def tracked_files() -> list[str]:
 def function_lengths(source: str) -> dict[str, tuple[int, bool]]:
     """Map each function's qualified name to (length, exempt by marker).
 
-    The signature counts as one line, however it is wrapped, so a Click
-    command's parameter list (one per option) doesn't count; nor do the
-    decorators or the docstring. The body counts from the first line after the
+    The signature counts as one line, however it is wrapped. So a Click command's
+    parameter list (one per option) doesn't count. The decorators and the docstring
+    don't count either. The body counts from the first line after the
     docstring (or the first statement) to the last line.
     """
     lines = source.splitlines()
@@ -88,6 +89,7 @@ def function_lengths(source: str) -> dict[str, tuple[int, bool]]:
 
 
 def check_functions(files: list[str]) -> list[str]:
+    """One error for each function over :data:`MAX_FUNCTION_LINES`."""
     errors = []
     for name in files:
         if not name.endswith(".py"):
@@ -106,6 +108,7 @@ def check_functions(files: list[str]) -> list[str]:
 
 
 def main() -> int:
+    """Print every file and function over its limit; return 1 if any is."""
     files = tracked_files()
     too_long = []
     for name in files:

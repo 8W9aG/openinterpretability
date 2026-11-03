@@ -7,8 +7,8 @@ lenses) is never compressed: it is the data the proposer explains and the review
 
 For each paragraph of each text: LLMLingua-2's mean keep probability per word, which
 says which parts carry information. For each text and rate: the compressed size, and how
-many of its literals survive (inline code, numbers, paths), since a skill whose
-thresholds or command names are dropped no longer says the same thing.
+many of its literals survive (inline code, numbers, paths). A skill whose thresholds or
+command names are dropped no longer says the same thing.
 
 Writes one JSON line per paragraph (``"kind": "paragraph"``) and per text and rate
 (``"kind": "compression"``), and the compressed texts to ``--compressed-dir`` for
@@ -56,6 +56,7 @@ def prose_texts(root: Path) -> dict[str, str]:
 
 
 def paragraphs(text: str) -> list[str]:
+    """The paragraphs of ``text``."""
     return [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
 
 
@@ -88,6 +89,7 @@ def literal_survival(original: str, compressed: str) -> tuple[int, int]:
 
 
 def paragraph_rows(compressor, name: str, text: str) -> list[dict]:
+    """One row per paragraph of ``text``: its mean keep probability and lowest words."""
     rows = []
     for index, para in enumerate(paragraphs(text)):
         scored = word_keep_probs(compressor, para)
@@ -99,6 +101,7 @@ def paragraph_rows(compressor, name: str, text: str) -> list[dict]:
 
 
 def compression_rows(compressor, name: str, text: str, out_dir: Path | None) -> list[dict]:
+    """One row per rate: the compressed size and how many literals survive."""
     rows = []
     for rate in RATES:
         compressed = compressor.compress_prompt(text, rate=rate, force_tokens=["\n"])
@@ -119,6 +122,7 @@ def compression_rows(compressor, name: str, text: str, out_dir: Path | None) -> 
 @click.option("--compressed-dir", type=click.Path(path_type=Path), default=None)
 @click.option("--root", type=click.Path(path_type=Path), default=Path("."))
 def main(out: Path, compressed_dir: Path | None, root: Path) -> None:
+    """Score every prose text and write the rows."""
     from llmlingua import PromptCompressor
 
     compressor = PromptCompressor(model_name=MODEL, use_llmlingua2=True, device_map="cpu")

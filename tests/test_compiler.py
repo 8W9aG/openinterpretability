@@ -697,8 +697,9 @@ def _standing(records, idx=117, pole="positive"):
 
 
 def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
-    """An independent VERIFIED and a later independent NEEDS_REVISION of the same hypothesis:
-    the pole is CONTESTED, not NEEDS_REVISION, and not counted as verified.
+    """An independent VERIFIED, then an independent NEEDS_REVISION of the same hypothesis.
+
+    The pole is CONTESTED, not NEEDS_REVISION, and not counted as verified.
     """
     from openinterp.builder.compiler import registry_stats
 
@@ -756,8 +757,9 @@ def test_self_reviews_alone_can_contest(records):
 
 
 def test_remeasurement_replaces_its_reading(records):
-    """Re-evaluating a probe set under a newer protocol replaces that reading: the old
-    reading can't contest the new one.
+    """Re-evaluating a probe set under a newer protocol replaces that reading.
+
+    The old reading can't contest the new one.
     """
     verified = records[1]
     remeasured = verified.model_copy(
@@ -946,8 +948,8 @@ def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
     page = (tmp_path / "agents" / "index.html").read_text()
     proposer = (tmp_path / "agents" / "gpt-test.html").read_text()
     reviewer = (tmp_path / "agents" / "claude-test.html").read_text()
-    # The proposer's model proposed 4 and reviewed 1 of them itself; that VERIFIED one
-    # is left out of both its rates, so 0 of 3 independent proposals were verified.
+    # The proposer's model proposed 4 and reviewed 1 of them itself. That VERIFIED one is
+    # left out of both its rates. So 0 of 3 independent proposals were verified.
     assert '0% <span class="text-slate-500">(0/3)</span>' in proposer
     assert '<td class="px-3 py-2">reviewer</td>' in proposer
     assert "$0.500" in page and "$0.250" in reviewer

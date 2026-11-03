@@ -3,17 +3,17 @@
 The protocol's false-positive rate, measured on two kinds of target that should never be
 VERIFIED (``docs/analyses/null-calibration.md``):
 
-* ``shuffle``: each record's own probes and activations, with the hypothesis's labels
-  (hard negative or positive holdout) permuted among its measured probes, so the
+* ``shuffle``: each record's own probes and activations. The hypothesis's labels (hard
+  negative or positive holdout) are permuted among its measured probes. So the
   "hypothesis" predicts nothing about the unit. No model is run; only the tokenizer, for
   the confound baselines.
 * ``swap``: each VERIFIED neuron pole's hypothesis, counterfactuals and probe set, scored
   against a random other neuron of the same layer and pole. The other neuron is scanned
-  as its own audit would scan it (same corpus, sample and windows), and the review is
-  re-run on it under the current policy, without causal metrics or wiring (not gated).
+  as its own audit would scan it (same corpus, sample and windows). The review runs again
+  on it under the current policy, without causal metrics or wiring (not gated).
 
-Each verdict is also read *without the proposer's gates* (counterfactual reproduction and
-lookahead consistency): a proposer measures both before submitting, so they catch
+Each verdict is also read *without the proposer's gates*: counterfactual reproduction and
+lookahead consistency. A proposer measures both before submitting. So they catch
 transcription errors, not wrong hypotheses (``docs/PROTOCOL.md`` §4).
 
     A=docs/analyses/null-calibration
@@ -67,6 +67,7 @@ def probe_verified(gates: dict[str, bool]) -> bool:
 
 
 def outcome_row(path: Path, record: AuditRecord) -> dict:
+    """The fields of ``record`` that every null row starts with."""
     ident = record.submission.identifier
     return {
         "record": str(path),
@@ -110,9 +111,10 @@ def shuffle(wiki_dir, permutations, seed, out):
 
 
 def shuffle_record(record: AuditRecord, tokenizer, permutations: int, seed: int):
-    """Counts of VERIFIED (all gates, and without the proposer's) over label permutations,
-    and the unpermuted verdict re-derived the same way as a check. ``None`` if the record
-    has no measured probes or no scale.
+    """Return counts of VERIFIED over label permutations, with all gates and without the proposer's.
+
+    Also returns the unpermuted verdict, derived again the same way, as a check. ``None``
+    if the record has no measured probes or no scale.
     """
     sub = record.submission
     results = record.verdict.adversarial_test_results
@@ -135,8 +137,9 @@ def shuffle_record(record: AuditRecord, tokenizer, permutations: int, seed: int)
 
 
 def relabel(record: AuditRecord, probes, labels, baselines):
-    """The verdict and gates with ``labels`` as the probes' expected activity, from the
-    activity the record measured.
+    """Return the verdict and gates with ``labels`` as the probes' expected activity.
+
+    They come from the activity that the record measured.
     """
     from openinterp.agents.reviewer import AdversarialProbe
 
@@ -168,8 +171,9 @@ def relabel(record: AuditRecord, probes, labels, baselines):
 
 
 def shuffle_baselines(sub, tokenizer, texts, policy) -> dict[str, list[bool]] | None:
-    """The confound baselines' predictions, or ``None`` without a confound profile (the
-    gate then fails, as in a review).
+    """Return the confound baselines' predictions.
+
+    ``None`` without a confound profile. The gate then fails, as in a review.
     """
     from openinterp.harness.confounds import baseline_predictions
 
@@ -233,8 +237,10 @@ def swap(wiki_dir, corpora, models, seed, device, out):
 
 
 class _NoPartners:
-    """Stands in for the scan's partner search, which feeds only joint ablation (not
-    gated, and skipped here) and costs most of a replayed scan.
+    """A stand-in for the scan's partner search.
+
+    The search feeds only joint ablation, which is not gated and is skipped here. It costs
+    most of a replayed scan.
     """
 
     def __init__(self, width: int) -> None:
@@ -261,8 +267,9 @@ def verified_units(wiki_dir: Path, models):
 
 
 def swap_record(record: AuditRecord, runner, corpus, seed: int, cache, samples) -> dict:
-    """Scan a random other neuron of the record's layer and pole and review the record's
-    submission and probes against it.
+    """Scan a random other neuron of the record's layer and pole, and review against it.
+
+    The review uses the record's submission and probes.
     """
     from openinterp.evidence import Unauditable, check_default_on, run_scan
 
@@ -285,6 +292,7 @@ def swap_record(record: AuditRecord, runner, corpus, seed: int, cache, samples) 
 
 
 def scan_request(sub, null, corpus):
+    """The scan that the null neuron's own audit would make."""
     from openinterp.evidence import ScanRequest
 
     prov = sub.provenance
@@ -394,12 +402,15 @@ def wilson(k: int, n: int, z: float = 1.96) -> str:
 
 
 def short(model: str) -> str:
+    """A short model name for tables."""
     return {"openai-community/gpt2": "GPT-2", "Qwen/Qwen2.5-0.5B": "Qwen"}.get(model, model)
 
 
 def shuffle_table(rows) -> str:
-    """Per model and original verdict: records, the mean per-record VERIFIED rate over
-    permutations, and the share of records any permutation verified.
+    """Return a table per model and original verdict.
+
+    It gives the records, the mean per-record VERIFIED rate over permutations, and the
+    share of records that any permutation verified.
     """
     groups = defaultdict(list)
     for r in rows:

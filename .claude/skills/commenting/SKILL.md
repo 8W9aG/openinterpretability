@@ -9,12 +9,12 @@ A comment tells the reader what the code cannot: the reason, the constraint or t
 
 Linters check the form. This skill is for what they cannot judge.
 
-| Check | Tool | Scope today |
+| Check | Tool | Scope |
 | --- | --- | --- |
-| Missing or malformed docstrings | ruff `D` rules, Google convention (`pyproject.toml`) | every path not in the ratchet list under `[tool.ruff.lint.per-file-ignores]` |
+| Missing or malformed docstrings | ruff `D` rules, Google convention (`pyproject.toml`) | everything; `tests/` needs no docstrings (`D1`) |
 | Commented-out code | ruff `ERA` | everything |
-| Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`) | `openinterp/` |
-| Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile` |
+| Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`, never lowered) | `openinterp/` |
+| Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile`: `openinterp`, `scripts`, `tests` |
 
 ## When to comment
 
@@ -35,7 +35,9 @@ Do not comment when the code can say it:
 
 ## Docstrings
 
-Every public module, class, function and method has one (ruff `D1`). `__init__` and magic methods are described by their class.
+Every public module, class, function and method has one (ruff `D1`). `__init__` and magic methods are described by their class. Tests need none: a test's name says what it checks.
+
+One exception: a Pydantic model that an LLM agent answers in (`HypothesisDraft`, `ProbeSet`, `DetectionAnswer` and the models they contain). Pydantic puts a class docstring into the JSON schema, so a docstring there changes what the agent is told. Mark the class `# noqa: D101` with that reason, and describe the fields with `Field(description=...)`.
 
 - **The first line is one sentence that stands alone** (`D205`), at most 100 characters with its indent. Then a blank line, then the details.
 - **A function's first line says what it returns or does.** "Return whether…", "Record…", or a noun phrase for a value, as in `"""Every recorded draw, oldest first."""`.
@@ -118,16 +120,14 @@ A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russ
 
 Flag:
 
-- a new public definition with no docstring, in a path that the ruff ratchet does not yet check;
+- a docstring that only restates the name, written to satisfy ruff `D1`;
 - a comment that restates the code, or that a rename or an extracted function could replace;
 - a value, threshold or rule with no source;
 - a sentence of more than 25 words, a banned word, or two meanings for one word;
 - a comment that the change made wrong. Comments go stale when the code changes and nothing fails.
 
-## Widening the ratchet
+## How Vale counts a sentence
 
-1. Pick a path from the list under `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml`.
-2. Run `uv run ruff check --select D <path>` and fix each finding. Write the missing docstrings with the rules above. Do not write a docstring that only restates the name.
-3. Remove the path from the list.
-4. Add the path to `VALE_PATHS` in the `Makefile`, and fix what `make vale` reports.
-5. Run `uv run interrogate openinterp`, and raise `fail-under` in `[tool.interrogate]` to the new coverage, rounded down.
+`.vale/styles/STE/SentenceLength.yml` splits each comment or docstring into sentences itself, because Vale does not do this for source code. A sentence ends at `.`, `!` or `?` before a space (a closing quote or bracket may come between), at a colon that ends a line, and where a list item (`-` or `*`) starts. So `0.5` and `e.g.` do not end a sentence. End each list item with a full stop.
+
+Some lines do not count, because they are not prose: lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block) and indented command examples (`openinterp …`, `uv …`, `make …`, `git …`, `python …`). Vale's `vale off` comments do not work in Python files, so restructure the text instead.

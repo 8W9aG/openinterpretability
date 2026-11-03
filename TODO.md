@@ -17,10 +17,7 @@ Small fixes, mostly quick.
 
 Lint rules, tests, releases and repository automation. Prefer a deterministic check (lint, test, CI job) where one can do the job, ratcheted in rather than failing all existing code at once, and a skill for what needs judgement.
 
-- [ ] Comment code so that what it does and why is never ambiguous, in ASD-STE100 Simplified Technical English. The tooling and the `commenting` skill are in (CHANGELOG, Unreleased); what is left is the ratchet.
-  - Widen the ruff `D` ratchet path by path: remove each from `[tool.ruff.lint.per-file-ignores]` once it passes (the skill's "Widening the ratchet"), and raise `[tool.interrogate] fail-under` as coverage rises (69.4% today). Most issues are in `openinterp/harness/` and `openinterp/builder/`.
-  - Widen Vale with the `D` ratchet: add each path to `VALE_PATHS` in the `Makefile` (CI runs `make vale`). Outside `VALE_PATHS`, `openinterp/` has 224 sentences over 25 words and 2 uses of "via".
-  - The ASD-STE100 specification is free from ASD on request, but check its terms before copying its dictionary into the repo; until then `.vale/styles/STE/Words.yml` is our own list.
+- [ ] Check the ASD-STE100 specification's terms (free from ASD on request) before copying any of its dictionary into `.vale/styles/STE/Words.yml`. Until then the banned-word list is our own.
 - [ ] Lint Markdown in `make lint` and CI. Scope: the hand-written files (README, `CHANGELOG.md`, `TODO.md`, `docs/`, `.claude/skills/`, `hf_models/*/README.md`; 30 files), not the generated `wiki/` pages, which are checked through their templates (`builder/templates/wiki/*.md`) by rendering a sample and linting that. Use [PyMarkdown](https://github.com/jackdewinter/pymarkdown) (`pymarkdownlnt`, Python, so no Node.js) or `markdownlint-cli2` (Node); both read the same rule IDs.
   - A first run on 2026-10-30 found 745 issues, nearly all from two rules that don't fit this repo: MD013 line length (709; the docs write one paragraph per line, so turn it off) and MD024 duplicate headings (20; Keep a Changelog repeats `### Added`, so set `siblings_only`).
   - The rest are real and few, so fix them and fail on new ones: MD032 lists without surrounding blank lines (7), MD038 spaces inside code spans (3), MD036 emphasis used as a heading (3), MD040 code blocks without a language (2).

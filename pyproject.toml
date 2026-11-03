@@ -93,15 +93,14 @@ ignore = ["D105", "D107", "D301"]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-# The docstring ratchet: paths not yet held to the D rules. Remove a line once its
-# path passes `ruff check --select D`; never add one.
-"scripts/**" = ["D"]
-"tests/**" = ["D"]
+# Tests need no docstrings (D1): a test's name says what it checks, and a docstring that
+# restates it is noise (.claude/skills/commenting/SKILL.md). The other D rules apply.
+"tests/**" = ["D1"]
 
 [tool.interrogate]
-# Docstring coverage of openinterp/, a ratchet like the D rules above: raise fail-under
-# when coverage rises, never lower it. Skips what the D rules skip.
-fail-under = 69
+# Docstring coverage of openinterp/: raise fail-under when coverage rises, never lower it.
+# Skips what the D rules skip.
+fail-under = 94
 ignore-magic = true
 ignore-init-method = true
 ignore-private = true

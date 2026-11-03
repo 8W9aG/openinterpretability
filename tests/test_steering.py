@@ -39,8 +39,9 @@ def test_the_baseline_row_is_the_unpatched_greedy_continuation(toy_runner):
 
 
 def test_generate_decodes_left_padded_prompts_as_if_alone(tiny_gpt2):
-    """A model with ``generate`` decodes every prompt in one left-padded batch; each
-    baseline must match that prompt's own unpadded greedy continuation.
+    """A model with ``generate`` decodes every prompt in one left-padded batch.
+
+    Each baseline must match that prompt's own unpadded greedy continuation.
     """
     runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
     ident = NeuronIdentifier(model_name="tiny", layer=1, neuron_idx=3, pole="positive")

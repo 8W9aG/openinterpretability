@@ -11,8 +11,13 @@ The project has two version numbers:
 
 ### Added
 
-- **Docstring and comment checks, ratcheted in** (TODO, Code quality and tooling). Ruff now selects `D` (pydocstyle, Google convention) and `ERA` (commented-out code). `D` applies to `openinterp/core/` and the top-level modules that pass, including `signing.py`, `langid.py` and five `cli_*` modules fixed here; the paths still to do are listed under `[tool.ruff.lint.per-file-ignores]`, a list that only shrinks. `make lint` and CI run `interrogate openinterp` with `fail-under = 69` (coverage is 69.4%, skipping magic, `__init__` and private names as the `D` rules do). `openinterp/core/` gains 45 docstrings and splits 21 two-sentence summaries, and its 47 sentences of more than 25 words are rewritten. `make vale` lints the prose of comments and docstrings with [Vale](https://vale.sh) and a small STE style of our own (`.vale/styles/STE`: sentence length, a banned-word list, passive voice as a suggestion); CI runs it with Vale 3.26.0 (a release binary checked against its SHA-256) on `VALE_PATHS`, the same paths for now (`openinterp/core/` and nine top-level modules); sentence length and banned words are errors, passive voice a suggestion.
-- **A `commenting` skill** (`.claude/skills/commenting/`). When to comment and when to make the code clearer, the docstring and STE rules with before/after examples from this codebase, how to cite the protocol or a paper, and how to widen the ratchet. `REVIEW.md` points code review at it.
+- **Docstrings and comments in ASD-STE100 Simplified Technical English, checked** (TODO, Code quality and tooling). Every comment and docstring in `openinterp/`, `scripts/` and `tests/` now passes three checks, which `make lint`, `make vale` and CI run:
+  - *Ruff* selects `D` (pydocstyle, Google convention) and `ERA` (commented-out code). Tests are exempt from `D1` only: a test's name says what it checks. The LLM response models keep no docstring (`# noqa: D101`), because Pydantic copies a class docstring into the JSON schema the agents read.
+  - *interrogate* holds docstring coverage of `openinterp/` at `fail-under = 94`, up from 69%. It skips magic, `__init__` and private names, as the `D` rules do.
+  - *Vale* (`make vale`, `.vale/styles/STE`, our own small style): at most 25 words a sentence and a banned-word list are errors, passive voice is a suggestion. CI runs Vale 3.26.0, a release binary checked against its SHA-256. The sentence rule splits sentences itself, since Vale doesn't in source code, and skips literal blocks and command examples.
+
+  320 missing docstrings were written, and 249 multi-line summaries and 306 sentences of more than 25 words were rewritten, keeping their meaning. The new docstrings put `planner.py` over the 500-line limit, so its sister draws move to `openinterp/planner_sisters.py`.
+- **A `commenting` skill** (`.claude/skills/commenting/`). When to comment and when to make the code clearer, the docstring and STE rules with before/after examples from this codebase, how Vale counts a sentence, and how to cite the protocol or a paper. `REVIEW.md` points code review at it.
 
 ### Fixed
 

@@ -1,5 +1,6 @@
-"""Sister neurons across models (`openinterp sisters`), on random tiny Qwen2 and GPT-2 models
-(no download).
+"""Sister neurons across models (`openinterp sisters`).
+
+The models are random tiny Qwen2 and GPT-2 models (no download).
 """
 
 import copy
@@ -241,8 +242,10 @@ def test_the_proposer_prompt_ends_with_related_research(record):
 
 
 def _sister_registry(tmp_path, record, other="o/m"):
-    """A VERIFIED Qwen pole (the `record` fixture's) with a sister L2/N9- in ``other``,
-    and a weaker match L4/N1+ that isn't its sister.
+    """Write a registry with a VERIFIED Qwen pole (the `record` fixture's).
+
+    The pole has a sister L2/N9- in ``other``. It also has a weaker match L4/N1+ that
+    isn't its sister.
     """
     from openinterp.builder.wiki import write_experiment_page
 

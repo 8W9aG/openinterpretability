@@ -1,9 +1,13 @@
 """Which language detector labels unlabelled corpora (``docs/analyses/language-detection.md``).
 
-Scores fastText's lid.176 (as ``openinterp.langid`` runs it), lingua, langdetect (seeded)
-and langid.py on Wikipedia documents whose language is exact (their subset), cut to 50
-and 200 characters and whole; on English mixed with another language; on source code,
-which a detector should be unsure of; and by agreement on the registry's corpus.
+Scores four detectors: fastText's lid.176 (as ``openinterp.langid`` runs it), lingua,
+langdetect (seeded) and langid.py. The tests are:
+
+- Wikipedia documents whose language is exact (their subset), cut to 50 and 200
+  characters and whole.
+- English mixed with another language.
+- Source code, which a detector should be unsure of.
+- Agreement on the registry's corpus.
 
     D=exchange/language-detection
     uv run openinterp corpus --dataset wikipedia-multilingual --docs 1000 --out $D/wiki.jsonl
@@ -33,6 +37,7 @@ LINES = (0.5, 0.6, 0.7, 0.8, 0.9)  # confidence lines for abstaining
 
 
 def norm(code: str) -> str:
+    """A language code without its region, in lower case."""
     return code.lower().replace("_", "-").split("-")[0]
 
 
@@ -72,12 +77,15 @@ def detectors() -> dict:
 
 
 def read(path: Path) -> list[dict]:
+    """The JSONL rows of ``path``."""
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
 def mixed_documents(wiki: list[dict], n: int = 200, chars: int = 1500, seed: int = 0):
-    """English followed by another language, English a quarter, half or three quarters of
-    the characters; the right answer is the majority language (either, at half).
+    """Return documents of English followed by another language.
+
+    English is a quarter, half or three quarters of the characters. The right answer is
+    the majority language (either, at half).
     """
     rng = random.Random(seed)
     english = [r for r in wiki if r["lang"] == "en"]
@@ -92,6 +100,7 @@ def mixed_documents(wiki: list[dict], n: int = 200, chars: int = 1500, seed: int
 
 
 def score(detect, wiki, close, mixed, code, registry) -> dict:
+    """One detector's accuracies, speed and labels over every test set."""
     row: dict = {}
     start, calls = time.perf_counter(), 0
     for name, docs in (("distinct", wiki), ("close", close)):
@@ -117,6 +126,7 @@ def score(detect, wiki, close, mixed, code, registry) -> dict:
 @click.argument("registry", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(work: Path, registry: Path, out: Path) -> None:
+    """Score every detector and write one row each."""
     wiki, close, code = (read(work / f) for f in ("wiki.jsonl", "close.jsonl", "code.jsonl"))
     corpus = read(registry)
     mixed = mixed_documents(wiki + close)

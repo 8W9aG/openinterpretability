@@ -7,9 +7,9 @@ vocabulary at the first position. For each pole:
 * *scale*: its maximum over every counted token, and over counted tokens after each
   piece's first;
 * *first-token floor*: active (≥ 0.25 × the second scale) at the first position on at
-  least half the vocabulary, as ``openinterp.harness.scan.settle`` judges it;
-* *active share*: the share of the tokens it keeps (all, or all but first tokens with a
-  floor) at or above 0.25 × its scale; default-on at half or more.
+  least half the vocabulary. ``openinterp.harness.scan.settle`` judges it the same way.
+* *active share*: the share of the tokens it keeps at or above 0.25 × its scale. It keeps
+  all tokens, or all but first tokens with a floor. Default-on is half or more.
 
 Writes one JSON line per layer and pole, with counts over the layer's neurons.
 
@@ -34,6 +34,7 @@ POLES = ("positive", "negative")
 
 
 def strengths(acts: torch.Tensor, pole: str) -> torch.Tensor:
+    """Pole strengths of signed activations."""
     return acts.clamp(min=0) if pole == "positive" else (-acts).clamp(min=0)
 
 
@@ -52,8 +53,9 @@ def first_position(runner, layer: int, batch_size: int = 8192) -> torch.Tensor:
 
 
 def layer_rows(runner, pieces, layer: int) -> list[dict]:
-    """Two passes over ``pieces`` (each pole's maxima, then its shares above its line)
-    and one over the vocabulary.
+    """Return the layer's rows, from two passes over ``pieces`` and one over the vocabulary.
+
+    The first pass finds each pole's maxima. The second finds its shares above its line.
     """
     width = runner.mlp_width(layer)
     top = _maxima(_counted(runner, pieces, layer), width)
@@ -83,8 +85,9 @@ def layer_rows(runner, pieces, layer: int) -> list[dict]:
 
 
 def _counted(runner, pieces, layer: int):
-    """Each batch's counted tokens: their activations ``[tokens, width]`` and whether each
-    is a piece's first token.
+    """Yield each batch's counted tokens: their activations ``[tokens, width]``.
+
+    Also yields whether each is a piece's first token.
     """
     for batch in batches(runner, pieces, BATCH_TOKENS):
         _, cache = runner.run_with_cache(batch.encoded, [layer])
@@ -105,8 +108,10 @@ def _maxima(counted, width: int) -> dict:
 
 
 def _above_line(counted, width: int, scale: dict, floor: dict) -> tuple[dict, dict]:
-    """Per pole, each neuron's count of tokens at or above 0.25 × its scale, and of tokens
-    counted at all (a floored neuron's first tokens are not).
+    """Return per pole each neuron's count of tokens at or above 0.25 × its scale.
+
+    Also returns the count of tokens counted at all. A floored neuron's first tokens are
+    not counted.
     """
     above = {p: torch.zeros(width) for p in POLES}
     kept = {p: torch.zeros(width) for p in POLES}
@@ -128,6 +133,7 @@ def _above_line(counted, width: int, scale: dict, floor: dict) -> tuple[dict, di
 @click.option("--device", default="cpu", show_default=True)
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(model_name, corpus, window_tokens, max_tokens, sample_seed, device, out):
+    """Write each layer's pole rows."""
     runner = _load(model_name, device, "float32", None, None)
     texts, *_ = read_corpus(corpus)
     texts, sample = sample_tokens(runner.tokenizer, texts, max_tokens, sample_seed)
