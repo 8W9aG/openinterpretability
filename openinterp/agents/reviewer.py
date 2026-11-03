@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
+from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
@@ -152,6 +153,7 @@ class ReviewerAgent(LLMAgent):
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
+            + wordnet.format_for_reviewer(submission.top_examples, wordnet.lexicon())
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
             + f"Write {n} probes."
