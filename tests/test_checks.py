@@ -186,3 +186,51 @@ def test_new_records_spell_agents_canonically(repo, record):
         check_registry(base_ref="main~1")
     )
     assert check_registry().ok  # without a base ref, old records keep their spellings
+
+
+def _spelled(record, submitter, reviewer):
+    sub = record.submission.model_copy(update={"submitting_agent_model": submitter})
+    verdict = record.verdict.model_copy(update={"reviewer_agent_model": reviewer})
+    return record.model_copy(update={"submission": sub, "verdict": verdict})
+
+
+def test_follow_ups_may_keep_the_spelling_of_their_unit(repo, record):
+    old_name, git = (
+        "external/deepseek-flash[1m]",
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t"],
+    )
+    write_experiment_page(_later(_spelled(record, old_name, old_name), 1), repo / "wiki")
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "old spelling"], check=True)
+    subprocess.run([*git, "branch", "base"], check=True)
+
+    # A reevaluation copies both names. An independent review adds a new reviewer.
+    write_experiment_page(_later(_spelled(record, old_name, old_name), 2), repo / "wiki")
+    write_experiment_page(
+        _later(_spelled(record, old_name, "external/claude-opus-5-5"), 3), repo / "wiki"
+    )
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "follow-ups"], check=True)
+    report = check_registry(base_ref="base")
+    assert report.ok, messages(report)
+
+
+def test_inherited_spelling_needs_the_same_field_in_an_older_record(repo, record):
+    old_name, git = (
+        "external/deepseek-flash[1m]",
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t"],
+    )
+    write_experiment_page(
+        _later(_spelled(record, old_name, "external/claude-opus-5-5"), 1), repo / "wiki"
+    )
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "old proposer"], check=True)
+    subprocess.run([*git, "branch", "base"], check=True)
+
+    # The reviewer spelling is new. A record of this change cannot excuse itself.
+    write_experiment_page(_later(_spelled(record, old_name, old_name), 2), repo / "wiki")
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "new reviewer"], check=True)
+    problems = messages(check_registry(base_ref="base"))
+    assert "reviewer_agent_model=" in problems
+    assert "submitting_agent_model=" not in problems
