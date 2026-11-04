@@ -1,10 +1,12 @@
-# SPD baseline: GPT-2 small, trained on a laptop
+# SPD baseline: GPT-2 small
 
-The parameter-space baseline (`TODO.md`, *Scope expansion*). The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD; Bushnaq et al., 2025, arXiv:2506.20790; after APD, Braun et al., 2025, arXiv:2501.14926) of GPT-2 small's twelve MLP down projections, on an M1 Max laptop.
+The parameter-space baseline (`TODO.md`, *Scope expansion*). The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD; Bushnaq et al., 2025, arXiv:2506.20790; after APD, Braun et al., 2025, arXiv:2501.14926) of GPT-2 small's twelve MLP down projections. It was trained first on an M1 Max laptop, then on a Colab A100.
 
-**Result.** After 10,000 steps the decomposition fits well: 0.74–0.90 of each layer's output variance on held-out text, with 2.5% of the loss gap left. At that fit, it is sparser than the neurons in layers 0–6 and 11, and less sparse in layers 8–10. But its subcomponents are still mostly the random directions they started as: their median cosine with their initial values is 0.57–0.71. None of them lines up with a neuron. The decomposition has not converged, so it is not a preset and its latents are not audited. It is evidence neither for nor against the neuron basis. A longer run on a GPU (`scripts/train_spd_colab.ipynb`) is the next step.
+**Result so far.** On the laptop, 10,000 steps gave a usable fit but had not converged. On a Colab A100, 50,000 steps from random (run A) converged. Run A's CI-masked projection explains 0.84–0.97 of each layer's output on held-out text, with 1.2% of the loss gap left. At that fit it needs 1.5–3 times fewer active subcomponents than the neurons in every layer except layer 10, where they are level.
 
-The per-layer comparison is in `spd-baseline.json`.
+But the subcomponents are still mostly the random directions they started as. Their median cosine with their initial values is 0.53–0.64, and none lines up with a neuron. The neuron comparison is also uneven. SPD's gate scales each subcomponent by a learned importance, while the neuron baseline only keeps or drops each neuron. So part of SPD's lead may come from the gate, not the directions. Run B, which starts SPD from the neurons, separates the two. Until it is in, there is no preset and no audit.
+
+The per-layer comparisons are in `spd-baseline.json` (laptop) and `spd-baseline-colab-random.json` (run A).
 
 ## Method
 
@@ -88,20 +90,49 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 **Drift.** That alignment says little about the model, because the subcomponents have not moved far from where they started. With C equal to the hidden width, any rotation of the neuron basis can sum to W exactly. Only the importance and reconstruction losses move V, and in 10,000 steps they left each column with a median cosine of 0.57–0.71 with its random start. The gates learned which of these partly random directions matter on each token. That is why the counts can fall while the directions stay random.
 
-## What this means
+## What the laptop run means
 
 - **Not a preset.** Auditing these latents would mean explaining directions that are still mostly initialisation. A verdict on them would say little about GPT-2.
 - **Not evidence against the neuron basis.** The subcomponents miss the neurons because they have not converged, not because SPD found something better. The density comparison is mixed and depends on the layer.
 - **The method trains on a pretrained model.** With the four changes above, SPD reaches a usable fit on GPT-2 small, on a laptop, in about 8 hours. No released decomposition covers a Hugging Face model (`TODO.md`, *Scope expansion*).
 
+## Colab run A: from random, 50,000 steps
+
+`scripts/train_spd_colab.ipynb` ran the laptop run's settings on a Colab A100 (2026-11-03), with two changes. The run was 50,000 steps, and p reached 0.4 at step 5,000 (`--p-anneal 0.1`). A step took 0.16 s, so the run took 2.3 hours. The outputs are in the owner's Google Drive (`openinterp/gpt2-spd-random-50k`), not in the repository.
+
+**Training.** The middle layers grew denser while p was above 1 (layer 5: 2,604 active subcomponents at step 2,000). They then fell as p reached its floor (945 at step 5,000). They levelled off at about 700 by step 15,000. Explained variance levelled off by step 30,000. From step 1,000 the gate gradient norm stayed at 0.04–0.17, and the counts changed at every evaluation, so the gates did not freeze. Unlike the laptop run, some subcomponents died: 2,435–3,064 per layer were alive on 256 held-out pieces.
+
+**Comparison with the neurons** (`spd_compare.py`, the same 64 held-out pieces as the laptop comparison):
+
+| Layer | SPD active | SPD EV | Neurons, same count: EV | Neurons for SPD EV | Best-neuron cosine (median) | Cosine with start (median) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 354 | 0.96 | 0.85 | 1536 | 0.11 | 0.57 |
+| 1 | 498 | 0.93 | 0.42 | 2048 | 0.10 | 0.53 |
+| 2 | 577 | 0.93 | 0.57 | 1536 | 0.10 | 0.53 |
+| 3 | 618 | 0.96 | 0.76 | 2048 | 0.10 | 0.60 |
+| 4 | 679 | 0.97 | 0.65 | 2048 | 0.08 | 0.60 |
+| 5 | 684 | 0.97 | 0.73 | 2048 | 0.08 | 0.60 |
+| 6 | 695 | 0.97 | 0.74 | 2048 | 0.08 | 0.62 |
+| 7 | 669 | 0.97 | 0.80 | 2048 | 0.08 | 0.64 |
+| 8 | 674 | 0.96 | 0.84 | 1536 | 0.08 | 0.62 |
+| 9 | 621 | 0.92 | 0.85 | 1024 | 0.08 | 0.60 |
+| 10 | 474 | 0.84 | 0.83 | 768 | 0.07 | 0.57 |
+| 11 | 225 | 0.86 | 0.51 | 1024 | 0.06 | 0.56 |
+
+- **Density.** At the same fit, SPD needs 1.5–3 times fewer active subcomponents than the neurons need neurons, in every layer except 10. On the laptop the comparison was mixed.
+- **Drift.** Five times more training moved the subcomponents only a little further from their start: a median cosine of 0.53–0.64, against 0.57–0.71 on the laptop. The losses had levelled off. So this is where the method settles with C equal to the hidden width, not an unfinished run.
+- **Alignment.** No subcomponent has a cosine above 0.7 with any neuron. The median closest-neuron cosine rose a little in layers 0–3 (0.10–0.11). Elsewhere it stayed near a random direction's 0.07.
+
+**Why the density lead is not yet a result about the basis.** The two arms do not choose their units the same way. SPD's gate is a network that reads the whole centred hidden vector. On each token it gives every subcomponent a weight between 0 and 1, fitted to the output. The neuron baseline keeps or drops each neuron by a fixed ranking and cannot scale one. A set of mostly random directions beats the neurons by 2–3 times, which suggests the gate does much of the work.
+
 ## Next
 
-`scripts/train_spd_colab.ipynb` runs the same trainer on a Colab A100. Two runs answer the open question:
+**Run B, from the neurons** (`--init neurons`, V = I, U = W), 50,000 steps on the same settings. It gives the neurons the same gate and losses as run A.
 
-1. **From random, 50,000 steps.** Train until the cosine with the start stops falling, then measure alignment again. If subcomponents then line up with single neurons, SPD has found the neuron basis on its own.
-2. **From the neurons (`--init neurons`, V = I, U = W).** Start with each subcomponent equal to one neuron. If SPD keeps them, the neuron basis is a fixed point of SPD's losses. If it moves away and gets sparser, the neurons are not the model's smallest working parts.
+- If it stays near the neurons and is as sparse as run A, the gate did the work. The neuron basis is then as good a basis as SPD finds, which supports the registry's premise.
+- If it moves away from the neurons to reach run A's sparsity, SPD prefers other directions. That is evidence against the premise.
 
-If either run converges with subcomponents worth reading, the next steps are the preset (`gpt2-small-spd`) and the 40-per-arm audit against the transcoder baseline's 40 positive poles. A Qwen2.5-0.5B run would follow. Its SwiGLU hidden activations may decompose differently.
+A preset (`gpt2-small-spd`) and the 40-per-arm audit against the transcoder baseline's 40 positive poles wait for run B. A Qwen2.5-0.5B run would follow. Its SwiGLU hidden activations may decompose differently.
 
 ## Reproduce
 
