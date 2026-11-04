@@ -23,6 +23,9 @@ T = TypeVar("T", bound=BaseModel)
 
 DEFAULT_MODEL = os.environ.get("OPENINTERP_AGENT_MODEL", "anthropic/claude-opus-5-5")
 MODEL_ALIASES_ENV = "OPENINTERP_MODEL_ALIASES"
+# LiteLLM providers that cache a prompt prefix only where a ``cache_control`` mark ends it.
+# Others (OpenAI, DeepSeek, Gemini) cache a repeated prefix without a mark.
+CACHE_CONTROL_PROVIDERS = frozenset({"anthropic", "bedrock"})
 
 
 def recorded_model(model: str | None) -> str | None:
@@ -113,13 +116,29 @@ class LLMAgent:
     def render_prompt(
         cls, response_model: type[BaseModel], prompt: str, response_path: Path | str
     ) -> str:
-        """The full prompt for an external answerer: system prompt, task and JSON schema."""
+        """The full prompt for an external answerer: system prompt, JSON schema and task.
+
+        The parts that are the same for every unit come first, so a provider can cache
+        them as a prefix. The task and the response path come last.
+        """
         schema = json.dumps(response_model.model_json_schema(), indent=2)
         return (
-            f"# System\n\n{cls.system_prompt}\n\n# Prompt\n\n{prompt}\n\n"
-            f"# Response\n\nWrite a JSON object matching this schema to `{response_path}`:\n\n"
-            f"```json\n{schema}\n```\n"
+            f"# System\n\n{cls.system_prompt}\n\n"
+            f"# Response schema\n\n```json\n{schema}\n```\n\n# Prompt\n\n{prompt}\n\n"
+            f"# Response\n\nWrite a JSON object matching the schema above to "
+            f"`{response_path}`.\n"
         )
+
+    def system_message(self) -> dict[str, Any]:
+        """The system message, marked as the end of a cacheable prefix where needed.
+
+        The response schema goes to the provider as a tool, which comes before the system
+        message, so the cached prefix holds both.
+        """
+        if self.model.split("/", 1)[0] not in CACHE_CONTROL_PROVIDERS:
+            return {"role": "system", "content": self.system_prompt}
+        block = {"type": "text", "text": self.system_prompt, "cache_control": {"type": "ephemeral"}}
+        return {"role": "system", "content": [block]}
 
     def structured(self, response_model: type[T], prompt: str) -> T:
         """Ask the model for a ``response_model`` and record the call's cost under this role."""
@@ -147,10 +166,7 @@ class LLMAgent:
                 model=self.model,
                 response_model=response_model,
                 max_retries=self.max_retries,
-                messages=[
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
+                messages=[self.system_message(), {"role": "user", "content": prompt}],
                 **kwargs,
             )
         except Exception as exc:  # instructor/litellm raise many provider-specific types

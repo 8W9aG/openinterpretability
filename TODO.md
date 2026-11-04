@@ -225,7 +225,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time, so an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Order prompts for provider prompt caching. Put the stable parts (system prompt, methodology, answer schema) first and the neuron's evidence last, and pass cache-control hints through LiteLLM, so repeated experiments reuse the cached prefix.
 - [ ] Keep per-experiment checks proportional to the change. `openinterp check` and the wiki index rebuild walk every record, so their cost grows with the registry. Check only the records a branch adds or changes (`--base-ref origin/main`, as `reproduce` does), and keep the full check for CI on `main`.
 - [ ] Skip lint and tests on experiment PRs. When every changed file is under `wiki/` (the rule `.github/workflows/auto-merge.yml` uses), the code is the same as on `main`, so CI's "Lint and tests" job and the skills' local `make check lint test` re-test code the PR didn't change.
   - In `.github/workflows/ci.yml`, add a job that lists the changed files, as `record-changes` does, and gate `tests` on it with a job-level `if`. Don't use `paths-ignore` on the workflow: a required check that never starts blocks the merge, while a skipped job counts as passed. Keep running it on pushes to `main`.
@@ -253,7 +252,6 @@ Running several loops on one machine is under Pipeline.
 
 CI checks each pull request in two ways. "Experiment records" (`openinterp check`) confirms that the PR adds a valid record and its wiki page. "Reproduce records" (`openinterp reproduce --base-ref origin/main`, docs/PROTOCOL.md §5) re-runs every added or changed record on GitHub-hosted CPU runners, with cached weights and a model allow-list, so a record with edited activations or a hand-written verdict fails. Reproductions run one at a time across all pull requests, in a queue. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
-- [ ] Re-queue automatically when a PR's record changes, and let maintainers re-run or skip a job by hand (e.g. a label) for records whose model the worker can't load yet.
 - [ ] Re-reproduce old records on a schedule. CI reproduces only the records a PR changes, so a torch or transformers upgrade that silently shifts activations goes unnoticed. Add a nightly job that runs `openinterp reproduce` on a rotating sample of signed records (seeded by date, so over time every record is covered) and opens an issue on a mismatch.
 - [ ] Harden agent prompts against prompt injection. Corpus text, submitted hypotheses and probe text go into proposer, reviewer and judge prompts verbatim, so a crafted document or a fork PR could tell the reviewer to go easy. Fence untrusted text with unambiguous delimiters, tell each agent that fenced text is data and never instructions, and add a test with a planted instruction in a corpus document that must not change the verdict.
 - [ ] Plan signing-key rotation and revocation. `.github/allowed_signers` lists keys with no expiry, and nothing says what to do if a key leaks. Use `valid-after`/`valid-before` options per key, document rotation in `SECURITY.md`, and add `openinterp check --resign-window` (or similar) to find records signed by a revoked key in its exposure window so CI reproduces them instead of trusting the signature.
@@ -263,10 +261,6 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] An About page (`openinterp/builder/templates/about.html`, rendered by `compiler.py` and linked from the `base.html` header):
-  - why this is being done, in the spirit of SETI@home: volunteers contribute agent time and compute to a shared, verified map of what each neuron in a model does;
-  - how the proposer/reviewer protocol decides a verdict (linking `docs/PROTOCOL.md` and the current `PROTOCOL_VERSION`), and what VERIFIED does and doesn't mean;
-  - how to contribute, and the licence.
 - [ ] A Models page (e.g. `openinterp/builder/templates/models.html`, linked from the `base.html` header) listing the supported models. Read the list from `[tool.openinterp] models` in `pyproject.toml`, not a copy. Each row links to the model's page (`model.html`) and gives its size, layers, MLP width and activation, plus its experiment and VERIFIED counts. A supported model with no records yet still gets a row.
 - [ ] Serve the site at open-interpretability.com and use it everywhere:
   - attach it as the R2 bucket's custom domain;

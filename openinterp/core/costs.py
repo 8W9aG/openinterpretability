@@ -283,6 +283,7 @@ def usage_of(responses: Iterable[object]) -> dict:
             "prompt_tokens": getattr(usage, "prompt_tokens", None),
             "completion_tokens": getattr(usage, "completion_tokens", None),
             "cached_tokens": getattr(details, "cached_tokens", None),
+            "cache_write_tokens": getattr(details, "cache_creation_tokens", None),
             "cost_usd": _cost(response),
         }
         for key, value in values.items():

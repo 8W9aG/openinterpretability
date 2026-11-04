@@ -45,7 +45,7 @@ from openinterp.builder.tree import (
 )
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.exceptions import RegistryError
-from openinterp.core.schemas import ActivatingExample, AuditRecord
+from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
 from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
 from openinterp.wiring_backfill import record_wiring
@@ -222,7 +222,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.
 # They are removed before each build so deleted records leave no stale pages.
-OWNED_PATHS = ("index.html", "models", "agents", "neurons", "data", "pagefind")
+OWNED_PATHS = ("index.html", "about.html", "models", "agents", "neurons", "data", "pagefind")
 
 
 def _clean_owned_paths(output_dir: Path) -> None:
@@ -356,6 +356,8 @@ def compile_site(
         _write_redirect(output_dir / old, Path(new).name, report)
     stats = registry_stats(report.parquet, draws)
     _render_index(render, models, experiments, agents, stats, draws)
+    license = metadata("openinterp")["License-Expression"]
+    render("about.html", "about.html", policy=ReviewPolicy(), license=license)
     return report
 
 
