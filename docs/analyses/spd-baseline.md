@@ -2,11 +2,15 @@
 
 The parameter-space baseline (`TODO.md`, *Scope expansion*). The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD; Bushnaq et al., 2025, arXiv:2506.20790; after APD, Braun et al., 2025, arXiv:2501.14926) of GPT-2 small's twelve MLP down projections. It was trained first on an M1 Max laptop, then on a Colab A100.
 
-**Result so far.** On the laptop, 10,000 steps gave a usable fit but had not converged. On a Colab A100, 50,000 steps from random (run A) converged. Run A's CI-masked projection explains 0.84–0.97 of each layer's output on held-out text, with 1.2% of the loss gap left. At that fit it needs 1.5–3 times fewer active subcomponents than the neurons in every layer except layer 10, where they are level.
+**Result.** SPD finds no better basis than the neurons. Two 50,000-step runs on a Colab A100 had the same settings and different starts:
 
-But the subcomponents are still mostly the random directions they started as. Their median cosine with their initial values is 0.53–0.64, and none lines up with a neuron. The neuron comparison is also uneven. SPD's gate scales each subcomponent by a learned importance, while the neuron baseline only keeps or drops each neuron. So part of SPD's lead may come from the gate, not the directions. Run B, which starts SPD from the neurons, separates the two. Until it is in, there is no preset and no audit.
+- **Run A started from random directions.** It converged, but its subcomponents stayed mostly the random directions they started as (median cosine 0.53–0.64 with their start). None lines up with a neuron.
+- **Run B started from the neurons.** Its subcomponents stayed neurons (median cosine 0.91–0.996 with the closest neuron).
+- **Both runs need about 2–3 times fewer active units than the neurons at the same fit.** The neuron baseline keeps each token's largest neurons, at full strength. SPD's gate gives every unit a learned weight between 0 and 1 on each token. Run B keeps the neuron basis and still has that lead. So the lead comes from the gate, not from the directions.
 
-The per-layer comparisons are in `spd-baseline.json` (laptop) and `spd-baseline-colab-random.json` (run A).
+At this size, with as many subcomponents as neurons, SPD's losses do not choose a basis: each run keeps the basis it starts with. The neuron start does as well as a random one. So there is no preset and no audit: run A's subcomponents depend on their random start, and run B's are the neurons.
+
+The per-layer comparisons are in `spd-baseline.json` (laptop), `spd-baseline-colab-random.json` (run A) and `spd-baseline-colab-neurons.json` (run B).
 
 ## Method
 
@@ -125,14 +129,38 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 **Why the density lead is not yet a result about the basis.** The two arms do not choose their units the same way. SPD's gate is a network that reads the whole centred hidden vector. On each token it gives every subcomponent a weight between 0 and 1, fitted to the output. The neuron baseline keeps or drops each neuron by a fixed ranking and cannot scale one. A set of mostly random directions beats the neurons by 2–3 times, which suggests the gate does much of the work.
 
-## Next
+## Colab run B: from the neurons, 50,000 steps
 
-**Run B, from the neurons** (`--init neurons`, V = I, U = W), 50,000 steps on the same settings. It gives the neurons the same gate and losses as run A.
+Run B had run A's settings, except that each subcomponent started as one neuron (`--init neurons`: V = I, U = W). Its outputs are in the owner's Google Drive (`openinterp/gpt2-spd-neurons-50k`).
 
-- If it stays near the neurons and is as sparse as run A, the gate did the work. The neuron basis is then as good a basis as SPD finds, which supports the registry's premise.
-- If it moves away from the neurons to reach run A's sparsity, SPD prefers other directions. That is evidence against the premise.
+| Layer | SPD active | SPD EV | Neurons, same count: EV | Neurons for SPD EV | Best-neuron cosine (median) | Share over 0.7 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 165 | 0.94 | 0.74 | 1024 | 0.96 | 1.00 |
+| 1 | 369 | 0.84 | 0.33 | 1536 | 0.91 | 0.99 |
+| 2 | 413 | 0.86 | 0.35 | 1536 | 0.95 | 1.00 |
+| 3 | 397 | 0.86 | 0.52 | 1024 | 0.97 | 1.00 |
+| 4 | 460 | 0.86 | 0.34 | 1536 | 0.96 | 1.00 |
+| 5 | 451 | 0.86 | 0.53 | 1024 | 0.96 | 1.00 |
+| 6 | 459 | 0.86 | 0.59 | 1024 | 0.97 | 1.00 |
+| 7 | 433 | 0.86 | 0.68 | 1024 | 0.98 | 1.00 |
+| 8 | 430 | 0.87 | 0.76 | 1024 | 0.98 | 1.00 |
+| 9 | 388 | 0.88 | 0.78 | 768 | 0.99 | 1.00 |
+| 10 | 336 | 0.90 | 0.78 | 1024 | 0.99 | 1.00 |
+| 11 | 237 | 0.92 | 0.52 | 1536 | 1.00 | 1.00 |
 
-A preset (`gpt2-small-spd`) and the 40-per-arm audit against the transcoder baseline's 40 positive poles wait for run B. A Qwen2.5-0.5B run would follow. Its SwiGLU hidden activations may decompose differently.
+With this start, the cosine with the start and the best-neuron cosine are the same number.
+
+- **Alignment.** At least 99.4% of each layer's subcomponents have a cosine above 0.7 with one neuron. They stayed neurons.
+- **Density.** Run B settled at fewer active units and a lower fit than run A: 165–460 against 225–695 active, and 0.84–0.94 against 0.84–0.97 explained variance. To compare the two at different fits, take the number of neurons that reach each run's fit, interpolated on the neuron curve, and divide it by the run's active count. That ratio is 1.9–5.6 for run B and 1.1–3.6 for run A. It is 2.1–2.6 in run B's middle layers (3–8) and 2.2–2.7 in run A's. The lead over the neurons is about the same with or without the change of basis.
+
+## What runs A and B mean
+
+- **The gate gives the lead, not the directions.** Run B shows the neurons with a gate are about as far ahead of the neuron baseline as run A's directions are. The neuron baseline's weak point is how it picks units: a fixed ranking that ignores cancellation, with no scaling.
+- **SPD does not pick a basis here.** With C equal to the hidden width, any rotation of the neuron basis sums to W exactly. The importance and reconstruction losses moved V only a little from either start. So SPD cannot say the neurons are the *best* basis, only that it found none better.
+- **No preset and no audit.** Auditing run A would explain directions that depend on a random seed. Auditing run B would audit the neurons again, with a gate. Neither is a second baseline. The weights are not uploaded to the Hub.
+- **Supports the registry's premise, weakly.** For GPT-2 small's MLPs, a parameter decomposition that starts from the neurons keeps them.
+
+Tests not run: more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
 
 ## Reproduce
 
