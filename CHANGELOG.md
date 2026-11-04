@@ -31,6 +31,7 @@ The project has two version numbers:
 
 ### Fixed
 
+- **`openinterp check` no longer blocks follow-ups of records with an old agent spelling.** `reevaluate` and `independent_review` copy agent names from a signed record of the same unit. Records before the spelling rule (2026-10-31) can hold names such as `external/deepseek-flash[1m]`, so these PRs could not pass "Experiment records". A name now passes when an older record of the unit has it in the same field. Other new names must still be canonical.
 - **The agent recorded as `claude-3-5-sonnet-20241022` is Grok Build 0.1** (`ALIASES` in `core/agent_names.py`; TODO, Housekeeping). One 2026-10-26 session ran Grok Build and reported the Claude name it thought it was. Its records are signed, so the site and cost report map the name rather than rewriting them: the agent's page is now `grok-build-0.1`, with a note saying the name was remapped, and the session's calls are priced as Grok Build. Pricing now applies `ALIASES` too.
 
 ## [0.0.12] - 2026-11-02
