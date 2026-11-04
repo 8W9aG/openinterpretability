@@ -92,7 +92,7 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 **Alignment.** No subcomponent in any layer has a cosine above 0.7 with any one neuron. The median cosine with the closest neuron is 0.06–0.08. A random direction in 3,072 dimensions gives about 0.07.
 
-**Drift.** That alignment says little about the model, because the subcomponents have not moved far from where they started. With C equal to the hidden width, any rotation of the neuron basis can sum to W exactly. Only the importance and reconstruction losses move V, and in 10,000 steps they left each column with a median cosine of 0.57–0.71 with its random start. The gates learned which of these partly random directions matter on each token. That is why the counts can fall while the directions stay random.
+**Drift.** That alignment says little about the model, because the subcomponents have not moved far from where they started. With C equal to the hidden width, any rotation of the neuron basis can sum to W exactly. The faithfulness warmup moves V first: on its own it takes each column to a median cosine of 0.61–0.74 with its random draw, before any other loss runs. After 10,000 steps the cosine is 0.57–0.71, so the importance and reconstruction losses moved the columns very little. The gates learned which of these partly random directions matter on each token. That is why the counts can fall while the directions stay random.
 
 ## What the laptop run means
 
@@ -124,7 +124,7 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 | 11 | 225 | 0.86 | 0.51 | 1024 | 0.06 | 0.56 |
 
 - **Density.** At the same fit, SPD needs 1.5–3 times fewer active subcomponents than the neurons need neurons, in every layer except 10. On the laptop the comparison was mixed.
-- **Drift.** Five times more training moved the subcomponents only a little further from their start: a median cosine of 0.53–0.64, against 0.57–0.71 on the laptop. The losses had levelled off. So this is where the method settles with C equal to the hidden width, not an unfinished run.
+- **Drift.** Five times more training moved the subcomponents only a little further from their start: a median cosine of 0.53–0.64, against 0.57–0.71 on the laptop. The losses had levelled off. So this is where the method settles with C equal to the hidden width, not an unfinished run. Most of the distance from the random draw comes from the faithfulness warmup, which alone gives 0.61–0.74. Run B has no warmup movement, because neurons already sum to W.
 - **Alignment.** No subcomponent has a cosine above 0.7 with any neuron. The median closest-neuron cosine rose a little in layers 0–3 (0.10–0.11). Elsewhere it stayed near a random direction's 0.07.
 
 **Why the density lead is not yet a result about the basis.** The two arms do not choose their units the same way. SPD's gate is a network that reads the whole centred hidden vector. On each token it gives every subcomponent a weight between 0 and 1, fitted to the output. The neuron baseline keeps or drops each neuron by a fixed ranking and cannot scale one. A set of mostly random directions beats the neurons by 2–3 times, which suggests the gate does much of the work.
@@ -183,6 +183,8 @@ Tests not run: more subcomponents than neurons (C > 3,072), where SPD could spli
 The down projection reads the neurons, but nothing in it favours them: any rotation of the neuron basis sums to W. The input projection (`c_fc`) writes the neurons' pre-activations, and GELU acts on each neuron separately. A neuron that is off on a token can be dropped there at no cost. A subcomponent that writes to many neurons can be dropped only where all of them are off. So the importance loss should turn the input projection's subcomponents towards the neurons, if the neuron basis is the model's own.
 
 `train_spd.py --matrices both` decomposes both projections of each layer. Of the input projection, neuron i is `V = W[:, i], U = e_i`, and its CI-masked output loss and explained variance are measured after GELU. If they were measured on the pre-activations, an off neuron would cost as much to drop as an on one. Run C starts from random (`--init random`), with run A's other settings, for 50,000 steps. The test is the input projection's best-neuron cosine, read from `U[c]`: about 0.07 for a random direction, 1 for a neuron.
+
+The subcomponents move slowly, so run C alone may not separate "SPD does not prefer the neurons" from "training did not reach them". In a 1,000-step pilot, the input projection's cosine with its start stayed within 0.003 of the warmup's 0.61–0.63. So the test also needs the same run from the neurons (`--init neurons`). If that run fits better at the same sparsity than the run from random, SPD's losses prefer the neurons, however slowly training moves.
 
 ## Reproduce
 

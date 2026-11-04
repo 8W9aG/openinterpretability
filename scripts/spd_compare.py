@@ -11,9 +11,10 @@ On held-out pieces, per layer, it measures:
   Its cosine with the closest neuron is about 0.07 for a random direction in 3,072
   dimensions and 1 for a neuron. ``neuron_spread`` is the effective number of
   subcomponents that share a neuron's row ``W[i]``.
-* **drift**: each ``V[:, c]``'s cosine with its value at initialisation. Near 1, the
-  subcomponents are still the random directions they started as, and alignment says
-  nothing about the model.
+* **drift**: each ``V[:, c]``'s cosine with its value at initialisation, before the
+  faithfulness warmup. The warmup alone gives about 0.6-0.75 on GPT-2 from random. Near
+  that value, the subcomponents have not moved in training, and alignment says nothing
+  about the model.
 
 An input projection (``--matrices up`` or ``both``) writes the neurons. So there,
 alignment and drift read ``U[c]``, and the fit is measured after the activation
