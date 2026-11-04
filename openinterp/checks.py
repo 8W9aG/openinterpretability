@@ -180,24 +180,36 @@ def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
             report.add(sig, f"signature for a missing record {sig.with_suffix('').name}")
 
 
+def _agent_names(record: AuditRecord) -> dict[str, str | None]:
+    """The agent model names in ``record``, by the name of their field."""
+    scores = record.verdict.explanation_scores if record.verdict else None
+    return {
+        "submitting_agent_model": record.submission.submitting_agent_model,
+        "reviewer_agent_model": record.verdict.reviewer_agent_model if record.verdict else None,
+        "judge_model": scores.judge_model if scores else None,
+    }
+
+
 def _check_agent_names(paths: list[Path], report: CheckReport) -> None:
     """Require new records to spell their agents one way.
 
     Then the site shows one model as one agent. Older records keep their spellings,
-    because they are signed. The build maps them.
+    because they are signed. The build maps them. A follow-up such as ``reevaluate`` copies
+    names from an older record of its unit, so a name that the unit already has passes.
     """
+    new = set(paths)
     for path in paths:
         record = _load(path)
         if record is None or record.verdict is None:
             continue  # _check_records reports it
-        scores = record.verdict.explanation_scores
-        names = {
-            "submitting_agent_model": record.submission.submitting_agent_model,
-            "reviewer_agent_model": record.verdict.reviewer_agent_model,
-            "judge_model": scores.judge_model if scores else None,
-        }
-        for field_name, model in names.items():
-            if model and (problem := spelling_problem(model)):
+        older = [
+            _agent_names(loaded)
+            for other in path.parent.glob("*.json")
+            if other not in new and (loaded := _load(other))
+        ]
+        for field_name, model in _agent_names(record).items():
+            inherited = any(names[field_name] == model for names in older)
+            if model and not inherited and (problem := spelling_problem(model)):
                 report.add(path, f"{field_name}={model!r}: {problem}")
 
 
