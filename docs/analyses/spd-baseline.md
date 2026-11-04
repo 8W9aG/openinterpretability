@@ -10,7 +10,7 @@ The parameter-space baseline (`TODO.md`, *Scope expansion*). The transcoder base
 
 At this size, with as many subcomponents as neurons, SPD's losses do not choose a basis: each run keeps the basis it starts with. The neuron start does as well as a random one. So there is no preset and no audit: run A's subcomponents depend on their random start, and run B's are the neurons.
 
-The per-layer comparisons are in `spd-baseline.json` (laptop), `spd-baseline-colab-random.json` (run A) and `spd-baseline-colab-neurons.json` (run B).
+The per-layer comparisons are in `spd-baseline.json` (laptop), `spd-baseline-colab-random.json` (run A) and `spd-baseline-colab-neurons.json` (run B). The VERIFIED-neuron check is in `spd-baseline-verified.json`.
 
 ## Method
 
@@ -153,14 +153,30 @@ With this start, the cosine with the start and the best-neuron cosine are the sa
 - **Alignment.** At least 99.4% of each layer's subcomponents have a cosine above 0.7 with one neuron. They stayed neurons.
 - **Density.** Run B settled at fewer active units and a lower fit than run A: 165–460 against 225–695 active, and 0.84–0.94 against 0.84–0.97 explained variance. To compare the two at different fits, take the number of neurons that reach each run's fit, interpolated on the neuron curve, and divide it by the run's active count. That ratio is 1.9–5.6 for run B and 1.1–3.6 for run A. It is 2.1–2.6 in run B's middle layers (3–8) and 2.2–2.7 in run A's. The lead over the neurons is about the same with or without the change of basis.
 
+## Verified neurons in run B
+
+Run B keeps each neuron as one subcomponent, so SPD's view of each neuron can be set against the registry's verdict on it. `scripts/spd_verified.py` reads run B's checkpoint and 256 held-out pieces (32,512 tokens). It compares the 76 VERIFIED GPT-2 neuron poles with the 256 other studied poles (NEEDS_REVISION or REJECTED). Each measure is ranked within its layer first, so layer effects cancel. A permutation test gives each p-value.
+
+| Measure | VERIFIED: mean percentile | Other: mean percentile | p |
+| --- | --- | --- | --- |
+| Input direction's cosine with its neuron | 0.51 | 0.45 | 0.08 |
+| Output direction's cosine with the neuron's row of W | 0.50 | 0.50 | 0.91 |
+| Mean causal importance | 0.48 | 0.54 | 0.09 |
+| Share of tokens with causal importance above 0 | 0.48 | 0.54 | 0.10 |
+| Causal importance on the pole's 32 largest activations | 0.44 | 0.49 | 0.20 |
+
+No measure separates the two groups at p < 0.05, and five tests were run. VERIFIED neurons lean towards staying a little closer to their neuron and being important on fewer tokens, but the differences are small. On a pole's largest activations, the gate keeps both groups at full importance (median 1.0), so that measure is at its ceiling. The result is in `spd-baseline-verified.json`.
+
+So SPD's view of a neuron says nothing about whether an explanation of it verifies. That fits the rest of this analysis: started from the neurons, SPD keeps them all with about the same weight. The other group's verdicts are about hypotheses, not neurons: a NEEDS_REVISION pole may be a clean neuron with a wrong first hypothesis. That blurs any difference.
+
 ## What runs A and B mean
 
 - **The gate gives the lead, not the directions.** Run B shows the neurons with a gate are about as far ahead of the neuron baseline as run A's directions are. The neuron baseline's weak point is how it picks units: a fixed ranking that ignores cancellation, with no scaling.
 - **SPD does not pick a basis here.** With C equal to the hidden width, any rotation of the neuron basis sums to W exactly. The importance and reconstruction losses moved V only a little from either start. So SPD cannot say the neurons are the *best* basis, only that it found none better.
 - **No preset and no audit.** Auditing run A would explain directions that depend on a random seed. Auditing run B would audit the neurons again, with a gate. Neither is a second baseline. The weights are not uploaded to the Hub.
-- **Supports the registry's premise, weakly.** For GPT-2 small's MLPs, a parameter decomposition that starts from the neurons keeps them.
+- **Supports the registry's premise, weakly.** For GPT-2 small's MLPs, a parameter decomposition that starts from the neurons keeps them. It treats VERIFIED neurons no differently from other studied ones.
 
-Tests not run: more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
+Tests not run: the up projection (`c_fc`) decomposed with the down projection, where GELU acts on each neuron separately, so SPD's losses could prefer the neuron basis; more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
 
 ## Reproduce
 
