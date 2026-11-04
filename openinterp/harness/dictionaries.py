@@ -18,6 +18,16 @@ transposed on load. An OpenMOSS ``lm_sae`` checkpoint (``encoder.weight`` …, w
 converted on load; see :func:`_from_lm_sae`. A skip transcoder also has ``W_skip``
 ``[d_out, d_in]``. This is a linear map from its input that it adds to its
 reconstruction (circuit-tracer's convention). A latent's write doesn't include it.
+
+A Stochastic Parameter Decomposition (``activation="causal_importance"``, from
+``scripts/train_spd.py``) also has a causal-importance gate. A latent's activation is
+``relu(g · pre)``, with ``g`` the gate's output clamped to [0, 1]. The gate is one of:
+
+* one small GELU MLP per latent, reading only that latent's ``pre``: ``ci_w1``, ``ci_b1``,
+  ``ci_w2`` ``[n, d_gate]`` and ``ci_b2`` ``[n]`` (see :func:`gate_logits`);
+* one GELU MLP per layer, reading the whole input x: ``ci_in_w`` ``[d_in, d_gate]``,
+  ``ci_in_b`` ``[d_gate]``, ``ci_out_w`` ``[d_gate, n]`` and ``ci_out_b`` ``[n]`` (see
+  :func:`layer_gate_logits`).
 """
 
 from __future__ import annotations
@@ -39,7 +49,7 @@ class DictionarySpec:
     """A family of per-layer dictionaries for one model."""
 
     model_name: str
-    kind: str  # "transcoder" | "sae"
+    kind: str  # "transcoder" | "sae" | "basis" | "spd"
     repo: str
     revision: str
     path: str | Mapping[int, str]  # file within ``repo``: ``{layer}`` is filled in, or by layer
@@ -278,6 +288,32 @@ def dictionary_spec(name: str) -> DictionarySpec:
         raise ValueError(f"unknown dictionary {name!r}; known: {known}") from None
 
 
+def gate_logits(
+    pre: torch.Tensor, w1: torch.Tensor, b1: torch.Tensor, w2: torch.Tensor, b2: torch.Tensor
+) -> torch.Tensor:
+    """Each latent's causal importance before it is clamped to [0, 1].
+
+    ``pre`` is ``[..., k]`` with gate weights ``[k, d_gate]`` and ``b2`` ``[k]``, or
+    ``[...]`` for one latent's weights ``[d_gate]`` and a scalar ``b2``. Each latent's
+    gate reads only that latent's ``pre``.
+    """
+    return (torch.nn.functional.gelu(pre.unsqueeze(-1) * w1 + b1) * w2).sum(-1) + b2
+
+
+def layer_gate_logits(
+    x: torch.Tensor,
+    w_in: torch.Tensor,
+    b_in: torch.Tensor,
+    w_out: torch.Tensor,
+    b_out: torch.Tensor,
+) -> torch.Tensor:
+    """Every latent's causal importance before it is clamped, from the whole input ``x``.
+
+    ``w_out`` is ``[d_gate, k]`` and ``b_out`` ``[k]`` for k latents.
+    """
+    return torch.nn.functional.gelu(x @ w_in + b_in) @ w_out + b_out
+
+
 @dataclass(frozen=True)
 class Dictionary:
     """One layer's dictionary, in float32 on one device."""
@@ -290,6 +326,8 @@ class Dictionary:
     activation: str
     subtract_decoder_bias: bool
     w_skip: torch.Tensor | None = None  # [d_in, d_out]
+    gates: tuple[torch.Tensor, ...] | None = None  # ci_w1, ci_b1, ci_w2, ci_b2
+    layer_gate: tuple[torch.Tensor, ...] | None = None  # ci_in_w, ci_in_b, ci_out_w, ci_out_b
 
     @property
     def n_features(self) -> int:
@@ -300,22 +338,35 @@ class Dictionary:
         x = x.float().to(self.w_enc.device)
         return x - self.b_dec if self.subtract_decoder_bias else x
 
-    def _activate(self, pre: torch.Tensor, threshold: torch.Tensor | None) -> torch.Tensor:
+    def _importance(self, x: torch.Tensor, pre: torch.Tensor, f) -> torch.Tensor:
+        """The gate logits of latents ``f`` (``None``: all), from the input and ``pre``."""
+        if self.layer_gate is not None:
+            w_in, b_in, w_out, b_out = self.layer_gate
+            if f is not None:
+                w_out, b_out = w_out[:, f], b_out[f]
+            return layer_gate_logits(x, w_in, b_in, w_out, b_out)
+        gates = self.gates if f is None else tuple(g[f] for g in self.gates)
+        return gate_logits(pre, *gates)
+
+    def _activate(self, x: torch.Tensor, pre: torch.Tensor, f) -> torch.Tensor:
         if self.activation == "jumprelu":
-            return pre * (pre > threshold)
+            return pre * (pre > (self.threshold if f is None else self.threshold[f]))
+        if self.activation == "causal_importance":
+            return torch.relu(self._importance(x, pre, f).clamp(0.0, 1.0) * pre)
         return torch.relu(pre)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Every latent's activation ``[..., n]``."""
-        return self._activate(self._input(x) @ self.w_enc + self.b_enc, self.threshold)
+        x = self._input(x)
+        return self._activate(x, x @ self.w_enc + self.b_enc, None)
 
     def feature(self, x: torch.Tensor, f: int | torch.Tensor) -> torch.Tensor:
         """Return latent ``f``'s activation ``[...]``, without encoding the rest.
 
         For a tensor of k indices, it is ``[..., k]``.
         """
-        pre = self._input(x) @ self.w_enc[:, f] + self.b_enc[f]
-        return self._activate(pre, None if self.threshold is None else self.threshold[f])
+        x = self._input(x)
+        return self._activate(x, x @ self.w_enc[:, f] + self.b_enc[f], f)
 
     def decode(self, acts: torch.Tensor) -> torch.Tensor:
         """The decoder's output for latent activations ``acts``, without the skip path."""
@@ -406,6 +457,16 @@ def _load(repo, revision, path, device, activation, subtract_decoder_bias) -> Di
     w_dec = w["W_dec"] if w["W_dec"].shape[0] == n else w["W_dec"].T
     if activation == "jumprelu" and "threshold" not in w:
         raise ValueError(f"{path} is a JumpReLU dictionary without a threshold tensor")
+    gates = layer_gate = None
+    if activation == "causal_importance":
+        per_latent = ("ci_w1", "ci_b1", "ci_w2", "ci_b2")
+        per_layer = ("ci_in_w", "ci_in_b", "ci_out_w", "ci_out_b")
+        if all(name in w for name in per_layer):
+            layer_gate = tuple(w[name].contiguous() for name in per_layer)
+        elif all(name in w for name in per_latent):
+            gates = tuple(w[name].contiguous() for name in per_latent)
+        else:
+            raise ValueError(f"{path} has neither gate: {per_latent} or {per_layer}")
     return Dictionary(
         w_enc=w_enc.contiguous(),
         b_enc=w["b_enc"],
@@ -415,6 +476,8 @@ def _load(repo, revision, path, device, activation, subtract_decoder_bias) -> Di
         activation=activation,
         subtract_decoder_bias=subtract_decoder_bias,
         w_skip=w["W_skip"].T.contiguous() if "W_skip" in w else None,
+        gates=gates,
+        layer_gate=layer_gate,
     )
 
 

@@ -197,6 +197,17 @@ def format_dictionary_profile(profile: DictionaryProfile) -> str:
             f"{profile.explained_variance:.0%} of {output}'s variance with "
             f"{profile.mean_l0:.0f} active latents per token."
         )
+    if profile.kind == "spd":
+        return (
+            f"This is one latent ({profile.n_features} in this layer) of a parameter "
+            f"decomposition of this layer's MLP down projection into rank-1 pieces, not a "
+            f"native neuron. It reads where native neurons are: the input to the down "
+            f"projection. Strength is the positive part of the hidden activations' "
+            f"projection onto the piece's input direction, scaled by the piece's causal "
+            f"importance on that token (0 to 1: how much ablating the piece would change "
+            f"the model's output). It writes strength x the piece's output direction to the "
+            f"MLP output. It is non-zero on {profile.density:.2%} of scanned tokens.{fit}\n"
+        )
     trained = output if residual else "this layer's MLP"
     return (
         f"This is one latent of a sparse {profile.kind} ({profile.n_features} latents) "

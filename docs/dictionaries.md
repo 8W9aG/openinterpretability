@@ -52,6 +52,12 @@ The Qwen transcoders bring several advantages over the other presets:
 - **The weights are skip transcoders.** A dense linear skip path carries the linear part of the MLP, so the sparse latents are left with the nonlinear part. Without the skip path, the fit falls to at most 34%.
 - **The pipeline is reproducible.** `scripts/train_transcoders.py`, pinned data and a fixed seed regenerate the weights. The Hub repository is pinned by commit, and its card, per-layer metadata and training log are tracked in `hf_models/`.
 
+## Parameter decompositions (SPD)
+
+A dictionary can also be a decomposition of the MLP's weights, not of its activations. `kind: spd` reads a Stochastic Parameter Decomposition of the down projection (`scripts/train_spd.py`). Its subcomponents read the hidden activations, the same space as the neurons. Each one exports as two latents, the positive and negative parts of its inner activation scaled by its causal importance (`activation: causal_importance`). The latents give back exactly the decomposition's projection with every subcomponent at its causal importance.
+
+No preset uses it yet. The only decomposition so far, of GPT-2 small on a laptop, fits well but has not converged: its subcomponents are still mostly their random initial directions (`docs/analyses/spd-baseline.md`).
+
 ## Limits
 
 - **The fit is modest.** These are quick dictionaries: one pass over 13.5M tokens on a laptop. The middle layers fit about 60% of the MLP output, with layer 12 lowest at 0.589. A latent from a dictionary that misses 40% of the variance is a weaker baseline than one from a dictionary that misses 10%. Each scan records the fit next to the latent (`dictionary_profile`), so a verdict can be read against it. A larger run would improve it.
