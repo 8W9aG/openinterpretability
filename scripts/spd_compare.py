@@ -15,6 +15,10 @@ On held-out pieces, per layer, it measures:
   subcomponents are still the random directions they started as, and alignment says
   nothing about the model.
 
+An input projection (``--matrices up`` or ``both``) writes the neurons. So there,
+alignment and drift read ``U[c]``, and the fit is measured after the activation
+function. It has no neuron baseline for density.
+
     uv run python scripts/spd_compare.py --checkpoint exchange/gpt2-spd/checkpoint.pt \\
         --out exchange/gpt2-spd/compare.json
 """
@@ -28,7 +32,8 @@ from types import SimpleNamespace
 import click
 import torch
 import torch.nn.functional as F
-from spd_model import LayerDecomposition, linear_weight
+from spd_losses import projected
+from spd_model import LayerDecomposition, activation, load_parts, make_parts, projection, site_label
 from train_spd import pieces
 
 STEPS = (16, 32, 64, 128, 256, 384, 512, 768, 1024, 1536, 2048, 3072)
@@ -71,15 +76,26 @@ def compare_layer(part: LayerDecomposition, v_init: torch.Tensor, h: torch.Tenso
     }
 
 
-def initial_parts(runner, layers: list[int], s: dict) -> dict[int, LayerDecomposition]:
+def compare_up(part: LayerDecomposition, u_init: torch.Tensor, h: torch.Tensor, act) -> dict:
+    """Fit, alignment and drift for one input projection; ``h`` is ``[tokens, d_model]``."""
+    x = h - part.mean
+    inner = x @ part.v
+    ci = part.gate_logits(x.unsqueeze(0), inner.unsqueeze(0))[0].clamp(0, 1)
+    y, y_hat = projected(part, x, inner, ci, act)
+    best = (part.u / part.u.norm(dim=1, keepdim=True)).abs().max(1).values
+    return {
+        "spd_explained_variance": round(explained(y, y_hat), 3),
+        "spd_l0": round(float((ci > 0).sum(-1).float().mean()), 1),
+        "best_neuron_cosine_median": round(float(best.median()), 3),
+        "share_best_neuron_cosine_over_0.7": round(float((best > 0.7).float().mean()), 4),
+        "drift_cosine_median": round(float(F.cosine_similarity(part.u, u_init, dim=1).median()), 3),
+    }
+
+
+def initial_parts(runner, sites: list, s: dict) -> dict[tuple, LayerDecomposition]:
     """The subcomponents as ``train_spd.Decomposer`` initialised them, for the drift."""
-    gen, parts = torch.Generator().manual_seed(s["seed"]), {}
-    for layer in layers:
-        w, bias = linear_weight(runner.down_proj(layer))
-        parts[layer] = LayerDecomposition(w.cpu(), None if bias is None else bias.cpu(),
-                                          s["components"], s["d_gate"], s["gate"], gen,
-                                          s.get("init", "random"))  # fmt: skip
-    return parts
+    return make_parts(runner, sites, s["components"], s["d_gate"], s["gate"], s["seed"],
+                      s.get("init", "random"))  # fmt: skip
 
 
 @click.command()
@@ -97,24 +113,29 @@ def main(checkpoint, settings_json, rows, device, scan_corpus, out):
     state = torch.load(checkpoint, map_location="cpu")
     s = state.get("settings") or json.loads(settings_json)
     runner = _load_runner(s["model_name"], device, "float32", s["revision"])
-    layers = sorted(state["parts"])
-    start = initial_parts(runner, layers, s)
+    saved = load_parts(state["parts"])
+    start = initial_parts(runner, list(saved), s)
     cfg = SimpleNamespace(scan_corpus=scan_corpus, seq_len=s["seq_len"], seed=s["seed"])
     valid = pieces(runner.tokenizer, cfg)[1]
     ids = torch.tensor(valid[s["batch_rows"] : s["batch_rows"] + rows], device=runner.device)
     hidden = {}
-    hooks = [runner.down_proj(layer).register_forward_hook(
-        lambda _m, args, _o, layer=layer: hidden.__setitem__(layer, args[0].detach().float()))
-        for layer in layers]  # fmt: skip
+    hooks = [projection(runner, *site).register_forward_hook(
+        lambda _m, args, _o, site=site: hidden.__setitem__(site, args[0].detach().float()))
+        for site in saved]  # fmt: skip
     with torch.no_grad():
         runner.model(input_ids=ids)
         result = {}
-        for layer in layers:
-            part = start[layer].to(runner.device)
-            v_init = part.v.detach().clone()
-            part.load_state_dict(state["parts"][layer])
-            result[layer] = compare_layer(part, v_init, hidden[layer][:, 1:].flatten(0, 1))
-            click.echo(f"L{layer}: {json.dumps(result[layer])}")
+        for site in saved:
+            part = start[site].to(runner.device)
+            init = (part.v if site[1] == "down" else part.u).detach().clone()
+            part.load_state_dict(saved[site])
+            h = hidden[site][:, 1:].flatten(0, 1)
+            label = site_label(site)
+            if site[1] == "down":
+                result[label] = compare_layer(part, init, h)
+            else:
+                result[label] = compare_up(part, init, h, activation(runner, site[0]))
+            click.echo(f"L{label}: {json.dumps(result[label])}")
     for hook in hooks:
         hook.remove()
     out.write_text(json.dumps({"step": state["step"], "layers": result}, indent=1) + "\n")

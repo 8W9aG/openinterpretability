@@ -1,4 +1,8 @@
-"""One layer's Stochastic Parameter Decomposition (``train_spd.py``), and its export."""
+"""One projection's Stochastic Parameter Decomposition (``train_spd.py``), and its export.
+
+A site is ``(layer, matrix)``. The matrix is ``"down"``, the MLP's down projection, which
+reads the neurons, or ``"up"``, its input projection, which writes them.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +12,14 @@ import torch
 from torch import nn
 
 from openinterp.harness.dictionaries import gate_logits, layer_gate_logits
+from openinterp.harness.hooks import _try_path
+
+# The matrices that ``--matrices`` decomposes in each layer, in the order they are built.
+MATRICES = {"down": ("down",), "up": ("up",), "both": ("down", "up")}
+# An ungated MLP's input projection, and its activation function. A gated MLP (SwiGLU)
+# has two input projections and is not supported.
+UP_PATHS = ("mlp.c_fc", "mlp.dense_h_to_4h", "mlp.fc_in", "mlp.fc1", "fc1")
+ACT_PATHS = ("mlp.act", "mlp.act_fn", "mlp.activation_fn")
 
 GATE_NAMES = {
     "component": ("gate_w1", "gate_b1", "gate_w2", "gate_b2"),
@@ -25,8 +37,54 @@ def linear_weight(module: nn.Module) -> tuple[torch.Tensor, torch.Tensor | None]
     return w.detach().float().clone(), None if module.bias is None else module.bias.detach().float()
 
 
+def _first_path(block: nn.Module, paths: tuple[str, ...], what: str):
+    for path in paths:
+        if (found := _try_path(block, path)) is not None:
+            return found
+    raise ValueError(f"no {what} at any of {paths}")
+
+
+def projection(runner, layer: int, matrix: str) -> nn.Module:
+    """The projection that ``matrix`` names in ``layer``."""
+    if matrix == "down":
+        return runner.down_proj(layer)
+    return _first_path(runner.layers[layer], UP_PATHS, "ungated MLP input projection")
+
+
+def activation(runner, layer: int):
+    """The MLP's activation function in ``layer``."""
+    return _first_path(runner.layers[layer], ACT_PATHS, "MLP activation")
+
+
+def site_label(site: tuple[int, str]) -> str:
+    """``"4"`` for layer 4's down projection, ``"4.up"`` for its input projection."""
+    layer, matrix = site
+    return str(layer) if matrix == "down" else f"{layer}.{matrix}"
+
+
+def load_parts(parts: dict) -> dict:
+    """A checkpoint's parts keyed by site. Older checkpoints keyed down projections by layer."""
+    return {(k, "down") if isinstance(k, int) else tuple(k): v for k, v in parts.items()}
+
+
+def make_parts(runner, sites: list, components: int, d_gate: int, gate: str, seed: int,
+               init: str) -> dict:  # fmt: skip
+    """A new ``LayerDecomposition`` per site, all drawn from one generator in site order."""
+    gen, parts = torch.Generator().manual_seed(seed), {}
+    for layer, matrix in sites:
+        w, bias = linear_weight(projection(runner, layer, matrix))
+        parts[(layer, matrix)] = LayerDecomposition(
+            w.cpu(), None if bias is None else bias.cpu(), components, d_gate, gate, gen, init,
+            neurons="in" if matrix == "down" else "out")  # fmt: skip
+    return parts
+
+
 class LayerDecomposition(nn.Module):
-    """The subcomponents of one down projection and their causal-importance gate.
+    """The subcomponents of one projection and their causal-importance gate.
+
+    The neurons are the projection's inputs (``neurons="in"``, the down projection) or
+    its outputs (``neurons="out"``, the input projection). ``init="neurons"`` starts with
+    one subcomponent per neuron.
 
     With ``gate="component"`` (the SPD paper's), each subcomponent has a small GELU MLP
     that reads only its own inner activation. With ``gate="layer"``, one GELU MLP reads
@@ -34,7 +92,15 @@ class LayerDecomposition(nn.Module):
     """
 
     def __init__(
-        self, w: torch.Tensor, bias, c: int, d_gate: int, gate: str, generator, init="random"
+        self,
+        w: torch.Tensor,
+        bias,
+        c: int,
+        d_gate: int,
+        gate: str,
+        generator,
+        init="random",
+        neurons="in",
     ) -> None:
         super().__init__()
         d_in, d_out = w.shape
@@ -43,10 +109,14 @@ class LayerDecomposition(nn.Module):
         self.register_buffer("bias", torch.zeros(d_out) if bias is None else bias)
         self.v = nn.Parameter(torch.randn(d_in, c, generator=generator) / math.sqrt(d_in))
         self.u = nn.Parameter(torch.randn(c, d_out, generator=generator) / math.sqrt(c))
-        if init == "neurons":  # subcomponent i is neuron i: V = I, U = W
-            if c != d_in:
-                raise ValueError(f"init='neurons' needs C = d_mlp = {d_in}, not {c}")
-            self.v.data, self.u.data = torch.eye(d_in), w.clone()
+        if init == "neurons":  # subcomponent i is neuron i
+            d_mlp = d_in if neurons == "in" else d_out
+            if c != d_mlp:
+                raise ValueError(f"init='neurons' needs C = d_mlp = {d_mlp}, not {c}")
+            if neurons == "in":  # V = I, U = W
+                self.v.data, self.u.data = torch.eye(d_in), w.clone()
+            else:  # V = W, U = I
+                self.v.data, self.u.data = w.clone(), torch.eye(d_out)
         if gate == "component":
             self.gate_w1 = nn.Parameter(torch.randn(c, d_gate, generator=generator))
             self.gate_b1 = nn.Parameter(torch.randn(c, d_gate, generator=generator))
@@ -93,6 +163,76 @@ class LayerDecomposition(nn.Module):
         x = h - self.mean
         out = ((x @ self.v) * mask) @ self.u + self.offset()
         return out + delta_mask.unsqueeze(-1) * (x @ self.delta())
+
+
+class Decomposer:
+    """Every decomposed site of one model, with hooks that swap in masked projections.
+
+    A site is ``(layer, matrix)``. ``cfg`` is ``train_spd.Settings``.
+    """
+
+    def __init__(self, runner, layers: list[int], cfg) -> None:
+        self.runner, self.layers, self.cfg = runner, layers, cfg
+        self.sites = [(layer, m) for layer in layers for m in MATRICES[cfg.matrices]]
+        parts = make_parts(runner, self.sites, cfg.components, cfg.d_gate, cfg.gate,
+                           cfg.seed, cfg.init)  # fmt: skip
+        self.parts: dict[tuple, LayerDecomposition] = {
+            site: part.to(runner.device) for site, part in parts.items()
+        }
+        # Each input projection's activation function, for its output loss.
+        self.acts = {(layer, m): activation(runner, layer) for layer, m in self.sites if m == "up"}
+        # Per site, None: record its input and run the model's weights; else (mask, delta_mask).
+        self.masks: dict[tuple, tuple | None] = dict.fromkeys(self.sites)
+        self.hidden: dict[tuple, torch.Tensor] = {}
+        self.handles = [projection(runner, *site).register_forward_hook(self._hook(site))
+                        for site in self.sites]  # fmt: skip
+
+    def _hook(self, site: tuple):
+        def hook(_module, args, out):
+            state = self.masks[site]
+            if state is None:
+                self.hidden[site] = args[0].detach().float()
+                return None
+            return self.parts[site].masked(args[0].float(), *state).to(out.dtype)
+
+        return hook
+
+    def parameters(self, kind: str) -> list[nn.Parameter]:
+        """The subcomponents (``"components"``) or the gates (``"gates"``)."""
+        if kind == "components":
+            return [p for part in self.parts.values() for p in (part.v, part.u)]
+        return [p for part in self.parts.values() for p in part.gate_parameters()]
+
+    def logits(self, ids: torch.Tensor, masks: dict[tuple, tuple] | None = None) -> torch.Tensor:
+        """The model's logits with ``masks`` on some sites (none: the model's own weights)."""
+        self.masks = {site: (masks or {}).get(site) for site in self.sites}
+        try:
+            return self.runner.model(input_ids=ids).logits.float()
+        finally:
+            self.masks = dict.fromkeys(self.sites)
+
+    @torch.no_grad()
+    def set_means(self, ids: torch.Tensor) -> None:
+        """Set each site's mean input from ``ids``, leaving out position 0."""
+        self.logits(ids)
+        for site, part in self.parts.items():
+            part.mean.copy_(self.hidden[site][:, 1:].flatten(0, 1).mean(0))
+
+    def importance(self, ids: torch.Tensor):
+        """The logits, and per site the centred input, inner activations and gate logits."""
+        with torch.no_grad():
+            target = self.logits(ids)
+        hidden, inner, logits = {}, {}, {}
+        for site, part in self.parts.items():
+            hidden[site] = self.hidden[site] - part.mean
+            inner[site] = hidden[site] @ part.v
+            logits[site] = part.gate_logits(hidden[site], inner[site])
+        return target, hidden, inner, logits
+
+    def close(self) -> None:
+        """Remove the hooks."""
+        for handle in self.handles:
+            handle.remove()
 
 
 def _pair(t: torch.Tensor, keep: torch.Tensor, sign: bool, dim: int = 0) -> torch.Tensor:

@@ -1,4 +1,4 @@
-"""Decompose one model's MLP down projections with Stochastic Parameter Decomposition.
+"""Decompose one model's MLP projections with Stochastic Parameter Decomposition.
 
 This is the parameter-space baseline for the native-neuron premise. SPD is from Bushnaq
 et al. (2025, arXiv:2506.20790), after APD (Braun et al., 2025, arXiv:2501.14926). It
@@ -10,6 +10,13 @@ subcomponent down to ``g_c``. It also makes ``g`` sparse.
 
 The down projection reads the MLP's hidden activations, where native neurons are. So a
 subcomponent and a neuron are directions in one space. Neuron i is ``V = e_i, U = W[i]``.
+
+``--matrices up`` or ``both`` also decomposes the MLP's input projection, which writes
+the neurons' pre-activations. There, neuron i is ``V = W[:, i], U = e_i``. The
+activation function acts on each neuron separately, so it can favour subcomponents that
+are neurons. A neuron that is off on a token can be dropped there. A subcomponent that
+writes to many neurons can be dropped only where all of them are off. Its CI-masked
+output loss and explained variance are measured after the activation function.
 
 The losses follow the paper and Goodfire's reference code
 (github.com/goodfire-ai/param-decomp, ``nano_param_decomp/run.py``):
@@ -72,11 +79,11 @@ from spd_losses import (
     kl,
     lower_leaky,
     output_loss,
+    projected,
     stochastic_masks,
     upper_leaky,
 )
-from spd_model import LayerDecomposition, latent_pairs, linear_weight
-from torch import nn
+from spd_model import MATRICES, Decomposer, latent_pairs, load_parts, site_label
 from train_transcoders import PILE, VALIDATION_DOCS, sequences, training_texts
 
 
@@ -87,6 +94,7 @@ class Settings:
     model_name: str
     revision: str | None
     layers: str
+    matrices: str
     components: int
     d_gate: int
     gate: str
@@ -123,73 +131,6 @@ class Settings:
 PATHS = ("scan_corpus", "out", "resume")  # left out of the exported settings
 
 
-class Decomposer:
-    """Every decomposed layer of one model, with hooks that swap in masked projections."""
-
-    def __init__(self, runner, layers: list[int], cfg: Settings) -> None:
-        self.runner, self.layers, self.cfg = runner, layers, cfg
-        gen = torch.Generator().manual_seed(cfg.seed)
-        self.parts: dict[int, LayerDecomposition] = {}
-        for layer in layers:
-            w, bias = linear_weight(runner.down_proj(layer))
-            part = LayerDecomposition(w.cpu(), None if bias is None else bias.cpu(),
-                                      cfg.components, cfg.d_gate, cfg.gate, gen,
-                                      cfg.init)  # fmt: skip
-            self.parts[layer] = part.to(runner.device)
-        # Per layer, None: record h and run the model's weights; else (mask, delta_mask).
-        self.masks: dict[int, tuple | None] = dict.fromkeys(layers)
-        self.hidden: dict[int, torch.Tensor] = {}
-        self.handles = [runner.down_proj(layer).register_forward_hook(self._hook(layer))
-                        for layer in layers]  # fmt: skip
-
-    def _hook(self, layer: int):
-        def hook(_module, args, out):
-            state = self.masks[layer]
-            if state is None:
-                self.hidden[layer] = args[0].detach().float()
-                return None
-            return self.parts[layer].masked(args[0].float(), *state).to(out.dtype)
-
-        return hook
-
-    def parameters(self, kind: str) -> list[nn.Parameter]:
-        """The subcomponents (``"components"``) or the gates (``"gates"``)."""
-        if kind == "components":
-            return [p for part in self.parts.values() for p in (part.v, part.u)]
-        return [p for part in self.parts.values() for p in part.gate_parameters()]
-
-    def logits(self, ids: torch.Tensor, masks: dict[int, tuple] | None = None) -> torch.Tensor:
-        """The model's logits with ``masks`` on some layers (none: the model's own weights)."""
-        self.masks = {layer: (masks or {}).get(layer) for layer in self.layers}
-        try:
-            return self.runner.model(input_ids=ids).logits.float()
-        finally:
-            self.masks = dict.fromkeys(self.layers)
-
-    @torch.no_grad()
-    def set_means(self, ids: torch.Tensor) -> None:
-        """Set each layer's mean hidden activation from ``ids``, leaving out position 0."""
-        self.logits(ids)
-        for layer, part in self.parts.items():
-            part.mean.copy_(self.hidden[layer][:, 1:].flatten(0, 1).mean(0))
-
-    def importance(self, ids: torch.Tensor):
-        """The logits, and per layer the centred hidden and inner activations and gate logits."""
-        with torch.no_grad():
-            target = self.logits(ids)
-        hidden, inner, logits = {}, {}, {}
-        for layer, part in self.parts.items():
-            hidden[layer] = self.hidden[layer] - part.mean
-            inner[layer] = hidden[layer] @ part.v
-            logits[layer] = part.gate_logits(hidden[layer], inner[layer])
-        return target, hidden, inner, logits
-
-    def close(self) -> None:
-        """Remove the hooks."""
-        for handle in self.handles:
-            handle.remove()
-
-
 def cosine_lr(step: int, steps: int, lr: float, final_frac: float = 0.1) -> float:
     """Cosine decay from ``lr`` to ``lr·final_frac``."""
     progress = min(step / max(1, steps - 1), 1.0)
@@ -209,21 +150,21 @@ def batches(rows: list[list[int]], cfg: Settings, device):
 def losses(dec: Decomposer, cfg: Settings, ids: torch.Tensor, step: int) -> dict:
     """The six SPD losses on one batch, and the importance loss's exponent ``p``."""
     target, hidden, inner, logits = dec.importance(ids)
-    lower = {layer: lower_leaky(z, cfg.leaky_alpha) for layer, z in logits.items()}
-    upper = {layer: upper_leaky(z, cfg.leaky_alpha) for layer, z in logits.items()}
+    lower = {site: lower_leaky(z, cfg.leaky_alpha) for site, z in logits.items()}
+    upper = {site: upper_leaky(z, cfg.leaky_alpha) for site, z in logits.items()}
     progress = min(1.0, step / (cfg.p_anneal * cfg.steps))
     p = cfg.p_start + (cfg.p_end - cfg.p_start) * progress
-    every = {layer: stochastic_masks(g) for layer, g in lower.items()}
+    every = {site: stochastic_masks(g) for site, g in lower.items()}
     no_delta = first_kept(torch.zeros(ids.shape, device=ids.device), 1.0)
-    at_ci = {layer: (first_kept(g, 1.0), no_delta) for layer, g in lower.items()}
-    one = random.Random(cfg.seed * 1_000_003 + step).choice(dec.layers)
+    at_ci = {site: (first_kept(g, 1.0), no_delta) for site, g in lower.items()}
+    one = random.Random(cfg.seed * 1_000_003 + step).choice(dec.sites)
     return {
         "faith": faithfulness(dec.parts),
         "imp": importance_loss(upper, p, cfg.imp_beta, cfg.imp_eps),
         "stoch": kl(dec.logits(ids, every), target),
         "layerwise": kl(dec.logits(ids, {one: stochastic_masks(lower[one])}), target),
         "ci_masked": kl(dec.logits(ids, at_ci), target),
-        "ci_output": output_loss(dec.parts, hidden, inner, lower),
+        "ci_output": output_loss(dec.parts, hidden, inner, lower, dec.acts),
         "p": p,
     }
 
@@ -243,8 +184,9 @@ def first_step(dec: Decomposer, cfg: Settings) -> int:
     """
     if cfg.resume is not None:
         state = torch.load(cfg.resume, map_location=dec.runner.device)
-        for layer, part in dec.parts.items():
-            part.load_state_dict(state["parts"][layer])
+        saved = load_parts(state["parts"])
+        for site, part in dec.parts.items():
+            part.load_state_dict(saved[site])
         click.echo(f"resumed from step {state['step']} of {cfg.resume}")
         return state["step"] + 1
     components = dec.parameters("components")
@@ -284,7 +226,7 @@ def train(dec: Decomposer, cfg: Settings, rows, valid: torch.Tensor) -> None:
             row |= evaluate(dec, valid)
             hours = (cfg.steps - step) * (time.time() - start) / (step + 1 - first) / 3600
             click.echo(f"step {step}: {json.dumps(row)}  ({hours:.1f} h left)")
-            state = {layer: part.state_dict() for layer, part in dec.parts.items()}
+            state = {site: part.state_dict() for site, part in dec.parts.items()}
             save_checkpoint(cfg, step, state)
         log.write(json.dumps(row) + "\n")
         log.flush()
@@ -294,36 +236,36 @@ def train(dec: Decomposer, cfg: Settings, rows, valid: torch.Tensor) -> None:
 def evaluate(dec: Decomposer, ids: torch.Tensor) -> dict:
     """Fit on held-out pieces, leaving out each piece's first position.
 
-    ``kl_ci``: every layer at its causal importances, no delta. ``ce_unrecovered``: the
+    ``kl_ci``: every site at its causal importances, no delta. ``ce_unrecovered``: the
     share of the loss rise from zero-ablating the decomposed projections (to their bias)
-    that the CI-masked model keeps. ``explained_variance`` and ``l0`` are per layer: one
-    layer's output from the model's own hidden activations, as the harness measures it.
+    that the CI-masked model keeps. ``explained_variance`` and ``l0`` are per site: one
+    site's output from the model's own inputs, as the harness measures it. An input
+    projection's output is measured after the activation function.
     """
     target, hidden, inner, logits = dec.importance(ids)
-    ci = {layer: z.clamp(0, 1) for layer, z in logits.items()}
+    ci = {site: z.clamp(0, 1) for site, z in logits.items()}
     zero = torch.zeros(ids.shape, device=ids.device)
 
-    def ci_masks(layer):
-        return first_kept(ci[layer], 1.0), first_kept(zero, 1.0)
+    def ci_masks(site):
+        return first_kept(ci[site], 1.0), first_kept(zero, 1.0)
 
-    def ablated(layer):
-        return first_kept(torch.zeros_like(ci[layer]), 1.0), first_kept(zero, 1.0)
+    def ablated(site):
+        return first_kept(torch.zeros_like(ci[site]), 1.0), first_kept(zero, 1.0)
 
-    masked = dec.logits(ids, {layer: ci_masks(layer) for layer in dec.layers})
-    none = dec.logits(ids, {layer: ablated(layer) for layer in dec.layers})
+    masked = dec.logits(ids, {site: ci_masks(site) for site in dec.sites})
+    none = dec.logits(ids, {site: ablated(site) for site in dec.sites})
 
     def ce(logits_):
         return float(F.cross_entropy(logits_[:, 1:-1].flatten(0, 1), ids[:, 2:].flatten()))
 
     ce_target, ce_ci, ce_zero = ce(target), ce(masked), ce(none)
     variance, l0 = {}, {}
-    for layer, part in dec.parts.items():
-        h = hidden[layer][:, 1:]
-        y = h @ part.w_target
-        y_hat = (inner[layer][:, 1:] * ci[layer][:, 1:]) @ part.u
+    for site, part in dec.parts.items():
+        y, y_hat = projected(part, hidden[site][:, 1:], inner[site][:, 1:], ci[site][:, 1:],
+                             dec.acts.get(site))  # fmt: skip
         spread = (y - y.mean((0, 1))).pow(2).sum()
-        variance[layer] = round(1 - float((y - y_hat).pow(2).sum() / spread), 4)
-        l0[layer] = round(float((ci[layer][:, 1:] > 0).float().sum(-1).mean()), 1)
+        variance[site_label(site)] = round(1 - float((y - y_hat).pow(2).sum() / spread), 4)
+        l0[site_label(site)] = round(float((ci[site][:, 1:] > 0).float().sum(-1).mean()), 1)
     return {
         "kl_ci": round(float(kl(masked, target)), 5),
         "ce_target": round(ce_target, 4),
@@ -336,37 +278,40 @@ def evaluate(dec: Decomposer, ids: torch.Tensor) -> dict:
 
 @torch.no_grad()
 def alive(dec: Decomposer, cfg: Settings, ids: torch.Tensor) -> dict[int, torch.Tensor]:
-    """Per layer, the subcomponents with a causal importance above 0 on some token of ``ids``."""
-    fired = {layer: torch.zeros(cfg.components, dtype=torch.bool, device=ids.device)
-             for layer in dec.layers}  # fmt: skip
+    """Per site, the subcomponents with a causal importance above 0 on some token of ``ids``."""
+    fired = {site: torch.zeros(cfg.components, dtype=torch.bool, device=ids.device)
+             for site in dec.sites}  # fmt: skip
     for i in range(0, ids.shape[0], cfg.batch_rows):
         *_, logits = dec.importance(ids[i : i + cfg.batch_rows])
-        for layer, z in logits.items():
-            fired[layer] |= (z[:, 1:] > 0).flatten(0, 1).any(0)
-    return {layer: f.nonzero().squeeze(-1) for layer, f in fired.items()}
+        for site, z in logits.items():
+            fired[site] |= (z[:, 1:] > 0).flatten(0, 1).any(0)
+    return {site: f.nonzero().squeeze(-1) for site, f in fired.items()}
 
 
 @torch.no_grad()
 def export(dec: Decomposer, cfg: Settings, alive_ids: torch.Tensor, stats: dict) -> None:
-    """Write each layer's alive subcomponents as latent pairs, with its statistics."""
+    """Write each site's alive subcomponents as latent pairs, with its statistics.
+
+    A down projection goes to ``layer_<layer>``, an input projection to ``layer_<layer>.up``.
+    """
     from safetensors.torch import save_file
 
     kept = alive(dec, cfg, alive_ids)
-    for layer, part in dec.parts.items():
-        keep = kept[layer]
-        save_file(latent_pairs(part, keep), cfg.out / f"layer_{layer}.safetensors")
+    for site, part in dec.parts.items():
+        keep, label = kept[site], site_label(site)
+        save_file(latent_pairs(part, keep), cfg.out / f"layer_{label}.safetensors")
         layer_stats = {
             **stats,
-            "layer": layer,
-            "input_site": "mlp_hidden",
+            "layer": site[0],
+            "input_site": "mlp_hidden" if site[1] == "down" else "mlp_in",
             "alive": len(keep),
             "alive_tokens": int(alive_ids[:, 1:].numel()),
             "subcomponents": keep.tolist(),
-            "explained_variance": stats["final"]["explained_variance"][layer],
-            "l0": stats["final"]["l0"][layer],
+            "explained_variance": stats["final"]["explained_variance"][label],
+            "l0": stats["final"]["l0"][label],
         }
-        (cfg.out / f"layer_{layer}.json").write_text(json.dumps(layer_stats, indent=2) + "\n")
-        click.echo(f"L{layer}: {len(keep)} of {cfg.components} subcomponents alive")
+        (cfg.out / f"layer_{label}.json").write_text(json.dumps(layer_stats, indent=2) + "\n")
+        click.echo(f"L{label}: {len(keep)} of {cfg.components} subcomponents alive")
 
 
 def pieces(tokenizer, cfg: Settings) -> tuple[list, list, int]:
@@ -385,7 +330,14 @@ def pieces(tokenizer, cfg: Settings) -> tuple[list, list, int]:
 @click.option("--model", "model_name", default="openai-community/gpt2", show_default=True)
 @click.option("--revision", default=None, help="Model commit (default: the latest).")
 @click.option("--layers", required=True, help="Comma-separated layers, or 'all'.")
-@click.option("--components", type=int, default=3072, show_default=True, help="C per layer.")
+@click.option(
+    "--matrices",
+    type=click.Choice(list(MATRICES)),
+    default="down",
+    show_default=True,
+    help="Decompose the MLP's down projection, its input projection, or both.",
+)
+@click.option("--components", type=int, default=3072, show_default=True, help="C per matrix.")
 @click.option(
     "--gate",
     type=click.Choice(["component", "layer"]),
@@ -398,7 +350,7 @@ def pieces(tokenizer, cfg: Settings) -> tuple[list, list, int]:
     type=click.Choice(["random", "neurons"]),
     default="random",
     show_default=True,
-    help="Random subcomponents, or one per neuron (V = I, U = W; needs C = d_mlp).",
+    help="Random subcomponents, or one per neuron (needs C = d_mlp).",
 )
 @click.option("--d-gate", type=int, default=8, show_default=True, help="The gate's hidden width.")
 @click.option("--steps", type=int, default=20000, show_default=True)
@@ -435,7 +387,7 @@ def pieces(tokenizer, cfg: Settings) -> tuple[list, list, int]:
 @click.option("--resume", type=click.Path(exists=True, path_type=Path), default=None,
               help="A checkpoint.pt to continue from, with a new optimizer.")  # fmt: skip
 def main(**options):
-    """Decompose the down projections and write each layer's latents and statistics."""
+    """Decompose the MLP projections and write each site's latents and statistics."""
     from openinterp.cli import _load_runner
 
     cfg = Settings(**options)

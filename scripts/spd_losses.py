@@ -75,15 +75,30 @@ def faithfulness(parts: dict) -> torch.Tensor:
     return sq / sum(part.w_target.numel() for part in parts.values())
 
 
-def output_loss(parts: dict, hidden: dict, inner: dict, ci: dict) -> torch.Tensor:
-    """Per layer, the CI-masked projection's squared error over its output's variance.
+def projected(part, hidden: torch.Tensor, inner: torch.Tensor, ci: torch.Tensor, act=None):
+    """The model's output of one site and its CI-masked output, both relative to the offset.
 
-    Averaged over layers, leaving out each piece's first position. The KL losses alone let
-    the masked output shrink: a LayerNorm follows it, so the logits barely change.
+    With ``act``, both pass through the activation function first. For an input
+    projection, that compares the neurons, not their pre-activations. A neuron that is
+    off on a token then costs nothing to drop there.
+    """
+    y, y_hat = hidden @ part.w_target, (inner * ci) @ part.u
+    if act is None:
+        return y, y_hat
+    offset = part.offset()
+    return act(y + offset), act(y_hat + offset)
+
+
+def output_loss(parts: dict, hidden: dict, inner: dict, ci: dict, acts: dict) -> torch.Tensor:
+    """Per site, the CI-masked output's squared error over its output's variance.
+
+    Averaged over sites, leaving out each piece's first position. ``acts`` gives each
+    input projection's activation function. The KL losses alone let the masked output
+    shrink: a LayerNorm follows it, so the logits barely change.
     """
     total = 0.0
-    for layer, part in parts.items():
-        y = hidden[layer][:, 1:] @ part.w_target
-        y_hat = (inner[layer][:, 1:] * ci[layer][:, 1:]) @ part.u
+    for site, part in parts.items():
+        y, y_hat = projected(part, hidden[site][:, 1:], inner[site][:, 1:], ci[site][:, 1:],
+                             acts.get(site))  # fmt: skip
         total = total + (y - y_hat).pow(2).sum() / (y - y.mean((0, 1))).pow(2).sum()
     return total / len(parts)

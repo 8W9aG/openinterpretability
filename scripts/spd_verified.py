@@ -28,6 +28,7 @@ from types import SimpleNamespace
 import click
 import torch
 from spd_compare import initial_parts
+from spd_model import load_parts
 from train_spd import pieces
 
 PEAKS = 32
@@ -152,10 +153,11 @@ def main(checkpoint, rows, chunk, device, scan_corpus, out):
     if s.get("init") != "neurons":
         raise click.UsageError("The checkpoint must come from --init neurons.")
     runner = _load_runner(s["model_name"], device, "float32", s["revision"])
-    parts = initial_parts(runner, sorted(state["parts"]), s)
-    for layer, part in parts.items():
+    saved = {site: p for site, p in load_parts(state["parts"]).items() if site[1] == "down"}
+    parts = {}
+    for (layer, _), part in initial_parts(runner, list(saved), s).items():
         parts[layer] = part.to(runner.device)
-        parts[layer].load_state_dict(state["parts"][layer])
+        parts[layer].load_state_dict(saved[(layer, "down")])
     cfg = SimpleNamespace(scan_corpus=scan_corpus, seq_len=s["seq_len"], seed=s["seed"])
     valid = pieces(runner.tokenizer, cfg)[1][s["batch_rows"] : s["batch_rows"] + rows]
     stats = collect_stats(runner, parts, valid, chunk)

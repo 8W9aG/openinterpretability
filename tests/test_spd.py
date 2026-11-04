@@ -23,13 +23,15 @@ sys.path.insert(0, str(SCRIPTS))  # train_spd imports train_transcoders
 _SPEC = importlib.util.spec_from_file_location("train_spd", SCRIPTS / "train_spd.py")
 train_spd = sys.modules["train_spd"] = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(train_spd)
+spd_model = sys.modules["spd_model"]
 
 LAYER, COMPONENTS = 1, 24
+DOWN, UP = (LAYER, "down"), (LAYER, "up")
 
 
 def _settings(out: Path, gate: str, **changes):
     options = dict(
-        model_name="tiny-gpt2", revision=None, layers="all", components=COMPONENTS,
+        model_name="tiny-gpt2", revision=None, layers="all", matrices="down", components=COMPONENTS,
         d_gate=4, gate=gate, init="random", steps=1, batch_rows=4, seq_len=16, lr=1e-3,
         faith_warmup_steps=0,
         coeff_faith=1.0, coeff_stoch=1.0, coeff_layerwise=1.0, coeff_ci_masked=1.0,
@@ -54,15 +56,15 @@ def exported(tiny_gpt2, tmp_path, request):
         train_spd.export(dec, cfg, ids, stats)
     finally:
         dec.close()
-    part = dec.parts[LAYER]
+    part = dec.parts[DOWN]
     profile = DictionaryProfile(
         kind="spd", repo=str(tmp_path), path=f"layer_{LAYER}.safetensors",
         input_site="mlp_hidden", activation="causal_importance",
         n_features=2 * COMPONENTS, density=0.5, tokens=1,
     )  # fmt: skip
     assert part.mean.abs().sum() > 0
-    h = hidden[LAYER][:, 1:] + part.mean  # importance() returns them centred
-    expected = (inner[LAYER][:, 1:] * logits[LAYER][:, 1:].clamp(0, 1)) @ part.u + part.offset()
+    h = hidden[DOWN][:, 1:] + part.mean  # importance() returns them centred
+    expected = (inner[DOWN][:, 1:] * logits[DOWN][:, 1:].clamp(0, 1)) @ part.u + part.offset()
     return load_dictionary(profile), profile, h, expected.detach()
 
 
@@ -109,20 +111,57 @@ def test_resume_loads_the_checkpoint_and_continues(tiny_gpt2, tmp_path):
     resumed = train_spd.Decomposer(runner, [LAYER], cfg)
     try:
         assert train_spd.first_step(resumed, cfg) == 1
-        for name, value in first.parts[LAYER].state_dict().items():
-            torch.testing.assert_close(resumed.parts[LAYER].state_dict()[name], value)
+        for name, value in first.parts[DOWN].state_dict().items():
+            torch.testing.assert_close(resumed.parts[DOWN].state_dict()[name], value)
         train_spd.train(resumed, cfg, rows, valid)
     finally:
         resumed.close()
     assert torch.load(checkpoint)["step"] == 1
 
 
-def test_neuron_init_makes_each_subcomponent_one_neuron(tiny_gpt2, tmp_path):
+@pytest.mark.parametrize("site", [DOWN, UP])
+def test_neuron_init_makes_each_subcomponent_one_neuron(tiny_gpt2, tmp_path, site):
     runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
-    d_mlp = train_spd.linear_weight(runner.down_proj(LAYER))[0].shape[0]
-    cfg = _settings(tmp_path, "layer", init="neurons", components=d_mlp)
+    d_mlp = spd_model.linear_weight(runner.down_proj(LAYER))[0].shape[0]
+    cfg = _settings(tmp_path, "layer", init="neurons", components=d_mlp, matrices="both")
     dec = train_spd.Decomposer(runner, [LAYER], cfg)
     dec.close()
-    part = dec.parts[LAYER]
-    torch.testing.assert_close(part.v, torch.eye(d_mlp))
+    part = dec.parts[site]
+    neurons = part.v if site == DOWN else part.u  # the side the neurons are on
+    torch.testing.assert_close(neurons, torch.eye(d_mlp))
     torch.testing.assert_close(part.delta(), torch.zeros_like(part.w_target))
+
+
+def test_both_matrices_train_and_report_the_input_projection(tiny_gpt2, tmp_path):
+    runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
+    rows = torch.randint(0, VOCAB, (8, 16), generator=torch.Generator().manual_seed(3)).tolist()
+    valid = torch.tensor(rows[:4])
+    cfg = _settings(tmp_path, "layer", matrices="both")
+    dec = train_spd.Decomposer(runner, [LAYER], cfg)
+    try:
+        assert set(dec.parts) == {DOWN, UP} and set(dec.acts) == {UP}
+        dec.set_means(valid)
+        train_spd.train(dec, cfg, rows, valid)
+        report = train_spd.evaluate(dec, valid)
+    finally:
+        dec.close()
+    assert set(report["l0"]) == {str(LAYER), f"{LAYER}.up"}
+    saved = spd_model.load_parts(torch.load(tmp_path / "checkpoint.pt")["parts"])
+    assert set(saved) == {DOWN, UP}
+
+
+def test_the_input_projection_with_every_mask_on_is_the_model(tiny_gpt2, tmp_path):
+    runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
+    dec = train_spd.Decomposer(runner, [LAYER], _settings(tmp_path, "layer", matrices="up"))
+    ids = torch.randint(0, VOCAB, (2, 16), generator=torch.Generator().manual_seed(4))
+    try:
+        dec.set_means(ids)
+        target = dec.logits(ids)
+        ones = (torch.ones(2, 16, COMPONENTS), torch.ones(2, 16))  # subcomponents + delta = W
+        torch.testing.assert_close(dec.logits(ids, {UP: ones}), target, atol=1e-4, rtol=1e-4)
+    finally:
+        dec.close()
+
+
+def test_old_checkpoints_key_down_projections_by_layer():
+    assert spd_model.load_parts({3: "a", (4, "up"): "b"}) == {(3, "down"): "a", (4, "up"): "b"}

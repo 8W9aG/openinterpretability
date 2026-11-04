@@ -176,7 +176,13 @@ So SPD's view of a neuron says nothing about whether an explanation of it verifi
 - **No preset and no audit.** Auditing run A would explain directions that depend on a random seed. Auditing run B would audit the neurons again, with a gate. Neither is a second baseline. The weights are not uploaded to the Hub.
 - **Supports the registry's premise, weakly.** For GPT-2 small's MLPs, a parameter decomposition that starts from the neurons keeps them. It treats VERIFIED neurons no differently from other studied ones.
 
-Tests not run: the up projection (`c_fc`) decomposed with the down projection, where GELU acts on each neuron separately, so SPD's losses could prefer the neuron basis; more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
+Tests not run: more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
+
+## Next: run C, the input projections
+
+The down projection reads the neurons, but nothing in it favours them: any rotation of the neuron basis sums to W. The input projection (`c_fc`) writes the neurons' pre-activations, and GELU acts on each neuron separately. A neuron that is off on a token can be dropped there at no cost. A subcomponent that writes to many neurons can be dropped only where all of them are off. So the importance loss should turn the input projection's subcomponents towards the neurons, if the neuron basis is the model's own.
+
+`train_spd.py --matrices both` decomposes both projections of each layer. Of the input projection, neuron i is `V = W[:, i], U = e_i`, and its CI-masked output loss and explained variance are measured after GELU. If they were measured on the pre-activations, an off neuron would cost as much to drop as an on one. Run C starts from random (`--init random`), with run A's other settings, for 50,000 steps. The test is the input projection's best-neuron cosine, read from `U[c]`: about 0.07 for a random direction, 1 for a neuron.
 
 ## Reproduce
 
