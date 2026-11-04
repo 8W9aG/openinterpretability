@@ -56,7 +56,7 @@ The Qwen transcoders bring several advantages over the other presets:
 
 A dictionary can also be a decomposition of the MLP's weights, not of its activations. `kind: spd` reads a Stochastic Parameter Decomposition of the down projection (`scripts/train_spd.py`). Its subcomponents read the hidden activations, the same space as the neurons. Each one exports as two latents, the positive and negative parts of its inner activation scaled by its causal importance (`activation: causal_importance`). The latents give back exactly the decomposition's projection with every subcomponent at its causal importance.
 
-No preset uses it yet. The only decomposition so far, of GPT-2 small on a laptop, fits well but has not converged: its subcomponents are still mostly their random initial directions (`docs/analyses/spd-baseline.md`).
+No preset uses it. On GPT-2 small, SPD keeps whatever basis it starts with. From random directions its subcomponents stay mostly random, and from the neurons they stay neurons. So neither run is a second baseline (`docs/analyses/spd-baseline.md`).
 
 ## Limits
 
