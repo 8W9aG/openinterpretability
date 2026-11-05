@@ -27,6 +27,7 @@ def head_slice(act, head):  # act: [b, seq, n_heads * head_dim]
 ```
 
 How the harness handles heads (protocol 0.6, `harness/units.py` and `harness/heads.py`):
+
 1. **Attention patterns.** Head commands load the model with `attn_implementation="eager"` (`attn_implementation(ident)`), since SDPA and flash attention don't return weights.
 2. **Identifiers.** `ComponentIdentifier` is `NeuronIdentifier | HeadIdentifier`, told apart by `kind`. Submissions and evidence take either. A head submission must carry a `HeadProfile`.
 3. **Strength.** `|W_O (z_t − z̄)|`, with z̄ the head's mean output over the scan, stored in `head_profile.mean_output`. The raw write norm `|W_O z|` doesn't work, because most heads write a sizeable resting vector. On GPT-2 small L5H1, the median token sits at a quarter of the maximum, so half of all text would count as "active". Against z̄, the five known GPT-2 small induction heads (L5H1, L5H5, L6H9, L7H2, L7H10) are active on every second-half token of repeated random tokens. They are active on almost none of the first half. The previous-token head L4H11 is active nearly everywhere. Ablation is mean ablation (z → z̄), so strength is exactly how far ablating the head moves the residual stream.

@@ -40,6 +40,7 @@ openinterp = "openinterp.cli:main"
 dev = [
     "interrogate>=1.7.0",
     "pagefind[bin]>=1.3.0",
+    "pymarkdownlnt>=0.9.41",
     "pytest>=8.0.0",
     "pytest-mock>=3.12.0",
     "pytest-timeout>=2.3.0",
@@ -137,3 +138,17 @@ ignore-init-method = true
 ignore-private = true
 ignore-semiprivate = true
 ignore-module = false
+
+[tool.pymarkdown]
+# The docs write one paragraph per line.
+plugins.md013.enabled = false
+# Keep a Changelog repeats `### Added` under each version.
+plugins.md024.siblings_only = true
+# A step's command block sits tight under its numbered list item in the skills.
+plugins.md031.list_items = false
+# The body of an agent definition is its prompt, and the PR template is a form. Neither starts with a title.
+plugins.md041.enabled = false
+# A code span here is often a model token, whose leading space is part of the token (` the`).
+plugins.md038.enabled = false
+# Skills, agents and Hub cards start with YAML front matter.
+extensions.front-matter.enabled = true

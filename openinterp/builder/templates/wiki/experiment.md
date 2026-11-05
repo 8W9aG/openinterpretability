@@ -40,7 +40,7 @@
 - **Activating tokens:** {% for t in sub.activating_tokens %}`{{ t | cell }}`{{ ", " if not loop.last }}{% endfor %}
 
 - **Mechanism claimed:** {{ 'lookahead, preparing ' ~ (sub.lookahead.target_upcoming_tokens | join(', ')) if sub.lookahead.is_lookahead else 'retrospective' }}
-- **Max activation (scan):** {{ sub.max_activation | num(4) }}{% if is_head %} (head strength, \|W_O (z − z̄)\|){% elif is_feature %} (latent activation){% endif %}
+- **Max activation (scan):** {{ sub.max_activation | num(4) }}{% if is_head %} (head strength, \|W_O (z − z̄)\|){% elif is_feature %} (latent activation){% endif +%}
 {% if sub.head_profile %}
 {% set hp = sub.head_profile %}
 - **Attention patterns** (random {{ hp.pattern_length }}-token sequences repeated twice; reported, not gated): previous token {{ hp.previous_token_score | num(2) }}, duplicate token {{ hp.duplicate_token_score | num(2) }}, induction {{ hp.induction_score | num(2) }}
@@ -75,8 +75,8 @@ Specificity {{ metrics.specificity | num(2) }} · sensitivity {{ metrics.sensiti
 {% else %}
 This verdict predates protocol v0.2, so it has no per-gate metrics. Run `openinterp reevaluate` to apply the current rule.
 {% endif %}
-
 {% if verdict.causal_metrics %}
+
 {% set c = verdict.causal_metrics %}
 {% if c.target %}
 Causal metrics (recorded, not gated): sufficiency {{ c.sufficiency_score | num(4) }}, necessity {{ c.necessity_score | num(4) }}: percentiles of the {{ 'head' if is_head else ('feature' if is_feature else 'pole') }}'s patch effect among the {{ c.null_neurons }} same-layer {{ peer }}s that change as much, median over {{ c.pairs_scored }} non-control pairs. Target: {{ c.target }}{% if c.target_tokens %} ({{ c.target_tokens | join(", ") }}){% endif %}; median effect {{ '%.3g' | format(c.sufficiency_effect) }} / {{ '%.3g' | format(c.necessity_effect) }}; hydra mitigated: {{ c.hydra_mitigated }}.
@@ -113,8 +113,8 @@ Explanation scores on held-out text (recorded, not gated): detection {{ (es.dete
 {% for t in verdict.adversarial_test_results if t.kind == 'counterfactual' %}
 | {{ ('✅' if t.passed else '❌') if t.measured else '—' }} | {{ t.prompt | cell }} | {{ t.expected_delta | num(2) }} | {{ t.observed_delta | num(3) if t.measured else 'unmeasured (one token)' }} |
 {% endfor %}
-
 {% for t in verdict.adversarial_test_results if t.kind == 'lookahead_consistency' %}
+
 **Lookahead check:** {{ '✅' if t.passed else '❌' }} {{ t.detail }}
 {% endfor %}
 
@@ -212,10 +212,9 @@ Share of |attribution| by distance from the peak, over converged examples; mean 
 
 | --- |{% for d in ia.distances %} --- |{% endfor %}
 
-| Share |{% for d in ia.distances %} {{ d.share | pct }} |{% endfor %}
+| Share |{% for d in ia.distances %} {{ d.share | pct }} |{% endfor +%}
 
 {% endif %}
-
 | Example | Peak | Most attributed tokens: offset, attribution / ablation effect |
 | --- | --- | --- |
 {% for ex in ia.examples %}
@@ -260,6 +259,7 @@ Published in the registry. Possible follow-ups: audit the opposite pole, try a s
 {% if failed_probes %}
 
 Failed probes:
+
 {% for t in failed_probes %}
 - {{ t.kind | replace('_', ' ') }}: “{{ t.prompt }}” (activation {{ t.activation | num(3) }})
 {% endfor %}

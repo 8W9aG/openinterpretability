@@ -30,6 +30,7 @@ One experiment tests **one hypothesis about one unit** in one model revision. A 
 Agents only write text: hypotheses and probes. Every number in a verdict comes from running the model.
 
 **Reviewer independence is encouraged, not enforced.** A model probing its own hypothesis tends to share its blind spots, so a reviewer from a different model is stronger evidence. Since protocol 0.4 a same-model review is allowed: the record stores `independent_review = false` and the verdict is computed as usual (`require_independent_review` turns it into a gate, §4). In return, self-reviews are made visible and followed up:
+
 - `verify` (alias `review`) warns when the reviewer model is the proposer's.
 - Experiment, neuron, layer and home pages badge the verdict *self-reviewed*, wiki pages mark it, and `registry.parquet` has a `self_reviewed` column. The home page reports how many experiments and current verified claims are self-reviewed.
 - `openinterp next` proposes an independent re-review of any unit whose latest experiment was self-reviewed, and a `replicate` of a VERIFIED unit that no other model has reviewed.
@@ -38,7 +39,7 @@ Agents only write text: hypotheses and probes. Every number in a verdict comes f
 
 ## 3. Lifecycle
 
-```
+```text
 select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶ measure ─▶ decide ─▶ record ─▶ publish
                        ▲                                                    │
                        └──────────── NEEDS_REVISION: new submission ◀───────┘
@@ -79,12 +80,14 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
 Probes are not independent: one reviewer writes them all, often as variations on a theme. Near-duplicate probes (word-set Jaccard ≥ `probe_cluster_threshold`, default 0.5) are therefore clustered, and each cluster counts as **one observation**, scored by its mean pass rate. Every count and rate below uses these effective counts.
 
 Probe accuracy is reported as **balanced accuracy**, the mean of:
+
 - **specificity**: the cluster-weighted fraction of hard negatives that stayed inactive;
 - **sensitivity**: the cluster-weighted fraction of positive holdouts that fired.
 
 Balanced accuracy is the `confidence_score`. Using it means many easy negatives cannot hide failed generalisations.
 
 **Confound control.** The scan records a confound profile of the pole: the variance explained by token identity and by position, the correlation with token frequency, and the tokens and positions with the highest mean strength. On the reviewer's probes, the hypothesis is compared with three trivial baselines, each scored by the same cluster-weighted balanced accuracy:
+
 - *token identity*: active if any measured token is a trigger token;
 - *position*: active at a high-activation measured position;
 - *never active*.
@@ -207,6 +210,7 @@ A record must let a third party re-derive its verdict:
 `openinterp reevaluate --record <file>` re-measures a record's stored probes under the current policy, without LLM calls. The result is a new experiment.
 
 `openinterp reproduce <file>…` (or `--base-ref origin/main` for every record a branch adds or changes) checks that a record is what it claims to be. It loads the model commit and dtype the record pins and re-runs everything the verdict rests on, without LLM calls:
+
 - each top example's per-token strengths, and the scale (`max_activation`) that every threshold is a fraction of;
 - each counterfactual's observed Δ;
 - the review, with the record's own probes, reviewer and policy;
@@ -236,6 +240,7 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 ### Registry-level dependence
 
 These do not change the decision rule.
+
 - **Re-measurements.** An experiment that re-measures an earlier experiment's probe set (e.g. `reevaluate`) is marked as such. It is ranked after the original and is never counted as independent evidence.
 - **Most-conclusive list.** The home page shows one row per neuron pole.
 - **Standing.** A unit's status, and with it every verified count and the false discovery estimate, follows the rule under §3 step 9. It reads verdicts and never changes one, so introducing it did not bump the version. A claim backed by several agreeing reviews enters the false discovery estimate once, with its weakest review's P(useful).
