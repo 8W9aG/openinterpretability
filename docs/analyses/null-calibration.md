@@ -19,6 +19,7 @@ This null is generous to the review in one way. The probes were written for neur
 **Swapped unit, fresh probes.** 40 of the 253 swaps that reached the review (seeded sample) are reviewed again from scratch: a reviewer agent (Claude Sonnet 5.5, `neuron-reviewer`) gets A's hypothesis with B's scan (its top examples, confounds and scale, but not A's input attribution or lenses) and writes 20 new probes, which are measured on B. This removes the reuse of A's probes.
 
 **Rotated basis.** Units are audited as latents of a `basis` (`DictionaryProfile.kind`), a new input site that reads the MLP's hidden activations where native neurons live (`mlp_hidden`, the down projection's input). A latent's strength is the positive part of the hidden activations' projection onto one direction, and it writes that strength times the direction through the down projection, so ablating it zeroes that component. Two arms run through the same code:
+
 - *identity*: the basis vectors are the standard ones, so each latent is exactly a native positive pole (checked: the activations match to 0.0, and the writes sum back to the down projection's output);
 - *rotation*: a Haar-random orthogonal matrix (seeded per layer), so each latent is a random direction in the same space.
 
@@ -118,7 +119,7 @@ So reusing A's probes made the swapped-unit null too lenient, not too strict. A 
 
 ## Reproduce
 
-```
+```bash
 A=docs/analyses/null-calibration
 uv run python scripts/null_calibration.py shuffle --out $A-shuffle.jsonl
 uv run python scripts/null_calibration.py swap --out $A-swap.jsonl

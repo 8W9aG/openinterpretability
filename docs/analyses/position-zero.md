@@ -1,10 +1,12 @@
 # The first token and default-on poles (protocol 0.8)
 
 This analysis settles the *(protocol)* item from `TODO.md` (*Scope expansion*): how GELU negative poles, and early-layer poles with a first-token floor, are audited. The learned-basis baseline (`transcoder-baseline.md`) lost two groups of GPT-2 small poles to the way activity was measured:
+
 - every random negative pole in its pilot;
 - six of its 40 positive poles, all in layers 1–2, whose explanations stated a floor at the first token.
 
 Protocol 0.8 makes two changes:
+
 1. **A unit with a first-token floor is not measured at a text's first token.** A unit has the floor if it is active at the first position on at least half the vocabulary. For such a unit every peak skips the first token, as do its scan statistics, top-example ranking, confound baselines and held-out windows. A one-token prompt to it is recorded as unmeasured and counts in no metric. Every other unit is measured as before.
 2. **A default-on unit is not audited as a detector.** That is a unit active on at least half its scan's tokens. The scan stops on it, as it does on a unit that never fires, and a review fails the new `not_default_on` gate.
 
@@ -23,12 +25,14 @@ GPT-2 and Qwen2.5 add no BOS token, so a text's first token is also its attentio
 In all, 1,671 positive poles have the floor. 1,523 of them are not default-on: away from the first token they are ordinary, sparse units. Their floor made every probe active, whatever the explanation said. That is why the baseline's six floor poles could get no hard negative (`enough_hard_negatives`). Those six are active at the first position on 92–99% of the vocabulary.
 
 **Why the rule is per unit.** A first version of 0.8 never measured any unit at the first token. Re-measuring every registry record's probes that way changed some probe's activity in 31 of the 800 Qwen2.5-0.5B records and 21 of the 158 GPT-2 records. Among them were Qwen poles whose job is the first token, verified as such:
+
 - L19/N436+ fires when a text opens with a function word or code keyword, and stays silent on a content word.
 - L23/N541+ is a graded detector of how a text opens.
 
 Their holdouts open with the trigger, so a blanket rule sent L19/N436+ and L23/N541+ from VERIFIED to REJECTED, and three other VERIFIED Qwen poles to NEEDS_REVISION. These units are active at the first position on only 0.8–4.9% of the vocabulary, against 92–99% for the GPT-2 floor poles, so the vocabulary separates the two cleanly.
 
 **Details.**
+
 - *The scale.* The floor is judged against the line the unit's scale sets once first tokens are left out: its top example's peak after the first token. With the floor, that is the scale it records. Without it, the scale includes first tokens as before. A larger scale can only lower the share, so the record reproduces either way.
 - *One-token prompts.* For a floor unit a one-token prompt has nothing to measure. It is recorded with `measured = false` and left out of every count. Treating it as a failure would penalise a hypothesis for its reviewer's choice of prompt, and treating it as inactive would hand out free specificity.
 - *Rejected alternative: prepend a BOS token.* Prepending `<|endoftext|>` would move the sink off the text. But every activation would change, Qwen2.5 has no BOS token, and the sink's own position would still need excluding.

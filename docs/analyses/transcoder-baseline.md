@@ -29,12 +29,14 @@ The two-sided Fisher exact test of latents against positive poles gives p = 4.3 
 ## What drives the gap
 
 **Latents.** 37 of 40 latents got narrow lexical or syntactic hypotheses that passed every gate. Many are single-token detectors: ' 39', ' favorite', ' passionate', 'iOS', ' per' after a number, and 'range' with no leading space. Others are one word in one sense: 'result' as a causal verb, ' take' as a noun, and 'let' opening a clause. A few are syntactic slots:
+
 - the determiner of a prepositional or verbal object;
 - the hyphen after ' time' in a compound;
 - the first word after 'including' or 'such as';
 - a conjunction after a legal term.
 
 Three latents failed:
+
 - **L0/F3001 (pilot): sensitivity.** It fires on 2 of 200k tokens.
 - **L0/F15387: counterfactual reproduction.** It is a GPU detector, and 3 of its 8 pairs missed their expected delta.
 - **L9/F6460: lookahead consistency.** Its hypothesis is a lookahead one, firing on the token before a likely money noun.
@@ -42,6 +44,7 @@ Three latents failed:
 None failed specificity.
 
 **Positive poles.** 20 of 40 failed, in three ways:
+
 - **Specificity: 13.** Hard negatives fired: 3 to 6 of 10–11 for each. These are broad or polysemantic poles, such as orientation words, ALL-CAPS runs, locative words, negators, size words, Germanic-language text and restrictive 'only'. The proposer described a family, and the reviewer found members outside it.
 - **No hard negatives: 6.** The explanation states a floor that every prompt clears, so every probe is predicted active and `enough_hard_negatives` fails. All six are in layers 1–2: L1/N2522+, L1/N3040+, L1/N874+, L2/N1712+, L2/N993+ and L2/N2331+. These early-layer poles sit above the line at the first token of any text. That is the positive-pole form of the position-0 effect that sank the negative poles in the pilot.
 - **Confound baseline: 1.** L3/N47+ is a code-declaration keyword detector, and it did not beat the token-identity baseline.
@@ -53,6 +56,7 @@ Of the 18 that failed in the full run, every one passed all its counterfactuals,
 ## Label corrections
 
 Each fix went to the reviewer that wrote the probe, before the review ran. In the full run, corrections fell into four kinds:
+
 - **Trigger inside an unlisted context.** A negative contained a listed trigger in a context the explanation names. For example, L0/F9374's "3900" tokenizes as ' 39' + '00'. L9/F6460's "annual festival" and "extra waiters" contain modifiers that its explanation says fire on their own.
 - **Borderline label.** The label hinged on a word the explanation doesn't place. Examples: "at the" and "from several" for L8/F2494; "ten-minute-long" for L4/F1786, after a time-quantity noun; and causal "Since 500" for L7/F5954.
 - **Stated floor.** An explanation stated a floor that every prompt clears, so all its probes were relabelled active. This happened for the positive poles listed above.

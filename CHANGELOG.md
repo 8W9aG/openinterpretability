@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **`make lint` and CI lint Markdown** (`scripts/check_markdown.py`, `[tool.pymarkdown]`; TODO, Code quality and tooling). PyMarkdown checks the style of hand-written Markdown, and a small check finds relative links and `#anchors` that lead nowhere. Generated wiki pages are not linted, because their text comes from models and corpora. Instead, `tests/test_check_markdown.py` lints a sample rendered from the wiki templates. New experiment pages get correct spacing around lists, tables and headings. Existing pages are write-once and stay as they are. MD038 is off, because a leading space in a code span is often part of a model token.
 - **New records have one shape of model fields** (`openinterp/checks.py`; TODO, Housekeeping). `openinterp check --base-ref` requires `model_num_layers` and `model_mlp_width` on each new record, and `model_n_heads` on head records only (null on other records). A re-review may keep a null value that its unit already has. Old records are signed, so they stay as they are: the site build and the Parquet `model_mlp_width` column fill in their widths, and `record_json` is unchanged.
 
 ### Fixed
@@ -443,7 +444,7 @@ First release. Ships with protocol version **0.2**.
 
 ### Added
 
-**Harness and protocol**
+#### Harness and protocol
 
 - Strict Pydantic v2 schemas for neuron identifiers, counterfactual pairs, lookahead profiles, causal metrics, submissions, verdicts and audit records.
 - `NeuronHookRunner`: hooks on MLP down-projection inputs for Llama/Qwen/Mistral/Gemma, GPT-2, GPT-NeoX, GPT-J, OPT and Phi, with positive/negative pole isolation and corpus scanning.
@@ -455,7 +456,7 @@ First release. Ships with protocol version **0.2**.
 - Experiment provenance on submissions (model revision, corpus hash, selection method, seed) and the review policy stored on verdicts.
 - CLI commands `audit` (including `--random --seed`), `verify`/`review` (which also accepts an existing audit record), `reevaluate`, `build`, `deploy`, `wiki`, `check` and `next`.
 
-**Registry, wiki and site**
+#### Registry, wiki and site
 
 - Experiment wiki (`wiki/`): a write-once Markdown page per completed experiment, with per-neuron history pages and a home index. `verify` and `reevaluate` write pages automatically, `reevaluate` saves the superseded verdict before overwriting a record, and `openinterp wiki` backfills existing records.
 - `openinterp next` and the `choose-next-experiment` skill: a randomised next-experiment planner (ε-greedy exploration of random neurons, Boltzmann sampling over follow-ups, decay for repeats, recency and open-PR claims). It prints a seed for reproducibility.
@@ -467,7 +468,7 @@ First release. Ships with protocol version **0.2**.
   - `data/snapshots/` is never deleted;
   - an optional Cloudflare cache purge covers only the changed URLs.
 
-**Project infrastructure**
+#### Project infrastructure
 
 - GitHub Actions CI: lint, a 500-line limit on source and documentation files, tests, and `openinterp check` (audit/wiki pairing, stale indexes and write-once pages) on every PR.
 - Hourly deploy workflow that rebuilds from `main` and delta-syncs to R2. It is skipped until the `R2_BUCKET` variable is set.

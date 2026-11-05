@@ -8,7 +8,7 @@ description: Test a neuron hypothesis generatively by clamping the pole high (or
 ## Papers
 
 - Turner et al., 2023, *Steering Language Models With Activation Engineering* (ActAdd), arXiv:2308.10248. Adding activation directions at inference changes generated text predictably.
-- Goodfire, *Neural Networks Are Already Clean* (2026), https://already-clean.goodfire.com/. "What the model writes when the neuron is turned up" is one of the essay's standard checks, alongside top activations and ablation. Its ablation examples measure next-word probabilities directly (e.g. P(return) 0.83 → 0.98 after removing one holding-back neuron).
+- Goodfire, *Neural Networks Are Already Clean* (2026), <https://already-clean.goodfire.com/>. "What the model writes when the neuron is turned up" is one of the essay's standard checks, alongside top activations and ablation. Its ablation examples measure next-word probabilities directly (e.g. P(return) 0.83 → 0.98 after removing one holding-back neuron).
 
 ## Procedure
 

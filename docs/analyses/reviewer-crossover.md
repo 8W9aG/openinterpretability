@@ -98,7 +98,7 @@ Specificity fails about equally often under every reviewer: all of them can writ
 
 ## Reproduce
 
-```
+```bash
 uv run python scripts/reviewer_crossover.py prepare      # exchange/crossover/cNN/<arm>/review.prompt.md
 # one neuron-reviewer agent per prompt, with model sonnet, opus or haiku, writes review.probes.json
 uv run python scripts/reviewer_crossover.py measure --arm original
