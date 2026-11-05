@@ -14,7 +14,8 @@ checks enforce that:
 4. With ``base_ref``: existing experiment pages were not deleted, or edited outside
    their Discussion section. Archived records were not touched (write-once). No
    generated index (``README.md``) was committed. Records added since then name their
-   agents in canonical spelling (``openinterp.core.agent_names``).
+   agents in canonical spelling (``openinterp.core.agent_names``) and have one shape of
+   model fields (``_check_model_fields``).
 
 The indexes are rebuilt from the records when they are needed, and are gitignored.
 Every experiment PR used to edit the same index rows, so parallel PRs conflicted.
@@ -22,6 +23,7 @@ Every experiment PR used to edit the same index rows, so parallel PRs conflicted
 
 from __future__ import annotations
 
+import json
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -89,7 +91,9 @@ def check_registry(
     _check_stops(wiki_dir, report)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, report)
-        _check_agent_names(changed_records(wiki_dir, base_ref), report)
+        changed = changed_records(wiki_dir, base_ref)
+        _check_agent_names(changed, report)
+        _check_model_fields(changed, report)
     return report
 
 
@@ -239,6 +243,45 @@ def _check_agent_names(paths: list[Path], report: CheckReport) -> None:
             inherited = any(names[field_name] == model for names in older)
             if model and not inherited and (problem := spelling_problem(model)):
                 report.add(path, f"{field_name}={model!r}: {problem}")
+
+
+def _check_model_fields(paths: list[Path], report: CheckReport) -> None:
+    """Require new records to have one shape of model fields.
+
+    Each field must be in the file. Layers and width must have a value. Heads per layer
+    must have a value on a head record and be null on other records.
+
+    Older records keep their shape, because they are signed. The build fills in their
+    widths. A re-review copies the submission of an older record, so a null value that
+    the unit already has passes.
+    """
+    new = set(paths)
+    for path in paths:
+        record = _load(path)
+        if record is None or record.verdict is None:
+            continue  # _check_records reports it
+        written = json.loads(path.read_text(encoding="utf-8"))["submission"]
+        older = [
+            loaded.submission
+            for other in path.parent.glob("*.json")
+            if other not in new and (loaded := _load(other))
+        ]
+        is_head = record.submission.identifier.kind == "attn_head"
+        for name, required in (
+            ("model_num_layers", True),
+            ("model_mlp_width", True),
+            ("model_n_heads", is_head),
+        ):
+            if name not in written:
+                report.add(path, f"{name} is missing; record it with `openinterp audit`")
+            elif not required and written[name] is not None:
+                report.add(path, f"{name} must be null on a {record.submission.identifier.kind}")
+            elif (
+                required
+                and written[name] is None
+                and not any(getattr(sub, name) is None for sub in older)
+            ):
+                report.add(path, f"{name} is null; record it with `openinterp audit`")
 
 
 def _load(path: Path) -> AuditRecord | None:

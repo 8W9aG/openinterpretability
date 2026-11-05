@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **New records have one shape of model fields** (`openinterp/checks.py`; TODO, Housekeeping). `openinterp check --base-ref` requires `model_num_layers` and `model_mlp_width` on each new record, and `model_n_heads` on head records only (null on other records). A re-review may keep a null value that its unit already has. Old records are signed, so they stay as they are: the site build and the Parquet `model_mlp_width` column fill in their widths, and `record_json` is unchanged.
+
 ### Fixed
 
 - **CI retries the Vale download** (`.github/workflows/ci.yml`). A single 504 from GitHub Releases failed `Lint and tests` before the tests ran. This occurred twice on 2026-11-05. The download now tries up to 5 more times.

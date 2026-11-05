@@ -1,3 +1,4 @@
+import json
 import subprocess
 from datetime import timedelta
 
@@ -6,6 +7,12 @@ import pytest
 from openinterp.builder.wiki import archive_path, write_experiment_page
 from openinterp.checks import check_registry
 from openinterp.core.schemas import AuditRecord
+
+
+@pytest.fixture
+def submission(submission):
+    """The shared submission, with the model fields that a new record must have."""
+    return submission.model_copy(update={"model_num_layers": 2, "model_mlp_width": 8})
 
 
 @pytest.fixture
@@ -234,3 +241,56 @@ def test_inherited_spelling_needs_the_same_field_in_an_older_record(repo, record
     problems = messages(check_registry(base_ref="base"))
     assert "reviewer_agent_model=" in problems
     assert "submitting_agent_model=" not in problems
+
+
+def _commit_new_record(repo, record):
+    """Commit ``record`` one hour later than the base. Return its path."""
+    later = _later(record, 1)
+    write_experiment_page(later, repo / "wiki")
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "new"], check=True)
+    return archive_path(repo / "wiki", later)
+
+
+def _with_fields(record, **fields):
+    sub = record.submission.model_copy(update=fields)
+    return record.model_copy(update={"submission": sub})
+
+
+def test_new_records_need_the_model_fields(repo, record):
+    _commit_new_record(repo, _with_fields(record, model_mlp_width=None, model_num_layers=None))
+    problems = messages(check_registry(base_ref="main~1"))
+    assert "model_num_layers is null" in problems
+    assert "model_mlp_width is null" in problems
+    assert check_registry().ok  # without a base ref, old records keep their shape
+
+
+def test_new_records_need_every_model_field_in_the_file(repo, record):
+    path = _commit_new_record(repo, record)
+    raw = json.loads(path.read_text())
+    del raw["submission"]["model_n_heads"]
+    path.write_text(json.dumps(raw) + "\n")
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "commit", "-qam", "absent"], check=True)
+    assert "model_n_heads is missing" in messages(check_registry(base_ref="main~2"))
+
+
+def test_only_head_records_have_a_head_count(repo, record):
+    _commit_new_record(repo, _with_fields(record, model_n_heads=4))
+    assert "model_n_heads must be null on a mlp_neuron_pole" in messages(
+        check_registry(base_ref="main~1")
+    )
+
+
+def test_re_review_may_keep_a_null_that_its_unit_has(tmp_path, monkeypatch, record):
+    monkeypatch.chdir(tmp_path)
+    old = _with_fields(record, model_num_layers=2, model_mlp_width=None)
+    write_experiment_page(old, tmp_path / "wiki")
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "base"], check=True)
+    _commit_new_record(tmp_path, old)
+    report = check_registry(base_ref="main~1")
+    assert report.ok, messages(report)

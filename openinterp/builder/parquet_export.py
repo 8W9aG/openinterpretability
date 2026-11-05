@@ -36,7 +36,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from openinterp.builder.tree import SIDES, Experiment
+from openinterp.builder.tree import SIDES, Experiment, mlp_widths
 from openinterp.core.confounds import MATCH_LABEL_SETS, NO_MATCH
 from openinterp.core.schemas import AuditRecord, CorpusSource
 
@@ -343,9 +343,14 @@ def _balanced(score) -> float | None:
 
 
 def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources = None) -> pa.Table:
-    """The registry table: one row per experiment, in a fixed order."""
+    """The registry table: one row per experiment, in a fixed order.
+
+    The ``model_mlp_width`` column is filled for old records that do not give a width.
+    ``record_json`` keeps the signed record as it is.
+    """
+    widths = mlp_widths(e.record for e in experiments)
     rows = sorted(
-        (experiment_row(e, corpus_sources) for e in experiments),
+        (_with_width(experiment_row(e, corpus_sources), widths) for e in experiments),
         key=lambda row: (
             row["model_name"],
             row["layer"],
@@ -357,6 +362,10 @@ def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources 
         ),
     )
     return pa.Table.from_pylist(rows, schema=REGISTRY_SCHEMA)
+
+
+def _with_width(row: dict, widths: dict[str, int]) -> dict:
+    return {**row, "model_mlp_width": row["model_mlp_width"] or widths.get(row["model_name"])}
 
 
 def export_registry(

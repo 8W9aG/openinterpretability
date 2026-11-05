@@ -146,6 +146,21 @@ def test_coverage_uses_recorded_mlp_width(tmp_path, records):
     assert "1/96 verified (1.0%; target 80%)" in index
 
 
+def test_old_records_get_a_width_in_the_build_only(tmp_path, records):
+    import pyarrow.parquet as pq
+
+    with_width = records[0].model_copy(
+        update={"submission": records[0].submission.model_copy(update={"model_mlp_width": 4})}
+    )
+    without = records[1]
+    assert without.submission.model_mlp_width is None
+    compile_site([with_width, without], tmp_path)
+    rows = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
+    assert {row["model_mlp_width"] for row in rows} == {4}
+    signed = [row["record_json"] for row in rows]
+    assert without.model_dump_json() in signed  # the record itself stays as it was signed
+
+
 def test_layer_map(tmp_path, records):
     from openinterp.builder.charts import layer_map
     from openinterp.builder.tree import ModelNode, build_tree
