@@ -346,7 +346,7 @@ def test_a_random_draw_the_scan_stops_on_is_recorded(flow):
             "--corpus", "corpus.txt", "--evidence-out", "ev.json"]  # fmt: skip
     manual = CliRunner().invoke(cli, args)
     assert manual.exit_code != 0 and "default-on" in manual.output
-    assert not (flow.path / "wiki" / "draws").exists()  # only random draws are kept
+    assert not (flow.path / "wiki" / "draws").exists()  # only random draws are kept here
 
     result = CliRunner().invoke(cli, [*args, "--random", "--seed", "4"])
     assert result.exit_code != 0 and "Recorded the default-on draw" in result.output
@@ -359,6 +359,50 @@ def test_a_random_draw_the_scan_stops_on_is_recorded(flow):
     assert draw.provenance.selection == "random" and draw.active_share >= 0.5
     report = check_registry(flow.path / "wiki")
     assert report.ok and report.draws == 1
+
+
+def test_a_chosen_unit_the_scan_stops_on_gets_a_stop_record_and_page(flow, record):
+    from openinterp.builder.wiki import experiment_id, write_experiment_page
+    from openinterp.checks import check_registry
+    from openinterp.core.draws import load_draws, load_stops
+    from openinterp.core.identifiers import NeuronIdentifier
+
+    wiki = flow.path / "wiki"
+    unit = NeuronIdentifier(model_name="toy", layer=1, neuron_idx=7, pole="positive")
+    studied = record.model_copy(
+        update={"submission": record.submission.model_copy(update={"identifier": unit})}
+    )
+    newest = experiment_id(studied)
+    write_experiment_page(studied, wiki)
+    args = ["audit", "--model", "toy", "--layer", "1", "--neuron", "7", "--pole", "positive",
+            "--corpus", "corpus.txt", "--evidence-out", "ev.json"]  # fmt: skip
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code != 0 and "Recorded the default-on stop" in result.output
+    (stop,) = load_stops(wiki)
+    assert stop.outcome == "default_on" and stop.provenance.selection == "manual"
+    assert stop.latest_record == newest and stop.active_share >= 0.5
+    assert load_draws(wiki) == []  # random-selection statistics don't read it
+
+    stamp = stop.timestamp.strftime("%Y%m%dT%H%M%SZ")
+    written = wiki / "stops" / stop.identifier.slug / f"{stamp}.md"
+    text = written.read_text()
+    assert "scan stopped (default-on)" in text and "can't be audited as a detector" in text
+    assert f"experiments/{unit.slug}/{newest}.md" in text
+    index = (wiki / "experiments" / unit.slug / "README.md").read_text()
+    assert f"stops/{unit.slug}/{stamp}.md" in index and "default-on" in index
+
+    report = check_registry(wiki)
+    assert report.stops == 1 and not [p for p in report.problems if "stops" in str(p.path)]
+    written.unlink()
+    assert any("no page" in str(p) for p in check_registry(wiki).problems)
+
+
+def test_a_stop_on_a_chosen_unit_is_skipped_without_a_wiki(flow):
+    args = ["audit", "--model", "toy", "--layer", "1", "--neuron", "7", "--pole", "positive",
+            "--corpus", "corpus.txt", "--evidence-out", "ev.json", "--wiki-dir", ""]  # fmt: skip
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code != 0 and "Recorded" not in result.output
+    assert not (flow.path / "wiki" / "stops").exists()
 
 
 def test_a_sister_study_tests_the_verified_explanation_unchanged(flow, record):
