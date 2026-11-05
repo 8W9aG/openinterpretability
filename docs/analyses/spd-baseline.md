@@ -1,6 +1,6 @@
 # SPD baseline: GPT-2 small
 
-The parameter-space baseline (`TODO.md`, *Scope expansion*). The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD; Bushnaq et al., 2025, arXiv:2506.20790; after APD, Braun et al., 2025, arXiv:2501.14926) of GPT-2 small's twelve MLP down projections. It was trained first on an M1 Max laptop, then on a Colab A100.
+The parameter-space baseline. The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD; Bushnaq et al., 2025, arXiv:2506.20790; after APD, Braun et al., 2025, arXiv:2501.14926) of GPT-2 small's twelve MLP down projections. It was trained first on an M1 Max laptop, then on a Colab A100.
 
 **Result.** SPD finds no better basis than the neurons. Two 50,000-step runs on a Colab A100 had the same settings and different starts:
 
@@ -100,7 +100,7 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 - **Not a preset.** Auditing these latents would mean explaining directions that are still mostly initialisation. A verdict on them would say little about GPT-2.
 - **Not evidence against the neuron basis.** The subcomponents miss the neurons because they have not converged, not because SPD found something better. The density comparison is mixed and depends on the layer.
-- **The method trains on a pretrained model.** With the four changes above, SPD reaches a usable fit on GPT-2 small, on a laptop, in about 8 hours. No released decomposition covers a Hugging Face model (`TODO.md`, *Scope expansion*).
+- **The method trains on a pretrained model.** With the four changes above, SPD reaches a usable fit on GPT-2 small, on a laptop, in about 8 hours. No released decomposition covers a Hugging Face model (*What others have released*).
 
 ## Colab run A: from random, 50,000 steps
 
@@ -209,6 +209,12 @@ The start from the neurons leads on both whole-model measures. In layers 2–5 o
 - If the start from the neurons fits better, SPD's losses prefer the neurons, however slowly training moves.
 - If the start from random also turns towards the neurons (best-neuron cosine far above 0.07), training finds them unaided. This is the strongest support this method can give.
 - If the two end level, SPD finds no preferred basis, even where the nonlinearity could create one.
+
+## What others have released
+
+No APD, SPD or VPD decomposition covers a registry model (Qwen2.5-0.5B, Qwen2.5-1.5B, GPT-2 small). Goodfire's only language-model decomposition is VPD ([post](https://www.goodfire.com/research/interpreting-lm-parameters), May 2026). Its target is a custom 4-layer, ~67M-parameter model trained on The Pile: d_model 768, MLP width 3072, GELU, RMSNorm, RoPE, vocab 50,277. It decomposes all 24 weight matrices (q/k/v/o and both MLP matrices) into 38,912 rank-1 subcomponents, about 9,970 alive.
+
+The code ([goodfire-ai/param-decomp](https://github.com/goodfire-ai/param-decomp), MIT) is JAX; the Torch version is retired. The target weights and the decomposition are only W&B runs (target `goodfire/spd/runs/t-9d2b8f02`, decomposition `goodfire/spd/runs/s-55ea3f9b`), not Hugging Face repos, and the target has no `transformers` class. No per-component labels are released. The repo's 4-layer config says a run needs 32 GPUs. Licences for the weights and decomposition are not stated.
 
 ## Reproduce
 
