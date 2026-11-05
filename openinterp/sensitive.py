@@ -1,8 +1,8 @@
-"""Find personal data and offensive words in text, for scan labels and for the site.
+"""Find personal data and offensive words in text, for scan labels and the site.
 
 Experiments read this text unchanged. A scan labels what it finds
 (:class:`~openinterp.harness.annotations.MatchTagger`). So a record can say how much of a
-unit's activation personal data or offensive words explain. Separately, the site build
+unit's activation personal data explains. Separately, the site build
 removes personal data and masks offensive examples in what it publishes
 (``openinterp/builder``).
 
@@ -33,7 +33,6 @@ from importlib.resources import as_file, files
 from typing import Any
 
 _SUFFIX_LIST = "public_suffix_list.dat"  # publicsuffix.org, MPL 2.0
-LISTED_WORD = "listed"  # the label of a match in the offensive word list
 
 # Presidio's score of a match with no context words. Below this are its weak patterns, such
 # as any nine digits for an SSN. In 1,000 sampled documents those matched only object IDs.
@@ -227,11 +226,6 @@ def _offensive_pattern() -> re.Pattern[str]:
     return re.compile(rf"\b(?:{alternatives})\b", re.IGNORECASE)
 
 
-def offensive_matches(text: str) -> tuple[tuple[int, int, str], ...]:
-    """Return ``(start, end, LISTED_WORD)`` of each listed word in ``text``, sorted."""
-    return tuple((*m.span(), LISTED_WORD) for m in _offensive_pattern().finditer(text))
-
-
 @cache
 def is_offensive(text: str) -> bool:
     """Return whether ``text`` holds a listed word; many pages show the same example."""
@@ -239,11 +233,10 @@ def is_offensive(text: str) -> bool:
 
 
 def detector() -> str:
-    """Name the package versions and the word list that fix what a search finds."""
+    """Name the package versions and the suffix list that fix what a search finds."""
     names = ("presidio-analyzer", "phonenumbers", "tldextract")
     packages = ", ".join(f"{p} {version(p)}" for p in names)
-    words, suffixes = (_sha12(_data(name)) for name in ("offensive_words.txt", _SUFFIX_LIST))
-    return f"openinterp.sensitive ({packages}; word list {words}; suffix list {suffixes})"
+    return f"openinterp.sensitive ({packages}; suffix list {_sha12(_data(_SUFFIX_LIST))})"
 
 
 def _sha12(text: str) -> str:

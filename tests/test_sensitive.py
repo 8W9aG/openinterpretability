@@ -1,4 +1,4 @@
-"""The personal-data and offensive-word labels of a scan (offline)."""
+"""The match labels of a scan: personal data, toxicity, names, addresses (offline)."""
 
 from types import SimpleNamespace
 
@@ -8,9 +8,10 @@ import torch
 from openinterp.agents.proposer import format_confounds, label_note
 from openinterp.builder.pii import redact_text
 from openinterp.core.confounds import (
+    HATE_SPEECH,
+    MATCH_LABEL_SETS,
     NAMES,
     NO_MATCH,
-    OFFENSIVE_WORDS,
     PERSONAL_DATA,
     POSTAL_ADDRESSES,
 )
@@ -20,13 +21,7 @@ from openinterp.harness.annotations import LabelAccumulator, MatchTagger, TokenL
 from openinterp.harness.scan import Piece
 from openinterp.names import MODEL_SHA256, PERSON, _download
 from openinterp.names import person_matches as real_person_matches
-from openinterp.sensitive import (
-    LISTED_WORD,
-    address_matches,
-    detector,
-    offensive_matches,
-    pii_matches,
-)
+from openinterp.sensitive import address_matches, detector, pii_matches
 from tests.test_annotations import CharTokenizer
 
 TEXT = "Mail jane@somemail.org or call (415) 555-2671 now"
@@ -36,7 +31,6 @@ EMAIL = (5, 22)
 def test_matches_name_their_kind():
     assert pii_matches(TEXT) == ((*EMAIL, "email"), (31, 45, "phone"))
     assert pii_matches("a plain sentence") == ()
-    assert offensive_matches("what the fuck") == ((9, 13, LISTED_WORD),)
 
 
 def test_a_match_tagger_labels_every_character():
@@ -95,13 +89,12 @@ def _texts(labels=None):
 
 def test_every_scan_labels_matches_after_the_corpus_labels():
     names = [t.name for t in _texts({"language": ["en"]}).taggers()]
-    assert names == ["language", PERSONAL_DATA, OFFENSIVE_WORDS, NAMES, POSTAL_ADDRESSES]
+    assert names == ["language", *MATCH_LABEL_SETS]
     assert [t.name for t in _texts().taggers()][-1] == POSTAL_ADDRESSES
 
 
 def test_the_detector_names_what_fixes_the_labels():
-    assert "phonenumbers" in detector() and "word list " in detector()
-    assert "suffix list " in detector()
+    assert "phonenumbers" in detector() and "suffix list " in detector()
 
 
 def _confound(*levels):
@@ -138,9 +131,9 @@ def test_corpus_labels_stay_in_the_proposers_note_when_quiet():
 
 def test_an_examples_note_leaves_out_no_match_labels():
     example = SimpleNamespace(
-        peak_labels={"language": "fr", PERSONAL_DATA: NO_MATCH, OFFENSIVE_WORDS: LISTED_WORD}
+        peak_labels={"language": "fr", PERSONAL_DATA: NO_MATCH, HATE_SPEECH: "sexism"}
     )
-    assert label_note(example) == f"language fr, {OFFENSIVE_WORDS} {LISTED_WORD}"
+    assert label_note(example) == f"language fr, {HATE_SPEECH} sexism"
     quiet = SimpleNamespace(peak_labels={PERSONAL_DATA: NO_MATCH})
     assert label_note(quiet) == ""
 
@@ -157,7 +150,7 @@ def test_the_export_gives_each_match_set_its_measures():
     )
     columns = _match_columns(confounds)
     assert columns["personal_data_r2"] == 0.2 and columns["personal_data_active_tokens"] == 3
-    assert columns["offensive_words_r2"] is None
+    assert columns["toxicity_r2"] is None
     assert _match_columns(None)["personal_data_mi_bits"] is None
 
 
