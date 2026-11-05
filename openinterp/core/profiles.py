@@ -86,6 +86,12 @@ class DictionaryProfile(StrictModel):
     latents are the native positive poles. With a random orthogonal basis, they are
     rotated units (``docs/analyses/null-calibration.md``).
 
+    An ``spd`` dictionary holds the rank-1 subcomponents of a Stochastic Parameter
+    Decomposition of the down projection (``scripts/train_spd.py``). It reads
+    ``mlp_hidden``, and its activation is ``causal_importance``. Each subcomponent is
+    two latents: the positive and the negative part of ``g · (W_enc[:, f] · x)``. Here
+    ``g`` in [0, 1] is the subcomponent's causal importance on that token.
+
     The latent writes ``a_f · W_dec[f]`` to ``output_site``. That is the MLP's output, or
     for a residual-stream SAE, the residual stream that it reads. Ablating the latent
     removes that write. A skip transcoder's linear skip term is part of its
@@ -101,13 +107,13 @@ class DictionaryProfile(StrictModel):
     the share of scanned tokens on which this latent is non-zero.
     """
 
-    kind: Literal["transcoder", "sae", "basis"]
+    kind: Literal["transcoder", "sae", "basis", "spd"]
     repo: str = Field(min_length=1, description="Hugging Face repository of the weights.")
     revision: str | None = Field(default=None, description="Commit hash of ``repo``.")
     path: str = Field(min_length=1, description="Safetensors file within ``repo``.")
     input_site: DictionarySite
     output_site: DictionaryOutputSite = "mlp_out"
-    activation: Literal["relu", "jumprelu"]
+    activation: Literal["relu", "jumprelu", "causal_importance"]
     subtract_decoder_bias: bool = False
     n_features: int = Field(gt=0)
     density: UnitFloat
