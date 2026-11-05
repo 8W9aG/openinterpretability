@@ -9,6 +9,14 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Fixed
+
+- **CI retries the Vale download** (`.github/workflows/ci.yml`). A single 504 from GitHub Releases failed `Lint and tests` before the tests ran. This occurred twice on 2026-11-05. The download now tries up to 5 more times.
+
+## [0.0.13] - 2026-11-05
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **Each model's licence is recorded and shown** (`[tool.openinterp.licenses]` in `pyproject.toml`, `openinterp/core/licenses.py`; TODO, Models). Each entry gives the licence and a link to its text, whether the Hub gates access, whether activations and generated text may be published, and any conditions. Qwen2.5-0.5B and 1.5B are Apache-2.0. GPT-2 small is MIT on its model card, and OpenAI's modified MIT licence asks users to say that content was created with GPT-2. None of the three is gated. Each model's site page shows these terms, or "Licence not recorded" for a model with no entry. A test checks that every configured model has an entry, and a typo in an entry raises a validation error.
@@ -34,6 +42,7 @@ The project has two version numbers:
 
 - **Agent prompts are ordered for provider prompt caching** (`openinterp/agents/base.py`; TODO, Performance). An external answerer's prompt file (`ev.prompt.md`, `review.prompt.md`, the judge prompts) now gives the system prompt, then the response schema, then the unit's task, then the response path. Before, the schema came after the task. Through LiteLLM, an Anthropic or Bedrock model gets the system message as a text block with an `ephemeral` `cache_control` mark. The response schema goes as a tool before it, so the cached prefix holds both. OpenAI, DeepSeek and Gemini cache a repeated prefix without a mark, so their system message stays a string. `LLMCall.cache_write_tokens` is now recorded for LiteLLM calls too, not only for external usage files. Today the stable prefix is small: about 700 tokens for the proposer, 370 for the reviewer and 190 for the judge (characters / 4). That is below Anthropic's minimum cacheable prompt, so these calls show no cache reads until the stable part grows.
 - **Explore draws favour the smallest model until it is well covered** (`openinterp/planner_models.py`; TODO, Pipeline). One fully interpretable model is worth more than a little coverage of many. `openinterp next` used to weight each configured model by `1/√(1 + units studied or claimed)`, which spread draws across every model. Now the smallest model by MLP neurons (`layers × width`, from the records, else the cached `config.json`) with less than `[tool.openinterp] coverage_target` (default 80%) of its neurons verified is the *focus*, and gets 80% of explore draws. A neuron is verified when the latest record of one of its poles is VERIFIED. The other models share the other 20% (`others_share`) by the old rule, so sister draws and cross-model comparisons still happen. A neuron counts as covered when it has a record or an open PR claims it. Neurons within a model are still drawn at random. Today the focus is GPT-2 small (75 of 36,864 neurons verified, 0.20%). `openinterp next --top` prints each model's coverage, and the site's model cards show the verified share against the target and mark the focus.
+- **Sister rows refreshed for the poles VERIFIED since 0.0.12** (`openinterp sisters`, `docs/analyses/sister-neurons.jsonl`). 92 new rows and 12 new sisters: Qwen2.5-0.5B → Qwen2.5-1.5B 8 rows, 1 sister; Qwen2.5-0.5B → GPT-2 8 rows, 0 sisters; Qwen2.5-1.5B → Qwen2.5-0.5B 10 rows, 1 sister; Qwen2.5-1.5B → GPT-2 10 rows, 0 sisters; GPT-2 → Qwen2.5-0.5B 28 rows, 5 sisters; GPT-2 → Qwen2.5-1.5B 28 rows, 5 sisters. The strongest are Qwen2.5-1.5B L21/N2033− → Qwen2.5-0.5B L17/N4749− (r = 0.77), GPT-2 L2/N2960+ → Qwen2.5-0.5B L0/N3980+ (r = 0.51) and GPT-2 L6/N1828+ → Qwen2.5-1.5B L3/N4413+ (r = 0.49). Each new sister is now a `sister` draw.
 
 ### Fixed
 
