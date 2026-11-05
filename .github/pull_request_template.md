@@ -13,5 +13,6 @@
 - [ ] If the experiment came from `openinterp next`, its seed and kind are in this description.
 
 CI checks every PR in two jobs:
+
 - **Lint and tests:** `ruff check`, `ruff format --check` and `pytest`.
 - **Experiment records:** every experiment record validates, has a verdict and has a matching page, and every page has a record. Records are write-once, generated indexes (`README.md`) are not committed, and existing experiment pages were not edited outside Discussion or deleted.

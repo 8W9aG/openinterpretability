@@ -27,11 +27,13 @@ The two-sided Fisher exact test gives p = 0.0055 for latents against all neuron 
 ## What drives the gap
 
 **Negative poles in a GELU MLP.** In a GELU MLP the negative pole cannot pass this protocol as it stands. GPT-2's negative pole is GELU's dip, at most 0.170. All six drawn negative poles sat in the dip on most tokens, so each hypothesis described a default-on dial. A probe is active when its peak over all tokens reaches 0.25 × max, and almost any text has some token in the dip, so a hard negative can't pass.
+
 - Two of the six hypotheses predict every prompt active, so their probe sets have no hard negatives, and they fail `enough_hard_negatives`. L9/N1046− says the pole is active on essentially any text. L3/N1517− states a floor at the first token that lies above the line.
 - The other four got hard negatives built from the few tokens the hypothesis calls silent. Those negatives fired anyway: 0 of 11 passed for L5/N617−, L9/N330− and L9/N133−, which were REJECTED. For L7/N2511−, 7 of 11 passed, short of the specificity gate.
 - This failure follows from how the protocol measures activity, not from a judgement that these neurons are uninterpretable. The comparison that tests the premise is latents against positive poles, and four positive poles are too few to settle it.
 
 **Positive poles.** Of the four positive poles:
+
 - L3/N2427+ (nearness, affection and attempt words) and L3/N1242+ (nouns of gradable quantity) were VERIFIED.
 - L0/N375+ ("help" and its near-synonyms) failed specificity: 4 of 11 hard negatives fired.
 - L2/N2331+ (lowercase subword fragments) stated the first-token floor, so it had no hard negatives.
@@ -41,6 +43,7 @@ The two-sided Fisher exact test gives p = 0.0055 for latents against all neuron 
 ## Label corrections
 
 Each fix went to the reviewer that wrote the probe:
+
 - **L3/F12137.** " reformed" was relabelled active, since the hypothesis puts it at 0.3 of max. Two straddling probes were replaced.
 - **L9/F1067.** Two holdouts used single-token words (" detector", " inspector"), which have no stem token. One negative contained `select`+`or` inside an identifier, which the hypothesis predicts active. One probe was ambiguous. All four were replaced.
 - **L3/N2427+.** The courtroom "tried" negative sat above the line by the hypothesis's own number, and verb "close" sat on it. Both were replaced.

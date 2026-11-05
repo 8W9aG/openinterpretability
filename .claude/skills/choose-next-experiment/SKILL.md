@@ -6,6 +6,7 @@ description: Decide which experiment to run next, using `openinterp next`. The d
 # Choosing the next experiment
 
 The registry improves through two kinds of work:
+
 - **exploration:** auditing neurons nobody has looked at.
 - **exploitation:** following up on neurons already studied, i.e. revising, independently re-reviewing, replicating, challenging, or auditing the other pole.
 

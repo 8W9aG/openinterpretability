@@ -13,7 +13,7 @@ A pole's status is derived from its experiments by :mod:`standing`.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -291,6 +291,18 @@ KNOWN_MLP_WIDTHS = {
 }
 
 
+def mlp_widths(records: Iterable[AuditRecord]) -> dict[str, int]:
+    """Return the neurons per MLP layer of each model, for records that do not give a width.
+
+    A width on any record of the model wins over ``KNOWN_MLP_WIDTHS``.
+    """
+    widths = dict(KNOWN_MLP_WIDTHS)
+    for r in records:
+        if r.submission.model_mlp_width:
+            widths[r.submission.identifier.model_name] = r.submission.model_mlp_width
+    return widths
+
+
 def model_href(slug: str) -> str:
     """The model's index page."""
     return f"models/{slug}/index.html"
@@ -355,8 +367,9 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
 
     models: dict[str, ModelNode] = {}
     units: dict[tuple[str, int, int, str, int], UnitNode] = {}  # neurons, heads, features
+    widths = mlp_widths(reviewed)
     for r in reviewed:
-        _add_experiment(models, units, r, latest[r.submission.identifier.slug] is r)
+        _add_experiment(models, units, r, latest[r.submission.identifier.slug] is r, widths)
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
@@ -373,7 +386,9 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
     return [models[name] for name in sorted(models)]
 
 
-def _add_experiment(models: dict, units: dict, r: AuditRecord, is_latest: bool) -> None:
+def _add_experiment(
+    models: dict, units: dict, r: AuditRecord, is_latest: bool, widths: dict[str, int]
+) -> None:
     """File ``r`` under its unit, creating the model and unit nodes on first sight."""
     ident = r.submission.identifier
     mslug = ident.model_slug
@@ -384,11 +399,9 @@ def _add_experiment(models: dict, units: dict, r: AuditRecord, is_latest: bool) 
             mslug,
             0,
             model_href(mslug),
-            KNOWN_MLP_WIDTHS.get(ident.model_name),
+            widths.get(ident.model_name),
         )
     model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
-    if r.submission.model_mlp_width:
-        model.mlp_width = r.submission.model_mlp_width
     dictionary = getattr(ident, "dictionary", None)
     order = list(SIDES).index(ident.kind)
     key = (ident.model_name, ident.layer, order, dictionary or "", ident.index)

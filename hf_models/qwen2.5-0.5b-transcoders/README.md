@@ -93,7 +93,7 @@ learned-basis baseline for audits, not as a state-of-the-art reconstruction.
 
 ## Use in openinterp
 
-```
+```bash
 openinterp audit --model Qwen/Qwen2.5-0.5B --dictionary qwen2.5-0.5b-transcoders ...
 ```
 

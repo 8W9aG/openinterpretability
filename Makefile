@@ -1,4 +1,4 @@
-.PHONY: install test lint vale ste format check stats build search-index sample-run serve loop clean
+.PHONY: install test lint markdown vale ste format check stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -16,7 +16,12 @@ lint:
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
 	uv run interrogate openinterp
+	$(MAKE) markdown
 	$(MAKE) ste
+
+# Style and relative links of hand-written Markdown; see scripts/check_markdown.py.
+markdown:
+	uv run python scripts/check_markdown.py
 
 # Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.

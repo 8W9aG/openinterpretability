@@ -18,6 +18,7 @@ The rows are in `probe-comparison.jsonl`, one per record, written by `openinterp
 **Sources.** Probes are trained on the registry's scan corpus (`corpus.jsonl`, 500 Pile documents) and tested on 500 FineWeb-Edu documents (`openinterp corpus --dataset fineweb-edu --seed 0`). This is the two-source rule of the `sparse-probing-search` skill: a probe that only fits the Pile's quirks fails the test set. Documents are cut into 128-token windows as a scan cuts them, and each window's first token is dropped. Up to 2,000 positive and 8,000 negative tokens are sampled per split (seed 0 for training, 1 for testing).
 
 **Probes.** Each probe reads the layer's MLP hidden activations (signed, every neuron) or the residual stream after the layer's block:
+
 - *logistic*: standardised features, L2 penalty 1e-3, classes weighted equally, fitted with L-BFGS;
 - *mass-mean*: the difference of the class means in raw activation space (Marks & Tegmark, 2023);
 - *k-sparse*: logistic probes on the k hidden neurons with the largest standardised class-mean difference on the training tokens, for k = 1, 2, 4, …, 256 (Gurnee et al., 2023).
@@ -64,7 +65,7 @@ The k-sparse curves (held-out BA):
 
 ## Reproduce
 
-```
+```bash
 E=exchange/probe-comparison
 uv run openinterp corpus --dataset fineweb-edu --docs 500 --seed 0 --out $E/fineweb-edu.jsonl
 for c in thousands year feminine street; do
