@@ -17,15 +17,16 @@ from openinterp.core.strict import StrictModel, UnitFloat
 LANGUAGE = "language"
 # The label set of a blended corpus's document's preset (its ``source`` field).
 SOURCE = "source"
-# The label sets of what `openinterp/sensitive.py` and `openinterp/names.py` find in a
-# document, and the label of every other token. Tokens with no label leave R² and mutual
+# The label sets of what `sensitive.py`, `toxicity.py` and `names.py` find in a document,
+# and the label of every other token. Tokens with no label leave R² and mutual
 # information, so a label set that named only the matches would always measure zero.
 PERSONAL_DATA = "personal data"
-OFFENSIVE_WORDS = "offensive words"
+TOXICITY = "toxicity"  # a model's guess (`openinterp/toxicity.py`)
+HATE_SPEECH = "hate speech"  # a model's guess (`openinterp/toxicity.py`)
 NAMES = "names"  # a model's guess (`openinterp/names.py`)
 POSTAL_ADDRESSES = "postal addresses"
 NO_MATCH = "none"
-MATCH_LABEL_SETS = (PERSONAL_DATA, OFFENSIVE_WORDS, NAMES, POSTAL_ADDRESSES)
+MATCH_LABEL_SETS = (PERSONAL_DATA, TOXICITY, HATE_SPEECH, NAMES, POSTAL_ADDRESSES)
 # Recorded, but not in the proposer's prompt. Most units have an active token in some name,
 # so every prompt would carry this noisy label.
 NOT_SHOWN_TO_PROPOSER = (NAMES,)

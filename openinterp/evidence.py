@@ -98,19 +98,21 @@ class _Texts:
 
     def taggers(self):
         """One document tagger per label set the corpus carries, then the match taggers."""
-        from openinterp import names, sensitive
+        from openinterp import names, sensitive, toxicity
         from openinterp.core.confounds import (
+            HATE_SPEECH,
             NAMES,
-            OFFENSIVE_WORDS,
             PERSONAL_DATA,
             POSTAL_ADDRESSES,
+            TOXICITY,
         )
         from openinterp.harness.annotations import DocumentLabels, MatchTagger
 
         return [
             *(DocumentLabels(name, labels) for name, labels in self.labels.items()),
             MatchTagger(PERSONAL_DATA, sensitive.pii_matches),
-            MatchTagger(OFFENSIVE_WORDS, sensitive.offensive_matches),
+            MatchTagger(TOXICITY, toxicity.toxicity_matches),
+            MatchTagger(HATE_SPEECH, toxicity.hate_matches),
             MatchTagger(NAMES, names.person_matches),
             MatchTagger(POSTAL_ADDRESSES, sensitive.address_matches),
         ]
@@ -272,7 +274,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
 
 def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
     """Where and how the scan ran, for the evidence's provenance."""
-    from openinterp import __version__, names, sensitive
+    from openinterp import __version__, names, sensitive, toxicity
     from openinterp.core.schemas import ExperimentProvenance
     from openinterp.harness.environment import run_environment
 
@@ -292,7 +294,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         environment=run_environment(runner),
         corpus_source=corpus.source,
         corpus_sample=corpus.sample,
-        label_detector=f"{sensitive.detector()}; {names.DETECTOR}",
+        label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}",
     )
 
 

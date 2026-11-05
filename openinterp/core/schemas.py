@@ -147,8 +147,8 @@ class ExperimentProvenance(StrictModel):
     corpus_source: CorpusSource | None = None
     label_detector: str | None = Field(
         default=None,
-        description="What fixes the scan's personal-data, offensive-word and name labels "
-        "(openinterp.sensitive.detector, openinterp.names.DETECTOR). None: the scan "
+        description="What fixes the scan's match labels (openinterp.sensitive.detector, "
+        "openinterp.names.DETECTOR, openinterp.toxicity.DETECTOR). None: the scan "
         "predates those labels.",
     )
     corpus_sample: CorpusSample | None = Field(

@@ -196,6 +196,13 @@ def no_name_model(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_toxicity_models(monkeypatch):
+    """Scans in tests find no toxic text: the real models are 500 MB downloads."""
+    monkeypatch.setattr("openinterp.toxicity.toxicity_matches", lambda text: ())
+    monkeypatch.setattr("openinterp.toxicity.hate_matches", lambda text: ())
+
+
+@pytest.fixture(autouse=True)
 def _no_auto_sign(monkeypatch):
     """Never sign test records with the developer's real key (tests opt back in)."""
     monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
