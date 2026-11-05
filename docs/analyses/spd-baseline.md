@@ -12,6 +12,8 @@ At this size, with as many subcomponents as neurons, SPD's losses do not choose 
 
 The per-layer comparisons are in `spd-baseline.json` (laptop), `spd-baseline-colab-random.json` (run A) and `spd-baseline-colab-neurons.json` (run B). The VERIFIED-neuron check is in `spd-baseline-verified.json`.
 
+That result covers the down projections. Whether SPD prefers the neurons on the input projections, where GELU could create a preference, is still open. Laptop pilots are in, but the long runs are not (*The input projections*).
+
 ## Method
 
 `scripts/train_spd.py` decomposes each down projection W (`[3072, 768]`) into C = 3,072 rank-1 subcomponents `V[:, c] ⊗ U[c]`. The down projection reads the MLP's hidden activations, where the neurons are, so a subcomponent and a neuron are directions in the same space. Neuron i is the subcomponent `V = e_i, U = W[i]`.
@@ -178,13 +180,35 @@ So SPD's view of a neuron says nothing about whether an explanation of it verifi
 
 Tests not run: more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
 
-## Next: run C, the input projections
+## The input projections: pilots, and the runs still to do
 
-The down projection reads the neurons, but nothing in it favours them: any rotation of the neuron basis sums to W. The input projection (`c_fc`) writes the neurons' pre-activations, and GELU acts on each neuron separately. A neuron that is off on a token can be dropped there at no cost. A subcomponent that writes to many neurons can be dropped only where all of them are off. So the importance loss should turn the input projection's subcomponents towards the neurons, if the neuron basis is the model's own.
+The down projection reads the neurons, but nothing in it favours them: any rotation of the neuron basis sums to W. The input projection (`c_fc`) writes the neurons' pre-activations, and GELU acts on each neuron separately. A neuron that is off on a token can be dropped there at no cost. A subcomponent that writes to many neurons can be dropped only where all of them are off. So SPD's importance loss could prefer the neurons here, if the neuron basis is the model's own.
 
-`train_spd.py --matrices both` decomposes both projections of each layer. Of the input projection, neuron i is `V = W[:, i], U = e_i`, and its CI-masked output loss and explained variance are measured after GELU. If they were measured on the pre-activations, an off neuron would cost as much to drop as an on one. Run C starts from random (`--init random`), with run A's other settings, for 50,000 steps. The test is the input projection's best-neuron cosine, read from `U[c]`: about 0.07 for a random direction, 1 for a neuron.
+`train_spd.py --matrices both` decomposes both projections of each layer. Of the input projection, neuron i is `V = W[:, i], U = e_i`. Its CI-masked output loss and explained variance are measured after GELU. If they were measured on the pre-activations, an off neuron would cost as much to drop as an on one. Alignment and drift read `U[c]`: about 0.07 for a random direction, 1 for a neuron.
 
-The subcomponents move slowly, so run C alone may not separate "SPD does not prefer the neurons" from "training did not reach them". In a 1,000-step pilot, the input projection's cosine with its start stayed within 0.003 of the warmup's 0.61–0.63. So the test also needs the same run from the neurons (`--init neurons`). If that run fits better at the same sparsity than the run from random, SPD's losses prefer the neurons, however slowly training moves.
+**Two laptop pilots** ran for 1,000 steps from each start, with p reaching 0.4 at step 500. Both trained without errors, and all subcomponents stayed alive. The sites are measured on 32 held-out pieces (`spd-baseline-both-pilots.json`).
+
+| Step 999 | From the neurons | From random |
+| --- | --- | --- |
+| Share of the loss gap left | 0.112 | 0.152 |
+| KL with every mask at its causal importance | 0.65 | 0.75 |
+| Best-neuron cosine (median) | 0.995–1.0 | 0.06–0.07 |
+| Input projections: explained variance | 0.30–0.57 | 0.00–0.40 |
+| Input projections: active per token, layers 1–10 | 319–500 | 68–125 |
+| Down projections: explained variance | 0.28–0.80 | 0.16–0.66 |
+| Down projections: active per token | 281–481 | 294–830 |
+
+The start from the neurons leads on both whole-model measures. In layers 2–5 of the down projections the active counts are within about 13%, and it fits 1.6–2 times as well. These pilots do not show that SPD prefers the neurons:
+
+- **The input projections are not compared at equal sparsity.** In layers 1–10 the start from the neurons keeps 2–6 times as many subcomponents active, so its better fit may only be the cost of keeping more.
+- **The lead may be a head start.** Neurons sum to W exactly at step 0, and the random start's input fit was still rising faster at step 999. Runs A and B ended about level after 50,000 steps on the down projections alone.
+- **The subcomponents barely move.** From random, the input projection's cosine with its start stayed within 0.003 of the warmup's 0.61–0.63. So a long run from random that stays random would not separate "SPD does not prefer the neurons" from "training did not reach them".
+
+**The runs still to do** are 50,000 steps on a Colab A100 from each start, with run A's other settings (`--matrices both`, `--init random` and `--init neurons`, in `scripts/train_spd_colab.ipynb`). Compare the input projections' fit at equal sparsity:
+
+- If the start from the neurons fits better, SPD's losses prefer the neurons, however slowly training moves.
+- If the start from random also turns towards the neurons (best-neuron cosine far above 0.07), training finds them unaided. This is the strongest support this method can give.
+- If the two end level, SPD finds no preferred basis, even where the nonlinearity could create one.
 
 ## Reproduce
 
