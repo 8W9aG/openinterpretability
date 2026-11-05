@@ -25,6 +25,9 @@ dependencies = [
     "click>=8.1.0",
     "fasttext-predict>=0.9.2",
     "nltk>=3.8",
+    "tldextract>=5.1",
+    "presidio-analyzer>=2.2",
+    "spacy-curated-transformers>=0.3,<1",
 ]
 
 [project.urls]
@@ -71,6 +74,29 @@ models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2"]
 # GPT-2 reads 1,024, but its transcoders fit only 128 (harness/dictionaries.py), and the
 # learned-basis baseline compares latents with neuron poles scanned the same way.
 "openai-community/gpt2" = 128
+
+# The terms of each model in `models` (openinterp.core.licenses.ModelLicense), which each
+# model's site page shows. `license` and `gated` come from the model's Hub page, and
+# `publishing_allowed` is our reading of the licence text. Checked on 2026-11-05.
+# tests/test_planner.py checks that every configured model has an entry.
+[tool.openinterp.licenses."Qwen/Qwen2.5-0.5B"]
+license = "apache-2.0"
+url = "https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE"
+gated = false
+publishing_allowed = true
+
+[tool.openinterp.licenses."Qwen/Qwen2.5-1.5B"]
+license = "apache-2.0"
+url = "https://huggingface.co/Qwen/Qwen2.5-1.5B/blob/main/LICENSE"
+gated = false
+publishing_allowed = true
+
+[tool.openinterp.licenses."openai-community/gpt2"]
+license = "mit"
+url = "https://github.com/openai/gpt-2/blob/master/LICENSE"
+gated = false
+publishing_allowed = true
+conditions = "OpenAI's modified MIT licence asks users to say that content was created with GPT-2."
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -29,6 +29,13 @@
         --pagefind-ui-background: #0f172a; --pagefind-ui-border: #334155; --pagefind-ui-tag: #1e293b;
       }
     }
+    .spoiler { position: relative; min-height: 3rem; }
+    .spoiler-body { filter: blur(0.5em); user-select: none; pointer-events: none; }
+    .spoiler-toggle { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+    .spoiler-cover { position: absolute; top: 0.5rem; left: 50%; z-index: 1; transform: translateX(-50%); max-width: 100%; padding: 0.25rem 0.75rem; border-radius: 9999px; background: #1e293b; color: #f8fafc; font-size: 0.75rem; line-height: 1.25rem; text-align: center; }
+    .spoiler-toggle:focus-visible ~ .spoiler-cover { outline: 2px solid #f59e0b; outline-offset: 2px; }
+    .spoiler-toggle:checked, .spoiler-toggle:checked ~ .spoiler-cover { display: none; }
+    .spoiler-toggle:checked ~ .spoiler-body { filter: none; user-select: auto; pointer-events: auto; }
     .tok { white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 2px; }
     /* Token heatmaps: one hue per pole, tinted over the page so it works in both themes.
        The tint stops at 80% so token text keeps >= 4.5:1 contrast in light and dark. */

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
@@ -53,7 +53,7 @@
           {% if p.examples %}
           <ol class="mt-2 space-y-2">
             {% for ex in p.examples %}
-            <li class="break-words text-sm leading-7">{% if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}</li>
+            <li class="break-words text-sm leading-7">{% call spoiler(ex.offensive) %}{% if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}{% endcall %}</li>
             {% endfor %}
           </ol>
           {% if not poles.shared and p.source %}<p class="mt-2 text-xs text-slate-500">From <a class="underline-offset-2 hover:underline" href="#{{ p.source.anchor }}">experiment {{ p.source.id }}</a>.</p>{% endif %}

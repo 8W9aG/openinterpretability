@@ -19,3 +19,8 @@ def experiments_dir(wiki_dir: Path | str) -> Path:
 def draws_dir(wiki_dir: Path | str) -> Path:
     """Random draws the scan stopped on, one directory per unit: ``draws/<slug>/``."""
     return Path(wiki_dir) / "draws"
+
+
+def stops_dir(wiki_dir: Path | str) -> Path:
+    """Chosen units the scan stopped on, one directory per unit: ``stops/<slug>/``."""
+    return Path(wiki_dir) / "stops"

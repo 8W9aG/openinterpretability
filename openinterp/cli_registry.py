@@ -52,7 +52,7 @@ def check(wiki_dir, base_ref):
 
     summary = (
         f"Checked {report.records} experiment records and {report.pages} experiment pages"
-        + (f" and {report.draws} draw records" if report.draws else "")
+        + "".join(f" and {n} {kind} records" for kind, n in report.extra_counts.items() if n)
         + ": "
         + ("all consistent." if report.ok else f"{len(report.problems)} problem(s).")
     )
