@@ -56,8 +56,8 @@ _PHONE_DIGITS = re.compile(r"(?<![\d.,/:-])\+?\(?\d(?:[ ().-]{0,2}\d){6,11}(?![\
 # What such a number is not: a date range ("Call 1999-2000") or a decimal ("0.0612422").
 _NOT_A_PHONE = re.compile(r"(?:1[5-9]|20)\d\d\b|\d+\.\d+$")
 # Shapes that the phone recogniser accepts, but that are not phone numbers. Explanations hold
-# many of them. In order: a decimal ("0.1644-0.17004"), a table row, a list ("0.96/0.89") or
-# date range ("6/1999-2/2002"), a DOI ("1--2565"), a dotted quad, and a count ("1 2 3 4 5").
+# many of them. They are decimals ("0.1644-0.17004"), table rows and lists ("0.96/0.89").
+# They are also date ranges ("6/1999-2/2002"), DOIs ("1--2565"), dotted quads and counts.
 _NOT_A_PHONE_SHAPE = re.compile(
     r"(?<![\d.])0\.\d|\s{2,}|/|--|(?<![\d.])\d{1,3}(?:\.\d{1,3}){3}(?![\d.])|(?:\b\d\s+){3}"
 )
