@@ -41,6 +41,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openinterp.core.agent_names import canonical_agent
+from openinterp.core.licenses import ModelLicense
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
 from openinterp.planner_models import (
@@ -162,6 +163,15 @@ def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, in
     reads 1,024 positions.
     """
     return dict(_config(pyproject).get("window_tokens", {}))
+
+
+def configured_licenses(pyproject: Path = Path("pyproject.toml")) -> dict[str, ModelLicense]:
+    """Return ``[tool.openinterp.licenses]``, the terms of each model (empty if unset).
+
+    A malformed entry raises a validation error, so a typo cannot hide a term.
+    """
+    licenses = _config(pyproject).get("licenses", {})
+    return {model: ModelLicense(**terms) for model, terms in licenses.items()}
 
 
 def coverage_target(pyproject: Path = Path("pyproject.toml")) -> float:

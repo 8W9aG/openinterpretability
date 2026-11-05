@@ -240,7 +240,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 
 ### Models
 
-The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.toml`). What a pole means depends on the MLP's activation.
+The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterp.licenses]`, and its site page shows them.
 
 | Model | MLP | Negative pole | Scan |
 | --- | --- | --- | --- |

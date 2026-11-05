@@ -50,6 +50,7 @@ from openinterp.core.agent_names import canonical_agent
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
+from openinterp.planner import configured_licenses
 from openinterp.sensitive import is_offensive
 from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
 from openinterp.wiring_backfill import record_wiring
@@ -341,6 +342,7 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> 
         **_project_links(),
         "site_title": site_title,
         "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
+        "model_licenses": configured_licenses(),
         "version": __version__,
         # Derived from the data, never the clock: an unchanged registry must rebuild
         # byte-for-byte so the deploy uploads (and purges) nothing.

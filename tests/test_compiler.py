@@ -114,6 +114,27 @@ def test_every_experiment_published_in_hierarchy(tmp_path, records):
     assert "1/24 layers" not in model_page
 
 
+def test_model_page_shows_the_model_license(tmp_path, records, monkeypatch):
+    terms = 'license = "x-1"\nurl = "https://u"\ngated = true\npublishing_allowed = false\n'
+    pyproject = f'[tool.openinterp.licenses."Qwen/Qwen2.5-0.5B"]\n{terms}conditions = "Say so."\n'
+    (tmp_path / "pyproject.toml").write_text(pyproject)
+    monkeypatch.chdir(tmp_path)
+    compile_site(records, tmp_path / "site")
+    page = (tmp_path / "site" / "models" / MODEL / "index.html").read_text()
+    assert (
+        '<a class="text-emerald-700 underline dark:text-emerald-400" href="https://u">x-1</a>'
+        in page
+    )
+    assert "gated" in page and "not gated" not in page
+    assert "generated text may not be published" in page
+    assert "Say so." in page
+
+    (tmp_path / "pyproject.toml").write_text("")
+    compile_site(records, tmp_path / "site")
+    page = (tmp_path / "site" / "models" / MODEL / "index.html").read_text()
+    assert "Licence not recorded" in page
+
+
 def test_coverage_uses_recorded_mlp_width(tmp_path, records):
     narrow = [
         r.model_copy(update={"submission": r.submission.model_copy(update={"model_mlp_width": 4})})
