@@ -9,8 +9,14 @@ Two kinds of unit cannot be audited:
   pole fire, the draw is ``proven_dead``, and the planner counts the pole as verified.
 - *default-on* (protocol 0.8): a unit active on at least half its tokens.
 
-The scan stops on both. It writes an :class:`UnauditableDraw` instead of evidence, once
-only, at ``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit --random``).
+The scan stops on both. For a random draw, it writes an :class:`UnauditableDraw` instead
+of evidence, once only, at ``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit
+--random``).
+
+For a chosen unit, such as a revise, it writes a :class:`ChosenStop` at
+``wiki/stops/<slug>/<timestamp>.json``. A chosen unit is not a sample, and it can already
+count as a random draw. So stops have their own directory, and :func:`load_draws` does not
+read them.
 """
 
 from __future__ import annotations
@@ -21,7 +27,7 @@ from typing import Literal
 
 from pydantic import AwareDatetime
 
-from openinterp.core.paths import draws_dir
+from openinterp.core.paths import draws_dir, stops_dir
 from openinterp.core.schemas import (
     PROTOCOL_VERSION,
     ComponentIdentifier,
@@ -46,6 +52,15 @@ class UnauditableDraw(StrictModel):
     provenance: ExperimentProvenance
     protocol_version: str = PROTOCOL_VERSION
     timestamp: AwareDatetime
+
+
+class ChosenStop(UnauditableDraw):
+    """One chosen unit that the scan stopped on.
+
+    It is kept so that the registry shows the attempt. No random-selection statistic reads it.
+    """
+
+    latest_record: str | None = None  # the unit's newest experiment when the scan stopped
 
 
 def draw_path(wiki_dir: Path, draw: UnauditableDraw) -> Path:
@@ -73,3 +88,21 @@ def load_draws(wiki_dir: Path) -> list[UnauditableDraw]:
     """Every recorded draw, oldest first."""
     draws = [UnauditableDraw.model_validate_json(p.read_text()) for p in draw_files(wiki_dir)]
     return sorted(draws, key=lambda d: d.timestamp)
+
+
+def stop_path(wiki_dir: Path, stop: ChosenStop) -> Path:
+    """Where ``stop`` is stored: ``stops/<slug>/<timestamp>.json`` under ``wiki_dir``."""
+    stamp = stop.timestamp.strftime("%Y%m%dT%H%M%SZ")
+    return stops_dir(wiki_dir) / stop.identifier.slug / f"{stamp}.json"
+
+
+def stop_files(wiki_dir: Path) -> Iterator[Path]:
+    """Every stop file under ``wiki_dir``, sorted by path; none without a stops directory."""
+    root = stops_dir(wiki_dir)
+    yield from sorted(root.rglob("*.json")) if root.is_dir() else ()
+
+
+def load_stops(wiki_dir: Path) -> list[ChosenStop]:
+    """Every recorded stop of a chosen unit, oldest first."""
+    stops = [ChosenStop.model_validate_json(p.read_text()) for p in stop_files(wiki_dir)]
+    return sorted(stops, key=lambda s: s.timestamp)

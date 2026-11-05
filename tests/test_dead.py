@@ -147,3 +147,30 @@ def test_proven_dead_poles_count_as_verified(tmp_path, record, monkeypatch):
     explore = explore_focus(tree, load_draws(wiki))
     assert record.verdict.status == "VERIFIED"
     assert explore["models"] == {"m/a": {"verified": 3, "dead": 2}}  # L1/N3, and 2 dead
+
+
+@pytest.mark.parametrize(
+    ("proven", "says"),
+    [(True, "the weights prove that no input"), (False, "the weights don't prove it dead")],
+)
+def test_a_stop_page_on_a_dead_unit_with_no_records(tmp_path, proven, says):
+    from openinterp.builder.wiki import write_stop_page
+    from openinterp.checks import check_registry
+
+    stop = UnauditableDraw(
+        identifier=NeuronIdentifier(model_name="toy", layer=1, neuron_idx=7, pole="positive"),
+        outcome="dead",
+        proven_dead=proven,
+        dead_bound=-1.0 if proven else None,
+        provenance=PROVENANCE.model_copy(update={"selection": "manual", "seed": None}),
+        timestamp=datetime(2026, 11, 5, tzinfo=UTC),
+    )
+    page = write_stop_page(stop, tmp_path)
+    text = page.read_text()
+    assert "scan stopped (dead)" in text and says in text
+    assert "has no experiment record yet" in text and "Newest record" not in text
+    # A second write in the same second keeps the first (write-once).
+    page.write_text("kept")
+    write_stop_page(stop, tmp_path)
+    assert page.read_text() == "kept"
+    assert check_registry(tmp_path).stops == 1
