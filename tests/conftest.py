@@ -190,6 +190,12 @@ def toy_runner(toy_model):
 
 
 @pytest.fixture(autouse=True)
+def no_name_model(monkeypatch):
+    """Scans in tests find no names: the real model is a 460 MB download."""
+    monkeypatch.setattr("openinterp.names.person_matches", lambda text: ())
+
+
+@pytest.fixture(autouse=True)
 def _no_auto_sign(monkeypatch):
     """Never sign test records with the developer's real key (tests opt back in)."""
     monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")

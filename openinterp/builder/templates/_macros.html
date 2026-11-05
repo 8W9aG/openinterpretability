@@ -40,6 +40,19 @@
 {%- endmacro %}
 
 {# Tokens shaded by pole strength; hover (or tap) a token for its exact value. #}
+{# Masks an example that matched the word list of openinterp/sensitive.py until the reader opts in. CSS only, so it works with no script. Pagefind leaves it out, so search results do not show the text. #}
+{% macro spoiler(masked) -%}
+{%- if masked -%}
+<div class="spoiler" data-pagefind-ignore>
+  <input type="checkbox" class="spoiler-toggle" aria-label="Show text that may be offensive or distressing">
+  <span class="spoiler-cover" aria-hidden="true">May be offensive or distressing · select to show</span>
+  <div class="spoiler-body">{{ caller() }}</div>
+</div>
+{%- else -%}
+{{ caller() }}
+{%- endif -%}
+{%- endmacro %}
+
 {% macro heat_tokens(tokens) -%}
 {%- for t in tokens %}<span class="tok heat{{ ' peak' if t.peak }}{{ ' marked' if t.marked }}" style="--a: {{ t.shade }}" data-v="{{ t.value | num(3) }}{{ ' · peak' if t.peak }}{{ ' · marked' if t.marked }}">{{ t.text }}</span>{% endfor -%}
 {%- endmacro %}

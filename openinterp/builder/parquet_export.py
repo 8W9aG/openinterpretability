@@ -37,6 +37,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from openinterp.builder.tree import SIDES, Experiment
+from openinterp.core.confounds import MATCH_LABEL_SETS, NO_MATCH
 from openinterp.core.schemas import AuditRecord, CorpusSource
 
 Sources = Mapping[str, CorpusSource] | None
@@ -109,6 +110,18 @@ REGISTRY_SCHEMA = pa.schema(
         ("confound_baseline_accuracy", pa.float64()),
         ("token_r2", pa.float64()),
         ("position_r2", pa.float64()),
+        ("personal_data_r2", pa.float64()),
+        ("personal_data_mi_bits", pa.float64()),
+        ("personal_data_active_tokens", pa.int64()),
+        ("offensive_words_r2", pa.float64()),
+        ("offensive_words_mi_bits", pa.float64()),
+        ("offensive_words_active_tokens", pa.int64()),
+        ("names_r2", pa.float64()),
+        ("names_mi_bits", pa.float64()),
+        ("names_active_tokens", pa.int64()),
+        ("postal_addresses_r2", pa.float64()),
+        ("postal_addresses_mi_bits", pa.float64()),
+        ("postal_addresses_active_tokens", pa.int64()),
         ("top_partner_neuron", pa.int32()),
         ("top_partner_pole", pa.string()),
         ("top_partner_lift", pa.float64()),
@@ -263,6 +276,7 @@ def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
         "confound_baseline": metrics.confound_baseline if metrics else None,
         "confound_baseline_accuracy": metrics.confound_baseline_accuracy if metrics else None,
         **_columns(sub.confounds, CONFOUND_COLUMNS),
+        **_match_columns(sub.confounds),
         **_columns(top, PARTNER_COLUMNS),
         "redundancy_ratio": verdict.joint_ablation.redundancy_ratio
         if verdict.joint_ablation
@@ -290,6 +304,19 @@ def _standing_columns(exp: Experiment) -> dict:
         "supersedes": exp.record.submission.supersedes,
         "sister_of": exp.record.submission.sister_of,
     }
+
+
+def _match_columns(confounds) -> dict:
+    """One label set's measures per match label set, so a query can find such units."""
+    out = {}
+    for name in MATCH_LABEL_SETS:
+        found = ((confounds.labels or {}) if confounds else {}).get(name)
+        key = name.replace(" ", "_")
+        active = sum(s.active for s in found.levels if s.label != NO_MATCH) if found else None
+        out[f"{key}_r2"] = found.r2 if found else None
+        out[f"{key}_mi_bits"] = found.mutual_information_bits if found else None
+        out[f"{key}_active_tokens"] = active
+    return out
 
 
 def _corpus_columns(prov, corpus_sources: dict) -> dict:

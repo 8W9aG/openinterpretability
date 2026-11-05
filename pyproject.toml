@@ -25,6 +25,9 @@ dependencies = [
     "click>=8.1.0",
     "fasttext-predict>=0.9.2",
     "nltk>=3.8",
+    "tldextract>=5.1",
+    "presidio-analyzer>=2.2",
+    "spacy-curated-transformers>=0.3,<1",
 ]
 
 [project.urls]

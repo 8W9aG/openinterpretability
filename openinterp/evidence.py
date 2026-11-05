@@ -97,10 +97,23 @@ class _Texts:
     labels: dict[str, list[str | None]] = field(default_factory=dict)  # by label set
 
     def taggers(self):
-        """One document tagger per label set the corpus carries."""
-        from openinterp.harness.annotations import DocumentLabels
+        """One document tagger per label set the corpus carries, then the match taggers."""
+        from openinterp import names, sensitive
+        from openinterp.core.confounds import (
+            NAMES,
+            OFFENSIVE_WORDS,
+            PERSONAL_DATA,
+            POSTAL_ADDRESSES,
+        )
+        from openinterp.harness.annotations import DocumentLabels, MatchTagger
 
-        return [DocumentLabels(name, labels) for name, labels in self.labels.items()]
+        return [
+            *(DocumentLabels(name, labels) for name, labels in self.labels.items()),
+            MatchTagger(PERSONAL_DATA, sensitive.pii_matches),
+            MatchTagger(OFFENSIVE_WORDS, sensitive.offensive_matches),
+            MatchTagger(NAMES, names.person_matches),
+            MatchTagger(POSTAL_ADDRESSES, sensitive.address_matches),
+        ]
 
 
 def scan_evidence(runner, request: ScanRequest, scan_cache=None):
@@ -259,7 +272,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
 
 def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
     """Where and how the scan ran, for the evidence's provenance."""
-    from openinterp import __version__
+    from openinterp import __version__, names, sensitive
     from openinterp.core.schemas import ExperimentProvenance
     from openinterp.harness.environment import run_environment
 
@@ -279,6 +292,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         environment=run_environment(runner),
         corpus_source=corpus.source,
         corpus_sample=corpus.sample,
+        label_detector=f"{sensitive.detector()}; {names.DETECTOR}",
     )
 
 
