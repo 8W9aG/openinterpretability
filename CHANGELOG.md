@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Fixed
+
+- **CI retries the Vale download** (`.github/workflows/ci.yml`). A single 504 from GitHub Releases failed `Lint and tests` before the tests ran. This occurred twice on 2026-11-05. The download now tries up to 5 more times.
+
 ## [0.0.13] - 2026-11-05
 
 Ships with protocol version **0.8**.
