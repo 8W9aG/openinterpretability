@@ -4,9 +4,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from openinterp import planner_models
 from openinterp.builder.wiki import write_experiment_page
+from openinterp.core.licenses import ModelLicense
 from openinterp.core.schemas import (
     BUILTIN_CORPUS,
     AuditRecord,
@@ -14,7 +16,13 @@ from openinterp.core.schemas import (
     ReviewMetrics,
     ReviewPolicy,
 )
-from openinterp.planner import BASE_WEIGHTS, claim_key, configured_models, plan_next
+from openinterp.planner import (
+    BASE_WEIGHTS,
+    claim_key,
+    configured_licenses,
+    configured_models,
+    plan_next,
+)
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
 
@@ -384,6 +392,24 @@ def test_configured_models_match_ci_allow_list():
     configured = configured_models(root / "pyproject.toml")
     assert configured and sorted(configured) == sorted(allowed)
     assert configured_models(root / "missing.toml") == ()
+
+
+def test_every_configured_model_has_a_license():
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    assert set(configured_licenses(pyproject)) >= set(configured_models(pyproject))
+
+
+def test_configured_licenses_parse_and_reject_typos(tmp_path):
+    pyproject = tmp_path / "pyproject.toml"
+    assert configured_licenses(pyproject) == {}
+    terms = 'license = "x"\nurl = "https://u"\ngated = true\npublishing_allowed = false\n'
+    pyproject.write_text(f'[tool.openinterp.licenses."a/x"]\n{terms}')
+    assert configured_licenses(pyproject)["a/x"] == ModelLicense(
+        license="x", url="https://u", gated=True, publishing_allowed=False
+    )
+    pyproject.write_text(f'[tool.openinterp.licenses."a/x"]\n{terms}publishable = true\n')
+    with pytest.raises(ValidationError):
+        configured_licenses(pyproject)
 
 
 def test_short_context_models_are_scanned_in_windows(tmp_path, record):

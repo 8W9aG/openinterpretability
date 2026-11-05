@@ -23,12 +23,13 @@ document.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 import torch
 
+from openinterp.core.confounds import NO_MATCH
 from openinterp.core.schemas import LabelConfound, LabelStat
 
 ACTIVATION_BINS = 8
@@ -66,6 +67,27 @@ class DocumentLabels:
         """One span over the whole text, or none when the document has no label."""
         label = self.labels[doc]
         return [] if label is None else [Span(0, len(text), label)]
+
+
+@dataclass(frozen=True)
+class MatchTagger:
+    """Label what ``find`` matches in a document, and every other character ``NO_MATCH``."""
+
+    name: str
+    find: Callable[[str], Sequence[tuple[int, int, str]]]
+
+    def spans(self, doc: int, text: str) -> list[Span]:
+        """The matches, then the gaps, so a token half in a match takes the match's label."""
+        matches = self.find(text)
+        spans = [Span(start, end, label) for start, end, label in matches]
+        position = 0
+        for start, end, _ in matches:
+            if start > position:
+                spans.append(Span(position, start, NO_MATCH))
+            position = max(position, end)
+        if position < len(text):
+            spans.append(Span(position, len(text), NO_MATCH))
+        return spans
 
 
 def align(offsets: Sequence[tuple[int, int]], spans: Sequence[Span]) -> list[str | None]:

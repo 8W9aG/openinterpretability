@@ -1,5 +1,5 @@
 {# One experiment on a neuron, head or feature page. Expects `v` from compiler._experiment_view. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
@@ -122,8 +122,8 @@
       {% endif %}
       <ul class="mt-2 space-y-1 text-xs">
         {% for ex in ia.examples %}
-        <li><span class="text-slate-500">#{{ ex.example + 1 }}{{ "" if ex.converged else " (not converged)" }} at</span> <code class="tok rounded bg-slate-100 px-1 dark:bg-slate-800">{{ ex.peak_token }}</code>:
-          {% for t in ex.top %}<code class="tok mr-1 rounded px-1" title="offset {{ t.offset }}; attribution {{ t.attribution | num(2) }}; replacing it alone {{ t.ablation_effect | num(2) }}">{{ t.token }}<sub class="text-slate-500">{{ t.offset }}</sub> {{ t.attribution | num(2) }}</code>{% endfor %}</li>
+        <li>{% call spoiler(ex.example in v.offensive_examples) %}<span class="text-slate-500">#{{ ex.example + 1 }}{{ "" if ex.converged else " (not converged)" }} at</span> <code class="tok rounded bg-slate-100 px-1 dark:bg-slate-800">{{ ex.peak_token }}</code>:
+          {% for t in ex.top %}<code class="tok mr-1 rounded px-1" title="offset {{ t.offset }}; attribution {{ t.attribution | num(2) }}; replacing it alone {{ t.ablation_effect | num(2) }}">{{ t.token }}<sub class="text-slate-500">{{ t.offset }}</sub> {{ t.attribution | num(2) }}</code>{% endfor %}{% endcall %}</li>
         {% endfor %}
       </ul>
       <p class="mt-1 text-xs text-slate-500">
@@ -202,6 +202,7 @@
       {% for ex in examples %}
       <li class="rounded-lg border border-slate-200 p-3 text-sm leading-7 dark:border-slate-800">
         <span class="mr-2 font-mono text-xs text-slate-500" title="peak strength">{{ ex.max_activation | num(2) }}</span>
+        {% call spoiler(ex.offensive) %}
         {%- if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}
         {% if ex.attended %}
         <div class="text-xs text-slate-500">Peak attends to {% for a in ex.attended %}<code class="tok rounded bg-slate-100 px-1 dark:bg-slate-800" title="{{ a.offset }} tokens from the peak">{{ a.text }}</code> {{ a.weight | num(2) }}{{ ", " if not loop.last }}{% endfor %}</div>
@@ -221,6 +222,7 @@
             </table>
           </details>
         </div>
+        {% endcall %}
       </li>
       {% endfor %}
     </ol>
@@ -388,7 +390,7 @@
         <li class="rounded-lg border p-3 leading-7 {{ 'border-rose-300 dark:border-rose-800' if r.outcome in ('missed', 'false alarm') else 'border-slate-200 dark:border-slate-800' }}">
           <span class="mr-2 rounded px-1.5 py-0.5 font-mono text-xs {{ 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' if r.outcome in ('missed', 'false alarm') else 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' }}">{{ r.outcome }}</span>
           <span class="mr-2 font-mono text-xs text-slate-500" title="peak strength{% if r.w.quantile is not none %}, activation bin {{ r.w.quantile + 1 }} of {{ es.quantiles }}{% endif %}">{{ r.peak | num(2) }}{% if r.w.similarity is not none %} · sim {{ r.w.similarity | num(2) }}{% endif %}</span>
-          {{- heat_tokens(r.tokens) }}
+          {% call spoiler(r.offensive) %}{{ heat_tokens(r.tokens) }}{% endcall %}
         </li>
         {% endfor %}
       </ol>
@@ -401,7 +403,7 @@
         {% set right = r.w.judged == r.w.label %}
         <li class="rounded-lg border p-3 leading-7 {{ 'border-slate-200 dark:border-slate-800' if right else 'border-rose-300 dark:border-rose-800' }}">
           <span class="mr-2 rounded px-1.5 py-0.5 font-mono text-xs {{ 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' if right else 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' }}">marks {{ 'right' if r.w.label else 'wrong' }} · judged {{ 'right' if r.w.judged else 'wrong' }}</span>
-          {{- heat_tokens(r.tokens) }}
+          {% call spoiler(r.offensive) %}{{ heat_tokens(r.tokens) }}{% endcall %}
         </li>
         {% endfor %}
       </ol>

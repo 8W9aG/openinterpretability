@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from email.utils import parseaddr
 from importlib.metadata import metadata
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
@@ -29,7 +30,9 @@ from openinterp.builder.agents import (
 )
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
+from openinterp.builder.heat import HeatToken, token_heat
 from openinterp.builder.parquet_export import export_draws, export_registry
+from openinterp.builder.pii import scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.significance import evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
@@ -47,6 +50,8 @@ from openinterp.core.agent_names import canonical_agent
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
+from openinterp.planner import configured_licenses
+from openinterp.sensitive import is_offensive
 from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
 from openinterp.wiring_backfill import record_wiring
 
@@ -111,71 +116,6 @@ def _root_for(rel_path: str) -> str:
     return "../" * (len(Path(rel_path).parts) - 1)
 
 
-@dataclass(frozen=True)
-class HeatToken:
-    """One token of a heatmap, shaded by its strength."""
-
-    text: str
-    shade: float  # 0..1 of the pole's max activation; the template caps the tint
-    value: float  # the stored pole strength
-    peak: bool
-    marked: bool = False  # fuzzing: a token the judge was told is active
-
-
-@dataclass(frozen=True)
-class Attended:
-    """One token that a head's peak attends to."""
-
-    text: str
-    weight: float
-    offset: int  # tokens from the peak (≤ 0)
-
-
-@dataclass(frozen=True)
-class HeatExample:
-    """One top-activating example, ready for the token heatmap."""
-
-    max_activation: float
-    window: list[HeatToken]  # tokens around the peak
-    tokens: list[HeatToken]  # the whole snippet
-    clipped_start: bool
-    clipped_end: bool
-    attended: list[Attended] = field(default_factory=list)  # a head's peak attention
-
-
-def token_heat(
-    example: ActivatingExample, scale: float, before: int = 30, after: int = 10
-) -> HeatExample:
-    """Shade every token by its pole strength relative to ``scale`` (the neuron's max).
-
-    The window keeps ``before`` tokens before the peak and ``after`` after it, so long
-    snippets stay readable. The full snippet is kept for an expandable view.
-    """
-    scale = scale or example.max_activation or 1.0
-    tokens = [
-        HeatToken(
-            tok.replace("\n", "↵"),  # a newline the neuron fires on must stay visible
-            round(min(1.0, max(0.0, act / scale)), 3),
-            act or 0.0,  # strengths of inactive tokens can be stored as -0.0
-            i == example.max_token_index,
-        )
-        for i, (tok, act) in enumerate(zip(example.tokens, example.activations, strict=True))
-    ]
-    start = max(0, example.max_token_index - before)
-    end = min(len(tokens), example.max_token_index + after + 1)
-    return HeatExample(
-        max_activation=example.max_activation,
-        window=tokens[start:end],
-        tokens=tokens,
-        clipped_start=start > 0,
-        clipped_end=end < len(tokens),
-        attended=[
-            Attended(tokens[i].text, w, i - example.max_token_index)
-            for i, w in zip(example.attends_to, example.attention_weights, strict=True)
-        ],
-    )
-
-
 # Detection outcomes, the explanation's mistakes first.
 OUTCOMES = {
     (True, False): "missed",
@@ -205,7 +145,13 @@ def explanation_view(scores, scale: float) -> dict | None:
             for i, (tok, act) in enumerate(zip(w.tokens, w.activations, strict=True))
         ]
         outcome = OUTCOMES[(w.label, w.judged)] if w.judged is not None else "not judged"
-        return {"w": w, "tokens": tokens, "outcome": outcome, "peak": max(w.activations, default=0)}
+        return {
+            "w": w,
+            "tokens": tokens,
+            "outcome": outcome,
+            "peak": max(w.activations, default=0),
+            "offensive": is_offensive(w.text),
+        }
 
     order = list(OUTCOMES.values())
     detection = sorted(
@@ -260,6 +206,7 @@ def _experiment_view(
         "causal": charts.causal_chart(verdict.causal_metrics, sub.counterfactuals),
         "vocab": charts.vocab_chart(sub.vocabulary_lens),
         "examples": [token_heat(ex, sub.max_activation or 0.0) for ex in sub.top_examples[:12]],
+        "offensive_examples": [i for i, x in enumerate(sub.top_examples) if is_offensive(x.text)],
         "correlated": correlated,
         "scores": explanation_view(verdict.explanation_scores, sub.max_activation or 0.0),
         "wiring": [
@@ -337,6 +284,13 @@ def compile_site(
     experiments = [
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
+    # Statistics read the true text: build_tree counts near-duplicate probes, and the queries
+    # group readings by explanation. Only what the site publishes is scrubbed.
+    with TemporaryDirectory() as unpublished:
+        true_text = export_registry(experiments, Path(unpublished), corpus_sources)
+        stats = scrub(registry_stats(true_text, draws))  # leaderboards show explanations
+    for experiment in experiments:
+        experiment.record = scrub_record(experiment.record)
     report = BuildReport(output_dir, len(records), len(experiments))
     report.parquet = export_registry(experiments, output_dir, corpus_sources)
     export_draws(draws, output_dir)  # random draws no experiment could audit
@@ -354,7 +308,6 @@ def compile_site(
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
-    stats = registry_stats(report.parquet, draws)
     _render_index(render, models, experiments, agents, stats, draws)
     license = metadata("openinterp")["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license)
@@ -389,6 +342,7 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> 
         **_project_links(),
         "site_title": site_title,
         "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
+        "model_licenses": configured_licenses(),
         "version": __version__,
         # Derived from the data, never the clock: an unchanged registry must rebuild
         # byte-for-byte so the deploy uploads (and purges) nothing.

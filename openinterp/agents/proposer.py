@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
 from openinterp.core.attribution import InputAttribution
+from openinterp.core.confounds import MATCH_LABEL_SETS, NO_MATCH, NOT_SHOWN_TO_PROPOSER
 from openinterp.core.schemas import (
     ActivatingExample,
     ComponentIdentifier,
@@ -94,7 +95,9 @@ def snippet(ex: ActivatingExample, full: bool = False) -> str:
 
 def label_note(ex: ActivatingExample) -> str:
     """The peak token's labels (``"language fr"``), or ``""`` if the scan had none."""
-    return ", ".join(f"{name} {label}" for name, label in (ex.peak_labels or {}).items())
+    labels = (ex.peak_labels or {}).items()
+    shown = ((n, label) for n, label in labels if n not in NOT_SHOWN_TO_PROPOSER)
+    return ", ".join(f"{name} {label}" for name, label in shown if label != NO_MATCH)
 
 
 def distinct_examples(
@@ -434,6 +437,8 @@ def format_confounds(confounds: ConfoundProfile) -> str:
         f"active tokens by {name}: "
         f"{', '.join(f'{s.label} {s.active}/{s.count}' for s in c.levels[:10])}."
         for name, c in (confounds.labels or {}).items()
+        if name not in NOT_SHOWN_TO_PROPOSER
+        and (name not in MATCH_LABEL_SETS or c.has_active_match)
     )
     return (
         f"\nConfounds: token identity explains {confounds.token_r2:.0%} of activation "

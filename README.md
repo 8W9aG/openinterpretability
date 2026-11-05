@@ -46,6 +46,8 @@ make install                                      # creates .venv with everythin
 
 The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
 
+**Scan labels.** A scan labels personal data, toxic text, hate speech, postal addresses and people's names in its corpus, to measure how much they explain of a unit's activation. The first scan downloads spaCy's name model (about 460 MB) and two text classifiers (about 500 MB each) once, and takes about 7 minutes longer per 500 documents. Later scans of the corpus read the results from disk.
+
 **A scan corpus.** `audit` scans `./corpus.jsonl` unless given `--corpus`, and stops if it isn't there. Almost every record in the registry scanned `corpus.jsonl`, the first 500 documents of [pile-10k](https://huggingface.co/datasets/NeelNanda/pile-10k), each cut to 3,000 characters (SHA-256 `ded48cfc…`, git-ignored). Rebuild it byte for byte, so your scans are comparable with the registry's:
 
 ```bash
@@ -238,7 +240,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 
 ### Models
 
-The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.toml`). What a pole means depends on the MLP's activation.
+The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterp.licenses]`, and its site page shows them.
 
 | Model | MLP | Negative pole | Scan |
 | --- | --- | --- | --- |
