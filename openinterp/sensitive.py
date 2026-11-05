@@ -55,6 +55,12 @@ _PHONE_WORD = re.compile(
 _PHONE_DIGITS = re.compile(r"(?<![\d.,/:-])\+?\(?\d(?:[ ().-]{0,2}\d){6,11}(?![\d]|[.,/:-]\d)")
 # What such a number is not: a date range ("Call 1999-2000") or a decimal ("0.0612422").
 _NOT_A_PHONE = re.compile(r"(?:1[5-9]|20)\d\d\b|\d+\.\d+$")
+# Shapes that the phone recogniser accepts, but that are not phone numbers. Explanations hold
+# many of them. In order: a decimal ("0.1644-0.17004"), a table row, a list ("0.96/0.89") or
+# date range ("6/1999-2/2002"), a DOI ("1--2565"), a dotted quad, and a count ("1 2 3 4 5").
+_NOT_A_PHONE_SHAPE = re.compile(
+    r"(?<![\d.])0\.\d|\s{2,}|/|--|(?<![\d.])\d{1,3}(?:\.\d{1,3}){3}(?![\d.])|(?:\b\d\s+){3}"
+)
 # RFC 2606 reserves these for examples, so an address here is nobody's. Reviewers' probes use them.
 _RESERVED_DOMAINS = {"example.com", "example.net", "example.org"}
 # A window of tokens can end inside an address, so its domain is cut or missing.
@@ -153,7 +159,8 @@ def _is_public_ip(address: str) -> bool:
 def _keeps(kind: str, match: str) -> bool:
     """Our rules on top of Presidio's, from what it matched in the registry's documents."""
     if kind == "phone":
-        return sum(c.isdigit() for c in match) >= MIN_PHONE_DIGITS
+        enough_digits = sum(c.isdigit() for c in match) >= MIN_PHONE_DIGITS
+        return enough_digits and not _NOT_A_PHONE_SHAPE.search(match)
     return kind != "ip_address" or _is_public_ip(match)
 
 
@@ -161,6 +168,8 @@ def _context_phones(text: str) -> Iterator[tuple[int, int, str]]:
     for match in _PHONE_DIGITS.finditer(text):
         digits = sum(c.isdigit() for c in match.group())
         if digits not in _CONTEXT_PHONE_DIGITS or _NOT_A_PHONE.match(match.group()):
+            continue
+        if _NOT_A_PHONE_SHAPE.search(match.group()):
             continue
         if _PHONE_WORD.search(text, max(0, match.start() - _PHONE_WORD_REACH), match.start()):
             yield (*match.span(), "phone")
