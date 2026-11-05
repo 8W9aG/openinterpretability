@@ -5,7 +5,7 @@ description: Methodology for auditing a native MLP neuron pole without misreadin
 
 # Native neuron audit
 
-The source is Nick Cammarata / Goodfire, *Neural Networks Are Already Clean* (15 Oct 2026, https://already-clean.goodfire.com/). It is a working-hypothesis essay, and its technical companion paper has not been published. In a preliminary Qwen3-32B audit, about 90% of neuron poles had one main job. About 7% had two related jobs, and 2–4% were not yet understood. The essay's central claim is that most *apparent* polysemanticity came from fixable tooling problems rather than superposition. Treat a messy-looking neuron as a possible tool failure before concluding that it is polysemantic.
+The source is Nick Cammarata / Goodfire, *Neural Networks Are Already Clean* (15 Oct 2026, <https://already-clean.goodfire.com/>). It is a working-hypothesis essay, and its technical companion paper has not been published. In a preliminary Qwen3-32B audit, about 90% of neuron poles had one main job. About 7% had two related jobs, and 2–4% were not yet understood. The essay's central claim is that most *apparent* polysemanticity came from fixable tooling problems rather than superposition. Treat a messy-looking neuron as a possible tool failure before concluding that it is polysemantic.
 
 ## Checklist before writing a hypothesis
 
