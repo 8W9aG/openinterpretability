@@ -1,0 +1,60 @@
+{
+ "from_neurons": {
+  "step": 999, "ce_unrecovered": 0.1121, "kl_ci": 0.64524,
+  "layers": {
+   "0": {"spd_explained_variance": 0.694, "spd_l0": 481.2, "best_neuron_cosine_median": 0.995, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.995},
+   "0.up": {"spd_explained_variance": 0.567, "spd_l0": 497.7, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "1": {"spd_explained_variance": 0.379, "spd_l0": 280.8, "best_neuron_cosine_median": 0.998, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.998},
+   "1.up": {"spd_explained_variance": 0.408, "spd_l0": 319.0, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "2": {"spd_explained_variance": 0.308, "spd_l0": 311.6, "best_neuron_cosine_median": 0.998, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.998},
+   "2.up": {"spd_explained_variance": 0.324, "spd_l0": 361.6, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "3": {"spd_explained_variance": 0.323, "spd_l0": 332.1, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "3.up": {"spd_explained_variance": 0.304, "spd_l0": 375.8, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "4": {"spd_explained_variance": 0.279, "spd_l0": 324.0, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "4.up": {"spd_explained_variance": 0.31, "spd_l0": 443.4, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "5": {"spd_explained_variance": 0.311, "spd_l0": 356.5, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "5.up": {"spd_explained_variance": 0.346, "spd_l0": 438.6, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "6": {"spd_explained_variance": 0.317, "spd_l0": 367.9, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "6.up": {"spd_explained_variance": 0.371, "spd_l0": 471.7, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "7": {"spd_explained_variance": 0.35, "spd_l0": 393.4, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "7.up": {"spd_explained_variance": 0.361, "spd_l0": 480.6, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "8": {"spd_explained_variance": 0.375, "spd_l0": 431.8, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "8.up": {"spd_explained_variance": 0.379, "spd_l0": 500.2, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "9": {"spd_explained_variance": 0.442, "spd_l0": 441.9, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "9.up": {"spd_explained_variance": 0.398, "spd_l0": 443.4, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "10": {"spd_explained_variance": 0.59, "spd_l0": 424.3, "best_neuron_cosine_median": 0.999, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 0.999},
+   "10.up": {"spd_explained_variance": 0.442, "spd_l0": 434.2, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "11": {"spd_explained_variance": 0.795, "spd_l0": 330.7, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0},
+   "11.up": {"spd_explained_variance": 0.512, "spd_l0": 363.0, "best_neuron_cosine_median": 1.0, "share_best_neuron_cosine_over_0.7": 1.0, "drift_cosine_median": 1.0}
+  }
+ },
+ "from_random": {
+  "step": 999, "ce_unrecovered": 0.1518, "kl_ci": 0.75487,
+  "layers": {
+   "0": {"spd_explained_variance": 0.434, "spd_l0": 696.8, "best_neuron_cosine_median": 0.068, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.733},
+   "0.up": {"spd_explained_variance": 0.4, "spd_l0": 777.7, "best_neuron_cosine_median": 0.064, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.606},
+   "1": {"spd_explained_variance": 0.27, "spd_l0": 344.5, "best_neuron_cosine_median": 0.068, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.735},
+   "1.up": {"spd_explained_variance": 0.074, "spd_l0": 123.4, "best_neuron_cosine_median": 0.065, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.622},
+   "2": {"spd_explained_variance": 0.195, "spd_l0": 339.2, "best_neuron_cosine_median": 0.069, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.727},
+   "2.up": {"spd_explained_variance": 0.011, "spd_l0": 76.5, "best_neuron_cosine_median": 0.066, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.62},
+   "3": {"spd_explained_variance": 0.178, "spd_l0": 293.7, "best_neuron_cosine_median": 0.069, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.731},
+   "3.up": {"spd_explained_variance": 0.041, "spd_l0": 67.5, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.623},
+   "4": {"spd_explained_variance": 0.16, "spd_l0": 311.1, "best_neuron_cosine_median": 0.067, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.731},
+   "4.up": {"spd_explained_variance": 0.031, "spd_l0": 98.7, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.623},
+   "5": {"spd_explained_variance": 0.157, "spd_l0": 343.7, "best_neuron_cosine_median": 0.067, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.719},
+   "5.up": {"spd_explained_variance": 0.054, "spd_l0": 101.7, "best_neuron_cosine_median": 0.064, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.628},
+   "6": {"spd_explained_variance": 0.165, "spd_l0": 395.9, "best_neuron_cosine_median": 0.066, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.703},
+   "6.up": {"spd_explained_variance": 0.038, "spd_l0": 96.7, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.628},
+   "7": {"spd_explained_variance": 0.214, "spd_l0": 457.2, "best_neuron_cosine_median": 0.065, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.687},
+   "7.up": {"spd_explained_variance": 0.008, "spd_l0": 85.1, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.628},
+   "8": {"spd_explained_variance": 0.203, "spd_l0": 556.4, "best_neuron_cosine_median": 0.065, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.665},
+   "8.up": {"spd_explained_variance": 0.004, "spd_l0": 92.5, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.626},
+   "9": {"spd_explained_variance": 0.296, "spd_l0": 675.9, "best_neuron_cosine_median": 0.064, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.642},
+   "9.up": {"spd_explained_variance": 0.036, "spd_l0": 94.7, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.626},
+   "10": {"spd_explained_variance": 0.477, "spd_l0": 829.7, "best_neuron_cosine_median": 0.062, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.619},
+   "10.up": {"spd_explained_variance": 0.089, "spd_l0": 125.1, "best_neuron_cosine_median": 0.063, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.625},
+   "11": {"spd_explained_variance": 0.663, "spd_l0": 732.1, "best_neuron_cosine_median": 0.062, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.604},
+   "11.up": {"spd_explained_variance": 0.291, "spd_l0": 205.8, "best_neuron_cosine_median": 0.064, "share_best_neuron_cosine_over_0.7": 0.0, "drift_cosine_median": 0.623}
+  }
+ }
+}

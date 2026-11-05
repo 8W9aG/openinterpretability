@@ -1,0 +1,43 @@
+{
+ "poles": {
+  "VERIFIED": 76,
+  "other": 256
+ },
+ "measures": {
+  "stay": {
+   "verified_percentile_mean": 0.514,
+   "other_percentile_mean": 0.445,
+   "verified_median": 0.9809,
+   "other_median": 0.9728,
+   "p_value": 0.0758
+  },
+  "u_stay": {
+   "verified_percentile_mean": 0.5,
+   "other_percentile_mean": 0.495,
+   "verified_median": 0.9811,
+   "other_median": 0.9776,
+   "p_value": 0.9123
+  },
+  "ci_mean": {
+   "verified_percentile_mean": 0.476,
+   "other_percentile_mean": 0.542,
+   "verified_median": 0.0545,
+   "other_median": 0.0637,
+   "p_value": 0.0865
+  },
+  "ci_active": {
+   "verified_percentile_mean": 0.477,
+   "other_percentile_mean": 0.54,
+   "verified_median": 0.0864,
+   "other_median": 0.1001,
+   "p_value": 0.1018
+  },
+  "ci_at_peaks": {
+   "verified_percentile_mean": 0.443,
+   "other_percentile_mean": 0.493,
+   "verified_median": 1.0,
+   "other_median": 1.0,
+   "p_value": 0.2007
+  }
+ }
+}
