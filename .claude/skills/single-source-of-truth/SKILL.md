@@ -30,6 +30,7 @@ Every concept in this repo has one definition. Everything else imports it, reads
 | Planner: base weights, ε, windows per model | `openinterp/planner.py` (`BASE_WEIGHTS`, `DEFAULT_EPSILON`, `configured_windows`) |
 | Reproduction tolerances | `openinterp/reproduce.py` (`Tolerance`) |
 | Models the planner and CI may use | `[tool.openinterp] models` in `pyproject.toml` |
+| Each model's licence and publishing terms | `[tool.openinterp.licenses]` in `pyproject.toml` (`configured_licenses`) |
 | Site-wide display maps: unit statuses, their order and colours | `openinterp/builder/statuses.py` (`MAP_STATUSES`, `STATUS_FILL`, `STATUS_BADGE`) |
 | Evidence strength bands (strong / moderate / weak) | `openinterp/builder/significance.py` (`STRONG_EVIDENCE`, `evidence_strength`) |
 | Standing roles and `CONTESTED` | `openinterp/builder/standing.py` |

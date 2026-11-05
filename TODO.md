@@ -261,7 +261,7 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] A Models page (e.g. `openinterp/builder/templates/models.html`, linked from the `base.html` header) listing the supported models. Read the list from `[tool.openinterp] models` in `pyproject.toml`, not a copy. Each row links to the model's page (`model.html`) and gives its size, layers, MLP width and activation, plus its experiment and VERIFIED counts. A supported model with no records yet still gets a row.
+- [ ] A Models page (e.g. `openinterp/builder/templates/models.html`, linked from the `base.html` header) listing the supported models. Read the list from `[tool.openinterp] models` in `pyproject.toml`, not a copy. Each row links to the model's page (`model.html`) and gives its size, layers, MLP width, activation and licence (`configured_licenses`), plus its experiment and VERIFIED counts. A supported model with no records yet still gets a row.
 - [ ] Serve the site at open-interpretability.com and use it everywhere:
   - attach it as the R2 bucket's custom domain;
   - set the `OPENINTERP_SITE_URL` repo variable, which turns on the deploy's cache purge;
@@ -323,9 +323,8 @@ Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Huggin
 
 ## Models
 
-The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test, a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means) and a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml` and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
+The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test, a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means) and a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
 
-- [ ] Record each model's licence, as `openinterp corpus` does for datasets: the licence, whether access is gated, and whether publishing its activations and generated text is allowed (Llama and Gemma terms add conditions). Keep it next to `[tool.openinterp] models` in `pyproject.toml`, show it on the Models page, and add a test that every configured model has one.
 - [ ] Qwen2.5 family: 3B and the `-Instruct` variants, for base ↔ instruct and size-scaling comparisons with the default model (1.5B is in).
 - [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate, which makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
 - [ ] GPT-2 medium (GPT-2 small is in): the best-documented model family in the circuits literature; good for the positive-control task.

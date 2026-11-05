@@ -15,6 +15,18 @@
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 
+{% set terms = model_licenses.get(model.name) %}
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+  {% if terms %}
+  Licence <a class="text-emerald-700 underline dark:text-emerald-400" href="{{ terms.url }}">{{ terms.license }}</a> ·
+  {{ "gated" if terms.gated else "not gated" }} ·
+  activations and generated text {{ "may" if terms.publishing_allowed else "may not" }} be published
+  {% if terms.conditions %}· {{ terms.conditions }}{% endif %}
+  {% else %}
+  Licence not recorded
+  {% endif %}
+</p>
+
 {% if circuits or hubs %}
 <p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
