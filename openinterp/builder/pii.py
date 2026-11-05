@@ -1,0 +1,126 @@
+"""Remove personal data from the text that the site shows.
+
+Records keep their text unchanged, because experiments study this text, and records are
+signed. Only the build's output changes. :mod:`openinterp.sensitive` does the search.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from functools import cache
+from typing import Any
+
+from pydantic import BaseModel
+
+from openinterp.core.schemas import AuditRecord
+from openinterp.sensitive import pii_matches
+
+REMOVED_TEXT = "[removed]"  # replaces a match in free text
+REMOVED_TOKEN = "█"  # replaces each token of a match, so a heatmap keeps its shape
+
+Span = tuple[int, int]
+
+
+@cache
+def find_spans(text: str) -> tuple[Span, ...]:
+    """Return the ``(start, end)`` of each match in ``text``, sorted and merged."""
+    merged: list[Span] = []
+    for start, end, _ in pii_matches(text):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return tuple(merged)
+
+
+def redact_text(text: str) -> str:
+    """Return ``text`` with :data:`REMOVED_TEXT` in place of each match."""
+    for start, end in reversed(find_spans(text)):
+        text = text[:start] + REMOVED_TEXT + text[end:]
+    return text
+
+
+def redact_tokens(tokens: Sequence[str]) -> list[str]:
+    """Return ``tokens`` with :data:`REMOVED_TOKEN` in place of each token that a match touches.
+
+    The search reads the tokens joined, because a match usually spans several. The result
+    has one item for each token, so it stays aligned with the activations.
+    """
+    out = list(tokens)
+    position = 0
+    spans = find_spans("".join(tokens))
+    for i, token in enumerate(tokens):
+        end = position + len(token)
+        if any(position < span_end and start < end for start, span_end in spans):
+            out[i] = REMOVED_TOKEN
+        position = end
+    return out
+
+
+def scrub(value: Any) -> Any:
+    """Return ``value`` with every string in it redacted, or ``value`` itself if none changes."""
+    if isinstance(value, str):
+        return redact_text(value)
+    if isinstance(value, list):
+        new = [scrub(item) for item in value]
+        return new if any(a is not b for a, b in zip(new, value, strict=True)) else value
+    if isinstance(value, dict):
+        new = {key: scrub(item) for key, item in value.items()}
+        return new if any(new[key] is not value[key] for key in value) else value
+    if isinstance(value, BaseModel):
+        updates = {}
+        for name in type(value).model_fields:
+            field = getattr(value, name)
+            new = redact_tokens(field) if name == "tokens" and _is_tokens(field) else scrub(field)
+            if new != field:
+                updates[name] = new
+        return value.model_copy(update=updates) if updates else value
+    return value
+
+
+def _is_tokens(field: Any) -> bool:
+    return isinstance(field, list) and all(isinstance(token, str) for token in field)
+
+
+def _scrub_attribution(submission):
+    """Remove attribution tokens that a match touched in the top example they come from.
+
+    Attribution stores loose tokens, so the search cannot read them as one text.
+    """
+    attribution = submission.input_attribution
+    if attribution is None:
+        return submission
+
+    def at(context, offset: int, token: str) -> str:
+        if context.example >= len(submission.top_examples):
+            return token
+        example = submission.top_examples[context.example]
+        position = example.max_token_index + offset
+        removed = 0 <= position < len(example.tokens) and example.tokens[position] == REMOVED_TOKEN
+        return REMOVED_TOKEN if removed else token
+
+    examples = [
+        context.model_copy(
+            update={
+                "peak_token": at(context, 0, context.peak_token),
+                "top": [
+                    t.model_copy(update={"token": at(context, t.offset, t.token)})
+                    for t in context.top
+                ],
+            }
+        )
+        for context in attribution.examples
+    ]
+    return submission.model_copy(
+        update={"input_attribution": attribution.model_copy(update={"examples": examples})}
+    )
+
+
+def scrub_record(record: AuditRecord) -> AuditRecord:
+    """Return a copy of ``record`` to publish, with personal data removed from all its text.
+
+    The copy reaches every page and the Parquet export, including fields added later. Call
+    this after computing anything from probe text. The record on disk does not change.
+    """
+    scrubbed = scrub(record)
+    return scrubbed.model_copy(update={"submission": _scrub_attribution(scrubbed.submission)})

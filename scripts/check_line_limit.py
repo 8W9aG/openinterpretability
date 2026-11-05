@@ -26,6 +26,7 @@ MAX_FUNCTION_LINES = 40
 EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 
 EXEMPT = (
+    "openinterp/data/public_suffix_list.dat",  # a copy of publicsuffix.org's list, not code
     "tests/*",
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows

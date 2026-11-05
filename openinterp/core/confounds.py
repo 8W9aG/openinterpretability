@@ -17,6 +17,18 @@ from openinterp.core.strict import StrictModel, UnitFloat
 LANGUAGE = "language"
 # The label set of a blended corpus's document's preset (its ``source`` field).
 SOURCE = "source"
+# The label sets of what `openinterp/sensitive.py` and `openinterp/names.py` find in a
+# document, and the label of every other token. Tokens with no label leave R² and mutual
+# information, so a label set that named only the matches would always measure zero.
+PERSONAL_DATA = "personal data"
+OFFENSIVE_WORDS = "offensive words"
+NAMES = "names"  # a model's guess (`openinterp/names.py`)
+POSTAL_ADDRESSES = "postal addresses"
+NO_MATCH = "none"
+MATCH_LABEL_SETS = (PERSONAL_DATA, OFFENSIVE_WORDS, NAMES, POSTAL_ADDRESSES)
+# Recorded, but not in the proposer's prompt. Most units have an active token in some name,
+# so every prompt would carry this noisy label.
+NOT_SHOWN_TO_PROPOSER = (NAMES,)
 
 
 class TokenStat(StrictModel):
@@ -51,6 +63,11 @@ class LabelConfound(StrictModel):
     labelled_tokens: int = Field(ge=0)
     unlabelled_tokens: int = Field(ge=0)
     levels: list[LabelStat]
+
+    @property
+    def has_active_match(self) -> bool:
+        """Return whether a match label set has active tokens; most units have none."""
+        return any(s.label != NO_MATCH and s.active > 0 for s in self.levels)
 
 
 class ConfoundProfile(StrictModel):
