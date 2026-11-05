@@ -31,8 +31,9 @@ from typing import Literal
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from openinterp.core.draws import ChosenStop, UnauditableDraw, load_stops, stop_path
 from openinterp.core.paths import experiments_dir
-from openinterp.core.schemas import ActivatingExample, AuditRecord
+from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 
 ExperimentKind = Literal["review", "reevaluation", "backfill"]
 
@@ -170,16 +171,20 @@ def write_experiment_page(
     return page
 
 
+def _unit_meta(ident) -> dict:
+    """The front matter that names the unit within its layer."""
+    if ident.kind == "attn_head":
+        return {"head": ident.head_idx}
+    if ident.kind == "dictionary_feature":
+        return {"dictionary": ident.dictionary, "feature": ident.feature_idx}
+    return {"neuron": ident.neuron_idx, "pole": ident.pole}
+
+
 def _page_meta(record: AuditRecord, kind: ExperimentKind) -> dict:
     """The page's front matter."""
     sub, verdict = record.submission, record.verdict
     ident, policy = sub.identifier, verdict.policy
-    if ident.kind == "attn_head":
-        unit = {"head": ident.head_idx}
-    elif ident.kind == "dictionary_feature":
-        unit = {"dictionary": ident.dictionary, "feature": ident.feature_idx}
-    else:
-        unit = {"neuron": ident.neuron_idx, "pole": ident.pole}
+    unit = _unit_meta(ident)
     meta = {
         "experiment_id": experiment_id(record),
         "kind": kind,
@@ -239,6 +244,54 @@ def _page_body(record: AuditRecord, wiki_dir: Path, meta: dict, kind, previous_s
     )
 
 
+def newest_record(wiki_dir: Path, ident) -> str | None:
+    """The id of the unit's newest experiment; ``None`` if the unit has no experiment."""
+    records = sorted((experiments_dir(wiki_dir) / ident.slug).glob("*.json"))
+    return records[-1].stem if records else None
+
+
+def write_stop_page(draw: UnauditableDraw, wiki_dir: Path) -> Path:
+    """Keep a scan's stop on a chosen unit as a record and a page, and refresh the indexes.
+
+    Returns the page path. Records and pages are write-once, so a stop in the same second
+    as an earlier one leaves that one as it is.
+    """
+    stop = ChosenStop(**dict(draw), latest_record=newest_record(wiki_dir, draw.identifier))
+    path = stop_path(wiki_dir, stop)
+    page = path.with_suffix(".md")
+    if not page.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(stop.model_dump_json() + "\n", encoding="utf-8")
+        meta = _stop_meta(stop)
+        template = _environment().get_template("stop.md")
+        body = template.render(
+            stop=stop,
+            meta=meta,
+            label=unit_label(meta),
+            policy=ReviewPolicy(),
+            root=home_link(stop.identifier.slug).removesuffix("README.md"),
+        )
+        page.write_text(_front_matter(meta) + "\n" + body, encoding="utf-8")
+    rebuild_indexes(wiki_dir)
+    return page
+
+
+def _stop_meta(stop: ChosenStop) -> dict:
+    """The stop page's front matter."""
+    ident = stop.identifier
+    return {
+        "slug": ident.slug,
+        "model": ident.model_name,
+        "layer": ident.layer,
+        **_unit_meta(ident),
+        "outcome": stop.outcome,
+        "active_share": stop.active_share,
+        "protocol_version": stop.protocol_version,
+        "timestamp": stop.timestamp.isoformat(),
+        "latest_record": stop.latest_record,
+    }
+
+
 def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:
     """Where the record's archived JSON goes."""
     return neuron_dir(wiki_dir, record) / f"{experiment_id(record)}.json"
@@ -279,29 +332,34 @@ def load_entries(wiki_dir: Path) -> list[WikiEntry]:
     return sorted((e for e in entries if e.meta), key=lambda e: e.meta["timestamp"], reverse=True)
 
 
+def _neuron_index(env: Environment, slug: str, history: list, stops: list) -> str:
+    latest = history[0].meta
+    return env.get_template("neuron.md").render(
+        slug=slug,
+        latest=latest,
+        label=unit_label(latest),
+        history=history,
+        stops=stops,
+        home=home_link(slug),
+    )
+
+
 def rebuild_indexes(wiki_dir: Path) -> None:
     """Regenerate the gitignored README indexes from the pages' front matter."""
     wiki_dir = Path(wiki_dir)
     wiki_dir.mkdir(parents=True, exist_ok=True)
     entries = load_entries(wiki_dir)
     env = _environment()
+    stops: dict[str, list[ChosenStop]] = {}
+    for stop in load_stops(wiki_dir):
+        stops.setdefault(stop.identifier.slug, []).append(stop)
 
     by_neuron: dict[str, list[WikiEntry]] = {}
     for entry in entries:
         by_neuron.setdefault(entry.meta["slug"], []).append(entry)
     for slug, history in by_neuron.items():
         index = experiments_dir(wiki_dir) / slug / "README.md"
-        latest = history[0].meta
-        index.write_text(
-            env.get_template("neuron.md").render(
-                slug=slug,
-                latest=latest,
-                label=unit_label(latest),
-                history=history,
-                home=home_link(slug),
-            ),
-            encoding="utf-8",
-        )
+        index.write_text(_neuron_index(env, slug, history, stops.get(slug, [])), encoding="utf-8")
 
     counts: dict[str, int] = {}
     for entry in entries:
