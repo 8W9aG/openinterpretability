@@ -55,6 +55,12 @@ def test_each_kind_of_personal_data_is_removed_exactly(found, text):
         "We sold 5551234 units and shipped 8341 7141 more.",  # no phone word before them
         "Call 1999-2000 the best years, or contact 2017-02-23.",  # dates
         "Call about the 0.0612422 result.",  # a decimal
+        "Peaks sit in the top bin 0.1644-0.17004 of the scan.",  # a range of decimals
+        "Scores were 0.96/0.89/0.58/0.02 on the four tests.",  # a list of decimals
+        "Row 01    42.1    3.8    21.4    0.82 of the table.",  # a table row
+        "He served from 6/1999-2/2002 in the role.",  # a date range
+        "Count 1 2 3 4 5 6 7 8 9 10 aloud.",  # a count
+        "The mask is 255.255.255.0 here.",  # a dotted quad
         "Use icon@2x.png and left-pad@1.3.0 here.",  # not emails: no public suffix
         "A probe writes to someone@example.com.",  # RFC 2606: nobody's address
         'NSLog(@"Usage: %@',  # a format string, not a cut address
