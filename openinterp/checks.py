@@ -56,6 +56,12 @@ class CheckReport:
     records: int = 0
     pages: int = 0
     draws: int = 0
+    stops: int = 0
+
+    @property
+    def extra_counts(self) -> dict[str, int]:
+        """How many records of each optional kind the check read."""
+        return {"draw": self.draws, "stop": self.stops}
 
     @property
     def ok(self) -> bool:
@@ -80,6 +86,7 @@ def check_registry(
     _check_records(wiki_dir, report)
     _check_pages(wiki_dir, report)
     _check_draws(wiki_dir, report)
+    _check_stops(wiki_dir, report)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, report)
         _check_agent_names(changed_records(wiki_dir, base_ref), report)
@@ -147,6 +154,27 @@ def _check_draws(wiki_dir: Path, report: CheckReport) -> None:
             report.add(path, "only random draws are recorded")
         if path != draw_path(wiki_dir, draw):
             report.add(path, f"draw record belongs at {draw_path(wiki_dir, draw)}")
+
+
+def _check_stops(wiki_dir: Path, report: CheckReport) -> None:
+    """Recorded stops of chosen units (wiki/stops/) parse, sit where they belong and have a page."""
+    from pydantic import ValidationError
+
+    from openinterp.core.draws import ChosenStop, stop_files, stop_path
+
+    for path in stop_files(wiki_dir):
+        report.stops += 1
+        try:
+            stop = ChosenStop.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValidationError:
+            report.add(path, "invalid stop record")
+            continue
+        if stop.provenance.selection == "random":
+            report.add(path, "a random draw belongs in wiki/draws/")
+        if path != stop_path(wiki_dir, stop):
+            report.add(path, f"stop record belongs at {stop_path(wiki_dir, stop)}")
+        if not path.with_suffix(".md").exists():
+            report.add(path, "stop record has no page")
 
 
 def _check_supersedes(path: Path, record: AuditRecord, report: CheckReport) -> None:

@@ -72,13 +72,22 @@ def with_costs(provenance, *parts):
 
 
 def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
-    """Keep a random draw the scan stopped on, so random-selection statistics count it."""
+    """Keep a unit the scan stopped on, so that the registry shows the attempt.
+
+    Random-selection statistics count a random draw. A chosen unit gets a stop record and a
+    page instead, which those statistics do not read.
+    """
+    from openinterp.builder.wiki import write_stop_page
     from openinterp.cli import _skip_wiki
     from openinterp.core.draws import write_draw
 
-    if random_pick and exc.draw is not None and not _skip_wiki(wiki_dir):
-        path = write_draw(exc.draw, wiki_dir)
-        click.echo(f"Recorded the {exc.draw.outcome.replace('_', '-')} draw: {path}", err=True)
+    if exc.draw is None or _skip_wiki(wiki_dir):
+        return
+    outcome = exc.draw.outcome.replace("_", "-")
+    if random_pick:
+        click.echo(f"Recorded the {outcome} draw: {write_draw(exc.draw, wiki_dir)}", err=True)
+    else:
+        click.echo(f"Recorded the {outcome} stop: {write_stop_page(exc.draw, wiki_dir)}", err=True)
 
 
 def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None) -> str:
@@ -270,7 +279,8 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
 )
 @wiki_dir_option(
     "Registry root. A --random draw the scan stops on (dead or default-on) is recorded "
-    "in draws/<slug>/, as an outcome of random selection. Pass --wiki-dir '' to skip.",
+    "in draws/<slug>/, as an outcome of random selection. A chosen unit is recorded in "
+    "stops/<slug>/. Pass --wiki-dir '' to skip.",
 )
 @with_model_options
 def audit(
@@ -451,7 +461,7 @@ def load_answer(evidence_file, hypothesis_file, agent_model, device, dtype):
 
 
 def scan_or_record(request, use_scan_cache: bool, wiki_dir: Path, device):
-    """Load the model and scan; keep a random draw the scan stops on (see record_draw)."""
+    """Load the model and scan; keep a unit the scan stops on (see record_draw)."""
     from openinterp.cli import _load_runner  # looked up per call, so tests can swap it
 
     attn = "eager" if request.unit == "head" else None  # heads need attention patterns
