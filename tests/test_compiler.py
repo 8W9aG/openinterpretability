@@ -1123,3 +1123,67 @@ def test_agents_page_credits_contributors(tmp_path, records):
 def test_agents_page_without_contributors(tmp_path, records):
     compile_site(records, tmp_path)
     assert "No contributors recorded yet." in (tmp_path / "agents" / "index.html").read_text()
+
+
+def _write_paper(papers, slug, text):
+    folder = papers / slug
+    (folder / "media").mkdir(parents=True)
+    (folder / "media" / "fig.svg").write_text("<svg/>")
+    (folder / "README.md").write_text(text)
+
+
+def test_research_section_lists_papers_in_order_and_renders_them(tmp_path):
+    papers = tmp_path / "papers"
+    papers.mkdir()
+    (papers / "README.md").write_text("- [Two](two/README.md)\n- [One](one/README.md)\n")
+    _write_paper(
+        papers,
+        "one",
+        "# First paper\n\nIts **summary**.\n\n![A figure](media/fig.svg)\n\n"
+        "See [two](../two/README.md) and [code](../../scripts/x.py).\n\n| a |\n| --- |\n| 1 |\n",
+    )
+    _write_paper(papers, "two", "# Second paper\n\nOther summary.\n")
+    out = tmp_path / "dist"
+    compile_site([], out, papers_dir=papers)
+
+    index = (out / "research" / "index.html").read_text()
+    assert index.index("Second paper") < index.index("First paper")
+    assert "Its summary." in index
+    page = (out / "research" / "one" / "index.html").read_text()
+    assert 'href="../two/index.html"' in page
+    assert "/blob/main/scripts/x.py" in page
+    assert "<table>" in page
+    assert (out / "research" / "one" / "media" / "fig.svg").exists()
+    assert 'href="research/index.html"' in (out / "index.html").read_text()
+
+
+def test_research_section_copies_an_interactive_page_as_it_is(tmp_path):
+    papers = tmp_path / "papers"
+    papers.mkdir()
+    (papers / "README.md").write_text("- [Live](live/README.md)\n")
+    folder = papers / "live"
+    folder.mkdir()
+    (folder / "README.md").write_text("# Live page\n\nTry it.\n")
+    (folder / "index.html").write_text("<!doctype html><p>own page")
+    (folder / "data.js").write_text("window.X = 1;\n")
+    out = tmp_path / "dist"
+    compile_site([], out, papers_dir=papers)
+    assert (out / "research" / "live" / "index.html").read_text() == "<!doctype html><p>own page"
+    assert (out / "research" / "live" / "data.js").exists()
+    assert not (out / "research" / "live" / "README.md").exists()
+    assert "Interactive" in (out / "research" / "index.html").read_text()
+
+
+def test_research_section_is_empty_without_papers(tmp_path):
+    compile_site([], tmp_path)
+    assert "No papers yet" in (tmp_path / "research" / "index.html").read_text()
+
+
+def test_repo_papers_are_all_listed_on_the_index():
+    from pathlib import Path
+
+    papers = Path(__file__).parents[1] / "papers"
+    listed = (papers / "README.md").read_text()
+    for folder in papers.iterdir():
+        if folder.is_dir():
+            assert f"({folder.name}/README.md)" in listed

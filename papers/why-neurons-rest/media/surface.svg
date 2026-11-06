@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 370" width="760" height="370" role="img">
+<title>Two three-dimensional surfaces of rest against layer and training step, for the baseline and the centred learned rest. Both fall steeply on L1 and L2, and less on L0 and L3.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="370" rx="10"/>
+<text x="20.0" y="30.0" class="title">Two routes dig nearly the same valley</text>
+<text x="20.0" y="50.0" class="sub">Height is the rest, by layer and step, on seed 0. Deeper is a stronger colour.</text>
+<text x="20.0" y="68.0" class="sub">The bold line marks where each surface crosses GELU&#x27;s dip.</text>
+<text x="20.0" y="100.0" class="head">Baseline: the weights set it</text>
+<text x="370.0" y="100.0" class="head">Centred: a learned value sets it</text>
+<path class="bg2" d="M108.0 146.1L142.0 160.1L116.0 220.9L82.0 172.2Z"/>
+<path class="fc1" fill-opacity="0.25" d="M108.0 146.1L142.0 160.1L116.0 220.9L82.0 172.2Z"/>
+<path class="mesh" d="M108.0 146.1L142.0 160.1L116.0 220.9L82.0 172.2L108.0 146.1"/>
+<path class="bg2" d="M142.0 160.1L176.0 168.2L150.0 244.9L116.0 220.9Z"/>
+<path class="fc1" fill-opacity="0.45" d="M142.0 160.1L176.0 168.2L150.0 244.9L116.0 220.9Z"/>
+<path class="mesh" d="M142.0 160.1L176.0 168.2L150.0 244.9L116.0 220.9L142.0 160.1"/>
+<path class="contour" d="M161.9 209.7L117.0 221.6"/>
+<path class="bg2" d="M176.0 168.2L210.0 173.5L184.0 256.3L150.0 244.9Z"/>
+<path class="fc1" fill-opacity="0.55" d="M176.0 168.2L210.0 173.5L184.0 256.3L150.0 244.9Z"/>
+<path class="mesh" d="M176.0 168.2L210.0 173.5L184.0 256.3L150.0 244.9L176.0 168.2"/>
+<path class="contour" d="M199.9 205.7L161.9 209.7"/>
+<path class="bg2" d="M210.0 173.5L244.0 176.9L218.0 261.3L184.0 256.3Z"/>
+<path class="fc1" fill-opacity="0.60" d="M210.0 173.5L244.0 176.9L218.0 261.3L184.0 256.3Z"/>
+<path class="mesh" d="M210.0 173.5L244.0 176.9L218.0 261.3L184.0 256.3L210.0 173.5"/>
+<path class="contour" d="M235.7 203.9L199.9 205.7"/>
+<path class="bg2" d="M244.0 176.9L278.0 178.9L252.0 266.7L218.0 261.3Z"/>
+<path class="fc1" fill-opacity="0.64" d="M244.0 176.9L278.0 178.9L252.0 266.7L218.0 261.3Z"/>
+<path class="mesh" d="M244.0 176.9L278.0 178.9L252.0 266.7L218.0 261.3L244.0 176.9"/>
+<path class="contour" d="M271.0 202.7L235.7 203.9"/>
+<path class="bg2" d="M278.0 178.9L312.0 181.3L286.0 268.2L252.0 266.7Z"/>
+<path class="fc1" fill-opacity="0.66" d="M278.0 178.9L312.0 181.3L286.0 268.2L252.0 266.7Z"/>
+<path class="mesh" d="M278.0 178.9L312.0 181.3L286.0 268.2L252.0 266.7L278.0 178.9"/>
+<path class="contour" d="M305.9 201.7L271.0 202.7"/>
+<path class="bg2" d="M82.0 172.2L116.0 220.9L90.0 243.2L56.0 198.3Z"/>
+<path class="fc1" fill-opacity="0.32" d="M82.0 172.2L116.0 220.9L90.0 243.2L56.0 198.3Z"/>
+<path class="mesh" d="M82.0 172.2L116.0 220.9L90.0 243.2L56.0 198.3L82.0 172.2"/>
+<path class="bg2" d="M116.0 220.9L150.0 244.9L124.0 267.9L90.0 243.2Z"/>
+<path class="fc1" fill-opacity="0.61" d="M116.0 220.9L150.0 244.9L124.0 267.9L90.0 243.2Z"/>
+<path class="mesh" d="M116.0 220.9L150.0 244.9L124.0 267.9L90.0 243.2L116.0 220.9"/>
+<path class="contour" d="M117.0 221.6L96.1 247.6"/>
+<path class="bg2" d="M150.0 244.9L184.0 256.3L158.0 279.6L124.0 267.9Z"/>
+<path class="fc1" fill-opacity="0.76" d="M150.0 244.9L184.0 256.3L158.0 279.6L124.0 267.9Z"/>
+<path class="mesh" d="M150.0 244.9L184.0 256.3L158.0 279.6L124.0 267.9L150.0 244.9"/>
+<path class="bg2" d="M184.0 256.3L218.0 261.3L192.0 288.5L158.0 279.6Z"/>
+<path class="fc1" fill-opacity="0.84" d="M184.0 256.3L218.0 261.3L192.0 288.5L158.0 279.6Z"/>
+<path class="mesh" d="M184.0 256.3L218.0 261.3L192.0 288.5L158.0 279.6L184.0 256.3"/>
+<path class="bg2" d="M218.0 261.3L252.0 266.7L226.0 293.2L192.0 288.5Z"/>
+<path class="fc1" fill-opacity="0.89" d="M218.0 261.3L252.0 266.7L226.0 293.2L192.0 288.5Z"/>
+<path class="mesh" d="M218.0 261.3L252.0 266.7L226.0 293.2L192.0 288.5L218.0 261.3"/>
+<path class="bg2" d="M252.0 266.7L286.0 268.2L260.0 296.2L226.0 293.2Z"/>
+<path class="fc1" fill-opacity="0.92" d="M252.0 266.7L286.0 268.2L260.0 296.2L226.0 293.2Z"/>
+<path class="mesh" d="M252.0 266.7L286.0 268.2L260.0 296.2L226.0 293.2L252.0 266.7"/>
+<path class="bg2" d="M56.0 198.3L90.0 243.2L64.0 256.9L30.0 223.4Z"/>
+<path class="fc1" fill-opacity="0.28" d="M56.0 198.3L90.0 243.2L64.0 256.9L30.0 223.4Z"/>
+<path class="mesh" d="M56.0 198.3L90.0 243.2L64.0 256.9L30.0 223.4L56.0 198.3"/>
+<path class="bg2" d="M90.0 243.2L124.0 267.9L98.0 275.2L64.0 256.9Z"/>
+<path class="fc1" fill-opacity="0.53" d="M90.0 243.2L124.0 267.9L98.0 275.2L64.0 256.9Z"/>
+<path class="mesh" d="M90.0 243.2L124.0 267.9L98.0 275.2L64.0 256.9L90.0 243.2"/>
+<path class="contour" d="M96.1 247.6L95.1 273.6"/>
+<path class="bg2" d="M124.0 267.9L158.0 279.6L132.0 286.6L98.0 275.2Z"/>
+<path class="fc1" fill-opacity="0.67" d="M124.0 267.9L158.0 279.6L132.0 286.6L98.0 275.2Z"/>
+<path class="mesh" d="M124.0 267.9L158.0 279.6L132.0 286.6L98.0 275.2L124.0 267.9"/>
+<path class="bg2" d="M158.0 279.6L192.0 288.5L166.0 292.6L132.0 286.6Z"/>
+<path class="fc1" fill-opacity="0.75" d="M158.0 279.6L192.0 288.5L166.0 292.6L132.0 286.6Z"/>
+<path class="mesh" d="M158.0 279.6L192.0 288.5L166.0 292.6L132.0 286.6L158.0 279.6"/>
+<path class="bg2" d="M192.0 288.5L226.0 293.2L200.0 298.6L166.0 292.6Z"/>
+<path class="fc1" fill-opacity="0.81" d="M192.0 288.5L226.0 293.2L200.0 298.6L166.0 292.6Z"/>
+<path class="mesh" d="M192.0 288.5L226.0 293.2L200.0 298.6L166.0 292.6L192.0 288.5"/>
+<path class="bg2" d="M226.0 293.2L260.0 296.2L234.0 300.2L200.0 298.6Z"/>
+<path class="fc1" fill-opacity="0.84" d="M226.0 293.2L260.0 296.2L234.0 300.2L200.0 298.6Z"/>
+<path class="mesh" d="M226.0 293.2L260.0 296.2L234.0 300.2L200.0 298.6L226.0 293.2"/>
+<text x="326.0" y="168.0" class="small">Step 12,000</text>
+<text x="326.0" y="186.0" class="small">L0  −0.54</text>
+<text x="326.0" y="203.0" class="small">L1  −1.46</text>
+<text x="326.0" y="220.0" class="small">L2  −1.49</text>
+<text x="326.0" y="237.0" class="small">L3  −1.15</text>
+<text x="102.0" y="141.1" class="small" text-anchor="end">L0</text>
+<text x="24.0" y="218.4" class="small" text-anchor="end">L3</text>
+<text x="132.0" y="306.6" class="small" text-anchor="middle">6k</text>
+<text x="234.0" y="320.2" class="small" text-anchor="middle">12k</text>
+<text x="132.0" y="321.6" class="small" text-anchor="middle">training step</text>
+<path class="bg2" d="M458.0 146.0L492.0 165.8L466.0 211.6L432.0 172.0Z"/>
+<path class="fc2" fill-opacity="0.24" d="M458.0 146.0L492.0 165.8L466.0 211.6L432.0 172.0Z"/>
+<path class="mesh" d="M458.0 146.0L492.0 165.8L466.0 211.6L432.0 172.0L458.0 146.0"/>
+<path class="bg2" d="M492.0 165.8L526.0 174.9L500.0 232.7L466.0 211.6Z"/>
+<path class="fc2" fill-opacity="0.43" d="M492.0 165.8L526.0 174.9L500.0 232.7L466.0 211.6Z"/>
+<path class="mesh" d="M492.0 165.8L526.0 174.9L500.0 232.7L466.0 211.6L492.0 165.8"/>
+<path class="contour" d="M509.1 212.5L482.1 221.6"/>
+<path class="bg2" d="M526.0 174.9L560.0 180.0L534.0 243.0L500.0 232.7Z"/>
+<path class="fc2" fill-opacity="0.53" d="M526.0 174.9L560.0 180.0L534.0 243.0L500.0 232.7Z"/>
+<path class="mesh" d="M526.0 174.9L560.0 180.0L534.0 243.0L500.0 232.7L526.0 174.9"/>
+<path class="contour" d="M549.0 206.6L509.1 212.5"/>
+<path class="bg2" d="M560.0 180.0L594.0 182.4L568.0 250.4L534.0 243.0Z"/>
+<path class="fc2" fill-opacity="0.58" d="M560.0 180.0L594.0 182.4L568.0 250.4L534.0 243.0Z"/>
+<path class="mesh" d="M560.0 180.0L594.0 182.4L568.0 250.4L534.0 243.0L560.0 180.0"/>
+<path class="contour" d="M585.8 203.8L549.0 206.6"/>
+<path class="bg2" d="M594.0 182.4L628.0 184.4L602.0 255.1L568.0 250.4Z"/>
+<path class="fc2" fill-opacity="0.61" d="M594.0 182.4L628.0 184.4L602.0 255.1L568.0 250.4Z"/>
+<path class="mesh" d="M594.0 182.4L628.0 184.4L602.0 255.1L568.0 250.4L594.0 182.4"/>
+<path class="contour" d="M621.5 202.1L585.8 203.8"/>
+<path class="bg2" d="M628.0 184.4L662.0 185.7L636.0 259.0L602.0 255.1Z"/>
+<path class="fc2" fill-opacity="0.64" d="M628.0 184.4L662.0 185.7L636.0 259.0L602.0 255.1Z"/>
+<path class="mesh" d="M628.0 184.4L662.0 185.7L636.0 259.0L602.0 255.1L628.0 184.4"/>
+<path class="contour" d="M656.5 201.1L621.5 202.1"/>
+<path class="bg2" d="M432.0 172.0L466.0 211.6L440.0 233.1L406.0 198.0Z"/>
+<path class="fc2" fill-opacity="0.28" d="M432.0 172.0L466.0 211.6L440.0 233.1L406.0 198.0Z"/>
+<path class="mesh" d="M432.0 172.0L466.0 211.6L440.0 233.1L406.0 198.0L432.0 172.0"/>
+<path class="bg2" d="M466.0 211.6L500.0 232.7L474.0 254.2L440.0 233.1Z"/>
+<path class="fc2" fill-opacity="0.52" d="M466.0 211.6L500.0 232.7L474.0 254.2L440.0 233.1Z"/>
+<path class="mesh" d="M466.0 211.6L500.0 232.7L474.0 254.2L440.0 233.1L466.0 211.6"/>
+<path class="contour" d="M482.1 221.6L463.5 247.6"/>
+<path class="bg2" d="M500.0 232.7L534.0 243.0L508.0 265.1L474.0 254.2Z"/>
+<path class="fc2" fill-opacity="0.65" d="M500.0 232.7L534.0 243.0L508.0 265.1L474.0 254.2Z"/>
+<path class="mesh" d="M500.0 232.7L534.0 243.0L508.0 265.1L474.0 254.2L500.0 232.7"/>
+<path class="bg2" d="M534.0 243.0L568.0 250.4L542.0 271.9L508.0 265.1Z"/>
+<path class="fc2" fill-opacity="0.73" d="M534.0 243.0L568.0 250.4L542.0 271.9L508.0 265.1Z"/>
+<path class="mesh" d="M534.0 243.0L568.0 250.4L542.0 271.9L508.0 265.1L534.0 243.0"/>
+<path class="bg2" d="M568.0 250.4L602.0 255.1L576.0 277.1L542.0 271.9Z"/>
+<path class="fc2" fill-opacity="0.78" d="M568.0 250.4L602.0 255.1L576.0 277.1L542.0 271.9Z"/>
+<path class="mesh" d="M568.0 250.4L602.0 255.1L576.0 277.1L542.0 271.9L568.0 250.4"/>
+<path class="bg2" d="M602.0 255.1L636.0 259.0L610.0 279.5L576.0 277.1Z"/>
+<path class="fc2" fill-opacity="0.81" d="M602.0 255.1L636.0 259.0L610.0 279.5L576.0 277.1Z"/>
+<path class="mesh" d="M602.0 255.1L636.0 259.0L610.0 279.5L576.0 277.1L602.0 255.1"/>
+<path class="bg2" d="M406.0 198.0L440.0 233.1L414.0 251.3L380.0 224.0Z"/>
+<path class="fc2" fill-opacity="0.25" d="M406.0 198.0L440.0 233.1L414.0 251.3L380.0 224.0Z"/>
+<path class="mesh" d="M406.0 198.0L440.0 233.1L414.0 251.3L380.0 224.0L406.0 198.0"/>
+<path class="bg2" d="M440.0 233.1L474.0 254.2L448.0 270.9L414.0 251.3Z"/>
+<path class="fc2" fill-opacity="0.46" d="M440.0 233.1L474.0 254.2L448.0 270.9L414.0 251.3Z"/>
+<path class="mesh" d="M440.0 233.1L474.0 254.2L448.0 270.9L414.0 251.3L440.0 233.1"/>
+<path class="contour" d="M463.5 247.6L455.6 266.1"/>
+<path class="bg2" d="M474.0 254.2L508.0 265.1L482.0 280.7L448.0 270.9Z"/>
+<path class="fc2" fill-opacity="0.59" d="M474.0 254.2L508.0 265.1L482.0 280.7L448.0 270.9Z"/>
+<path class="mesh" d="M474.0 254.2L508.0 265.1L482.0 280.7L448.0 270.9L474.0 254.2"/>
+<path class="contour" d="M457.3 273.6L455.6 266.1"/>
+<path class="bg2" d="M508.0 265.1L542.0 271.9L516.0 287.3L482.0 280.7Z"/>
+<path class="fc2" fill-opacity="0.66" d="M508.0 265.1L542.0 271.9L516.0 287.3L482.0 280.7Z"/>
+<path class="mesh" d="M508.0 265.1L542.0 271.9L516.0 287.3L482.0 280.7L508.0 265.1"/>
+<path class="bg2" d="M542.0 271.9L576.0 277.1L550.0 291.5L516.0 287.3Z"/>
+<path class="fc2" fill-opacity="0.71" d="M542.0 271.9L576.0 277.1L550.0 291.5L516.0 287.3Z"/>
+<path class="mesh" d="M542.0 271.9L576.0 277.1L550.0 291.5L516.0 287.3L542.0 271.9"/>
+<path class="bg2" d="M576.0 277.1L610.0 279.5L584.0 294.4L550.0 291.5Z"/>
+<path class="fc2" fill-opacity="0.74" d="M576.0 277.1L610.0 279.5L584.0 294.4L550.0 291.5Z"/>
+<path class="mesh" d="M576.0 277.1L610.0 279.5L584.0 294.4L550.0 291.5L576.0 277.1"/>
+<text x="676.0" y="168.0" class="small">Step 12,000</text>
+<text x="676.0" y="186.0" class="small">L0  −0.60</text>
+<text x="676.0" y="203.0" class="small">L1  −1.32</text>
+<text x="676.0" y="220.0" class="small">L2  −1.23</text>
+<text x="676.0" y="237.0" class="small">L3  −1.07</text>
+<text x="452.0" y="141.0" class="small" text-anchor="end">L0</text>
+<text x="374.0" y="219.0" class="small" text-anchor="end">L3</text>
+<text x="482.0" y="300.7" class="small" text-anchor="middle">6k</text>
+<text x="584.0" y="314.4" class="small" text-anchor="middle">12k</text>
+<text x="482.0" y="315.7" class="small" text-anchor="middle">training step</text>
+</svg>

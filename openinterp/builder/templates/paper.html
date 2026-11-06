@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{{ paper.title }} · {{ site_title }}{% endblock %}
+
+{% block head %}
+<style>
+  .paper { max-width: 52rem; font-size: 0.95rem; line-height: 1.65; }
+  .paper h2 { margin: 2.5rem 0 0.75rem; font-size: 1.3rem; font-weight: 600; }
+  .paper h3 { margin: 2rem 0 0.5rem; font-size: 1.05rem; font-weight: 600; }
+  .paper p, .paper ul, .paper ol, .paper pre { margin: 0.85rem 0; }
+  .paper ul { padding-left: 1.25rem; list-style: disc; }
+  .paper ol { padding-left: 1.5rem; list-style: decimal; }
+  .paper li { margin: 0.35rem 0; }
+  .paper a { color: #047857; text-decoration: underline; text-underline-offset: 2px; }
+  .paper img { display: block; width: 100%; max-width: 760px; height: auto; margin: 1.5rem 0; }
+  .paper code { font-size: 0.85em; padding: 0.1em 0.3em; border-radius: 3px; background: #f1f5f9; overflow-wrap: anywhere; }
+  .paper pre { padding: 0.75rem 1rem; border-radius: 6px; background: #f1f5f9; overflow-x: auto; }
+  .paper pre code { padding: 0; background: none; overflow-wrap: normal; }
+  .paper table { display: block; max-width: 100%; overflow-x: auto; margin: 1rem 0; border-collapse: collapse; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .paper th, .paper td { padding: 0.3rem 0.6rem; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }
+  .paper td:first-child { white-space: normal; min-width: 7rem; }
+  .paper th { font-weight: 600; }
+  @media (prefers-color-scheme: dark) {
+    .paper a { color: #34d399; }
+    .paper code, .paper pre { background: #1e293b; }
+    .paper th, .paper td { border-color: #334155; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="../index.html">Research</a></nav>
+<h1 class="max-w-3xl text-2xl font-semibold">{{ paper.title }}</h1>
+<p class="mt-2 text-xs text-slate-500">
+  <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/results.jsonl">Results</a> ·
+  <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/README.md">Source</a>
+</p>
+<div class="paper mt-6">{{ paper.body | safe }}</div>
+{% endblock %}
