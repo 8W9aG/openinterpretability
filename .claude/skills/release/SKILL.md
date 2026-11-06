@@ -41,7 +41,7 @@ The CHANGELOG's header explains the two version numbers. The **package version**
    EOF
    ```
    Add a bullet under `### Changed` in the CHANGELOG's Unreleased section. Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
-5. **Check:** `make check lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
+5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
 6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. In `CHANGELOG.md`, put a dated heading under `## [Unreleased]`, so every entry that was there now sits under the new version:
    ```markdown
    ## [Unreleased]

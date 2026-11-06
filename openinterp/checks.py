@@ -17,6 +17,11 @@ checks enforce that:
    agents in canonical spelling (``openinterp.core.agent_names``) and have one shape of
    model fields (``_check_model_fields``).
 
+With ``base_ref``, checks 1 and 2 read only the files that the branch adds or changes,
+committed or not, so their cost doesn't grow with the registry. If the branch also
+changes a tracked file outside the wiki, the code can read old records differently, so
+they read every file. Without ``base_ref``, as on ``main``, they always read every file.
+
 The indexes are rebuilt from the records when they are needed, and are gitignored.
 Every experiment PR used to edit the same index rows, so parallel PRs conflicted.
 """
@@ -25,6 +30,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -59,6 +65,7 @@ class CheckReport:
     pages: int = 0
     draws: int = 0
     stops: int = 0
+    changed_only: bool = False  # the record and page checks read only the branch's changes
 
     @property
     def extra_counts(self) -> dict[str, int]:
@@ -85,16 +92,61 @@ def check_registry(
     report = CheckReport()
     wiki_dir = Path(wiki_dir)
     _check_legacy(Path(legacy_audits_dir), report)
-    _check_records(wiki_dir, report)
-    _check_pages(wiki_dir, report)
-    _check_draws(wiki_dir, report)
-    _check_stops(wiki_dir, report)
+    changes = _branch_changes(wiki_dir, base_ref) if base_ref else []
+    scope = _scope(changes, wiki_dir) if base_ref else None
+    report.changed_only = scope is not None
+    _check_records(wiki_dir, report, scope)
+    _check_pages(wiki_dir, report, scope)
+    _check_draws(wiki_dir, report, scope)
+    _check_stops(wiki_dir, report, scope)
     if base_ref:
-        _check_write_once(wiki_dir, base_ref, report)
-        changed = changed_records(wiki_dir, base_ref)
+        _check_write_once(wiki_dir, base_ref, changes, report)
+        root = experiments_dir(wiki_dir)
+        changed = [
+            path
+            for status, path in changes
+            if status != "D" and path.suffix == ".json" and path.is_relative_to(root)
+        ]
         _check_agent_names(changed, report)
         _check_model_fields(changed, report)
     return report
+
+
+def _branch_changes(wiki_dir: Path, base_ref: str) -> list[tuple[str, Path]]:
+    """Return the status and path of each file changed since the branch left ``base_ref``.
+
+    The list includes uncommitted changes and untracked wiki files, because agents run the
+    check before they commit. Untracked files elsewhere are scratch files, so it omits them.
+    """
+    base = _git("merge-base", base_ref, "HEAD").strip()
+    changes = []
+    for line in _git("diff", "--name-status", "--no-renames", base).splitlines():
+        status, _, name = line.partition("\t")
+        changes.append((status, Path(name)))
+    untracked = _git("ls-files", "--others", "--exclude-standard", "--", str(wiki_dir))
+    return changes + [("A", Path(name)) for name in untracked.splitlines()]
+
+
+def _scope(changes: list[tuple[str, Path]], wiki_dir: Path) -> set[Path] | None:
+    """Return the wiki files to check, or ``None`` for all of them.
+
+    All of them means a change outside the wiki, which can change how any old record reads.
+    A changed page brings in its record, because their front matter and values must agree.
+    """
+    if not all(path.is_relative_to(wiki_dir) for _, path in changes):
+        return None
+    scope = set()
+    for status, path in changes:
+        if status != "D":
+            scope.add(path)
+            if path.suffix == ".md":
+                scope.add(path.with_suffix(".json"))
+    return scope
+
+
+def _chosen(paths: Iterable[Path], scope: set[Path] | None) -> Iterator[Path]:
+    """Yield the ``paths`` in ``scope``, or every path if ``scope`` is ``None``."""
+    return (path for path in paths if scope is None or path in scope)
 
 
 def _check_legacy(audits_dir: Path, report: CheckReport) -> None:
@@ -107,11 +159,11 @@ def _check_legacy(audits_dir: Path, report: CheckReport) -> None:
             )
 
 
-def _check_records(wiki_dir: Path, report: CheckReport) -> None:
+def _check_records(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
     root = experiments_dir(wiki_dir)
     if not root.is_dir():
         return
-    for path in sorted(root.rglob("*.json")):
+    for path in _chosen(sorted(root.rglob("*.json")), scope):
         report.records += 1
         record = _load(path)
         if record is None:
@@ -141,13 +193,13 @@ def _check_records(wiki_dir: Path, report: CheckReport) -> None:
                 report.add(page, f"front matter {key}={meta.get(key)!r} but record has {value!r}")
 
 
-def _check_draws(wiki_dir: Path, report: CheckReport) -> None:
+def _check_draws(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
     """Recorded unauditable draws (wiki/draws/) parse and sit where they belong."""
     from pydantic import ValidationError
 
     from openinterp.core.draws import UnauditableDraw, draw_files, draw_path
 
-    for path in draw_files(wiki_dir):
+    for path in _chosen(draw_files(wiki_dir), scope):
         report.draws += 1
         try:
             draw = UnauditableDraw.model_validate_json(path.read_text(encoding="utf-8"))
@@ -160,13 +212,13 @@ def _check_draws(wiki_dir: Path, report: CheckReport) -> None:
             report.add(path, f"draw record belongs at {draw_path(wiki_dir, draw)}")
 
 
-def _check_stops(wiki_dir: Path, report: CheckReport) -> None:
+def _check_stops(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
     """Recorded stops of chosen units (wiki/stops/) parse, sit where they belong and have a page."""
     from pydantic import ValidationError
 
     from openinterp.core.draws import ChosenStop, stop_files, stop_path
 
-    for path in stop_files(wiki_dir):
+    for path in _chosen(stop_files(wiki_dir), scope):
         report.stops += 1
         try:
             stop = ChosenStop.model_validate_json(path.read_text(encoding="utf-8"))
@@ -191,11 +243,11 @@ def _check_supersedes(path: Path, record: AuditRecord, report: CheckReport) -> N
         report.add(path, f"supersedes {revises}, but this unit has no such experiment")
 
 
-def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
+def _check_pages(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
     root = experiments_dir(wiki_dir)
     if not root.is_dir():
         return
-    for page in sorted(root.rglob("*.md")):
+    for page in _chosen(sorted(root.rglob("*.md")), scope):
         if page.name == "README.md":
             continue
         report.pages += 1
@@ -207,7 +259,7 @@ def _check_pages(wiki_dir: Path, report: CheckReport) -> None:
             report.add(page, "experiment page has no valid front matter")
         if not page.with_suffix(".json").exists():
             report.add(page, f"missing experiment record {page.with_suffix('.json').name}")
-    for sig in sorted(root.rglob("*.json.sig")):
+    for sig in _chosen(sorted(root.rglob("*.json.sig")), scope):
         if not sig.with_suffix("").exists():
             report.add(sig, f"signature for a missing record {sig.with_suffix('').name}")
 
@@ -297,18 +349,12 @@ def _git(*args: str) -> str:
     ).stdout
 
 
-def _check_write_once(wiki_dir: Path, base_ref: str, report: CheckReport) -> None:
-    diff = _git(
-        "diff",
-        "--name-status",
-        "--no-renames",
-        f"{base_ref}...HEAD",
-        "--",
-        str(wiki_dir),
-    )
-    for line in diff.splitlines():
-        status, _, name = line.partition("\t")
-        path = Path(name)
+def _check_write_once(
+    wiki_dir: Path, base_ref: str, changes: list[tuple[str, Path]], report: CheckReport
+) -> None:
+    for status, path in changes:
+        if not path.is_relative_to(wiki_dir):
+            continue
         if path.suffix == ".json" and status in {"D", "M"}:
             report.add(path, "archived experiment records are write-once")
             continue
@@ -321,7 +367,7 @@ def _check_write_once(wiki_dir: Path, base_ref: str, report: CheckReport) -> Non
         if status == "D":
             report.add(path, "experiment pages are write-once and must not be deleted")
         elif status == "M":
-            before = _git("show", f"{base_ref}:{name}")
+            before = _git("show", f"{base_ref}:{path.as_posix()}")
             after = path.read_text(encoding="utf-8")
             if before.split(DISCUSSION_HEADING)[0] != after.split(DISCUSSION_HEADING)[0]:
                 report.add(
