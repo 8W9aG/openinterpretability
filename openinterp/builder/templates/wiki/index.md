@@ -6,6 +6,20 @@ The protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md).
 
 Experiments: **{{ rows | length }}** · units: **{{ neurons }}**{% for status, n in counts | dictsort %} · {{ status }}: {{ n }}{% endfor %}
 
+{% if unindexed_stops %}
+## Scans that stopped on units with no experiment
+
+These attempts tested no hypothesis, so they give no verdict. Each unit below has no experiment on this pole, so it has no index of its own.
+
+| Date | Unit | Outcome | Active share | Page |
+| --- | --- | --- | --- | --- |
+{% for r in unindexed_stops %}
+| {{ r.stop.timestamp.strftime("%Y-%m-%d %H:%M") }} | {{ r.stop.identifier.model_name }} {{ r.label }} | {{ r.stop.outcome | replace('_', '-') }} | {{ r.stop.active_share | pct }} | [{{ r.stop.timestamp.strftime("%Y%m%dT%H%M%SZ") }}]({{ r.link }}) |
+{% endfor %}
+
+## Experiments
+
+{% endif %}
 
 | Date | Unit | Kind | Status | Balanced acc. | Hypothesis |
 | --- | --- | --- | --- | --- | --- |

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark %}
+{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
 {% set t = stats.totals %}
 
 {% block content %}
@@ -130,6 +130,31 @@
   <p class="text-sm text-slate-500">No experiments yet.</p>
   {% endif %}
 </section>
+
+{% if pageless_stops %}
+<section class="mb-10" data-pagefind-ignore>
+  <h2 class="mb-1 text-lg font-semibold">Scans that stopped on units with no page</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">A scan stops on a unit that never fires or that is active on at least half of its tokens. No experiment exists on these units, so they have no page here. These attempts tested no hypothesis, so they give no verdict.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Date</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Outcome</th><th class="px-3 py-2 text-right">Active share</th><th class="px-3 py-2">Page</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for v in pageless_stops %}
+        <tr class="align-top">
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.stop.timestamp.isoformat() }}">{{ v.stop.timestamp.strftime("%Y-%m-%d %H:%M") }}</time></td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ v.label }}<div class="text-slate-500">{{ v.stop.identifier.model_name }}</div></td>
+          <td class="px-3 py-2">{{ stop_outcome(v.stop) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.stop.active_share | pct }}</td>
+          <td class="px-3 py-2 text-xs"><a class="underline-offset-2 hover:underline" href="{{ repo_url }}/blob/main/{{ v.page }}">Wiki page</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 
 <section class="mb-10">
   <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
