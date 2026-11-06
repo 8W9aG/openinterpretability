@@ -2,7 +2,7 @@
 
 Syntax labels from a parser should find the code neurons that the literature leads us to expect, so we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters, and it has not been through the registry's review.
 
-![The pole's strength and the parser's bracket depth, token by token](media/trace.svg)
+![A function with its tokens lit by the pole's strength, read token by token](media/trace.svg)
 
 **Results.**
 
@@ -107,6 +107,8 @@ Strength also fades with distance. These rows have one open bracket and a list o
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Open | 4.23 | 2.20 | 0.56 | 0.00 | 0.00 | 0.00 | 0.00 |
 | Closed | 0.00 | 0.01 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+
+![Strength with distance from one bracket, and across line breaks](media/reach.svg)
 
 This is far shorter than the LSTM's range: Karpathy et al. (2015) show a quote cell that holds for about 230 characters. Their cell and this pole measure different things on different data, so the comparison is only a rough one.
 
