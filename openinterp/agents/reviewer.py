@@ -31,7 +31,7 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
 )
 from openinterp.core import costs
 from openinterp.core.agent_names import same_agent
-from openinterp.core.confounds import LANGUAGE
+from openinterp.core.confounds import LANGUAGE, SYNTAX_NODE
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -39,6 +39,7 @@ from openinterp.core.schemas import (
     ReviewPolicy,
     VerdictStatus,
     VerificationVerdict,
+    scan_active_share,
 )
 from openinterp.core.stats import balanced_accuracy, effective_counts
 from openinterp.harness.confounds import baseline_predictions
@@ -82,6 +83,20 @@ LANGUAGE_PROBES = (
     "against Portuguese, Russian against Ukrainian) that keep the examples' words and "
     "topic as far as that language allows.\n"
 )
+
+
+SYNTAX_PROBES = (
+    "The scan corpus is labelled by syntax, and each code example above gives its peak "
+    "token's syntax node, bracket depths, indent depth and syntax construct. Include hard "
+    "negatives that keep the token and change its syntactic role: `return` as a keyword, "
+    "inside a string and inside a comment. If the hypothesis claims a feature whatever the "
+    "programming language, include positive holdouts in another programming language.\n"
+)
+
+
+def has_syntax_labels(submission: NeuronAuditSubmission) -> bool:
+    """Does a top example say what syntax its peak token has?"""
+    return any(SYNTAX_NODE in (e.peak_labels or {}) for e in submission.top_examples)
 
 
 def has_language_labels(submission: NeuronAuditSubmission) -> bool:
@@ -153,6 +168,7 @@ class ReviewerAgent(LLMAgent):
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
+            + (SYNTAX_PROBES if has_syntax_labels(submission) else "")
             + wordnet.format_for_reviewer(submission.top_examples, wordnet.lexicon())
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
@@ -402,17 +418,6 @@ def _gates(
         "beats_confound_baseline": beats,
         "not_default_on": active_share is None or active_share < policy.max_active_share,
     }
-
-
-def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:
-    """Return the share of the scan's tokens that the unit is active on.
-
-    It comes from the submission's histogram. ``None`` without one.
-    """
-    histogram, scale = submission.activation_histogram, submission.max_activation
-    if histogram is None or not scale:
-        return None
-    return histogram.share_at_least(policy.activation_threshold * scale)
 
 
 def decide(metrics: ReviewMetrics, policy: ReviewPolicy) -> VerdictStatus:

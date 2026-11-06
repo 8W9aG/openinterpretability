@@ -27,8 +27,19 @@ BLENDS = {
         "github-code": 3,
         "wikipedia-multilingual": 3,
     },
+    # The same mix as v1. Its code documents also record their programming language.
+    "mixed-v2": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+    },
 }
-BLEND_ALIASES = {"mixed": "mixed-v1"}
+BLEND_ALIASES = {"mixed": "mixed-v2"}
+# Released before documents recorded a programming language. So their bytes stay without it.
+NO_CODE_LANGUAGE = {"mixed-v1"}
 # Presets left out of `mixed`, and why. Every other preset is in its latest version, so
 # adding a preset means adding a version of the blend (tests/test_corpus.py checks).
 NOT_BLENDED = {
@@ -51,6 +62,24 @@ def blend_shares(name: str, documents: int) -> dict[str, int]:
     return shares
 
 
+def _sample_preset(preset: str, documents: int, seed: int, max_chars: int, code_language: bool):
+    """Return what :func:`openinterp.corpus._sample_hub` reads for a blend's ``preset``."""
+    p = PRESETS[preset]
+    return _sample_hub(
+        p.dataset,
+        files=p.files,
+        text_column=p.text_column,
+        revision=p.revision,
+        documents=documents,
+        seed=seed,
+        max_chars=max_chars,
+        docs_per_row_group=p.docs_per_row_group,
+        layout=p.layout,
+        lang_pattern=p.lang_pattern,
+        code_language_column=p.code_language_column if code_language else None,
+    )
+
+
 def build_blend(
     name: str,
     out: Path,
@@ -64,33 +93,29 @@ def build_blend(
 
     Each preset gives its share of ``documents``, with one seed, in the blend's order. Each
     document records its preset as ``source``, and Wikipedia's documents record their
-    language as ``lang``. The sidecar lists the source of every preset, as
+    language as ``lang``. GitHub code's documents record theirs as ``code_language``, except
+    in the versions of :data:`NO_CODE_LANGUAGE`. The sidecar lists the source of every preset, as
     ``openinterp corpus --dataset <preset>`` writes it alone. So you can rebuild and check
     each part separately.
     """
     name = BLEND_ALIASES.get(name, name)
     texts: list[str] = []
     labels: dict[str, list[str | None]] = {"lang": [], "source": []}
+    code_language = name not in NO_CODE_LANGUAGE
+    if code_language:
+        labels["code_language"] = []
     components = []
     for preset, share in blend_shares(name, documents).items():
-        p = PRESETS[preset]
-        part, part_labels, source = _sample_hub(
-            p.dataset,
-            files=p.files,
-            text_column=p.text_column,
-            revision=p.revision,
-            documents=share,
-            seed=seed,
-            max_chars=max_chars,
-            docs_per_row_group=p.docs_per_row_group,
-            layout=p.layout,
-            lang_pattern=p.lang_pattern,
+        part, part_labels, source = _sample_preset(
+            preset, share, seed, max_chars, code_language=code_language
         )
         sha = hashlib.sha256(jsonl_bytes(part, ascii, part_labels)).hexdigest()
         components.append(CorpusSource(documents=len(part), sha256=sha, ascii=ascii, **source))
         texts += part
         labels["lang"] += (part_labels or {}).get("lang", [None] * len(part))
         labels["source"] += [preset] * len(part)
+        if code_language:
+            labels["code_language"] += (part_labels or {}).get("code_language", [None] * len(part))
     return write_corpus(
         texts,
         out,

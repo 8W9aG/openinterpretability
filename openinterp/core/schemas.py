@@ -411,6 +411,17 @@ class ReviewPolicy(StrictModel):
     max_active_share: UnitFloat = 0.5
 
 
+def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:
+    """Return the share of the scan's tokens that the unit is active on.
+
+    It comes from the submission's histogram. ``None`` without one.
+    """
+    histogram, scale = submission.activation_histogram, submission.max_activation
+    if histogram is None or not scale:
+        return None
+    return histogram.share_at_least(policy.activation_threshold * scale)
+
+
 class ReviewMetrics(StrictModel):
     """The rates and gates the decision rule computes from the probes (docs/PROTOCOL.md §4)."""
 

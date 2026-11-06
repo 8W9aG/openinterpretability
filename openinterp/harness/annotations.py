@@ -23,8 +23,10 @@ document.
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from itertools import accumulate
 from typing import Protocol
 
 import torch
@@ -96,13 +98,22 @@ def align(offsets: Sequence[tuple[int, int]], spans: Sequence[Span]) -> list[str
     The first span wins a tie. ``None`` when no span covers the token. Tokens with no
     characters (special tokens) are unlabelled.
     """
+    # A document has about as many syntax spans as tokens, so reading every span for every
+    # token is too slow. The spans are sorted by start. A walk back from the token's end
+    # stops when no earlier span reaches past the token's start.
+    order = sorted(range(len(spans)), key=lambda i: spans[i].start)
+    starts = [spans[i].start for i in order]
+    reach = list(accumulate((spans[i].end for i in order), max))
     out: list[str | None] = []
     for start, end in offsets:
-        best, most = None, 0
-        for span in spans:
+        best, most, first = None, 0, len(spans)
+        i = bisect_left(starts, end) - 1
+        while i >= 0 and reach[i] > start:
+            span = spans[order[i]]
             overlap = min(end, span.end) - max(start, span.start)
-            if overlap > most:
-                best, most = span.label, overlap
+            if overlap > most or (overlap == most and overlap > 0 and order[i] < first):
+                best, most, first = span.label, overlap, order[i]
+            i -= 1
         out.append(best)
     return out
 
@@ -147,6 +158,8 @@ class TokenLabels:
         return torch.tensor(ids, dtype=torch.long)
 
     def _piece_labels(self, spans: list[Span], piece, ids: torch.Tensor) -> list[str | None]:
+        if not spans:  # no tokenising for a document with no labels (code with no grammar)
+            return [None] * len(ids)
         special = set(getattr(self.tokenizer, "all_special_ids", None) or [])
         text = self.texts[piece.doc]
         if len(spans) == 1 and spans[0].start == 0 and spans[0].end >= len(text):

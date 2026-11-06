@@ -130,6 +130,7 @@ def corpus(
         ascii=ascii_,
         lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
         detect_lang=detect_lang,
+        code_language_column=preset.code_language_column if preset else None,
     )
     _report(source, out, documents)
 
