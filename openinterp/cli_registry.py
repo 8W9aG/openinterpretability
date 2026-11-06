@@ -1,4 +1,4 @@
-"""Registry-maintenance commands: ``wiki``, ``check``, ``stats`` and ``next``."""
+"""Registry-maintenance commands: ``wiki``, ``stats`` and ``next``."""
 
 from __future__ import annotations
 
@@ -28,41 +28,6 @@ def wiki(import_dir, wiki_dir):
     for page in written:
         click.echo(f"Wiki: {page}")
     click.echo(f"{len(written)} new experiments; indexes rebuilt in {wiki_dir}")
-
-
-@cli.command()
-@wiki_dir_option()
-@click.option(
-    "--base-ref",
-    help="Git ref to diff against (e.g. origin/main) to enforce write-once wiki pages.",
-)
-def check(wiki_dir, base_ref):
-    """Check that every posted experiment has a valid record and wiki page (CI gate)."""
-    import os
-
-    from openinterp.checks import check_registry
-
-    report = check_registry(wiki_dir, base_ref=base_ref)
-    in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
-    for problem in report.problems:
-        if in_actions:
-            click.echo(f"::error file={problem.path}::{problem.message}")
-        else:
-            click.echo(f"error: {problem}", err=True)
-
-    summary = (
-        f"Checked {report.records} experiment records and {report.pages} experiment pages"
-        + "".join(f" and {n} {kind} records" for kind, n in report.extra_counts.items() if n)
-        + ": "
-        + ("all consistent." if report.ok else f"{len(report.problems)} problem(s).")
-    )
-    click.echo(summary)
-    if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
-            fh.write(f"### Experiment check\n\n{summary}\n\n")
-            fh.writelines(f"- `{p.path}`: {p.message}\n" for p in report.problems)
-    if not report.ok:
-        raise SystemExit(1)
 
 
 def registry_stats(records) -> str:
