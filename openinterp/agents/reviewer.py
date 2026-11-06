@@ -39,6 +39,7 @@ from openinterp.core.schemas import (
     ReviewPolicy,
     VerdictStatus,
     VerificationVerdict,
+    scan_active_share,
 )
 from openinterp.core.stats import balanced_accuracy, effective_counts
 from openinterp.harness.confounds import baseline_predictions
@@ -417,17 +418,6 @@ def _gates(
         "beats_confound_baseline": beats,
         "not_default_on": active_share is None or active_share < policy.max_active_share,
     }
-
-
-def scan_active_share(submission: NeuronAuditSubmission, policy: ReviewPolicy) -> float | None:
-    """Return the share of the scan's tokens that the unit is active on.
-
-    It comes from the submission's histogram. ``None`` without one.
-    """
-    histogram, scale = submission.activation_histogram, submission.max_activation
-    if histogram is None or not scale:
-        return None
-    return histogram.share_at_least(policy.activation_threshold * scale)
 
 
 def decide(metrics: ReviewMetrics, policy: ReviewPolicy) -> VerdictStatus:
