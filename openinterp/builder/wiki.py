@@ -276,6 +276,16 @@ def write_stop_page(draw: UnauditableDraw, wiki_dir: Path) -> Path:
     return page
 
 
+def stop_page(wiki_dir: Path | str, stop: ChosenStop) -> Path:
+    """The page next to ``stop``'s record."""
+    return stop_path(Path(wiki_dir), stop).with_suffix(".md")
+
+
+def stop_label(stop: ChosenStop) -> str:
+    """The stopped unit within its layer, for example ``L3/N7+``."""
+    return unit_label(_stop_meta(stop))
+
+
 def _stop_meta(stop: ChosenStop) -> dict:
     """The stop page's front matter."""
     ident = stop.identifier
@@ -373,8 +383,18 @@ def rebuild_indexes(wiki_dir: Path) -> None:
         }
         for e in entries
     ]
+    # A unit with no experiment has no index of its own, so only the home can link its stops.
+    unindexed = [
+        {"stop": stop, "label": stop_label(stop), "link": stop_page(".", stop).as_posix()}
+        for slug, unit_stops in stops.items()
+        if slug not in by_neuron
+        for stop in unit_stops
+    ]
+    unindexed.sort(key=lambda row: row["stop"].timestamp, reverse=True)
     (wiki_dir / "README.md").write_text(
-        env.get_template("index.md").render(rows=rows, counts=counts, neurons=len(by_neuron)),
+        env.get_template("index.md").render(
+            rows=rows, counts=counts, neurons=len(by_neuron), unindexed_stops=unindexed
+        ),
         encoding="utf-8",
     )
 

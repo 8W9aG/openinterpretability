@@ -1187,3 +1187,56 @@ def test_repo_papers_are_all_listed_on_the_index():
     for folder in papers.iterdir():
         if folder.is_dir():
             assert f"({folder.name}/README.md)" in listed
+
+
+def _stop(*, layer=3, idx=117, pole="negative", outcome="default_on", share=0.55):
+    from datetime import UTC, datetime
+
+    from openinterp.core.draws import ChosenStop
+    from openinterp.core.identifiers import NeuronIdentifier
+    from openinterp.core.schemas import ExperimentProvenance
+
+    return ChosenStop(
+        identifier=NeuronIdentifier(model_name=MODEL, layer=layer, neuron_idx=idx, pole=pole),
+        outcome=outcome,
+        active_share=share,
+        provenance=ExperimentProvenance(
+            dtype="float32",
+            corpus="stop-corpus",
+            corpus_sha256="ab" * 32,
+            n_snippets=1,
+            tokens_scanned=100,
+            selection="manual",
+            harness_version="test",
+        ),
+        timestamp=datetime(2026, 11, 5, 23, 8, tzinfo=UTC),
+    )
+
+
+def test_unit_page_shows_a_stop_and_links_its_wiki_page(tmp_path, record):
+    # The positive pole has an experiment. The negative pole has only the stop.
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    compile_site([studied], tmp_path, stops=[_stop()])
+    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "Scans that stopped" in page and "default-on" in page and "55%" in page
+    assert f"/blob/main/wiki/stops/{MODEL}/L3/N117-negative/20261105T230800Z.md" in page
+    assert "No experiment: the scan stopped before a hypothesis" in page
+    assert "Not studied yet" not in page  # the stopped pole isn't offered as a candidate
+    assert "Scans that stopped" not in (tmp_path / "index.html").read_text()
+
+
+def test_unit_page_without_a_stop_has_no_stop_section(tmp_path, record):
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    compile_site([studied], tmp_path, stops=[_stop(idx=9)])
+    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    assert "Scans that stopped" not in page and "Not studied yet" in page
+
+
+def test_home_page_lists_a_stop_on_a_unit_with_no_page(tmp_path, record):
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    dead = _stop(idx=9, pole="positive", outcome="dead", share=None)
+    compile_site([studied], tmp_path, stops=[dead])
+    home = (tmp_path / "index.html").read_text()
+    assert "Scans that stopped on units with no page" in home and "L3/N9+" in home
+    assert f"/blob/main/wiki/stops/{MODEL}/L3/N9-positive/20261105T230800Z.md" in home
+    assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()

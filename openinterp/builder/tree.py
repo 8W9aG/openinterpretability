@@ -57,8 +57,7 @@ class Experiment:
 
         That is a neuron experiment's pole, else ``head`` or ``feature``.
         """
-        ident = self.record.submission.identifier
-        return ident.pole or SIDES[ident.kind][0]
+        return unit_side(self.record.submission.identifier)
 
     @property
     def anchor(self) -> str:
@@ -331,6 +330,11 @@ def head_href(slug: str, layer: int, idx: int) -> str:
 def feature_href(slug: str, layer: int, dictionary: str, idx: int) -> str:
     """The dictionary feature's page."""
     return f"models/{slug}/L{layer}/{dictionary}/F{idx}.html"
+
+
+def unit_side(ident) -> str:
+    """What a unit page groups ``ident`` under: a neuron's pole, else ``head`` or ``feature``."""
+    return ident.pole or SIDES[ident.kind][0]
 
 
 def unit_href(ident) -> str:

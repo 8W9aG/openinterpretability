@@ -46,8 +46,12 @@ from openinterp.builder.tree import (
     false_discovery,
     feature_href,
     neuron_href,
+    unit_href,
+    unit_side,
 )
+from openinterp.builder.wiki import stop_label, stop_page
 from openinterp.core.agent_names import canonical_agent
+from openinterp.core.draws import ChosenStop
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
@@ -278,6 +282,7 @@ def compile_site(
     alignment_rows: dict | None = None,
     sister_rows: dict | None = None,
     papers_dir: Path | None = None,
+    stops: Sequence[ChosenStop] = (),
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -286,6 +291,8 @@ def compile_site(
     ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
     ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`).
+    ``stops`` (:func:`openinterp.core.draws.load_stops`) are the scans that stopped on chosen
+    units. A unit page shows its own. The home page shows those of units with no page.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -310,9 +317,10 @@ def compile_site(
     common = _site_context(site_title, corpus_sources, experiments)
     render = _Renderer(_environment(), output_dir, common, report)
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
+    stops_by_unit = _stops_by_unit(stops)
     for model in models:
         sisters = (sister_rows or {}, sister_tests(experiments))
-        _render_model(render, model, rows, studied, alignment_rows or {}, sisters)
+        _render_model(render, model, rows, studied, alignment_rows or {}, sisters, stops_by_unit)
     agents = agents_view(experiments)
     contributors = contributors_view(experiments)
     render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
@@ -320,7 +328,11 @@ def compile_site(
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
-    _render_index(render, models, experiments, agents, stats, draws)
+    pageless = [
+        view for href, views in stops_by_unit.items() if href not in studied for view in views
+    ]
+    pageless.sort(key=lambda view: view["stop"].timestamp, reverse=True)
+    _render_index(render, models, experiments, agents, stats, draws, pageless)
     license = metadata("openinterp")["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license)
     _render_research(render, papers_dir, output_dir, report)
@@ -337,7 +349,22 @@ def _render_research(render, papers_dir, output_dir, report) -> None:
             render(f"research/{paper.href}", "paper.html", paper=paper)
 
 
-def _render_index(render, models, experiments, agents, stats, draws) -> None:
+def _stops_by_unit(stops: Sequence[ChosenStop]) -> dict[str, list[dict]]:
+    """What the site shows of each stop, by the page of its unit, newest first."""
+    by_unit: dict[str, list[dict]] = {}
+    for stop in sorted(stops, key=lambda s: s.timestamp, reverse=True):
+        view = {
+            "stop": stop,
+            "side": unit_side(stop.identifier),
+            "label": stop_label(stop),
+            # The site doesn't publish wiki pages, so the link goes to the repository.
+            "page": stop_page("wiki", stop).as_posix(),
+        }
+        by_unit.setdefault(unit_href(stop.identifier), []).append(view)
+    return by_unit
+
+
+def _render_index(render, models, experiments, agents, stats, draws, pageless_stops) -> None:
     render(
         "index.html",
         "index.html",
@@ -349,6 +376,7 @@ def _render_index(render, models, experiments, agents, stats, draws) -> None:
         agreement=reviewer_agreement(models),
         corpora=corpora_view(experiments),
         contested=contested_units(models),
+        pageless_stops=pageless_stops,
     )
 
 
@@ -444,6 +472,7 @@ def _render_model(
     studied: set,
     alignment: dict | None = None,
     sisters: tuple[dict, dict] = ({}, {}),
+    stops: dict | None = None,
 ) -> None:
     """A model's page, its circuits page (if any), and its layer and unit pages."""
     found, found_hubs = circuits_and_hubs(model, rows)
@@ -474,4 +503,5 @@ def _render_model(
                 poles=pole_scans(neuron),
                 aligned=aligned_latents(model, neuron, alignment or {}, studied),
                 sisters=sister_view(model.slug, neuron, sister_rows, named_by, studied, tests),
+                stops=(stops or {}).get(neuron.href, []),
             )
