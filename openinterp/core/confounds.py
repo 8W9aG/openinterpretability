@@ -17,6 +17,14 @@ from openinterp.core.strict import StrictModel, UnitFloat
 LANGUAGE = "language"
 # The label set of a blended corpus's document's preset (its ``source`` field).
 SOURCE = "source"
+# The label set of a code document's programming language (a corpus's ``code_language``).
+PROGRAMMING_LANGUAGE = "programming language"
+# The label sets of a code document's syntax tree (`openinterp/syntax.py`).
+SYNTAX_NODE = "syntax node"
+BRACKET_DEPTH = "bracket depth"
+ROUND_DEPTH = "round depth"
+INDENT_DEPTH = "indent depth"
+SYNTAX_CONSTRUCT = "syntax construct"
 # The label sets of what `sensitive.py`, `toxicity.py` and `names.py` find in a document,
 # and the label of every other token. Tokens with no label leave R² and mutual
 # information, so a label set that named only the matches would always measure zero.

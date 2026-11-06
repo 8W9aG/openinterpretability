@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 396" width="760" height="396" role="img">
+<title>Three plots of strength against depth. Open brackets rise from 4 to 11. Closed brackets stay near 0. Strings and comments rise as open brackets do. Curly brackets rise less, to 5.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="396" rx="10"/>
+<text x="20.0" y="30.0" class="title">The same token reads high under open brackets, and near zero once they close</text>
+<text x="20.0" y="50.0" class="sub">Mean strength of L2 N676+ at one token after one context token, over 8 items at each depth.</text>
+<text x="20.0" y="68.0" class="sub">All the text is written from templates. The open condition is the same in each panel.</text>
+<text x="44.0" y="106.0" class="head">Open, closed, partly closed</text>
+<path class="grid" d="M54.6 114.0L54.6 324.0"/>
+<text x="54.6" y="339.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M89.8 114.0L89.8 324.0"/>
+<text x="89.8" y="339.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M125.1 114.0L125.1 324.0"/>
+<text x="125.1" y="339.0" class="small" text-anchor="middle">3</text>
+<path class="grid" d="M160.4 114.0L160.4 324.0"/>
+<text x="160.4" y="339.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M195.7 114.0L195.7 324.0"/>
+<text x="195.7" y="339.0" class="small" text-anchor="middle">5</text>
+<path class="grid" d="M44.0 324.0L262.7 324.0"/>
+<text x="37.0" y="328.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M44.0 254.0L262.7 254.0"/>
+<text x="37.0" y="258.0" class="small" text-anchor="end">4</text>
+<path class="grid" d="M44.0 184.0L262.7 184.0"/>
+<text x="37.0" y="188.0" class="small" text-anchor="end">8</text>
+<path class="grid" d="M44.0 114.0L262.7 114.0"/>
+<text x="37.0" y="118.0" class="small" text-anchor="end">12</text>
+<text x="153.3" y="355.0" class="small" text-anchor="middle">depth</text>
+<path class="line sc1" d="M54.6 250.6L89.8 205.9L125.1 172.9L160.4 149.2L195.7 131.2"/>
+<circle class="fc1" cx="54.6" cy="250.6" r="3"/>
+<circle class="fc1" cx="89.8" cy="205.9" r="3"/>
+<circle class="fc1" cx="125.1" cy="172.9" r="3"/>
+<circle class="fc1" cx="160.4" cy="149.2" r="3"/>
+<circle class="fc1" cx="195.7" cy="131.2" r="3"/>
+<path class="line sc3" d="M54.6 295.1L89.8 252.1L125.1 222.2L160.4 200.1L195.7 184.0"/>
+<circle class="fc3" cx="54.6" cy="295.1" r="3"/>
+<circle class="fc3" cx="89.8" cy="252.1" r="3"/>
+<circle class="fc3" cx="125.1" cy="222.2" r="3"/>
+<circle class="fc3" cx="160.4" cy="200.1" r="3"/>
+<circle class="fc3" cx="195.7" cy="184.0" r="3"/>
+<path class="line sc2" d="M54.6 324.0L89.8 324.0L125.1 321.9L160.4 314.5L195.7 324.0"/>
+<circle class="fc2" cx="54.6" cy="324.0" r="3"/>
+<circle class="fc2" cx="89.8" cy="324.0" r="3"/>
+<circle class="fc2" cx="125.1" cy="321.9" r="3"/>
+<circle class="fc2" cx="160.4" cy="314.5" r="3"/>
+<circle class="fc2" cx="195.7" cy="324.0" r="3"/>
+<text x="280.7" y="106.0" class="head">Text the parser ignores</text>
+<path class="grid" d="M291.2 114.0L291.2 324.0"/>
+<text x="291.2" y="339.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M326.5 114.0L326.5 324.0"/>
+<text x="326.5" y="339.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M361.8 114.0L361.8 324.0"/>
+<text x="361.8" y="339.0" class="small" text-anchor="middle">3</text>
+<path class="grid" d="M397.1 114.0L397.1 324.0"/>
+<text x="397.1" y="339.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M432.3 114.0L432.3 324.0"/>
+<text x="432.3" y="339.0" class="small" text-anchor="middle">5</text>
+<path class="grid" d="M280.7 324.0L499.3 324.0"/>
+<path class="grid" d="M280.7 254.0L499.3 254.0"/>
+<path class="grid" d="M280.7 184.0L499.3 184.0"/>
+<path class="grid" d="M280.7 114.0L499.3 114.0"/>
+<text x="390.0" y="355.0" class="small" text-anchor="middle">depth</text>
+<path class="line sc1" d="M291.2 250.6L326.5 205.9L361.8 172.9L397.1 149.2L432.3 131.2"/>
+<circle class="fc1" cx="291.2" cy="250.6" r="3"/>
+<circle class="fc1" cx="326.5" cy="205.9" r="3"/>
+<circle class="fc1" cx="361.8" cy="172.9" r="3"/>
+<circle class="fc1" cx="397.1" cy="149.2" r="3"/>
+<circle class="fc1" cx="432.3" cy="131.2" r="3"/>
+<path class="line sc3" d="M291.2 243.0L326.5 200.4L361.8 169.1L397.1 146.1L432.3 128.6"/>
+<circle class="fc3" cx="291.2" cy="243.0" r="3"/>
+<circle class="fc3" cx="326.5" cy="200.4" r="3"/>
+<circle class="fc3" cx="361.8" cy="169.1" r="3"/>
+<circle class="fc3" cx="397.1" cy="146.1" r="3"/>
+<circle class="fc3" cx="432.3" cy="128.6" r="3"/>
+<path class="line sc2" d="M291.2 283.8L326.5 241.3L361.8 210.6L397.1 188.0L432.3 170.7"/>
+<circle class="fc2" cx="291.2" cy="283.8" r="3"/>
+<circle class="fc2" cx="326.5" cy="241.3" r="3"/>
+<circle class="fc2" cx="361.8" cy="210.6" r="3"/>
+<circle class="fc2" cx="397.1" cy="188.0" r="3"/>
+<circle class="fc2" cx="432.3" cy="170.7" r="3"/>
+<text x="517.3" y="106.0" class="head">Other brackets</text>
+<path class="grid" d="M527.9 114.0L527.9 324.0"/>
+<text x="527.9" y="339.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M563.2 114.0L563.2 324.0"/>
+<text x="563.2" y="339.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M598.5 114.0L598.5 324.0"/>
+<text x="598.5" y="339.0" class="small" text-anchor="middle">3</text>
+<path class="grid" d="M633.7 114.0L633.7 324.0"/>
+<text x="633.7" y="339.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M669.0 114.0L669.0 324.0"/>
+<text x="669.0" y="339.0" class="small" text-anchor="middle">5</text>
+<path class="grid" d="M517.3 324.0L736.0 324.0"/>
+<path class="grid" d="M517.3 254.0L736.0 254.0"/>
+<path class="grid" d="M517.3 184.0L736.0 184.0"/>
+<path class="grid" d="M517.3 114.0L736.0 114.0"/>
+<text x="626.7" y="355.0" class="small" text-anchor="middle">depth</text>
+<path class="line sc1" d="M527.9 250.6L563.2 205.9L598.5 172.9L633.7 149.2L669.0 131.2"/>
+<circle class="fc1" cx="527.9" cy="250.6" r="3"/>
+<circle class="fc1" cx="563.2" cy="205.9" r="3"/>
+<circle class="fc1" cx="598.5" cy="172.9" r="3"/>
+<circle class="fc1" cx="633.7" cy="149.2" r="3"/>
+<circle class="fc1" cx="669.0" cy="131.2" r="3"/>
+<path class="line sc3" d="M527.9 262.7L563.2 225.7L598.5 199.0L633.7 180.1L669.0 166.1"/>
+<circle class="fc3" cx="527.9" cy="262.7" r="3"/>
+<circle class="fc3" cx="563.2" cy="225.7" r="3"/>
+<circle class="fc3" cx="598.5" cy="199.0" r="3"/>
+<circle class="fc3" cx="633.7" cy="180.1" r="3"/>
+<circle class="fc3" cx="669.0" cy="166.1" r="3"/>
+<path class="line sc2" d="M527.9 297.9L563.2 274.6L598.5 258.3L633.7 246.2L669.0 236.8"/>
+<circle class="fc2" cx="527.9" cy="297.9" r="3"/>
+<circle class="fc2" cx="563.2" cy="274.6" r="3"/>
+<circle class="fc2" cx="598.5" cy="258.3" r="3"/>
+<circle class="fc2" cx="633.7" cy="246.2" r="3"/>
+<circle class="fc2" cx="669.0" cy="236.8" r="3"/>
+<text x="202.7" y="135.2" class="small">open</text>
+<text x="202.7" y="188.0" class="small">one closed</text>
+<text x="202.7" y="328.0" class="small">closed</text>
+<text x="439.3" y="132.6" class="small">in a string</text>
+<text x="439.3" y="148.2" class="small">open</text>
+<text x="439.3" y="174.7" class="small">in a comment</text>
+<text x="676.0" y="135.2" class="small">open</text>
+<text x="676.0" y="170.1" class="small">square</text>
+<text x="676.0" y="240.8" class="small">curly</text>
+</svg>
