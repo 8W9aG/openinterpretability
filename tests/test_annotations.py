@@ -8,6 +8,7 @@ import fsspec
 import torch
 
 from openinterp.agents.proposer import format_confounds
+from openinterp.core.confounds import SYNTAX_NODE
 from openinterp.corpus import build_from_hub, jsonl_bytes, sample_indices, sample_tokens
 from openinterp.evidence import read_corpus, read_labels
 from openinterp.harness.annotations import (
@@ -221,3 +222,14 @@ def test_build_from_hub_records_each_globs_language(tmp_path, shards, monkeypatc
     assert [r["lang"] for r in rows] == ["en"] * 3 + ["de"] * 2
     assert [r["text"].split()[0] for r in rows] == ["file0"] * 3 + ["file1"] * 2
     assert source.lang_pattern == r"^\d+\.(\w+)/"
+
+
+def test_reviewer_is_asked_for_role_changes_only_on_syntax_labels(record):
+    from openinterp.agents.reviewer import SYNTAX_PROBES, ReviewerAgent
+
+    sub = record.submission
+    first = sub.top_examples[0].model_copy(update={"peak_labels": {SYNTAX_NODE: "keyword"}})
+    coded = sub.model_copy(update={"top_examples": [first, *sub.top_examples[1:]]})
+    assert SYNTAX_PROBES in ReviewerAgent.probe_prompt(coded)
+    assert "`return` as a keyword" in SYNTAX_PROBES
+    assert SYNTAX_PROBES not in ReviewerAgent.probe_prompt(sub)

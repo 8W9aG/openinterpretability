@@ -37,7 +37,7 @@ def page_of(repo):
 
 
 def test_consistent_registry_passes(repo):
-    report = check_registry(base_ref="main")
+    report = check_registry()
     assert report.ok, messages(report)
     assert (report.records, report.pages) == (1, 1)
 
@@ -52,7 +52,7 @@ def _later(record, hours):
 def test_many_experiments_per_neuron(repo, record):
     for hours in (1, 2):
         write_experiment_page(_later(record, hours), repo / "wiki", kind="reevaluation")
-    report = check_registry(base_ref="main")
+    report = check_registry()
     assert report.ok, messages(report)
     assert (report.records, report.pages) == (3, 3)
 
@@ -294,3 +294,105 @@ def test_re_review_may_keep_a_null_that_its_unit_has(tmp_path, monkeypatch, reco
     _commit_new_record(tmp_path, old)
     report = check_registry(base_ref="main~1")
     assert report.ok, messages(report)
+
+
+def _commit(message="next"):
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", message], check=True)
+
+
+@pytest.fixture
+def old_problem(repo):
+    """A registry whose base already holds an invalid record, on a new branch from it."""
+    (page_of(repo).parent / "20200101T000000Z.json").write_text("{}")
+    _commit("base with a problem")
+    subprocess.run(["git", "checkout", "-qb", "branch"], check=True)
+    return repo
+
+
+def test_a_branch_check_reads_only_what_the_branch_changes(old_problem, record):
+    assert "invalid experiment record" in messages(check_registry())
+    report = check_registry(base_ref="main")
+    assert report.ok, messages(report)
+    assert report.changed_only and (report.records, report.pages) == (0, 0)
+
+    write_experiment_page(_later(record, 1), old_problem / "wiki", kind="reevaluation")
+    _commit()
+    report = check_registry(base_ref="main")
+    assert report.ok, messages(report)
+    assert (report.records, report.pages) == (1, 1)
+
+
+def test_a_change_outside_the_wiki_checks_every_record(old_problem):
+    (old_problem / ".gitignore").write_text("wiki/README.md\n")  # tracked, not yet committed
+    report = check_registry(base_ref="main")
+    assert not report.changed_only and "invalid experiment record" in messages(report)
+    _commit()
+    report = check_registry(base_ref="main")
+    assert not report.changed_only and "invalid experiment record" in messages(report)
+
+
+def test_untracked_scratch_files_do_not_force_a_full_check(old_problem):
+    (old_problem / "ev.json").write_text("{}")
+    assert check_registry(base_ref="main").changed_only
+
+
+def test_a_branch_check_sees_uncommitted_records(repo, record):
+    page = write_experiment_page(_later(record, 1), repo / "wiki", kind="reevaluation")
+    page.unlink()
+    assert "has no page" in messages(check_registry(base_ref="main"))
+
+
+def test_a_branch_check_sees_a_page_without_its_record(repo, record):
+    page = write_experiment_page(_later(record, 1), repo / "wiki", kind="reevaluation")
+    page.with_suffix(".json").unlink()
+    assert "missing experiment record" in messages(check_registry(base_ref="main"))
+
+
+def test_a_branch_check_compares_a_changed_page_with_its_record(repo):
+    page = page_of(repo)
+    page.write_text(page.read_text().replace('"VERIFIED"', '"REJECTED"', 1))
+    text = messages(check_registry(base_ref="main"))
+    assert "front matter status" in text and "only the Discussion section" in text
+
+
+def test_a_branch_check_sees_a_signature_without_a_record(repo):
+    (page_of(repo).parent / "20200101T000000Z.json.sig").write_text("sig")
+    assert "signature for a missing record" in messages(check_registry(base_ref="main"))
+
+
+def test_a_branch_check_sees_uncommitted_deletions(repo):
+    page = page_of(repo)
+    page.with_suffix(".json").unlink()
+    assert "write-once" in messages(check_registry(base_ref="main"))
+    page.unlink()
+    assert "must not be deleted" in messages(check_registry(base_ref="main"))
+
+
+def test_new_draws_and_stops_are_checked_and_old_ones_skipped(repo):
+    draw = repo / "wiki" / "draws" / "m" / "old.json"
+    draw.parent.mkdir(parents=True)
+    draw.write_text("{}")
+    _commit()
+    report = check_registry(base_ref="main")
+    assert report.ok and report.draws == 0
+    new_draw = draw.with_name("new.json")
+    new_draw.write_text("{}")
+    stop = repo / "wiki" / "stops" / "m" / "new.json"
+    stop.parent.mkdir(parents=True)
+    stop.write_text("{}")
+    text = messages(check_registry(base_ref="main"))
+    assert "invalid draw record" in text and "invalid stop record" in text
+
+
+def test_cli_names_the_scope_and_explains_a_missing_ref(repo):
+    from click.testing import CliRunner
+
+    from openinterp.cli import cli
+
+    result = CliRunner().invoke(cli, ["check", "--base-ref", "main"])
+    assert result.exit_code == 0 and "changed since main" in result.output
+    result = CliRunner().invoke(cli, ["check", "--base-ref", "origin/nope"])
+    assert result.exit_code != 0 and "can't diff against origin/nope" in result.output
+    assert "Traceback" not in result.output

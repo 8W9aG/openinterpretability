@@ -25,13 +25,13 @@ from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
-from itertools import pairwise
 from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from openinterp.core.confounds import LANGUAGE, SOURCE
+from openinterp.core.confounds import LANGUAGE, PROGRAMMING_LANGUAGE, SOURCE
 from openinterp.core.schemas import CorpusSample, CorpusSource
+from openinterp.corpus_layouts import LAYOUTS, wikitext_articles  # noqa: F401  (re-exported)
 
 # What `openinterp audit` scans by default (protocol 0.7). The seed is fixed, so every
 # audit of a corpus reads the same documents, and their scales are comparable.
@@ -51,6 +51,8 @@ class Preset:
     docs_per_row_group: int = 20
     # A regular expression whose group, matched in each file glob, is its documents' `lang`.
     lang_pattern: str | None = None
+    # The dataset column that gives each document's programming language (`code_language`).
+    code_language_column: str | None = None
 
 
 WIKIPEDIA_LANGUAGES = ("en", "de", "fr", "ru", "el", "ar", "hi", "zh", "ja", "ko")
@@ -89,7 +91,11 @@ PRESETS = {
     # repos in shuffled order, so take 100 from each. The card says Apache-2.0, but each
     # file keeps its repo's licence (its `license` column: mostly MIT and GPL).
     "github-code": Preset(
-        "codeparrot/github-code-clean", "data/train-*.parquet", "code", docs_per_row_group=100
+        "codeparrot/github-code-clean",
+        "data/train-*.parquet",
+        "code",
+        docs_per_row_group=100,
+        code_language_column="language",
     ),
     # Wikipedia (November 2023 dump) in ten languages and eight scripts, with an equal share
     # of documents each, for language-identity and script neurons. Latin script: English,
@@ -105,50 +111,13 @@ PRESETS = {
     ),
 }
 
-# WikiText's top-level heading row (" = Title = \n") starts an article; sections are
-# " = = Section = = \n". Its text is tokenised: "1 @,@ 000", "well @-@ known", "lobster ,".
-_WIKITEXT_TITLE = re.compile(r" = [^=].* = \n?")
-_WIKITEXT_HEADING = re.compile(r"(?:= )+(.*?)(?: =)+")
-_WIKITEXT_DETOKENIZE = [
-    (re.compile(r" @(.)@ "), r"\1"),  # number separators and hyphens
-    (re.compile(r" ([.,;:!?%)\]}])"), r"\1"),
-    (re.compile(r"([(\[{$]) "), r"\1"),
-    (re.compile(r" (n't|'s|'re|'ve|'m|'ll|'d)\b"), r"\1"),
-    (re.compile(r" ' s\b"), "'s"),  # possessive after punctuation: "Inc. ' s"
-    (re.compile(r"s ' "), "s' "),  # plural possessive
-    (re.compile(r'" ([^"]*?) "'), r'"\1"'),
-]
-
-
-def wikitext_articles(rows: Sequence[str | None]) -> list[str]:
-    """Return the WikiText articles that start and end within ``rows``, detokenised.
-
-    Headings become plain lines, and blank lines separate paragraphs. An article cut by
-    the start or end of ``rows`` (a row group's edge) is dropped, not truncated.
-    """
-    starts = [i for i, row in enumerate(rows) if _WIKITEXT_TITLE.fullmatch(row or "")]
-    return [_wikitext_article(rows[a:b]) for a, b in pairwise(starts)]
-
-
-def _wikitext_article(rows: Sequence[str | None]) -> str:
-    paragraphs = []
-    for row in rows:
-        text = (row or "").strip()
-        if heading := _WIKITEXT_HEADING.fullmatch(text):
-            text = heading.group(1)
-        for pattern, repl in _WIKITEXT_DETOKENIZE:
-            text = pattern.sub(repl, text)
-        if text:
-            paragraphs.append(text)
-    return "\n\n".join(paragraphs)
-
-
-# Row layouts other than one document per row: rows of one row group -> its documents.
-LAYOUTS = {"wikitext": wikitext_articles}
-
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
 # (`harness/annotations.py`). Exact labels from the dataset, never detected.
-DOCUMENT_LABELS = {"lang": LANGUAGE, "source": SOURCE}
+DOCUMENT_LABELS = {
+    "lang": LANGUAGE,
+    "source": SOURCE,
+    "code_language": PROGRAMMING_LANGUAGE,
+}
 
 
 def source_path(corpus_path: Path) -> Path:
@@ -166,11 +135,14 @@ def sample_documents(
     max_chars: int,
     docs_per_row_group: int,
     layout: str | None = None,
+    label_column: str | None = None,
+    labels: list | None = None,
 ) -> list[str]:
     """Return up to ``documents`` non-empty texts from Parquet files on ``fs``.
 
     Each text is cut to ``max_chars``. With a ``layout``, each row group's rows are first
-    joined into its documents.
+    joined into its documents. With a ``label_column``, each returned text's value in that
+    column joins the list ``labels``.
     """
     rng = random.Random(seed)
     paths = sorted(paths)
@@ -182,13 +154,15 @@ def sample_documents(
     # Few row groups (a small dataset): take more from each, so the sample still fills.
     take = max(docs_per_row_group, math.ceil(documents / max(len(groups), 1)))
     out: list[str] = []
-    for texts in _read_groups(fs, groups, text_column):
+    for texts, column in _read_groups(fs, groups, text_column, label_column):
         if layout is not None:
             texts = LAYOUTS[layout](texts)
         order = rng.sample(range(len(texts)), len(texts))
         picked = [j for j in order if (texts[j] or "").strip()][:take]  # empties don't count
         for j in sorted(picked):
             out.append(texts[j].strip()[:max_chars])
+            if label_column:
+                labels.append(column[j])
             if len(out) >= documents:
                 return out
     return out
@@ -202,21 +176,26 @@ def first_documents(
     documents: int,
     max_chars: int,
     layout: str | None = None,
+    label_column: str | None = None,
+    labels: list | None = None,
 ) -> list[str]:
     """Return the first ``documents`` non-empty texts of the Parquet files on ``fs``.
 
     The files are in sorted order. Each text is cut to ``max_chars`` but not stripped, as
-    the registry's corpus was.
+    the registry's corpus was. ``label_column`` and ``labels`` are as in
+    :func:`sample_documents`.
     """
     out: list[str] = []
     for path in sorted(paths):
         groups = [(path, i) for i in range(_row_groups(fs, path))]
-        for texts in _read_groups(fs, groups, text_column):
+        for texts, column in _read_groups(fs, groups, text_column, label_column):
             if layout is not None:
                 texts = LAYOUTS[layout](texts)
-            for text in texts:
+            for j, text in enumerate(texts):
                 if (text or "").strip():
                     out.append(text[:max_chars])
+                    if label_column:
+                        labels.append(column[j])
                     if len(out) >= documents:
                         return out
     return out
@@ -227,10 +206,18 @@ def _row_groups(fs, path: str) -> int:
         return pq.ParquetFile(fh).num_row_groups
 
 
-def _read_groups(fs, groups, column: str) -> Iterator[list]:
+def _read_groups(
+    fs, groups, column: str, label_column: str | None = None
+) -> Iterator[tuple[list, list | None]]:
+    """Yield each row group's ``column`` and, if there is a ``label_column``, that column."""
+    columns = [column, label_column] if label_column else [column]
     for path, i in groups:
         with fs.open(path, "rb") as fh:
-            yield pq.ParquetFile(fh).read_row_group(i, columns=[column]).column(column).to_pylist()
+            table = pq.ParquetFile(fh).read_row_group(i, columns=columns)
+        yield (
+            table.column(column).to_pylist(),
+            table.column(label_column).to_pylist() if label_column else None,
+        )
 
 
 def jsonl_bytes(
@@ -342,12 +329,14 @@ def build_from_hub(
     ascii: bool = False,
     lang_pattern: str | None = None,
     detect_lang: bool = False,
+    code_language_column: str | None = None,
 ) -> CorpusSource:
     """Sample a corpus from a Hugging Face dataset at a pinned revision.
 
     With ``first``, take its first documents. With ``lang_pattern`` (see :class:`Preset`),
     each document records its glob's language as ``lang``. With ``detect_lang``, ``lang``
-    is the language that :mod:`openinterp.langid` detects, where it is sure of one.
+    is the language that :mod:`openinterp.langid` detects, where it is sure of one. With
+    ``code_language_column``, each document records that column's value as ``code_language``.
     """
     texts, labels, source = _sample_hub(
         dataset,
@@ -362,6 +351,7 @@ def build_from_hub(
         first=first,
         lang_pattern=lang_pattern,
         detect_lang=detect_lang,
+        code_language_column=code_language_column,
     )
     return write_corpus(texts, out, ascii=ascii, labels=labels, **source)
 
@@ -380,6 +370,7 @@ def _sample_hub(
     first: bool = False,
     lang_pattern: str | None = None,
     detect_lang: bool = False,
+    code_language_column: str | None = None,
 ) -> tuple[list[str], dict | None, dict]:
     """Return the documents that :func:`build_from_hub` samples, and their labels.
 
@@ -387,25 +378,27 @@ def _sample_hub(
     """
     if lang_pattern and detect_lang:
         raise ValueError("a corpus's languages come from lang_pattern or detect_lang, not both")
+    if code_language_column and layout:
+        raise ValueError("a layout joins rows, so a column can't label its documents")
     from huggingface_hub import HfApi, HfFileSystem
 
     api = HfApi()
     info = api.dataset_info(dataset, revision=revision)
     license_ = _license(api, dataset, info, revision)
     fs = HfFileSystem()
-    read = {"text_column": text_column, "max_chars": max_chars, "layout": layout}
+    code_languages: list[str | None] = []
+    column = {"label_column": code_language_column, "labels": code_languages}
+    read = {"text_column": text_column, "max_chars": max_chars, "layout": layout, **column}
+    sampled = {"seed": seed, "docs_per_row_group": docs_per_row_group}
     take = (
         partial(first_documents, fs, **read)
         if first
-        else partial(sample_documents, fs, seed=seed, docs_per_row_group=docs_per_row_group, **read)
+        else partial(sample_documents, fs, **sampled, **read)
     )
-    texts, langs = _read_globs(fs, f"{dataset}@{info.sha}", files, documents, take)
-    langs = [_glob_lang(lang_pattern, glob) for glob in langs]
-    detector = None
-    if detect_lang:
-        from openinterp import langid
-
-        langs, detector = langid.detect(texts), langid.DETECTOR
+    texts, globs = _read_globs(fs, f"{dataset}@{info.sha}", files, documents, take)
+    labels, detector = _document_labels(texts, globs, lang_pattern, detect_lang)
+    if code_language_column:
+        labels["code_language"] = code_languages
     source = dict(
         dataset=dataset,
         revision=info.sha,
@@ -418,9 +411,21 @@ def _sample_hub(
         first=first,
         lang_pattern=lang_pattern,
         lang_detector=detector,
+        code_language_column=code_language_column,
         license=", ".join(license_) if isinstance(license_, list) else license_,
     )
-    return texts, {"lang": langs} if lang_pattern or detect_lang else None, source
+    return texts, labels or None, source
+
+
+def _document_labels(
+    texts: list[str], globs: list[str], lang_pattern: str | None, detect_lang: bool
+) -> tuple[dict, str | None]:
+    """Return the ``lang`` labels, if the corpus has them, and the detector that gave them."""
+    if detect_lang:
+        from openinterp import langid
+
+        return {"lang": langid.detect(texts)}, langid.DETECTOR
+    return ({"lang": [_glob_lang(lang_pattern, g) for g in globs]} if lang_pattern else {}), None
 
 
 def _read_globs(fs, repo: str, files: str, documents: int, take):

@@ -13,6 +13,7 @@ from openinterp.core.schemas import (
     BUILTIN_CORPUS,
     AuditRecord,
     ExperimentProvenance,
+    Histogram,
     ReviewMetrics,
     ReviewPolicy,
 )
@@ -102,6 +103,56 @@ def test_default_on_units_get_no_follow_ups_but_their_other_pole(tmp_path, recor
     wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", idx=6, gates=gates))
     kinds = _kinds(plan_next(wiki, seed=1, epsilon=0.0, now=NOW))
     assert kinds == {("opposite_pole", "N6-negative")}
+
+
+def _default_on_histogram(rec, active=90):
+    """Return ``rec`` with ``active`` of 100 scan tokens above the activity line."""
+    line = ReviewPolicy().activation_threshold * rec.submission.max_activation
+    histogram = Histogram(bin_edges=[0.0, line, 3.0], counts=[100 - active, active])
+    return rec.model_copy(
+        update={"submission": rec.submission.model_copy(update={"activation_histogram": histogram})}
+    )
+
+
+@pytest.mark.parametrize("status", ["NEEDS_REVISION", "REJECTED", "VERIFIED"])
+def test_a_default_on_histogram_ends_follow_ups_without_the_gate(tmp_path, record, status):
+    # A protocol 0.7 record has no not_default_on gate. Only its histogram shows the state.
+    gates = {"specificity": status == "VERIFIED"}
+    rec = _default_on_histogram(_record(record, status=status, idx=8, gates=gates))
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW)
+    assert _kinds(plan) == {("opposite_pole", "N8-negative")}
+
+
+def test_a_default_on_histogram_keeps_reevaluate(tmp_path, record):
+    rec = _record(record, status="VERIFIED", idx=8, gates={}, policy=False)
+    plan = plan_next(_registry(tmp_path, _default_on_histogram(rec)), seed=1, epsilon=0.0, now=NOW)
+    assert _kinds(plan) == {("reevaluate", "N8-positive"), ("opposite_pole", "N8-negative")}
+    weights = {c.kind: c.weight for c in plan.candidates}
+    assert weights == {
+        "reevaluate": BASE_WEIGHTS["reevaluate"],
+        "opposite_pole": BASE_WEIGHTS["opposite_pole"],
+    }
+
+
+def test_default_on_histograms_never_draw_a_scan_that_must_stop(tmp_path, record):
+    wiki = _registry(
+        tmp_path,
+        _default_on_histogram(_record(record, status="NEEDS_REVISION", idx=1, gates={})),
+        _default_on_histogram(_record(record, status="REJECTED", idx=2, gates={})),
+        _default_on_histogram(_record(record, status="NEEDS_REVISION", idx=3, gates={}), active=49),
+    )
+    drawn = Counter(
+        (c.kind, c.slug.rsplit("/", 1)[-1])
+        for c in (plan_next(wiki, seed=s, epsilon=0.0, now=NOW).choice for s in range(200))
+    )
+    assert ("revise", "N3-positive") in drawn  # below the line: still auditable
+    assert not {key for key in drawn if key[1] in {"N1-positive", "N2-positive"}}
+
+
+def test_a_builtin_sample_histogram_does_not_settle_default_on(tmp_path, record):
+    rec = _default_on_histogram(_record(record, status="REJECTED", idx=9, gates={}))
+    plan = plan_next(_registry(tmp_path, _scanned_on(rec, BUILTIN_CORPUS)), seed=1, now=NOW)
+    assert _kinds(plan) == {("rescan", "N9-positive"), ("opposite_pole", "N9-negative")}
 
 
 def _scanned_on(rec, corpus):

@@ -176,7 +176,7 @@ def test_review_check_probes_shows_tokens_and_repeats(runner, scan, tmp_path, mo
     assert "1. expected active: 'xyz'" in prompt and "repeated token runs: none" in prompt
 
 
-def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path):
+def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     record = _record(runner, scan)
     wiki = tmp_path / "wiki"
     page = write_experiment_page(record, wiki)
@@ -197,6 +197,8 @@ def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path):
     assert row["induction_score"] == scan.profile.induction_score
     assert "Heads studied" in (tmp_path / "dist" / "index.html").read_text()
 
+    # The toy head is default-on, and the planner offers no new audit of such a unit.
+    monkeypatch.setattr("openinterp.planner._default_on", lambda record: False)
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     kinds = {c.kind for c in plan.candidates}
     assert "opposite_pole" not in kinds
