@@ -354,6 +354,17 @@ def _neuron_index(env: Environment, slug: str, history: list, stops: list) -> st
     )
 
 
+def _unindexed_stops(stops: dict[str, list[ChosenStop]], indexed) -> list[dict]:
+    """Stops on units with no index of their own, newest first: only the home can link them."""
+    rows = [
+        {"stop": stop, "label": stop_label(stop), "link": stop_page(".", stop).as_posix()}
+        for slug, unit_stops in stops.items()
+        if slug not in indexed
+        for stop in unit_stops
+    ]
+    return sorted(rows, key=lambda row: row["stop"].timestamp, reverse=True)
+
+
 def rebuild_indexes(wiki_dir: Path) -> None:
     """Regenerate the gitignored README indexes from the pages' front matter."""
     wiki_dir = Path(wiki_dir)
@@ -383,17 +394,12 @@ def rebuild_indexes(wiki_dir: Path) -> None:
         }
         for e in entries
     ]
-    # A unit with no experiment has no index of its own, so only the home can link its stops.
-    unindexed = [
-        {"stop": stop, "label": stop_label(stop), "link": stop_page(".", stop).as_posix()}
-        for slug, unit_stops in stops.items()
-        if slug not in by_neuron
-        for stop in unit_stops
-    ]
-    unindexed.sort(key=lambda row: row["stop"].timestamp, reverse=True)
     (wiki_dir / "README.md").write_text(
         env.get_template("index.md").render(
-            rows=rows, counts=counts, neurons=len(by_neuron), unindexed_stops=unindexed
+            rows=rows,
+            counts=counts,
+            neurons=len(by_neuron),
+            unindexed_stops=_unindexed_stops(stops, by_neuron),
         ),
         encoding="utf-8",
     )
