@@ -20,13 +20,18 @@ only a warning. Explanation scores are re-derived from re-measured windows and t
 judge's stored answers; the judge and embedding model are not re-run.
 
 A record judged under another protocol version can't be reproduced by this harness:
-its decision rule was different. Re-evaluate it instead (`openinterp reevaluate`).
+its decision rule was different. Re-evaluate it instead (`openinterp reevaluate`). A
+library upgrade can still shift its activations. So ``measurements_only`` compares its
+scan evidence and counterfactuals, and leaves out the review.
 """
 
 from __future__ import annotations
 
+import hashlib
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord, RunEnvironment
@@ -98,20 +103,38 @@ def check_protocol(record: AuditRecord) -> str | None:
     return None
 
 
+def rotating_sample(paths: Sequence[Path], size: int, day: date) -> list[Path]:
+    """Return the ``size`` records of ``paths`` that ``day`` selects.
+
+    The order comes from a hash of each path, so one day's records are spread over models
+    and layers. A new record doesn't move the others in the order. Consecutive days take
+    consecutive windows, so a registry of N records is covered in N / ``size`` days.
+    """
+    order = sorted(paths, key=lambda p: hashlib.sha256(Path(p).as_posix().encode()).hexdigest())
+    if size >= len(order):
+        return order
+    start = day.toordinal() * size % len(order)
+    return (order + order)[start : start + size]
+
+
 def reproduce_record(
     record: AuditRecord,
     runner: NeuronHookRunner,
     tolerance: Tolerance = DEFAULT_TOLERANCE,
     path: Path | None = None,
     corpus: tuple[list[str], str] | None = None,
+    *,
+    measurements_only: bool = False,
 ) -> ReproductionReport:
     """Reproduce ``record`` with ``runner``.
 
     ``corpus`` is (documents, SHA-256 of the corpus file), to draw the scan's sample from.
+    With ``measurements_only``, a record from another protocol version gets its scan
+    evidence and counterfactuals compared, and a warning that the review was left out.
     """
     report = ReproductionReport(path=path, record=record)
     reason = check_protocol(record)
-    if reason:
+    if reason and (record.verdict is None or not measurements_only):
         report.fail(reason)
         return report
     from openinterp.harness.units import submission_unit
@@ -131,6 +154,9 @@ def reproduce_record(
 
     # 2. Counterfactuals as submitted.
     _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
+    if reason:
+        report.warnings.append(f"measurements only, because the record was {reason}")
+        return report
 
     # 3. The review, under the record's own policy and reviewer.
     _compare_verdicts(verdict, _review_again(record, runner), tolerance, scale, report)

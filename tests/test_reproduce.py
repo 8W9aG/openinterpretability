@@ -1,5 +1,6 @@
 """Reproducing a record catches edited numbers, results and verdicts."""
 
+from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,7 +10,7 @@ from click.testing import CliRunner
 from openinterp.agents.reviewer import evaluate_submission
 from openinterp.cli import cli
 from openinterp.core.schemas import AuditRecord
-from openinterp.reproduce import reproduce_record
+from openinterp.reproduce import reproduce_record, rotating_sample
 from tests.test_agents import SMALL, _probes, _submission
 
 
@@ -201,3 +202,100 @@ def test_changed_records_lists_added_records(tmp_path, monkeypatch):
     git("add", "-A")
     git("commit", "-q", "-m", "add")
     assert changed_records(Path("wiki"), "main") == [Path("wiki/experiments/m/new.json")]
+
+
+def test_rotating_sample_covers_the_registry_and_is_repeatable():
+    paths = [Path(f"wiki/experiments/m/{i}.json") for i in range(10)]
+    day = date(2026, 11, 6)
+    assert rotating_sample(paths, 3, day) == rotating_sample(list(reversed(paths)), 3, day)
+    assert rotating_sample(paths, 3, day) != rotating_sample(paths, 3, day + timedelta(days=1))
+    assert len(set(rotating_sample(paths, 3, day))) == 3
+    covered = {p for n in range(4) for p in rotating_sample(paths, 3, day + timedelta(days=n))}
+    assert covered == set(paths)
+    assert sorted(rotating_sample(paths, 11, day)) == sorted(paths)
+
+
+def _old_protocol(record):
+    policy = record.verdict.policy.model_copy(update={"protocol_version": "0.1"})
+    return record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"policy": policy})}
+    )
+
+
+def test_measurements_only_compares_an_old_records_activations(record, toy_runner):
+    old = _old_protocol(record)
+    assert not reproduce_record(old, toy_runner).ok
+    report = reproduce_record(old, toy_runner, measurements_only=True)
+    assert report.ok, report.mismatches
+    assert any("measurements only" in w for w in report.warnings)
+
+    example = old.submission.top_examples[0]
+    edited = example.model_copy(update={"activations": [a + 1.0 for a in example.activations]})
+    sub = old.submission.model_copy(update={"top_examples": [edited]})
+    tampered = old.model_copy(update={"submission": sub})
+    assert not reproduce_record(tampered, toy_runner, measurements_only=True).ok
+
+
+def test_measurements_only_still_runs_the_review_of_a_current_record(record, toy_runner):
+    report = reproduce_record(
+        edit_result(record, 0, passed=False), toy_runner, measurements_only=True
+    )
+    assert not report.ok
+
+
+def _wiki_record(tmp_path, record):
+    path = tmp_path / "wiki" / "experiments" / "m" / "r.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(record.model_dump_json())
+    return path
+
+
+def test_cli_sample_reproduces_signed_and_old_records(tmp_path, monkeypatch, record, toy_runner):
+    from openinterp.signing import sign_record
+    from tests.test_signing import keypair, signer_line
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    path = _wiki_record(tmp_path, _old_protocol(record))
+    key = keypair(tmp_path, "maintainer")
+    sign_record(path, key)
+    signers = tmp_path / "allowed_signers"
+    signers.write_text(signer_line("will", key))
+    common = ["--allowed-signers", str(signers), "--wiki-dir", "wiki"]
+
+    skipped = CliRunner().invoke(cli, ["reproduce", str(path.relative_to(tmp_path)), *common])
+    assert "SIGNED by will" in skipped.output
+
+    args = ["reproduce", "--sample", "5", "--date", "2026-11-06", *common]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0, result.output
+    assert "REPRODUCED: wiki/experiments/m/r.json" in result.output
+    assert "measurements only" in result.output
+
+    path.write_text(path.read_text() + "\n")  # edited after signing
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 1 and "not a valid signature" in result.output
+
+
+def test_cli_include_signed_runs_the_review(tmp_path, monkeypatch, record, toy_runner):
+    from openinterp.signing import sign_record
+    from tests.test_signing import keypair, signer_line
+
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    path = _wiki_record(tmp_path, record)
+    key = keypair(tmp_path, "maintainer")
+    sign_record(path, key)
+    signers = tmp_path / "allowed_signers"
+    signers.write_text(signer_line("will", key))
+    args = ["reproduce", str(path), "--include-signed", "--allowed-signers", str(signers)]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0 and "REPRODUCED" in result.output, result.output
+
+
+def test_nightly_workflow_opens_issues_and_keeps_failures_visible():
+    root = Path(__file__).parent.parent
+    workflow = (root / ".github/workflows/reproduce-nightly.yml").read_text()
+    assert "issues: write" in workflow and "if: failure()" in workflow
+    assert "shell: bash" in workflow  # pipefail: tee can't hide a failed reproduction
+    assert "openinterp reproduce" in workflow and "--sample" in workflow
+    assert "gh issue create" in workflow and "gh issue comment" in workflow
