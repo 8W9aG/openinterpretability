@@ -18,7 +18,7 @@ checks enforce that:
    model fields (``_check_model_fields``).
 
 With ``base_ref``, checks 1 and 2 read only the files that the branch adds or changes,
-committed or not, so their cost doesn't grow with the registry. If the branch also
+committed or not. So their cost doesn't grow with the registry. If the branch also
 changes a tracked file outside the wiki, the code can read old records differently, so
 they read every file. Without ``base_ref``, as on ``main``, they always read every file.
 
