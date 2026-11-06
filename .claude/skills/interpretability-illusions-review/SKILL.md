@@ -32,5 +32,6 @@ description: Reviewer's checklist of documented ways neuron explanations fool th
 - **Selection.** Was the neuron chosen at random, or picked because it looked clean? (`provenance.selection`)
 - **Scan breadth.** Corpus diversity and `snippet_tokens`. Under 256 tokens is a reason to ask for a rescan.
 - **Counterfactuals.** The proposer measured these before submitting, so they are a reproduction check, not a prediction (`docs/PROTOCOL.md` §4).
+- **A readable low tail.** A reliable token list doesn't show that a unit means something. At GPT-2 L9, random directions in the MLP's input have the same split-half reliability by token as default-on neurons. Some of their lists suggest a theme too (`docs/analyses/default-on-poles.md`). Compare a claim from a tail with random directions at the same share of tokens.
 - **Patching effects.** If only patching, and not ablation, shows an effect, suspect a dormant pathway (Makelov et al.).
 - **Independence.** Prefer a reviewer model that differs from the proposer's. It is recorded as `independent_review` but no longer gated (protocol 0.4), so say in the PR when the same model did both.
