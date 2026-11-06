@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 410" width="760" height="410" role="img">
+<title>Two scatter plots against the activation variance ratio for 12 layers. The clamp&#x27;s KL ratio has r 0.95 and the shuffled null&#x27;s has r 0.97. Both lie near the diagonal.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="410" rx="10"/>
+<text x="20.0" y="30.0" class="title">A shuffled change with no link to the token fits the variance just as well</text>
+<text x="20.0" y="50.0" class="sub">So &quot;the same signal, scaled down&quot; gets no support. Any change of this size gives this pattern. Each dot is a layer.</text>
+<text x="48.0" y="92.0" class="head">KL ratio of the clamp</text>
+<path class="grid" d="M48.0 100.0L48.0 362.0"/>
+<text x="48.0" y="377.0" class="small" text-anchor="middle">0.0</text>
+<path class="grid" d="M143.9 100.0L143.9 362.0"/>
+<text x="143.9" y="377.0" class="small" text-anchor="middle">0.1</text>
+<path class="grid" d="M239.8 100.0L239.8 362.0"/>
+<text x="239.8" y="377.0" class="small" text-anchor="middle">0.2</text>
+<path class="grid" d="M335.6 100.0L335.6 362.0"/>
+<text x="335.6" y="377.0" class="small" text-anchor="middle">0.3</text>
+<path class="grid" d="M48.0 362.0L374.0 362.0"/>
+<text x="41.0" y="366.0" class="small" text-anchor="end">0.0</text>
+<path class="grid" d="M48.0 284.9L374.0 284.9"/>
+<text x="41.0" y="288.9" class="small" text-anchor="end">0.1</text>
+<path class="grid" d="M48.0 207.9L374.0 207.9"/>
+<text x="41.0" y="211.9" class="small" text-anchor="end">0.2</text>
+<path class="grid" d="M48.0 130.8L374.0 130.8"/>
+<text x="41.0" y="134.8" class="small" text-anchor="end">0.3</text>
+<path class="axis" d="M48.0 362.0L374.0 100.0"/>
+<circle class="fc1 ring" cx="180.7" cy="314.3" r="5"/>
+<circle class="fc1 ring" cx="245.4" cy="180.3" r="5"/>
+<circle class="fc1 ring" cx="329.8" cy="156.5" r="5"/>
+<circle class="fc1 ring" cx="342.6" cy="163.6" r="5"/>
+<circle class="fc1 ring" cx="321.3" cy="156.5" r="5"/>
+<circle class="fc1 ring" cx="277.3" cy="183.4" r="5"/>
+<circle class="fc1 ring" cx="245.2" cy="201.6" r="5"/>
+<circle class="fc1 ring" cx="214.8" cy="244.7" r="5"/>
+<circle class="fc1 ring" cx="203.7" cy="259.2" r="5"/>
+<circle class="fc1 ring" cx="176.2" cy="274.4" r="5"/>
+<circle class="fc1 ring" cx="132.9" cy="313.7" r="5"/>
+<circle class="fc1 ring" cx="89.0" cy="322.9" r="5"/>
+<text x="189.7" y="318.3" class="small">L0</text>
+<text x="56.0" y="116.0" class="ink">r = 0.95</text>
+<text x="306.9" y="123.1" class="small" text-anchor="end">x = y</text>
+<text x="211.0" y="393.0" class="small" text-anchor="middle">activation variance ratio, − / +</text>
+<text x="410.0" y="92.0" class="head">KL ratio of the shuffled null</text>
+<path class="grid" d="M410.0 100.0L410.0 362.0"/>
+<text x="410.0" y="377.0" class="small" text-anchor="middle">0.0</text>
+<path class="grid" d="M505.9 100.0L505.9 362.0"/>
+<text x="505.9" y="377.0" class="small" text-anchor="middle">0.1</text>
+<path class="grid" d="M601.8 100.0L601.8 362.0"/>
+<text x="601.8" y="377.0" class="small" text-anchor="middle">0.2</text>
+<path class="grid" d="M697.6 100.0L697.6 362.0"/>
+<text x="697.6" y="377.0" class="small" text-anchor="middle">0.3</text>
+<path class="grid" d="M410.0 362.0L736.0 362.0"/>
+<text x="403.0" y="366.0" class="small" text-anchor="end">0.0</text>
+<path class="grid" d="M410.0 284.9L736.0 284.9"/>
+<text x="403.0" y="288.9" class="small" text-anchor="end">0.1</text>
+<path class="grid" d="M410.0 207.9L736.0 207.9"/>
+<text x="403.0" y="211.9" class="small" text-anchor="end">0.2</text>
+<path class="grid" d="M410.0 130.8L736.0 130.8"/>
+<text x="403.0" y="134.8" class="small" text-anchor="end">0.3</text>
+<path class="axis" d="M410.0 362.0L736.0 100.0"/>
+<circle class="fneutral ring" cx="542.7" cy="295.1" r="5"/>
+<circle class="fneutral ring" cx="607.4" cy="209.7" r="5"/>
+<circle class="fneutral ring" cx="691.8" cy="183.1" r="5"/>
+<circle class="fneutral ring" cx="704.6" cy="137.2" r="5"/>
+<circle class="fneutral ring" cx="683.3" cy="150.8" r="5"/>
+<circle class="fneutral ring" cx="639.3" cy="176.5" r="5"/>
+<circle class="fneutral ring" cx="607.2" cy="208.2" r="5"/>
+<circle class="fneutral ring" cx="576.8" cy="224.2" r="5"/>
+<circle class="fneutral ring" cx="565.7" cy="238.5" r="5"/>
+<circle class="fneutral ring" cx="538.2" cy="261.7" r="5"/>
+<circle class="fneutral ring" cx="494.9" cy="307.9" r="5"/>
+<circle class="fneutral ring" cx="451.0" cy="343.3" r="5"/>
+<text x="551.7" y="299.1" class="small">L0</text>
+<text x="418.0" y="116.0" class="ink">r = 0.97</text>
+<text x="668.9" y="123.1" class="small" text-anchor="end">x = y</text>
+<text x="573.0" y="393.0" class="small" text-anchor="middle">activation variance ratio, − / +</text>
+</svg>

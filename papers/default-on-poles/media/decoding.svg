@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" width="760" height="380" role="img">
+<title>Left: R² lead by layer. The negative side leads by at most 0.025, and the positive side reaches 0.073 at L11. Right: the negative side&#x27;s AUROC lead on labels is at most 0.011.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="380" rx="10"/>
+<text x="20.0" y="30.0" class="title">The negative side leads random features only a little on these targets</text>
+<text x="20.0" y="50.0" class="sub">Zero is the best of three random-feature draws. Late layers show the positive side pulling away.</text>
+<text x="20.0" y="68.0" class="sub">The two panels use different scores, so compare each with its own zero, not with the other.</text>
+<circle class="fc1" cx="25.0" cy="98.0" r="5"/>
+<text x="35.0" y="102.0">Negative side</text>
+<circle class="fc2" cx="136.8" cy="98.0" r="5"/>
+<text x="146.8" y="102.0">Positive side</text>
+<text x="56.0" y="128.0" class="head">Next-token distribution: R² lead over the null</text>
+<path class="grid" d="M56.0 276.0L456.0 276.0"/>
+<text x="49.0" y="280.0" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M56.0 241.0L456.0 241.0"/>
+<text x="49.0" y="245.0" class="small" text-anchor="end">0.02</text>
+<path class="grid" d="M56.0 206.0L456.0 206.0"/>
+<text x="49.0" y="210.0" class="small" text-anchor="end">0.04</text>
+<path class="grid" d="M56.0 171.0L456.0 171.0"/>
+<text x="49.0" y="175.0" class="small" text-anchor="end">0.06</text>
+<path class="grid" d="M68.3 136.0L68.3 332.0"/>
+<text x="68.3" y="347.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M160.6 136.0L160.6 332.0"/>
+<text x="160.6" y="347.0" class="small" text-anchor="middle">3</text>
+<path class="grid" d="M252.9 136.0L252.9 332.0"/>
+<text x="252.9" y="347.0" class="small" text-anchor="middle">6</text>
+<path class="grid" d="M345.2 136.0L345.2 332.0"/>
+<text x="345.2" y="347.0" class="small" text-anchor="middle">9</text>
+<path class="grid" d="M406.8 136.0L406.8 332.0"/>
+<text x="406.8" y="347.0" class="small" text-anchor="middle">11</text>
+<path class="fneutral soft" d="M68.3 287.0L99.1 277.7L129.8 288.9L160.6 292.2L191.4 288.3L222.2 282.1L252.9 290.8L283.7 287.3L314.5 285.6L345.2 302.7L376.0 281.5L406.8 286.5L406.8 276.0L68.3 276.0Z"/>
+<path class="axis" d="M56.0 276.0L456.0 276.0"/>
+<text x="456.0" y="323.2" class="small" text-anchor="end">shaded: spread of the 3 null draws</text>
+<path class="line sc2" d="M68.3 224.2L99.1 233.3L129.8 239.7L160.6 217.7L191.4 259.7L222.2 229.6L252.9 201.6L283.7 183.5L314.5 189.6L345.2 182.6L376.0 188.6L406.8 148.9"/>
+<circle class="fc2 ring" cx="68.3" cy="224.2" r="3.5"/>
+<circle class="fc2 ring" cx="99.1" cy="233.3" r="3.5"/>
+<circle class="fc2 ring" cx="129.8" cy="239.7" r="3.5"/>
+<circle class="fc2 ring" cx="160.6" cy="217.7" r="3.5"/>
+<circle class="fc2 ring" cx="191.4" cy="259.7" r="3.5"/>
+<circle class="fc2 ring" cx="222.2" cy="229.6" r="3.5"/>
+<circle class="fc2 ring" cx="252.9" cy="201.6" r="3.5"/>
+<circle class="fc2 ring" cx="283.7" cy="183.5" r="3.5"/>
+<circle class="fc2 ring" cx="314.5" cy="189.6" r="3.5"/>
+<circle class="fc2 ring" cx="345.2" cy="182.6" r="3.5"/>
+<circle class="fc2 ring" cx="376.0" cy="188.6" r="3.5"/>
+<circle class="fc2 ring" cx="406.8" cy="148.9" r="3.5"/>
+<text x="414.8" y="152.9" class="small">0.073</text>
+<path class="line sc1" d="M68.3 273.1L99.1 237.1L129.8 239.1L160.6 237.3L191.4 238.6L222.2 236.0L252.9 235.0L283.7 240.1L314.5 252.6L345.2 252.9L376.0 232.2L406.8 261.6"/>
+<circle class="fc1 ring" cx="68.3" cy="273.1" r="3.5"/>
+<circle class="fc1 ring" cx="99.1" cy="237.1" r="3.5"/>
+<circle class="fc1 ring" cx="129.8" cy="239.1" r="3.5"/>
+<circle class="fc1 ring" cx="160.6" cy="237.3" r="3.5"/>
+<circle class="fc1 ring" cx="191.4" cy="238.6" r="3.5"/>
+<circle class="fc1 ring" cx="222.2" cy="236.0" r="3.5"/>
+<circle class="fc1 ring" cx="252.9" cy="235.0" r="3.5"/>
+<circle class="fc1 ring" cx="283.7" cy="240.1" r="3.5"/>
+<circle class="fc1 ring" cx="314.5" cy="252.6" r="3.5"/>
+<circle class="fc1 ring" cx="345.2" cy="252.9" r="3.5"/>
+<circle class="fc1 ring" cx="376.0" cy="232.2" r="3.5"/>
+<circle class="fc1 ring" cx="406.8" cy="261.6" r="3.5"/>
+<text x="414.8" y="265.6" class="small">0.008</text>
+<text x="256.0" y="363.0" class="small" text-anchor="middle">layer</text>
+<text x="526.0" y="128.0" class="head">Human labels: AUROC lead, − side</text>
+<path class="grid" d="M526.0 276.0L736.0 276.0"/>
+<text x="519.0" y="280.0" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M526.0 241.0L736.0 241.0"/>
+<text x="519.0" y="245.0" class="small" text-anchor="end">0.02</text>
+<path class="grid" d="M526.0 206.0L736.0 206.0"/>
+<text x="519.0" y="210.0" class="small" text-anchor="end">0.04</text>
+<path class="grid" d="M526.0 171.0L736.0 171.0"/>
+<text x="519.0" y="175.0" class="small" text-anchor="end">0.06</text>
+<path class="axis" d="M526.0 276.0L736.0 276.0"/>
+<text x="547.0" y="347.0" class="small" text-anchor="middle">L0</text>
+<circle class="fc1 ring" cx="547.0" cy="272.0" r="4"/>
+<circle class="fc1 ring" cx="547.0" cy="268.4" r="4"/>
+<circle class="fc1 ring" cx="547.0" cy="267.4" r="4"/>
+<circle class="fc1 ring" cx="547.0" cy="270.7" r="4"/>
+<circle class="fc1 ring" cx="547.0" cy="276.8" r="4"/>
+<text x="589.0" y="347.0" class="small" text-anchor="middle">L3</text>
+<circle class="fc1 ring" cx="589.0" cy="269.3" r="4"/>
+<circle class="fc1 ring" cx="589.0" cy="265.6" r="4"/>
+<circle class="fc1 ring" cx="589.0" cy="258.5" r="4"/>
+<circle class="fc1 ring" cx="589.0" cy="270.9" r="4"/>
+<circle class="fc1 ring" cx="589.0" cy="273.9" r="4"/>
+<text x="631.0" y="347.0" class="small" text-anchor="middle">L6</text>
+<circle class="fc1 ring" cx="631.0" cy="270.8" r="4"/>
+<circle class="fc1 ring" cx="631.0" cy="269.7" r="4"/>
+<circle class="fc1 ring" cx="631.0" cy="272.4" r="4"/>
+<circle class="fc1 ring" cx="631.0" cy="277.4" r="4"/>
+<circle class="fc1 ring" cx="631.0" cy="273.1" r="4"/>
+<text x="673.0" y="347.0" class="small" text-anchor="middle">L9</text>
+<circle class="fc1 ring" cx="673.0" cy="274.8" r="4"/>
+<circle class="fc1 ring" cx="673.0" cy="282.0" r="4"/>
+<circle class="fc1 ring" cx="673.0" cy="274.2" r="4"/>
+<circle class="fc1 ring" cx="673.0" cy="261.4" r="4"/>
+<circle class="fc1 ring" cx="673.0" cy="276.5" r="4"/>
+<text x="715.0" y="347.0" class="small" text-anchor="middle">L11</text>
+<circle class="fc1 ring" cx="715.0" cy="277.7" r="4"/>
+<circle class="fc1 ring" cx="715.0" cy="279.0" r="4"/>
+<circle class="fc1 ring" cx="715.0" cy="280.4" r="4"/>
+<circle class="fc1 ring" cx="715.0" cy="257.1" r="4"/>
+<circle class="fc1 ring" cx="715.0" cy="278.2" r="4"/>
+<text x="631.0" y="363.0" class="small" text-anchor="middle">each dot is one dataset</text>
+<text x="731.8" y="223.5" class="small" text-anchor="end">largest: 0.011</text>
+</svg>

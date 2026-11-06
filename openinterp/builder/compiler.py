@@ -34,6 +34,7 @@ from openinterp.builder.heat import HeatToken, token_heat
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
+from openinterp.builder.research import copy_assets, load_papers
 from openinterp.builder.significance import evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
@@ -168,7 +169,16 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.
 # They are removed before each build so deleted records leave no stale pages.
-OWNED_PATHS = ("index.html", "about.html", "models", "agents", "neurons", "data", "pagefind")
+OWNED_PATHS = (
+    "index.html",
+    "about.html",
+    "models",
+    "agents",
+    "neurons",
+    "research",
+    "data",
+    "pagefind",
+)
 
 
 def _clean_owned_paths(output_dir: Path) -> None:
@@ -267,6 +277,7 @@ def compile_site(
     corpus_sources: dict | None = None,
     alignment_rows: dict | None = None,
     sister_rows: dict | None = None,
+    papers_dir: Path | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -274,6 +285,7 @@ def compile_site(
     :func:`openinterp.wiring_backfill.load_rows` and :func:`openinterp.corpus.load_sources`.
     ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
+    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`).
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -311,7 +323,18 @@ def compile_site(
     _render_index(render, models, experiments, agents, stats, draws)
     license = metadata("openinterp")["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license)
+    _render_research(render, papers_dir, output_dir, report)
     return report
+
+
+def _render_research(render, papers_dir, output_dir, report) -> None:
+    """Write the Research section: its index, each paper, and their media."""
+    papers = load_papers(papers_dir, render.common["repo_url"])
+    render("research/index.html", "research.html", papers=papers)
+    for paper in papers:
+        report.pages.extend(copy_assets(papers_dir, paper, output_dir))
+        if not paper.interactive:
+            render(f"research/{paper.href}", "paper.html", paper=paper)
 
 
 def _render_index(render, models, experiments, agents, stats, draws) -> None:

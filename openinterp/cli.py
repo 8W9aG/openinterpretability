@@ -369,7 +369,17 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     type=click.Path(dir_okay=False, path_type=Path),
     help="Each VERIFIED pole's matches in other models (`openinterp sisters`); skipped if missing.",
 )
-def build(wiki_dir, output_dir, wiring_path, source_paths, alignment_path, sisters_path):
+@click.option(
+    "--papers",
+    "papers_dir",
+    default=Path("papers"),
+    show_default=True,
+    type=click.Path(file_okay=False, path_type=Path),
+    help="The papers of the Research section; the section is empty if missing.",
+)
+def build(
+    wiki_dir, output_dir, wiring_path, source_paths, alignment_path, sisters_path, papers_dir
+):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
     from openinterp.builder.wiki import load_archive
@@ -387,6 +397,7 @@ def build(wiki_dir, output_dir, wiring_path, source_paths, alignment_path, siste
         corpus_sources=load_sources(source_paths),
         alignment_rows=load_alignment(alignment_path),
         sister_rows=load_sisters(sisters_path),
+        papers_dir=papers_dir,
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "

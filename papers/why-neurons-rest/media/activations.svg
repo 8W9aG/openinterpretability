@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 388" width="760" height="388" role="img">
+<title>Three plots of an activation function against pre-activation h. Under GELU and ReLU, layers L1 to L3 rest between about minus 0.8 and minus 1.2. Under tanh they stay at 0.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes gelu1{0.0%{transform:translate(153.2px,245.4px)}8.8%{transform:translate(144.5px,250.4px)}17.5%{transform:translate(134.8px,253.9px)}26.2%{transform:translate(127.1px,255.2px)}35.0%{transform:translate(120.9px,255.5px)}43.8%{transform:translate(115.5px,255.3px)}52.5%{transform:translate(109.8px,254.8px)}61.2%{transform:translate(105.9px,254.3px)}70.0%{transform:translate(104.8px,254.2px)}100%{transform:translate(104.8px,254.2px)}}.gelu1{animation:gelu1 9s linear infinite;transform:translate(104.8px,254.2px)}@keyframes gelu2{0.0%{transform:translate(153.1px,245.5px)}8.8%{transform:translate(145.7px,249.8px)}17.5%{transform:translate(138.6px,252.8px)}26.2%{transform:translate(130.7px,254.7px)}35.0%{transform:translate(123.4px,255.4px)}43.8%{transform:translate(117.7px,255.4px)}52.5%{transform:translate(112.5px,255.1px)}61.2%{transform:translate(108.9px,254.7px)}70.0%{transform:translate(107.0px,254.5px)}100%{transform:translate(107.0px,254.5px)}}.gelu2{animation:gelu2 9s linear infinite;transform:translate(107.0px,254.5px)}@keyframes gelu3{0.0%{transform:translate(153.8px,245.0px)}8.8%{transform:translate(146.4px,249.5px)}17.5%{transform:translate(140.9px,251.9px)}26.2%{transform:translate(135.8px,253.6px)}35.0%{transform:translate(131.5px,254.5px)}43.8%{transform:translate(128.1px,255.1px)}52.5%{transform:translate(124.1px,255.4px)}61.2%{transform:translate(121.5px,255.5px)}70.0%{transform:translate(119.4px,255.5px)}100%{transform:translate(119.4px,255.5px)}}.gelu3{animation:gelu3 9s linear infinite;transform:translate(119.4px,255.5px)}@keyframes relu1{0.0%{transform:translate(389.4px,245.3px)}8.8%{transform:translate(367.3px,245.3px)}17.5%{transform:translate(361.1px,245.3px)}26.2%{transform:translate(353.1px,245.3px)}35.0%{transform:translate(349.6px,245.3px)}43.8%{transform:translate(346.9px,245.3px)}52.5%{transform:translate(343.6px,245.3px)}61.2%{transform:translate(343.4px,245.3px)}70.0%{transform:translate(340.6px,245.3px)}100%{transform:translate(340.6px,245.3px)}}.relu1{animation:relu1 9s linear infinite;transform:translate(340.6px,245.3px)}@keyframes relu2{0.0%{transform:translate(389.4px,245.3px)}8.8%{transform:translate(367.7px,245.3px)}17.5%{transform:translate(360.0px,245.3px)}26.2%{transform:translate(353.9px,245.3px)}35.0%{transform:translate(349.2px,245.3px)}43.8%{transform:translate(346.5px,245.3px)}52.5%{transform:translate(342.8px,245.3px)}61.2%{transform:translate(340.3px,245.3px)}70.0%{transform:translate(338.2px,245.3px)}100%{transform:translate(338.2px,245.3px)}}.relu2{animation:relu2 9s linear infinite;transform:translate(338.2px,245.3px)}@keyframes relu3{0.0%{transform:translate(390.3px,244.9px)}8.8%{transform:translate(368.6px,245.3px)}17.5%{transform:translate(362.2px,245.3px)}26.2%{transform:translate(358.6px,245.3px)}35.0%{transform:translate(353.2px,245.3px)}43.8%{transform:translate(351.0px,245.3px)}52.5%{transform:translate(348.0px,245.3px)}61.2%{transform:translate(347.3px,245.3px)}70.0%{transform:translate(345.9px,245.3px)}100%{transform:translate(345.9px,245.3px)}}.relu3{animation:relu3 9s linear infinite;transform:translate(345.9px,245.3px)}@keyframes tanh1{0.0%{transform:translate(626.8px,245.1px)}8.8%{transform:translate(626.8px,245.1px)}17.5%{transform:translate(626.6px,245.5px)}26.2%{transform:translate(626.6px,245.4px)}35.0%{transform:translate(626.6px,245.4px)}43.8%{transform:translate(626.7px,245.4px)}52.5%{transform:translate(626.6px,245.4px)}61.2%{transform:translate(626.6px,245.5px)}70.0%{transform:translate(626.6px,245.4px)}100%{transform:translate(626.6px,245.4px)}}.tanh1{animation:tanh1 9s linear infinite;transform:translate(626.6px,245.4px)}@keyframes tanh2{0.0%{transform:translate(626.6px,245.4px)}8.8%{transform:translate(626.7px,245.3px)}17.5%{transform:translate(626.7px,245.3px)}26.2%{transform:translate(626.6px,245.4px)}35.0%{transform:translate(626.6px,245.5px)}43.8%{transform:translate(626.6px,245.4px)}52.5%{transform:translate(626.7px,245.3px)}61.2%{transform:translate(626.6px,245.4px)}70.0%{transform:translate(626.6px,245.4px)}100%{transform:translate(626.6px,245.4px)}}.tanh2{animation:tanh2 9s linear infinite;transform:translate(626.6px,245.4px)}@keyframes tanh3{0.0%{transform:translate(626.7px,245.3px)}8.8%{transform:translate(626.7px,245.3px)}17.5%{transform:translate(626.7px,245.3px)}26.2%{transform:translate(626.7px,245.3px)}35.0%{transform:translate(626.7px,245.2px)}43.8%{transform:translate(626.7px,245.3px)}52.5%{transform:translate(626.7px,245.3px)}61.2%{transform:translate(626.6px,245.4px)}70.0%{transform:translate(626.6px,245.4px)}100%{transform:translate(626.6px,245.4px)}}.tanh3{animation:tanh3 9s linear infinite;transform:translate(626.6px,245.4px)}@keyframes progress{0%{transform:translateX(90px)}70%{transform:translateX(660px)}100%{transform:translateX(660px)}}.progress{animation:progress 9s linear infinite;transform:translateX(660px)}</style>
+<rect class="bg" width="760" height="388" rx="10"/>
+<text x="20.0" y="30.0" class="title">Neurons rest low under one-sided activations, with or without a dip</text>
+<text x="20.0" y="50.0" class="sub">Each moving dot is one layer&#x27;s median neuron (L1–L3), measured every 500 steps on small models.</text>
+<text x="20.0" y="68.0" class="sub">Training starts at h ≈ 0 (open circle). ReLU has no dip, and its neurons go as deep as GELU&#x27;s.</text>
+<text x="44.0" y="106.0" class="head">GELU</text>
+<path class="grid" d="M65.9 114.0L65.9 314.0"/>
+<text x="65.9" y="329.0" class="small" text-anchor="middle">−2</text>
+<path class="grid" d="M109.6 114.0L109.6 314.0"/>
+<text x="109.6" y="329.0" class="small" text-anchor="middle">−1</text>
+<path class="grid" d="M153.3 114.0L153.3 314.0"/>
+<text x="153.3" y="329.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M197.1 114.0L197.1 314.0"/>
+<text x="197.1" y="329.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M240.8 114.0L240.8 314.0"/>
+<text x="240.8" y="329.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M44.0 305.0L262.7 305.0"/>
+<text x="37.0" y="309.0" class="small" text-anchor="end">−1</text>
+<path class="grid" d="M44.0 245.3L262.7 245.3"/>
+<text x="37.0" y="249.3" class="small" text-anchor="end">0</text>
+<path class="grid" d="M44.0 185.6L262.7 185.6"/>
+<text x="37.0" y="189.6" class="small" text-anchor="end">1</text>
+<path class="grid" d="M44.0 125.9L262.7 125.9"/>
+<text x="37.0" y="129.9" class="small" text-anchor="end">2</text>
+<path class="axis" d="M44.0 245.3L262.7 245.3"/>
+<path class="axis" d="M153.3 114.0L153.3 314.0"/>
+<path class="curve" d="M44.0 246.3L45.4 246.3L46.7 246.4L48.1 246.5L49.5 246.6L50.8 246.7L52.2 246.8L53.6 246.9L54.9 247.0L56.3 247.1L57.7 247.2L59.0 247.3L60.4 247.5L61.8 247.6L63.1 247.8L64.5 247.9L65.9 248.1L67.2 248.2L68.6 248.4L70.0 248.6L71.3 248.7L72.7 248.9L74.1 249.1L75.4 249.3L76.8 249.5L78.2 249.7L79.5 250.0L80.9 250.2L82.3 250.4L83.6 250.6L85.0 250.9L86.4 251.1L87.7 251.3L89.1 251.6L90.5 251.8L91.8 252.0L93.2 252.3L94.6 252.5L95.9 252.8L97.3 253.0L98.7 253.2L100.0 253.5L101.4 253.7L102.8 253.9L104.1 254.1L105.5 254.3L106.9 254.5L108.2 254.7L109.6 254.8L111.0 255.0L112.3 255.1L113.7 255.2L115.1 255.3L116.4 255.4L117.8 255.4L119.2 255.5L120.5 255.5L121.9 255.5L123.3 255.4L124.6 255.4L126.0 255.3L127.4 255.1L128.7 255.0L130.1 254.8L131.5 254.6L132.8 254.3L134.2 254.0L135.6 253.6L136.9 253.3L138.3 252.8L139.7 252.4L141.0 251.9L142.4 251.3L143.8 250.7L145.1 250.1L146.5 249.4L147.9 248.7L149.2 247.9L150.6 247.1L152.0 246.3L153.3 245.3L154.7 244.4L156.1 243.4L157.4 242.3L158.8 241.2L160.2 240.1L161.5 238.9L162.9 237.7L164.3 236.4L165.6 235.1L167.0 233.7L168.4 232.3L169.7 230.9L171.1 229.4L172.5 227.9L173.8 226.3L175.2 224.7L176.6 223.1L177.9 221.4L179.3 219.7L180.7 218.0L182.0 216.2L183.4 214.4L184.8 212.6L186.1 210.7L187.5 208.8L188.9 206.9L190.2 205.0L191.6 203.1L193.0 201.1L194.3 199.1L195.7 197.1L197.1 195.1L198.4 193.1L199.8 191.0L201.2 189.0L202.5 186.9L203.9 184.9L205.3 182.8L206.6 180.7L208.0 178.6L209.4 176.5L210.7 174.4L212.1 172.3L213.5 170.2L214.8 168.1L216.2 166.0L217.6 163.9L218.9 161.8L220.3 159.7L221.7 157.6L223.0 155.5L224.4 153.4L225.8 151.3L227.1 149.2L228.5 147.1L229.9 145.1L231.2 143.0L232.6 140.9L234.0 138.9L235.3 136.8L236.7 134.8L238.1 132.7L239.4 130.7L240.8 128.7L242.2 126.6L243.5 124.6L244.9 122.6L246.3 120.6L247.6 118.6L249.0 116.6L250.4 114.6L251.7 112.7L253.1 110.7L254.5 108.7L255.8 106.8L257.2 104.8L258.6 102.8L259.9 100.9L261.3 99.0L262.7 97.0"/>
+<text x="153.3" y="345.0" class="small" text-anchor="middle">pre-activation h</text>
+<circle class="open sc1" cx="153.3" cy="245.3" r="5"/>
+<circle class="fc1 ring gelu1" cx="0.0" cy="0.0" r="5"/>
+<circle class="fc1 ring gelu2" cx="0.0" cy="0.0" r="5"/>
+<circle class="fc1 ring gelu3" cx="0.0" cy="0.0" r="5"/>
+<text x="262.7" y="288.3" class="small" text-anchor="end">−1.11 to −0.78</text>
+<text x="280.7" y="106.0" class="head">ReLU</text>
+<path class="grid" d="M302.5 114.0L302.5 314.0"/>
+<text x="302.5" y="329.0" class="small" text-anchor="middle">−2</text>
+<path class="grid" d="M346.3 114.0L346.3 314.0"/>
+<text x="346.3" y="329.0" class="small" text-anchor="middle">−1</text>
+<path class="grid" d="M390.0 114.0L390.0 314.0"/>
+<text x="390.0" y="329.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M433.7 114.0L433.7 314.0"/>
+<text x="433.7" y="329.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M477.5 114.0L477.5 314.0"/>
+<text x="477.5" y="329.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M280.7 305.0L499.3 305.0"/>
+<path class="grid" d="M280.7 245.3L499.3 245.3"/>
+<path class="grid" d="M280.7 185.6L499.3 185.6"/>
+<path class="grid" d="M280.7 125.9L499.3 125.9"/>
+<path class="axis" d="M280.7 245.3L499.3 245.3"/>
+<path class="axis" d="M390.0 114.0L390.0 314.0"/>
+<path class="curve" d="M280.7 245.3L282.0 245.3L283.4 245.3L284.8 245.3L286.1 245.3L287.5 245.3L288.9 245.3L290.2 245.3L291.6 245.3L293.0 245.3L294.3 245.3L295.7 245.3L297.1 245.3L298.4 245.3L299.8 245.3L301.2 245.3L302.5 245.3L303.9 245.3L305.3 245.3L306.6 245.3L308.0 245.3L309.4 245.3L310.7 245.3L312.1 245.3L313.5 245.3L314.8 245.3L316.2 245.3L317.6 245.3L318.9 245.3L320.3 245.3L321.7 245.3L323.0 245.3L324.4 245.3L325.8 245.3L327.1 245.3L328.5 245.3L329.9 245.3L331.2 245.3L332.6 245.3L334.0 245.3L335.3 245.3L336.7 245.3L338.1 245.3L339.4 245.3L340.8 245.3L342.2 245.3L343.5 245.3L344.9 245.3L346.3 245.3L347.6 245.3L349.0 245.3L350.4 245.3L351.7 245.3L353.1 245.3L354.5 245.3L355.8 245.3L357.2 245.3L358.6 245.3L359.9 245.3L361.3 245.3L362.7 245.3L364.0 245.3L365.4 245.3L366.8 245.3L368.1 245.3L369.5 245.3L370.9 245.3L372.2 245.3L373.6 245.3L375.0 245.3L376.3 245.3L377.7 245.3L379.1 245.3L380.4 245.3L381.8 245.3L383.2 245.3L384.5 245.3L385.9 245.3L387.3 245.3L388.6 245.3L390.0 245.3L391.4 243.5L392.7 241.6L394.1 239.7L395.5 237.9L396.8 236.0L398.2 234.1L399.6 232.3L400.9 230.4L402.3 228.6L403.7 226.7L405.0 224.8L406.4 223.0L407.8 221.1L409.1 219.2L410.5 217.4L411.9 215.5L413.2 213.6L414.6 211.8L416.0 209.9L417.3 208.0L418.7 206.2L420.1 204.3L421.4 202.4L422.8 200.6L424.2 198.7L425.5 196.8L426.9 195.0L428.3 193.1L429.6 191.2L431.0 189.4L432.4 187.5L433.7 185.6L435.1 183.8L436.5 181.9L437.8 180.0L439.2 178.2L440.6 176.3L441.9 174.4L443.3 172.6L444.7 170.7L446.0 168.9L447.4 167.0L448.8 165.1L450.1 163.3L451.5 161.4L452.9 159.5L454.2 157.7L455.6 155.8L457.0 153.9L458.3 152.1L459.7 150.2L461.1 148.3L462.4 146.5L463.8 144.6L465.2 142.7L466.5 140.9L467.9 139.0L469.3 137.1L470.6 135.3L472.0 133.4L473.4 131.5L474.7 129.7L476.1 127.8L477.5 125.9L478.8 124.1L480.2 122.2L481.6 120.3L482.9 118.5L484.3 116.6L485.7 114.7L487.0 112.9L488.4 111.0L489.8 109.1L491.1 107.3L492.5 105.4L493.9 103.6L495.2 101.7L496.6 99.8L498.0 98.0L499.3 96.1"/>
+<text x="390.0" y="345.0" class="small" text-anchor="middle">pre-activation h</text>
+<circle class="open sc1" cx="390.0" cy="245.3" r="5"/>
+<circle class="fc1 ring relu1" cx="0.0" cy="0.0" r="5"/>
+<circle class="fc1 ring relu2" cx="0.0" cy="0.0" r="5"/>
+<circle class="fc1 ring relu3" cx="0.0" cy="0.0" r="5"/>
+<text x="499.3" y="288.3" class="small" text-anchor="end">−1.18 to −1.01</text>
+<text x="517.3" y="106.0" class="head">Tanh</text>
+<path class="grid" d="M539.2 114.0L539.2 314.0"/>
+<text x="539.2" y="329.0" class="small" text-anchor="middle">−2</text>
+<path class="grid" d="M582.9 114.0L582.9 314.0"/>
+<text x="582.9" y="329.0" class="small" text-anchor="middle">−1</text>
+<path class="grid" d="M626.7 114.0L626.7 314.0"/>
+<text x="626.7" y="329.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M670.4 114.0L670.4 314.0"/>
+<text x="670.4" y="329.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M714.1 114.0L714.1 314.0"/>
+<text x="714.1" y="329.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M517.3 305.0L736.0 305.0"/>
+<path class="grid" d="M517.3 245.3L736.0 245.3"/>
+<path class="grid" d="M517.3 185.6L736.0 185.6"/>
+<path class="grid" d="M517.3 125.9L736.0 125.9"/>
+<path class="axis" d="M517.3 245.3L736.0 245.3"/>
+<path class="axis" d="M626.7 114.0L626.7 314.0"/>
+<path class="curve" d="M517.3 304.2L518.7 304.2L520.1 304.1L521.4 304.1L522.8 304.0L524.2 304.0L525.5 303.9L526.9 303.8L528.3 303.7L529.6 303.6L531.0 303.6L532.4 303.5L533.7 303.4L535.1 303.3L536.5 303.1L537.8 303.0L539.2 302.9L540.6 302.8L541.9 302.6L543.3 302.5L544.7 302.3L546.0 302.1L547.4 301.9L548.8 301.8L550.1 301.5L551.5 301.3L552.9 301.1L554.2 300.8L555.6 300.6L557.0 300.3L558.3 300.0L559.7 299.7L561.1 299.4L562.4 299.0L563.8 298.7L565.2 298.3L566.5 297.9L567.9 297.4L569.3 297.0L570.6 296.5L572.0 296.0L573.4 295.4L574.7 294.9L576.1 294.3L577.5 293.7L578.8 293.0L580.2 292.3L581.6 291.6L582.9 290.8L584.3 290.0L585.7 289.2L587.0 288.3L588.4 287.4L589.8 286.4L591.1 285.4L592.5 284.4L593.9 283.3L595.2 282.1L596.6 280.9L598.0 279.7L599.3 278.5L600.7 277.1L602.1 275.8L603.4 274.4L604.8 272.9L606.2 271.4L607.5 269.9L608.9 268.3L610.3 266.7L611.6 265.1L613.0 263.4L614.4 261.7L615.7 260.0L617.1 258.2L618.5 256.4L619.8 254.6L621.2 252.8L622.6 250.9L623.9 249.1L625.3 247.2L626.7 245.3L628.0 243.5L629.4 241.6L630.8 239.8L632.1 237.9L633.5 236.1L634.9 234.3L636.2 232.5L637.6 230.7L639.0 229.0L640.3 227.3L641.7 225.6L643.1 223.9L644.4 222.3L645.8 220.8L647.2 219.2L648.5 217.8L649.9 216.3L651.3 214.9L652.6 213.5L654.0 212.2L655.4 211.0L656.7 209.7L658.1 208.6L659.5 207.4L660.8 206.3L662.2 205.3L663.6 204.3L664.9 203.3L666.3 202.4L667.7 201.5L669.0 200.7L670.4 199.9L671.8 199.1L673.1 198.4L674.5 197.7L675.9 197.0L677.2 196.4L678.6 195.8L680.0 195.2L681.3 194.7L682.7 194.2L684.1 193.7L685.4 193.2L686.8 192.8L688.2 192.4L689.5 192.0L690.9 191.7L692.3 191.3L693.6 191.0L695.0 190.7L696.4 190.4L697.7 190.1L699.1 189.8L700.5 189.6L701.8 189.4L703.2 189.1L704.6 188.9L705.9 188.7L707.3 188.6L708.7 188.4L710.0 188.2L711.4 188.1L712.8 187.9L714.1 187.8L715.5 187.7L716.9 187.5L718.2 187.4L719.6 187.3L721.0 187.2L722.3 187.1L723.7 187.0L725.1 187.0L726.4 186.9L727.8 186.8L729.2 186.7L730.5 186.7L731.9 186.6L733.3 186.5L734.6 186.5L736.0 186.4"/>
+<text x="626.7" y="345.0" class="small" text-anchor="middle">pre-activation h</text>
+<circle class="open sc1" cx="626.7" cy="245.3" r="5"/>
+<circle class="fc1 ring tanh1" cx="0.0" cy="0.0" r="5"/>
+<circle class="fc1 ring tanh2" cx="0.0" cy="0.0" r="5"/>
+<circle class="fc1 ring tanh3" cx="0.0" cy="0.0" r="5"/>
+<text x="736.0" y="288.3" class="small" text-anchor="end">all at 0.00</text>
+<text x="44.0" y="366.0" class="small">step 0</text>
+<path class="axis" d="M90.0 362.0L660.0 362.0"/>
+<text x="668.0" y="366.0" class="small">4,000</text>
+<circle class="fc1 progress" cx="0" cy="362.0" r="4"/>
+<path class="dip" d="M120.5 255.5L120.5 200.6"/>
+<text x="120.5" y="195.6" class="small" text-anchor="middle">dip at −0.75</text>
+</svg>

@@ -1,0 +1,413 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 518" width="760" height="518" role="img">
+<title>Illustration of a neuron&#x27;s activation over forty tokens under the clean run, the clamp, the zero, the mean and the shuffled null. The clamp removes variation and keeps the level. The zero removes the level too.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="518" rx="10"/>
+<text x="20.0" y="30.0" class="title">What each intervention does to a neuron</text>
+<text x="20.0" y="50.0" class="sub">An illustration with made-up values, not data. Each bar is one token. Grey shows the clean activation.</text>
+<circle class="fc1" cx="25.0" cy="80.0" r="5"/>
+<text x="35.0" y="84.0">Negative side (a &lt; 0)</text>
+<circle class="fc2" cx="189.6" cy="80.0" r="5"/>
+<text x="199.6" y="84.0">Positive side (a &gt; 0)</text>
+<text x="462.0" y="133.0" class="head">Clean</text>
+<text x="462.0" y="150.0" class="small">The model as it is.</text>
+<path class="axis" d="M40.0 151.3L440.0 151.3"/>
+<rect class="fc2" x="41.5" y="147.7" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="51.5" y="151.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="61.5" y="151.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="71.5" y="133.0" width="7.0" height="18.3" rx="1.5"/>
+<rect class="fc1" x="81.5" y="151.3" width="7.0" height="2.9" rx="1.5"/>
+<rect class="fc1" x="91.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="101.5" y="151.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc2" x="111.5" y="111.0" width="7.0" height="40.3" rx="1.5"/>
+<rect class="fc2" x="121.5" y="144.0" width="7.0" height="7.3" rx="1.5"/>
+<rect class="fc1" x="131.5" y="151.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="141.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="151.5" y="151.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="161.5" y="151.3" width="7.0" height="1.8" rx="1.5"/>
+<rect class="fc2" x="171.5" y="123.8" width="7.0" height="27.5" rx="1.5"/>
+<rect class="fc1" x="181.5" y="151.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="191.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="201.5" y="151.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="211.5" y="151.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc2" x="221.5" y="140.3" width="7.0" height="11.0" rx="1.5"/>
+<rect class="fc1" x="231.5" y="151.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="241.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="251.5" y="151.3" width="7.0" height="2.6" rx="1.5"/>
+<rect class="fc2" x="261.5" y="103.7" width="7.0" height="47.7" rx="1.5"/>
+<rect class="fc2" x="271.5" y="138.5" width="7.0" height="12.8" rx="1.5"/>
+<rect class="fc1" x="281.5" y="151.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="291.5" y="151.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="301.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="311.5" y="151.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="321.5" y="129.3" width="7.0" height="22.0" rx="1.5"/>
+<rect class="fc1" x="331.5" y="151.3" width="7.0" height="1.5" rx="1.5"/>
+<rect class="fc1" x="341.5" y="151.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="351.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="361.5" y="151.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc2" x="371.5" y="145.8" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="381.5" y="151.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="391.5" y="151.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc2" x="401.5" y="118.3" width="7.0" height="33.0" rx="1.5"/>
+<rect class="fc1" x="411.5" y="151.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="421.5" y="151.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="431.5" y="151.3" width="7.0" height="4.8" rx="1.5"/>
+<text x="462.0" y="209.0" class="head">Clamp</text>
+<text x="462.0" y="226.0" class="small">Keeps the side&#x27;s level, and removes its variation.</text>
+<path class="axis" d="M40.0 227.3L440.0 227.3"/>
+<rect class="fwash" x="41.5" y="223.7" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="43.0" y="223.7" width="4.0" height="3.7" rx="1.5"/>
+<rect class="fwash" x="51.5" y="227.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="53.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="61.5" y="227.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="63.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="71.5" y="209.0" width="7.0" height="18.3" rx="1.5"/>
+<rect class="fc2" x="73.0" y="209.0" width="4.0" height="18.3" rx="1.5"/>
+<rect class="fwash" x="81.5" y="227.3" width="7.0" height="2.9" rx="1.5"/>
+<rect class="fc1" x="83.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="91.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="93.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="101.5" y="227.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="103.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="111.5" y="187.0" width="7.0" height="40.3" rx="1.5"/>
+<rect class="fc2" x="113.0" y="187.0" width="4.0" height="40.3" rx="1.5"/>
+<rect class="fwash" x="121.5" y="220.0" width="7.0" height="7.3" rx="1.5"/>
+<rect class="fc2" x="123.0" y="220.0" width="4.0" height="7.3" rx="1.5"/>
+<rect class="fwash" x="131.5" y="227.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="133.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="141.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="143.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="151.5" y="227.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="153.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="161.5" y="227.3" width="7.0" height="1.8" rx="1.5"/>
+<rect class="fc1" x="163.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="171.5" y="199.8" width="7.0" height="27.5" rx="1.5"/>
+<rect class="fc2" x="173.0" y="199.8" width="4.0" height="27.5" rx="1.5"/>
+<rect class="fwash" x="181.5" y="227.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="183.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="191.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="193.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="201.5" y="227.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="203.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="211.5" y="227.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="213.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="221.5" y="216.3" width="7.0" height="11.0" rx="1.5"/>
+<rect class="fc2" x="223.0" y="216.3" width="4.0" height="11.0" rx="1.5"/>
+<rect class="fwash" x="231.5" y="227.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="233.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="241.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="243.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="251.5" y="227.3" width="7.0" height="2.6" rx="1.5"/>
+<rect class="fc1" x="253.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="261.5" y="179.7" width="7.0" height="47.7" rx="1.5"/>
+<rect class="fc2" x="263.0" y="179.7" width="4.0" height="47.7" rx="1.5"/>
+<rect class="fwash" x="271.5" y="214.5" width="7.0" height="12.8" rx="1.5"/>
+<rect class="fc2" x="273.0" y="214.5" width="4.0" height="12.8" rx="1.5"/>
+<rect class="fwash" x="281.5" y="227.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="283.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="291.5" y="227.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="293.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="301.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="303.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="311.5" y="227.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="313.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="321.5" y="205.3" width="7.0" height="22.0" rx="1.5"/>
+<rect class="fc2" x="323.0" y="205.3" width="4.0" height="22.0" rx="1.5"/>
+<rect class="fwash" x="331.5" y="227.3" width="7.0" height="1.5" rx="1.5"/>
+<rect class="fc1" x="333.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="341.5" y="227.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="343.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="351.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="353.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="361.5" y="227.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="363.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="371.5" y="221.8" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="373.0" y="221.8" width="4.0" height="5.5" rx="1.5"/>
+<rect class="fwash" x="381.5" y="227.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="383.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="391.5" y="227.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="393.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="401.5" y="194.3" width="7.0" height="33.0" rx="1.5"/>
+<rect class="fc2" x="403.0" y="194.3" width="4.0" height="33.0" rx="1.5"/>
+<rect class="fwash" x="411.5" y="227.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="413.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="421.5" y="227.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="423.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="431.5" y="227.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="433.0" y="227.3" width="4.0" height="4.5" rx="1.5"/>
+<text x="462.0" y="285.0" class="head">Zero</text>
+<text x="462.0" y="302.0" class="small">Removes the level as well.</text>
+<path class="axis" d="M40.0 303.3L440.0 303.3"/>
+<rect class="fwash" x="41.5" y="299.7" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="43.0" y="299.7" width="4.0" height="3.7" rx="1.5"/>
+<rect class="fwash" x="51.5" y="303.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="53.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="61.5" y="303.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="63.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="71.5" y="285.0" width="7.0" height="18.3" rx="1.5"/>
+<rect class="fc2" x="73.0" y="285.0" width="4.0" height="18.3" rx="1.5"/>
+<rect class="fwash" x="81.5" y="303.3" width="7.0" height="2.9" rx="1.5"/>
+<rect class="fc1" x="83.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="91.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="93.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="101.5" y="303.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="103.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="111.5" y="263.0" width="7.0" height="40.3" rx="1.5"/>
+<rect class="fc2" x="113.0" y="263.0" width="4.0" height="40.3" rx="1.5"/>
+<rect class="fwash" x="121.5" y="296.0" width="7.0" height="7.3" rx="1.5"/>
+<rect class="fc2" x="123.0" y="296.0" width="4.0" height="7.3" rx="1.5"/>
+<rect class="fwash" x="131.5" y="303.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="133.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="141.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="143.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="151.5" y="303.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="153.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="161.5" y="303.3" width="7.0" height="1.8" rx="1.5"/>
+<rect class="fc1" x="163.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="171.5" y="275.8" width="7.0" height="27.5" rx="1.5"/>
+<rect class="fc2" x="173.0" y="275.8" width="4.0" height="27.5" rx="1.5"/>
+<rect class="fwash" x="181.5" y="303.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="183.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="191.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="193.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="201.5" y="303.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="203.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="211.5" y="303.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="213.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="221.5" y="292.3" width="7.0" height="11.0" rx="1.5"/>
+<rect class="fc2" x="223.0" y="292.3" width="4.0" height="11.0" rx="1.5"/>
+<rect class="fwash" x="231.5" y="303.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="233.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="241.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="243.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="251.5" y="303.3" width="7.0" height="2.6" rx="1.5"/>
+<rect class="fc1" x="253.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="261.5" y="255.7" width="7.0" height="47.7" rx="1.5"/>
+<rect class="fc2" x="263.0" y="255.7" width="4.0" height="47.7" rx="1.5"/>
+<rect class="fwash" x="271.5" y="290.5" width="7.0" height="12.8" rx="1.5"/>
+<rect class="fc2" x="273.0" y="290.5" width="4.0" height="12.8" rx="1.5"/>
+<rect class="fwash" x="281.5" y="303.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="283.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="291.5" y="303.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="293.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="301.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="303.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="311.5" y="303.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="313.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="321.5" y="281.3" width="7.0" height="22.0" rx="1.5"/>
+<rect class="fc2" x="323.0" y="281.3" width="4.0" height="22.0" rx="1.5"/>
+<rect class="fwash" x="331.5" y="303.3" width="7.0" height="1.5" rx="1.5"/>
+<rect class="fc1" x="333.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="341.5" y="303.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="343.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="351.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="353.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="361.5" y="303.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="363.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="371.5" y="297.8" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="373.0" y="297.8" width="4.0" height="5.5" rx="1.5"/>
+<rect class="fwash" x="381.5" y="303.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="383.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="391.5" y="303.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="393.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="401.5" y="270.3" width="7.0" height="33.0" rx="1.5"/>
+<rect class="fc2" x="403.0" y="270.3" width="4.0" height="33.0" rx="1.5"/>
+<rect class="fwash" x="411.5" y="303.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="413.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="421.5" y="303.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="423.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<rect class="fwash" x="431.5" y="303.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="433.0" y="303.3" width="4.0" height="0.0" rx="1.5"/>
+<text x="462.0" y="361.0" class="head">Mean</text>
+<text x="462.0" y="378.0" class="small">Every token holds the neuron&#x27;s mean.</text>
+<path class="axis" d="M40.0 379.3L440.0 379.3"/>
+<rect class="fwash" x="41.5" y="375.7" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="43.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="51.5" y="379.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc2" x="53.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="61.5" y="379.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="63.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="71.5" y="361.0" width="7.0" height="18.3" rx="1.5"/>
+<rect class="fc2" x="73.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="81.5" y="379.3" width="7.0" height="2.9" rx="1.5"/>
+<rect class="fc2" x="83.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="91.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="93.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="101.5" y="379.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc2" x="103.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="111.5" y="339.0" width="7.0" height="40.3" rx="1.5"/>
+<rect class="fc2" x="113.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="121.5" y="372.0" width="7.0" height="7.3" rx="1.5"/>
+<rect class="fc2" x="123.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="131.5" y="379.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="133.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="141.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="143.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="151.5" y="379.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc2" x="153.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="161.5" y="379.3" width="7.0" height="1.8" rx="1.5"/>
+<rect class="fc2" x="163.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="171.5" y="351.8" width="7.0" height="27.5" rx="1.5"/>
+<rect class="fc2" x="173.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="181.5" y="379.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc2" x="183.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="191.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="193.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="201.5" y="379.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="203.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="211.5" y="379.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc2" x="213.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="221.5" y="368.3" width="7.0" height="11.0" rx="1.5"/>
+<rect class="fc2" x="223.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="231.5" y="379.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc2" x="233.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="241.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="243.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="251.5" y="379.3" width="7.0" height="2.6" rx="1.5"/>
+<rect class="fc2" x="253.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="261.5" y="331.7" width="7.0" height="47.7" rx="1.5"/>
+<rect class="fc2" x="263.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="271.5" y="366.5" width="7.0" height="12.8" rx="1.5"/>
+<rect class="fc2" x="273.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="281.5" y="379.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc2" x="283.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="291.5" y="379.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="293.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="301.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="303.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="311.5" y="379.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="313.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="321.5" y="357.3" width="7.0" height="22.0" rx="1.5"/>
+<rect class="fc2" x="323.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="331.5" y="379.3" width="7.0" height="1.5" rx="1.5"/>
+<rect class="fc2" x="333.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="341.5" y="379.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc2" x="343.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="351.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="353.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="361.5" y="379.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc2" x="363.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="371.5" y="373.8" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="373.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="381.5" y="379.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="383.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="391.5" y="379.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc2" x="393.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="401.5" y="346.3" width="7.0" height="33.0" rx="1.5"/>
+<rect class="fc2" x="403.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="411.5" y="379.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc2" x="413.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="421.5" y="379.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc2" x="423.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<rect class="fwash" x="431.5" y="379.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc2" x="433.0" y="376.9" width="4.0" height="2.4" rx="1.5"/>
+<text x="462.0" y="437.0" class="head">Shuffled null</text>
+<text x="462.0" y="454.0" class="small">The clamp&#x27;s changes, moved to other tokens.</text>
+<path class="axis" d="M40.0 455.3L440.0 455.3"/>
+<rect class="fwash" x="41.5" y="451.7" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc2" x="43.0" y="450.3" width="4.0" height="5.0" rx="1.5"/>
+<rect class="fwash" x="51.5" y="455.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="53.0" y="455.3" width="4.0" height="4.4" rx="1.5"/>
+<rect class="fwash" x="61.5" y="455.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="63.0" y="455.3" width="4.0" height="5.3" rx="1.5"/>
+<rect class="fwash" x="71.5" y="437.0" width="7.0" height="18.3" rx="1.5"/>
+<rect class="fc2" x="73.0" y="436.0" width="4.0" height="19.3" rx="1.5"/>
+<rect class="fwash" x="81.5" y="455.3" width="7.0" height="2.9" rx="1.5"/>
+<rect class="fc1" x="83.0" y="455.3" width="4.0" height="2.9" rx="1.5"/>
+<rect class="fwash" x="91.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="93.0" y="455.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="101.5" y="455.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="103.0" y="455.3" width="4.0" height="6.0" rx="1.5"/>
+<rect class="fwash" x="111.5" y="415.0" width="7.0" height="40.3" rx="1.5"/>
+<rect class="fc2" x="113.0" y="416.6" width="4.0" height="38.7" rx="1.5"/>
+<rect class="fwash" x="121.5" y="448.0" width="7.0" height="7.3" rx="1.5"/>
+<rect class="fc2" x="123.0" y="450.0" width="4.0" height="5.4" rx="1.5"/>
+<rect class="fwash" x="131.5" y="455.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="133.0" y="455.3" width="4.0" height="2.3" rx="1.5"/>
+<rect class="fwash" x="141.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="143.0" y="455.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="151.5" y="455.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="153.0" y="455.3" width="4.0" height="4.9" rx="1.5"/>
+<rect class="fwash" x="161.5" y="455.3" width="7.0" height="1.8" rx="1.5"/>
+<rect class="fc1" x="163.0" y="455.3" width="4.0" height="2.7" rx="1.5"/>
+<rect class="fwash" x="171.5" y="427.8" width="7.0" height="27.5" rx="1.5"/>
+<rect class="fc2" x="173.0" y="426.5" width="4.0" height="28.8" rx="1.5"/>
+<rect class="fwash" x="181.5" y="455.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="183.0" y="455.3" width="4.0" height="4.0" rx="1.5"/>
+<rect class="fwash" x="191.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="193.0" y="455.3" width="4.0" height="4.5" rx="1.5"/>
+<rect class="fwash" x="201.5" y="455.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="203.0" y="455.3" width="4.0" height="6.7" rx="1.5"/>
+<rect class="fwash" x="211.5" y="455.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="213.0" y="455.3" width="4.0" height="3.8" rx="1.5"/>
+<rect class="fwash" x="221.5" y="444.3" width="7.0" height="11.0" rx="1.5"/>
+<rect class="fc2" x="223.0" y="443.0" width="4.0" height="12.3" rx="1.5"/>
+<rect class="fwash" x="231.5" y="455.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="233.0" y="455.3" width="4.0" height="4.8" rx="1.5"/>
+<rect class="fwash" x="241.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="243.0" y="455.3" width="4.0" height="4.9" rx="1.5"/>
+<rect class="fwash" x="251.5" y="455.3" width="7.0" height="2.6" rx="1.5"/>
+<rect class="fc1" x="253.0" y="455.3" width="4.0" height="1.6" rx="1.5"/>
+<rect class="fwash" x="261.5" y="407.7" width="7.0" height="47.7" rx="1.5"/>
+<rect class="fc2" x="263.0" y="407.4" width="4.0" height="47.9" rx="1.5"/>
+<rect class="fwash" x="271.5" y="442.5" width="7.0" height="12.8" rx="1.5"/>
+<rect class="fc2" x="273.0" y="442.5" width="4.0" height="12.8" rx="1.5"/>
+<rect class="fwash" x="281.5" y="455.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="283.0" y="455.3" width="4.0" height="4.4" rx="1.5"/>
+<rect class="fwash" x="291.5" y="455.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="293.0" y="455.3" width="4.0" height="4.9" rx="1.5"/>
+<rect class="fwash" x="301.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="303.0" y="455.3" width="4.0" height="5.9" rx="1.5"/>
+<rect class="fwash" x="311.5" y="455.3" width="7.0" height="3.7" rx="1.5"/>
+<rect class="fc1" x="313.0" y="455.3" width="4.0" height="3.8" rx="1.5"/>
+<rect class="fwash" x="321.5" y="433.3" width="7.0" height="22.0" rx="1.5"/>
+<rect class="fc2" x="323.0" y="433.5" width="4.0" height="21.9" rx="1.5"/>
+<rect class="fwash" x="331.5" y="455.3" width="7.0" height="1.5" rx="1.5"/>
+<rect class="fc1" x="333.0" y="455.3" width="4.0" height="1.5" rx="1.5"/>
+<rect class="fwash" x="341.5" y="455.3" width="7.0" height="5.1" rx="1.5"/>
+<rect class="fc1" x="343.0" y="455.3" width="4.0" height="5.6" rx="1.5"/>
+<rect class="fwash" x="351.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="353.0" y="455.3" width="4.0" height="8.6" rx="1.5"/>
+<rect class="fwash" x="361.5" y="455.3" width="7.0" height="4.4" rx="1.5"/>
+<rect class="fc1" x="363.0" y="455.3" width="4.0" height="7.5" rx="1.5"/>
+<rect class="fwash" x="371.5" y="449.8" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc2" x="373.0" y="449.2" width="4.0" height="6.1" rx="1.5"/>
+<rect class="fwash" x="381.5" y="455.3" width="7.0" height="5.5" rx="1.5"/>
+<rect class="fc1" x="383.0" y="455.3" width="4.0" height="5.5" rx="1.5"/>
+<rect class="fwash" x="391.5" y="455.3" width="7.0" height="4.0" rx="1.5"/>
+<rect class="fc1" x="393.0" y="455.3" width="4.0" height="4.0" rx="1.5"/>
+<rect class="fwash" x="401.5" y="422.3" width="7.0" height="33.0" rx="1.5"/>
+<rect class="fc2" x="403.0" y="423.6" width="4.0" height="31.8" rx="1.5"/>
+<rect class="fwash" x="411.5" y="455.3" width="7.0" height="3.3" rx="1.5"/>
+<rect class="fc1" x="413.0" y="455.3" width="4.0" height="2.3" rx="1.5"/>
+<rect class="fwash" x="421.5" y="455.3" width="7.0" height="5.9" rx="1.5"/>
+<rect class="fc1" x="423.0" y="455.3" width="4.0" height="5.6" rx="1.5"/>
+<rect class="fwash" x="431.5" y="455.3" width="7.0" height="4.8" rx="1.5"/>
+<rect class="fc1" x="433.0" y="455.3" width="4.0" height="4.8" rx="1.5"/>
+</svg>
