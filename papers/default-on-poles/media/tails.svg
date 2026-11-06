@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 312" width="760" height="312" role="img">
+<title>Interval plot of reliability. All 2,972 default-on neurons have median 0.77, random directions median 0.77. N1046 is 0.70, and random directions at its share have median 0.68.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="312" rx="10"/>
+<text x="20.0" y="30.0" class="title">A random direction&#x27;s low tail is as reliable by token as a real neuron&#x27;s</text>
+<text x="20.0" y="50.0" class="sub">Split-half reliability by token at L9. A bar is the 5th–95th percentile, and its dot is the median.</text>
+<path class="grid" d="M295.0 84.0L295.0 264.0"/>
+<text x="295.0" y="279.0" class="small" text-anchor="middle">0.5</text>
+<path class="grid" d="M393.0 84.0L393.0 264.0"/>
+<text x="393.0" y="279.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M491.0 84.0L491.0 264.0"/>
+<text x="491.0" y="279.0" class="small" text-anchor="middle">0.7</text>
+<path class="grid" d="M589.0 84.0L589.0 264.0"/>
+<text x="589.0" y="279.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M687.0 84.0L687.0 264.0"/>
+<text x="687.0" y="279.0" class="small" text-anchor="middle">0.9</text>
+<text x="491.0" y="295.0" class="small" text-anchor="middle">split-half reliability by token</text>
+<text x="236.0" y="106.0" text-anchor="end">All 2,972 default-on neurons</text>
+<path class="range sc1 " d="M360.3 102.0L653.7 102.0"/>
+<circle class="fc1 ring" cx="561.9" cy="102.0" r="5"/>
+<text x="661.7" y="106.0" class="small">0.77</text>
+<text x="236.0" y="142.0" text-anchor="end">Random directions, same shares</text>
+<path class="range sneutral " d="M338.3 138.0L627.0 138.0"/>
+<circle class="fneutral ring" cx="556.8" cy="138.0" r="5"/>
+<text x="635.0" y="142.0" class="small">0.77</text>
+<text x="236.0" y="178.0" text-anchor="end">Random directions at N1046&#x27;s share</text>
+<path class="range sneutral " d="M316.2 174.0L597.6 174.0"/>
+<circle class="fneutral ring" cx="474.7" cy="174.0" r="5"/>
+<text x="605.6" y="178.0" class="small">0.68</text>
+<text x="236.0" y="214.0" text-anchor="end">The 10 controls</text>
+<circle class="fc1 ring" cx="621.7" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="489.2" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="393.6" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="352.3" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="593.1" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="518.6" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="593.7" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="603.7" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="548.2" cy="210.0" r="4"/>
+<circle class="fc1 ring" cx="613.0" cy="210.0" r="4"/>
+<text x="236.0" y="250.0" class="head" text-anchor="end">N1046</text>
+<circle class="fc1 ring" cx="491.1" cy="246.0" r="6"/>
+<text x="501.1" y="250.0" class="small">0.70</text>
+</svg>

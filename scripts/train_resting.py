@@ -1,7 +1,7 @@
 """Train small GPT-2s and record where their MLP neurons rest.
 
 Trained GPT-2 small has its neurons' weights against the mean of the MLP's input. So the
-pre-activation h rests near −1 (docs/analyses/why-neurons-rest.md). Each condition changes
+pre-activation h rests near −1 (papers/why-neurons-rest/README.md). Each condition changes
 one thing about the training of a small model of the same architecture. The evaluation
 windows come from the corpus sample, and the training text leaves those documents out.
 

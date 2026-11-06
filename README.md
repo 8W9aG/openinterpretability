@@ -230,6 +230,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
 | `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
 | `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files); deterministic `evaluate_submission` |
+| `papers/` | Papers, one folder each: the write-up as `README.md`, its results and its media. The site publishes them as its Research section |
 | `openinterp/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
 | `openinterp/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 

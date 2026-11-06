@@ -1,6 +1,6 @@
 # Why training rests neurons below GELU's dip
 
-`default-on-poles.md` found that training moves most of GPT-2's neurons to a median pre-activation h of about −1, below GELU's minimum at −0.75, and that the input weights do this. It did not find why. This analysis trains small GPT-2s and changes one thing at a time.
+[The paper on default-on negative poles](../default-on-poles/README.md) found that training moves most of GPT-2's neurons to a median pre-activation h of about −1, below GELU's minimum at −0.75, and that the input weights do this. It did not find why. This analysis trains small GPT-2s and changes one thing at a time.
 
 **Results.** All are on small models, except the first's GPT-2 figures. Each number is from one or two seeds.
 
@@ -11,14 +11,16 @@
 5. **The rest seems to help, but this is not proven.** Letting the learned value reach that depth lowers the loss by 0.061 on seed 0, with seeds differing by about 0.02. A centred model still doesn't match the baseline, and a forced rest of −1 trains as badly as a forced rest of 0.
 6. **−1 is not a target.** Over 12,000 steps the rest keeps deepening, to −1.46 at L1 with the weights and −1.32 with the learned value. Its growth slows, but it passes GPT-2's −1.04. The closeness to −1 at step 4,000 is partly the moment that we measured.
 
+![GELU, ReLU and tanh curves, with the rest of layers L1 to L3 marked on each](media/activations.svg)
+
 We don't know why one-sided activations favour a low rest. These runs remove some explanations, and they don't show the mechanism.
 
 ## Method
 
-The script is `scripts/train_resting.py`. Its output is in `why-neurons-rest.jsonl`.
+The script is `scripts/train_resting.py`. Its output is in `results.jsonl`. `scripts/paper_figures.py` draws the figures from that output, with no model.
 
 - **Models.** GPT-2's architecture with 4 layers, width 256 and 8 heads, trained from fresh weights for 4,000 steps. Each step is 32 windows of 128 tokens, with AdamW at a learning rate of 3e-4 and gradient clipping at 1.0.
-- **Data.** Training uses pile-10k without the documents of the `corpus.jsonl` sample, which leaves 9,482 of 10,000 documents. Evaluation uses 128 test windows of the same split as `default-on-poles.md`.
+- **Data.** Training uses pile-10k without the documents of the `corpus.jsonl` sample, which leaves 9,482 of 10,000 documents. Evaluation uses 128 test windows of the same split as [What default-on negative poles do as a population](../default-on-poles/README.md).
 - **Measures.** The median over neurons of each neuron's median h, the median offset (w·x̄, with x̄ the mean of the MLP's input), the median bias, the skew, and the share of neurons with weights against x̄.
 - **Centred conditions.** h is centred per neuron over each batch, then moved to a rest. That rest is fixed for `rest_0` and `rest_-1`, and is a parameter for each neuron for `rest_learned` and `rest_learned_fast`. Centring removes the weights' effect on the rest, so we report the rest as applied, not the raw h.
 
@@ -57,6 +59,8 @@ Step 4,000 of each condition. Columns L0–L3 are the median h.
 | Dropout 0.3 | 5.675 | | −0.57 | −0.84 | −0.98 | −0.74 | 100% |
 | Weight decay 0.1 | 5.523 | | −0.28 | −0.98 | −0.94 | −0.67 | 100% |
 
+![Median h of layers L0 to L3 under each change to the baseline](media/effects.svg)
+
 - **Seeds agree.** The baseline's depth differs by at most 0.04 between seeds, and ReLU's by at most 0.03. Conditions with no seed 1 entry ran once.
 - **Mirrored GELU is only a check.** It is the baseline with h and the weights negated, so its rest must flip, and it does.
 - **ReLU rests as deep as GELU.** It has no dip and no flat region below zero that differs by depth, so the dip cannot be its target. ReLU is also indifferent to scale, so a rest near −1 has no special meaning for it. That similarity may have a simple cause in the training (see *Caveats*).
@@ -76,6 +80,8 @@ Forcing the rest to 0 costs 0.136 of loss on seed 0 and 0.155 on seed 1. But cen
 | Centred, rest 0 | 5.645 | 5.664 | forced | 0.00 | 0.00 | 0.00 | 0.00 | 26%–49% |
 | Centred, rest −1 | 5.657 | 5.664 | forced | −1.00 | −1.00 | −1.00 | −1.00 | 38%–56% |
 
+![Loss at step 4,000 for each condition, and the fast control's gap to the baseline over steps](media/loss.svg)
+
 - **A forced rest does not separate the causes.** `rest_-1` is near the baseline's depth and trains as badly as `rest_0`. It is also fixed for every neuron, and it starts at −1, where the fresh model's narrow h (SD about 0.31) sits on GELU's flat part. Its loss at step 1,000 is 6.40–6.42, against 6.27–6.28 for `rest_0`, and it has almost caught up by step 4,000. So its cost looks like a slow start, but we did not test this directly.
 - **At the base rate, a learned rest stays near 0.** It reaches only −0.09 at L1, so this control mostly repeats `rest_0`. Adam at this rate can move one parameter by about 1.2 in 4,000 steps, and only if every step has the same sign. The baseline's bias moves only about 0.03. The weights can shift the rest faster, because many weights multiply a large mean input.
 - **At 30× the rate, a learned rest reaches nearly the same depth by step 4,000.** It reaches −0.92, −0.85 and −0.71 at L1–L3 on seed 0 and −0.92, −0.86 and −0.69 on seed 1. That keeps the baseline's order: L1, then L2, then L3, then L0. The weights no longer turn against x̄. Reaching that depth lowers the loss to 5.574 and 5.581.
@@ -94,6 +100,10 @@ Step 4,000 is early, because the rest is still moving. So seed 0 of the baseline
 | 10,000 | 5.163 | 5.231 | 0.068 | −0.50 | −1.43 | −1.44 | −1.13 | −0.58 | −1.26 | −1.20 | −1.02 |
 | 12,000 | 5.137 | 5.213 | 0.076 | −0.54 | −1.46 | −1.49 | −1.15 | −0.60 | −1.32 | −1.23 | −1.07 |
 
+![Rest over 12,000 steps on layers L0 to L3, for the baseline and the fast control](media/long-run.svg)
+
+![Surfaces of rest over layers and steps, for the baseline and the fast control](media/surface.svg)
+
 - **The rest doesn't settle at −1.** The baseline's L1 passes −1 by step 4,000 and reaches −1.46. Growth slows, with only 0.03 added over the last 2,000 steps at L1, so it may settle later. We can't say where.
 - **The two routes keep pace.** At every step the learned value is at 81–90% of the baseline's depth at L1. The learned value has a much higher limit on its rate, so a limit on one parameter's rate doesn't explain the pace of this control.
 - **The loss gap doesn't close.** It stays between 0.064 and 0.076 at every step in the table. So the gap isn't only unfinished training. Centring itself, or the difference in depth, may cost this much. So the runs don't measure the rest's full value.
@@ -102,7 +112,7 @@ Step 4,000 is early, because the rest is still moving. So seed 0 of the baseline
 
 ## Why this matters for reading negative poles
 
-Most of the cost of the negative side in GPT-2 is its resting level (`default-on-poles.md`): clamping it at its mean adds 0.19 nats, and zeroing it adds 3.72. These runs fit that. Training pushes the level down, while variation below the dip has less effect. This supports the protocol's stop on auditing a default-on pole, but it doesn't show that a pole has no content.
+Most of the cost of the negative side in GPT-2 is its resting level ([What default-on negative poles do as a population](../default-on-poles/README.md)): clamping it at its mean adds 0.19 nats, and zeroing it adds 3.72. These runs fit that. Training pushes the level down, while variation below the dip has less effect. This supports the protocol's stop on auditing a default-on pole, but it doesn't show that a pole has no content.
 
 ## Caveats
 
@@ -118,7 +128,7 @@ Most of the cost of the negative side in GPT-2 is its resting level (`default-on
 Each command appends to its `--out`. The runs took about 25–40 minutes each on an Apple GPU. Run nothing else on the machine at the same time. Parallel runs on MPS were slower and failed once, and one run that overlapped other jobs went wrong with no error.
 
 ```bash
-OUT=docs/analyses/why-neurons-rest.jsonl
+OUT=papers/why-neurons-rest/results.jsonl
 uv run python scripts/train_resting.py gpt2 --out $OUT
 uv run python scripts/train_resting.py train --seed 0 --steps 4000 --eval-every 500 --cache tokens.pt --out $OUT
 uv run python scripts/train_resting.py train --seed 1 --steps 4000 --eval-every 500 --cache tokens.pt \
@@ -126,8 +136,9 @@ uv run python scripts/train_resting.py train --seed 1 --steps 4000 --eval-every 
     --condition rest_-1 --out $OUT
 uv run python scripts/train_resting.py train --seed 0 --steps 12000 --eval-every 2000 --cache tokens.pt \
     --condition gelu --condition rest_learned_fast --out $OUT
+uv run python scripts/paper_figures.py
 ```
 
 ## Next
 
-Open questions are in `TODO.md` (*Protocol and science*).
+[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*).

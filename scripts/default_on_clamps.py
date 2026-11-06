@@ -1,6 +1,6 @@
 """What the model loses when one side of its MLP activations stops varying.
 
-The numbers behind docs/analyses/default-on-poles.md. Constants come from the fit windows.
+The numbers behind papers/default-on-poles/README.md. Constants come from the fit windows.
 Each condition runs on test windows from other documents, at the input of the down
 projection. A *side* of a neuron is its tokens with activation below zero (negative) or
 above zero (positive). Conditions:
@@ -19,7 +19,7 @@ is the attention sink (Sun et al., 2024, arXiv:2402.17762). The ``_with_first`` 
 change it too, to measure what this costs.
 
     uv run python scripts/default_on_clamps.py --model openai-community/gpt2 --device auto \\
-        --out docs/analyses/default-on-poles.jsonl
+        --out papers/default-on-poles/results.jsonl
 """
 
 from __future__ import annotations

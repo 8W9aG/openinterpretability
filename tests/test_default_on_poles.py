@@ -1,4 +1,4 @@
-"""The helpers behind docs/analyses/default-on-poles.md."""
+"""The helpers behind papers/default-on-poles/README.md."""
 
 import sys
 from pathlib import Path

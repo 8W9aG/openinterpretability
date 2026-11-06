@@ -1,6 +1,6 @@
 """Where GPT-2's neurons rest, and what the tokens below the dip have in common.
 
-The numbers behind docs/analyses/default-on-poles.md. ``scripts/default_on_clamps.py``
+The numbers behind papers/default-on-poles/README.md. ``scripts/default_on_clamps.py``
 measures the interventions. Commands:
 
 * ``rest``: each layer's resting pre-activation, default-on share and GELU slope, trained
@@ -12,7 +12,7 @@ measures the interventions. Commands:
 ``scripts/default_on_decode.py`` reads each side with a ridge readout. Windows do not
 overlap, and fit and test windows come from different documents.
 
-    uv run python scripts/default_on_poles.py rest --out docs/analyses/default-on-poles.jsonl
+    uv run python scripts/default_on_poles.py rest --out papers/default-on-poles/results.jsonl
 """
 
 from __future__ import annotations

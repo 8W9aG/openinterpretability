@@ -1,7 +1,7 @@
 """What one side of a layer's activations says, beyond token identity.
 
 The numbers behind the "Other decoding targets" section of
-docs/analyses/default-on-poles.md. ``scripts/default_on_decode.py`` predicts token identity.
+papers/default-on-poles/README.md. ``scripts/default_on_decode.py`` predicts token identity.
 This script keeps its ridge readout and its random-feature null, and predicts two others:
 
 * ``next-token``: the model's own log-probabilities of the 200 commonest tokens, and the

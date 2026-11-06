@@ -1,4 +1,4 @@
-"""The helpers behind docs/analyses/why-neurons-rest.md."""
+"""The helpers behind papers/why-neurons-rest/README.md."""
 
 import sys
 from pathlib import Path

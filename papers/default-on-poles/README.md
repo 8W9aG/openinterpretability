@@ -1,6 +1,8 @@
 # What default-on negative poles do as a population
 
-Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent (`position-zero.md`). This analysis asks what those poles do together. It starts from a study of GPT-2 L9/N1046−, whose scripts were not kept. It rebuilds them, measures every layer, and adds the nulls the first study lacked.
+Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent ([position zero](../../docs/analyses/position-zero.md)). This analysis asks what those poles do together. It starts from a study of GPT-2 L9/N1046−, whose scripts were not kept. It rebuilds them, measures every layer, and adds the nulls the first study lacked.
+
+![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
 
 **Results.**
 
@@ -15,7 +17,7 @@ These results do not show that negative poles are meaningless. A single default-
 
 ## Method
 
-The scripts are `scripts/default_on_poles.py`, `scripts/default_on_clamps.py`, `scripts/default_on_decode.py` and `scripts/default_on_targets.py`. Their output is in `default-on-poles.jsonl`.
+The scripts are `scripts/default_on_poles.py`, `scripts/default_on_clamps.py`, `scripts/default_on_decode.py` and `scripts/default_on_targets.py`. Their output is in `results.jsonl`. `scripts/paper_figures.py` draws the figures from that output, with no model. The intervention figure is an illustration, and it uses no data. The ridges are a sketch from each layer's median and SD.
 
 - **Data.** `corpus.jsonl`, the 200,000-token sample with seed 0, cut into whole 128-token windows that don't overlap. GPT-2 small gets 1,355 windows from 384 documents, and Qwen2.5-0.5B gets 1,328 from 420.
 - **Split.** Constants are fit on 300 windows and tested on 400 others, with no document in both. Windows of one document share a topic, so a split by window would leak.
@@ -36,7 +38,11 @@ Each clamp condition changes the activations as follows. KL is KL(clean‖change
 | `frozen` | A clamp at one layer, with later MLP writes kept at their clean values |
 | `direct` | A clamp's change to one layer's write, added at the final norm only |
 
+![An illustration of the clean run, clamp, zero, mean and shuffled null on one neuron's activation](media/clamps.svg)
+
 ## Resting in the dip is learned
+
+![GELU over a sketch of a typical L9 neuron's h before and after training, and median h by layer](media/rest.svg)
 
 | Layer | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -83,6 +89,8 @@ All 12 layers changed at once, on GPT-2's test windows. Clean cross-entropy is 3
 | Every neuron at its mean | 4.09 | 4.32 | 13% |
 | Positive side, zero | 8.05 | 8.31 | 2% |
 
+![Added cross-entropy of each condition, for GPT-2 small and Qwen2.5-0.5B](media/cost.svg)
+
 - **The resting level costs far more than the variation.** The negative side's zero costs about 20× its clamp. The clamp keeps the side's mean and removes its variation. The zero also removes the mean. So most of the 3.72 nats come from removing a nearly constant offset to the write. The negative side doesn't carry 3.7 nats of varying signal, as the first study's numbers could suggest.
 - **The variation does something.** The clamp's KL is 1.9× its null's, at the same size of change. So the variation's link to the token matters, but its total cost is small.
 - **Single poles do almost nothing.** Zeroing L9/N1046− gives KL 1.3×10⁻⁵, and 10 default-on controls give 1.2–2.5×10⁻⁵. So N1046 is ordinary.
@@ -110,6 +118,8 @@ These runs clamp one layer at a time. The ratios are negative over positive. The
 | L10 | 0.06 (0.06–0.07) | 0.09 | 0.07 | 1.15 | 1.29 | 0.94 | 1.04 | 0.74 | 0.89 |
 | L11 | 0.05 (0.05–0.05) | 0.04 | 0.02 | 1.23 | 0.59 | 1.00 | 1.00 | 1.00 | 1.00 |
 
+![KL ratio of the clamp and of the shuffled null against the activation variance ratio, by layer](media/kl-ratio.svg)
+
 - **The match is real, but it says little.** Over the 12 layers the KL ratio correlates with the variance ratio at r = 0.95, as the first study saw. L0 is the clear miss (0.06 against 0.14). But the shuffled null's ratio correlates with the variance ratio at r = 0.97, and it has no link to the token. So KL mostly tracks the size of the change. Twelve layers are few, and these correlations are not independent evidence of much.
 - **The sides are not shown to be one signal.** Centred on the token mean, the two sides' writes have a mean cosine of −0.19 to 0.28 by layer. A ridge readout predicts the positive write from the negative side with R² of 0.28–0.82, but random features get 0.23–0.78 (see *Decoding*). So most of that overlap comes from the shared input.
 - **Later layers compensate early and amplify in the middle.** Freezing later MLPs raises the negative clamp's KL at L0–L4 (1.38–2.65×), so those later MLPs undo part of the damage. At L6–L8 it lowers the KL (0.78–0.89×), so later MLPs add to the damage. The positive side has the same shape, with less of this. The ratio survives: with later MLPs frozen, or with the direct path alone, it still correlates with the variance ratio (r = 0.98 and 0.97).
@@ -134,6 +144,8 @@ Measured at L9 on all 1,355 windows. Split-half reliability correlates a neuron'
 | N2778 | 24.4% | 0.82 | proper nouns and web words (` University`, `https`, ` Inc`) |
 | N2312 | 29.1% | 0.82 | pronouns and sentence openers (`He`, ` She`, `This`) |
 | Random directions at N1046's share | 2.4% | 0.68 (5th–95th percentile 0.52–0.81) | see below |
+
+![Split-half reliability of real neurons, random directions, the 10 controls and N1046](media/tails.svg)
 
 The 10 controls are drawn at random from the layer's default-on neurons. Over all 2,972, the median reliability is 0.77 (5th–95th percentile 0.57–0.87). N1046 is at the 22nd percentile. Random directions with the same distribution of shares have a median of 0.77 (0.54–0.84).
 
@@ -221,6 +233,8 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 - **All sides read context, and the null reads it too.** Each side is far above the lookup, so these labels hold more than token identity. But the negative side's lead over the best null is at most 0.011 in all 25 cells, and it is above zero in 17. The interval against the first draw is above zero in 13, with no correction for multiple tests.
 - **Most AUROCs are near their ceiling.** That leaves little room for a lead, so a small lead here is weak evidence either way. Only `ag_news` has much room, and its largest lead is 0.011.
 
+![Each side's lead over the random-feature null on the next-token distribution and on human labels](media/decoding.svg)
+
 Limits of these two tests: they use linear readouts and one sample, and the labelled text is short and differs from `corpus.jsonl`. Fit sets are smaller than the features would like on the Universal Dependencies data (16,476 tokens, 3,072 features). Other readouts or targets could still show more. The CoNLL and AG News licences limit how we can use their text, so we publish only these aggregate scores.
 
 ## Qwen2.5-0.5B
@@ -253,7 +267,7 @@ Qwen's MLP is SwiGLU, so a neuron is silu(gate) × up. Clamps ran on the same wi
 - Later MLPs add to the damage at each layer tested up to L17: freezing them lowers the negative clamp's KL to 0.18–0.51×. GPT-2's later MLPs do the opposite after its early layers.
 - The first token matters on the negative side too: 5.42 nats with it changed, against 2.46.
 
-So in this SwiGLU model the negative side costs as much as the positive side, which fits its negative poles being sparse (`position-zero.md`). So the low cost in GPT-2 is not a property of negative poles in general. A GELU MLP that rests near its dip is the likely reason, but one model of each kind can't settle that. We did not run the decoding or below-dip tests on Qwen. Its activation is a product, so GELU's dip has no direct counterpart.
+So in this SwiGLU model the negative side costs as much as the positive side, which fits its negative poles being sparse (`docs/analyses/position-zero.md`). So the low cost in GPT-2 is not a property of negative poles in general. A GELU MLP that rests near its dip is the likely reason, but one model of each kind can't settle that. We did not run the decoding or below-dip tests on Qwen. Its activation is a product, so GELU's dip has no direct counterpart.
 
 ## Against the first study
 
@@ -296,7 +310,7 @@ No rule changes. This supports `not_default_on`. A default-on pole's reliable ta
 The bands command writes the controls in its `band_neuron` rows, and the clamps take them through `--neurons`. Each command appends to its `--out`.
 
 ```bash
-OUT=docs/analyses/default-on-poles.jsonl
+OUT=papers/default-on-poles/results.jsonl
 uv run python scripts/default_on_poles.py rest --out $OUT
 uv run python scripts/default_on_poles.py bands --out $OUT
 uv run python scripts/default_on_decode.py --out $OUT
@@ -306,8 +320,9 @@ uv run python scripts/default_on_clamps.py --model openai-community/gpt2 \
     --neurons 1046,918,1132,1622,1742,1965,2084,2158,2312,2455,2778 --out $OUT
 uv run python scripts/default_on_clamps.py --model Qwen/Qwen2.5-0.5B \
     --layers 0,5,11,17,23 --out $OUT
+uv run python scripts/paper_figures.py
 ```
 
 ## Next
 
-`why-neurons-rest.md` studies why training rests neurons below the dip. Open questions are in `TODO.md` (*Protocol and science*).
+[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*).

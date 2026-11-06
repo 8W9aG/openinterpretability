@@ -1,13 +1,13 @@
 """What a ridge readout gets from one side of a layer's activations.
 
-The numbers behind docs/analyses/default-on-poles.md. For each layer of GPT-2 small, the
+The numbers behind papers/default-on-poles/README.md. For each layer of GPT-2 small, the
 readout fits on the fit windows and scores on the test windows. It reads the negative
 side, the positive side, or both. It predicts the current token, the next token, and the
 other side's write to the residual stream. The null reads the negative side of random
 features of the same MLP input. Each feature has the median and SD of a real neuron's
 pre-activation. So a score the null also reaches needs no learned neuron.
 
-    uv run python scripts/default_on_decode.py --out docs/analyses/default-on-poles.jsonl
+    uv run python scripts/default_on_decode.py --out papers/default-on-poles/results.jsonl
 """
 
 from __future__ import annotations
