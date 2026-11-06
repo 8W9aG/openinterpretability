@@ -1,4 +1,4 @@
-.PHONY: install test lint markdown vale ste format check stats build search-index sample-run serve loop clean
+.PHONY: install test lint markdown vale ste format check check-all stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -41,7 +41,13 @@ STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' '
 ste:
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
 
+# What a pull request's check runs: only the branch's changes, unless it changes code.
+BASE_REF ?= origin/main
 check:
+	uv run openinterp check --base-ref $(BASE_REF)
+
+# What CI runs on main: every record.
+check-all:
 	uv run openinterp check
 
 # Experiments, units, models, VERIFIED and self-reviewed shares, and protocol versions.
