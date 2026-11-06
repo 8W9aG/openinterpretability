@@ -468,6 +468,7 @@ from openinterp import (  # noqa: E402, F401
     cli_evidence,
     cli_probing,
     cli_registry,
+    cli_reproduce,
     cli_review,
     cli_scan,
     cli_score,

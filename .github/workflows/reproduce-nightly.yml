@@ -1,0 +1,88 @@
+name: Nightly reproduction
+
+# CI reproduces only the records a pull request changes, so a torch or transformers
+# upgrade that shifts activations in older records would go unnoticed. This re-runs a
+# rotating sample of the whole registry (docs/PROTOCOL.md §5). It runs on main only, so it
+# has no allow-list of models: main's records already passed review.
+
+on:
+  schedule:
+    - cron: "41 3 * * *"  # off the top of the hour, when Actions is busiest
+  workflow_dispatch:
+    inputs:
+      sample:
+        description: Records to reproduce
+        default: "20"
+      date:
+        description: Day that selects the records, YYYY-MM-DD (default today)
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: reproduce-nightly
+  cancel-in-progress: false
+
+jobs:
+  reproduce:
+    name: Reproduce a rotating sample
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_HUB_DISABLE_PROGRESS_BARS: "1"
+      TRANSFORMERS_VERBOSITY: error
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Restore model weights
+        # main's model-cache job in ci.yml saves this cache.
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: hf-hub-v2-
+          restore-keys: hf-hub-v2-
+      - name: Reproduce the sample
+        # A time limit on the step, not only the job, so that the issue step still runs.
+        timeout-minutes: 210
+        shell: bash  # sets pipefail, so tee doesn't hide a failure
+        env:
+          SAMPLE: ${{ inputs.sample || '20' }}
+          SAMPLE_DATE: ${{ inputs.date }}
+        run: |
+          flags=(--sample "$SAMPLE" --device cpu)
+          if [ -n "$SAMPLE_DATE" ]; then flags+=(--date "$SAMPLE_DATE"); fi
+          openinterp reproduce "${flags[@]}" | tee reproduce.log
+      - name: Open an issue, or comment on the open one
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Nightly reproduction failed
+        run: |
+          {
+            echo "Run: $RUN_URL"
+            echo
+            echo "Mismatches can mean a library upgrade shifted activations. No mismatches"
+            echo "below means the job failed in another way, so read the run's log."
+            echo
+            echo '```text'
+            grep -E '^(FAILED|::error)' reproduce.log | head -c 60000 || true
+            echo '```'
+          } > issue.md
+          number=$(gh issue list --state open --search "\"$TITLE\" in:title" \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file issue.md
+          else
+            gh issue create --title "$TITLE" --body-file issue.md
+          fi
