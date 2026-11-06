@@ -5,6 +5,11 @@
 <span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ statuses.STATUS_BADGE[status] }}">{{ status | replace('_', ' ') }}</span>
 {%- endmacro %}
 
+{# Why a scan stopped on a chosen unit, in words. #}
+{% macro stop_outcome(stop) -%}
+{{ stop.outcome | replace('_', '-') }}{% if stop.proven_dead %} (proven by the weights){% endif %}
+{%- endmacro %}
+
 {% macro evidence_badge(conclusiveness, direction) -%}
 {% set strength = evidence_strength(conclusiveness) %}
 {% set supports = direction == 'supports' %}

@@ -174,3 +174,27 @@ def test_a_stop_page_on_a_dead_unit_with_no_records(tmp_path, proven, says):
     write_stop_page(stop, tmp_path)
     assert page.read_text() == "kept"
     assert check_registry(tmp_path).stops == 1
+
+
+def test_the_wiki_home_links_a_stop_only_on_a_unit_with_no_index(tmp_path, record):
+    from openinterp.builder.wiki import write_experiment_page, write_stop_page
+
+    studied = record.model_copy(
+        update={"submission": record.submission.model_copy(update={"identifier": neuron(1, 7)})}
+    )
+    write_experiment_page(studied, tmp_path)
+    for unit in (neuron(1, 7), neuron(1, 7, "negative")):
+        write_stop_page(
+            UnauditableDraw(
+                identifier=unit,
+                outcome="default_on",
+                active_share=0.6,
+                provenance=PROVENANCE.model_copy(update={"selection": "manual", "seed": None}),
+                timestamp=datetime(2026, 11, 5, tzinfo=UTC),
+            ),
+            tmp_path,
+        )
+    home = (tmp_path / "README.md").read_text()
+    stem = "stops/openai-community--gpt2/L1/N7"
+    assert f"{stem}-negative/20261105T000000Z.md" in home  # no experiment, so no index
+    assert f"{stem}-positive/" not in home  # the unit's own index links this one

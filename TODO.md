@@ -298,7 +298,6 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples; everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode, with the numbers available as a table or in the Parquet export. Some need extra data stored on records; check that before building them.
 
-- [ ] Show stops of chosen units on the site. `wiki/stops/` (PR #2008) reaches the wiki's neuron index only, so a neuron page on the site doesn't show a scan that stopped. `compile_site` and `neuron.html` need to read `load_stops`. A stopped unit with no experiment has no index or site page at all, so link its stop page from the wiki home too.
 - [ ] A Models page (e.g. `openinterp/builder/templates/models.html`, linked from the `base.html` header) listing the supported models. Read the list from `[tool.openinterp] models` in `pyproject.toml`, not a copy. Each row links to the model's page (`model.html`) and gives its size, layers, MLP width, activation and licence (`configured_licenses`), plus its experiment and VERIFIED counts. A supported model with no records yet still gets a row.
 - [ ] Serve the site at open-interpretability.com and use it everywhere:
   - attach it as the R2 bucket's custom domain;
