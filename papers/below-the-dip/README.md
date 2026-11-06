@@ -1,6 +1,6 @@
 # Below the Dip
 
-Rotate the 3D scenes of the two papers, apply each intervention, and guess which low tail belongs to the real neuron.
+Rotate the 3D scenes of the two papers, and apply each intervention to see what it costs.
 
 GitHub can't run this page, so open it in the Research section of the site.
 

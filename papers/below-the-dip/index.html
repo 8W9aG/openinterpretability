@@ -44,7 +44,7 @@ section{display:grid;gap:16px;min-width:0}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 button{font:500 14px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 12px;cursor:pointer}
 button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-button:focus-visible,input:focus-visible,.card:focus-visible{outline:2px solid var(--neg);outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--neg);outline-offset:2px}
 input[type=range]{width:100%;accent-color:var(--neg)}
 label{font:500 13px var(--body);color:var(--ink2);display:grid;gap:4px}
 table{border-collapse:collapse;font:400 13px var(--mono);width:100%;font-variant-numeric:tabular-nums}
@@ -57,12 +57,6 @@ th:first-child,td:first-child{text-align:left}
 .tok{position:relative;height:100%}
 .tok b{position:absolute;left:0;right:0;border-radius:1px;transition:all .45s ease}
 .tok u{position:absolute;left:0;right:0;background:var(--wash);border-radius:1px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;text-align:left;display:block;font-weight:400;min-height:190px;cursor:pointer;width:100%}
-.card.real{border-color:var(--neg);box-shadow:inset 0 0 0 1px var(--neg)}
-.cloud{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;font-family:var(--mono);color:var(--ink);line-height:1.2}
-.verdict{display:block;font:500 13px var(--body);margin-top:10px;color:var(--ink2);min-height:1.4em}
-.out{font:500 15px var(--body);color:var(--ink);min-height:1.5em;max-width:65ch}
 @media (prefers-reduced-motion: reduce){.tok b{transition:none}}
 </style>
 </head>
@@ -113,13 +107,6 @@ th:first-child,td:first-child{text-align:left}
     <div class="bars" id="bars" aria-hidden="true"></div>
     <p class="note">The bars are an illustration with made-up values. The numbers below are measured, with all layers changed at once.</p>
     <table id="labr"></table>
-  </section>
-
-  <section>
-    <div><h2>Which one is the neuron?</h2>
-    <p>Below are the low tails of six units at L9. One is the real neuron N1046. The other five are random directions in the MLP's input, each at the same share of tokens. Larger type means the token falls below the dip more often. A dot marks a leading space. Pick the one you think is real.</p></div>
-    <div class="cards" id="cards"></div>
-    <p class="out" id="quizout" aria-live="polite"></p>
   </section>
 
   <section>
@@ -248,12 +235,6 @@ function barsFor(el, key) {
     el.appendChild(t); });
 }
 
-function cloudHTML(tokens, scale) {
-  const max = Math.max(...tokens.map(t => t.rate));
-  return tokens.slice(0, 18).map(t => `<span style="font-size:${Math.round((11 + 15 * Math.sqrt(t.rate / max)) * scale)}px">${t.text}</span>`).join('');
-}
-const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/ /g, '·').replace(/\n/g, '↵');
-
 function runPage() {
   const slide = buildSlide(document.getElementById('s1'));
   const range = document.getElementById('s1t'), table = document.getElementById('s1r');
@@ -282,13 +263,6 @@ function runPage() {
     labr.innerHTML = `<tr><th></th><th>GPT-2 small</th><th>Qwen2.5-0.5B</th></tr><tr><td>Added cross-entropy</td>${row(key)}</tr>`; };
   conds.forEach(([k, name]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.dataset.k = k; b.addEventListener('click', () => pick(k)); labb.appendChild(b); });
   pick('clamp');
-
-  const cards = document.getElementById('cards'), out = document.getElementById('quizout');
-  D.tails.forEach((c, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'card'; b.id = 'card' + i;
-    b.innerHTML = `<span class="cloud">${cloudHTML(c.tokens.map(t => ({ rate: t.rate, text: esc(t.token) })), 1)}</span><span class="verdict"></span>`;
-    b.addEventListener('click', () => { D.tails.forEach((d, j) => { const e = document.getElementById('card' + j); e.querySelector('.verdict').textContent = d.real ? 'N1046, the real neuron' : 'Random direction'; e.classList.toggle('real', d.real); });
-      out.textContent = (c.real ? 'You found it. ' : 'That one is random. ') + `N1046's tail has split-half reliability ${fmt(D.reliability.neuron)}. Random directions at its share have a median of ${fmt(D.reliability.random)}. So a reliable tail is no evidence that a neuron means something, and a readable one is weak evidence.`; });
-    cards.appendChild(b); });
 }
 
 runPage();
