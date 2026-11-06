@@ -276,6 +276,16 @@ def write_stop_page(draw: UnauditableDraw, wiki_dir: Path) -> Path:
     return page
 
 
+def stop_page(wiki_dir: Path | str, stop: ChosenStop) -> Path:
+    """The page next to ``stop``'s record."""
+    return stop_path(Path(wiki_dir), stop).with_suffix(".md")
+
+
+def stop_label(stop: ChosenStop) -> str:
+    """The stopped unit within its layer, for example ``L3/N7+``."""
+    return unit_label(_stop_meta(stop))
+
+
 def _stop_meta(stop: ChosenStop) -> dict:
     """The stop page's front matter."""
     ident = stop.identifier
@@ -344,6 +354,17 @@ def _neuron_index(env: Environment, slug: str, history: list, stops: list) -> st
     )
 
 
+def _unindexed_stops(stops: dict[str, list[ChosenStop]], indexed) -> list[dict]:
+    """Stops on units with no index of their own, newest first: only the home can link them."""
+    rows = [
+        {"stop": stop, "label": stop_label(stop), "link": stop_page(".", stop).as_posix()}
+        for slug, unit_stops in stops.items()
+        if slug not in indexed
+        for stop in unit_stops
+    ]
+    return sorted(rows, key=lambda row: row["stop"].timestamp, reverse=True)
+
+
 def rebuild_indexes(wiki_dir: Path) -> None:
     """Regenerate the gitignored README indexes from the pages' front matter."""
     wiki_dir = Path(wiki_dir)
@@ -374,7 +395,12 @@ def rebuild_indexes(wiki_dir: Path) -> None:
         for e in entries
     ]
     (wiki_dir / "README.md").write_text(
-        env.get_template("index.md").render(rows=rows, counts=counts, neurons=len(by_neuron)),
+        env.get_template("index.md").render(
+            rows=rows,
+            counts=counts,
+            neurons=len(by_neuron),
+            unindexed_stops=_unindexed_stops(stops, by_neuron),
+        ),
         encoding="utf-8",
     )
 
