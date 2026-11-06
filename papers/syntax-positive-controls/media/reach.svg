@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 402" width="760" height="402" role="img">
+<title>Two plots. Left, strength under one open bracket falls from 4.2 with no filler to 0.6 after 10 list items and 0 after 20. A closed bracket stays at 0. Right, on one line strength rises from 4 to 11 with depth. With each call on its own line it peaks at 3.4 at depth 2, and falls to 0.5 at depth 5.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="402" rx="10"/>
+<text x="20.0" y="30.0" class="title">The signal is short-range: it fades within 20 list items, and falls across lines</text>
+<text x="20.0" y="50.0" class="sub">Left: strength at one token, some list items after one bracket, open or closed. The steps double, so the axis is not linear.</text>
+<text x="20.0" y="68.0" class="sub">Right: strength at one token under open brackets, on one line or with each call on its own line. Each point has 8 items.</text>
+<text x="44.0" y="106.0" class="head">Distance from one bracket</text>
+<path class="grid" d="M44.0 324.0L374.0 324.0"/>
+<text x="37.0" y="328.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M44.0 282.0L374.0 282.0"/>
+<text x="37.0" y="286.0" class="small" text-anchor="end">1</text>
+<path class="grid" d="M44.0 240.0L374.0 240.0"/>
+<text x="37.0" y="244.0" class="small" text-anchor="end">2</text>
+<path class="grid" d="M44.0 198.0L374.0 198.0"/>
+<text x="37.0" y="202.0" class="small" text-anchor="end">3</text>
+<path class="grid" d="M44.0 156.0L374.0 156.0"/>
+<text x="37.0" y="160.0" class="small" text-anchor="end">4</text>
+<path class="grid" d="M44.0 114.0L374.0 114.0"/>
+<text x="37.0" y="118.0" class="small" text-anchor="end">5</text>
+<text x="209.0" y="355.0" class="small" text-anchor="middle">list items between the bracket and the token</text>
+<text x="59.0" y="340.0" class="small" text-anchor="middle">0</text>
+<text x="109.0" y="340.0" class="small" text-anchor="middle">5</text>
+<text x="159.0" y="340.0" class="small" text-anchor="middle">10</text>
+<text x="209.0" y="340.0" class="small" text-anchor="middle">20</text>
+<text x="259.0" y="340.0" class="small" text-anchor="middle">40</text>
+<text x="309.0" y="340.0" class="small" text-anchor="middle">80</text>
+<text x="359.0" y="340.0" class="small" text-anchor="middle">160</text>
+<path class="line sc2" d="M59.0 324.0L109.0 323.7L159.0 323.8L209.0 324.0L259.0 324.0L309.0 324.0L359.0 324.0"/>
+<circle class="fc2" cx="59.0" cy="324.0" r="3"/>
+<circle class="fc2" cx="109.0" cy="323.7" r="3"/>
+<circle class="fc2" cx="159.0" cy="323.8" r="3"/>
+<circle class="fc2" cx="209.0" cy="324.0" r="3"/>
+<circle class="fc2" cx="259.0" cy="324.0" r="3"/>
+<circle class="fc2" cx="309.0" cy="324.0" r="3"/>
+<circle class="fc2" cx="359.0" cy="324.0" r="3"/>
+<path class="line sc1" d="M59.0 146.5L109.0 231.8L159.0 300.6L209.0 324.0L259.0 324.0L309.0 324.0L359.0 324.0"/>
+<circle class="fc1" cx="59.0" cy="146.5" r="3"/>
+<circle class="fc1" cx="109.0" cy="231.8" r="3"/>
+<circle class="fc1" cx="159.0" cy="300.6" r="3"/>
+<circle class="fc1" cx="209.0" cy="324.0" r="3"/>
+<circle class="fc1" cx="259.0" cy="324.0" r="3"/>
+<circle class="fc1" cx="309.0" cy="324.0" r="3"/>
+<circle class="fc1" cx="359.0" cy="324.0" r="3"/>
+<text x="117.0" y="223.8" class="small">open</text>
+<text x="209.0" y="316.0" class="small">closed, and open from 20</text>
+<text x="420.0" y="106.0" class="head">Line breaks</text>
+<path class="grid" d="M436.7 114.0L436.7 324.0"/>
+<text x="436.7" y="339.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M492.2 114.0L492.2 324.0"/>
+<text x="492.2" y="339.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M547.8 114.0L547.8 324.0"/>
+<text x="547.8" y="339.0" class="small" text-anchor="middle">3</text>
+<path class="grid" d="M603.3 114.0L603.3 324.0"/>
+<text x="603.3" y="339.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M658.9 114.0L658.9 324.0"/>
+<text x="658.9" y="339.0" class="small" text-anchor="middle">5</text>
+<path class="grid" d="M420.0 324.0L720.0 324.0"/>
+<text x="413.0" y="328.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M420.0 254.0L720.0 254.0"/>
+<text x="413.0" y="258.0" class="small" text-anchor="end">4</text>
+<path class="grid" d="M420.0 184.0L720.0 184.0"/>
+<text x="413.0" y="188.0" class="small" text-anchor="end">8</text>
+<path class="grid" d="M420.0 114.0L720.0 114.0"/>
+<text x="413.0" y="118.0" class="small" text-anchor="end">12</text>
+<text x="570.0" y="355.0" class="small" text-anchor="middle">open brackets</text>
+<path class="line sc1" d="M436.7 250.6L492.2 205.9L547.8 172.9L603.3 149.2L658.9 131.2"/>
+<circle class="fc1" cx="436.7" cy="250.6" r="3"/>
+<circle class="fc1" cx="492.2" cy="205.9" r="3"/>
+<circle class="fc1" cx="547.8" cy="172.9" r="3"/>
+<circle class="fc1" cx="603.3" cy="149.2" r="3"/>
+<circle class="fc1" cx="658.9" cy="131.2" r="3"/>
+<text x="665.9" y="135.2" class="small">one line</text>
+<path class="line sc3" d="M436.7 274.7L492.2 265.2L547.8 279.8L603.3 299.9L658.9 315.4"/>
+<circle class="fc3" cx="436.7" cy="274.7" r="3"/>
+<circle class="fc3" cx="492.2" cy="265.2" r="3"/>
+<circle class="fc3" cx="547.8" cy="279.8" r="3"/>
+<circle class="fc3" cx="603.3" cy="299.9" r="3"/>
+<circle class="fc3" cx="658.9" cy="315.4" r="3"/>
+<text x="665.9" y="319.4" class="small">own lines</text>
+</svg>

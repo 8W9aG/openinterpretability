@@ -10,9 +10,17 @@ import pyarrow.parquet as pq
 import pytest
 from click.testing import CliRunner
 
-from openinterp.blends import BLEND_ALIASES, BLENDS, NOT_BLENDED, blend_shares, build_blend
+from openinterp.blends import (
+    BLEND_ALIASES,
+    BLENDS,
+    NO_CODE_LANGUAGE,
+    NOT_BLENDED,
+    blend_shares,
+    build_blend,
+)
 from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
+from openinterp.core.confounds import PROGRAMMING_LANGUAGE
 from openinterp.corpus import (
     PRESETS,
     Preset,
@@ -447,3 +455,90 @@ def test_build_infers_the_source_of_records_that_predate_their_corpus_sidecar(tm
     page, row = built(source)  # recorded: shown as is
     assert "(inferred)" not in page and "licence some-licence" in page
     assert row["corpus_source_inferred"] is False
+
+
+@pytest.fixture
+def code_shards(tmp_path):
+    """A Parquet file whose rows record their language, with some empty texts."""
+    texts = [f"doc{i}" if i % 3 else "" for i in range(24)]
+    langs = [f"lang{i}" for i in range(24)]
+    path = tmp_path / "code.parquet"
+    pq.write_table(pa.table({"text": texts, "language": langs}), path, row_group_size=8)
+    return [str(path)]
+
+
+def test_sampled_documents_keep_their_own_label(code_shards):
+    fs, labels = fsspec.filesystem("file"), []
+    docs = sample_documents(
+        fs, code_shards, text_column="text", documents=9, seed=0, max_chars=9,
+        docs_per_row_group=3, label_column="language", labels=labels,
+    )  # fmt: skip
+    assert len(docs) == len(labels) == 9
+    assert [d.removeprefix("doc") for d in docs] == [x.removeprefix("lang") for x in labels]
+
+
+def test_first_documents_keep_their_own_label(code_shards):
+    fs, labels = fsspec.filesystem("file"), []
+    docs = first_documents(
+        fs, code_shards, text_column="text", documents=4, max_chars=9,
+        label_column="language", labels=labels,
+    )  # fmt: skip
+    assert docs == ["doc1", "doc2", "doc4", "doc5"]
+    assert labels == ["lang1", "lang2", "lang4", "lang5"]
+
+
+@pytest.fixture
+def code_blend(monkeypatch, code_shards):
+    """Two blend versions over a code preset and a preset of prose, on a fake Hub."""
+    local = fsspec.filesystem("file")
+
+    class FakeFS:
+        def glob(self, pattern):
+            return code_shards
+
+        def open(self, path, mode):
+            return local.open(path, mode)
+
+    def info(dataset, revision=None):
+        return SimpleNamespace(sha="sha", card_data=None)
+
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", FakeFS)
+    monkeypatch.setattr("huggingface_hub.HfApi", lambda: SimpleNamespace(dataset_info=info))
+    monkeypatch.setitem(
+        PRESETS, "code", Preset("org/code", "*.parquet", code_language_column="language")
+    )
+    monkeypatch.setitem(PRESETS, "prose", Preset("org/prose", "*.parquet"))
+    for name in ("test-v1", "test-v2"):
+        monkeypatch.setitem(BLENDS, name, {"code": 1, "prose": 1})
+    monkeypatch.setattr("openinterp.blends.NO_CODE_LANGUAGE", {"test-v1"})
+
+
+def test_a_blend_records_code_languages_and_its_older_version_stays_without(code_blend, tmp_path):
+    old, new = tmp_path / "old.jsonl", tmp_path / "new.jsonl"
+    build_blend("test-v1", old, documents=4, seed=1, max_chars=9)
+    source = build_blend("test-v2", new, documents=4, seed=1, max_chars=9)
+
+    rows = [json.loads(line) for line in new.read_text().splitlines()]
+    assert all(r["code_language"].startswith("lang") for r in rows[:2])
+    assert [r["code_language"] for r in rows[2:]] == [None, None]
+    assert read_labels(new)[PROGRAMMING_LANGUAGE] == [r["code_language"] for r in rows]
+    assert source.components[0].code_language_column == "language"
+    assert source.components[1].code_language_column is None
+
+    assert PROGRAMMING_LANGUAGE not in read_labels(old)
+    assert "code_language" not in old.read_text()
+    kept = [{k: v for k, v in r.items() if k != "code_language"} for r in rows]
+    assert [json.loads(line) for line in old.read_text().splitlines()] == kept
+
+
+def test_released_mixed_v1_keeps_its_bytes_and_mixed_v2_its_mix():
+    assert "mixed-v1" in NO_CODE_LANGUAGE
+    assert BLENDS["mixed-v2"] == BLENDS["mixed-v1"]
+
+
+def test_a_layout_and_a_label_column_are_refused(code_blend, tmp_path):
+    with pytest.raises(ValueError, match="layout"):
+        build_from_hub(
+            "org/code", tmp_path / "c.jsonl", files="*.parquet", layout="wikitext",
+            code_language_column="language",
+        )  # fmt: skip

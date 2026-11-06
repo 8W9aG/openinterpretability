@@ -31,7 +31,7 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
 )
 from openinterp.core import costs
 from openinterp.core.agent_names import same_agent
-from openinterp.core.confounds import LANGUAGE
+from openinterp.core.confounds import LANGUAGE, SYNTAX_NODE
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -82,6 +82,20 @@ LANGUAGE_PROBES = (
     "against Portuguese, Russian against Ukrainian) that keep the examples' words and "
     "topic as far as that language allows.\n"
 )
+
+
+SYNTAX_PROBES = (
+    "The scan corpus is labelled by syntax, and each code example above gives its peak "
+    "token's syntax node, bracket depths, indent depth and syntax construct. Include hard "
+    "negatives that keep the token and change its syntactic role: `return` as a keyword, "
+    "inside a string and inside a comment. If the hypothesis claims a feature whatever the "
+    "programming language, include positive holdouts in another programming language.\n"
+)
+
+
+def has_syntax_labels(submission: NeuronAuditSubmission) -> bool:
+    """Does a top example say what syntax its peak token has?"""
+    return any(SYNTAX_NODE in (e.peak_labels or {}) for e in submission.top_examples)
 
 
 def has_language_labels(submission: NeuronAuditSubmission) -> bool:
@@ -153,6 +167,7 @@ class ReviewerAgent(LLMAgent):
             f" {submission.lookahead.target_upcoming_tokens or ''}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
+            + (SYNTAX_PROBES if has_syntax_labels(submission) else "")
             + wordnet.format_for_reviewer(submission.top_examples, wordnet.lexicon())
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")

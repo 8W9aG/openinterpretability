@@ -97,19 +97,26 @@ class _Texts:
     labels: dict[str, list[str | None]] = field(default_factory=dict)  # by label set
 
     def taggers(self):
-        """One document tagger per label set the corpus carries, then the match taggers."""
-        from openinterp import names, sensitive, toxicity
+        """Return the document taggers, the syntax taggers, then the match taggers.
+
+        There is one document tagger per label set that the corpus carries. The syntax
+        taggers run only on a corpus that records programming languages.
+        """
+        from openinterp import names, sensitive, syntax, toxicity
         from openinterp.core.confounds import (
             HATE_SPEECH,
             NAMES,
             PERSONAL_DATA,
             POSTAL_ADDRESSES,
+            PROGRAMMING_LANGUAGE,
             TOXICITY,
         )
         from openinterp.harness.annotations import DocumentLabels, MatchTagger
 
+        languages = self.labels.get(PROGRAMMING_LANGUAGE)
         return [
             *(DocumentLabels(name, labels) for name, labels in self.labels.items()),
+            *(syntax.syntax_taggers(languages) if languages else ()),
             MatchTagger(PERSONAL_DATA, sensitive.pii_matches),
             MatchTagger(TOXICITY, toxicity.toxicity_matches),
             MatchTagger(HATE_SPEECH, toxicity.hate_matches),
@@ -274,7 +281,8 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
 
 def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
     """Where and how the scan ran, for the evidence's provenance."""
-    from openinterp import __version__, names, sensitive, toxicity
+    from openinterp import __version__, names, sensitive, syntax, toxicity
+    from openinterp.core.confounds import PROGRAMMING_LANGUAGE
     from openinterp.core.schemas import ExperimentProvenance
     from openinterp.harness.environment import run_environment
 
@@ -294,7 +302,8 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         environment=run_environment(runner),
         corpus_source=corpus.source,
         corpus_sample=corpus.sample,
-        label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}",
+        label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}"
+        + (f"; {syntax.detector()}" if PROGRAMMING_LANGUAGE in corpus.labels else ""),
     )
 
 

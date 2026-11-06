@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" width="760" height="430" role="img">
+<title>Left, a plot by layer: round-bracket depth has a peak of 0.28 at layer 2, and the null stays below 0.01. Right, bars for N676: 0.09 for all brackets, 0.28 for round brackets and 0.31 for round bracket characters.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="430" rx="10"/>
+<text x="20.0" y="30.0" class="title">Counting round brackets alone puts L2 N676+ first; counting all brackets hides it</text>
+<text x="20.0" y="50.0" class="sub">Left: each layer&#x27;s best pole, in R² on held-out documents, and the highest R² of a null in that layer.</text>
+<text x="20.0" y="68.0" class="sub">Right: L2 N676+ alone. Its all-brackets bar is in-sample, so it is an upper bound for held-out R².</text>
+<text x="44.0" y="106.0" class="head">Best pole per layer</text>
+<path class="grid" d="M61.9 114.0L61.9 324.0"/>
+<text x="61.9" y="339.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M133.6 114.0L133.6 324.0"/>
+<text x="133.6" y="339.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M205.2 114.0L205.2 324.0"/>
+<text x="205.2" y="339.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M276.9 114.0L276.9 324.0"/>
+<text x="276.9" y="339.0" class="small" text-anchor="middle">6</text>
+<path class="grid" d="M348.6 114.0L348.6 324.0"/>
+<text x="348.6" y="339.0" class="small" text-anchor="middle">8</text>
+<path class="grid" d="M420.2 114.0L420.2 324.0"/>
+<text x="420.2" y="339.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M44.0 324.0L474.0 324.0"/>
+<text x="37.0" y="328.0" class="small" text-anchor="end">0.0</text>
+<path class="grid" d="M44.0 258.4L474.0 258.4"/>
+<text x="37.0" y="262.4" class="small" text-anchor="end">0.1</text>
+<path class="grid" d="M44.0 192.8L474.0 192.8"/>
+<text x="37.0" y="196.8" class="small" text-anchor="end">0.2</text>
+<path class="grid" d="M44.0 127.1L474.0 127.1"/>
+<text x="37.0" y="131.1" class="small" text-anchor="end">0.3</text>
+<text x="259.0" y="355.0" class="small" text-anchor="middle">layer</text>
+<path class="line sc1" d="M61.9 216.0L97.8 261.5L133.6 142.2L169.4 171.7L205.2 237.6L241.1 225.2L276.9 236.0L312.8 282.3L348.6 172.9L384.4 201.2L420.2 237.2L456.1 217.2"/>
+<circle class="fc1" cx="61.9" cy="216.0" r="3"/>
+<circle class="fc1" cx="97.8" cy="261.5" r="3"/>
+<circle class="fc1" cx="133.6" cy="142.2" r="3"/>
+<circle class="fc1" cx="169.4" cy="171.7" r="3"/>
+<circle class="fc1" cx="205.2" cy="237.6" r="3"/>
+<circle class="fc1" cx="241.1" cy="225.2" r="3"/>
+<circle class="fc1" cx="276.9" cy="236.0" r="3"/>
+<circle class="fc1" cx="312.8" cy="282.3" r="3"/>
+<circle class="fc1" cx="348.6" cy="172.9" r="3"/>
+<circle class="fc1" cx="384.4" cy="201.2" r="3"/>
+<circle class="fc1" cx="420.2" cy="237.2" r="3"/>
+<circle class="fc1" cx="456.1" cy="217.2" r="3"/>
+<path class="line sc2" d="M61.9 251.2L97.8 220.0L133.6 230.7L169.4 233.8L205.2 172.1L241.1 252.3L276.9 203.6L312.8 240.6L348.6 214.4L384.4 210.2L420.2 245.3L456.1 246.9"/>
+<circle class="fc2" cx="61.9" cy="251.2" r="3"/>
+<circle class="fc2" cx="97.8" cy="220.0" r="3"/>
+<circle class="fc2" cx="133.6" cy="230.7" r="3"/>
+<circle class="fc2" cx="169.4" cy="233.8" r="3"/>
+<circle class="fc2" cx="205.2" cy="172.1" r="3"/>
+<circle class="fc2" cx="241.1" cy="252.3" r="3"/>
+<circle class="fc2" cx="276.9" cy="203.6" r="3"/>
+<circle class="fc2" cx="312.8" cy="240.6" r="3"/>
+<circle class="fc2" cx="348.6" cy="214.4" r="3"/>
+<circle class="fc2" cx="384.4" cy="210.2" r="3"/>
+<circle class="fc2" cx="420.2" cy="245.3" r="3"/>
+<circle class="fc2" cx="456.1" cy="246.9" r="3"/>
+<path class="line sneutral" d="M61.9 322.1L97.8 321.0L133.6 322.2L169.4 322.8L205.2 321.6L241.1 322.9L276.9 323.3L312.8 321.7L348.6 322.9L384.4 322.1L420.2 321.2L456.1 320.6"/>
+<text x="141.6" y="144.2" class="small">L2 N676+</text>
+<circle class="fc1" cx="25.0" cy="378.0" r="5"/>
+<text x="35.0" y="382.0">round brackets</text>
+<circle class="fc2" cx="143.4" cy="378.0" r="5"/>
+<text x="153.4" y="382.0">all brackets</text>
+<circle class="fneutral" cx="248.6" cy="378.0" r="5"/>
+<text x="258.6" y="382.0">null, round</text>
+<text x="530.0" y="106.0" class="head">L2 N676+</text>
+<path class="grid" d="M530.0 324.0L730.0 324.0"/>
+<path class="grid" d="M530.0 258.4L730.0 258.4"/>
+<path class="grid" d="M530.0 192.8L730.0 192.8"/>
+<path class="grid" d="M530.0 127.1L730.0 127.1"/>
+<rect class="fc2" x="543.3" y="261.8" width="40.0" height="62.2" rx="1.5"/>
+<text x="561.3" y="256.8" class="small" text-anchor="middle">0.09</text>
+<text x="561.3" y="339.0" class="small" text-anchor="middle">all</text>
+<rect class="fc1" x="610.0" y="142.2" width="40.0" height="181.8" rx="1.5"/>
+<text x="628.0" y="137.2" class="small" text-anchor="middle">0.28</text>
+<text x="628.0" y="339.0" class="small" text-anchor="middle">round</text>
+<rect class="fc3" x="676.7" y="120.6" width="40.0" height="203.4" rx="1.5"/>
+<text x="694.7" y="115.6" class="small" text-anchor="middle">0.31</text>
+<text x="694.7" y="339.0" class="small" text-anchor="middle">literal</text>
+</svg>

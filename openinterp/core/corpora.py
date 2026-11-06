@@ -48,6 +48,11 @@ class CorpusSource(StrictModel):
         "(openinterp.langid.DETECTOR), when the dataset doesn't say; documents it was "
         "unsure of have none. None: no detected languages.",
     )
+    code_language_column: str | None = Field(
+        default=None,
+        description="The dataset column that gave each document's 'code_language' field; "
+        "None: documents carry no programming language.",
+    )
     license: str | None = None
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
     blend: str | None = Field(
