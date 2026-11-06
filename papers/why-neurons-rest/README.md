@@ -19,8 +19,9 @@ We don't know why one-sided activations favour a low rest. These runs remove som
 
 The script is `scripts/train_resting.py`. Its output is in `results.jsonl`. `scripts/paper_figures.py` draws the figures from that output, with no model.
 
-- **Models.** GPT-2's architecture with 4 layers, width 256 and 8 heads, trained from fresh weights for 4,000 steps. Each step is 32 windows of 128 tokens, with AdamW at a learning rate of 3e-4 and gradient clipping at 1.0.
-- **Data.** Training uses pile-10k without the documents of the `corpus.jsonl` sample, which leaves 9,482 of 10,000 documents. Evaluation uses 128 test windows of the same split as [What default-on negative poles do as a population](../default-on-poles/README.md).
+- **Models.** The architecture of GPT-2 (Radford et al., 2019) with 4 layers, width 256 and 8 heads, trained from fresh weights for 4,000 steps. Each step is 32 windows of 128 tokens, with AdamW (Loshchilov & Hutter, 2019) at a learning rate of 3e-4 and gradient clipping at 1.0.
+- **Data.** Training uses the first 10,000 documents of the Pile (Gao et al., 2020) without the documents of the `corpus.jsonl` sample, which leaves 9,482 of 10,000 documents. Evaluation uses 128 test windows of the same split as [What default-on negative poles do as a population](../default-on-poles/README.md).
+- **Activation.** The baseline uses GELU (Hendrycks & Gimpel, 2016).
 - **Measures.** The median over neurons of each neuron's median h, the median offset (w·x̄, with x̄ the mean of the MLP's input), the median bias, the skew, and the share of neurons with weights against x̄.
 - **Centred conditions.** h is centred per neuron over each batch, then moved to a rest. That rest is fixed for `rest_0` and `rest_-1`, and is a parameter for each neuron for `rest_learned` and `rest_learned_fast`. Centring removes the weights' effect on the rest, so we report the rest as applied, not the raw h.
 
@@ -65,7 +66,7 @@ Step 4,000 of each condition. Columns L0–L3 are the median h.
 - **Mirrored GELU is only a check.** It is the baseline with h and the weights negated, so its rest must flip, and it does.
 - **ReLU rests as deep as GELU.** It has no dip and no flat region below zero that differs by depth, so the dip cannot be its target. ReLU is also indifferent to scale, so a rest near −1 has no special meaning for it. That similarity may have a simple cause in the training (see *Caveats*).
 - **Tanh doesn't shift.** This is weak evidence, because tanh is symmetric and no explanation gives it a direction. Its spread of h falls to 0.15–0.19 on L1–L3, so these neurons mostly stay in its near-linear region. It has the worst loss here.
-- **Width doesn't move the rest.** If neurons rest low to filter interference, narrower MLPs have more interference and should rest lower. They don't. These widths may not change interference enough, so this counts against that version of the idea and doesn't remove it.
+- **Width doesn't move the rest.** In toy models, Elhage et al. (2022) show that a negative bias can turn small positive interference into negative interference, which is free under a ReLU in their one-sparse case. Our step is to apply this to the rest of real MLPs: if neurons rest low to filter interference, narrower MLPs have more interference and should rest lower. They don't. These widths may not change interference enough, so this counts against that version of the idea and doesn't remove it.
 - **Regularisation isn't needed.** The no-dropout run also has no weight decay, and its rest forms at L1–L3. Dropout changes L1–L3 without a clear trend. L0 is the exception, and deepens with dropout (−0.16, −0.34, −0.57). L0 reads the embeddings, so this may be real, but it is three points on one seed.
 
 ## Does the model need the rest?
@@ -142,3 +143,15 @@ uv run python scripts/paper_figures.py
 ## Next
 
 [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*).
+
+## References
+
+- Elhage, N., et al. (2022). *Toy Models of Superposition*. Transformer Circuits Thread. [arXiv:2209.10652](https://arxiv.org/abs/2209.10652).
+- Gao, L., et al. (2020). *The Pile: An 800GB Dataset of Diverse Text for Language Modeling*. [arXiv:2101.00027](https://arxiv.org/abs/2101.00027).
+- Hendrycks, D. & Gimpel, K. (2016). *Gaussian Error Linear Units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
+- Loshchilov, I. & Hutter, F. (2019). *Decoupled Weight Decay Regularization*. ICLR 2019. [arXiv:1711.05101](https://arxiv.org/abs/1711.05101).
+- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+
+### Data
+
+- [`NeelNanda/pile-10k`](https://huggingface.co/datasets/NeelNanda/pile-10k), revision `127bfedc`: the first 10,000 documents of the Pile. Its card gives the licence as `bigscience-bloom-rail-1.0`.

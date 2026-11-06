@@ -1,6 +1,6 @@
 # What default-on negative poles do as a population
 
-Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent ([position zero](../../docs/analyses/position-zero.md)). This analysis asks what those poles do together. It starts from a study of GPT-2 L9/N1046−, whose scripts were not kept. It rebuilds them, measures every layer, and adds the nulls the first study lacked.
+Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent ([position zero](../../docs/analyses/position-zero.md)). This analysis asks what those poles do together. It starts from an earlier study of GPT-2 L9/N1046−, whose scripts were not kept. Its numbers survive in [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md). It rebuilds them, measures every layer, and adds the nulls the first study lacked.
 
 ![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
 
@@ -19,12 +19,12 @@ These results do not show that negative poles are meaningless. A single default-
 
 The scripts are `scripts/default_on_poles.py`, `scripts/default_on_clamps.py`, `scripts/default_on_decode.py` and `scripts/default_on_targets.py`. Their output is in `results.jsonl`. `scripts/paper_figures.py` draws the figures from that output, with no model. The intervention figure is an illustration, and it uses no data. The ridges are a sketch from each layer's median and SD.
 
-- **Data.** `corpus.jsonl`, the 200,000-token sample with seed 0, cut into whole 128-token windows that don't overlap. GPT-2 small gets 1,355 windows from 384 documents, and Qwen2.5-0.5B gets 1,328 from 420.
+- **Data.** `corpus.jsonl`, the 200,000-token sample with seed 0 from the first 10,000 documents of the Pile (Gao et al., 2020), cut into whole 128-token windows that don't overlap. GPT-2 small (Radford et al., 2019) gets 1,355 windows from 384 documents, and Qwen2.5-0.5B, from the Qwen2.5 family (Yang et al., 2024), gets 1,328 from 420.
 - **Split.** Constants are fit on 300 windows and tested on 400 others, with no document in both. Windows of one document share a topic, so a split by window would leak.
 - **Sites.** `c_fc`'s output is the pre-activation h. The input of `c_proj` is the activation a = GELU(h).
 - **First tokens.** Band statistics skip each window's first token, and interventions leave it unchanged. The `_with_first` conditions change it too (see *The first token*).
 - **Sides.** A neuron's negative side is its tokens with a < 0, and its positive side those with a > 0.
-- **Below the dip.** h is under GELU's minimum (−0.7518), and the pole's strength is under 0.25 × its maximum. GELU is back near zero there, so the pole is silent.
+- **Below the dip.** h is under the minimum of GELU (Hendrycks & Gimpel, 2016), at −0.7518, and the pole's strength is under 0.25 × its maximum. GELU is back near zero there, so the pole is silent.
 - **Intervals.** They are 95% bootstrap intervals over documents.
 
 Each clamp condition changes the activations as follows. KL is KL(clean‖changed) over next-token distributions.
@@ -97,7 +97,7 @@ All 12 layers changed at once, on GPT-2's test windows. Clean cross-entropy is 3
 
 ### The first token
 
-If interventions also change each window's first token, the positive clamp costs 6.14 nats, not 1.34, and only 13% of top predictions stay. Holding every neuron at its mean costs 5.63, not 4.09. The negative side barely changes (0.19 and 3.75). The first token has massive positive activations and is the attention sink (Sun et al., 2024), so a clamp there can reach every later token. Any population clamp needs to say what it does at this position.
+If interventions also change each window's first token, the positive clamp costs 6.14 nats, not 1.34, and only 13% of top predictions stay. Holding every neuron at its mean costs 5.63, not 4.09. The negative side barely changes (0.19 and 3.75). In our data the first token has very large positive activations. Sun et al. (2024) report massive activations on GPT-2's starting token. Xiao et al. (2023) name the strong attention that initial tokens draw an attention sink. So a clamp there can reach every later token. Any population clamp needs to say what it does at this position.
 
 ## The KL ratio follows the variance, as does a null's
 
@@ -220,7 +220,7 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 
 **A lead doesn't show that training built the negative side for this.** Both sides read the same h. Weights learned for the positive side would also help the negative side beat random weights. This test can't separate the two, and a readout shows only what is present. The clamps above, which add 0.19 nats, are the test of use.
 
-**Human labels.** The labels come from `openinterp/concepts.py`, with one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens: the test tokens whose type has the label, and also lacks it, in the fit documents. The lookup baseline reads the current token's rate of the label.
+**Human labels.** The labels come from `openinterp/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens: the test tokens whose type has the label, and also lacks it, in the fit documents. The lookup baseline reads the current token's rate of the label.
 
 | Dataset | Labels | Lookup | − at L6 | + at L6 | Best null at L6 | − minus best null: L0 | L3 | L6 | L9 | L11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -235,11 +235,11 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 
 ![Each side's lead over the random-feature null on the next-token distribution and on human labels](media/decoding.svg)
 
-Limits of these two tests: they use linear readouts and one sample, and the labelled text is short and differs from `corpus.jsonl`. Fit sets are smaller than the features would like on the Universal Dependencies data (16,476 tokens, 3,072 features). Other readouts or targets could still show more. The CoNLL and AG News licences limit how we can use their text, so we publish only these aggregate scores.
+Limits of these two tests: they use linear readouts and one sample, and the labelled text is short and differs from `corpus.jsonl`. Fit sets are smaller than the features would like on the Universal Dependencies data (16,476 tokens, 3,072 features). Other readouts or targets could still show more. The CoNLL and AG News licences limit how we can use their text, and the language dataset's card states no licence, so we publish only these aggregate scores.
 
 ## Qwen2.5-0.5B
 
-Qwen's MLP is SwiGLU, so a neuron is silu(gate) × up. Clamps ran on the same window design, on every layer together and on layers 0, 5, 11, 17 and 23 alone. We sampled the layers because a full per-layer run would take hours. Clean cross-entropy is 2.75 nats.
+Qwen's MLP is SwiGLU (Shazeer, 2020), so a neuron is silu(gate) × up. Clamps ran on the same window design, on every layer together and on layers 0, 5, 11, 17 and 23 alone. We sampled the layers because a full per-layer run would take hours. Clean cross-entropy is 2.75 nats.
 
 | All 24 layers | Added nats | Top prediction unchanged |
 | --- | --- | --- |
@@ -326,3 +326,24 @@ uv run python scripts/paper_figures.py
 ## Next
 
 [Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*).
+
+## References
+
+- Gao, L., et al. (2020). *The Pile: An 800GB Dataset of Diverse Text for Language Modeling*. [arXiv:2101.00027](https://arxiv.org/abs/2101.00027).
+- Hendrycks, D. & Gimpel, K. (2016). *Gaussian Error Linear Units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
+- Nivre, J., de Marneffe, M.-C., Ginter, F., Hajič, J., Manning, C. D., Pyysalo, S., Schuster, S., Tyers, F. & Zeman, D. (2020). *Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection*. LREC 2020, pp. 4034–4043. [ACL Anthology](https://aclanthology.org/2020.lrec-1.497/).
+- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Shazeer, N. (2020). *GLU Variants Improve Transformer*. [arXiv:2002.05202](https://arxiv.org/abs/2002.05202).
+- Sun, M., Chen, X., Kolter, J. Z. & Liu, Z. (2024). *Massive Activations in Large Language Models*. COLM 2024. [arXiv:2402.17762](https://arxiv.org/abs/2402.17762).
+- Tjong Kim Sang, E. F. & De Meulder, F. (2003). *Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition*. CoNLL 2003, pp. 142–147. [arXiv:cs/0306050](https://arxiv.org/abs/cs/0306050).
+- Xiao, G., Tian, Y., Chen, B., Han, S. & Lewis, M. (2023). *Efficient Streaming Language Models with Attention Sinks*. ICLR 2024. [arXiv:2309.17453](https://arxiv.org/abs/2309.17453).
+- Yang, A., et al. (2024). *Qwen2.5 Technical Report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).
+- Zhang, X., Zhao, J. & LeCun, Y. (2015). *Character-level Convolutional Networks for Text Classification*. NeurIPS 2015. [arXiv:1509.01626](https://arxiv.org/abs/1509.01626).
+
+### Data
+
+- [`NeelNanda/pile-10k`](https://huggingface.co/datasets/NeelNanda/pile-10k), revision `127bfedc`: the first 10,000 documents of the Pile. Its card gives the licence as `bigscience-bloom-rail-1.0`.
+- [`universal-dependencies/universal_dependencies`](https://huggingface.co/datasets/universal-dependencies/universal_dependencies), revision `c3fed78d`, CC BY-SA 4.0.
+- [`eriktks/conll2003`](https://huggingface.co/datasets/eriktks/conll2003), revision `ce85b39f`. Its card gives the licence as `other`.
+- [`fancyzhx/ag_news`](https://huggingface.co/datasets/fancyzhx/ag_news), revision `eb185aad`. Its card gives the licence as `unknown`, for research and other non-commercial use.
+- [`papluca/language-identification`](https://huggingface.co/datasets/papluca/language-identification), revision `e495f9af`. Its card names its sources, and gives no citation and no licence.

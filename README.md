@@ -199,6 +199,7 @@ Run `make check` locally before pushing. The [PR template](.github/pull_request_
 | Skill | Use it to | Based on |
 | --- | --- | --- |
 | `choose-next-experiment` | Pick the next experiment with `openinterp next`: randomised, explore vs exploit, herd-resistant | ε-greedy and Boltzmann sampling over follow-ups |
+| `write-paper` | Write a paper in `papers/` with checked references, and figures and animations tied to its results | |
 | `land-experiment` | Run experiments end to end and merge them: `choose-next-experiment`, then build, wait for green CI and merge (with write access), else move on | — |
 | `native-neuron-audit` | Avoid misreading a neuron (context, data, poles, SwiGLU regimes) | Goodfire, *Already Clean* (2026) |
 | `vocab-projection-lookahead` | Decide retrospective vs lookahead | Gurnee et al. 2026 (Jacobian lens); Geva et al. 2021/2022; logit lens; Voita et al. 2023 |
