@@ -9,6 +9,12 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **What default-on negative poles do as a population** (`docs/analyses/default-on-poles.md`, `scripts/default_on_poles.py`, `scripts/default_on_clamps.py`, `scripts/default_on_decode.py`; TODO, Protocol and science). On GPT-2 small, most of the negative side's cost is its resting level: clamping it at its mean adds 0.19 nats, and zeroing it adds 3.72. A shuffled null follows the same variance ratio as the clamp, so that ratio doesn't show one signal at two scales. Random directions match default-on neurons on split-half reliability, and random features match the negative side's decoding. On Qwen2.5-0.5B the two sides cost the same. No rule changes.
+- **Decoding the negative side against other targets** (`docs/analyses/default-on-poles.md`, `scripts/default_on_targets.py`; TODO, Protocol and science). Random features match the negative side on 62 human labels, with a lead of at most 0.011 of AUROC on ambiguous tokens. On the model's next-token distribution the side leads by 0.008–0.025 of R² on L1–L11, and the positive side leads by up to 0.073. Both sides read the same h, so this doesn't show that the negative side was learned for this. No rule changes.
+- **Why training rests neurons below GELU's dip** (`docs/analyses/why-neurons-rest.md`, `scripts/train_resting.py`; TODO, Protocol and science). Small GPT-2s show GPT-2's rest, and ReLU rests at the same depth without a dip, while tanh doesn't move. Width, dropout and weight decay don't set it. When centring stops the weights from setting the rest, a learned value goes down at nearly the same pace and lowers the loss. The rest passes −1 with longer training, so −1 isn't a target. Why one-sided activations favour a low rest stays open. No rule changes.
+
 ### Changed
 
 - **`make lint` and CI lint Markdown** (`scripts/check_markdown.py`, `[tool.pymarkdown]`; TODO, Code quality and tooling). PyMarkdown checks the style of hand-written Markdown, and a small check finds relative links and `#anchors` that lead nowhere. Generated wiki pages are not linted, because their text comes from models and corpora. Instead, `tests/test_check_markdown.py` lints a sample rendered from the wiki templates. New experiment pages get correct spacing around lists, tables and headings. Existing pages are write-once and stay as they are. MD038 is off, because a leading space in a code span is often part of a model token.
