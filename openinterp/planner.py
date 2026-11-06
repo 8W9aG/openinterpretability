@@ -43,7 +43,12 @@ from pathlib import Path
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.licenses import ModelLicense
 from openinterp.core.paths import DEFAULT_WIKI_DIR
-from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord
+from openinterp.core.schemas import (
+    PROTOCOL_VERSION,
+    AuditRecord,
+    ReviewPolicy,
+    scan_active_share,
+)
 from openinterp.planner_models import (
     DEFAULT_COVERAGE_TARGET,
     DEFAULT_OTHERS_SHARE,
@@ -230,19 +235,18 @@ def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[fl
 
 def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], now: datetime):
     """The follow-up candidates for one studied unit, weighted."""
-    record, verdict = state.record, state.record.verdict
+    record = state.record
     ident = record.submission.identifier
     commands = _commands(state)
-    gates = verdict.metrics.gates if verdict.metrics else {}
     if record.scanned_on_builtin_sample:
         # Every review kind would inherit a 552-token scan, and so would its default-on
         # gate: rescan on the real corpus instead.
         kinds = _rescan(commands)
     else:
         kinds = _review_kinds(state, commands)
-        if gates.get("not_default_on") is False:
-            # A default-on unit can't be audited as a detector, so no revision or review of
-            # it can pass. Only its other pole is still open.
+        if _default_on(record):
+            # A single default-on pole can't be audited as a detector: a new audit stops at the
+            # scan, and a review fails the gate. Re-evaluating can still correct an old verdict.
             kinds = [k for k in kinds if k[0] == "reevaluate"]
     kinds += _opposite_pole(state, slugs, commands)
 
@@ -260,6 +264,20 @@ def candidates_for(state: NeuronState, slugs: set[str], claims: Sequence[str], n
             record=state.record_path.as_posix(),
             audit=_audit_options(commands),
         )
+
+
+def _default_on(record: AuditRecord) -> bool:
+    """Return whether the record shows a default-on unit, by its gate or by its histogram.
+
+    Records from before protocol 0.8 have no ``not_default_on`` gate, so the histogram is
+    read as ``check_default_on`` reads it, with the current policy.
+    """
+    metrics = record.verdict.metrics
+    if metrics and metrics.gates.get("not_default_on") is False:
+        return True
+    policy = ReviewPolicy()
+    share = scan_active_share(record.submission, policy)
+    return share is not None and share >= policy.max_active_share
 
 
 def _audit_options(commands: list[str]) -> str | None:
