@@ -35,6 +35,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from openinterp.core.cache_dirs import cache_root
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.scan import Chunk, Piece
 
@@ -49,11 +50,7 @@ _BITS = {torch.bfloat16: torch.int16}
 
 def default_root() -> Path | None:
     """``$OPENINTERP_SCAN_CACHE``, else ``$XDG_CACHE_HOME/openinterp/scans``; None if off."""
-    value = os.environ.get(ENV)
-    if value is not None:
-        return None if value.lower() in ("", "0", "off", "false") else Path(value)
-    base = os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"
-    return Path(base) / "openinterp" / "scans"
+    return cache_root(ENV, "scans")
 
 
 @dataclass(frozen=True)

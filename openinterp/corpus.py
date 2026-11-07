@@ -3,7 +3,8 @@
 A corpus is a JSONL file of ``{"text": ...}`` documents, plus a ``<name>.source.json``
 sidecar (:class:`CorpusSource`) that pins where it came from. Sampling does not download
 whole datasets. It reads Parquet row groups over HTTP. So a 500-document sample of
-fineweb-edu's 10B-token sample costs a few dozen small reads.
+fineweb-edu's 10B-token sample costs a few dozen small reads. :mod:`openinterp.corpus_cache`
+keeps what it reads.
 
 Sampling is deterministic for a given dataset revision and seed. It visits row groups in
 a seeded random order across all files, and takes a seeded handful of documents from
@@ -27,10 +28,9 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
-import pyarrow.parquet as pq
-
 from openinterp.core.confounds import LANGUAGE, PROGRAMMING_LANGUAGE, SOURCE
 from openinterp.core.schemas import CorpusSample, CorpusSource
+from openinterp.corpus_cache import read_row_group, row_groups
 from openinterp.corpus_layouts import LAYOUTS, wikitext_articles  # noqa: F401  (re-exported)
 
 # What `openinterp audit` scans by default (protocol 0.7). The seed is fixed, so every
@@ -157,7 +157,7 @@ def sample_documents(
     paths = sorted(paths)
     # One footer read per file: in parallel, since a dataset of 880 files takes minutes serially.
     with ThreadPoolExecutor(16) as pool:
-        counts = list(pool.map(lambda path: _row_groups(fs, path), paths))
+        counts = list(pool.map(lambda path: row_groups(fs, path), paths))
     groups = [(path, i) for path, n in zip(paths, counts, strict=True) for i in range(n)]
     rng.shuffle(groups)
     # Few row groups (a small dataset): take more from each, so the sample still fills.
@@ -196,7 +196,7 @@ def first_documents(
     """
     out: list[str] = []
     for path in sorted(paths):
-        groups = [(path, i) for i in range(_row_groups(fs, path))]
+        groups = [(path, i) for i in range(row_groups(fs, path))]
         for texts, column in _read_groups(fs, groups, text_column, label_column):
             if layout is not None:
                 texts = LAYOUTS[layout](texts)
@@ -210,11 +210,6 @@ def first_documents(
     return out
 
 
-def _row_groups(fs, path: str) -> int:
-    with fs.open(path, "rb") as fh:
-        return pq.ParquetFile(fh).num_row_groups
-
-
 def _read_groups(
     fs, groups, text_column: str, label_column: str | None = None
 ) -> Iterator[tuple[list, list | None]]:
@@ -226,8 +221,7 @@ def _read_groups(
     text_columns = text_column.split(",")
     columns = [*text_columns, label_column] if label_column else text_columns
     for path, i in groups:
-        with fs.open(path, "rb") as fh:
-            table = pq.ParquetFile(fh).read_row_group(i, columns=columns)
+        table = read_row_group(fs, path, i, columns)
         parts = [table.column(name).to_pylist() for name in text_columns]
         yield (
             ["\n\n".join(filter(None, row)) for row in zip(*parts, strict=True)],
