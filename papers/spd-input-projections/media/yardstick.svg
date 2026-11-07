@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 424" width="760" height="424" role="img">
+<title>From the neurons the ratio is higher than from random at every site: 0.79 to 2.92 against 0.45 to 1.60 on input projections, and 1.77 to 6.50 against 0.32 to 4.86 on down projections.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="424" rx="10"/>
+<text x="20.0" y="30.0" class="title">At every site, an active subcomponent does more work from the neurons</text>
+<text x="20.0" y="50.0" class="sub">Neurons per token needed to reach a run&#x27;s fit, per subcomponent it keeps active.</text>
+<text x="20.0" y="68.0" class="sub">Above 1, SPD beats the neuron baseline. The input baseline picks the best neurons</text>
+<text x="20.0" y="86.0" class="sub">for this error. The down baseline ignores cancellation, so it is easier to beat.</text>
+<circle class="fc1" cx="25.0" cy="118.0" r="5"/>
+<text x="35.0" y="122.0">Run D, from the neurons</text>
+<circle class="fc2" cx="202.8" cy="118.0" r="5"/>
+<text x="212.8" y="122.0">Run C, from random</text>
+<path class="grid" d="M48.0 376.0L370.0 376.0"/>
+<text x="41.0" y="380.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M48.0 344.6L370.0 344.6"/>
+<text x="41.0" y="348.6" class="small" text-anchor="end">1</text>
+<path class="grid" d="M48.0 313.1L370.0 313.1"/>
+<text x="41.0" y="317.1" class="small" text-anchor="end">2</text>
+<path class="grid" d="M48.0 281.7L370.0 281.7"/>
+<text x="41.0" y="285.7" class="small" text-anchor="end">3</text>
+<path class="grid" d="M48.0 250.3L370.0 250.3"/>
+<text x="41.0" y="254.3" class="small" text-anchor="end">4</text>
+<path class="grid" d="M48.0 218.9L370.0 218.9"/>
+<text x="41.0" y="222.9" class="small" text-anchor="end">5</text>
+<path class="grid" d="M48.0 187.4L370.0 187.4"/>
+<text x="41.0" y="191.4" class="small" text-anchor="end">6</text>
+<path class="grid" d="M48.0 156.0L370.0 156.0"/>
+<text x="41.0" y="160.0" class="small" text-anchor="end">7</text>
+<path class="grid" d="M61.4 156.0L61.4 376.0"/>
+<text x="61.4" y="391.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M115.1 156.0L115.1 376.0"/>
+<text x="115.1" y="391.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M168.8 156.0L168.8 376.0"/>
+<text x="168.8" y="391.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M222.4 156.0L222.4 376.0"/>
+<text x="222.4" y="391.0" class="small" text-anchor="middle">6</text>
+<path class="grid" d="M276.1 156.0L276.1 376.0"/>
+<text x="276.1" y="391.0" class="small" text-anchor="middle">8</text>
+<path class="grid" d="M329.8 156.0L329.8 376.0"/>
+<text x="329.8" y="391.0" class="small" text-anchor="middle">10</text>
+<path class="dip" d="M48.0 344.6L370.0 344.6"/>
+<text x="48.0" y="148.0" class="head">Input projections</text>
+<text x="209.0" y="407.0" class="small" text-anchor="middle">layer</text>
+<path class="range sneutral" d="M61.4 325.7L61.4 296.2"/>
+<circle class="fc2 ring" cx="61.4" cy="325.7" r="4"/>
+<circle class="fc1 ring" cx="61.4" cy="296.2" r="4"/>
+<path class="range sneutral" d="M88.2 352.0L88.2 284.3"/>
+<circle class="fc2 ring" cx="88.2" cy="352.0" r="4"/>
+<circle class="fc1 ring" cx="88.2" cy="284.3" r="4"/>
+<path class="range sneutral" d="M115.1 358.6L115.1 329.5"/>
+<circle class="fc2 ring" cx="115.1" cy="358.6" r="4"/>
+<circle class="fc1 ring" cx="115.1" cy="329.5" r="4"/>
+<path class="range sneutral" d="M141.9 360.8L141.9 347.4"/>
+<circle class="fc2 ring" cx="141.9" cy="360.8" r="4"/>
+<circle class="fc1 ring" cx="141.9" cy="347.4" r="4"/>
+<path class="range sneutral" d="M168.8 358.9L168.8 346.6"/>
+<circle class="fc2 ring" cx="168.8" cy="358.9" r="4"/>
+<circle class="fc1 ring" cx="168.8" cy="346.6" r="4"/>
+<path class="range sneutral" d="M195.6 361.5L195.6 348.5"/>
+<circle class="fc2 ring" cx="195.6" cy="361.5" r="4"/>
+<circle class="fc1 ring" cx="195.6" cy="348.5" r="4"/>
+<path class="range sneutral" d="M222.4 360.8L222.4 347.0"/>
+<circle class="fc2 ring" cx="222.4" cy="360.8" r="4"/>
+<circle class="fc1 ring" cx="222.4" cy="347.0" r="4"/>
+<path class="range sneutral" d="M249.2 360.8L249.2 347.7"/>
+<circle class="fc2 ring" cx="249.2" cy="360.8" r="4"/>
+<circle class="fc1 ring" cx="249.2" cy="347.7" r="4"/>
+<path class="range sneutral" d="M276.1 361.7L276.1 348.2"/>
+<circle class="fc2 ring" cx="276.1" cy="361.7" r="4"/>
+<circle class="fc1 ring" cx="276.1" cy="348.2" r="4"/>
+<path class="range sneutral" d="M302.9 361.8L302.9 349.8"/>
+<circle class="fc2 ring" cx="302.9" cy="361.8" r="4"/>
+<circle class="fc1 ring" cx="302.9" cy="349.8" r="4"/>
+<path class="range sneutral" d="M329.8 356.3L329.8 351.1"/>
+<circle class="fc2 ring" cx="329.8" cy="356.3" r="4"/>
+<circle class="fc1 ring" cx="329.8" cy="351.1" r="4"/>
+<path class="range sneutral" d="M356.6 350.8L356.6 348.3"/>
+<circle class="fc2 ring" cx="356.6" cy="350.8" r="4"/>
+<circle class="fc1 ring" cx="356.6" cy="348.3" r="4"/>
+<path class="grid" d="M414.0 376.0L736.0 376.0"/>
+<text x="407.0" y="380.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M414.0 344.6L736.0 344.6"/>
+<text x="407.0" y="348.6" class="small" text-anchor="end">1</text>
+<path class="grid" d="M414.0 313.1L736.0 313.1"/>
+<text x="407.0" y="317.1" class="small" text-anchor="end">2</text>
+<path class="grid" d="M414.0 281.7L736.0 281.7"/>
+<text x="407.0" y="285.7" class="small" text-anchor="end">3</text>
+<path class="grid" d="M414.0 250.3L736.0 250.3"/>
+<text x="407.0" y="254.3" class="small" text-anchor="end">4</text>
+<path class="grid" d="M414.0 218.9L736.0 218.9"/>
+<text x="407.0" y="222.9" class="small" text-anchor="end">5</text>
+<path class="grid" d="M414.0 187.4L736.0 187.4"/>
+<text x="407.0" y="191.4" class="small" text-anchor="end">6</text>
+<path class="grid" d="M414.0 156.0L736.0 156.0"/>
+<text x="407.0" y="160.0" class="small" text-anchor="end">7</text>
+<path class="grid" d="M427.4 156.0L427.4 376.0"/>
+<text x="427.4" y="391.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M481.1 156.0L481.1 376.0"/>
+<text x="481.1" y="391.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M534.8 156.0L534.8 376.0"/>
+<text x="534.8" y="391.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M588.4 156.0L588.4 376.0"/>
+<text x="588.4" y="391.0" class="small" text-anchor="middle">6</text>
+<path class="grid" d="M642.1 156.0L642.1 376.0"/>
+<text x="642.1" y="391.0" class="small" text-anchor="middle">8</text>
+<path class="grid" d="M695.8 156.0L695.8 376.0"/>
+<text x="695.8" y="391.0" class="small" text-anchor="middle">10</text>
+<path class="dip" d="M414.0 344.6L736.0 344.6"/>
+<text x="414.0" y="148.0" class="head">Down projections</text>
+<text x="575.0" y="407.0" class="small" text-anchor="middle">layer</text>
+<path class="range sneutral" d="M427.4 277.2L427.4 171.6"/>
+<circle class="fc2 ring" cx="427.4" cy="277.2" r="4"/>
+<circle class="fc1 ring" cx="427.4" cy="171.6" r="4"/>
+<path class="range sneutral" d="M454.2 223.2L454.2 193.1"/>
+<circle class="fc2 ring" cx="454.2" cy="223.2" r="4"/>
+<circle class="fc1 ring" cx="454.2" cy="193.1" r="4"/>
+<path class="range sneutral" d="M481.1 278.9L481.1 254.9"/>
+<circle class="fc2 ring" cx="481.1" cy="278.9" r="4"/>
+<circle class="fc1 ring" cx="481.1" cy="254.9" r="4"/>
+<path class="range sneutral" d="M507.9 306.9L507.9 278.9"/>
+<circle class="fc2 ring" cx="507.9" cy="306.9" r="4"/>
+<circle class="fc1 ring" cx="507.9" cy="278.9" r="4"/>
+<path class="range sneutral" d="M534.8 296.0L534.8 276.4"/>
+<circle class="fc2 ring" cx="534.8" cy="296.0" r="4"/>
+<circle class="fc1 ring" cx="534.8" cy="276.4" r="4"/>
+<path class="range sneutral" d="M561.6 308.4L561.6 287.2"/>
+<circle class="fc2 ring" cx="561.6" cy="308.4" r="4"/>
+<circle class="fc1 ring" cx="561.6" cy="287.2" r="4"/>
+<path class="range sneutral" d="M588.4 314.6L588.4 292.7"/>
+<circle class="fc2 ring" cx="588.4" cy="314.6" r="4"/>
+<circle class="fc1 ring" cx="588.4" cy="292.7" r="4"/>
+<path class="range sneutral" d="M615.2 335.4L615.2 304.0"/>
+<circle class="fc2 ring" cx="615.2" cy="335.4" r="4"/>
+<circle class="fc1 ring" cx="615.2" cy="304.0" r="4"/>
+<path class="range sneutral" d="M642.1 352.0L642.1 318.8"/>
+<circle class="fc2 ring" cx="642.1" cy="352.0" r="4"/>
+<circle class="fc1 ring" cx="642.1" cy="318.8" r="4"/>
+<path class="range sneutral" d="M668.9 365.9L668.9 320.3"/>
+<circle class="fc2 ring" cx="668.9" cy="365.9" r="4"/>
+<circle class="fc1 ring" cx="668.9" cy="320.3" r="4"/>
+<path class="range sneutral" d="M695.8 363.0L695.8 306.4"/>
+<circle class="fc2 ring" cx="695.8" cy="363.0" r="4"/>
+<circle class="fc1 ring" cx="695.8" cy="306.4" r="4"/>
+<path class="range sneutral" d="M722.6 252.7L722.6 190.1"/>
+<circle class="fc2 ring" cx="722.6" cy="252.7" r="4"/>
+<circle class="fc1 ring" cx="722.6" cy="190.1" r="4"/>
+</svg>

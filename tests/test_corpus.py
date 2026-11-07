@@ -21,9 +21,11 @@ from openinterp.blends import (
 from openinterp.cli import cli
 from openinterp.cli_evidence import read_corpus
 from openinterp.core.confounds import PROGRAMMING_LANGUAGE
+from openinterp.core.corpora import CorpusSource
 from openinterp.corpus import (
     PRESETS,
     Preset,
+    _license,
     build_from_hub,
     first_documents,
     jsonl_bytes,
@@ -35,6 +37,7 @@ from openinterp.corpus import (
     wikitext_articles,
     write_corpus,
 )
+from openinterp.corpus_rebuild import rebuild, scanned_source
 from openinterp.evidence import read_labels
 from tests.conftest import FakeTokenizer
 
@@ -229,6 +232,9 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
          "20231101.ru/train-*.parquet,20231101.el/train-*.parquet,20231101.ar/train-*.parquet,"
          "20231101.hi/train-*.parquet,20231101.zh/train-*.parquet,20231101.ja/train-*.parquet,"
          "20231101.ko/train-*.parquet", None, None, "text", 50),
+        ("open-web-math", "open-web-math/open-web-math", "data/train-*.parquet", None, None,
+         "text", 20),
+        ("gsm8k", "openai/gsm8k", "main/train-*.parquet", None, None, "question,answer", 20),
     ],
 )  # fmt: skip
 def test_cli_uses_the_presets_settings(
@@ -270,14 +276,45 @@ def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_pat
 
 
 def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
-    assert blend_shares("mixed", 500) == {
+    assert blend_shares("mixed-v1", 500) == {
         "fineweb-edu": 100, "c4": 100, "pile-uncopyrighted": 100, "wikitext": 50,
         "github-code": 75, "wikipedia-multilingual": 75,
     }  # fmt: skip
-    assert blend_shares("mixed-v1", 500) == blend_shares("mixed", 500)
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v3", 500) == {
+        "fineweb-edu": 91, "c4": 91, "pile-uncopyrighted": 91, "wikitext": 46,
+        "github-code": 68, "wikipedia-multilingual": 68, "open-web-math": 45,
+    }  # fmt: skip
     shares = blend_shares("mixed", 23)
-    assert sum(shares.values()) == 23 and list(shares.values()) == [5, 5, 5, 2, 3, 3]
+    assert sum(shares.values()) == 23 and list(shares.values()) == [5, 4, 4, 2, 3, 3, 2]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
+
+
+def test_text_columns_join_into_one_document(tmp_path):
+    path = tmp_path / "qa.parquet"
+    table = pa.table({"q": ["q0", "q1", None, None], "a": ["a0", None, "a2", None]})
+    pq.write_table(table, path)
+    fs = fsspec.filesystem("file")
+    args = dict(text_column="q,a", documents=9, max_chars=99)
+    joined = ["q0\n\na0", "q1", "a2"]  # a row with only nulls is empty, so it isn't a document
+    assert first_documents(fs, [str(path)], **args) == joined
+    assert sorted(
+        sample_documents(fs, [str(path)], seed=0, docs_per_row_group=9, **args)
+    ) == sorted(joined)
+
+
+@pytest.mark.parametrize(
+    "card, licence",
+    [
+        ({"license": "mit"}, "mit"),
+        ({"license": "mit", "dataset_info": {"license": "odc-by"}}, "mit"),
+        ({"dataset_info": {"license": "odc-by"}}, "odc-by"),
+        ({"dataset_info": [{"config_name": "main"}]}, None),
+        ({}, None),
+    ],
+)
+def test_the_licence_comes_from_the_card_or_its_dataset_info(card, licence):
+    info = SimpleNamespace(card_data=SimpleNamespace(to_dict=lambda: card))
+    assert _license(None, "org/data", info, None) == licence
 
 
 def test_every_preset_is_in_the_latest_mixed_blend_or_says_why_not():
@@ -336,6 +373,90 @@ def test_a_blend_concatenates_its_presets_samples_and_labels_their_source(
             max_chars=99, lang_pattern=preset.lang_pattern,
         )  # fmt: skip
         assert built == part
+
+
+def _source(**kw):
+    fields = dict(dataset="org/a", revision="r1", files="*.parquet", documents=2, seed=7,
+                  max_chars=9, docs_per_row_group=20, sha256="s" * 64)  # fmt: skip
+    return CorpusSource(**(fields | kw))
+
+
+def _fake_build(monkeypatch, name, sha="s" * 64):
+    calls = {}
+
+    def build(first_arg, out, **kw):
+        calls.update(kw, first_arg=first_arg)
+        out.write_text("x")
+        source_path(out).write_text("{}")
+        return SimpleNamespace(sha256=sha)
+
+    monkeypatch.setattr(f"openinterp.corpus_rebuild.{name}", build)
+    return calls
+
+
+def test_rebuild_pins_a_datasets_source(monkeypatch, tmp_path):
+    calls = _fake_build(monkeypatch, "build_from_hub")
+    source = _source(text_column="q,a", lang_detector="d", first=True, ascii=True)
+    assert rebuild(source, tmp_path / "c.jsonl").sha256 == source.sha256
+    assert (calls["first_arg"], calls["revision"], calls["text_column"]) == ("org/a", "r1", "q,a")
+    assert (calls["seed"], calls["detect_lang"], calls["first"]) == (7, True, True)
+
+
+def test_rebuild_pins_each_part_of_a_blend(monkeypatch, tmp_path):
+    calls = _fake_build(monkeypatch, "build_blend")
+    source = _source(
+        blend="mixed-v3", components=[_source(), _source(dataset="org/b", revision="r2")]
+    )
+    rebuild(source, tmp_path / "c.jsonl")
+    assert calls["first_arg"] == "mixed-v3" and calls["seed"] == 7
+    assert calls["revisions"] == {"org/a": "r1", "org/b": "r2"}
+
+
+def test_rebuild_leaves_no_corpus_if_the_bytes_differ(monkeypatch, tmp_path):
+    _fake_build(monkeypatch, "build_from_hub", sha="d" * 64)
+    out = tmp_path / "c.jsonl"
+    with pytest.raises(ValueError, match="d{64}"):
+        rebuild(_source(), out)
+    assert not out.exists() and not source_path(out).exists()
+
+
+def test_a_blends_revisions_override_its_presets(monkeypatch, tmp_path):
+    seen = {}
+
+    def sample(dataset, *, revision, documents, **kw):
+        seen[dataset] = revision
+        source = dict(dataset=dataset, revision=revision, files="f", seed=0, max_chars=9)
+        return ["text"] * documents, None, source
+
+    monkeypatch.setattr("openinterp.blends._sample_hub", sample)
+    monkeypatch.setitem(PRESETS, "a", Preset("org/a", "*.parquet", revision="branch"))
+    monkeypatch.setitem(PRESETS, "b", Preset("org/b", "*.parquet"))
+    monkeypatch.setitem(BLENDS, "test-v1", {"a": 1, "b": 1})
+    build_blend("test-v1", tmp_path / "c.jsonl", documents=2, revisions={"org/a": "commit"})
+    assert seen == {"org/a": "commit", "org/b": None}
+
+
+def test_scanned_source_prefers_the_record_then_a_committed_sidecar(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    own = _source()
+    prov = SimpleNamespace(corpus="c", corpus_sha256="e" * 64, corpus_source=own)
+    assert scanned_source(SimpleNamespace(provenance=prov)) == own
+    legacy = SimpleNamespace(corpus="corpus.jsonl", corpus_sha256="e" * 64, corpus_source=None)
+    with pytest.raises(ValueError, match="how to rebuild"):
+        scanned_source(SimpleNamespace(provenance=legacy))
+    with pytest.raises(ValueError, match="no provenance"):
+        scanned_source(SimpleNamespace(provenance=None))
+    sidecar = _source(sha256="e" * 64)
+    (tmp_path / "corpus.source.json").write_text(sidecar.model_dump_json())
+    assert scanned_source(SimpleNamespace(provenance=legacy)) == sidecar
+
+
+def test_cli_same_as_takes_only_out(monkeypatch, tmp_path):
+    record = tmp_path / "record.json"
+    record.write_text("{}")
+    args = ["corpus", "--same-as", str(record), "--out", str(tmp_path / "c.jsonl")]
+    refused = CliRunner().invoke(cli, [*args, "--seed", "3"])
+    assert refused.exit_code != 0 and "not with: seed" in refused.output
 
 
 def test_cli_builds_the_mixed_blend_by_default(monkeypatch, tmp_path):

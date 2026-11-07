@@ -64,23 +64,42 @@ def steps(
     corpus: str = "corpus.jsonl",
     proposer: str | None = None,
     reviewer: str | None = None,
+    fresh_corpus: bool = False,
 ) -> list[Step]:
     """Return every step of ``plan``'s draw.
 
     A ``proposer`` or ``reviewer`` of None, or one named ``external/…``, means that a
-    Claude Code subagent answers a prompt that the CLI writes.
+    Claude Code subagent answers a prompt that the CLI writes. A new scan reads ``corpus``,
+    or with ``fresh_corpus`` a corpus that it first builds from the draw's seed. A review of
+    a record reads the corpus that the record scanned, whichever these say.
     """
     c = plan.choice
     slug = draw_slug(c)
     key = claim_key(slug) if slug else "<KEY>"
     out = f"exchange/{key}"
+    corpus, build = _corpus(c, out, corpus, plan.seed, fresh_corpus)
     run = _run(c, key, out, corpus, _api(proposer), _api(reviewer))
     return [
         _claim(c, key, plan.seed, known=slug is not None),
         *([] if c.kind in ("explore", "opposite_pole") else [_history(c)]),
+        *build,
         *run,
         _post(key, c.kind),
     ]
+
+
+def _corpus(c, out, corpus, seed, fresh: bool) -> tuple[str, list[Step]]:
+    """Return the corpus that the draw reads, and the steps that build it, if any."""
+    if c.kind in REVIEW_KINDS:
+        scanned = f"{out}/scan-corpus.jsonl"
+        command = f"uv run openinterp corpus --same-as {c.record} --out {scanned}"
+        return scanned, [Step("Rebuild the corpus the record scanned", [command], _NO_REBUILD)]
+    if fresh and c.kind in SCAN_KINDS:
+        # Not under `out`: an explore draw's key can be unknown until its scan starts.
+        built = f"exchange/fresh/corpus-{seed}.jsonl"
+        command = f"uv run openinterp corpus --seed {seed} --out {built}"
+        return built, [Step("Build a fresh scan corpus (about a minute)", [command])]
+    return corpus, []
 
 
 def _api(model: str | None) -> str | None:
@@ -105,7 +124,7 @@ def _claim(c: Candidate, key: str, seed: int, known: bool) -> Step:
         if known
         else (
             "The unit isn't known until the scan starts (the model's config isn't cached): start "
-            "the scan (next step), then claim with the slug its `Unit:` line names, '/' → '-'."
+            "the scan (a later step), then claim with the slug its `Unit:` line names, '/' → '-'."
         )
     )
     return Step("Claim it before any other work", commands, note)
@@ -166,6 +185,10 @@ _STOPPED = (
     "commit the draw record it writes under wiki/draws/, note the unit and seed in the PR, "
     "then mark it ready and land it like any other result (it must be merged, not left as "
     "a draft) before drawing again."
+)
+_NO_REBUILD = (
+    "If this stops because the record's corpus can't be rebuilt, the draw is infeasible: close "
+    "the claim's PR with that reason and draw again. Don't review on another corpus."
 )
 _INDEPENDENT = (
     "The reviewer's model must differ from the record's proposer; if it doesn't, "

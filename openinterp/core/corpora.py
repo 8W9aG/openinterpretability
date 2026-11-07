@@ -26,7 +26,11 @@ class CorpusSource(StrictModel):
         description="Glob of the Parquet files sampled, within the dataset; several, "
         "comma-separated, each gave an equal share of the documents."
     )
-    text_column: str = "text"
+    text_column: str = Field(
+        default="text",
+        description="Column of the text; several, comma-separated, joined into one document "
+        "with a blank line between them.",
+    )
     documents: int = Field(ge=0)
     seed: int
     max_chars: int = Field(gt=0)
