@@ -6,7 +6,6 @@ Open work, grouped by topic. Within each section, items are roughly in priority 
 
 Small fixes, mostly quick.
 
-- [ ] Move the literature review queue out of this file, e.g. to `docs/literature/queue.md`, before `TODO.md` reaches the 500-line limit in `scripts/check_line_limit.py`, which doesn't exempt it. The file passed 430 lines on 2026-11-07 and the queue is its fastest-growing part. Add titles to the entries that are bare arXiv IDs.
 - [ ] Clean up the README so people who want to start quickly can.
   - "Set up (once)" alone is ~50 lines before the first experiment. Lead with the shortest path to a first contributed experiment, and move details (provider setup, worktrees, development, layout, deploy) further down or into `docs/`.
   - State all dependencies up front: Git, the GitHub CLI (`gh`), Claude Code, Node.js, Python 3.11+ and uv. "Set up (once)" lists Git, Python and uv, marks `gh` optional, and doesn't mention Claude Code or Node.js. Say what each is for, and which are needed only for some paths (e.g. Claude Code only for 2A; check what Node.js is needed for, since the site build doesn't use it).
@@ -111,59 +110,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
   - Add a literature review page for all referenced papers and blogs: everything the repo references gets a page, including blog posts and papers with no arXiv ID.
   - Write the summaries from the paper itself (a subagent per paper is fine), not from memory, and quote the numbers they report. Flag claims that go beyond the paper, and keep the discussion of how we'd use it separate from the summary.
   - Keep pages short, under the 500-line file limit, and add a check (e.g. in `openinterp check` or `make lint`) that every arXiv ID cited in the repo has a page.
-  - Review Thinking Machines' "Training LLMs to predict world events" ([post](https://thinkingmachines.ai/news/training-llms-to-predict-world-events/)).
-  - Review Levin's "Ingressing Minds from Platonic Space" (Closer To Truth, [page](https://loc.closertotruth.com/theory/levin-s-ingressing-minds-from-platonic-space)).
-  - Review arXiv 2609.37725 ([paper](https://arxiv.org/html/2609.37725v1)).
-  - Review arXiv 2512.24601 ([paper](https://arxiv.org/abs/2512.24601)).
-  - Review arXiv 2601.07372 ([paper](https://arxiv.org/pdf/2601.07372)).
-  - Review Alex Wang's post on associative memory ([post](https://alexwang.ai/posts/associative-memory/)).
-  - Review Sasha Rush's "Sampling to Reinforce" ([post](https://srush.github.io/sampling-to-reinforce/)).
-  - Review arXiv 2610.37676 ([paper](https://arxiv.org/abs/2610.37676)).
-  - Review arXiv 2610.34756 ([paper](https://arxiv.org/abs/2610.34756)).
-  - Review arXiv 2610.36269 ([paper](https://arxiv.org/abs/2610.36269)).
-  - Review OpenAI's "How we detect frontier model misalignment" ([post](https://openai.com/index/how-we-detect-frontier-model-misalignment/)).
-  - Review arXiv 2610.39302 ([paper](https://arxiv.org/abs/2610.39302)).
-  - Review arXiv 2610.40637 ([paper](https://arxiv.org/abs/2610.40637)).
-  - Review arXiv 2610.39766 ([paper](https://arxiv.org/abs/2610.39766)).
-  - Review arXiv 2610.39182 ([paper](https://arxiv.org/abs/2610.39182)).
-  - Review arXiv 2610.40505 ([paper](https://arxiv.org/abs/2610.40505)).
-  - Review arXiv 2610.37157 ([paper](https://arxiv.org/abs/2610.37157)).
-  - Review Commanding Heights ([site](https://commanding-heights.com/)).
-  - Review arXiv 2610.35530 ([paper](https://arxiv.org/abs/2610.35530)).
-  - Review arXiv 2610.37369 ([paper](https://arxiv.org/abs/2610.37369)).
-  - Review mechinterp.neuralavb.com ([site](https://mechinterp.neuralavb.com/)).
-  - Review arXiv 2610.40946 ([paper](https://arxiv.org/abs/2610.40946)).
-  - Review arXiv 2610.41743 ([paper](https://arxiv.org/abs/2610.41743)).
-  - Review Edward Benson's "Embedding a state machine in a neural network" ([post](https://edwardbenson.com/2026/11/embedding-a-state-machine-in-a-neural-network)).
-  - Review rikiyat's post on weight-space programming ([post](https://rikiyat.github.io/blog/weight-space-programming/)).
-  - Review Q Labs' research on parameters ([post](https://qlabs.sh/research/parameters)).
-  - Review Prefrontal's post on LSA ([post](https://prefrontal.ai/news/lsa/)).
-  - Review Zyphra's post on hierarchical attention ([post](https://zyphra.com/our-work/zyphra-hierarchical-attention)).
-  - Review arXiv 2610.22655 ([paper](https://arxiv.org/abs/2610.22655)).
-  - Review arXiv 2610.41185 ([paper](https://arxiv.org/abs/2610.41185)).
-  - Review arXiv 2611.03526 ([paper](https://huggingface.co/papers/2611.03526)).
-  - Review arXiv 2610.37481 ([paper](https://arxiv.org/abs/2610.37481)).
-  - Review Anthropic's research on provable inference ([post](https://www.anthropic.com/research/provable-inference)).
-  - Review arXiv 2611.02633 ([paper](https://huggingface.co/papers/2611.02633)).
-  - Review Karpathy's nanochat ([repo](https://github.com/karpathy/nanochat)).
-  - Review Schmidhuber's post on the 1991 fast weight programmer and transformers ([post](https://people.idsia.ch/~juergen/fast-weight-programmer-1991-transformer.html)).
-  - Review ravfogel's X post ([post](https://x.com/ravfogel/status/2117642301442752692)).
-  - Review Let's Data Science's post on GPT-6 Astra editing 0.016% of Qwen's weights ([post](https://letsdatascience.com/blog/gpt-6-astra-edited-0-016-percent-qwen-weights-math-sixfold)).
-  - Review arXiv 2611.03317 ([paper](https://arxiv.org/abs/2611.03317)).
-  - Review arXiv 2610.37741 ([paper](https://arxiv.org/abs/2610.37741)).
-  - Review arXiv 2611.03438 ([paper](https://arxiv.org/abs/2611.03438)).
-  - Review arXiv 2611.04166 ([paper](https://arxiv.org/abs/2611.04166)).
-  - Review Goodfire's "Mechanistic Shaping" ([post](https://www.goodfire.com/research/mechanistic-shaping)).
-  - Review "Subspace Crystallization" ([post](https://mehshlok.github.io/subspace-crystallization/)).
-  - Review arXiv 2611.07071 ([paper](https://arxiv.org/abs/2611.07071)).
-  - Review arXiv 2611.08438 ([paper](https://arxiv.org/abs/2611.08438)).
-  - Review arXiv 2611.08465 ([paper](https://arxiv.org/abs/2611.08465)).
-  - Review arXiv 2611.08487 ([paper](https://arxiv.org/abs/2611.08487)).
-  - Review arXiv 2611.06848 ([paper](https://arxiv.org/abs/2611.06848)).
-  - Review DoubleAI's "Can LLMs Redesign Themselves as They Train?" ([post](https://www.doubleai.com/research/can-llms-redesign-themselves-as-they-train)).
-  - Review arXiv 2611.08089 ([paper](https://arxiv.org/abs/2611.08089)).
-  - Review arXiv 2605.21849 ([paper](https://arxiv.org/abs/2605.21849)).
-  - Review arXiv 2610.34074 ([paper](https://arxiv.org/abs/2610.34074)).
+  - Review the papers and posts in `docs/literature/queue.md`. Add new ones to that file, not here.
 
 ## Analyses per experiment
 
