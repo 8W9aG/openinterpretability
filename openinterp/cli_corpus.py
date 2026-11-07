@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+from click.core import ParameterSource
 
 from openinterp.blends import BLEND_ALIASES, BLENDS, DEFAULT_DATASET
 from openinterp.cli import cli
@@ -81,9 +82,17 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "sidecar records the detector. Replaces a preset's exact languages; not with --lang-pattern.",
 )
 @click.option(
+    "--same-as",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Rebuild the corpus this record scanned, at its pinned dataset commits, and check "
+    "its SHA-256. It sets the source, so only --out goes with it.",
+)
+@click.option(
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
 )
+@click.pass_context
 def corpus(
+    ctx,
     dataset,
     files,
     text_column,
@@ -97,6 +106,7 @@ def corpus(
     ascii_,
     lang_pattern,
     detect_lang,
+    same_as,
     out,
 ):
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
@@ -107,6 +117,8 @@ def corpus(
     """
     from openinterp.corpus import build_from_hub
 
+    if same_as:
+        return _same_as(ctx, same_as, out)
     if dataset in BLENDS or dataset in BLEND_ALIASES:
         per_dataset = {
             "--files": files, "--text-column": text_column, "--revision": revision,
@@ -137,6 +149,25 @@ def corpus(
         code_language_column=preset.code_language_column if preset else None,
     )
     _report(source, out, documents)
+
+
+def _same_as(ctx, record: Path, out: Path) -> None:
+    from openinterp.cli_review import load_submission
+    from openinterp.corpus_rebuild import rebuild, scanned_source
+
+    given = [
+        name
+        for name in ctx.params
+        if name not in ("same_as", "out")
+        and ctx.get_parameter_source(name) != ParameterSource.DEFAULT
+    ]
+    if given:
+        raise click.UsageError(f"--same-as sets the source, so not with: {', '.join(given)}.")
+    try:
+        source = rebuild(scanned_source(load_submission(record)), out)
+    except ValueError as error:
+        raise click.ClickException(f"{record}: {error}") from error
+    _report(source, out, source.documents)
 
 
 def _blend(dataset, per_dataset: dict, out: Path, documents, seed, max_chars, ascii_) -> None:
