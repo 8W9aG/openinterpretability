@@ -10,7 +10,7 @@ Protocol 0.8 stops the audit of a default-on pole, because no hard negative can 
 2. **The cost of the negative side is mostly its resting level.** With all 12 layers clamped, holding the negative side at its mean adds 0.19 nats. Setting it to zero adds 3.72.
 3. **The tests give no support to "the same signal, scaled down".** The KL ratio follows the variance ratio (r = 0.95), but so does a shuffled change with no link to the token (r = 0.97). Any change of that size would produce this pattern.
 4. **The tokens below the dip look coherent, and so do a random direction's.** N1046's split-half reliability by token is 0.70. Random directions in the MLP's input, at the same share of tokens, have a median of 0.68. One of them has code syntax among its top tokens, as N1046 does.
-5. **Random features match the negative side on token identity and human labels, and it leads them only a little on the model's next-token distribution.** That lead is at most 0.025 of R², and the positive side's reaches 0.073. The learned weights could explain the lead, because both sides read the same h, so it doesn't show that the negative side was learned for this.
+5. **Random features match the negative side on token identity and human labels, and it leads them only a little on the model's next-token distribution.** That lead is at most 0.025 of R², and the positive side's reaches 0.073. The learned weights could explain the lead, because both sides read the same h. So it doesn't show that the negative side was learned for this.
 6. **Qwen differs.** Its two sides are symmetric, and each costs 2.46 nats when clamped.
 
 These results do not show that negative poles are meaningless. A single default-on pole can't be audited as a detector. These tests also find little learned signal in the negative side's variation, but other tests could find more.
@@ -19,7 +19,7 @@ These results do not show that negative poles are meaningless. A single default-
 
 The scripts are `scripts/default_on_poles.py`, `scripts/default_on_clamps.py`, `scripts/default_on_decode.py` and `scripts/default_on_targets.py`. Their output is in `results.jsonl`. `scripts/paper_figures.py` draws the figures from that output, with no model. The intervention figure is an illustration, and it uses no data. The ridges are a sketch from each layer's median and SD.
 
-- **Data.** `corpus.jsonl`, the 200,000-token sample with seed 0 from the first 10,000 documents of the Pile (Gao et al., 2020), cut into whole 128-token windows that don't overlap. GPT-2 small (Radford et al., 2019) gets 1,355 windows from 384 documents, and Qwen2.5-0.5B, from the Qwen2.5 family (Yang et al., 2024), gets 1,328 from 420.
+- **Data.** `corpus.jsonl`, the 200,000-token sample with seed 0 from the first 10,000 documents of the Pile (Gao et al., 2020). It is cut into whole 128-token windows that don't overlap. GPT-2 small (Radford et al., 2019) gets 1,355 windows from 384 documents. Qwen2.5-0.5B, from the Qwen2.5 family (Yang et al., 2024), gets 1,328 from 420.
 - **Split.** Constants are fit on 300 windows and tested on 400 others, with no document in both. Windows of one document share a topic, so a split by window would leak.
 - **Sites.** `c_fc`'s output is the pre-activation h. The input of `c_proj` is the activation a = GELU(h).
 - **First tokens.** Band statistics skip each window's first token, and interventions leave it unchanged. The `_with_first` conditions change it too (see *The first token*).
@@ -220,7 +220,7 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 
 **A lead doesn't show that training built the negative side for this.** Both sides read the same h. Weights learned for the positive side would also help the negative side beat random weights. This test can't separate the two, and a readout shows only what is present. The clamps above, which add 0.19 nats, are the test of use.
 
-**Human labels.** The labels come from `openinterp/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens: the test tokens whose type has the label, and also lacks it, in the fit documents. The lookup baseline reads the current token's rate of the label.
+**Human labels.** The labels come from `openinterp/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup baseline reads the current token's rate of the label.
 
 | Dataset | Labels | Lookup | − at L6 | + at L6 | Best null at L6 | − minus best null: L0 | L3 | L6 | L9 | L11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -235,7 +235,7 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 
 ![Each side's lead over the random-feature null on the next-token distribution and on human labels](media/decoding.svg)
 
-Limits of these two tests: they use linear readouts and one sample, and the labelled text is short and differs from `corpus.jsonl`. Fit sets are smaller than the features would like on the Universal Dependencies data (16,476 tokens, 3,072 features). Other readouts or targets could still show more. The CoNLL and AG News licences limit how we can use their text, and the language dataset's card states no licence, so we publish only these aggregate scores.
+Limits of these two tests: they use linear readouts and one sample, and the labelled text is short and differs from `corpus.jsonl`. Fit sets are smaller than the features would like on the Universal Dependencies data (16,476 tokens, 3,072 features). Other readouts or targets could still show more. The CoNLL and AG News licences limit how we can use their text, and the language dataset's card states no licence. So we publish only these aggregate scores.
 
 ## Qwen2.5-0.5B
 

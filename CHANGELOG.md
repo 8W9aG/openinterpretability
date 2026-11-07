@@ -15,7 +15,7 @@ The project has two version numbers:
 
 ### Changed
 
-- **`make ste` lints `docs/`, `README.md`, `REVIEW.md` and the PR template** (`STE_PATHS` in the `Makefile`, from TODO, Code quality and tooling). Their sentences over 25 words are split, their semicolons are gone, and each uses one word for verify and check. `docs/PROTOCOL.md` keeps every condition of the decision rule. The patchscope baseline report is generated, so `openinterp/baseline.py` writes the new wording. `CHANGELOG.md` and `TODO.md` stay out: they are logs of long items, not instructions.
+- **`make ste` lints `docs/`, `papers/`, `README.md`, `REVIEW.md`, the PR template, `CHANGELOG.md` and `TODO.md`** (`STE_PATHS` and `STE_LOG_PATHS` in the `Makefile`, from TODO, Code quality and tooling). Their sentences over 25 words are split and their semicolons are gone. `docs/PROTOCOL.md` keeps every condition of the decision rule. The patchscope baseline report is generated, so `openinterp/baseline.py` writes the new wording. `CHANGELOG.md` and `TODO.md` skip the synonym rule: Keep a Changelog requires a *Fixed* heading, and entries quote command names such as `verify` and `check`.
 - **The literature review queue moved out of `TODO.md`** to `docs/literature/queue.md` (TODO, Housekeeping), so it no longer pushes `TODO.md` toward the 500-line limit. Entries that were bare arXiv IDs now have titles.
 - **The `release` skill tags the merged commit** (`.claude/skills/release/SKILL.md`). It tagged the release branch before the merge. A squash merge makes a new commit, so that tag was not on `main`, and `v0.0.14` had to move after its merge.
 
