@@ -13,6 +13,7 @@ Small fixes, mostly quick.
 - [ ] Licence the data separately from the code. `LICENSE` is MIT, which suits code but not the records and pages under `wiki/`. Pick a data licence (e.g. CC-BY-4.0), state it in the README and on the site, and say that corpus excerpts inside records keep their corpus's own terms (the licence `<name>.source.json` already records).
 - [ ] Should we move to GitHub issues or Linear?
 - [ ] Do we need a SOUL.md?
+- [ ] Use academic language when writing papers, in APA style. Put the rule in the `write-paper` skill, and align its reference format and `tests/test_papers.py` with APA.
 
 ## Code quality and tooling
 
@@ -21,6 +22,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 - [ ] Widen `make ste` (the asd-ste100 skill's linter, `STE_PATHS` in the `Makefile`) from the skills to `docs/` and the top-level Markdown, file by file. Counted on 2026-11-02, in hard violations (semicolons, sentences over 25 words, synonym rotation): `docs/PROTOCOL.md` 127, `docs/analyses/` 112 across 12 files, `docs/dictionaries.md` 9, `docs/muse.md` 6, `README.md` 77, `CHANGELOG.md` 274, `TODO.md` 238. Rewrite `docs/PROTOCOL.md` with care: it defines the verdicts, so a split sentence must keep every condition. `CHANGELOG.md` and `TODO.md` may be better left out: they are logs of long items, not instructions.
 - [ ] Add a JSON/JSONL/YAML linter.
 - [ ] Add bandit linting for security.
+- [ ] Run Cloudflare's [security-audit-skill](https://github.com/cloudflare/security-audit-skill) on the repo.
 - [ ] Add linting for accessibility.
 - [ ] Add linting for early returns, to discourage nesting.
 - [ ] Is there a way to lint or encourage comments within code itself, not just on function signatures?
@@ -46,6 +48,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
   - Test every path a change adds, completely. The deterministic half is the diff check above with branch coverage on (`--cov-branch`), so each new `if`/`else`, `except` and early return must be taken by some test. The rest needs judgement, so add a skill (`.claude/skills/test-new-paths/`) that agents load before marking a PR ready. It walks the diff and lists each new path, then checks that a test reaches it and asserts on the result (not just that it runs), covering the edge cases particular to this repo: empty and single-item inputs, a dead or default-on pole, both poles, every unit kind (neuron pole, head, dictionary feature), old records missing new fields, and the error message on bad input. The skill ends by running the diff-coverage check, and mutmut (below) on the changed files when they hold verdict logic.
   - Suggest mutation testing with [mutmut](https://github.com/boxed/mutmut) as a check on test quality, which coverage can't measure: it makes small changes to the code (flips a comparison, changes a constant) and reports the ones no test catches. Point it at the code that decides verdicts, where a silent change matters most: `core/stats.py`, `builder/standing.py`, the gates in `agents/reviewer.py` and `planner.py`. It reruns the suite once per change, so run it by hand or on a schedule (`make mutation`), not on every PR, and treat surviving changes as prompts for missing tests, not as a pass/fail gate.
 - [ ] Property-based tests with [Hypothesis](https://hypothesis.readthedocs.io) for the code that decides verdicts, where an edge case changes what the registry claims. Invariants to start with: the verdict doesn't depend on probe order (`agents/reviewer.py`), clustering doesn't depend on text order (`core/stats.py` `cluster_texts`), standing doesn't depend on record order (`builder/standing.py`), and signing then verifying always round-trips.
+- [ ] Add fuzz testing.
 - [ ] Add a verdict regression check to CI. `openinterp check` validates a record's shape and page but doesn't recompute its verdict, and `openinterp reproduce` only runs on records a PR changes, so a refactor of the gates could change what old records would get without anything failing. Recompute every verdict from its stored probe results and `verdict.policy`, without loading a model, and fail on a difference unless the PR bumps `PROTOCOL_VERSION`. First check that the stored fields are enough to do this.
 - [ ] Check links in CI. `make lint` checks relative links and anchors in the hand-written Markdown (`scripts/check_markdown.py`). Run a link checker (e.g. [lychee](https://github.com/lycheeverse/lychee)) over the built site and over external links. The site cross-links every model, layer, unit and experiment, and the docs cite many arXiv IDs by hand. Check external links on a weekly schedule rather than per PR, so a flaky host doesn't block merges.
 - [ ] Push `hf_models/` to the Hub from CI when it changes. Each folder mirrors a Hub repository (today `hf_models/qwen2.5-0.5b-transcoders` ↔ `sackfield/qwen2.5-0.5b-transcoders`): git tracks the card (`README.md`), per-layer metadata (`layer_*.json`) and training log, while the weights (`*.safetensors`, ~2.7 GB) are gitignored and live only on the Hub. Edits to the card or metadata (e.g. commit `2fda3b2c`) have to be pushed by hand, so the Hub can drift from the repo.
@@ -98,6 +101,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 - [ ] Decide how to incorporate transcoders or SPDs into the process (whether with monosemanticity or polysemanticity), or create a new experiment class. We need to use them more to explain the networks.
 - [ ] A literature review in `docs/literature/`: one page per paper or blog post on mechanistic interpretability and neighbouring work (explanation scoring, causal abstraction, dictionary learning, model diffing), each with the citation and link, a short summary of its method and findings, and a discussion of how this repo can or can't use it and why. Link each page to where it is used or planned: skills, `docs/PROTOCOL.md`, TODO items, code. An index (`docs/literature/README.md`) groups the pages by topic and marks each one used, planned, or not applicable.
   - Seed it from what the repo already cites: the papers named in this file, in `docs/PROTOCOL.md` and in the skills (`.claude/skills/*/SKILL.md`; about 30 distinct arXiv IDs plus named papers), then add new ones as they come up, e.g. the OpenMOSS papers (Pipeline) and Taleb's informational rescaling (below).
+  - Add a literature review page for all referenced papers and blogs: everything the repo references gets a page, including blog posts and papers with no arXiv ID.
   - Write the summaries from the paper itself (a subagent per paper is fine), not from memory, and quote the numbers they report. Flag claims that go beyond the paper, and keep the discussion of how we'd use it separate from the summary.
   - Keep pages short, under the 500-line file limit, and add a check (e.g. in `openinterp check` or `make lint`) that every arXiv ID cited in the repo has a page.
   - Review Thinking Machines' "Training LLMs to predict world events" ([post](https://thinkingmachines.ai/news/training-llms-to-predict-world-events/)).
@@ -142,6 +146,17 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
   - Review arXiv 2610.37741 ([paper](https://arxiv.org/abs/2610.37741)).
   - Review arXiv 2611.03438 ([paper](https://arxiv.org/abs/2611.03438)).
   - Review arXiv 2611.04166 ([paper](https://arxiv.org/abs/2611.04166)).
+  - Review Goodfire's "Mechanistic Shaping" ([post](https://www.goodfire.com/research/mechanistic-shaping)).
+  - Review "Subspace Crystallization" ([post](https://mehshlok.github.io/subspace-crystallization/)).
+  - Review arXiv 2611.07071 ([paper](https://arxiv.org/abs/2611.07071)).
+  - Review arXiv 2611.08438 ([paper](https://arxiv.org/abs/2611.08438)).
+  - Review arXiv 2611.08465 ([paper](https://arxiv.org/abs/2611.08465)).
+  - Review arXiv 2611.08487 ([paper](https://arxiv.org/abs/2611.08487)).
+  - Review arXiv 2611.06848 ([paper](https://arxiv.org/abs/2611.06848)).
+  - Review DoubleAI's "Can LLMs Redesign Themselves as They Train?" ([post](https://www.doubleai.com/research/can-llms-redesign-themselves-as-they-train)).
+  - Review arXiv 2611.08089 ([paper](https://arxiv.org/abs/2611.08089)).
+  - Review arXiv 2605.21849 ([paper](https://arxiv.org/abs/2605.21849)).
+  - Review arXiv 2610.34074 ([paper](https://arxiv.org/abs/2610.34074)).
 
 ## Analyses per experiment
 
@@ -346,6 +361,8 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
   - **Fit with the build.** `umap-learn` (numba, pynndescent, scikit-learn), `leidenalg`/`python-igraph` and any local embedding model are heavy. Put them in an optional dependency group, run the map offline (`openinterp map <model>`), and commit the coordinates, cluster IDs and norms (a few MB per model), so the site build stays light and deterministic. UMAP is only reproducible with `random_state` set, which makes it single-threaded; time that on 117k points. 117k SVG circles would be several MB, which breaks the static-SVG rule above. Render the density as a build-time PNG and draw the studied neurons as an SVG overlay.
   - **Questions to answer.** Does the map show coherent semantic clusters? Do the neurons for one concept at different layers (e.g. every "city" neuron) sit together? Is the map stable across seeds, choices of k and embedding models? Can the planner use it to draw from unexplored or unexplained clusters? Say plainly in the write-up that distances between clusters on a UMAP don't mean much.
 - [ ] Publish a JSON Schema for records. Generate it from `AuditRecord.model_json_schema()` at build time, serve it on the site versioned with `PROTOCOL_VERSION` (e.g. `/schema/audit-record-<version>.json`), and link it from the README and each record page, so outside tools can validate and read records without importing `openinterp`.
+- [ ] Can we order the Research section by latest first?
+- [ ] Remove the Below the Dip research paper (`papers/below-the-dip/`), an interactive page for the default-on and resting papers. Also remove its links in `papers/README.md`, `papers/default-on-poles/README.md` and `papers/why-neurons-rest/README.md`, its generator `scripts/figures_explorer.py`, its entry in `scripts/paper_figures.py`, and its check in `tests/test_paper_figures.py`.
 
 ## Scope expansion
 
@@ -384,6 +401,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 - [ ] ML-Intern-lab Qwen3.5-0.8B-weight-space-programming ([model](https://huggingface.co/ML-Intern-lab/Qwen3.5-0.8B-weight-space-programming)).
 - [ ] Kimi K3.1 Pro ([model](https://huggingface.co/moonshotai/Kimi-K3.1-Pro)).
 - [ ] Ricursive AI Ripple 65B Preview ([model](https://huggingface.co/ricursiveAI/Ripple-65B-Preview)).
+- [ ] Nous Research's model from this announcement; name it here once identified ([post](https://x.com/nousresearch/status/2118822925445050435)).
 - [ ] What is the process for adding a model? Do we need to construct a latent learned-basis dictionary? Do we need to construct an SPD model? Can we formalise this process?
 
 ## Later stage
