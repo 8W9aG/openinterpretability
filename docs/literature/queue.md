@@ -2,7 +2,6 @@
 
 Papers and posts to review for the literature review (`TODO.md`, Protocol and science). Add new entries at the end. When an entry has a page in `docs/literature/`, remove it from this list.
 
-- Review Thinking Machines' "Training LLMs to predict world events" ([post](https://thinkingmachines.ai/news/training-llms-to-predict-world-events/)).
 - Review Levin's "Ingressing Minds from Platonic Space" (Closer To Truth, [page](https://loc.closertotruth.com/theory/levin-s-ingressing-minds-from-platonic-space)).
 - Review "Context Language Models" (arXiv 2609.37725, [paper](https://arxiv.org/html/2609.37725v1)).
 - Review "Recursive Language Models" (arXiv 2512.24601, [paper](https://arxiv.org/abs/2512.24601)).
