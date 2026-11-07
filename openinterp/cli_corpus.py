@@ -151,6 +151,31 @@ def corpus(
     _report(source, out, documents)
 
 
+@cli.command("corpus-cache")
+@click.option("--clear", is_flag=True, help="Delete everything cached.")
+def corpus_cache(clear):
+    """Show the size of (or clear) the cache of Parquet data that `corpus` reads.
+
+    \b
+    Location: $OPENINTERP_CORPUS_CACHE (\"off\" disables it), else
+    $XDG_CACHE_HOME/openinterp/corpora or ~/.cache/openinterp/corpora.
+    Size cap: $OPENINTERP_CORPUS_CACHE_GB (default 5); least recently used go first.
+    """
+    from openinterp.corpus_cache import ParquetCache
+
+    cache = ParquetCache.default()
+    if cache is None:
+        click.echo("The corpus cache is off ($OPENINTERP_CORPUS_CACHE).")
+        return
+    if clear:
+        click.echo(f"Deleted {cache.clear()} entries from {cache.root}")
+        return
+    click.echo(
+        f"{cache.root}: {len(cache.entries())} entries, "
+        f"{cache.size() / 1e9:.2f} of {cache.max_bytes / 1e9:.0f} GB"
+    )
+
+
 def _same_as(ctx, record: Path, out: Path) -> None:
     from openinterp.cli_review import load_submission
     from openinterp.corpus_rebuild import rebuild, scanned_source
