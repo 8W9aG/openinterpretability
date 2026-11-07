@@ -2,7 +2,7 @@
 
 This analysis settles the *(protocol)* item from `TODO.md` (*Scope expansion*): how GELU negative poles, and early-layer poles with a first-token floor, are audited. The learned-basis baseline (`transcoder-baseline.md`) lost two groups of GPT-2 small poles to the way activity was measured:
 
-- every random negative pole in its pilot;
+- every random negative pole in its pilot.
 - six of its 40 positive poles, all in layers 1–2, whose explanations stated a floor at the first token.
 
 Protocol 0.8 makes two changes:
@@ -29,7 +29,7 @@ In all, 1,671 positive poles have the floor. 1,523 of them are not default-on: a
 - L19/N436+ fires when a text opens with a function word or code keyword, and stays silent on a content word.
 - L23/N541+ is a graded detector of how a text opens.
 
-Their holdouts open with the trigger, so a blanket rule sent L19/N436+ and L23/N541+ from VERIFIED to REJECTED, and three other VERIFIED Qwen poles to NEEDS_REVISION. These units are active at the first position on only 0.8–4.9% of the vocabulary, against 92–99% for the GPT-2 floor poles, so the vocabulary separates the two cleanly.
+Their holdouts open with the trigger. So a blanket rule sent L19/N436+ and L23/N541+ from VERIFIED to REJECTED, and three other VERIFIED Qwen poles to NEEDS_REVISION. These units are active at the first position on only 0.8–4.9% of the vocabulary, against 92–99% for the GPT-2 floor poles. So the vocabulary separates the two cleanly.
 
 **Details.**
 
@@ -48,15 +48,15 @@ GELU's negative pole is its dip: at most 0.17, reached at a pre-activation of �
 
 The first token is not the problem here. 32,180 of GPT-2 small's 36,864 negative poles (87%) are active on at least half their tokens, against 201 positive poles. A probe of n tokens drawn from such text stays inactive with probability about 0.5ⁿ, so no hard negative of a sentence can pass. The pilot's four negative poles with hard negatives passed 0, 0, 0 and 7 of 11.
 
-The line is at half. There is no sharp break in the negative poles' distribution, but at half or more a hard negative of a few words needs every token to be silent. Below it, a pole can still be a detector of what keeps it quiet. The share is read from the scan's histogram, counting only bins wholly above the line (a lower bound within one bin). The scan stop and the review gate read the same number.
+The line is at half. There is no sharp break in the negative poles' distribution. But at half or more a hard negative of a few words needs every token to be silent. Below it, a pole can still be a detector of what keeps it quiet. The share is read from the scan's histogram, counting only bins wholly above the line (a lower bound within one bin). The scan stop and the review gate read the same number.
 
-**Other units.** No Qwen2.5-0.5B record in the registry comes near the line: its highest active share is 0.35, and its SwiGLU negative poles are sparse. Transcoder latents are all below 0.01. On the same sample, most of the 60 GPT-2 heads of layers 0, 1, 5, 9 and 11 are active on 10–40% of tokens, measured by \|W_O (z − z̄)\|. The L5H1 induction head of the positive-control dry run is active on 17%. Five heads of layer 0, two of layer 1 and L9H3 are at or above half.
+**Other units.** No Qwen2.5-0.5B record in the registry comes near the line: its highest active share is 0.35, and its SwiGLU negative poles are sparse. Transcoder latents are all below 0.01. Take the 60 GPT-2 heads of layers 0, 1, 5, 9 and 11 on the same sample, measured by \|W_O (z − z̄)\|. Most are active on 10–40% of tokens. The L5H1 induction head of the positive-control dry run is active on 17%. Five heads of layer 0, two of layer 1 and L9H3 are at or above half.
 
 **Rejected alternative: measure default-on poles from their resting level,** as a head is measured from its mean write. For a GELU negative pole the resting level is the dip's floor itself. Its strength saturates there, so departures from rest would be a different, non-monotone readout: in effect a different unit from the one the pole names.
 
 ## Effect on existing records
 
-Re-evaluating keeps a record's scale and re-measures its stored probes. A record from before 0.8 has no floor judgement, so the review judges it against that scale. The records re-evaluated were the baseline's 46 neuron-pole records, every other VERIFIED GPT-2 negative pole that leaned on one-token probes, and the VERIFIED Qwen poles that the blanket rule had changed.
+Re-evaluating keeps a record's scale and re-measures its stored probes. A record from before 0.8 has no floor judgement, so the review judges it against that scale. The records re-evaluated were the baseline's 46 neuron-pole records and every other VERIFIED GPT-2 negative pole that leaned on one-token probes. The VERIFIED Qwen poles that the blanket rule had changed were also re-evaluated.
 
 | Records | Re-evaluated | VERIFIED → NEEDS_REVISION | NEEDS_REVISION → VERIFIED | Unchanged |
 | --- | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # A bracket neuron in GPT-2, and the label that hid it
 
-Syntax labels from a parser should find the code neurons that the literature leads us to expect, so we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters, and it has not been through the registry's review.
+Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters, and it has not been through the registry's review.
 
 ![A function with its tokens lit by the pole's strength, read token by token](media/trace.svg)
 
@@ -12,7 +12,7 @@ Syntax labels from a parser should find the code neurons that the literature lea
 4. **Written text supports a depth signal.** With the target token and the token before it fixed, strength rises with open brackets and falls to about zero when they close. In one snippet it climbs to 9.15 at depth 4, and drops to 0.65 at the token that closes two brackets.
 5. **The pole matters for a closing bracket.** Ablating it lowers the mean probability of a closing bracket at depths 1 to 4. Twenty random poles of the layer barely change it. At depth 5 the effect has a small opposite sign.
 6. **The signal has clear limits.** It fades over about 20 list items, it weakens over line breaks, and it does not fully count down. It also fires inside strings and comments, so it follows characters and not the grammar.
-7. **Cut documents broke the labels until we repaired them.** Corpus documents end mid-class. Before the repair, 45.9% of the characters inside brackets in those documents read as `top level`. Adding the missing closing brackets before a second parse lowers this to 12.5%.
+7. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Before the fix, 45.9% of the characters inside brackets in those documents read as `top level`. Adding the missing closing brackets before a second parse lowers this to 12.5%.
 
 These results do not show that L2 N676+ is the only bracket signal in GPT-2. They do not show how the model computes depth, or that the pole would earn VERIFIED under the protocol. The probes use narrow templates.
 
@@ -30,7 +30,7 @@ The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py` and `sc
 
 ## What came before
 
-The expectation came from recurrent models. Karpathy et al. (2015) report LSTM cells, trained on the Linux kernel source, that "turn on inside quotes, the parenthesis after if statements, inside strings or comments, or with increasing strength as the indentation of a block of code increases". That is a character-level LSTM, which carries state from step to step. A transformer's MLP neuron has no such state, so the step from those cells to GPT-2 is an assumption. This repo's TODO made that step when it said that these neurons are known to exist in code models.
+The expectation came from recurrent models. Karpathy et al. (2015) trained LSTM cells on the Linux kernel source. They report cells that "turn on inside quotes, the parenthesis after if statements, inside strings or comments". Another cell turns on "with increasing strength as the indentation of a block of code increases". That is a character-level LSTM, which carries state from step to step. A transformer's MLP neuron has no such state, so the step from those cells to GPT-2 is an assumption. This repo's TODO made that step when it said that these neurons are known to exist in code models.
 
 Evidence closer to GPT-2 is mixed. Friedman et al. (2024) study bracket depth in small transformers trained on parenthesis languages, and in character-level models trained on code, not in GPT-2. Gurnee et al. (2024) show a suppression neuron for tokens with an open parenthesis in a GPT-2 medium model. That is about output tokens, not depth. Clark et al. (2023) searched GPT-2 small for a circuit that tells a position it is inside brackets, in a report from a research sprint. They "did not find significant evidence of a circuit responsible for this behaviour", and found some evidence that the information is highly distributed. They also warn about the limits of the available tools. Our finding does not contradict theirs: one pole that matters is not a whole circuit, and the partial effect here fits a distributed signal.
 
@@ -129,7 +129,7 @@ So the pole carries part of what the model uses at low depth. The probability do
 
 The corpus cuts documents at 3,000 characters, usually inside a class or a function. The parser then has no node for that class, and its contents read as top level. We found this when a Java example at depth 1 and indent 4 read `top level`. So the tagger now adds the missing closers and a `;` before each `}`, parses again, and labels only the original text.
 
-To measure this, we parse the first 1,500 characters of the 157 documents at the 3,000-character limit, and compare their labels with those of the longer cut. A stable label agrees. Inside brackets, a label of `top level` is wrong almost always.
+To measure this, we parse the first 1,500 characters of the 157 documents at the 3,000-character limit. Then we compare their labels with those of the longer cut. A stable label agrees. Inside brackets, a label of `top level` is wrong almost always.
 
 | Language | `syntax construct` agreement, before | After | Inside brackets but `top level`, before | After |
 | --- | --- | --- | --- | --- |
@@ -146,7 +146,7 @@ To measure this, we parse the first 1,500 characters of the 157 documents at the
 | Scala | 0.859 | 1.000 | 0.000 | 0.000 |
 | TypeScript | 0.940 | 1.000 | 0.142 | 0.000 |
 
-`syntax node` agreement stays at 0.975 overall. The repair helps most languages. It lowers PHP's agreement, and it can't help Ruby, whose blocks close with `end`. Few documents stand behind some rows: Scala has 1, TypeScript 3 and Go 4. Haskell, Lua, Rust and Shell had no document at the limit in this sample, so this table doesn't test them.
+`syntax node` agreement stays at 0.975 overall. The fix helps most languages. It lowers PHP's agreement, and it can't help Ruby, whose blocks close with `end`. Few documents stand behind some rows: Scala has 1, TypeScript 3 and Go 4. Haskell, Lua, Rust and Shell had no document at the limit in this sample, so this table doesn't test them.
 
 ## Caveats
 
@@ -177,7 +177,7 @@ The corpus's SHA-256 is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00e14e4b1
 
 ## Next
 
-Audit L2 N676+ through the protocol, on a corpus with code. Test the other high round-depth poles in the same way, and ablate them together, to see whether they account for what is left of the closing bracket. Repeat the sweep on Qwen2.5-0.5B and 1.5B. Write probes with real blocks for curly brackets. Improve the labels of cut documents in PHP and Ruby.
+Audit L2 N676+ through the protocol, on a corpus with code. Test the other high round-depth poles in the same way, and ablate them together. That shows whether they account for what is left of the closing bracket. Repeat the sweep on Qwen2.5-0.5B and 1.5B. Write probes with real blocks for curly brackets. Improve the labels of cut documents in PHP and Ruby.
 
 ## References
 

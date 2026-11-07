@@ -1,7 +1,7 @@
 """Fail if any source file or function exceeds its line limit.
 
-Files: at most 500 lines. Tests, configuration, lockfiles, vendored code and
-generated data (audit records and wiki pages) are exempt.
+Files: at most 500 lines. Tests, configuration, lockfiles, vendored code, the
+changelog and generated data (audit records and wiki pages) are exempt.
 
 Functions: at most 40 lines: the signature as one line, plus the body.
 Decorators, the parameter list and the docstring do not count, so long Click
@@ -32,6 +32,7 @@ EXEMPT = (
     "docs/analyses/*.jsonl",  # generated analysis rows
     "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
+    "CHANGELOG.md",  # one file that grows with each release, not code
     "uv.lock",
     "*.toml",
     "*.yml",
