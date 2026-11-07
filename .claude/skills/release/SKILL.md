@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a package release of openinterp. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, tag the commit and open the release PR. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterp. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR and tag the merged commit. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterp
@@ -51,15 +51,21 @@ The CHANGELOG's header explains the two version numbers. The **package version**
    Ships with protocol version **<PROTOCOL_VERSION>**.
    ```
    If the protocol version changed since the last tag (`git diff v<previous> -- openinterp/core/schemas.py | grep PROTOCOL_VERSION`), say so in that line: "Ships with protocol version **0.9** (was 0.8)." The section's entries explain why.
-7. **Commit, tag and push.** Check the branch first (`git branch --show-current` prints `release/<version>`):
+7. **Commit and push.** Check the branch first (`git branch --show-current` prints `release/<version>`):
    ```bash
    git add CHANGELOG.md openinterp/__init__.py docs/analyses/sister-neurons.jsonl
    git commit -m "Release <version> (protocol v<PROTOCOL_VERSION>)"
-   git tag -a v<version> -m "openinterp <version> (protocol v<PROTOCOL_VERSION>)"
-   git push -u origin release/<version> && git push origin v<version>
+   git push -u origin release/<version>
    ```
 8. **Open the PR** against `main`:
    ```bash
    gh pr create --title "Release <version> (protocol v<PROTOCOL_VERSION>)" --body "..."
    ```
-   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped) and the tag. A release touches code, so it always waits for a human to merge it (`land-experiment`, step 7).
+   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped). A release touches code, so it always waits for a human to merge it (`land-experiment`, step 7).
+9. **Tag the merged commit.** Do this after the human merges the PR, not before. A squash merge makes a new commit on `main`, so a tag on the release branch's commit is not on `main`:
+   ```bash
+   git fetch origin
+   git tag -a v<version> "$(gh pr view <number> --json mergeCommit --jq .mergeCommit.oid)" -m "openinterp <version> (protocol v<PROTOCOL_VERSION>)"
+   git push origin v<version>
+   git merge-base --is-ancestor v<version> origin/main && echo on-main
+   ```
