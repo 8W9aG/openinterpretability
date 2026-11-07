@@ -1,6 +1,6 @@
 # Smaller driver models: pilot
 
-Run on 2026-10-31 (TODO "Performance"). Question: once `openinterp next --steps` and `openinterp show` (PR #1401) do the work the driving session used to do from the skills and the JSON, can a smaller model drive an experiment end to end as reliably as Opus, and what does it save?
+Run on 2026-10-31 (TODO "Performance"). Question: `openinterp next --steps` and `openinterp show` (PR #1401) now do the work the driving session used to do from the skills and the JSON. Can a smaller model drive an experiment end to end as reliably as Opus, and what does it save?
 
 ## Method
 
@@ -31,17 +31,17 @@ Input tokens include cache reads, which make up about 97% of them.
 
 | Driver | Completed and merged | Median turns | Median input tokens | Median output | Driver cost per experiment |
 | --- | --- | --- | --- | --- | --- |
-| Opus, baseline (n = 38, to an open PR, no `--steps`) | not recorded | 24 | 1.33M | 8.0k | ~$1.44 (rough; $0.84–33) |
+| Opus, baseline (n = 38, to an open PR, no `--steps`) | not recorded | 24 | 1.33M | 8.0k | ~$1.44 (rough, $0.84–33) |
 | Sonnet (n = 4, landed) | 4/4 | 28 | 1.60M | 6.6k | $0.41 |
 | Haiku (n = 4, landed) | 4/4 | 34 | 2.06M | 11.5k | $0.04 |
 
 - **Reliability.** Both small drivers completed and merged 8 of 8 experiments with no intervention, across explore, independent_review and reevaluate draws. Every record carries the subagents' reported model IDs (`external/claude-opus-5-5` proposer, `external/claude-sonnet-5-5` reviewer). Every review has detection and fuzzing scores (none are expected for a reevaluate), and every record is signed. Each explore was claimed before its scan, with the key `--steps` worked out from the seed.
-- **Cost.** Haiku took about 30% more turns and tokens than Sonnet, and still cost about a tenth as much to drive: $0.04 against $0.41 per experiment. Against the rough Opus baseline, that is about 35 times cheaper, and the pilots also did the build, CI wait and merge that the baseline sessions didn't.
+- **Cost.** Haiku took about 30% more turns and tokens than Sonnet, and still cost about a tenth as much to drive: $0.04 against $0.41 per experiment. Against the rough Opus baseline, that is about 35 times cheaper. The pilots also did the build, CI wait and merge that the baseline sessions didn't.
 - **Reading.** The skill files were barely read: at most one `cat` of a skill per session. In the baseline the median was 2 reads of skills, docs or JSON.
 
 ## Caveats
 
-- n = 4 per arm, and the draws were easy ones: three GPT-2 explores (a 128-token-window scan takes a minute or two) and reviews of existing records. No arm ran a Qwen explore (a ~15-minute scan to wait on in the background), a `revise` or `new_hypothesis` (`--supersedes`), a scan that stops on a dead or default-on unit, a failing CI check or a merge conflict. Those are where a weaker driver is most likely to go wrong.
+- n = 4 per arm. The draws were easy ones: three GPT-2 explores (a 128-token-window scan takes a minute or two) and reviews of existing records. No arm ran a Qwen explore (a ~15-minute scan to wait on in the background), a `revise` or a `new_hypothesis` (`--supersedes`). No arm met a scan that stops on a dead or default-on unit, a failing CI check or a merge conflict. Those are where a weaker driver is most likely to go wrong.
 - The arms ran in parallel on one machine. Sonnet waited for its scans with `pgrep -f evidence-out`, which also matches the other arm's scan, so its wall times may be inflated slightly. Token counts are unaffected.
 - Every session tried land-experiment's `SHA=$(gh pr view …) && gh pr merge …` and was refused by Claude Code's permission check ("quoted text in this command can't be checked"). Each driver recovered by pasting the SHA in. The skill now uses two separate commands.
 - The three Qwen draws followed up records whose scans used the 552-token built-in sample, not `corpus.jsonl`. The follow-ups inherit those scans' max activation, so their verdicts are as weak as the originals'. This isn't a driver problem: 568 records on 483 units are affected, and it is in TODO under Pipeline.
@@ -52,11 +52,11 @@ Run the same day, after the first pilot: one `--driver claude-haiku-5-5` loop of
 
 | # | Unit | Verdict | PR | Turns | Input tokens | Output | Driver cost | Minutes | What happened |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | GPT-2 L2/N2914− | REJECTED | #1419 | 41 | 2.64M | 16.9k | $0.054 | 9.0 | Ran `next` twice and claimed one draw's key with the other's seed; renamed the claim when the scan named the unit. Started a new reviewer for the token check instead of messaging the first. |
-| 2 | Qwen L9/N416+ | NEEDS_REVISION | #1420 | 39 | 2.40M | 14.1k | $0.045 | 34.7 | Clean; waited out a ~25-minute scan |
+| 1 | GPT-2 L2/N2914− | REJECTED | #1419 | 41 | 2.64M | 16.9k | $0.054 | 9.0 | Ran `next` twice and claimed one draw's key with the other's seed, then renamed the claim when the scan named the unit. Started a new reviewer for the token check instead of messaging the first. |
+| 2 | Qwen L9/N416+ | NEEDS_REVISION | #1420 | 39 | 2.40M | 14.1k | $0.045 | 34.7 | Clean. Waited out a ~25-minute scan |
 | 3 | GPT-2 L1/N2187− | REJECTED | #1428 | 59 | 4.36M | 20.1k | $0.069 | 13.4 | First draw, L10/N965−, stopped as default-on (76% active). Committed its draw record and drew again, but left that PR (#1427) as a draft, so I merged it afterwards. |
 | 4 | Qwen L23/N2950− | VERIFIED | #1430 | 45 | 2.87M | 14.1k | $0.050 | 11.4 | Tried `timeout` (not installed) in a watch, then recovered |
-| 5 | Qwen L23/N2284+ | NEEDS_REVISION | #1433 | 70 | 4.69M | 21.2k | $0.084 | 31.9 | Clean; waited for CI checks to register |
+| 5 | Qwen L23/N2284+ | NEEDS_REVISION | #1433 | 70 | 4.69M | 21.2k | $0.084 | 31.9 | Clean. Waited for CI checks to register |
 | 6 | GPT-2 L7/N570+ | VERIFIED | #1438 | 42 | 2.63M | 14.4k | $0.045 | 8.0 | Clean (PR title not in the `experiment: <key> (<kind>)` form) |
 | 7 | Qwen L6/N4564+ | VERIFIED | #1440 | 52 | 3.59M | 15.2k | $0.058 | 17.0 | Clean |
 | 8 | Qwen L17/N2717+ | VERIFIED | #1443 | 43 | 2.58M | 14.8k | $0.045 | 9.9 | Landed, but the final message has no `RESULT` line, so the loop logged "no RESULT line" |
@@ -70,4 +70,4 @@ Run the same day, after the first pilot: one `--driver claude-haiku-5-5` loop of
 
 ## Conclusion
 
-Over both pilots, Haiku drove 12 experiments and landed 12 of them, at $0.02–0.08 each. These covered Qwen explores with long scan waits and a scan stopped on a default-on unit. It needed one rescue, and that came from an unclear instruction that is now fixed. Its slips are mostly ones it catches itself. A Haiku driver is good enough to be the loop's default. The cases that remain (`--supersedes`, CI failures) are worth watching in the first unattended runs, but they don't need another pilot first: both are spelled out step by step in `--steps` and land-experiment.
+Over both pilots, Haiku drove 12 experiments and landed 12 of them, at $0.02–0.08 each. These covered Qwen explores with long scan waits and a scan stopped on a default-on unit. It needed one rescue, and that came from an unclear instruction that is now fixed. Its slips are mostly ones it catches itself. A Haiku driver is good enough to be the loop's default. The cases that remain (`--supersedes`, CI failures) are worth watching in the first unattended runs. They don't need another pilot first: both are spelled out step by step in `--steps` and land-experiment.

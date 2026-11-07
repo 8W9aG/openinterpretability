@@ -35,9 +35,12 @@ vale:
 # Markdown prose against the structural ASD-STE100 rules: semicolons, sentences over 25
 # words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
 # only the standard library. Passive voice and compound tenses are advisory and never fail.
-# A ratchet: add a path here once it passes. Next are docs/ and the top-level Markdown
-# (TODO.md, Code quality and tooling).
-STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' ':!.claude/skills/asd-ste100')
+# A ratchet: add a path here once it passes. CHANGELOG.md and TODO.md stay out: they are
+# logs of long items, not instructions. The vendored skill's examples break the rules on
+# purpose.
+STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \
+	':!.claude/skills/asd-ste100' 'docs/*.md' ':!docs/PROTOCOL.md' REVIEW.md \
+	.github/pull_request_template.md)
 ste:
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
 
