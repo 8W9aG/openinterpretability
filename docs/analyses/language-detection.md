@@ -1,25 +1,25 @@
 # Choosing a language detector for unlabelled corpora
 
-`openinterp corpus --detect-lang` labels each document of a corpus whose dataset doesn't say its language (FineWeb, the Pile), so the scan's language confound, the agents' per-example languages and the site's language mix work there too (docs/PROTOCOL.md §4, *Label confounds*). This note is how the detector and its confidence line were chosen. Script: `scripts/language_detection.py`; rows: `language-detection.jsonl`. Run 2026-11-01.
+`openinterp corpus --detect-lang` labels each document of a corpus whose dataset doesn't say its language (FineWeb, the Pile). So the scan's language confound, the agents' per-example languages and the site's language mix work there too (docs/PROTOCOL.md §4, *Label confounds*). This note is how the detector and its confidence line were chosen. Script: `scripts/language_detection.py`. Rows: `language-detection.jsonl`. Run 2026-11-01.
 
 ## Method
 
 Four detectors, each run per document as `openinterp corpus` would run it:
 
-- **fastText `lid.176.ftz`** (176 languages, the 917 KB compressed model; through `fasttext-predict`, as `openinterp/langid.py` runs it);
-- **lingua** (`lingua-language-detector`, all languages, high-accuracy mode);
-- **langdetect**, seeded (`DetectorFactory.seed = 0`); unseeded, it gave a different answer on 7 of 200 50-character documents when run twice;
+- **fastText `lid.176.ftz`** (176 languages, the 917 KB compressed model, through `fasttext-predict`, as `openinterp/langid.py` runs it).
+- **lingua** (`lingua-language-detector`, all languages, high-accuracy mode).
+- **langdetect**, seeded (`DetectorFactory.seed = 0`). Unseeded, it gave a different answer on 7 of 200 50-character documents when run twice.
 - **langid.py**, with normalised probabilities.
 
 Test sets, built with `openinterp corpus` so their labels are exact (each document's Wikipedia subset, `--lang-pattern`):
 
 - *Distinct*: the `wikipedia-multilingual` preset, 1,000 articles, 100 each in en, de, fr, ru, el, ar, hi, zh, ja and ko (eight scripts).
-- *Close*: 400 articles, 50 each in es, pt, it, ca, nl (Latin) and uk, bg, ru (Cyrillic), languages that share a script with a near neighbour.
+- *Close*: 400 articles, 50 each in es, pt, it, ca, nl (Latin) and uk, bg, ru (Cyrillic). These languages share a script with a near neighbour.
 - *Mixed*: 200 documents of English followed by another language from either set, English making up a quarter, half or three quarters of 1,500 characters. Right is the majority language (either, at half).
 - *Code*: 200 files of the `github-code` preset, which a detector should be unsure of.
 - *Registry*: the registry's 500-document pile-10k corpus (`corpus.jsonl`), unlabelled, for agreement and for what each detector makes of it.
 
-Articles are cut to 3,000 characters, as corpora are. Each set is also scored on its first 50 and 200 characters, about the length of a scan window, to show why detection runs per document.
+Articles are cut to 3,000 characters, as corpora are. Each set is also scored on its first 50 and 200 characters, about the length of a scan window. This shows why detection runs per document.
 
 ## Results
 
@@ -51,10 +51,10 @@ On the registry corpus the four detectors agree on 96–98% of documents. All ca
 **fastText `lid.176.ftz`, labelling a document only at confidence ≥ 0.8** (`openinterp/langid.py`: `MIN_CONFIDENCE`, with the model's URL and SHA-256 pinned).
 
 - It is the most accurate on every set at every length, and 10–15 times faster.
-- Only its confidence separates prose from code. The other three are as sure of a C header's "language" as of a Wikipedia article's, so no line can make them abstain on code. At 0.8, fastText labels 9% of code files and keeps 98.5% of articles. It loses no accuracy on those it keeps: three of its four errors on the articles (two Chinese articles and one Catalan, at confidence 0.14–0.46) fall below the line. The fourth, a Hindi article labelled English at 0.97, stays.
+- Only its confidence separates prose from code. The other three are as sure of a C header's "language" as of a Wikipedia article's, so no line can make them abstain on code. At 0.8, fastText labels 9% of code files and keeps 98.5% of articles. It loses no accuracy on those it keeps. Three of its four errors on the articles (two Chinese articles and one Catalan, at confidence 0.14–0.46) fall below the line. The fourth, a Hindi article labelled English at 0.97, stays.
 - Its model is CC BY-SA 3.0 and `fasttext-predict` is MIT. It is deterministic, and needs no numpy.
 
-On the registry corpus, the 0.8 line labels 416 documents English and leaves 71 unlabelled, mostly code, Stack Exchange posts with code, and maths exercises. The other 13 are labelled in 10 other languages (pt, nl and fr 2 each; es, no, da, tr, el, ja and de 1 each). Spot checks of the Spanish, Norwegian and Danish labels were all right.
+On the registry corpus, the 0.8 line labels 416 documents English and leaves 71 unlabelled, mostly code, Stack Exchange posts with code, and maths exercises. The other 13 are labelled in 10 other languages. Those are pt, nl and fr with 2 each, and es, no, da, tr, el, ja and de with 1 each. Spot checks of the Spanish, Norwegian and Danish labels were all right.
 
 ## Limits
 

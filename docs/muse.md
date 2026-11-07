@@ -56,9 +56,9 @@ audit seed in the steps output is the seed to reuse for the scan, so
 the same unit is scanned.
 
 Skip a draw that cannot be audited as a detector. A negative pole that
-is active on most scan tokens, for example 74 percent or 86 percent in
-two pilot draws, is default-on and is not a useful detector. In that
-case, draw again instead of spending a full scan on it, and say so in
+is active on most scan tokens is default-on and is not a useful detector.
+Two pilot draws were active on 74 percent and 86 percent of scan tokens. In that
+case, draw again instead of spending a full scan on it. Say so in
 the PR body so the experiment is not misrepresented as the immediate
 next draw.
 
@@ -196,7 +196,7 @@ To publish, copy only the new record `.json` and page `.md` into
 `experiment/<model>-<layer>-<neuron>-<pole>`. Do not commit the
 working `pilot/` folder. Commit, push, and open a draft PR. The PR
 body should state the verdict, the gates, the corpus, whether the
-review was self-reviewed, that `openinterp check` passes, and the
+review was self-reviewed, and that `openinterp check` passes. Give the
 next seed and kind if the experiment came from `openinterp next`.
 
 Merge only when all checks pass: lint and tests, experiment records,
@@ -206,7 +206,7 @@ until it is marked ready.
 ## Pitfalls learned from pilot runs
 
 - Dtype must match across every stage. A scan in bfloat16 with a
-  review in float32 fails CI reproduce, because reproduce loads the
+  review in float32 fails CI reproduce. Reproduce loads the
   dtype pinned by the verdict and compares it with the scan numbers.
   A bfloat16 re-review also failed local reproduce on its own, with
   a few activations just over tolerance. Float32 throughout passed
@@ -217,13 +217,13 @@ until it is marked ready.
   an independent review.
 - Activation scans are the bottleneck on CPU. A GPT-2 scan at
   20,000 tokens took about 5 minutes in bfloat16 and about 18 minutes
-  in float32 on a 4 CPU machine, plus model load and scoring time.
+  in float32 on a 4 CPU machine. Model load and scoring time are extra.
   Budget about 30 to 45 minutes for a full pilot run, plus CI time.
 
 ## Token usage
 
 Muse reports usage as a percentage of a weekly allowance, not as an
-exact token balance, so a run cannot be costed in exact Muse tokens
+exact token balance. So a run cannot be costed in exact Muse tokens
 from the product alone. Record the subscription percentage before and
 after a run, and the session context reading if one is available, in
 the run log. Separately, record the scan token cap and the actual
