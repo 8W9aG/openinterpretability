@@ -39,11 +39,11 @@ These results do not show that the neurons are the best basis for GPT-2, or the 
 | C | both | random | 5,152 | 0.158 | 0.030 | 6.06 (0.20) | 2.27 | 3.51 |
 | D | both | neurons | 5,186 | 0.093 | 0.011 | 4.40 (0.12) | 2.20 | 2.03 |
 
-Active counts for A and B come from their last evaluation on 8 pieces, and those for C and D from the 64 pieces of the tables below. On 8 pieces C and D keep 5,119 and 5,159.
+Active counts for A and B come from their last evaluation on 8 pieces. Those for C and D from the 64 pieces of the tables below. On 8 pieces C and D keep 5,119 and 5,159.
 
 With both projections, the importance terms are about level, and 1.48 of the objective's 1.66 gap is the output term. This is the like-for-like reading that the runs allow: the same price for sparsity, and a much better fit from the neurons. On the down projections the pattern differs. Run B's lead there is in sparsity, and its fit is lower.
 
-The start from the neurons does not begin ahead. At step 0 its KL is 5.34 against 4.56 from random. It leads by step 1,000 and stays ahead to the end.
+The start from the neurons does not start ahead. At step 0 its KL is 5.34 against 4.56 from random. It leads by step 1,000 and stays ahead to the end.
 
 ## The input projections, site by site
 
@@ -64,7 +64,7 @@ The start from the neurons does not begin ahead. At step 0 its KL is 5.34 agains
 | 10 | 219 | 0.74 | 250 | 0.83 | 0.85 | 0.87 | 0.63 | 0.79 |
 | 11 | 187 | 0.77 | 238 | 0.84 | 0.82 | 0.87 | 0.80 | 0.88 |
 
-"Best neurons" is the fit of each token's best k neurons at that run's count. Run D beats its row's baseline only in layers 0–2, and run C only in layer 0. The soft gate gives SPD a lead on the down projections, but on most input projections it does not make up for the extra freedom of choosing neurons directly.
+"Best neurons" is the fit of each token's best k neurons at that run's count. Run D beats its row's baseline only in layers 0–2, and run C only in layer 0. The soft gate gives SPD a lead on the down projections. But on most input projections it does not make up for the extra freedom of choosing neurons directly.
 
 The down projections, for comparison:
 
@@ -111,7 +111,7 @@ Run D's cosine with its start equals its closest-neuron cosine, so the table giv
 ## Caveats
 
 - **One seed per start.** The objective's SD is over evaluations of one run, not over seeds. It can't give a confidence interval on the gap between starts.
-- **A head start is still possible.** Neurons sum to the matrix exactly at step 0, and a random start must first reach that. Over the last 10,000 steps run C's input fit rose by about 0.008 and run D's by about 0.004, while the learning rate fell to zero. The KL gap stopped narrowing near step 30,000, but a falling learning rate could cause that too.
+- **A head start is still possible.** Neurons sum to the matrix exactly at step 0, and a random start must first reach that. Over the last 10,000 steps run C's input fit rose by about 0.008 and run D's by about 0.004. Meanwhile the learning rate fell to zero. The KL gap stopped narrowing near step 30,000, but a falling learning rate could cause that too.
 - **No input projection is compared at one count.** The active ranges overlap in only a few layers, and only between a late state of one run and an early state of the other. Thresholding the gates to one count would be a direct test, and it needs the checkpoints.
 - **Run D's subcomponents did move.** They end at 0.89–0.96 with their start on the input projections, so run D is near the neuron basis, not exactly on it.
 - **Dead subcomponents.** Between 2,232 and 3,013 of 3,072 stay alive on the input projections, depending on the site. The runs differ here too, and we did not test how much of the fit this explains.
