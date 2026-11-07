@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+from click.core import ParameterSource
 
 from openinterp.cli import cli, wiki_dir_option
 from openinterp.core.paths import experiments_dir
@@ -140,7 +141,16 @@ def show(path, full):
     help="Also print every step of the draw as exact commands: claim, history, run, post.",
 )
 @click.option(
-    "--corpus", default="corpus.jsonl", show_default=True, help="Scan corpus, for --steps."
+    "--corpus",
+    default="corpus.jsonl",
+    show_default=True,
+    help="For --steps: the corpus a new scan reads.",
+)
+@click.option(
+    "--fresh-corpus",
+    is_flag=True,
+    help="For --steps: a new scan first builds its own corpus (the default blend, with the "
+    "draw's seed). Not with --corpus.",
 )
 @click.option(
     "--proposer",
@@ -162,12 +172,16 @@ def next_experiment(
     as_json,
     steps,
     corpus,
+    fresh_corpus,
     proposer,
     reviewer,
 ):
     """Pick the next experiment (randomised; balances exploration and follow-ups)."""
     from openinterp.planner import open_pr_claims, plan_next
 
+    source = click.get_current_context().get_parameter_source("corpus")
+    if fresh_corpus and source != ParameterSource.DEFAULT:
+        raise click.UsageError("--fresh-corpus and --corpus both set the scan's corpus.")
     plan = plan_next(
         wiki_dir,
         seed=seed,
@@ -198,7 +212,7 @@ def next_experiment(
         from openinterp.draw_steps import steps as draw_steps
 
         click.echo("\nSteps:")
-        click.echo(render(draw_steps(plan, corpus, proposer, reviewer)))
+        click.echo(render(draw_steps(plan, corpus, proposer, reviewer, fresh_corpus)))
 
 
 def _scan_cache_note(c) -> None:

@@ -22,7 +22,7 @@ Usage: scripts/experiment-loop.sh [options]
                        (default: same as the proposer; records are then not independent)
   --driver MODEL       Claude model that drives each session (default: claude-haiku-5-5;
                        '' for claude's own; see docs/analyses/driver-model-pilot.md)
-  --corpus PATH        Scan corpus (default: corpus.jsonl in the repo root)
+  --corpus PATH        Scan corpus (default: each new scan builds a fresh `mixed` corpus)
   --max N              Stop after N experiments; 0 = until claude fails (default: 0)
   --epsilon P          Exploration probability passed to `openinterp next` (default: 0.7)
   --worktree DIR       Worktree to run in (default: ../<repo>-loop, created if missing)
@@ -40,7 +40,7 @@ REPO=$(git rev-parse --show-toplevel)
 PROPOSER=${OPENINTERP_AGENT_MODEL:-anthropic/claude-opus-5-5}
 REVIEWER=""
 DRIVER=claude-haiku-5-5 # lands as reliably as larger drivers at a fraction of the cost
-CORPUS="$REPO/corpus.jsonl"
+CORPUS=""
 MAX=0
 EPSILON=0.7
 WORKTREE="$(dirname "$REPO")/$(basename "$REPO")-loop"
@@ -69,8 +69,11 @@ STEP_MODELS=""
 
 command -v "$CLAUDE_BIN" >/dev/null || { echo "claude not found; set CLAUDE_BIN" >&2; exit 1; }
 command -v gh >/dev/null || { echo "gh is required to claim and post experiments" >&2; exit 1; }
-[[ -f $CORPUS ]] || { echo "corpus not found: $CORPUS (see README, step 1)" >&2; exit 1; }
-CORPUS=$(cd "$(dirname "$CORPUS")" && pwd)/$(basename "$CORPUS")
+CORPUS_OPTION="--fresh-corpus"
+if [[ -n $CORPUS ]]; then
+  [[ -f $CORPUS ]] || { echo "corpus not found: $CORPUS" >&2; exit 1; }
+  CORPUS_OPTION="--corpus $(cd "$(dirname "$CORPUS")" && pwd)/$(basename "$CORPUS")"
+fi
 if [[ $REVIEWER == "$PROPOSER" ]]; then
   echo "warning: proposer and reviewer are both $PROPOSER, so every review will be badged" \
     "self-reviewed; pass --reviewer <another model> for independent reviews" >&2
@@ -97,15 +100,15 @@ Run exactly one experiment end to end and land it, following the land-experiment
 (which builds on choose-next-experiment), then stop. You are in an unattended loop: don't ask questions; make the call the skill
 describes and note it in the PR description.
 
-- Plan with: uv run openinterp next --top 5 --epsilon $EPSILON --steps --corpus $CORPUS$STEP_MODELS
+- Plan with: uv run openinterp next --top 5 --epsilon $EPSILON --steps $CORPUS_OPTION$STEP_MODELS
   and follow the steps it prints.
 - Proposer: pass --agent-model $PROPOSER to every \`openinterp audit\`.
 - Reviewer: pass --agent-model $REVIEWER to every \`openinterp verify\`, replacing any
   <model …> placeholder in the planner's commands. If the draw needs a reviewer
   different from the record's proposer and $REVIEWER is the same model, re-draw once
   as the skill allows and say why in the PR.
-- Corpus: add --corpus $CORPUS to every \`openinterp audit\`, \`openinterp score\` and
-  \`openinterp verify\` (verify scores the explanation on held-out text from it).
+- Corpus: use the corpus that each printed step names. Don't replace it. A review of an
+  existing record must read the corpus that the record scanned.
 - If a model is external/<name>, use the two-step flow in the skill's "Proposer and
   reviewer without API keys" section, with the neuron-proposer, neuron-reviewer and
   explanation-judge subagents answering the prompts. Every review needs explanation

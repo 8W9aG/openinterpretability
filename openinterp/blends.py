@@ -17,7 +17,7 @@ from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 # says what it holds. `mixed` is the latest version and `openinterp corpus`'s default. It
 # spreads random-selection statistics over domains, not one dataset's. They are web
 # text, the Pile's mix of sources (papers, legal text, forums, code), long encyclopedic
-# articles, source code and nine languages besides English.
+# articles, source code and nine languages besides English. From v3, they include maths.
 BLENDS = {
     "mixed-v1": {
         "fineweb-edu": 4,
@@ -36,13 +36,24 @@ BLENDS = {
         "github-code": 3,
         "wikipedia-multilingual": 3,
     },
+    # v2's mix and weights, plus mathematical text at the same weight as wikitext.
+    "mixed-v3": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+        "open-web-math": 2,
+    },
 }
-BLEND_ALIASES = {"mixed": "mixed-v2"}
+BLEND_ALIASES = {"mixed": "mixed-v3"}
 # Released before documents recorded a programming language. So their bytes stay without it.
 NO_CODE_LANGUAGE = {"mixed-v1"}
 # Presets left out of `mixed`, and why. Every other preset is in its latest version, so
 # adding a preset means adding a version of the blend (tests/test_corpus.py checks).
 NOT_BLENDED = {
+    "gsm8k": "one benchmark's short word problems; open-web-math gives the blend its maths",
     "pile-10k": "pile-uncopyrighted covers the Pile, without its copyrighted components",
     "tinystories": "synthetic children's stories, a control corpus rather than natural text",
 }
@@ -62,14 +73,24 @@ def blend_shares(name: str, documents: int) -> dict[str, int]:
     return shares
 
 
-def _sample_preset(preset: str, documents: int, seed: int, max_chars: int, code_language: bool):
-    """Return what :func:`openinterp.corpus._sample_hub` reads for a blend's ``preset``."""
+def _sample_preset(
+    preset: str,
+    documents: int,
+    seed: int,
+    max_chars: int,
+    code_language: bool,
+    revisions: dict[str, str | None],
+):
+    """Return what :func:`openinterp.corpus._sample_hub` reads for a blend's ``preset``.
+
+    ``revisions`` overrides the preset's revision, by dataset.
+    """
     p = PRESETS[preset]
     return _sample_hub(
         p.dataset,
         files=p.files,
         text_column=p.text_column,
-        revision=p.revision,
+        revision=revisions.get(p.dataset, p.revision),
         documents=documents,
         seed=seed,
         max_chars=max_chars,
@@ -88,6 +109,7 @@ def build_blend(
     seed: int = 0,
     max_chars: int = 3000,
     ascii: bool = False,
+    revisions: dict[str, str | None] | None = None,
 ) -> CorpusSource:
     """Sample each of a blend's presets (:data:`BLENDS`) and write one corpus.
 
@@ -96,7 +118,8 @@ def build_blend(
     language as ``lang``. GitHub code's documents record theirs as ``code_language``, except
     in the versions of :data:`NO_CODE_LANGUAGE`. The sidecar lists the source of every preset, as
     ``openinterp corpus --dataset <preset>`` writes it alone. So you can rebuild and check
-    each part separately.
+    each part separately. ``revisions`` pins datasets to commits, by dataset. Without it, each
+    preset reads its latest commit.
     """
     name = BLEND_ALIASES.get(name, name)
     texts: list[str] = []
@@ -107,7 +130,7 @@ def build_blend(
     components = []
     for preset, share in blend_shares(name, documents).items():
         part, part_labels, source = _sample_preset(
-            preset, share, seed, max_chars, code_language=code_language
+            preset, share, seed, max_chars, code_language, revisions or {}
         )
         sha = hashlib.sha256(jsonl_bytes(part, ascii, part_labels)).hexdigest()
         components.append(CorpusSource(documents=len(part), sha256=sha, ascii=ascii, **source))
