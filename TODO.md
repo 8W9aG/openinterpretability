@@ -19,7 +19,6 @@ Small fixes, mostly quick.
 
 Lint rules, tests, releases and repository automation. Prefer a deterministic check (lint, test, CI job) where one can do the job, ratcheted in rather than failing all existing code at once, and a skill for what needs judgement.
 
-- [ ] Widen `make ste` (the asd-ste100 skill's linter, `STE_PATHS` in the `Makefile`) from the skills to `docs/` and the top-level Markdown, file by file. Counted on 2026-11-02, in hard violations (semicolons, sentences over 25 words, synonym rotation): `docs/PROTOCOL.md` 127, `docs/analyses/` 112 across 12 files, `docs/dictionaries.md` 9, `docs/muse.md` 6, `README.md` 77, `CHANGELOG.md` 274, `TODO.md` 238. Rewrite `docs/PROTOCOL.md` with care: it defines the verdicts, so a split sentence must keep every condition. `CHANGELOG.md` and `TODO.md` may be better left out: they are logs of long items, not instructions.
 - [ ] Add a JSON/JSONL/YAML linter.
 - [ ] Add bandit linting for security.
 - [ ] Run Cloudflare's [security-audit-skill](https://github.com/cloudflare/security-audit-skill) on the repo.

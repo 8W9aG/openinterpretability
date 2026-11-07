@@ -15,7 +15,7 @@ Linters check the form. This skill is for what they cannot judge. To rewrite a s
 | Commented-out code | ruff `ERA` | everything |
 | Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`, never lowered) | `openinterp/` |
 | Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile`: `openinterp`, `scripts`, `tests` |
-| Semicolons, sentence length, synonym rotation in Markdown | `make ste` (the `asd-ste100` skill's linter) | `STE_PATHS` in the `Makefile`: the skills |
+| Semicolons, sentence length, synonym rotation in Markdown | `make ste` (the `asd-ste100` skill's linter) | `STE_PATHS` in the `Makefile`: the skills, `docs/`, `README.md`, `REVIEW.md` and the PR template |
 
 ## When to comment
 
