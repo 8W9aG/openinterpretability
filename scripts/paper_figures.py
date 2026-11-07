@@ -14,6 +14,7 @@ import figures_default_on
 import figures_default_on_decoding
 import figures_depth
 import figures_explorer
+import figures_spd_input
 import figures_syntax
 import figures_why_rest
 
@@ -41,6 +42,7 @@ def build_all() -> dict[str, str]:
             "decoding.svg": figures_default_on_decoding.decoding(poles),
             "ridges.svg": figures_depth.ridges(poles, dip),
         },
+        "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
         "syntax-positive-controls": figures_syntax.build(_rows("syntax-positive-controls")),
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),

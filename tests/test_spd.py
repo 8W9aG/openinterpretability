@@ -165,3 +165,60 @@ def test_the_input_projection_with_every_mask_on_is_the_model(tiny_gpt2, tmp_pat
 
 def test_old_checkpoints_key_down_projections_by_layer():
     assert spd_model.load_parts({3: "a", (4, "up"): "b"}) == {(3, "down"): "a", (4, "up"): "b"}
+
+
+def test_input_neuron_curve_picks_the_neurons_that_moved_most():
+    compare = pytest.importorskip("spd_compare")
+    w, offset = torch.eye(3), torch.zeros(3)
+    x = torch.tensor([[5.0, 1.0, -9.0], [-9.0, 0.0, 2.0], [0.5, 4.0, -9.0], [1.0, -9.0, 3.0]])
+    act = torch.nn.functional.relu
+    curve = compare.up_neuron_curve(w, offset, x, act, [1, 2, 3])
+    y = act(x)
+    best_one = torch.zeros_like(y).scatter_(1, y.argmax(1, keepdim=True), y.max(1, True).values)
+    assert curve[1] == pytest.approx(compare.explained(y, best_one))
+    assert curve[1] < curve[2] <= curve[3] == pytest.approx(1.0)
+
+
+def test_a_dropped_input_neuron_rests_at_its_ablated_value():
+    compare = pytest.importorskip("spd_compare")
+    w, offset, x = torch.eye(2), torch.tensor([1.0, 2.0]), torch.tensor([[3.0, 0.0], [0.0, 1.0]])
+    curve = compare.up_neuron_curve(w, offset, x, torch.nn.functional.relu, [1, 2])
+    assert curve[1] == pytest.approx(1.0)  # each token moves one neuron from its offset
+    assert curve[2] == pytest.approx(1.0)
+
+
+def _results():
+    return pytest.importorskip("spd_input_results")
+
+
+def test_results_read_a_log_with_drive_escapes(tmp_path):
+    log = tmp_path / "C.log"
+    log.write_text(
+        'Fetching 0%| \\[00:00\\]\nstep 7: {"step": 7, "explained\\_variance": {"0.up": 0.5}} '
+        "(1.0 h left)  \nL0.up: 12 of 24 subcomponents alive  \n"
+    )
+    rows, alive = _results().read_log(log)
+    assert rows == [{"step": 7, "explained_variance": {"0.up": 0.5}}]
+    assert alive == {"0.up": 12}
+
+
+@pytest.mark.parametrize(
+    ("fit", "expected"), [(0.1, 16), (0.5, 16), (0.75, 32), (1.0, 64), (2, 64)]
+)
+def test_neurons_for_fit_interpolates_and_stays_on_the_curve(fit, expected):
+    curve = {"16": 0.5, "64": 1.0}
+    assert _results().neurons_for_fit(curve, fit) == pytest.approx(expected)
+
+
+def test_summary_reads_only_the_settled_evaluations():
+    results = _results()
+    settled = {name: 0.0 for name in results.WEIGHTS} | {"imp": 1000.0, "kl_ci": 0.2,
+                                                        "ce_unrecovered": 0.1}  # fmt: skip
+    early = {**settled, "step": 0, "imp": 9e9, "kl_ci": 9.0, "ce_unrecovered": 9.0}
+    rows = [early, {**settled, "step": results.SETTLED_FROM},
+            {**settled, "step": 49_999, "imp": 3000.0, "l0": {"0": 1.5, "0.up": 2.0}}]  # fmt: skip
+    summary = results.summary_row("C", rows)
+    assert summary["evaluations"] == 2
+    assert summary["objective"] == pytest.approx(0.12)
+    assert summary["kl"] == 0.2
+    assert summary["active_total"] == 3.5
