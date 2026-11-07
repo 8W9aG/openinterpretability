@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-11-07
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **A cache of what `openinterp corpus` reads from the Hub** (`openinterp/corpus_cache.py`, `openinterp corpus-cache`). It keeps row-group counts and row groups by dataset commit, up to 5 GB (`$OPENINTERP_CORPUS_CACHE_GB`). `$OPENINTERP_CORPUS_CACHE=off` turns it off. A repeated build, such as `--same-as`, saves most of its row-group reads. A build with a new seed reads other row groups, so it saves little.
@@ -29,6 +33,8 @@ The project has two version numbers:
 
 ### Changed
 
+- **The sister rows now cover the poles VERIFIED since the last run** (`docs/analyses/sister-neurons.jsonl`). The run of 2026-11-07 added 74 rows and 9 sisters on the same corpus. By pair, as rows and sisters: GPT-2 small against Qwen2.5-0.5B 20 and 3, GPT-2 small against Qwen2.5-1.5B 20 and 4, Qwen2.5-0.5B against Qwen2.5-1.5B 12 and 2, Qwen2.5-0.5B against GPT-2 small 12 and 0, Qwen2.5-1.5B against Qwen2.5-0.5B 5 and 0, and Qwen2.5-1.5B against GPT-2 small 5 and 0. The strongest are Qwen2.5-0.5B L21/N3912+ with Qwen2.5-1.5B L1/N2597+ (r = 0.49), GPT-2 small L0/N1310+ with Qwen2.5-1.5B L2/N6271− (0.37), and Qwen2.5-0.5B L9/N4045− with Qwen2.5-1.5B L13/N7836− (0.36). Each new sister is now a `sister` draw.
+- **`CHANGELOG.md` has no line limit** (`scripts/check_line_limit.py`). It reached the limit of 500 lines for source files in this release. It is one file that grows with each release, so it is now exempt.
 - **`openinterp check --base-ref` reads only what a branch changes** (`openinterp/checks.py`, `openinterp/cli_check.py`, `make check`; TODO, Performance). The record and page checks now read the files that a branch adds or changes, committed or not, so their cost no longer grows with the registry. On 1,940 records, a check of one changed record takes about 1.4 s, down from about 5.9 s. A branch that also changes a tracked file outside `wiki/` still gets the full check, because new code can read old records differently. So do pushes to `main` and the deploy, and `make check-all` runs it locally. The write-once, spelling and model-field rules now also see uncommitted files. The wiki index rebuild still walks every page: it takes about 1.5 s, half of it imports, and the index covers the whole registry.
 
 - **The planner reads the histogram before it offers follow-ups on a default-on pole** (`openinterp/planner.py`; TODO, Pipeline). A single default-on pole can't be audited as a detector, so a new audit stops at the scan and a review fails the gate. The planner read only the `not_default_on` gate, which records from before protocol 0.8 don't have. It now also reads the latest record's histogram, as `check_default_on` does. This removes 4 revise, 6 new-hypothesis, 10 independent-review and 3 replicate candidates on 13 GPT-2 negative poles, 0.6% of the follow-up weight. `reevaluate` and the opposite pole stay. A record scanned on the built-in sample keeps its rescan, because 552 tokens don't settle the share. The decision rule doesn't change. `scan_active_share` moves to `openinterp/core/schemas.py`, so the planner doesn't import the reviewer.
