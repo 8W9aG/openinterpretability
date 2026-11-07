@@ -1,0 +1,56 @@
+# Literature review queue
+
+Papers and posts to review for the literature review (`TODO.md`, Protocol and science). Add new entries at the end. When an entry has a page in `docs/literature/`, remove it from this list.
+
+- Review Levin's "Ingressing Minds from Platonic Space" (Closer To Truth, [page](https://loc.closertotruth.com/theory/levin-s-ingressing-minds-from-platonic-space)).
+- Review "Context Language Models" (arXiv 2609.37725, [paper](https://arxiv.org/html/2609.37725v1)).
+- Review "Recursive Language Models" (arXiv 2512.24601, [paper](https://arxiv.org/abs/2512.24601)).
+- Review "Conditional Memory via Scalable Lookup: A New Axis of Sparsity for Large Language Models" (arXiv 2601.07372, [paper](https://arxiv.org/pdf/2601.07372)).
+- Review Alex Wang's post on associative memory ([post](https://alexwang.ai/posts/associative-memory/)).
+- Review Sasha Rush's "Sampling to Reinforce" ([post](https://srush.github.io/sampling-to-reinforce/)).
+- Review "Scoring Explanations Without Reading Them: Structural Shortcuts in Automated-Interpretability Evaluation Data" (arXiv 2610.37676, [paper](https://arxiv.org/abs/2610.37676)).
+- Review "Mechanistic Insights into LoRA: Layer Sparsity for Adaptive Fine-Tuning via Path Patching" (arXiv 2610.34756, [paper](https://arxiv.org/abs/2610.34756)).
+- Review "Cross-modal Steering Vectors Exist Across Both Image and Text Generation" (arXiv 2610.36269, [paper](https://arxiv.org/abs/2610.36269)).
+- Review OpenAI's "How we detect frontier model misalignment" ([post](https://openai.com/index/how-we-detect-frontier-model-misalignment/)).
+- Review "Proving and Improving the Platonic Representation Hypothesis with JEPAs" (arXiv 2610.39302, [paper](https://arxiv.org/abs/2610.39302)).
+- Review "world2vec: Mechanistic world models through latent dynamics learning" (arXiv 2610.40637, [paper](https://arxiv.org/abs/2610.40637)).
+- Review "Activation Probes Are Reliable With a Handful of Positive Examples" (arXiv 2610.39766, [paper](https://arxiv.org/abs/2610.39766)).
+- Review "Reasoning or Pattern Exploitation? Mechanistic Insights from RL-Trained Language Models" (arXiv 2610.39182, [paper](https://arxiv.org/abs/2610.39182)).
+- Review "Discovering Interpretable Acoustic Features in Autoregressive Voice-Cloning TTS Models" (arXiv 2610.40505, [paper](https://arxiv.org/abs/2610.40505)).
+- Review "What Survives Distillation? A Mechanistic Interpretability Study of GPT-2 and DistilGPT-2" (arXiv 2610.37157, [paper](https://arxiv.org/abs/2610.37157)).
+- Review Commanding Heights ([site](https://commanding-heights.com/)).
+- Review "CANS: Capability-Preserving Neuron Steering for Large Language Models" (arXiv 2610.35530, [paper](https://arxiv.org/abs/2610.35530)).
+- Review "Uncovering Why LLMs Fail: From Internal Mechanisms to Adversarial Reasoning Trajectories" (arXiv 2610.37369, [paper](https://arxiv.org/abs/2610.37369)).
+- Review mechinterp.neuralavb.com ([site](https://mechinterp.neuralavb.com/)).
+- Review "Opening the Box Changes the Cat: LLMs Detect Chain-of-Thought Monitoring - What now?" (arXiv 2610.40946, [paper](https://arxiv.org/abs/2610.40946)).
+- Review "Task Vectors Can Be Linearly Decomposed into Interpretable and Controllable Components" (arXiv 2610.41743, [paper](https://arxiv.org/abs/2610.41743)).
+- Review Edward Benson's "Embedding a state machine in a neural network" ([post](https://edwardbenson.com/2026/11/embedding-a-state-machine-in-a-neural-network)).
+- Review rikiyat's post on weight-space programming ([post](https://rikiyat.github.io/blog/weight-space-programming/)).
+- Review Q Labs' research on parameters ([post](https://qlabs.sh/research/parameters)).
+- Review Prefrontal's post on LSA ([post](https://prefrontal.ai/news/lsa/)).
+- Review Zyphra's post on hierarchical attention ([post](https://zyphra.com/our-work/zyphra-hierarchical-attention)).
+- Review "Is a Linear Probe Evidence of a Linear Representation?" (arXiv 2610.22655, [paper](https://arxiv.org/abs/2610.22655)).
+- Review "Mechanistic Interpretability for End-to-End Self-Driving" (arXiv 2610.41185, [paper](https://arxiv.org/abs/2610.41185)).
+- Review "Library of Layers (LoL): Adaptively Ordering Transformer Layers at Runtime" (arXiv 2611.03526, [paper](https://huggingface.co/papers/2611.03526)).
+- Review "Follow the Gradient: Tracing Safety Degradation Back to Training Data" (arXiv 2610.37481, [paper](https://arxiv.org/abs/2610.37481)).
+- Review Anthropic's research on provable inference ([post](https://www.anthropic.com/research/provable-inference)).
+- Review "Measuring AI Agents as Teammates with Collaborative Intelligence" (arXiv 2611.02633, [paper](https://huggingface.co/papers/2611.02633)).
+- Review Karpathy's nanochat ([repo](https://github.com/karpathy/nanochat)).
+- Review Schmidhuber's post on the 1991 fast weight programmer and transformers ([post](https://people.idsia.ch/~juergen/fast-weight-programmer-1991-transformer.html)).
+- Review ravfogel's X post ([post](https://x.com/ravfogel/status/2117642301442752692)).
+- Review Let's Data Science's post on GPT-6 Astra editing 0.016% of Qwen's weights ([post](https://letsdatascience.com/blog/gpt-6-astra-edited-0-016-percent-qwen-weights-math-sixfold)).
+- Review "Steering with Multilingual Lexicons for Sentiment Control in Low-Resource Languages" (arXiv 2611.03317, [paper](https://arxiv.org/abs/2611.03317)).
+- Review "Agentic Backdoors via Pretraining Poisoning" (arXiv 2610.37741, [paper](https://arxiv.org/abs/2610.37741)).
+- Review "Align Once to Explain: Feature Alignment for Scalable B-cosification of Foundational Vision Transformers" (arXiv 2611.03438, [paper](https://arxiv.org/abs/2611.03438)).
+- Review "Say the Same, Act Differently: Diagnosing and Steering Text-Action Divergence in Reasoning VLAs" (arXiv 2611.04166, [paper](https://arxiv.org/abs/2611.04166)).
+- Review Goodfire's "Mechanistic Shaping" ([post](https://www.goodfire.com/research/mechanistic-shaping)).
+- Review "Subspace Crystallization" ([post](https://mehshlok.github.io/subspace-crystallization/)).
+- Review "Shaping & Monitoring Models through their Internal Representations" (arXiv 2611.07071, [paper](https://arxiv.org/abs/2611.07071)).
+- Review "Understanding AI from the Inside: The State of Mechanistic Interpretability for AI Safety" (arXiv 2611.08438, [paper](https://arxiv.org/abs/2611.08438)).
+- Review "Towards interpreting any residual stream direction by scaling activation inversion" (arXiv 2611.08465, [paper](https://arxiv.org/abs/2611.08465)).
+- Review "User Embeddings are Superpositions of Interpretable Behavioral Modes" (arXiv 2611.08487, [paper](https://arxiv.org/abs/2611.08487)).
+- Review "Persona Perspectives: Adopting Viewpoints Reorganizes Representations in LLMs" (arXiv 2611.06848, [paper](https://arxiv.org/abs/2611.06848)).
+- Review DoubleAI's "Can LLMs Redesign Themselves as They Train?" ([post](https://www.doubleai.com/research/can-llms-redesign-themselves-as-they-train)).
+- Review "SAE Interprets MoE: Sparse AutoEncoders Reveal That MoE Experts Exhibit Human-Interpretable Fine-Grained Specialization" (arXiv 2611.08089, [paper](https://arxiv.org/abs/2611.08089)).
+- Review "Geometry-Adaptive Explainer for Faithful Dictionary-Based Interpretability under Distribution Shift" (arXiv 2605.21849, [paper](https://arxiv.org/abs/2605.21849)).
+- Review "Identically Trained Language Models Break on Different Jailbreaks" (arXiv 2610.34074, [paper](https://arxiv.org/abs/2610.34074)).
