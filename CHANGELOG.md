@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **The first page of the literature review** (`docs/literature/training-llms-to-predict-world-events.md`), with its index (`docs/literature/README.md`). It reviews the first entry in `docs/literature/queue.md`, written from the post and its question list, and marks it not applicable.
+
 ### Changed
 
 - **The literature review queue moved out of `TODO.md`** to `docs/literature/queue.md` (TODO, Housekeeping), so it no longer pushes `TODO.md` toward the 500-line limit. Entries that were bare arXiv IDs now have titles.
