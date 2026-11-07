@@ -39,7 +39,7 @@ vale:
 # logs of long items, not instructions. The vendored skill's examples break the rules on
 # purpose.
 STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \
-	':!.claude/skills/asd-ste100' 'docs/*.md' ':!docs/PROTOCOL.md' README.md REVIEW.md \
+	':!.claude/skills/asd-ste100' 'docs/*.md' README.md REVIEW.md \
 	.github/pull_request_template.md)
 ste:
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
