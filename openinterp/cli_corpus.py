@@ -25,7 +25,11 @@ from openinterp.corpus import LAYOUTS, PRESETS
     help="Glob of Parquet files within the dataset; comma-separate several to take an equal "
     "share of documents from each. Default: the preset's.",
 )
-@click.option("--text-column", help="Column holding the text. Default: the preset's, or 'text'.")
+@click.option(
+    "--text-column",
+    help="Column holding the text; comma-separate several to join them into one document. "
+    "Default: the preset's, or 'text'.",
+)
 @click.option(
     "--revision",
     help="Dataset branch, tag or commit. Default: the preset's, or main; pinned on use.",

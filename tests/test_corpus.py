@@ -24,6 +24,7 @@ from openinterp.core.confounds import PROGRAMMING_LANGUAGE
 from openinterp.corpus import (
     PRESETS,
     Preset,
+    _license,
     build_from_hub,
     first_documents,
     jsonl_bytes,
@@ -229,6 +230,9 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
          "20231101.ru/train-*.parquet,20231101.el/train-*.parquet,20231101.ar/train-*.parquet,"
          "20231101.hi/train-*.parquet,20231101.zh/train-*.parquet,20231101.ja/train-*.parquet,"
          "20231101.ko/train-*.parquet", None, None, "text", 50),
+        ("open-web-math", "open-web-math/open-web-math", "data/train-*.parquet", None, None,
+         "text", 20),
+        ("gsm8k", "openai/gsm8k", "main/train-*.parquet", None, None, "question,answer", 20),
     ],
 )  # fmt: skip
 def test_cli_uses_the_presets_settings(
@@ -270,14 +274,45 @@ def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_pat
 
 
 def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
-    assert blend_shares("mixed", 500) == {
+    assert blend_shares("mixed-v1", 500) == {
         "fineweb-edu": 100, "c4": 100, "pile-uncopyrighted": 100, "wikitext": 50,
         "github-code": 75, "wikipedia-multilingual": 75,
     }  # fmt: skip
-    assert blend_shares("mixed-v1", 500) == blend_shares("mixed", 500)
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v3", 500) == {
+        "fineweb-edu": 91, "c4": 91, "pile-uncopyrighted": 91, "wikitext": 46,
+        "github-code": 68, "wikipedia-multilingual": 68, "open-web-math": 45,
+    }  # fmt: skip
     shares = blend_shares("mixed", 23)
-    assert sum(shares.values()) == 23 and list(shares.values()) == [5, 5, 5, 2, 3, 3]
+    assert sum(shares.values()) == 23 and list(shares.values()) == [5, 4, 4, 2, 3, 3, 2]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
+
+
+def test_text_columns_join_into_one_document(tmp_path):
+    path = tmp_path / "qa.parquet"
+    table = pa.table({"q": ["q0", "q1", None, None], "a": ["a0", None, "a2", None]})
+    pq.write_table(table, path)
+    fs = fsspec.filesystem("file")
+    args = dict(text_column="q,a", documents=9, max_chars=99)
+    joined = ["q0\n\na0", "q1", "a2"]  # a row with only nulls is empty, so it isn't a document
+    assert first_documents(fs, [str(path)], **args) == joined
+    assert sorted(
+        sample_documents(fs, [str(path)], seed=0, docs_per_row_group=9, **args)
+    ) == sorted(joined)
+
+
+@pytest.mark.parametrize(
+    "card, licence",
+    [
+        ({"license": "mit"}, "mit"),
+        ({"license": "mit", "dataset_info": {"license": "odc-by"}}, "mit"),
+        ({"dataset_info": {"license": "odc-by"}}, "odc-by"),
+        ({"dataset_info": [{"config_name": "main"}]}, None),
+        ({}, None),
+    ],
+)
+def test_the_licence_comes_from_the_card_or_its_dataset_info(card, licence):
+    info = SimpleNamespace(card_data=SimpleNamespace(to_dict=lambda: card))
+    assert _license(None, "org/data", info, None) == licence
 
 
 def test_every_preset_is_in_the_latest_mixed_blend_or_says_why_not():

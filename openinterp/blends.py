@@ -17,7 +17,7 @@ from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 # says what it holds. `mixed` is the latest version and `openinterp corpus`'s default. It
 # spreads random-selection statistics over domains, not one dataset's. They are web
 # text, the Pile's mix of sources (papers, legal text, forums, code), long encyclopedic
-# articles, source code and nine languages besides English.
+# articles, source code and nine languages besides English. From v3, they include maths.
 BLENDS = {
     "mixed-v1": {
         "fineweb-edu": 4,
@@ -36,13 +36,24 @@ BLENDS = {
         "github-code": 3,
         "wikipedia-multilingual": 3,
     },
+    # v2's mix and weights, plus mathematical text at the same weight as wikitext.
+    "mixed-v3": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+        "open-web-math": 2,
+    },
 }
-BLEND_ALIASES = {"mixed": "mixed-v2"}
+BLEND_ALIASES = {"mixed": "mixed-v3"}
 # Released before documents recorded a programming language. So their bytes stay without it.
 NO_CODE_LANGUAGE = {"mixed-v1"}
 # Presets left out of `mixed`, and why. Every other preset is in its latest version, so
 # adding a preset means adding a version of the blend (tests/test_corpus.py checks).
 NOT_BLENDED = {
+    "gsm8k": "one benchmark's short word problems; open-web-math gives the blend its maths",
     "pile-10k": "pile-uncopyrighted covers the Pile, without its copyrighted components",
     "tinystories": "synthetic children's stories, a control corpus rather than natural text",
 }
