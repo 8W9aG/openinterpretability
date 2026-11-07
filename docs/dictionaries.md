@@ -4,9 +4,9 @@ This explains what the sparse dictionaries in `openinterp/harness/dictionaries.p
 
 ## Why dictionaries
 
-The registry rests on a premise: a model's own MLP neurons can be explained one at a time, about as well as the latents of a sparse dictionary trained on the same layers. Superposition argues against it. If neurons are polysemantic and dictionary latents are not, then a share of neurons VERIFIED means little until it is set against latents audited the same way.
+The registry rests on a premise: a model's own MLP neurons can be explained one at a time. They can be explained about as well as the latents of a sparse dictionary trained on the same layers. Superposition argues against it. If neurons are polysemantic and dictionary latents are not, a share of neurons VERIFIED means little alone. It must be set against latents audited the same way.
 
-The learned-basis baseline makes that comparison. Random latents of a dictionary and random neuron poles of the same model, on the same layers, corpus and scan window, go through the same scan, proposer, adversarial review and gates. The two shares VERIFIED are then compared. Feature verdicts are never pooled with native units.
+The learned-basis baseline makes that comparison. Take random latents of a dictionary and random neuron poles of the same model, on the same layers, corpus and scan window. Both go through the same scan, proposer, adversarial review and gates. The two shares VERIFIED are then compared. Feature verdicts are never pooled with native units.
 
 Until now, only one comparison could run: GPT-2 small against Dunefsky et al.'s transcoders (`docs/analyses/transcoder-baseline.md`). There, 92% of live latents were verified against 50% of positive neuron poles. That is a single model, with GELU MLPs, read through 128-token windows, so it says little about the SwiGLU models the registry is mostly about.
 
@@ -33,9 +33,9 @@ The table brings three gains:
 - **More kinds of dictionary.** A transcoder replaces the MLP, so its latents are the most direct comparison with neurons. An MLP-output SAE decomposes what the MLP writes. A residual-stream SAE decomposes the residual stream, so a latent there differs from a neuron in site as well as basis. Comparing all three on Gemma 2 or Llama 3.1 separates how much of any gap comes from the basis and how much from the site.
 - **Longer contexts.** GPT-2's transcoders stop fitting past position ~128. Every new preset holds up to position 1,024, so scans of the new presets see whole paragraphs, not fragments.
 
-Each preset's input site was checked by reconstruction, not taken from its documentation. The right site fits; the wrong ones explain less than nothing (Gemma's transcoders score −180 against the wrong output). A preset read at the wrong site would still produce latents to audit, but they would not be the dictionary's latents. The checks also turned up two conventions that are easy to get wrong:
+Each preset's input site was checked by reconstruction, not taken from its documentation. The right site fits. The wrong ones explain less than nothing (Gemma's transcoders score −180 against the wrong output). A preset read at the wrong site would still produce latents to audit, but they would not be the dictionary's latents. The checks also turned up two conventions that are easy to get wrong:
 
-- **Gemma 2's post-MLP norm.** Gemma 2 normalises the MLP's output before adding it to the residual stream, and Gemma Scope's dictionaries reconstruct that normalised output, not the raw MLP output.
+- **Gemma 2's post-MLP norm.** Gemma 2 normalises the MLP's output before adding it to the residual stream. Gemma Scope's dictionaries reconstruct that normalised output, not the raw MLP output.
 - **Llama Scope's threshold.** Llama Scope's JumpReLU threshold has to be read as Neuronpedia reads it. With that reading, two layer-15 latents match Neuronpedia's activations to bf16 precision.
 
 ## Why train one for Qwen2.5-0.5B
@@ -62,10 +62,10 @@ No preset uses it. On GPT-2 small, SPD keeps whatever basis it starts with. From
 
 - **The fit is modest.** These are quick dictionaries: one pass over 13.5M tokens on a laptop. The middle layers fit about 60% of the MLP output, with layer 12 lowest at 0.589. A latent from a dictionary that misses 40% of the variance is a weaker baseline than one from a dictionary that misses 10%. Each scan records the fit next to the latent (`dictionary_profile`), so a verdict can be read against it. A larger run would improve it.
 - **The native arm needs 1,024-token windows too.** The transcoders fit contexts up to 1,024 tokens, so feature scans use `--window-tokens 1024`. The comparison pairs only units scanned the same way, while the existing Qwen neuron records read whole documents. A Qwen2.5-0.5B baseline therefore needs a fresh arm of random neuron poles scanned at `--window-tokens 1024`.
-- **No verdicts yet.** Every preset's site is checked by reconstruction, and smoke audits of five of them (Gemma's MLP and residual SAEs, Llama 3.2 1B's and Llama Scope's transcoders, and Qwen2.5-0.5B's) scanned a latent end to end. No latent of the new presets has been through review yet. The shares VERIFIED, and whether the GPT-2 gap holds elsewhere, are still to be measured.
+- **No verdicts yet.** Every preset's site is checked by reconstruction. Smoke audits of five of them scanned a latent end to end. They are Gemma's MLP and residual SAEs, Llama 3.2 1B's and Llama Scope's transcoders, and Qwen2.5-0.5B's. No latent of the new presets has been through review yet. The shares VERIFIED, and whether the GPT-2 gap holds elsewhere, are still to be measured.
 
 ## Next steps
 
 1. Run the Qwen2.5-0.5B baseline, about 40 random latents and 40 random neuron poles at `--window-tokens 1024`, as `docs/analyses/transcoder-baseline.md` did for GPT-2.
-2. Repeat it on one Gemma 2 or Llama 3.1 dictionary of each kind (transcoder, MLP-output SAE, residual SAE), to separate the effect of the basis from that of the site.
-3. Read the cross-reference (`openinterp crossref`, `docs/analyses/dictionary-alignment.jsonl`) against verdicts: whether VERIFIED poles have aligned latents more often than rejected ones, and whether aligned latents' descriptions agree with the poles' explanations. Only the GPT-2 and Qwen2.5-0.5B transcoders cover the registry's models so far; the other presets join as their models do.
+2. Repeat it on one Gemma 2 or Llama 3.1 dictionary of each kind (transcoder, MLP-output SAE, residual SAE). This separates the effect of the basis from that of the site.
+3. Read the cross-reference (`openinterp crossref`, `docs/analyses/dictionary-alignment.jsonl`) against verdicts. Ask whether VERIFIED poles have aligned latents more often than rejected ones. Ask also whether aligned latents' descriptions agree with the poles' explanations. Only the GPT-2 and Qwen2.5-0.5B transcoders cover the registry's models so far. The other presets join as their models do.

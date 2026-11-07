@@ -1,6 +1,6 @@
 # Literature review
 
-One page per paper or post, each with its citation, a summary written from the source, and a separate discussion of how this repo can or can't use it. `TODO.md` (*Protocol and science*) sets the scope. Papers and posts waiting for a page are in [queue.md](queue.md).
+One page per paper or post. Each has its citation, a summary written from the source, and a separate discussion of how this repo can or can't use it. `TODO.md` (*Protocol and science*) sets the scope. Papers and posts waiting for a page are in [queue.md](queue.md).
 
 Status marks how the work relates to this repo:
 

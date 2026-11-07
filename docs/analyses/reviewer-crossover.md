@@ -8,9 +8,9 @@ The rows are in `reviewer-crossover.jsonl` (one per submission, with every arm's
 
 - **Submissions.** 30 registry records judged under protocol 0.8, all randomly selected native MLP neuron poles (`selection = "random"`). 10 come from each of the registry's three main proposers: deepseek-flash, muse-spark-1.3 and Claude Opus 5.5. They are drawn with `random.Random(0)`, with one record per unit. 16 are GPT-2 small and 14 Qwen2.5-0.5B. Each submission is reused exactly as recorded: its hypothesis, counterfactuals, scan and confound profile.
 - **Reviewer arms.** Each submission is reviewed three times, by `neuron-reviewer` subagents running Claude Sonnet 5.5, Opus 5.5 and Haiku 5.5. Each gets the reviewer prompt `openinterp review --emit-prompt` writes for the submission, with 20 probes. The three prompts are identical apart from the answer path, and they don't name the proposer. Every agent read only its own prompt and the `interpretability-illusions-review` skill, and every agent reported the model ID it was meant to run. Two agents wrote 21 probes, one Sonnet and one Haiku. Each was asked to drop one, before any measurement.
-- **The original arm.** The record's own probe set, written by its original reviewer (deepseek-flash, muse-spark-1.3 or Sonnet), re-measured by the same code. That reviewer saw an older prompt and is not blind to the proposer, so this arm is a reference, not a fourth arm of the crossover.
-- **Verdict.** Every probe set is measured on its unit under the current policy (0.8) by `review_probes`, the code the null calibration uses: probes, counterfactuals, the lookahead check and the confound baseline, without causal metrics or wiring, which aren't gated. No token check was run in any arm, so a mislabelled probe counts against the hypothesis, as it would in a review without one.
-- **Analysis.** VERIFIED counts per proposer and arm; pairwise agreement between arms; and a two-way ANOVA (submission × reviewer, one review per cell) over the three new arms, for balanced accuracy and for VERIFIED as 0/1. P-values are from 10,000 permutations of the arms within each submission.
+- **The original arm.** The record's own probe set, written by its original reviewer (deepseek-flash, muse-spark-1.3 or Sonnet), re-measured by the same code. That reviewer saw an older prompt and is not blind to the proposer. So this arm is a reference, not a fourth arm of the crossover.
+- **Verdict.** Every probe set is measured on its unit under the current policy (0.8) by `review_probes`, the code the null calibration uses. It measures probes, counterfactuals, the lookahead check and the confound baseline, without causal metrics or wiring, which aren't gated. No token check was run in any arm, so a mislabelled probe counts against the hypothesis, as it would in a review without one.
+- **Analysis.** VERIFIED counts per proposer and arm, and pairwise agreement between arms. A two-way ANOVA (submission × reviewer, one review per cell) over the three new arms, for balanced accuracy and for VERIFIED as 0/1. P-values are from 10,000 permutations of the arms within each submission.
 
 ## Verdicts
 
@@ -38,9 +38,9 @@ Mean balanced accuracy:
 | Balanced accuracy | 71% | 8% | 20% | 12.3 (< 0.001) |
 | VERIFIED (0/1) | 59% | 6% | 34% | 5.4 (0.005) |
 
-The table splits the variance across the 90 new reviews. The submission accounts for most of it: 71% of the variance in balanced accuracy and 59% of the variance in VERIFIED. The reviewer accounts for 6–8%, a small effect but a real one (permutation p ≤ 0.005; Cochran's Q on VERIFIED, 9.45, p = 0.005). The residual mixes run-to-run noise with submission × reviewer interaction, and with one review per cell the two can't be separated. It is about three times the reviewer's share for balanced accuracy and five times for VERIFIED.
+The table splits the variance across the 90 new reviews. The submission accounts for most of it: 71% of the variance in balanced accuracy and 59% of the variance in VERIFIED. The reviewer accounts for 6–8%, a small effect but a real one (permutation p ≤ 0.005, and Cochran's Q on VERIFIED, 9.45, p = 0.005). The residual mixes run-to-run noise with submission × reviewer interaction, and with one review per cell the two can't be separated. It is about three times the reviewer's share for balanced accuracy and five times for VERIFIED.
 
-About a quarter of the submission share (19% of the total) is which model proposed (permutation p = 0.016). Of the 30 reviews of muse-spark-1.3's hypotheses, none was VERIFIED. The two muse-spark records the registry has as VERIFIED, both reviewed by muse-spark itself (Qwen L17/N1022− and L20/N4066−), were VERIFIED by no new reviewer: their balanced accuracies range from 0.38 to 0.64.
+About a quarter of the submission share (19% of the total) is which model proposed (permutation p = 0.016). Of the 30 reviews of muse-spark-1.3's hypotheses, none was VERIFIED. The two muse-spark records the registry has as VERIFIED, both reviewed by muse-spark itself (Qwen L17/N1022− and L20/N4066−), were VERIFIED by no new reviewer. Their balanced accuracies range from 0.38 to 0.64.
 
 ### Sonnet is the lenient reviewer, and it inflates the Opus → Sonnet rate
 
@@ -57,7 +57,7 @@ Sonnet verified 13 of 30, Opus 7 and Haiku 5. Sonnet's median balanced accuracy 
 
 Every disagreement between Sonnet and Haiku goes the same way. For the registry's largest pair this matters: Opus's ten hypotheses were VERIFIED 7 times by Sonnet but 3 times each by Opus and Haiku. So with a stricter Claude reviewer, the registry's 66% for Opus → Sonnet would be about 30%. Haiku and Opus fail more hypotheses on sensitivity (15 and 13 failures, against 7 for Sonnet): their positive holdouts fire less often than Sonnet's.
 
-Haiku is the strictest reviewer here, which doesn't make it the best one. Its holdouts may simply be worse examples of the claimed feature. In a verdict, a strict reviewer and a careless one look alike; only reading the probes against the hypotheses would tell them apart.
+Haiku is the strictest reviewer here, which doesn't make it the best one. Its holdouts may simply be worse examples of the claimed feature. In a verdict, a strict reviewer and a careless one look alike. Only reading the probes against the hypotheses would tell them apart.
 
 ### Agreement between reviewers is moderate
 
@@ -92,9 +92,9 @@ Specificity fails about equally often under every reviewer: all of them can writ
 ## Caveats
 
 - **30 submissions, one review per cell.** The reviewer effect is clear, but the per-proposer rates have wide intervals (10 per cell), and noise can't be separated from interaction.
-- **Three Claude reviewers only.** deepseek-flash and muse-spark were not run as new reviewers, so the original arm is the only view of them, and it confounds model with prompt version and with blinding.
+- **Three Claude reviewers only.** deepseek-flash and muse-spark were not run as new reviewers. So the original arm is the only view of them, and it confounds model with prompt version and with blinding.
 - **No token check and no label audit.** The pipeline normally lets the reviewer check its probes against the tokenizer. Here no arm did, so all are compared on their first draft. Some differences between reviewers may be labelling errors, not strictness.
-- **Protocol 0.8 records only, drawn from three proposers.** Opus has 20 such records; deepseek-flash and muse-spark have over a hundred each.
+- **Protocol 0.8 records only, drawn from three proposers.** Opus has 20 such records, and deepseek-flash and muse-spark have over a hundred each.
 
 ## Reproduce
 
@@ -108,4 +108,4 @@ uv run python scripts/reviewer_crossover.py measure --arm haiku --agent-model ex
 uv run python scripts/reviewer_crossover.py report --out docs/analyses/reviewer-crossover.jsonl
 ```
 
-`prepare` takes a few seconds; each `measure` takes about 3–4 minutes on Apple's GPU. Each reviewer agent took 15–70 seconds.
+`prepare` takes a few seconds. Each `measure` takes about 3–4 minutes on Apple's GPU. Each reviewer agent took 15–70 seconds.

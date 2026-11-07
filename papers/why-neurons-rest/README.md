@@ -1,13 +1,13 @@
 # Why training rests neurons below GELU's dip
 
-[The paper on default-on negative poles](../default-on-poles/README.md) found that training moves most of GPT-2's neurons to a median pre-activation h of about −1, below GELU's minimum at −0.75, and that the input weights do this. It did not find why. This analysis trains small GPT-2s and changes one thing at a time.
+[The paper on default-on negative poles](../default-on-poles/README.md) found that training moves most of GPT-2's neurons to a median pre-activation h of about −1. That is below GELU's minimum at −0.75. It also found that the input weights do this. It did not find why. This analysis trains small GPT-2s and changes one thing at a time.
 
 **Results.** All are on small models, except the first's GPT-2 figures. Each number is from one or two seeds.
 
 1. **The small models show GPT-2's pattern.** Their rest comes from weights set against the MLP's mean input, and not from the bias or from a skewed tail. So a small model is a fair place to test causes, with the limits under *Caveats*.
 2. **The rest does not need GELU's dip.** ReLU has no dip, and its neurons rest at the same depth. Tanh's neurons don't move at all. So the rest goes with a one-sided activation, and "below the dip" may be a side effect.
 3. **Width, dropout and weight decay don't set it.** It forms with no dropout and no weight decay. A 16× range of width changes L1–L3 by at most 0.08. The interference explanation predicts that narrower MLPs rest lower, and we don't see that.
-4. **Training pushes the rest down by whichever route it has.** When centring stops the weights from setting the rest, a learned value for each neuron goes down at nearly the same pace, with the same order of layers. So the weights' turn against the mean input is one route to the rest, not its cause.
+4. **Training pushes the rest down by whichever route it has.** Centring can stop the weights from setting the rest. Then a learned value for each neuron goes down at nearly the same pace, with the same order of layers. So the weights' turn against the mean input is one route to the rest, not its cause.
 5. **The rest seems to help, but this is not proven.** Letting the learned value reach that depth lowers the loss by 0.061 on seed 0, with seeds differing by about 0.02. A centred model still doesn't match the baseline, and a forced rest of −1 trains as badly as a forced rest of 0.
 6. **−1 is not a target.** Over 12,000 steps the rest keeps deepening, to −1.46 at L1 with the weights and −1.32 with the learned value. Its growth slows, but it passes GPT-2's −1.04. The closeness to −1 at step 4,000 is partly the moment that we measured.
 
@@ -22,7 +22,7 @@ The script is `scripts/train_resting.py`. Its output is in `results.jsonl`. `scr
 - **Models.** The architecture of GPT-2 (Radford et al., 2019) with 4 layers, width 256 and 8 heads, trained from fresh weights for 4,000 steps. Each step is 32 windows of 128 tokens, with AdamW (Loshchilov & Hutter, 2019) at a learning rate of 3e-4 and gradient clipping at 1.0.
 - **Data.** Training uses the first 10,000 documents of the Pile (Gao et al., 2020) without the documents of the `corpus.jsonl` sample, which leaves 9,482 of 10,000 documents. Evaluation uses 128 test windows of the same split as [What default-on negative poles do as a population](../default-on-poles/README.md).
 - **Activation.** The baseline uses GELU (Hendrycks & Gimpel, 2016).
-- **Measures.** The median over neurons of each neuron's median h, the median offset (w·x̄, with x̄ the mean of the MLP's input), the median bias, the skew, and the share of neurons with weights against x̄.
+- **Measures.** The median over neurons of each neuron's median h, and the median offset (w·x̄, with x̄ the mean of the MLP's input). Then the median bias, the skew, and the share of neurons with weights against x̄.
 - **Centred conditions.** h is centred per neuron over each batch, then moved to a rest. That rest is fixed for `rest_0` and `rest_-1`, and is a parameter for each neuron for `rest_learned` and `rest_learned_fast`. Centring removes the weights' effect on the rest, so we report the rest as applied, not the raw h.
 
 ## GPT-2 small
@@ -66,7 +66,7 @@ Step 4,000 of each condition. Columns L0–L3 are the median h.
 - **Mirrored GELU is only a check.** It is the baseline with h and the weights negated, so its rest must flip, and it does.
 - **ReLU rests as deep as GELU.** It has no dip and no flat region below zero that differs by depth, so the dip cannot be its target. ReLU is also indifferent to scale, so a rest near −1 has no special meaning for it. That similarity may have a simple cause in the training (see *Caveats*).
 - **Tanh doesn't shift.** This is weak evidence, because tanh is symmetric and no explanation gives it a direction. Its spread of h falls to 0.15–0.19 on L1–L3, so these neurons mostly stay in its near-linear region. It has the worst loss here.
-- **Width doesn't move the rest.** In toy models, Elhage et al. (2022) show that a negative bias can turn small positive interference into negative interference, which is free under a ReLU in their one-sparse case. Our step is to apply this to the rest of real MLPs: if neurons rest low to filter interference, narrower MLPs have more interference and should rest lower. They don't. These widths may not change interference enough, so this counts against that version of the idea and doesn't remove it.
+- **Width doesn't move the rest.** In toy models, Elhage et al. (2022) show that a negative bias can turn small positive interference into negative interference, which is free under a ReLU in their one-sparse case. Our step is to apply this to the rest of real MLPs. If neurons rest low to filter interference, narrower MLPs have more interference and should rest lower. They don't. These widths may not change interference enough, so this counts against that version of the idea and doesn't remove it.
 - **Regularisation isn't needed.** The no-dropout run also has no weight decay, and its rest forms at L1–L3. Dropout changes L1–L3 without a clear trend. L0 is the exception, and deepens with dropout (−0.16, −0.34, −0.57). L0 reads the embeddings, so this may be real, but it is three points on one seed.
 
 ## Does the model need the rest?
@@ -83,7 +83,7 @@ Forcing the rest to 0 costs 0.136 of loss on seed 0 and 0.155 on seed 1. But cen
 
 ![Loss at step 4,000 for each condition, and the fast control's gap to the baseline over steps](media/loss.svg)
 
-- **A forced rest does not separate the causes.** `rest_-1` is near the baseline's depth and trains as badly as `rest_0`. It is also fixed for every neuron, and it starts at −1, where the fresh model's narrow h (SD about 0.31) sits on GELU's flat part. Its loss at step 1,000 is 6.40–6.42, against 6.27–6.28 for `rest_0`, and it has almost caught up by step 4,000. So its cost looks like a slow start, but we did not test this directly.
+- **A forced rest does not separate the causes.** `rest_-1` is near the baseline's depth and trains as badly as `rest_0`. It is also fixed for every neuron. It starts at −1, where the fresh model's narrow h (SD about 0.31) sits on GELU's flat part. Its loss at step 1,000 is 6.40–6.42, against 6.27–6.28 for `rest_0`, and it has almost caught up by step 4,000. So its cost looks like a slow start, but we did not test this directly.
 - **At the base rate, a learned rest stays near 0.** It reaches only −0.09 at L1, so this control mostly repeats `rest_0`. Adam at this rate can move one parameter by about 1.2 in 4,000 steps, and only if every step has the same sign. The baseline's bias moves only about 0.03. The weights can shift the rest faster, because many weights multiply a large mean input.
 - **At 30× the rate, a learned rest reaches nearly the same depth by step 4,000.** It reaches −0.92, −0.85 and −0.71 at L1–L3 on seed 0 and −0.92, −0.86 and −0.69 on seed 1. That keeps the baseline's order: L1, then L2, then L3, then L0. The weights no longer turn against x̄. Reaching that depth lowers the loss to 5.574 and 5.581.
 - **A gap remains.** The fast control's loss stays 0.065–0.072 above the baseline at step 4,000, and longer training doesn't close it.
@@ -109,15 +109,15 @@ Step 4,000 is early, because the rest is still moving. So seed 0 of the baseline
 - **The two routes keep pace.** At every step the learned value is at 81–90% of the baseline's depth at L1. The learned value has a much higher limit on its rate, so a limit on one parameter's rate doesn't explain the pace of this control.
 - **The loss gap doesn't close.** It stays between 0.064 and 0.076 at every step in the table. So the gap isn't only unfinished training. Centring itself, or the difference in depth, may cost this much. So the runs don't measure the rest's full value.
 
-**One run was discarded.** The first 12,000-step baseline gave a loss of 5.908 at step 4,000 and a much wider h, while the earlier run with the same seed gave 5.509. It overlapped other jobs on the machine, and it showed no error. A rerun with nothing else running gave 5.510. The fast control ran after that overlap, and it matched its earlier values at steps 2,000 and 4,000. We did not find the cause, so we kept the discarded rows in the data as `training_long_discarded`.
+**One run was discarded.** The first 12,000-step baseline gave a loss of 5.908 at step 4,000 and a much wider h. The earlier run with the same seed gave 5.509. It overlapped other jobs on the machine, and it showed no error. A rerun with nothing else running gave 5.510. The fast control ran after that overlap, and it matched its earlier values at steps 2,000 and 4,000. We did not find the cause, so we kept the discarded rows in the data as `training_long_discarded`.
 
 ## Why this matters for reading negative poles
 
-Most of the cost of the negative side in GPT-2 is its resting level ([What default-on negative poles do as a population](../default-on-poles/README.md)): clamping it at its mean adds 0.19 nats, and zeroing it adds 3.72. These runs fit that. Training pushes the level down, while variation below the dip has less effect. This supports the protocol's stop on auditing a default-on pole, but it doesn't show that a pole has no content.
+Most of the cost of the negative side in GPT-2 is its resting level ([What default-on negative poles do as a population](../default-on-poles/README.md)). Clamping it at its mean adds 0.19 nats, and zeroing it adds 3.72. These runs fit that. Training pushes the level down, while variation below the dip has less effect. This supports the protocol's stop on auditing a default-on pole, but it doesn't show that a pole has no content.
 
 ## Caveats
 
-- **These are small models.** They have 4 layers and short training. Their pattern matches GPT-2 on offset, bias and weights, but not everywhere: GPT-2's L1 rests shallow (−0.24) and its L0 deep (−1.16), and small models show the opposite order. Results on small models suggest causes for GPT-2, and don't prove them.
+- **These are small models.** They have 4 layers and short training. Their pattern matches GPT-2 on offset, bias and weights, but not everywhere. GPT-2's L1 rests shallow (−0.24) and its L0 deep (−1.16), and small models show the opposite order. Results on small models suggest causes for GPT-2, and don't prove them.
 - **The optimizer may shape the depth.** GELU and ReLU rest at similar depths at step 4,000, and the rest grows over steps. We used only Adam and one base rate, and ReLU ran only to step 4,000. So this similarity could come from training and not from the activation.
 - **Runs can go wrong with no error.** See *One run was discarded*. Same-seed reruns match to about 0.001, so a mismatch is easy to see, but most conditions here were not rerun.
 - **Few seeds.** Only the baseline, ReLU, and the fixed and fast centred conditions have two seeds. The rest have one.

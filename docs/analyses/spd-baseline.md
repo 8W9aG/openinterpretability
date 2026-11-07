@@ -1,6 +1,6 @@
 # SPD baseline: GPT-2 small
 
-The parameter-space baseline. The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD; Bushnaq et al., 2025, arXiv:2506.20790; after APD, Braun et al., 2025, arXiv:2501.14926) of GPT-2 small's twelve MLP down projections. It was trained first on an M1 Max laptop, then on a Colab A100.
+The parameter-space baseline. The transcoder baseline (`transcoder-baseline.md`) set neurons against a learned feature basis. This one sets them against the model's own weights, split into their smallest working parts. No decomposition of a registry model exists, so we trained one: a Stochastic Parameter Decomposition (SPD) of GPT-2 small's twelve MLP down projections. SPD comes from Bushnaq et al., 2025, arXiv:2506.20790, after APD from Braun et al., 2025, arXiv:2501.14926. It was trained first on an M1 Max laptop, then on a Colab A100.
 
 **Result.** SPD finds no better basis than the neurons. Two 50,000-step runs on a Colab A100 had the same settings and different starts:
 
@@ -12,7 +12,7 @@ At this size, with as many subcomponents as neurons, SPD's losses do not choose 
 
 The per-layer comparisons are in `spd-baseline.json` (laptop), `spd-baseline-colab-random.json` (run A) and `spd-baseline-colab-neurons.json` (run B). The VERIFIED-neuron check is in `spd-baseline-verified.json`.
 
-That result covers the down projections. On the input projections, where GELU could create a preference, the start from the neurons fits better at about the same total sparsity, and a random start does not find the neurons. So SPD's losses favour the neurons there, but training does not reach them (*The input projections*, and the paper [Where SPD can favour GPT-2's neurons](../../papers/spd-input-projections/README.md)).
+That result covers the down projections. On the input projections, where GELU could create a preference, the start from the neurons fits better at about the same total sparsity. A random start does not find the neurons. So SPD's losses favour the neurons there, but training does not reach them (*The input projections*, and the paper [Where SPD can favour GPT-2's neurons](../../papers/spd-input-projections/README.md)).
 
 ## Method
 
@@ -20,8 +20,8 @@ That result covers the down projections. On the input projections, where GELU co
 
 A gate gives each subcomponent a causal importance g in [0, 1] on each token. The losses are those of the paper, with the delta component and importance loss of Goodfire's reference code (`nano_param_decomp/run.py`):
 
-- **faithfulness:** the subcomponents sum to W;
-- **stochastic reconstruction:** with subcomponents masked by `g + (1 − g)·U(0, 1)`, all layers at once and one random layer at a time, the output's KL from the model's is small;
+- **faithfulness:** the subcomponents sum to W.
+- **stochastic reconstruction:** with subcomponents masked by `g + (1 − g)·U(0, 1)`, all layers at once and one random layer at a time, the output's KL from the model's is small.
 - **importance minimality:** `(g + ε)^p` is small, with p annealed from 2 to 0.4.
 
 Four changes were needed on GPT-2. Each came from a failed pilot (next section):
@@ -41,13 +41,13 @@ All pilots decomposed all twelve layers with C = 3,072, for 1,000 steps unless s
 
 | Run | Change | Active per token | Explained variance | Loss gap left | Outcome |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Paper's losses, importance coefficient 2e-4 | 585–823 (step 500) | — | 168% | g collapsed to small values; KL at exactly g was 7.7 |
-| 2 | Coefficient 2e-5, KL at exactly g | 1,260–2,044 | −0.07–0.31 | 4.1% | Outputs shrank; LayerNorm hid it |
+| 1 | Paper's losses, importance coefficient 2e-4 | 585–823 (step 500) | — | 168% | g collapsed to small values. KL at exactly g was 7.7 |
+| 2 | Coefficient 2e-5, KL at exactly g | 1,260–2,044 | −0.07–0.31 | 4.1% | Outputs shrank. LayerNorm hid it |
 | 3 | — | — | — | — | Stopped before its first step |
-| 4 | Output-error loss (weight 1), coefficient 6e-5 | ~2,000 (step 500) | 0.25–0.44 | — | Fit stalled; stopped |
+| 4 | Output-error loss (weight 1), coefficient 6e-5 | ~2,000 (step 500) | 0.25–0.44 | — | Fit stalled. Stopped |
 | 5 | Output-error weight 10 | 1,417–2,354 | 0.77–0.81 | 1.8% | Good fit, no sparsity |
 | 6 | Pilot 5 with centring | 1,666–2,253 | 0.71–0.78 | 2.3% | No gain |
-| 7 | Pilot 6 with a gate per layer | 948–1,872 | 0.56–0.72 | 6.3% | Sparsest; all 3,072 alive |
+| 7 | Pilot 6 with a gate per layer | 948–1,872 | 0.56–0.72 | 6.3% | Sparsest. All 3,072 alive |
 
 Every pilot was still getting sparser when it stopped. None was sparser than the neurons.
 
@@ -90,11 +90,11 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 *Neurons for SPD EV* is the first of 16, 32, 64, 128, 256, 384, 512, 768, 1,024, 1,536, 2,048 and 3,072 that reaches SPD's fit.
 
-**Density.** At SPD's own count, SPD fits better than the neurons in layers 0–6 and 11, and by a wide margin in layers 1 and 11 (0.84 against 0.50, 0.82 against 0.56). The two are level in layer 7. The neurons fit better in layers 8–10.
+**Density.** At SPD's own count, SPD fits better than the neurons in layers 0–6 and 11. The margin is wide in layers 1 and 11 (0.84 against 0.50, 0.82 against 0.56). The two are level in layer 7. The neurons fit better in layers 8–10.
 
 **Alignment.** No subcomponent in any layer has a cosine above 0.7 with any one neuron. The median cosine with the closest neuron is 0.06–0.08. A random direction in 3,072 dimensions gives about 0.07.
 
-**Drift.** That alignment says little about the model, because the subcomponents have not moved far from where they started. With C equal to the hidden width, any rotation of the neuron basis can sum to W exactly. The faithfulness warmup moves V first: on its own it takes each column to a median cosine of 0.61–0.74 with its random draw, before any other loss runs. After 10,000 steps the cosine is 0.57–0.71, so the importance and reconstruction losses moved the columns very little. The gates learned which of these partly random directions matter on each token. That is why the counts can fall while the directions stay random.
+**Drift.** That alignment says little about the model, because the subcomponents have not moved far from where they started. With C equal to the hidden width, any rotation of the neuron basis can sum to W exactly. The faithfulness warmup moves V first. On its own it takes each column to a median cosine of 0.61–0.74 with its random draw, before any other loss runs. After 10,000 steps the cosine is 0.57–0.71, so the importance and reconstruction losses moved the columns very little. The gates learned which of these partly random directions matter on each token. That is why the counts can fall while the directions stay random.
 
 ## What the laptop run means
 
@@ -153,7 +153,7 @@ Run B had run A's settings, except that each subcomponent started as one neuron 
 With this start, the cosine with the start and the best-neuron cosine are the same number.
 
 - **Alignment.** At least 99.4% of each layer's subcomponents have a cosine above 0.7 with one neuron. They stayed neurons.
-- **Density.** Run B settled at fewer active units and a lower fit than run A: 165–460 against 225–695 active, and 0.84–0.94 against 0.84–0.97 explained variance. To compare the two at different fits, take the number of neurons that reach each run's fit, interpolated on the neuron curve, and divide it by the run's active count. That ratio is 1.9–5.6 for run B and 1.1–3.6 for run A. It is 2.1–2.6 in run B's middle layers (3–8) and 2.2–2.7 in run A's. The lead over the neurons is about the same with or without the change of basis.
+- **Density.** Run B settled at fewer active units and a lower fit than run A: 165–460 against 225–695 active, and 0.84–0.94 against 0.84–0.97 explained variance. To compare the two at different fits, take the number of neurons that reach each run's fit, interpolated on the neuron curve. Divide it by the run's active count. That ratio is 1.9–5.6 for run B and 1.1–3.6 for run A. It is 2.1–2.6 in run B's middle layers (3–8) and 2.2–2.7 in run A's. The lead over the neurons is about the same with or without the change of basis.
 
 ## Verified neurons in run B
 
@@ -178,7 +178,7 @@ So SPD's view of a neuron says nothing about whether an explanation of it verifi
 - **No preset and no audit.** Auditing run A would explain directions that depend on a random seed. Auditing run B would audit the neurons again, with a gate. Neither is a second baseline. The weights are not uploaded to the Hub.
 - **Supports the registry's premise, weakly.** For GPT-2 small's MLPs, a parameter decomposition that starts from the neurons keeps them. It treats VERIFIED neurons no differently from other studied ones.
 
-Tests not run: more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts, the overcomplete case that bears on polysemantic neurons; a fixed gate to compare runs A and B at one fit; and Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
+Three tests were not run. The first is more subcomponents than neurons (C > 3,072), where SPD could split a neuron into parts. This is the overcomplete case that bears on polysemantic neurons. The second is a fixed gate to compare runs A and B at one fit. The third is Qwen2.5-0.5B, whose SwiGLU hidden activations may decompose differently.
 
 ## The input projections: pilots and long runs
 
@@ -200,7 +200,7 @@ The down projection reads the neurons, but nothing in it favours them: any rotat
 
 The start from the neurons leads on both whole-model measures. In layers 2–5 of the down projections the active counts are within about 13%, and it fits 1.6–2 times as well. These pilots do not show that SPD prefers the neurons:
 
-- **The input projections are not compared at equal sparsity.** In layers 1–10 the start from the neurons keeps 2–6 times as many subcomponents active, so its better fit may only be the cost of keeping more.
+- **The input projections are not compared at equal sparsity.** In layers 1–10 the start from the neurons keeps 2–6 times as many subcomponents active. So its better fit may only be the cost of keeping more.
 - **The lead may be a head start.** Neurons sum to W exactly at step 0, and the random start's input fit was still rising faster at step 999. Runs A and B ended about level after 50,000 steps on the down projections alone.
 - **The subcomponents barely move.** From random, the input projection's cosine with its start stayed within 0.003 of the warmup's 0.61–0.63. So a long run from random that stays random would not separate "SPD does not prefer the neurons" from "training did not reach them".
 
@@ -213,7 +213,7 @@ The start from the neurons leads on both whole-model measures. In layers 2–5 o
 
 - **The start from the neurons fits better.** The two runs keep about the same total, and run D has the lower KL, loss gap and objective. Run D keeps more active on the input projections (2,456 against 1,706) and fewer on the down projections (2,730 against 3,445). Per site, the neurons that reach a run's fit, per active subcomponent, are 1.1–5.5 times as many in run D as in run C.
 - **A random start does not find the neurons.** Run C's input projections end at a best-neuron cosine of 0.07–0.10, and none has a cosine above 0.7. Run D's stay at 0.89–0.96.
-- **This also changes how to read runs A and B.** On the down projections the KLs end level, as above, but the objective is 2.90 from the neurons against 3.32 from random, because run B keeps a third fewer active. So the objective favoured the neurons there too, by less. *SPD's losses do not choose a basis* holds for where each run ends, not for the value of the objective.
+- **This also changes how to read runs A and B.** On the down projections the KLs end level, as above. But the objective is 2.90 from the neurons against 3.32 from random, because run B keeps a third fewer active. So the objective favoured the neurons there too, by less. *SPD's losses do not choose a basis* holds for where each run ends, not for the value of the objective.
 
 One seed per start, and the learning rate falls to zero by step 50,000, so these runs do not exclude a slow catch-up from random. The paper has the per-site tables, the figures and the limits. There is still no preset, no audit and no Hub upload: run D's subcomponents are the neurons again, with a gate.
 
@@ -221,7 +221,7 @@ One seed per start, and the learning rate falls to zero by step 50,000, so these
 
 No APD, SPD or VPD decomposition covers a registry model (Qwen2.5-0.5B, Qwen2.5-1.5B, GPT-2 small). Goodfire's only language-model decomposition is VPD ([post](https://www.goodfire.com/research/interpreting-lm-parameters), May 2026). Its target is a custom 4-layer, ~67M-parameter model trained on The Pile: d_model 768, MLP width 3072, GELU, RMSNorm, RoPE, vocab 50,277. It decomposes all 24 weight matrices (q/k/v/o and both MLP matrices) into 38,912 rank-1 subcomponents, about 9,970 alive.
 
-The code ([goodfire-ai/param-decomp](https://github.com/goodfire-ai/param-decomp), MIT) is JAX; the Torch version is retired. The target weights and the decomposition are only W&B runs (target `goodfire/spd/runs/t-9d2b8f02`, decomposition `goodfire/spd/runs/s-55ea3f9b`), not Hugging Face repos, and the target has no `transformers` class. No per-component labels are released. The repo's 4-layer config says a run needs 32 GPUs. Licences for the weights and decomposition are not stated.
+The code ([goodfire-ai/param-decomp](https://github.com/goodfire-ai/param-decomp), MIT) is JAX. The Torch version is retired. The target weights and the decomposition are only W&B runs (target `goodfire/spd/runs/t-9d2b8f02`, decomposition `goodfire/spd/runs/s-55ea3f9b`), not Hugging Face repos, and the target has no `transformers` class. No per-component labels are released. The repo's 4-layer config says a run needs 32 GPUs. Licences for the weights and decomposition are not stated.
 
 ## Reproduce
 

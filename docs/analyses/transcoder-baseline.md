@@ -5,7 +5,7 @@ The full run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It co
 ## Setup
 
 - **Draws.** Latents come from `openinterp audit --random --seed s --dictionary gpt2-small-transcoders`. The pilot drew seeds 1–14 and the full run seeds 15–61, in order, until 40 latents were live. Neuron poles come from `openinterp audit --random --pole positive --seed s --model openai-community/gpt2`, seeds 1–40.
-- **Why positive poles only.** The pilot found that GPT-2's negative poles cannot pass the protocol (see the pilot's *What drives the gap*), so the native arm samples positive poles only.
+- **Why positive poles only.** The pilot found that GPT-2's negative poles cannot pass the protocol (see the pilot's *What drives the gap*). So the native arm samples positive poles only.
 - **Pilot units carry over.** `--pole positive` draws the layer and neuron the way uniform-pole sampling does. Seeds 1–4 therefore gave the pilot's four positive poles, and their pilot records stand. The six negative poles the pilot drew stay in the registry. The site reports them as their own row and leaves them out of the main comparison.
 - **No draw skipped or repeated.** No seed was skipped and none was audited twice.
 - **Scan.** All scans read `corpus.jsonl` (sha256 `ded48cfc…`): the default 200,000-token sample, in 128-token windows with stride 64. The transcoders fit no longer context (`harness/dictionaries.py`), and both arms were scanned the same way.
@@ -22,7 +22,7 @@ The full run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It co
 
 The two-sided Fisher exact test of latents against positive poles gives p = 4.3 × 10⁻⁵. Against all 46 neuron poles, including the pilot's negative ones, it gives p = 9.7 × 10⁻⁷.
 
-**Dead draws.** 21 of the 61 latent draws never fired on the scan, so they could not be audited: 4 of 14 in the pilot and 17 of 47 in the full run. No neuron draw was dead. Over the scanned layers, the drawn latents' scans put the dictionary's dead share at 29% on average. The dictionary explained 70% of the MLP output's variance, with a mean L0 of 54 active latents per token.
+**Dead draws.** 21 of the 61 latent draws never fired on the scan, so they could not be audited. That is 4 of 14 in the pilot and 17 of 47 in the full run. No neuron draw was dead. Over the scanned layers, the drawn latents' scans put the dictionary's dead share at 29% on average. The dictionary explained 70% of the MLP output's variance, with a mean L0 of 54 active latents per token.
 
 **Sampling frame.** Counting a dead draw as not verified leaves latents at 37 of 61 (61%, Wilson 48–72%). That is still above the positive poles' 50%, but the gap is no longer significant (Fisher p = 0.31). The comparison above is among units that fire. The dictionary's coverage is a separate question: about a third of its latents never fire on 200k tokens.
 
@@ -30,9 +30,9 @@ The two-sided Fisher exact test of latents against positive poles gives p = 4.3 
 
 **Latents.** 37 of 40 latents got narrow lexical or syntactic hypotheses that passed every gate. Many are single-token detectors: ' 39', ' favorite', ' passionate', 'iOS', ' per' after a number, and 'range' with no leading space. Others are one word in one sense: 'result' as a causal verb, ' take' as a noun, and 'let' opening a clause. A few are syntactic slots:
 
-- the determiner of a prepositional or verbal object;
-- the hyphen after ' time' in a compound;
-- the first word after 'including' or 'such as';
+- the determiner of a prepositional or verbal object.
+- the hyphen after ' time' in a compound.
+- the first word after 'including' or 'such as'.
 - a conjunction after a legal term.
 
 Three latents failed:
@@ -58,7 +58,7 @@ Of the 18 that failed in the full run, every one passed all its counterfactuals,
 Each fix went to the reviewer that wrote the probe, before the review ran. In the full run, corrections fell into four kinds:
 
 - **Trigger inside an unlisted context.** A negative contained a listed trigger in a context the explanation names. For example, L0/F9374's "3900" tokenizes as ' 39' + '00'. L9/F6460's "annual festival" and "extra waiters" contain modifiers that its explanation says fire on their own.
-- **Borderline label.** The label hinged on a word the explanation doesn't place. Examples: "at the" and "from several" for L8/F2494; "ten-minute-long" for L4/F1786, after a time-quantity noun; and causal "Since 500" for L7/F5954.
+- **Borderline label.** The label hinged on a word the explanation doesn't place. Examples: "at the" and "from several" for L8/F2494, "ten-minute-long" for L4/F1786 after a time-quantity noun, and causal "Since 500" for L7/F5954.
 - **Stated floor.** An explanation stated a floor that every prompt clears, so all its probes were relabelled active. This happened for the positive poles listed above.
 - **Tokenizer splits.** Probes were rewritten where a label depended on how GPT-2 splits a word.
 

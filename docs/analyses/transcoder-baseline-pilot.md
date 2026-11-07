@@ -1,6 +1,6 @@
 # Transcoder baseline: pilot on GPT-2 small
 
-The first run of the learned-basis baseline (`TODO.md`, *Scope expansion*): 10 random latents of Dunefsky et al.'s GPT-2 small transcoders (`gpt2-small-transcoders`) against 10 random GPT-2 small neuron poles, audited under protocol 0.7. The home page's *Learned-basis baseline* table is computed from the same records (`openinterp/builder/learned_baseline.py`). Every draw, live or dead, is in `transcoder-baseline-pilot.jsonl`.
+The first run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It compares 10 random latents of Dunefsky et al.'s GPT-2 small transcoders (`gpt2-small-transcoders`) against 10 random GPT-2 small neuron poles, audited under protocol 0.7. The home page's *Learned-basis baseline* table is computed from the same records (`openinterp/builder/learned_baseline.py`). Every draw, live or dead, is in `transcoder-baseline-pilot.jsonl`.
 
 ## Setup
 
@@ -26,7 +26,7 @@ The two-sided Fisher exact test gives p = 0.0055 for latents against all neuron 
 
 ## What drives the gap
 
-**Negative poles in a GELU MLP.** In a GELU MLP the negative pole cannot pass this protocol as it stands. GPT-2's negative pole is GELU's dip, at most 0.170. All six drawn negative poles sat in the dip on most tokens, so each hypothesis described a default-on dial. A probe is active when its peak over all tokens reaches 0.25 × max, and almost any text has some token in the dip, so a hard negative can't pass.
+**Negative poles in a GELU MLP.** In a GELU MLP the negative pole cannot pass this protocol as it stands. GPT-2's negative pole is GELU's dip, at most 0.170. All six drawn negative poles sat in the dip on most tokens, so each hypothesis described a default-on dial. A probe is active when its peak over all tokens reaches 0.25 × max. Almost any text has some token in the dip, so a hard negative can't pass.
 
 - Two of the six hypotheses predict every prompt active, so their probe sets have no hard negatives, and they fail `enough_hard_negatives`. L9/N1046− says the pole is active on essentially any text. L3/N1517− states a floor at the first token that lies above the line.
 - The other four got hard negatives built from the few tokens the hypothesis calls silent. Those negatives fired anyway: 0 of 11 passed for L5/N617−, L9/N330− and L9/N133−, which were REJECTED. For L7/N2511−, 7 of 11 passed, short of the specificity gate.
