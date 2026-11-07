@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **The literature review queue moved out of `TODO.md`** to `docs/literature/queue.md` (TODO, Housekeeping), so it no longer pushes `TODO.md` toward the 500-line limit. Entries that were bare arXiv IDs now have titles.
 - **The `release` skill tags the merged commit** (`.claude/skills/release/SKILL.md`). It tagged the release branch before the merge. A squash merge makes a new commit, so that tag was not on `main`, and `v0.0.14` had to move after its merge.
 
 ## [0.0.14] - 2026-11-07
