@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+from click.core import ParameterSource
 
 from openinterp.blends import BLEND_ALIASES, BLENDS, DEFAULT_DATASET
 from openinterp.cli import cli
@@ -25,7 +26,11 @@ from openinterp.corpus import LAYOUTS, PRESETS
     help="Glob of Parquet files within the dataset; comma-separate several to take an equal "
     "share of documents from each. Default: the preset's.",
 )
-@click.option("--text-column", help="Column holding the text. Default: the preset's, or 'text'.")
+@click.option(
+    "--text-column",
+    help="Column holding the text; comma-separate several to join them into one document. "
+    "Default: the preset's, or 'text'.",
+)
 @click.option(
     "--revision",
     help="Dataset branch, tag or commit. Default: the preset's, or main; pinned on use.",
@@ -77,9 +82,17 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "sidecar records the detector. Replaces a preset's exact languages; not with --lang-pattern.",
 )
 @click.option(
+    "--same-as",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Rebuild the corpus this record scanned, at its pinned dataset commits, and check "
+    "its SHA-256. It sets the source, so only --out goes with it.",
+)
+@click.option(
     "--out", default=Path("corpus.jsonl"), show_default=True, type=click.Path(path_type=Path)
 )
+@click.pass_context
 def corpus(
+    ctx,
     dataset,
     files,
     text_column,
@@ -93,6 +106,7 @@ def corpus(
     ascii_,
     lang_pattern,
     detect_lang,
+    same_as,
     out,
 ):
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
@@ -103,6 +117,8 @@ def corpus(
     """
     from openinterp.corpus import build_from_hub
 
+    if same_as:
+        return _same_as(ctx, same_as, out)
     if dataset in BLENDS or dataset in BLEND_ALIASES:
         per_dataset = {
             "--files": files, "--text-column": text_column, "--revision": revision,
@@ -133,6 +149,50 @@ def corpus(
         code_language_column=preset.code_language_column if preset else None,
     )
     _report(source, out, documents)
+
+
+@cli.command("corpus-cache")
+@click.option("--clear", is_flag=True, help="Delete everything cached.")
+def corpus_cache(clear):
+    """Show the size of (or clear) the cache of Parquet data that `corpus` reads.
+
+    \b
+    Location: $OPENINTERP_CORPUS_CACHE (\"off\" disables it), else
+    $XDG_CACHE_HOME/openinterp/corpora or ~/.cache/openinterp/corpora.
+    Size cap: $OPENINTERP_CORPUS_CACHE_GB (default 5); least recently used go first.
+    """
+    from openinterp.corpus_cache import ParquetCache
+
+    cache = ParquetCache.default()
+    if cache is None:
+        click.echo("The corpus cache is off ($OPENINTERP_CORPUS_CACHE).")
+        return
+    if clear:
+        click.echo(f"Deleted {cache.clear()} entries from {cache.root}")
+        return
+    click.echo(
+        f"{cache.root}: {len(cache.entries())} entries, "
+        f"{cache.size() / 1e9:.2f} of {cache.max_bytes / 1e9:.0f} GB"
+    )
+
+
+def _same_as(ctx, record: Path, out: Path) -> None:
+    from openinterp.cli_review import load_submission
+    from openinterp.corpus_rebuild import rebuild, scanned_source
+
+    given = [
+        name
+        for name in ctx.params
+        if name not in ("same_as", "out")
+        and ctx.get_parameter_source(name) != ParameterSource.DEFAULT
+    ]
+    if given:
+        raise click.UsageError(f"--same-as sets the source, so not with: {', '.join(given)}.")
+    try:
+        source = rebuild(scanned_source(load_submission(record)), out)
+    except ValueError as error:
+        raise click.ClickException(f"{record}: {error}") from error
+    _report(source, out, source.documents)
 
 
 def _blend(dataset, per_dataset: dict, out: Path, documents, seed, max_chars, ascii_) -> None:

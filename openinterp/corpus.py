@@ -3,7 +3,8 @@
 A corpus is a JSONL file of ``{"text": ...}`` documents, plus a ``<name>.source.json``
 sidecar (:class:`CorpusSource`) that pins where it came from. Sampling does not download
 whole datasets. It reads Parquet row groups over HTTP. So a 500-document sample of
-fineweb-edu's 10B-token sample costs a few dozen small reads.
+fineweb-edu's 10B-token sample costs a few dozen small reads. :mod:`openinterp.corpus_cache`
+keeps what it reads.
 
 Sampling is deterministic for a given dataset revision and seed. It visits row groups in
 a seeded random order across all files, and takes a seeded handful of documents from
@@ -27,10 +28,9 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
-import pyarrow.parquet as pq
-
 from openinterp.core.confounds import LANGUAGE, PROGRAMMING_LANGUAGE, SOURCE
 from openinterp.core.schemas import CorpusSample, CorpusSource
+from openinterp.corpus_cache import read_row_group, row_groups
 from openinterp.corpus_layouts import LAYOUTS, wikitext_articles  # noqa: F401  (re-exported)
 
 # What `openinterp audit` scans by default (protocol 0.7). The seed is fixed, so every
@@ -45,7 +45,7 @@ class Preset:
 
     dataset: str
     files: str  # glob within the dataset repo; comma-separated globs are sampled equally
-    text_column: str = "text"
+    text_column: str = "text"  # comma-separated columns join into one document
     revision: str | None = None  # default branch or tag; pinned to a commit on use
     layout: str | None = None  # how rows become documents (see LAYOUTS); None: one per row
     docs_per_row_group: int = 20
@@ -109,6 +109,14 @@ PRESETS = {
         docs_per_row_group=50,
         lang_pattern=r"^\d+\.([\w-]+)/",
     ),
+    # Mathematical web text from Common Crawl, with LaTeX, for number, operator and LaTeX
+    # neurons. Row groups are 1,000 documents of ~3.6 MB. ODC-By 1.0: attribute excerpts.
+    # The card also requires users to obey the Common Crawl terms of use.
+    "open-web-math": Preset("open-web-math/open-web-math", "data/train-*.parquet"),
+    # Grade-school word problems and their worked solutions (train split), for arithmetic
+    # neurons. A document is a problem, then its solution. A solution keeps the dataset's
+    # calculator annotations ("<<48/2=24>>24") and final answer ("#### 72"). MIT.
+    "gsm8k": Preset("openai/gsm8k", "main/train-*.parquet", "question,answer"),
 }
 
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
@@ -140,7 +148,8 @@ def sample_documents(
 ) -> list[str]:
     """Return up to ``documents`` non-empty texts from Parquet files on ``fs``.
 
-    Each text is cut to ``max_chars``. With a ``layout``, each row group's rows are first
+    Each text is cut to ``max_chars``. Comma-separated ``text_column`` names join into one
+    text (:func:`_read_groups`). With a ``layout``, each row group's rows are first
     joined into its documents. With a ``label_column``, each returned text's value in that
     column joins the list ``labels``.
     """
@@ -148,7 +157,7 @@ def sample_documents(
     paths = sorted(paths)
     # One footer read per file: in parallel, since a dataset of 880 files takes minutes serially.
     with ThreadPoolExecutor(16) as pool:
-        counts = list(pool.map(lambda path: _row_groups(fs, path), paths))
+        counts = list(pool.map(lambda path: row_groups(fs, path), paths))
     groups = [(path, i) for path, n in zip(paths, counts, strict=True) for i in range(n)]
     rng.shuffle(groups)
     # Few row groups (a small dataset): take more from each, so the sample still fills.
@@ -187,7 +196,7 @@ def first_documents(
     """
     out: list[str] = []
     for path in sorted(paths):
-        groups = [(path, i) for i in range(_row_groups(fs, path))]
+        groups = [(path, i) for i in range(row_groups(fs, path))]
         for texts, column in _read_groups(fs, groups, text_column, label_column):
             if layout is not None:
                 texts = LAYOUTS[layout](texts)
@@ -201,21 +210,21 @@ def first_documents(
     return out
 
 
-def _row_groups(fs, path: str) -> int:
-    with fs.open(path, "rb") as fh:
-        return pq.ParquetFile(fh).num_row_groups
-
-
 def _read_groups(
-    fs, groups, column: str, label_column: str | None = None
+    fs, groups, text_column: str, label_column: str | None = None
 ) -> Iterator[tuple[list, list | None]]:
-    """Yield each row group's ``column`` and, if there is a ``label_column``, that column."""
-    columns = [column, label_column] if label_column else [column]
+    """Yield each row group's texts and, if there is a ``label_column``, that column.
+
+    Comma-separated ``text_column`` names join into one text per row, with a blank line
+    between them. A null value adds nothing, so a row with only nulls gives an empty text.
+    """
+    text_columns = text_column.split(",")
+    columns = [*text_columns, label_column] if label_column else text_columns
     for path, i in groups:
-        with fs.open(path, "rb") as fh:
-            table = pq.ParquetFile(fh).read_row_group(i, columns=columns)
+        table = read_row_group(fs, path, i, columns)
+        parts = [table.column(name).to_pylist() for name in text_columns]
         yield (
-            table.column(column).to_pylist(),
+            ["\n\n".join(filter(None, row)) for row in zip(*parts, strict=True)],
             table.column(label_column).to_pylist() if label_column else None,
         )
 
@@ -460,4 +469,8 @@ def _license(api, dataset: str, info, revision: str | None):
         card_data = api.dataset_info(dataset).card_data
     else:
         card_data = info.card_data
-    return card_data.to_dict().get("license") if card_data else None
+    card = card_data.to_dict() if card_data else {}
+    # OpenWebMath's card puts the licence inside its single `dataset_info`, which is a mapping.
+    # Cards with several configs have a list there, and it holds no licence.
+    nested = card.get("dataset_info")
+    return card.get("license") or (nested.get("license") if isinstance(nested, dict) else None)
