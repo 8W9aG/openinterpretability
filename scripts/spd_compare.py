@@ -18,7 +18,8 @@ On held-out pieces, per layer, it measures:
 
 An input projection (``--matrices up`` or ``both``) writes the neurons. So there,
 alignment and drift read ``U[c]``, and the fit is measured after the activation
-function. It has no neuron baseline for density.
+function. Its neuron baseline keeps each token's neurons that move furthest from their
+ablated value. For that squared error, this is the best choice of ``k`` neurons.
 
     uv run python scripts/spd_compare.py --checkpoint exchange/gpt2-spd/checkpoint.pt \\
         --out exchange/gpt2-spd/compare.json
@@ -83,14 +84,36 @@ def compare_up(part: LayerDecomposition, u_init: torch.Tensor, h: torch.Tensor, 
     inner = x @ part.v
     ci = part.gate_logits(x.unsqueeze(0), inner.unsqueeze(0))[0].clamp(0, 1)
     y, y_hat = projected(part, x, inner, ci, act)
+    spd_ev, spd_l0 = explained(y, y_hat), float((ci > 0).sum(-1).float().mean())
+    curve = up_neuron_curve(part.w_target, part.offset(), x, act, STEPS)
+    at_l0 = up_neuron_curve(part.w_target, part.offset(), x, act, [round(spd_l0)])
     best = (part.u / part.u.norm(dim=1, keepdim=True)).abs().max(1).values
     return {
-        "spd_explained_variance": round(explained(y, y_hat), 3),
-        "spd_l0": round(float((ci > 0).sum(-1).float().mean()), 1),
+        "spd_explained_variance": round(spd_ev, 3),
+        "spd_l0": round(spd_l0, 1),
+        "neurons_at_spd_l0": round(at_l0[round(spd_l0)], 3),
+        "neurons_for_spd_ev": next((k for k in STEPS if curve[k] >= spd_ev), None),
+        "neuron_curve": {k: round(v, 3) for k, v in curve.items()},
         "best_neuron_cosine_median": round(float(best.median()), 3),
         "share_best_neuron_cosine_over_0.7": round(float((best > 0.7).float().mean()), 4),
         "drift_cosine_median": round(float(F.cosine_similarity(part.u, u_init, dim=1).median()), 3),
     }
+
+
+def up_neuron_curve(w: torch.Tensor, offset: torch.Tensor, x: torch.Tensor, act, ks) -> dict:
+    """The fit after ``act`` of each token's ``k`` best neurons, for each ``k`` in ``ks``.
+
+    ``x`` is the centred input, ``[tokens, d_model]``, and ``w`` is ``[d_model, d_mlp]``. A
+    dropped neuron gets ``act(offset)``, as a subcomponent with zero importance does.
+    """
+    y, rest = act(x @ w + offset), act(offset)
+    moved = y - rest
+    order = moved.abs().argsort(-1, descending=True)
+    result = {}
+    for k in ks:
+        keep = torch.zeros_like(y).scatter_(1, order[:, :k], 1.0)
+        result[k] = explained(y, rest + moved * keep)
+    return result
 
 
 def initial_parts(runner, sites: list, s: dict) -> dict[tuple, LayerDecomposition]:
