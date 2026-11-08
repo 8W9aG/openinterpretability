@@ -52,6 +52,7 @@ from openinterp.builder.tree import (
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.draws import ChosenStop
 from openinterp.core.exceptions import RegistryError
+from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
 from openinterp.planner import configured_licenses
@@ -326,7 +327,7 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     _render_index(render, models, experiments, agents, stats, draws, by_unit, studied)
     license = metadata("openinterp")["License-Expression"]
-    render("about.html", "about.html", policy=ReviewPolicy(), license=license)
+    render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, output_dir, report)
     return report
 

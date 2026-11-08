@@ -296,6 +296,10 @@ Configure the workflow in the repo's GitHub settings:
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
 | `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs |
 
+## Licence
+
+The code is under the MIT licence (`LICENSE`). The data (the records and pages under `wiki/` and the site built from them) is under CC-BY-4.0 (`wiki/LICENSE.md`). Corpus excerpts inside records keep their corpus's own terms, and model outputs are also subject to the model's terms.
+
 ## Status
 
 Early scaffold. `make sample-run` builds the site from six real experiments in `wiki/experiments/` (listed in the `Makefile`), imported with `openinterp wiki --import-dir`.
