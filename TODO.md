@@ -227,9 +227,6 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time. So an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Skip lint and tests on experiment PRs. When every changed file is under `wiki/` (the rule `.github/workflows/auto-merge.yml` uses), the code is the same as on `main`. So CI's "Lint and tests" job and the skills' local `make check lint test` re-test code the PR didn't change.
-  - In `.github/workflows/ci.yml`, add a job that lists the changed files, as `record-changes` does, and gate `tests` on it with a job-level `if`. Don't use `paths-ignore` on the workflow: a required check that never starts blocks the merge, while a skipped job counts as passed. Keep running it on pushes to `main`.
-  - In `choose-next-experiment` (step 7) and `land-experiment`, run `make check` only, and keep `lint test` for branches that change code.
 - [ ] Find out how to run in low-memory environments (e.g. 8 GB laptops, free Colab, small CI runners). First measure peak RAM/VRAM for `scan`, `audit` and `review` on each registry model, then try what lowers it, roughly in this order:
   - Load in bf16/fp16 rather than fp32.
   - Keep only the target layer's activations rather than every layer's.
