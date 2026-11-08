@@ -441,8 +441,10 @@ def test_a_feature_is_audited_reviewed_and_reproduced(runner, scan):
     assert "sparse transcoder (48 latents)" in task and "not a native neuron" in task
 
 
-def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path):
+def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     record = _record(runner, scan)
+    np_page = "https://www.neuronpedia.org/tiny/1-tc/5"
+    monkeypatch.setattr("openinterp.crossref.latent_url", lambda d, layer, i, api=False: np_page)
     wiki = tmp_path / "wiki"
     page = write_experiment_page(record, wiki)
     assert page.parent == wiki / "experiments" / "tiny-gpt2" / "L1" / "tiny-tc" / "F5"
@@ -454,6 +456,7 @@ def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path):
     html = (tmp_path / "dist" / "models" / "tiny-gpt2" / "L1" / "tiny-tc" / "F5.html").read_text()
     assert "tiny-tc latent" in html and "Explained variance" in html
     assert 'href="../../../../index.html"' in html  # one directory deeper than a neuron
+    assert f'href="{np_page}"' in html  # the latent's page where Neuronpedia hosts it
     (row,) = pq.read_table(report.parquet).to_pylist()
     assert (row["kind"], row["dictionary"], row["feature_idx"], row["neuron_idx"]) == (
         "dictionary_feature",

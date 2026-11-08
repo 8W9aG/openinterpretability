@@ -209,10 +209,18 @@ def layer_of(row: AlignmentRow) -> int:
 
 def neuronpedia_url(row: AlignmentRow, feature_idx: int, *, api: bool = False) -> str | None:
     """The latent's Neuronpedia page (or API endpoint), where Neuronpedia hosts it."""
+    return latent_url(row.dictionary, layer_of(row), feature_idx, api=api)
+
+
+def latent_url(dictionary: str, layer: int, feature_idx: int, *, api: bool = False) -> str | None:
+    """The Neuronpedia page (or API endpoint) of a latent of a dictionary preset.
+
+    ``None`` where Neuronpedia does not host that dictionary at ``layer``.
+    """
     from openinterp.harness.dictionaries import DICTIONARIES
 
-    spec = DICTIONARIES.get(row.dictionary)
-    source = spec and spec.neuronpedia_source(layer_of(row))
+    spec = DICTIONARIES.get(dictionary)
+    source = spec and spec.neuronpedia_source(layer)
     if not source:
         return None
     return f"{NEURONPEDIA}{'/api/feature' if api else ''}/{source}/{feature_idx}"
@@ -279,6 +287,17 @@ def neuronpedia_explanations(
     row: AlignmentRow,
     feature_idx: int,
     timeout: float = 20,
+    **kwargs,
+) -> list[Explanation] | None:
+    """Return the Neuronpedia explanations of latent ``feature_idx`` aligned in ``row``."""
+    return latent_explanations(row.dictionary, layer_of(row), feature_idx, timeout, **kwargs)
+
+
+def latent_explanations(
+    dictionary: str,
+    layer: int,
+    feature_idx: int,
+    timeout: float = 20,
     *,
     retries: int = 3,
     sleep: Callable = time.sleep,
@@ -290,7 +309,7 @@ def neuronpedia_explanations(
     explanations. ``None`` if Neuronpedia does not host the latent or the request fails;
     a failure is not cached.
     """
-    url = neuronpedia_url(row, feature_idx, api=True)
+    url = latent_url(dictionary, layer, feature_idx, api=True)
     if url is None:
         return None
     path = _cache_path(url)
@@ -322,8 +341,12 @@ def neuronpedia_description(row: AlignmentRow, feature_idx: int, **kwargs) -> Ex
     ``None`` if it has none or the request fails.
     """
     found = neuronpedia_explanations(row, feature_idx, **kwargs) or []
-    machine = [e for e in found if e.explainer != "human"]
-    return (machine or found or [None])[0]
+    return machine_explanation(found) or next(iter(found), None)
+
+
+def machine_explanation(found: Iterable[Explanation] | None) -> Explanation | None:
+    """The first machine-written explanation of ``found``; ``None`` if there is none."""
+    return next((e for e in found or [] if e.explainer != "human"), None)
 
 
 def feature_slug(row: AlignmentRow, feature_idx: int) -> str:
@@ -341,9 +364,9 @@ def describe(
 ) -> list[dict]:
     """Return each aligned latent of ``rows`` with its description.
 
-    The description is the registry's explanation (``registry`` maps feature slugs to it),
-    or else what ``fetch`` returns for the latent (an :class:`Explanation` or ``None``).
-    ``source`` credits where it came from: "this registry", or Neuronpedia and the
+    The description is the registry's explanation, where the latent was audited here
+    (``registry`` maps feature slugs to it). Otherwise it is what ``fetch`` returns.
+    ``source`` says where it came from. That is "this registry", or Neuronpedia and the
     model that wrote it.
     """
     registry = registry or {}
