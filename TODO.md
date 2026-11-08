@@ -265,7 +265,6 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples. Everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode. Put the numbers in a table or in the Parquet export. Some need extra data stored on records. Check that before building them.
 
-- [ ] A Models page (e.g. `openinterp/builder/templates/models.html`, linked from the `base.html` header) listing the supported models. Read the list from `[tool.openinterp] models` in `pyproject.toml`, not a copy. Each row links to the model's page (`model.html`) and gives its size, layers, MLP width, activation and licence (`configured_licenses`), plus its experiment and VERIFIED counts. A supported model with no records yet still gets a row.
 - [ ] Serve the site at open-interpretability.com and use it everywhere:
   - attach it as the R2 bucket's custom domain.
   - set the `OPENINTERP_SITE_URL` repo variable, which turns on the deploy's cache purge.
