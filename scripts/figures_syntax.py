@@ -1,6 +1,7 @@
 """The figures of papers/syntax-positive-controls/README.md, from its results.jsonl."""
 
 from figure_svg import Figure, Panel, columns
+from figures_syntax_models import models
 
 DEPTHS = [1, 2, 3, 4, 5]
 LAYERS = list(range(12))
@@ -18,6 +19,13 @@ PROBE_PANELS = (
     ("Open, closed, partly closed", (("open", "c1"), ("partly_closed", "c3"), ("closed", "c2"))),
     ("Text the parser ignores", (("open", "c1"), ("string", "c3"), ("comment", "c2"))),
     ("Other brackets", (("open", "c1"), ("square", "c3"), ("curly", "c2"))),
+)
+JOINT_LEGEND = (
+    ("fc1", "model"),
+    ("fc2", "L2 N676+ ablated"),
+    ("fc3", "the other four ablated"),
+    ("fneutral", "all five ablated"),
+    ("open sneutral", "mean of 20 random sets ablated"),
 )
 NAMES = {
     "open": "open",
@@ -394,16 +402,7 @@ def joint(rows: list[dict]) -> Figure:
         for depth, value in zip(DEPTHS, values, strict=True):
             fig.dot(panel.x(depth), panel.y(value), 3, f"f{colour}")
     bottom = panel.top + panel.height + 62
-    fig.legend(
-        bottom,
-        (
-            ("fc1", "model"),
-            ("fc2", "L2 N676+ ablated"),
-            ("fc3", "the other four ablated"),
-            ("fneutral", "all five ablated"),
-            ("open sneutral", "mean of 20 random sets ablated"),
-        ),
-    )
+    fig.legend(bottom, JOINT_LEGEND)
     fig.bottom = bottom
     return fig
 
@@ -472,9 +471,11 @@ def _lines_panel(fig: Figure, rows: list[dict], y0: float) -> None:
         fig.text(right.x(5) + 7, right.y(values[-1]) + 4, name, "small")
 
 
-def build(rows: list[dict]) -> dict[str, Figure]:
-    """Return each figure by its file name."""
+def build(rows: list[dict], others: dict[str, list[dict]] | None = None) -> dict[str, Figure]:
+    """Return each figure by its file name. ``others`` holds the sweeps of other models."""
+    sweeps = {"GPT-2 small": rows, **(others or {})}
     return {
+        "models.svg": models(sweeps),
         "trace.svg": trace(rows),
         "probes.svg": probes(rows),
         "labels.svg": labels(rows),

@@ -11,9 +11,14 @@ The project has two version numbers:
 
 ### Added
 
+- **The syntax paper tests more of its claim** (`papers/syntax-positive-controls/README.md`, from TODO, Analyses per experiment). It probes the other round-depth poles of GPT-2 (L2 N1195+, L3 N695+, L8 N689+, L9 N340+) and ablates them together. A new measure counts how many brackets the predicted closer closes: L2 N676+ raises that count and the other four lower it. The paper reports the protocol's NEEDS_REVISION verdict on L2 N676+, and the sweep on Qwen2.5-0.5B (`results-qwen2.5-0.5b.jsonl`), which finds no pole as strong. `scripts/syntax_controls.py stability` measures cut-document labels against whole files.
+
 - **The first page of the literature review** (`docs/literature/training-llms-to-predict-world-events.md`), with its index (`docs/literature/README.md`). It reviews the first entry in `docs/literature/queue.md`, written from the post and its question list, and marks it not applicable.
 
 ### Changed
+
+- **Cut code documents get searched endings** (`openinterp/syntax.py`). A document cut mid-class parsed with its contents at top level. The tagger now tries endings that start with a line break, `*/` or a quote, add the open brackets, and for Ruby and Lua add `end`s. It keeps the one with the fewest characters in error nodes. Against whole files, the share of construct characters lost to top level falls from 7.7% to 1.7%.
+- **Paper result files are exempt from the 500-line limit** (`scripts/check_line_limit.py`), as `docs/analyses/*.jsonl` is.
 
 - **`make ste` lints `docs/`, `papers/`, `README.md`, `REVIEW.md`, the PR template, `CHANGELOG.md` and `TODO.md`** (`STE_PATHS` and `STE_LOG_PATHS` in the `Makefile`, from TODO, Code quality and tooling). Their sentences over 25 words are split and their semicolons are gone. `docs/PROTOCOL.md` keeps every condition of the decision rule. The patchscope baseline report is generated, so `openinterp/baseline.py` writes the new wording. `CHANGELOG.md` and `TODO.md` skip the synonym rule: Keep a Changelog requires a *Fixed* heading, and entries quote command names such as `verify` and `check`.
 - **The literature review queue moved out of `TODO.md`** to `docs/literature/queue.md` (TODO, Housekeeping), so it no longer pushes `TODO.md` toward the 500-line limit. Entries that were bare arXiv IDs now have titles.

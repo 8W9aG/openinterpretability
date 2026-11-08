@@ -257,8 +257,8 @@ def _endings(text: str, nodes: Sequence[str], language: str) -> list[str]:
     A cut can stop inside a comment or a string. So each ending starts with nothing, a line
     break, the end of a block comment or a quote. Then come the closing brackets that are
     open after that start, with and without a ``;`` before each ``}``. In
-    :data:`END_KEYWORD_LANGUAGES`, a block closes with ``end`` and not with a bracket, so
-    endings also add up to ``MAX_END_KEYWORDS`` of them, before or after the brackets.
+    :data:`END_KEYWORD_LANGUAGES`, a block closes with ``end`` and not with a bracket. So
+    there, endings also add up to ``MAX_END_KEYWORDS`` of them, before or after the brackets.
     """
     out: set[str] = set()
     for start in _STARTS:
