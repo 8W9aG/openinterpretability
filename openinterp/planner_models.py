@@ -55,8 +55,8 @@ class ModelCoverage:
         )
 
 
-def model_dims(model: str, download: bool = True) -> tuple[int, int] | None:
-    """(layers, MLP width) from the model's ``config.json``, or None if it can't be read.
+def model_config(model: str, download: bool = True) -> dict | None:
+    """The model's ``config.json``, or None if it can't be read.
 
     With ``download`` False, read only the Hugging Face cache: no network. The file is in
     the cache once the model has been used. Reading it never loads weights.
@@ -69,9 +69,24 @@ def model_dims(model: str, download: bool = True) -> tuple[int, int] | None:
         if not isinstance(path, str):  # not cached, or cached as missing
             return None
         with open(path) as fh:
-            config = json.load(fh)
+            return json.load(fh)
     except Exception:  # offline with nothing cached, or an unknown model
         return None
+
+
+def model_dims(model: str, download: bool = True) -> tuple[int, int] | None:
+    """(layers, MLP width) from the model's ``config.json``, or None if it can't be read.
+
+    ``download`` is as for :func:`model_config`.
+    """
+    config = model_config(model, download)
+    if config is None:
+        return None
+    return config_dims(config)
+
+
+def config_dims(config: dict) -> tuple[int, int] | None:
+    """(layers, MLP width) from a ``config.json``, or None if it does not give them."""
     layers = config.get("num_hidden_layers") or config.get("n_layer")
     width = config.get("intermediate_size") or config.get("n_inner")
     if width is None and config.get("n_embd"):  # GPT-2: n_inner null means 4 × n_embd

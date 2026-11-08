@@ -31,6 +31,7 @@ from openinterp.builder.agents import (
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.heat import HeatToken, token_heat
+from openinterp.builder.model_facts import ModelFacts, models_view, placeholder_models
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
@@ -53,7 +54,7 @@ from openinterp.core.draws import ChosenStop
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
-from openinterp.planner import configured_licenses
+from openinterp.planner import configured_licenses, configured_models
 from openinterp.sensitive import is_offensive
 from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
 from openinterp.wiring_backfill import record_wiring
@@ -281,6 +282,7 @@ def compile_site(
     sister_rows: dict | None = None,
     papers_dir: Path | None = None,
     stops: Sequence[ChosenStop] = (),
+    model_facts: dict[str, ModelFacts] | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -290,6 +292,8 @@ def compile_site(
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
     ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`).
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
+    ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
+    Models page, which lists every model in ``[tool.openinterp] models``.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -318,6 +322,7 @@ def compile_site(
     for model in models:
         sisters = (sister_rows or {}, sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
+    _render_models(render, models, model_facts or {})
     agents = agents_view(experiments)
     contributors = contributors_view(experiments)
     render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
@@ -330,6 +335,17 @@ def compile_site(
     render("about.html", "about.html", policy=ReviewPolicy(), license=license)
     _render_research(render, papers_dir, output_dir, report)
     return report
+
+
+def _render_models(render, models, facts) -> None:
+    """Write the Models page, and a page for each configured model with no record yet."""
+    configured = configured_models()
+    empty = placeholder_models(configured, models, facts)
+    for model in empty:
+        _render_model(render, model, {}, set())
+    licenses = render.common["model_licenses"]
+    rows = models_view(configured, [*models, *empty], facts, licenses)
+    render("models/index.html", "models.html", rows=rows)
 
 
 def _render_research(render, papers_dir, output_dir, report) -> None:
