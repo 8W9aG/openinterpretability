@@ -82,6 +82,14 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "sidecar records the detector. Replaces a preset's exact languages; not with --lang-pattern.",
 )
 @click.option(
+    "--chat-template",
+    metavar="MODEL",
+    help="Write each conversation in --text-column (a list of role/content messages) with "
+    "this model's chat template, pinned to its commit. Required for chat presets "
+    f"({', '.join(name for name, p in PRESETS.items() if p.chat)}). Pass the model you "
+    "will scan.",
+)
+@click.option(
     "--same-as",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     help="Rebuild the corpus this record scanned, at its pinned dataset commits, and check "
@@ -106,6 +114,7 @@ def corpus(
     ascii_,
     lang_pattern,
     detect_lang,
+    chat_template,
     same_as,
     out,
 ):
@@ -124,31 +133,45 @@ def corpus(
             "--files": files, "--text-column": text_column, "--revision": revision,
             "--layout": layout, "--docs-per-row-group": docs_per_row_group, "--first": first,
             "--lang-pattern": lang_pattern, "--detect-lang": detect_lang,
+            "--chat-template": chat_template,
         }  # fmt: skip
         return _blend(dataset, per_dataset, out, documents, seed, max_chars, ascii_)
     preset = PRESETS.get(dataset)
+    _check_dataset(dataset, preset, files, lang_pattern, detect_lang, chat_template)
+    try:
+        source = build_from_hub(
+            preset.dataset if preset else dataset,
+            out,
+            files=files or preset.files,
+            text_column=text_column or (preset.text_column if preset else "text"),
+            revision=revision or (preset.revision if preset else None),
+            layout=layout or (preset.layout if preset else None),
+            documents=documents,
+            seed=seed,
+            max_chars=max_chars,
+            docs_per_row_group=docs_per_row_group or (preset.docs_per_row_group if preset else 20),
+            first=first,
+            ascii=ascii_,
+            lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
+            detect_lang=detect_lang,
+            code_language_column=preset.code_language_column if preset else None,
+            chat_template=chat_template,
+        )
+    except ValueError as error:  # e.g. a model without a chat template
+        raise click.ClickException(str(error)) from error
+    _report(source, out, documents)
+
+
+def _check_dataset(dataset, preset, files, lang_pattern, detect_lang, chat_template) -> None:
+    """Raise ``click.UsageError`` if the options can't sample ``dataset``."""
     if detect_lang and lang_pattern:
         raise click.UsageError("--detect-lang and --lang-pattern both set the languages.")
     if preset is None and not files:
         raise click.UsageError(f"--files is required for {dataset!r}, which is not a preset.")
-    source = build_from_hub(
-        preset.dataset if preset else dataset,
-        out,
-        files=files or preset.files,
-        text_column=text_column or (preset.text_column if preset else "text"),
-        revision=revision or (preset.revision if preset else None),
-        layout=layout or (preset.layout if preset else None),
-        documents=documents,
-        seed=seed,
-        max_chars=max_chars,
-        docs_per_row_group=docs_per_row_group or (preset.docs_per_row_group if preset else 20),
-        first=first,
-        ascii=ascii_,
-        lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
-        detect_lang=detect_lang,
-        code_language_column=preset.code_language_column if preset else None,
-    )
-    _report(source, out, documents)
+    if preset and preset.chat and not chat_template:
+        raise click.UsageError(
+            f"{dataset!r} is conversations: pass --chat-template MODEL, the model you will scan."
+        )
 
 
 @cli.command("corpus-cache")

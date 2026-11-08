@@ -663,3 +663,92 @@ def test_a_layout_and_a_label_column_are_refused(code_blend, tmp_path):
             "org/code", tmp_path / "c.jsonl", files="*.parquet", layout="wikitext",
             code_language_column="language",
         )  # fmt: skip
+
+
+def _chat(messages):
+    return "".join(f"<{m['role']}>{m['content']}</{m['role']}>" for m in messages)
+
+
+def test_a_chat_template_writes_each_conversation_as_one_document(tmp_path):
+    path = tmp_path / "chat.parquet"
+    talks = [
+        [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}],
+        [],  # an empty conversation is not a document
+        [{"role": "user", "content": "2+2?"}, {"role": "assistant", "content": "4"}],
+    ]
+    pq.write_table(pa.table({"messages": talks}), path)
+    fs = fsspec.filesystem("file")
+    args = dict(text_column="messages", documents=9, max_chars=99, chat=_chat)
+    written = [
+        "<user>hi</user><assistant>hello</assistant>",
+        "<user>2+2?</user><assistant>4</assistant>",
+    ]
+    assert first_documents(fs, [str(path)], **args) == written
+    assert sample_documents(fs, [str(path)], seed=0, docs_per_row_group=9, **args) == written
+    with pytest.raises(ValueError, match="one column"):
+        first_documents(fs, [str(path)], **(args | {"text_column": "messages,other"}))
+
+
+def test_build_from_hub_pins_the_chat_templates_model(tmp_path, monkeypatch):
+    path = tmp_path / "data" / "chat.parquet"
+    path.parent.mkdir()
+    pq.write_table(pa.table({"messages": [[{"role": "user", "content": "hi"}]]}), path)
+    local = fsspec.filesystem("file")
+    fs = SimpleNamespace(glob=lambda pattern: [str(path)], open=local.open)
+    info = SimpleNamespace(sha="sha1", card_data=None)
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", lambda: fs)
+    monkeypatch.setattr(
+        "huggingface_hub.HfApi", lambda: SimpleNamespace(dataset_info=lambda d, revision=None: info)
+    )
+    asked = []
+    monkeypatch.setattr(
+        "openinterp.corpus.chat_formatter",
+        lambda model, revision: asked.append((model, revision)) or (_chat, "m1"),
+    )
+    out = tmp_path / "c.jsonl"
+    source = build_from_hub(
+        "org/chat", out, files="data/*.parquet", text_column="messages", chat_template="org/m"
+    )
+    assert asked == [("org/m", None)]
+    assert (source.chat_template, source.chat_template_revision) == ("org/m", "m1")
+    assert json.loads(out.read_text())["text"] == "<user>hi</user>"
+    assert "org/m's chat template" in str(source)
+    with pytest.raises(ValueError, match="layout"):
+        build_from_hub("org/chat", out, files="x", chat_template="org/m", layout="wikitext")
+
+
+def test_rebuild_pins_the_chat_templates_commit(monkeypatch, tmp_path):
+    calls = _fake_build(monkeypatch, "build_from_hub")
+    rebuild(_source(chat_template="org/m", chat_template_revision="m1"), tmp_path / "c.jsonl")
+    assert (calls["chat_template"], calls["chat_template_revision"]) == ("org/m", "m1")
+
+
+def test_cli_chat_presets_need_a_chat_template(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_build(dataset, out, **kw):
+        calls.update(kw, dataset=dataset)
+        return SimpleNamespace(documents=kw["documents"], license="mit", lang_detector=None)
+
+    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    args = ["corpus", "--dataset", "ultrachat", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code != 0 and "--chat-template" in result.output and not calls
+    assert CliRunner().invoke(cli, [*args, "--chat-template", "Qwen/Qwen2.5-0.5B"]).exit_code == 0
+    assert (calls["dataset"], calls["text_column"]) == ("HuggingFaceH4/ultrachat_200k", "messages")
+    assert (calls["files"], calls["chat_template"]) == (
+        "data/train_sft-*.parquet",
+        "Qwen/Qwen2.5-0.5B",
+    )
+    blend = CliRunner().invoke(cli, ["corpus", "--chat-template", "Qwen/Qwen2.5-0.5B"])
+    assert blend.exit_code != 0 and "--chat-template" in blend.output
+
+
+def test_cli_reports_a_model_without_a_chat_template(monkeypatch, tmp_path):
+    def fake_build(dataset, out, **kw):
+        raise ValueError("openai-community/gpt2's tokenizer has no chat template")
+
+    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    args = ["corpus", "--dataset", "ultrachat", "--chat-template", "openai-community/gpt2"]
+    result = CliRunner().invoke(cli, [*args, "--out", str(tmp_path / "c.jsonl")])
+    assert result.exit_code == 1 and "has no chat template" in result.output

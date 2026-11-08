@@ -55,6 +55,8 @@ NO_CODE_LANGUAGE = {"mixed-v1"}
 NOT_BLENDED = {
     "gsm8k": "one benchmark's short word problems; open-web-math gives the blend its maths",
     "pile-10k": "pile-uncopyrighted covers the Pile, without its copyrighted components",
+    "ultrachat": "conversations need a model's chat template, and the blend is the same text "
+    "for every model",
     "tinystories": "synthetic children's stories, a control corpus rather than natural text",
 }
 DEFAULT_DATASET = "mixed"
