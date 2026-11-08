@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 432" width="760" height="432" role="img">
-<title>Two plots of the best R² per layer against relative depth, one line per model. For round depth GPT-2 peaks at 0.28 in layer 2 and Qwen2.5-0.5B stays at or under 0.16. For syntax construct Qwen2.5-0.5B reaches 0.47 and GPT-2 0.27.</title>
+<title>Two plots of the best R² per layer against relative depth, one line per model. For round depth GPT-2 peaks at 0.28 in layer 2, and Qwen2.5-0.5B and 1.5B stay at or under 0.16 and 0.18. For syntax construct Qwen2.5-0.5B reaches 0.47, 1.5B 0.55 and GPT-2 0.27.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
 text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
@@ -29,9 +29,9 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 </style>
 <rect class="bg" width="760" height="432" rx="10"/>
-<text x="20.0" y="30.0" class="title">Qwen2.5-0.5B has no round-depth pole as strong as L2 N676+ of GPT-2</text>
+<text x="20.0" y="30.0" class="title">Neither Qwen model has a round-depth pole as strong as L2 N676+ of GPT-2</text>
 <text x="20.0" y="50.0" class="sub">The best held-out R² in each layer, with layers placed by their share of the model&#x27;s depth.</text>
-<text x="20.0" y="68.0" class="sub">Qwen&#x27;s best construct pole is stronger than GPT-2&#x27;s, and its best round-depth pole is weaker.</text>
+<text x="20.0" y="68.0" class="sub">Qwen&#x27;s best construct poles are stronger than GPT-2&#x27;s, and its best round-depth poles are weaker.</text>
 <text x="60.0" y="114.0" class="head">round depth</text>
 <path class="grid" d="M60.0 122.0L60.0 322.0"/>
 <text x="60.0" y="337.0" class="small" text-anchor="middle">0.0</text>
@@ -41,55 +41,86 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <text x="378.0" y="337.0" class="small" text-anchor="middle">1.0</text>
 <path class="grid" d="M60.0 322.0L378.0 322.0"/>
 <text x="53.0" y="326.0" class="small" text-anchor="end">0.0</text>
-<path class="grid" d="M60.0 282.0L378.0 282.0"/>
-<text x="53.0" y="286.0" class="small" text-anchor="end">0.1</text>
-<path class="grid" d="M60.0 242.0L378.0 242.0"/>
-<text x="53.0" y="246.0" class="small" text-anchor="end">0.2</text>
-<path class="grid" d="M60.0 202.0L378.0 202.0"/>
-<text x="53.0" y="206.0" class="small" text-anchor="end">0.3</text>
-<path class="grid" d="M60.0 162.0L378.0 162.0"/>
-<text x="53.0" y="166.0" class="small" text-anchor="end">0.4</text>
+<path class="grid" d="M60.0 288.7L378.0 288.7"/>
+<text x="53.0" y="292.7" class="small" text-anchor="end">0.1</text>
+<path class="grid" d="M60.0 255.3L378.0 255.3"/>
+<text x="53.0" y="259.3" class="small" text-anchor="end">0.2</text>
+<path class="grid" d="M60.0 222.0L378.0 222.0"/>
+<text x="53.0" y="226.0" class="small" text-anchor="end">0.3</text>
+<path class="grid" d="M60.0 188.7L378.0 188.7"/>
+<text x="53.0" y="192.7" class="small" text-anchor="end">0.4</text>
+<path class="grid" d="M60.0 155.3L378.0 155.3"/>
+<text x="53.0" y="159.3" class="small" text-anchor="end">0.5</text>
 <path class="grid" d="M60.0 122.0L378.0 122.0"/>
-<text x="53.0" y="126.0" class="small" text-anchor="end">0.5</text>
+<text x="53.0" y="126.0" class="small" text-anchor="end">0.6</text>
 <text x="219.0" y="353.0" class="small" text-anchor="middle">share of the model&#x27;s layers</text>
-<path class="line sc1" d="M60.0 256.2L88.9 283.9L117.8 211.3L146.7 229.2L175.6 269.4L204.5 261.8L233.5 268.4L262.4 296.6L291.3 229.9L320.2 247.2L349.1 269.1L378.0 256.9"/>
-<circle class="fc1" cx="60.0" cy="256.2" r="2.5"/>
-<circle class="fc1" cx="88.9" cy="283.9" r="2.5"/>
-<circle class="fc1" cx="117.8" cy="211.3" r="2.5"/>
-<circle class="fc1" cx="146.7" cy="229.2" r="2.5"/>
-<circle class="fc1" cx="175.6" cy="269.4" r="2.5"/>
-<circle class="fc1" cx="204.5" cy="261.8" r="2.5"/>
-<circle class="fc1" cx="233.5" cy="268.4" r="2.5"/>
-<circle class="fc1" cx="262.4" cy="296.6" r="2.5"/>
-<circle class="fc1" cx="291.3" cy="229.9" r="2.5"/>
-<circle class="fc1" cx="320.2" cy="247.2" r="2.5"/>
-<circle class="fc1" cx="349.1" cy="269.1" r="2.5"/>
-<circle class="fc1" cx="378.0" cy="256.9" r="2.5"/>
-<path class="line sc2" d="M60.0 291.8L73.8 271.6L87.7 294.7L101.5 276.3L115.3 287.4L129.1 268.0L143.0 296.5L156.8 282.0L170.6 291.4L184.4 296.7L198.3 298.2L212.1 286.2L225.9 291.2L239.7 297.4L253.6 289.4L267.4 295.5L281.2 266.3L295.0 274.9L308.9 296.3L322.7 295.4L336.5 277.5L350.3 258.2L364.2 271.3L378.0 284.6"/>
-<circle class="fc2" cx="60.0" cy="291.8" r="2.5"/>
-<circle class="fc2" cx="73.8" cy="271.6" r="2.5"/>
-<circle class="fc2" cx="87.7" cy="294.7" r="2.5"/>
-<circle class="fc2" cx="101.5" cy="276.3" r="2.5"/>
-<circle class="fc2" cx="115.3" cy="287.4" r="2.5"/>
-<circle class="fc2" cx="129.1" cy="268.0" r="2.5"/>
-<circle class="fc2" cx="143.0" cy="296.5" r="2.5"/>
-<circle class="fc2" cx="156.8" cy="282.0" r="2.5"/>
-<circle class="fc2" cx="170.6" cy="291.4" r="2.5"/>
-<circle class="fc2" cx="184.4" cy="296.7" r="2.5"/>
-<circle class="fc2" cx="198.3" cy="298.2" r="2.5"/>
-<circle class="fc2" cx="212.1" cy="286.2" r="2.5"/>
-<circle class="fc2" cx="225.9" cy="291.2" r="2.5"/>
-<circle class="fc2" cx="239.7" cy="297.4" r="2.5"/>
-<circle class="fc2" cx="253.6" cy="289.4" r="2.5"/>
-<circle class="fc2" cx="267.4" cy="295.5" r="2.5"/>
-<circle class="fc2" cx="281.2" cy="266.3" r="2.5"/>
-<circle class="fc2" cx="295.0" cy="274.9" r="2.5"/>
-<circle class="fc2" cx="308.9" cy="296.3" r="2.5"/>
-<circle class="fc2" cx="322.7" cy="295.4" r="2.5"/>
-<circle class="fc2" cx="336.5" cy="277.5" r="2.5"/>
-<circle class="fc2" cx="350.3" cy="258.2" r="2.5"/>
-<circle class="fc2" cx="364.2" cy="271.3" r="2.5"/>
-<circle class="fc2" cx="378.0" cy="284.6" r="2.5"/>
+<path class="line sc1" d="M60.0 267.2L88.9 290.3L117.8 229.7L146.7 244.6L175.6 278.1L204.5 271.9L233.5 277.3L262.4 300.8L291.3 245.2L320.2 259.7L349.1 277.9L378.0 267.8"/>
+<circle class="fc1" cx="60.0" cy="267.2" r="2.5"/>
+<circle class="fc1" cx="88.9" cy="290.3" r="2.5"/>
+<circle class="fc1" cx="117.8" cy="229.7" r="2.5"/>
+<circle class="fc1" cx="146.7" cy="244.6" r="2.5"/>
+<circle class="fc1" cx="175.6" cy="278.1" r="2.5"/>
+<circle class="fc1" cx="204.5" cy="271.9" r="2.5"/>
+<circle class="fc1" cx="233.5" cy="277.3" r="2.5"/>
+<circle class="fc1" cx="262.4" cy="300.8" r="2.5"/>
+<circle class="fc1" cx="291.3" cy="245.2" r="2.5"/>
+<circle class="fc1" cx="320.2" cy="259.7" r="2.5"/>
+<circle class="fc1" cx="349.1" cy="277.9" r="2.5"/>
+<circle class="fc1" cx="378.0" cy="267.8" r="2.5"/>
+<path class="line sc2" d="M60.0 296.9L73.8 280.0L87.7 299.2L101.5 283.9L115.3 293.2L129.1 277.0L143.0 300.7L156.8 288.7L170.6 296.5L184.4 300.9L198.3 302.2L212.1 292.2L225.9 296.3L239.7 301.5L253.6 294.8L267.4 299.9L281.2 275.6L295.0 282.7L308.9 300.6L322.7 299.8L336.5 284.9L350.3 268.8L364.2 279.8L378.0 290.8"/>
+<circle class="fc2" cx="60.0" cy="296.9" r="2.5"/>
+<circle class="fc2" cx="73.8" cy="280.0" r="2.5"/>
+<circle class="fc2" cx="87.7" cy="299.2" r="2.5"/>
+<circle class="fc2" cx="101.5" cy="283.9" r="2.5"/>
+<circle class="fc2" cx="115.3" cy="293.2" r="2.5"/>
+<circle class="fc2" cx="129.1" cy="277.0" r="2.5"/>
+<circle class="fc2" cx="143.0" cy="300.7" r="2.5"/>
+<circle class="fc2" cx="156.8" cy="288.7" r="2.5"/>
+<circle class="fc2" cx="170.6" cy="296.5" r="2.5"/>
+<circle class="fc2" cx="184.4" cy="300.9" r="2.5"/>
+<circle class="fc2" cx="198.3" cy="302.2" r="2.5"/>
+<circle class="fc2" cx="212.1" cy="292.2" r="2.5"/>
+<circle class="fc2" cx="225.9" cy="296.3" r="2.5"/>
+<circle class="fc2" cx="239.7" cy="301.5" r="2.5"/>
+<circle class="fc2" cx="253.6" cy="294.8" r="2.5"/>
+<circle class="fc2" cx="267.4" cy="299.9" r="2.5"/>
+<circle class="fc2" cx="281.2" cy="275.6" r="2.5"/>
+<circle class="fc2" cx="295.0" cy="282.7" r="2.5"/>
+<circle class="fc2" cx="308.9" cy="300.6" r="2.5"/>
+<circle class="fc2" cx="322.7" cy="299.8" r="2.5"/>
+<circle class="fc2" cx="336.5" cy="284.9" r="2.5"/>
+<circle class="fc2" cx="350.3" cy="268.8" r="2.5"/>
+<circle class="fc2" cx="364.2" cy="279.8" r="2.5"/>
+<circle class="fc2" cx="378.0" cy="290.8" r="2.5"/>
+<path class="line sc3" d="M60.0 285.7L71.8 272.3L83.6 293.0L95.3 288.0L107.1 299.8L118.9 297.5L130.7 290.0L142.4 302.1L154.2 307.3L166.0 303.4L177.8 296.2L189.6 278.7L201.3 294.9L213.1 296.3L224.9 306.4L236.7 298.8L248.4 293.8L260.2 293.7L272.0 275.6L283.8 300.2L295.6 275.7L307.3 289.1L319.1 290.0L330.9 295.9L342.7 277.3L354.4 279.6L366.2 263.5L378.0 285.3"/>
+<circle class="fc3" cx="60.0" cy="285.7" r="2.5"/>
+<circle class="fc3" cx="71.8" cy="272.3" r="2.5"/>
+<circle class="fc3" cx="83.6" cy="293.0" r="2.5"/>
+<circle class="fc3" cx="95.3" cy="288.0" r="2.5"/>
+<circle class="fc3" cx="107.1" cy="299.8" r="2.5"/>
+<circle class="fc3" cx="118.9" cy="297.5" r="2.5"/>
+<circle class="fc3" cx="130.7" cy="290.0" r="2.5"/>
+<circle class="fc3" cx="142.4" cy="302.1" r="2.5"/>
+<circle class="fc3" cx="154.2" cy="307.3" r="2.5"/>
+<circle class="fc3" cx="166.0" cy="303.4" r="2.5"/>
+<circle class="fc3" cx="177.8" cy="296.2" r="2.5"/>
+<circle class="fc3" cx="189.6" cy="278.7" r="2.5"/>
+<circle class="fc3" cx="201.3" cy="294.9" r="2.5"/>
+<circle class="fc3" cx="213.1" cy="296.3" r="2.5"/>
+<circle class="fc3" cx="224.9" cy="306.4" r="2.5"/>
+<circle class="fc3" cx="236.7" cy="298.8" r="2.5"/>
+<circle class="fc3" cx="248.4" cy="293.8" r="2.5"/>
+<circle class="fc3" cx="260.2" cy="293.7" r="2.5"/>
+<circle class="fc3" cx="272.0" cy="275.6" r="2.5"/>
+<circle class="fc3" cx="283.8" cy="300.2" r="2.5"/>
+<circle class="fc3" cx="295.6" cy="275.7" r="2.5"/>
+<circle class="fc3" cx="307.3" cy="289.1" r="2.5"/>
+<circle class="fc3" cx="319.1" cy="290.0" r="2.5"/>
+<circle class="fc3" cx="330.9" cy="295.9" r="2.5"/>
+<circle class="fc3" cx="342.7" cy="277.3" r="2.5"/>
+<circle class="fc3" cx="354.4" cy="279.6" r="2.5"/>
+<circle class="fc3" cx="366.2" cy="263.5" r="2.5"/>
+<circle class="fc3" cx="378.0" cy="285.3" r="2.5"/>
 <text x="418.0" y="114.0" class="head">syntax construct</text>
 <path class="grid" d="M418.0 122.0L418.0 322.0"/>
 <text x="418.0" y="337.0" class="small" text-anchor="middle">0.0</text>
@@ -98,52 +129,84 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="grid" d="M736.0 122.0L736.0 322.0"/>
 <text x="736.0" y="337.0" class="small" text-anchor="middle">1.0</text>
 <path class="grid" d="M418.0 322.0L736.0 322.0"/>
-<path class="grid" d="M418.0 282.0L736.0 282.0"/>
-<path class="grid" d="M418.0 242.0L736.0 242.0"/>
-<path class="grid" d="M418.0 202.0L736.0 202.0"/>
-<path class="grid" d="M418.0 162.0L736.0 162.0"/>
+<path class="grid" d="M418.0 288.7L736.0 288.7"/>
+<path class="grid" d="M418.0 255.3L736.0 255.3"/>
+<path class="grid" d="M418.0 222.0L736.0 222.0"/>
+<path class="grid" d="M418.0 188.7L736.0 188.7"/>
+<path class="grid" d="M418.0 155.3L736.0 155.3"/>
 <path class="grid" d="M418.0 122.0L736.0 122.0"/>
 <text x="577.0" y="353.0" class="small" text-anchor="middle">share of the model&#x27;s layers</text>
-<path class="line sc1" d="M418.0 255.8L446.9 240.4L475.8 212.7L504.7 238.9L533.6 220.4L562.5 248.0L591.5 224.7L620.4 239.0L649.3 231.3L678.2 243.9L707.1 258.8L736.0 263.6"/>
-<circle class="fc1" cx="418.0" cy="255.8" r="2.5"/>
-<circle class="fc1" cx="446.9" cy="240.4" r="2.5"/>
-<circle class="fc1" cx="475.8" cy="212.7" r="2.5"/>
-<circle class="fc1" cx="504.7" cy="238.9" r="2.5"/>
-<circle class="fc1" cx="533.6" cy="220.4" r="2.5"/>
-<circle class="fc1" cx="562.5" cy="248.0" r="2.5"/>
-<circle class="fc1" cx="591.5" cy="224.7" r="2.5"/>
-<circle class="fc1" cx="620.4" cy="239.0" r="2.5"/>
-<circle class="fc1" cx="649.3" cy="231.3" r="2.5"/>
-<circle class="fc1" cx="678.2" cy="243.9" r="2.5"/>
-<circle class="fc1" cx="707.1" cy="258.8" r="2.5"/>
-<circle class="fc1" cx="736.0" cy="263.6" r="2.5"/>
-<path class="line sc2" d="M418.0 264.7L431.8 230.0L445.7 258.6L459.5 251.5L473.3 221.0L487.1 220.5L501.0 145.5L514.8 137.6L528.6 135.7L542.4 175.4L556.3 171.8L570.1 217.0L583.9 145.1L597.7 160.2L611.6 216.3L625.4 234.3L639.2 153.7L653.0 239.0L666.9 255.2L680.7 255.6L694.5 254.3L708.3 254.0L722.2 261.8L736.0 256.0"/>
-<circle class="fc2" cx="418.0" cy="264.7" r="2.5"/>
-<circle class="fc2" cx="431.8" cy="230.0" r="2.5"/>
-<circle class="fc2" cx="445.7" cy="258.6" r="2.5"/>
-<circle class="fc2" cx="459.5" cy="251.5" r="2.5"/>
-<circle class="fc2" cx="473.3" cy="221.0" r="2.5"/>
-<circle class="fc2" cx="487.1" cy="220.5" r="2.5"/>
-<circle class="fc2" cx="501.0" cy="145.5" r="2.5"/>
-<circle class="fc2" cx="514.8" cy="137.6" r="2.5"/>
-<circle class="fc2" cx="528.6" cy="135.7" r="2.5"/>
-<circle class="fc2" cx="542.4" cy="175.4" r="2.5"/>
-<circle class="fc2" cx="556.3" cy="171.8" r="2.5"/>
-<circle class="fc2" cx="570.1" cy="217.0" r="2.5"/>
-<circle class="fc2" cx="583.9" cy="145.1" r="2.5"/>
-<circle class="fc2" cx="597.7" cy="160.2" r="2.5"/>
-<circle class="fc2" cx="611.6" cy="216.3" r="2.5"/>
-<circle class="fc2" cx="625.4" cy="234.3" r="2.5"/>
-<circle class="fc2" cx="639.2" cy="153.7" r="2.5"/>
-<circle class="fc2" cx="653.0" cy="239.0" r="2.5"/>
-<circle class="fc2" cx="666.9" cy="255.2" r="2.5"/>
-<circle class="fc2" cx="680.7" cy="255.6" r="2.5"/>
-<circle class="fc2" cx="694.5" cy="254.3" r="2.5"/>
-<circle class="fc2" cx="708.3" cy="254.0" r="2.5"/>
-<circle class="fc2" cx="722.2" cy="261.8" r="2.5"/>
-<circle class="fc2" cx="736.0" cy="256.0" r="2.5"/>
+<path class="line sc1" d="M418.0 266.8L446.9 254.0L475.8 230.9L504.7 252.8L533.6 237.4L562.5 260.3L591.5 240.9L620.4 252.8L649.3 246.4L678.2 256.9L707.1 269.4L736.0 273.3"/>
+<circle class="fc1" cx="418.0" cy="266.8" r="2.5"/>
+<circle class="fc1" cx="446.9" cy="254.0" r="2.5"/>
+<circle class="fc1" cx="475.8" cy="230.9" r="2.5"/>
+<circle class="fc1" cx="504.7" cy="252.8" r="2.5"/>
+<circle class="fc1" cx="533.6" cy="237.4" r="2.5"/>
+<circle class="fc1" cx="562.5" cy="260.3" r="2.5"/>
+<circle class="fc1" cx="591.5" cy="240.9" r="2.5"/>
+<circle class="fc1" cx="620.4" cy="252.8" r="2.5"/>
+<circle class="fc1" cx="649.3" cy="246.4" r="2.5"/>
+<circle class="fc1" cx="678.2" cy="256.9" r="2.5"/>
+<circle class="fc1" cx="707.1" cy="269.4" r="2.5"/>
+<circle class="fc1" cx="736.0" cy="273.3" r="2.5"/>
+<path class="line sc2" d="M418.0 274.2L431.8 245.3L445.7 269.2L459.5 263.3L473.3 237.8L487.1 237.4L501.0 174.9L514.8 168.3L528.6 166.8L542.4 199.8L556.3 196.9L570.1 234.5L583.9 174.6L597.7 187.1L611.6 233.9L625.4 248.9L639.2 181.7L653.0 252.8L666.9 266.4L680.7 266.6L694.5 265.6L708.3 265.4L722.2 271.9L736.0 267.0"/>
+<circle class="fc2" cx="418.0" cy="274.2" r="2.5"/>
+<circle class="fc2" cx="431.8" cy="245.3" r="2.5"/>
+<circle class="fc2" cx="445.7" cy="269.2" r="2.5"/>
+<circle class="fc2" cx="459.5" cy="263.3" r="2.5"/>
+<circle class="fc2" cx="473.3" cy="237.8" r="2.5"/>
+<circle class="fc2" cx="487.1" cy="237.4" r="2.5"/>
+<circle class="fc2" cx="501.0" cy="174.9" r="2.5"/>
+<circle class="fc2" cx="514.8" cy="168.3" r="2.5"/>
+<circle class="fc2" cx="528.6" cy="166.8" r="2.5"/>
+<circle class="fc2" cx="542.4" cy="199.8" r="2.5"/>
+<circle class="fc2" cx="556.3" cy="196.9" r="2.5"/>
+<circle class="fc2" cx="570.1" cy="234.5" r="2.5"/>
+<circle class="fc2" cx="583.9" cy="174.6" r="2.5"/>
+<circle class="fc2" cx="597.7" cy="187.1" r="2.5"/>
+<circle class="fc2" cx="611.6" cy="233.9" r="2.5"/>
+<circle class="fc2" cx="625.4" cy="248.9" r="2.5"/>
+<circle class="fc2" cx="639.2" cy="181.7" r="2.5"/>
+<circle class="fc2" cx="653.0" cy="252.8" r="2.5"/>
+<circle class="fc2" cx="666.9" cy="266.4" r="2.5"/>
+<circle class="fc2" cx="680.7" cy="266.6" r="2.5"/>
+<circle class="fc2" cx="694.5" cy="265.6" r="2.5"/>
+<circle class="fc2" cx="708.3" cy="265.4" r="2.5"/>
+<circle class="fc2" cx="722.2" cy="271.9" r="2.5"/>
+<circle class="fc2" cx="736.0" cy="267.0" r="2.5"/>
+<path class="line sc3" d="M418.0 251.3L429.8 270.2L441.6 254.1L453.3 244.7L465.1 266.6L476.9 270.8L488.7 197.5L500.4 253.0L512.2 269.9L524.0 189.0L535.8 247.0L547.6 137.3L559.3 207.5L571.1 254.0L582.9 260.3L594.7 196.6L606.4 251.4L618.2 164.7L630.0 234.0L641.8 253.2L653.6 236.1L665.3 242.6L677.1 247.3L688.9 260.7L700.7 278.3L712.4 267.3L724.2 269.0L736.0 267.0"/>
+<circle class="fc3" cx="418.0" cy="251.3" r="2.5"/>
+<circle class="fc3" cx="429.8" cy="270.2" r="2.5"/>
+<circle class="fc3" cx="441.6" cy="254.1" r="2.5"/>
+<circle class="fc3" cx="453.3" cy="244.7" r="2.5"/>
+<circle class="fc3" cx="465.1" cy="266.6" r="2.5"/>
+<circle class="fc3" cx="476.9" cy="270.8" r="2.5"/>
+<circle class="fc3" cx="488.7" cy="197.5" r="2.5"/>
+<circle class="fc3" cx="500.4" cy="253.0" r="2.5"/>
+<circle class="fc3" cx="512.2" cy="269.9" r="2.5"/>
+<circle class="fc3" cx="524.0" cy="189.0" r="2.5"/>
+<circle class="fc3" cx="535.8" cy="247.0" r="2.5"/>
+<circle class="fc3" cx="547.6" cy="137.3" r="2.5"/>
+<circle class="fc3" cx="559.3" cy="207.5" r="2.5"/>
+<circle class="fc3" cx="571.1" cy="254.0" r="2.5"/>
+<circle class="fc3" cx="582.9" cy="260.3" r="2.5"/>
+<circle class="fc3" cx="594.7" cy="196.6" r="2.5"/>
+<circle class="fc3" cx="606.4" cy="251.4" r="2.5"/>
+<circle class="fc3" cx="618.2" cy="164.7" r="2.5"/>
+<circle class="fc3" cx="630.0" cy="234.0" r="2.5"/>
+<circle class="fc3" cx="641.8" cy="253.2" r="2.5"/>
+<circle class="fc3" cx="653.6" cy="236.1" r="2.5"/>
+<circle class="fc3" cx="665.3" cy="242.6" r="2.5"/>
+<circle class="fc3" cx="677.1" cy="247.3" r="2.5"/>
+<circle class="fc3" cx="688.9" cy="260.7" r="2.5"/>
+<circle class="fc3" cx="700.7" cy="278.3" r="2.5"/>
+<circle class="fc3" cx="712.4" cy="267.3" r="2.5"/>
+<circle class="fc3" cx="724.2" cy="269.0" r="2.5"/>
+<circle class="fc3" cx="736.0" cy="267.0" r="2.5"/>
 <circle class="fc1" cx="25.0" cy="380.0" r="5"/>
 <text x="35.0" y="384.0">GPT-2 small</text>
 <circle class="fc2" cx="123.6" cy="380.0" r="5"/>
 <text x="133.6" y="384.0">Qwen2.5-0.5B</text>
+<circle class="fc3" cx="228.8" cy="380.0" r="5"/>
+<text x="238.8" y="384.0">Qwen2.5-1.5B</text>
 </svg>

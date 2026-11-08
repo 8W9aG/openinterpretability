@@ -1,6 +1,6 @@
 # A bracket neuron in GPT-2, and the label that hid it
 
-Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Qwen2.5-0.5B has no round-depth pole as strong: its best has R² 0.160.
+Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Qwen2.5-0.5B and 1.5B have no round-depth pole as strong: their best have R² 0.160 and 0.175.
 
 ![A function with its tokens lit by the pole's strength, read token by token](media/trace.svg)
 
@@ -14,7 +14,7 @@ Syntax labels from a parser should find the code neurons that the literature lea
 6. **The signal has clear limits.** It fades over about 20 list items, it weakens over line breaks, and it does not fully count down. It also fires inside strings and comments, so it follows characters and not the grammar.
 7. **The protocol rejects a claim of round brackets alone.** On a new sample of code, a hypothesis of round-bracket depth passes every probe, counterfactual and causal gate, with detection 0.98 and fuzzing 0.92. It fails specificity (0.58), because the pole fires under square and curly brackets with no round bracket open. The verdict is NEEDS_REVISION.
 8. **Other poles carry depth too, and pull the other way.** L2 N1195+ responds to depth almost as L2 N676+ does. L3 N695+ responds more weakly, and L8 N689+ and L9 N340+ peak at depth 2 or 3 and reach further. Ablating these four raises the count of brackets closed to about 3.8 from depth 3, where the model closes about 1.8.
-9. **Qwen2.5-0.5B has no such pole.** The same sweep finds no Qwen pole above an R² of 0.160 for round depth, in a late layer, against 0.277 for L2 N676+. Its best `syntax construct` pole is stronger than GPT-2's, at 0.466 against 0.273.
+9. **Qwen2.5 has no such pole.** The same sweep finds no pole of Qwen2.5-0.5B or 1.5B above an R² of 0.175 for round depth, against 0.277 for L2 N676+. The best of each is in a late layer. Their best `syntax construct` poles are stronger than GPT-2's, at 0.466 and 0.554 against 0.273.
 10. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Against the parse of the whole file, a single parse of a cut document loses 27.8% of the characters that lie in a construct to `top level`. Adding the missing closing brackets lowers this to 7.7%. Trying several endings, including a line break, a quote and Ruby's `end`, lowers it to 1.7%, and to 0.3% on a second sample.
 
 These results do not show that L2 N676+ is the only bracket signal in GPT-2. They do not show how the model computes depth. The probes and ablations use narrow templates.
@@ -217,32 +217,34 @@ Agreement is for `syntax construct`. `syntax node` agreement rises from 0.992 to
 
 The sweeps above use the searched endings. Each layer's best R² moved by at most 0.011 from the first fix (`syntax construct` in L10). The best of each set across layers moved by at most 0.003. Most of the sampled documents are not cut in PHP or Ruby.
 
-## Qwen2.5-0.5B
+## Qwen2.5
 
-We repeated the sweep and the sweep by bracket kind on Qwen2.5-0.5B (Yang et al., 2024), on the same 500 documents. It has 24 layers of 4,864 neurons, so 233,472 poles. Its MLP is gated. A pole is the positive or negative part of the input to the down projection, which is the product of the gate and up projections. The registry sets no window for Qwen, so each document is one piece, about 500 tokens on average. The 200,000-token sample holds all 396 documents with a grammar.
+We repeated the sweep and the sweep by bracket kind on Qwen2.5-0.5B and Qwen2.5-1.5B (Yang et al., 2024), on the same 500 documents. The 0.5B model has 24 layers of 4,864 neurons, so 233,472 poles. The 1.5B model has 28 layers of 8,960 neurons, so 501,760 poles. Their MLPs are gated. A pole is the positive or negative part of the input to the down projection, which is the product of the gate and up projections. The registry sets no window for Qwen, so each document is one piece, about 500 tokens on average. The 200,000-token sample holds all 396 documents with a grammar. Both models use the same tokenizer, so they read the same tokens.
 
-| Label set | GPT-2 small, best pole | R² | Qwen2.5-0.5B, best pole | R² |
-| --- | --- | --- | --- | --- |
-| `syntax node` | L1 N2566+ | 0.605 | L15 N1415+ | 0.529 |
-| `syntax construct` | L2 N676+ | 0.273 | L8 N3135+ | 0.466 |
-| `bracket depth` | L4 N3038− | 0.231 | L12 N1468+ | 0.210 |
-| `indent depth` | L6 N1416− | 0.184 | L4 N4639− | 0.158 |
-| `round depth` | L2 N676+ | 0.277 | L21 N953− | 0.160 |
-| round brackets with no parser | L2 N676+ | 0.310 | L21 N953− | 0.172 |
-| square depth | L10 N1339+ | 0.094 | L22 N1943+ | 0.185 |
-| curly depth | L4 N3038− | 0.176 | L0 N2546+ | 0.158 |
+| Label set | GPT-2 small | R² | Qwen2.5-0.5B | R² | Qwen2.5-1.5B | R² |
+| --- | --- | --- | --- | --- | --- | --- |
+| `syntax node` | L1 N2566+ | 0.605 | L15 N1415+ | 0.529 | L21 N6306+ | 0.554 |
+| `syntax construct` | L2 N676+ | 0.273 | L8 N3135+ | 0.466 | L11 N1460+ | 0.554 |
+| `bracket depth` | L4 N3038− | 0.231 | L12 N1468+ | 0.210 | L22 N2957+ | 0.256 |
+| `indent depth` | L6 N1416− | 0.184 | L4 N4639− | 0.158 | L11 N2261− | 0.179 |
+| `round depth` | L2 N676+ | 0.277 | L21 N953− | 0.160 | L26 N7101+ | 0.175 |
+| round brackets with no parser | L2 N676+ | 0.310 | L21 N953− | 0.172 | L26 N7101+ | 0.198 |
+| square depth | L10 N1339+ | 0.094 | L22 N1943+ | 0.185 | L25 N8793− | 0.237 |
+| curly depth | L4 N3038− | 0.176 | L0 N2546+ | 0.158 | L22 N2957+ | 0.258 |
 
-![The best R² per layer for round depth and syntax construct, in GPT-2 small and Qwen2.5-0.5B](media/models.svg)
+Each cell is the best pole of all layers for that label set, and its held-out R².
 
-For round depth, GPT-2 has four layers whose best pole reaches 0.187 or more, the poles of the section above. In Qwen the best of each layer lies between 0.059 and 0.160, with no layer that stands out. Its best pole is in L21 of 24, not in an early layer. The second best in that layer has 0.126, so the gap is smaller than in GPT-2's L2 (0.277 and 0.236). We did not probe Qwen's poles with written text, so we don't know if any of them counts depth.
+![The best R² per layer for round depth and syntax construct, in GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B](media/models.svg)
 
-The null is higher in Qwen. Its highest is 0.097, in L0, against 0.028 in GPT-2. Whole documents give a pole room to track position, and the null keeps each label's position. So a pole that follows position scores in the null too. L0 N2546+ has the best curly-depth R² (0.158) with a null of 0.092 in its layer. The best pole of that set by its margin over the null is L12 N1468+ (0.158, null 0.032). The other label sets' best poles have a null of at most 0.039 in their layer.
+For round depth, GPT-2 has four layers whose best pole reaches 0.187 or more, the poles of the section above. In Qwen2.5-0.5B the best of each layer lies between 0.059 and 0.160, with no layer that stands out. Its best pole is in L21 of 24, not in an early layer. The second best in that layer has 0.126, so the gap is smaller than in GPT-2's L2 (0.277 and 0.236). In Qwen2.5-1.5B the best of each layer lies between 0.044 and 0.175. Its best pole, L26 N7101+, is two layers from the output, and the second best in its layer has 0.077. A pole that late may predict a closing bracket, not count open ones. We did not probe Qwen's poles with written text, so we don't know if any of them counts depth.
+
+The null is higher in Qwen. Its highest is 0.097 in Qwen2.5-0.5B (L0) and 0.060 in Qwen2.5-1.5B (L18), against 0.028 in GPT-2. Whole documents give a pole room to track position, and the null keeps each label's position. So a pole that follows position scores in the null too. L0 N2546+ has the best curly-depth R² (0.158) with a null of 0.092 in its layer. The best pole of that set by its margin over the null is L12 N1468+ (0.158, null 0.032). The other label sets' best poles, in both Qwen models, have a null of at most 0.039 in their layer.
 
 GPT-2 and Qwen read different windows, so their R² are not directly comparable: a longer window holds more depth and more constructs. A sweep of Qwen at 128-token windows would remove that difference.
 
 ## Caveats
 
-- **Few models, one sample for the sweep.** The sweep ran on GPT-2 small and Qwen2.5-0.5B, on one sample of documents. The label stability and the audit used a second sample.
+- **Few models, one sample for the sweep.** The sweep ran on GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B, on one sample of documents. The label stability and the audit used a second sample.
 - **Selection.** We chose this pole from 73,728 poles, and we changed the label after seeing results. Held-out R² guards against noise in the fit, not against our choices. The written probes and the ablation are separate tests of the pole, but they came after we chose it.
 - **Few probes.** Each cell has 8 items from one template family, in Python-like text. Standard errors cover the items, not the choice of template.
 - **No confidence interval on ablation.** The 20 controls show the size of a random pole's effect, and no more.
@@ -255,7 +257,7 @@ None. The labels are reported, not gated. A scan of a corpus that records progra
 
 ## Reproduce
 
-Each sweep takes about 40 minutes for GPT-2 and 3 hours for Qwen2.5-0.5B on an Apple M-series MPS backend, and longer on CPU. The other commands take a few minutes. `results.jsonl` stores the outputs for GPT-2, and `results-qwen2.5-0.5b.jsonl` those for Qwen. Parser and grammar versions are in `uv.lock`.
+On an Apple M-series MPS backend, the sweep takes about 40 minutes for GPT-2, 3 hours for Qwen2.5-0.5B and 4.5 hours for Qwen2.5-1.5B. The sweep by bracket kind takes 15 minutes, 1 hour and 3 hours. CPU is slower. The other commands take a few minutes. `results.jsonl` stores the outputs for GPT-2, and `results-qwen2.5-0.5b.jsonl` and `results-qwen2.5-1.5b.jsonl` those for Qwen. Parser and grammar versions are in `uv.lock`.
 
 ```bash
 uv run openinterp corpus --dataset github-code --docs 500 --seed 0 --out code.jsonl
@@ -268,6 +270,8 @@ uv run python scripts/syntax_controls.py stability --whole code-whole.jsonl --wh
 uv run python scripts/syntax_probes.py --results $P/results.jsonl
 uv run python scripts/syntax_controls.py sweep --model Qwen/Qwen2.5-0.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-0.5b.jsonl
 uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-0.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-0.5b.jsonl
+uv run python scripts/syntax_controls.py sweep --model Qwen/Qwen2.5-1.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-1.5b.jsonl
+uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-1.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-1.5b.jsonl
 uv run python scripts/paper_figures.py
 ```
 
@@ -279,7 +283,7 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 - Audit L2 N1195+, L3 N695+, L8 N689+ and L9 N340+ through the protocol.
 - Test whether the model closes the rest of its open brackets later, when it closes fewer than are open.
 - Write probes with real blocks for curly brackets.
-- Probe Qwen's best round-depth poles with written text, and sweep Qwen at 128-token windows. Add Qwen2.5-1.5B.
+- Probe Qwen's best round-depth poles with written text, L21 N953− of 0.5B and L26 N7101+ of 1.5B. Check whether L26 N7101+ predicts a closing bracket. Sweep Qwen at 128-token windows.
 
 ## References
 

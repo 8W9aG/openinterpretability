@@ -18,22 +18,22 @@ def _layer_best(rows: list[dict], name: str) -> list[float]:
 def models(sweeps: dict[str, list[dict]]) -> Figure:
     """Draw each model's best pole per layer, for round depth and for syntax construct."""
     fig = Figure(
-        ["Qwen2.5-0.5B has no round-depth pole as strong as L2 N676+ of GPT-2"],
+        ["Neither Qwen model has a round-depth pole as strong as L2 N676+ of GPT-2"],
         [
             "The best held-out R² in each layer, with layers placed by their share of the "
             "model's depth.",
-            "Qwen's best construct pole is stronger than GPT-2's, and its best round-depth "
-            "pole is weaker.",
+            "Qwen's best construct poles are stronger than GPT-2's, and its best round-depth "
+            "poles are weaker.",
         ],
         "Two plots of the best R² per layer against relative depth, one line per model. For "
-        "round depth GPT-2 peaks at 0.28 in layer 2 and Qwen2.5-0.5B stays at or under 0.16. "
-        "For syntax construct Qwen2.5-0.5B reaches 0.47 and GPT-2 0.27.",
+        "round depth GPT-2 peaks at 0.28 in layer 2, and Qwen2.5-0.5B and 1.5B stay at or under "
+        "0.16 and 0.18. For syntax construct Qwen2.5-0.5B reaches 0.47, 1.5B 0.55 and GPT-2 0.27.",
     )
-    panels = columns(fig, 2, 60, fig.body_top + 30, 200, (0, 1), (0, 0.5), gap=40)
+    panels = columns(fig, 2, 60, fig.body_top + 30, 200, (0, 1), (0, 0.6), gap=40)
     for panel, name in zip(panels, ("round depth", "syntax construct"), strict=True):
         panel.head(name)
         panel.grid_x([0, 0.5, 1], 1)
-        panel.grid_y([0, 0.1, 0.2, 0.3, 0.4, 0.5], 1, labels=panel is panels[0])
+        panel.grid_y([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6], 1, labels=panel is panels[0])
         panel.x_title("share of the model's layers")
         for rows, colour in zip(sweeps.values(), MODEL_COLOURS, strict=False):
             values = _layer_best(rows, name)

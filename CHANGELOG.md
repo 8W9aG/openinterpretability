@@ -11,7 +11,7 @@ The project has two version numbers:
 
 ### Added
 
-- **The syntax paper tests more of its claim** (`papers/syntax-positive-controls/README.md`, from TODO, Analyses per experiment). It probes the other round-depth poles of GPT-2 (L2 N1195+, L3 N695+, L8 N689+, L9 N340+) and ablates them together. A new measure counts how many brackets the predicted closer closes: L2 N676+ raises that count and the other four lower it. The paper reports the protocol's NEEDS_REVISION verdict on L2 N676+, and the sweep on Qwen2.5-0.5B (`results-qwen2.5-0.5b.jsonl`), which finds no pole as strong. `scripts/syntax_controls.py stability` measures cut-document labels against whole files.
+- **The syntax paper tests more of its claim** (`papers/syntax-positive-controls/README.md`, from TODO, Analyses per experiment). It probes the other round-depth poles of GPT-2 (L2 N1195+, L3 N695+, L8 N689+, L9 N340+) and ablates them together. A new measure counts how many brackets the predicted closer closes: L2 N676+ raises that count and the other four lower it. The paper reports the protocol's NEEDS_REVISION verdict on L2 N676+, and the sweeps on Qwen2.5-0.5B and 1.5B (`results-qwen2.5-*.jsonl`), which find no pole as strong. `scripts/syntax_controls.py stability` measures cut-document labels against whole files.
 
 - **The first page of the literature review** (`docs/literature/training-llms-to-predict-world-events.md`), with its index (`docs/literature/README.md`). It reviews the first entry in `docs/literature/queue.md`, written from the post and its question list, and marks it not applicable.
 
