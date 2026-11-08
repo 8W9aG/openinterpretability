@@ -1,20 +1,22 @@
 # A bracket neuron in GPT-2, and the label that hid it
 
-Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters, and it has not been through the registry's review.
+Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many.
 
 ![A function with its tokens lit by the pole's strength, read token by token](media/trace.svg)
 
 **Results.**
 
-1. **The labels carry signal.** Every label set far exceeds a null that gives each window another document's labels. The highest null R² in any layer and set is 0.028, against a best of 0.603 for `syntax node`. This does not show that a label's best pole encodes that label: token identity explains more of that pole (0.78).
+1. **The labels carry signal.** Every label set far exceeds a null that gives each window another document's labels. The highest null R² in any layer and set is 0.028, against a best of 0.605 for `syntax node`. This does not show that a label's best pole encodes that label: token identity explains more of that pole (0.78).
 2. **The first bracket label's winners were false leads.** Its best pole overall, L4 N3038−, has a flat strength from depth 1 up. L6 N1416− peaks in licence comments. On written text neither pole responds to depth. Of the two poles that won narrower depth tests, one doesn't rise with depth and the other falls, at a strength of at most 0.30.
 3. **Round depth finds L2 N676+.** Its R² on held-out documents is 0.277, first of the layer's 6,144 poles, and 0.310 when we count `(` characters with no parser. On all brackets the same pole has at most 0.095. The first label hid it.
 4. **Written text supports a depth signal.** With the target token and the token before it fixed, strength rises with open brackets and falls to about zero when they close. In one snippet it climbs to 9.15 at depth 4, and drops to 0.65 at the token that closes two brackets.
-5. **The pole matters for a closing bracket.** Ablating it lowers the mean probability of a closing bracket at depths 1 to 4. Twenty random poles of the layer barely change it. At depth 5 the effect has a small opposite sign.
+5. **The pole sets how many brackets the model closes.** Ablating it lowers the mean probability of a closing bracket at depths 1 to 4. A finer measure shows more: the model's predicted closer closes 1.0 bracket at depth 1 and 1.95 at depth 5, and with the pole ablated it closes about 1.0 at every depth. Twenty random poles of the layer barely change either measure.
 6. **The signal has clear limits.** It fades over about 20 list items, it weakens over line breaks, and it does not fully count down. It also fires inside strings and comments, so it follows characters and not the grammar.
-7. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Before the fix, 45.9% of the characters inside brackets in those documents read as `top level`. Adding the missing closing brackets before a second parse lowers this to 12.5%.
+7. **The protocol rejects a claim of round brackets alone.** On a new sample of code, a hypothesis of round-bracket depth passes every probe, counterfactual and causal gate, with detection 0.98 and fuzzing 0.92. It fails specificity (0.58), because the pole fires under square and curly brackets with no round bracket open. The verdict is NEEDS_REVISION.
+8. **Other poles carry depth too, and pull the other way.** L2 N1195+ responds to depth almost as L2 N676+ does. L3 N695+ responds more weakly, and L8 N689+ and L9 N340+ peak at depth 2 or 3 and reach further. Ablating these four raises the count of brackets closed to about 3.8 from depth 3, where the model closes about 1.8.
+9. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Against the parse of the whole file, a single parse of a cut document loses 27.8% of the characters that lie in a construct to `top level`. Adding the missing closing brackets lowers this to 7.7%. Trying several endings, including a line break, a quote and Ruby's `end`, lowers it to 1.7%, and to 0.3% on a second sample.
 
-These results do not show that L2 N676+ is the only bracket signal in GPT-2. They do not show how the model computes depth, or that the pole would earn VERIFIED under the protocol. The probes use narrow templates.
+These results do not show that L2 N676+ is the only bracket signal in GPT-2. They do not show how the model computes depth. The probes and ablations use narrow templates.
 
 ## Method
 
@@ -40,10 +42,10 @@ Evidence closer to GPT-2 is mixed. Friedman et al. (2024) study bracket depth in
 
 | Label set, best pole overall | Held-out R² | Token R² | What the pole does |
 | --- | --- | --- | --- |
-| `syntax node`, L1 N2566+ | 0.603 | 0.781 | `.` and `;` in Java imports. A token detector |
-| `bracket depth`, L4 N3038− | 0.232 | 0.509 | Depth 0 against the rest. Flat from depth 1 (0.122, 0.133, 0.136, 0.137) |
+| `syntax node`, L1 N2566+ | 0.605 | 0.781 | `.` and `;` in Java imports. A token detector |
+| `bracket depth`, L4 N3038− | 0.231 | 0.509 | Depth 0 against the rest. Flat from depth 1 (0.122, 0.133, 0.136, 0.137) |
 | `indent depth`, L6 N1416− | 0.184 | 0.322 | Peaks in licence comments and imports. Also wins `syntax construct` at L6 |
-| `syntax construct`, L2 N676+ | 0.276 | 0.258 | Call arguments 1.87 and parameters 1.83, against 0.46 or less elsewhere |
+| `syntax construct`, L2 N676+ | 0.273 | 0.258 | Call arguments 1.85 and parameters 1.85, against 0.46 or less elsewhere |
 
 Token R² is in-sample and has many more levels than a label set, so it is a generous comparison. The first three poles fail it, and the fourth passes narrowly.
 
@@ -51,8 +53,8 @@ To remove the licence header, we repeated the depth sets without comments and st
 
 | Label set | All tokens | No comments or strings | Also no depth 0 |
 | --- | --- | --- | --- |
-| `bracket depth` | 0.232, L4 N3038− | 0.195, L9 N2645+ | 0.080, L5 N1743+ |
-| `indent depth` | 0.184, L6 N1416− | 0.259, L9 N2645+ | 0.118, L4 N1330+ |
+| `bracket depth` | 0.231, L4 N3038− | 0.196, L9 N2645+ | 0.080, L5 N1743+ |
+| `indent depth` | 0.184, L6 N1416− | 0.261, L9 N2645+ | 0.120, L4 N1330+ |
 
 Written probes (see *On written text*) then tested these winners. None rises with bracket depth.
 
@@ -65,7 +67,7 @@ Written probes (see *On written text*) then tested these winners. None rises wit
 
 L5 N1743+ does respond to open brackets. It falls from 0.19 to 0.01, and it stays near 0.29 when they close. So it may carry the opposite signal, at a strength of at most 0.30, where L2 N676+ reaches 11. These probes test only bracket depth, so they say nothing about L4 N1330+ and indentation.
 
-L2 N676+ scored 0.276 on `syntax construct`, and much of that is call arguments and parameter lists. Its mean strength also rose with depth. This suggested two reasons for the weak depth score: curly brackets, which mostly hold blocks, and strings and comments, which the label leaves out. We then split the count.
+L2 N676+ scored 0.273 on `syntax construct`, and much of that is call arguments and parameter lists. Its mean strength also rose with depth. This suggested two reasons for the weak depth score: curly brackets, which mostly hold blocks, and strings and comments, which the label leaves out. We then split the count.
 
 ![R² per layer for round and all brackets, and the three counts for L2 N676+](media/labels.svg)
 
@@ -75,9 +77,9 @@ L2 N676+ scored 0.276 on `syntax construct`, and much of that is call arguments 
 | Round | L2 N676+ | 0.277 | 0.277 | 1 |
 | Round characters, no parser | L2 N676+ | 0.310 | 0.310 | 1 |
 | Square | L2 N1441+ | 0.051 | 0.017 | 4 |
-| Curly | L2 N1513− | 0.106 | 0.000 | 3,998 |
+| Curly | L2 N1513− | 0.106 | 0.000 | 4,039 |
 
-Its round R² is the highest of any layer's best pole. The nearest are L3 N695+ (0.232) and L8 N689+ (0.230). L2 N1195+ (0.236) and the other pole of the same neuron, L2 N676− (0.225), are next in its layer. We did not test those on written text.
+Its round R² is the highest of any layer's best pole. The nearest are L3 N695+ (0.232) and L8 N689+ (0.230). L2 N1195+ (0.236) and the other pole of the same neuron, L2 N676− (0.225), are next in its layer. L9 N340+ (0.187) is first in L9. *Other round-depth poles* tests L2 N1195+, L3 N695+, L8 N689+ and L9 N340+ on written text.
 
 ## On written text
 
@@ -123,30 +125,96 @@ This is far shorter than the LSTM's range: Karpathy et al. (2015) show a quote c
 | Mean of 20 random poles ablated | 0.458 | 0.464 | 0.453 | 0.387 | 0.309 |
 | Lowest of those 20 | 0.455 | 0.462 | 0.450 | 0.384 | 0.306 |
 
-So the pole carries part of what the model uses at low depth. The probability doesn't reach zero, which fits other routes to the same output. The effect shrinks as strength grows, which we did not expect and do not explain. Other routes may take over at depth, or the measure may fit less well there. We did not test either idea.
+So the pole carries part of what the model uses at low depth. The probability doesn't reach zero, which fits other routes to the same output. This measure counts every token that starts with `)`, so it can't tell `)` from `))`. *How many brackets close* below measures that, and it explains why the effect shrinks with depth.
+
+## Other round-depth poles
+
+The `round depth` sweep ranks four more poles near L2 N676+: L2 N1195+ (0.236), L3 N695+ (0.232), L8 N689+ (0.230) and L9 N340+ (0.187). The same written probes test them. Each cell is a mean over 8 items.
+
+| Pole | Open, depths 1 to 5 | Closed, depths 1 to 5 | Square | Curly |
+| --- | --- | --- | --- | --- |
+| L2 N676+ | 4.19, 6.75, 8.63, 9.99, 11.02 | 0.00, 0.00, 0.12, 0.54, 0.00 | 3.51 to 9.02 | 1.49 to 4.98 |
+| L2 N1195+ | 3.43, 5.88, 7.68, 8.97, 9.94 | 0.00, 0.00, 0.00, 0.10, 0.00 | 2.79 to 7.96 | 1.04 to 4.44 |
+| L3 N695+ | 1.15, 1.80, 2.21, 2.53, 2.83 | 0.00, 0.00, 0.00, 0.03, 0.00 | 1.22 to 3.02 | 1.08 to 2.46 |
+| L8 N689+ | 2.29, 3.55, 3.57, 2.94, 2.31 | 0.00 at each depth | 2.74 to 3.38 | 0.40 to 1.01 |
+| L9 N340+ | 2.35, 3.09, 3.11, 2.74, 2.38 | 0.00 at each depth | 0.11 to 0.00 | 0.00 at each depth |
+
+The two L2 poles and L3 N695+ rise at every depth, and so they count. L8 N689+ and L9 N340+ peak at depth 2 or 3 and then fall. So they tell inside from outside, and they don't count. L9 N340+ is the only one of the five that ignores square brackets, and it also ignores curly ones. All five read near zero once the brackets close.
+
+The later poles reach further. With one open bracket and a list of filler items before the target:
+
+| Filler items | 0 | 5 | 10 | 20 | 40 | 80 |
+| --- | --- | --- | --- | --- | --- | --- |
+| L2 N676+ | 4.23 | 2.20 | 0.56 | 0.00 | 0.00 | 0.00 |
+| L2 N1195+ | 3.38 | 1.20 | 0.01 | 0.00 | 0.00 | 0.00 |
+| L3 N695+ | 1.21 | 0.34 | 0.03 | 0.00 | 0.00 | 0.00 |
+| L8 N689+ | 2.31 | 2.46 | 2.16 | 1.03 | 0.12 | 0.02 |
+| L9 N340+ | 2.32 | 1.83 | 1.21 | 0.52 | 0.02 | 0.00 |
+
+## How many brackets close
+
+![Number of brackets a predicted closer closes, with poles ablated](media/joint.svg)
+
+Each closing token in GPT-2's vocabulary closes one to four brackets (`)` to `))))`). For each prediction, we weight that number by the token's probability, and divide by the probability of any closer. This is the mean number of brackets that a predicted closer closes. The controls are 20 random sets of 5 positive poles, one in each layer of the five, seed 0.
+
+| Open brackets | 1 | 2 | 3 | 4 | 5 |
+| --- | --- | --- | --- | --- | --- |
+| Model | 1.02 | 1.58 | 1.79 | 1.90 | 1.95 |
+| L2 N676+ ablated | 1.01 | 1.02 | 1.03 | 1.02 | 1.02 |
+| L2 N1195+ ablated | 1.24 | 2.33 | 2.25 | 2.51 | 2.93 |
+| L9 N340+ ablated | 1.04 | 1.73 | 2.03 | 2.25 | 2.37 |
+| The four other than L2 N676+ ablated | 1.96 | 2.71 | 3.67 | 3.78 | 3.81 |
+| All five ablated | 1.07 | 1.74 | 2.05 | 2.07 | 2.05 |
+| 20 random sets ablated, range of means | 1.02 | 1.57 to 1.58 | 1.78 to 1.79 | 1.89 to 1.91 | 1.94 to 1.96 |
+
+L3 N695+ and L8 N689+ alone change the count by at most 0.1. With L2 N676+ ablated, the model closes one bracket at every depth. With the other four ablated, it closes too many: from depth 3 it puts 0.91 to 0.99 of its probability on a closer, and most of that on `))))`. With all five ablated, the two effects about cancel. So L2 N676+ pushes the count up, and the other four, mostly L2 N1195+ and L9 N340+, hold it down. From depth 2, the model closes fewer brackets than are open. This fits a model that closes some of them now and the rest later, but we did not test that.
+
+This explains the first ablation table. There, the effect of L2 N676+ shrinks with depth. The model's closers at depth 5 are mostly `))` and `)))`, and with the pole ablated they become `)`. Both count as a closer, so a measure of any closer can't see the change. The count is capped at 4, because no single token closes more.
+
+## Through the protocol
+
+We audited L2 N676+ through the registry's protocol, as a chosen unit (`selection = manual`). The scan read a new sample of `github-code`, seed 1, with 128-token windows. So the documents differ from those that the pole was chosen on. The proposer (Claude Opus 5.5) read the scan and wrote a claim: the pole tracks how many round brackets are open, rises with that count, and is near zero outside them. The reviewer (Claude Sonnet 5.5) wrote 20 probes. The judges were Claude Haiku 5.5.
+
+| Gate or score | Result |
+| --- | --- |
+| Positive holdouts | 8 of 8 |
+| Hard negatives | 7 of 12 |
+| Counterfactuals | 8 of 8 |
+| Specificity | 0.58, failed |
+| Sufficiency, necessity | 0.97, 1.00 |
+| Detection, fuzzing | 0.98, 0.92 |
+| Verdict | NEEDS_REVISION (0.79) |
+
+Each of the five failed hard negatives has square or curly brackets and no open round bracket, for example `data[3]` and `{"x": 4}`. They read 2.95 to 4.15, above the activity line of 2.59. The probes above show the same thing: square brackets nearly match round ones. A claim of open brackets of any kind, strongest for round ones, is the next revision.
+
+The reviewer's first probe set had four hard negatives with a token inside an open round bracket, which the claim says is active. We sent those four back to the same reviewer, which replaced them, and the record holds that second review. The record is in [`wiki/experiments/openai-community--gpt2/L2/N676-positive/`](../../wiki/experiments/openai-community--gpt2/L2/N676-positive/).
 
 ## Cut documents
 
-The corpus cuts documents at 3,000 characters, usually inside a class or a function. The parser then has no node for that class, and its contents read as top level. We found this when a Java example at depth 1 and indent 4 read `top level`. So the tagger now adds the missing closers and a `;` before each `}`, parses again, and labels only the original text.
+The corpus cuts documents at 3,000 characters, usually inside a class or a function. The parser then has no node for that class, and its contents read as top level. We found this when a Java example at depth 1 and indent 4 read `top level`.
 
-To measure this, we parse the first 1,500 characters of the 157 documents at the 3,000-character limit. Then we compare their labels with those of the longer cut. A stable label agrees. Inside brackets, a label of `top level` is wrong almost always.
+The first fix added the closing brackets that were still open, with a `;` before each `}`, parsed again, and labelled only the original text. It fails in three ways. A cut inside a `//` comment puts the added brackets in the comment. A cut inside a string or a template literal makes the first parse read the string's braces as brackets, so the closers are wrong. Ruby and Lua close blocks with `end`, which no bracket adds. So the tagger now tries several endings when the parse has errors. Each starts with nothing, a line break, `*/` or a quote. Then come the brackets still open after that start, with and without the `;`. Ruby and Lua also get up to 12 `end`s. It keeps the ending that leaves the fewest characters of the original text in error nodes, the shortest of those. If no ending lowers that count, it adds the open brackets' closers, as the first fix did.
 
-| Language | `syntax construct` agreement, before | After | Inside brackets but `top level`, before | After |
-| --- | --- | --- | --- | --- |
-| All | 0.948 | 0.966 | 0.459 | 0.125 |
-| C | 0.975 | 0.970 | 0.500 | 0.204 |
-| C# | 0.928 | 0.982 | 0.679 | 0.050 |
-| C++ | 0.945 | 0.986 | 0.433 | 0.143 |
-| Go | 0.999 | 0.999 | 0.158 | 0.157 |
-| Java | 0.915 | 0.970 | 0.589 | 0.040 |
-| JavaScript | 0.916 | 0.959 | 0.397 | 0.059 |
-| PHP | 0.943 | 0.831 | 0.626 | 0.311 |
-| Python | 0.983 | 0.991 | 0.001 | 0.001 |
-| Ruby | 0.999 | 0.999 | 0.257 | 0.257 |
-| Scala | 0.859 | 1.000 | 0.000 | 0.000 |
-| TypeScript | 0.940 | 1.000 | 0.142 | 0.000 |
+To measure this, we take the same sample with no cut, and parse each whole file. Then we cut it at 3,000 characters and compare the cut's labels with the whole file's. A label that agrees is stable. `Lost` is the share of characters in a construct in the whole file that read as top level after the cut.
 
-`syntax node` agreement stays at 0.975 overall. The fix helps most languages. It lowers PHP's agreement, and it can't help Ruby, whose blocks close with `end`. Few documents stand behind some rows: Scala has 1, TypeScript 3 and Go 4. Haskell, Lua, Rust and Shell had no document at the limit in this sample, so this table doesn't test them.
+| Language | Files | Agreement, one parse | Closers added | Endings searched | Lost, one parse | Closers added | Endings searched |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| All | 157 | 0.800 | 0.943 | 0.988 | 0.278 | 0.077 | 0.017 |
+| C | 36 | 0.871 | 0.976 | 1.000 | 0.254 | 0.046 | 0.000 |
+| C# | 10 | 0.603 | 0.885 | 1.000 | 0.472 | 0.137 | 0.000 |
+| C++ | 24 | 0.863 | 0.967 | 0.969 | 0.201 | 0.046 | 0.044 |
+| Go | 4 | 0.918 | 0.949 | 0.999 | 0.109 | 0.068 | 0.001 |
+| Java | 30 | 0.753 | 0.973 | 0.999 | 0.317 | 0.029 | 0.000 |
+| JavaScript | 18 | 0.754 | 0.925 | 1.000 | 0.287 | 0.088 | 0.000 |
+| PHP | 12 | 0.701 | 0.897 | 0.970 | 0.425 | 0.145 | 0.042 |
+| Python | 13 | 0.990 | 0.997 | 0.998 | 0.009 | 0.001 | 0.001 |
+| Ruby | 6 | 0.589 | 0.590 | 0.872 | 0.541 | 0.540 | 0.169 |
+| Scala | 1 | 0.597 | 1.000 | 1.000 | 0.521 | 0.000 | 0.000 |
+| TypeScript | 3 | 0.783 | 0.999 | 0.999 | 0.297 | 0.000 | 0.000 |
+
+Agreement is for `syntax construct`. `syntax node` agreement rises from 0.992 to 0.999. We chose the endings on this sample, so we also tested them on the seed-1 sample, which we did not look at while choosing them. There, at 3,000 characters, agreement is 0.819 with one parse, 0.974 with closers added and 0.997 with endings searched. Lost falls from 0.272 to 0.038 and 0.003. A cut at 1,500 characters gives similar numbers in both samples. Few files stand behind some rows: Scala has 1, TypeScript 3 and Go 4. Haskell, Lua and Shell have no file over 3,000 characters in this sample.
+
+The sweeps above use the searched endings. Each layer's best R² moved by at most 0.011 from the first fix (`syntax construct` in L10), and the best of each set across layers by at most 0.003. Most of the sampled documents are not cut in PHP or Ruby.
 
 ## Caveats
 
