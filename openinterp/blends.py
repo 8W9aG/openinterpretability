@@ -17,7 +17,8 @@ from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 # says what it holds. `mixed` is the latest version and `openinterp corpus`'s default. It
 # spreads random-selection statistics over domains, not one dataset's. They are web
 # text, the Pile's mix of sources (papers, legal text, forums, code), long encyclopedic
-# articles, source code and nine languages besides English. From v3, they include maths.
+# articles, source code and nine languages besides English. From v3, they include maths,
+# and from v4, chat transcripts.
 BLENDS = {
     "mixed-v1": {
         "fineweb-edu": 4,
@@ -46,8 +47,20 @@ BLENDS = {
         "wikipedia-multilingual": 3,
         "open-web-math": 2,
     },
+    # v3's mix and weights, plus chat transcripts at the same weight as wikitext, written
+    # with Qwen2.5's chat template, for instruct models.
+    "mixed-v4": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+        "open-web-math": 2,
+        "ultrachat": 2,
+    },
 }
-BLEND_ALIASES = {"mixed": "mixed-v3"}
+BLEND_ALIASES = {"mixed": "mixed-v4"}
 # Released before documents recorded a programming language. So their bytes stay without it.
 NO_CODE_LANGUAGE = {"mixed-v1"}
 # Presets left out of `mixed`, and why. Every other preset is in its latest version, so
@@ -55,8 +68,6 @@ NO_CODE_LANGUAGE = {"mixed-v1"}
 NOT_BLENDED = {
     "gsm8k": "one benchmark's short word problems; open-web-math gives the blend its maths",
     "pile-10k": "pile-uncopyrighted covers the Pile, without its copyrighted components",
-    "ultrachat": "conversations need a model's chat template, and the blend is the same text "
-    "for every model",
     "tinystories": "synthetic children's stories, a control corpus rather than natural text",
 }
 DEFAULT_DATASET = "mixed"
@@ -85,7 +96,8 @@ def _sample_preset(
 ):
     """Return what :func:`openinterp.corpus._sample_hub` reads for a blend's ``preset``.
 
-    ``revisions`` overrides the preset's revision, by dataset.
+    ``revisions`` overrides the preset's revision, by dataset, and its chat template's
+    model commit, by model.
     """
     p = PRESETS[preset]
     return _sample_hub(
@@ -100,6 +112,8 @@ def _sample_preset(
         layout=p.layout,
         lang_pattern=p.lang_pattern,
         code_language_column=p.code_language_column if code_language else None,
+        chat_template=p.chat_template,
+        chat_template_revision=revisions.get(p.chat_template) if p.chat_template else None,
     )
 
 
@@ -120,8 +134,8 @@ def build_blend(
     language as ``lang``. GitHub code's documents record theirs as ``code_language``, except
     in the versions of :data:`NO_CODE_LANGUAGE`. The sidecar lists the source of every preset, as
     ``openinterp corpus --dataset <preset>`` writes it alone. So you can rebuild and check
-    each part separately. ``revisions`` pins datasets to commits, by dataset. Without it, each
-    preset reads its latest commit.
+    each part separately. ``revisions`` pins datasets to commits, by dataset, and chat
+    templates' models to commits, by model. Without it, each preset reads its latest commits.
     """
     name = BLEND_ALIASES.get(name, name)
     texts: list[str] = []

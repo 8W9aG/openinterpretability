@@ -19,8 +19,9 @@ class Preset:
     lang_pattern: str | None = None
     # The dataset column that gives each document's programming language (`code_language`).
     code_language_column: str | None = None
-    # True: `text_column` holds conversations, which a model's chat template writes as text.
-    chat: bool = False
+    # A model ID: `text_column` holds conversations, and this model's chat template writes
+    # each as text (unless `openinterp corpus --chat-template` names another model).
+    chat_template: str | None = None
 
 
 WIKIPEDIA_LANGUAGES = ("en", "de", "fr", "ru", "el", "ar", "hi", "zh", "ja", "ko")
@@ -86,10 +87,13 @@ PRESETS = {
     # calculator annotations ("<<48/2=24>>24") and final answer ("#### 72"). MIT.
     "gsm8k": Preset("openai/gsm8k", "main/train-*.parquet", "question,answer"),
     # Multi-turn conversations between a user and ChatGPT (the SFT train split of UltraChat,
-    # filtered and truecased), for instruct models. `openinterp corpus --chat-template MODEL`
-    # writes each with that model's chat template. Row groups are 1,000 conversations of
-    # ~6.5 MB. MIT.
+    # filtered and truecased), for instruct models. Qwen2.5's chat template writes each, so
+    # every model scans the same text (`--chat-template MODEL` writes it with another
+    # model's). Row groups are 1,000 conversations of ~6.5 MB. MIT.
     "ultrachat": Preset(
-        "HuggingFaceH4/ultrachat_200k", "data/train_sft-*.parquet", "messages", chat=True
+        "HuggingFaceH4/ultrachat_200k",
+        "data/train_sft-*.parquet",
+        "messages",
+        chat_template="Qwen/Qwen2.5-0.5B",
     ),
 }

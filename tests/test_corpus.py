@@ -280,12 +280,16 @@ def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
         "fineweb-edu": 100, "c4": 100, "pile-uncopyrighted": 100, "wikitext": 50,
         "github-code": 75, "wikipedia-multilingual": 75,
     }  # fmt: skip
-    assert blend_shares("mixed", 500) == blend_shares("mixed-v3", 500) == {
+    assert blend_shares("mixed-v3", 500) == {
         "fineweb-edu": 91, "c4": 91, "pile-uncopyrighted": 91, "wikitext": 46,
         "github-code": 68, "wikipedia-multilingual": 68, "open-web-math": 45,
     }  # fmt: skip
-    shares = blend_shares("mixed", 23)
-    assert sum(shares.values()) == 23 and list(shares.values()) == [5, 4, 4, 2, 3, 3, 2]
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v4", 500) == {
+        "fineweb-edu": 84, "c4": 84, "pile-uncopyrighted": 84, "wikitext": 42,
+        "github-code": 62, "wikipedia-multilingual": 62, "open-web-math": 41, "ultrachat": 41,
+    }  # fmt: skip
+    shares = blend_shares("mixed", 25)
+    assert sum(shares.values()) == 25 and list(shares.values()) == [5, 4, 4, 2, 3, 3, 2, 2]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
 
 
@@ -434,6 +438,29 @@ def test_a_blends_revisions_override_its_presets(monkeypatch, tmp_path):
     monkeypatch.setitem(BLENDS, "test-v1", {"a": 1, "b": 1})
     build_blend("test-v1", tmp_path / "c.jsonl", documents=2, revisions={"org/a": "commit"})
     assert seen == {"org/a": "commit", "org/b": None}
+
+
+def test_a_blend_writes_chat_with_its_presets_template_at_the_pinned_commit(monkeypatch, tmp_path):
+    seen = {}
+
+    def sample(dataset, *, revision, documents, chat_template, chat_template_revision, **kw):
+        seen[dataset] = (chat_template, chat_template_revision)
+        source = dict(dataset=dataset, revision=revision, files="f", seed=0, max_chars=9)
+        return ["text"] * documents, None, source
+
+    monkeypatch.setattr("openinterp.blends._sample_hub", sample)
+    monkeypatch.setitem(PRESETS, "a", Preset("org/a", "*.parquet"))
+    monkeypatch.setitem(PRESETS, "chat", Preset("org/chat", "*.parquet", chat_template="org/m"))
+    monkeypatch.setitem(BLENDS, "test-v1", {"a": 1, "chat": 1})
+    build_blend("test-v1", tmp_path / "c.jsonl", documents=2, revisions={"org/m": "m1"})
+    assert seen == {"org/a": (None, None), "org/chat": ("org/m", "m1")}
+
+
+def test_rebuild_pins_a_blends_chat_template_commit(monkeypatch, tmp_path):
+    calls = _fake_build(monkeypatch, "build_blend")
+    chat = _source(dataset="org/chat", chat_template="org/m", chat_template_revision="m1")
+    rebuild(_source(blend="mixed-v4", components=[_source(), chat]), tmp_path / "c.jsonl")
+    assert calls["revisions"] == {"org/a": "r1", "org/chat": "r1", "org/m": "m1"}
 
 
 def test_scanned_source_prefers_the_record_then_a_committed_sidecar(tmp_path, monkeypatch):
@@ -723,7 +750,7 @@ def test_rebuild_pins_the_chat_templates_commit(monkeypatch, tmp_path):
     assert (calls["chat_template"], calls["chat_template_revision"]) == ("org/m", "m1")
 
 
-def test_cli_chat_presets_need_a_chat_template(monkeypatch, tmp_path):
+def test_cli_chat_presets_take_their_template_unless_told_another(monkeypatch, tmp_path):
     calls = {}
 
     def fake_build(dataset, out, **kw):
@@ -732,14 +759,16 @@ def test_cli_chat_presets_need_a_chat_template(monkeypatch, tmp_path):
 
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", "ultrachat", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
-    result = CliRunner().invoke(cli, args)
-    assert result.exit_code != 0 and "--chat-template" in result.output and not calls
-    assert CliRunner().invoke(cli, [*args, "--chat-template", "Qwen/Qwen2.5-0.5B"]).exit_code == 0
+    assert CliRunner().invoke(cli, args).exit_code == 0
     assert (calls["dataset"], calls["text_column"]) == ("HuggingFaceH4/ultrachat_200k", "messages")
     assert (calls["files"], calls["chat_template"]) == (
         "data/train_sft-*.parquet",
         "Qwen/Qwen2.5-0.5B",
     )
+    assert CliRunner().invoke(cli, [*args, "--chat-template", "org/instruct"]).exit_code == 0
+    assert calls["chat_template"] == "org/instruct"
+    CliRunner().invoke(cli, ["corpus", "--dataset", "c4", "--out", str(tmp_path / "c.jsonl")])
+    assert calls["chat_template"] is None
     blend = CliRunner().invoke(cli, ["corpus", "--chat-template", "Qwen/Qwen2.5-0.5B"])
     assert blend.exit_code != 0 and "--chat-template" in blend.output
 

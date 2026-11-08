@@ -85,9 +85,9 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "--chat-template",
     metavar="MODEL",
     help="Write each conversation in --text-column (a list of role/content messages) with "
-    "this model's chat template, pinned to its commit. Required for chat presets "
-    f"({', '.join(name for name, p in PRESETS.items() if p.chat)}). Pass the model you "
-    "will scan.",
+    "this model's chat template, pinned to its commit. Default: the preset's ("
+    + ", ".join(f"{name}: {p.chat_template}" for name, p in PRESETS.items() if p.chat_template)
+    + "), or none.",
 )
 @click.option(
     "--same-as",
@@ -137,7 +137,7 @@ def corpus(
         }  # fmt: skip
         return _blend(dataset, per_dataset, out, documents, seed, max_chars, ascii_)
     preset = PRESETS.get(dataset)
-    _check_dataset(dataset, preset, files, lang_pattern, detect_lang, chat_template)
+    _check_dataset(dataset, preset, files, lang_pattern, detect_lang)
     try:
         source = build_from_hub(
             preset.dataset if preset else dataset,
@@ -155,23 +155,19 @@ def corpus(
             lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
             detect_lang=detect_lang,
             code_language_column=preset.code_language_column if preset else None,
-            chat_template=chat_template,
+            chat_template=chat_template or (preset.chat_template if preset else None),
         )
     except ValueError as error:  # e.g. a model without a chat template
         raise click.ClickException(str(error)) from error
     _report(source, out, documents)
 
 
-def _check_dataset(dataset, preset, files, lang_pattern, detect_lang, chat_template) -> None:
+def _check_dataset(dataset, preset, files, lang_pattern, detect_lang) -> None:
     """Raise ``click.UsageError`` if the options can't sample ``dataset``."""
     if detect_lang and lang_pattern:
         raise click.UsageError("--detect-lang and --lang-pattern both set the languages.")
     if preset is None and not files:
         raise click.UsageError(f"--files is required for {dataset!r}, which is not a preset.")
-    if preset and preset.chat and not chat_template:
-        raise click.UsageError(
-            f"{dataset!r} is conversations: pass --chat-template MODEL, the model you will scan."
-        )
 
 
 @cli.command("corpus-cache")
