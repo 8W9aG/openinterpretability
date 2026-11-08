@@ -63,7 +63,7 @@ def _build(source: CorpusSource, out: Path) -> CorpusSource:
             seed=source.seed,
             max_chars=source.max_chars,
             ascii=source.ascii,
-            revisions={part.dataset: part.revision for part in source.components or []},
+            revisions=_revisions(source.components or []),
         )
     return build_from_hub(
         source.dataset,
@@ -81,4 +81,13 @@ def _build(source: CorpusSource, out: Path) -> CorpusSource:
         lang_pattern=source.lang_pattern,
         detect_lang=source.lang_detector is not None,
         code_language_column=source.code_language_column,
+        chat_template=source.chat_template,
+        chat_template_revision=source.chat_template_revision,
     )
+
+
+def _revisions(components: list[CorpusSource]) -> dict[str, str | None]:
+    """A blend's pinned commits: each dataset's, and each chat template model's."""
+    revisions = {part.dataset: part.revision for part in components}
+    templates = {p.chat_template: p.chat_template_revision for p in components if p.chat_template}
+    return revisions | templates
