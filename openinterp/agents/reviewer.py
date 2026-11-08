@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
-from openinterp import wordnet
+from openinterp import prior_art, wordnet
 from openinterp.agents.base import LLMAgent
 from openinterp.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
@@ -146,7 +146,8 @@ class ReviewerAgent(LLMAgent):
         link to the unit, so that the reviewer can probe where they disagree. That is
         published latents aligned with the unit
         (:func:`openinterp.crossref.format_for_reviewer`), and its studied sister neurons
-        (:func:`openinterp.sisters.format_sisters`).
+        (:func:`openinterp.sisters.format_sisters`). The submission's prior art is always
+        shown (:func:`openinterp.prior_art.format_for_reviewer`).
         """
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
         is_head = submission.identifier.kind == "attn_head"
@@ -172,6 +173,7 @@ class ReviewerAgent(LLMAgent):
             + wordnet.format_for_reviewer(submission.top_examples, wordnet.lexicon())
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
+            + (f"{art}\n" if (art := prior_art.format_for_reviewer(submission.prior_art)) else "")
             + f"Write {n} probes."
         )
 
