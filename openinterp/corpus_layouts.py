@@ -46,3 +46,25 @@ def _wikitext_article(rows: Sequence[str | None]) -> str:
 
 # Row layouts other than one document per row: rows of one row group -> its documents.
 LAYOUTS = {"wikitext": wikitext_articles}
+
+
+def chat_formatter(model: str, revision: str | None = None):
+    """Return a function that writes a conversation with ``model``'s chat template.
+
+    Also returns the model commit that the template comes from. A conversation is a list
+    of ``{"role": ..., "content": ...}`` messages. The text keeps the template's special
+    tokens as text (e.g. ``<|im_start|>``), which the tokenizer reads back as the same
+    tokens. Raises ``ValueError`` if the model's tokenizer has no chat template.
+    """
+    from huggingface_hub import HfApi
+    from transformers import AutoTokenizer
+
+    revision = HfApi().model_info(model, revision=revision).sha
+    tokenizer = AutoTokenizer.from_pretrained(model, revision=revision)
+    if not tokenizer.chat_template:
+        raise ValueError(f"{model}'s tokenizer has no chat template")
+
+    def render(messages) -> str:
+        return tokenizer.apply_chat_template(list(messages or []), tokenize=False)
+
+    return render, revision

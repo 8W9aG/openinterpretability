@@ -57,6 +57,14 @@ class CorpusSource(StrictModel):
         description="The dataset column that gave each document's 'code_language' field; "
         "None: documents carry no programming language.",
     )
+    chat_template: str | None = Field(
+        default=None,
+        description="The model whose tokenizer's chat template wrote each conversation in "
+        "the text column as a document; None: the column's text, as it is.",
+    )
+    chat_template_revision: str | None = Field(
+        default=None, description="Commit of the chat template's model."
+    )
     license: str | None = None
     sha256: str = Field(description="SHA-256 of the corpus file this describes.")
     blend: str | None = Field(
@@ -77,6 +85,8 @@ class CorpusSource(StrictModel):
             return f"{self.blend} ({len(self.components or [])} presets, {how})"
         at = f"@{self.revision[:8]}" if self.revision else ""
         how = f"first {self.documents} docs" if self.first else how
+        if self.chat_template:
+            how += f", {self.chat_template}'s chat template"
         return f"{self.dataset}{at} ({self.files}, {how})"
 
 
