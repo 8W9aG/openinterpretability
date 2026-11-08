@@ -60,6 +60,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <circle class="fc1 ring gelu2" cx="0.0" cy="0.0" r="5"/>
 <circle class="fc1 ring gelu3" cx="0.0" cy="0.0" r="5"/>
 <text x="262.7" y="288.3" class="small" text-anchor="end">−1.11 to −0.78</text>
+<path class="dip" d="M120.5 255.5L120.5 200.6"/>
+<text x="120.5" y="195.6" class="small" text-anchor="middle">dip at −0.75</text>
 <text x="280.7" y="106.0" class="head">ReLU</text>
 <path class="grid" d="M302.5 114.0L302.5 314.0"/>
 <text x="302.5" y="329.0" class="small" text-anchor="middle">−2</text>
@@ -112,6 +114,4 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="axis" d="M90.0 362.0L660.0 362.0"/>
 <text x="668.0" y="366.0" class="small">4,000</text>
 <circle class="fc1 progress" cx="0" cy="362.0" r="4"/>
-<path class="dip" d="M120.5 255.5L120.5 200.6"/>
-<text x="120.5" y="195.6" class="small" text-anchor="middle">dip at −0.75</text>
 </svg>

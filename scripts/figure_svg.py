@@ -90,6 +90,24 @@ def relu(x: float) -> float:
     return max(x, 0.0)
 
 
+LEAKY_SLOPE = 0.1  # the slope of leaky ReLU below 0, large enough to differ from ReLU
+
+
+def leaky_relu(x: float) -> float:
+    """Return the leaky ReLU of ``x``, with slope ``LEAKY_SLOPE`` below 0."""
+    return x if x > 0 else LEAKY_SLOPE * x
+
+
+def softplus(x: float) -> float:
+    """Return the softplus of ``x``: log(1 + e^x)."""
+    return max(x, 0.0) + math.log1p(math.exp(-abs(x)))
+
+
+def silu(x: float) -> float:
+    """Return the SiLU of ``x``: x times the logistic sigmoid of x."""
+    return x / (1 + math.exp(-x))
+
+
 def normal(x: float, mean: float, sd: float) -> float:
     """Return the density of a normal distribution at ``x``."""
     return math.exp(-0.5 * ((x - mean) / sd) ** 2) / (sd * math.sqrt(2 * math.pi))
