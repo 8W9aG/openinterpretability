@@ -30,6 +30,7 @@ from default_on_poles import (
     read_mlp_inputs,
     write_row,
 )
+from figure_svg import LEAKY_SLOPE
 
 from openinterp.cli import _load, resolve_device
 from openinterp.cli_evidence import read_corpus
@@ -44,6 +45,8 @@ BATCH = 32
 LEARNING_RATE = 3e-4
 GRADIENT_CLIP = 1.0
 EVAL_WINDOWS = 128
+SGD_MOMENTUM = 0.9
+SGD_LEARNING_RATE = 0.1  # the best of 0.01, 0.03, 0.1 and 0.3 over 500 steps that trained stably
 
 
 @dataclass(frozen=True)
@@ -57,6 +60,8 @@ class Condition:
     fixed_rest: float | None = None  # h is centred per neuron, then moved to this value
     learned_rest: bool = False  # h is centred per neuron, then moved to a learned value
     rest_lr_factor: float = 1.0  # multiplies the learning rate of the learned value
+    optimizer: str = "adamw"  # "adamw", or "sgd" with momentum SGD_MOMENTUM
+    learning_rate: float = LEARNING_RATE
 
 
 BASE = Condition()
@@ -74,6 +79,15 @@ CONDITIONS = {
     "rest_-1": replace(BASE, fixed_rest=-1.0),
     "rest_learned": replace(BASE, learned_rest=True),
     "rest_learned_fast": replace(BASE, learned_rest=True, rest_lr_factor=30.0),
+    "softplus": replace(BASE, activation="softplus"),
+    "leaky_relu": replace(BASE, activation="leaky_relu"),
+    "silu": replace(BASE, activation="silu"),
+    "lr_1e-4": replace(BASE, learning_rate=1e-4),
+    "lr_1e-3": replace(BASE, learning_rate=1e-3),
+    "relu_lr_1e-4": replace(BASE, activation="relu", learning_rate=1e-4),
+    "relu_lr_1e-3": replace(BASE, activation="relu", learning_rate=1e-3),
+    "sgd": replace(BASE, optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
+    "relu_sgd": replace(BASE, activation="relu", optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
 }
 
 
@@ -103,6 +117,12 @@ class Activation(nn.Module):
             return torch.tanh(h)
         if self.name == "mirrored_gelu":
             return -nn.functional.gelu(-h)
+        if self.name == "softplus":
+            return nn.functional.softplus(h)
+        if self.name == "leaky_relu":
+            return nn.functional.leaky_relu(h, LEAKY_SLOPE)
+        if self.name == "silu":
+            return nn.functional.silu(h)
         raise ValueError(f"unknown activation {self.name}")
 
 
@@ -212,23 +232,35 @@ def _layer_stats(mlp, x: torch.Tensor) -> dict:
     }
 
 
-def train(name: str, seed: int, steps: int, eval_every: int, tokens, test_ids, device, out) -> None:
-    """Train one model and append a row at each evaluation."""
-    condition = CONDITIONS[name]
-    vocab = int(tokens.max()) + 1
-    model = build_model(condition, vocab, seed).to(device).train()
+def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
+    """Return the condition's optimizer, with the learned rests in a group of their own."""
     # At the base rate, Adam cannot move one parameter by much more than 1 in a short run.
     rests = [p for n, p in model.named_parameters() if n.endswith("learned_rest")]
     others = [p for n, p in model.named_parameters() if not n.endswith("learned_rest")]
     groups = [{"params": others}]
     if rests:
-        groups.append({"params": rests, "lr": LEARNING_RATE * condition.rest_lr_factor})
-    optimizer = torch.optim.AdamW(groups, lr=LEARNING_RATE, weight_decay=condition.weight_decay)
+        groups.append({"params": rests, "lr": condition.learning_rate * condition.rest_lr_factor})
+    lr, decay = condition.learning_rate, condition.weight_decay
+    if condition.optimizer == "sgd":
+        return torch.optim.SGD(groups, lr=lr, momentum=SGD_MOMENTUM, weight_decay=decay)
+    if condition.optimizer == "adamw":
+        return torch.optim.AdamW(groups, lr=lr, weight_decay=decay)
+    raise ValueError(f"unknown optimizer {condition.optimizer}")
+
+
+def train(
+    name: str, seed: int, steps: int, eval_every: int, tokens, test_ids, device, out, part
+) -> None:
+    """Train one model and append a row, labelled ``part``, at each evaluation."""
+    condition = CONDITIONS[name]
+    vocab = int(tokens.max()) + 1
+    model = build_model(condition, vocab, seed).to(device).train()
+    optimizer = make_optimizer(condition, model)
     generator = torch.Generator().manual_seed(seed)
     start = time.time()
     for step in range(steps + 1):
         if step % eval_every == 0:
-            row = {"part": "training", "condition": name, "seed": seed, "step": step}
+            row = {"part": part, "condition": name, "seed": seed, "step": step}
             write_row(out, {**row, **evaluate(model, test_ids)})
             click.echo(f"{name} seed {seed} step {step} {time.time() - start:.0f}s", err=True)
         if step == steps:
@@ -258,7 +290,8 @@ def cli():
 @click.option("--cache", type=click.Path(path_type=Path), required=True)
 @click.option("--device", default="auto", show_default=True)
 @click.option("--out", type=click.Path(path_type=Path), required=True)
-def train_command(names, seeds, steps, eval_every, corpus, cache, device, out):
+@click.option("--part", default="training", show_default=True, help="The label of the rows.")
+def train_command(names, seeds, steps, eval_every, corpus, cache, device, out, part):
     """Train each condition with each seed, and append the rows to ``--out``."""
     from transformers import AutoTokenizer
 
@@ -269,7 +302,8 @@ def train_command(names, seeds, steps, eval_every, corpus, cache, device, out):
     test_ids = split.test[:EVAL_WINDOWS]
     for seed in seeds:
         for name in names or sorted(CONDITIONS):
-            train(name, seed, steps, eval_every, tokens, test_ids, resolve_device(device), out)
+            device_ = resolve_device(device)
+            train(name, seed, steps, eval_every, tokens, test_ids, device_, out, part)
 
 
 @cli.command()
