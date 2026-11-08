@@ -354,18 +354,28 @@ def main(model, corpus, out, device, max_tokens):
 
 
 @click.command("stability")
-@click.option("--whole", type=click.Path(path_type=Path), required=True, help="Uncut files.")
+@click.option(
+    "--whole",
+    type=click.Path(path_type=Path),
+    required=True,
+    multiple=True,
+    help="Uncut files: a corpus written with a large --max-chars. Repeat for more samples.",
+)
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def stability_command(whole, out):
     """Replace the stability rows of ``out``: each fix for cut documents, against whole files."""
-    rows = [json.loads(line) for line in whole.read_text(encoding="utf-8").splitlines()]
     methods = (
         ("one parse", _paint),
         ("closers added", closers_added),
         ("endings searched", parse_labels),
     )
+    samples = {
+        path.name: [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        for path in whole
+    }
     found = [
-        {"kind": "stability", "method": label, "cut": cut, **row}
+        {"kind": "stability", "sample": name, "method": label, "cut": cut, **row}
+        for name, rows in samples.items()
         for cut in STABILITY_CUTS
         for label, parse in methods
         for row in stability(rows, parse, cut)
@@ -375,7 +385,7 @@ def stability_command(whole, out):
     out.write_text("\n".join([*kept, *map(json.dumps, found)]) + "\n", encoding="utf-8")
     for row in found:
         if row["language"] == "all":
-            click.echo(f"{row['cut']} {row['method']}: {row}")
+            click.echo(f"{row['sample']} {row['cut']} {row['method']}: {row}")
 
 
 @click.group()
