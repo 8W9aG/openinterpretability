@@ -281,9 +281,9 @@ def build_from_hub(
     each document records its glob's language as ``lang``. With ``detect_lang``, ``lang``
     is the language that :mod:`openinterp.langid` detects, where it is sure of one. With
     ``code_language_column``, each document records that column's value as ``code_language``.
-    With ``chat_template``, a model ID, ``text_column`` holds conversations, and each
-    document is one written with that model's chat template, at ``chat_template_revision``
-    (default: the model's latest commit, pinned on use).
+    With ``chat_template``, a model ID, ``text_column`` holds conversations. That model's
+    chat template writes each one as a document. The template comes from the model's
+    commit ``chat_template_revision`` (default: its latest commit, pinned on use).
     """
     texts, labels, source = _sample_hub(
         dataset,
