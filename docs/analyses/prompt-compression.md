@@ -40,11 +40,11 @@ It also removes the markdown structure (`#` headings, list markers, `---` frontm
 
 ## Saving
 
-The proposer's prose is about 4.9k tokens (at about 4 characters per token). Rate 0.7 removes about 1.1k of them, and rate 0.5 about 2k. That prose sits in the context of every later request, so over a proposer's 8–15 requests rate 0.7 saves roughly 14k of its median 225k input tokens (about 6%). Nearly all of those are cache reads, billed at a tenth of the input price, so the cost saving is around 1%. The run's length is set by the proposer's own measurements, not by the prose (`prompt-trim-ab.md`, Cost).
+The proposer's prose is about 4.9k tokens (at about 4 characters per token). Rate 0.7 removes about 1.1k of them, and rate 0.5 about 2k. That prose sits in the context of every later request. So over a proposer's 8–15 requests rate 0.7 saves roughly 14k of its median 225k input tokens (about 6%). Nearly all of those are cache reads, billed at a tenth of the input price, so the cost saving is around 1%. The run's length is set by the proposer's own measurements, not by the prose (`prompt-trim-ab.md`, Cost).
 
 ## What the keep scores say
 
-The script's second use, as the TODO suggested, is a guide for trimming by hand. Weighted by length, mean keep probability is 0.86 on code blocks and 0.61 on prose. By text, it ranges from 0.49 (judge system prompt) to 0.70 (`neuron-family-triage`). The lowest-scoring paragraphs (0.48–0.50) are the agent definitions' role statements and reply instructions ("Reply with the answer's path…", "Read only the prompt file you were given…", "The protocol forbids you from seeing probe activations…").
+The script's second use, as the TODO suggested, is a guide for trimming by hand. Weighted by length, mean keep probability is 0.86 on code blocks and 0.61 on prose. By text, it ranges from 0.49 (judge system prompt) to 0.70 (`neuron-family-triage`). The lowest-scoring paragraphs (0.48–0.50) are the agent definitions' role statements and reply instructions. Examples are "Reply with the answer's path…", "Read only the prompt file you were given…", "The protocol forbids you from seeing probe activations…".
 
 In each of them, the eight lowest words are articles and auxiliaries (`the`, `an`, `that`, `were`). So low scores mark ordinary English grammar, not content that can go. The model was trained on meeting transcripts, where such words are filler. No paragraph scored low because its content was redundant, so the scores don't point at anything to trim.
 

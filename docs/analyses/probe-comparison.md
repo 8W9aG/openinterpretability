@@ -1,6 +1,6 @@
 # Verified poles against linear probes for their concept
 
-This analysis starts the *Linear-probe comparison* item of `TODO.md` (*Analyses per experiment*). The question it asks is whether a VERIFIED pole is the model's representation of its concept, or only part of one. A pole can pass every gate, with its hard negatives silent and its holdouts active, and still be one of many neurons the concept is spread over. The review cannot tell those cases apart. Linear probes can.
+This analysis starts the *Linear-probe comparison* item of `TODO.md` (*Analyses per experiment*). The question it asks is whether a VERIFIED pole is the model's representation of its concept, or only part of one. A pole can pass every gate, with its hard negatives silent and its holdouts active. It can still be one of many neurons the concept is spread over. The review cannot tell those cases apart. Linear probes can.
 
 The rows are in `probe-comparison.jsonl`, one per record, written by `openinterp probe-compare` and gathered by `scripts/probe_comparison.py report`. It is reported, not gated.
 
@@ -19,9 +19,9 @@ The rows are in `probe-comparison.jsonl`, one per record, written by `openinterp
 
 **Probes.** Each probe reads the layer's MLP hidden activations (signed, every neuron) or the residual stream after the layer's block:
 
-- *logistic*: standardised features, L2 penalty 1e-3, classes weighted equally, fitted with L-BFGS;
-- *mass-mean*: the difference of the class means in raw activation space (Marks & Tegmark, 2023);
-- *k-sparse*: logistic probes on the k hidden neurons with the largest standardised class-mean difference on the training tokens, for k = 1, 2, 4, …, 256 (Gurnee et al., 2023).
+- *logistic*: standardised features, L2 penalty 1e-3, classes weighted equally, fitted with L-BFGS.
+- *mass-mean*: the difference of the class means in raw activation space (Marks & Tegmark, 2023).
+- *k-sparse*: logistic probes on the k hidden neurons with the largest standardised class-mean difference on the training tokens (Gurnee et al., 2023). The probes use k = 1, 2, 4, …, 256.
 
 The pole alone is scored as a one-feature probe on its strength. Every threshold is fitted on the training tokens, at the best balanced accuracy (BA), and tested on held-out tokens. The pole is also scored at the protocol's line (0.25 × its recorded scale), which fits nothing. *Rank* is the neuron's position among the layer's by class separation on the training tokens. *Neurons needed* is the smallest k within 0.02 BA of the better dense hidden-layer probe.
 
@@ -52,14 +52,14 @@ The k-sparse curves (held-out BA):
 
 **The same concept in two layers.** The `year` labels test two VERIFIED poles. L4/N3208+ peaks on an early digit and also fires on ' museum'. It covers a small part of what layer 4 knows about years (rank 725). L13/N3326− fires on the whole period expression and ranks 3rd at its layer. The later neuron is the better single read-out, though even there 32 neurons do better.
 
-**The probe's direction is not the pole's.** Every cosine between a dense probe's direction and the pole's basis vector is at most 0.19 on Qwen (mass-mean; the logistic probes, at most 0.07). On the residual stream the mass-mean direction's cosine with the pole's signed `w_out` is at most 0.36 (L6/N4837+). The pole's write is a small component of the concept's direction there too. The values are in `probe-comparison.jsonl`.
+**The probe's direction is not the pole's.** Every cosine between a dense probe's direction and the pole's basis vector is at most 0.19 on Qwen for mass-mean. For the logistic probes it is at most 0.07. On the residual stream the mass-mean direction's cosine with the pole's signed `w_out` is at most 0.36 (L6/N4837+). The pole's write is a small component of the concept's direction there too. The values are in `probe-comparison.jsonl`.
 
-**GPT-2 L0/N1923+ is the one candidate for a dedicated neuron, but the data is too thin.** It ranks 1st, and at the protocol's line it alone catches all 15 held-out ' Street'-type tokens and is active on about 16 of the 8,000 negatives (BA 1.00; its explanation also claims ' Court' and ' field', which the rule leaves unmarked). The k = 1 probe is the best sparse probe. This fits a layer-0 token detector. But FineWeb-Edu gave only 15 positive tokens (the Pile 27), too few to estimate any probe, and the dense logistic probe's 0.80 (about 6 misses of 15) is noise at that size. A larger thoroughfare-name corpus is needed before this row means anything.
+**GPT-2 L0/N1923+ is the one candidate for a dedicated neuron, but the data is too thin.** It ranks 1st. At the protocol's line it alone catches all 15 held-out ' Street'-type tokens and is active on about 16 of the 8,000 negatives (BA 1.00). Its explanation also claims ' Court' and ' field', which the rule leaves unmarked. The k = 1 probe is the best sparse probe. This fits a layer-0 token detector. But FineWeb-Edu gave only 15 positive tokens (the Pile 27), too few to estimate any probe. The dense logistic probe's 0.80 (about 6 misses of 15) is noise at that size. A larger thoroughfare-name corpus is needed before this row means anything.
 
 ## Caveats
 
-- **The labels approximate the concepts.** The `thousands` rule marks every digit and comma of the numeral, while L17/N1420+ claims only the non-final digits after a separator and stays silent on a group's last digit. The `year` rule marks any number from 1500 to 2029, some of which are counts. A pole that matches its explanation exactly can still lose BA to a rule that is broader than the explanation. Both effects lower the pole's score, not the probes'. Rank is less affected by this than BA, because every neuron is measured against the same labels.
-- **Thresholds transfer worse than rankings.** Every probe's AUROC is about 0.99–1.00, but the dense logistic probe's BA at its training threshold is 0.80–0.92 on two rows: its scores shift between the Pile and FineWeb-Edu. That is why *neurons needed* is measured against the better of the two dense probes, and why the k-sparse curve of L17/N1420+ falls past k = 32.
+- **The labels approximate the concepts.** The `thousands` rule marks every digit and comma of the numeral. L17/N1420+ claims only the non-final digits after a separator and stays silent on a group's last digit. The `year` rule marks any number from 1500 to 2029, some of which are counts. A pole that matches its explanation exactly can still lose BA to a rule that is broader than the explanation. Both effects lower the pole's score, not the probes'. Rank is less affected by this than BA, because every neuron is measured against the same labels.
+- **Thresholds transfer worse than rankings.** Every probe's AUROC is about 0.99–1.00, but the dense logistic probe's BA at its training threshold is 0.80–0.92 on two rows. Its scores shift between the Pile and FineWeb-Edu. That is why *neurons needed* is measured against the better of the two dense probes. It is also why the k-sparse curve of L17/N1420+ falls past k = 32.
 - **One seed, one rule per concept, five records.** These are point estimates with no intervals. The numbers support the qualitative reading above, not small differences between rows.
 - **Correlational only.** A probe finds information that is linearly present, whether or not the model uses it. The causal counterpart is the next item of `TODO.md` (a DAS direction compared with the pole by interchange intervention).
 
