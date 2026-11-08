@@ -8,6 +8,7 @@ import pytest
 
 from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
 from openinterp.builder.compiler import compile_site, load_records
+from openinterp.builder.model_facts import ModelFacts, facts_from_config, format_parameters
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.schemas import (
@@ -416,12 +417,14 @@ def test_causal_chart_rendered(tmp_path, record):
     assert "Per-pair numbers" in page
 
 
-def test_cli_build_from_wiki_archive(tmp_path, records):
+def test_cli_build_from_wiki_archive(tmp_path, records, monkeypatch):
     from click.testing import CliRunner
 
+    from openinterp.builder import model_facts
     from openinterp.builder.wiki import write_experiment_page
     from openinterp.cli import cli
 
+    monkeypatch.setattr(model_facts, "model_config", lambda model, download=True: None)
     for rec in records:
         write_experiment_page(rec, tmp_path / "wiki")
     result = CliRunner().invoke(
@@ -1240,3 +1243,78 @@ def test_home_page_lists_a_stop_on_a_unit_with_no_page(tmp_path, record):
     assert "Scans that stopped on units with no page" in home and "L3/N9+" in home
     assert f"/blob/main/wiki/stops/{MODEL}/L3/N9-positive/20261105T230800Z.md" in home
     assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
+
+
+MODELS_PYPROJECT = """[tool.openinterp]
+models = ["Qwen/Qwen2.5-0.5B", "org/unstudied", "org/unreadable"]
+
+[tool.openinterp.licenses."Qwen/Qwen2.5-0.5B"]
+license = "apache-2.0"
+url = "https://u"
+gated = false
+publishing_allowed = true
+"""
+MODEL_FACTS = {
+    "Qwen/Qwen2.5-0.5B": ModelFacts(494_032_768, 24, 4864, "silu"),
+    "org/unstudied": ModelFacts(124_439_808, 12, 3072, "gelu_new"),
+}
+
+
+def _rows(page: str) -> list[list[str]]:
+    body = page[page.index("<tbody") : page.index("</tbody>")]
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.S)
+    return [re.sub(r"<[^>]+>", " ", r).split() for r in rows]
+
+
+def test_models_page_lists_every_configured_model(tmp_path, records, monkeypatch):
+    (tmp_path / "pyproject.toml").write_text(MODELS_PYPROJECT)
+    monkeypatch.chdir(tmp_path)
+    compile_site(records, tmp_path / "site", model_facts=MODEL_FACTS)
+    page = (tmp_path / "site" / "models" / "index.html").read_text()
+
+    rows = _rows(page)
+    assert [r[0] for r in rows] == ["Qwen/Qwen2.5-0.5B", "org/unstudied", "org/unreadable"]
+    qwen, unstudied, unreadable = rows
+    assert qwen[1:6] == ["494M", "24", "4,864", "silu", "apache-2.0"]
+    assert unstudied[1:7] == ["124M", "12", "3,072", "gelu_new", "not", "recorded"]
+    assert unstudied[-2:] == ["0", "0"]
+    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0"]
+
+    # A model with no record still gets a page when its config gives its layers.
+    assert 'href="../models/Qwen--Qwen2.5-0.5B/index.html"' in page
+    assert 'href="../models/org--unstudied/index.html"' in page
+    assert (tmp_path / "site" / "models" / "org--unstudied" / "index.html").exists()
+    assert "org--unreadable" not in page
+    # The header links the page from every page.
+    assert '<a href="models/index.html"' in (tmp_path / "site" / "index.html").read_text()
+
+
+def test_models_page_counts_experiments_and_verified(tmp_path, records, monkeypatch):
+    (tmp_path / "pyproject.toml").write_text(MODELS_PYPROJECT)
+    monkeypatch.chdir(tmp_path)
+    compile_site(records, tmp_path / "site", model_facts=MODEL_FACTS)
+    qwen = _rows((tmp_path / "site" / "models" / "index.html").read_text())[0]
+    assert qwen[-2:] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
+
+
+def test_facts_from_config_counts_parameters_not_buffers():
+    from transformers import GPT2Config, GPT2LMHeadModel
+
+    config = GPT2Config(n_layer=2, n_embd=8, n_head=2, vocab_size=10, n_positions=4)
+    facts = facts_from_config(config.to_dict())
+    real = GPT2LMHeadModel(config)
+    assert facts.parameters == sum(p.numel() for p in real.parameters())  # tied once
+    assert facts.parameters < sum(t.numel() for t in real.state_dict().values())
+    assert (facts.layers, facts.mlp_width, facts.activation) == (2, 32, "gelu_new")
+
+
+def test_facts_from_unknown_architecture():
+    facts = facts_from_config({"model_type": "no-such-model", "num_hidden_layers": 3})
+    assert facts == ModelFacts(None, None, None, None)
+
+
+def test_format_parameters():
+    assert format_parameters(124_439_808) == "124M"
+    assert format_parameters(1_543_714_304) == "1.54B"
+    assert format_parameters(None) == "—"
+    assert format_parameters(512) == "512"
