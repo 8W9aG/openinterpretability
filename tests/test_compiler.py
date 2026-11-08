@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import timedelta
+from pathlib import Path
 
 import duckdb
 import pyarrow.parquet as pq
@@ -11,6 +12,7 @@ from openinterp.builder.compiler import compile_site, load_records
 from openinterp.builder.model_facts import ModelFacts, facts_from_config, format_parameters
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
+from openinterp.core.licenses import DATA_LICENSE, DATA_LICENSE_URL
 from openinterp.core.schemas import (
     PROTOCOL_VERSION,
     ActivatingExample,
@@ -309,6 +311,15 @@ def test_about_page_quotes_protocol_and_licence(tmp_path):
     assert f"at least {ReviewPolicy().min_hard_negatives} hard negatives" in about
     assert "/blob/main/docs/PROTOCOL.md" in about
     assert "MIT licence" in about
+    assert DATA_LICENSE in about and DATA_LICENSE_URL in about
+
+
+def test_the_data_licence_is_stated_where_people_read_it():
+    # One licence, from DATA_LICENSE: the README and wiki/LICENSE.md must name it.
+    root = Path(__file__).resolve().parents[1]
+    for path in ("README.md", "wiki/LICENSE.md"):
+        assert DATA_LICENSE in (root / path).read_text(), path
+    assert DATA_LICENSE_URL in (root / "wiki/LICENSE.md").read_text()
 
 
 def test_histogram_bars(submission):

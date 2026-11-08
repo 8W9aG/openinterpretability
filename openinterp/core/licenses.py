@@ -1,10 +1,17 @@
-"""Schema for the terms of a model that the registry studies."""
+"""The terms of the models that the registry studies, and of the data it publishes."""
 
 from __future__ import annotations
 
 from pydantic import Field
 
 from openinterp.core.strict import StrictModel
+
+# The licence of the registry's data: the records and pages under ``wiki/`` and the site
+# built from them. The code is under ``LICENSE`` (MIT). Corpus excerpts inside records
+# keep their corpus's own terms, which ``<name>.source.json`` records.
+DATA_LICENSE = "CC-BY-4.0"
+DATA_LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"
+DATA_TERMS = {"data_license": DATA_LICENSE, "data_license_url": DATA_LICENSE_URL}  # for pages
 
 
 class ModelLicense(StrictModel):
