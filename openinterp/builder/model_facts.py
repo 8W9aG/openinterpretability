@@ -121,3 +121,18 @@ def models_view(configured: Iterable[str], nodes: Iterable, facts: dict, license
             }
         )
     return rows
+
+
+def render_models(render, models, facts: dict, render_model) -> None:
+    """Write the Models page, and a page for each configured model with no record yet.
+
+    ``render`` is the compiler's renderer and ``render_model`` writes one model's pages.
+    """
+    from openinterp.planner import configured_models
+
+    configured = configured_models()
+    empty = placeholder_models(configured, models, facts)
+    for model in empty:
+        render_model(render, model, {}, set())
+    rows = models_view(configured, [*models, *empty], facts, render.common["model_licenses"])
+    render("models/index.html", "models.html", rows=rows)
