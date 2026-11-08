@@ -164,3 +164,56 @@ def test_command_writes_judge_prompts_then_scores_their_answers(archive):
     assert "| Held-out experiments | detection | 1 | 0.50 | 1.00 | +0.50 | 100% |" in (
         out.with_suffix(".md").read_text()
     )
+
+
+def test_neuronpedia_baseline_scores_their_machine_explanation_and_credits_it(
+    tmp_path, record, monkeypatch
+):
+    from openinterp.core.identifiers import FeatureIdentifier
+    from openinterp.crossref import Explanation
+
+    ident = FeatureIdentifier(model_name="toy", layer=1, dictionary="toy-tc", feature_idx=7)
+    other = ident.model_copy(update={"feature_idx": 8})  # Neuronpedia has none for it
+    verdict = record.verdict.model_copy(update={"explanation_scores": scores()})
+
+    def audited(i):
+        sub = record.submission.model_copy(update={"identifier": i})
+        return None, record.model_copy(update={"submission": sub, "verdict": verdict})
+
+    monkeypatch.setattr(
+        "openinterp.builder.wiki.load_archive_paths", lambda _w: [audited(ident), audited(other)]
+    )
+    monkeypatch.setattr(
+        "openinterp.crossref.latent_url",
+        lambda d, layer, i, api=False: f"https://www.neuronpedia.org/toy/{layer}-tc/{i}",
+    )
+    found = {
+        7: [
+            Explanation(description="closing quotes", explainer="human"),
+            Explanation(description="quotation marks", explainer="gpt-4o-mini"),
+        ],
+        8: [],
+    }
+    monkeypatch.setattr("openinterp.crossref.latent_explanations", lambda d, layer, i: found[i])
+    monkeypatch.setattr(
+        "openinterp.harness.explanation_scores.embedding_similarities",
+        lambda _model, query, texts: [float(len(query) % 2)] * len(texts),
+    )
+    work, out = tmp_path / "work", tmp_path / "out" / "np"
+    args = ["neuronpedia-baseline", "--work-dir", work, "--out", out, "--judge-model",
+            "external/judge"]  # fmt: skip
+    result = CliRunner().invoke(cli, [str(a) for a in args])
+    assert result.exit_code == 0, result.output
+    assert "1 experiments await judge answers" in result.output
+    (prompt,) = (work / "judge").rglob("*.detection.prompt.md")
+    assert "quotation marks" in prompt.read_text()  # machine-written, word for word
+    assert "closing quotes" not in prompt.read_text()
+    rows = [json.loads(line) for line in out.with_suffix(".jsonl").read_text().splitlines()]
+    assert [r["reading"] for r in rows] == [
+        "Neuronpedia, gpt-4o-mini",
+        "no Neuronpedia explanation",
+    ]
+    md = out.with_suffix(".md").read_text()
+    assert "credited to the model that wrote them (gpt-4o-mini on 1 experiments)" in md
+    assert "Neuronpedia has one for 1 of the 2 audited latents" in md
+    assert "[toy/L1/toy-tc/F7](https://www.neuronpedia.org/toy/1-tc/7)" in md

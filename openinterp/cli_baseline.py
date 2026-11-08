@@ -71,14 +71,36 @@ def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):
 
 def _baseline_row(record, readouts: dict, work_dir: Path, judge_model: str):
     """(the record's BaselineRow, whether it still awaits judge answers)."""
-    from openinterp.baseline import METRICS, BaselineRow, blind_explanation, metric, rescored
+    from openinterp.baseline import DEV_SLUGS, blind_explanation, blind_reading
+
+    readout = readouts[record.submission.identifier.slug]
+    reading = (blind_reading(readout) or readout.readings[0]).text
+    return paired_row(
+        record,
+        blind_explanation(readout),
+        reading,
+        work_dir,
+        judge_model,
+        dev=record.submission.identifier.slug in DEV_SLUGS,
+    )
+
+
+def paired_row(
+    record, explanation: str | None, reading: str, work_dir: Path, judge_model: str, *, dev: bool
+):
+    """Score ``explanation`` on the record's held-out windows, paired with the agent's.
+
+    Return (the record's BaselineRow, whether it still awaits judge answers). It writes
+    the judge task under ``work_dir`` the first time. Detection and fuzzing are scored
+    only when ``judge_model`` judged the agent's explanation too.
+    """
+    from openinterp.baseline import METRICS, BaselineRow, metric, rescored
     from openinterp.builder.wiki import experiment_id
     from openinterp.harness.explanation_scores import embedding_similarities
 
     scores = record.verdict.explanation_scores
     eid, slug = experiment_id(record), record.submission.identifier.slug
-    explanation = blind_explanation(readouts[slug])
-    row = _row_fields(record, readouts[slug], explanation)
+    row = _row_fields(record, reading, explanation, dev)
     agent = row["agent"]
     if explanation is None:
         return BaselineRow(**row), False
@@ -103,20 +125,19 @@ def _baseline_row(record, readouts: dict, work_dir: Path, judge_model: str):
     return BaselineRow(**row), waiting
 
 
-def _row_fields(record, readout, explanation: str | None) -> dict:
-    """The row before the baseline is scored: the agent's metrics and the readout."""
-    from openinterp.baseline import DEV_SLUGS, METRICS, blind_reading, metric
+def _row_fields(record, reading: str, explanation: str | None, dev: bool) -> dict:
+    """The row before the baseline is scored: the agent's metrics and the reading."""
+    from openinterp.baseline import METRICS, metric
     from openinterp.builder.wiki import experiment_id
 
     sub, scores = record.submission, record.verdict.explanation_scores
-    slug = sub.identifier.slug
     return dict(
         experiment_id=experiment_id(record),
-        slug=slug,
+        slug=sub.identifier.slug,
         status=record.verdict.status,
         selection=sub.provenance.selection if sub.provenance else None,
-        dev=slug in DEV_SLUGS,
-        reading=(blind_reading(readout) or readout.readings[0]).text,
+        dev=dev,
+        reading=reading,
         agent_explanation=scores.explanation,
         baseline_explanation=explanation,
         judge_model=scores.judge_model,
@@ -151,13 +172,13 @@ def _judged(record, explanation: str, task_path: Path):
     return detection, fuzzing, {"detection_answer": det, "fuzzing_answer": fuz}
 
 
-def _write_report(rows, out: Path, pending: int, work_dir: Path) -> None:
-    from openinterp.baseline import report
+def _write_report(rows, out: Path, pending: int, work_dir: Path, report=None) -> None:
+    from openinterp.baseline import report as patchscope_report
 
     out.parent.mkdir(parents=True, exist_ok=True)
     jsonl = out.with_suffix(".jsonl")
     jsonl.write_text("".join(r.model_dump_json() + "\n" for r in rows))
-    table = report(rows)
+    table = (report or patchscope_report)(rows)
     out.with_suffix(".md").write_text(table)
     click.echo(table)
     if pending:
@@ -234,3 +255,76 @@ def _task(record, explanation: str):
         detection=windows(scores.detection_windows),
         fuzzing=windows(scores.fuzzing_windows),
     )
+
+
+@cli.command("neuronpedia-baseline")
+@wiki_dir_option()
+@click.option(
+    "--work-dir",
+    default="exchange/neuronpedia-baseline",
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Judge prompts and their answers.",
+)
+@click.option(
+    "--judge-model",
+    default="external/claude-haiku-5-5",
+    show_default=True,
+    callback=recorded_model_option,
+    help="Write judge prompts for the experiments this judge scored, and record their "
+    "answers as its own: the pair is only fair with the same judge.",
+)
+@click.option(
+    "--out",
+    default="docs/analyses/neuronpedia-baseline",
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Writes <out>.jsonl (one row per experiment) and <out>.md (the comparison).",
+)
+def neuronpedia_baseline(wiki_dir, work_dir, judge_model, out):
+    """Score Neuronpedia's explanation of each audited latent, against the agent's.
+
+    Only dictionary latents that Neuronpedia hosts are compared. Each takes the latent's
+    first machine-written explanation, word for word. It is scored on the held-out
+    windows that the agent's explanation was scored on. Explanations are read from Neuronpedia's
+    public API once and cached; nothing is sent to it.
+
+    \b
+    Run it once to write judge prompts under --work-dir.
+    Answer each prompt with its own explanation-judge.
+    Then run it again to score the answers.
+    """
+    from openinterp.builder.wiki import load_archive_paths
+    from openinterp.crossref import latent_explanations, latent_url, machine_explanation
+    from openinterp.neuronpedia_baseline import reading, report
+
+    records = []
+    for _, r in load_archive_paths(wiki_dir):
+        ident = r.submission.identifier
+        if not (r.verdict and r.verdict.explanation_scores):
+            continue
+        if ident.kind == "dictionary_feature" and latent_url(
+            ident.dictionary, ident.layer, ident.feature_idx
+        ):
+            records.append(r)
+    click.echo(f"{len(records)} experiments on latents Neuronpedia hosts.", err=True)
+    rows, pending, links = [], 0, {}
+    for record in records:
+        ident = record.submission.identifier
+        links[ident.slug] = latent_url(ident.dictionary, ident.layer, ident.feature_idx)
+        found = latent_explanations(ident.dictionary, ident.layer, ident.feature_idx)
+        if found is None:
+            raise click.ClickException(f"could not read {links[ident.slug]}; try again later")
+        theirs = machine_explanation(found)
+        explanation = theirs and theirs.description
+        row, waiting = paired_row(
+            record,
+            explanation,
+            reading(theirs and theirs.explainer),
+            work_dir,
+            judge_model,
+            dev=False,
+        )
+        rows.append(row)
+        pending += waiting
+    _write_report(rows, out, pending, work_dir, report=lambda rs: report(rs, links))
