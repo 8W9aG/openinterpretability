@@ -219,7 +219,7 @@ The sweeps above use the searched endings. Each layer's best R² moved by at mos
 
 ## Qwen2.5-0.5B
 
-We repeated the sweep and the sweep by bracket kind on Qwen2.5-0.5B (Qwen Team, 2024), on the same 500 documents. It has 24 layers of 4,864 neurons, so 233,472 poles. Its MLP is gated. A pole is the positive or negative part of the input to the down projection, which is the product of the gate and up projections. The registry sets no window for Qwen, so each document is one piece, about 500 tokens on average. The 200,000-token sample holds all 396 documents with a grammar.
+We repeated the sweep and the sweep by bracket kind on Qwen2.5-0.5B (Yang et al., 2024), on the same 500 documents. It has 24 layers of 4,864 neurons, so 233,472 poles. Its MLP is gated. A pole is the positive or negative part of the input to the down projection, which is the product of the gate and up projections. The registry sets no window for Qwen, so each document is one piece, about 500 tokens on average. The 200,000-token sample holds all 396 documents with a grammar.
 
 | Label set | GPT-2 small, best pole | R² | Qwen2.5-0.5B, best pole | R² |
 | --- | --- | --- | --- | --- |
@@ -287,5 +287,5 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 - Friedman, D., Lampinen, A., Dixon, L., Chen, D. & Ghandeharioun, A. (2024). *Interpretability Illusions in the Generalization of Simplified Models*. ICML 2024. [arXiv:2312.03656](https://arxiv.org/abs/2312.03656).
 - Gurnee, W., Horsley, T., Guo, Z. C., Kheirkhah, T. R., Sun, Q., Hathaway, W., Nanda, N. & Bertsimas, D. (2024). *Universal Neurons in GPT2 Language Models*. [arXiv:2401.12181](https://arxiv.org/abs/2401.12181).
 - Karpathy, A., Johnson, J. & Fei-Fei, L. (2015). *Visualizing and Understanding Recurrent Networks*. [arXiv:1506.02078](https://arxiv.org/abs/1506.02078).
-- Qwen Team (2024). *Qwen2.5 Technical Report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).
 - Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Yang, A., et al. (2024). *Qwen2.5 Technical Report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).
