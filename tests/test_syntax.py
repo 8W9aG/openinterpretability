@@ -153,6 +153,34 @@ def test_a_cut_inside_a_class_keeps_the_enclosing_constructs():
     assert label_at(text, nodes, "1") == NUMBER
 
 
+@pytest.mark.parametrize(
+    ("language", "text", "inner", "construct"),
+    [
+        # A block closes with `end`, which a closing bracket can't add.
+        ("Ruby", "class A\n  def f(a)\n    if a\n      g(a, 1", "if a", "conditional"),
+        ("Lua", "function f(a)\n  for i = 1, 3 do\n    g(a, i", "for i", "loop"),
+        # The added brackets would be inside the comment without a line break first.
+        (
+            "PHP",
+            "<?php\nclass A {\n    public function f($a) {\n        return 1; // note (",
+            "return",
+            "function",
+        ),
+    ],
+)
+def test_a_cut_keeps_its_constructs_when_brackets_alone_cannot_close_it(
+    language, text, inner, construct
+):
+    _, constructs = parse_labels(text, language)
+    assert len(constructs) == len(text)
+    assert label_at(text, constructs, inner) == construct
+
+
+def test_a_parse_with_no_error_gets_no_ending():
+    text = "def f(a):\n    return a\n"
+    assert parse_labels(text, "Python") == syntax._paint(text, "Python")
+
+
 def test_taggers_cover_a_document_and_skip_those_without_a_grammar():
     taggers = syntax_taggers(["Python", "Markdown", None])
     names = [SYNTAX_NODE, BRACKET_DEPTH, ROUND_DEPTH, INDENT_DEPTH, SYNTAX_CONSTRUCT]
