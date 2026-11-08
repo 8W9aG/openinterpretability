@@ -17,6 +17,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **Three default-on negative poles of GPT-2 lose VERIFIED** (from TODO, Pipeline). `openinterp reevaluate` re-measured their protocol-0.7 records under protocol 0.8. L5/N4−, L7/N1883− and L9/N2000− are now NEEDS_REVISION (#2401, #2402, #2403). Each fails only `not_default_on`, with active shares of 0.56, 0.84 and 0.77. This is what `docs/analyses/position-zero.md` predicted. L1/N277− was rescanned on `corpus.jsonl` (#2376) and stays VERIFIED, with an active share of 0.45.
 - **Cut code documents get searched endings** (`openinterp/syntax.py`). A document cut mid-class parsed with its contents at top level. The tagger now tries endings that start with a line break, `*/` or a quote, add the open brackets, and for Ruby and Lua add `end`s. It keeps the one with the fewest characters in error nodes. Against whole files, the share of construct characters lost to top level falls from 7.7% to 1.7%.
 - **Paper result files are exempt from the 500-line limit** (`scripts/check_line_limit.py`), as `docs/analyses/*.jsonl` is.
 
