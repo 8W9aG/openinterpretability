@@ -21,10 +21,20 @@ import figures_why_rest
 PAPERS = Path(__file__).parents[1] / "papers"
 
 
-def _rows(paper: str) -> list[dict]:
-    """Return the rows of one paper's results."""
-    with (PAPERS / paper / "results.jsonl").open(encoding="utf-8") as lines:
+def _rows(paper: str, name: str = "results.jsonl") -> list[dict]:
+    """Return the rows of one paper's results, or of another results file of the paper."""
+    with (PAPERS / paper / name).open(encoding="utf-8") as lines:
         return [json.loads(line) for line in lines]
+
+
+def _other_models(paper: str) -> dict[str, list[dict]]:
+    """Return the rows of each results-<model>.jsonl of a paper, by the model's short name."""
+    found = {}
+    for path in sorted((PAPERS / paper).glob("results-*.jsonl")):
+        rows = _rows(paper, path.name)
+        model = next(r["model"] for r in rows if r["kind"] == "sample")
+        found[model.split("/")[-1]] = rows
+    return found
 
 
 def build_all() -> dict[str, str]:
@@ -43,7 +53,9 @@ def build_all() -> dict[str, str]:
             "ridges.svg": figures_depth.ridges(poles, dip),
         },
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
-        "syntax-positive-controls": figures_syntax.build(_rows("syntax-positive-controls")),
+        "syntax-positive-controls": figures_syntax.build(
+            _rows("syntax-positive-controls"), _other_models("syntax-positive-controls")
+        ),
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),
             **figures_why_rest.build(resting, dip),
