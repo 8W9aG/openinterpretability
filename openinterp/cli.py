@@ -470,6 +470,7 @@ from openinterp import (  # noqa: E402, F401
     cli_costs,
     cli_crossref,
     cli_evidence,
+    cli_neuronpedia,
     cli_probing,
     cli_registry,
     cli_reproduce,

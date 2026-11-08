@@ -44,11 +44,8 @@ from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     Pole,
 )
 from openinterp.core.patchscope import PatchscopeReadout
-from openinterp.core.profiles import (  # noqa: F401  (re-exported)
-    DictionaryProfile,
-    DictionarySite,
-    HeadProfile,
-)
+from openinterp.core.prior_art import PriorArtField
+from openinterp.core.profiles import DictionaryProfile, DictionarySite, HeadProfile  # noqa: F401
 from openinterp.core.specificity import WordnetSpecificity, WordStrength  # noqa: F401
 from openinterp.core.steering import SteeringSamples
 from openinterp.core.strict import StrictModel, UnitFloat
@@ -317,6 +314,7 @@ class NeuronAuditSubmission(StrictModel):
         description="The model's own description of the unit's output direction, read after "
         "the proposer answered and shown to neither agent (reported, not gated).",
     )
+    prior_art: PriorArtField = None
     steering: SteeringSamples | None = Field(
         default=None,
         description="Neutral prompts continued with the unit clamped high, at baseline and "

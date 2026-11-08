@@ -1,0 +1,24 @@
+{# Prior art for _experiment.html. Expects `sub`. #}
+  {% if sub.prior_art %}
+  <section class="mb-10" data-pagefind-ignore>
+    <h3 class="mb-1 text-base font-semibold">Prior art</h3>
+    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Published explanations of this unit, or of latents whose weights align with it, looked up after the proposer answered. The proposer never saw them; the reviewer did, as a source of probes. They are other people's claims, not measurements.</p>
+    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr><th class="px-3 py-2">Latent</th><th class="px-3 py-2">Relation</th><th class="px-3 py-2">Explanation</th><th class="px-3 py-2">By</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for p in sub.prior_art %}
+          <tr>
+            <td class="px-3 py-1 font-mono"><a class="underline-offset-2 hover:underline" href="{{ p.url }}" rel="noopener">{{ p.dictionary }} F{{ p.feature_idx }}</a></td>
+            <td class="px-3 py-1">{% if p.relation == "self" %}this latent{% else %}{{ p.relation }} along the pole ({{ "%+.2f" | format(p.cosine) }}){% endif %}</td>
+            <td class="px-3 py-1">{{ p.description }}</td>
+            <td class="px-3 py-1 text-slate-500">{{ p.source | capitalize }}, {{ p.explainer }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}

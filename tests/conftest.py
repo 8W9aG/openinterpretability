@@ -203,6 +203,12 @@ def no_toxicity_models(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_prior_art(monkeypatch):
+    """Keep audits in tests off Neuronpedia's API (tests opt back in)."""
+    monkeypatch.setenv("OPENINTERP_PRIOR_ART", "0")
+
+
+@pytest.fixture(autouse=True)
 def _no_auto_sign(monkeypatch):
     """Never sign test records with the developer's real key (tests opt back in)."""
     monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
