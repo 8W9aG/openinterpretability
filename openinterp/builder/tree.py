@@ -117,6 +117,15 @@ class UnitNode:
         return self.kind == "dictionary_feature"
 
     @property
+    def neuronpedia(self) -> str | None:
+        """The feature's Neuronpedia page, where Neuronpedia hosts it; ``None`` otherwise."""
+        from openinterp.crossref import latent_url
+
+        if not self.is_feature or self.dictionary is None:
+            return None
+        return latent_url(self.dictionary, self.layer, self.idx)
+
+    @property
     def sides(self) -> tuple[str, ...]:
         """The sides that the unit page groups experiments under."""
         return SIDES[self.kind]
