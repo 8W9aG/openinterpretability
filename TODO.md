@@ -317,7 +317,9 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Interoperate with [Neuronpedia](https://www.neuronpedia.org). Export VERIFIED explanations in its format for the models both cover (GPT-2 small today, Gemma once added), with links back to the records. In the other direction, import its auto-interp explanations for the same neurons and run them through the usual review as a baseline proposer.
+- [ ] Interoperate with [Neuronpedia](https://www.neuronpedia.org). Read their published data and never write to their site: no API posts, no account uploads, no votes. Neuronpedia hosts no native MLP neurons for GPT-2 small (its `mlp-oai` sources are SAEs) and nothing for Qwen2.5-0.5B or 1.5B. So the overlap is dictionary latents (GPT-2 `tres-dc`, Gemma Scope, Llama Scope). Done: polite, cached lookups with credit (`openinterp/crossref.py`), the import as a blind proposer baseline (`openinterp neuronpedia-baseline`), and links from audited latent pages to Neuronpedia. Left:
+  - Run the imported explanations through the full review too, not only explanation scoring, to compare VERIFIED rates.
+  - Export VERIFIED records as a file in Neuronpedia's export format (`openinterp export-neuronpedia`), with type `openinterp-verified` and a link back to each record, attached to each release. Needs the data licence (Housekeeping) first.
 - [ ] Publish a public benchmark for explanation tools: a frozen, versioned set of units and probe sets, with a scorer. Then other labs can test their own explainers against them. The reviewer-drift benchmark (Protocol and science) is internal only. Keep a held-out split, and say how units were selected so the scores aren't read as covering whole models.
 
 ## Datasets
