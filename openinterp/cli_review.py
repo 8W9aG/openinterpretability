@@ -195,8 +195,9 @@ def write_review_prompt(
     """Write the reviewer's prompt for ``submission`` to ``emit_prompt``."""
     from openinterp.agents.reviewer import ProbeSet, ReviewerAgent
     from openinterp.cli_evidence import answer_path
+    from openinterp.core.paths import PROBES_SUFFIX
 
-    answer = answer_path(emit_prompt, ".probes.json")
+    answer = answer_path(emit_prompt, PROBES_SUFFIX)
     task = ReviewerAgent.probe_prompt(submission, n_probes, full_snippets, latents)
     emit_prompt.parent.mkdir(parents=True, exist_ok=True)
     emit_prompt.write_text(ReviewerAgent.render_prompt(ProbeSet, task, answer))
@@ -236,18 +237,38 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
         )
 
 
+def refuse_unisolated(probes_file: Path) -> None:
+    """Stop if the usage file of ``probes_file`` says that the reviewer read blocked paths.
+
+    ``openinterp usage`` writes that list from the reviewer's transcript
+    (``openinterp/core/isolation.py``). With no usage file, nothing is checked.
+    """
+    from openinterp.core.costs import ExternalUsage, usage_path
+
+    if not (usage_file := usage_path(probes_file)).exists():
+        return
+    read = ExternalUsage.model_validate_json(usage_file.read_text()).forbidden_reads
+    if read:
+        raise click.ClickException(
+            f"The reviewer that wrote {probes_file} read blocked paths ({', '.join(read)}). "
+            "They can hold probe activations (docs/PROTOCOL.md §2). Ask a new reviewer."
+        )
+
+
 def review_probes(
     reviewer, submission, probes_file, n_probes: int, full_snippets: bool, latents: str = ""
 ):
     """The probes in ``probes_file`` (an external reviewer's), or the reviewer LLM's."""
     from openinterp.agents.reviewer import ProbeSet
     from openinterp.core import costs
+    from openinterp.core.paths import PROBES_SUFFIX, PROMPT_SUFFIX
 
     if probes_file is not None:
         probes = ProbeSet.model_validate_json(probes_file.read_text()).probes
+        refuse_unisolated(probes_file)
         # --emit-prompt review.prompt.md is answered in review.probes.json.
-        stem = probes_file.name.removesuffix(".probes.json")
-        prompt_file = probes_file.with_name(stem + ".prompt.md")
+        stem = probes_file.name.removesuffix(PROBES_SUFFIX)
+        prompt_file = probes_file.with_name(stem + PROMPT_SUFFIX)
         costs.add_external("reviewer", reviewer.model, prompt_file, probes_file)
         return probes
     click.echo(f"Generating {n_probes} adversarial probes with {reviewer.model}…", err=True)

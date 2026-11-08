@@ -11,6 +11,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli_evidence import with_costs
+from openinterp.core.paths import DEFAULT_SUBMISSIONS_DIR
 
 
 def read_patchscope(runner, submission):
@@ -149,7 +150,7 @@ def write_submission(
             **after,
         }
     )
-    out = out or Path("submissions") / f"{ident.slug}.json"
+    out = out or DEFAULT_SUBMISSIONS_DIR / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(submission.model_dump_json(indent=2))
     click.echo(f"Hypothesis: {submission.natural_language_explanation}")
