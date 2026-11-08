@@ -15,6 +15,8 @@ The project has two version numbers:
 
 - **The first page of the literature review** (`docs/literature/training-llms-to-predict-world-events.md`), with its index (`docs/literature/README.md`). It reviews the first entry in `docs/literature/queue.md`, written from the post and its question list, and marks it not applicable.
 
+- **Reviewer isolation is enforced** (`openinterp/core/isolation.py`, `.claude/agents/neuron-reviewer.md`, from TODO, Merge verification). A `PreToolUse` hook denies the `neuron-reviewer` agent reads, writes and searches of `wiki/experiments/`, `submissions/`, `logs/`, `build/`, `dist/` and `exchange/`, except its prompts and probe sets. If the hook fails, the call is denied. `openinterp usage` checks the reviewer's transcript with the same rule and writes the blocked paths it read to the usage file (`forbidden_reads`). `review --probes` refuses a probe set whose usage file lists any. Of 1,639 past reviewer transcripts, 6 match the rule. In one of them, a reviewer in another checkout searched the whole repository and got lines of other units' records.
+
 ### Changed
 
 - **Experiment PRs skip "Lint and tests"** (`.github/workflows/ci.yml`, from TODO, Performance). A new `code-changes` job lists a pull request's changed files. When all of them are under `wiki/` (the rule `auto-merge.yml` uses), the code is the same as on `main`, so the job is skipped. A skipped job counts as passing, so it stays a required check. It still runs on pushes to `main`, and if `code-changes` fails. The `choose-next-experiment` and `land-experiment` skills run `make check` only, and add `lint test` when a branch changes code.
