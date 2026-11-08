@@ -8,7 +8,9 @@ aligns with its read (:mod:`openinterp.harness.crossref`). Rows go to
 A row names only the dictionary and each latent's index. A latent's description is with
 the dictionary's host, or in this registry if the latent was audited here. The host is
 Neuronpedia, where :attr:`DictionarySpec.neuronpedia` says it has them. The description
-is looked up when shown.
+is looked up when shown, and kept on disk so that each latent is fetched only once
+(``$OPENINTERP_NEURONPEDIA_CACHE``, ``off`` to turn it off). A description from
+Neuronpedia is credited to it and to the model that wrote it.
 
 Agreement between a pole's explanation and an aligned latent's is supporting evidence.
 Disagreement is something for the reviewer to probe (`openinterp review
@@ -18,16 +20,21 @@ Disagreement is something for the reviewer to probe (`openinterp review
 from __future__ import annotations
 
 import json
+import os
+import time
+import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
+from openinterp.core.cache_dirs import cache_root
 from openinterp.core.schemas import AuditRecord, NeuronIdentifier
 from openinterp.core.strict import StrictModel
 
 DEFAULT_PATH = Path("docs/analyses/dictionary-alignment.jsonl")
 NEURONPEDIA = "https://www.neuronpedia.org"
+MAX_WAIT = 60.0  # seconds: the longest wait before asking Neuronpedia again
 
 
 class LatentMatch(StrictModel):
@@ -202,31 +209,144 @@ def layer_of(row: AlignmentRow) -> int:
 
 def neuronpedia_url(row: AlignmentRow, feature_idx: int, *, api: bool = False) -> str | None:
     """The latent's Neuronpedia page (or API endpoint), where Neuronpedia hosts it."""
+    return latent_url(row.dictionary, layer_of(row), feature_idx, api=api)
+
+
+def latent_url(dictionary: str, layer: int, feature_idx: int, *, api: bool = False) -> str | None:
+    """The Neuronpedia page (or API endpoint) of a latent of a dictionary preset.
+
+    ``None`` where Neuronpedia does not host that dictionary at ``layer``.
+    """
     from openinterp.harness.dictionaries import DICTIONARIES
 
-    spec = DICTIONARIES.get(row.dictionary)
-    source = spec and spec.neuronpedia_source(layer_of(row))
+    spec = DICTIONARIES.get(dictionary)
+    source = spec and spec.neuronpedia_source(layer)
     if not source:
         return None
     return f"{NEURONPEDIA}{'/api/feature' if api else ''}/{source}/{feature_idx}"
 
 
-def neuronpedia_description(row: AlignmentRow, feature_idx: int, timeout: float = 20):
-    """Return the latent's first Neuronpedia explanation.
+class Explanation(StrictModel):
+    """One Neuronpedia explanation of a latent, with who wrote it.
+
+    ``explainer`` is the model that wrote it (e.g. ``gpt-4-turbo``), or ``"human"``.
+    The author's account is not kept.
+    """
+
+    description: str
+    explainer: str
+
+
+def user_agent() -> str:
+    """The User-Agent for requests to Neuronpedia: this package, its version and its repo."""
+    from importlib.metadata import PackageNotFoundError, metadata
+
+    from openinterp import __version__
+
+    try:
+        urls = metadata("openinterp").get_all("Project-URL") or []
+    except PackageNotFoundError:
+        urls = []
+    repo = next((u.split(", ", 1)[1] for u in urls if u.startswith("Repository, ")), None)
+    return f"openinterp/{__version__}" + (f" (+{repo})" if repo else "")
+
+
+def _cache_path(url: str) -> Path | None:
+    """Where the explanations fetched from ``url`` are kept; None if the cache is off."""
+    root = cache_root("OPENINTERP_NEURONPEDIA_CACHE", "neuronpedia")
+    if root is None:
+        return None
+    return root / f"{url.split('/api/feature/', 1)[1]}.json"
+
+
+def _get_json(url: str, *, timeout: float, retries: int, sleep: Callable, opener: Callable):
+    """GET ``url`` as JSON. Wait and try again when the server says it is busy (429, 5xx).
+
+    Return ``None`` if the request fails or the server stays busy.
+    """
+    request = urllib.request.Request(url, headers={"User-Agent": user_agent()})
+    for attempt in range(retries + 1):
+        try:
+            with opener(request, timeout=timeout) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as err:
+            busy = err.code == 429 or err.code >= 500
+            if not busy or attempt == retries:
+                return None
+            try:
+                wait = float(err.headers.get("Retry-After", ""))
+            except (TypeError, ValueError):
+                wait = 2.0 * 2**attempt
+            sleep(min(wait, MAX_WAIT))
+        except (OSError, ValueError):
+            return None
+    return None
+
+
+def neuronpedia_explanations(
+    row: AlignmentRow,
+    feature_idx: int,
+    timeout: float = 20,
+    **kwargs,
+) -> list[Explanation] | None:
+    """Return the Neuronpedia explanations of latent ``feature_idx`` aligned in ``row``."""
+    return latent_explanations(row.dictionary, layer_of(row), feature_idx, timeout, **kwargs)
+
+
+def latent_explanations(
+    dictionary: str,
+    layer: int,
+    feature_idx: int,
+    timeout: float = 20,
+    *,
+    retries: int = 3,
+    sleep: Callable = time.sleep,
+    opener: Callable = urllib.request.urlopen,
+) -> list[Explanation] | None:
+    """Return the latent's Neuronpedia explanations, kept on disk after the first fetch.
+
+    A latent is fetched once: later calls read the cache, also when it has no
+    explanations. ``None`` if Neuronpedia does not host the latent or the request fails;
+    a failure is not cached.
+    """
+    url = latent_url(dictionary, layer, feature_idx, api=True)
+    if url is None:
+        return None
+    path = _cache_path(url)
+    if path is not None and path.exists():
+        return [Explanation.model_validate(e) for e in json.loads(path.read_text())]
+    data = _get_json(url, timeout=timeout, retries=retries, sleep=sleep, opener=opener)
+    if not isinstance(data, dict):
+        return None
+    found = [
+        Explanation(
+            description=text,
+            explainer=e.get("explanationModelName")
+            or ("human" if e.get("typeName") == "human" else "unknown"),
+        )
+        for e in data.get("explanations") or []
+        if (text := (e.get("description") or "").strip())
+    ]
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        partial = path.with_suffix(f".{os.getpid()}.part")  # reviews can run side by side
+        partial.write_text(json.dumps([e.model_dump() for e in found]))
+        partial.replace(path)
+    return found
+
+
+def neuronpedia_description(row: AlignmentRow, feature_idx: int, **kwargs) -> Explanation | None:
+    """Return the latent's first machine-written Neuronpedia explanation, else its first.
 
     ``None`` if it has none or the request fails.
     """
-    url = neuronpedia_url(row, feature_idx, api=True)
-    if url is None:
-        return None
-    request = urllib.request.Request(url, headers={"User-Agent": "openinterp"})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            data = json.load(response)
-    except (OSError, ValueError):
-        return None
-    explanations = data.get("explanations") or [{}]
-    return (explanations[0].get("description") or "").strip() or None
+    found = neuronpedia_explanations(row, feature_idx, **kwargs) or []
+    return machine_explanation(found) or next(iter(found), None)
+
+
+def machine_explanation(found: Iterable[Explanation] | None) -> Explanation | None:
+    """The first machine-written explanation of ``found``; ``None`` if there is none."""
+    return next((e for e in found or [] if e.explainer != "human"), None)
 
 
 def feature_slug(row: AlignmentRow, feature_idx: int) -> str:
@@ -244,8 +364,10 @@ def describe(
 ) -> list[dict]:
     """Return each aligned latent of ``rows`` with its description.
 
-    The description is the registry's explanation (``registry`` maps feature slugs to it),
-    or else Neuronpedia's.
+    The description is the registry's explanation, where the latent was audited here
+    (``registry`` maps feature slugs to it). Otherwise it is what ``fetch`` returns.
+    ``source`` says where it came from. That is "this registry", or Neuronpedia and the
+    model that wrote it.
     """
     registry = registry or {}
     out = []
@@ -260,7 +382,9 @@ def describe(
                 slug = feature_slug(row, m.feature_idx)
                 text, source = registry.get(slug), "this registry"
                 if text is None:
-                    text, source = fetch(row, m.feature_idx), "Neuronpedia"
+                    found = fetch(row, m.feature_idx)
+                    text = found and found.description
+                    source = found and f"Neuronpedia, {found.explainer}"
                 out.append(
                     {
                         "row": row,
