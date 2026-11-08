@@ -31,6 +31,8 @@ from openinterp.builder.agents import (
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.heat import HeatToken, token_heat
+from openinterp.builder.model_facts import ModelFacts, render_models
+from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
@@ -51,6 +53,7 @@ from openinterp.builder.tree import (
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.draws import ChosenStop
 from openinterp.core.exceptions import RegistryError
+from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
 from openinterp.planner import configured_licenses
@@ -281,6 +284,7 @@ def compile_site(
     sister_rows: dict | None = None,
     papers_dir: Path | None = None,
     stops: Sequence[ChosenStop] = (),
+    model_facts: dict[str, ModelFacts] | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -290,6 +294,8 @@ def compile_site(
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
     ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`).
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
+    ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
+    Models page, which lists every model in ``[tool.openinterp] models``.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -310,6 +316,7 @@ def compile_site(
     report = BuildReport(output_dir, len(records), len(experiments))
     report.parquet = export_registry(experiments, output_dir, corpus_sources)
     export_draws(draws, output_dir)  # random draws no experiment could audit
+    export_neuronpedia(experiments, output_dir, _project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments)
     render = _Renderer(_environment(), output_dir, common, report)
@@ -318,6 +325,17 @@ def compile_site(
     for model in models:
         sisters = (sister_rows or {}, sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
+    render_models(render, models, model_facts or {}, _render_model)
+    agents = _render_agents(render, experiments, output_dir, report)
+    _render_index(render, models, experiments, agents, stats, draws, by_unit, studied)
+    license = metadata("openinterp")["License-Expression"]
+    render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
+    _render_research(render, papers_dir, output_dir, report)
+    return report
+
+
+def _render_agents(render, experiments, output_dir, report) -> list:
+    """Write the agents page, each agent's page and redirects from old agent paths."""
     agents = agents_view(experiments)
     contributors = contributors_view(experiments)
     render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
@@ -325,11 +343,7 @@ def compile_site(
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
-    _render_index(render, models, experiments, agents, stats, draws, by_unit, studied)
-    license = metadata("openinterp")["License-Expression"]
-    render("about.html", "about.html", policy=ReviewPolicy(), license=license)
-    _render_research(render, papers_dir, output_dir, report)
-    return report
+    return agents
 
 
 def _render_research(render, papers_dir, output_dir, report) -> None:

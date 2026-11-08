@@ -40,9 +40,9 @@ from openinterp.syntax import (
     TOP_LEVEL,
     SyntaxTagger,
     _depth_label,
+    _missing_closers,
     _paint,
     _runs,
-    bracket_depths,
     parse_labels,
     syntax_taggers,
 )
@@ -50,8 +50,9 @@ from openinterp.syntax import (
 MAX_LEVELS = 16  # more than any syntax label set has
 TOP_POLES = 5
 POLES = ("positive", "negative")
-CUT_CHARS = 1500  # half of the corpus's max_chars: the stability test's shorter cut
-FULL_CHARS = 3000
+# GPT-2's L2 N676+, whose R² and rank in its layer `kinds` records for each label set.
+TRACKED_MODEL, TRACKED_LAYER, TRACKED_NEURON = "openai-community/gpt2", 2, 676
+STABILITY_CUTS = (1500, 3000)  # the corpus's max_chars, and half of it
 CODE, INSIDE = "code", "inside"  # the variants of a depth label set
 
 
@@ -75,38 +76,54 @@ def depth_variants(tokens: TokenLabels, labels: dict[str, torch.Tensor]) -> dict
     return out
 
 
-def stability(rows: list[dict], parse) -> list[dict]:
-    """Compare ``parse``'s labels of a document's first characters, under two cuts.
+def closers_added(text: str, language: str) -> tuple[list[str], list[str]]:
+    """Label ``text`` with the first fix for cut documents: add the open brackets' closers.
 
-    A label that a cut does not change agrees. It also gives the share of characters
-    inside brackets that read as top level, which a lost enclosing construct causes.
+    This was the tagger before it searched endings (``openinterp.syntax.parse_labels``),
+    kept so the stability table can compare the two.
+    """
+    nodes, constructs = _paint(text, language)
+    closers = _missing_closers(text, nodes)
+    if not closers:
+        return nodes, constructs
+    nodes, constructs = _paint(text + closers, language)
+    return nodes[: len(text)], constructs[: len(text)]
+
+
+def stability(rows: list[dict], parse, cut: int) -> list[dict]:
+    """Compare ``parse``'s labels of a document's first ``cut`` characters with the whole file's.
+
+    ``rows`` holds whole files. The labels of a whole file come from ``parse_labels`` for
+    every method, so each method has the same reference. Only files longer than ``cut``
+    count. A label that the cut does not change agrees. ``lost_construct`` is the share of
+    characters inside a construct in the whole file that read as top level after the cut.
     """
     totals: dict[str, list[int]] = {}
     for row in rows:
         text, language = row["text"], row["code_language"]
-        if language not in GRAMMARS or len(text) < FULL_CHARS:
+        if language not in GRAMMARS or len(text) <= cut:
             continue
-        cut = text[:CUT_CHARS]
-        nodes, constructs = parse(text, language)
-        short_nodes, short_constructs = parse(cut, language)
-        depths = bracket_depths(cut, short_nodes)
-        inside = [d != "0" for d in depths]
+        nodes, constructs = parse_labels(text, language)
+        short_nodes, short_constructs = parse(text[:cut], language)
+        inside = [c != TOP_LEVEL for c in constructs[:cut]]
         lost = sum(i and c == TOP_LEVEL for i, c in zip(inside, short_constructs, strict=True))
         counts = (
-            CUT_CHARS,
+            1,
+            cut,
             sum(a == b for a, b in zip(nodes, short_nodes, strict=False)),
             sum(a == b for a, b in zip(constructs, short_constructs, strict=False)),
             sum(inside),
             lost,
         )
         for key in (language, "all"):
-            totals[key] = [a + b for a, b in zip(totals.get(key, [0] * 5), counts, strict=True)]
+            totals[key] = [a + b for a, b in zip(totals.get(key, [0] * 6), counts, strict=True)]
     return [
         {
             "language": key,
-            "node_agreement": round(t[1] / t[0], 4),
-            "construct_agreement": round(t[2] / t[0], 4),
-            "inside_brackets_top_level": round(t[4] / max(t[3], 1), 4),
+            "documents": t[0],
+            "node_agreement": round(t[2] / t[1], 4),
+            "construct_agreement": round(t[3] / t[1], 4),
+            "lost_construct": round(t[5] / max(t[4], 1), 4),
         }
         for key, t in sorted(totals.items())
     ]
@@ -161,7 +178,7 @@ def sweep_layer(runner, tokens: TokenLabels, pieces, layer: int, variants: bool 
     current_doc = None
     for chunk in scan_chunks(runner, pieces, layer):
         acts = chunk.acts.float()
-        values = torch.cat([pole_strength(acts, pole) for pole in POLES], dim=1)
+        values = torch.cat([pole_strength(acts, pole) for pole in POLES], dim=1).cpu()
         for piece, row in chunk.rows():
             labels = tokens.of(piece, chunk.ids[row])
             if variants:
@@ -290,8 +307,9 @@ def kinds(corpus, out, model, device, max_tokens):
             found = sweep_layer(runner, tokens, pieces, layer, variants=False)
             for name, (real, null) in found.items():
                 row = layer_row(layer, width, name, real, null) | {"kind": "kinds"}
-                row["n676_positive"] = round(float(real[676]), 4) if layer == 2 else None
-                row["n676_rank"] = int((real > real[676]).sum()) if layer == 2 else None
+                tracked = model == TRACKED_MODEL and layer == TRACKED_LAYER
+                row["n676_positive"] = round(float(real[TRACKED_NEURON]), 4) if tracked else None
+                row["n676_rank"] = int((real > real[TRACKED_NEURON]).sum()) if tracked else None
                 sink.write(json.dumps(row) + "\n")
                 sink.flush()
                 click.echo(f"L{layer} {name}: {row['top'][0]} null {row['null_max_r2']}")
@@ -322,10 +340,6 @@ def main(model, corpus, out, device, max_tokens):
             sink.flush()
 
         write({"kind": "sample", "model": model, **sample.model_dump()})
-        rows = [json.loads(line) for line in corpus.read_text(encoding="utf-8").splitlines()]
-        for label, parse in (("one parse", _paint), ("closers added", parse_labels)):
-            for row in stability(rows, parse):
-                write({"kind": "stability", "method": label, **row})
         for layer in range(runner.n_layers):
             width = runner.mlp_width(layer)
             for name, (real, null) in sweep_layer(runner, tokens, pieces, layer).items():
@@ -339,6 +353,41 @@ def main(model, corpus, out, device, max_tokens):
                 write(winner_row(runner, texts, name, pole, window, taggers))
 
 
+@click.command("stability")
+@click.option(
+    "--whole",
+    type=click.Path(path_type=Path),
+    required=True,
+    multiple=True,
+    help="Uncut files: a corpus written with a large --max-chars. Repeat for more samples.",
+)
+@click.option("--out", type=click.Path(path_type=Path), required=True)
+def stability_command(whole, out):
+    """Replace the stability rows of ``out``: each fix for cut documents, against whole files."""
+    methods = (
+        ("one parse", _paint),
+        ("closers added", closers_added),
+        ("endings searched", parse_labels),
+    )
+    samples = {
+        path.name: [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        for path in whole
+    }
+    found = [
+        {"kind": "stability", "sample": name, "method": label, "cut": cut, **row}
+        for name, rows in samples.items()
+        for cut in STABILITY_CUTS
+        for label, parse in methods
+        for row in stability(rows, parse, cut)
+    ]
+    lines = out.read_text(encoding="utf-8").splitlines() if out.exists() else []
+    kept = [line for line in lines if json.loads(line)["kind"] != "stability"]
+    out.write_text("\n".join([*kept, *map(json.dumps, found)]) + "\n", encoding="utf-8")
+    for row in found:
+        if row["language"] == "all":
+            click.echo(f"{row['sample']} {row['cut']} {row['method']}: {row}")
+
+
 @click.group()
 def cli():
     """Run a sweep of the syntax label sets, or of depth by bracket kind."""
@@ -346,6 +395,7 @@ def cli():
 
 cli.add_command(main, "sweep")
 cli.add_command(kinds)
+cli.add_command(stability_command)
 
 if __name__ == "__main__":
     cli()

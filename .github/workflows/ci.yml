@@ -19,8 +19,40 @@ env:
   ALLOWED_MODELS: Qwen/Qwen2.5-0.5B Qwen/Qwen2.5-1.5B openai-community/gpt2
 
 jobs:
+  code-changes:
+    name: Code changes
+    # Whether a pull request changes any file outside wiki/, by the same rule as
+    # auto-merge.yml. A wiki-only PR (an experiment) runs the same code as main, so
+    # "Lint and tests" is skipped for it.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        # --no-renames lists a rename as a delete and an add, so moving a file into wiki/
+        # still counts as a change outside it. A PR with no changed files counts as code.
+        run: |
+          git diff --name-only --no-renames "origin/$BASE_REF...HEAD" | tee files.txt
+          if [ -s files.txt ] && ! grep -qv '^wiki/' files.txt; then
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
+
   tests:
     name: Lint and tests
+    # Runs on pushes to main (code-changes is skipped there, so its output is empty), on
+    # PRs that change code, and if code-changes fails. Skipped only when code-changes
+    # says "false". A skipped job counts as passing, so it can still be a required check;
+    # paths-ignore on the workflow would leave the check pending and block the merge.
+    needs: code-changes
+    if: ${{ !cancelled() && needs.code-changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -31,14 +31,22 @@ CANDIDATES = (
     (4, 3038, "negative"),
     (5, 1743, "positive"),
     (6, 1416, "negative"),
+    # The other best poles of `round depth`: second in L2, and first in L3, L8 and L9.
+    (2, 1195, "positive"),
+    (3, 695, "positive"),
+    (8, 689, "positive"),
+    (9, 340, "positive"),
 )
+# The poles that `round depth` ranks highest across layers, L2 N676+ first. Each gets the
+# distance test, and the joint ablation zeroes them alone and together.
+ROUND_DEPTH_POLES = (CANDIDATES[0], *CANDIDATES[5:])
 TARGETS = (" value", " count", " name", " size", " index", " total", " key", " item")
 CALLEES = ("load", "parse", "read", "check", "build", "send", "open", "find")
 DEPTHS = (1, 2, 3, 4, 5)
 ABLATE_LAYER, ABLATE_NEURON = 2, 676
 CONTROLS = 20
 ABLATE_SEED = 0
-WRITES = ("probe", "trace", "distance", "ablation")
+WRITES = ("probe", "trace", "distance", "ablation", "joint_ablation")
 TRACE = """def report(rows, limit):
     # sum the totals (per row)
     total = 0
@@ -87,9 +95,13 @@ def distance_rows(runner, candidate) -> list[dict]:
                 text = f"{start}{middle}first,{target}"
                 values.append(read_token(runner, text, (candidate,))[0])
             spread = torch.tensor(values)
+            layer, neuron, pole = candidate
             rows.append(
                 {
                     "kind": "distance",
+                    "layer": layer,
+                    "neuron": neuron,
+                    "pole": pole,
                     "condition": condition,
                     "filler_items": filler,
                     "mean": round(float(spread.mean()), 4),
@@ -99,12 +111,17 @@ def distance_rows(runner, candidate) -> list[dict]:
     return rows
 
 
-def closer_probability(runner, text: str, intervention=None) -> float:
-    """Return the next token's probability of starting with a closing round bracket."""
-    if intervention is None:
+def closer_probability(runner, text: str, intervention=None, interventions=None) -> float:
+    """Return the next token's probability of starting with a closing round bracket.
+
+    ``intervention`` changes ``ABLATE_LAYER``. ``interventions`` maps layers to changes.
+    """
+    if intervention is not None:
+        interventions = {ABLATE_LAYER: intervention}
+    if not interventions:
         logits = runner.run_with_cache([text], [ABLATE_LAYER])[0]
     else:
-        logits = runner.run_with_interventions([text], {ABLATE_LAYER: intervention})
+        logits = runner.run_with_interventions([text], interventions)
     probs = logits[0, -1].softmax(-1)
     vocab = closers(runner)
     return float(probs[vocab].sum())
@@ -147,6 +164,122 @@ def ablation_rows(runner) -> list[dict]:
             }
         )
     return rows
+
+
+def ablate_poles(poles) -> dict:
+    """Return the interventions that zero every pole of ``poles``, by layer."""
+    by_layer: dict[int, list] = {}
+    for layer, neuron, pole in poles:
+        by_layer.setdefault(layer, []).append(ablate_pole(neuron, pole))
+
+    def chain(changes):
+        def intervene(act: torch.Tensor) -> torch.Tensor:
+            for change in changes:
+                act = change(act)
+            return act
+
+        return intervene
+
+    return {layer: chain(changes) for layer, changes in by_layer.items()}
+
+
+def control_sets(runner) -> list[tuple]:
+    """Return ``CONTROLS`` sets of random positive poles, each in the layers of the round set.
+
+    Each set has one pole in each layer that ``ROUND_DEPTH_POLES`` has a pole in, and as
+    many as it has there. No control pole is one of the round set's neurons.
+    """
+    picker = random.Random(ABLATE_SEED)
+    taken = {(layer, neuron) for layer, neuron, _ in ROUND_DEPTH_POLES}
+    out = []
+    for _ in range(CONTROLS):
+        chosen = []
+        for layer, _, _ in ROUND_DEPTH_POLES:
+            free = [n for n in range(runner.mlp_width(layer)) if (layer, n) not in taken]
+            free = [n for n in free if (layer, n, "positive") not in chosen]
+            chosen.append((layer, picker.choice(free), "positive"))
+        out.append(tuple(chosen))
+    return out
+
+
+def next_probs(runner, text: str, interventions=None) -> torch.Tensor:
+    """Return the next token's probabilities, with ``interventions`` (layer to change)."""
+    if not interventions:
+        logits = runner.run_with_cache([text], [ABLATE_LAYER])[0]
+    else:
+        logits = runner.run_with_interventions([text], interventions)
+    return logits[0, -1].softmax(-1)
+
+
+@cache
+def closer_counts(runner) -> torch.Tensor:
+    """Return each token's count of leading closing round brackets, after any spaces."""
+    tok = runner.tokenizer
+    words = (tok.decode([i]).lstrip() for i in range(len(tok)))
+    return torch.tensor([len(word) - len(word.lstrip(")")) for word in words])
+
+
+def closing_measures(probs: torch.Tensor, counts: torch.Tensor, depth: int) -> dict:
+    """Return three measures of how the next token closes ``depth`` open round brackets.
+
+    ``any`` is the probability of a token that starts with ``)``. ``exact`` is the
+    probability of a token that closes all ``depth`` brackets and no more. ``count`` is
+    the mean number of brackets that a closing token closes, weighted by probability.
+    """
+    closing = counts > 0
+    total = float(probs[closing].sum())
+    return {
+        "any": total,
+        "exact": float(probs[counts == depth].sum()),
+        "count": float((probs * counts).sum()) / max(total, 1e-9),
+    }
+
+
+def joint_ablation_rows(runner) -> list[dict]:
+    """Return how the next token closes brackets with each round-depth pole ablated.
+
+    Each pole is ablated alone, all five together, and the four that are not L2 N676+.
+    The controls ablate random sets of poles in the same layers, as many as together.
+    Each measure is a mean over ``TARGETS`` (see :func:`closing_measures`).
+    """
+    sets = {
+        f"L{layer} N{neuron}+": ((layer, neuron, pole),)
+        for layer, neuron, pole in ROUND_DEPTH_POLES
+    }
+    sets["all five"] = ROUND_DEPTH_POLES
+    sets["all but L2 N676+"] = ROUND_DEPTH_POLES[1:]
+    controls = control_sets(runner)
+    counts = closer_counts(runner)
+    rows = []
+    for depth in DEPTHS:
+        texts = [f"out = {calls(depth, k)}first,{t}" for k, t in enumerate(TARGETS)]
+
+        def measure(poles, depth=depth, texts=texts) -> dict:
+            changes = ablate_poles(poles) if poles else None
+            found = [closing_measures(next_probs(runner, t, changes), counts, depth) for t in texts]
+            return {k: sum(f[k] for f in found) / len(found) for k in found[0]}
+
+        row = {"kind": "joint_ablation", "depth": depth, "clean": measure(())}
+        for name, poles in sets.items():
+            row[name] = measure(poles)
+        found = [measure(c) for c in controls]
+        row["controls_mean"] = {k: sum(f[k] for f in found) / len(found) for k in found[0]}
+        row["controls_range"] = {
+            k: [min(f[k] for f in found), max(f[k] for f in found)] for k in found[0]
+        }
+        rows.append(_rounded(row))
+    return rows
+
+
+def _rounded(value):
+    """Round every float in ``value`` to 4 places, through dicts and lists."""
+    if isinstance(value, float):
+        return round(value, 4)
+    if isinstance(value, dict):
+        return {k: _rounded(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_rounded(v) for v in value]
+    return value
 
 
 def calls(depth: int, offset: int) -> str:
@@ -247,8 +380,9 @@ def main(results, device):
         rows = [
             *probe_rows(runner),
             trace_row(runner),
-            *distance_rows(runner, CANDIDATES[0]),
+            *(row for pole in ROUND_DEPTH_POLES for row in distance_rows(runner, pole)),
             *ablation_rows(runner),
+            *joint_ablation_rows(runner),
         ]
     lines = results.read_text(encoding="utf-8").splitlines()
     kept = [line for line in lines if json.loads(line)["kind"] not in WRITES]

@@ -78,6 +78,8 @@ def aligned_latents(slug, path, wiki_dir):
                 d = described.get((id(row), side_name, m.feature_idx))
                 channel = f" {m.channel}" if m.channel and side_name == "reads" else ""
                 text = (d and d["description"]) or ("below chance" if d is None else "—")
+                if d and d["source"]:
+                    text += f"  [{d['source']}]"
                 url = neuronpedia_url(row, m.feature_idx)
                 click.echo(f"  F{m.feature_idx:<6} {m.cosine:+.3f}{channel}  {text}")
                 if url:

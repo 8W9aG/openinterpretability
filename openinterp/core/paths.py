@@ -9,6 +9,15 @@ from __future__ import annotations
 from pathlib import Path
 
 DEFAULT_WIKI_DIR = Path("wiki")
+DEFAULT_SUBMISSIONS_DIR = Path("submissions")
+DEFAULT_EXCHANGE_DIR = Path("exchange")
+"""Where the CLI writes agent prompts and answers. ``$OPENINTERP_EXCHANGE_DIR`` changes it."""
+
+PROMPT_SUFFIX = ".prompt.md"
+"""The end of an agent's prompt file name, e.g. ``review.prompt.md``."""
+PROBES_SUFFIX = ".probes.json"
+"""The end of a reviewer's answer file name: ``review.prompt.md`` is answered in
+``review.probes.json``."""
 
 
 def experiments_dir(wiki_dir: Path | str) -> Path:

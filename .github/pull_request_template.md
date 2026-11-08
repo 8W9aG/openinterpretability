@@ -14,5 +14,5 @@
 
 CI checks every PR in two jobs:
 
-- **Lint and tests:** `ruff check`, `ruff format --check` and `pytest`.
+- **Lint and tests:** `ruff check`, `ruff format --check` and `pytest`. Skipped when every change is under `wiki/`.
 - **Experiment records:** every experiment record matches the schema, has a verdict and has a matching page, and every page has a record. Records are write-once, generated indexes (`README.md`) are not committed, and existing experiment pages were not edited outside Discussion or deleted.
