@@ -323,8 +323,6 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission. The default, `mixed`, is a versioned blend of the presets. Adding a dataset below is mostly a new preset in `openinterp/corpus.py`, plus a new version of the `mixed` blend that includes it. The other way is an entry in `NOT_BLENDED` in `openinterp/blends.py` saying why not. A test enforces this. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Chat/instruction text: `HuggingFaceH4/ultrachat_200k` or `lmsys/lmsys-chat-1m` (gated), formatted with the model's chat template, for instruct models.
-
 ## Models
 
 The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test. It needs a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means). It also needs a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
