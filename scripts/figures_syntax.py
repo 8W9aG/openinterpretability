@@ -395,7 +395,13 @@ def _distance_panel(fig: Figure, rows: list[dict], y0: float) -> None:
     places = list(range(len(FILLERS)))
     found: dict[int, float] = {}
     for condition, colour in (("closed", "c2"), ("open", "c1")):
-        same = (r for r in rows if r["kind"] == "distance" and r["condition"] == condition)
+        same = (
+            r
+            for r in rows
+            if r["kind"] == "distance"
+            and r["condition"] == condition
+            and (r.get("layer"), r.get("neuron"), r.get("pole")) == TARGET
+        )
         found = {r["filler_items"]: r["mean"] for r in same}
         values = [found[filler] for filler in FILLERS]
         left.curve(places, values, f"line s{colour}")
