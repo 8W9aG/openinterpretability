@@ -11,13 +11,14 @@ def test_the_copy_claims_only_neuronpedias_explanation(record):
     lookahead = record.submission.lookahead.model_copy(
         update={"is_lookahead": True, "target_upcoming_tokens": [" the"]}
     )
-    sub = record.submission.model_copy(update={"lookahead": lookahead})
+    sub = record.submission.model_copy(update={"lookahead": lookahead, "prior_art": []})
     copy = baseline_submission(record.model_copy(update={"submission": sub}), THEIRS)
     assert copy.natural_language_explanation == THEIRS.description
     assert copy.activating_tokens == []  # the agent's claimed tokens would leak its hypothesis
     assert copy.lookahead.is_lookahead is False and copy.lookahead.target_upcoming_tokens == []
     assert copy.lookahead.kl_divergence == lookahead.kl_divergence  # measured, so kept
     assert copy.submitting_agent_model == "neuronpedia/gpt-4o-mini"
+    assert copy.prior_art is None
     assert copy.top_examples == record.submission.top_examples  # the same scan evidence
 
 

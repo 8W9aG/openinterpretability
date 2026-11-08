@@ -136,6 +136,7 @@ def baseline_submission(record, theirs):
             "contributor": None,
             "supersedes": None,
             "sister_of": None,
+            "prior_art": None,  # else the reviewer reads Neuronpedia's text twice
         }
     )
 
