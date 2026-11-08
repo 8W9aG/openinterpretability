@@ -198,13 +198,29 @@ def usage(agent, answer):
     proxied model is priced as the model that actually answered.
     """
     from openinterp.core.costs import usage_path
-    from openinterp.core.transcripts import find_transcript, usage_from_transcript
+    from openinterp.core.paths import PROBES_SUFFIX
+    from openinterp.core.transcripts import (
+        find_transcript,
+        forbidden_reads,
+        usage_from_transcript,
+    )
 
     try:
         transcript = find_transcript(agent)
     except FileNotFoundError as exc:
         raise click.BadParameter(str(exc), param_hint="AGENT") from exc
     found = usage_from_transcript(transcript)
+    if answer.name.endswith(PROBES_SUFFIX):  # a reviewer's answer: check its isolation
+        read, tried = forbidden_reads(transcript)
+        found = found.model_copy(update={"forbidden_reads": read})
+        if tried:
+            click.echo(f"The reviewer tried to read blocked paths: {', '.join(tried)}", err=True)
+        if found.forbidden_reads:
+            click.echo(
+                "warning: the reviewer read blocked paths, so `review --probes` will refuse "
+                f"{answer}: {', '.join(found.forbidden_reads)}. Run a new reviewer.",
+                err=True,
+            )
     out = usage_path(answer)
     out.write_text(found.model_dump_json(indent=2) + "\n")
     tokens = found.input_tokens + found.cache_read_tokens

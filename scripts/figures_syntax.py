@@ -1,6 +1,7 @@
 """The figures of papers/syntax-positive-controls/README.md, from its results.jsonl."""
 
 from figure_svg import Figure, Panel, columns
+from figures_syntax_models import models
 
 DEPTHS = [1, 2, 3, 4, 5]
 LAYERS = list(range(12))
@@ -18,6 +19,13 @@ PROBE_PANELS = (
     ("Open, closed, partly closed", (("open", "c1"), ("partly_closed", "c3"), ("closed", "c2"))),
     ("Text the parser ignores", (("open", "c1"), ("string", "c3"), ("comment", "c2"))),
     ("Other brackets", (("open", "c1"), ("square", "c3"), ("curly", "c2"))),
+)
+JOINT_LEGEND = (
+    ("fc1", "model"),
+    ("fc2", "L2 N676+ ablated"),
+    ("fc3", "the other four ablated"),
+    ("fneutral", "all five ablated"),
+    ("open sneutral", "mean of 20 random sets ablated"),
 )
 NAMES = {
     "open": "open",
@@ -362,6 +370,43 @@ def ablation(rows: list[dict]) -> Figure:
     return fig
 
 
+def joint(rows: list[dict]) -> Figure:
+    """Draw how many brackets a predicted closer closes, with round-depth poles ablated."""
+    found = {r["depth"]: r for r in rows if r["kind"] == "joint_ablation"}
+    fig = Figure(
+        ["L2 N676+ and the other round-depth poles push the count of closers apart"],
+        [
+            "Mean number of round brackets that a predicted closing token closes, over 8 written "
+            "items at each depth.",
+            "Without L2 N676+ the model closes one. Without the other four it closes nearly four.",
+        ],
+        "A plot of the number of brackets closed against the number open. The model rises "
+        "from 1.0 to 1.95, and twenty random ablated sets overlap it. With L2 N676+ ablated it "
+        "stays near 1.0. With the other four ablated it rises to about 3.8 from depth 3. With "
+        "all five ablated it is about 2.",
+    )
+    panel = Panel(fig, (64, fig.body_top + 22, 640, 220), (0.7, 5.3), (0.5, 4))
+    panel.grid_x(DEPTHS, 0)
+    panel.grid_y([1, 2, 3, 4], 0)
+    panel.x_title("open brackets")
+    for depth in DEPTHS:
+        fig.dot(panel.x(depth), panel.y(found[depth]["controls_mean"]["count"]), 8, "open sneutral")
+    for key, colour in (
+        ("all five", "neutral"),
+        ("clean", "c1"),
+        ("L2 N676+", "c2"),
+        ("all but L2 N676+", "c3"),
+    ):
+        values = [found[d][key]["count"] for d in DEPTHS]
+        panel.curve(DEPTHS, values, f"line s{colour}")
+        for depth, value in zip(DEPTHS, values, strict=True):
+            fig.dot(panel.x(depth), panel.y(value), 3, f"f{colour}")
+    bottom = panel.top + panel.height + 62
+    fig.legend(bottom, JOINT_LEGEND)
+    fig.bottom = bottom
+    return fig
+
+
 def reach(rows: list[dict]) -> Figure:
     """Draw how strength falls with distance from an open bracket, and across lines."""
     fig = Figure(
@@ -395,7 +440,13 @@ def _distance_panel(fig: Figure, rows: list[dict], y0: float) -> None:
     places = list(range(len(FILLERS)))
     found: dict[int, float] = {}
     for condition, colour in (("closed", "c2"), ("open", "c1")):
-        same = (r for r in rows if r["kind"] == "distance" and r["condition"] == condition)
+        same = (
+            r
+            for r in rows
+            if r["kind"] == "distance"
+            and r["condition"] == condition
+            and (r.get("layer"), r.get("neuron"), r.get("pole")) == TARGET
+        )
         found = {r["filler_items"]: r["mean"] for r in same}
         values = [found[filler] for filler in FILLERS]
         left.curve(places, values, f"line s{colour}")
@@ -420,12 +471,15 @@ def _lines_panel(fig: Figure, rows: list[dict], y0: float) -> None:
         fig.text(right.x(5) + 7, right.y(values[-1]) + 4, name, "small")
 
 
-def build(rows: list[dict]) -> dict[str, Figure]:
-    """Return each figure by its file name."""
+def build(rows: list[dict], others: dict[str, list[dict]] | None = None) -> dict[str, Figure]:
+    """Return each figure by its file name. ``others`` holds the sweeps of other models."""
+    sweeps = {"GPT-2 small": rows, **(others or {})}
     return {
+        "models.svg": models(sweeps),
         "trace.svg": trace(rows),
         "probes.svg": probes(rows),
         "labels.svg": labels(rows),
         "reach.svg": reach(rows),
         "ablation.svg": ablation(rows),
+        "joint.svg": joint(rows),
     }
