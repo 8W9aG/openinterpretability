@@ -54,3 +54,10 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "SAE Interprets MoE: Sparse AutoEncoders Reveal That MoE Experts Exhibit Human-Interpretable Fine-Grained Specialization" (arXiv 2611.08089, [paper](https://arxiv.org/abs/2611.08089)).
 - Review "Geometry-Adaptive Explainer for Faithful Dictionary-Based Interpretability under Distribution Shift" (arXiv 2605.21849, [paper](https://arxiv.org/abs/2605.21849)).
 - Review "Identically Trained Language Models Break on Different Jailbreaks" (arXiv 2610.34074, [paper](https://arxiv.org/abs/2610.34074)).
+- Review "Scaling Laws for SAE Training Data" (arXiv 2611.07756, [paper](https://arxiv.org/abs/2611.07756)).
+- Review "Encoding and Propagation of Grammatical Number in Large Language Models" (arXiv 2611.07283, [paper](https://arxiv.org/abs/2611.07283)).
+- Review "Towards Multi-Value Alignment via Value Localization in LLMs" (arXiv 2611.02503, [paper](https://arxiv.org/abs/2611.02503)).
+- Review "Unifying and Beyond the Theory of Pervasive Capability Degradation in LLM Post-training SFT from Feature Interference" (arXiv 2611.05003, [paper](https://arxiv.org/abs/2611.05003)).
+- Review "Towards Foundation Decision Models: Drex" (arXiv 2611.07854, [paper](https://arxiv.org/abs/2611.07854)).
+- Review "SwarmEvolve: Latent Agent Swarms for Evolutionary Discovery and Optimization" (arXiv 2611.08483, [paper](https://arxiv.org/abs/2611.08483)).
+- Review Anthropic's "Teaching AI to build scientific models" (Macke, Gedon and Wahl, [post](https://www.anthropic.com/research/teaching-ai-to-build-scientific-models)).
