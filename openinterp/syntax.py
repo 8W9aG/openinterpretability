@@ -80,6 +80,11 @@ DEFAULT_INDENT = 4  # the columns of one level, in a document whose lines don't 
 
 CLOSER = {"(": ")", "[": "]", "{": "}"}
 OPENING, CLOSING = set(CLOSER), set(CLOSER.values())
+# What can end a comment or a string that a cut leaves open: a line comment, a block
+# comment, then the quotes. The first entry adds nothing.
+_STARTS = ("", "\n", "*/", '"', "'", "`")
+END_KEYWORD_LANGUAGES = {"Lua", "Ruby"}  # a block closes with `end`
+MAX_END_KEYWORDS = 12  # more blocks than a cut document leaves open
 _SEPARATORS = {",", ";", ":", "::", "."}
 
 _ATOMS = (
@@ -209,16 +214,62 @@ def _paint(text: str, language: str) -> tuple[list[str], list[str]]:
     return [_gap_kind(c) if n is None else n for n, c in zip(nodes, text, strict=True)], constructs
 
 
-def _missing_closers(text: str, nodes: Sequence[str]) -> str:
-    """Return what closes the brackets still open at the end of ``text``."""
+def _open_brackets(text: str, nodes: Sequence[str]) -> str:
+    """Return the closing brackets of the brackets still open at the end of ``text``."""
     stack: list[str] = []
     for char, node in zip(text, nodes, strict=True):
         if node == BRACKET and char in OPENING:
             stack.append(CLOSER[char])
         elif node == BRACKET and char in CLOSING and stack:
             stack.pop()
+    return "".join(reversed(stack))
+
+
+def _missing_closers(text: str, nodes: Sequence[str]) -> str:
+    """Return what closes the brackets still open at the end of ``text``."""
     # A cut also leaves a statement unfinished, and a block needs its statements to end.
-    return "".join(reversed(stack)).replace("}", ";}")
+    return _open_brackets(text, nodes).replace("}", ";}")
+
+
+def _error_chars(text: str, limit: int, language: str) -> int:
+    """Count the characters before ``limit`` that the parser puts in an error node.
+
+    A node that the parser had to make up (a missing token) counts as one character more.
+    A parse with no error gives 0.
+    """
+    root = _parser(language).parse(_encode(text)).root_node
+    if not root.has_error:
+        return 0
+    chars, count, todo = _char_offsets(text), 0, [root]
+    while todo:
+        node = todo.pop()
+        if node.type == "ERROR" or node.is_missing:
+            start, end = chars[node.start_byte], chars[node.end_byte]
+            count += max(0, min(end, limit) - min(start, limit)) + node.is_missing
+        elif node.has_error:
+            todo.extend(node.children)
+    return count
+
+
+def _endings(text: str, nodes: Sequence[str], language: str) -> list[str]:
+    """Return the texts that can end a cut ``text``, shortest first.
+
+    A cut can stop inside a comment or a string. So each ending starts with nothing, a line
+    break, the end of a block comment or a quote. Then come the closing brackets that are
+    open after that start, with and without a ``;`` before each ``}``. In
+    :data:`END_KEYWORD_LANGUAGES`, a block closes with ``end`` and not with a bracket. So
+    there, endings also add up to ``MAX_END_KEYWORDS`` of them, before or after the brackets.
+    """
+    out: set[str] = set()
+    for start in _STARTS:
+        start_nodes = nodes if not start else _paint(text + start, language)[0][: len(text)]
+        brackets = _open_brackets(text, start_nodes)
+        tails = {brackets, brackets.replace("}", ";}")}
+        if language in END_KEYWORD_LANGUAGES:
+            for n in range(1, MAX_END_KEYWORDS + 1):
+                tails |= {brackets + "\nend" * n, "\nend" * n + brackets}
+        out |= {start + tail for tail in tails}
+    return sorted(out - {""}, key=lambda ending: (len(ending), ending))
 
 
 def parse_labels(text: str, language: str) -> tuple[list[str], list[str]]:
@@ -226,13 +277,24 @@ def parse_labels(text: str, language: str) -> tuple[list[str], list[str]]:
 
     The corpus cuts a document at ``max_chars``, usually inside a class or a function. The
     parser then has no node for that class or function, so its contents read as top level.
-    So this parses again with the missing closing brackets added, and labels only ``text``.
+    So when the parse has errors, this parses again with an ending added, and labels only
+    ``text``. The ending is the one of :func:`_endings` that leaves the fewest characters
+    of ``text`` in error nodes, and the shortest of those. If no ending lowers that count,
+    the ending closes the open brackets as the first parse reads them.
     """
     nodes, constructs = _paint(text, language)
-    closers = _missing_closers(text, nodes)
-    if not closers:
+    errors = _error_chars(text, len(text), language)
+    if not errors:
         return nodes, constructs
-    nodes, constructs = _paint(text + closers, language)
+    scored = (
+        (_error_chars(text + e, len(text), language), e) for e in _endings(text, nodes, language)
+    )
+    fewest, ending = min(scored, key=lambda pair: pair[0], default=(errors, ""))
+    if fewest >= errors:
+        ending = _missing_closers(text, nodes)
+    if not ending:
+        return nodes, constructs
+    nodes, constructs = _paint(text + ending, language)
     return nodes[: len(text)], constructs[: len(text)]
 
 

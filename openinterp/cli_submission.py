@@ -11,6 +11,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli_evidence import with_costs
+from openinterp.core.paths import DEFAULT_SUBMISSIONS_DIR
 
 
 def read_patchscope(runner, submission):
@@ -29,6 +30,19 @@ def read_patchscope(runner, submission):
     click.echo("Reading the output direction back through a Patchscope…", err=True)
     with costs.stage("patchscope"):
         return patchscope(runner, submission.identifier.layer, direction)
+
+
+def read_prior_art(runner, submission):
+    """Return published explanations of the unit, or of latents aligned with it.
+
+    It runs after the proposer answers, so it can't steer the hypothesis. The reviewer
+    sees it (:mod:`openinterp.prior_art`).
+    """
+    from openinterp.prior_art import enabled, find_prior_art
+
+    if enabled():
+        click.echo("Looking up prior art on Neuronpedia…", err=True)
+    return find_prior_art(submission, runner)
 
 
 def read_steering(runner, submission):
@@ -106,6 +120,7 @@ def readouts(runner, submission, draft) -> dict:
         "steering": read_steering(runner, submission),
         "wordnet_specificity": read_specificity(runner, submission, draft),
         "wiring": read_wiring(runner, submission),
+        "prior_art": read_prior_art(runner, submission),
     }
 
 
@@ -149,7 +164,7 @@ def write_submission(
             **after,
         }
     )
-    out = out or Path("submissions") / f"{ident.slug}.json"
+    out = out or DEFAULT_SUBMISSIONS_DIR / f"{ident.slug}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(submission.model_dump_json(indent=2))
     click.echo(f"Hypothesis: {submission.natural_language_explanation}")

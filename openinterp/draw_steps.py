@@ -11,6 +11,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 
+from openinterp.core.paths import DEFAULT_EXCHANGE_DIR
 from openinterp.planner import Candidate, Plan, claim_key
 from openinterp.planner_models import model_dims
 
@@ -76,7 +77,7 @@ def steps(
     c = plan.choice
     slug = draw_slug(c)
     key = claim_key(slug) if slug else "<KEY>"
-    out = f"exchange/{key}"
+    out = f"{DEFAULT_EXCHANGE_DIR}/{key}"
     corpus, build = _corpus(c, out, corpus, plan.seed, fresh_corpus)
     run = _run(c, key, out, corpus, _api(proposer), _api(reviewer))
     return [
@@ -96,7 +97,7 @@ def _corpus(c, out, corpus, seed, fresh: bool) -> tuple[str, list[Step]]:
         return scanned, [Step("Rebuild the corpus the record scanned", [command], _NO_REBUILD)]
     if fresh and c.kind in SCAN_KINDS:
         # Not under `out`: an explore draw's key can be unknown until its scan starts.
-        built = f"exchange/fresh/corpus-{seed}.jsonl"
+        built = f"{DEFAULT_EXCHANGE_DIR}/fresh/corpus-{seed}.jsonl"
         command = f"uv run openinterp corpus --seed {seed} --out {built}"
         return built, [Step("Build a fresh scan corpus (about a minute)", [command])]
     return corpus, []

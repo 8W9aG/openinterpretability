@@ -18,6 +18,7 @@ from pydantic import BaseModel, ValidationError
 from openinterp.core import costs
 from openinterp.core.agent_names import EXTERNAL_PREFIX, spelling_problem
 from openinterp.core.exceptions import AgentError
+from openinterp.core.paths import DEFAULT_EXCHANGE_DIR
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -97,7 +98,7 @@ class LLMAgent:
         self.max_retries = max_retries
         self._client = client
         self.exchange_dir = exchange_dir or Path(
-            os.environ.get("OPENINTERP_EXCHANGE_DIR", "exchange")
+            os.environ.get("OPENINTERP_EXCHANGE_DIR", DEFAULT_EXCHANGE_DIR)
         )
         self.timeout = timeout or float(os.environ.get("OPENINTERP_EXCHANGE_TIMEOUT", 3600))
         self.poll_interval = poll_interval

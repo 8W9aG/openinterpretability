@@ -95,6 +95,11 @@ class ExternalUsage(RequestUsage):
     per_request: list[RequestUsage] = Field(default_factory=list)
     cost_usd: float | None = Field(default=None, ge=0.0)
     source: str | None = Field(default=None, examples=["claude-code:agent-a1b2c3"])
+    forbidden_reads: list[str] = Field(
+        default_factory=list,
+        description="Blocked paths that a reviewer's transcript shows it read "
+        "(openinterp.core.isolation). `review --probes` refuses a probe set with any.",
+    )
 
     @classmethod
     def of(cls, requests: list[RequestUsage], **kw) -> ExternalUsage:

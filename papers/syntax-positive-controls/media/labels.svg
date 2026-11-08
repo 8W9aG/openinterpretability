@@ -54,34 +54,34 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="grid" d="M44.0 127.1L474.0 127.1"/>
 <text x="37.0" y="131.1" class="small" text-anchor="end">0.3</text>
 <text x="259.0" y="355.0" class="small" text-anchor="middle">layer</text>
-<path class="line sc1" d="M61.9 216.0L97.8 261.5L133.6 142.2L169.4 171.7L205.2 237.6L241.1 225.2L276.9 236.0L312.8 282.3L348.6 172.9L384.4 201.2L420.2 237.2L456.1 217.2"/>
-<circle class="fc1" cx="61.9" cy="216.0" r="3"/>
+<path class="line sc1" d="M61.9 216.1L97.8 261.5L133.6 142.3L169.4 171.7L205.2 237.6L241.1 225.3L276.9 236.0L312.8 282.3L348.6 172.9L384.4 201.3L420.2 237.2L456.1 217.2"/>
+<circle class="fc1" cx="61.9" cy="216.1" r="3"/>
 <circle class="fc1" cx="97.8" cy="261.5" r="3"/>
-<circle class="fc1" cx="133.6" cy="142.2" r="3"/>
+<circle class="fc1" cx="133.6" cy="142.3" r="3"/>
 <circle class="fc1" cx="169.4" cy="171.7" r="3"/>
 <circle class="fc1" cx="205.2" cy="237.6" r="3"/>
-<circle class="fc1" cx="241.1" cy="225.2" r="3"/>
+<circle class="fc1" cx="241.1" cy="225.3" r="3"/>
 <circle class="fc1" cx="276.9" cy="236.0" r="3"/>
 <circle class="fc1" cx="312.8" cy="282.3" r="3"/>
 <circle class="fc1" cx="348.6" cy="172.9" r="3"/>
-<circle class="fc1" cx="384.4" cy="201.2" r="3"/>
+<circle class="fc1" cx="384.4" cy="201.3" r="3"/>
 <circle class="fc1" cx="420.2" cy="237.2" r="3"/>
 <circle class="fc1" cx="456.1" cy="217.2" r="3"/>
-<path class="line sc2" d="M61.9 251.2L97.8 220.0L133.6 230.7L169.4 233.8L205.2 172.1L241.1 252.3L276.9 203.6L312.8 240.6L348.6 214.4L384.4 210.2L420.2 245.3L456.1 246.9"/>
+<path class="line sc2" d="M61.9 251.2L97.8 220.1L133.6 230.7L169.4 233.8L205.2 172.1L241.1 252.3L276.9 203.6L312.8 240.7L348.6 214.5L384.4 210.3L420.2 245.4L456.1 246.8"/>
 <circle class="fc2" cx="61.9" cy="251.2" r="3"/>
-<circle class="fc2" cx="97.8" cy="220.0" r="3"/>
+<circle class="fc2" cx="97.8" cy="220.1" r="3"/>
 <circle class="fc2" cx="133.6" cy="230.7" r="3"/>
 <circle class="fc2" cx="169.4" cy="233.8" r="3"/>
 <circle class="fc2" cx="205.2" cy="172.1" r="3"/>
 <circle class="fc2" cx="241.1" cy="252.3" r="3"/>
 <circle class="fc2" cx="276.9" cy="203.6" r="3"/>
-<circle class="fc2" cx="312.8" cy="240.6" r="3"/>
-<circle class="fc2" cx="348.6" cy="214.4" r="3"/>
-<circle class="fc2" cx="384.4" cy="210.2" r="3"/>
-<circle class="fc2" cx="420.2" cy="245.3" r="3"/>
-<circle class="fc2" cx="456.1" cy="246.9" r="3"/>
+<circle class="fc2" cx="312.8" cy="240.7" r="3"/>
+<circle class="fc2" cx="348.6" cy="214.5" r="3"/>
+<circle class="fc2" cx="384.4" cy="210.3" r="3"/>
+<circle class="fc2" cx="420.2" cy="245.4" r="3"/>
+<circle class="fc2" cx="456.1" cy="246.8" r="3"/>
 <path class="line sneutral" d="M61.9 322.1L97.8 321.0L133.6 322.2L169.4 322.8L205.2 321.6L241.1 322.9L276.9 323.3L312.8 321.7L348.6 322.9L384.4 322.1L420.2 321.2L456.1 320.6"/>
-<text x="141.6" y="144.2" class="small">L2 N676+</text>
+<text x="141.6" y="144.3" class="small">L2 N676+</text>
 <circle class="fc1" cx="25.0" cy="378.0" r="5"/>
 <text x="35.0" y="382.0">round brackets</text>
 <circle class="fc2" cx="143.4" cy="378.0" r="5"/>
@@ -93,11 +93,11 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="grid" d="M530.0 258.4L730.0 258.4"/>
 <path class="grid" d="M530.0 192.8L730.0 192.8"/>
 <path class="grid" d="M530.0 127.1L730.0 127.1"/>
-<rect class="fc2" x="543.3" y="261.8" width="40.0" height="62.2" rx="1.5"/>
-<text x="561.3" y="256.8" class="small" text-anchor="middle">0.09</text>
+<rect class="fc2" x="543.3" y="261.9" width="40.0" height="62.1" rx="1.5"/>
+<text x="561.3" y="256.9" class="small" text-anchor="middle">0.09</text>
 <text x="561.3" y="339.0" class="small" text-anchor="middle">all</text>
-<rect class="fc1" x="610.0" y="142.2" width="40.0" height="181.8" rx="1.5"/>
-<text x="628.0" y="137.2" class="small" text-anchor="middle">0.28</text>
+<rect class="fc1" x="610.0" y="142.3" width="40.0" height="181.7" rx="1.5"/>
+<text x="628.0" y="137.3" class="small" text-anchor="middle">0.28</text>
 <text x="628.0" y="339.0" class="small" text-anchor="middle">round</text>
 <rect class="fc3" x="676.7" y="120.6" width="40.0" height="203.4" rx="1.5"/>
 <text x="694.7" y="115.6" class="small" text-anchor="middle">0.31</text>

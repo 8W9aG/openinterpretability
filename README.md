@@ -54,10 +54,10 @@ The record notes whether the reviewer was a different model from the proposer (`
 uv run openinterp corpus --dataset pile-10k --first --ascii --revision 127bfedcd5047750df5ccf3a12979a47bfa0bafa --out corpus.jsonl
 ```
 
-Its sidecar, `corpus.source.json`, is committed, and `openinterp build` uses it to show the source of records that scanned this corpus before the sidecar existed, marked as inferred. The dataset card gives the licence as `bigscience-bloom-rail-1.0`, a model licence, and each Pile component keeps its own terms, so the corpus itself isn't published. For another corpus, `openinterp corpus` samples documents from a Hugging Face dataset, reading only the Parquet row groups it needs. Without `--dataset` it samples 500 documents in about a minute from `mixed`, a versioned blend of presets, so statistics over random neurons aren't tied to one domain. The blend is 91 each from FineWeb-Edu, C4 and the uncopyrighted Pile, and 68 of GitHub code. It adds 68 Wikipedia articles in ten languages, 46 WikiText articles and 45 of OpenWebMath (`BLENDS` in `openinterp/blends.py`). Each document records its preset as `source`, which the scan reports as a label set, as it does languages. Code documents also record their programming language, and a scan parses them into syntax labels (`openinterp/syntax.py`). A blend is never changed once released, so `mixed` names its latest version (today `mixed-v2`) and the sidecar records which:
+Its sidecar, `corpus.source.json`, is committed, and `openinterp build` uses it to show the source of records that scanned this corpus before the sidecar existed, marked as inferred. The dataset card gives the licence as `bigscience-bloom-rail-1.0`, a model licence, and each Pile component keeps its own terms, so the corpus itself isn't published. For another corpus, `openinterp corpus` samples documents from a Hugging Face dataset, reading only the Parquet row groups it needs. Without `--dataset` it samples 500 documents in about a minute from `mixed`, a versioned blend of presets, so statistics over random neurons aren't tied to one domain. The blend is 84 each from FineWeb-Edu, C4 and the uncopyrighted Pile, and 62 of GitHub code. It adds 62 Wikipedia articles in ten languages, 42 WikiText articles, 41 of OpenWebMath and 41 UltraChat conversations (`BLENDS` in `openinterp/blends.py`). Qwen2.5's chat template writes the conversations, so they suit instruct models, and every model scans the same text. Each document records its preset as `source`, which the scan reports as a label set, as it does languages. Code documents also record their programming language, and a scan parses them into syntax labels (`openinterp/syntax.py`). A blend is never changed once released, so `mixed` names its latest version (today `mixed-v4`) and the sidecar records which:
 
 ```bash
-uv run openinterp corpus --out mixed.jsonl             # --dataset fineweb-edu, pile-10k, pile-uncopyrighted, c4, wikitext, tinystories, github-code, wikipedia-multilingual, open-web-math or gsm8k for one dataset, --seed N for another sample, --detect-lang to label each document's language
+uv run openinterp corpus --out mixed.jsonl             # --dataset fineweb-edu, pile-10k, pile-uncopyrighted, c4, wikitext, tinystories, github-code, wikipedia-multilingual, open-web-math, gsm8k or ultrachat for one dataset (--chat-template MODEL writes ultrachat with that model's template), --seed N for another sample, --detect-lang to label each document's language
 ```
 
 It also writes `<name>.source.json` (here `mixed.source.json`), which pins the dataset commit, files, seed and licence. For a blend it holds each preset's own source. `openinterp corpus --dataset <preset>`, with that preset's share of `--docs` and the same seed, rebuilds each one byte for byte. `openinterp audit --corpus mixed.jsonl` records the sidecar in the submission, and warns about a corpus without one, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time, and records the sample in provenance. Set it with `--max-tokens` and `--sample-seed`. `--max-tokens 0` scans all of it. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
@@ -133,7 +133,7 @@ The planner reads open PRs to avoid duplicate work, so claim the neuron early. T
 git switch -c experiment/Qwen--Qwen2.5-0.5B-L11-N4255-positive
 gh pr create --draft --title "experiment: Qwen--Qwen2.5-0.5B-L11-N4255-positive (explore)"
 # …run the experiment, then:
-make check lint test                      # the same checks CI runs on your PR
+make check                                # lint and tests too (make check lint test) if you change code
 git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
 gh pr ready
 ```
@@ -182,7 +182,7 @@ Every completed experiment gets a Markdown page and an archived copy of its full
 
 [CI](.github/workflows/ci.yml) runs three required jobs on every PR:
 
-- **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`).
+- **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`). A pull request that changes only `wiki/` (an experiment) runs the same code as `main`, so it skips this job (a skipped job counts as passing).
 - **Experiment records:** `openinterp check`. On a pull request that changes only `wiki/`, the record and page rules read only the files it adds or changes (`--base-ref`). If it changes anything else, and on `main`, they read every file. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must match the schema, have a verdict and sit at the path its neuron and id dictate. It must name only an earlier experiment on the same unit in `supersedes`, and have a page whose front matter matches it. Every page must have a record. New records must have `model_num_layers` and `model_mlp_width`, and `model_n_heads` on head records only. Generated indexes (`README.md`) must not be committed, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty.
 - **Nightly reproduction:** `openinterp reproduce --sample 20`, on `main`. It re-runs a rotating sample of all records, signed ones too, so a library upgrade that shifts activations is noticed. A failure opens an issue (docs/PROTOCOL.md §5).
 - **Reproduce records:** `openinterp reproduce --base-ref origin/main`, on pull requests only. It re-runs every record the pull request adds or changes against the model commit it pins, on CPU. It fails if any activation, result, gate or status differs from the record (docs/PROTOCOL.md §5). Pull requests without record changes skip it (a skipped job counts as passing). Reproductions run one at a time across all pull requests, queued in order, and a newer push to a pull request cancels its older run. Only models in the job's `ALLOWED_MODELS` are downloaded, and the weights are cached between runs. Expect a few minutes per record for Qwen2.5-0.5B. Records signed by a maintainer are skipped: run `openinterp sign wiki/experiments/<slug>/<id>.json` and commit the `.sig` file next to the record. The default key is `~/.ssh/openinterp_signing` (or `$OPENINTERP_SIGNING_KEY`, or `--key`): a key used only for signing, so it can be revoked without touching your logins. `verify`, `review` and `reevaluate` sign each new experiment automatically when that key exists and is listed in `.github/allowed_signers`. So your own runs (including `make loop`) skip CI reproduction. Set `OPENINTERP_AUTO_SIGN=0` to turn this off. Only keys in `.github/allowed_signers` on `main` count. Add yours there first, in its own commit to `main`:
@@ -271,8 +271,11 @@ dist/
 ├── data/registry.parquet            # one row per experiment; latest, max-age=3600
 ├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
 ├── data/manifest.json
+├── data/neuronpedia/v1/<model>/<source>/explanations/batch-0.jsonl.gz  # VERIFIED units, Neuronpedia's format
 └── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)
 ```
+
+`data/neuronpedia/` holds the lead experiment of each VERIFIED unit in Neuronpedia's export layout, so a self-hosted Neuronpedia can import it (`openinterp/builder/neuronpedia_export.py`). A dictionary latent goes to the source Neuronpedia hosts it under, with the same index. A native neuron goes to `<layer>-openinterp-neurons`, with its pole. Only models that Neuronpedia knows are exported, today GPT-2 small. Each row links to its signed record and carries the data licence. Nothing is sent to Neuronpedia.
 
 Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
 
@@ -295,6 +298,10 @@ Configure the workflow in the repo's GitHub settings:
 | `R2_BUCKET` | variable | Bucket name |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
 | `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs |
+
+## Licence
+
+The code is under the MIT licence (`LICENSE`). The data (the records and pages under `wiki/` and the site built from them) is under CC-BY-4.0 (`wiki/LICENSE.md`). Corpus excerpts inside records keep their corpus's own terms, and model outputs are also subject to the model's terms.
 
 ## Status
 
