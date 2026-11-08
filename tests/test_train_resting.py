@@ -10,9 +10,12 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 from train_resting import (  # noqa: E402
     CONDITIONS,
+    LEAKY_SLOPE,
+    SGD_MOMENTUM,
     Activation,
     _layer_stats,
     build_model,
+    make_optimizer,
 )
 
 
@@ -57,3 +60,33 @@ def test_layer_stats_splits_the_rest_into_offset_and_bias():
     assert stats["median_h"] == pytest.approx(expected, abs=1e-5)
     assert stats["median_offset"] == pytest.approx((x[0] @ weights).median().item(), abs=1e-5)
     assert stats["median_learned_rest"] is None
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("softplus", torch.nn.functional.softplus),
+        ("silu", torch.nn.functional.silu),
+        ("leaky_relu", lambda h: torch.nn.functional.leaky_relu(h, LEAKY_SLOPE)),
+    ],
+)
+def test_each_new_activation_is_the_torch_function(name, expected):
+    h = torch.randn(32)
+    assert Activation(name, None, None)(h).equal(expected(h))
+
+
+def test_sgd_condition_uses_momentum_and_its_own_learning_rate():
+    condition = CONDITIONS["sgd"]
+    optimizer = make_optimizer(condition, build_model(condition, vocab_size=50, seed=0))
+    assert isinstance(optimizer, torch.optim.SGD)
+    group = optimizer.param_groups[0]
+    assert group["lr"] == condition.learning_rate
+    assert group["momentum"] == SGD_MOMENTUM
+
+
+def test_learned_rest_rate_is_a_multiple_of_the_conditions_rate():
+    condition = CONDITIONS["rest_learned_fast"]
+    optimizer = make_optimizer(condition, build_model(condition, vocab_size=50, seed=0))
+    assert isinstance(optimizer, torch.optim.AdamW)
+    others, rests = optimizer.param_groups
+    assert rests["lr"] == pytest.approx(others["lr"] * condition.rest_lr_factor)

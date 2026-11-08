@@ -2,7 +2,18 @@
 
 import math
 
-from figure_svg import Figure, Panel, columns, gelu, number, relu, sample
+from figure_svg import (
+    Figure,
+    Panel,
+    columns,
+    gelu,
+    leaky_relu,
+    number,
+    relu,
+    sample,
+    silu,
+    softplus,
+)
 
 STEP = 4000
 EVAL_STEPS = list(range(0, STEP + 1, 500))
@@ -17,6 +28,13 @@ EFFECT_ROWS = [
     ("Weight decay 0.1", "weight_decay_0.1"),
     ("ReLU", "relu"),
     ("Tanh", "tanh"),
+]
+# Each series of the rate figure: label, GELU condition, ReLU condition, stroke, fill.
+RATE_SERIES = [
+    ("AdamW 1e-3", "lr_1e-3", "relu_lr_1e-3", "sc1", "fc1"),
+    ("AdamW 3e-4", "gelu", "relu", "sc1", "fc1"),
+    ("AdamW 1e-4", "lr_1e-4", "relu_lr_1e-4", "sc1", "fc1"),
+    ("SGD 0.1", "sgd", "relu_sgd", "sneutral", "fneutral"),
 ]
 LOSS_ROWS = [
     ("ReLU", "relu", "fc1", "sc1"),
@@ -77,8 +95,48 @@ def _progress(fig: Figure, y: float) -> None:
     fig.marks.append(f'<circle class="fc1 progress" cx="0" cy="{y:.1f}" r="4"/>')
 
 
-def activations(rows: list[dict], dip: float) -> Figure:
-    """Draw each activation with the place where its neurons rest at step 4,000."""
+def _lowest(shape, low: float, high: float) -> float:
+    """Return where ``shape`` has its minimum between ``low`` and ``high``, by golden section."""
+    ratio = (math.sqrt(5) - 1) / 2
+    for _ in range(80):
+        a, b = high - ratio * (high - low), low + ratio * (high - low)
+        low, high = (low, b) if shape(a) < shape(b) else (a, high)
+    return (low + high) / 2
+
+
+def _activation_panels(fig: Figure, rows: list[dict], shapes, x_range, x_ticks) -> None:
+    """Draw one panel for each activation, with its rest at L1–L3 moving over the steps.
+
+    ``shapes`` holds (name, condition, function, has_dip) for each panel. A dip is marked
+    where the function has a minimum below 0.
+    """
+    panels = columns(fig, len(shapes), 44, fig.body_top + 22, 200, x_range, (-1.15, 2.2))
+    for panel, (name, condition, shape, has_dip) in zip(panels, shapes, strict=True):
+        panel.head(name)
+        panel.grid_x(x_ticks, 0)
+        panel.grid_y([-1, 0, 1, 2], 0, labels=panel is panels[0])
+        panel.horizontal(0, "axis")
+        panel.vertical(0, "axis")
+        xs = sample(*x_range)
+        panel.curve(xs, [shape(x) for x in xs], "curve")
+        panel.x_title("pre-activation h")
+        fig.dot(panel.x(0), panel.y(shape(0)), 5, "open sc1")
+        depths = [_rest(layer) for layer in _run(rows, condition)["layers"][1:]]
+        _moving_dots(fig, panel, rows, condition, shape)
+        low, high = min(depths), max(depths)
+        reading = f"{number(low)} to {number(high)}" if high - low > 0.01 else "all at 0.00"
+        fig.text(panel.left + panel.width, panel.y(-0.72), reading, "small", "end")
+        if has_dip:
+            dip = _lowest(shape, x_range[0], 0)
+            fig.line(panel.x(dip), panel.y(shape(dip)), panel.x(dip), panel.y(0.75), "dip")
+            label = f"dip at {number(dip)}"
+            fig.text(panel.x(dip), panel.y(0.75) - 5, label, "small", "middle")
+    _progress(fig, panels[0].top + panels[0].height + 48)
+    fig.bottom += 26
+
+
+def activations(rows: list[dict]) -> Figure:
+    """Draw GELU, ReLU and tanh with the place where their neurons rest at step 4,000."""
     fig = Figure(
         ["Neurons rest low under one-sided activations, with or without a dip"],
         [
@@ -90,30 +148,86 @@ def activations(rows: list[dict], dip: float) -> Figure:
         "Three plots of an activation function against pre-activation h. Under GELU and ReLU, "
         "layers L1 to L3 rest between about minus 0.8 and minus 1.2. Under tanh they stay at 0.",
     )
-    shapes = [("GELU", "gelu", gelu), ("ReLU", "relu", relu), ("Tanh", "tanh", math.tanh)]
-    panels = columns(fig, 3, 44, fig.body_top + 22, 200, (-2.5, 2.5), (-1.15, 2.2))
-    for panel, (name, condition, shape) in zip(panels, shapes, strict=True):
-        panel.head(name)
-        panel.grid_x([-2, -1, 0, 1, 2], 0)
-        panel.grid_y([-1, 0, 1, 2], 0, labels=panel is panels[0])
-        panel.horizontal(0, "axis")
-        panel.vertical(0, "axis")
-        xs = sample(-2.5, 2.5)
-        panel.curve(xs, [shape(x) for x in xs], "curve")
-        panel.x_title("pre-activation h")
-        fig.dot(panel.x(0), panel.y(shape(0)), 5, "open sc1")
-        depths = [_rest(layer) for layer in _run(rows, condition)["layers"][1:]]
-        _moving_dots(fig, panel, rows, condition, shape)
-        low, high = min(depths), max(depths)
-        reading = f"{number(low)} to {number(high)}" if high - low > 0.01 else "all at 0.00"
-        fig.text(panel.left + panel.width, panel.y(-0.72), reading, "small", "end")
-    _progress(fig, panels[0].top + panels[0].height + 48)
-    fig.bottom += 26
-    gelu_panel = panels[0]
-    fig.line(
-        gelu_panel.x(dip), gelu_panel.y(gelu(dip)), gelu_panel.x(dip), gelu_panel.y(0.75), "dip"
+    shapes = [
+        ("GELU", "gelu", gelu, True),
+        ("ReLU", "relu", relu, False),
+        ("Tanh", "tanh", math.tanh, False),
+    ]
+    _activation_panels(fig, rows, shapes, (-2.5, 2.5), [-2, -1, 0, 1, 2])
+    return fig
+
+
+def more_activations(rows: list[dict]) -> Figure:
+    """Draw softplus, leaky ReLU and SiLU with the place where their neurons rest."""
+    fig = Figure(
+        ["Every one-sided activation rests below 0, but neither a dip nor a floor sets the depth"],
+        [
+            "Each moving dot is one layer's median neuron (L1–L3), every 500 steps. Softplus has "
+            "no dip and goes deepest.",
+            "SiLU's dip is deeper than GELU's, yet it rests shallower. Leaky ReLU passes 10% "
+            "below 0 and rests shallower than ReLU.",
+        ],
+        "Three plots of an activation function against pre-activation h, from minus 5 to 2. "
+        "Under softplus, layers L1 to L3 rest at about minus 3.5 to minus 4.7. Under leaky ReLU "
+        "they rest at about minus 0.7 to minus 0.8, and under SiLU at about minus 0.2 to "
+        "minus 0.5.",
     )
-    fig.text(gelu_panel.x(dip), gelu_panel.y(0.75) - 5, f"dip at {number(dip)}", "small", "middle")
+    shapes = [
+        ("Softplus", "softplus", softplus, False),
+        ("Leaky ReLU, slope 0.1", "leaky_relu", leaky_relu, False),
+        ("SiLU", "silu", silu, True),
+    ]
+    _activation_panels(fig, rows, shapes, (-5, 2), [-4, -2, 0, 2])
+    return fig
+
+
+def _spread(ys: list[float], gap: float) -> list[float]:
+    """Return the label heights ``ys``, moved down where needed so that each is ``gap`` apart."""
+    order = sorted(range(len(ys)), key=ys.__getitem__)
+    out = list(ys)
+    for before, index in zip(order, order[1:], strict=False):
+        out[index] = max(out[index], out[before] + gap)
+    return out
+
+
+def _rate_panel(fig: Figure, panel: Panel, rows: list[dict], relu_side: bool) -> None:
+    """Draw L1's rest against the held-out loss over training, one line for each series."""
+    panel.grid_x([7, 6.5, 6, 5.5], 1)
+    panel.grid_y([-4, -3, -2, -1, 0], 0, labels=not relu_side)
+    panel.horizontal(0, "axis")
+    panel.x_title("held-out loss (training goes right)")
+    ends = []
+    for label, gelu_name, relu_name, stroke, fill in RATE_SERIES:
+        condition = relu_name if relu_side else gelu_name
+        points = [_run(rows, condition, step=step) for step in EVAL_STEPS[1:]]
+        losses = [row["loss"] for row in points]
+        rests = [_rest(row["layers"][1]) for row in points]
+        panel.curve(losses, rests, f"line {stroke}")
+        fig.dot(panel.x(losses[-1]), panel.y(rests[-1]), 4, f"{fill} ring")
+        ends.append((label, panel.x(losses[-1]), panel.y(rests[-1])))
+    heights = _spread([y + 4 for _, _, y in ends], 14)
+    for (label, x, _), y in zip(ends, heights, strict=True):
+        fig.text(x + 7, y, label, "small")
+
+
+def rates(rows: list[dict]) -> Figure:
+    """Draw how deep L1 rests for each optimizer and rate, against how far training has got."""
+    fig = Figure(
+        ["At the same loss, the rest is as deep as the optimizer's steps take it"],
+        [
+            "L1's median h against held-out loss, every 500 steps to step 4,000. Seed 0. A larger "
+            "AdamW rate reaches the same",
+            "loss with a deeper rest. Under SGD, GELU and ReLU part.",
+        ],
+        "Two line plots of layer 1's rest against loss, for GELU and ReLU. At AdamW rates of "
+        "1e-4, 3e-4 and 1e-3, the rest at step 4,000 is about minus 0.4, minus 1.1 and minus 3 "
+        "to minus 4. SGD rests at minus 0.32 under GELU and minus 0.59 under ReLU.",
+    )
+    top = fig.body_top + 22
+    panels = columns(fig, 2, 48, top, 220, (7.1, 5.3), (-4.5, 0.2), gap=40, right=96)
+    for panel, (name, relu_side) in zip(panels, (("GELU", False), ("ReLU", True)), strict=True):
+        panel.head(name)
+        _rate_panel(fig, panel, rows, relu_side)
     return fig
 
 
@@ -281,7 +395,9 @@ def loss(rows: list[dict]) -> Figure:
 def build(rows: list[dict], dip: float) -> dict[str, Figure]:
     """Return this analysis's figures by file name."""
     return {
-        "activations.svg": activations(rows, dip),
+        "activations.svg": activations(rows),
+        "more-activations.svg": more_activations(rows),
+        "rates.svg": rates(rows),
         "effects.svg": effects(rows, dip),
         "long-run.svg": long_run(rows, dip),
         "loss.svg": loss(rows),

@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 382" width="760" height="382" role="img">
+<title>Two line plots of layer 1&#x27;s rest against loss, for GELU and ReLU. At AdamW rates of 1e-4, 3e-4 and 1e-3, the rest at step 4,000 is about minus 0.4, minus 1.1 and minus 3 to minus 4. SGD rests at minus 0.32 under GELU and minus 0.59 under ReLU.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="382" rx="10"/>
+<text x="20.0" y="30.0" class="title">At the same loss, the rest is as deep as the optimizer&#x27;s steps take it</text>
+<text x="20.0" y="50.0" class="sub">L1&#x27;s median h against held-out loss, every 500 steps to step 4,000. Seed 0. A larger AdamW rate reaches the same</text>
+<text x="20.0" y="68.0" class="sub">loss with a deeper rest. Under SGD, GELU and ReLU part.</text>
+<text x="48.0" y="106.0" class="head">GELU</text>
+<path class="grid" d="M64.0 114.0L64.0 334.0"/>
+<text x="64.0" y="349.0" class="small" text-anchor="middle">7.0</text>
+<path class="grid" d="M144.0 114.0L144.0 334.0"/>
+<text x="144.0" y="349.0" class="small" text-anchor="middle">6.5</text>
+<path class="grid" d="M224.0 114.0L224.0 334.0"/>
+<text x="224.0" y="349.0" class="small" text-anchor="middle">6.0</text>
+<path class="grid" d="M304.0 114.0L304.0 334.0"/>
+<text x="304.0" y="349.0" class="small" text-anchor="middle">5.5</text>
+<path class="grid" d="M48.0 310.6L336.0 310.6"/>
+<text x="41.0" y="314.6" class="small" text-anchor="end">−4</text>
+<path class="grid" d="M48.0 263.8L336.0 263.8"/>
+<text x="41.0" y="267.8" class="small" text-anchor="end">−3</text>
+<path class="grid" d="M48.0 217.0L336.0 217.0"/>
+<text x="41.0" y="221.0" class="small" text-anchor="end">−2</text>
+<path class="grid" d="M48.0 170.2L336.0 170.2"/>
+<text x="41.0" y="174.2" class="small" text-anchor="end">−1</text>
+<path class="grid" d="M48.0 123.4L336.0 123.4"/>
+<text x="41.0" y="127.4" class="small" text-anchor="end">0</text>
+<path class="axis" d="M48.0 123.4L336.0 123.4"/>
+<text x="192.0" y="365.0" class="small" text-anchor="middle">held-out loss (training goes right)</text>
+<path class="line sc1" d="M132.9 156.2L187.1 203.2L223.7 230.8L245.3 246.4L266.1 258.9L282.6 267.6L293.8 268.4L303.2 272.4"/>
+<circle class="fc1 ring" cx="303.2" cy="272.4" r="4"/>
+<path class="line sc1" d="M135.1 132.8L192.0 143.2L226.2 151.4L249.5 158.1L267.3 163.8L283.3 169.9L294.1 174.2L302.6 175.3"/>
+<circle class="fc1 ring" cx="302.6" cy="175.3" r="4"/>
+<path class="line sc1" d="M63.2 126.0L129.5 130.7L162.8 133.3L187.0 135.5L204.8 137.3L219.3 137.8L232.8 139.8L243.7 140.8"/>
+<circle class="fc1 ring" cx="243.7" cy="140.8" r="4"/>
+<path class="line sneutral" d="M81.3 126.7L142.8 127.9L174.1 130.8L198.8 132.2L213.8 133.5L231.2 134.9L244.4 137.4L255.4 138.1"/>
+<circle class="fneutral ring" cx="255.4" cy="138.1" r="4"/>
+<text x="310.2" y="276.4" class="small">AdamW 1e-3</text>
+<text x="309.6" y="179.3" class="small">AdamW 3e-4</text>
+<text x="250.7" y="156.1" class="small">AdamW 1e-4</text>
+<text x="262.4" y="142.1" class="small">SGD 0.1</text>
+<text x="376.0" y="106.0" class="head">ReLU</text>
+<path class="grid" d="M392.0 114.0L392.0 334.0"/>
+<text x="392.0" y="349.0" class="small" text-anchor="middle">7.0</text>
+<path class="grid" d="M472.0 114.0L472.0 334.0"/>
+<text x="472.0" y="349.0" class="small" text-anchor="middle">6.5</text>
+<path class="grid" d="M552.0 114.0L552.0 334.0"/>
+<text x="552.0" y="349.0" class="small" text-anchor="middle">6.0</text>
+<path class="grid" d="M632.0 114.0L632.0 334.0"/>
+<text x="632.0" y="349.0" class="small" text-anchor="middle">5.5</text>
+<path class="grid" d="M376.0 310.6L664.0 310.6"/>
+<path class="grid" d="M376.0 263.8L664.0 263.8"/>
+<path class="grid" d="M376.0 217.0L664.0 217.0"/>
+<path class="grid" d="M376.0 170.2L664.0 170.2"/>
+<path class="grid" d="M376.0 123.4L664.0 123.4"/>
+<path class="axis" d="M376.0 123.4L664.0 123.4"/>
+<text x="520.0" y="365.0" class="small" text-anchor="middle">held-out loss (training goes right)</text>
+<path class="line sc1" d="M465.3 175.0L521.5 216.2L555.5 248.1L576.2 270.0L598.3 279.3L611.6 295.1L621.7 303.1L633.0 312.5"/>
+<circle class="fc1 ring" cx="633.0" cy="312.5" r="4"/>
+<path class="line sc1" d="M467.0 147.7L524.9 154.2L559.9 162.9L581.7 166.6L600.8 169.5L615.0 173.0L624.4 173.3L634.2 176.3"/>
+<circle class="fc1 ring" cx="634.2" cy="176.3" r="4"/>
+<path class="line sc1" d="M389.7 129.8L457.5 135.7L492.3 137.1L515.8 138.9L535.0 140.6L550.9 141.1L562.9 141.5L574.0 142.2"/>
+<circle class="fc1 ring" cx="574.0" cy="142.2" r="4"/>
+<path class="line sneutral" d="M412.5 131.2L471.7 135.5L502.5 138.7L526.1 142.2L543.0 143.7L559.5 146.9L572.9 150.2L584.5 151.1"/>
+<circle class="fneutral ring" cx="584.5" cy="151.1" r="4"/>
+<text x="640.0" y="316.5" class="small">AdamW 1e-3</text>
+<text x="641.2" y="180.3" class="small">AdamW 3e-4</text>
+<text x="581.0" y="146.2" class="small">AdamW 1e-4</text>
+<text x="591.5" y="160.2" class="small">SGD 0.1</text>
+</svg>
