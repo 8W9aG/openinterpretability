@@ -382,10 +382,12 @@ def build(
 ):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
+    from openinterp.builder.model_facts import load_model_facts
     from openinterp.builder.wiki import load_archive
     from openinterp.core.draws import load_draws, load_stops
     from openinterp.corpus import load_sources
     from openinterp.crossref import load_rows as load_alignment
+    from openinterp.planner import configured_models
     from openinterp.sisters import load_rows as load_sisters
     from openinterp.wiring_backfill import load_rows
 
@@ -399,6 +401,7 @@ def build(
         sister_rows=load_sisters(sisters_path),
         papers_dir=papers_dir,
         stops=load_stops(wiki_dir),
+        model_facts=load_model_facts(configured_models()),  # config.json only, no weights
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
