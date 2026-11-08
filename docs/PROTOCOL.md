@@ -29,6 +29,8 @@ One experiment tests **one hypothesis about one unit** in one model revision. A 
 
 Agents only write text: hypotheses and probes. Every number in a verdict comes from running the model.
 
+**Reviewer isolation is enforced for the Claude Code reviewer.** A `PreToolUse` hook in `.claude/agents/neuron-reviewer.md` runs `openinterp/core/isolation.py` before each of the agent's tool calls. It denies reads, writes and searches of `wiki/experiments/`, `submissions/`, `logs/`, `build/` and `dist/`, and of `exchange/` except prompts (`*.prompt.md`) and probe sets (`*.probes.json`). If the hook fails, the call is denied. `Glob` is allowed, because it gives only file names. `openinterp usage` also checks the reviewer's transcript with the same rule. It writes each blocked path that the reviewer read to the usage file, and `review --probes` then refuses the probe set. Only paths in the checkout are blocked, and an API-key reviewer has no file tools.
+
 **Reviewer independence is encouraged, not enforced.** A model probing its own hypothesis tends to share its blind spots, so a reviewer from a different model is stronger evidence. Since protocol 0.4 a same-model review is allowed: the record stores `independent_review = false` and the verdict is computed as usual (`require_independent_review` turns it into a gate, §4). In return, self-reviews are made visible and followed up:
 
 - `verify` (alias `review`) warns when the reviewer model is the proposer's.
