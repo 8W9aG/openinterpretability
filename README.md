@@ -271,8 +271,11 @@ dist/
 ├── data/registry.parquet            # one row per experiment; latest, max-age=3600
 ├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
 ├── data/manifest.json
+├── data/neuronpedia/v1/<model>/<source>/explanations/batch-0.jsonl.gz  # VERIFIED units, Neuronpedia's format
 └── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)
 ```
+
+`data/neuronpedia/` holds the lead experiment of each VERIFIED unit in Neuronpedia's export layout, so a self-hosted Neuronpedia can import it (`openinterp/builder/neuronpedia_export.py`). A dictionary latent goes to the source Neuronpedia hosts it under, with the same index. A native neuron goes to `<layer>-openinterp-neurons`, with its pole. Only models that Neuronpedia knows are exported, today GPT-2 small. Each row links to its signed record and carries the data licence. Nothing is sent to Neuronpedia.
 
 Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
 
@@ -295,6 +298,10 @@ Configure the workflow in the repo's GitHub settings:
 | `R2_BUCKET` | variable | Bucket name |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
 | `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs |
+
+## Licence
+
+The code is under the MIT licence (`LICENSE`). The data (the records and pages under `wiki/` and the site built from them) is under CC-BY-4.0 (`wiki/LICENSE.md`). Corpus excerpts inside records keep their corpus's own terms, and model outputs are also subject to the model's terms.
 
 ## Status
 

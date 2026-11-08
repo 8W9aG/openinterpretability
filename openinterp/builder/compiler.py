@@ -32,6 +32,7 @@ from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchor
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.heat import HeatToken, token_heat
 from openinterp.builder.model_facts import ModelFacts, render_models
+from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
@@ -52,6 +53,7 @@ from openinterp.builder.tree import (
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.draws import ChosenStop
 from openinterp.core.exceptions import RegistryError
+from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
 from openinterp.planner import configured_licenses
@@ -314,6 +316,7 @@ def compile_site(
     report = BuildReport(output_dir, len(records), len(experiments))
     report.parquet = export_registry(experiments, output_dir, corpus_sources)
     export_draws(draws, output_dir)  # random draws no experiment could audit
+    export_neuronpedia(experiments, output_dir, _project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments)
     render = _Renderer(_environment(), output_dir, common, report)
@@ -326,7 +329,7 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     _render_index(render, models, experiments, agents, stats, draws, by_unit, studied)
     license = metadata("openinterp")["License-Expression"]
-    render("about.html", "about.html", policy=ReviewPolicy(), license=license)
+    render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, output_dir, report)
     return report
 

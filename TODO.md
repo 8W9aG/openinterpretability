@@ -10,7 +10,6 @@ Small fixes, mostly quick.
   - "Set up (once)" alone is ~50 lines before the first experiment. Lead with the shortest path to a first contributed experiment, and move details (provider setup, worktrees, development, layout, deploy) further down or into `docs/`.
   - State all dependencies up front: Git, the GitHub CLI (`gh`), Claude Code, Node.js, Python 3.11+ and uv. "Set up (once)" lists Git, Python and uv, marks `gh` optional, and doesn't mention Claude Code or Node.js. Say what each is for, and which are needed only for some paths (e.g. Claude Code only for 2A). Check what Node.js is needed for, since the site build doesn't use it.
 - [ ] Add `CONTRIBUTING.md`, `SECURITY.md` and `CITATION.cff`. None exist today. `CONTRIBUTING.md` holds the contributor path the README clean-up (above) moves out. `SECURITY.md` says how to report a leaked signing key or a way to get a false VERIFIED past CI. `CITATION.cff` lets papers cite the registry, with a Zenodo DOI minted per release so a citation names an exact version.
-- [ ] Licence the data separately from the code. `LICENSE` is MIT, which suits code but not the records and pages under `wiki/`. Pick a data licence (e.g. CC-BY-4.0), and state it in the README and on the site. Say that corpus excerpts inside records keep their corpus's own terms (the licence `<name>.source.json` already records).
 - [ ] Should we move to GitHub issues or Linear?
 - [ ] Do we need a SOUL.md?
 - [ ] Use academic language when writing papers, in APA style. Put the rule in the `write-paper` skill, and align its reference format and `tests/test_papers.py` with APA.
@@ -318,9 +317,6 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Interoperate with [Neuronpedia](https://www.neuronpedia.org). Read their published data and never write to their site: no API posts, no account uploads, no votes. Neuronpedia hosts no native MLP neurons for GPT-2 small (its `mlp-oai` sources are SAEs) and nothing for Qwen2.5-0.5B or 1.5B. So the overlap is dictionary latents (GPT-2 `tres-dc`, Gemma Scope, Llama Scope). Done: polite, cached lookups with credit (`openinterp/crossref.py`), the import as a blind proposer baseline (`openinterp neuronpedia-baseline`), and links from audited latent pages to Neuronpedia. Left:
-  - Run the imported explanations through the full review too, not only explanation scoring, to compare VERIFIED rates.
-  - Export VERIFIED records as a file in Neuronpedia's export format (`openinterp export-neuronpedia`), with type `openinterp-verified` and a link back to each record, attached to each release. Needs the data licence (Housekeeping) first.
 - [ ] Publish a public benchmark for explanation tools: a frozen, versioned set of units and probe sets, with a scorer. Then other labs can test their own explainers against them. The reviewer-drift benchmark (Protocol and science) is internal only. Keep a held-out split, and say how units were selected so the scores aren't read as covering whole models.
 
 ## Datasets
