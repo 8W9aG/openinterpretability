@@ -1256,6 +1256,20 @@ def test_home_page_lists_a_stop_on_a_unit_with_no_page(tmp_path, record):
     assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
 
 
+@pytest.mark.parametrize(("proven", "verified"), [(True, 2), (False, 1)])
+def test_home_page_counts_a_proven_dead_stop_as_verified(tmp_path, record, proven, verified):
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    dead = _stop(idx=9, pole="positive", outcome="dead", share=None)
+    # MODEL is the slug in paths; the coverage count matches the repo name in identifiers.
+    model = studied.submission.identifier.model_name
+    ident = dead.identifier.model_copy(update={"model_name": model})
+    dead = dead.model_copy(update={"identifier": ident, "proven_dead": proven})
+    compile_site([studied], tmp_path, stops=[dead])
+    home = " ".join((tmp_path / "index.html").read_text().split())
+    assert f"{verified}/116,736 verified" in home
+    assert ("1 of them proven dead" in home) is proven
+
+
 MODELS_PYPROJECT = """[tool.openinterp]
 models = ["Qwen/Qwen2.5-0.5B", "org/unstudied", "org/unreadable"]
 

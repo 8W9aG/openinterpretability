@@ -436,10 +436,16 @@ def plan_next(
 
 
 def dead(wiki_dir: Path) -> list:
-    """Every neuron pole that a random draw found dead and the weights proved dead."""
-    from openinterp.core.draws import load_draws
+    """Every neuron pole that a scan found dead and the weights proved dead.
 
-    return [d.identifier for d in load_draws(Path(wiki_dir)) if d.proven_dead]
+    The proof does not depend on how the unit was selected. So this reads the stops of
+    chosen units (:func:`load_stops`) as well as random draws. Random-selection
+    statistics still read the draws only.
+    """
+    from openinterp.core.draws import load_draws, load_stops
+
+    wiki_dir = Path(wiki_dir)
+    return [d.identifier for d in (*load_draws(wiki_dir), *load_stops(wiki_dir)) if d.proven_dead]
 
 
 def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:

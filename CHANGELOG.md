@@ -21,6 +21,8 @@ The project has two version numbers:
 
 ### Changed
 
+- **A chosen unit that the weights prove dead counts as verified** (`openinterp/planner.py`, `openinterp/builder/compiler.py`, from TODO, Pipeline). The planner and the site's coverage count read the stops of chosen units (`wiki/stops/`) as well as random draws. Before, only a random draw could count a pole as proven dead, so a chosen unit stayed unverified and could be drawn again. The proof doesn't depend on how the unit was selected. Random-selection statistics and the Parquet export still read the draws only. No stop in the registry is proven dead yet, so no count changes today.
+
 - **The README leads with a quickstart** (from TODO, Housekeeping). It lists every tool up front, with what each one is for and which path needs it. Then it gives the shortest path to a first experiment: Claude Code with its subagents, which needs no API keys. Node.js is not needed at all, and the README says so. The details moved to two new pages. `docs/experiments.md` covers the LLM options, the scan corpus and caches, and loops and parallel sessions. It also covers heads and dictionary latents, contributing, the skills, definitions and models. `docs/development.md` covers make targets, CI, record signing, the layout, the static site and deploy.
 
 ## [0.0.15] - 2026-11-08
