@@ -267,8 +267,9 @@ def explore_focus(models: Sequence[ModelNode], draws: Sequence = ()) -> dict:
     """The coverage target, the explore focus, and each model's verified neurons.
 
     A neuron counts as verified when a pole stands VERIFIED or is proven dead in
-    ``draws``. The site reads a standing and the planner reads the latest record. So the
-    two can name a different focus for a time.
+    ``draws``. Give it the random draws and the stops of chosen units together, as the
+    planner reads both (:func:`openinterp.planner.dead`). The site reads a standing and
+    the planner reads the latest record. So the two can name a different focus for a time.
     """
     from openinterp.planner import coverage_target  # it reads pyproject.toml
     from openinterp.planner_models import ModelCoverage, focus_model

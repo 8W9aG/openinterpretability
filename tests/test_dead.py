@@ -149,6 +149,34 @@ def test_proven_dead_poles_count_as_verified(tmp_path, record, monkeypatch):
     assert explore["models"] == {"m/a": {"verified": 3, "dead": 2}}  # L1/N3, and 2 dead
 
 
+def test_proven_dead_chosen_stops_count_as_verified(tmp_path, monkeypatch):
+    """A chosen unit's proven-dead stop counts as verified, but stays out of the draws."""
+    from openinterp import planner_models
+    from openinterp.core.draws import ChosenStop, load_stops, stop_path
+    from openinterp.planner import plan_next
+
+    monkeypatch.setattr(planner_models, "model_dims", lambda model, download=True: (2, 10))
+    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["m/a"]\n')
+    wiki = tmp_path / "wiki"
+    manual = PROVENANCE.model_copy(update={"selection": "manual", "seed": None})
+    for i, proven in enumerate([True, False]):
+        stop = ChosenStop(
+            identifier=neuron(0, i, model="m/a"),
+            outcome="dead",
+            proven_dead=proven,
+            provenance=manual,
+            timestamp=datetime(2026, 11, 2, 12, i, tzinfo=UTC),
+        )
+        path = stop_path(wiki, stop)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(stop.model_dump_json() + "\n")
+
+    assert load_draws(wiki) == []  # random-selection statistics don't read stops
+    plan = plan_next(wiki, seed=1, epsilon=1.0)
+    assert plan.coverage["m/a"].verified == 1  # the proven stop only
+    assert [s.proven_dead for s in load_stops(wiki)] == [True, False]
+
+
 @pytest.mark.parametrize(
     ("proven", "says"),
     [(True, "the weights prove that no input"), (False, "the weights don't prove it dead")],

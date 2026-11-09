@@ -16,7 +16,8 @@ of evidence, once only, at ``wiki/draws/<slug>/<timestamp>.json`` (``openinterp 
 For a chosen unit, such as a revise, it writes a :class:`ChosenStop` at
 ``wiki/stops/<slug>/<timestamp>.json``. A chosen unit is not a sample, and it can already
 count as a random draw. So stops have their own directory, and :func:`load_draws` does not
-read them.
+read them. A proof by the weights does not depend on selection, so a ``proven_dead`` stop
+also counts its pole as verified (:func:`openinterp.planner.dead`).
 """
 
 from __future__ import annotations
