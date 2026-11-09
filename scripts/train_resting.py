@@ -266,8 +266,8 @@ class PushRecorder:
     The weights' push is −(dL/dw)·x̄, the gradient on the neuron's input weights along the
     batch's mean input. It is |x̄|² times the push, plus a term from tokens whose input
     lines up with x̄ more or less than the mean does.
-    The output's push is −dL/da for the activation's output a, so that the rest's push
-    is the output's push times the slope of the activation, token by token. The movement
+    The output's push is −dL/da for the activation's output a. On each token, the rest's
+    push is the output's push times the slope of the activation. The movement
     is x̄·ΔW + Δb for one optimizer step, with x̄ the mean of the batch's MLP input.
     """
 
@@ -402,7 +402,7 @@ def train(
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
     If ``push_every`` is not 0, also append a row labelled ``push`` after each
-    ``push_every`` steps, with a summary of the push on the rest over those steps.
+    ``push_every`` steps. The row summarises the push on the rest over those steps.
     """
     condition = CONDITIONS[name]
     vocab = int(tokens.max()) + 1
