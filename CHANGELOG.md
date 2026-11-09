@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **A JSON, JSONL and YAML linter in `make lint` and CI** (`scripts/check_data_files.py`, `.yamllint.yml`, from TODO, Code quality and tooling). JSON files and notebooks must be UTF-8, parse, have no duplicate keys and end with a newline. A JSONL file has one value on each line and no blank lines. yamllint checks the YAML files and the front matter of Markdown files, with a line limit of 100 as for ruff. The front matter has no line limit. The records under `wiki/` are exempt, because `openinterp check` validates them and they are write-once. Three long lines in the workflows and a Vale rule are now shorter.
+
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
