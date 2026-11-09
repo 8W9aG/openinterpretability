@@ -13,6 +13,7 @@ from train_resting import (  # noqa: E402
     LEAKY_SLOPE,
     SGD_MOMENTUM,
     Activation,
+    PushRecorder,
     _layer_stats,
     build_model,
     make_optimizer,
@@ -90,3 +91,52 @@ def test_learned_rest_rate_is_a_multiple_of_the_conditions_rate():
     assert isinstance(optimizer, torch.optim.AdamW)
     others, rests = optimizer.param_groups
     assert rests["lr"] == pytest.approx(others["lr"] * condition.rest_lr_factor)
+
+
+def _one_recorded_step(name: str):
+    """Return a small model and its recorder after one training step of condition ``name``."""
+    condition = CONDITIONS[name]
+    model = build_model(condition, vocab_size=50, seed=0).train()
+    optimizer = make_optimizer(condition, model)
+    recorder = PushRecorder(model)
+    batch = torch.randint(50, (2, 16), generator=torch.Generator().manual_seed(0))
+    model(batch, labels=batch).loss.backward()
+    recorder.before_step()
+    return model, optimizer, recorder
+
+
+def test_push_on_the_rest_is_the_gradient_on_the_bias_with_its_sign_reversed():
+    model, optimizer, recorder = _one_recorded_step("gelu")
+    expected = (-model.transformer.h[0].mlp.c_fc.bias.grad).median().item()
+    optimizer.step()
+    recorder.after_step()
+    for block in model.transformer.h:
+        assert block.mlp.act.rest_grad.allclose(block.mlp.c_fc.bias.grad, atol=1e-7)
+    assert recorder.row()[0]["median_push"] == pytest.approx(expected, abs=1e-7)
+
+
+def test_movement_is_the_change_in_h_at_the_mean_input():
+    model, optimizer, recorder = _one_recorded_step("gelu")
+    mlp = model.transformer.h[1].mlp
+    x_mean = recorder.inputs[1].clone()
+    weight, bias = mlp.c_fc.weight.detach().clone(), mlp.c_fc.bias.detach().clone()
+    optimizer.step()
+    recorder.after_step()
+    moved = (x_mean @ mlp.c_fc.weight.detach() + mlp.c_fc.bias.detach()) - (x_mean @ weight + bias)
+    assert recorder.row()[1]["median_moved"] == pytest.approx(moved.median().item(), abs=1e-6)
+
+
+def test_weights_push_is_the_weight_gradient_along_the_mean_input():
+    model, optimizer, recorder = _one_recorded_step("gelu")
+    mlp = model.transformer.h[2].mlp
+    expected = (-(recorder.inputs[2] @ mlp.c_fc.weight.grad)).median().item()
+    optimizer.step()
+    recorder.after_step()
+    assert recorder.row()[2]["median_push_weights"] == pytest.approx(expected, abs=1e-7)
+
+
+def test_leaky_relu_condition_sets_its_own_slope():
+    model = build_model(CONDITIONS["leaky_relu_0.01"], vocab_size=50, seed=0)
+    h = torch.randn(32)
+    out = model.transformer.h[0].mlp.act(h)
+    assert out.equal(torch.nn.functional.leaky_relu(h, 0.01))
