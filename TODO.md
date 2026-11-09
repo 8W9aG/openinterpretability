@@ -6,9 +6,6 @@ Open work, grouped by topic. Within each section, items are roughly in priority 
 
 Small fixes, mostly quick.
 
-- [ ] Clean up the README so people who want to start quickly can.
-  - "Set up (once)" alone is ~50 lines before the first experiment. Lead with the shortest path to a first contributed experiment, and move details (provider setup, worktrees, development, layout, deploy) further down or into `docs/`.
-  - State all dependencies up front: Git, the GitHub CLI (`gh`), Claude Code, Node.js, Python 3.11+ and uv. "Set up (once)" lists Git, Python and uv, marks `gh` optional, and doesn't mention Claude Code or Node.js. Say what each is for, and which are needed only for some paths (e.g. Claude Code only for 2A). Check what Node.js is needed for, since the site build doesn't use it.
 - [ ] Add `CONTRIBUTING.md`, `SECURITY.md` and `CITATION.cff`. None exist today. `CONTRIBUTING.md` holds the contributor path the README clean-up (above) moves out. `SECURITY.md` says how to report a leaked signing key or a way to get a false VERIFIED past CI. `CITATION.cff` lets papers cite the registry, with a Zenodo DOI minted per release so a citation names an exact version.
 - [ ] Should we move to GitHub issues or Linear?
 - [ ] Do we need a SOUL.md?
@@ -21,7 +18,6 @@ Small fixes, mostly quick.
 
 Lint rules, tests, releases and repository automation. Prefer a deterministic check (lint, test, CI job) where one can do the job. Ratchet it in rather than failing all existing code at once. Use a skill for what needs judgement.
 
-- [ ] Add a JSON/JSONL/YAML linter.
 - [ ] Add bandit linting for security.
 - [ ] Add shell linter.
 - [ ] Run Cloudflare's [security-audit-skill](https://github.com/cloudflare/security-audit-skill) on the repo.

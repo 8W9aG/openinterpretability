@@ -4,9 +4,10 @@
 # a rule each comment or docstring whole and never splits it into sentences. A sentence
 # ends at . ! or ? before whitespace, so `0.5` and `e.g.` do not end one; a closing quote
 # or bracket may come between. A colon at the end of a line also ends one: it opens a
-# list or a block. So does the start of a list item (`-` or `*`). Some lines are not prose, so their words do not count: lines indented
-# 4 or more spaces (Vale dedents docstrings, so these are literal blocks, such as a
-# formula or a file layout) and indented command examples (Click help text).
+# list or a block. So does the start of a list item (`-` or `*`). Some lines are not
+# prose, so their words do not count: lines indented 4 or more spaces (Vale dedents
+# docstrings, so these are literal blocks, such as a formula or a file layout) and
+# indented command examples (Click help text).
 extends: script
 message: "Keep sentences to 25 words or fewer (20 for an instruction)."
 level: error
