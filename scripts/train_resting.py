@@ -62,6 +62,7 @@ class Condition:
     rest_lr_factor: float = 1.0  # multiplies the learning rate of the learned value
     optimizer: str = "adamw"  # "adamw", or "sgd" with momentum SGD_MOMENTUM
     learning_rate: float = LEARNING_RATE
+    leaky_slope: float = LEAKY_SLOPE  # the slope of leaky ReLU below 0
 
 
 BASE = Condition()
@@ -81,6 +82,7 @@ CONDITIONS = {
     "rest_learned_fast": replace(BASE, learned_rest=True, rest_lr_factor=30.0),
     "softplus": replace(BASE, activation="softplus"),
     "leaky_relu": replace(BASE, activation="leaky_relu"),
+    "leaky_relu_0.01": replace(BASE, activation="leaky_relu", leaky_slope=0.01),
     "silu": replace(BASE, activation="silu"),
     "lr_1e-4": replace(BASE, learning_rate=1e-4),
     "lr_1e-3": replace(BASE, learning_rate=1e-3),
@@ -94,10 +96,22 @@ CONDITIONS = {
 class Activation(nn.Module):
     """The MLP's activation, with an optional fixed resting level for each neuron."""
 
-    def __init__(self, name: str, fixed_rest: float | None, learned_width: int | None) -> None:
+    def __init__(
+        self,
+        name: str,
+        fixed_rest: float | None,
+        learned_width: int | None,
+        leaky_slope: float = LEAKY_SLOPE,
+    ) -> None:
         super().__init__()
         self.name = name
         self.fixed_rest = fixed_rest
+        self.leaky_slope = leaky_slope
+        # When ``record`` is true, each backward pass sets ``rest_grad`` and ``output_grad``.
+        # Each is the sum over tokens of dL/dh or dL/da, one value for each neuron.
+        self.record = False
+        self.rest_grad: torch.Tensor | None = None
+        self.output_grad: torch.Tensor | None = None
         # This control separates the cost of centring from the cost of a shared, fixed rest.
         self.learned_rest = nn.Parameter(torch.zeros(learned_width)) if learned_width else None
 
@@ -109,6 +123,16 @@ class Activation(nn.Module):
             h = h - h.mean((0, 1), keepdim=True) + self.fixed_rest
         elif self.learned_rest is not None:
             h = h - h.mean((0, 1), keepdim=True) + self.learned_rest
+        out = self._shape(h)
+        if self.record and out.requires_grad:
+            # dL/dh summed over tokens is the gradient on a shift of the neuron's whole h,
+            # after any centring. Without centring, it equals the gradient on the bias.
+            h.register_hook(lambda g: setattr(self, "rest_grad", g.sum((0, 1)).detach()))
+            out.register_hook(lambda g: setattr(self, "output_grad", g.sum((0, 1)).detach()))
+        return out
+
+    def _shape(self, h: torch.Tensor) -> torch.Tensor:
+        """Return the activation function of ``h``, with no centring."""
         if self.name == "gelu":
             return nn.functional.gelu(h)
         if self.name == "relu":
@@ -120,7 +144,7 @@ class Activation(nn.Module):
         if self.name == "softplus":
             return nn.functional.softplus(h)
         if self.name == "leaky_relu":
-            return nn.functional.leaky_relu(h, LEAKY_SLOPE)
+            return nn.functional.leaky_relu(h, self.leaky_slope)
         if self.name == "silu":
             return nn.functional.silu(h)
         raise ValueError(f"unknown activation {self.name}")
@@ -145,7 +169,9 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
     model = GPT2LMHeadModel(config)
     learned_width = config.n_inner if condition.learned_rest else None
     for block in model.transformer.h:
-        block.mlp.act = Activation(condition.activation, condition.fixed_rest, learned_width)
+        block.mlp.act = Activation(
+            condition.activation, condition.fixed_rest, learned_width, condition.leaky_slope
+        )
     return model
 
 
@@ -232,6 +258,119 @@ def _layer_stats(mlp, x: torch.Tensor) -> dict:
     }
 
 
+class PushRecorder:
+    """Record, at each step, the push on each neuron's rest and how far the rest moves.
+
+    The push is −dL/dh summed over the batch's tokens: the direction in which gradient
+    descent moves the neuron's whole h. It is negative when descent moves the rest down.
+    The weights' push is −(dL/dw)·x̄, the gradient on the neuron's input weights along the
+    batch's mean input. It is |x̄|² times the push, plus a term from tokens whose input
+    lines up with x̄ more or less than the mean does.
+    The output's push is −dL/da for the activation's output a, so that the rest's push
+    is the output's push times the slope of the activation, token by token. The movement
+    is x̄·ΔW + Δb for one optimizer step, with x̄ the mean of the batch's MLP input.
+    """
+
+    def __init__(self, model) -> None:
+        self.mlps = [block.mlp for block in model.transformer.h]
+        self.inputs: list[torch.Tensor | None] = [None] * len(self.mlps)
+        self.before: list[tuple[torch.Tensor, torch.Tensor]] = []
+        for i, mlp in enumerate(self.mlps):
+            mlp.act.record = True
+            mlp.register_forward_pre_hook(self._input_hook(i))
+        self.steps = 0
+        self.run_steps = 0
+        self.run_down = [torch.zeros_like(m.c_fc.bias) for m in self.mlps]
+        self.run_down_weights = [torch.zeros_like(m.c_fc.bias) for m in self.mlps]
+        self._reset()
+
+    def _input_hook(self, i: int):
+        def hook(_module, args):
+            x = args[0].detach()
+            self.inputs[i] = x.reshape(-1, x.shape[-1]).mean(0)
+
+        return hook
+
+    def _reset(self) -> None:
+        zeros = [torch.zeros_like(m.c_fc.bias, dtype=torch.float32) for m in self.mlps]
+        self.window = {
+            key: [z.clone() for z in zeros]
+            for key in (
+                "push",
+                "push_sq",
+                "down",
+                "output_push",
+                "push_weights",
+                "down_weights",
+                "moved_weights",
+                "moved_bias",
+            )
+        }
+        self.steps = 0
+
+    def before_step(self) -> None:
+        """Keep the input weights and biases, and add this step's gradients to the window."""
+        self.before = [
+            (m.c_fc.weight.detach().clone(), m.c_fc.bias.detach().clone()) for m in self.mlps
+        ]
+        for i, mlp in enumerate(self.mlps):
+            push = -mlp.act.rest_grad.float()
+            self.window["push"][i] += push
+            self.window["push_sq"][i] += push**2
+            self.window["down"][i] += (push < 0).float()
+            self.run_down[i] += (push < 0).float()
+            self.window["output_push"][i] += -mlp.act.output_grad.float()
+            push_weights = -(self.inputs[i] @ mlp.c_fc.weight.grad).float()
+            self.window["push_weights"][i] += push_weights
+            self.window["down_weights"][i] += (push_weights < 0).float()
+            self.run_down_weights[i] += (push_weights < 0).float()
+
+    def after_step(self) -> None:
+        """Add how far this step moved each neuron's rest, at the batch's mean input."""
+        for i, (mlp, (weight, bias)) in enumerate(zip(self.mlps, self.before, strict=True)):
+            delta = mlp.c_fc.weight.detach() - weight  # Conv1D: [d_model, width]
+            self.window["moved_weights"][i] += (self.inputs[i] @ delta).float()
+            self.window["moved_bias"][i] += (mlp.c_fc.bias.detach() - bias).float()
+        self.steps += 1
+        self.run_steps += 1
+
+    def row(self) -> list[dict]:
+        """Return each layer's summary of the steps since the last row, and start a new window."""
+        layers = []
+        n = self.steps
+        for i in range(len(self.mlps)):
+            w = {key: values[i].cpu() for key, values in self.window.items()}
+            mean = w["push"] / n
+            rms = (w["push_sq"] / n).sqrt()
+            moved = w["moved_weights"] + w["moved_bias"]
+            layers.append(
+                {
+                    "median_push": mean.median().item(),
+                    "median_output_push": (w["output_push"] / n).median().item(),
+                    # Adam moves a parameter by about lr × mean / rms of its gradient.
+                    "median_push_ratio": (mean / rms.clamp_min(1e-30)).median().item(),
+                    "share_neurons_pushed_down": (mean < 0).float().mean().item(),
+                    "median_share_steps_down": (w["down"] / n).median().item(),
+                    "median_run_share_steps_down": (self.run_down[i].cpu() / self.run_steps)
+                    .median()
+                    .item(),
+                    "median_push_weights": (w["push_weights"] / n).median().item(),
+                    "median_share_steps_down_weights": (w["down_weights"] / n).median().item(),
+                    "median_run_share_steps_down_weights": (
+                        self.run_down_weights[i].cpu() / self.run_steps
+                    )
+                    .median()
+                    .item(),
+                    "median_moved": moved.median().item(),
+                    "median_moved_weights": w["moved_weights"].median().item(),
+                    "median_moved_bias": w["moved_bias"].median().item(),
+                    "share_neurons_moved_down": (moved < 0).float().mean().item(),
+                }
+            )
+        self._reset()
+        return layers
+
+
 def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
     """Return the condition's optimizer, with the learned rests in a group of their own."""
     # At the base rate, Adam cannot move one parameter by much more than 1 in a short run.
@@ -249,14 +388,28 @@ def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
 
 
 def train(
-    name: str, seed: int, steps: int, eval_every: int, tokens, test_ids, device, out, part
+    name: str,
+    seed: int,
+    steps: int,
+    eval_every: int,
+    tokens,
+    test_ids,
+    device,
+    out,
+    part,
+    push_every: int = 0,
 ) -> None:
-    """Train one model and append a row, labelled ``part``, at each evaluation."""
+    """Train one model and append a row, labelled ``part``, at each evaluation.
+
+    If ``push_every`` is not 0, also append a row labelled ``push`` after each
+    ``push_every`` steps, with a summary of the push on the rest over those steps.
+    """
     condition = CONDITIONS[name]
     vocab = int(tokens.max()) + 1
     model = build_model(condition, vocab, seed).to(device).train()
     optimizer = make_optimizer(condition, model)
     generator = torch.Generator().manual_seed(seed)
+    recorder = PushRecorder(model) if push_every else None
     start = time.time()
     for step in range(steps + 1):
         if step % eval_every == 0:
@@ -272,8 +425,15 @@ def train(
             raise click.ClickException(f"{name} seed {seed}: loss {loss.item()} at step {step}")
         optimizer.zero_grad()
         loss.backward()
+        if recorder:
+            recorder.before_step()  # before the clip, which scales every gradient alike
         nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIP)
         optimizer.step()
+        if recorder:
+            recorder.after_step()
+            if (step + 1) % push_every == 0:
+                row = {"part": "push", "condition": name, "seed": seed, "step": step + 1}
+                write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
 
 
 @click.group()
@@ -291,7 +451,14 @@ def cli():
 @click.option("--device", default="auto", show_default=True)
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 @click.option("--part", default="training", show_default=True, help="The label of the rows.")
-def train_command(names, seeds, steps, eval_every, corpus, cache, device, out, part):
+@click.option(
+    "--push-every",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Steps in each row of the push on the rest. 0 records no push.",
+)
+def train_command(names, seeds, steps, eval_every, corpus, cache, device, out, part, push_every):
     """Train each condition with each seed, and append the rows to ``--out``."""
     from transformers import AutoTokenizer
 
@@ -303,7 +470,7 @@ def train_command(names, seeds, steps, eval_every, corpus, cache, device, out, p
     for seed in seeds:
         for name in names or sorted(CONDITIONS):
             device_ = resolve_device(device)
-            train(name, seed, steps, eval_every, tokens, test_ids, device_, out, part)
+            train(name, seed, steps, eval_every, tokens, test_ids, device_, out, part, push_every)
 
 
 @cli.command()

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 414" width="760" height="414" role="img">
+<title>Left, lines of the push ratio over 4,000 steps for seven activations. Softplus stays lowest, near minus 0.04 to minus 0.1. ReLU and both leaky ReLUs are below 0 from the start. GELU and SiLU start above 0 and cross below it after a few hundred steps. Tanh stays at 0. Right, L1&#x27;s rest against the mean push ratio: softplus near minus 0.043 and minus 4.7 to minus 5, ReLU, GELU and leaky 0.01 near minus 0.02 and minus 1.1, leaky 0.1 near minus 0.016 and minus 0.7, SiLU near minus 0.01 and minus 0.5, and tanh at 0 and 0.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="414" rx="10"/>
+<text x="20.0" y="30.0" class="title">A steadier push down gives a deeper rest</text>
+<text x="20.0" y="50.0" class="sub">Push ratio: the mean over 100 steps of −dL/dh on each neuron&#x27;s whole h, over its RMS, median over</text>
+<text x="20.0" y="68.0" class="sub">neurons, mean over L1–L3. Left: seed 0. Right: L1&#x27;s median h at step 4,000, one dot for each seed.</text>
+<circle class="fc3" cx="25.0" cy="98.0" r="5"/>
+<text x="35.0" y="102.0">Softplus</text>
+<circle class="fc1" cx="103.8" cy="98.0" r="5"/>
+<text x="113.8" y="102.0">ReLU and leaky ReLU</text>
+<circle class="fc2" cx="255.2" cy="98.0" r="5"/>
+<text x="265.2" y="102.0">GELU and SiLU</text>
+<circle class="fneutral" cx="367.0" cy="98.0" r="5"/>
+<text x="377.0" y="102.0">Tanh</text>
+<text x="56.0" y="128.0" class="head">Push ratio over training</text>
+<text x="460.0" y="128.0" class="head">Rest against mean push</text>
+<path class="grid" d="M56.0 136.0L56.0 366.0"/>
+<text x="56.0" y="381.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M138.5 136.0L138.5 366.0"/>
+<text x="138.5" y="381.0" class="small" text-anchor="middle">1k</text>
+<path class="grid" d="M221.0 136.0L221.0 366.0"/>
+<text x="221.0" y="381.0" class="small" text-anchor="middle">2k</text>
+<path class="grid" d="M303.5 136.0L303.5 366.0"/>
+<text x="303.5" y="381.0" class="small" text-anchor="middle">3k</text>
+<path class="grid" d="M386.0 136.0L386.0 366.0"/>
+<text x="386.0" y="381.0" class="small" text-anchor="middle">4k</text>
+<path class="grid" d="M56.0 340.4L386.0 340.4"/>
+<text x="49.0" y="344.4" class="small" text-anchor="end">−0.10</text>
+<path class="grid" d="M56.0 276.6L386.0 276.6"/>
+<text x="49.0" y="280.6" class="small" text-anchor="end">−0.05</text>
+<path class="grid" d="M56.0 212.7L386.0 212.7"/>
+<text x="49.0" y="216.7" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M56.0 148.8L386.0 148.8"/>
+<text x="49.0" y="152.8" class="small" text-anchor="end">0.05</text>
+<path class="axis" d="M56.0 212.7L386.0 212.7"/>
+<text x="221.0" y="397.0" class="small" text-anchor="middle">step</text>
+<path class="line sc3" d="M64.2 301.6L72.5 359.0L80.8 325.1L89.0 320.6L97.2 326.5L105.5 327.7L113.8 291.9L122.0 325.0L130.2 281.4L138.5 293.1L146.8 285.0L155.0 299.4L163.2 277.7L171.5 267.1L179.8 267.2L188.0 267.3L196.2 270.4L204.5 257.2L212.8 257.6L221.0 257.8L229.2 250.4L237.5 247.5L245.7 260.3L254.0 240.2L262.2 261.9L270.5 238.7L278.8 252.3L287.0 250.0L295.2 235.7L303.5 248.5L311.8 243.5L320.0 232.5L328.2 245.1L336.5 238.5L344.8 235.1L353.0 243.9L361.2 227.3L369.5 239.1L377.8 238.0L386.0 234.4"/>
+<path class="line sc1" d="M64.2 264.7L72.5 277.7L80.8 278.5L89.0 261.0L97.2 262.5L105.5 253.1L113.8 249.1L122.0 250.8L130.2 244.9L138.5 245.2L146.8 245.4L155.0 241.3L163.2 237.9L171.5 236.4L179.8 240.6L188.0 239.0L196.2 233.7L204.5 233.3L212.8 234.6L221.0 233.0L229.2 232.0L237.5 230.4L245.7 230.9L254.0 229.5L262.2 229.5L270.5 227.1L278.8 227.8L287.0 228.7L295.2 226.8L303.5 230.5L311.8 226.8L320.0 224.5L328.2 229.7L336.5 223.8L344.8 224.9L353.0 226.9L361.2 225.6L369.5 225.1L377.8 225.7L386.0 225.7"/>
+<path class="line sc1" d="M64.2 263.9L72.5 273.7L80.8 277.6L89.0 260.6L97.2 261.9L105.5 255.3L113.8 248.6L122.0 251.6L130.2 243.4L138.5 243.5L146.8 246.2L155.0 243.2L163.2 237.4L171.5 236.2L179.8 241.0L188.0 234.5L196.2 237.5L204.5 233.5L212.8 233.9L221.0 235.3L229.2 233.3L237.5 229.5L245.7 230.3L254.0 232.2L262.2 232.5L270.5 227.7L278.8 228.3L287.0 230.3L295.2 225.8L303.5 231.0L311.8 226.3L320.0 225.8L328.2 227.7L336.5 225.9L344.8 226.8L353.0 225.5L361.2 225.6L369.5 224.3L377.8 225.4L386.0 224.8"/>
+<path class="line sc1" d="M64.2 251.8L72.5 240.9L80.8 261.3L89.0 240.4L97.2 250.2L105.5 247.3L113.8 238.2L122.0 249.1L130.2 234.7L138.5 240.1L146.8 240.3L155.0 243.5L163.2 237.4L171.5 235.0L179.8 238.5L188.0 235.4L196.2 236.5L204.5 234.4L212.8 232.7L221.0 234.4L229.2 228.3L237.5 232.4L245.7 230.5L254.0 227.9L262.2 236.1L270.5 222.8L278.8 228.6L287.0 228.3L295.2 227.6L303.5 226.9L311.8 228.7L320.0 221.9L328.2 226.2L336.5 223.5L344.8 221.0L353.0 182.6L361.2 194.5L369.5 238.7L377.8 168.7L386.0 228.0"/>
+<path class="line sc2" d="M64.2 206.7L72.5 210.7L80.8 248.5L89.0 242.0L97.2 245.0L105.5 253.6L113.8 249.5L122.0 252.0L130.2 240.8L138.5 252.0L146.8 243.8L155.0 252.9L163.2 243.0L171.5 243.0L179.8 244.7L188.0 243.5L196.2 238.7L204.5 244.2L212.8 242.1L221.0 238.2L229.2 238.5L237.5 236.5L245.7 239.7L254.0 234.1L262.2 240.7L270.5 235.5L278.8 232.0L287.0 234.3L295.2 233.1L303.5 234.5L311.8 227.9L320.0 227.3L328.2 231.4L336.5 231.1L344.8 230.9L353.0 228.0L361.2 229.7L369.5 228.2L377.8 229.5L386.0 229.9"/>
+<path class="line sc2" d="M64.2 192.8L72.5 175.5L80.8 178.2L89.0 192.9L97.2 218.1L105.5 225.9L113.8 228.9L122.0 237.6L130.2 214.8L138.5 235.1L146.8 229.7L155.0 240.4L163.2 228.3L171.5 231.4L179.8 234.3L188.0 232.1L196.2 231.5L204.5 234.5L212.8 234.9L221.0 232.8L229.2 233.1L237.5 213.1L245.7 236.2L254.0 225.8L262.2 238.9L270.5 227.9L278.8 226.3L287.0 231.5L295.2 228.6L303.5 229.5L311.8 228.2L320.0 222.1L328.2 231.5L336.5 226.3L344.8 228.7L353.0 222.4L361.2 231.8L369.5 228.4L377.8 230.1L386.0 227.2"/>
+<path class="line sneutral" d="M64.2 210.2L72.5 208.7L80.8 210.3L89.0 211.0L97.2 210.8L105.5 212.3L113.8 211.4L122.0 212.4L130.2 208.9L138.5 212.7L146.8 210.5L155.0 211.9L163.2 211.5L171.5 214.7L179.8 211.0L188.0 212.2L196.2 212.4L204.5 211.8L212.8 212.9L221.0 212.3L229.2 213.7L237.5 210.6L245.7 211.7L254.0 213.6L262.2 211.8L270.5 212.2L278.8 211.9L287.0 212.7L295.2 213.8L303.5 212.5L311.8 211.8L320.0 211.9L328.2 213.5L336.5 210.9L344.8 213.1L353.0 211.4L361.2 213.4L369.5 212.7L377.8 212.7L386.0 210.8"/>
+<path class="grid" d="M509.1 136.0L509.1 366.0"/>
+<text x="509.1" y="381.0" class="small" text-anchor="middle">−0.04</text>
+<path class="grid" d="M558.2 136.0L558.2 366.0"/>
+<text x="558.2" y="381.0" class="small" text-anchor="middle">−0.03</text>
+<path class="grid" d="M607.3 136.0L607.3 366.0"/>
+<text x="607.3" y="381.0" class="small" text-anchor="middle">−0.02</text>
+<path class="grid" d="M656.4 136.0L656.4 366.0"/>
+<text x="656.4" y="381.0" class="small" text-anchor="middle">−0.01</text>
+<path class="grid" d="M705.5 136.0L705.5 366.0"/>
+<text x="705.5" y="381.0" class="small" text-anchor="middle">0.00</text>
+<path class="grid" d="M460.0 353.7L730.0 353.7"/>
+<text x="453.0" y="357.7" class="small" text-anchor="end">−5</text>
+<path class="grid" d="M460.0 312.6L730.0 312.6"/>
+<text x="453.0" y="316.6" class="small" text-anchor="end">−4</text>
+<path class="grid" d="M460.0 271.5L730.0 271.5"/>
+<text x="453.0" y="275.5" class="small" text-anchor="end">−3</text>
+<path class="grid" d="M460.0 230.5L730.0 230.5"/>
+<text x="453.0" y="234.5" class="small" text-anchor="end">−2</text>
+<path class="grid" d="M460.0 189.4L730.0 189.4"/>
+<text x="453.0" y="193.4" class="small" text-anchor="end">−1</text>
+<path class="grid" d="M460.0 148.3L730.0 148.3"/>
+<text x="453.0" y="152.3" class="small" text-anchor="end">0</text>
+<path class="axis" d="M460.0 148.3L730.0 148.3"/>
+<path class="axis" d="M705.5 136.0L705.5 366.0"/>
+<text x="595.0" y="397.0" class="small" text-anchor="middle">push ratio, mean over steps 1–4,000</text>
+<circle class="fc3 ring" cx="492.7" cy="340.7" r="5"/>
+<circle class="fc3 ring" cx="491.1" cy="351.9" r="5"/>
+<text x="501.7" y="344.7" class="small">Softplus</text>
+<circle class="fc1 ring" cx="608.6" cy="193.7" r="5"/>
+<text x="598.6" y="197.7" class="small" text-anchor="end">ReLU, GELU, leaky 0.01</text>
+<circle class="fc1 ring" cx="608.3" cy="194.1" r="5"/>
+<circle class="fc1 ring" cx="608.7" cy="195.8" r="5"/>
+<circle class="fc1 ring" cx="634.5" cy="177.0" r="5"/>
+<circle class="fc1 ring" cx="623.1" cy="176.9" r="5"/>
+<text x="624.5" y="169.0" class="small" text-anchor="end">Leaky 0.1</text>
+<circle class="fc2 ring" cx="611.2" cy="193.9" r="5"/>
+<circle class="fc2 ring" cx="658.3" cy="168.6" r="5"/>
+<circle class="fc2 ring" cx="654.6" cy="171.0" r="5"/>
+<text x="667.3" y="172.6" class="small">SiLU</text>
+<circle class="fneutral ring" cx="708.3" cy="148.4" r="5"/>
+<text x="698.3" y="140.4" class="small" text-anchor="end">Tanh</text>
+</svg>
