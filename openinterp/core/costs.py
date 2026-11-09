@@ -29,13 +29,25 @@ LEDGER_ENV = "OPENINTERP_COSTS_LOG"
 
 
 class StageTiming(StrictModel):
-    """Wall-clock seconds that one stage of a command took."""
+    """Wall-clock seconds that one stage of a command took, and the memory it reached."""
 
     stage: str = Field(
         min_length=1,
         examples=["model_load", "scan", "lenses", "proposer", "probe_measurement", "gates"],
     )
     seconds: float = Field(ge=0.0)
+    peak_rss_mb: int | None = Field(
+        default=None,
+        ge=0,
+        description="The process's peak resident memory so far, when the stage ended. It "
+        "never falls, so the stage that raises it set the peak. On Apple silicon it leaves "
+        "out MPS memory. None in records from before it was measured.",
+    )
+    peak_cuda_mb: int | None = Field(
+        default=None,
+        ge=0,
+        description="Peak CUDA memory that PyTorch allocated during the stage. None without CUDA.",
+    )
 
 
 class LLMCall(StrictModel):
@@ -153,7 +165,11 @@ class ExperimentCosts(StrictModel):
         )
 
     def summary(self) -> str:
-        """One line for experiment pages, e.g. ``24.5 min (scan 13.9) · 4 LLM calls · $0.31``."""
+        """One line for experiment pages.
+
+        For example ``24.5 min (scan 13.9) · peak 5.4 GB RAM · 4 LLM calls · $0.31``. The
+        peak is the largest of the commands that made the record, each in its own process.
+        """
         by_stage: dict[str, float] = {}
         for s in self.stages:
             by_stage[s.stage] = by_stage.get(s.stage, 0.0) + s.seconds
@@ -161,6 +177,9 @@ class ExperimentCosts(StrictModel):
         if by_stage:
             slowest = max(by_stage, key=by_stage.__getitem__)
             parts[0] += f" (slowest: {slowest}, {by_stage[slowest] / 60:.1f} min)"
+        peak = max((s.peak_rss_mb for s in self.stages if s.peak_rss_mb), default=None)
+        if peak:
+            parts.append(f"peak {peak / 1024:.1f} GB RAM")
         if self.llm_calls:
             n = len(self.llm_calls)
             parts.append(f"{n} LLM call{'s' * (n != 1)}")
@@ -196,8 +215,42 @@ def reset() -> None:
 
 
 def add_stage(name: str, seconds: float) -> None:
-    """Record that stage ``name`` took ``seconds``, rounded to the millisecond."""
-    _stages.append(StageTiming(stage=name, seconds=round(max(seconds, 0.0), 3)))
+    """Record that stage ``name`` took ``seconds``, rounded to the millisecond, and its memory.
+
+    The CUDA peak is reset for the next stage.
+    """
+    rss, cuda = _peak_memory_mb()
+    timing = StageTiming(
+        stage=name, seconds=round(max(seconds, 0.0), 3), peak_rss_mb=rss, peak_cuda_mb=cuda
+    )
+    _stages.append(timing)
+    _reset_cuda_peak()
+
+
+def _peak_memory_mb() -> tuple[int | None, int | None]:
+    """(peak resident memory of this process, peak CUDA allocation since the last reset)."""
+    rss = None
+    try:
+        import resource
+
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss = round(peak / 2**20) if sys.platform == "darwin" else round(peak / 2**10)
+    except (ImportError, OSError):  # no resource module (Windows)
+        pass
+    return rss, _cuda_peak_mb()
+
+
+def _cuda_peak_mb() -> int | None:
+    torch = sys.modules.get("torch")  # never import torch just to ask
+    if torch is None or not torch.cuda.is_available() or not torch.cuda.is_initialized():
+        return None
+    return round(torch.cuda.max_memory_allocated() / 2**20)
+
+
+def _reset_cuda_peak() -> None:
+    torch = sys.modules.get("torch")
+    if torch is not None and torch.cuda.is_available() and torch.cuda.is_initialized():
+        torch.cuda.reset_peak_memory_stats()
 
 
 def add_call(call: LLMCall) -> None:
@@ -208,6 +261,7 @@ def add_call(call: LLMCall) -> None:
 @contextmanager
 def stage(name: str) -> Iterator[None]:
     """Time the ``with`` block as stage ``name``, also when it raises."""
+    _reset_cuda_peak()
     start = time.perf_counter()
     try:
         yield
@@ -217,6 +271,7 @@ def stage(name: str) -> Iterator[None]:
 
 def laps() -> Callable[[str], None]:
     """A timer: each ``lap(name)`` records the time since the previous lap (or start)."""
+    _reset_cuda_peak()
     last = time.perf_counter()
 
     def lap(name: str) -> None:
