@@ -4,143 +4,67 @@
 
 Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**. Each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It starts from a working hypothesis, not an established finding. Goodfire's essay [*Neural Networks Are Already Clean*](https://already-clean.goodfire.com/) (Cammarata, 2026) argues that most apparent polysemanticity in native neurons comes from solvable tooling problems rather than superposition. Its technical companion paper has not been published, so the registry tests that claim one pole at a time rather than assuming it. A pole that resists a clean explanation is a result too.
 
-## Get started: run an experiment and contribute it
+## Quickstart
 
-An experiment takes one neuron, proposes what it does, has a *different* model try to break that claim, and posts the result, whatever it is. A hypothesis that fails is a result too. You can let an agent drive the whole loop in Claude Code (path A) or run each step yourself (path B).
+An experiment takes one neuron, proposes what it does, has a *different* model try to break that claim, and posts the result, whatever it is. A hypothesis that fails is a result too. The shortest path is to let Claude Code drive the whole loop. It needs no API keys: Claude Code's own subagents write the proposal and the review.
+
+### What you need
+
+| Tool | What it is for | Needed |
+| --- | --- | --- |
+| [Git](https://git-scm.com/) and a GitHub account | Fork the repo, and push your experiment as a pull request | Always |
+| [Python](https://www.python.org/) 3.11+ | Runs `openinterp` and the model | Always |
+| [uv](https://docs.astral.sh/uv/) | Installs the dependencies into `.venv` and runs the commands (`uv run …`) | Always |
+| [GitHub CLI](https://cli.github.com/) (`gh`) | Opens the draft PR that claims a neuron. The planner also reads open PRs with it, to skip neurons that others have claimed | To contribute. Without it, the planner can't see claims, and you open the PR on github.com |
+| [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | Path A. Path B with no API keys too |
+| An LLM API key (any [LiteLLM](https://docs.litellm.ai/) provider) | Proposer and reviewer through an API instead of Claude Code | Path B only |
+
+Node.js is not needed: no step of the build uses it, and Claude Code's native installer doesn't need it either (only its npm install does). [Vale](https://vale.sh) is needed only for `make vale` when you change code.
+
+A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). A scan holds about 10 GB of RAM, and the first scan also downloads about 1.5 GB of labelling models.
 
 ### 1. Set up (once)
-
-You need Git, a GitHub account, Python 3.11+ and [uv](https://docs.astral.sh/uv/). The [GitHub CLI](https://cli.github.com/) (`gh`) is optional but recommended: it lets the planner see which neurons other contributors have already claimed. A laptop CPU is enough for the default model, Qwen2.5-0.5B (about 1 GB, downloaded on first use).
 
 ```bash
 gh repo fork 8W9aG/openinterpretability --clone   # or fork on GitHub and git clone your fork
 cd openinterpretability
 make install                                      # creates .venv with everything
+uv run openinterp corpus --dataset pile-10k --first --ascii \
+  --revision 127bfedcd5047750df5ccf3a12979a47bfa0bafa --out corpus.jsonl   # the registry's scan corpus
+export OPENINTERP_CONTRIBUTOR=<your GitHub username>                       # to be credited (never an email)
 ```
-
-**An LLM.** Any LLM can write the proposals and reviews. `--agent-model` takes either:
-
-- a [LiteLLM](https://docs.litellm.ai/) model string, with that provider's API key set, e.g. `export ANTHROPIC_API_KEY=...` for `anthropic/claude-opus-5-5` (the default).
-- `external/<name>` (e.g. `external/claude-opus-5-5`), which needs no keys. The command writes `exchange/<Agent>.prompt.md`, including the JSON schema of the answer, and waits for `exchange/<Agent>.response.json`. A coding agent, a chat window or a person can write the answer. Name the model that actually answered, because that name is recorded.
-- answer files, which need no keys and no waiting process. `audit --evidence-out` and `review --emit-prompt` write the prompt and exit. `audit --evidence … --hypothesis …` and `review --probes …` take the answer as JSON. In Claude Code, the `neuron-proposer` and `neuron-reviewer` subagents (`.claude/agents/`) write those answers:
-
-  ```bash
-  uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl --evidence-out exchange/ev.json
-  # neuron-proposer answers exchange/ev.prompt.md -> exchange/ev.hypothesis.json
-  uv run openinterp audit --evidence exchange/ev.json --hypothesis exchange/ev.hypothesis.json \
-    --agent-model external/claude-opus-5-5 --out submissions/ev.json
-  uv run openinterp review --audit-file submissions/ev.json --emit-prompt exchange/review.prompt.md
-  # neuron-reviewer answers exchange/review.prompt.md -> exchange/review.probes.json
-  uv run openinterp score --audit-file submissions/ev.json --corpus corpus.jsonl --emit-task exchange/score.task.json
-  # one explanation-judge answers exchange/score.detection.prompt.md, another exchange/score.fuzzing.prompt.md
-  uv run openinterp score --task exchange/score.task.json --judge-model external/claude-haiku-5-5
-  uv run openinterp review --audit-file submissions/ev.json --probes exchange/review.probes.json \
-    --agent-model external/claude-sonnet-5-5 --explanation-scores exchange/score.scores.json
-  ```
-
-  Every review also records explanation scores. `openinterp score` scores the explanation on held-out text the proposer never saw: Delphi's detection, fuzzing and embedding scores, with the `explanation-judge` subagent answering its prompts. `review --explanation-scores` records the result, and `review` refuses `--probes` without it. A one-step review (no `--probes`) scores the explanation itself on `--corpus`. The scores are reported, not gated (docs/PROTOCOL.md §4).
-
-  To record what each subagent cost, run `uv run openinterp usage <agent ID> --answer <its answer file>` after it finishes, before the command that reads the answer. It reads the subagent's Claude Code transcript and writes `<answer>.usage.json` next to the answer. `audit`, `review` and `score` then record its tokens and list-price cost (`openinterp/core/pricing.py`) instead of only the prompt's length. `openinterp costs --wiki-dir wiki` reports cost per experiment by role and model.
-
-  The reviewer subagent has no tool that runs the model, so it can't see probe activations before its probe set is final. The two subagents run on different models (Opus and Sonnet), so the review counts as independent. Pass each one's reported model ID to `--agent-model`.
-
-The record notes whether the reviewer was a different model from the proposer (`independent_review`). A different model is better, but it isn't required.
-
-**Scan labels.** A scan labels personal data, toxic text, hate speech, postal addresses and people's names in its corpus. These labels measure how much of a unit's activation they explain. The first scan downloads spaCy's name model (about 460 MB) and two text classifiers (about 500 MB each) once. It also takes about 7 minutes longer per 500 documents. Later scans of the corpus read the results from disk.
-
-**A scan corpus.** `audit` scans `./corpus.jsonl` unless given `--corpus`, and stops if it isn't there. Almost every record in the registry scanned `corpus.jsonl`, the first 500 documents of [pile-10k](https://huggingface.co/datasets/NeelNanda/pile-10k), each cut to 3,000 characters (SHA-256 `ded48cfc…`, git-ignored). Rebuild it byte for byte, so your scans are comparable with the registry's:
-
-```bash
-uv run openinterp corpus --dataset pile-10k --first --ascii --revision 127bfedcd5047750df5ccf3a12979a47bfa0bafa --out corpus.jsonl
-```
-
-Its sidecar, `corpus.source.json`, is committed, and `openinterp build` uses it to show the source of records that scanned this corpus before the sidecar existed, marked as inferred. The dataset card gives the licence as `bigscience-bloom-rail-1.0`, a model licence, and each Pile component keeps its own terms, so the corpus itself isn't published. For another corpus, `openinterp corpus` samples documents from a Hugging Face dataset, reading only the Parquet row groups it needs. Without `--dataset` it samples 500 documents in about a minute from `mixed`, a versioned blend of presets, so statistics over random neurons aren't tied to one domain. The blend is 84 each from FineWeb-Edu, C4 and the uncopyrighted Pile, and 62 of GitHub code. It adds 62 Wikipedia articles in ten languages, 42 WikiText articles, 41 of OpenWebMath and 41 UltraChat conversations (`BLENDS` in `openinterp/blends.py`). Qwen2.5's chat template writes the conversations, so they suit instruct models, and every model scans the same text. Each document records its preset as `source`, which the scan reports as a label set, as it does languages. Code documents also record their programming language, and a scan parses them into syntax labels (`openinterp/syntax.py`). A blend is never changed once released, so `mixed` names its latest version (today `mixed-v4`) and the sidecar records which:
-
-```bash
-uv run openinterp corpus --out mixed.jsonl             # --dataset fineweb-edu, pile-10k, pile-uncopyrighted, c4, wikitext, tinystories, github-code, wikipedia-multilingual, open-web-math, gsm8k or ultrachat for one dataset (--chat-template MODEL writes ultrachat with that model's template), --seed N for another sample, --detect-lang to label each document's language
-```
-
-It also writes `<name>.source.json` (here `mixed.source.json`), which pins the dataset commit, files, seed and licence. For a blend it holds each preset's own source. `openinterp corpus --dataset <preset>`, with that preset's share of `--docs` and the same seed, rebuilds each one byte for byte. `openinterp audit --corpus mixed.jsonl` records the sidecar in the submission, and warns about a corpus without one, and experiment pages show the licence next to the excerpts. `audit` scans a seeded sample of up to 200,000 tokens of the corpus, the same documents every time, and records the sample in provenance. Set it with `--max-tokens` and `--sample-seed`. `--max-tokens 0` scans all of it. Any Hugging Face Parquet dataset works: `--dataset <org/name> --files '<glob>'`. For long documents, raise `--max-chars` and scan them as overlapping windows with `openinterp audit --window-tokens 512`, which are recorded in provenance.
-
-Builds keep what they read on disk by dataset commit, up to 5 GB, so a repeated build reads far less from the Hub. `openinterp corpus-cache` shows or clears it, and `OPENINTERP_CORPUS_CACHE=off` turns it off.
-
-`openinterp concepts` writes human annotations for labelled text rather than a scan corpus. It writes them as the character spans `openinterp probe-compare` reads. The annotations are CoNLL-2003 entities, Universal Dependencies parts of speech and relations, 20-language identification and AG News topics. Run it without `--label` to list a dataset's labels.
-
-A scan's forward pass captures the whole layer, so `audit` caches every neuron's activations in that layer in `~/.cache/openinterp/scans`. `$OPENINTERP_SCAN_CACHE` moves it, and `off` disables it. A later audit of any neuron in the layer replays the cache instead of running the model, and gets the same numbers. It needs the same model, corpus options and dtype. The cache is capped at 40 GB (`$OPENINTERP_SCAN_CACHE_GB`). A 200,000-token Qwen2.5-0.5B layer in float32 takes about 4 GB, and the least recently used layers go first. `openinterp scan-cache` lists or clears it. For a neuron's per-token activations over the scan, e.g. every occurrence of one token, use `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl` (`--token`, `--min-strength`, `--top 0` for all, `--format jsonl`) rather than writing a scan loop.
 
 ### 2A. Let an agent run it (Claude Code)
 
-Start [Claude Code](https://claude.com/claude-code) in the repo with the keys above set in the same shell, and ask:
+Start Claude Code in the repo (`claude`) and ask:
 
 ```text
 Run the next experiment and open a PR with the result.
-Use corpus.jsonl for the scan, and openai/gpt-5 as the reviewer model.
 ```
 
-The repo's skills load automatically, and `choose-next-experiment` defines the workflow. The agent:
-
-1. picks an experiment with `openinterp next`, which is randomised so contributors don't collide
-2. claims it with a draft PR
-3. reads the neuron's history in `wiki/`
-4. runs the audit and the independent review
-5. posts the result.
-
-The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready.
-
-**In a loop.** `scripts/experiment-loop.sh` runs experiments back to back, each in a fresh headless Claude Code session (`claude -p`). It stops when it reaches `--max` or `claude` exits with an error (for example at the usage limit). Claude drives the workflow, and you choose the LLMs that propose and review:
-
-```bash
-scripts/experiment-loop.sh --proposer anthropic/claude-opus-5-5 --reviewer openai/gpt-5 --max 10
-make loop LOOP_ARGS="--reviewer openai/gpt-5"   # the same, via make
-```
-
-It works in a separate worktree (`../<repo>-loop`) reset to `origin/main` before each experiment, so your checkout is untouched, and writes one log per experiment to `logs/loop/`. Each session follows `land-experiment`. Each new scan builds a fresh `mixed` corpus from its draw's seed (pass `--corpus` to use one corpus instead). A review of an existing record rebuilds that record's corpus with `openinterp corpus --same-as`. It posts the PR, waits for CI to go green and merges it if the PR only touches `wiki/` and your `gh` account has write access. Otherwise it leaves the PR open for review and moves on. `--driver` picks the Claude model that drives the session. The default is Haiku, which landed every experiment in two pilots at about a tenth of Sonnet's cost (`docs/analyses/driver-model-pilot.md`). `--epsilon` sets how often `openinterp next` explores new neurons, and a proposer or reviewer of `external/<name>` makes the driving session answer that role itself. The session can edit files and run `uv run`, `make`, `git`, `gh pr`, `gh run` and `gh repo view` without asking. See `ALLOWED_TOOLS` in the script. After each experiment it prints what that experiment cost and a running total. The total covers wall time per `openinterp` command and stage, LLM tokens and cost, and the driving session's turns, tokens and cost. Every `openinterp` command appends its measurements to the ledger in `$OPENINTERP_COSTS_LOG` when that is set, and `openinterp costs <ledger> [--session <claude json>]` summarises one. Records store their own experiment's costs in `provenance.costs`. Run `scripts/experiment-loop.sh --help` for every option.
-
-**Several sessions at once.** Give every session that runs experiments its own working directory, whether it's a loop or an interactive one. Git keeps one current branch per directory, so sessions that share a checkout switch branches under each other. One session's commits end up on another's claim branch and PR. A `git worktree` per session is enough. Worktrees share the git objects and the Hugging Face model cache, but `corpus.jsonl` is untracked, so copy it in (its sidecar is tracked):
-
-```bash
-git worktree add --detach ../openinterpretability-2 origin/main
-cp corpus.jsonl ../openinterpretability-2/
-cd ../openinterpretability-2 && uv sync && claude
-```
-
-Two `experiment-loop.sh` runs need different `--worktree` directories, since both default to `../<repo>-loop`. A branch can be checked out in only one worktree, which is why the workflow starts each experiment from a detached `origin/main`. Each scan holds about 10 GB of RAM on CPU, so memory, not checkouts, limits how many sessions run in parallel.
+The repo's skills load automatically. The agent draws an experiment with `openinterp next`, claims it with a draft PR and scans the neuron. Then one subagent proposes a hypothesis, another reviews it, and the agent posts the result. A scan takes about 10–15 minutes on CPU. Review the PR before marking it ready.
 
 ### 2B. Run it yourself
 
+With API keys set for the proposer and the reviewer (e.g. `export ANTHROPIC_API_KEY=...` for the default proposer, `anthropic/claude-opus-5-5`, and `OPENAI_API_KEY` for the `openai/gpt-5` reviewer below):
+
 ```bash
-uv run openinterp next                    # what to do next, e.g. "explore" a random neuron
-                                          #   (--steps prints every step as exact commands)
+uv run openinterp next --steps            # draws an experiment and prints every step as exact commands
 uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
-#   → scans the neuron (~5–10 min on CPU), asks the proposer for a hypothesis,
-#     writes submissions/<model>/L<layer>/N<idx>-<pole>.json
 uv run openinterp verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
-#   → probes, measured on the model; writes a new experiment (record + page) under wiki/experiments/
-uv run openinterp show wiki/experiments/<model>/L<layer>/N<idx>-<pole>   # compact summary
 ```
 
-Attention heads go through the same commands: `--layer 5 --head 1` audits one head (`--unit head --random` samples one), and every later step reads the head from the submission. A head's strength at a token is the distance between its write to the residual stream and its mean write over the scan, `|W_O (z − z̄)|` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §1).
-
-Latents of published sparse dictionaries are the learned-basis baseline: `openinterp audit --dictionary gpt2-small-transcoders --random --window-tokens 128` audits a random latent of Dunefsky et al.'s GPT-2 small transcoders under the same protocol. The dictionary names its model, and its weights are pinned in the submission. These transcoders fit only the first 128 positions of a context. So their scans, and the GPT-2 neuron scans they are compared with, use 128-token windows. Feature verdicts are reported apart from native units, so the two shares VERIFIED can be compared. The home page compares them per dictionary, over randomly selected units only (`openinterp/builder/learned_baseline.py`). Presets are in `openinterp/harness/dictionaries.py`. Besides the GPT-2 transcoders, there are Gemma Scope's transcoders and MLP-output SAEs for Gemma 2 2B (`gemma-scope-2b-transcoders`, `gemma-scope-2b-mlp-saes`). There are circuit-tracer's transcoders for Llama 3.2 1B and Qwen3 0.6B (`llama-3.2-1b-transcoders`, `qwen3-0.6b-transcoders`). There are also Gemma Scope's residual-stream SAEs (`gemma-scope-2b-res-saes`), and Llama Scope's residual-stream SAEs, MLP-output SAEs and transcoders for Llama-3.1-8B (`llama-scope-8b-res-saes`, `llama-scope-8b-mlp-saes`, `llama-scope-8b-transcoders`). Scan them with `--dtype bfloat16`, since 8B weights in float32 take 32 GB. No public dictionary covers Qwen2.5-0.5B, so `qwen2.5-0.5b-transcoders` was trained here with `scripts/train_transcoders.py`. Its card is in `hf_models/`. `docs/dictionaries.md` explains what each preset adds. A residual-stream latent reads and writes the residual stream after its layer. So comparing it with that layer's MLP neurons changes the site as well as the basis. They fit through position 1024, so their scans need `--window-tokens 1024` or less. Each preset's input site was checked by how much of the MLP output it reconstructs. The comment above each preset gives the numbers.
-
-For follow-ups that `next` suggests (revise, re-review, opposite pole), run the commands it prints. Add `--corpus corpus.jsonl` to any `audit`.
+`audit` scans the neuron and asks the proposer for a hypothesis. `verify` has the reviewer write probes, measures them on the model, and writes the experiment under `wiki/experiments/`.
 
 ### 3. Contribute it
 
-The planner reads open PRs to avoid duplicate work, so claim the neuron early. The branch and PR title use the neuron's slug with `/` replaced by `-`, e.g. `Qwen--Qwen2.5-0.5B-L11-N4255-positive`:
+Claim the neuron with a draft PR before the scan, so others don't draw it too (`next --steps` prints the commands). When it finishes, run `make check`, commit `wiki/` and mark the PR ready. A PR that changes only `wiki/` merges automatically when CI passes.
 
-```bash
-git switch -c experiment/Qwen--Qwen2.5-0.5B-L11-N4255-positive
-gh pr create --draft --title "experiment: Qwen--Qwen2.5-0.5B-L11-N4255-positive (explore)"
-# …run the experiment, then:
-make check                                # lint and tests too (make check lint test) if you change code
-git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
-gh pr ready
-```
+### More detail
 
-To be credited, set `OPENINTERP_CONTRIBUTOR` to a public handle such as your GitHub username (never an email), or pass `--contributor` to `audit` and `verify`. It is recorded beside the agent model, as the proposer's contributor on the submission and the reviewer's on the verdict. The site's Agents page lists every contributor's experiments, VERIFIED results, well-probed rejections and reviews. Nothing is recorded without it: git config is never read. The loop script's sessions inherit the variable.
-
-Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id>.md`) and never edits another's. So any number of experiments on one neuron can be in flight at once. Never edit generated pages except their **Discussion** section. The indexes (`wiki/README.md` and each neuron's `README.md`) are rebuilt locally by `openinterp wiki` and are gitignored, so experiment PRs never conflict over them. CI rejects a PR whose record and page don't match, and once merged the deploy publishes the result within a minute or so. Read [docs/PROTOCOL.md](docs/PROTOCOL.md) for how verdicts are decided.
+- [docs/experiments.md](docs/experiments.md): other LLMs, answer files without API keys, the scan corpus and caches, and loops and parallel sessions. Also attention heads and dictionary latents, contributing and credit, the skills, definitions and the models.
+- [docs/development.md](docs/development.md): make targets, what CI checks on a pull request, record signing, the code layout, and the static site and deploy.
+- [docs/PROTOCOL.md](docs/PROTOCOL.md): how verdicts are decided.
 
 ## Protocol
 
@@ -157,147 +81,6 @@ Every claim is empirical and falsifiable:
 3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterp/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) and searched client-side with Pagefind and DuckDB-Wasm.
 
 The full experimental protocol (roles, lifecycle, decision rule and reproducibility requirements) is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
-
-## Development
-
-```bash
-make install        # uv sync
-make test           # pytest (CPU only, no downloads)
-make lint           # ruff (incl. docstrings), the 500-line limit, docstring coverage, Markdown
-make vale           # comment and docstring prose against our STE rules (needs Vale)
-make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)
-make check-all      # the same for every record (what it runs on main)
-make sample-run     # build dist/ from a few real records in the wiki
-make build          # build dist/ from the wiki archive, plus the Pagefind index
-openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
-```
-
-`make vale` needs [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk. Search and the SQL console need HTTP (`make serve`). The default agent model is `$OPENINTERP_AGENT_MODEL`, falling back to `anthropic/claude-opus-5-5`, and `review` is an alias for `verify`. If the agents answering prompt files sit behind a proxy that hides the real model (e.g. Claude Code routed through LiteLLM to Grok), set `OPENINTERP_MODEL_ALIASES` so records name the model that answered: `claude-haiku-5-5=grok-4-fast,claude-opus-5-5=grok-4`, or one bare name for every `external/` model.
-
-## Experiment wiki
-
-Every completed experiment gets a Markdown page and an archived copy of its full record (`<id>.json`) in [`wiki/`](wiki/), whatever its verdict. `openinterp verify` and `openinterp reevaluate` write it automatically, and `openinterp wiki` backfills pages for existing records. Each page records the hypothesis, top examples, gate results, probes, counterfactuals and next steps based on the gates that failed. A page is written once and never regenerated, so its Discussion section is safe to edit. Each neuron also gets a history page (`README.md` in its folder), and `wiki/README.md` indexes every experiment. Both are generated by `openinterp wiki` and not committed, so run it after pulling to browse them locally. The site shows the same history.
-
-## Pull requests
-
-[CI](.github/workflows/ci.yml) runs three required jobs on every PR:
-
-- **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`). A pull request that changes only `wiki/` (an experiment) runs the same code as `main`, so it skips this job (a skipped job counts as passing).
-- **Experiment records:** `openinterp check`. On a pull request that changes only `wiki/`, the record and page rules read only the files it adds or changes (`--base-ref`). If it changes anything else, and on `main`, they read every file. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must match the schema, have a verdict and sit at the path its neuron and id dictate. It must name only an earlier experiment on the same unit in `supersedes`, and have a page whose front matter matches it. Every page must have a record. New records must have `model_num_layers` and `model_mlp_width`, and `model_n_heads` on head records only. Generated indexes (`README.md`) must not be committed, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty.
-- **Nightly reproduction:** `openinterp reproduce --sample 20`, on `main`. It re-runs a rotating sample of all records, signed ones too, so a library upgrade that shifts activations is noticed. A failure opens an issue (docs/PROTOCOL.md §5).
-- **Reproduce records:** `openinterp reproduce --base-ref origin/main`, on pull requests only. It re-runs every record the pull request adds or changes against the model commit it pins, on CPU. It fails if any activation, result, gate or status differs from the record (docs/PROTOCOL.md §5). Pull requests without record changes skip it (a skipped job counts as passing). Reproductions run one at a time across all pull requests, queued in order, and a newer push to a pull request cancels its older run. Only models in the job's `ALLOWED_MODELS` are downloaded, and the weights are cached between runs. Expect a few minutes per record for Qwen2.5-0.5B. Records signed by a maintainer are skipped: run `openinterp sign wiki/experiments/<slug>/<id>.json` and commit the `.sig` file next to the record. The default key is `~/.ssh/openinterp_signing` (or `$OPENINTERP_SIGNING_KEY`, or `--key`): a key used only for signing, so it can be revoked without touching your logins. `verify`, `review` and `reevaluate` sign each new experiment automatically when that key exists and is listed in `.github/allowed_signers`. So your own runs (including `make loop`) skip CI reproduction. Set `OPENINTERP_AUTO_SIGN=0` to turn this off. Only keys in `.github/allowed_signers` on `main` count. Add yours there first, in its own commit to `main`:
-
-  ```bash
-  ssh-keygen -t ed25519 -N "" -C "openinterp record signing" -f ~/.ssh/openinterp_signing
-  echo "<github-user> namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterp_signing.pub)" >> .github/allowed_signers
-  ```
-
-A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](.github/workflows/auto-merge.yml)), fork PRs included. A PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
-
-Run `make check` locally before pushing. The [PR template](.github/pull_request_template.md) has a checklist for posting experiments.
-
-## Claude Code skills
-
-`.claude/skills/` holds research skills that Claude Code loads automatically in this repo. Each one condenses a set of papers into a procedure that uses the `openinterp` harness:
-
-| Skill | Use it to | Based on |
-| --- | --- | --- |
-| `choose-next-experiment` | Pick the next experiment with `openinterp next`: randomised, explore vs exploit, herd-resistant | ε-greedy and Boltzmann sampling over follow-ups |
-| `write-paper` | Write a paper in `papers/` with checked references, and figures and animations tied to its results | |
-| `land-experiment` | Run experiments end to end and merge them: `choose-next-experiment`, then build, wait for green CI and merge (with write access), else move on | — |
-| `native-neuron-audit` | Avoid misreading a neuron (context, data, poles, SwiGLU regimes) | Goodfire, *Already Clean* (2026) |
-| `vocab-projection-lookahead` | Decide retrospective vs lookahead | Gurnee et al. 2026 (Jacobian lens), Geva et al. 2021/2022, logit lens, Voita et al. 2023 |
-| `neuron-family-triage` | Pre-classify neurons from weight statistics | Gurnee et al. 2024, Stolfo et al. 2024, Voita et al. 2023 |
-| `explanation-simulation-scoring` | Score explanations by predicted activations | Bills et al. 2023, Huang et al. 2023 |
-| `activation-patching-practice` | Choose causal metrics and corruptions, and handle self-repair | Meng et al. 2022, Zhang & Nanda 2023, Heimersheim & Nanda 2024, McGrath et al. 2023, Rushing & Nanda 2024, AtP* |
-| `neuron-steering-tests` | Test a hypothesis by clamping the neuron and generating | Turner et al. 2023, Goodfire 2026 |
-| `sparse-probing-search` | Find neurons for a labelled concept | Gurnee et al. 2023, Bolukbasi et al. 2021 |
-| `interpretability-illusions-review` | Write probes as the reviewer and spot illusions | Bolukbasi et al. 2021, Huang et al. 2023, Makelov et al. 2023, Sun et al. 2024 |
-| `attention-head-audit` | Extend the registry to attention heads and transcoder baselines | Olsson et al. 2022, Wang et al. 2022, Conmy et al. 2023, Dunefsky et al. 2024, Paulo et al. 2025 |
-| `single-source-of-truth` | Define each constant, threshold or list once, and pin copies that must exist with a test | — |
-| `commenting` | Write comments and docstrings that say why, in ASD-STE100 Simplified Technical English | ASD-STE100 |
-
-## Layout
-
-| Path | Purpose |
-| --- | --- |
-| `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` / `FeatureIdentifier` (in `core/identifiers.py`), `HeadProfile` / `DictionaryProfile` (in `core/profiles.py`), `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
-| `openinterp/harness/hooks.py` | `NeuronHookRunner`: forward hooks on the MLP down-projection input (the neuron basis) for Llama/Qwen/Mistral/GPT-2/NeoX/OPT/Phi, pole isolation and corpus scanning |
-| `openinterp/harness/scan.py` | The audit's corpus scan: windows, top examples, partners and confounds in one pass, over chunks of whole-layer activations |
-| `openinterp/harness/layer_cache.py` | On-disk cache of those chunks per model, layer and corpus sample, which later scans and `openinterp activations` replay |
-| `openinterp/harness/units.py` | What strength and ablation mean for each unit: a neuron pole, an attention head measured from its mean output, or a dictionary latent |
-| `openinterp/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
-| `openinterp/harness/dictionaries.py` | Published transcoders/SAEs (presets, pinned weights, how each is read) |
-| `openinterp/harness/sites.py` | Where a dictionary reads its input and writes its output: the hooks behind `dictionary_interventions` |
-| `openinterp/harness/environment.py` | The device, dtype, model revision and library versions recorded with each run |
-| `openinterp/harness/features.py` | Dictionary-latent scan (with the dictionary's fit) and latent patching |
-| `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
-| `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
-| `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
-| `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files), and deterministic `evaluate_submission` |
-| `papers/` | Papers, one folder each: the write-up as `README.md`, its results and its media. The site publishes them as its Research section |
-| `openinterp/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
-| `openinterp/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
-
-### Definitions
-
-- **Neuron activation:** the input to the MLP's down/output projection. For gated MLPs this is `act(gate(x)) * up(x)`.
-- **Pole:** the positive pole is `clamp(a, min=0)` and the negative pole is `clamp(a, max=0)`. Pole *strength* is always reported as a non-negative magnitude.
-- **Attention head:** one head's slice of the attention output projection's input. Its strength is `|W_O (z − z̄)|`, with z̄ its mean output over the scan.
-- **Counterfactual Δ:** `(peak strength on base − peak strength on counterfactual) / max activation`.
-
-### Models
-
-The models `openinterp next` explores (`[tool.openinterp] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterp.licenses]`, and its site page shows them.
-
-| Model | MLP | Negative pole | Scan |
-| --- | --- | --- | --- |
-| `Qwen/Qwen2.5-0.5B` | SwiGLU, `silu(gate(x)) * up(x)` | Unbounded: `up(x)` carries the sign | Whole documents |
-| `Qwen/Qwen2.5-1.5B` | SwiGLU, as Qwen2.5-0.5B: 28 layers × 8,960 neurons | Unbounded: `up(x)` carries the sign (about half of all values are negative in every layer) | Whole documents |
-| `openai-community/gpt2` | GELU, `gelu_new(c_fc(x))` | GELU's dip, at most 0.170 in every layer and reached at a pre-activation of about −0.75. 73–88% of tokens are below zero, and a strongly negative input reads as inactive | 128-token windows (`[tool.openinterp.window_tokens]`), matching its transcoders. GPT-2 itself reads 1,024 positions |
-
-Qwen2.5-1.5B's final norm is `model.norm` (RMSNorm) and its unembedding is tied to the input embedding, as in 0.5B. GPT-2's final norm is `transformer.ln_f` and its MLP norm `ln_2`, which the transcoders' `mlp_in_normalized` site standardises.
-
-## Static site & data
-
-The site is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
-
-```text
-dist/
-├── index.html                                   # totals, models, most conclusive results, verified, SQL console
-├── models/<model>/index.html                    # layer coverage
-├── models/<model>/L<layer>/index.html           # neurons studied in the layer
-├── models/<model>/L<layer>/N<idx>.html          # every experiment (both poles), most conclusive first
-├── data/registry.parquet            # one row per experiment; latest, max-age=3600
-├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
-├── data/manifest.json
-├── data/neuronpedia/v1/<model>/<source>/explanations/batch-0.jsonl.gz  # VERIFIED units, Neuronpedia's format
-└── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)
-```
-
-`data/neuronpedia/` holds the lead experiment of each VERIFIED unit in Neuronpedia's export layout, so a self-hosted Neuronpedia can import it (`openinterp/builder/neuronpedia_export.py`). A dictionary latent goes to the source Neuronpedia hosts it under, with the same index. A native neuron goes to `<layer>-openinterp-neurons`, with its pole. Only models that Neuronpedia knows are exported, today GPT-2 small. Each row links to its signed record and carries the data licence. Nothing is sent to Neuronpedia.
-
-Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
-
-R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
-
-### Deploy
-
-[deploy.yml](.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main` (plus every 6 hours as a backstop, and on manual dispatch), runs `openinterp check`, and runs `openinterp deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
-
-- **Deterministic build.** There are no build timestamps. The footer date and `manifest.json`'s `updated_at` come from the latest verdict, and every ordering is total. Unchanged records rebuild byte-for-byte, which a test enforces.
-- **Content comparison.** Only files whose MD5 differs from the remote ETag are uploaded.
-- **Derived index.** Pagefind's output is not byte-stable between runs because it orders filters from a hash map. `pagefind/` is therefore only synced when an HTML or data file actually changed.
-- **Targeted purges.** When something does change, only the changed short-cache URLs are purged from Cloudflare's cache. Content-addressed files get new names, and `data/snapshots/` is never deleted.
-
-Configure the workflow in the repo's GitHub settings:
-
-| Name | Kind | Purpose |
-| --- | --- | --- |
-| `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | secrets | R2 S3 API access |
-| `R2_BUCKET` | variable | Bucket name |
-| `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
-| `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs |
 
 ## Licence
 
