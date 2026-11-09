@@ -18,7 +18,6 @@ Small fixes, mostly quick.
 
 Lint rules, tests, releases and repository automation. Prefer a deterministic check (lint, test, CI job) where one can do the job. Ratchet it in rather than failing all existing code at once. Use a skill for what needs judgement.
 
-- [ ] Add a JSON/JSONL/YAML linter.
 - [ ] Add bandit linting for security.
 - [ ] Add shell linter.
 - [ ] Run Cloudflare's [security-audit-skill](https://github.com/cloudflare/security-audit-skill) on the repo.

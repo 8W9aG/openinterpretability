@@ -1,0 +1,15 @@
+# yamllint rules for every YAML file and Markdown front matter (scripts/check_data_files.py).
+extends: default
+rules:
+  # No file here holds more than one document, so the `---` start marker is noise.
+  document-start: disable
+  # GitHub Actions starts each workflow with the key `on`, which YAML 1.1 reads as true.
+  truthy:
+    check-keys: false
+  # Workflows indent their lists. The Hub model cards do not.
+  indentation:
+    indent-sequences: consistent
+  # The same limit as ruff. A URL or other unbreakable value may be longer.
+  line-length:
+    max: 100
+    allow-non-breakable-inline-mappings: true
