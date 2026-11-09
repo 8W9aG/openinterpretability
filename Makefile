@@ -15,6 +15,7 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
+	uv run python scripts/check_data_files.py
 	uv run interrogate openinterp
 	$(MAKE) markdown
 	$(MAKE) ste
