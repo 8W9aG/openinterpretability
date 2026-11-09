@@ -24,7 +24,7 @@ concurrency:
 jobs:
   deploy:
     name: Build and sync to R2
-    # Skipped (not failed) until the deploy is configured; see README "Deploy".
+    # Skipped (not failed) until the deploy is configured; see docs/development.md "Deploy".
     if: ${{ vars.R2_BUCKET != '' }}
     runs-on: ubuntu-latest
     environment: production

@@ -104,13 +104,13 @@ def _quotes() -> list[tuple[str, str]]:
     gpt2 = configured_windows(ROOT / "pyproject.toml")["openai-community/gpt2"]
     skills = ".claude/skills"
     return [
-        ("README.md", f"capped at {DEFAULT_GB:g} GB"),
-        ("README.md", f"up to {DEFAULT_SAMPLE_TOKENS:,} tokens"),
-        ("README.md", f"the {check_line_limit.MAX_LINES}-line limit"),
-        ("README.md", f"a {check_line_limit.MAX_LINES}-line limit"),
+        ("docs/experiments.md", f"capped at {DEFAULT_GB:g} GB"),
+        ("docs/experiments.md", f"up to {DEFAULT_SAMPLE_TOKENS:,} tokens"),
+        ("docs/development.md", f"the {check_line_limit.MAX_LINES}-line limit"),
+        ("docs/development.md", f"a {check_line_limit.MAX_LINES}-line limit"),
         ("README.md", f"writes {lo}–{hi} adversarial probes"),
-        ("README.md", f"fit only the first {gpt2} positions"),
-        ("README.md", f"{gpt2}-token windows (`[tool.openinterp.window_tokens]`)"),
+        ("docs/experiments.md", f"fit only the first {gpt2} positions"),
+        ("docs/experiments.md", f"{gpt2}-token windows (`[tool.openinterp.window_tokens]`)"),
         ("docs/PROTOCOL.md", f"writes {lo}–{hi} probes"),
         (".claude/agents/neuron-reviewer.md", f"writes {lo}–{hi} probes"),
         (".claude/agents/neuron-reviewer.md", f"the prompt asks for ({lo}–{hi})"),

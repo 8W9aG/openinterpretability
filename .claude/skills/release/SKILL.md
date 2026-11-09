@@ -17,7 +17,7 @@ The CHANGELOG's header explains the two version numbers. The **package version**
    ```
 2. **Check the corpus.** The sister rows record the corpus's SHA-256, and a run must use the same corpus, or the new rows aren't comparable with the old ones:
    ```bash
-   shasum -a 256 corpus.jsonl   # must be ded48cfc… (README, "A scan corpus")
+   shasum -a 256 corpus.jsonl   # must be ded48cfc… (docs/experiments.md, "The scan corpus")
    head -1 docs/analyses/sister-neurons.jsonl | grep -o '"corpus_sha256":"[0-9a-f]*"'
    ```
    If `corpus.jsonl` is missing, rebuild it with the README's `openinterp corpus` command. If the two hashes differ, stop and ask the user: a new corpus means rerunning every row, not resuming.

@@ -13,6 +13,10 @@ The project has two version numbers:
 
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
+### Changed
+
+- **The README leads with a quickstart** (from TODO, Housekeeping). It lists every tool up front, with what each one is for and which path needs it. Then it gives the shortest path to a first experiment: Claude Code with its subagents, which needs no API keys. Node.js is not needed at all, and the README says so. The details moved to two new pages. `docs/experiments.md` covers the LLM options, the scan corpus and caches, and loops and parallel sessions. It also covers heads and dictionary latents, contributing, the skills, definitions and models. `docs/development.md` covers make targets, CI, record signing, the layout, the static site and deploy.
+
 ## [0.0.15] - 2026-11-08
 
 Ships with protocol version **0.8**.
