@@ -327,7 +327,7 @@ def compile_site(
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
     render_models(render, models, model_facts or {}, _render_model)
     agents = _render_agents(render, experiments, output_dir, report)
-    _render_index(render, models, experiments, agents, stats, draws, by_unit, studied)
+    _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     license = metadata("openinterp")["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, output_dir, report)
@@ -361,7 +361,7 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         "index.html",
         "index.html",
         models=models,
-        explore=explore_focus(models, draws),  # the coverage target and the model drawn most
+        explore=explore_focus(models, draws),  # draws and stops: proven dead counts as verified
         stats=stats,
         agents=agents,
         fdr=false_discovery(models),
