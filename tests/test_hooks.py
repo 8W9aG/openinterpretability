@@ -54,6 +54,24 @@ def test_gpt2_cache_shape(tiny_gpt2):
     assert cache[1].shape == (1, 5, 128)
 
 
+@pytest.mark.parametrize("model", ["toy_model", "tiny_gpt2"])
+def test_layer_activations_stop_before_later_layers_and_logits(model, request):
+    """The same values as run_with_cache, without running the layers after the deepest."""
+    net = request.getfixturevalue(model)
+    runner = NeuronHookRunner(net)
+    _, full = runner.run_with_cache(IDS, [0])
+    head = net.get_output_embeddings()
+    calls = []
+    handle = head.register_forward_hook(lambda *_: calls.append(1))
+    try:
+        cache = runner.layer_activations(IDS, [0])
+    finally:
+        handle.remove()
+    assert set(cache) == {0} and not calls  # the output head never ran
+    assert torch.equal(cache[0], full[0])
+    assert not any(m._forward_pre_hooks for m in net.modules())  # hooks removed
+
+
 def test_hooks_are_removed(toy_model):
     runner = NeuronHookRunner(toy_model)
     baseline = runner.run_with_interventions(IDS)

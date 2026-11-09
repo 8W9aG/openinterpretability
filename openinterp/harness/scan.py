@@ -269,7 +269,7 @@ def layer_chunks(
 ) -> Iterator[Chunk]:
     """Run the model over ``pieces`` and yield ``layer``'s activations batch by batch."""
     for batch in batches(runner, pieces, batch_tokens):
-        _, cache = runner.run_with_cache(batch.encoded, [layer])
+        cache = runner.layer_activations(batch.encoded, [layer])
         yield Chunk(
             pieces=batch.pieces,
             lengths=batch.mask.sum(1).tolist(),

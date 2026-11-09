@@ -249,6 +249,37 @@ def test_joint_ablation(toy_runner):
     assert none.kl_partners == 0.0 and D_MLP > 2
 
 
+def test_joint_ablation_one_prompt_at_a_time_matches_a_padded_batch(toy_runner):
+    """Running prompts alone gives the KL of one padded batch over its real tokens."""
+    import torch.nn.functional as F
+
+    from openinterp.harness.hooks import isolate_pole
+
+    prompts, layer, idx, partners = TEXTS[:4], 1, 2, [0, 5]  # lengths 5 to 13
+    encoded = toy_runner.encode(prompts)
+    mask = encoded["attention_mask"].bool()
+    means = toy_runner.run_with_cache(encoded, [layer])[1][layer][mask][:, partners].mean(0)
+
+    def batch_kl(target, others):
+        def fn(act):
+            act = act.clone()
+            if target:
+                act[..., idx] -= isolate_pole(act[..., idx], "positive")
+            if others:
+                act[..., partners] = means
+            return act
+
+        clean = F.log_softmax(toy_runner.run_with_interventions(encoded).float(), -1)[mask]
+        out = toy_runner.run_with_interventions(encoded, {layer: fn}).float()
+        ablated = F.log_softmax(out, -1)[mask]
+        return float(F.kl_div(ablated, clean, log_target=True, reduction="batchmean"))
+
+    result = joint_ablation(toy_runner, prompts, layer, idx, "positive", partners)
+    assert result.kl_single == pytest.approx(batch_kl(True, False), rel=1e-4, abs=1e-9)
+    assert result.kl_partners == pytest.approx(batch_kl(False, True), rel=1e-4, abs=1e-9)
+    assert result.kl_joint == pytest.approx(batch_kl(True, True), rel=1e-4, abs=1e-9)
+
+
 # -- registry-level dependence --------------------------------------------------------
 
 

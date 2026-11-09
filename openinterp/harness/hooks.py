@@ -389,6 +389,31 @@ class NeuronHookRunner:
         return logits, cache
 
     @torch.no_grad()
+    def layer_activations(self, inputs: Inputs, layers: Sequence[int]) -> dict[int, torch.Tensor]:
+        """The MLP activations of ``layers``, as :meth:`run_with_cache` returns them.
+
+        The forward pass stops once the deepest of ``layers`` has run. Later layers can't
+        change these activations, so the values are the same. The pass skips the later
+        layers and the logits, which are batch × sequence × vocabulary and are most of
+        the memory of a pass on a large vocabulary (Qwen2.5 has 151,936 tokens).
+        """
+        cache: dict[int, torch.Tensor] = {}
+        last = max(layers)
+
+        def recorder(layer: int) -> Intervention:
+            def record(act: torch.Tensor) -> None:
+                cache[layer] = act.detach().clone()
+                if layer == last:
+                    raise _StopForward
+
+            return record
+
+        encoded = self.encode(inputs)
+        with suppress(_StopForward), self.hooks({layer: recorder(layer) for layer in layers}):
+            self.forward(encoded)
+        return cache
+
+    @torch.no_grad()
     def run_with_interventions(
         self,
         inputs: Inputs,
@@ -451,8 +476,7 @@ class NeuronHookRunner:
         self, inputs: Inputs, layer: int, neuron_idx: int, pole: Pole | None = None
     ) -> torch.Tensor:
         """Per-token activation ``[batch, seq]`` of one neuron, optionally as a pole strength."""
-        _, cache = self.run_with_cache(inputs, [layer])
-        act = cache[layer][..., neuron_idx]
+        act = self.layer_activations(inputs, [layer])[layer][..., neuron_idx]
         return act if pole is None else pole_strength(act, pole)
 
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:

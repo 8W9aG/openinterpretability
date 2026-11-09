@@ -170,18 +170,6 @@ def _column_quantile(x: torch.Tensor, q: float, chunk: int = 1024) -> torch.Tens
 
 
 @torch.no_grad()
-def _kl(runner: NeuronHookRunner, encoded: dict, fn: Callable | None, layer: int) -> float:
-    mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
-    clean = F.log_softmax(runner.run_with_interventions(encoded).float(), dim=-1)[mask]
-    if fn is None:
-        return 0.0
-    ablated = F.log_softmax(runner.run_with_interventions(encoded, {layer: fn}).float(), dim=-1)[
-        mask
-    ]
-    return max(0.0, float(F.kl_div(ablated, clean, log_target=True, reduction="batchmean")))
-
-
-@torch.no_grad()
 def joint_ablation(
     runner: NeuronHookRunner,
     prompts: Inputs,
@@ -194,12 +182,18 @@ def joint_ablation(
 
     The pole is zero-ablated (its opposite pole is kept). Partners are mean-ablated over
     the prompts, which stays closer to their natural distribution than zeroing.
+
+    Each prompt runs alone. A batch pads every prompt to the longest, and its logits are
+    prompts × longest × vocabulary: about 5.5 GB per copy for 17 prompts, one of them
+    577 tokens long, at Qwen2.5's 151,936 tokens. Alone, a prompt costs its own length.
     """
-    encoded = runner.encode(prompts)
-    mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
-    _, cache = runner.run_with_cache(encoded, [layer])
+    prompts = [prompts] if isinstance(prompts, str) else list(prompts)
+    encoded = [runner.encode([p]) for p in prompts]
     partner_idx = torch.tensor(list(partners), dtype=torch.long)
-    means = cache[layer][mask][:, partner_idx].mean(0) if len(partners) else None
+    means = None
+    if len(partners):
+        rows = [runner.layer_activations(e, [layer])[layer][0][:, partner_idx] for e in encoded]
+        means = torch.cat(rows).mean(0)
 
     def ablate(target: bool, others: bool) -> Callable:
         def fn(act: torch.Tensor) -> torch.Tensor:
@@ -212,9 +206,11 @@ def joint_ablation(
 
         return fn
 
-    kl_single = _kl(runner, encoded, ablate(True, False), layer)
-    kl_partners = _kl(runner, encoded, ablate(False, True) if len(partners) else None, layer)
-    kl_joint = _kl(runner, encoded, ablate(True, True), layer)
+    fns = {"single": ablate(True, False), "joint": ablate(True, True)}
+    if len(partners):
+        fns["partners"] = ablate(False, True)
+    kl = _kl_means(runner, encoded, fns, layer)
+    kl_single, kl_partners, kl_joint = kl["single"], kl.get("partners", 0.0), kl["joint"]
     ratio = (kl_joint - kl_partners) / kl_single if kl_single > 1e-9 else None
     return JointAblation(
         partners=list(partners),
@@ -223,3 +219,23 @@ def joint_ablation(
         kl_joint=round(kl_joint, 9),
         redundancy_ratio=None if ratio is None else round(ratio, 6),
     )
+
+
+@torch.no_grad()
+def _kl_means(
+    runner: NeuronHookRunner, encoded: Sequence[dict], fns: dict[str, Callable], layer: int
+) -> dict[str, float]:
+    """Mean KL(clean ‖ ablated) per token over every prompt, for each ablation in ``fns``.
+
+    Each prompt's clean distribution is computed once and reused for every ablation.
+    """
+    sums = dict.fromkeys(fns, 0.0)
+    tokens = 0
+    for enc in encoded:
+        clean = F.log_softmax(runner.run_with_interventions(enc).float(), dim=-1)[0]
+        tokens += clean.shape[0]
+        for name, fn in fns.items():
+            logits = runner.run_with_interventions(enc, {layer: fn}).float()
+            ablated = F.log_softmax(logits, dim=-1)[0]
+            sums[name] += float(F.kl_div(ablated, clean, log_target=True, reduction="sum"))
+    return {name: max(0.0, total / max(tokens, 1)) for name, total in sums.items()}
