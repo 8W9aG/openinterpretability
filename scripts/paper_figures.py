@@ -17,6 +17,7 @@ import figures_explorer
 import figures_spd_input
 import figures_syntax
 import figures_why_rest
+import figures_why_rest_push
 
 PAPERS = Path(__file__).parents[1] / "papers"
 
@@ -59,6 +60,7 @@ def build_all() -> dict[str, str]:
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),
             **figures_why_rest.build(resting, dip),
+            "push.svg": figures_why_rest_push.push(resting),
         },
     }
     return {
