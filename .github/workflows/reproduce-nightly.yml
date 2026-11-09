@@ -66,11 +66,11 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TITLE: Nightly reproduction failed
         run: |
           {
-            echo "Run: $RUN_URL"
+            # The runner sets these GITHUB_ variables in every job.
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
             echo "Mismatches can mean a library upgrade shifted activations. No mismatches"
             echo "below means the job failed in another way, so read the run's log."
