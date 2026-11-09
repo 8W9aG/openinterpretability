@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
+
 ## [0.0.15] - 2026-11-08
 
 Ships with protocol version **0.8**.
