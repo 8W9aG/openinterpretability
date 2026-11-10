@@ -6,7 +6,6 @@ Open work, grouped by topic. Within each section, items are roughly in priority 
 
 Small fixes, mostly quick.
 
-- [ ] Add `CONTRIBUTING.md`, `SECURITY.md` and `CITATION.cff`. None exist today. `CONTRIBUTING.md` holds the contributor path the README clean-up (above) moves out. `SECURITY.md` says how to report a leaked signing key or a way to get a false VERIFIED past CI. `CITATION.cff` lets papers cite the registry, with a Zenodo DOI minted per release so a citation names an exact version.
 - [ ] Should we move to GitHub issues or Linear?
 - [ ] Do we need a SOUL.md?
 - [ ] Use academic language when writing papers, in APA style. Put the rule in the `write-paper` skill, and align its reference format and `tests/test_papers.py` with APA.
