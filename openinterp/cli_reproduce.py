@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli, wiki_dir_option
+from openinterp.cli_memory import memory_option
 from openinterp.core.paths import experiments_dir
 
 
@@ -43,6 +44,7 @@ from openinterp.core.paths import experiments_dir
     help="Absolute tolerance, as a fraction of the neuron's max activation.",
 )
 @click.option("--rtol", default=1e-2, show_default=True, type=click.FloatRange(min=0))
+@memory_option
 @click.option(
     "--device",
     default="auto",

@@ -52,8 +52,8 @@ def claimed_token_weights(
 
 def _neuron_changes(runner, ident, base: str, cf: str) -> tuple[Positions, int, torch.Tensor]:
     """Where to patch and score, and every neuron's strength change up to there."""
-    b, c = (
-        pole_strength(runner.run_with_cache(text, [ident.layer])[1][ident.layer][0], ident.pole)
+    b, c = (  # the pass stops at the layer: no later layer or logits is needed
+        pole_strength(runner.layer_activations(text, [ident.layer])[ident.layer][0], ident.pole)
         for text in (base, cf)
     )  # [seq, d_mlp]
     if b.shape != c.shape:

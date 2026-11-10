@@ -21,11 +21,11 @@ from torch import nn
 
 from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import (
-    ActivatingExample,
     DictionarySite,
     Histogram,
     Pole,
 )
+from openinterp.harness.memory import loaded
 
 # Probed in order; the first path that resolves on the model wins.
 LAYER_PATHS = (
@@ -145,6 +145,24 @@ def logits_of(output: Any) -> torch.Tensor:
     return output.logits if hasattr(output, "logits") else output
 
 
+def _recorders(cache: dict, layers: Sequence[int], stop: bool = False) -> dict[int, Intervention]:
+    """Interventions that copy each of ``layers``' activations into ``cache``.
+
+    With ``stop``, the deepest one then ends the forward pass.
+    """
+    last = max(layers) if stop else None
+
+    def recorder(layer: int) -> Intervention:
+        def record(act: torch.Tensor) -> None:
+            cache[layer] = act.detach().clone()
+            if layer == last:
+                raise _StopForward
+
+        return record
+
+    return {layer: recorder(layer) for layer in layers}
+
+
 class NeuronHookRunner:
     """Attach temporary hooks to MLP intermediate activations of a causal LM.
 
@@ -198,8 +216,11 @@ class NeuronHookRunner:
 
     @property
     def device(self) -> torch.device:
-        """The device of the model's parameters."""
-        return next(self.model.parameters()).device
+        """The device the model runs on: that of its first weight not left on disk."""
+        for param in self.model.parameters():
+            if param.device.type != "meta":  # a streamed layer's weights stay on disk
+                return param.device
+        return torch.device("cpu")
 
     def down_proj(self, layer: int) -> nn.Module:
         """The MLP down projection of ``layer``, whose input is the neuron basis."""
@@ -247,8 +268,9 @@ class NeuronHookRunner:
         if not 0 <= head < self.n_heads:
             raise IndexError(f"head {head} out of range for {self.n_heads} heads")
         proj, d = self.attn_out(layer), self.head_dim(layer)
-        weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T  # Conv1D
-        return weight[:, head * d : (head + 1) * d].detach()
+        with loaded(proj):  # streamed: the weights are real only inside this block
+            weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T  # Conv1D
+            return weight[:, head * d : (head + 1) * d].detach().clone()
 
     def mlp_width(self, layer: int) -> int:
         """The number of MLP neurons at ``layer``."""
@@ -296,9 +318,9 @@ class NeuronHookRunner:
     def neuron_output_direction(self, layer: int, neuron_idx: int) -> torch.Tensor:
         """The residual-stream vector written by one unit of activation of this neuron."""
         proj = self.down_proj(layer)
-        if hasattr(proj, "in_features"):
-            return proj.weight[:, neuron_idx].detach()
-        return proj.weight[neuron_idx, :].detach()
+        with loaded(proj):  # streamed: the weights are real only inside this block
+            w = proj.weight.detach()
+            return (w[:, neuron_idx] if hasattr(proj, "in_features") else w[neuron_idx]).clone()
 
     # -- running -------------------------------------------------------------
 
@@ -376,17 +398,21 @@ class NeuronHookRunner:
     ) -> tuple[torch.Tensor, dict[int, torch.Tensor]]:
         """Run the model, returning logits and intermediate activations for ``layers``."""
         cache: dict[int, torch.Tensor] = {}
-
-        def recorder(layer: int) -> Intervention:
-            def record(act: torch.Tensor) -> None:
-                cache[layer] = act.detach().clone()
-
-            return record
-
-        encoded = self.encode(inputs)
-        with self.hooks({layer: recorder(layer) for layer in layers}):
-            logits = self.forward(encoded)
+        with self.hooks(_recorders(cache, layers)):
+            logits = self.forward(self.encode(inputs))
         return logits, cache
+
+    @torch.no_grad()
+    def layer_activations(self, inputs: Inputs, layers: Sequence[int]) -> dict[int, torch.Tensor]:
+        """The activations of :meth:`run_with_cache`, without the passes after ``layers``.
+
+        Later layers can't change them, so the values are the same. The pass skips the
+        logits, which are most of its memory on a large vocabulary (151,936 for Qwen2.5).
+        """
+        cache: dict[int, torch.Tensor] = {}
+        with suppress(_StopForward), self.hooks(_recorders(cache, layers, stop=True)):
+            self.forward(self.encode(inputs))
+        return cache
 
     @torch.no_grad()
     def run_with_interventions(
@@ -451,35 +477,12 @@ class NeuronHookRunner:
         self, inputs: Inputs, layer: int, neuron_idx: int, pole: Pole | None = None
     ) -> torch.Tensor:
         """Per-token activation ``[batch, seq]`` of one neuron, optionally as a pole strength."""
-        _, cache = self.run_with_cache(inputs, [layer])
-        act = cache[layer][..., neuron_idx]
+        act = self.layer_activations(inputs, [layer])[layer][..., neuron_idx]
         return act if pole is None else pole_strength(act, pole)
 
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:
         """The pole's peak strength over ``text``."""
         return float(self.neuron_activations(text, layer, neuron_idx, pole).max())
-
-
-def top_activating_examples(
-    runner: NeuronHookRunner,
-    texts: Sequence[str],
-    layer: int,
-    neuron_idx: int,
-    pole: Pole,
-    *,
-    k: int = 20,
-    batch_tokens: int | None = None,
-) -> tuple[list[ActivatingExample], list[float]]:
-    """Scan ``texts``; return the ``k`` strongest snippets and every token's pole strength.
-
-    A thin wrapper over :func:`openinterp.harness.scan.scan_neuron`, which also
-    gathers correlated neurons and the confound profile.
-    """
-    from openinterp.harness.scan import BATCH_TOKENS, scan_neuron
-
-    batch_tokens = batch_tokens or BATCH_TOKENS
-    result = scan_neuron(runner, texts, layer, neuron_idx, pole, k=k, batch_tokens=batch_tokens)
-    return result.examples, result.values
 
 
 def activation_histogram(values: Sequence[float], bins: int = 30) -> Histogram:

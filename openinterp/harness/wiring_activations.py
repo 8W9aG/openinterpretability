@@ -35,7 +35,10 @@ from openinterp.harness.wiring import (
 
 
 def _clean_pass(runner, t: Target, encoded, attention: bool) -> dict:
-    """One forward pass keeping what both directions need, all float32 ``[b, seq, ...]``."""
+    """One forward pass keeping what both directions need, all float32 ``[b, seq, ...]``.
+
+    The pass stops after the deepest layer it reads, so it computes no logits.
+    """
     up_n, up_h = _upstream_layers(t)
     down_n, down_h = _downstream_layers(runner, t)
     cap = {"acts": {}, "z": {}, "mlp_in": {}, "attn_in": {}}
@@ -59,8 +62,14 @@ def _clean_pass(runner, t: Target, encoded, attention: bool) -> dict:
     if t.site in ("mlp_out", "resid_post"):
         module = runner.mlp_write(t.layer) if t.site == "mlp_out" else runner.layers[t.layer]
         handles.append(module.register_forward_hook(keep(written, t.layer, out=True)))
+    deepest = max({*up_n, *up_h, *down_n, *down_h, t.layer})
+
+    def stop(*_) -> None:
+        raise _StopForward
+
+    handles.append(runner.layers[deepest].register_forward_hook(stop))
     try:
-        with torch.no_grad():
+        with torch.no_grad(), suppress(_StopForward):
             runner.forward(encoded)
     finally:
         for h in handles:

@@ -21,7 +21,7 @@ An experiment takes one neuron, proposes what it does, has a *different* model t
 
 Node.js is not needed: no step of the build uses it, and Claude Code's native installer doesn't need it either (only its npm install does). [Vale](https://vale.sh) is needed only for `make vale` when you change code.
 
-A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). A scan holds about 10 GB of RAM, and the first scan also downloads about 1.5 GB of labelling models.
+A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). An 8 GB machine runs GPT-2 and Qwen2.5-0.5B, and Qwen2.5-1.5B needs 16 GB ([Memory](docs/experiments.md#memory)). The first scan also downloads about 1.5 GB of labelling models.
 
 ### 1. Set up (once)
 
@@ -65,6 +65,7 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 - [docs/experiments.md](docs/experiments.md): other LLMs, answer files without API keys, the scan corpus and caches, and loops and parallel sessions. Also attention heads and dictionary latents, contributing and credit, the skills, definitions and the models.
 - [docs/development.md](docs/development.md): make targets, what CI checks on a pull request, record signing, the code layout, and the static site and deploy.
 - [docs/PROTOCOL.md](docs/PROTOCOL.md): how verdicts are decided.
+- [docs/moe.md](docs/moe.md): how neurons in mixture-of-experts models will be audited. It is a decision, not built yet.
 
 ## Protocol
 
