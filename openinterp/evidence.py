@@ -271,6 +271,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
                 k=top_k,
                 cache=scan_cache,
                 taggers=taggers,
+                batch_tokens=_scan_batch_tokens(runner),
                 **windows,
             )
     if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:
@@ -441,3 +442,21 @@ def check_context(runner, texts) -> None:
             f"a document has {longest:,} tokens but the model reads at most {limit:,}; "
             f"scan windows instead, e.g. --window-tokens {limit // 2}."
         )
+
+
+def _scan_batch_tokens(runner) -> int:
+    """The scan's batch: the usual one, or a larger one when the model streams from disk.
+
+    A streamed scan reads its layers once per batch, so fewer, larger batches read them
+    fewer times (:func:`openinterp.harness.memory.stream_batch_tokens`).
+    """
+    from openinterp.harness import memory
+    from openinterp.harness.scan import BATCH_TOKENS
+
+    if not memory.is_streamed(runner.model):
+        return BATCH_TOKENS
+    dtype = next(runner.model.parameters()).dtype
+    have = memory.available_bytes()
+    tokens = memory.stream_batch_tokens(runner.model.config, dtype, have, BATCH_TOKENS)
+    click.echo(f"Streaming: scanning {tokens:,} tokens per batch.", err=True)
+    return tokens

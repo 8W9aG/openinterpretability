@@ -1,0 +1,40 @@
+{
+  "dev_probes": 22835,
+  "license": "CC-BY-4.0",
+  "name": "openinterp-explainer-benchmark",
+  "newest_record": "20261110T190735Z",
+  "selection": {
+    "first_record_selection": "random",
+    "min_probes_per_label": 3,
+    "skipped_units": {
+      "not_random_neuron_pole": 197,
+      "too_few_probes": 261
+    },
+    "unit_kind": "mlp_neuron_pole"
+  },
+  "split": {
+    "salt": "v1",
+    "test_fraction": 0.2
+  },
+  "test_labels_sha256": null,
+  "test_probes": null,
+  "units": {
+    "dev": 1012,
+    "test": 241
+  },
+  "units_per_model": {
+    "Qwen/Qwen2.5-0.5B": {
+      "dev": 511,
+      "test": 127
+    },
+    "Qwen/Qwen2.5-1.5B": {
+      "dev": 74,
+      "test": 19
+    },
+    "openai-community/gpt2": {
+      "dev": 427,
+      "test": 95
+    }
+  },
+  "version": "v1"
+}

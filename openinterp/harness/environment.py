@@ -7,13 +7,15 @@ from typing import TYPE_CHECKING
 import torch
 
 from openinterp.core.schemas import RunEnvironment
+from openinterp.harness.memory import is_streamed
+from openinterp.harness.moe import experts_implementation
 
 if TYPE_CHECKING:
     from openinterp.harness.hooks import NeuronHookRunner
 
 
 def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
-    """The device, weights dtype, model revision and library versions of ``runner``."""
+    """The device, weights dtype, model revision, library versions and streaming of ``runner``."""
     from openinterp import __version__
 
     try:
@@ -31,4 +33,6 @@ def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
         openinterp_version=__version__,
         torch_version=torch.__version__,
         transformers_version=transformers_version,
+        streamed=True if is_streamed(runner.model) else None,
+        experts_implementation=experts_implementation(runner.model),
     )

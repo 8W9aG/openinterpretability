@@ -174,6 +174,9 @@
         <dt class="text-slate-500" title="The scan's {{ "{:,}".format(mix.tokens) }} labelled tokens by their document's language, from the corpus's lang field">Languages</dt><dd class="font-mono text-xs">{% for l in mix.shown %}{{ l.label }} {{ l.share | pct }}{{ " · " if not loop.last }}{% endfor %}{% if mix.other >= 0.005 %} · other {{ mix.other | pct }}{% endif %}</dd>
         {% endif %}
         <dt class="text-slate-500">Model revision</dt><dd class="font-mono text-xs">{{ (p.model_revision or "unrecorded")[:12] }} · {{ p.dtype }}</dd>
+        {% set runs = [("scan", p.environment), ("review", verdict.environment if verdict else none)] | selectattr(1) | list %}{% if runs %}
+        <dt class="text-slate-500" title="The device each step ran on. Streamed: the layers were read from disk on each pass (--memory stream), which gives the same values, only slower.">Ran on</dt><dd class="font-mono text-xs">{% for step, env in runs %}{{ step }} {{ env.device }}{% if env.streamed %} <span class="font-sans">(streamed from disk)</span>{% endif %}{{ " · " if not loop.last }}{% endfor %}</dd>
+        {% endif %}
         {% if p.costs %}
         <dt class="text-slate-500">Run cost</dt><dd class="font-mono text-xs" title="Wall time and LLM usage of this experiment; reported, not gated">{{ p.costs.summary() }}</dd>
         {% endif %}

@@ -2,7 +2,6 @@
 
 Papers and posts to review for the literature review (`TODO.md`, Protocol and science). Add new entries at the end. When an entry has a page in `docs/literature/`, remove it from this list.
 
-- Review "Context Language Models" (arXiv 2609.37725, [paper](https://arxiv.org/html/2609.37725v1)).
 - Review "Recursive Language Models" (arXiv 2512.24601, [paper](https://arxiv.org/abs/2512.24601)).
 - Review "Conditional Memory via Scalable Lookup: A New Axis of Sparsity for Large Language Models" (arXiv 2601.07372, [paper](https://arxiv.org/pdf/2601.07372)).
 - Review Alex Wang's post on associative memory ([post](https://alexwang.ai/posts/associative-memory/)).
@@ -60,3 +59,14 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "Towards Foundation Decision Models: Drex" (arXiv 2611.07854, [paper](https://arxiv.org/abs/2611.07854)).
 - Review "SwarmEvolve: Latent Agent Swarms for Evolutionary Discovery and Optimization" (arXiv 2611.08483, [paper](https://arxiv.org/abs/2611.08483)).
 - Review Anthropic's "Teaching AI to build scientific models" (Macke, Gedon and Wahl, [post](https://www.anthropic.com/research/teaching-ai-to-build-scientific-models)).
+- Review "Calibrated concept profiles: making the reading of a model's neurons a measurement" (arXiv 2611.09196, [paper](https://arxiv.org/abs/2611.09196)).
+- Review "SteerGR: Steering Generative Recommendation via Sparse Autoencoders for Controllable Game Discovery" (arXiv 2611.08790, [paper](https://arxiv.org/abs/2611.08790)).
+- Review "Teach the Way It Thinks: Guiding LLM Post-training Data Engineering with Sparse Autoencoders" (arXiv 2605.27354, [paper](https://arxiv.org/abs/2605.27354)).
+- Review "Farther the Shift, Sparser the Representation: Analyzing OOD Mechanisms in LLMs" (arXiv 2603.03415, [paper](https://arxiv.org/abs/2603.03415)).
+- Review "Language Model Circuits Are Sparse in the Neuron Basis" (Arora, Wu, Schwettmann and Steinhardt, arXiv 2601.22594, [paper](https://arxiv.org/abs/2601.22594)).
+- Review ROTATE, which disentangles MLP neurons in weight space with no forward passes (arXiv 2604.06005, [paper](https://arxiv.org/abs/2604.06005)).
+- Review "NeuronScope: A Multi-Agent Framework for Explaining Polysemantic Neurons in Language Models" (arXiv 2601.03671, [paper](https://arxiv.org/abs/2601.03671)).
+- Review "Beyond Top Activations: Efficient and Reliable Crowdsourced Evaluation of Automated Interpretability" (Oikarinen et al., arXiv 2506.07985, [paper](https://arxiv.org/abs/2506.07985)).
+- Review "Neuron to Graph: Interpreting Language Model Neurons at Scale" (Foote et al., arXiv 2305.19911, [paper](https://arxiv.org/abs/2305.19911)).
+- Review Anthropic's May 2026 Circuits Update, for its TWERA ranking of downstream features ([post](https://transformer-circuits.pub/2026/may-update/index.html)).
+- Review "Bilinear MLPs enable weight-based mechanistic interpretability" (arXiv 2410.08417, [paper](https://arxiv.org/abs/2410.08417)).

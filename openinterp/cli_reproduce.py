@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli, wiki_dir_option
+from openinterp.cli_memory import memory_option
 from openinterp.core.paths import experiments_dir
 
 
@@ -30,6 +31,12 @@ from openinterp.core.paths import experiments_dir
     help="The day that selects the --sample records (default: today, UTC).",
 )
 @click.option(
+    "--time-budget",
+    type=click.FloatRange(min=0),
+    help="Minutes after which no new record is started. The records not reached are listed "
+    "and don't fail the run. Leave room for the slowest record within any outer time limit.",
+)
+@click.option(
     "--include-signed",
     is_flag=True,
     help="Reproduce signed records too. A signature that doesn't verify still fails.",
@@ -43,6 +50,7 @@ from openinterp.core.paths import experiments_dir
     help="Absolute tolerance, as a fraction of the neuron's max activation.",
 )
 @click.option("--rtol", default=1e-2, show_default=True, type=click.FloatRange(min=0))
+@memory_option
 @click.option(
     "--device",
     default="auto",
@@ -75,6 +83,7 @@ def reproduce(
     base_ref,
     sample,
     sample_date,
+    time_budget,
     include_signed,
     wiki_dir,
     atol,
@@ -113,18 +122,36 @@ def reproduce(
         include_signed=include_signed or sample is not None,
         measurements_only=sample is not None,
     )
+    results, unreached = _check_all(reproducer, paths, in_actions, time_budget)
+    failed = sum(bool(problems) for _, problems, _ in results)
+    summary = f"{len(results) - failed}/{len(results)} record(s) reproduced."
+    if unreached:
+        summary += f" {len(unreached)} not reached in the {time_budget:g}-minute time budget."
+    click.echo(summary)
+    if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
+        _step_summary(os.environ["GITHUB_STEP_SUMMARY"], summary, results, unreached)
+    if failed:
+        raise SystemExit(1)
+
+
+def _check_all(reproducer, paths, in_actions: bool, time_budget: float | None):
+    """Check each record in turn. Return the results, and the records not started.
+
+    No record starts once ``time_budget`` minutes have passed.
+    """
+    import time
+
+    start = time.monotonic()
     results: list[tuple[Path, list[str], list[str]]] = []
-    for path in paths:
+    for n, path in enumerate(paths):
+        if time_budget is not None and time.monotonic() - start >= time_budget * 60:
+            for later in paths[n:]:
+                click.echo(f"NOT REACHED: {later}")
+            return results, paths[n:]
         status, problems, warnings = reproducer.check(path)
         results.append((path, problems, warnings))
         _report(path, status, problems, warnings, in_actions)
-    failed = sum(bool(problems) for _, problems, _ in results)
-    summary = f"{len(paths) - failed}/{len(paths)} record(s) reproduced."
-    click.echo(summary)
-    if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
-        _step_summary(os.environ["GITHUB_STEP_SUMMARY"], summary, results)
-    if failed:
-        raise SystemExit(1)
+    return results, []
 
 
 def _chosen_records(records, base_ref, sample, sample_date, wiki_dir) -> list[Path]:
@@ -224,12 +251,13 @@ def _report(path: Path, status: str, problems, warnings, in_actions: bool) -> No
         click.echo(f"::warning file={path}::{message}" if in_actions else f"  warning: {message}")
 
 
-def _step_summary(path: str, summary: str, results) -> None:
+def _step_summary(path: str, summary: str, results, unreached=()) -> None:
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(f"### Reproduction\n\n{summary}\n\n")
         for record, problems, _ in results:
             fh.write(f"- {'❌' if problems else '✅'} `{record}`\n")
             fh.writelines(f"  - {message}\n" for message in problems)
+        fh.writelines(f"- ⏭️ `{record}` (not reached)\n" for record in unreached)
 
 
 def _preset_dictionary(record) -> bool:

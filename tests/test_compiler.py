@@ -13,6 +13,7 @@ from openinterp.builder.model_facts import ModelFacts, facts_from_config, format
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.licenses import DATA_LICENSE, DATA_LICENSE_URL
+from openinterp.core.project import site_url
 from openinterp.core.schemas import (
     PROTOCOL_VERSION,
     ActivatingExample,
@@ -300,6 +301,16 @@ def test_footer_links_repo_and_contact(tmp_path):
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
     assert 'href="mailto:will.sackfield@gmail.com"' in index
+
+
+def test_every_page_names_its_canonical_url(tmp_path, records):
+    report = compile_site(records, tmp_path)
+    site = site_url()
+    assert site == "https://open-interpretability.com/"
+    for page in report.pages:
+        rel = page.relative_to(tmp_path).as_posix()
+        if page.suffix == ".html" and "Moved" not in (text := page.read_text()):
+            assert f'<link rel="canonical" href="{site}{rel}">' in text, rel
 
 
 def test_about_page_quotes_protocol_and_licence(tmp_path):
@@ -1343,3 +1354,34 @@ def test_format_parameters():
     assert format_parameters(1_543_714_304) == "1.54B"
     assert format_parameters(None) == "—"
     assert format_parameters(512) == "512"
+
+
+def test_the_page_says_where_each_step_ran_and_whether_it_streamed(tmp_path, record):
+    from openinterp.core.schemas import RunEnvironment
+
+    def env(device, streamed=None):
+        versions = {"openinterp_version": "0", "torch_version": "0"}
+        return RunEnvironment(device=device, dtype="float32", streamed=streamed, **versions)
+
+    from openinterp.core.schemas import ExperimentProvenance
+
+    sub = record.submission
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus="toy",
+        n_snippets=1,
+        tokens_scanned=10,
+        selection="manual",
+        harness_version="0",
+        environment=env("cpu", True),
+    )
+    streamed = record.model_copy(
+        update={
+            "submission": sub.model_copy(update={"provenance": provenance}),
+            "verdict": record.verdict.model_copy(update={"environment": env("mps")}),
+        }
+    )
+    compile_site([streamed], tmp_path)
+    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    text = re.sub(r"<[^>]+>", "", page)
+    assert "scan cpu (streamed from disk) · review mps" in text

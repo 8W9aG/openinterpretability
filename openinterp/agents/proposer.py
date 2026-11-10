@@ -11,6 +11,7 @@ from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.confounds import MATCH_LABEL_SETS, NO_MATCH, NOT_SHOWN_TO_PROPOSER
+from openinterp.core.fence import FENCE_RULE, fence
 from openinterp.core.schemas import (
     ActivatingExample,
     ComponentIdentifier,
@@ -134,11 +135,12 @@ def format_review_examples(examples: Sequence[ActivatingExample], full: bool = F
     """The reviewer's view of the top 10 examples: text only, no strengths."""
     if full:  # the prompt before windowing, for A/B comparison
         listed = "\n".join(f"{n}. {_noted(e)}{e.text}" for n, e in enumerate(examples[:10], 1))
-        return f"Top-activating examples:\n{listed or '(none)'}\n\n"
+        return f"Top-activating examples:\n{fence(listed or '(none)')}\n\n"
     kept, dropped = distinct_examples(examples, 10)
     listed = "\n".join(f"{n}. {_noted(e)}{snippet(e)}" for n, e in kept) or "(none)"
     note = "\n" + dropped_note(dropped).rstrip() if dropped else ""
-    return f"Top-activating examples (peak token in [[ ]], … where cut):\n{listed}{note}\n\n"
+    head = "Top-activating examples (peak token in [[ ]], … where cut):"
+    return f"{head}\n{fence(listed)}{note}\n\n"
 
 
 def _noted(ex: ActivatingExample) -> str:
@@ -261,7 +263,7 @@ def format_input_attribution(attribution: InputAttribution) -> str:
 # Protocol 0.8: how a unit with a first-token floor is read, for every agent that writes
 # prompts for one.
 FIRST_TOKEN_UNMEASURED = (
-    "This unit has a first-token floor: at a text's first token it is active whatever the "
+    "This unit has a first-token floor: at a text's first token it is active whatever the "  # noqa: S105  (prompt text, not a password)
     "token is, so it is not measured there. A prompt's strength is its peak over every "
     "token but the first, so every prompt needs at least two tokens, and a trigger that "
     "opens a prompt is not seen. Its examples show the first token's strength, but it "
@@ -284,7 +286,7 @@ class ProposerAgent(LLMAgent):
         "*before* the predicted one, and their promoted-token list is informative. Write "
         "minimal-pair "
         "counterfactuals that change as little text as possible, including at least one "
-        "control pair with expected_delta near 0."
+        "control pair with expected_delta near 0. " + FENCE_RULE
     )
 
     def propose(
@@ -351,7 +353,7 @@ class ProposerAgent(LLMAgent):
         )
         prompt += (
             f"Top-activating snippets (peak token in [[ ]]{window}):\n"
-            f"{format_examples(examples, full=full_snippets)}\n\n"
+            f"{fence(format_examples(examples, full=full_snippets))}\n\n"
         )
         if lens is not None:
             prompt += format_lens(lens, identifier)

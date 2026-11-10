@@ -29,6 +29,7 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from openinterp.core.cache_dirs import cache_root
+from openinterp.core.fence import fence
 from openinterp.core.schemas import AuditRecord, NeuronIdentifier
 from openinterp.core.strict import StrictModel
 
@@ -264,7 +265,8 @@ def _get_json(url: str, *, timeout: float, retries: int, sleep: Callable, opener
 
     Return ``None`` if the request fails or the server stays busy.
     """
-    request = urllib.request.Request(url, headers={"User-Agent": user_agent()})
+    # url is an https Neuronpedia endpoint from latent_url, never a file: URL.
+    request = urllib.request.Request(url, headers={"User-Agent": user_agent()})  # noqa: S310
     for attempt in range(retries + 1):
         try:
             with opener(request, timeout=timeout) as response:
@@ -434,6 +436,6 @@ def format_for_reviewer(described: list[dict]) -> str:
         "authors' descriptions say they do. They are not measurements of this pole. Where "
         "a description disagrees with the hypothesis, write probes that tell them apart; "
         "where it agrees, the hypothesis may still be too broad or too narrow.\n"
-        + "\n".join(lines)
+        + fence("\n".join(lines))
         + "\n"
     )

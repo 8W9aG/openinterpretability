@@ -12,7 +12,6 @@ import math
 import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from email.utils import parseaddr
 from importlib.metadata import metadata
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -54,6 +53,7 @@ from openinterp.core.agent_names import canonical_agent
 from openinterp.core.draws import ChosenStop
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.licenses import DATA_TERMS
+from openinterp.core.project import project_links
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
 from openinterp.crossref import neuronpedia_url
 from openinterp.planner import configured_licenses
@@ -316,7 +316,7 @@ def compile_site(
     report = BuildReport(output_dir, len(records), len(experiments))
     report.parquet = export_registry(experiments, output_dir, corpus_sources)
     export_draws(draws, output_dir)  # random draws no experiment could audit
-    export_neuronpedia(experiments, output_dir, _project_links()["repo_url"])
+    export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments)
     render = _Renderer(_environment(), output_dir, common, report)
@@ -372,17 +372,10 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
     )
 
 
-def _project_links() -> dict:
-    """The repo URL and contact email for the footer, from pyproject.toml's metadata."""
-    meta = metadata("openinterp")
-    urls = dict(u.split(", ", 1) for u in meta.get_all("Project-URL") or [])
-    return {"repo_url": urls["Repository"], "contact_email": parseaddr(meta["Author-email"])[1]}
-
-
 def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
     """What every page's template gets."""
     return {
-        **_project_links(),
+        **project_links(),
         "site_title": site_title,
         "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
         "model_licenses": configured_licenses(),
@@ -418,7 +411,8 @@ class _Renderer:
         out = self.output_dir / rel
         out.parent.mkdir(parents=True, exist_ok=True)
         page = self.env.get_template(template)
-        out.write_text(page.render(**self.common, root=_root_for(rel), **context))
+        url = self.common["site_url"] + rel
+        out.write_text(page.render(**self.common, root=_root_for(rel), canonical=url, **context))
         self.report.pages.append(out)
 
 

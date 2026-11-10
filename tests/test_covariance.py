@@ -1,5 +1,6 @@
 import pytest
 import torch
+import torch.nn.functional as F
 
 from openinterp.core.schemas import ReviewPolicy
 from openinterp.core.stats import (
@@ -249,6 +250,37 @@ def test_joint_ablation(toy_runner):
     assert none.kl_partners == 0.0 and D_MLP > 2
 
 
+def test_joint_ablation_one_prompt_at_a_time_matches_a_padded_batch(toy_runner):
+    """Running prompts alone gives the KL of one padded batch over its real tokens."""
+    import torch.nn.functional as F
+
+    from openinterp.harness.hooks import isolate_pole
+
+    prompts, layer, idx, partners = TEXTS[:4], 1, 2, [0, 5]  # lengths 5 to 13
+    encoded = toy_runner.encode(prompts)
+    mask = encoded["attention_mask"].bool()
+    means = toy_runner.run_with_cache(encoded, [layer])[1][layer][mask][:, partners].mean(0)
+
+    def batch_kl(target, others):
+        def fn(act):
+            act = act.clone()
+            if target:
+                act[..., idx] -= isolate_pole(act[..., idx], "positive")
+            if others:
+                act[..., partners] = means
+            return act
+
+        clean = F.log_softmax(toy_runner.run_with_interventions(encoded).float(), -1)[mask]
+        out = toy_runner.run_with_interventions(encoded, {layer: fn}).float()
+        ablated = F.log_softmax(out, -1)[mask]
+        return float(F.kl_div(ablated, clean, log_target=True, reduction="batchmean"))
+
+    result = joint_ablation(toy_runner, prompts, layer, idx, "positive", partners)
+    assert result.kl_single == pytest.approx(batch_kl(True, False), rel=1e-4, abs=1e-9)
+    assert result.kl_partners == pytest.approx(batch_kl(False, True), rel=1e-4, abs=1e-9)
+    assert result.kl_joint == pytest.approx(batch_kl(True, True), rel=1e-4, abs=1e-9)
+
+
 # -- registry-level dependence --------------------------------------------------------
 
 
@@ -315,3 +347,15 @@ def test_scan_stops_on_a_default_on_unit():
     check_default_on("u", [1.0] * 4 + [0.0] * 6, 1.0)  # active on 40%: auditable
     with pytest.raises(click.ClickException, match="default-on: it is active on 60%"):
         check_default_on("u", [1.0] * 6 + [0.0] * 4, 1.0)
+
+
+def test_blocked_log_probs_and_kl_match_the_whole_computation():
+    from openinterp.harness.covariance import _KL_BLOCK, _kl_sum, _log_probs
+
+    torch.manual_seed(0)
+    a, b = torch.randn(1, 2 * _KL_BLOCK + 5, 50), torch.randn(1, 2 * _KL_BLOCK + 5, 50)
+    whole_a, whole_b = F.log_softmax(a, -1)[0], F.log_softmax(b, -1)[0]
+    blocked_a, blocked_b = _log_probs(a.clone())[0], _log_probs(b.clone())[0]
+    torch.testing.assert_close(blocked_a, whole_a)
+    expected = float(F.kl_div(whole_a, whole_b, log_target=True, reduction="sum"))
+    assert _kl_sum(blocked_a, blocked_b) == pytest.approx(expected, rel=1e-5)

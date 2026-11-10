@@ -23,6 +23,32 @@ def test_merge_skips_missing_parts_and_keeps_order():
     assert (merged.seconds, merged.cost_usd) == (2.5, 0.25)
 
 
+def test_stages_record_the_peak_memory_so_far():
+    """Each stage records the process's memory high-water mark, which never falls."""
+    import subprocess
+    import sys
+
+    # A fresh process: this one's high-water mark may already be above anything below.
+    script = """
+import json
+from openinterp.core import costs
+with costs.stage("small"):
+    pass
+# Past the high-water mark so far, which imports can leave well above what is in use.
+size = (costs.measured().stages[0].peak_rss_mb + 256) * 2**20
+with costs.stage("big"):
+    block = bytearray(size)
+    block[::4096] = b"x" * len(block[::4096])  # touch every page
+print(json.dumps([s.model_dump() for s in costs.measured().stages]))
+"""
+    out = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    small, big = json.loads(out.stdout)
+    assert small["peak_rss_mb"] > 0 and big["peak_rss_mb"] >= small["peak_rss_mb"] + 200, out.stderr
+    assert small["peak_cuda_mb"] is None  # torch isn't imported, so CUDA isn't asked
+    old = costs.StageTiming.model_validate({"stage": "scan", "seconds": 1.0})
+    assert old.peak_rss_mb is None  # records from before memory was measured still validate
+
+
 def test_external_answer_is_timed_from_file_mtimes(tmp_path):
     prompt, answer = tmp_path / "ev.prompt.md", tmp_path / "ev.hypothesis.json"
     prompt.write_text("x" * 50)
@@ -248,3 +274,25 @@ def test_by_agent_reports_mean_and_cost_per_verified():
     assert proposer["usd_per_verified"] == 1.0
     assert (judge["priced"], judge["verified"]) == (2, 1)
     assert round(judge["mean_usd"], 6) == 0.3 and round(judge["usd_per_verified"], 6) == 0.6
+
+
+def test_a_stage_releases_the_mps_cache_only_when_mps_holds_memory(monkeypatch):
+    """The cache goes back to the system on MPS; a CPU run never touches Metal."""
+    import sys
+    from types import SimpleNamespace
+
+    for allocated, released in ((0, False), (4096, True)):
+        calls = []
+        fake = SimpleNamespace(
+            backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda: True)),
+            mps=SimpleNamespace(
+                current_allocated_memory=lambda n=allocated: n,
+                empty_cache=lambda calls=calls: calls.append(1),
+            ),
+            cuda=SimpleNamespace(is_available=lambda: False),
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake)
+        costs.reset()
+        costs.add_stage("scan", 1.0)
+        assert bool(calls) is released
+    costs.reset()

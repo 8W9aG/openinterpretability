@@ -24,7 +24,7 @@ openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 
 - **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`). Lint also checks the JSON, JSONL and YAML files (`scripts/check_data_files.py`, with yamllint). A pull request that changes only `wiki/` (an experiment) runs the same code as `main`, so it skips this job (a skipped job counts as passing).
 - **Experiment records:** `openinterp check`. On a pull request that changes only `wiki/`, the record and page rules read only the files it adds or changes (`--base-ref`). If it changes anything else, and on `main`, they read every file. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must match the schema, have a verdict and sit at the path its neuron and id dictate. It must name only an earlier experiment on the same unit in `supersedes`, and have a page whose front matter matches it. Every page must have a record. New records must have `model_num_layers` and `model_mlp_width`, and `model_n_heads` on head records only. Generated indexes (`README.md`) must not be committed, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty.
-- **Nightly reproduction:** `openinterp reproduce --sample 20`, on `main`. It re-runs a rotating sample of all records, signed ones too, so a library upgrade that shifts activations is noticed. A failure opens an issue (docs/PROTOCOL.md §5).
+- **Nightly reproduction:** `openinterp reproduce --sample 20`, on `main`. It re-runs a rotating sample of all records, signed ones too, so a library upgrade that shifts activations is noticed. It starts no record after 140 minutes (`--time-budget`), and the records it didn't reach don't fail it. A failure opens an issue (docs/PROTOCOL.md §5).
 - **Reproduce records:** `openinterp reproduce --base-ref origin/main`, on pull requests only. It re-runs every record the pull request adds or changes against the model commit it pins, on CPU. It fails if any activation, result, gate or status differs from the record (docs/PROTOCOL.md §5). Pull requests without record changes skip it (a skipped job counts as passing). Reproductions run one at a time across all pull requests, queued in order, and a newer push to a pull request cancels its older run. Only models in the job's `ALLOWED_MODELS` are downloaded, and the weights are cached between runs. Expect a few minutes per record for Qwen2.5-0.5B. Records signed by a maintainer are skipped: run `openinterp sign wiki/experiments/<slug>/<id>.json` and commit the `.sig` file next to the record. The default key is `~/.ssh/openinterp_signing` (or `$OPENINTERP_SIGNING_KEY`, or `--key`): a key used only for signing, so it can be revoked without touching your logins. `verify`, `review` and `reevaluate` sign each new experiment automatically when that key exists and is listed in `.github/allowed_signers`. So your own runs (including `make loop`) skip CI reproduction. Set `OPENINTERP_AUTO_SIGN=0` to turn this off. Only keys in `.github/allowed_signers` on `main` count. Add yours there first, in its own commit to `main`:
 
   ```bash
@@ -55,12 +55,13 @@ Run `make check` locally before pushing. The [PR template](../.github/pull_reque
 | `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
 | `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files), and deterministic `evaluate_submission` |
 | `papers/` | Papers, one folder each: the write-up as `README.md`, its results and its media. The site publishes them as its Research section |
+| `openinterp/benchmark.py`, `benchmark/` | The explainer benchmark ([benchmark.md](benchmark.md)): freezing, sealing and scoring, and its frozen versions |
 | `openinterp/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
 | `openinterp/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 
 ## Static site and data
 
-The site is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
+The site, served at [open-interpretability.com](https://open-interpretability.com/), is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
 
 ```text
 dist/
@@ -97,4 +98,4 @@ Configure the workflow in the repo's GitHub settings:
 | `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | secrets | R2 S3 API access |
 | `R2_BUCKET` | variable | Bucket name |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
-| `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs |
+| `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs. Without it, `openinterp deploy` uses `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too |
