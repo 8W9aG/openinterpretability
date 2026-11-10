@@ -7,7 +7,6 @@ from openinterp.harness.hooks import (
     isolate_pole,
     pole_strength,
     replace_pole,
-    top_activating_examples,
 )
 from openinterp.harness.lookahead import measure_lookahead, output_token_projection
 from openinterp.harness.patcher import (
@@ -17,6 +16,7 @@ from openinterp.harness.patcher import (
     logit_diff_metric,
     token_logit_metric,
 )
+from openinterp.harness.scan import top_activating_examples
 
 __all__ = [
     "AblationResult",

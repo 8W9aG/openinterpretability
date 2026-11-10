@@ -24,12 +24,13 @@ we take (top-k ranking, cosine, kurtosis) is scale-invariant.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from contextlib import suppress
 
 import torch
 from torch import nn
 
 from openinterp.core.schemas import Pole, VocabularyLens
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterp.harness.hooks import NeuronHookRunner, _StopForward
 
 
 def _final_residual_module(runner: NeuronHookRunner) -> nn.Module:
@@ -40,15 +41,22 @@ def _final_residual_module(runner: NeuronHookRunner) -> nn.Module:
 def _final_residual(
     runner: NeuronHookRunner, module: nn.Module, encoded: dict, layer: int, shift: torch.Tensor
 ) -> torch.Tensor:
-    """Final residual stream [b, seq, d] with ``shift`` added after ``layer``'s MLP."""
+    """Final residual stream [b, seq, d] with ``shift`` added after ``layer``'s MLP.
+
+    The pass stops at the final norm, so it skips the logits, which nothing here reads.
+    """
     captured: list[torch.Tensor] = []
-    handle = module.register_forward_pre_hook(
-        lambda _module, args: captured.append(args[0].detach().float())
-    )
+
+    def capture(_module, args) -> None:
+        captured.append(args[0].detach().float())
+        raise _StopForward
+
+    handle = module.register_forward_pre_hook(capture)
     try:
-        runner.run_with_interventions(
-            encoded, output_interventions={layer: lambda out: out + shift.to(out.dtype)}
-        )
+        with suppress(_StopForward):
+            runner.run_with_interventions(
+                encoded, output_interventions={layer: lambda out: out + shift.to(out.dtype)}
+            )
     finally:
         handle.remove()
     return captured[-1]

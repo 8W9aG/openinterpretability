@@ -41,8 +41,8 @@ from openinterp.harness.causal import (
     causal_metrics,
     claimed_token_weights,
 )
-from openinterp.harness.hooks import top_activating_examples
 from openinterp.harness.jlens import vocabulary_lens
+from openinterp.harness.scan import top_activating_examples
 from openinterp.harness.units import NeuronUnit, max_strength, peak_strength
 
 # The toy model's probe set is small, so relax only the minimum-count gates.
@@ -635,3 +635,58 @@ def test_agents_see_a_window_around_the_peak_without_near_duplicates(ident, toy_
     prompt = ReviewerAgent.probe_prompt(sub)
     assert "[[ w150]]" in prompt and " w0 " not in prompt and "\n2. " not in prompt
     assert ReviewerAgent.probe_prompt(sub, full_snippets=True).count("".join(words)) == 2
+
+
+# -- memory guards ----------------------------------------------------------------------
+# Logits are batch × sequence × vocabulary: 1.2 GB for 2,048 tokens of Qwen2.5. A review
+# or scan once spent most of its memory in two ways, and these tests pin both down. One
+# was logits that nothing read. The other was logits for padding.
+
+
+class _LogitWatch:
+    """Records, for each forward pass of ``model``, its padding and whether logits ran."""
+
+    def __init__(self, model):
+        self.passes: list[dict] = []
+        head = model.get_output_embeddings()
+        self.handles = [
+            model.register_forward_pre_hook(self._start, with_kwargs=True),
+            head.register_forward_hook(self._head),
+        ]
+
+    def _start(self, _module, args, kwargs):
+        mask = kwargs.get("attention_mask")
+        padding = int((mask == 0).sum()) if mask is not None else 0
+        self.passes.append({"padding": padding, "logits": False})
+
+    def _head(self, *_):
+        self.passes[-1]["logits"] = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        for handle in self.handles:
+            handle.remove()
+
+
+def test_a_scan_and_the_lens_compute_no_logits(toy_runner):
+    from openinterp.harness.scan import scan_neuron
+
+    with _LogitWatch(toy_runner.model) as watch:
+        scan_neuron(toy_runner, TEXTS, 1, 2, "positive")
+        vocabulary_lens(toy_runner, TEXTS, 1, 2, "positive")
+    assert watch.passes and not any(p["logits"] for p in watch.passes)
+
+
+def test_a_review_computes_no_logits_for_padding(ident, toy_runner, draft):
+    """One long probe among short ones must not pad the others to its length."""
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    probes = _probes(toy_runner, ident, sub, honest=True)
+    probes.append(AdversarialProbe(text="a" * 40, expected_active=True, rationale="long"))
+    policy = ReviewPolicy(min_hard_negatives=1, min_holdouts=1, min_partner_correlation=0.0)
+    with _LogitWatch(toy_runner.model) as watch:
+        verdict = evaluate_submission(sub, toy_runner, probes, "anthropic/reviewer", policy)
+    assert verdict.joint_ablation is not None  # the step that once padded every prompt
+    logit_passes = [p for p in watch.passes if p["logits"]]
+    assert logit_passes and all(p["padding"] == 0 for p in logit_passes)

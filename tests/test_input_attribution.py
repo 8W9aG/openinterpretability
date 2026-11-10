@@ -116,6 +116,30 @@ def test_input_attribution_on_gpt2(gpt2_runner):
     assert result.baseline_token == FakeTokenizer().decode([0])
 
 
+def test_attribution_does_not_depend_on_the_token_budget(gpt2_runner, monkeypatch):
+    """Fewer rows per backward pass bound memory and give the same attribution."""
+    from openinterp.harness import input_attribution as ia
+
+    runner = gpt2_runner
+    pole = peak_pole(runner, 1, 7)
+    examples = [example(runner, t, 1, 7, pole) for t in (TEXT, "hgfedcba")]
+    rows = []
+    real = ia.integrated_gradients
+
+    def spy(*args, batch_size, **kwargs):
+        rows.append(batch_size)
+        return real(*args, batch_size=batch_size, **kwargs)
+
+    monkeypatch.setattr(ia, "integrated_gradients", spy)
+    results = {}
+    for budget in (10_000, 1):  # 8 rows per pass, then 1
+        monkeypatch.setattr(ia, "ATTRIBUTION_BATCH_TOKENS", budget)
+        rows.clear()
+        results[budget] = input_attribution(runner, examples, 1, 7, pole, n_examples=2, steps=8)
+        assert set(rows) == {8 if budget > 1 else 1}
+    assert results[1] == results[10_000]
+
+
 def test_examples_the_baseline_activates_are_skipped(toy_runner):
     """A pole the reference input activates as strongly has no gap to attribute."""
     toy_runner.tokenizer.pad_token_id = toy_runner.tokenizer.encode("a")[0]

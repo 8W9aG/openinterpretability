@@ -21,7 +21,7 @@ An experiment takes one neuron, proposes what it does, has a *different* model t
 
 Node.js is not needed: no step of the build uses it, and Claude Code's native installer doesn't need it either (only its npm install does). [Vale](https://vale.sh) is needed only for `make vale` when you change code.
 
-A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). A scan holds about 10 GB of RAM, and the first scan also downloads about 1.5 GB of labelling models.
+A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). An 8 GB machine runs GPT-2 and Qwen2.5-0.5B, and Qwen2.5-1.5B needs 16 GB ([Memory](docs/experiments.md#memory)). The first scan also downloads about 1.5 GB of labelling models.
 
 ### 1. Set up (once)
 

@@ -60,6 +60,30 @@ Builds keep what they read on disk by dataset commit, up to 5 GB, so a repeated 
 
 A scan's forward pass captures the whole layer, so `audit` caches every neuron's activations in that layer in `~/.cache/openinterp/scans`. `$OPENINTERP_SCAN_CACHE` moves it, and `off` disables it. A later audit of any neuron in the layer replays the cache instead of running the model, and gets the same numbers. It needs the same model, corpus options and dtype. The cache is capped at 40 GB (`$OPENINTERP_SCAN_CACHE_GB`). A 200,000-token Qwen2.5-0.5B layer in float32 takes about 4 GB, and the least recently used layers go first. `openinterp scan-cache` lists or clears it. For a neuron's per-token activations over the scan, e.g. every occurrence of one token, use `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl` (`--token`, `--min-strength`, `--top 0` for all, `--format jsonl`) rather than writing a scan loop.
 
+## Memory
+
+The weights set the floor, and what a scan or a review adds on top of them is small. These are peak memory footprints, measured with macOS `/usr/bin/time -l` on CPU in float32. The scan is the default 200,000-token `audit` scan, and the review is `openinterp reproduce` of one record.
+
+| Model | Weights (float32) | Scan | Review | Machine |
+| --- | --- | --- | --- | --- |
+| GPT-2 small | 0.5 GB | 3.1 GB | 1.3 GB | 8 GB |
+| Qwen2.5-0.5B | 2.0 GB | 5.4 GB | 3.8 GB | 8 GB |
+| Qwen2.5-1.5B | 6.2 GB | 9.2 GB | 6.9 GB | 16 GB |
+
+The last column is the smallest common machine with room for the operating system as well. Resident memory (RSS) reads 1–4 GB higher, because it also counts the weight files that the loader maps from disk. The system can drop those pages when it needs the memory.
+
+Until November 2026, a Qwen2.5-0.5B review took 19.4 GB and its scan 7.0 GB. Most of it was logits: an array of batch × sequence × vocabulary, 1.2 GB for 2,048 tokens at Qwen2.5's 151,936 tokens. Strength reads, the scan and the lenses computed logits and dropped them, and one check padded every probe to the longest. Tests in `tests/test_agents.py` now fail if a scan or the lens computes logits, or if a review computes them over padding.
+
+Every record now holds its memory. Each stage in `provenance.costs.stages` has `peak_rss_mb`, the process's peak resident memory when the stage ended. On CUDA, `peak_cuda_mb` holds the stage's own peak. Experiment pages show the largest peak.
+
+To use less:
+
+- **bfloat16 on Apple's GPU.** `--device mps --dtype bfloat16` halves the weights, and on MPS it is about as fast as float32. On a 20,000-token Qwen2.5-0.5B scan it took 85 s and 5.2 GB, against 74 s and 6.7 GB in float32. On CPU, bfloat16 is far slower: the same scan had not finished after 47 minutes, against 3.3 in float32. A record pins its dtype, so a bfloat16 record reproduces only in bfloat16, and its numbers differ a little from float32's.
+- **CPU float32 on a small Mac.** The model loads on the CPU and then moves to MPS, so for a moment both copies are in memory. A 20,000-token Qwen2.5-1.5B scan took 15.4 GB on MPS in float32 and 8.2 GB on CPU.
+- **One session at a time.** Each session holds its own copy of the model.
+
+The scan cache doesn't add to this. A scan writes each batch to the cache file as it goes, and a replay maps the file from disk. CUDA is not measured yet, so Colab's figures may differ. Quantised (8- or 4-bit) loading isn't supported, because it changes the activations, and records don't pin it.
+
 ## Letting an agent run it (Claude Code)
 
 The repo's skills load automatically, and `choose-next-experiment` defines the workflow. The agent:
@@ -89,7 +113,7 @@ cp corpus.jsonl ../openinterpretability-2/
 cd ../openinterpretability-2 && uv sync && claude
 ```
 
-Two `experiment-loop.sh` runs need different `--worktree` directories, since both default to `../<repo>-loop`. A branch can be checked out in only one worktree, which is why the workflow starts each experiment from a detached `origin/main`. Each scan holds about 10 GB of RAM on CPU, so memory, not checkouts, limits how many sessions run in parallel.
+Two `experiment-loop.sh` runs need different `--worktree` directories, since both default to `../<repo>-loop`. A branch can be checked out in only one worktree, which is why the workflow starts each experiment from a detached `origin/main`. Each session holds its own copy of the model, up to 9.2 GB for a Qwen2.5-1.5B scan (see *Memory*). So memory, not checkouts, limits how many sessions run in parallel.
 
 ## Running it yourself
 
