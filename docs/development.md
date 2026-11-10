@@ -55,6 +55,7 @@ Run `make check` locally before pushing. The [PR template](../.github/pull_reque
 | `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
 | `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files), and deterministic `evaluate_submission` |
 | `papers/` | Papers, one folder each: the write-up as `README.md`, its results and its media. The site publishes them as its Research section |
+| `openinterp/benchmark.py`, `benchmark/` | The explainer benchmark ([benchmark.md](benchmark.md)): freezing, sealing and scoring, and its frozen versions |
 | `openinterp/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
 | `openinterp/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 
