@@ -2,9 +2,9 @@
 
 transformers 5 runs the experts of about 60 mixture-of-experts architectures through
 ``ExpertsInterface``: a class decorated with ``use_experts_implementation`` looks its
-forward up by name. This script registers one forward, ``openinterp``, that loops over
-the routed experts and passes each expert's hidden activation to a hook. For each
-architecture it prints:
+forward up by name. openinterp registers its own, ``openinterp``
+(``openinterp/harness/moe.py``). It loops over the routed experts and passes each
+expert's hidden activation to a hook. For each architecture this script prints:
 
 * the largest difference between its logits and those of the ``eager`` forward
 * whether zeroing one neuron inside one expert changes the logits
@@ -17,44 +17,14 @@ It needs no download: each model is a random two- or three-layer configuration.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import sys
+from pathlib import Path
 
 import torch
 import transformers as tf
-from transformers.integrations.moe import ExpertsInterface
 
-Hook = Callable[[torch.Tensor, int, torch.Tensor, torch.Tensor], torch.Tensor]
-HOOKS: dict[int, Hook] = {}  # id(experts module) -> fn(act, expert, tokens, weights) -> act
-
-
-def _linear(x, weight, bias, transposed: bool) -> torch.Tensor:
-    y = x @ weight if transposed else x @ weight.T
-    return y if bias is None else y + bias
-
-
-def openinterp_experts_forward(self, hidden, top_k_index, top_k_weights) -> torch.Tensor:
-    """The eager experts forward, with each expert's hidden activation passed to a hook."""
-    out = torch.zeros_like(hidden)
-    for e in torch.unique(top_k_index).tolist():
-        if e >= self.num_experts:  # an expert-parallel sentinel
-            continue
-        tokens, slot = torch.where(top_k_index == e)
-        name = "gate_up_proj" if self.has_gate else "up_proj"
-        bias = getattr(self, f"{name}_bias")[e] if self.has_bias else None
-        pre = _linear(hidden[tokens], getattr(self, name)[e], bias, self.is_transposed)
-        act = self._apply_gate(pre) if self.has_gate else self.act_fn(pre)
-        weights = top_k_weights[tokens, slot]
-        if (hook := HOOKS.get(id(self))) is not None:
-            act = hook(act, e, tokens, weights)
-        bias = self.down_proj_bias[e] if self.has_bias else None
-        y = _linear(act, self.down_proj[e], bias, self.is_transposed)
-        if self.has_post_expert_norm:
-            y = self.post_expert_norm(y)
-        out.index_add_(0, tokens, (y * weights[:, None]).to(out.dtype))
-    return out
-
-
-ExpertsInterface.register("openinterp", openinterp_experts_forward)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from openinterp.harness.moe import expert_hook, experts_modules, use_openinterp_experts  # noqa: E402
 
 SMALL = dict(
     vocab_size=128, hidden_size=32, num_hidden_layers=2, num_attention_heads=4,
@@ -128,19 +98,24 @@ MODELS = {
 }
 
 
-def check(name: str, build) -> str:
-    """One line: the difference from eager, and the effect of zeroing one expert neuron."""
+def tiny(build) -> torch.nn.Module:
+    """A random model with larger weights than the default, so routing and outputs vary."""
     torch.manual_seed(0)
     model = build().eval()
-    for p in model.parameters():  # larger weights, so routing and outputs vary
+    for p in model.parameters():
         if p.dim() > 1:
             torch.nn.init.normal_(p, std=0.2)
+    return model
+
+
+def check(name: str, build) -> str:
+    """One line: the difference from eager, and the effect of zeroing one expert neuron."""
+    model = tiny(build)
     ids = torch.randint(0, 128, (2, 12))
-    experts = [m for m in model.modules() if hasattr(m, "has_gate") and hasattr(m, "down_proj")]
     with torch.no_grad():
         model.set_experts_implementation("eager")
         eager = model(ids).logits
-        model.set_experts_implementation("openinterp")
+        use_openinterp_experts(model)
         ours = model(ids).logits
     seen = {"negative": False}
 
@@ -152,10 +127,8 @@ def check(name: str, build) -> str:
         act[:, 3] = 0
         return act
 
-    HOOKS[id(experts[0])] = zero
-    with torch.no_grad():
+    with torch.no_grad(), expert_hook(experts_modules(model)[0], zero):
         ablated = model(ids).logits
-    HOOKS.clear()
     diff = (ours - eager).abs().max().item()
     changed = not torch.equal(ablated, ours)
     return (

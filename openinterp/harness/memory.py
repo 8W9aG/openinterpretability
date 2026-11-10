@@ -130,14 +130,20 @@ def load_causal_lm(model_name: str, device: str, dtype, revision: str | None, **
     """Load ``model_name`` whole on ``device``, or streamed from disk (see the module doc).
 
     A streamed model runs on the CPU. Its offloaded layers read the checkpoint files in
-    place, so streaming writes no copy of the weights.
+    place, so streaming writes no copy of them. A mixture-of-experts checkpoint that
+    stores each expert apart is the exception. transformers stacks its experts as it
+    loads, and streaming writes the stacks to :func:`offload_dir`.
     """
     from transformers import AutoModelForCausalLM
+
+    from openinterp.harness.moe import use_openinterp_experts
 
     memory = _plan_load(model_name, dtype, revision)
     if not memory.stream:
         kwargs = {"dtype": dtype, "revision": revision, **extra}
-        return AutoModelForCausalLM.from_pretrained(model_name, **kwargs).to(device)
+        model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs).to(device)
+        use_openinterp_experts(model)
+        return model
     warn(memory, model_name)
     if device != "cpu":
         click.echo(f"Streaming runs on the CPU, not {device}.", err=True)
@@ -152,6 +158,7 @@ def load_causal_lm(model_name: str, device: str, dtype, revision: str | None, **
         **extra,
     )
     keep_checkpoint_open(model)
+    use_openinterp_experts(model)  # reads only the routed experts (harness/moe.py)
     return model
 
 
@@ -181,6 +188,23 @@ class OpenCheckpoint(Mapping):
             self.files[path] = safe_open(path, framework="pt", device="cpu")
         tensor = self.files[path].get_tensor(info.get("weight_name", key))
         return tensor.to(getattr(torch, info["dtype"])) if "dtype" in info else tensor
+
+    def slice(self, key: str, index: int) -> torch.Tensor:
+        """Row ``index`` of the stacked tensor ``key``, read without reading the rest.
+
+        A mixture-of-experts layer stacks its experts in one tensor. A pass reads only
+        the experts its tokens are routed to (:mod:`openinterp.harness.moe`).
+        """
+        info = self.loader.index.get(key)
+        if key in self.loader.state_dict or not info or not info.get("safetensors_file"):
+            return self.loader[key][index]
+        path = info["safetensors_file"]
+        if path not in self.files:
+            from safetensors import safe_open
+
+            self.files[path] = safe_open(path, framework="pt", device="cpu")
+        row = self.files[path].get_slice(info.get("weight_name", key))[index]
+        return row.to(getattr(torch, info["dtype"])) if "dtype" in info else row
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.loader)

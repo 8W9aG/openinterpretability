@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **openinterp's own experts forward for mixture-of-experts models** (`openinterp/harness/moe.py`, from TODO, Models and Performance). It is registered with transformers' `ExpertsInterface` and selected when an MoE model loads. A record pins it (`environment.experts_implementation`). Each expert's hidden activation passes through a per-thread hook before its down projection, where expert neurons will be read. It matches `eager` on seven architectures (`tests/test_moe.py`), and transformers' default `grouped_mm` on Granite 3.0 1B-A400M to 3e-5. Streamed, it reads only the routed experts' slices (`OpenCheckpoint.slice`). A streamed one-token Granite pass read 1.41 GB, not 4.78 GB.
+
 - **Experiment pages say where each step ran** (`_experiment.html`). A "Ran on" row gives the scan's and the review's device, and says when one streamed from disk.
 
 - **How to audit neurons in mixture-of-experts models** (`docs/moe.md`, `scripts/moe_experts_check.py`, from TODO, Models). An expert neuron pole is a new unit kind, `L<layer>/E<expert>/N<idx>-<pole>`. Its strength is the routing weight times its hidden activation, 0 where the router doesn't send the token. Interventions edit it inside the expert on routed tokens and never force the routing. The harness will read it through its own forward, registered with transformers' `ExpertsInterface`, which about 60 MoE architectures use. On tiny random models of seven of them, that forward matches `eager` to within 1e-6. Nothing is built yet. The steps are in TODO, Models.
@@ -30,6 +32,8 @@ The project has two version numbers:
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
+
+- **Streaming says when it writes a copy** (`docs/experiments.md`, `memory.load_causal_lm`). A mixture-of-experts checkpoint that stores each expert apart (Mixtral, OLMoE) is stacked by transformers as it loads. Streaming writes those stacks to the offload folder. The docs said that streaming never writes a copy.
 
 - **A streamed review runs its loops layer-major** (`openinterp/harness/layer_major.py`, from TODO, Performance). The probes, counterfactual pairs, causal pairs, joint-ablation prompts and `reproduce`'s top examples each run in their own thread, with the model's own forward. A scheduler loads one streamed layer at a time for every pass that waits at it, in sweeps from the first layer to the last. While they run, a hook applies only in the thread that registered it. Each pass computes exactly what it would alone. A streamed Qwen2.5-0.5B review read 31 GB from the checkpoint, against 76 GB before and 147 GB at first, and still reproduces. A model that isn't streamed runs as before.
 
