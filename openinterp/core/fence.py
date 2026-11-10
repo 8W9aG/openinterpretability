@@ -2,7 +2,7 @@
 
 Corpus excerpts, submitted hypotheses, probes and published explanations go into the
 proposer's, reviewer's and judge's prompts. Any of them can contain text that reads as
-an instruction, for example a crafted corpus document or a fork PR's hypothesis that
+an instruction. Examples are a crafted corpus document, or a fork PR's hypothesis that
 tells the reviewer to go easy. :func:`fence` puts such text between an opening and a
 closing line. The two lines carry an ID that is a hash of the text. So text inside a
 fence cannot contain the line that closes it, because that line would change the hash.
