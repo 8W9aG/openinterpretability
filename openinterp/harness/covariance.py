@@ -227,18 +227,44 @@ def _kl_means(
 ) -> dict[str, float]:
     """Mean KL(clean ‖ ablated) per token over every prompt, for each ablation in ``fns``.
 
-    Each prompt's clean distribution is computed once and reused for every ablation.
+    Each prompt's clean distribution is computed once and reused for every ablation. A
+    streamed model runs the clean prompt and its ablations as rows of fewer passes
+    (:func:`~openinterp.harness.memory.stream_rows`). Otherwise each is its own pass.
     """
+    from openinterp.harness.memory import stream_rows
+
     sums = dict.fromkeys(fns, 0.0)
     tokens = 0
+    variants: list[str | None] = [None, *fns]  # None is the clean run, so it comes first
     for enc in encoded:
-        clean = _log_probs(runner.run_with_interventions(enc))[0]
-        tokens += clean.shape[0]
-        for name, fn in fns.items():
-            ablated = _log_probs(runner.run_with_interventions(enc, {layer: fn}))[0]
-            sums[name] += _kl_sum(ablated, clean)
-            del ablated
+        rows = stream_rows(runner, enc["input_ids"].shape[1], 1, logits=True)
+        clean = None
+        for start in range(0, len(variants), rows):
+            chunk = variants[start : start + rows]
+            log_probs = _variant_log_probs(runner, enc, chunk, fns, layer)
+            for name, row in zip(chunk, log_probs, strict=True):
+                if name is None:
+                    clean = row
+                    tokens += clean.shape[0]
+                else:
+                    sums[name] += _kl_sum(row, clean)
     return {name: max(0.0, total / max(tokens, 1)) for name, total in sums.items()}
+
+
+def _variant_log_probs(runner, enc: dict, chunk, fns: dict[str, Callable], layer: int):
+    """One pass with a row per entry of ``chunk``: clean (``None``) or ablated by ``fns``."""
+    batch = {k: v.repeat(len(chunk), *[1] * (v.dim() - 1)) for k, v in enc.items()}
+
+    def per_row(act: torch.Tensor) -> torch.Tensor:
+        rows = [
+            act[i : i + 1] if name is None else fns[name](act[i : i + 1])
+            for i, name in enumerate(chunk)
+        ]
+        return torch.cat(rows)
+
+    ablates = any(name is not None for name in chunk)
+    logits = runner.run_with_interventions(batch, {layer: per_row} if ablates else None)
+    return list(_log_probs(logits))
 
 
 # Positions per block in the log-softmax and the KL. A block of 64 is 39 MB at

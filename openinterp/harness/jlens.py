@@ -31,6 +31,7 @@ from torch import nn
 
 from openinterp.core.schemas import Pole, VocabularyLens
 from openinterp.harness.hooks import NeuronHookRunner, _StopForward
+from openinterp.harness.memory import is_streamed, stream_rows
 
 
 def _final_residual_module(runner: NeuronHookRunner) -> nn.Module:
@@ -78,6 +79,9 @@ def transported_direction(
     step = eps / max(float(direction.norm()), 1e-12)
     total = torch.zeros(direction.shape, dtype=torch.float64)  # on the CPU: MPS has no float64
     pairs = 0
+    if not isinstance(prompts, torch.Tensor) and is_streamed(runner.model):
+        longest = runner.encode(list(prompts))["input_ids"].shape[1]
+        batch_size = stream_rows(runner, longest, batch_size, logits=False)
     batches = (
         [prompts]
         if isinstance(prompts, torch.Tensor)

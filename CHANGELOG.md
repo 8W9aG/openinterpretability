@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **Experiment pages say where each step ran** (`_experiment.html`). A "Ran on" row gives the scan's and the review's device, and says when one streamed from disk.
+
 - **How to audit neurons in mixture-of-experts models** (`docs/moe.md`, `scripts/moe_experts_check.py`, from TODO, Models). An expert neuron pole is a new unit kind, `L<layer>/E<expert>/N<idx>-<pole>`. Its strength is the routing weight times its hidden activation, 0 where the router doesn't send the token. Interventions edit it inside the expert on routed tokens and never force the routing. The harness will read it through its own forward, registered with transformers' `ExpertsInterface`, which about 60 MoE architectures use. On tiny random models of seven of them, that forward matches `eager` to within 1e-6. Nothing is built yet. The steps are in TODO, Models.
 
 - **Records say when a run streamed** (`RunEnvironment.streamed`, from TODO, Performance). It is true when the decoder layers were read from disk on each pass, and unset otherwise, as in older records.
@@ -28,6 +30,10 @@ The project has two version numbers:
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
+
+- **A streamed review reads half as much from disk** (`openinterp/harness/memory.py`, `stream_rows`, from TODO, Performance). A streamed model runs more rows per pass where rows are independent: patching, the joint ablation's clean and ablated runs, integrated gradients and the lens. Each pass gets as many rows as a quarter of the planned memory holds, so only float rounding changes. In both modes, the patching changes and patching's source stop at the unit's layer, and patching reads each target once. A streamed Qwen2.5-0.5B review read 76 GB from the checkpoint, not 147 GB, in 225 passes, not 309. An audit read 24 GB, not 47.5 GB. Under a 1 GB budget the review peaked at 2.0 GB, not 1.7 GB.
+
+- **The MPS memory gap is explained, not closed** (`docs/experiments.md`, *CPU on a small Mac*, from TODO, Performance). The rest of it is how PyTorch's MPS allocator shares large heaps between tensors. Qwen2.5-0.5B's 1.84 GB of weights take 2.63 GB of Metal memory. Emptying the cache after every pass, a low watermark and packing the weights into one buffer were measured, and none lowered the peak reliably. The TODO item is removed.
 
 - **The CLI loads a model with its weights frozen** (`openinterp/cli.py`, `_load`). The harness takes gradients only for inputs and activations, and never trains the model. A weight that required a gradient made autograd keep more. A streamed 5,000-token Qwen2.5-1.5B audit under a 1 GB budget peaked at 5.2 GB with them, and 2.4 GB frozen. A test checks that integrated gradients, attribution patching and activation wiring measure the same.
 

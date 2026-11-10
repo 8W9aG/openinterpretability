@@ -41,7 +41,7 @@ from openinterp.core.attribution import (
 from openinterp.core.schemas import ActivatingExample, Pole
 from openinterp.core.stats import spearman
 from openinterp.harness.hooks import NeuronHookRunner, _StopForward
-from openinterp.harness.memory import recompute_below
+from openinterp.harness.memory import recompute_below, stream_rows
 
 # Tokens back from the peak: the token itself, the one before, then wider bands.
 DISTANCE_BANDS: tuple[tuple[int, int | None], ...] = (
@@ -205,6 +205,7 @@ def _converged_attribution(
     steps, max_steps, tolerance = settings.steps, settings.max_steps, settings.tolerance
     keep_first = ids.shape[1] > 1
     rows = max(1, min(settings.batch_size, ATTRIBUTION_BATCH_TOKENS // ids.shape[1]))
+    rows = stream_rows(runner, ids.shape[1], rows, logits=False)  # more when streamed
     while True:
         attr = integrated_gradients(
             runner, ids, *args, baseline, steps=steps, batch_size=rows, keep_first=keep_first
