@@ -1343,3 +1343,34 @@ def test_format_parameters():
     assert format_parameters(1_543_714_304) == "1.54B"
     assert format_parameters(None) == "—"
     assert format_parameters(512) == "512"
+
+
+def test_the_page_says_where_each_step_ran_and_whether_it_streamed(tmp_path, record):
+    from openinterp.core.schemas import RunEnvironment
+
+    def env(device, streamed=None):
+        versions = {"openinterp_version": "0", "torch_version": "0"}
+        return RunEnvironment(device=device, dtype="float32", streamed=streamed, **versions)
+
+    from openinterp.core.schemas import ExperimentProvenance
+
+    sub = record.submission
+    provenance = ExperimentProvenance(
+        dtype="float32",
+        corpus="toy",
+        n_snippets=1,
+        tokens_scanned=10,
+        selection="manual",
+        harness_version="0",
+        environment=env("cpu", True),
+    )
+    streamed = record.model_copy(
+        update={
+            "submission": sub.model_copy(update={"provenance": provenance}),
+            "verdict": record.verdict.model_copy(update={"environment": env("mps")}),
+        }
+    )
+    compile_site([streamed], tmp_path)
+    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    text = re.sub(r"<[^>]+>", "", page)
+    assert "scan cpu (streamed from disk) · review mps" in text

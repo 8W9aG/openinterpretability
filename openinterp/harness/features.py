@@ -223,18 +223,21 @@ def patch_features(
     The dictionary counterpart of :meth:`ActivationPatcher.patch_many`. Each latent gets
     its own row of a batch. Later MLP outputs can be frozen against self-repair.
     """
+    from openinterp.harness.memory import stream_rows
     from openinterp.harness.patcher import ActivationPatcher
 
     a_src = latent_activations(runner, dictionary, source, layer, site)  # [seq, n]
     target_enc = runner.encode(target)
-    target_logits = runner.run_with_interventions(target_enc)
+    downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
+    target_logits, _, downstream_out = ActivationPatcher(runner)._target_pass(
+        target_enc, downstream
+    )
     if target_logits.shape[0] != 1:
         raise ValueError("patch_features takes one source and one target prompt")
     if positions == "all" and a_src.shape[0] != target_logits.shape[1]:
         raise ValueError("source and target differ in length; use positions='last'")
-    downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
-    downstream_out = ActivationPatcher(runner)._cache_outputs(target_enc, downstream)
     span = slice(None) if positions == "all" else slice(-1, None)
+    batch_size = stream_rows(runner, target_logits.shape[1], batch_size, logits=True)
 
     effects: list[float] = []
     for start in range(0, len(features), batch_size):

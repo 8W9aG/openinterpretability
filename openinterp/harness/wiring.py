@@ -21,6 +21,7 @@ another's read, not paths through units in between.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Literal
 
@@ -36,6 +37,7 @@ from openinterp.harness.hooks import (
     isolate_pole,
     pole_strength,
 )
+from openinterp.harness.memory import loaded
 from openinterp.harness.sites import normalize_without_affine
 from openinterp.harness.units import FeatureUnit, HeadUnit, NeuronUnit, Unit
 
@@ -64,14 +66,16 @@ Site = Literal["attn_in", "mlp_in", "mlp_out", "resid_post"]
 
 def _matrix(proj: nn.Module) -> torch.Tensor:
     """A projection's weight as ``[out, in]`` (transformers' Conv1D stores ``[in, out]``)."""
-    weight = proj.weight.detach().float()
+    with loaded(proj):  # streamed: the weights are real only inside this block
+        weight = proj.weight.detach().float()
     return weight if hasattr(proj, "in_features") else weight.T
 
 
 def _project(proj: nn.Module, x: torch.Tensor) -> torch.Tensor:
     """``proj(x)`` without running its hooks."""
-    weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T
-    return torch.nn.functional.linear(x, weight, proj.bias)
+    with loaded(proj):
+        weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T
+        return torch.nn.functional.linear(x, weight, proj.bias)
 
 
 def _norm(block: nn.Module, paths: Sequence[str]) -> nn.Module | None:
@@ -89,9 +93,10 @@ def _fold(norm: nn.Module | None, rows: torch.Tensor, *, gain: bool = True) -> t
     per-token scale (1/σ) is dropped.
     """
     rows = rows.float()
-    weight = getattr(norm, "weight", None) if gain else None
-    if weight is not None:
-        rows = rows * weight.detach().float().to(rows.device)
+    with loaded(norm) if norm is not None else nullcontext():
+        weight = getattr(norm, "weight", None) if gain else None
+        if weight is not None:
+            rows = rows * weight.detach().float().to(rows.device)
     if isinstance(norm, nn.LayerNorm):
         rows = rows - rows.mean(-1, keepdim=True)
     return rows
