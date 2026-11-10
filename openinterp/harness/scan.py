@@ -476,3 +476,22 @@ class LabelPass:
 
 def _reader(runner, layer: int, neuron_idx: int, pole: Pole) -> Strengths:
     return lambda inputs: runner.neuron_activations(inputs, layer, neuron_idx, pole)
+
+
+def top_activating_examples(
+    runner: NeuronHookRunner,
+    texts: Sequence[str],
+    layer: int,
+    neuron_idx: int,
+    pole: Pole,
+    *,
+    k: int = 20,
+    batch_tokens: int = BATCH_TOKENS,
+) -> tuple[list[ActivatingExample], list[float]]:
+    """Scan ``texts``; return the ``k`` strongest snippets and every token's pole strength.
+
+    A thin wrapper over :func:`scan_neuron`, which also gathers correlated neurons and
+    the confound profile.
+    """
+    result = scan_neuron(runner, texts, layer, neuron_idx, pole, k=k, batch_tokens=batch_tokens)
+    return result.examples, result.values

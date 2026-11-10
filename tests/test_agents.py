@@ -41,8 +41,8 @@ from openinterp.harness.causal import (
     causal_metrics,
     claimed_token_weights,
 )
-from openinterp.harness.hooks import top_activating_examples
 from openinterp.harness.jlens import vocabulary_lens
+from openinterp.harness.scan import top_activating_examples
 from openinterp.harness.units import NeuronUnit, max_strength, peak_strength
 
 # The toy model's probe set is small, so relax only the minimum-count gates.

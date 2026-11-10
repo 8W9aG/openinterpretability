@@ -192,24 +192,18 @@ def _distance_shares(attr: torch.Tensor) -> tuple[list[float], float]:
 
 
 def _converged_attribution(
-    runner,
-    ids,
-    args,
-    baseline,
-    gap: float,
-    steps: int,
-    max_steps: int,
-    tolerance: float,
-    batch_size: int = 8,
+    runner, ids, args, baseline, gap: float, settings: _Settings
 ) -> tuple[torch.Tensor, int]:
     """Return the attribution as shares of ``gap``, and the steps that it took.
 
-    The steps double until Σ is within ``tolerance`` of 1, or ``max_steps`` is reached.
-    Each backward pass takes at most ``batch_size`` rows and
-    :data:`ATTRIBUTION_BATCH_TOKENS` tokens, and at least one row.
+    The steps double from ``settings.steps`` until Σ is within ``settings.tolerance`` of
+    1, or ``settings.max_steps`` is reached. Each backward pass takes at most
+    ``settings.batch_size`` rows and :data:`ATTRIBUTION_BATCH_TOKENS` tokens, and at
+    least one row.
     """
+    steps, max_steps, tolerance = settings.steps, settings.max_steps, settings.tolerance
     keep_first = ids.shape[1] > 1
-    rows = max(1, min(batch_size, ATTRIBUTION_BATCH_TOKENS // ids.shape[1]))
+    rows = max(1, min(settings.batch_size, ATTRIBUTION_BATCH_TOKENS // ids.shape[1]))
     while True:
         attr = integrated_gradients(
             runner, ids, *args, baseline, steps=steps, batch_size=rows, keep_first=keep_first
@@ -305,17 +299,7 @@ def _attribute_example(runner, n: int, example, args, baseline, settings: _Setti
     if gap <= 1e-6:
         return None  # the reference input activates the pole as much: nothing to attribute
     tolerance = settings.tolerance
-    attr, used = _converged_attribution(
-        runner,
-        ids,
-        args,
-        baseline,
-        gap,
-        settings.steps,
-        settings.max_steps,
-        tolerance,
-        settings.batch_size,
-    )
+    attr, used = _converged_attribution(runner, ids, args, baseline, gap, settings)
     error = abs(float(attr.sum()) - 1.0)
     top = attr.abs().topk(min(settings.top_k, len(attr))).indices.tolist()
     checked = sorted(set(top) | set(range(max(0, peak - settings.near), peak + 1)))

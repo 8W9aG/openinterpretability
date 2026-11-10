@@ -21,7 +21,6 @@ from torch import nn
 
 from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import (
-    ActivatingExample,
     DictionarySite,
     Histogram,
     Pole,
@@ -143,6 +142,24 @@ def replace_pole(target: torch.Tensor, source: torch.Tensor, pole: Pole) -> torc
 def logits_of(output: Any) -> torch.Tensor:
     """The logits of a model output, or the output itself if it is a tensor."""
     return output.logits if hasattr(output, "logits") else output
+
+
+def _recorders(cache: dict, layers: Sequence[int], stop: bool = False) -> dict[int, Intervention]:
+    """Interventions that copy each of ``layers``' activations into ``cache``.
+
+    With ``stop``, the deepest one then ends the forward pass.
+    """
+    last = max(layers) if stop else None
+
+    def recorder(layer: int) -> Intervention:
+        def record(act: torch.Tensor) -> None:
+            cache[layer] = act.detach().clone()
+            if layer == last:
+                raise _StopForward
+
+        return record
+
+    return {layer: recorder(layer) for layer in layers}
 
 
 class NeuronHookRunner:
@@ -376,41 +393,20 @@ class NeuronHookRunner:
     ) -> tuple[torch.Tensor, dict[int, torch.Tensor]]:
         """Run the model, returning logits and intermediate activations for ``layers``."""
         cache: dict[int, torch.Tensor] = {}
-
-        def recorder(layer: int) -> Intervention:
-            def record(act: torch.Tensor) -> None:
-                cache[layer] = act.detach().clone()
-
-            return record
-
-        encoded = self.encode(inputs)
-        with self.hooks({layer: recorder(layer) for layer in layers}):
-            logits = self.forward(encoded)
+        with self.hooks(_recorders(cache, layers)):
+            logits = self.forward(self.encode(inputs))
         return logits, cache
 
     @torch.no_grad()
     def layer_activations(self, inputs: Inputs, layers: Sequence[int]) -> dict[int, torch.Tensor]:
-        """The MLP activations of ``layers``, as :meth:`run_with_cache` returns them.
+        """The activations of :meth:`run_with_cache`, without the passes after ``layers``.
 
-        The forward pass stops once the deepest of ``layers`` has run. Later layers can't
-        change these activations, so the values are the same. The pass skips the later
-        layers and the logits, which are batch × sequence × vocabulary and are most of
-        the memory of a pass on a large vocabulary (Qwen2.5 has 151,936 tokens).
+        Later layers can't change them, so the values are the same. The pass skips the
+        logits, which are most of its memory on a large vocabulary (151,936 for Qwen2.5).
         """
         cache: dict[int, torch.Tensor] = {}
-        last = max(layers)
-
-        def recorder(layer: int) -> Intervention:
-            def record(act: torch.Tensor) -> None:
-                cache[layer] = act.detach().clone()
-                if layer == last:
-                    raise _StopForward
-
-            return record
-
-        encoded = self.encode(inputs)
-        with suppress(_StopForward), self.hooks({layer: recorder(layer) for layer in layers}):
-            self.forward(encoded)
+        with suppress(_StopForward), self.hooks(_recorders(cache, layers, stop=True)):
+            self.forward(self.encode(inputs))
         return cache
 
     @torch.no_grad()
@@ -482,28 +478,6 @@ class NeuronHookRunner:
     def max_pole_strength(self, text: str, layer: int, neuron_idx: int, pole: Pole) -> float:
         """The pole's peak strength over ``text``."""
         return float(self.neuron_activations(text, layer, neuron_idx, pole).max())
-
-
-def top_activating_examples(
-    runner: NeuronHookRunner,
-    texts: Sequence[str],
-    layer: int,
-    neuron_idx: int,
-    pole: Pole,
-    *,
-    k: int = 20,
-    batch_tokens: int | None = None,
-) -> tuple[list[ActivatingExample], list[float]]:
-    """Scan ``texts``; return the ``k`` strongest snippets and every token's pole strength.
-
-    A thin wrapper over :func:`openinterp.harness.scan.scan_neuron`, which also
-    gathers correlated neurons and the confound profile.
-    """
-    from openinterp.harness.scan import BATCH_TOKENS, scan_neuron
-
-    batch_tokens = batch_tokens or BATCH_TOKENS
-    result = scan_neuron(runner, texts, layer, neuron_idx, pole, k=k, batch_tokens=batch_tokens)
-    return result.examples, result.values
 
 
 def activation_histogram(values: Sequence[float], bins: int = 30) -> Histogram:
