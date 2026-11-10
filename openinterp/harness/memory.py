@@ -31,8 +31,8 @@ from torch import nn
 MemoryMode = Literal["auto", "normal", "stream"]
 MEMORY_MODES: tuple[MemoryMode, ...] = ("auto", "normal", "stream")
 
-# What a scan or review holds beyond the weights. Measured on CPU in float32 (see
-# docs/experiments.md, Memory): about 2.5–3 GB for GPT-2 and Qwen2.5-0.5B and 1.5B.
+# What a scan or review holds beyond the weights, measured on CPU in float32. It is about
+# 2.5–3 GB for GPT-2 and Qwen2.5-0.5B and 1.5B (docs/experiments.md, Memory).
 WORKING_MARGIN_BYTES = 3 * 2**30
 
 # A streamed scan's batch: as many tokens as its activations fit in, within these bounds.
@@ -264,11 +264,12 @@ def loaded(module: nn.Module) -> AbstractContextManager:
 def recompute_below(runner, layer: int) -> Iterator[None]:
     """In a streamed model, recompute the layers below ``layer`` in a backward pass.
 
-    Autograd keeps the weights a layer used until the backward pass, so a gradient
-    through streamed layers holds every one of them at once: about 2 GB for Qwen2.5-0.5B
-    at layer 6, and about 120 GB for a 120B model at a middle layer. Inside this block
-    each layer below ``layer`` keeps only its input. The backward pass runs it again,
-    which reads its weights from disk again. The values are the same.
+    Autograd keeps the weights a layer used until the backward pass. So a gradient
+    through streamed layers holds all of them at once. For Qwen2.5-0.5B at layer 6 that
+    was 0.3 GB, the float32 weights of 7 layers. A 120B model at a middle layer has tens
+    of layers of about 3 GB each. Inside this block each layer below ``layer`` keeps only
+    its input. The backward pass runs it again, which reads its weights from disk again,
+    and that doubled the pass's time. The values are the same.
 
     ``layer`` itself isn't recomputed, since a hook there may end the forward pass. The
     key-value cache is off, since a recomputed layer would add to it twice. A model that

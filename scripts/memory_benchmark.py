@@ -5,10 +5,10 @@ caught before a release. For each model it runs a 20,000-token ``openinterp audi
 of one fixed unit and ``openinterp reproduce`` of one record of that unit. Times are
 printed, not compared: they vary too much with other load.
 
-On macOS it compares each command's peak memory footprint (``/usr/bin/time -l``). Its
-peak resident memory (RSS) moved by more than 1 GB between runs of the same review, from
-shared libraries and the mapped checkpoint, while the footprint moved by 1%. Elsewhere
-it compares peak RSS (``os.wait4``), the one figure there is on every system.
+On macOS it compares each command's peak memory footprint (``/usr/bin/time -l``). Peak
+resident memory (RSS) moved by more than 1 GB between runs of the same review, and the
+footprint by 1%. RSS also counts shared libraries and the mapped checkpoint. Elsewhere it
+compares peak RSS (``os.wait4``), the one figure there is on every system.
 
     uv run python scripts/memory_benchmark.py            # compare with the baseline
     uv run python scripts/memory_benchmark.py --update   # write a new baseline
