@@ -156,6 +156,26 @@ def test_cli_exit_code(tmp_path, monkeypatch, record, toy_runner):
     assert len(loads) == 2  # one load per invocation, shared across same-model records
 
 
+def test_cli_time_budget_leaves_later_records_unreached(tmp_path, monkeypatch, record, toy_runner):
+    import time
+
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    clock = iter([0.0, 0.0, 120 * 60.0])  # start, before the first record, before the second
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock))
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    good, bad = tmp_path / "good.json", tmp_path / "bad.json"
+    good.write_text(record.model_dump_json())
+    bad.write_text(edit_result(record, 0, passed=False).model_dump_json())
+    args = ["reproduce", str(good), str(bad), "--time-budget", "90"]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0, result.output  # the edited record was never started
+    assert f"REPRODUCED: {good}" in result.output and f"NOT REACHED: {bad}" in result.output
+    assert "1/1 record(s) reproduced. 1 not reached in the 90-minute time budget." in result.output
+    assert "(not reached)" in summary.read_text()
+
+
 def test_cli_allow_list_refuses_other_models_without_loading(tmp_path, monkeypatch, record):
     monkeypatch.setattr(
         "openinterp.cli._load_runner", lambda *a, **k: pytest.fail("must not load the model")
@@ -298,4 +318,5 @@ def test_nightly_workflow_opens_issues_and_keeps_failures_visible():
     assert "issues: write" in workflow and "if: failure()" in workflow
     assert "shell: bash" in workflow  # pipefail: tee can't hide a failed reproduction
     assert "openinterp reproduce" in workflow and "--sample" in workflow
+    assert "--time-budget" in workflow  # a night that draws slow records still finishes
     assert "gh issue create" in workflow and "gh issue comment" in workflow
