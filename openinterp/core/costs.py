@@ -217,7 +217,7 @@ def reset() -> None:
 def add_stage(name: str, seconds: float) -> None:
     """Record that stage ``name`` took ``seconds``, rounded to the millisecond, and its memory.
 
-    The CUDA peak is reset for the next stage.
+    The CUDA peak is reset for the next stage, and MPS's cache is released.
     """
     rss, cuda = _peak_memory_mb()
     timing = StageTiming(
@@ -225,6 +225,7 @@ def add_stage(name: str, seconds: float) -> None:
     )
     _stages.append(timing)
     _reset_cuda_peak()
+    _release_mps_cache()
 
 
 def _peak_memory_mb() -> tuple[int | None, int | None]:
@@ -245,6 +246,20 @@ def _cuda_peak_mb() -> int | None:
     if torch is None or not torch.cuda.is_available() or not torch.cuda.is_initialized():
         return None
     return round(torch.cuda.max_memory_allocated() / 2**20)
+
+
+def _release_mps_cache() -> None:
+    """Give memory that PyTorch's MPS allocator keeps for reuse back to the system.
+
+    On Apple silicon the GPU uses the same memory as the CPU. The allocator keeps every
+    freed block, so over an audit's stages it held 2.8 GB above the weights for
+    Qwen2.5-0.5B. Each stage needs different blocks, so the next stage loses little.
+    """
+    torch = sys.modules.get("torch")
+    if torch is None or not torch.backends.mps.is_available():
+        return
+    if torch.mps.current_allocated_memory():  # a CPU run never touches Metal
+        torch.mps.empty_cache()
 
 
 def _reset_cuda_peak() -> None:

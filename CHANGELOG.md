@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **A memory benchmark at each release** (`scripts/memory_benchmark.py`, `release` skill step 5, from TODO, Performance). It scans and reviews GPT-2 and Qwen2.5-0.5B, 20,000 tokens each, and reads each command's peak resident memory. It fails if a peak is more than 25% above `scripts/memory_baseline.json`. On macOS it compares the peak footprint: peak RSS moved by more than 1 GB between runs of one review, and the footprint by 1%. Two runs of this branch agreed within 1%. On `main` before these changes it fails all four peaks, with a Qwen2.5-0.5B review at 19.8 GB against 3.9 GB.
+
 - **A streaming mode for models larger than memory** (`--memory auto|normal|stream`, `openinterp/harness/memory.py`, from TODO, Performance). In streaming mode the decoder layers stay in the checkpoint's files on disk. Each forward pass reads a layer when it reaches it and frees it after. So a model runs in about one layer's memory, slowly. `auto`, the default, streams only when the weights at the chosen dtype, plus 3 GB, exceed free RAM and swap. `$OPENINTERP_MEMORY_GB` plans for less. The numbers are the same as a normal load's, so streamed records reproduce. Under a 1 GB budget, a streamed Qwen2.5-0.5B audit peaked at 1.5 GB, against 2.0 GB of weights. No rule changes.
 
 - **The round-depth poles of GPT-2 through the protocol** (`papers/syntax-positive-controls/README.md`, *Through the protocol*, from TODO, Analyses per experiment). L2 N676+ has a revised claim: open round and square brackets are strong, and curly and angle brackets are weak. It is VERIFIED (1.00) on its second review. Its first review failed only because its hard negatives were too alike. L2 N1195+, L3 N695+ and L8 N689+ are VERIFIED (0.96, 0.92, 0.92). L9 N340+ is NEEDS_REVISION (0.89): it fires on function words inside an open round bracket, and its lookahead claim did not hold. All five scanned the `github-code` sample that the first L2 N676+ record scanned. No rule changes.
@@ -22,6 +24,8 @@ The project has two version numbers:
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
+
+- **MPS gives its cache back at the end of each stage** (`openinterp/core/costs.py`, from TODO, Performance). PyTorch's MPS allocator keeps freed memory for reuse, and on Apple silicon that memory is the machine's own. A 20,000-token Qwen2.5-1.5B audit on MPS in float32 took 15.4 GB and now takes 11.5 GB. The TODO item blamed loading, but a load and one pass take 7.2 GB, about the weights. A CPU run doesn't touch Metal.
 
 - **An audit reads only the records it shows the proposer** (`openinterp/sisters.py`). To list a unit's studied sister neurons, the audit loaded the whole archive: 2.4 GB and 28 s for 2,189 records. It now reads only the linked poles' records, in 0.03 s. The text is the same for each of the 36 units that have sisters today, for the proposer and the reviewer.
 

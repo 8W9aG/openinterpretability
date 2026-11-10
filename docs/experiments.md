@@ -74,12 +74,12 @@ The last column is the smallest common machine with room for the operating syste
 
 Until November 2026, a Qwen2.5-0.5B review took 19.4 GB and its scan 7.0 GB. Most of it was logits: an array of batch × sequence × vocabulary, 1.2 GB for 2,048 tokens at Qwen2.5's 151,936 tokens. Strength reads, the scan and the lenses computed logits and dropped them, and one check padded every probe to the longest. Tests in `tests/test_agents.py` now fail if a scan or the lens computes logits, or if a review computes them over padding.
 
-Every record now holds its memory. Each stage in `provenance.costs.stages` has `peak_rss_mb`, the process's peak resident memory when the stage ended. On CUDA, `peak_cuda_mb` holds the stage's own peak. Experiment pages show the largest peak.
+`scripts/memory_benchmark.py` measures the peak resident memory of a scan and a review of GPT-2 and Qwen2.5-0.5B. It compares them with `scripts/memory_baseline.json` and fails if one is more than 25% higher. The `release` skill runs it. Every record now holds its memory. Each stage in `provenance.costs.stages` has `peak_rss_mb`, the process's peak resident memory when the stage ended. On CUDA, `peak_cuda_mb` holds the stage's own peak. Experiment pages show the largest peak.
 
 To use less:
 
 - **bfloat16 on Apple's GPU.** `--device mps --dtype bfloat16` halves the weights, and on MPS it is about as fast as float32. On a 20,000-token Qwen2.5-0.5B scan it took 85 s and 5.2 GB, against 74 s and 6.7 GB in float32. On CPU, bfloat16 is far slower: the same scan had not finished after 47 minutes, against 3.3 in float32. A record pins its dtype, so a bfloat16 record reproduces only in bfloat16, and its numbers differ a little from float32's.
-- **CPU float32 on a small Mac.** The model loads on the CPU and then moves to MPS, so for a moment both copies are in memory. A 20,000-token Qwen2.5-1.5B scan took 15.4 GB on MPS in float32 and 8.2 GB on CPU.
+- **CPU on a small Mac, for a tight fit.** On Apple silicon the GPU shares the machine's memory, and MPS needs more of it than the CPU does. A 20,000-token Qwen2.5-1.5B audit took 11.5 GB on MPS in float32 and 8.2 GB on CPU. PyTorch's MPS allocator keeps freed memory for reuse, and each stage now gives it back as it ends (`costs.add_stage`). Before that, the same audit took 15.4 GB on MPS.
 - **One session at a time.** Each session holds its own copy of the model.
 
 The scan cache doesn't add to this. A scan writes each batch to the cache file as it goes, and a replay maps the file from disk. CUDA is not measured yet, so Colab's figures may differ. Quantised (8- or 4-bit) loading isn't supported, because it changes the activations, and records don't pin it.
