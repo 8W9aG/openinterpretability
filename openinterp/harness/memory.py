@@ -310,6 +310,7 @@ def stream_rows(runner, tokens_per_row: int, default: int, *, logits: bool) -> i
     have = available_bytes()
     if not is_streamed(runner.model) or have is None:
         return default
+    have //= _sharing  # passes that run at once share the memory (layer_major)
     config = runner.model.config
     dtype = next(runner.model.parameters()).dtype
     width = getattr(config, "hidden_size", None) or getattr(config, "n_embd", 1)
@@ -319,6 +320,20 @@ def stream_rows(runner, tokens_per_row: int, default: int, *, logits: bool) -> i
         per_token += 2 * 4 * getattr(config, "vocab_size", 0)  # float32 logits and log-probs
     rows = (have // 4) // max(1, per_token * max(1, tokens_per_row))
     return int(max(default, min(STREAM_ROWS_MAX, rows)))
+
+
+_sharing = 1  # how many passes run at once (openinterp.harness.layer_major)
+
+
+@contextmanager
+def shared_by(passes: int) -> Iterator[None]:
+    """Plan each pass's memory as a share of the budget while ``passes`` run at once."""
+    global _sharing
+    previous, _sharing = _sharing, max(1, passes)
+    try:
+        yield
+    finally:
+        _sharing = previous
 
 
 def loaded(module: nn.Module) -> AbstractContextManager:

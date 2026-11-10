@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 import statistics
 from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
 
 import torch
 
@@ -21,6 +23,7 @@ from openinterp.core.schemas import (
     PatchEffect,
 )
 from openinterp.harness.hooks import NeuronHookRunner, pole_strength
+from openinterp.harness.layer_major import map_layer_major, prompt_tokens
 from openinterp.harness.patcher import (
     ActivationPatcher,
     Positions,
@@ -114,33 +117,25 @@ def causal_metrics(
     """
     claimed = claimed_token_weights(submission, runner)
     target: CausalTarget = "claimed_tokens" if claimed else "next_token_kl"
-    ident = submission.identifier
-    changes, patch = _unit_patching(submission, runner)
+    setup = _PairSetup(
+        submission.identifier, *_unit_patching(submission, runner), claimed,
+        min_change, null_neurons, freeze_downstream,
+    )  # fmt: skip
+    items = list(enumerate(submission.counterfactuals))
+    texts = [t for _, p in items for t in (p.base_prompt, p.counterfactual_prompt)]
+    results = map_layer_major(
+        runner, setup.patched, items, tokens=prompt_tokens(runner, texts)
+    )  # the pairs run at once when the model streams (harness/layer_major.py)
     scores: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     effects: dict[str, list[float]] = {"sufficiency": [], "necessity": []}
     nulls: list[int] = []
     pairs: list[CausalPairEffect] = []
-    for index, pair in enumerate(submission.counterfactuals):
-        positions, position, change = changes(pair.base_prompt, pair.counterfactual_prompt)
-        if float(change[ident.index]) <= min_change:
-            continue
-        null = _matched_units(change, ident.index, null_neurons)
-        nulls.append(len(null))
-        effect = (
-            metric_change(logit_direction_metric(claimed[0], position))
-            if claimed
-            else next_token_kl(position)
-        )
-        runs = {
-            "sufficiency": (pair.base_prompt, pair.counterfactual_prompt),
-            "necessity": (pair.counterfactual_prompt, pair.base_prompt),
-        }
-        options = {"effect": effect, "positions": positions, "freeze_downstream": freeze_downstream}
+    for index, own, n_null in filter(None, results):
+        nulls.append(n_null)
         patched: dict[str, PatchEffect] = {}
-        for kind, (source, target_prompt) in runs.items():
-            own, *others = patch(source, target_prompt, [ident.index, *null], **options)
-            patched[kind], percentile = _patch_effect(own, others)
-            effects[kind].append(own)
+        for kind, (unit_effect, *others) in own.items():
+            patched[kind], percentile = _patch_effect(unit_effect, others)
+            effects[kind].append(unit_effect)
             scores[kind].append(percentile)
         pairs.append(CausalPairEffect(pair_index=index, **patched))
 
@@ -148,6 +143,42 @@ def causal_metrics(
         return None
     tokens = claimed[1] if claimed else []
     return _metrics(scores, effects, nulls, pairs, target, tokens, freeze_downstream)
+
+
+@dataclass(frozen=True)
+class _PairSetup:
+    """What patching one counterfactual pair needs (:func:`causal_metrics`)."""
+
+    ident: Any
+    changes: Any
+    patch: Any
+    claimed: Any
+    min_change: float
+    null_neurons: int
+    freeze_downstream: bool
+
+    def patched(self, item: tuple[int, Any]) -> tuple[int, dict, int] | None:
+        """One pair's unit and null effects per direction, or None if it isn't scored."""
+        index, pair = item
+        positions, position, change = self.changes(pair.base_prompt, pair.counterfactual_prompt)
+        if float(change[self.ident.index]) <= self.min_change:
+            return None
+        null = _matched_units(change, self.ident.index, self.null_neurons)
+        effect = (
+            metric_change(logit_direction_metric(self.claimed[0], position))
+            if self.claimed
+            else next_token_kl(position)
+        )
+        runs = {
+            "sufficiency": (pair.base_prompt, pair.counterfactual_prompt),
+            "necessity": (pair.counterfactual_prompt, pair.base_prompt),
+        }
+        options = {
+            "effect": effect, "positions": positions, "freeze_downstream": self.freeze_downstream
+        }  # fmt: skip
+        units = [self.ident.index, *null]
+        own = {kind: self.patch(src, dst, units, **options) for kind, (src, dst) in runs.items()}
+        return index, own, len(null)
 
 
 def _metrics(scores, effects, nulls, pairs, target, tokens, freeze_downstream) -> CausalMetrics:

@@ -32,11 +32,13 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
+from functools import partial
 from pathlib import Path
 
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord, RunEnvironment
 from openinterp.harness.environment import run_environment
 from openinterp.harness.hooks import NeuronHookRunner
+from openinterp.harness.layer_major import map_layer_major, prompt_tokens
 
 
 @dataclass(frozen=True)
@@ -149,8 +151,7 @@ def reproduce_record(
     # 1. Scan evidence.
     if corpus is not None:
         _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
-    for n, ex in enumerate(sub.top_examples, 1):
-        _check_example(n, ex, unit, runner, tolerance, scale, report)
+    _check_examples(sub.top_examples, unit, runner, tolerance, scale, report)
 
     # 2. Counterfactuals as submitted.
     _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
@@ -203,11 +204,16 @@ def _check_scale(sub, unit, runner, scale: float, report) -> None:
 def _check_counterfactuals(sub, unit, runner, tolerance: Tolerance, scale: float, report):
     from openinterp.agents.proposer import observed_delta
 
-    for n, pair in enumerate(sub.counterfactuals, 1):
-        if pair.observed_delta is None or not scale:
-            continue
+    pairs = [(n, p) for n, p in enumerate(sub.counterfactuals, 1) if p.observed_delta is not None]
+    if not scale:
+        return
+    texts = [t for _, p in pairs for t in (p.base_prompt, p.counterfactual_prompt)]
+    deltas = map_layer_major(
+        runner, lambda item: observed_delta(runner, unit, item[1], scale), pairs,
+        tokens=prompt_tokens(runner, texts), logits=False,
+    )  # fmt: skip
+    for (n, pair), delta in zip(pairs, deltas, strict=True):
         report.compared += 1
-        delta = observed_delta(runner, unit, pair, scale)
         if not tolerance.close(pair.observed_delta, delta, 1.0):
             report.fail(
                 f"counterfactual {n}: observed_delta recorded {pair.observed_delta}, "
@@ -215,9 +221,21 @@ def _check_counterfactuals(sub, unit, runner, tolerance: Tolerance, scale: float
             )
 
 
-def _check_example(n: int, ex, unit, runner, tolerance: Tolerance, scale: float, report) -> None:
-    """Top example ``n``'s tokens and per-token activations, and its peak."""
-    strengths = unit.strengths(runner, ex.text)
+def _check_examples(examples, unit, runner, tolerance: Tolerance, scale: float, report) -> None:
+    """Each top example's tokens and activations, measured layer-major when streamed."""
+    texts = [ex.text for ex in examples]
+    measured = map_layer_major(
+        runner, partial(unit.strengths, runner), texts,
+        tokens=prompt_tokens(runner, texts), logits=False,
+    )  # fmt: skip
+    for n, (ex, strengths) in enumerate(zip(examples, measured, strict=True), 1):
+        _check_example(n, ex, unit, runner, tolerance, scale, report, strengths)
+
+
+def _check_example(
+    n: int, ex, unit, runner, tolerance: Tolerance, scale: float, report, strengths
+) -> None:
+    """Top example ``n``'s tokens and per-token activations (``strengths``), and its peak."""
     tokens = runner.encode(ex.text)["input_ids"][0].tolist()
     words = [runner.tokenizer.decode([i]) for i in tokens] if runner.tokenizer else None
     if words is not None and words != ex.tokens:
