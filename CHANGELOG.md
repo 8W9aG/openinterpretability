@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-11-10
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **Multilingual web text, and `mixed-v5`, which `mixed` now names** (`openinterp corpus --dataset fineweb-2`, from TODO, Datasets). The `fineweb-2` preset samples `HuggingFaceFW/fineweb-2` (ODC-By) in 22 languages besides English, across 12 scripts, with an equal share each. It includes pairs that share a script (Spanish and Portuguese, Russian and Ukrainian, Arabic and Persian). Each document records its language as `lang`, with the two-letter code that Wikipedia and lid.176 use (`FINEWEB2_LANGUAGES`). So `ru` from FineWeb-2 and `ru` from Wikipedia are one label. Only each language's first file is read, which holds 1.2M–4M documents from many crawls. Reading every file's footer took 10 minutes, and a cold sample of 55 documents now takes 78 s. `mixed-v5` is `mixed-v4` plus `fineweb-2` at the weight of `wikipedia-multilingual`. So non-English text in the blend is not only encyclopedic.
@@ -40,6 +44,8 @@ The project has two version numbers:
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
+
+- **The sister rows now cover the poles VERIFIED since 0.0.15** (`docs/analyses/sister-neurons.jsonl`). The run of 2026-11-10 added 70 rows and 16 sisters on the same corpus. By pair, as rows and sisters: GPT-2 small against Qwen2.5-0.5B 23 and 5, and GPT-2 small against Qwen2.5-1.5B 23 and 6. Qwen2.5-0.5B against Qwen2.5-1.5B 5 and 2, and Qwen2.5-0.5B against GPT-2 small 5 and 0. Qwen2.5-1.5B against Qwen2.5-0.5B 7 and 3, and Qwen2.5-1.5B against GPT-2 small 7 and 1. The strongest are GPT-2 small L6/N1739+ with Qwen2.5-1.5B L2/N3427− (r = 0.78), GPT-2 small L6/N1739+ with Qwen2.5-0.5B L7/N573+ (0.67), and Qwen2.5-0.5B L23/N1105− with Qwen2.5-1.5B L27/N680+ (0.64). Each new sister is now a `sister` draw.
 
 - **The nightly reproduction ends inside its time limit** (`openinterp reproduce --time-budget`, `reproduce-nightly.yml`, issue #2504). A Qwen2.5-1.5B record takes 52–57 minutes on the CPU runner, against 1–20 for the other models. A night that drew three of them reached 15 of 20 records, then hit the step's 210-minute limit and opened the issue. All 15 reproduced. `--time-budget MINUTES` starts no record once that time has passed. It lists the others as NOT REACHED, and they don't fail the run. The nightly job uses 140 minutes, which leaves room for one more slow record. No rule changes.
 
