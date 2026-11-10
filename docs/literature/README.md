@@ -8,6 +8,12 @@ Status marks how the work relates to this repo:
 - **planned**: a `TODO.md` item would use it.
 - **not applicable**: reviewed, and the repo has no use for it. The page says why.
 
+## Agents and context management
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Context Language Models](context-language-models.md) (Shao et al., 2026) | not applicable | Agent context management, with no look inside any model. Its skill-selection loop shows what the DSPy prompt-optimisation item must avoid: selection on one seed. |
+
 ## Forecasting and evaluation
 
 | Page | Status | Why |

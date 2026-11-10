@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **A literature review page for "Context Language Models"** (`docs/literature/context-language-models.md`, Shao et al., 2026). It reviews the first entry in `docs/literature/queue.md` and marks it not applicable: it studies agent context management and has no interpretability content. One habit carries over to the DSPy prompt-optimisation item in TODO: select on replicated runs, not one seed. The index gets an *Agents and context management* section.
+
 ## [0.0.16] - 2026-11-10
 
 Ships with protocol version **0.8**.
