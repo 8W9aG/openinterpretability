@@ -274,3 +274,25 @@ def test_by_agent_reports_mean_and_cost_per_verified():
     assert proposer["usd_per_verified"] == 1.0
     assert (judge["priced"], judge["verified"]) == (2, 1)
     assert round(judge["mean_usd"], 6) == 0.3 and round(judge["usd_per_verified"], 6) == 0.6
+
+
+def test_a_stage_releases_the_mps_cache_only_when_mps_holds_memory(monkeypatch):
+    """The cache goes back to the system on MPS; a CPU run never touches Metal."""
+    import sys
+    from types import SimpleNamespace
+
+    for allocated, released in ((0, False), (4096, True)):
+        calls = []
+        fake = SimpleNamespace(
+            backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda: True)),
+            mps=SimpleNamespace(
+                current_allocated_memory=lambda n=allocated: n,
+                empty_cache=lambda calls=calls: calls.append(1),
+            ),
+            cuda=SimpleNamespace(is_available=lambda: False),
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake)
+        costs.reset()
+        costs.add_stage("scan", 1.0)
+        assert bool(calls) is released
+    costs.reset()

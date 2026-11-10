@@ -25,6 +25,7 @@ from openinterp.core.schemas import (
     Histogram,
     Pole,
 )
+from openinterp.harness.memory import loaded
 
 # Probed in order; the first path that resolves on the model wins.
 LAYER_PATHS = (
@@ -215,8 +216,11 @@ class NeuronHookRunner:
 
     @property
     def device(self) -> torch.device:
-        """The device of the model's parameters."""
-        return next(self.model.parameters()).device
+        """The device the model runs on: that of its first weight not left on disk."""
+        for param in self.model.parameters():
+            if param.device.type != "meta":  # a streamed layer's weights stay on disk
+                return param.device
+        return torch.device("cpu")
 
     def down_proj(self, layer: int) -> nn.Module:
         """The MLP down projection of ``layer``, whose input is the neuron basis."""
@@ -264,8 +268,9 @@ class NeuronHookRunner:
         if not 0 <= head < self.n_heads:
             raise IndexError(f"head {head} out of range for {self.n_heads} heads")
         proj, d = self.attn_out(layer), self.head_dim(layer)
-        weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T  # Conv1D
-        return weight[:, head * d : (head + 1) * d].detach()
+        with loaded(proj):  # streamed: the weights are real only inside this block
+            weight = proj.weight if hasattr(proj, "in_features") else proj.weight.T  # Conv1D
+            return weight[:, head * d : (head + 1) * d].detach().clone()
 
     def mlp_width(self, layer: int) -> int:
         """The number of MLP neurons at ``layer``."""
@@ -313,9 +318,9 @@ class NeuronHookRunner:
     def neuron_output_direction(self, layer: int, neuron_idx: int) -> torch.Tensor:
         """The residual-stream vector written by one unit of activation of this neuron."""
         proj = self.down_proj(layer)
-        if hasattr(proj, "in_features"):
-            return proj.weight[:, neuron_idx].detach()
-        return proj.weight[neuron_idx, :].detach()
+        with loaded(proj):  # streamed: the weights are real only inside this block
+            w = proj.weight.detach()
+            return (w[:, neuron_idx] if hasattr(proj, "in_features") else w[neuron_idx]).clone()
 
     # -- running -------------------------------------------------------------
 

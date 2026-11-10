@@ -41,6 +41,7 @@ from openinterp.core.attribution import (
 from openinterp.core.schemas import ActivatingExample, Pole
 from openinterp.core.stats import spearman
 from openinterp.harness.hooks import NeuronHookRunner, _StopForward
+from openinterp.harness.memory import recompute_below
 
 # Tokens back from the peak: the token itself, the one before, then wider bands.
 DISTANCE_BANDS: tuple[tuple[int, int | None], ...] = (
@@ -142,7 +143,7 @@ def integrated_gradients(
             points.append(point)
             return point
 
-        with torch.enable_grad():
+        with torch.enable_grad(), recompute_below(runner, layer):
             rows = ids.expand(len(chunk), -1)
             values = _pole_values(runner, rows, layer, neuron_idx, pole, interpolate)[:, -1]
             (grad,) = torch.autograd.grad(values.sum(), points[-1])
