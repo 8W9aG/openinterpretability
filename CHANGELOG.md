@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **How to audit neurons in mixture-of-experts models** (`docs/moe.md`, `scripts/moe_experts_check.py`, from TODO, Models). An expert neuron pole is a new unit kind, `L<layer>/E<expert>/N<idx>-<pole>`. Its strength is the routing weight times its hidden activation, 0 where the router doesn't send the token. Interventions edit it inside the expert on routed tokens and never force the routing. The harness will read it through its own forward, registered with transformers' `ExpertsInterface`, which about 60 MoE architectures use. On tiny random models of seven of them, that forward matches `eager` to within 1e-6. Nothing is built yet. The steps are in TODO, Models.
+
 - **Records say when a run streamed** (`RunEnvironment.streamed`, from TODO, Performance). It is true when the decoder layers were read from disk on each pass, and unset otherwise, as in older records.
 
 - **A memory benchmark at each release** (`scripts/memory_benchmark.py`, `release` skill step 5, from TODO, Performance). It scans and reviews GPT-2 and Qwen2.5-0.5B, 20,000 tokens each, and reads each command's peak resident memory. It fails if a peak is more than 25% above `scripts/memory_baseline.json`. On macOS it compares the peak footprint: peak RSS moved by more than 1 GB between runs of one review, and the footprint by 1%. Two runs of this branch agreed within 1%. On `main` before these changes it fails all four peaks, with a Qwen2.5-0.5B review at 19.8 GB against 3.9 GB.
