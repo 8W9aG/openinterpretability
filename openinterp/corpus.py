@@ -35,7 +35,12 @@ from openinterp.corpus_layouts import (  # noqa: F401  (wikitext_articles is re-
     chat_formatter,
     wikitext_articles,
 )
-from openinterp.corpus_presets import PRESETS, WIKIPEDIA_LANGUAGES, Preset  # noqa: F401
+from openinterp.corpus_presets import (  # noqa: F401
+    FINEWEB2_LANGUAGES,
+    PRESETS,
+    WIKIPEDIA_LANGUAGES,
+    Preset,
+)
 
 # What `openinterp audit` scans by default (protocol 0.7). The seed is fixed, so every
 # audit of a corpus reads the same documents, and their scales are comparable.
@@ -410,7 +415,9 @@ def _glob_lang(pattern: str | None, glob: str) -> str | None:
     match = re.search(pattern, glob) if pattern else None
     if pattern and match is None:
         raise ValueError(f"{glob!r} names no language under the pattern {pattern!r}")
-    return match.group(1) if match else None
+    if match is None:
+        return None
+    return FINEWEB2_LANGUAGES.get(match.group(1), match.group(1))
 
 
 def _license(api, dataset: str, info, revision: str | None):
