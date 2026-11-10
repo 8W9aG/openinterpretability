@@ -64,3 +64,10 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "SteerGR: Steering Generative Recommendation via Sparse Autoencoders for Controllable Game Discovery" (arXiv 2611.08790, [paper](https://arxiv.org/abs/2611.08790)).
 - Review "Teach the Way It Thinks: Guiding LLM Post-training Data Engineering with Sparse Autoencoders" (arXiv 2605.27354, [paper](https://arxiv.org/abs/2605.27354)).
 - Review "Farther the Shift, Sparser the Representation: Analyzing OOD Mechanisms in LLMs" (arXiv 2603.03415, [paper](https://arxiv.org/abs/2603.03415)).
+- Review "Language Model Circuits Are Sparse in the Neuron Basis" (Arora, Wu, Schwettmann and Steinhardt, arXiv 2601.22594, [paper](https://arxiv.org/abs/2601.22594)).
+- Review ROTATE, which disentangles MLP neurons in weight space with no forward passes (arXiv 2604.06005, [paper](https://arxiv.org/abs/2604.06005)).
+- Review "NeuronScope: A Multi-Agent Framework for Explaining Polysemantic Neurons in Language Models" (arXiv 2601.03671, [paper](https://arxiv.org/abs/2601.03671)).
+- Review "Beyond Top Activations: Efficient and Reliable Crowdsourced Evaluation of Automated Interpretability" (Oikarinen et al., arXiv 2506.07985, [paper](https://arxiv.org/abs/2506.07985)).
+- Review "Neuron to Graph: Interpreting Language Model Neurons at Scale" (Foote et al., arXiv 2305.19911, [paper](https://arxiv.org/abs/2305.19911)).
+- Review Anthropic's May 2026 Circuits Update, for its TWERA ranking of downstream features ([post](https://transformer-circuits.pub/2026/may-update/index.html)).
+- Review "Bilinear MLPs enable weight-based mechanistic interpretability" (arXiv 2410.08417, [paper](https://arxiv.org/abs/2410.08417)).
