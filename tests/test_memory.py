@@ -120,7 +120,7 @@ def test_auto_loads_a_model_that_fits_whole(saved_gpt2, monkeypatch, tmp_path):
 
 
 def test_auto_streams_a_model_that_does_not_fit(saved_gpt2, monkeypatch, tmp_path):
-    monkeypatch.setattr(memory, "available_bytes", lambda: 1)  # 1 byte free
+    monkeypatch.setattr(memory, "available_bytes", lambda device=None: 1)  # 1 byte free
     runner = _runner(saved_gpt2, "auto", monkeypatch, tmp_path)
     assert memory.is_streamed(runner.model)
 

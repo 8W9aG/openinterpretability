@@ -33,8 +33,9 @@ _hooks = threading.local()  # per thread, as the layer-major review needs
 
 
 def _linear(x: torch.Tensor, weight: torch.Tensor, bias, transposed: bool) -> torch.Tensor:
-    y = x @ weight.to(x.dtype) if transposed else x @ weight.to(x.dtype).T
-    return y if bias is None else y + bias.to(x.dtype)
+    weight = weight.to(x.device, x.dtype)  # a streamed slice is read to the CPU
+    y = x @ weight if transposed else x @ weight.T
+    return y if bias is None else y + bias.to(x.device, x.dtype)
 
 
 def experts_forward(self, hidden, top_k_index, top_k_weights) -> torch.Tensor:

@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **Streaming onto a CUDA GPU** (`--memory stream` or `auto` with `--device cuda`, `openinterp/harness/memory.py`, from TODO, Performance). The embeddings, final norm and head stay on the GPU, and each layer is copied there when a pass reaches it. `--memory auto` plans with the GPU's free memory. Each tensor is sent in the checkpoint's dtype and converted on the GPU. A float32 Qwen2.5-0.5B pass then took 0.66 s on an RTX 4070 Ti, against 2.8 s converted first. Qwen2.5-3B in float32 (about 14.5 GB) streamed onto a GPU with 9.1 GB free, and a 5,000-token audit took 167 s. Its activations matched the CPU's within 2.4e-6 of their peak. `tests/test_cuda_streaming.py` runs where CUDA is.
+
 - **openinterp's own experts forward for mixture-of-experts models** (`openinterp/harness/moe.py`, from TODO, Models and Performance). It is registered with transformers' `ExpertsInterface` and selected when an MoE model loads. A record pins it (`environment.experts_implementation`). Each expert's hidden activation passes through a per-thread hook before its down projection, where expert neurons will be read. It matches `eager` on seven architectures (`tests/test_moe.py`), and transformers' default `grouped_mm` on Granite 3.0 1B-A400M to 3e-5. Streamed, it reads only the routed experts' slices (`OpenCheckpoint.slice`). A streamed one-token Granite pass read 1.41 GB, not 4.78 GB.
 
 - **Experiment pages say where each step ran** (`_experiment.html`). A "Ran on" row gives the scan's and the review's device, and says when one streamed from disk.
@@ -32,6 +34,8 @@ The project has two version numbers:
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
+
+- **Streaming measured with the checkpoint out of the file cache** (`docs/experiments.md`, *Models larger than memory*, from TODO, Performance). A memory cap below the checkpoint's size (`systemd-run --user --scope -p MemoryMax=…`) keeps the file cache from holding it. A streamed 2,000-token Qwen2.5-3B audit on an RTX 4070 Ti then read 18.5 GB from the disk. It took 172 s, against 135 s cached, with the same evidence. Reading the next layer ahead while one runs was tried and took 179 s, so it is not used.
 
 - **Streaming says when it writes a copy** (`docs/experiments.md`, `memory.load_causal_lm`). A mixture-of-experts checkpoint that stores each expert apart (Mixtral, OLMoE) is stacked by transformers as it loads. Streaming writes those stacks to the offload folder. The docs said that streaming never writes a copy.
 
