@@ -67,10 +67,10 @@ The weights set the floor, and what a scan or a review adds on top of them is sm
 | Model | Weights (float32) | Scan | Review | Machine |
 | --- | --- | --- | --- | --- |
 | GPT-2 small | 0.5 GB | 3.1 GB | 1.3 GB | 8 GB |
-| Qwen2.5-0.5B | 2.0 GB | 5.4 GB | 3.8 GB | 8 GB |
-| Qwen2.5-1.5B | 6.2 GB | 9.2 GB | 6.9 GB | 16 GB |
+| Qwen2.5-0.5B | 2.0 GB | 5.4 GB | 3.0 GB | 8 GB |
+| Qwen2.5-1.5B | 6.2 GB | 9.2 GB | 7.4 GB | 16 GB |
 
-The last column is the smallest common machine with room for the operating system as well. Resident memory (RSS) reads 1–4 GB higher, because it also counts the weight files that the loader maps from disk. The system can drop those pages when it needs the memory.
+The joint ablation's KL in blocks of 64 positions lowered the reviews. On one day, a Qwen2.5-1.5B review peaked at 7.9 GB before that change and 7.4 GB after. An earlier measurement on a quieter machine was 6.9 GB. The last column is the smallest common machine with room for the operating system as well. Resident memory (RSS) reads 1–4 GB higher, because it also counts the weight files that the loader maps from disk. The system can drop those pages when it needs the memory.
 
 Until November 2026, a Qwen2.5-0.5B review took 19.4 GB and its scan 7.0 GB. Most of it was logits: an array of batch × sequence × vocabulary, 1.2 GB for 2,048 tokens at Qwen2.5's 151,936 tokens. Strength reads, the scan and the lenses computed logits and dropped them, and one check padded every probe to the longest. Tests in `tests/test_agents.py` now fail if a scan or the lens computes logits, or if a review computes them over padding.
 
