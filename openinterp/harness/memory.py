@@ -172,10 +172,6 @@ def load_causal_lm(model_name: str, device: str, dtype, revision: str | None, **
         **extra,
     )
     keep_checkpoint_open(model, resident)
-    from openinterp.harness.hooks import _get_path
-    from openinterp.harness.readahead import install_readahead
-
-    install_readahead(list(_get_path(model, _layers_path(model, model_name))))
     use_openinterp_experts(model)  # reads only the routed experts (harness/moe.py)
     _budget_device = resident
     return model
