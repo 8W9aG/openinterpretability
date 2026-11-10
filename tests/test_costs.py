@@ -34,14 +34,16 @@ import json
 from openinterp.core import costs
 with costs.stage("small"):
     pass
+# Past the high-water mark so far, which imports can leave well above what is in use.
+size = (costs.measured().stages[0].peak_rss_mb + 256) * 2**20
 with costs.stage("big"):
-    block = bytearray(256 * 2**20)
+    block = bytearray(size)
     block[::4096] = b"x" * len(block[::4096])  # touch every page
 print(json.dumps([s.model_dump() for s in costs.measured().stages]))
 """
     out = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
     small, big = json.loads(out.stdout)
-    assert small["peak_rss_mb"] > 0 and big["peak_rss_mb"] >= small["peak_rss_mb"] + 200
+    assert small["peak_rss_mb"] > 0 and big["peak_rss_mb"] >= small["peak_rss_mb"] + 200, out.stderr
     assert small["peak_cuda_mb"] is None  # torch isn't imported, so CUDA isn't asked
     old = costs.StageTiming.model_validate({"stage": "scan", "seconds": 1.0})
     assert old.peak_rss_mb is None  # records from before memory was measured still validate
