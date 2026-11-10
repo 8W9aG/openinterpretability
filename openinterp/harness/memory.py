@@ -313,11 +313,11 @@ def recompute_below(runner, layer: int) -> Iterator[None]:
     """In a streamed model, recompute the layers below ``layer`` in a backward pass.
 
     Autograd keeps the weights a layer used until the backward pass. So a gradient
-    through streamed layers holds all of them at once. For Qwen2.5-0.5B at layer 6 that
-    was 0.3 GB, the float32 weights of 7 layers. A 120B model at a middle layer has tens
-    of layers of about 3 GB each. Inside this block each layer below ``layer`` keeps only
-    its input. The backward pass runs it again, which reads its weights from disk again,
-    and that doubled the pass's time. The values are the same.
+    through streamed layers holds all of them at once. Inside this block each layer
+    below ``layer`` keeps only its input. The backward pass runs it again, which reads
+    its weights from disk again. The values are the same. Take Qwen2.5-1.5B at layer
+    11, with frozen weights (``cli._load``). Integrated gradients over 1,024 tokens
+    peaked at 1.8 GB with this, and at 4.5 GB without. It took 5.2 s, not 4.2 s.
 
     ``layer`` itself isn't recomputed, since a hook there may end the forward pass. The
     key-value cache is off, since a recomputed layer would add to it twice. A model that

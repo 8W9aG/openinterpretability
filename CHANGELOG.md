@@ -27,6 +27,8 @@ The project has two version numbers:
 
 ### Changed
 
+- **The CLI loads a model with its weights frozen** (`openinterp/cli.py`, `_load`). The harness takes gradients only for inputs and activations, and never trains the model. A weight that required a gradient made autograd keep more. A streamed 5,000-token Qwen2.5-1.5B audit under a 1 GB budget peaked at 5.2 GB with them, and 2.4 GB frozen. A test checks that integrated gradients, attribution patching and activation wiring measure the same.
+
 - **Streamed passes keep the checkpoint open** (`openinterp/harness/memory.py`, `OpenCheckpoint`, from TODO, Performance). `accelerate` opened the safetensors file again for each tensor it read: 5.6 s of a 5.9 s pass over 16 tokens on Qwen2.5-0.5B. The streamed model now opens each file once, and that pass takes 0.2 s, against 0.14 s whole. A streamed 5,000-token Qwen2.5-0.5B audit under a 1 GB budget took 144 s, against 11 minutes before and 125 s whole. It still peaked at 1.5 GB. The values are the same.
 
 - **The joint ablation computes its KL in blocks of 64 positions** (`openinterp/harness/covariance.py`). A whole prompt's log-softmax and KL each made a copy of its logits, about 350 MB for a 577-token prompt on Qwen2.5. A Qwen2.5-0.5B review now peaks at 3.1 GB, not 4.1 GB, and 1.7 GB streamed, not 2.7 GB.
