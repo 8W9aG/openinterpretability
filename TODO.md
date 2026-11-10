@@ -309,7 +309,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Publish a public benchmark for explanation tools: a frozen, versioned set of units and probe sets, with a scorer. Then other labs can test their own explainers against them. The reviewer-drift benchmark (Protocol and science) is internal only. Keep a held-out split, and say how units were selected so the scores aren't read as covering whole models.
+- [ ] Seal the test split of the explainer benchmark v1 (`docs/benchmark.md`, *Make a new version*, steps 2–5). For each of its 241 test units, write fresh probes with a reviewer that has not reviewed the unit, measure them with `openinterp benchmark measure`, then `openinterp benchmark seal`. Keep the private labels file out of the repository and store it where maintainers can read it. Then publish a registry baseline score for both splits, with its judge.
 
 ## Datasets
 
