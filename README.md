@@ -2,6 +2,8 @@
 
 `openinterp` is a decentralized, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
+The registry is published at **[open-interpretability.com](https://open-interpretability.com/)**: every experiment, unit, model and paper, with search and the Parquet export.
+
 Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**. Each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It starts from a working hypothesis, not an established finding. Goodfire's essay [*Neural Networks Are Already Clean*](https://already-clean.goodfire.com/) (Cammarata, 2026) argues that most apparent polysemanticity in native neurons comes from solvable tooling problems rather than superposition. Its technical companion paper has not been published, so the registry tests that claim one pole at a time rather than assuming it. A pole that resists a clean explanation is a result too.
 
 ## Quickstart
@@ -79,7 +81,7 @@ Every claim is empirical and falsifiable:
    - lookahead consistency (the claimed mechanism compared with KL(clean ‖ pole-ablated) on next-token distributions)
    - covariance: the most correlated same-layer neurons, and joint ablation with them to expose redundancy (recorded, not gated)
    - causal sufficiency (clean → corrupted patching) and necessity (corrupted → clean resample ablation), recorded but not yet gated. Downstream MLP outputs are frozen to mitigate self-repair (the hydra effect). Each score is ranked against same-layer neurons that change as much between the pair
-3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterp/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) and searched client-side with Pagefind and DuckDB-Wasm.
+3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterp/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) at [open-interpretability.com](https://open-interpretability.com/) and searched client-side with Pagefind and DuckDB-Wasm.
 
 The full experimental protocol (roles, lifecycle, decision rule and reproducibility requirements) is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 

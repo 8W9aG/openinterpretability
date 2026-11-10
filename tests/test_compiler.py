@@ -13,6 +13,7 @@ from openinterp.builder.model_facts import ModelFacts, facts_from_config, format
 from openinterp.builder.parquet_export import REGISTRY_SCHEMA
 from openinterp.core.exceptions import RegistryError
 from openinterp.core.licenses import DATA_LICENSE, DATA_LICENSE_URL
+from openinterp.core.project import site_url
 from openinterp.core.schemas import (
     PROTOCOL_VERSION,
     ActivatingExample,
@@ -300,6 +301,16 @@ def test_footer_links_repo_and_contact(tmp_path):
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
     assert 'href="mailto:will.sackfield@gmail.com"' in index
+
+
+def test_every_page_names_its_canonical_url(tmp_path, records):
+    report = compile_site(records, tmp_path)
+    site = site_url()
+    assert site == "https://open-interpretability.com/"
+    for page in report.pages:
+        rel = page.relative_to(tmp_path).as_posix()
+        if page.suffix == ".html" and "Moved" not in (text := page.read_text()):
+            assert f'<link rel="canonical" href="{site}{rel}">' in text, rel
 
 
 def test_about_page_quotes_protocol_and_licence(tmp_path):

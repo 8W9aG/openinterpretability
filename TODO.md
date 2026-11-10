@@ -258,11 +258,6 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 Pages, deployment and charts for the generated site. Each experiment, shown in full on its unit's page, has an activation histogram and token heatmaps of the top-activating examples. Everything else is tables and token chips. Keep new charts as static SVG rendered at build time, readable in light and dark mode. Put the numbers in a table or in the Parquet export. Some need extra data stored on records. Check that before building them.
 
-- [ ] Serve the site at open-interpretability.com and use it everywhere:
-  - attach it as the R2 bucket's custom domain.
-  - set the `OPENINTERP_SITE_URL` repo variable, which turns on the deploy's cache purge.
-  - link it from the README, the repo's homepage field and the site's own canonical URLs.
-  - reference it in the docs (`docs/PROTOCOL.md`, `docs/analyses/`, the Claude Code skills), e.g. linking experiment and neuron pages on the site.
 - [ ] Registry dashboard on the home page: experiments and VERIFIED share over time, and verdicts per model and per layer. Per-agent rates belong on the agents page.
 - [ ] Add a Users page to the site that lists everyone who made an experiment, and give each user a page that lists all their experiments. Take the user from the record's `contributor` field (`core/contributors.py`). If a record has no contributor, look the user up in git. Use the GitHub username of the PR that merged the record, not the commit author's email. Contributors are public handles, never emails. This changes the rule in `CHANGELOG.md` that git is never read for contributors, so say so there. Link the existing contributor leaderboard on the Agents page to the user pages.
 - [ ] Move the learned-basis baseline off the home page (`openinterp/builder/templates/index.html`) onto its own page.
@@ -287,7 +282,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 - [ ] Show pending experiments in the web view.
 - [ ] Add changelog versions to the website.
 - [ ] Add a sitemap and an RSS/Atom feed of new VERIFIED units to the site. Neither exists today. The Slack bot (Pipeline) could also read the feed.
-- [ ] Add page metadata and a 404 page to the site. `base.html` has no description, OpenGraph or canonical tags, and there is no 404 template. This matters more once the custom domain is live.
+- [ ] Add page metadata and a 404 page to the site. `base.html` has no description or OpenGraph tags, and there is no 404 template.
 - [ ] Change the models page (`openinterp/builder/templates/models.html`) so it shows the BitTorrent-style pieces bars (`model_pieces` in `openinterp/builder/charts.py`, today on the home page) and the statistics for each model.
 - [ ] Use opacity on the BitTorrent-style pieces bars and maps (`model_pieces` and `layer_pieces` in `openinterp/builder/charts.py`) to show how much of each cell is done. Today a home-page cell is lit when any neuron in its block of `ceil(mlp_width / 128)` is studied. So one studied neuron looks the same as a whole block. Set each cell's opacity from the share of its block's poles that are studied (two per neuron). Then on a layer page a neuron with one studied pole is half filled. Keep a minimum opacity so a single studied pole is still visible. Say in the legend and the `aria-label` what opacity means. Check it alongside the colour-blind-safe palette (item above) so faded colours stay distinguishable.
 - [ ] Branding for the generated site and repo. It needs a logo and wordmark to replace the `⊕` placeholder in `base.html`, and a favicon. It also needs a colour palette and type defined once in the Tailwind config (currently ad hoc emerald/slate). Then Open Graph/social preview images for shared links, and the same mark on the README and GitHub social preview.

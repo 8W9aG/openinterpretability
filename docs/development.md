@@ -60,7 +60,7 @@ Run `make check` locally before pushing. The [PR template](../.github/pull_reque
 
 ## Static site and data
 
-The site is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
+The site, served at [open-interpretability.com](https://open-interpretability.com/), is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
 
 ```text
 dist/
@@ -97,4 +97,4 @@ Configure the workflow in the repo's GitHub settings:
 | `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | secrets | R2 S3 API access |
 | `R2_BUCKET` | variable | Bucket name |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
-| `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs |
+| `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs. Without it, `openinterp deploy` uses `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too |
