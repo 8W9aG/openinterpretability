@@ -74,7 +74,10 @@ def _load(model_name, device, torch_dtype, revision, attn_implementation):
     tokenizer = AutoTokenizer.from_pretrained(model_name, revision=commit)
     extra = {"attn_implementation": attn_implementation} if attn_implementation else {}
     model = load_causal_lm(model_name, device, torch_dtype, commit, **extra)
-    model.eval()
+    # Nothing here trains the model. Gradients are only taken for inputs and
+    # activations. A weight that requires a gradient makes autograd keep more. On a
+    # streamed Qwen2.5-1.5B, integrated gradients then peaked at 3.7 GB, not 1.8 GB.
+    model.eval().requires_grad_(False)
     _align_parameters(model)
     runner = NeuronHookRunner(model, tokenizer)
     runner.model_name = model_name

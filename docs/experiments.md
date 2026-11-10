@@ -67,10 +67,10 @@ The weights set the floor, and what a scan or a review adds on top of them is sm
 | Model | Weights (float32) | Scan | Review | Machine |
 | --- | --- | --- | --- | --- |
 | GPT-2 small | 0.5 GB | 3.1 GB | 1.3 GB | 8 GB |
-| Qwen2.5-0.5B | 2.0 GB | 5.4 GB | 3.8 GB | 8 GB |
-| Qwen2.5-1.5B | 6.2 GB | 9.2 GB | 6.9 GB | 16 GB |
+| Qwen2.5-0.5B | 2.0 GB | 5.4 GB | 3.0 GB | 8 GB |
+| Qwen2.5-1.5B | 6.2 GB | 9.2 GB | 7.4 GB | 16 GB |
 
-The last column is the smallest common machine with room for the operating system as well. Resident memory (RSS) reads 1–4 GB higher, because it also counts the weight files that the loader maps from disk. The system can drop those pages when it needs the memory.
+The joint ablation's KL in blocks of 64 positions lowered the reviews. On one day, a Qwen2.5-1.5B review peaked at 7.9 GB before that change and 7.4 GB after. An earlier measurement on a quieter machine was 6.9 GB. The last column is the smallest common machine with room for the operating system as well. Resident memory (RSS) reads 1–4 GB higher, because it also counts the weight files that the loader maps from disk. The system can drop those pages when it needs the memory.
 
 Until November 2026, a Qwen2.5-0.5B review took 19.4 GB and its scan 7.0 GB. Most of it was logits: an array of batch × sequence × vocabulary, 1.2 GB for 2,048 tokens at Qwen2.5's 151,936 tokens. Strength reads, the scan and the lenses computed logits and dropped them, and one check padded every probe to the longest. Tests in `tests/test_agents.py` now fail if a scan or the lens computes logits, or if a review computes them over padding.
 
@@ -92,7 +92,11 @@ It is not the default. With `--memory auto`, the default, a command streams only
 
 The numbers don't change, so a streamed record reproduces in normal mode. A streamed 20,000-token Qwen2.5-0.5B scan matched a normal one in every field but two, which differ by 0.00001. Tests in `tests/test_memory.py` check this, and that each direct read of a weight gets the real one.
 
-Every pass reads its layers again, and that is the cost. A streamed scan uses batches as large as half the planned memory allows, so it reads each layer a few times. The lenses, attribution and the review make many short passes, and they take most of the time. With `OPENINTERP_MEMORY_GB=1`, a streamed 5,000-token Qwen2.5-0.5B audit peaked at 1.5 GB and took 11 minutes. Its float32 weights are 2.0 GB, and a normal 20,000-token audit peaks at 4.5 GB in 3 minutes. Qwen2.5-1.5B streamed loads and runs a pass in 1.3 GB in float32, against 6.2 GB of weights. These times are on a machine whose file cache held the checkpoint. With less memory, each pass reads from the disk itself, and that is slower. Gradients through streamed layers would keep every layer's weights for the backward pass. So attribution recomputes the layers below the unit in that pass, and reads them from disk again. A large model also needs bfloat16, because float32 doubles its size, and bfloat16 on CPU is about 10 times slower than float32 (above).
+Every pass reads its layers again, and that is the cost. On a machine whose file cache holds the checkpoint it is small. `accelerate` opened the checkpoint file again for each tensor, which was 5.6 s of a 5.9 s pass over 16 tokens on Qwen2.5-0.5B. So the streamed model keeps each file open, and that pass now takes 0.2 s, against 0.14 s whole. With `OPENINTERP_MEMORY_GB=1`, a streamed 5,000-token Qwen2.5-0.5B audit took 144 s and peaked at 1.5 GB. A normal one took 125 s and peaked at 3.1 GB. Before the files stayed open, the streamed audit took 11 minutes. Its float32 weights are 2.0 GB. A streamed review of one record peaked at 1.7 GB. A streamed 5,000-token Qwen2.5-1.5B audit, whose float32 weights are 6.2 GB, peaked at 2.4 GB. It took 12–17 minutes beside other runs. Before the files stayed open, it didn't finish in 50 minutes. Its embedding and output head are one 0.9 GB matrix that stays in memory. So that is the least a streamed 1.5B run can take.
+
+With less memory than the checkpoint, each pass reads from the disk itself. A streamed scan uses batches as large as half the planned memory allows, so it reads each layer a few times. That streamed audit read 47.5 GB from the checkpoint and the review 147 GB, about 200 passes over every layer. This SSD reads a file that isn't cached at 3.5 GB/s, so those reads would add about 14 s and 43 s. For a model of about 120B a pass reads about 240 GB, and then the number of passes sets the time (TODO, Performance). Gradients through streamed layers would keep every layer's weights for the backward pass. So attribution recomputes the layers below the unit in that pass, and reads them from disk again. The weights are also frozen at load, since the harness takes gradients only for inputs and activations. A weight that required a gradient made that audit peak at 5.2 GB, not 2.4 GB. A large model also needs bfloat16, because float32 doubles its size, and bfloat16 on CPU is about 10 times slower than float32 (above).
+
+A record says that its run streamed (`environment.streamed`), and it reproduces in either mode. A mixture-of-experts model streams too (`tests/test_memory.py`). transformers stores a layer's experts as one tensor, so a layer is read whole, every expert included.
 
 ## Letting an agent run it (Claude Code)
 

@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **Records say when a run streamed** (`RunEnvironment.streamed`, from TODO, Performance). It is true when the decoder layers were read from disk on each pass, and unset otherwise, as in older records.
+
 - **A memory benchmark at each release** (`scripts/memory_benchmark.py`, `release` skill step 5, from TODO, Performance). It scans and reviews GPT-2 and Qwen2.5-0.5B, 20,000 tokens each, and reads each command's peak resident memory. It fails if a peak is more than 25% above `scripts/memory_baseline.json`. On macOS it compares the peak footprint: peak RSS moved by more than 1 GB between runs of one review, and the footprint by 1%. Two runs of this branch agreed within 1%. On `main` before these changes it fails all four peaks, with a Qwen2.5-0.5B review at 19.8 GB against 3.9 GB.
 
 - **A streaming mode for models larger than memory** (`--memory auto|normal|stream`, `openinterp/harness/memory.py`, from TODO, Performance). In streaming mode the decoder layers stay in the checkpoint's files on disk. Each forward pass reads a layer when it reaches it and frees it after. So a model runs in about one layer's memory, slowly. `auto`, the default, streams only when the weights at the chosen dtype, plus 3 GB, exceed free RAM and swap. `$OPENINTERP_MEMORY_GB` plans for less. The numbers are the same as a normal load's, so streamed records reproduce. Under a 1 GB budget, a streamed Qwen2.5-0.5B audit peaked at 1.5 GB, against 2.0 GB of weights. No rule changes.
@@ -24,6 +26,12 @@ The project has two version numbers:
 - **A literature review page for Levin's "Ingressing Minds from Platonic Space"** (`docs/literature/levins-ingressing-minds-from-platonic-space.md`). It reviews the first entry in `docs/literature/queue.md`, written from the Closer To Truth page, and marks it not applicable. The index gets a *Philosophy of mind* section.
 
 ### Changed
+
+- **The CLI loads a model with its weights frozen** (`openinterp/cli.py`, `_load`). The harness takes gradients only for inputs and activations, and never trains the model. A weight that required a gradient made autograd keep more. A streamed 5,000-token Qwen2.5-1.5B audit under a 1 GB budget peaked at 5.2 GB with them, and 2.4 GB frozen. A test checks that integrated gradients, attribution patching and activation wiring measure the same.
+
+- **Streamed passes keep the checkpoint open** (`openinterp/harness/memory.py`, `OpenCheckpoint`, from TODO, Performance). `accelerate` opened the safetensors file again for each tensor it read: 5.6 s of a 5.9 s pass over 16 tokens on Qwen2.5-0.5B. The streamed model now opens each file once, and that pass takes 0.2 s, against 0.14 s whole. A streamed 5,000-token Qwen2.5-0.5B audit under a 1 GB budget took 144 s, against 11 minutes before and 125 s whole. It still peaked at 1.5 GB. The values are the same.
+
+- **The joint ablation computes its KL in blocks of 64 positions** (`openinterp/harness/covariance.py`). A whole prompt's log-softmax and KL each made a copy of its logits, about 350 MB for a 577-token prompt on Qwen2.5. A Qwen2.5-0.5B review now peaks at 3.1 GB, not 4.1 GB, and 1.7 GB streamed, not 2.7 GB.
 
 - **MPS gives its cache back at the end of each stage** (`openinterp/core/costs.py`, from TODO, Performance). PyTorch's MPS allocator keeps freed memory for reuse, and on Apple silicon that memory is the machine's own. A 20,000-token Qwen2.5-1.5B audit on MPS in float32 took 15.4 GB and now takes 11.5 GB. The TODO item blamed loading, but a load and one pass take 7.2 GB, about the weights. A CPU run doesn't touch Metal.
 

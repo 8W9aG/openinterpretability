@@ -157,3 +157,32 @@ def test_unconverged_examples_are_kept_but_not_aggregated(gpt2_runner):
     assert result.examples
     assert all(not r.converged and r.steps == 1 and r.top for r in result.examples)
     assert result.converged == 0 and result.distances == [] and result.ablation_agreement is None
+
+
+def test_frozen_weights_measure_the_same(tiny_gpt2):
+    """The CLI freezes the weights it loads, and no gradient measurement changes.
+
+    Gradients are only taken for inputs and activations.
+    """
+    from openinterp.harness.attribution import attribution_patching
+    from openinterp.harness.wiring_activations import activation_wiring
+    from tests.test_wiring import neuron
+
+    runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
+    ids = runner.encode(TEXT)["input_ids"]
+    baseline = tiny_gpt2.get_input_embeddings().weight[0].detach().clone()
+
+    def measure():
+        return (
+            integrated_gradients(runner, ids, 1, 7, "positive", baseline, steps=4),
+            attribution_patching(runner, "hello world", "zzzzz zzzzz", [0, 1]),
+            activation_wiring(runner, neuron(1, 7), ["hello", "abcde"], threshold=0.0),
+        )
+
+    trainable = measure()
+    tiny_gpt2.requires_grad_(False)
+    frozen = measure()
+    torch.testing.assert_close(trainable[0], frozen[0])
+    for layer in (0, 1):
+        torch.testing.assert_close(trainable[1][layer], frozen[1][layer])
+    assert trainable[2] == frozen[2]

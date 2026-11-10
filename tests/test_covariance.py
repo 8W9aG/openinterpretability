@@ -1,5 +1,6 @@
 import pytest
 import torch
+import torch.nn.functional as F
 
 from openinterp.core.schemas import ReviewPolicy
 from openinterp.core.stats import (
@@ -346,3 +347,15 @@ def test_scan_stops_on_a_default_on_unit():
     check_default_on("u", [1.0] * 4 + [0.0] * 6, 1.0)  # active on 40%: auditable
     with pytest.raises(click.ClickException, match="default-on: it is active on 60%"):
         check_default_on("u", [1.0] * 6 + [0.0] * 4, 1.0)
+
+
+def test_blocked_log_probs_and_kl_match_the_whole_computation():
+    from openinterp.harness.covariance import _KL_BLOCK, _kl_sum, _log_probs
+
+    torch.manual_seed(0)
+    a, b = torch.randn(1, 2 * _KL_BLOCK + 5, 50), torch.randn(1, 2 * _KL_BLOCK + 5, 50)
+    whole_a, whole_b = F.log_softmax(a, -1)[0], F.log_softmax(b, -1)[0]
+    blocked_a, blocked_b = _log_probs(a.clone())[0], _log_probs(b.clone())[0]
+    torch.testing.assert_close(blocked_a, whole_a)
+    expected = float(F.kl_div(whole_a, whole_b, log_target=True, reduction="sum"))
+    assert _kl_sum(blocked_a, blocked_b) == pytest.approx(expected, rel=1e-5)
