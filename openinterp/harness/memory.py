@@ -68,21 +68,29 @@ class MemoryPlan:
     reason: str
 
 
-def available_bytes() -> int | None:
-    """Free RAM plus free swap, or ``None`` when psutil can't tell.
+def available_bytes(device: str | torch.device | None = None) -> int | None:
+    """Free memory to plan for on ``device``, or ``None`` when it can't be read.
 
-    ``$OPENINTERP_MEMORY_GB`` overrides it, to run as if only that much were free: on a
-    shared machine, or to test streaming on a large one.
+    On a CUDA device that is the GPU's free memory. Elsewhere it is free RAM plus free
+    swap. ``device`` defaults to the one the last model loaded on. ``$OPENINTERP_MEMORY_GB``
+    overrides it, to run as if only that much were free: on a shared machine, or to
+    test streaming on a large one.
     """
     budget = os.environ.get(MEMORY_ENV)
     if budget:
         return int(float(budget) * 2**30)
+    device = torch.device(device if device is not None else _budget_device)
     try:
+        if device.type == "cuda":
+            return int(torch.cuda.mem_get_info(device)[0])
         import psutil
 
         return int(psutil.virtual_memory().available + psutil.swap_memory().free)
-    except Exception:  # psutil missing or unsupported platform
+    except Exception:  # psutil missing, an unsupported platform, or no CUDA
         return None
+
+
+_budget_device = "cpu"  # where the last model was loaded: what available_bytes plans for
 
 
 def checkpoint_bytes(snapshot: Path) -> int:
@@ -138,17 +146,20 @@ def load_causal_lm(model_name: str, device: str, dtype, revision: str | None, **
 
     from openinterp.harness.moe import use_openinterp_experts
 
-    memory = _plan_load(model_name, dtype, revision)
+    global _budget_device
+    memory = _plan_load(model_name, dtype, revision, device)
     if not memory.stream:
         kwargs = {"dtype": dtype, "revision": revision, **extra}
         model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs).to(device)
         use_openinterp_experts(model)
+        _budget_device = device
         return model
     warn(memory, model_name)
-    if device != "cpu":
+    resident = stream_device(device)
+    if resident != device:
         click.echo(f"Streaming runs on the CPU, not {device}.", err=True)
     empty = _empty_model(model_name, revision)
-    device_map = stream_device_map(empty, _layers_path(empty, model_name))
+    device_map = stream_device_map(empty, _layers_path(empty, model_name), resident)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         dtype=dtype,
@@ -159,7 +170,19 @@ def load_causal_lm(model_name: str, device: str, dtype, revision: str | None, **
     )
     keep_checkpoint_open(model)
     use_openinterp_experts(model)  # reads only the routed experts (harness/moe.py)
+    _budget_device = resident
     return model
+
+
+def stream_device(device: str) -> str:
+    """Where a streamed model runs: ``device`` if it is CUDA, else the CPU.
+
+    On CUDA the embeddings, the final norm and the head stay on the GPU. Each layer is
+    read from disk and copied to the GPU when a pass reaches it. ``from_pretrained``
+    with a device map on MPS ends in a segmentation fault (transformers 5.20), so MPS
+    streams on the CPU.
+    """
+    return device if torch.device(device).type == "cuda" else "cpu"
 
 
 class OpenCheckpoint(Mapping):
@@ -235,8 +258,8 @@ def offload_dir() -> Path:
     return Path(root) / "openinterp" / "offload"
 
 
-def _plan_load(model_name: str, dtype, revision: str | None) -> MemoryPlan:
-    """The streaming decision for loading ``model_name`` at ``dtype``."""
+def _plan_load(model_name: str, dtype, revision: str | None, device: str = "cpu") -> MemoryPlan:
+    """The streaming decision for loading ``model_name`` at ``dtype`` on ``device``."""
     mode = requested()
     if mode == "normal":
         return plan(mode, None, None)
@@ -249,7 +272,7 @@ def _plan_load(model_name: str, dtype, revision: str | None) -> MemoryPlan:
         need = weights_bytes(snapshot, config, dtype) + WORKING_MARGIN_BYTES
     except Exception:  # offline, or an unknown layout: don't stream unless asked
         pass
-    return plan(mode, need, available_bytes())
+    return plan(mode, need, available_bytes(device))
 
 
 def _snapshot(model_name: str, revision: str | None) -> Path:
@@ -285,10 +308,12 @@ def _layers_path(model: nn.Module, model_name: str) -> str:
     raise ArchitectureNotSupportedError(f"no decoder layers found on {model_name}")
 
 
-def stream_device_map(model: nn.Module, layers_path: str) -> dict[str, str]:
-    """An ``accelerate`` device map with each decoder layer on disk and the rest on CPU.
+def stream_device_map(model: nn.Module, layers_path: str, resident: str = "cpu") -> dict[str, str]:
+    """An ``accelerate`` device map with each decoder layer on disk, the rest on ``resident``.
 
     ``model`` may be on the meta device. ``layers_path`` names its decoder layers.
+    ``accelerate`` runs the layers on the first device in the map that isn't the CPU or
+    the disk, so on a GPU when ``resident`` is one.
     """
     device_map: dict[str, str] = {}
 
@@ -300,7 +325,7 @@ def stream_device_map(model: nn.Module, layers_path: str) -> dict[str, str]:
             elif layers_path.startswith(path + "."):
                 assign(child, path + ".")
             else:
-                device_map[path] = "cpu"
+                device_map[path] = resident
 
     assign(model, "")
     return device_map
