@@ -232,3 +232,6 @@ wiki/experiments/**/README.md
 
 # Dictionary weights live on the Hugging Face Hub; only their cards and metadata are tracked.
 hf_models/**/*.safetensors
+
+# Private benchmark test labels (openinterp benchmark measure); only their hash is published
+*.private.jsonl

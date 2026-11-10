@@ -10,6 +10,7 @@ from openinterp.cli_memory import memory_option
 from openinterp.core.contributors import CONTRIBUTOR_ENV, contributor_problem
 from openinterp.core.exceptions import OpenInterpError
 from openinterp.core.paths import DEFAULT_WIKI_DIR
+from openinterp.core.project import site_url as project_site_url
 from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
 
 
@@ -204,8 +205,7 @@ def _write_wiki(record, wiki_dir, **kwargs) -> None:
     page = write_experiment_page(record, wiki_dir, **kwargs)
     if page is not None:
         archived = archive_path(wiki_dir, record)
-        click.echo(f"Experiment: {archived}")
-        click.echo(f"Wiki: {page}")
+        click.echo(f"Experiment: {archived}\nWiki: {page}")
         if kwargs.get("kind") == "backfill":
             return  # an imported record this run didn't produce: never vouch for it
         try:
@@ -427,8 +427,9 @@ def build(
 @click.option(
     "--site-url",
     envvar="OPENINTERP_SITE_URL",
-    help="Public URL of the bucket root. With CF_ZONE_ID and CF_API_TOKEN set, the "
-    "changed URLs are purged from Cloudflare's cache.",
+    default=project_site_url,
+    help="Public URL of the bucket root (default: [project.urls] Homepage). With CF_ZONE_ID "
+    "and CF_API_TOKEN set, the changed URLs are purged from Cloudflare's cache.",
 )
 def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
     """Delta-sync the built site to Cloudflare R2 (a no-op when nothing changed)."""
@@ -468,6 +469,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 # Registers the registry-maintenance commands on `cli`.
 from openinterp import (  # noqa: E402, F401
     cli_baseline,
+    cli_benchmark,
     cli_check,
     cli_concepts,
     cli_corpus,

@@ -58,8 +58,11 @@ jobs:
         env:
           SAMPLE: ${{ inputs.sample || '20' }}
           SAMPLE_DATE: ${{ inputs.date }}
+        # The budget stops new records after 140 minutes. A Qwen2.5-1.5B record takes up
+        # to ~57 minutes on this runner, so the last one ends inside the step's limit.
+        # Records not reached wait for their next turn in the rotation, and don't fail.
         run: |
-          flags=(--sample "$SAMPLE" --device cpu)
+          flags=(--sample "$SAMPLE" --device cpu --time-budget 140)
           if [ -n "$SAMPLE_DATE" ]; then flags+=(--date "$SAMPLE_DATE"); fi
           openinterp reproduce "${flags[@]}" | tee reproduce.log
       - name: Open an issue, or comment on the open one

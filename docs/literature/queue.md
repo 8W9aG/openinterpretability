@@ -60,3 +60,7 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "Towards Foundation Decision Models: Drex" (arXiv 2611.07854, [paper](https://arxiv.org/abs/2611.07854)).
 - Review "SwarmEvolve: Latent Agent Swarms for Evolutionary Discovery and Optimization" (arXiv 2611.08483, [paper](https://arxiv.org/abs/2611.08483)).
 - Review Anthropic's "Teaching AI to build scientific models" (Macke, Gedon and Wahl, [post](https://www.anthropic.com/research/teaching-ai-to-build-scientific-models)).
+- Review "Calibrated concept profiles: making the reading of a model's neurons a measurement" (arXiv 2611.09196, [paper](https://arxiv.org/abs/2611.09196)).
+- Review "SteerGR: Steering Generative Recommendation via Sparse Autoencoders for Controllable Game Discovery" (arXiv 2611.08790, [paper](https://arxiv.org/abs/2611.08790)).
+- Review "Teach the Way It Thinks: Guiding LLM Post-training Data Engineering with Sparse Autoencoders" (arXiv 2605.27354, [paper](https://arxiv.org/abs/2605.27354)).
+- Review "Farther the Shift, Sparser the Representation: Analyzing OOD Mechanisms in LLMs" (arXiv 2603.03415, [paper](https://arxiv.org/abs/2603.03415)).

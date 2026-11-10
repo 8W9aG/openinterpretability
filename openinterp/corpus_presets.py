@@ -26,6 +26,22 @@ class Preset:
 
 WIKIPEDIA_LANGUAGES = ("en", "de", "fr", "ru", "el", "ar", "hi", "zh", "ja", "ko")
 
+# The languages of the `fineweb-2` preset. A key is FineWeb-2's folder name: an ISO 639-3
+# code and a script. Its value is the code that a document's `lang` records. Wikipedia's
+# folders and lid.176 (openinterp.langid) use the same codes. So one language has one
+# label in a blended corpus. Add entries, never change one: a corpus rebuilt from its
+# sidecar reads this table. FineWeb-2 has no English (that is FineWeb). The set spans 12
+# scripts. Some pairs share a script (Spanish and Portuguese, Russian and Ukrainian,
+# Arabic and Persian). The reviewer uses such pairs for hard negatives.
+FINEWEB2_LANGUAGES = {
+    "spa_Latn": "es", "por_Latn": "pt", "ita_Latn": "it", "nld_Latn": "nl",
+    "pol_Latn": "pl", "tur_Latn": "tr", "vie_Latn": "vi", "ind_Latn": "id",
+    "swh_Latn": "sw", "rus_Cyrl": "ru", "ukr_Cyrl": "uk", "arb_Arab": "ar",
+    "fas_Arab": "fa", "cmn_Hani": "zh", "jpn_Jpan": "ja", "kor_Hang": "ko",
+    "hin_Deva": "hi", "ben_Beng": "bn", "tha_Thai": "th", "heb_Hebr": "he",
+    "ell_Grek": "el", "tam_Taml": "ta",
+}  # fmt: skip
+
 PRESETS = {
     # Clean, educational web text (FineWeb filtered by an educational-quality classifier),
     # closer to recent models' pretraining mix than the Pile. ODC-By: attribute excerpts.
@@ -77,6 +93,18 @@ PRESETS = {
         ",".join(f"20231101.{lang}/train-*.parquet" for lang in WIKIPEDIA_LANGUAGES),
         docs_per_row_group=50,
         lang_pattern=r"^\d+\.([\w-]+)/",
+    ),
+    # Web text in 22 languages besides English (FINEWEB2_LANGUAGES), with an equal share of
+    # documents each. It is FineWeb's pipeline run on Common Crawl for other languages. It
+    # gives the blend non-English text in more registers than encyclopedic Wikipedia. Only
+    # each language's first file is read. It holds 1.2M-4M documents from many crawls, in
+    # row groups of 1,000 documents (~3.6 MB) from one crawl each. Reading the footers of
+    # every file (~2,000) took 10 minutes. ODC-By 1.0: attribute excerpts. The card also
+    # requires users to obey the Common Crawl terms of use.
+    "fineweb-2": Preset(
+        "HuggingFaceFW/fineweb-2",
+        ",".join(f"data/{folder}/train/000_00000.parquet" for folder in FINEWEB2_LANGUAGES),
+        lang_pattern=r"^data/([a-z]{3}_[A-Z][a-z]{3})/",
     ),
     # Mathematical web text from Common Crawl, with LaTeX, for number, operator and LaTeX
     # neurons. Row groups are 1,000 documents of ~3.6 MB. ODC-By 1.0: attribute excerpts.

@@ -31,6 +31,7 @@ EXEMPT = (
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows
     "papers/*/results*.jsonl",  # generated result rows of a paper
+    "benchmark/*.jsonl",  # frozen benchmark data (openinterp benchmark freeze)
     "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
     "CHANGELOG.md",  # one file that grows with each release, not code

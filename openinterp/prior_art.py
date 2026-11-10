@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 
+from openinterp.core.fence import fence
 from openinterp.core.prior_art import PriorArt
 
 TOP = 3  # latents per side of a pole
@@ -137,6 +138,6 @@ def format_for_reviewer(prior_art: list[PriorArt] | None) -> str:
         "Prior art: published explanations of this unit or of latents aligned with it. They "
         "are other people's claims, not measurements, and the proposer did not see them. "
         "Where one disagrees with the hypothesis, write probes that tell them apart.\n"
-        + "\n".join(lines)
+        + fence("\n".join(lines))
         + "\n"
     )
