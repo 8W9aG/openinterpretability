@@ -32,6 +32,7 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
 from openinterp.core import costs
 from openinterp.core.agent_names import same_agent
 from openinterp.core.confounds import LANGUAGE, SYNTAX_NODE
+from openinterp.core.fence import FENCE_RULE, fence
 from openinterp.core.schemas import (
     AdversarialTestResult,
     NeuronAuditSubmission,
@@ -119,7 +120,8 @@ class ReviewerAgent(LLMAgent):
         "the hypothesis predicts should NOT activate the pole. The rest (at least four) are "
         "positive holdouts: novel contexts unlike the provided examples that the hypothesis "
         "predicts SHOULD activate it, including paraphrases of the claimed feature. Label each "
-        "probe with what the hypothesis predicts, not with what you believe the neuron will do."
+        "probe with what the hypothesis predicts, not with what you believe the neuron will do. "
+        + FENCE_RULE
     )
 
     def generate_probes(
@@ -150,6 +152,12 @@ class ReviewerAgent(LLMAgent):
         shown (:func:`openinterp.prior_art.format_for_reviewer`).
         """
         mechanism = "lookahead" if submission.lookahead.is_lookahead else "retrospective"
+        claim = (
+            f"Hypothesis: {submission.natural_language_explanation}\n"
+            f"Claimed activating tokens: {submission.activating_tokens}\n"
+            f"Claimed mechanism: {mechanism}"
+            f" {submission.lookahead.target_upcoming_tokens or ''}"
+        )
         is_head = submission.identifier.kind == "attn_head"
         context = ""
         if submission.input_attribution is not None:
@@ -163,10 +171,7 @@ class ReviewerAgent(LLMAgent):
             f"{submission.identifier.noun.capitalize()}: {submission.identifier}\n"
             + (HEAD_ACTIVITY if is_head else "")
             + (FIRST_TOKEN_UNMEASURED if submission.first_token_floor else "")
-            + f"Hypothesis: {submission.natural_language_explanation}\n"
-            f"Claimed activating tokens: {submission.activating_tokens}\n"
-            f"Claimed mechanism: {mechanism}"
-            f" {submission.lookahead.target_upcoming_tokens or ''}\n"
+            + f"The submitted hypothesis, which your probes test:\n{fence(claim)}\n"
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
             + (SYNTAX_PROBES if has_syntax_labels(submission) else "")
@@ -215,7 +220,7 @@ class ReviewerAgent(LLMAgent):
             "for the words. Where a label is wrong, rewrite the probe so it tests what you "
             "meant (preferred, to keep the share of hard negatives), or relabel it. Leave "
             "the other probes unchanged and write the whole probe set again.\n\n"
-            + "\n\n".join(blocks)
+            + fence("\n\n".join(blocks))
         )
 
     def review(
