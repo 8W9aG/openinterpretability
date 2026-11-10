@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **`CONTRIBUTING.md`, `SECURITY.md` and `CITATION.cff`** (from TODO, Housekeeping). `CONTRIBUTING.md` is a short map of the ways to contribute and the rules for pull requests and style, and links the pages that hold the detail. `SECURITY.md` says how to report a problem privately, with GitHub's private vulnerability reporting. It covers a way to get a false VERIFIED past CI. It also covers a leaked or lost signing key, with the steps to revoke it and reproduce the records it signed. `CITATION.cff` lets papers cite the registry. It has no version, because Zenodo takes the version from each GitHub release and gives it its own DOI. So the `release` skill now publishes a GitHub release from each tag (step 10). The README links all three, and `make ste` checks the two Markdown files.
+
 - **A literature review page for "Context Language Models"** (`docs/literature/context-language-models.md`, Shao et al., 2026). It reviews the first entry in `docs/literature/queue.md` and marks it not applicable: it studies agent context management and has no interpretability content. One habit carries over to the DSPy prompt-optimisation item in TODO: select on replicated runs, not one seed. The index gets an *Agents and context management* section.
 
 ## [0.0.16] - 2026-11-10

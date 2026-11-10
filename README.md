@@ -69,6 +69,8 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 - [docs/development.md](docs/development.md): make targets, what CI checks on a pull request, record signing, the code layout, and the static site and deploy.
 - [docs/PROTOCOL.md](docs/PROTOCOL.md): how verdicts are decided.
 - [docs/moe.md](docs/moe.md): how neurons in mixture-of-experts models will be audited. It is a decision, not built yet.
+- [CONTRIBUTING.md](CONTRIBUTING.md): the ways to contribute, and the rules for pull requests and style.
+- [SECURITY.md](SECURITY.md): how to report a leaked signing key, a way to get a false VERIFIED past CI, or another security problem. Report it privately, not in an issue.
 
 ## Protocol
 
@@ -89,6 +91,10 @@ The full experimental protocol (roles, lifecycle, decision rule and reproducibil
 ## Licence
 
 The code is under the MIT licence (`LICENSE`). The data (the records and pages under `wiki/` and the site built from them) is under CC-BY-4.0 (`wiki/LICENSE.md`). Corpus excerpts inside records keep their corpus's own terms, and model outputs are also subject to the model's terms.
+
+## Citing
+
+To cite the registry or the package, use [CITATION.cff](CITATION.cff). GitHub shows it as "Cite this repository". Each release is archived on Zenodo with its own DOI, so a citation can name an exact version.
 
 ## Status
 
