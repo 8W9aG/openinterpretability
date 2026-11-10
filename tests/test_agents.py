@@ -638,9 +638,9 @@ def test_agents_see_a_window_around_the_peak_without_near_duplicates(ident, toy_
 
 
 # -- memory guards ----------------------------------------------------------------------
-# Logits are batch × sequence × vocabulary: 1.2 GB for 2,048 tokens of Qwen2.5. These
-# tests pin down the two ways a review or scan once spent most of its memory: computing
-# logits that nothing reads, and computing them for padding.
+# Logits are batch × sequence × vocabulary: 1.2 GB for 2,048 tokens of Qwen2.5. A review
+# or scan once spent most of its memory in two ways, and these tests pin both down. One
+# was logits that nothing read. The other was logits for padding.
 
 
 class _LogitWatch:

@@ -184,8 +184,8 @@ def joint_ablation(
     the prompts, which stays closer to their natural distribution than zeroing.
 
     Each prompt runs alone. A batch pads every prompt to the longest, and its logits are
-    prompts × longest × vocabulary: about 5.5 GB per copy for 17 prompts, one of them
-    577 tokens long, at Qwen2.5's 151,936 tokens. Alone, a prompt costs its own length.
+    prompts × longest × vocabulary. For 17 prompts, one of them 577 tokens long, that was
+    about 5.5 GB per copy at Qwen2.5's 151,936 tokens. Alone, a prompt costs its own length.
     """
     prompts = [prompts] if isinstance(prompts, str) else list(prompts)
     encoded = [runner.encode([p]) for p in prompts]
