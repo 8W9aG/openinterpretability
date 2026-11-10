@@ -68,6 +68,7 @@ def _runner(path, mode, monkeypatch, tmp_path):
 def test_a_streamed_model_measures_what_a_loaded_one_does(saved_gpt2, monkeypatch, tmp_path):
     from openinterp.core.identifiers import NeuronIdentifier
     from openinterp.harness.dead import prove_dead
+    from openinterp.harness.environment import run_environment
     from openinterp.harness.scan import scan_neuron
     from openinterp.harness.wiring import _matrix
 
@@ -75,6 +76,8 @@ def test_a_streamed_model_measures_what_a_loaded_one_does(saved_gpt2, monkeypatc
     streamed = _runner(saved_gpt2, "stream", monkeypatch, tmp_path)
     assert not memory.is_streamed(whole.model) and memory.is_streamed(streamed.model)
     assert streamed.device.type == "cpu"
+    assert run_environment(streamed).streamed is True
+    assert run_environment(whole).streamed is None  # unset, as in older records
 
     texts = ["abcde", "hello world", "zzzz", "aaaa bbbb"]
     a = scan_neuron(whole, texts, 1, 7, "positive")
@@ -90,6 +93,25 @@ def test_a_streamed_model_measures_what_a_loaded_one_does(saved_gpt2, monkeypatc
     ident = NeuronIdentifier(model_name="toy", layer=1, neuron_idx=7, pole="negative")
     assert prove_dead(whole, ident) == prove_dead(streamed, ident)
     assert not any((tmp_path / "cache").rglob("*.dat"))  # no copy of the weights written
+
+
+def test_a_streamed_model_opens_each_checkpoint_file_once(saved_gpt2, monkeypatch, tmp_path):
+    """Accelerate opens the file again for each tensor, which was most of a pass's time."""
+    import safetensors
+
+    streamed = _runner(saved_gpt2, "stream", monkeypatch, tmp_path)
+    opened = []
+    real = safetensors.safe_open
+
+    def spy(path, *args, **kwargs):
+        opened.append(path)
+        return real(path, *args, **kwargs)
+
+    monkeypatch.setattr(safetensors, "safe_open", spy)
+    monkeypatch.setattr("accelerate.utils.offload.safe_open", spy)
+    for _ in range(2):
+        streamed.run_with_interventions(["abcde"])
+    assert len(opened) == len(set(opened)) == 1  # one file, opened on the first read
 
 
 def test_auto_loads_a_model_that_fits_whole(saved_gpt2, monkeypatch, tmp_path):
@@ -131,3 +153,27 @@ def test_streamed_attribution_recomputes_layers_and_matches(saved_gpt2, monkeypa
     assert calls  # layer 0, below the unit's layer 1, was recomputed
     assert a == b
     assert streamed.model.config.use_cache == whole.model.config.use_cache  # restored
+
+
+def test_a_mixture_of_experts_model_streams_whole_layers(monkeypatch, tmp_path):
+    """Its experts are fused into one tensor per layer, so a layer is read whole."""
+    from transformers import MixtralConfig, MixtralForCausalLM
+
+    config = MixtralConfig(
+        vocab_size=128, hidden_size=32, intermediate_size=64, num_hidden_layers=2,
+        num_attention_heads=4, num_key_value_heads=2, num_local_experts=4,
+        num_experts_per_tok=2, max_position_embeddings=64,
+    )  # fmt: skip
+    torch.manual_seed(0)
+    whole = MixtralForCausalLM(config).eval()
+    whole.save_pretrained(tmp_path / "moe")
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    memory.request("stream")
+    try:
+        streamed = memory.load_causal_lm(str(tmp_path / "moe"), "cpu", torch.float32, None)
+    finally:
+        memory.request("auto")
+    assert memory.is_streamed(streamed)
+    ids = torch.randint(0, 128, (2, 10))
+    with torch.no_grad():
+        torch.testing.assert_close(whole(ids).logits, streamed.eval()(ids).logits)

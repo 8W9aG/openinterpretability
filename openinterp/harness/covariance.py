@@ -232,10 +232,31 @@ def _kl_means(
     sums = dict.fromkeys(fns, 0.0)
     tokens = 0
     for enc in encoded:
-        clean = F.log_softmax(runner.run_with_interventions(enc).float(), dim=-1)[0]
+        clean = _log_probs(runner.run_with_interventions(enc))[0]
         tokens += clean.shape[0]
         for name, fn in fns.items():
-            logits = runner.run_with_interventions(enc, {layer: fn}).float()
-            ablated = F.log_softmax(logits, dim=-1)[0]
-            sums[name] += float(F.kl_div(ablated, clean, log_target=True, reduction="sum"))
+            ablated = _log_probs(runner.run_with_interventions(enc, {layer: fn}))[0]
+            sums[name] += _kl_sum(ablated, clean)
+            del ablated
     return {name: max(0.0, total / max(tokens, 1)) for name, total in sums.items()}
+
+
+# Positions per block in the log-softmax and the KL. A block of 64 is 39 MB at
+# Qwen2.5's 151,936 tokens. Whole, each step made a copy of the prompt's logits.
+_KL_BLOCK = 64
+
+
+def _log_probs(logits: torch.Tensor) -> torch.Tensor:
+    """``log_softmax(logits.float(), -1)``, computed in place one block at a time."""
+    logits = logits.float()
+    for row in logits.flatten(0, -2).split(_KL_BLOCK):
+        row -= row.logsumexp(-1, keepdim=True)
+    return logits
+
+
+def _kl_sum(ablated: torch.Tensor, clean: torch.Tensor) -> float:
+    """``KL(clean ‖ ablated)`` summed over positions, one block at a time."""
+    return sum(
+        float(F.kl_div(a, c, log_target=True, reduction="sum"))
+        for a, c in zip(ablated.split(_KL_BLOCK), clean.split(_KL_BLOCK), strict=True)
+    )
