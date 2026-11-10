@@ -48,6 +48,7 @@ dependencies = [
 ]
 
 [project.urls]
+Homepage = "https://open-interpretability.com/"  # the site; builder and deploy read it
 Repository = "https://github.com/8W9aG/openinterpretability"
 
 [project.scripts]

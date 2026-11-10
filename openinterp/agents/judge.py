@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from openinterp.agents.base import LLMAgent
 from openinterp.core.costs import ExperimentCosts
+from openinterp.core.fence import FENCE_RULE, fence
 from openinterp.core.schemas import ComponentIdentifier, DictionaryProfile, HeadProfile
 
 MARK_OPEN, MARK_CLOSE = "<<", ">>"
@@ -81,7 +82,7 @@ class ExplanationJudge(LLMAgent):
         "never its activations. Apply the explanation literally, as written: don't guess "
         "what the neuron really does, and don't reward texts for being on a related topic "
         "if the explanation's condition isn't met. Texts are excerpts and may start or end "
-        "mid-word; line breaks are shown as ⏎."
+        "mid-word; line breaks are shown as ⏎. " + FENCE_RULE
     )
 
     @staticmethod
@@ -91,10 +92,10 @@ class ExplanationJudge(LLMAgent):
         """The detection prompt: which of ``windows`` make the unit fire."""
         texts = "\n".join(f"{n}. {_show(w.tokens)}" for n, w in enumerate(windows, 1))
         return (
-            f"Explanation of the {noun}:\n\n> {explanation}\n\n"
+            f"Explanation of the {noun}:\n\n{fence(explanation)}\n\n"
             f"Any number of the texts below, possibly none or all, make the {noun} fire on at "
             "least one token. List the numbers of the texts in which the explanation says it "
-            f"fires.\n\n{texts}"
+            f"fires.\n\n{fence(texts)}"
         )
 
     @staticmethod
@@ -106,12 +107,12 @@ class ExplanationJudge(LLMAgent):
             f"{n}. {_show(w.tokens, w.highlighted)}" for n, w in enumerate(windows, 1)
         )
         return (
-            f"Explanation of the {noun}:\n\n> {explanation}\n\n"
+            f"Explanation of the {noun}:\n\n{fence(explanation)}\n\n"
             f"In each text below, some tokens are marked {MARK_OPEN}like this{MARK_CLOSE}. In "
             f"some texts the marks are exactly the tokens where the {noun} fires; in the rest "
             f"they are on other tokens, or the {noun} doesn't fire in that text at all. List "
             f"the numbers of the texts whose marks are where the explanation says the {noun} "
-            f"fires.\n\n{texts}"
+            f"fires.\n\n{fence(texts)}"
         )
 
     def detect(

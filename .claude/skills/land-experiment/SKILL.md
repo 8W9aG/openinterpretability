@@ -19,7 +19,7 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
    ```bash
    make build
    ```
-   `dist/` is gitignored, so don't commit it. The deploy workflow rebuilds it from `main` after the merge. The build is a check. If the new record breaks the site compiler or the Parquet export, find out before the merge, not in the deploy. Fix a failure caused by your record. If the failure is in the builder itself, note it in the PR and don't merge (step 7).
+   `dist/` is gitignored, so don't commit it. The deploy workflow rebuilds it from `main` after the merge and publishes it at [open-interpretability.com](https://open-interpretability.com/). The build is a check. If the new record breaks the site compiler or the Parquet export, find out before the merge, not in the deploy. Fix a failure caused by your record. If the failure is in the builder itself, note it in the PR and don't merge (step 7).
 4. **Mark the PR ready:** `gh pr ready`.
 5. **Bring the branch up to date with `main`.** Other experiments merge while yours runs:
    ```bash
