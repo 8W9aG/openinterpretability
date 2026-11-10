@@ -39,6 +39,9 @@ WORKING_MARGIN_BYTES = 3 * 2**30
 # The floor is the normal scan's batch (harness/scan.py, BATCH_TOKENS).
 STREAM_BATCH_TOKENS_MAX = 65536
 
+# The most rows a streamed pass of single prompts runs at once (:func:`stream_rows`).
+STREAM_ROWS_MAX = 64
+
 MEMORY_ENV = "OPENINTERP_MEMORY_GB"  # the memory to plan for, in place of what is free
 
 _requested: MemoryMode = "auto"
@@ -293,6 +296,29 @@ def stream_batch_tokens(config, dtype: torch.dtype, have: int | None, floor: int
     per_token = _itemsize(dtype) * (4 * width + 3 * (inner or 4 * width))
     tokens = (have // 2) // per_token
     return int(max(floor, min(STREAM_BATCH_TOKENS_MAX, tokens)))
+
+
+def stream_rows(runner, tokens_per_row: int, default: int, *, logits: bool) -> int:
+    """Rows per forward pass: ``default``, or more when ``runner``'s model streams.
+
+    Every streamed pass reads its layers from disk again. So a streamed model runs as
+    many rows at once as a quarter of the planned memory holds (:func:`available_bytes`).
+    A pass that returns ``logits`` holds them and one log-softmax copy: 1.2 MB a token at
+    Qwen2.5's 151,936 tokens. Rows are independent, so only float rounding changes. The
+    result is at least ``default`` and at most :data:`STREAM_ROWS_MAX`.
+    """
+    have = available_bytes()
+    if not is_streamed(runner.model) or have is None:
+        return default
+    config = runner.model.config
+    dtype = next(runner.model.parameters()).dtype
+    width = getattr(config, "hidden_size", None) or getattr(config, "n_embd", 1)
+    inner = getattr(config, "intermediate_size", None) or getattr(config, "n_inner", None)
+    per_token = _itemsize(dtype) * (4 * width + 3 * (inner or 4 * width))
+    if logits:
+        per_token += 2 * 4 * getattr(config, "vocab_size", 0)  # float32 logits and log-probs
+    rows = (have // 4) // max(1, per_token * max(1, tokens_per_row))
+    return int(max(default, min(STREAM_ROWS_MAX, rows)))
 
 
 def loaded(module: nn.Module) -> AbstractContextManager:

@@ -26,7 +26,14 @@ import torch
 
 from openinterp.core.exceptions import ShapeMismatchError
 from openinterp.core.schemas import Pole
-from openinterp.harness.hooks import Inputs, Intervention, NeuronHookRunner, replace_pole
+from openinterp.harness.hooks import (
+    Inputs,
+    Intervention,
+    NeuronHookRunner,
+    _recorders,
+    replace_pole,
+)
+from openinterp.harness.memory import stream_rows
 
 Metric = Callable[[torch.Tensor], torch.Tensor]
 # (patched logits [1, seq, vocab], unpatched target logits [1, seq, vocab]) -> effect
@@ -160,8 +167,9 @@ class ActivationPatcher:
 
         source_logits, source_cache = runner.run_with_cache(source, [layer])
         target_enc = runner.encode(target)
-        target_logits, target_cache = runner.run_with_cache(target_enc, [layer])
-        downstream_out = self._cache_outputs(target_enc, downstream)
+        target_logits, target_cache, downstream_out = self._target_pass(
+            target_enc, downstream, [layer]
+        )
 
         src_act, tgt_act = source_cache[layer], target_cache[layer]
         if positions == "all" and src_act.shape[:2] != tgt_act.shape[:2]:
@@ -210,15 +218,18 @@ class ActivationPatcher:
         With ``effect=metric_change(metric)`` this is :meth:`patch`'s ``metric_delta``.
 
         Each neuron gets its own row of a batch, so ``k`` neurons cost ``k / batch_size``
-        forward passes instead of ``k``. ``source`` and ``target`` must be single prompts.
+        forward passes instead of ``k``. A streamed model runs more rows per pass
+        (:func:`~openinterp.harness.memory.stream_rows`). ``source`` and ``target`` must be
+        single prompts.
         """
         runner = self.runner
         downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
-        _, source_cache = runner.run_with_cache(source, [layer])
+        src_act = runner.layer_activations(source, [layer])[layer]  # stops at the layer
         target_enc = runner.encode(target)
-        target_logits, target_cache = runner.run_with_cache(target_enc, [layer])
-        downstream_out = self._cache_outputs(target_enc, downstream)
-        src_act = source_cache[layer]
+        target_logits, target_cache, downstream_out = self._target_pass(
+            target_enc, downstream, [layer]
+        )
+        batch_size = stream_rows(runner, target_enc["input_ids"].shape[1], batch_size, logits=True)
         if src_act.shape[0] != 1 or target_cache[layer].shape[0] != 1:
             raise ValueError("patch_many takes one source and one target prompt")
         if positions == "all" and src_act.shape[:2] != target_cache[layer].shape[:2]:
@@ -248,21 +259,28 @@ class ActivationPatcher:
             deltas += [effect(patched[row : row + 1], target_logits) for row in range(len(chunk))]
         return deltas
 
-    def _cache_outputs(self, encoded, layers: Sequence[int]) -> dict[int, torch.Tensor]:
-        if not layers:
-            return {}
-        cache: dict[int, torch.Tensor] = {}
+    def _target_pass(
+        self, encoded, downstream: Sequence[int], layers: Sequence[int] = ()
+    ) -> tuple[torch.Tensor, dict[int, torch.Tensor], dict[int, torch.Tensor]]:
+        """One pass over the target: its logits, ``layers``' activations, ``downstream``'s outputs.
+
+        Patching freezes the downstream outputs at their target values. They were read in a
+        second pass over the target. One pass gives the same values for one read of the
+        layers, which is what a streamed model pays for.
+        """
+        acts: dict[int, torch.Tensor] = {}
+        outputs: dict[int, torch.Tensor] = {}
 
         def recorder(layer: int) -> Intervention:
             def record(out: torch.Tensor) -> None:
-                cache[layer] = out.detach().clone()
+                outputs[layer] = out.detach().clone()
 
             return record
 
-        self.runner.run_with_interventions(
-            encoded, output_interventions={i: recorder(i) for i in layers}
+        logits = self.runner.run_with_interventions(
+            encoded, _recorders(acts, layers), {i: recorder(i) for i in downstream}
         )
-        return cache
+        return logits, acts, outputs
 
     def denoise(self, clean: Inputs, corrupted: Inputs, neuron: NeuronRef, **kw) -> PatchResult:
         """Clean -> corrupted patch. ``recovery`` is the neuron's sufficiency."""

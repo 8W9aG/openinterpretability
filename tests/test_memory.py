@@ -177,3 +177,46 @@ def test_a_mixture_of_experts_model_streams_whole_layers(monkeypatch, tmp_path):
     ids = torch.randint(0, 128, (2, 10))
     with torch.no_grad():
         torch.testing.assert_close(whole(ids).logits, streamed.eval()(ids).logits)
+
+
+def test_streamed_passes_run_more_rows_and_measure_the_same(saved_gpt2, monkeypatch, tmp_path):
+    """Patching, the joint ablation and the lens batch more rows when streamed.
+
+    Rows are independent, so only float rounding changes, and there are fewer passes.
+    """
+    from openinterp.harness.covariance import joint_ablation
+    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterp.harness.jlens import transported_direction
+    from openinterp.harness.patcher import ActivationPatcher, metric_change
+
+    whole = _runner(saved_gpt2, "normal", monkeypatch, tmp_path)
+    streamed = _runner(saved_gpt2, "stream", monkeypatch, tmp_path)
+    passes = {"n": 0}
+    real = NeuronHookRunner.forward
+
+    def counted(self, encoded):
+        passes["n"] += 1
+        return real(self, encoded)
+
+    monkeypatch.setattr(NeuronHookRunner, "forward", counted)
+    prompts = ["hello world", "abcdefgh", "zzzz yyyy", "aaaa bbbb cc", "q r s t"] * 2
+    direction = torch.linspace(-1, 1, whole.model.config.n_embd)
+
+    def measure(runner):
+        start = passes["n"]
+        effect = metric_change(lambda logits: logits[0, -1, 3])
+        patched = ActivationPatcher(runner).patch_many(
+            "hello world", "hellp world", 1, list(range(20)), "positive", effect=effect
+        )
+        joint = joint_ablation(runner, prompts[:3], 1, 7, "positive", partners=[0, 5])
+        lens = transported_direction(runner, prompts, 1, direction, batch_size=2)
+        return patched, joint, lens, passes["n"] - start
+
+    a, b = measure(whole), measure(streamed)
+    assert b[0] == pytest.approx(a[0], rel=1e-4, abs=1e-6)
+    # These KLs are about 1e-6 on the random toy model, so float rounding is most of a
+    # difference. reproduce doesn't gate them.
+    assert b[1].kl_joint == pytest.approx(a[1].kl_joint, rel=1e-4, abs=1e-7)
+    assert b[1].kl_single == pytest.approx(a[1].kl_single, rel=1e-4, abs=1e-7)
+    torch.testing.assert_close(b[2], a[2], rtol=1e-4, atol=1e-6)
+    assert b[3] < a[3]  # fewer passes, so fewer reads of the streamed layers
