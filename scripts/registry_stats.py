@@ -66,8 +66,9 @@ def load(site_dir: Path) -> tuple[list[dict], list[dict], list[dict]]:
     """Return the random units, the readings of each hypothesis and the draws."""
     con = duckdb.connect()
     data = site_dir / "data"
-    con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{data / 'registry.parquet'}')")
-    con.execute(f"CREATE VIEW d AS SELECT * FROM read_parquet('{data / 'draws.parquet'}')")
+    # The paths are local files the build wrote, not user input.
+    con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{data / 'registry.parquet'}')")  # noqa: S608
+    con.execute(f"CREATE VIEW d AS SELECT * FROM read_parquet('{data / 'draws.parquet'}')")  # noqa: S608
     follow = {row["slug"]: row for row in _rows(con, FOLLOW_UPS)}
     units = []
     for row in _rows(con, UNITS):

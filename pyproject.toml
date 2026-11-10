@@ -135,10 +135,14 @@ extend-exclude = [".claude/skills/asd-ste100"]
 [tool.ruff.lint]
 # D: docstrings, held to the commenting skill (.claude/skills/commenting/SKILL.md).
 # ERA: commented-out code.
-select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA"]
+# S: Bandit's security checks (flake8-bandit), ported to Ruff.
+select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA", "S"]
 # Magic methods and __init__ are described by their class's docstring. D301 asks for r"""
 # when a docstring has a backslash, but Click's `\b` (no rewrapping) must stay a real \b.
-ignore = ["D105", "D107", "D301"]
+# S311: the random generators seed experiments and samples, never secrets.
+# S603, S607: every subprocess call passes a list, never a shell string (S602 and S604 still
+# apply), and runs a tool found on PATH (git, gh, ssh-keygen, uv). S603 flags every call.
+ignore = ["D105", "D107", "D301", "S311", "S603", "S607"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -146,7 +150,11 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 # Tests need no docstrings (D1): a test's name says what it checks, and a docstring that
 # restates it is noise (.claude/skills/commenting/SKILL.md). The other D rules apply.
-"tests/**" = ["D1"]
+# Tests assert (S101), and give token fields fixed strings that S105 and S106 read as
+# passwords. S314 parses SVG, and S608 queries parquet files, that the test itself wrote.
+"tests/**" = ["D1", "S101", "S105", "S106", "S314", "S608"]
+# A notebook checks its state with assert before a long run.
+"*.ipynb" = ["S101"]
 
 [tool.interrogate]
 # Docstring coverage of openinterp/: raise fail-under when coverage rises, never lower it.
