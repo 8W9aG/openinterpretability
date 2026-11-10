@@ -35,6 +35,8 @@ The project has two version numbers:
 
 ### Changed
 
+- **Streaming measured with the checkpoint out of the file cache** (`docs/experiments.md`, *Models larger than memory*, from TODO, Performance). A memory cap below the checkpoint's size (`systemd-run --user --scope -p MemoryMax=…`) keeps the file cache from holding it. A streamed 2,000-token Qwen2.5-3B audit on an RTX 4070 Ti then read 18.5 GB from the disk. It took 172 s, against 135 s cached, with the same evidence. Reading the next layer ahead while one runs was tried and took 179 s, so it is not used.
+
 - **Streaming says when it writes a copy** (`docs/experiments.md`, `memory.load_causal_lm`). A mixture-of-experts checkpoint that stores each expert apart (Mixtral, OLMoE) is stacked by transformers as it loads. Streaming writes those stacks to the offload folder. The docs said that streaming never writes a copy.
 
 - **A streamed review runs its loops layer-major** (`openinterp/harness/layer_major.py`, from TODO, Performance). The probes, counterfactual pairs, causal pairs, joint-ablation prompts and `reproduce`'s top examples each run in their own thread, with the model's own forward. A scheduler loads one streamed layer at a time for every pass that waits at it, in sweeps from the first layer to the last. While they run, a hook applies only in the thread that registered it. Each pass computes exactly what it would alone. A streamed Qwen2.5-0.5B review read 31 GB from the checkpoint, against 76 GB before and 147 GB at first, and still reproduces. A model that isn't streamed runs as before.
