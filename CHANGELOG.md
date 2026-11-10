@@ -11,6 +11,8 @@ The project has two version numbers:
 
 ### Added
 
+- **Streaming onto a CUDA GPU** (`--memory stream` or `auto` with `--device cuda`, `openinterp/harness/memory.py`, from TODO, Performance). The embeddings, final norm and head stay on the GPU, and each layer is copied there when a pass reaches it. `--memory auto` plans with the GPU's free memory. Each tensor is sent in the checkpoint's dtype and converted on the GPU. A float32 Qwen2.5-0.5B pass then took 0.66 s on an RTX 4070 Ti, against 2.8 s converted first. Qwen2.5-3B in float32 (about 14.5 GB) streamed onto a GPU with 9.1 GB free, and a 5,000-token audit took 167 s. Its activations matched the CPU's within 2.4e-6 of their peak. `tests/test_cuda_streaming.py` runs where CUDA is.
+
 - **openinterp's own experts forward for mixture-of-experts models** (`openinterp/harness/moe.py`, from TODO, Models and Performance). It is registered with transformers' `ExpertsInterface` and selected when an MoE model loads. A record pins it (`environment.experts_implementation`). Each expert's hidden activation passes through a per-thread hook before its down projection, where expert neurons will be read. It matches `eager` on seven architectures (`tests/test_moe.py`), and transformers' default `grouped_mm` on Granite 3.0 1B-A400M to 3e-5. Streamed, it reads only the routed experts' slices (`OpenCheckpoint.slice`). A streamed one-token Granite pass read 1.41 GB, not 4.78 GB.
 
 - **Experiment pages say where each step ran** (`_experiment.html`). A "Ran on" row gives the scan's and the review's device, and says when one streamed from disk.

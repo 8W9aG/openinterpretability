@@ -109,10 +109,13 @@ def weights_bytes(snapshot: Path, config, dtype: torch.dtype | str) -> int:
     return size * _itemsize(dtype) // _itemsize(stored)
 
 
-def plan(mode: MemoryMode, need: int | None, have: int | None) -> MemoryPlan:
+def plan(
+    mode: MemoryMode, need: int | None, have: int | None, where: str = "RAM and swap"
+) -> MemoryPlan:
     """Decide whether to stream: always for ``stream``, never for ``normal``.
 
-    For ``auto``, stream only when ``need`` is known to exceed ``have``.
+    For ``auto``, stream only when ``need`` is known to exceed ``have``, the free
+    memory ``where`` names.
     """
     if mode == "stream":
         return MemoryPlan(True, need, have, "--memory stream")
@@ -120,7 +123,7 @@ def plan(mode: MemoryMode, need: int | None, have: int | None) -> MemoryPlan:
         return MemoryPlan(False, need, have, f"--memory {mode}")
     if need <= have:
         return MemoryPlan(False, need, have, "the model fits")
-    reason = f"it needs about {_gb(need)} and {_gb(have)} is free (RAM and swap)"
+    reason = f"it needs about {_gb(need)} and {_gb(have)} is free ({where})"
     return MemoryPlan(True, need, have, reason)
 
 
@@ -233,9 +236,9 @@ class OpenCheckpoint(Mapping):
     def _sent(self, tensor: torch.Tensor, info: dict) -> torch.Tensor:
         """``tensor`` on the layers' device, then at its dtype.
 
-        On a GPU it is sent in the checkpoint's dtype and converted there. A float32 run
-        of Qwen2.5-0.5B, whose checkpoint is bfloat16, then took 0.66 s a streamed pass on
-        an RTX 4070 Ti, against 2.8 s converted on the CPU first.
+        On a GPU it is sent in the checkpoint's dtype and converted there. Take a float32
+        run of Qwen2.5-0.5B, whose checkpoint is bfloat16. A streamed pass then took 0.66 s
+        on an RTX 4070 Ti, against 2.8 s converted on the CPU first.
         """
         tensor = tensor.to(self.device)
         return tensor.to(getattr(torch, info["dtype"])) if "dtype" in info else tensor
@@ -286,7 +289,8 @@ def _plan_load(model_name: str, dtype, revision: str | None, device: str = "cpu"
         need = weights_bytes(snapshot, config, dtype) + WORKING_MARGIN_BYTES
     except Exception:  # offline, or an unknown layout: don't stream unless asked
         pass
-    return plan(mode, need, available_bytes(device))
+    on_gpu = torch.device(device).type == "cuda"
+    return plan(mode, need, available_bytes(device), "on the GPU" if on_gpu else "RAM and swap")
 
 
 def _snapshot(model_name: str, revision: str | None) -> Path:
@@ -327,7 +331,7 @@ def stream_device_map(model: nn.Module, layers_path: str, resident: str = "cpu")
 
     ``model`` may be on the meta device. ``layers_path`` names its decoder layers.
     ``accelerate`` runs the layers on the first device in the map that isn't the CPU or
-    the disk, so on a GPU when ``resident`` is one.
+    the disk. So they run on the GPU when ``resident`` is one.
     """
     device_map: dict[str, str] = {}
 
