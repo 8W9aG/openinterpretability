@@ -263,7 +263,7 @@ def format_input_attribution(attribution: InputAttribution) -> str:
 # Protocol 0.8: how a unit with a first-token floor is read, for every agent that writes
 # prompts for one.
 FIRST_TOKEN_UNMEASURED = (
-    "This unit has a first-token floor: at a text's first token it is active whatever the "
+    "This unit has a first-token floor: at a text's first token it is active whatever the "  # noqa: S105  (prompt text, not a password)
     "token is, so it is not measured there. A prompt's strength is its peak over every "
     "token but the first, so every prompt needs at least two tokens, and a trigger that "
     "opens a prompt is not seen. Its examples show the first token's strength, but it "

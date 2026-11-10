@@ -16,7 +16,7 @@ from openinterp.core.schemas import AuditRecord
 from openinterp.sensitive import pii_matches
 
 REMOVED_TEXT = "[removed]"  # replaces a match in free text
-REMOVED_TOKEN = "█"  # replaces each token of a match, so a heatmap keeps its shape
+REMOVED_TOKEN = "█"  # noqa: S105  (a model token, not a password). Replaces each token of a match, so a heatmap keeps its shape
 
 Span = tuple[int, int]
 

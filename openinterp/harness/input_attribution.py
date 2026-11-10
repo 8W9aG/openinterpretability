@@ -149,7 +149,7 @@ def integrated_gradients(
             (grad,) = torch.autograd.grad(values.sum(), points[-1])
         part = grad.float().sum(0)
         grad_sum = part if grad_sum is None else grad_sum + part
-    assert grad_sum is not None and diff is not None
+    assert grad_sum is not None and diff is not None  # noqa: S101  (for the type checker)
     return (grad_sum / steps * diff).sum(-1)
 
 

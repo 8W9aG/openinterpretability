@@ -42,7 +42,7 @@ TOTALS = f"""
                                         AND kind != 'dictionary_feature')
                AS verified_self_reviewed
     FROM r
-    """
+    """  # noqa: S608  (interpolates module constants only)
 
 VERIFIED = """
     SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
@@ -82,7 +82,7 @@ RECENT = f"""
            reviewer_agent_model, self_reviewed,
            reuses_probes_of IS NOT NULL AS remeasurement
     FROM r ORDER BY reviewed_at DESC, slug, experiment_id LIMIT {RECENT_EXPERIMENTS}
-    """
+    """  # noqa: S608  (interpolates module constants only)
 
 # The queries in the order the page's stats come in; TOTALS is one row.
 QUERIES = {
@@ -96,7 +96,8 @@ QUERIES = {
 def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
     """Totals and leaderboards, queried with DuckDB over the exported parquet."""
     con = duckdb.connect()
-    con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{parquet.as_posix()}')")
+    # The path is a local file the build wrote, not user input.
+    con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{parquet.as_posix()}')")  # noqa: S608
     stats = {name: _rows(con, sql) for name, sql in QUERIES.items()}
     stats["totals"] = stats["totals"][0]
     stats["baseline"] = learned_baseline(con, draws)
