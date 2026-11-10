@@ -44,6 +44,7 @@ from openinterp.harness.causal import (
 from openinterp.harness.jlens import vocabulary_lens
 from openinterp.harness.scan import top_activating_examples
 from openinterp.harness.units import NeuronUnit, max_strength, peak_strength
+from tests.test_fence import PLANTED
 
 # The toy model's probe set is small, so relax only the minimum-count gates.
 SMALL = ReviewPolicy(min_hard_negatives=1, min_holdouts=1)
@@ -690,3 +691,22 @@ def test_a_review_computes_no_logits_for_padding(ident, toy_runner, draft):
     assert verdict.joint_ablation is not None  # the step that once padded every prompt
     logit_passes = [p for p in watch.passes if p["logits"]]
     assert logit_passes and all(p["padding"] == 0 for p in logit_passes)
+
+
+def test_a_planted_instruction_does_not_change_the_verdict(ident, toy_runner, draft):
+    """The verdict comes from measurements alone, so a crafted corpus text cannot move it."""
+    sub = _submission(ident, toy_runner, draft, honest=True)
+    probes = _probes(toy_runner, ident, sub, honest=True)
+    top = sub.top_examples[0]
+    crafted = top.model_copy(
+        update={
+            "text": top.text + PLANTED,
+            "tokens": [*top.tokens, PLANTED],
+            "activations": [*top.activations, 0.0],
+        }
+    )
+    planted = sub.model_copy(update={"top_examples": [crafted, *sub.top_examples[1:]]})
+    clean = evaluate_submission(sub, toy_runner, probes, "anthropic/reviewer", SMALL)
+    attacked = evaluate_submission(planted, toy_runner, probes, "anthropic/reviewer", SMALL)
+    assert attacked.status == clean.status
+    assert attacked.metrics == clean.metrics

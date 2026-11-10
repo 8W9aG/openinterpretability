@@ -19,6 +19,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from openinterp.core.fence import fence
 from openinterp.core.identifiers import model_slug
 from openinterp.core.schemas import AuditRecord, Pole
 from openinterp.core.strict import StrictModel
@@ -363,7 +364,7 @@ def format_sisters(slug: str, rows: dict, findings: dict, role: str, exclude=())
         lines.append(f"- {other} ({tag}): {explanation}")
     if not lines:
         return ""
-    return f"{INTRO} {ADVICE[role]}\n" + "\n".join(lines) + "\n"
+    return f"{INTRO} {ADVICE[role]}\n" + fence("\n".join(lines)) + "\n"
 
 
 def sister_context(

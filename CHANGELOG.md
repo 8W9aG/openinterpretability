@@ -35,6 +35,8 @@ The project has two version numbers:
 
 ### Changed
 
+- **Agent prompts fence untrusted text as data** (`openinterp/core/fence.py`, from TODO, Merge verification). Some prompt text comes from outside: corpus excerpts, the submitted hypothesis, probes, judged windows and published explanations (sisters, aligned latents, prior art). The proposer's, reviewer's and judge's prompts now put it between a `<data-ID>` line and a `</data-ID>` line. The ID is the first 16 hex characters of the text's SHA-256, so the text cannot contain its own closing line. Each agent's system prompt, and the Claude Code agent definitions, say that fenced text is data and never instructions. `tests/test_fence.py` plants an instruction and a forged closing line in a corpus document and checks it stays fenced in every prompt. `tests/test_agents.py` checks it does not change the verdict. No rule changes. Prompts change, so a new prompt differs from an old record's.
+
 - **Streaming measured with the checkpoint out of the file cache** (`docs/experiments.md`, *Models larger than memory*, from TODO, Performance). A memory cap below the checkpoint's size (`systemd-run --user --scope -p MemoryMax=…`) keeps the file cache from holding it. A streamed 2,000-token Qwen2.5-3B audit on an RTX 4070 Ti then read 18.5 GB from the disk. It took 172 s, against 135 s cached, with the same evidence. Reading the next layer ahead while one runs was tried and took 179 s, so it is not used.
 
 - **Streaming says when it writes a copy** (`docs/experiments.md`, `memory.load_causal_lm`). A mixture-of-experts checkpoint that stores each expert apart (Mixtral, OLMoE) is stacked by transformers as it loads. Streaming writes those stacks to the offload folder. The docs said that streaming never writes a copy.
