@@ -220,7 +220,7 @@ def test_agents_see_studied_sisters_in_both_directions():
         "c/L0/N2-positive": ("VERIFIED", "speech verbs"),
     }
     text = format_sisters("a/L1/N5-positive", rows, findings, "reviewer")
-    lines = text.splitlines()[1:]
+    lines = text.splitlines()[2:-1]  # after the intro and the opening fence, before its close
     assert lines == [
         "- b/L2/N9-negative (r +0.80, sister; VERIFIED): closing quotes",
         "- c/L0/N2-positive (r +0.60; VERIFIED): speech verbs",  # matched a's pole, strongly

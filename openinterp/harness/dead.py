@@ -30,6 +30,7 @@ from torch import nn
 
 from openinterp.core.identifiers import NeuronIdentifier
 from openinterp.harness.hooks import NeuronHookRunner, _try_path
+from openinterp.harness.memory import loaded
 from openinterp.harness.wiring import MLP_READ_PATHS, _matrix
 
 # Activations whose output has the sign of their input: f(h) > 0 iff h > 0, f(h) < 0 iff
@@ -83,13 +84,15 @@ def _reads(runner: NeuronHookRunner, layer: int) -> dict[str, nn.Module]:
 def _range(norm: nn.Module, proj: nn.Module, neuron: int) -> tuple[float, float] | None:
     """``(c, R)``: the pre-activation lies in ``(c − R, c + R)`` for every input."""
     w = _matrix(proj)[neuron].double().cpu()
-    bias = getattr(proj, "bias", None)
-    b = float(bias.detach()[neuron]) if bias is not None else 0.0
-    gain = getattr(norm, "weight", None)
-    v = w * gain.detach().double().cpu() if gain is not None else w
-    shift = getattr(norm, "bias", None)
+    with loaded(proj), loaded(norm):  # streamed: the weights are real only inside this block
+        bias = getattr(proj, "bias", None)
+        b = float(bias.detach()[neuron]) if bias is not None else 0.0
+        gain = getattr(norm, "weight", None)
+        v = w * gain.detach().double().cpu() if gain is not None else w
+        shift = getattr(norm, "bias", None)
+        shift = shift.detach().double().cpu() if shift is not None else None
     if isinstance(norm, nn.LayerNorm):
-        c = b + (float(w @ shift.detach().double().cpu()) if shift is not None else 0.0)
+        c = b + (float(w @ shift) if shift is not None else 0.0)
         return c, math.sqrt(v.numel()) * float((v - v.mean()).norm())
     if _is_rms(norm):
         return b, math.sqrt(v.numel()) * float(v.norm())

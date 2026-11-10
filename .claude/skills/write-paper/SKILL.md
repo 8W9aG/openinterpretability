@@ -16,7 +16,7 @@ papers/<slug>/
 └── media/          figures, written by scripts/paper_figures.py
 ```
 
-List the paper in `papers/README.md`. That order is the order of the site's Research index. A folder with an `index.html` is an interactive page, and the site copies it unchanged.
+List the paper in `papers/README.md`. That order is the order of the site's Research index ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
 
 ## Structure
 

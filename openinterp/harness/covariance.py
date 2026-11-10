@@ -170,18 +170,6 @@ def _column_quantile(x: torch.Tensor, q: float, chunk: int = 1024) -> torch.Tens
 
 
 @torch.no_grad()
-def _kl(runner: NeuronHookRunner, encoded: dict, fn: Callable | None, layer: int) -> float:
-    mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
-    clean = F.log_softmax(runner.run_with_interventions(encoded).float(), dim=-1)[mask]
-    if fn is None:
-        return 0.0
-    ablated = F.log_softmax(runner.run_with_interventions(encoded, {layer: fn}).float(), dim=-1)[
-        mask
-    ]
-    return max(0.0, float(F.kl_div(ablated, clean, log_target=True, reduction="batchmean")))
-
-
-@torch.no_grad()
 def joint_ablation(
     runner: NeuronHookRunner,
     prompts: Inputs,
@@ -194,12 +182,23 @@ def joint_ablation(
 
     The pole is zero-ablated (its opposite pole is kept). Partners are mean-ablated over
     the prompts, which stays closer to their natural distribution than zeroing.
+
+    Each prompt runs alone. A batch pads every prompt to the longest, and its logits are
+    prompts × longest × vocabulary. For 17 prompts, one of them 577 tokens long, that was
+    about 5.5 GB per copy at Qwen2.5's 151,936 tokens. Alone, a prompt costs its own length.
     """
-    encoded = runner.encode(prompts)
-    mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
-    _, cache = runner.run_with_cache(encoded, [layer])
+    from openinterp.harness.layer_major import map_layer_major
+
+    prompts = [prompts] if isinstance(prompts, str) else list(prompts)
+    encoded = [runner.encode([p]) for p in prompts]
     partner_idx = torch.tensor(list(partners), dtype=torch.long)
-    means = cache[layer][mask][:, partner_idx].mean(0) if len(partners) else None
+    means = None
+    if len(partners):
+        rows = map_layer_major(
+            runner, lambda e: runner.layer_activations(e, [layer])[layer][0][:, partner_idx],
+            encoded, tokens=max(e["input_ids"].shape[1] for e in encoded), logits=False,
+        )  # fmt: skip
+        means = torch.cat(rows).mean(0)
 
     def ablate(target: bool, others: bool) -> Callable:
         def fn(act: torch.Tensor) -> torch.Tensor:
@@ -212,9 +211,11 @@ def joint_ablation(
 
         return fn
 
-    kl_single = _kl(runner, encoded, ablate(True, False), layer)
-    kl_partners = _kl(runner, encoded, ablate(False, True) if len(partners) else None, layer)
-    kl_joint = _kl(runner, encoded, ablate(True, True), layer)
+    fns = {"single": ablate(True, False), "joint": ablate(True, True)}
+    if len(partners):
+        fns["partners"] = ablate(False, True)
+    kl = _kl_means(runner, encoded, fns, layer)
+    kl_single, kl_partners, kl_joint = kl["single"], kl.get("partners", 0.0), kl["joint"]
     ratio = (kl_joint - kl_partners) / kl_single if kl_single > 1e-9 else None
     return JointAblation(
         partners=list(partners),
@@ -222,4 +223,79 @@ def joint_ablation(
         kl_partners=round(kl_partners, 9),
         kl_joint=round(kl_joint, 9),
         redundancy_ratio=None if ratio is None else round(ratio, 6),
+    )
+
+
+@torch.no_grad()
+def _kl_means(
+    runner: NeuronHookRunner, encoded: Sequence[dict], fns: dict[str, Callable], layer: int
+) -> dict[str, float]:
+    """Mean KL(clean ‖ ablated) per token over every prompt, for each ablation in ``fns``.
+
+    Each prompt's clean distribution is computed once and reused for every ablation. A
+    streamed model runs the clean prompt and its ablations as rows of fewer passes
+    (:func:`~openinterp.harness.memory.stream_rows`). It also runs its prompts at once
+    (:func:`~openinterp.harness.layer_major.map_layer_major`). Otherwise each is its own
+    pass, one after another.
+    """
+    from openinterp.harness.layer_major import map_layer_major
+    from openinterp.harness.memory import stream_rows
+
+    variants: list[str | None] = [None, *fns]  # None is the clean run, so it comes first
+
+    def prompt_kls(enc: dict) -> tuple[dict[str, float], int]:
+        """One prompt's summed KL per ablation, and its token count."""
+        rows = stream_rows(runner, enc["input_ids"].shape[1], 1, logits=True)
+        sums, clean, tokens = dict.fromkeys(fns, 0.0), None, 0
+        for start in range(0, len(variants), rows):
+            chunk = variants[start : start + rows]
+            log_probs = _variant_log_probs(runner, enc, chunk, fns, layer)
+            for name, row in zip(chunk, log_probs, strict=True):
+                if name is None:
+                    clean, tokens = row, row.shape[0]
+                else:
+                    sums[name] += _kl_sum(row, clean)
+        return sums, tokens
+
+    longest = max(e["input_ids"].shape[1] for e in encoded)
+    per_prompt = map_layer_major(runner, prompt_kls, encoded, tokens=longest)
+    tokens = sum(n for _, n in per_prompt)
+    totals = {name: sum(sums[name] for sums, _ in per_prompt) for name in fns}
+    return {name: max(0.0, total / max(tokens, 1)) for name, total in totals.items()}
+
+
+def _variant_log_probs(runner, enc: dict, chunk, fns: dict[str, Callable], layer: int):
+    """One pass with a row per entry of ``chunk``: clean (``None``) or ablated by ``fns``."""
+    batch = {k: v.repeat(len(chunk), *[1] * (v.dim() - 1)) for k, v in enc.items()}
+
+    def per_row(act: torch.Tensor) -> torch.Tensor:
+        rows = [
+            act[i : i + 1] if name is None else fns[name](act[i : i + 1])
+            for i, name in enumerate(chunk)
+        ]
+        return torch.cat(rows)
+
+    ablates = any(name is not None for name in chunk)
+    logits = runner.run_with_interventions(batch, {layer: per_row} if ablates else None)
+    return list(_log_probs(logits))
+
+
+# Positions per block in the log-softmax and the KL. A block of 64 is 39 MB at
+# Qwen2.5's 151,936 tokens. Whole, each step made a copy of the prompt's logits.
+_KL_BLOCK = 64
+
+
+def _log_probs(logits: torch.Tensor) -> torch.Tensor:
+    """``log_softmax(logits.float(), -1)``, computed in place one block at a time."""
+    logits = logits.float()
+    for row in logits.flatten(0, -2).split(_KL_BLOCK):
+        row -= row.logsumexp(-1, keepdim=True)
+    return logits
+
+
+def _kl_sum(ablated: torch.Tensor, clean: torch.Tensor) -> float:
+    """``KL(clean ‖ ablated)`` summed over positions, one block at a time."""
+    return sum(
+        float(F.kl_div(a, c, log_target=True, reduction="sum"))
+        for a, c in zip(ablated.split(_KL_BLOCK), clean.split(_KL_BLOCK), strict=True)
     )

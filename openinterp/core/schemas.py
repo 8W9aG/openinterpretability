@@ -115,6 +115,8 @@ class RunEnvironment(StrictModel):
     openinterp_version: str
     torch_version: str
     transformers_version: str | None = None
+    streamed: bool | None = Field(default=None, description="Layers read from disk per pass.")
+    experts_implementation: str | None = Field(default=None, description="MoE experts forward.")
 
 
 class ExperimentProvenance(StrictModel):

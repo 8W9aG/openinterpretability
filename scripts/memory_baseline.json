@@ -1,0 +1,20 @@
+{
+  "platform": "Darwin-arm64",
+  "metric": "footprint",
+  "device": "cpu",
+  "max_tokens": 20000,
+  "models": {
+    "openai-community/gpt2": {
+      "scan_mb": 1475,
+      "scan_s": 64.0,
+      "review_mb": 1330,
+      "review_s": 27.9
+    },
+    "Qwen/Qwen2.5-0.5B": {
+      "scan_mb": 3198,
+      "scan_s": 295.8,
+      "review_mb": 3006,
+      "review_s": 69.2
+    }
+  }
+}

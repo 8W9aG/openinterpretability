@@ -42,6 +42,7 @@ The CHANGELOG's header explains the two version numbers. The **package version**
    ```
    Add a bullet under `### Changed` in the CHANGELOG's Unreleased section. Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
+   Then check memory: `uv run python scripts/memory_benchmark.py` (about 7 minutes on CPU). Run it in the background, and keep the machine otherwise idle. It scans and reviews GPT-2 and Qwen2.5-0.5B and compares each peak with `scripts/memory_baseline.json`. If a peak is more than 25% above the baseline, it exits 1. Stop and report the regression, as for a failed test. If it says a peak is lower, run it again with `--update` and commit the new baseline in the release PR. On a platform other than the baseline's it only reports. Don't overwrite the baseline from there.
 6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. In `CHANGELOG.md`, put a dated heading under `## [Unreleased]`, so every entry that was there now sits under the new version:
    ```markdown
    ## [Unreleased]

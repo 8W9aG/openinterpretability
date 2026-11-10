@@ -41,6 +41,7 @@ from openinterp.core.attribution import (
 from openinterp.core.schemas import ActivatingExample, Pole
 from openinterp.core.stats import spearman
 from openinterp.harness.hooks import NeuronHookRunner, _StopForward
+from openinterp.harness.memory import recompute_below, stream_rows
 
 # Tokens back from the peak: the token itself, the one before, then wider bands.
 DISTANCE_BANDS: tuple[tuple[int, int | None], ...] = (
@@ -53,6 +54,12 @@ DISTANCE_BANDS: tuple[tuple[int, int | None], ...] = (
 )
 
 EmbedEdit = Callable[[torch.Tensor], torch.Tensor | None]
+
+# Padded tokens per backward pass of integrated gradients. Each interpolation row keeps
+# a backward graph through every layer up to the unit's, so memory grows with rows ×
+# example length. A whole Qwen2.5-1.5B document at 8 rows rose 8.3 GB. Rows are
+# independent, so the attribution doesn't depend on how they are batched.
+ATTRIBUTION_BATCH_TOKENS = 1024
 
 
 def baseline_token_id(tokenizer) -> int:
@@ -136,7 +143,7 @@ def integrated_gradients(
             points.append(point)
             return point
 
-        with torch.enable_grad():
+        with torch.enable_grad(), recompute_below(runner, layer):
             rows = ids.expand(len(chunk), -1)
             values = _pole_values(runner, rows, layer, neuron_idx, pole, interpolate)[:, -1]
             (grad,) = torch.autograd.grad(values.sum(), points[-1])
@@ -186,16 +193,22 @@ def _distance_shares(attr: torch.Tensor) -> tuple[list[float], float]:
 
 
 def _converged_attribution(
-    runner, ids, args, baseline, gap: float, steps: int, max_steps: int, tolerance: float
+    runner, ids, args, baseline, gap: float, settings: _Settings
 ) -> tuple[torch.Tensor, int]:
     """Return the attribution as shares of ``gap``, and the steps that it took.
 
-    The steps double until Σ is within ``tolerance`` of 1, or ``max_steps`` is reached.
+    The steps double from ``settings.steps`` until Σ is within ``settings.tolerance`` of
+    1, or ``settings.max_steps`` is reached. Each backward pass takes at most
+    ``settings.batch_size`` rows and :data:`ATTRIBUTION_BATCH_TOKENS` tokens, and at
+    least one row.
     """
+    steps, max_steps, tolerance = settings.steps, settings.max_steps, settings.tolerance
     keep_first = ids.shape[1] > 1
+    rows = max(1, min(settings.batch_size, ATTRIBUTION_BATCH_TOKENS // ids.shape[1]))
+    rows = stream_rows(runner, ids.shape[1], rows, logits=False)  # more when streamed
     while True:
         attr = integrated_gradients(
-            runner, ids, *args, baseline, steps=steps, keep_first=keep_first
+            runner, ids, *args, baseline, steps=steps, batch_size=rows, keep_first=keep_first
         ).cpu()
         attr = attr / gap
         if abs(float(attr.sum()) - 1.0) <= tolerance or steps * 2 > max_steps:
@@ -288,9 +301,7 @@ def _attribute_example(runner, n: int, example, args, baseline, settings: _Setti
     if gap <= 1e-6:
         return None  # the reference input activates the pole as much: nothing to attribute
     tolerance = settings.tolerance
-    attr, used = _converged_attribution(
-        runner, ids, args, baseline, gap, settings.steps, settings.max_steps, tolerance
-    )
+    attr, used = _converged_attribution(runner, ids, args, baseline, gap, settings)
     error = abs(float(attr.sum()) - 1.0)
     top = attr.abs().topk(min(settings.top_k, len(attr))).indices.tolist()
     checked = sorted(set(top) | set(range(max(0, peak - settings.near), peak + 1)))
