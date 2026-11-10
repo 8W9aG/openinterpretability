@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator, Mapping
-from contextlib import AbstractContextManager, contextmanager, nullcontext
+from contextlib import AbstractContextManager, contextmanager, nullcontext, suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -281,14 +281,13 @@ def _plan_load(model_name: str, dtype, revision: str | None, device: str = "cpu"
     if mode == "normal":
         return plan(mode, None, None)
     need = None
-    try:
+    # Offline, or an unknown layout: don't stream unless asked.
+    with suppress(Exception):
         snapshot = _snapshot(model_name, revision)
         from transformers import AutoConfig
 
         config = AutoConfig.from_pretrained(model_name, revision=revision)
         need = weights_bytes(snapshot, config, dtype) + WORKING_MARGIN_BYTES
-    except Exception:  # offline, or an unknown layout: don't stream unless asked
-        pass
     on_gpu = torch.device(device).type == "cuda"
     return plan(mode, need, available_bytes(device), "on the GPU" if on_gpu else "RAM and swap")
 

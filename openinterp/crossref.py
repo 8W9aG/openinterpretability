@@ -265,7 +265,8 @@ def _get_json(url: str, *, timeout: float, retries: int, sleep: Callable, opener
 
     Return ``None`` if the request fails or the server stays busy.
     """
-    request = urllib.request.Request(url, headers={"User-Agent": user_agent()})
+    # url is an https Neuronpedia endpoint from latent_url, never a file: URL.
+    request = urllib.request.Request(url, headers={"User-Agent": user_agent()})  # noqa: S310
     for attempt in range(retries + 1):
         try:
             with opener(request, timeout=timeout) as response:
