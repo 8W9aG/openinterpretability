@@ -1,6 +1,6 @@
 # Mixture-of-experts models
 
-This page records how openinterp will audit neurons in mixture-of-experts (MoE) models. It is the decision that the Models section of `TODO.md` asked for. Nothing here is built yet. The implementation steps are in `TODO.md`, Models, and adding the unit kind changes the protocol (`docs/PROTOCOL.md` §6).
+This page records how openinterp will audit neurons in mixture-of-experts (MoE) models. It is the decision that the Models section of `TODO.md` asked for. The experts forward of section 4 and the streaming of section 8 are built. The expert neuron as a unit is not. The implementation steps are in `TODO.md`, Models, and adding the unit kind changes the protocol (`docs/PROTOCOL.md` §6).
 
 ## How an MoE layer computes
 
@@ -46,7 +46,7 @@ Edits are made inside the expert, not as a change to the layer's output. An edit
 
 ### 4. Where the harness reads and edits expert neurons
 
-transformers 5 runs the experts of about 60 MoE architectures through one registry, `ExpertsInterface`. Each experts class decorated with `use_experts_implementation` looks its forward up by name (`eager`, `grouped_mm`, `batched_mm`, …). openinterp will register its own forward, `openinterp`, and select it when it loads an MoE model.
+transformers 5 runs the experts of about 60 MoE architectures through one registry, `ExpertsInterface`. Each experts class decorated with `use_experts_implementation` looks its forward up by name (`eager`, `grouped_mm`, `batched_mm`, …). openinterp registers its own forward, `openinterp` (`openinterp/harness/moe.py`), and selects it when it loads an MoE model.
 
 That forward loops over the experts the router chose. It computes each one's hidden activation with the model's own gating function (`_apply_gate`). It then passes the activation, the expert's index, its tokens and their routing weights to the harness's hooks, before the down projection. So one function covers each weight layout that the decorator describes. Gate and up can be concatenated or interleaved, the weights transposed, with biases, and with a norm after each expert.
 
@@ -95,4 +95,4 @@ Routed expert neurons, shared-expert neurons and dense neurons are three arms, n
 
 ### 8. Streaming only the routed experts
 
-The registered forward owns the loop over experts, so in streaming mode it can read only the experts that the router chose. safetensors reads one expert's slice of a stored tensor (`get_slice`), through the open files of `OpenCheckpoint` (`openinterp/harness/memory.py`). `accelerate` must then leave the experts' tensors on the meta device, not load them whole before each pass. In Mistral Large 4 one expert is about 113 MB in FP8, against 14.5 GB for all 128. A pass then reads only the experts its tokens route to, and FP8 is converted per slice. That is the streaming item in `TODO.md`, Performance, which this decision unblocks.
+The registered forward owns the loop over experts, so in streaming mode it can read only the experts that the router chose. safetensors reads one expert's slice of a stored tensor (`get_slice`), through the open files of `OpenCheckpoint` (`openinterp/harness/memory.py`). `accelerate` must then leave the experts' tensors on the meta device, not load them whole before each pass. In Mistral Large 4 one expert is about 113 MB in FP8, against 14.5 GB for all 128. A pass then reads only the experts its tokens route to, and FP8 is converted per slice. This is built (`openinterp/harness/moe.py`, `OpenCheckpoint.slice`). On Granite 3.0 1B-A400M a streamed one-token pass read 1.41 GB, against 4.78 GB with whole layers. A checkpoint that stores each expert apart is stacked by transformers as it loads, and streaming writes the stacks to the offload folder. Its slices are read from there.

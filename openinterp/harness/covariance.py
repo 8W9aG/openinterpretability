@@ -187,12 +187,17 @@ def joint_ablation(
     prompts × longest × vocabulary. For 17 prompts, one of them 577 tokens long, that was
     about 5.5 GB per copy at Qwen2.5's 151,936 tokens. Alone, a prompt costs its own length.
     """
+    from openinterp.harness.layer_major import map_layer_major
+
     prompts = [prompts] if isinstance(prompts, str) else list(prompts)
     encoded = [runner.encode([p]) for p in prompts]
     partner_idx = torch.tensor(list(partners), dtype=torch.long)
     means = None
     if len(partners):
-        rows = [runner.layer_activations(e, [layer])[layer][0][:, partner_idx] for e in encoded]
+        rows = map_layer_major(
+            runner, lambda e: runner.layer_activations(e, [layer])[layer][0][:, partner_idx],
+            encoded, tokens=max(e["input_ids"].shape[1] for e in encoded), logits=False,
+        )  # fmt: skip
         means = torch.cat(rows).mean(0)
 
     def ablate(target: bool, others: bool) -> Callable:
@@ -229,26 +234,34 @@ def _kl_means(
 
     Each prompt's clean distribution is computed once and reused for every ablation. A
     streamed model runs the clean prompt and its ablations as rows of fewer passes
-    (:func:`~openinterp.harness.memory.stream_rows`). Otherwise each is its own pass.
+    (:func:`~openinterp.harness.memory.stream_rows`). It also runs its prompts at once
+    (:func:`~openinterp.harness.layer_major.map_layer_major`). Otherwise each is its own
+    pass, one after another.
     """
+    from openinterp.harness.layer_major import map_layer_major
     from openinterp.harness.memory import stream_rows
 
-    sums = dict.fromkeys(fns, 0.0)
-    tokens = 0
     variants: list[str | None] = [None, *fns]  # None is the clean run, so it comes first
-    for enc in encoded:
+
+    def prompt_kls(enc: dict) -> tuple[dict[str, float], int]:
+        """One prompt's summed KL per ablation, and its token count."""
         rows = stream_rows(runner, enc["input_ids"].shape[1], 1, logits=True)
-        clean = None
+        sums, clean, tokens = dict.fromkeys(fns, 0.0), None, 0
         for start in range(0, len(variants), rows):
             chunk = variants[start : start + rows]
             log_probs = _variant_log_probs(runner, enc, chunk, fns, layer)
             for name, row in zip(chunk, log_probs, strict=True):
                 if name is None:
-                    clean = row
-                    tokens += clean.shape[0]
+                    clean, tokens = row, row.shape[0]
                 else:
                     sums[name] += _kl_sum(row, clean)
-    return {name: max(0.0, total / max(tokens, 1)) for name, total in sums.items()}
+        return sums, tokens
+
+    longest = max(e["input_ids"].shape[1] for e in encoded)
+    per_prompt = map_layer_major(runner, prompt_kls, encoded, tokens=longest)
+    tokens = sum(n for _, n in per_prompt)
+    totals = {name: sum(sums[name] for sums, _ in per_prompt) for name in fns}
+    return {name: max(0.0, total / max(tokens, 1)) for name, total in totals.items()}
 
 
 def _variant_log_probs(runner, enc: dict, chunk, fns: dict[str, Callable], layer: int):

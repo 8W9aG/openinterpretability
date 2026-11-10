@@ -13,6 +13,7 @@ from openinterp.core.exceptions import ArchitectureNotSupportedError
 from openinterp.core.schemas import AdversarialTestResult, ReviewPolicy
 from openinterp.harness.causal import causal_metrics
 from openinterp.harness.covariance import joint_ablation
+from openinterp.harness.layer_major import map_layer_major, prompt_tokens
 from openinterp.harness.lookahead import ablation_profile
 from openinterp.harness.scan import has_first_token_floor
 from openinterp.harness.units import peak_strength, submission_unit
@@ -45,8 +46,12 @@ def measure_probes(runner, unit, probes, scale: float, threshold: float):
     """
     results: list[AdversarialTestResult] = []
     measured_probes, actual = [], []
-    for probe in probes:
-        strength = peak_strength(runner, unit, probe.text)
+    texts = [probe.text for probe in probes]
+    strengths = map_layer_major(
+        runner, partial(peak_strength, runner, unit), texts,
+        tokens=prompt_tokens(runner, texts), logits=False,
+    )  # fmt: skip
+    for probe, strength in zip(probes, strengths, strict=True):
         active = strength is not None and scale > 0 and strength >= threshold
         if strength is not None:
             measured_probes.append(probe)
@@ -68,9 +73,13 @@ def measure_probes(runner, unit, probes, scale: float, threshold: float):
 def measure_counterfactuals(runner, unit, submission, scale: float, policy: ReviewPolicy):
     """Measure each counterfactual pair's Δ, and whether it matches the expected Δ."""
     results = []
-    for pair in submission.counterfactuals:
-        base = peak_strength(runner, unit, pair.base_prompt)
-        cf = peak_strength(runner, unit, pair.counterfactual_prompt)
+    pairs = submission.counterfactuals
+    texts = [t for pair in pairs for t in (pair.base_prompt, pair.counterfactual_prompt)]
+    strengths = map_layer_major(
+        runner, partial(peak_strength, runner, unit), texts,
+        tokens=prompt_tokens(runner, texts), logits=False,
+    )  # fmt: skip
+    for pair, base, cf in zip(pairs, strengths[::2], strengths[1::2], strict=True):
         both = base is not None and cf is not None
         observed = (base - cf) / scale if both and scale > 0 else 0.0
         results.append(
