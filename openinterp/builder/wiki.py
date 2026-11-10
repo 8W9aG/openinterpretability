@@ -74,7 +74,7 @@ class WikiEntry:
 
 def experiment_id(record: AuditRecord) -> str:
     """The experiment's id: its verdict's UTC timestamp."""
-    assert record.verdict is not None
+    assert record.verdict is not None  # noqa: S101  (for the type checker)
     return record.verdict.timestamp.strftime("%Y%m%dT%H%M%SZ")
 
 
@@ -98,7 +98,9 @@ def home_link(slug: str) -> str:
 
 
 def _environment() -> Environment:
-    env = Environment(
+    # The wiki is Markdown, so HTML escaping would corrupt it. _cell makes values safe in
+    # tables. The site's HTML templates escape (compiler._environment).
+    env = Environment(  # noqa: S701
         loader=PackageLoader("openinterp.builder", "templates/wiki"),
         undefined=StrictUndefined,
         trim_blocks=True,

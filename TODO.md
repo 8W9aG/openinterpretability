@@ -6,7 +6,7 @@ Open work, grouped by topic. Within each section, items are roughly in priority 
 
 Small fixes, mostly quick.
 
-- [ ] Add `CONTRIBUTING.md`, `SECURITY.md` and `CITATION.cff`. None exist today. `CONTRIBUTING.md` holds the contributor path the README clean-up (above) moves out. `SECURITY.md` says how to report a leaked signing key or a way to get a false VERIFIED past CI. `CITATION.cff` lets papers cite the registry, with a Zenodo DOI minted per release so a citation names an exact version.
+- [ ] Add the Zenodo concept DOI after the next release. The Zenodo GitHub integration is on, but Zenodo archives only GitHub releases, and no release exists yet. After the `release` skill's step 10 publishes one, open the repository's page in Zenodo's GitHub tab and copy the concept DOI (the DOI for all versions). Add it to `CITATION.cff` as `doi:` and remove the comment line that says to add it. Then add it to the README's *Citing* section, with the DOI badge.
 - [ ] Should we move to GitHub issues or Linear?
 - [ ] Do we need a SOUL.md?
 - [ ] Use academic language when writing papers, in APA style. Put the rule in the `write-paper` skill, and align its reference format and `tests/test_papers.py` with APA.
@@ -24,7 +24,6 @@ Small fixes, mostly quick.
 
 Lint rules, tests, releases and repository automation. Prefer a deterministic check (lint, test, CI job) where one can do the job. Ratchet it in rather than failing all existing code at once. Use a skill for what needs judgement.
 
-- [ ] Add bandit linting for security.
 - [ ] Add shell linter.
 - [ ] Add TOML linter.
 - [ ] Add pyright linter. (The type-check item below also names it, with mypy and ty.)
