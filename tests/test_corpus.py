@@ -23,8 +23,11 @@ from openinterp.cli_evidence import read_corpus
 from openinterp.core.confounds import PROGRAMMING_LANGUAGE
 from openinterp.core.corpora import CorpusSource
 from openinterp.corpus import (
+    FINEWEB2_LANGUAGES,
     PRESETS,
+    WIKIPEDIA_LANGUAGES,
     Preset,
+    _glob_lang,
     _license,
     build_from_hub,
     first_documents,
@@ -235,6 +238,9 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
         ("open-web-math", "open-web-math/open-web-math", "data/train-*.parquet", None, None,
          "text", 20),
         ("gsm8k", "openai/gsm8k", "main/train-*.parquet", None, None, "question,answer", 20),
+        ("fineweb-2", "HuggingFaceFW/fineweb-2",
+         ",".join(f"data/{f}/train/000_00000.parquet" for f in FINEWEB2_LANGUAGES), None, None,
+         "text", 20),
     ],
 )  # fmt: skip
 def test_cli_uses_the_presets_settings(
@@ -284,12 +290,17 @@ def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
         "fineweb-edu": 91, "c4": 91, "pile-uncopyrighted": 91, "wikitext": 46,
         "github-code": 68, "wikipedia-multilingual": 68, "open-web-math": 45,
     }  # fmt: skip
-    assert blend_shares("mixed", 500) == blend_shares("mixed-v4", 500) == {
+    assert blend_shares("mixed-v4", 500) == {
         "fineweb-edu": 84, "c4": 84, "pile-uncopyrighted": 84, "wikitext": 42,
         "github-code": 62, "wikipedia-multilingual": 62, "open-web-math": 41, "ultrachat": 41,
     }  # fmt: skip
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v5", 500) == {
+        "fineweb-edu": 75, "c4": 75, "pile-uncopyrighted": 74, "wikitext": 37,
+        "github-code": 55, "wikipedia-multilingual": 55, "open-web-math": 37, "ultrachat": 37,
+        "fineweb-2": 55,
+    }  # fmt: skip
     shares = blend_shares("mixed", 25)
-    assert sum(shares.values()) == 25 and list(shares.values()) == [5, 4, 4, 2, 3, 3, 2, 2]
+    assert sum(shares.values()) == 25 and list(shares.values()) == [4, 4, 4, 2, 3, 3, 2, 1, 2]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
 
 
@@ -377,6 +388,15 @@ def test_a_blend_concatenates_its_presets_samples_and_labels_their_source(
             max_chars=99, lang_pattern=preset.lang_pattern,
         )  # fmt: skip
         assert built == part
+
+
+def test_fineweb_2_folders_are_labelled_with_the_codes_wikipedia_uses():
+    pattern = PRESETS["fineweb-2"].lang_pattern
+    globs = PRESETS["fineweb-2"].files.split(",")
+    langs = [_glob_lang(pattern, g) for g in globs]
+    assert langs == list(FINEWEB2_LANGUAGES.values()) and len(set(langs)) == len(langs)
+    assert set(WIKIPEDIA_LANGUAGES) - {"en", "de", "fr"} <= set(langs)  # shared codes match
+    assert _glob_lang(r"^1\.(\w+)/", "1.en/x.parquet") == "en"  # other codes are kept
 
 
 def _source(**kw):

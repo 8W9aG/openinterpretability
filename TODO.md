@@ -11,6 +11,7 @@ Small fixes, mostly quick.
 - [ ] Do we need a SOUL.md?
 - [ ] Use academic language when writing papers, in APA style. Put the rule in the `write-paper` skill, and align its reference format and `tests/test_papers.py` with APA.
 - [ ] Be very clear in each paper we write, at the top, why it is being written and what problem it is trying to answer.
+- [ ] Change the README's quickstart to: clone the repo, then run `claude "/loop /land-experiment"`, in place of the separate steps.
 - [ ] When performing a task, always make sure there is some indicator of progress.
 - [ ] Add a `literature-review` skill, and triage the queue. `docs/literature/queue.md` has about 60 entries and `docs/literature/` has one page. Make the skill from that page's sections: Citation, Status, Read, Summary, Where the claims go beyond the evidence, and Use in this repo. Then a subagent per entry can write pages in the same form. First mark the entries that are clearly off-topic (e.g. Drex, SwarmEvolve), so they get short "not applicable" pages and the useful ones go first.
 
@@ -20,6 +21,13 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 
 - [ ] Add bandit linting for security.
 - [ ] Add shell linter.
+- [ ] Add TOML linter.
+- [ ] Add pyright linter. (The type-check item below also names it, with mypy and ty.)
+- [ ] Lint paper status. List each paper as a preprint until it is finalised, and formally finalise it when no work on it is left. After that, allow only addendums at the bottom, for later corrections. Give each paper a citation file (CITATION.cff). Make all of this a lint check.
+- [ ] An agentic check that finds implicit state machines in the code and removes them.
+- [ ] Should we use formal verification on our code at all?
+- [ ] Can we use sanitizers on our code, like MSan, TSan and UBSan?
+- [ ] Should we use Bazel with a shared build cache?
 - [ ] Run Cloudflare's [security-audit-skill](https://github.com/cloudflare/security-audit-skill) on the repo.
 - [ ] Add linting for accessibility.
 - [ ] Add linting for early returns, to discourage nesting.
@@ -230,6 +238,8 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time. So an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
+- [ ] Make the site build faster. Is it parallelised?
+- [ ] Can we run any of this on Apple's Neural Engine (ANE)?
 - [ ] Make the sister search fast, so it stays part of the release (`release` skill, step 3) without a release waiting hours on it. The 0.0.12 run (2026-11-02) took over two hours for five pairs. Its last pair was GPT-2 → Qwen2.5-1.5B: 74 poles, and a first search because Qwen2.5-1.5B was newly configured. It swapped on a 64 GB Mac and was still unfinished after another two. Today each ordered pair with any new VERIFIED pole runs both models over all of `corpus.jsonl` twice (forward, then backward). So cost scales with the number of pairs (n² in models), not poles: 2 poles cost as much as 74. Three models and six pairs is 24 corpus passes. In rough order of payoff:
   - **One pass per model, not per pair.** A pole's own series is tiny (one number per token, ~212k). Compute every new pole's series once. Then run each model once, correlating its layers with every incoming series from all other models at once. Align tokenizers on the CPU from character offsets. Run a second pass per model for the backward partners and rotations. That's 2 passes per model (6, not 24, for three models), whatever the number of models. Rows must come out identical to today's (pin with a test on a small corpus).
   - **Cut peak memory.** `run_with_cache` clones every requested layer at full `[batch, seq, width]` and `_gather` then keeps only the boundary rows. Gather them inside the hook. `_backward` holds a `[width, width]` rotation per matched layer on the device at once. That is 8960² floats ≈ 320 MB each, up to ~9 GB for Qwen2.5-1.5B. Process them a few layers at a time. Empty the MPS cache between batches. The 0.0.12 run held 27 GB through the forward pass and 50 GB in the backward pass. Swapping slowed it from ~850 to ~365 positions a minute.
@@ -267,6 +277,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
   - Replace the inline experiments on the unit page with a table: verdict, pole, date, proposer and reviewer, and the hypothesis. Keep today's order (most conclusive first) and the "Both poles" summary.
   - Point every link that targets an experiment anchor at the new page. That is `_anchor_href` (home-page and registry rows), the "From experiment" link under "Both poles", and the evidence links in `circuits.html`. Keep the old anchors working, e.g. with a small script on the unit page that redirects `#<anchor>` to the experiment's page. External links and docs use them.
 - [ ] Make sister studies their own pages, so each sister experiment gets its own page.
+- [ ] Add most recent experiments to a model's page.
 - [ ] Give circuits and hubs their own sub-pages, as layers and neurons have. Today each model has one `models/<slug>/circuits.html` (`openinterp/builder/templates/circuits.html`), with each circuit and hub only an anchor on it. Link neuron pages to the circuit or hub page they belong to. Circuits are recomputed from wiring on every build and merge or split as the registry grows. So they need stable URLs, e.g. named after their lowest-layer or longest-studied unit, with old URLs redirecting. Later, once attention heads land, add circuit diagrams to these pages.
 - [ ] A 3D view of each circuit and hub ([reference](https://pbs.twimg.com/media/HVfauoNX0AALHLQ?format=jpg&name=large)). Each layer is a translucent plane stacked in depth, and units are points on their layer's plane. Wiring edges are lines between planes, coloured by sign (excites or inhibits). Then the path information takes through the model reads as a route from early to late layers. Rotate and zoom. Hovering a point shows its unit and explanation, clicking opens its page. Put it on the circuit and hub sub-pages (item above).
   - It needs JavaScript, an exception to the static-SVG rule above. Load a pinned 3D library (e.g. three.js from cdnjs) only on those pages. Feed it a JSON file of nodes and edges written at build time. Keep today's 2D SVG and edge table as the fallback and the accessible version.
@@ -305,17 +316,17 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 - [ ] Publish a JSON Schema for records. Generate it from `AuditRecord.model_json_schema()` at build time, serve it on the site versioned with `PROTOCOL_VERSION` (e.g. `/schema/audit-record-<version>.json`). Link it from the README and each record page, so outside tools can validate and read records without importing `openinterp`.
 - [ ] Can we order the Research section by latest first?
 - [ ] Make literature review a subsection of Research and make each literature review its own page.
+- [ ] Give the literature review page an embedding map of its papers.
 - [ ] Remove the Below the Dip research paper (`papers/below-the-dip/`), an interactive page for the default-on and resting papers. Also remove its links in `papers/README.md`, `papers/default-on-poles/README.md` and `papers/why-neurons-rest/README.md`, its generator `scripts/figures_explorer.py`, its entry in `scripts/paper_figures.py`, and its check in `tests/test_paper_figures.py`.
 
 ## Scope expansion
 
-- [ ] Publish a public benchmark for explanation tools: a frozen, versioned set of units and probe sets, with a scorer. Then other labs can test their own explainers against them. The reviewer-drift benchmark (Protocol and science) is internal only. Keep a held-out split, and say how units were selected so the scores aren't read as covering whole models.
+- [ ] Seal the test split of the explainer benchmark v1 (`docs/benchmark.md`, *Make a new version*, steps 2–5). For each of its 241 test units, write fresh probes with a reviewer that has not reviewed the unit, measure them with `openinterp benchmark measure`, then `openinterp benchmark seal`. Keep the private labels file out of the repository and store it where maintainers can read it. Then publish a registry baseline score for both splits, with its judge.
 
 ## Datasets
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission. The default, `mixed`, is a versioned blend of the presets. Adding a dataset below is mostly a new preset in `openinterp/corpus.py`, plus a new version of the `mixed` blend that includes it. The other way is an entry in `NOT_BLENDED` in `openinterp/blends.py` saying why not. A test enforces this. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Multilingual web text: FineWeb-2 (`HuggingFaceFW/fineweb-2`, ODC-By), sampled across many languages. `wikipedia-multilingual` gives the blend only encyclopedic non-English text, so language neurons are found only on one register.
 - [ ] Scientific papers: peS2o (`allenai/peS2o`, ODC-By), full texts and abstracts from Semantic Scholar. Academic prose, citations and section structure that fineweb-edu has little of.
 - [ ] Books: PG-19 (`deepmind/pg19`, public-domain Project Gutenberg books). Long documents with narrative, dialogue and older English. `openinterp corpus --max-chars` already cuts each document, so check that a cut book still gives useful contexts.
 - [ ] Legal text: Pile of Law (`pile-of-law/pile-of-law`). Court opinions, contracts and legislation. Its licence is CC BY-NC-SA 4.0, so check that the non-commercial terms allow excerpts in the wiki, or add it to `NOT_BLENDED` with that reason.
@@ -372,4 +383,5 @@ Research directions to pick up once the registry covers several models well.
 - [ ] Standard benchmarks once attention heads land: MIB (Mueller et al., 2025) for circuit localisation. Then RAVEL (Huang et al., 2024) for whether verified neurons separate an entity's attributes (a city's country from its continent).
 - [ ] The Platonic Representation Hypothesis (PRH), once multiple models are well understood. Then try snap training with Procrustes: fit an orthogonal Procrustes map between two models' activations on shared text. Then train one model to snap onto the other's representation. Check whether VERIFIED neurons map to their counterparts and keep their hypotheses after the snap.
 - [ ] Investigate simplifying neural pathways.
+- [ ] Weight space programming.
 - [ ] Eventually, extend the registry beyond text language models: image models (e.g. ViTs, CLIP), audio models (e.g. Whisper), video models, JEPA world models (e.g. V-JEPA) and weather models (e.g. GraphCast, Aurora). Each needs its own scan input in place of the token corpus (images, audio clips, video frames, weather fields). It needs a unit identifier that fits its architecture. It also needs a way to show top-activating examples to the proposer and reviewer. Those could be image patches and frames, spectrograms or clips, and map regions, rather than highlighted tokens. Decide too what a probe is when the reviewer can't write text inputs. Start with one image model, and check its MLP layers against the hook resolver (`harness/hooks.py`) first.

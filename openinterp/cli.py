@@ -205,8 +205,7 @@ def _write_wiki(record, wiki_dir, **kwargs) -> None:
     page = write_experiment_page(record, wiki_dir, **kwargs)
     if page is not None:
         archived = archive_path(wiki_dir, record)
-        click.echo(f"Experiment: {archived}")
-        click.echo(f"Wiki: {page}")
+        click.echo(f"Experiment: {archived}\nWiki: {page}")
         if kwargs.get("kind") == "backfill":
             return  # an imported record this run didn't produce: never vouch for it
         try:
@@ -470,6 +469,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 # Registers the registry-maintenance commands on `cli`.
 from openinterp import (  # noqa: E402, F401
     cli_baseline,
+    cli_benchmark,
     cli_check,
     cli_concepts,
     cli_corpus,
