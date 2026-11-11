@@ -100,7 +100,7 @@
   <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">New neurons are drawn mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified, so that one model is explained well before the next.</p>
   <div class="space-y-4">
     {% for m in models %}
-    {% set pc = charts.model_pieces(m) %}
+    {% set pc = pieces.model_pieces(m) %}
     <a href="{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: openinterp next draws most new neurons from it.">explore focus</span>{% endif %}</span>

@@ -171,7 +171,13 @@ def test_layer_map(tmp_path, records):
 
     (model,) = build_tree(records)
     chart = layer_map(model)
-    assert chart["counts"] == {"VERIFIED": 1, "CONTESTED": 0, "NEEDS_REVISION": 0, "REJECTED": 1}
+    assert chart["counts"] == {
+        "VERIFIED": 1,
+        "CONTESTED": 0,
+        "NEEDS_REVISION": 0,
+        "REJECTED": 1,
+        "STOPPED": 0,
+    }
     assert chart["unexplored"] == 116_736 - 2
     assert len(chart["rows"]) == 24 and chart["label_every"] == 2
     # Worst status drawn first, so the verified neuron is on top; N117 shows its best pole.
@@ -193,7 +199,7 @@ def test_layer_map(tmp_path, records):
 
 
 def test_pieces_bars(tmp_path, record, records):
-    from openinterp.builder.charts import layer_pieces, model_pieces
+    from openinterp.builder.pieces import layer_pieces, model_pieces
     from openinterp.builder.tree import ModelNode, build_tree
 
     # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
@@ -210,7 +216,13 @@ def test_pieces_bars(tmp_path, record, records):
 
     grid = layer_pieces(model, model.layers[0])
     assert len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
-    assert grid["counts"] == {"VERIFIED": 1, "CONTESTED": 0, "NEEDS_REVISION": 0, "REJECTED": 2}
+    assert grid["counts"] == {
+        "VERIFIED": 1,
+        "CONTESTED": 0,
+        "NEEDS_REVISION": 0,
+        "REJECTED": 2,
+        "STOPPED": 0,
+    }
     cell = next(c for c in grid["cells"] if c["href"].endswith("/N120.html"))
     assert (cell["x"], cell["y"]) == (grid["left"] + 120 * 5, 0)
     assert model_pieces(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no bars
@@ -1279,6 +1291,51 @@ def test_home_page_counts_a_proven_dead_stop_as_verified(tmp_path, record, prove
     home = " ".join((tmp_path / "index.html").read_text().split())
     assert f"{verified}/116,736 verified" in home
     assert ("1 of them proven dead" in home) is proven
+
+
+def _stop_on_model(studied, **kwargs):
+    """A stop on the model of ``studied``, named as its identifiers name it."""
+    stop = _stop(**kwargs)
+    model = studied.submission.identifier.model_name
+    ident = stop.identifier.model_copy(update={"model_name": model})
+    return stop.model_copy(update={"identifier": ident})
+
+
+def test_a_neuron_with_only_stopped_scans_counts_as_studied(tmp_path, record):
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    dead = _stop_on_model(studied, idx=9, pole="positive", outcome="dead", share=None)
+    default_on = _stop_on_model(studied, idx=9, pole="negative")
+    compile_site([studied], tmp_path, stops=[dead, default_on])
+    home = " ".join((tmp_path / "index.html").read_text().split())
+    assert 'Neurons studied</dt> <dd class="mt-1 font-mono text-2xl tabular-nums">2</dd>' in home
+    assert "2/116,736 neurons studied" in home and "1/116,736 verified" in home
+    model_page = " ".join((tmp_path / "models" / MODEL / "index.html").read_text().split())
+    assert "2/116,736 neurons studied" in model_page and "STOPPED 1" in model_page
+    layer = " ".join((tmp_path / "models" / MODEL / "L3" / "index.html").read_text().split())
+    assert "2 neurons studied (1 with only stopped scans)" in layer
+    assert "N9 · scan stopped: negative default-on, positive dead" in layer
+    assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
+
+
+def test_a_stop_on_a_neuron_with_an_experiment_is_not_counted_twice(tmp_path, record):
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    compile_site([studied], tmp_path, stops=[_stop_on_model(studied, idx=117)])
+    home = " ".join((tmp_path / "index.html").read_text().split())
+    assert "1/116,736 neurons studied" in home
+    layer = " ".join((tmp_path / "models" / MODEL / "L3" / "index.html").read_text().split())
+    assert "1 neurons studied ·" in layer and "only stopped scans" not in layer
+
+
+def test_a_random_draw_on_a_dead_neuron_counts_as_studied(tmp_path, record):
+    from openinterp.core.draws import UnauditableDraw
+
+    studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
+    stop = _stop_on_model(studied, idx=40, layer=5, pole="positive", outcome="dead", share=None)
+    draw = UnauditableDraw(**stop.model_dump(exclude={"protocol_version", "latest_record"}))
+    compile_site([studied], tmp_path, draws=[draw])
+    home = " ".join((tmp_path / "index.html").read_text().split())
+    assert "2/116,736 neurons studied" in home
+    assert (tmp_path / "models" / MODEL / "L5" / "index.html").exists()
 
 
 MODELS_PYPROJECT = """[tool.openinterp]

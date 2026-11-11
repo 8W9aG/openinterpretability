@@ -491,3 +491,14 @@ def test_short_context_models_are_scanned_in_windows(tmp_path, record):
     plan = plan_next(_registry(tmp_path / "b", rec), seed=1, epsilon=0.0, now=NOW)
     audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
     assert audits and all("--window-tokens 256" in cmd for cmd in audits)
+
+
+def test_stopped_scans_count_as_covered_and_only_proofs_as_verified():
+    from openinterp.core.identifiers import NeuronIdentifier
+    from openinterp.planner_models import model_coverage
+
+    stopped = [
+        NeuronIdentifier(model_name="a/x", layer=0, neuron_idx=i, pole="positive") for i in range(3)
+    ]
+    coverage = model_coverage(["a/x"], [], [], dead=stopped[:1], stopped=stopped)["a/x"]
+    assert coverage.covered == 3 and coverage.verified == 1
