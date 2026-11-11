@@ -84,12 +84,23 @@ RECENT = f"""
     FROM r ORDER BY reviewed_at DESC, slug, experiment_id LIMIT {RECENT_EXPERIMENTS}
     """  # noqa: S608  (interpolates module constants only)
 
+# The dashboard's input: verdict counts per UTC day, model and layer. Dictionary features
+# are a baseline, not claims about native units, so they are left out.
+VERDICTS = """
+    SELECT strftime(timezone('UTC', reviewed_at), '%Y-%m-%d') AS day,
+           model_name, layer, status, count(*) AS n
+    FROM r
+    WHERE kind != 'dictionary_feature' AND status IS NOT NULL AND reviewed_at IS NOT NULL
+    GROUP BY ALL ORDER BY ALL
+    """
+
 # The queries in the order the page's stats come in; TOTALS is one row.
 QUERIES = {
     "totals": TOTALS,
     "verified": VERIFIED,
     "conclusive": CONCLUSIVE,
     "recent": RECENT,
+    "verdicts": VERDICTS,
 }
 
 
