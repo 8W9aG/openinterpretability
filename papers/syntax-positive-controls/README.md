@@ -20,7 +20,7 @@ Syntax labels from a parser should find the code neurons that the literature lea
 12. **Curly brackets that hold blocks don't count.** No round-depth pole responds to a code block or to indentation. Four of them respond to an object literal. This fits the corpus R² of zero for curly depth in L2 N676+, since most curly brackets in code hold blocks.
 13. **Qwen's best round-depth poles don't count.** On written text, L21 N953− of Qwen2.5-0.5B fires inside round brackets without rising with depth, and grows as a bracketed list gets longer. L26 N7101+ of Qwen2.5-1.5B fires outside them. Neither changes the probability of a closer when ablated.
 14. **Later layers read L2 N676+ through L3H5, and then L8 N689+.** The model reads the pole from the tokens inside the brackets, not at the closer. Patched alone, L3H5 carries 27% to 63% of the effect. From it, the signal goes through heads of L4, L5H3 and L7H4 to L8 N689+, another round-depth pole. That pole alone carries 34% to 59% of what L3H5 sends.
-15. **Closing too many is a trade-off.** At depths 4 and 5 the model gives up to 0.20 to a closer after it closes every bracket. A stronger brake (L2 N1195+) or a weaker push (L2 N676+) removes that, but also stops the closers that the model needs. No scale we tried does better in both cases. The push survives closing because L3H5, which carries it, gives the closers almost no attention. Early heads (L0H10, L1H3, L2H10 and L3H10) read the closers instead, and the model counts the closed brackets. The count holds up to depth 6. The extra closer at depths 4 and 5 comes from the closer tokens that the model chooses there. It ends with ` )` or `))` and not `);`. It also packs brackets into tokens such as `))))`, which the readers undercount.
+15. **The model counts closed brackets up to depth 6, and the extra closer at depths 4 and 5 is mostly our method's.** Early heads (L0H10, L1H3, L2H10 and L3H10) read the closers and take part in an exact count. L3H5, which carries the push, gives the closers almost no attention. Our chain adds a closer at every step. At depth 4 it forced a closer in 4 of 7 items, where the model gave closers 0.005 or less. Only those items keep a high chance of one more closer. In the model's own chains, that chance is 0.02 or less at depths 2 to 5. The one exception is a chain at depth 5 that closes with `)))` and then `))`. The model counts its rare packed tokens, `)))` and `))))`, less sharply.
 16. **Through the protocol, L9 N340+ and Qwen's L21 N953− earn VERIFIED as signs of an open round bracket.** Both first claimed a lookahead to `)` and earned NEEDS_REVISION. Their revised, retrospective claims passed.
 17. **At GPT-2's 128-token windows, Qwen still has no such pole.** Each best pole for round depth stays the same, with R² 0.168 and 0.161. The null falls, and a curly-depth winner that followed position drops out.
 
@@ -192,7 +192,7 @@ At depth 2 and more, the model's first closer closes fewer brackets than are ope
 | P(one more closer), all closed | 0.001 | 0.011 | 0.001 | 0.161 | 0.196 |
 | Same, L2 N676+ ablated: brackets still open | – | 0.002 | 0.008 | 0.015 | 0.024 |
 
-The model does close the rest later. At depth 3, its most probable closer is `))` in all 8 items. It then gives 0.62 to one more closer, and 0.001 after it closes the last bracket. At depths 4 and 5 it still gives 0.55 and 0.36 with brackets open. But it also gives 0.16 and 0.20 after it closes them all, so it counts less well there. Greedy text agrees. We let the model write its most probable tokens to the end of the line, for up to 16 tokens. Lines that end close every bracket at depths 1 to 3 (8, 8 and 5 lines of 8). At depth 4, 1 of 5 lines closes every bracket, 3 close too many and 1 too few. At depth 5, none of 3 does. The other lines repeat an argument, such as `, first, first, first`, and never end.
+The model does close the rest later. At depth 3, its most probable closer is `))` in all 8 items. It then gives 0.62 to one more closer, and 0.001 after it closes the last bracket. At depths 4 and 5 it still gives 0.55 and 0.36 with brackets open. It also gives 0.16 and 0.20 after it closes them all. *Natural and forced chains* shows that most of this comes from steps that our chain forced. Greedy text agrees. We let the model write its most probable tokens to the end of the line, for up to 16 tokens. Lines that end close every bracket at depths 1 to 3 (8, 8 and 5 lines of 8). At depth 4, 1 of 5 lines closes every bracket, 3 close too many and 1 too few. At depth 5, none of 3 does. The other lines repeat an argument, such as `, first, first, first`, and never end.
 
 With L2 N676+ ablated, the model closes one bracket and stops. Its probability of one more closer falls to 0.024 or less, with up to 4 brackets still open. At depths 2 to 5, each greedy line that ends closes too few, 31 lines of 31. So the pole carries more than the size of the first closer. Without it, the model does not act on the brackets that stay open. The ablation zeroes the pole at every token, including the closers that the chain adds.
 
@@ -265,7 +265,7 @@ The revision is closer, but it still fails specificity, and token identity still
 
 ## Closing too many
 
-At depths 4 and 5, the model still gives 0.16 and 0.20 to one more closer after it closes every bracket. At depth 3 it gives 0.001. We read the round-depth poles at that last closer, and ablated each of them in turn. The table gives the log-odds of one more closer.
+At depths 4 and 5, the chains give 0.16 and 0.20 to one more closer after they close every bracket. At depth 3 they give 0.001. Most of this comes from forced steps (see *Natural and forced chains*), but this section studies the chains as they are. We read the round-depth poles at that last closer, and ablated each of them in turn. The table gives the log-odds of one more closer.
 
 | Brackets first opened | 1 | 2 | 3 | 4 | 5 |
 | --- | --- | --- | --- | --- | --- |
@@ -287,7 +287,7 @@ The two L2 poles and L3 N695+ read 0.00 at the last closer at every depth. L2 N1
 | Push L2 N676+ ×0.5 | −3.42, −1.15, −1.46 | −8.24, −4.41, −5.98 |
 | Push ×1.5 | 0.42, −0.61, −1.82 | −2.49, −0.84, −1.38 |
 
-A stronger brake removes the extra closer at depths 4 and 5. But it also stops the closer that the model needs while brackets are still open. A weaker push does the same. A stronger push or a weaker brake adds closers after all brackets close, and does not help while they are open. No scale in the table does better than the model in both states. So the brake is not too weak in a simple sense. The same signals serve both states, and at depths 4 and 5 they tell them apart less well.
+A stronger brake removes the extra closer at depths 4 and 5. But it also stops the closer that the model needs while brackets are still open. A weaker push does the same. A stronger push or a weaker brake adds closers after all brackets close, and does not help while they are open. No scale in the table does better than the model in both states. So the brake is not too weak in a simple sense. The same signals serve both states.
 
 ### Why the push survives closing
 
@@ -342,7 +342,31 @@ The cause is which closer tokens end the call. In the items above, the first clo
 | 6 | `))))` `)` `)` | 2.13 | −1.68 |
 | 6 | `))` `))` `))` | 1.96 | 0.08 |
 
-Two things set the result, and depth is not one of them. The first is the last token. After `);`, which ends the statement, depths 4 and 5 look like depth 3. L8 N689+ reads 0.02 and 0.16, and the log-odds are −6.47 and −5.53. After `)`, the log-odds are −2.70 to −1.55. After ` )` or `))`, they are −1.57 to 0.08, even where L8 N689+ reads 0.06. So the token that ends the call says, by itself, whether more closers are likely. The second is the packing. With `))` and then single `)` tokens, L8 N689+ reads 0.38 to 0.59 at depths 4 to 6, against about 3 with one bracket open. A `))))` token leaves it at 2.13 to 2.28, and a long run of single `)` tokens at up to 1.14. So the readers count a closer that packs 4 brackets as fewer than it closes. At depth 3, the model ends every chain with `);`. At depth 4 it mostly ends with ` )`, and at depth 5 it sometimes ends with `))`. So its extra closer at depths 4 and 5 comes from the closer tokens that it chooses. It does not come from a count that fails with depth.
+Two things set the result, and depth is not one of them. The first is the last token. After `);`, which ends the statement, depths 4 and 5 look like depth 3. L8 N689+ reads 0.02 and 0.16, and the log-odds are −6.47 and −5.53. After `)`, the log-odds are −2.70 to −1.55. After ` )` or `))`, they are −1.57 to 0.08, even where L8 N689+ reads 0.06. So the token that ends the call says, by itself, whether more closers are likely. The second is the packing. With `))` and then single `)` tokens, L8 N689+ reads 0.38 to 0.59 at depths 4 to 6, against about 3 with one bracket open. A `))))` token leaves it at 2.13 to 2.28, and a long run of single `)` tokens at up to 1.14. So the readers count a closer that packs 4 brackets as fewer than it closes. At depth 3, every chain ends with `);`. At depth 4 most chains end with ` )`, and at depth 5 some end with `))`. So the extra closer at depths 4 and 5 comes from these closer tokens. It does not come from a count that fails with depth.
+
+### Natural and forced chains
+
+Our chain adds the most probable closer at every step, even where the model would write something else. At depth 4, after `))`, the model's most probable closer is `),`, which closes one bracket and starts a new argument. Then it wants the new argument: it gives closers 0.003 to 0.005 in total. The chain still adds ` )`. We call a chain forced if one of its steps gave closers less than 0.05.
+
+| Depth | Natural chains | P(one more closer) after them | Forced chains | P(one more closer) after them |
+| --- | --- | --- | --- | --- |
+| 2 | 8 | 0.001 to 0.017 | 0 | – |
+| 3 | 8 | 0.002 or less | 0 | – |
+| 4 | 3 | 0.001 to 0.009 | 4 | 0.18 to 0.39 |
+| 5 | 6 | 0.003 to 0.008, and 0.43 and 0.51 | 1 | 0.42 |
+
+At depth 4, every natural chain closes cleanly. The extra closer comes only from the forced ` )`. At depth 5, the chains that end with `);` close cleanly too. Two natural chains, `)))` then `))`, give 0.43 and 0.51 to one more closer. They end with `))`, and they hold the rare packed token `)))`.
+
+The packed tokens are rare in code. In the 500 documents of the sweep, `)` occurs 2,254 times, `))` 225 times, `)))` 21 times and `))))` 3 times. And the model counts them less sharply. We put one closer of 1 to 4 brackets, then `)`, after calls of depth 2 to 7, and read L8 N689+.
+
+| Closer, then `)` | One bracket too many | Every bracket closed | One bracket left open |
+| --- | --- | --- | --- |
+| `)` | – | 0.02 | 3.48 |
+| `))` | 0.00 | 0.09 | 3.48 |
+| `)))` | 0.00 | 0.68 | 3.53 |
+| `))))` | 0.00 | 2.28 | 3.53 |
+
+The neuron reads 0.00 whenever too many brackets close. So the model does not count `))))` as fewer brackets in a simple way. The step from one bracket open to none is sharp for `)` and `))`, and blurred for `)))` and `))))`. At the exact count, the log-odds of one more closer are −4.33, −3.82, −2.45 and −1.85. The rarer the token, the less sharp the count, but this is a correlation. We did not change how often the tokens occur.
 
 ## Curly brackets that hold blocks
 
@@ -543,7 +567,7 @@ The failed holdout is `print(value` at the end of a function, which read 3.02 ag
 - **Few models, one sample for the sweep.** The sweep ran on GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B, on one sample of documents. The label stability and the audit used a second sample.
 - **Selection.** We chose this pole from 73,728 poles, and we changed the label after seeing results. Held-out R² guards against noise in the fit, not against our choices. The written probes and the ablation are separate tests of the pole, but they came after we chose it.
 - **Few probes.** Each cell has 8 items from one template family, in Python-like or C-like text. Standard errors cover the items, not the choice of template.
-- **One path of closers.** *Closing the rest later* follows the model's most probable closer at each step, and greedy text follows its most probable token. Other closers and other text can lead elsewhere.
+- **One path of closers.** *Closing the rest later* follows the model's most probable closer at each step, and greedy text follows its most probable token. Other closers and other text can lead elsewhere. The chain also adds a closer where the model would not (see *Natural and forced chains*).
 - **No confidence interval on ablation.** The 20 controls show the size of a random pole's effect, and no more.
 - **R² is a weak search.** A pole that responds to a label only sometimes scores low, and the depth-tracking poles here score under 0.32. A sweep can miss signals, including any spread over several neurons.
 - **The label is approximate.** Node names are sorted by pattern, and angle brackets don't count.
@@ -583,8 +607,7 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 
 ## Next
 
-- Find why the closer readers count a `))))` token as fewer brackets than it closes, for example from its embedding or from how often it occurs.
-- Find why the model ends a call with ` )` or `))` at depths 4 and 5, where it ends with `);` at depth 3.
+- Test whether the count of `)))` and `))))` is less sharp because the tokens are rare. A model trained on code with more of them would show it.
 
 ## References
 

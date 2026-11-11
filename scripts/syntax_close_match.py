@@ -18,6 +18,12 @@ the input that the model computes. It is near zero when the split is exact.
 - ``close_packing``: every bracket closed, with the closers packed into tokens in
   several ways. The last token is ``)``, ``))``, `` )`` or ``);``. There are 64 items
   for each way: 8 callee orders times 8 targets.
+- ``close_count_by_token``: one closer of 1 to 4 brackets, then ``)``, after calls of depth
+  2 to 7. The depth where L8 N689+ falls shows how many brackets the model counts. With
+  ``--corpus``, also count each closer token in that corpus.
+- ``close_natural``: the chains of ``syntax_followups.py``, split by whether every step
+  of the chain had a real chance of a closer. A forced step is one where P(closer) was
+  under ``FORCED_BELOW`` and the chain still added the most probable closer.
 
     P=papers/syntax-positive-controls
     uv run python scripts/syntax_close_match.py --results $P/results.followups.jsonl
@@ -33,14 +39,17 @@ import click
 import torch
 from syntax_close_paths import MODEL
 from syntax_close_readers import count_items, head_attention, measure
-from syntax_probes import CALLEES, TARGETS, _rounded
+from syntax_followups import closer_chain
+from syntax_probes import CALLEES, TARGETS, _rounded, calls
 
 from openinterp.cli import _load, resolve_device
 
 LAYER, NEURON = 8, 689  # L8 N689+
 DEPTHS = (3, 4, 5)
 TOP_PARTS = 12
-WRITES = ("close_match", "close_gate", "close_packing")
+WRITES = ("close_match", "close_gate", "close_packing", "close_count_by_token", "close_natural")
+FORCED_BELOW = 0.05
+COUNT_DEPTHS = range(2, 8)
 GATE = (7, 4)  # L7H4
 GATE_SHARES = (0.17, 0.0)  # its share at depth 3 with no bracket open, and none
 PACKINGS = {
@@ -264,14 +273,72 @@ def packing_rows(runner) -> list[dict]:
     return rows
 
 
+def all_items(runner, depth: int, closers: list[int]) -> list[torch.Tensor]:
+    """Return the 64 items at ``depth`` (8 callee orders times 8 targets), then ``closers``."""
+    out = []
+    for offset in range(len(CALLEES)):
+        opened = "".join(f"{CALLEES[(offset + i) % len(CALLEES)]}(" for i in range(depth))
+        for target in TARGETS:
+            base = runner.encode([f"out = {opened}first,{target}"])["input_ids"][0]
+            out.append(torch.cat([base, torch.tensor(closers, device=base.device)]))
+    return out
+
+
+def count_by_token_rows(runner, corpus: Path | None) -> list[dict]:
+    """Return L8 N689+ for each closer token of 1 to 4 brackets, then ``)``, by depth."""
+    ids = {k: one_token(runner, ")" * k) for k in (1, 2, 3, 4)}
+    seen = {k: 0 for k in ids}
+    if corpus is not None:
+        for line in corpus.read_text(encoding="utf-8").splitlines():
+            tokens = runner.tokenizer.encode(json.loads(line)["text"])
+            for k, token in ids.items():
+                seen[k] += tokens.count(token)
+    rows = []
+    for k, token in ids.items():
+        by_depth = {}
+        for depth in COUNT_DEPTHS:
+            items = all_items(runner, depth, [token, ids[1]])
+            by_depth[depth] = mean_pair([measure(runner, i) for i in items])
+        row = {"kind": "close_count_by_token", "brackets": k, "matched_depth": k + 1}
+        rows.append(
+            _rounded(row | {"in_corpus": seen[k] if corpus else None, "by_depth": by_depth})
+        )
+    return rows
+
+
+def natural_rows(runner) -> list[dict]:
+    """Return the chance of one more closer after each chain, natural or forced."""
+    rows = []
+    for depth in (2, 3, 4, 5):
+        for k, target in enumerate(TARGETS):
+            base = runner.encode([f"out = {calls(depth, k)}first,{target}"])["input_ids"][0]
+            chain = closer_chain(runner, base, depth)
+            steps = chain["steps"]
+            if steps[-1]["open"] != 0:
+                continue  # the chain closed too many brackets
+            lowest = min(step["p_closer"] for step in steps[:-1])
+            words = [runner.tokenizer.decode([t]) for t in chain["tokens"]]
+            row = {"kind": "close_natural", "depth": depth, "item": k, "closers": words}
+            row |= {"forced": lowest < FORCED_BELOW, "lowest_step_p_closer": lowest}
+            rows.append(_rounded(row | {"p_one_more": steps[-1]["p_closer"]}))
+    return rows
+
+
 @click.command()
 @click.option("--results", type=click.Path(path_type=Path), required=True)
 @click.option("--device", default="cpu")
-def main(results, device):
+@click.option(
+    "--corpus",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="A corpus .jsonl in which to count each closer token.",
+)
+def main(results, device, corpus):
     """Replace this script's rows of ``results``, and keep the others."""
     runner = _load(MODEL, resolve_device(device), torch.float32, None, None)
     with torch.no_grad():
         rows = [*match_rows(runner), *gate_rows(runner), *packing_rows(runner)]
+        rows += [*count_by_token_rows(runner, corpus), *natural_rows(runner)]
     lines = results.read_text(encoding="utf-8").splitlines() if results.exists() else []
     kept = [line for line in lines if json.loads(line)["kind"] not in WRITES]
     results.write_text("".join(f"{line}\n" for line in [*kept, *map(json.dumps, rows)]))
