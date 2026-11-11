@@ -29,11 +29,22 @@ If the key is yours, also stop using it: set `OPENINTERP_AUTO_SIGN=0`, or move `
 
 What the maintainer does:
 
-1. Remove the key's line from `.github/allowed_signers` in a commit to `main`. CI reads that file from the base branch, so the key stops counting for every PR after the commit.
-2. Find the records that the key signed. Each `<id>.json.sig` under `wiki/` that verifies with an allowed-signers file that holds only that key is one (`ssh-keygen -Y find-principals`).
-3. Reproduce those records: `openinterp reproduce --include-signed <paths>`. After step 1 their signatures don't verify, so the nightly run fails on them until this step is done.
+1. Find the start of the exposure: the earliest time that someone else could have had the key. If you don't know it, use the key's `valid-after`. Then no signature by the key is trusted.
+2. In a commit to `main`, add `valid-before="YYYYMMDDHHMMSSZ"` (UTC) to the key's line in `.github/allowed_signers`, at the start of the exposure. Don't delete the line. CI checks each signature at the time it landed on `main` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §5). So signatures that landed before the exposure stay trusted, and the other signatures by the key vouch for nothing. CI reads the file from the base branch, so the change applies to every PR after the commit.
+3. List the records that the key signed in its exposure: `openinterp signatures`. Reproduce them: `openinterp reproduce --include-signed $(openinterp signatures --paths-only)`. Until then, the nightly run reproduces each one when its rotation gets to it, and does not skip it.
 4. Deal with each record that doesn't reproduce in a PR that a maintainer reviews, and list them in the advisory.
-5. If the owner still contributes, they make a new key and add it to `.github/allowed_signers` in its own commit to `main`.
+5. If the owner still contributes, they make a new key and add it to `.github/allowed_signers` in its own commit to `main` (see [Rotating a signing key](#rotating-a-signing-key)).
+
+If you delete a key's line, every signature by the key fails, including the signatures from before the exposure.
+
+### Rotating a signing key
+
+Each line in `.github/allowed_signers` has `valid-after`, the UTC day that the key was added. A key has no expiry until it gets `valid-before`. Rotate a key when you stop using its machine, or when you think the key is old:
+
+1. Make a new key (see [docs/development.md](docs/development.md#pull-requests)).
+2. In one commit to `main`, add the new key's line with `valid-after` set to today, and add `valid-before` set to the current time to the old key's line.
+
+The old key's signatures that landed before its `valid-before` stay trusted, so no record is reproduced. After `valid-before`, the old key signs nothing: `openinterp sign` refuses, and automatic signing stops with a warning. You can also give a new key a `valid-before` in the future, so that it expires. Rotate it before that date, or CI reproduces your records.
 
 ### A way to get a false VERIFIED past CI
 
