@@ -98,7 +98,9 @@ def _depths(rows: dict) -> dict[str, int]:
 def _nodes(poles: set[str], x0: float, n_layers: int, studied: set) -> dict[str, dict]:
     """Node positions: y by relative depth, each layer's poles spread about ``x0``."""
     by_layer: dict[int, list[str]] = defaultdict(list)
-    for p in sorted(poles, key=lambda s: tuple(int(g) for g in _SLUG.search(s).groups()[:2])):
+    # The slug breaks ties between the two poles of a neuron. So the layout never depends on
+    # the order of a set, which changes with Python's hash seed.
+    for p in sorted(poles, key=lambda s: (*(int(g) for g in _SLUG.search(s).groups()[:2]), s)):
         by_layer[_layer(p)].append(p)
     out = {}
     for layer, ps in by_layer.items():

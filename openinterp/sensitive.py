@@ -180,9 +180,9 @@ def _cut_email(text: str) -> Iterator[tuple[int, int, str]]:
         yield (*cut.span(), "email")
 
 
-def _may_match(text: str) -> bool:
+def may_match(text: str) -> bool:
     """Return False for a text too short for any match: most record strings are single tokens."""
-    return "@" in text or text.count(":") >= 2 or sum(c.isdigit() for c in text) >= 4
+    return "@" in text or text.count(":") >= 2 or sum(map(str.isdigit, text)) >= 4
 
 
 @cache
@@ -191,7 +191,7 @@ def pii_matches(text: str) -> tuple[tuple[int, int, str], ...]:
 
     Many pages show the same text, so the result is cached.
     """
-    if not _may_match(text):
+    if not may_match(text):
         return ()
     found = {*_cut_email(text), *_context_phones(text)}
     for kind, recogniser in _recognisers().items():

@@ -42,6 +42,13 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: Check registry consistency
         run: openinterp check
+      # The personal-data matches of each text that earlier builds searched
+      # (openinterp/builder/pii.py), so this build searches only new text.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/openinterp/pii
+          key: pii-spans-${{ github.run_id }}
+          restore-keys: pii-spans-
       - name: Build site
         run: |
           openinterp build --wiki-dir wiki --output-dir dist
