@@ -566,6 +566,8 @@ _BLOCK_TAGS = (
 HTML_BLOCK_KINDS = [
     (re.compile(r"^ {0,3}<(?:script|pre|style|textarea)(?:\s|>|$)", re.I),
      re.compile(r"</(?:script|pre|style|textarea)>", re.I)),
+    # CommonMark ends a type 2 block at "-->" only. "--!>" ends a comment in an HTML
+    # parser, but not in Markdown, so this pattern must not match it.
     (re.compile(r"^ {0,3}<!--"), re.compile(r"-->")),
     (re.compile(r"^ {0,3}<\?"), re.compile(r"\?>")),
     (re.compile(r"^ {0,3}<!\[CDATA\["), re.compile(r"\]\]>")),

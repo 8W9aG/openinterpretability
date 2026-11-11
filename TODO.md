@@ -11,8 +11,11 @@ Small fixes, mostly quick.
 - [ ] Do we need a SOUL.md?
 - [ ] Use academic language when writing papers, in APA style. Put the rule in the `write-paper` skill, and align its reference format and `tests/test_papers.py` with APA.
 - [ ] Be very clear in each paper we write, at the top, why it is being written and what problem it is trying to answer.
+- [ ] When writing papers, split them into scientific sections (e.g. synopsis, discussion, conclusion) and give the site's paper pages easy navigation between sections. Label and number each figure.
+- [ ] Offer an optional PDF download for each research paper, of a quality good enough for acceptance at NeurIPS.
 - [ ] Change the README's quickstart to: clone the repo, then run `claude "/loop /land-experiment"`, in place of the separate steps.
 - [ ] When performing a task, always make sure there is some indicator of progress.
+- [ ] Remove "decentralised" from the README. It isn't strictly true.
 - [ ] Add a `literature-review` skill, and triage the queue. `docs/literature/queue.md` has about 60 entries and `docs/literature/` has one page. Make the skill from that page's sections: Citation, Status, Read, Summary, Where the claims go beyond the evidence, and Use in this repo. Then a subagent per entry can write pages in the same form. First mark the entries that are clearly off-topic (e.g. Drex, SwarmEvolve), so they get short "not applicable" pages and the useful ones go first. To rank the rest, give each queue entry a "bears on" tag. The tag names the `TODO.md` item, skill or protocol section that the entry would change. Review the entries that bear on a gate or a score first. Today those are:
   - 2610.37676 (`openinterp score`).
   - 2611.09196 (calibrated concept profiles).
@@ -26,7 +29,9 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 
 - [ ] Add shell linter.
 - [ ] Add TOML linter.
+- [ ] Add Makefile linter.
 - [ ] Add pyright linter. (The type-check item below also names it, with mypy and ty.)
+- [ ] Make Vale part of `make lint`. Today `make lint` skips Vale, so CI fails on long docstring sentences that pass locally.
 - [ ] Lint paper status. List each paper as a preprint until it is finalised, and formally finalise it when no work on it is left. After that, allow only addendums at the bottom, for later corrections. Give each paper a citation file (CITATION.cff). Make all of this a lint check.
 - [ ] An agentic check that finds implicit state machines in the code and removes them.
 - [ ] Should we use formal verification on our code at all?
@@ -76,6 +81,8 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
   - Later, consider requiring signed commits on `main` with a branch-protection rule, once contributors and agent loops sign by default.
 - [ ] Open question: can anything move to Protocol Buffers, e.g. dataclasses or JSON files?
 - [ ] Pin GitHub Actions to commit SHAs and add Dependabot. The workflows use tags (`actions/checkout@v4`, `astral-sh/setup-uv@v6`), which can be moved, and CI decides which records to trust. Pin each action to a full SHA with the tag as a comment. Configure Dependabot (`.github/dependabot.yml`) for `github-actions` and the `uv` lockfile so the pins stay current through reviewed PRs.
+- [ ] Make Dependabot PRs auto-merge (once CI is green).
+- [ ] Run CodeQL once a day rather than on every merge. No workflow in `.github/workflows/` runs it, so it is probably GitHub's default setup. Switch to an advanced-setup workflow with a daily `schedule` trigger, or change the default setup's settings.
 - [ ] Check dependencies for known vulnerabilities in CI with `pip-audit` against `uv.lock`. Dependabot (item above) keeps pins current, but doesn't fail a build on a known vulnerability.
 - [ ] Set `timeout-minutes` on CI's "Lint and tests" job and on the deploy job. Neither has one, so a hung job can run until GitHub's default limit. Pytest's per-test timeout doesn't cover the other steps.
 - [ ] Scan for secrets in CI (e.g. gitleaks or trufflehog), on pull requests and across history once. Nothing does this today, and agent loops commit and push without a person watching. Planned transcript telemetry (Pipeline) adds more risk. Bandit (above) doesn't cover this.
@@ -118,6 +125,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 - [ ] Open question: is there more to do with circuits and hubs, and should they get experiments of their own, as neurons do? Today they are reported, not gated: wiring edges between studied units, direct effects only. A circuit experiment would hypothesise what the circuit computes as a whole, beyond what each member's hypothesis says. Test it with path patching or causal scrubbing (Chan et al., 2022), as the hypothesis-conditioned resample ablation item above does for one neuron. For a hub, test whether it is a real hub or an artefact of a high-norm or default-on unit (`neuron-family-triage`). Decide what such a record is keyed on, given that circuit membership changes as the registry grows. **(protocol)** if adopted.
 - [ ] All the studies are claimed retrospective. Is there anything that isn't?
 - [ ] Allow polysemantic studies / experiments. Before designing the experiment class, read NeuronScope (arXiv 2601.03671, `docs/literature/queue.md`). It splits a neuron's activations into atomic semantic components with several agents, which is close to the shape a polysemantic experiment would take.
+- [ ] Consider that a neuron's semantic definition can validly include two concepts (e.g. marine things and golf things). The context decides which one applies.
 - [ ] How are we using learned baselines in dictionaries? Is there more we can do here, either on the proposer or the judges? Are there more experiments we should be doing?
 - [ ] A non-LLM explainer baseline: Neuron to Graph (N2G, Foote et al., 2023, arXiv 2305.19911). N2G turns a neuron's top examples into a token-pattern graph that predicts activation, with no language model. Score N2G's graph on the same held-out windows as the registry's hypotheses. It gives a floor: the share of a VERIFIED hypothesis that a pattern matcher already predicts. Report it next to the transcoder, SPD and Patchscope baselines (`docs/analyses/`).
 - [ ] Decide how to incorporate transcoders or SPDs into the process (whether with monosemanticity or polysemanticity), or create a new experiment class. We need to use them more to explain the networks.
@@ -253,6 +261,7 @@ Measure before optimising, and check that any change to what the agents see does
   - **Cut peak memory.** `run_with_cache` clones every requested layer at full `[batch, seq, width]` and `_gather` then keeps only the boundary rows. Gather them inside the hook. `_backward` holds a `[width, width]` rotation per matched layer on the device at once. That is 8960² floats ≈ 320 MB each, up to ~9 GB for Qwen2.5-1.5B. Process them a few layers at a time. Empty the MPS cache between batches. The 0.0.12 run held 27 GB through the forward pass and 50 GB in the backward pass. Swapping slowed it from ~850 to ~365 positions a minute.
   - **Stop the forward pass at the deepest layer needed** on the side whose poles are fixed.
   - **Try bf16/fp16 on MPS**, checking that the correlations and which matches are sisters don't move.
+- [ ] Make the sister search in the release generate a new mixed corpus.
 
   Don't subsample the corpus: rows over a different sample aren't comparable with the existing ones. Target: a run with no new model in ~15–25 min on an M-series Mac. This is an estimate, so measure it.
 
@@ -327,13 +336,13 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Seal the test split of the explainer benchmark v1 (`docs/benchmark.md`, *Make a new version*, steps 2–5). For each of its 241 test units, write fresh probes with a reviewer that has not reviewed the unit, measure them with `openinterp benchmark measure`, then `openinterp benchmark seal`. Keep the private labels file out of the repository and store it where maintainers can read it. Then publish a registry baseline score for both splits, with its judge.
+- [ ] Publish a registry baseline score for both splits of the explainer benchmark v1, with its judge (`docs/benchmark.md`, *Score an explainer*). Use `external/claude-haiku-5-5` through the `explanation-judge` agent, one agent per unit: 1,012 dev and 241 test units. The test split needs the private labels file (`v1-test.private.jsonl`, in the maintainer's Google Drive). `--judge-model external/...` judges one unit at a time, so first add a way to answer the prompts in parallel.
+- [ ] Do evals.
 
 ## Datasets
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission. The default, `mixed`, is a versioned blend of the presets. Adding a dataset below is mostly a new preset in `openinterp/corpus.py`, plus a new version of the `mixed` blend that includes it. The other way is an entry in `NOT_BLENDED` in `openinterp/blends.py` saying why not. A test enforces this. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Scientific papers: peS2o (`allenai/peS2o`, ODC-By), full texts and abstracts from Semantic Scholar. Academic prose, citations and section structure that fineweb-edu has little of.
 - [ ] Books: PG-19 (`deepmind/pg19`, public-domain Project Gutenberg books). Long documents with narrative, dialogue and older English. `openinterp corpus --max-chars` already cuts each document, so check that a cut book still gives useful contexts.
 - [ ] Legal text: Pile of Law (`pile-of-law/pile-of-law`). Court opinions, contracts and legislation. Its licence is CC BY-NC-SA 4.0, so check that the non-commercial terms allow excerpts in the wiki, or add it to `NOT_BLENDED` with that reason.
 - [ ] Forum questions and answers: a Stack Exchange dump on the Hub (CC BY-SA, so excerpts need attribution). Question/answer structure, and code mixed with prose, which neither `github-code` nor `ultrachat` has. Choose a dump that records the site and post IDs, so attribution can link back.
@@ -373,6 +382,7 @@ The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX 
 - [ ] Kimi K3.1 Pro ([model](https://huggingface.co/moonshotai/Kimi-K3.1-Pro)).
 - [ ] Ricursive AI Ripple 65B Preview ([model](https://huggingface.co/ricursiveAI/Ripple-65B-Preview)).
 - [ ] Nous Research's model from this announcement. Name it here once identified ([post](https://x.com/nousresearch/status/2118822925445050435)).
+- [ ] LongCat-2.5 ([model](https://huggingface.co/meituan-longcat/LongCat-2.5)).
 - [ ] What is the process for adding a model? Do we need to construct a latent learned-basis dictionary? Do we need to construct an SPD model? Can we formalise this process?
 
 ## Later stage
