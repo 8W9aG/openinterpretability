@@ -82,10 +82,10 @@ def logits_at_end(runner, ids: torch.Tensor, poles=()) -> torch.Tensor:
 def closer_chain(runner, ids: torch.Tensor, depth: int, poles=()) -> dict:
     """Add the most probable closing token until no bracket is open, and record each step.
 
-    At each step, ``p_closer`` is the probability that the next token starts with ``)``,
-    and ``open`` is the number of brackets still open before it. The chain stops when no
-    bracket is open, after one more reading, so the last step shows the probability of a
-    closer that would close too many. ``tokens`` holds the closers that the chain added.
+    At each step, ``p_closer`` is the probability that the next token starts with ``)``.
+    ``open`` is the number of brackets still open before that token. The chain stops when
+    no bracket is open, after one more reading. So the last step shows the probability of
+    a closer that would close too many. ``tokens`` holds the closers that the chain added.
     """
     steps, tokens, remaining = [], [], depth
     for _ in range(CHAIN_STEPS):
@@ -108,7 +108,7 @@ def greedy_balance(runner, ids: torch.Tensor, poles=()) -> int | None:
     """Return the net number of round brackets that greedy text closes on its line.
 
     Each token of the text is the most probable next token. If the line does not end
-    within ``GREEDY_TOKENS`` tokens, return ``None``: such text is usually a loop that
+    within ``GREEDY_TOKENS`` tokens, return ``None``. Such text is usually a loop that
     repeats an argument, and its count says nothing about closing.
     """
     out = []
@@ -128,8 +128,8 @@ def close_later_rows(runner) -> list[dict]:
 
     For each depth, condition and target, a chain adds the most probable closer at each
     step (see :func:`closer_chain`). Each row gives the mean over targets, per step.
-    It also counts the lines of greedy text that end, and how many of those close every
-    bracket, too few or too many (see :func:`greedy_balance`).
+    It also counts the lines of greedy text that end (see :func:`greedy_balance`). Of
+    those lines, it counts the lines that close every bracket, too few or too many.
     """
     rows = []
     for depth in DEPTHS:

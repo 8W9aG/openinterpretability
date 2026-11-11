@@ -10,8 +10,11 @@ gives a high probability to one more closer. With L2 N676+ ablated, it does not.
 - ``close_paths``: patch one later component (an attention head or an MLP) at a time.
   Noising puts the component's output from the ablated run into the clean run. Denoising
   puts the clean output into the ablated run. Both patch every position.
-- ``close_done``: read the round-depth poles after the model has closed every bracket,
-  and ablate each, to find what keeps the probability of one more closer up.
+- ``close_done``: read the round-depth poles after the model closes every bracket. Then
+  ablate each pole, to find what keeps the probability of one more closer up.
+- ``close_via_l3h5``: noise L3H5, and hold one later component at its clean output.
+- ``close_balance``: scale the push (L2 N676+) or the brake (L2 N1195+).
+- ``close_l8_neurons``: rank L8 neurons by attribution, then patch the top ones exactly.
 
 The measure is the log-odds of a closer: the log of P(a token that starts with ``)``)
 over P(any other token).
@@ -329,8 +332,8 @@ def balance_rows(runner, open_items: dict, closed_items: dict) -> list[dict]:
 def attribution_of(runner, found, ablated_runs) -> tuple[torch.Tensor, list[torch.Tensor]]:
     """Return each L8 neuron's attribution, and each item's clean L8 activations.
 
-    For each neuron: the gradient of the log-odds in the run with L3H5 noised, times the
-    change of its activation from that run to the clean run, summed over positions.
+    Take the run with L3H5 noised. For each neuron, multiply the gradient of the log-odds
+    by the change of its activation from that run to the clean run. Sum over positions.
     """
     width = runner.head_dim(0)
     _, layer, head = READER
@@ -371,8 +374,8 @@ def hold_neuron(clean_act: torch.Tensor, neuron: int) -> dict:
 def neuron_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     """Return the L8 neurons that carry L3H5's effect, by attribution, then exact patching.
 
-    The top ``EXACT_NEURONS`` neurons by attribution (see :func:`attribution_of`), and
-    L8 N689, are held at their clean activations one at a time while L3H5 is noised.
+    Take the top ``EXACT_NEURONS`` neurons by attribution (see :func:`attribution_of`),
+    and L8 N689. Hold each at its clean activation, one at a time, while L3H5 is noised.
     ``share`` is the part of the drop that holding the neuron removes.
     """
     poles_of_interest = {n for lay, n, _ in ROUND_DEPTH_POLES if lay == TARGET_LAYER}
