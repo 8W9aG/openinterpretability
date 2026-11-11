@@ -16,7 +16,6 @@ Small fixes, mostly quick.
 - [ ] Change the README's quickstart to: clone the repo, then run `claude "/loop /land-experiment"`, in place of the separate steps.
 - [ ] When performing a task, always make sure there is some indicator of progress.
 - [ ] Remove "decentralised" from the README. It isn't strictly true.
-- [ ] Merge the `muse-spark-1.3` and `muse-spark-1.3-contributor` agents.
 - [ ] Add a `literature-review` skill, and triage the queue. `docs/literature/queue.md` has about 60 entries and `docs/literature/` has one page. Make the skill from that page's sections: Citation, Status, Read, Summary, Where the claims go beyond the evidence, and Use in this repo. Then a subagent per entry can write pages in the same form. First mark the entries that are clearly off-topic (e.g. Drex, SwarmEvolve), so they get short "not applicable" pages and the useful ones go first. To rank the rest, give each queue entry a "bears on" tag. The tag names the `TODO.md` item, skill or protocol section that the entry would change. Review the entries that bear on a gate or a score first. Today those are:
   - 2610.37676 (`openinterp score`).
   - 2611.09196 (calibrated concept profiles).
