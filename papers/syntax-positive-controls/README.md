@@ -20,7 +20,7 @@ Syntax labels from a parser should find the code neurons that the literature lea
 12. **Curly brackets that hold blocks don't count.** No round-depth pole responds to a code block or to indentation. Four of them respond to an object literal. This fits the corpus R² of zero for curly depth in L2 N676+, since most curly brackets in code hold blocks.
 13. **Qwen's best round-depth poles don't count.** On written text, L21 N953− of Qwen2.5-0.5B fires inside round brackets without rising with depth, and grows as a bracketed list gets longer. L26 N7101+ of Qwen2.5-1.5B fires outside them. Neither changes the probability of a closer when ablated.
 14. **Later layers read L2 N676+ through L3H5, and then L8 N689+.** The model reads the pole from the tokens inside the brackets, not at the closer. Patched alone, L3H5 carries 27% to 63% of the effect. From it, the signal goes through heads of L4, L5H3 and L7H4 to L8 N689+, another round-depth pole. That pole alone carries 34% to 59% of what L3H5 sends.
-15. **Closing too many is a trade-off.** At depths 4 and 5 the model gives up to 0.20 to a closer after it closes every bracket. A stronger brake (L2 N1195+) or a weaker push (L2 N676+) removes that, but also stops the closers that the model needs. No scale we tried does better in both cases. The push survives closing because L3H5, which carries it, gives the closers almost no attention.
+15. **Closing too many is a trade-off.** At depths 4 and 5 the model gives up to 0.20 to a closer after it closes every bracket. A stronger brake (L2 N1195+) or a weaker push (L2 N676+) removes that, but also stops the closers that the model needs. No scale we tried does better in both cases. The push survives closing because L3H5, which carries it, gives the closers almost no attention. Early heads (L0H10, L1H3, L2H10 and L3H10) read the closers instead, and the model counts the closed brackets. The count holds up to depth 6. The extra closer at depths 4 and 5 comes from the closer tokens that the model chooses there. It ends with ` )` or `))` and not `);`. It also packs brackets into tokens such as `))))`, which the readers undercount.
 16. **Through the protocol, L9 N340+ and Qwen's L21 N953− earn VERIFIED as signs of an open round bracket.** Both first claimed a lookahead to `)` and earned NEEDS_REVISION. Their revised, retrospective claims passed.
 17. **At GPT-2's 128-token windows, Qwen still has no such pole.** Each best pole for round depth stays the same, with R² 0.168 and 0.161. The null falls, and a curly-depth winner that followed position drops out.
 
@@ -28,7 +28,7 @@ These results do not show that L2 N676+ is the only bracket signal in GPT-2. The
 
 ## Method
 
-The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py`, `scripts/syntax_close_paths.py`, `scripts/syntax_close_states.py` and `scripts/figures_syntax.py`. The tagger is `openinterp/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
+The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py`, `scripts/syntax_close_paths.py`, `scripts/syntax_close_states.py`, `scripts/syntax_close_readers.py`, `scripts/syntax_close_match.py` and `scripts/figures_syntax.py`. The tagger is `openinterp/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
 
 - **Model.** GPT-2 small (Radford et al., 2019), at 128-token windows, as the registry scans it. Each neuron has 2 poles, so each layer has 6,144. The sweeps ran on Apple's MPS backend, in float32.
 - **Data.** 500 documents of [`codeparrot/github-code-clean`](https://huggingface.co/datasets/codeparrot/github-code-clean) at commit `c48d40f9`, seed 0, each cut to 3,000 characters. The card gives the licence as Apache-2.0 and names no citation. Its `license` column shows that each file keeps its repository's licence. Of these, 396 documents have a grammar, and the seeded 200,000-token sample holds 266 of them.
@@ -291,7 +291,7 @@ A stronger brake removes the extra closer at depths 4 and 5. But it also stops t
 
 ### Why the push survives closing
 
-First, the closers' tokens are not the cause. We closed every bracket in other ways: one `)` per token, `))` tokens, or the fewest tokens, such as one `))))`. Each way leaves one more closer at log-odds of −2.3 to −0.7 at depths 4 and 5. More closer tokens make it worse: at depth 3, one `)` per token gives −2.83, where the model's own `))` then `)` gives −7.10.
+First, we closed every bracket in other ways: one `)` per token, `))` tokens, or the fewest tokens, such as one `))))`. Each way leaves one more closer at log-odds of −2.3 to −0.7 at depths 4 and 5. At depth 3, one `)` per token gives −2.83, where the model's own `))` then `);` gives −7.10. None of these ways ends with `);`, and *What reads the closers* shows that this matters.
 
 Then we read L3H5, which carries the push, in both states. The script is `scripts/syntax_close_states.py`. The carried push is the drop in log-odds when L3H5 takes its output from the run with L2 N676+ ablated.
 
@@ -302,7 +302,47 @@ Then we read L3H5, which carries the push, in both states. The script is `script
 | L3H5 attention to open brackets, all closed | 0.38 | 0.49 | 0.52 |
 | L8 N689+, still open and all closed | 2.35, 0.00 | 3.37, 0.24 | 2.99, 0.71 |
 
-L3H5 gives only 0.01 to 0.035 of its attention to closers, in either state. After the brackets close, it attends to the open brackets more than before, and more with depth. So it carries the push whether or not the brackets are still open. At depth 5 it carries more after they close than before. L8 N689+, later on the same path, still tells the states apart, but less well with depth. So a part of the model between L3H5 and L8 reads the closers, and at depths 4 and 5 it does not cancel the push. We did not find that part.
+L3H5 gives only 0.01 to 0.035 of its attention to closers, in either state. After the brackets close, it attends to the open brackets more than before, and more with depth. So it carries the push whether or not the brackets are still open. At depth 5 it carries more after they close than before. L8 N689+, later on the same path, still tells the states apart, but less well with depth. So a part of the model between L3H5 and L8 N689+ reads the closers. At depths 4 and 5, it does not cancel the push.
+
+### What reads the closers
+
+A head reads a token through that token's value vector. So we zeroed one head's values at the closers of the model's own chain, in the state where every bracket is closed. The head then can't read them. The script is `scripts/syntax_close_readers.py`. With every head of layers 0 to 8 blocked from the earlier closers, the state where all brackets are closed looks like an open one. At depth 3, the log-odds of one more closer rise from −7.10 to −1.90, and L8 N689+ from 0.00 to 3.50. At depths 4 and 5 it rises to 2.93 and 3.98. Four heads have the largest effect alone: L0H10, L1H3, L2H10 and L3H10. At depth 3, blocking L2H10 alone raises the log-odds to −3.62. These heads attend to closers more with depth: L2H10 gives them 0.20 of its attention at depth 2, and 0.38 at depth 5.
+
+They take part in an exact count. We held the depth and the last token fixed. A first closer of 1 to 4 brackets came before one `)`, so that a set number of brackets stayed open.
+
+| Depth, brackets left open | L8 N689+ | P(one more closer) | L8 N689+, the four readers blocked |
+| --- | --- | --- | --- |
+| 3, one | 3.47 | 0.142 | 3.75 |
+| 3, none | 0.11 | 0.021 | 3.16 |
+| 4, one | 3.46 | 0.147 | 3.50 |
+| 4, none | 0.67 | 0.081 | 3.53 |
+| 5, one | 3.52 | 0.178 | 3.30 |
+| 5, none | 2.29 | 0.138 | 3.76 |
+
+Blocking the readers changes nothing while a bracket is open. It turns the signal back on only when the closers match the openers. In these items, the match is weaker with depth. We tested two causes, and both failed. First, the steps of the L2 depth code shrink with depth (+2.6, +1.9, +1.4 and +1.0 per bracket on the written probes). We mapped both L2 poles at every token to an even code. With no bracket open at depth 5, L8 N689+ read 2.43, against 2.29 without the map. Second, the signal of a match reaches L8 N689+ mostly through L7H4. This head attends to open brackets, and it moves its attention to the first token when none is open. When all brackets close, its share of attention on them falls from 0.45 to 0.17 at depth 3. At depth 5 it falls from 0.56 to only 0.42. We set that share to 0 at depth 5. L8 N689+ fell only from 2.29 to 1.82. We split the neuron's input exactly into parts (`scripts/syntax_close_match.py`). The gap between one bracket open and none is 3.61 at depth 3, 2.64 at depth 4 and 1.20 at depth 5. L7H4, L4H2, L5H3 and the MLPs of L2 and L6 give most of it, and each part shrinks with depth.
+
+The cause is which closer tokens end the call. In the items above, the first closer at depth 5 is one `))))` token, and the last is `)`. So we kept the depth and the count of brackets, and changed only the closer tokens. Each row has 64 items: 8 callee orders times 8 targets. The model's own chains are those of *Closing the rest later*.
+
+| Depth | Closers, every bracket closed | L8 N689+ | Log-odds of one more closer |
+| --- | --- | --- | --- |
+| 3 | `))` `);`, the model's own chain | 0.00 | −7.10 |
+| 4 | `))` `)` `)` | 0.38 | −2.70 |
+| 4 | `)))` `)` | 0.68 | −2.45 |
+| 4 | `)))` `);` | 0.02 | −6.47 |
+| 4 | `))` `),` ` )`, the model's chain in 5 of 8 items | 0.34 | −1.10 |
+| 4 | `))` `)` ` )` | 0.06 | −1.57 |
+| 4 | `))` `))` | 0.92 | −0.79 |
+| 5 | `))` `)` `)` `)` | 0.45 | −2.37 |
+| 5 | `)` five times | 0.79 | −1.74 |
+| 5 | `))))` `)` | 2.28 | −1.85 |
+| 5 | `)` `)))` `);`, the model's chain in 4 of 8 items | 0.16 | −5.53 |
+| 5 | `)))` `))`, the model's chain in 2 of 8 items | 1.50 | −0.18 |
+| 6 | `))` then four `)` | 0.59 | −2.17 |
+| 6 | `)` six times | 1.14 | −1.55 |
+| 6 | `))))` `)` `)` | 2.13 | −1.68 |
+| 6 | `))` `))` `))` | 1.96 | 0.08 |
+
+Two things set the result, and depth is not one of them. The first is the last token. After `);`, which ends the statement, depths 4 and 5 look like depth 3. L8 N689+ reads 0.02 and 0.16, and the log-odds are −6.47 and −5.53. After `)`, the log-odds are −2.70 to −1.55. After ` )` or `))`, they are −1.57 to 0.08, even where L8 N689+ reads 0.06. So the token that ends the call says, by itself, whether more closers are likely. The second is the packing. With `))` and then single `)` tokens, L8 N689+ reads 0.38 to 0.59 at depths 4 to 6, against about 3 with one bracket open. A `))))` token leaves it at 2.13 to 2.28, and a long run of single `)` tokens at up to 1.14. So the readers count a closer that packs 4 brackets as fewer than it closes. At depth 3, the model ends every chain with `);`. At depth 4 it mostly ends with ` )`, and at depth 5 it sometimes ends with `))`. So its extra closer at depths 4 and 5 comes from the closer tokens that it chooses. It does not come from a count that fails with depth.
 
 ## Curly brackets that hold blocks
 
@@ -534,6 +574,8 @@ uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-1.5B --devic
 uv run python scripts/syntax_followups.py --out $P/results.followups.jsonl
 uv run python scripts/syntax_close_paths.py --results $P/results.followups.jsonl
 uv run python scripts/syntax_close_states.py --results $P/results.followups.jsonl
+uv run python scripts/syntax_close_readers.py --results $P/results.followups.jsonl
+uv run python scripts/syntax_close_match.py --results $P/results.followups.jsonl
 uv run python scripts/paper_figures.py
 ```
 
@@ -541,7 +583,8 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 
 ## Next
 
-- Find what reads the closers between L3H5 and L8 N689+, and why it cancels the push less at depths 4 and 5.
+- Find why the closer readers count a `))))` token as fewer brackets than it closes, for example from its embedding or from how often it occurs.
+- Find why the model ends a call with ` )` or `))` at depths 4 and 5, where it ends with `);` at depth 3.
 
 ## References
 
