@@ -1442,3 +1442,39 @@ def test_the_page_says_where_each_step_ran_and_whether_it_streamed(tmp_path, rec
     page = next((tmp_path / "models").rglob("N*.html")).read_text()
     text = re.sub(r"<[^>]+>", "", page)
     assert "scan cpu (streamed from disk) · review mps" in text
+
+
+# Earlier tests leave native threads in this process (the CLI build has none), so the fork
+# warns. The workers only render templates, so they need no lock that a thread could hold.
+@pytest.mark.filterwarnings("ignore:This process .* is multi-threaded:DeprecationWarning")
+def test_parallel_render_writes_the_same_site_as_one_process(tmp_path, records):
+    one = compile_site(records, tmp_path / "one", jobs=1)
+    two = compile_site(records, tmp_path / "two", jobs=2)
+    rel = [p.relative_to(tmp_path / "one") for p in one.pages]
+    assert rel == [p.relative_to(tmp_path / "two") for p in two.pages]  # same order too
+    for path in (tmp_path / "one").rglob("*"):
+        if path.is_file():
+            assert (
+                path.read_bytes()
+                == (tmp_path / "two" / path.relative_to(tmp_path / "one")).read_bytes()
+            )
+
+
+def test_heat_html_matches_the_template_loop():
+    from jinja2 import Environment
+
+    from openinterp.builder.heat import HeatToken, heat_html
+
+    tokens = [
+        HeatToken('<a & "b">', 0.5, 1.23456, peak=False),
+        HeatToken("x", 1.0, -0.0, peak=True),
+        HeatToken("↵", 0.0, 2.0, peak=False, marked=True),
+    ]
+    loop = (
+        "{%- for t in tokens %}<span class=\"tok heat{{ ' peak' if t.peak }}"
+        "{{ ' marked' if t.marked }}\""
+        " style=\"--a: {{ t.shade }}\" data-v=\"{{ '%.3f' % t.value }}{{ ' · peak' if t.peak }}"
+        "{{ ' · marked' if t.marked }}\">{{ t.text }}</span>{% endfor -%}"
+    )
+    expected = Environment(autoescape=True).from_string(loop).render(tokens=tokens)
+    assert str(heat_html(tokens)) == expected

@@ -2,16 +2,27 @@
 
 Records keep their text unchanged, because experiments study this text, and records are
 signed. Only the build's output changes. :mod:`openinterp.sensitive` does the search.
+
+The search is most of a build's time, and records never change. So the matches of each
+text are kept on disk, in ``$XDG_CACHE_HOME/openinterp/pii`` (``$OPENINTERP_PII_CACHE``
+moves it, and ``off`` turns it off). The file's name holds a hash of the search's code and
+package versions, so a change to either starts a new cache.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+import sqlite3
 from collections.abc import Sequence
 from functools import cache
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
 
+from openinterp import sensitive
+from openinterp.core.cache_dirs import cache_root
 from openinterp.core.schemas import AuditRecord
 from openinterp.sensitive import pii_matches
 
@@ -21,9 +32,58 @@ REMOVED_TOKEN = "█"  # noqa: S105  (a model token, not a password). Replaces e
 Span = tuple[int, int]
 
 
+_found: dict[str, tuple[Span, ...]] = {}  # searched in this run, not yet on disk
+
+
+@cache
+def _cache_file() -> Path | None:
+    """Return the cache file for this search's code and package versions, or ``None``."""
+    root = cache_root("OPENINTERP_PII_CACHE", "pii")
+    if root is None:
+        return None
+    code = Path(sensitive.__file__).read_bytes() + Path(__file__).read_bytes()
+    key = hashlib.sha256(sensitive.detector().encode() + code).hexdigest()[:16]
+    return root / f"spans-{key}.sqlite"
+
+
+@cache
+def _stored() -> dict[str, tuple[Span, ...]]:
+    """Return the matches on disk, by the hash of their text."""
+    path = _cache_file()
+    if path is None or not path.exists():
+        return {}
+    with sqlite3.connect(path, timeout=30) as db:
+        rows = db.execute("SELECT text_hash, spans FROM spans").fetchall()
+    return {h: tuple(tuple(span) for span in json.loads(spans)) for h, spans in rows}
+
+
+def save_spans() -> None:
+    """Add the matches that this run searched for to the cache file."""
+    path = _cache_file()
+    if path is None or not _found:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [(h, json.dumps(spans)) for h, spans in _found.items()]
+    with sqlite3.connect(path, timeout=30) as db:
+        db.execute("CREATE TABLE IF NOT EXISTS spans (text_hash TEXT PRIMARY KEY, spans TEXT)")
+        db.executemany("INSERT OR IGNORE INTO spans VALUES (?, ?)", rows)
+    _found.clear()
+
+
 @cache
 def find_spans(text: str) -> tuple[Span, ...]:
     """Return the ``(start, end)`` of each match in ``text``, sorted and merged."""
+    if not sensitive.may_match(text):
+        return ()
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    if digest in (stored := _stored()):
+        return stored[digest]
+    _found[digest] = spans = _search(text)
+    return spans
+
+
+def _search(text: str) -> tuple[Span, ...]:
+    """Return the merged spans of the matches in ``text``, without the cache."""
     merged: list[Span] = []
     for start, end, _ in pii_matches(text):
         if merged and start <= merged[-1][1]:
@@ -49,6 +109,8 @@ def redact_tokens(tokens: Sequence[str]) -> list[str]:
     out = list(tokens)
     position = 0
     spans = find_spans("".join(tokens))
+    if not spans:
+        return out
     for i, token in enumerate(tokens):
         end = position + len(token)
         if any(position < span_end and start < end for start, span_end in spans):

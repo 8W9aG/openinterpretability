@@ -27,13 +27,15 @@ from openinterp.builder.agents import (
     contributors_view,
     legacy_redirects,
 )
+from openinterp.builder.aligned import aligned_latents
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
-from openinterp.builder.heat import HeatToken, token_heat
+from openinterp.builder.heat import HeatToken, heat_html, token_heat
 from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
+from openinterp.builder.parallel import render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
-from openinterp.builder.pii import scrub, scrub_record
+from openinterp.builder.pii import save_spans, scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.research import copy_assets, load_papers
 from openinterp.builder.significance import evidence_strength
@@ -47,7 +49,6 @@ from openinterp.builder.tree import (
     circuits_href,
     explore_focus,
     false_discovery,
-    feature_href,
     neuron_href,
 )
 from openinterp.core.agent_names import canonical_agent
@@ -56,7 +57,6 @@ from openinterp.core.exceptions import RegistryError
 from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.project import project_links
 from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
-from openinterp.crossref import neuronpedia_url
 from openinterp.planner import configured_licenses
 from openinterp.sensitive import is_offensive
 from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
@@ -107,6 +107,7 @@ def _environment() -> Environment:
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands
     env.globals["language_mix"] = language_mix  # a scan's tokens per language
+    env.globals["heat_html"] = heat_html  # token heatmaps, built in Python for speed
     return env
 
 
@@ -287,6 +288,7 @@ def compile_site(
     papers_dir: Path | None = None,
     stops: Sequence[ChosenStop] = (),
     model_facts: dict[str, ModelFacts] | None = None,
+    jobs: int = 1,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -298,6 +300,7 @@ def compile_site(
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
     Models page, which lists every model in ``[tool.openinterp] models``.
+    ``jobs`` is the number of worker processes that render the unit pages.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -324,7 +327,7 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments)
-    render = _Renderer(_environment(), output_dir, common, report)
+    render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in layer.units}
     by_unit = stops_by_unit(stops)
     for model in models:
@@ -336,6 +339,7 @@ def compile_site(
     license = metadata("openinterp")["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, output_dir, report)
+    save_spans()  # the matches of new text, for the next build
     return report
 
 
@@ -411,6 +415,7 @@ class _Renderer:
     output_dir: Path
     common: dict
     report: BuildReport
+    jobs: int = 1  # worker processes for the unit pages (builder/parallel.py)
 
     def __call__(self, rel: str, template: str, **context) -> None:
         out = self.output_dir / rel
@@ -419,41 +424,6 @@ class _Renderer:
         url = self.common["site_url"] + rel
         out.write_text(page.render(**self.common, root=_root_for(rel), canonical=url, **context))
         self.report.pages.append(out)
-
-
-def aligned_latents(model, neuron, alignment: dict, studied: set) -> list[dict]:
-    """Return each pole's aligned dictionary latents for a neuron page.
-
-    Each latent links to its page here (if audited) and on Neuronpedia (if hosted there).
-    """
-    if not neuron.is_neuron:
-        return []
-    poles = []
-    for pole in neuron.sides:
-        rows = alignment.get(f"{model.slug}/L{neuron.layer}/N{neuron.idx}-{pole}", [])
-        views = []
-        for row in rows:
-            sides = []
-            for name in ("writes", "reads"):
-                side = getattr(row, name)
-                if side is None:
-                    continue
-                matches = []
-                for m in side.matches:
-                    href = feature_href(model.slug, neuron.layer, row.dictionary, m.feature_idx)
-                    matches.append(
-                        {
-                            "m": m,
-                            "href": href if href in studied else None,
-                            "neuronpedia": neuronpedia_url(row, m.feature_idx),
-                            "above": m.cosine > side.chance,
-                        }
-                    )
-                sides.append({"name": name, "side": side, "matches": matches})
-            views.append({"row": row, "sides": sides})
-        if views:
-            poles.append({"pole": pole, "rows": views})
-    return poles
 
 
 def _render_model(
@@ -480,19 +450,23 @@ def _render_model(
         render(page, "circuits.html", model=model, **view)
     for layer in model.layers:
         render(layer.href, "layer.html", model=model, layer=layer)
-        for neuron in layer.units:
-            anchor = anchor_of.get(neuron.href)
-            circuit = f"{page}#{anchor}" if anchor else None
-            views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
-            render(
-                neuron.href,
-                "neuron.html",
-                model=model,
-                layer=layer,
-                neuron=neuron,
-                views=views,
-                poles=pole_scans(neuron),
-                aligned=aligned_latents(model, neuron, alignment or {}, studied),
-                sisters=sister_view(model.slug, neuron, sister_rows, named_by, studied, tests),
-                stops=(stops or {}).get(neuron.href, []),
-            )
+
+    def unit_page(layer, neuron) -> None:
+        anchor = anchor_of.get(neuron.href)
+        circuit = f"{page}#{anchor}" if anchor else None
+        views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
+        render(
+            neuron.href,
+            "neuron.html",
+            model=model,
+            layer=layer,
+            neuron=neuron,
+            views=views,
+            poles=pole_scans(neuron),
+            aligned=aligned_latents(model, neuron, alignment or {}, studied),
+            sisters=sister_view(model.slug, neuron, sister_rows, named_by, studied, tests),
+            stops=(stops or {}).get(neuron.href, []),
+        )
+
+    units = [(layer, neuron) for layer in model.layers for neuron in layer.units]
+    render_in_parallel(render, unit_page, units)

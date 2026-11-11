@@ -14,6 +14,7 @@ import random
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import cache
 
 import torch
 
@@ -102,13 +103,22 @@ def p_balanced_above(
     """Posterior P((spec + sens) / 2 > threshold) under Beta(1, 1) priors.
 
     Fixed ``seed`` keeps it deterministic, so identical records always score the same.
+    Many records have the same counts, so the result is cached on them.
     """
+    spec = (1 + specificity.passed, 1 + specificity.clusters - specificity.passed)
+    sens = (1 + sensitivity.passed, 1 + sensitivity.clusters - sensitivity.passed)
+    return _p_beta_mean_above(spec, sens, threshold, samples, seed)
+
+
+@cache
+def _p_beta_mean_above(
+    spec: tuple[float, float], sens: tuple[float, float], threshold: float, samples: int, seed: int
+) -> float:
+    """P((x + y) / 2 > threshold) for x ~ Beta(*spec) and y ~ Beta(*sens), by sampling."""
     rng = random.Random(seed)
-
-    def draw(c: EffectiveCounts) -> float:
-        return rng.betavariate(1 + c.passed, 1 + c.clusters - c.passed)
-
-    hits = sum((draw(specificity) + draw(sensitivity)) / 2 > threshold for _ in range(samples))
+    hits = sum(
+        (rng.betavariate(*spec) + rng.betavariate(*sens)) / 2 > threshold for _ in range(samples)
+    )
     return hits / samples
 
 
