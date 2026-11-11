@@ -30,15 +30,15 @@ from openinterp.builder.agents import (
 from openinterp.builder.aligned import aligned_latents
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
-from openinterp.builder.heat import HeatToken, heat_html, token_heat
+from openinterp.builder.heat import HeatToken, heat_html, token_heat, values_rows
 from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
-from openinterp.builder.parallel import render_in_parallel
+from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import save_spans, scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.research import copy_assets, load_papers
-from openinterp.builder.significance import evidence_strength
+from openinterp.builder.significance import P_USEFUL, evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
 from openinterp.builder.stopped import add_stopped
@@ -108,6 +108,7 @@ def _environment() -> Environment:
     env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands
     env.globals["language_mix"] = language_mix  # a scan's tokens per language
     env.globals["heat_html"] = heat_html  # token heatmaps, built in Python for speed
+    env.globals["values_rows"] = values_rows  # and the rows of their values tables
     return env
 
 
@@ -313,16 +314,13 @@ def compile_site(
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
     # Statistics read the true text: build_tree counts near-duplicate probes, and the queries
-    # group readings by explanation. Only what the site publishes is scrubbed.
-    with TemporaryDirectory() as unpublished:
-        true_text = export_registry(experiments, Path(unpublished), corpus_sources)
-        stats = scrub(registry_stats(true_text, draws))  # leaderboards show explanations
-    stopped = sum(len(layer.stopped) for m in models for layer in m.layers)
-    stats["totals"]["neurons"] += stopped  # studied neurons with no record
+    # group readings by explanation. Only what the site publishes is scrubbed. The two
+    # exports run in the background while the pages render (builder/parallel.py).
+    stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
     for experiment in experiments:
         experiment.record = scrub_record(experiment.record)
     report = BuildReport(output_dir, len(records), len(experiments))
-    report.parquet = export_registry(experiments, output_dir, corpus_sources)
+    parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
     export_draws(draws, output_dir)  # random draws no experiment could audit
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
@@ -335,12 +333,31 @@ def compile_site(
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
     render_models(render, models, model_facts or {}, _render_model)
     agents = _render_agents(render, experiments, output_dir, report)
+    stats = stats_result()
+    stats["totals"]["neurons"] += sum(len(layer.stopped) for m in models for layer in m.layers)
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
+    report.parquet = parquet()
     license = metadata("openinterp")["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, output_dir, report)
-    save_spans()  # the matches of new text, for the next build
+    _save_memos()
     return report
+
+
+def _save_memos() -> None:
+    """Keep the matches of new text, and the significance of new records, for the next build."""
+    save_spans()
+    P_USEFUL.save()
+
+
+def _true_text_stats(experiments, draws, corpus_sources) -> dict:
+    """Return the home page's totals and leaderboards, read from the records' true text.
+
+    Only the leaderboards' text is scrubbed, because they show explanations.
+    """
+    with TemporaryDirectory() as unpublished:
+        true_text = export_registry(experiments, Path(unpublished), corpus_sources)
+        return scrub(registry_stats(true_text, draws))
 
 
 def _render_agents(render, experiments, output_dir, report) -> list:

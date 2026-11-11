@@ -124,6 +124,8 @@ def scrub(value: Any) -> Any:
     if isinstance(value, str):
         return redact_text(value)
     if isinstance(value, list):
+        if not value or isinstance(value[0], (int, float)):
+            return value  # a record's lists hold one type, and numbers hold no text
         new = [scrub(item) for item in value]
         return new if any(a is not b for a, b in zip(new, value, strict=True)) else value
     if isinstance(value, dict):

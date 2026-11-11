@@ -17,7 +17,9 @@ import os
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
+
+T = TypeVar("T")
 
 _WORK: dict[str, Any] = {}  # set just before the workers fork, so that they inherit it
 
@@ -57,3 +59,41 @@ def _render_share(share: int, jobs: int) -> list[tuple[int, Path]]:
         page(*items[i])
         written += [(i, path) for path in render.report.pages[before:]]
     return written
+
+
+def in_background(fn: Callable[[], T], jobs: int) -> Callable[[], T]:
+    """Start ``fn()`` in a forked process, and return a function that waits for its result.
+
+    With one job, or with no ``fork`` on the platform, call ``fn()`` now instead. The
+    fork uses a plain process and a pipe, not a pool, so the build starts no thread that a
+    later fork could copy.
+    """
+    if jobs <= 1 or "fork" not in multiprocessing.get_all_start_methods():
+        value = fn()
+        return lambda: value
+    context = multiprocessing.get_context("fork")
+    reader, writer = context.Pipe(duplex=False)
+    process = context.Process(target=_send_result, args=(fn, writer))
+    process.start()
+    writer.close()
+
+    def result() -> T:
+        ok, value = reader.recv()  # before join: a large result fills the pipe
+        process.join()
+        if not ok:
+            raise RuntimeError(f"a background part of the build failed:\n{value}")
+        return value
+
+    return result
+
+
+def _send_result(fn: Callable[[], Any], writer) -> None:
+    """Run ``fn()`` in the forked process, and send its result, or the error, to the parent."""
+    import traceback
+
+    try:
+        writer.send((True, fn()))
+    except BaseException:  # noqa: BLE001  (the parent re-raises it)
+        writer.send((False, traceback.format_exc()))
+    finally:
+        writer.close()
