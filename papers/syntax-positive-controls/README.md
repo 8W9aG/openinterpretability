@@ -1,6 +1,6 @@
 # A bracket neuron in GPT-2, and the label that hid it
 
-Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. A claim of round and square brackets, with curly ones weak, is VERIFIED. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. Three of them are VERIFIED through the same review, and L9 N340+ earns NEEDS_REVISION. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Qwen2.5-0.5B and 1.5B have no round-depth pole as strong: their best have R² 0.160 and 0.175.
+Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. A claim of round and square brackets, with curly ones weak, is VERIFIED. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. All four are VERIFIED through the same review, L9 N340+ on its second claim. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Qwen2.5-0.5B and 1.5B have no round-depth pole as strong: their best have R² 0.160 and 0.175.
 
 ![A function with its tokens lit by the pole's strength, read token by token](media/trace.svg)
 
@@ -13,7 +13,7 @@ Syntax labels from a parser should find the code neurons that the literature lea
 5. **The pole sets how many brackets the model closes.** Ablating it lowers the mean probability of a closing bracket at depths 1 to 4. A finer measure shows more. The model's predicted closer closes 1.0 bracket at depth 1 and 1.95 at depth 5. With the pole ablated, it closes about 1.0 at every depth. Twenty random poles of the layer barely change either measure.
 6. **The signal has clear limits.** It fades over about 20 list items, it weakens over line breaks, and it does not fully count down. It also fires inside strings and comments, so it follows characters and not the grammar.
 7. **The protocol rejects a claim of round brackets alone.** On a new sample of code, a hypothesis of round-bracket depth passes every probe, counterfactual and causal gate, with detection 0.98 and fuzzing 0.92. It fails specificity (0.58), because the pole fires under square and curly brackets with no round bracket open. The verdict is NEEDS_REVISION. A revised claim, of round and square brackets strong and curly and angle brackets weak, is VERIFIED (1.00) on its second review.
-8. **Other poles carry depth too, and pull the other way.** L2 N1195+ responds to depth almost as L2 N676+ does. L3 N695+ responds more weakly, and L8 N689+ and L9 N340+ peak at depth 2 or 3 and reach further. Ablating these four raises the count of brackets closed to about 3.8 from depth 3, where the model closes about 1.8. Through the protocol, L2 N1195+, L3 N695+ and L8 N689+ are VERIFIED. L9 N340+ is NEEDS_REVISION, because it also fires on function words inside an open round bracket.
+8. **Other poles carry depth too, and pull the other way.** L2 N1195+ responds to depth almost as L2 N676+ does. L3 N695+ responds more weakly, and L8 N689+ and L9 N340+ peak at depth 2 or 3 and reach further. Ablating these four raises the count of brackets closed to about 3.8 from depth 3, where the model closes about 1.8. Through the protocol, L2 N1195+, L3 N695+ and L8 N689+ are VERIFIED. L9 N340+ first earned NEEDS_REVISION, because it also fires on function words inside an open round bracket. Its revised claim, that it fires inside an open round bracket, is VERIFIED.
 9. **Qwen2.5 has no such pole.** The same sweep finds no pole of Qwen2.5-0.5B or 1.5B above an R² of 0.175 for round depth, against 0.277 for L2 N676+. The best of each is in a late layer. Their best `syntax construct` poles are stronger than GPT-2's, at 0.466 and 0.554 against 0.273.
 10. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Against the parse of the whole file, a single parse of a cut document loses 27.8% of the characters that lie in a construct to `top level`. Adding the missing closing brackets lowers this to 7.7%. Trying several endings, including a line break, a quote and Ruby's `end`, lowers it to 1.7%, and to 0.3% on a second sample.
 11. **The model closes the rest later, and needs L2 N676+ to do so.** When its first closer leaves brackets open, the model gives 0.36 to 0.62 to one more closer. Once the last one closes, it gives 0.001 at depth 3. With L2 N676+ ablated, it gives 0.024 or less with brackets still open, and every greedy line that ends closes too few.
@@ -305,6 +305,20 @@ Each claim passed all of its positive holdouts and counterfactuals, and sufficie
 
 The records were added by pull requests [2508](https://github.com/8W9aG/openinterpretability/pull/2508), [2509](https://github.com/8W9aG/openinterpretability/pull/2509), [2510](https://github.com/8W9aG/openinterpretability/pull/2510) and [2511](https://github.com/8W9aG/openinterpretability/pull/2511).
 
+### The revision of L9 N340+
+
+The revision scanned the same corpus with the same windows. The proposer (Claude Opus 5.5) read the first record, and tested its wording on the model. Its claim drops the lookahead. The pole is a retrospective sign of an open round bracket, from the `(` to the token before its `)`, in code, comments, strings and prose. The `(` and a function word just after it are moderate. Content words, names, numbers and commas inside are strongest. Articles and prepositions in the middle of a phrase are weak. Curly brackets and quotes do not drive it, and square brackets give a weaker response that varies. The proposer found that the earlier failures fit this claim. `(although the` peaks at 2.00 on the `(` itself, and the JavaScript probe peaks at 3.53 on `opts` inside `console.log(`. The object literal reads 0.00.
+
+| Gate or score | First claim | Revised claim |
+| --- | --- | --- |
+| Hard negatives | 11 of 14 | 12 of 13 |
+| Positive holdouts | 6 of 6 | 7 of 7 |
+| Counterfactuals | 8 of 8 | 7 of 7 |
+| Detection, fuzzing | 0.96, 0.67 | 0.92, 0.98 |
+| Verdict | NEEDS_REVISION (0.89) | VERIFIED (0.96) |
+
+The reviewer (Claude Sonnet 5.5) first wrote four hard negatives with an open round bracket, which the claim calls active. We sent them back, and the same reviewer replaced them. [Pull request 2756](https://github.com/8W9aG/openinterpretability/pull/2756) added the record.
+
 ## Cut documents
 
 The corpus cuts documents at 3,000 characters, usually inside a class or a function. The parser then has no node for that class, and its contents read as top level. We found this when a Java example at depth 1 and indent 4 read `top level`.
@@ -386,7 +400,7 @@ We then tested whether either pole predicts a closing bracket. Through the direc
 
 ## Effect on the protocol
 
-None. The labels are reported, not gated. A scan of a corpus that records programming languages has a `round depth` label set, because of this result. The registry's scan corpus has no such field, so its scans don't change. Cut documents now get searched endings, so the syntax labels of such scans change a little. The registry now holds VERIFIED records of L2 N676+, L2 N1195+, L3 N695+ and L8 N689+. It holds a NEEDS_REVISION record of L9 N340+ (see *Through the protocol*).
+None. The labels are reported, not gated. A scan of a corpus that records programming languages has a `round depth` label set, because of this result. The registry's scan corpus has no such field, so its scans don't change. Cut documents now get searched endings, so the syntax labels of such scans change a little. The registry now holds VERIFIED records of L2 N676+, L2 N1195+, L3 N695+ and L8 N689+. It holds a VERIFIED revision of L9 N340+, which supersedes its NEEDS_REVISION record (see *The revision of L9 N340+*).
 
 ## Reproduce
 
