@@ -388,6 +388,21 @@ The standard errors are at most 0.45 for L21 N953− and 0.72 for L26 N7101+. Ne
 
 We then tested whether either pole predicts a closing bracket. Through the direct path, from the pole's output to the unembedding, L21 N953− raises closers. Its 15 tokens raised most include `)` with line breaks, `.)` and `())`, and 40 of its top 100 tokens start with `)`. L26 N7101+ raises a quote or a backtick followed by a closer, such as `")`, `')` and `` `) ``. None of its top 100 tokens starts with `)`, and `)` alone ranks 562 of 151,936. The direct path leaves out every later layer. Ablation shows no effect. We ablated each pole on the 8 items of each depth. The probability of a closer moved by at most 0.003, and the count of brackets closed by at most 0.007. Ablating 20 random poles of the same layer and sign moves them as much or more. So L21 N953− writes toward a closer, and it grows as a bracketed list gets longer. But these templates show no effect of it on the output. L26 N7101+ does not predict a closing bracket.
 
+### L21 N953− through the protocol
+
+We audited L21 N953− of Qwen2.5-0.5B as a chosen unit. The scan read the seed-1 sample of `github-code`, as whole documents, so its documents differ from those of the sweep. The proposer (Claude Opus 5.5) could read the section above, and tested its wording on the model. It found a narrower trigger than our templates. Inside an open round bracket, the pole fires on the last token of an item. It fires most when the next token joins the end of the item to the closer, such as `__)`, `")` or `')`. Dunder names are strongest: `getLogger(__name__)` reads 18.5, and `getLogger(name)` reads 3.7. Our templates end on a plain argument before a bare `)`, which is the weakest case. The claim called this a lookahead.
+
+| Gate or score | Result |
+| --- | --- |
+| Positive holdouts | 7 of 7 |
+| Hard negatives | 12 of 13 |
+| Counterfactuals | 8 of 8 |
+| Detection, fuzzing | 0.80, 0.75 |
+| Lookahead check | failed: measured retrospective, next-token KL 0.003 |
+| Verdict | NEEDS_REVISION (0.96) |
+
+So the selectivity holds on new text, and the mechanism does not. The measured effect on the next token is small, as the ablation above found. The failed hard negative, `value = g.__next__` then `print(value)`, read 6.43 against a line of 4.87. The reviewer (Claude Sonnet 5.5) first wrote 21 probes. Three of its hard negatives had a dunder inside an open round bracket, which the claim calls active. We sent them back, and the same reviewer fixed them. [Pull request 2757](https://github.com/8W9aG/openinterpretability/pull/2757) added the record.
+
 ## Caveats
 
 - **Few models, one sample for the sweep.** The sweep ran on GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B, on one sample of documents. The label stability and the audit used a second sample.
