@@ -14,6 +14,10 @@ from openinterp.core.agent_names import canonical_agent, same_agent, spelling_pr
         ("external/muse-spark-1.3-contributor", "muse-spark-1.3"),
         ("external/muse-spark", "muse-spark-1.3"),
         ("external/muse-spark-3.1-contributor", "muse-spark-1.3"),
+        ("external/muse-spark-1-3-contributor", "muse-spark-1.3"),
+        ("external/muse-spark-3", "muse-spark-1.3"),
+        ("external/muse-spark-3-3", "muse-spark-1.3"),
+        ("external/muse-spark-1.3.3", "muse-spark-1.3"),
         ("openai/gpt-test", "gpt-test"),
     ],
 )

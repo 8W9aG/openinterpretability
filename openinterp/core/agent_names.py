@@ -19,17 +19,18 @@ import re
 EXTERNAL_PREFIX = "external/"
 
 # Spellings that name the same model, after the generic clean-up in canonical_agent.
-# One 2026-10-26 session ran Grok Build but reported itself as Claude 3.5 Sonnet. Muse
-# Spark sessions report their version inconsistently. "-contributor" is the Muse Spark
-# pricing tier (openinterp.core.pricing.FAMILIES), not part of the model's name. Every
-# run so far was 1.3 at the Contributor tier.
+# One 2026-10-26 session ran Grok Build but reported itself as Claude 3.5 Sonnet.
 ALIASES: dict[str, str] = {
     "claude-3-5-sonnet-20241022": "grok-build-0.1",
+}
+
+# Model families whose sessions report their version inconsistently. canonical_agent maps
+# every name that starts with the key to the value. Muse Spark sessions have recorded
+# muse-spark, muse-spark-3, muse-spark-1-3-contributor and others. "-contributor" is the
+# Muse Spark pricing tier (openinterp.core.pricing.FAMILIES), not part of the model's
+# name. Every run so far was 1.3 at the Contributor tier.
+FAMILY_ALIASES: dict[str, str] = {
     "muse-spark": "muse-spark-1.3",
-    "muse-spark-1.3-contributor": "muse-spark-1.3",
-    "muse-spark-1.3.3": "muse-spark-1.3",
-    "muse-spark-1.5-contributor": "muse-spark-1.3",
-    "muse-spark-3.1-contributor": "muse-spark-1.3",
 }
 
 # Shown on an agent's page when its recorded name is doubtful.
@@ -45,10 +46,14 @@ def canonical_agent(model: str) -> str:
     """The model's one name: ``external/deepseek-flash[1m]`` → ``deepseek-flash``.
 
     Drops the route (``external/``, a LiteLLM provider such as ``anthropic/``), a context
-    suffix (``[1m]``), a parenthesised remark and case, then applies :data:`ALIASES`.
+    suffix (``[1m]``), a parenthesised remark and case. Then applies :data:`FAMILY_ALIASES`
+    and :data:`ALIASES`.
     """
     name = re.sub(r"\s*\(.*\)\s*$", "", model.strip()).removeprefix(EXTERNAL_PREFIX)
     name = re.sub(r"\[[^\]]*\]$", "", name.rsplit("/", 1)[-1]).strip().lower()
+    for family, canonical in FAMILY_ALIASES.items():
+        if name.startswith(family):
+            return canonical
     return ALIASES.get(name, name) or "unknown"
 
 

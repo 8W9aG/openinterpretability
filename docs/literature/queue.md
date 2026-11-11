@@ -70,3 +70,12 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "Neuron to Graph: Interpreting Language Model Neurons at Scale" (Foote et al., arXiv 2305.19911, [paper](https://arxiv.org/abs/2305.19911)).
 - Review Anthropic's May 2026 Circuits Update, for its TWERA ranking of downstream features ([post](https://transformer-circuits.pub/2026/may-update/index.html)).
 - Review "Bilinear MLPs enable weight-based mechanistic interpretability" (arXiv 2410.08417, [paper](https://arxiv.org/abs/2410.08417)).
+- Review Goodfire's public neuron atlas ([post](https://www.goodfire.com/research/public_neuron_atlas?l=middle)).
+- Review Goodfire's "Neurons as an interpretable basis" ([post](https://www.goodfire.com/research/neurons-as-an-interpretable-basis)).
+- Review Agentic Learning's post on deleting weights ([post](https://agenticlearning.ai/deleting-weights/)).
+- Review E-means ([site](https://e-means.github.io/)).
+- Review arXiv 2611.14483 ([paper](https://arxiv.org/abs/2611.14483)).
+- Review arXiv 2611.12206 ([paper](https://arxiv.org/abs/2611.12206)).
+- Review arXiv 2611.10974 ([paper](https://arxiv.org/abs/2611.10974)).
+- Review Google DeepMind's "Introducing AlphaProof code" ([post](https://deepmind.google/blog/introducing-alphaproof-code/)).
+- Review arXiv 2611.09501 ([paper](https://huggingface.co/papers/2611.09501)).
