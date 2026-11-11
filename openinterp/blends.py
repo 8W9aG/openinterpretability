@@ -18,7 +18,8 @@ from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 # spreads random-selection statistics over domains, not one dataset's. They are web
 # text, the Pile's mix of sources (papers, legal text, forums, code), long encyclopedic
 # articles, source code and nine languages besides English. From v3, they include maths,
-# from v4, chat transcripts, and from v5, web text in 22 languages besides English.
+# from v4, chat transcripts, from v5, web text in 22 languages besides English, and from
+# v6, scientific papers.
 BLENDS = {
     "mixed-v1": {
         "fineweb-edu": 4,
@@ -72,8 +73,22 @@ BLENDS = {
         "ultrachat": 2,
         "fineweb-2": 3,
     },
+    # v5's mix and weights, plus scientific papers (abstracts and full texts) at the weight
+    # of wikitext.
+    "mixed-v6": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+        "open-web-math": 2,
+        "ultrachat": 2,
+        "fineweb-2": 3,
+        "pes2o": 2,
+    },
 }
-BLEND_ALIASES = {"mixed": "mixed-v5"}
+BLEND_ALIASES = {"mixed": "mixed-v6"}
 # Released before documents recorded a programming language. So their bytes stay without it.
 NO_CODE_LANGUAGE = {"mixed-v1"}
 # Presets left out of `mixed`, and why. Every other preset is in its latest version, so
