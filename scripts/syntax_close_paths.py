@@ -37,7 +37,19 @@ from openinterp.harness.hooks import pole_strength
 MODEL = "openai-community/gpt2"
 POLE = ROUND_DEPTH_POLES[0]  # L2 N676+
 CHAIN_DEPTHS = (3, 4, 5)  # the depths at which the first closer leaves brackets open
-WRITES = ("close_positions", "close_paths", "close_done")
+WRITES = (
+    "close_positions",
+    "close_paths",
+    "close_done",
+    "close_via_l3h5",
+    "close_balance",
+    "close_l8_neurons",
+)
+TARGET_LAYER = 8  # the MLP that carries most of L3H5's effect at depth 3
+EXACT_NEURONS = 10  # neurons checked by exact patching, after attribution
+READER = ("head", 3, 5)  # L3H5, the head that carries most of the pole's effect
+SCALES = (0.5, 1.5, 2.0)  # factors for the pole strengths in the balance test
+BRAKE = ROUND_DEPTH_POLES[1]  # L2 N1195+
 TOP_COMPONENTS = 12
 
 
@@ -233,6 +245,175 @@ def done_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     return rows
 
 
+def via_reader_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
+    """Return the share of L3H5's effect that flows through each later component.
+
+    Noising L3H5 alone (its output from the ablated run) lowers the log-odds by a drop.
+    Holding one later component at its clean output at the same time leaves a smaller
+    drop. The share is the part of the drop that the held component removes.
+    """
+    width = runner.head_dim(0)
+    _, layer, head = READER
+    rows = []
+    for depth, found in items.items():
+        clean_runs = [run_cached(runner, ids, False) for ids in found]
+        ablated_runs = [run_cached(runner, ids, True) for ids in found]
+        clean = sum(log_odds(runner, ids) for ids in found) / len(found)
+
+        def noised(hold=None, found=found, clean_runs=clean_runs, ablated_runs=ablated_runs):
+            total = 0.0
+            for ids, c, a in zip(found, clean_runs, ablated_runs, strict=True):
+                hooks = patch(a, "head", layer, head, width)
+                if hold is not None:
+                    kind, at, h = hold
+                    held = patch(c, kind, at, h, width)
+                    for name, by_layer in held.items():
+                        hooks[name] = {**hooks.get(name, {}), **by_layer}
+                total += log_odds(runner, ids, **hooks)
+            return total / len(found)
+
+        drop = clean - noised()
+        shares = []
+        for kind, at, h in components(runner):
+            if at < layer or (kind == "head" and at == layer):
+                continue  # only components that run after the reader can carry it
+            name = f"L{at}H{h}" if kind == "head" else f"L{at} MLP"
+            shares.append(
+                {"component": name, "share": (drop - (clean - noised((kind, at, h)))) / drop}
+            )
+        shares.sort(key=lambda x: -x["share"])
+        rows.append(
+            _rounded(
+                {
+                    "kind": "close_via_l3h5",
+                    "depth": depth,
+                    "items": len(found),
+                    "drop": drop,
+                    "top": shares[:TOP_COMPONENTS],
+                }
+            )
+        )
+    return rows
+
+
+def scale_pole(pole, factor: float):
+    """Return an intervention that multiplies one pole's strength by ``factor``."""
+    _, neuron, sign = pole
+
+    def intervene(act: torch.Tensor) -> torch.Tensor:
+        act = act.clone()
+        part = act[..., neuron]
+        kept = part.clamp(max=0) if sign == "positive" else part.clamp(min=0)
+        act[..., neuron] = kept + (part - kept) * factor
+        return act
+
+    return intervene
+
+
+def balance_rows(runner, open_items: dict, closed_items: dict) -> list[dict]:
+    """Return the log-odds of a closer with the push or the brake scaled.
+
+    The push is L2 N676+ and the brake is L2 N1195+. ``open`` is after the first closer,
+    with brackets still open: the model should close more. ``closed`` is after every
+    bracket is closed: the model should not.
+    """
+    rows = []
+    for depth in CHAIN_DEPTHS:
+        row = {"kind": "close_balance", "depth": depth}
+        for state, items in (("open", open_items[depth]), ("closed", closed_items[depth])):
+            row[state] = {"model": sum(log_odds(runner, ids) for ids in items) / len(items)}
+            for name, pole in (("push", POLE), ("brake", BRAKE)):
+                for factor in SCALES:
+                    changes = {pole[0]: scale_pole(pole, factor)}
+                    value = sum(log_odds(runner, ids, interventions=changes) for ids in items)
+                    row[state][f"{name} x{factor}"] = value / len(items)
+        rows.append(_rounded(row))
+    return rows
+
+
+def neuron_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
+    """Return the L8 neurons that carry L3H5's effect, by attribution, then exact patching.
+
+    Attribution: for each neuron, the gradient of the log-odds in the run with L3H5
+    noised, times the change of the neuron's activation from that run to the clean run,
+    summed over positions. The top ``EXACT_NEURONS`` neurons, and L8 N689, are then held
+    at their clean activations one at a time while L3H5 is noised. ``share`` is the part
+    of the drop that holding the neuron removes.
+    """
+    width = runner.head_dim(0)
+    _, layer, head = READER
+    poles_of_interest = {n for lay, n, _ in ROUND_DEPTH_POLES if lay == TARGET_LAYER}
+    rows = []
+    for depth, found in items.items():
+        ablated_runs = [run_cached(runner, ids, True) for ids in found]
+        attribution = torch.zeros(runner.mlp_width(TARGET_LAYER))
+        clean_acts, noised_acts = [], []
+        for ids, a in zip(found, ablated_runs, strict=True):
+            _, cache = runner.run_with_cache(ids.unsqueeze(0), [TARGET_LAYER])
+            clean_acts.append(cache[TARGET_LAYER][0].float().cpu())
+            store: dict = {}
+
+            def keep(act: torch.Tensor, store=store) -> torch.Tensor:
+                act = act.detach().clone().requires_grad_(True)
+                store["act"] = act
+                return act
+
+            hooks = patch(a, "head", layer, head, width)
+            with torch.enable_grad(), runner.hooks(interventions={TARGET_LAYER: keep}, **hooks):
+                logits = runner.forward(runner.encode(ids.unsqueeze(0)))[0, -1].float()
+                probs = logits.softmax(-1)
+                mask = (counts_for(runner, len(probs)) > 0).to(probs.device)
+                p = probs[mask].sum().clamp(1e-12, 1 - 1e-12)
+                torch.log(p / (1 - p)).backward()
+            act = store["act"]
+            noised_acts.append(act.detach()[0].float().cpu())
+            change = clean_acts[-1] - noised_acts[-1]
+            attribution += (act.grad[0].float().cpu() * change).sum(0) / len(found)
+        clean = sum(log_odds(runner, ids) for ids in found) / len(found)
+
+        def noised(
+            hold: int | None, found=found, ablated_runs=ablated_runs, clean_acts=clean_acts
+        ) -> float:
+            total = 0.0
+            for ids, a, c in zip(found, ablated_runs, clean_acts, strict=True):
+                hooks = patch(a, "head", layer, head, width)
+                if hold is not None:
+
+                    def restore(act: torch.Tensor, c=c, neuron=hold) -> torch.Tensor:
+                        act = act.clone()
+                        act[0, :, neuron] = c[:, neuron].to(act.dtype).to(act.device)
+                        return act
+
+                    hooks["interventions"] = {TARGET_LAYER: restore}
+                total += log_odds(runner, ids, **hooks)
+            return total / len(found)
+
+        drop = clean - noised(None)
+        top = [int(i) for i in attribution.abs().topk(EXACT_NEURONS).indices]
+        checked = []
+        for n in dict.fromkeys([*top, *poles_of_interest]):
+            share = (drop - (clean - noised(n))) / drop
+            checked.append(
+                {"neuron": n, "attribution": float(attribution[n]) / drop, "share": share}
+            )
+        checked.sort(key=lambda x: -x["share"])
+        rank = {n: int((attribution > attribution[n]).sum()) for n in poles_of_interest}
+        rows.append(
+            _rounded(
+                {
+                    "kind": "close_l8_neurons",
+                    "depth": depth,
+                    "items": len(found),
+                    "drop": drop,
+                    "attribution_total": float(attribution.sum()) / drop,
+                    "checked": checked,
+                    "pole_ranks": {f"N{n}": r for n, r in rank.items()},
+                }
+            )
+        )
+    return rows
+
+
 @click.command()
 @click.option("--results", type=click.Path(path_type=Path), required=True)
 @click.option("--device", default="cpu")
@@ -246,6 +427,9 @@ def main(results, device):
             *position_rows(runner, still_open),
             *path_rows(runner, still_open),
             *done_rows(runner, all_closed),
+            *via_reader_rows(runner, still_open),
+            *balance_rows(runner, still_open, all_closed),
+            *neuron_rows(runner, still_open),
         ]
     lines = results.read_text(encoding="utf-8").splitlines() if results.exists() else []
     kept = [line for line in lines if json.loads(line)["kind"] not in WRITES]
