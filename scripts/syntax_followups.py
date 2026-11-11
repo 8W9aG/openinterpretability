@@ -12,7 +12,8 @@ Three tests, all on written text. The text comes from the templates here and in
   ``syntax_probes.py``. Its effect on a closing bracket, by ablation and through the
   unembedding.
 
-    uv run python scripts/syntax_followups.py --out papers/syntax-positive-controls/followups.jsonl
+    P=papers/syntax-positive-controls
+    uv run python scripts/syntax_followups.py --out $P/results.followups.jsonl
 """
 
 from __future__ import annotations

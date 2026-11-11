@@ -19,7 +19,7 @@ Syntax labels from a parser should find the code neurons that the literature lea
 11. **The model closes the rest later, and needs L2 N676+ to do so.** When its first closer leaves brackets open, the model gives 0.36 to 0.62 to one more closer. Once the last one closes, it gives 0.001 at depth 3. With L2 N676+ ablated, it gives 0.024 or less with brackets still open, and every greedy line that ends closes too few.
 12. **Curly brackets that hold blocks don't count.** No round-depth pole responds to a code block or to indentation. Four of them respond to an object literal. This fits the corpus R² of zero for curly depth in L2 N676+, since most curly brackets in code hold blocks.
 13. **Qwen's best round-depth poles don't count.** On written text, L21 N953− of Qwen2.5-0.5B fires inside round brackets without rising with depth, and grows as a bracketed list gets longer. L26 N7101+ of Qwen2.5-1.5B fires outside them. Neither changes the probability of a closer when ablated.
-14. **Later layers read L2 N676+ through L3H5.** The model reads the pole from the tokens inside the brackets, not at the closer. Patched alone, L3H5 carries 27% to 63% of the effect. From it, the signal goes through heads of L4, L5H3 and L7H4 to the MLP of L8.
+14. **Later layers read L2 N676+ through L3H5, and then L8 N689+.** The model reads the pole from the tokens inside the brackets, not at the closer. Patched alone, L3H5 carries 27% to 63% of the effect. From it, the signal goes through heads of L4, L5H3 and L7H4 to L8 N689+, another round-depth pole. That pole alone carries 34% to 59% of what L3H5 sends.
 15. **Closing too many is a trade-off.** At depths 4 and 5 the model gives up to 0.20 to a closer after it closes every bracket. A stronger brake (L2 N1195+) or a weaker push (L2 N676+) removes that, but also stops the closers that the model needs. No scale we tried does better in both cases.
 16. **Through the protocol, L9 N340+ and Qwen's L21 N953− earn VERIFIED as signs of an open round bracket.** Both first claimed a lookahead to `)` and earned NEEDS_REVISION. Their revised, retrospective claims passed.
 17. **At GPT-2's 128-token windows, Qwen still has no such pole.** Each best pole for round depth stays the same, with R² 0.168 and 0.161. The null falls, and a curly-depth winner that followed position drops out.
@@ -181,7 +181,7 @@ This explains the first ablation table. There, the effect of L2 N676+ shrinks wi
 
 ## Closing the rest later
 
-At depth 2 and more, the model's first closer closes fewer brackets than are open. So we tested whether it closes the rest with its next tokens. We take the 8 items of each depth, and add the closing token that the model finds most probable. We read the probability that the next token starts with `)`, and add the most probable closer again, until no bracket is open. The script is `scripts/syntax_followups.py`, and its rows are in `followups.jsonl`.
+At depth 2 and more, the model's first closer closes fewer brackets than are open. So we tested whether it closes the rest with its next tokens. We take the 8 items of each depth, and add the closing token that the model finds most probable. We read the probability that the next token starts with `)`, and add the most probable closer again, until no bracket is open. The script is `scripts/syntax_followups.py`, and its rows are in `results.followups.jsonl`.
 
 ![Probability of one more closer after the first, with and without L2 N676+](media/close-later.svg)
 
@@ -198,18 +198,11 @@ With L2 N676+ ablated, the model closes one bracket and stops. Its probability o
 
 ## Where the model reads L2 N676+
 
-With L2 N676+ ablated, the model stops after one closer. We looked for what carries the pole's signal to that decision. The items are those of *Closing the rest later* at depths 3 to 5, each ending with the model's first closer, with brackets still open. The measure is the log-odds of a closer as the next token. The script is `scripts/syntax_close_paths.py`, and its rows are in `followups.jsonl`.
+With L2 N676+ ablated, the model stops after one closer. We looked for what carries the pole's signal to that decision. The items are those of *Closing the rest later* at depths 3 to 5, each ending with the model's first closer, with brackets still open. The measure is the log-odds of a closer as the next token. The script is `scripts/syntax_close_paths.py`, and its rows are in `results.followups.jsonl`.
 
 First, where the pole matters. It is near zero on the closer itself (0.8 to 1.1), and it reads 3 to 12.5 on every token inside the brackets.
 
-| Open brackets | 3 | 4 | 5 |
-| --- | --- | --- | --- |
-| Model | 0.50 | 0.18 | −0.60 |
-| Pole ablated at every token | −4.70 | −4.41 | −4.41 |
-| Pole ablated at the closer only | 0.50 | 0.10 | −0.47 |
-| Pole ablated before the closer only | −4.68 | −3.56 | −2.96 |
-
-So the model reads the pole from the tokens inside the brackets, through attention, and not at the closer.
+At depths 3, 4 and 5, the model's log-odds are 0.50, 0.18 and −0.60. With the pole ablated at every token, they fall to −4.70, −4.41 and −4.41. Ablated before the closer only, they fall almost as far: −4.68, −3.56 and −2.96. Ablated at the closer only, they barely move: 0.50, 0.10 and −0.47. So the model reads the pole from the tokens inside the brackets, through attention, and not at the closer.
 
 Then, which later component carries it. We patched one component at a time: each of the 120 heads of layers 2 to 11, and each MLP of layers 3 to 11. Noising puts the component's output from the ablated run into the model, and measures the share of the drop that it causes. Denoising puts the clean output into the ablated run, and measures the share that it recovers. The heads of L2 run before its MLP, so they can't carry the pole. They read 0.00, as a check.
 
@@ -236,7 +229,9 @@ Then we traced what reads L3H5. We noised L3H5 alone, and held one later compone
 | L7H4 | 0.36, 0.26, 0.41 |
 | L8 MLP | 0.60, 0.39, 0.23 |
 
-The shares add up to more than 1, so the paths overlap. The signal goes from L3H5 through heads of L4, and through L5H3 and L7H4, to the MLP of L8. Which step matters most changes with depth: the MLP of L8 at depth 3, and L4H8 at depth 5. We did not test which neurons of the MLP of L8 carry it.
+The shares add up to more than 1, so the paths overlap. The signal goes from L3H5 through heads of L4, and through L5H3 and L7H4, to the MLP of L8. Which step matters most changes with depth: the MLP of L8 at depth 3, and L4H8 at depth 5. To find which neurons of the MLP of L8 carry it, we used attribution patching (Syed et al., 2023). It ranks each neuron by its gradient times its change, with L3H5 noised. Then we held the top 10 neurons at their clean values one at a time, and measured each share exactly.
+
+N689 ranks first by attribution at each depth. Held alone, it removes 0.59, 0.34 and 0.50 of the drop at depths 3, 4 and 5. No other neuron of the top 10 removes more than 0.06. So most of what L3H5 sends to the MLP of L8 reaches one neuron, L8 N689+. That is one of the round-depth poles of *Other round-depth poles*, VERIFIED as firing on code tokens inside an open round bracket. The path runs from one round-depth pole to another: L2 N676+, then L3H5, then L8 N689+. Ablating L8 N689+ alone changes the count of brackets closed by at most 0.1 (see *How many brackets close*). So other paths can stand in for it when it is missing.
 
 ## Closing too many
 
@@ -337,15 +332,7 @@ The records were added by pull requests [2508](https://github.com/8W9aG/openinte
 
 The revision scanned the same corpus with the same windows. The proposer (Claude Opus 5.5) read the first record, and tested its wording on the model. Its claim drops the lookahead. The pole is a retrospective sign of an open round bracket, from the `(` to the token before its `)`, in code, comments, strings and prose. The `(` and a function word just after it are moderate. Content words, names, numbers and commas inside are strongest. Articles and prepositions in the middle of a phrase are weak. Curly brackets and quotes do not drive it, and square brackets give a weaker response that varies. The proposer found that the earlier failures fit this claim. `(although the` peaks at 2.00 on the `(` itself, and the JavaScript probe peaks at 3.53 on `opts` inside `console.log(`. The object literal reads 0.00.
 
-| Gate or score | First claim | Revised claim |
-| --- | --- | --- |
-| Hard negatives | 11 of 14 | 12 of 13 |
-| Positive holdouts | 6 of 6 | 7 of 7 |
-| Counterfactuals | 8 of 8 | 7 of 7 |
-| Detection, fuzzing | 0.96, 0.67 | 0.92, 0.98 |
-| Verdict | NEEDS_REVISION (0.89) | VERIFIED (0.96) |
-
-The reviewer (Claude Sonnet 5.5) first wrote four hard negatives with an open round bracket, which the claim calls active. We sent them back, and the same reviewer replaced them. [Pull request 2756](https://github.com/8W9aG/openinterpretability/pull/2756) added the record.
+The first claim earned NEEDS_REVISION (0.89), with 11 of 14 hard negatives, and detection and fuzzing of 0.96 and 0.67. The revised claim is VERIFIED (0.96). It passed 12 of 13 hard negatives, 7 of 7 positive holdouts and 7 of 7 counterfactuals, with detection 0.92 and fuzzing 0.98. The reviewer (Claude Sonnet 5.5) first wrote four hard negatives with an open round bracket, which the claim calls active. We sent them back, and the same reviewer replaced them. [Pull request 2756](https://github.com/8W9aG/openinterpretability/pull/2756) added the record.
 
 ## Cut documents
 
@@ -401,7 +388,7 @@ GPT-2 and Qwen read different windows, so their R² are not directly comparable:
 
 ### At 128-token windows
 
-We repeated the sweep by bracket kind on both Qwen models, at the windows that GPT-2 reads: 128 tokens, with a new window every 64. The script takes a `--window` option for this, and the rows are in `window128-qwen2.5-0.5b.jsonl` and `window128-qwen2.5-1.5b.jsonl`.
+We repeated the sweep by bracket kind on both Qwen models, at the windows that GPT-2 reads: 128 tokens, with a new window every 64. The script takes a `--window` option for this, and the rows are in `results.window128-qwen2.5-0.5b.jsonl` and `results.window128-qwen2.5-1.5b.jsonl`.
 
 | Label set | Qwen2.5-0.5B, whole | Qwen2.5-0.5B, 128 tokens | Qwen2.5-1.5B, whole | Qwen2.5-1.5B, 128 tokens |
 | --- | --- | --- | --- | --- |
@@ -447,16 +434,7 @@ So the selectivity holds on new text, and the mechanism does not. The measured e
 
 The revision read the same scan. Its proposer (Claude Opus 5.5) found that the failed hard negative peaked on `value` in `print(value`, a plain argument at the end of a snippet. `g.__next__` reads 0.00, since no round bracket is open there. It also found that the pole does not follow the chance of a closer. `(France)` in prose reads 0.4, where the model gives 0.95 to `)`, and several tokens inside one bracket fire, not only the last. So the revised claim is retrospective. The pole fires on content tokens while a round bracket is open, in code, or around a quoted string in prose. It reads 10 to 21 on the name after `__`, and 4 to 9 on the words of a quoted string and on digits. It reads 1 to 4 on plain names in short calls, and under 1.5 in prose with no quote.
 
-| Gate or score | First claim | Revised claim |
-| --- | --- | --- |
-| Hard negatives | 12 of 13 | 13 of 13 |
-| Positive holdouts | 7 of 7 | 6 of 7 |
-| Counterfactuals | 8 of 8 | 9 of 9 |
-| Detection, fuzzing | 0.80, 0.75 | 0.82, 0.96 |
-| Lookahead check | failed | passed |
-| Verdict | NEEDS_REVISION (0.96) | VERIFIED (0.93) |
-
-The failed holdout is `print(value` at the end of a function, which read 3.02 against a line of 4.87. The claim puts a late lone argument at 4 to 9, so that tier is too high. [Pull request 2763](https://github.com/8W9aG/openinterpretability/pull/2763) added the record. So the best round-depth pole of Qwen2.5-0.5B is a sign of an open round bracket, strongest on dunder names. It does not count depth.
+The revised claim is VERIFIED (0.93). It passed the lookahead check that the first claim failed, 13 of 13 hard negatives, 6 of 7 positive holdouts and 9 of 9 counterfactuals. Detection rose from 0.80 to 0.82, and fuzzing from 0.75 to 0.96. The failed holdout is `print(value` at the end of a function, which read 3.02 against a line of 4.87. The claim puts a late lone argument at 4 to 9, so that tier is too high. [Pull request 2763](https://github.com/8W9aG/openinterpretability/pull/2763) added the record. So the best round-depth pole of Qwen2.5-0.5B is a sign of an open round bracket, strongest on dunder names. It does not count depth.
 
 ## Caveats
 
@@ -474,7 +452,7 @@ None. The labels are reported, not gated. A scan of a corpus that records progra
 
 ## Reproduce
 
-On an Apple M-series MPS backend, the sweep takes about 40 minutes for GPT-2, 3 hours for Qwen2.5-0.5B and 4.5 hours for Qwen2.5-1.5B. The sweep by bracket kind takes 15 minutes, 1 hour and 3 hours. CPU is slower. The other commands take a few minutes. `results.jsonl` stores the outputs for GPT-2, and `results-qwen2.5-0.5b.jsonl` and `results-qwen2.5-1.5b.jsonl` those for Qwen. The sweep by bracket kind at 128-token windows takes 45 minutes for Qwen2.5-0.5B and 1.5 hours for Qwen2.5-1.5B, and `window128-*.jsonl` stores it. `followups.jsonl` stores the written follow-ups, which run on CPU in about 30 minutes. Parser and grammar versions are in `uv.lock`.
+On an Apple M-series MPS backend, the sweep takes about 40 minutes for GPT-2, 3 hours for Qwen2.5-0.5B and 4.5 hours for Qwen2.5-1.5B. The sweep by bracket kind takes 15 minutes, 1 hour and 3 hours. CPU is slower. The other commands take a few minutes. `results.jsonl` stores the outputs for GPT-2, and `results-qwen2.5-0.5b.jsonl` and `results-qwen2.5-1.5b.jsonl` those for Qwen. The sweep by bracket kind at 128-token windows takes 45 minutes for Qwen2.5-0.5B and 1.5 hours for Qwen2.5-1.5B, and `results.window128-*.jsonl` stores it. `results.followups.jsonl` stores the written follow-ups, which run on CPU in about 30 minutes. Parser and grammar versions are in `uv.lock`.
 
 ```bash
 uv run openinterp corpus --dataset github-code --docs 500 --seed 0 --out code.jsonl
@@ -489,10 +467,10 @@ uv run python scripts/syntax_controls.py sweep --model Qwen/Qwen2.5-0.5B --devic
 uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-0.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-0.5b.jsonl
 uv run python scripts/syntax_controls.py sweep --model Qwen/Qwen2.5-1.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-1.5b.jsonl
 uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-1.5B --device mps --corpus code.jsonl --out $P/results-qwen2.5-1.5b.jsonl
-uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-0.5B --device mps --window 128 --corpus code.jsonl --out $P/window128-qwen2.5-0.5b.jsonl
-uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-1.5B --device mps --window 128 --corpus code.jsonl --out $P/window128-qwen2.5-1.5b.jsonl
-uv run python scripts/syntax_followups.py --out $P/followups.jsonl
-uv run python scripts/syntax_close_paths.py --results $P/followups.jsonl
+uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-0.5B --device mps --window 128 --corpus code.jsonl --out $P/results.window128-qwen2.5-0.5b.jsonl
+uv run python scripts/syntax_controls.py kinds --model Qwen/Qwen2.5-1.5B --device mps --window 128 --corpus code.jsonl --out $P/results.window128-qwen2.5-1.5b.jsonl
+uv run python scripts/syntax_followups.py --out $P/results.followups.jsonl
+uv run python scripts/syntax_close_paths.py --results $P/results.followups.jsonl
 uv run python scripts/paper_figures.py
 ```
 
@@ -510,4 +488,5 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 - Gurnee, W., Horsley, T., Guo, Z. C., Kheirkhah, T. R., Sun, Q., Hathaway, W., Nanda, N. & Bertsimas, D. (2024). *Universal Neurons in GPT2 Language Models*. [arXiv:2401.12181](https://arxiv.org/abs/2401.12181).
 - Karpathy, A., Johnson, J. & Fei-Fei, L. (2015). *Visualizing and Understanding Recurrent Networks*. [arXiv:1506.02078](https://arxiv.org/abs/1506.02078).
 - Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Syed, A., Rager, C. & Conmy, A. (2023). *Attribution Patching Outperforms Automated Circuit Discovery*. [arXiv:2310.10348](https://arxiv.org/abs/2310.10348).
 - Yang, A., et al. (2024). *Qwen2.5 Technical Report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).

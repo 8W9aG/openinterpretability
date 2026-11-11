@@ -58,7 +58,7 @@ def build_all() -> dict[str, str]:
         "syntax-positive-controls": figures_syntax.build(
             _rows("syntax-positive-controls"),
             _other_models("syntax-positive-controls"),
-            _rows("syntax-positive-controls", "followups.jsonl"),
+            _rows("syntax-positive-controls", "results.followups.jsonl"),
         ),
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),

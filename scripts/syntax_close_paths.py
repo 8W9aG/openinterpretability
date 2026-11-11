@@ -17,7 +17,7 @@ The measure is the log-odds of a closer: the log of P(a token that starts with `
 over P(any other token).
 
     P=papers/syntax-positive-controls
-    uv run python scripts/syntax_close_paths.py --results $P/followups.jsonl
+    uv run python scripts/syntax_close_paths.py --results $P/results.followups.jsonl
 """
 
 from __future__ import annotations
@@ -161,6 +161,39 @@ def patch(source: dict, kind: str, layer: int, head: int | None, width: int) -> 
     return {"head_interventions": {layer: intervene}}
 
 
+def mean_log_odds(runner, found, hooks_per_item) -> float:
+    """Return the mean log-odds over ``found``, each item run with its own hooks."""
+    values = [
+        log_odds(runner, ids, **hooks) for ids, hooks in zip(found, hooks_per_item, strict=True)
+    ]
+    return sum(values) / len(values)
+
+
+def component_shares(runner, found, clean_runs, ablated_runs, clean, ablated) -> list[dict]:
+    """Return each component's noising and denoising share of the ablation's effect."""
+    width, gap = runner.head_dim(0), clean - ablated
+    changes = {POLE[0]: ablate_at("all")}
+    shares = []
+    for kind, layer, head in components(runner):
+        noised = mean_log_odds(
+            runner, found, [patch(a, kind, layer, head, width) for a in ablated_runs]
+        )
+        restored = [
+            patch(c, kind, layer, head, width) | {"interventions": changes} for c in clean_runs
+        ]
+        denoised = mean_log_odds(runner, found, restored)
+        name = f"L{layer}H{head}" if kind == "head" else f"L{layer} MLP"
+        shares.append(
+            {
+                "component": name,
+                "noise": (clean - noised) / gap,
+                "denoise": (denoised - ablated) / gap,
+            }
+        )
+    shares.sort(key=lambda s: -max(s["noise"], s["denoise"]))
+    return shares
+
+
 def path_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     """Return each component's share of the ablation's effect, by noising and denoising.
 
@@ -168,49 +201,17 @@ def path_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     over the drop when the pole is ablated. ``denoise`` is the recovery when the
     component alone takes its clean output in the ablated run, over the same drop.
     """
-    width = runner.head_dim(0)
     rows = []
     for depth, found in items.items():
         clean_runs = [run_cached(runner, ids, False) for ids in found]
         ablated_runs = [run_cached(runner, ids, True) for ids in found]
-        clean = sum(log_odds(runner, ids) for ids in found) / len(found)
-        changes = {POLE[0]: ablate_at("all")}
-        ablated = sum(log_odds(runner, ids, interventions=changes) for ids in found) / len(found)
-        gap = clean - ablated
-        shares = []
-        for kind, layer, head in components(runner):
-            noised = sum(
-                log_odds(runner, ids, **patch(a, kind, layer, head, width))
-                for ids, a in zip(found, ablated_runs, strict=True)
-            ) / len(found)
-            restored = []
-            for ids, c in zip(found, clean_runs, strict=True):
-                hooks = patch(c, kind, layer, head, width)
-                hooks["interventions"] = changes
-                restored.append(log_odds(runner, ids, **hooks))
-            denoised = sum(restored) / len(found)
-            name = f"L{layer}H{head}" if kind == "head" else f"L{layer} MLP"
-            shares.append(
-                {
-                    "component": name,
-                    "noise": (clean - noised) / gap,
-                    "denoise": (denoised - ablated) / gap,
-                }
-            )
-        shares.sort(key=lambda s: -max(s["noise"], s["denoise"]))
-        rows.append(
-            _rounded(
-                {
-                    "kind": "close_paths",
-                    "depth": depth,
-                    "items": len(found),
-                    "clean": clean,
-                    "ablated": ablated,
-                    "top": shares[:TOP_COMPONENTS],
-                    "all": shares,
-                }
-            )
-        )
+        clean = mean_log_odds(runner, found, [{}] * len(found))
+        changes = {"interventions": {POLE[0]: ablate_at("all")}}
+        ablated = mean_log_odds(runner, found, [changes] * len(found))
+        shares = component_shares(runner, found, clean_runs, ablated_runs, clean, ablated)
+        row = {"kind": "close_paths", "depth": depth, "items": len(found), "clean": clean}
+        row |= {"ablated": ablated, "top": shares[:TOP_COMPONENTS], "all": shares}
+        rows.append(_rounded(row))
     return rows
 
 
@@ -245,6 +246,23 @@ def done_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     return rows
 
 
+def noise_reader(runner, found, ablated_runs, held_per_item=None) -> float:
+    """Return the mean log-odds with L3H5 noised, and other components held as given.
+
+    ``held_per_item`` gives, for each item, extra hooks (by hook kind, then layer) that
+    hold a later component at its clean value. They join the hooks that noise L3H5.
+    """
+    width = runner.head_dim(0)
+    _, layer, head = READER
+    hooks_per_item = []
+    for k, a in enumerate(ablated_runs):
+        hooks = patch(a, "head", layer, head, width)
+        for name, by_layer in (held_per_item[k] if held_per_item else {}).items():
+            hooks[name] = {**hooks.get(name, {}), **by_layer}
+        hooks_per_item.append(hooks)
+    return mean_log_odds(runner, found, hooks_per_item)
+
+
 def via_reader_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     """Return the share of L3H5's effect that flows through each later component.
 
@@ -252,47 +270,24 @@ def via_reader_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
     Holding one later component at its clean output at the same time leaves a smaller
     drop. The share is the part of the drop that the held component removes.
     """
-    width = runner.head_dim(0)
-    _, layer, head = READER
+    width, layer = runner.head_dim(0), READER[1]
     rows = []
     for depth, found in items.items():
         clean_runs = [run_cached(runner, ids, False) for ids in found]
         ablated_runs = [run_cached(runner, ids, True) for ids in found]
-        clean = sum(log_odds(runner, ids) for ids in found) / len(found)
-
-        def noised(hold=None, found=found, clean_runs=clean_runs, ablated_runs=ablated_runs):
-            total = 0.0
-            for ids, c, a in zip(found, clean_runs, ablated_runs, strict=True):
-                hooks = patch(a, "head", layer, head, width)
-                if hold is not None:
-                    kind, at, h = hold
-                    held = patch(c, kind, at, h, width)
-                    for name, by_layer in held.items():
-                        hooks[name] = {**hooks.get(name, {}), **by_layer}
-                total += log_odds(runner, ids, **hooks)
-            return total / len(found)
-
-        drop = clean - noised()
+        clean = mean_log_odds(runner, found, [{}] * len(found))
+        drop = clean - noise_reader(runner, found, ablated_runs)
         shares = []
         for kind, at, h in components(runner):
             if at < layer or (kind == "head" and at == layer):
                 continue  # only components that run after the reader can carry it
+            held = [patch(c, kind, at, h, width) for c in clean_runs]
+            after = clean - noise_reader(runner, found, ablated_runs, held)
             name = f"L{at}H{h}" if kind == "head" else f"L{at} MLP"
-            shares.append(
-                {"component": name, "share": (drop - (clean - noised((kind, at, h)))) / drop}
-            )
+            shares.append({"component": name, "share": (drop - after) / drop})
         shares.sort(key=lambda x: -x["share"])
-        rows.append(
-            _rounded(
-                {
-                    "kind": "close_via_l3h5",
-                    "depth": depth,
-                    "items": len(found),
-                    "drop": drop,
-                    "top": shares[:TOP_COMPONENTS],
-                }
-            )
-        )
+        row = {"kind": "close_via_l3h5", "depth": depth, "items": len(found), "drop": drop}
+        rows.append(_rounded(row | {"top": shares[:TOP_COMPONENTS]}))
     return rows
 
 
@@ -331,86 +326,75 @@ def balance_rows(runner, open_items: dict, closed_items: dict) -> list[dict]:
     return rows
 
 
-def neuron_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
-    """Return the L8 neurons that carry L3H5's effect, by attribution, then exact patching.
+def attribution_of(runner, found, ablated_runs) -> tuple[torch.Tensor, list[torch.Tensor]]:
+    """Return each L8 neuron's attribution, and each item's clean L8 activations.
 
-    Attribution: for each neuron, the gradient of the log-odds in the run with L3H5
-    noised, times the change of the neuron's activation from that run to the clean run,
-    summed over positions. The top ``EXACT_NEURONS`` neurons, and L8 N689, are then held
-    at their clean activations one at a time while L3H5 is noised. ``share`` is the part
-    of the drop that holding the neuron removes.
+    For each neuron: the gradient of the log-odds in the run with L3H5 noised, times the
+    change of its activation from that run to the clean run, summed over positions.
     """
     width = runner.head_dim(0)
     _, layer, head = READER
+    attribution = torch.zeros(runner.mlp_width(TARGET_LAYER))
+    clean_acts = []
+    for ids, a in zip(found, ablated_runs, strict=True):
+        _, cache = runner.run_with_cache(ids.unsqueeze(0), [TARGET_LAYER])
+        clean_acts.append(cache[TARGET_LAYER][0].float().cpu())
+        store: dict = {}
+
+        def keep(act: torch.Tensor, store=store) -> torch.Tensor:
+            store["act"] = act.detach().clone().requires_grad_(True)
+            return store["act"]
+
+        hooks = patch(a, "head", layer, head, width)
+        with torch.enable_grad(), runner.hooks(interventions={TARGET_LAYER: keep}, **hooks):
+            probs = runner.forward(runner.encode(ids.unsqueeze(0)))[0, -1].float().softmax(-1)
+            mask = (counts_for(runner, len(probs)) > 0).to(probs.device)
+            p = probs[mask].sum().clamp(1e-12, 1 - 1e-12)
+            torch.log(p / (1 - p)).backward()
+        act = store["act"]
+        change = clean_acts[-1] - act.detach()[0].float().cpu()
+        attribution += (act.grad[0].float().cpu() * change).sum(0) / len(found)
+    return attribution, clean_acts
+
+
+def hold_neuron(clean_act: torch.Tensor, neuron: int) -> dict:
+    """Return the hooks that hold one L8 neuron at its clean activation."""
+
+    def restore(act: torch.Tensor) -> torch.Tensor:
+        act = act.clone()
+        act[0, :, neuron] = clean_act[:, neuron].to(act.dtype).to(act.device)
+        return act
+
+    return {"interventions": {TARGET_LAYER: restore}}
+
+
+def neuron_rows(runner, items: dict[int, list[torch.Tensor]]) -> list[dict]:
+    """Return the L8 neurons that carry L3H5's effect, by attribution, then exact patching.
+
+    The top ``EXACT_NEURONS`` neurons by attribution (see :func:`attribution_of`), and
+    L8 N689, are held at their clean activations one at a time while L3H5 is noised.
+    ``share`` is the part of the drop that holding the neuron removes.
+    """
     poles_of_interest = {n for lay, n, _ in ROUND_DEPTH_POLES if lay == TARGET_LAYER}
     rows = []
     for depth, found in items.items():
         ablated_runs = [run_cached(runner, ids, True) for ids in found]
-        attribution = torch.zeros(runner.mlp_width(TARGET_LAYER))
-        clean_acts, noised_acts = [], []
-        for ids, a in zip(found, ablated_runs, strict=True):
-            _, cache = runner.run_with_cache(ids.unsqueeze(0), [TARGET_LAYER])
-            clean_acts.append(cache[TARGET_LAYER][0].float().cpu())
-            store: dict = {}
-
-            def keep(act: torch.Tensor, store=store) -> torch.Tensor:
-                act = act.detach().clone().requires_grad_(True)
-                store["act"] = act
-                return act
-
-            hooks = patch(a, "head", layer, head, width)
-            with torch.enable_grad(), runner.hooks(interventions={TARGET_LAYER: keep}, **hooks):
-                logits = runner.forward(runner.encode(ids.unsqueeze(0)))[0, -1].float()
-                probs = logits.softmax(-1)
-                mask = (counts_for(runner, len(probs)) > 0).to(probs.device)
-                p = probs[mask].sum().clamp(1e-12, 1 - 1e-12)
-                torch.log(p / (1 - p)).backward()
-            act = store["act"]
-            noised_acts.append(act.detach()[0].float().cpu())
-            change = clean_acts[-1] - noised_acts[-1]
-            attribution += (act.grad[0].float().cpu() * change).sum(0) / len(found)
-        clean = sum(log_odds(runner, ids) for ids in found) / len(found)
-
-        def noised(
-            hold: int | None, found=found, ablated_runs=ablated_runs, clean_acts=clean_acts
-        ) -> float:
-            total = 0.0
-            for ids, a, c in zip(found, ablated_runs, clean_acts, strict=True):
-                hooks = patch(a, "head", layer, head, width)
-                if hold is not None:
-
-                    def restore(act: torch.Tensor, c=c, neuron=hold) -> torch.Tensor:
-                        act = act.clone()
-                        act[0, :, neuron] = c[:, neuron].to(act.dtype).to(act.device)
-                        return act
-
-                    hooks["interventions"] = {TARGET_LAYER: restore}
-                total += log_odds(runner, ids, **hooks)
-            return total / len(found)
-
-        drop = clean - noised(None)
+        attribution, clean_acts = attribution_of(runner, found, ablated_runs)
+        clean = mean_log_odds(runner, found, [{}] * len(found))
+        drop = clean - noise_reader(runner, found, ablated_runs)
         top = [int(i) for i in attribution.abs().topk(EXACT_NEURONS).indices]
         checked = []
         for n in dict.fromkeys([*top, *poles_of_interest]):
-            share = (drop - (clean - noised(n))) / drop
+            held = [hold_neuron(c, n) for c in clean_acts]
+            share = (drop - (clean - noise_reader(runner, found, ablated_runs, held))) / drop
             checked.append(
                 {"neuron": n, "attribution": float(attribution[n]) / drop, "share": share}
             )
         checked.sort(key=lambda x: -x["share"])
-        rank = {n: int((attribution > attribution[n]).sum()) for n in poles_of_interest}
-        rows.append(
-            _rounded(
-                {
-                    "kind": "close_l8_neurons",
-                    "depth": depth,
-                    "items": len(found),
-                    "drop": drop,
-                    "attribution_total": float(attribution.sum()) / drop,
-                    "checked": checked,
-                    "pole_ranks": {f"N{n}": r for n, r in rank.items()},
-                }
-            )
-        )
+        ranks = {f"N{n}": int((attribution > attribution[n]).sum()) for n in poles_of_interest}
+        row = {"kind": "close_l8_neurons", "depth": depth, "items": len(found), "drop": drop}
+        row |= {"attribution_total": float(attribution.sum()) / drop, "checked": checked}
+        rows.append(_rounded(row | {"pole_ranks": ranks}))
     return rows
 
 
