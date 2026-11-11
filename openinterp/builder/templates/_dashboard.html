@@ -1,0 +1,133 @@
+{# The home page's registry dashboard. Expects `dashboard` (builder/dashboard.py) and `map_fill`. #}
+{% set tl = dashboard.timeline %}{% set mb = dashboard.models %}
+<section class="mb-10" id="dashboard" data-pagefind-ignore>
+  <h2 class="mb-1 text-lg font-semibold">Registry dashboard</h2>
+  <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    The verdict of every experiment on a neuron pole or an attention head, by the day of its review (UTC), by model and by layer.
+    Repeat experiments count each time, so these are verdicts, not unit statuses. Dictionary latents are not included.
+  </p>
+  <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+    {% for s in dashboard.statuses %}
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }}</span>
+    {% endfor %}
+    <span>Hover a bar for its counts.</span>
+  </div>
+
+  <figure class="mb-8">
+    <h3 class="mb-1 text-sm font-medium">Experiments per {{ tl.unit }}, and the VERIFIED share to date</h3>
+    <svg viewBox="0 0 {{ tl.width }} {{ tl.height }}" class="w-full max-w-3xl" role="img"
+         aria-label="Experiments per {{ tl.unit }}, stacked by verdict, and the share of all experiments to date that were VERIFIED, now {{ tl.share | pct }}. Values are in the table below.">
+      {% for y, label in tl.count_ticks %}
+      <line x1="{{ tl.left }}" y1="{{ y }}" x2="{{ tl.right }}" y2="{{ y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
+      <text x="{{ tl.left - 6 }}" y="{{ y + 3 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
+      {% endfor %}
+      {% for y, label in tl.share_ticks %}
+      <line x1="{{ tl.left }}" y1="{{ y }}" x2="{{ tl.right }}" y2="{{ y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
+      <text x="{{ tl.left - 6 }}" y="{{ y + 3 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
+      {% endfor %}
+      {% for c in tl.columns %}
+      <g>
+        <title>{{ c.label }}</title>
+        <rect x="{{ c.hover_x }}" y="{{ tl.count_top }}" width="{{ tl.pitch }}" height="{{ tl.share_base - tl.count_top }}" fill="transparent"/>
+        {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
+      </g>
+      {% endfor %}
+      <path d="{{ tl.line }}" fill="none" class="stroke-emerald-600 dark:stroke-emerald-400" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
+      {% if tl.last_point %}<circle cx="{{ tl.last_point[0] }}" cy="{{ tl.last_point[1] }}" r="3" class="fill-emerald-600 dark:fill-emerald-400" pointer-events="none"/>{% endif %}
+      <line x1="{{ tl.left }}" y1="{{ tl.count_base + 0.5 }}" x2="{{ tl.right }}" y2="{{ tl.count_base + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
+      <line x1="{{ tl.left }}" y1="{{ tl.share_base + 0.5 }}" x2="{{ tl.right }}" y2="{{ tl.share_base + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
+      {% for x, label in tl.x_labels %}
+      <text x="{{ x }}" y="{{ tl.share_base + 14 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
+      {% endfor %}
+    </svg>
+    <figcaption class="mt-1 max-w-3xl text-xs text-slate-500">
+      Top: experiments reviewed each {{ tl.unit }}, stacked by verdict. Bottom: of all experiments reviewed up to that {{ tl.unit }}, the share that were VERIFIED.
+    </figcaption>
+    <details class="mt-2">
+      <summary class="cursor-pointer text-xs text-slate-500">Values</summary>
+      <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+            <tr><th class="px-3 py-2">{{ 'Week of' if tl.unit == 'week' else 'Day' }}</th><th class="px-3 py-2 text-right">Experiments</th>{% for s in dashboard.statuses %}<th class="px-3 py-2 text-right">{{ s | replace('_', ' ') }}</th>{% endfor %}<th class="px-3 py-2 text-right">VERIFIED to date</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-mono tabular-nums dark:divide-slate-800">
+            {% for c in tl.columns %}
+            <tr><td class="px-3 py-1">{{ c.date }}</td><td class="px-3 py-1 text-right">{{ c.n }}</td>{% for s in dashboard.statuses %}<td class="px-3 py-1 text-right">{{ c.counts[s] }}</td>{% endfor %}<td class="px-3 py-1 text-right">{{ c.to_date | pct }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </figure>
+
+  <figure class="mb-8">
+    <h3 class="mb-1 text-sm font-medium">Verdicts per model</h3>
+    <svg viewBox="0 0 {{ mb.width }} {{ mb.height }}" class="w-full max-w-3xl" role="img"
+         aria-label="Experiments per model, stacked by verdict. Values are in the table below.">
+      {% for r in mb.rows %}
+      <g>
+        <title>{{ r.label }}</title>
+        <text x="{{ mb.left - 8 }}" y="{{ r.y + mb.bar - 4 }}" text-anchor="end" class="fill-slate-700 font-mono dark:fill-slate-300" font-size="11">{{ r.name }}</text>
+        {% for sg in r.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
+        <text x="{{ r.end_x }}" y="{{ r.y + mb.bar - 4 }}" class="fill-slate-500 font-mono" font-size="10">{{ r.n }}</text>
+      </g>
+      {% endfor %}
+    </svg>
+    <div class="mt-2 max-w-3xl overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr><th class="px-3 py-2">Model</th><th class="px-3 py-2 text-right">Experiments</th>{% for s in dashboard.statuses %}<th class="px-3 py-2 text-right">{{ s | replace('_', ' ') }}</th>{% endfor %}<th class="px-3 py-2 text-right">VERIFIED share</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 tabular-nums dark:divide-slate-800">
+          {% for r in mb.rows %}
+          <tr><td class="px-3 py-1 font-mono">{{ r.name }}</td><td class="px-3 py-1 text-right font-mono">{{ r.n }}</td>{% for s in dashboard.statuses %}<td class="px-3 py-1 text-right font-mono">{{ r.counts[s] }}</td>{% endfor %}<td class="px-3 py-1 text-right font-mono">{{ r.share | pct }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </figure>
+
+  <figure>
+    <h3 class="mb-1 text-sm font-medium">Verdicts per layer</h3>
+    <div class="grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+      {% for ch in dashboard.layers %}
+      <div>
+        <h4 class="mb-1 font-mono text-xs">{{ ch.name }}</h4>
+        <svg viewBox="0 0 {{ ch.width }} {{ ch.height }}" class="w-full" role="img"
+             aria-label="Experiments per layer of {{ ch.name }}, stacked by verdict; the tallest column is {{ ch.peak }}. Values are in the table below.">
+          <line x1="{{ ch.left }}" y1="{{ ch.top }}" x2="{{ ch.right }}" y2="{{ ch.top }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
+          <text x="{{ ch.left - 4 }}" y="{{ ch.top + 3 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">{{ ch.peak }}</text>
+          <text x="{{ ch.left - 4 }}" y="{{ ch.base }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">0</text>
+          {% for c in ch.columns %}
+          <g>
+            <title>{{ c.label }}</title>
+            <rect x="{{ c.hover_x }}" y="{{ ch.top }}" width="{{ ch.pitch }}" height="{{ ch.base - ch.top }}" fill="transparent"/>
+            {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
+          </g>
+          {% endfor %}
+          <line x1="{{ ch.left }}" y1="{{ ch.base + 0.5 }}" x2="{{ ch.right }}" y2="{{ ch.base + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
+          {% for x, label in ch.x_labels %}
+          <text x="{{ x }}" y="{{ ch.base + 12 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="9">{{ label }}</text>
+          {% endfor %}
+        </svg>
+      </div>
+      {% endfor %}
+    </div>
+    <figcaption class="mt-1 max-w-3xl text-xs text-slate-500">Each model has its own vertical scale, up to its busiest layer. Every layer has a slot, so an empty slot is a layer with no experiments yet.</figcaption>
+    <details class="mt-2">
+      <summary class="cursor-pointer text-xs text-slate-500">Values</summary>
+      <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+            <tr><th class="px-3 py-2">Model</th><th class="px-3 py-2">Layer</th><th class="px-3 py-2 text-right">Experiments</th>{% for s in dashboard.statuses %}<th class="px-3 py-2 text-right">{{ s | replace('_', ' ') }}</th>{% endfor %}<th class="px-3 py-2 text-right">VERIFIED share</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 font-mono tabular-nums dark:divide-slate-800">
+            {% for ch in dashboard.layers %}{% for c in ch.columns if c.n %}
+            <tr><td class="px-3 py-1">{{ ch.name }}</td><td class="px-3 py-1">L{{ c.layer }}</td><td class="px-3 py-1 text-right">{{ c.n }}</td>{% for s in dashboard.statuses %}<td class="px-3 py-1 text-right">{{ c.counts[s] }}</td>{% endfor %}<td class="px-3 py-1 text-right">{{ c.share | pct }}</td></tr>
+            {% endfor %}{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </figure>
+</section>

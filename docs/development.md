@@ -31,7 +31,7 @@ openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 
   ```bash
   ssh-keygen -t ed25519 -N "" -C "openinterp record signing" -f ~/.ssh/openinterp_signing
-  echo "<github-user> namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterp_signing.pub)" >> .github/allowed_signers
+  echo "<github-user> valid-after=\"$(date -u +%Y%m%d)Z\",namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterp_signing.pub)" >> .github/allowed_signers
   ```
 
 A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. A PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
