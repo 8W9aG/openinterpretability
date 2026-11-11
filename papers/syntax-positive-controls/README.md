@@ -192,6 +192,50 @@ The model does close the rest later. At depth 3, its most probable closer is `))
 
 With L2 N676+ ablated, the model closes one bracket and stops. Its probability of one more closer falls to 0.024 or less, with up to 4 brackets still open. At depths 2 to 5, each greedy line that ends closes too few, 31 lines of 31. So the pole carries more than the size of the first closer. Without it, the model does not act on the brackets that stay open. The ablation zeroes the pole at every token, including the closers that the chain adds.
 
+## Where the model reads L2 N676+
+
+With L2 N676+ ablated, the model stops after one closer. We looked for what carries the pole's signal to that decision. The items are those of *Closing the rest later* at depths 3 to 5, each ending with the model's first closer, with brackets still open. The measure is the log-odds of a closer as the next token. The script is `scripts/syntax_close_paths.py`, and its rows are in `followups.jsonl`.
+
+First, where the pole matters. It is near zero on the closer itself (0.8 to 1.1), and it reads 3 to 12.5 on every token inside the brackets.
+
+| Open brackets | 3 | 4 | 5 |
+| --- | --- | --- | --- |
+| Model | 0.50 | 0.18 | −0.60 |
+| Pole ablated at every token | −4.70 | −4.41 | −4.41 |
+| Pole ablated at the closer only | 0.50 | 0.10 | −0.47 |
+| Pole ablated before the closer only | −4.68 | −3.56 | −2.96 |
+
+So the model reads the pole from the tokens inside the brackets, through attention, and not at the closer.
+
+Then, which later component carries it. We patched one component at a time: each of the 120 heads of layers 2 to 11, and each MLP of layers 3 to 11. Noising puts the component's output from the ablated run into the model, and measures the share of the drop that it causes. Denoising puts the clean output into the ablated run, and measures the share that it recovers. The heads of L2 run before its MLP, so they can't carry the pole. They read 0.00, as a check.
+
+| Component | Noising, depths 3, 4, 5 | Denoising, depths 3, 4, 5 |
+| --- | --- | --- |
+| L3H5 | 0.63, 0.27, 0.30 | 0.21, 0.64, 0.61 |
+| L3H10 | 0.23, 0.16, 0.07 | 0.08, 0.08, 0.06 |
+| L7H4 | 0.04, 0.09, 0.06 | 0.23, 0.48, 0.50 |
+| L6H3 | 0.04, 0.05, 0.03 | 0.18, 0.24, 0.31 |
+| L5H3 | −0.01, 0.01, −0.02 | 0.08, 0.23, 0.37 |
+| L8 MLP | 0.17, 0.15, 0.09 | 0.42, 0.31, 0.26 |
+| L3 MLP | −0.05, 0.05, 0.35 | −0.01, −0.21, −0.52 |
+
+L3H5 carries the most. Nothing changes the residual stream between the MLP of L2 and the heads of L3. So the noising share of L3H5 is a direct path from the pole. From the closer, L3H5 gives 0.31 to 0.40 of its attention to the open brackets. It gives most of the rest to the tokens inside them, where the pole is high. So it moves the signal that brackets are open to the closer, where the pole itself is silent. L7H4, L6H3 and L5H3 recover much of the effect alone, but noising each of them alone does little. This fits readers that come after L3H5, and that the model can partly replace. The shares do not add up to 1, so the paths overlap. At depth 5 the MLP of L3 works against the rest: restoring it alone moves the ablated run further down. We did not trace the steps from L3H5 to L7H4.
+
+## Closing too many
+
+At depths 4 and 5, the model still gives 0.16 and 0.20 to one more closer after it closes every bracket. At depth 3 it gives 0.001. We read the round-depth poles at that last closer, and ablated each of them in turn. The table gives the log-odds of one more closer.
+
+| Brackets first opened | 1 | 2 | 3 | 4 | 5 |
+| --- | --- | --- | --- | --- | --- |
+| Model | −7.39 | −4.80 | −7.10 | −3.01 | −3.24 |
+| L2 N676+ ablated | −7.61 | −5.58 | −8.28 | −4.47 | −5.65 |
+| L2 N1195+ ablated | −5.41 | −0.04 | −1.70 | −0.28 | −0.87 |
+| L3 N695+ ablated | −7.34 | −4.57 | −6.67 | −2.20 | −2.26 |
+| Strength of L8 N689+ at the last closer | 0.00 | 0.00 | 0.00 | 0.24 | 0.71 |
+| Strength of L9 N340+ at the last closer | 0.00 | 0.00 | 0.00 | 0.13 | 0.45 |
+
+The two L2 poles and L3 N695+ read 0.00 at the last closer at every depth. L2 N1195+ holds closers back: without it, one more closer has log-odds of −1.70 or more from depth 2. L2 N676+ pushes the other way, through the earlier tokens, and its push grows with depth. Ablating it lowers the log-odds by 1.18 at depth 3, 1.46 at depth 4 and 2.41 at depth 5. At depths 4 and 5, L8 N689+ and L9 N340+ still fire a little after the last closer. Ablating either lowers the log-odds by 0.6 or less. So no single pole explains the extra closer. A push that grows with depth, against a brake that does not, fits it. We did not test that balance directly.
+
 ## Curly brackets that hold blocks
 
 The pole responds to `load{first, value`, but its corpus R² for curly depth is zero. We guessed that this is because curly brackets in real code mostly hold blocks. So we wrote probes with real blocks. Each target is the token after `x = first +`. Each block header holds a round bracket that is already closed, such as `if (ready) {`. Each cell is a mean over 8 items, and the standard errors are at most 0.18.
