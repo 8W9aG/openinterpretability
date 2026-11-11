@@ -190,6 +190,7 @@ At depth 2 and more, the model's first closer closes fewer brackets than are ope
 | Items with brackets open after the first closer | 0 | 1 | 8 | 8 | 8 |
 | P(one more closer), brackets still open | – | 0.174 | 0.622 | 0.545 | 0.363 |
 | P(one more closer), all closed | 0.001 | 0.011 | 0.001 | 0.161 | 0.196 |
+| Same, L2 N676+ ablated: brackets still open | – | 0.002 | 0.008 | 0.015 | 0.024 |
 
 The model does close the rest later. At depth 3, its most probable closer is `))` in all 8 items. It then gives 0.62 to one more closer, and 0.001 after it closes the last bracket. At depths 4 and 5 it still gives 0.55 and 0.36 with brackets open. But it also gives 0.16 and 0.20 after it closes them all, so it counts less well there. Greedy text agrees. We let the model write its most probable tokens to the end of the line, for up to 16 tokens. Lines that end close every bracket at depths 1 to 3 (8, 8 and 5 lines of 8). At depth 4, 1 of 5 lines closes every bracket, 3 close too many and 1 too few. At depth 5, none of 3 does. The other lines repeat an argument, such as `, first, first, first`, and never end.
 
@@ -201,7 +202,14 @@ With L2 N676+ ablated, the model stops after one closer. We looked for what carr
 
 First, where the pole matters. It is near zero on the closer itself (0.8 to 1.1), and it reads 3 to 12.5 on every token inside the brackets.
 
-At depths 3, 4 and 5, the model's log-odds are 0.50, 0.18 and −0.60. With the pole ablated at every token, they fall to −4.70, −4.41 and −4.41. Ablated before the closer only, they fall almost as far: −4.68, −3.56 and −2.96. Ablated at the closer only, they barely move: 0.50, 0.10 and −0.47. So the model reads the pole from the tokens inside the brackets, through attention, and not at the closer.
+| Open brackets | 3 | 4 | 5 |
+| --- | --- | --- | --- |
+| Model | 0.50 | 0.18 | −0.60 |
+| Pole ablated at every token | −4.70 | −4.41 | −4.41 |
+| Pole ablated at the closer only | 0.50 | 0.10 | −0.47 |
+| Pole ablated before the closer only | −4.68 | −3.56 | −2.96 |
+
+So the model reads the pole from the tokens inside the brackets, through attention, and not at the closer.
 
 Then, which later component carries it. We patched one component at a time: each of the 120 heads of layers 2 to 11, and each MLP of layers 3 to 11. Noising puts the component's output from the ablated run into the model, and measures the share of the drop that it causes. Denoising puts the clean output into the ablated run, and measures the share that it recovers. The heads of L2 run before its MLP, so they can't carry the pole. They read 0.00, as a check.
 
@@ -219,9 +227,23 @@ L3H5 carries the most. Nothing changes the residual stream between the MLP of L2
 
 Then we traced what reads L3H5. We noised L3H5 alone, and held one later component at its clean output at the same time. The share is the part of the drop that holding the component removes.
 
-Held alone, L4H8 removes 0.15, 0.37 and 0.74 of the drop at depths 3, 4 and 5, and L4H6 0.13, 0.25 and 0.45. L5H3 removes 0.15, 0.26 and 0.39, and L7H4 0.36, 0.26 and 0.41. The MLP of L8 removes 0.60, 0.39 and 0.23, and L4H2 0.23 and 0.25 at depths 3 and 4. The shares add up to more than 1, so the paths overlap. The signal goes from L3H5 through heads of L4, and through L5H3 and L7H4, to the MLP of L8. Which step matters most changes with depth: the MLP of L8 at depth 3, and L4H8 at depth 5. To find which neurons of the MLP of L8 carry it, we used attribution patching (Syed et al., 2023). It ranks each neuron by its gradient times its change, with L3H5 noised. Then we held the top 10 neurons at their clean values one at a time, and measured each share exactly.
+| Component | Share, depths 3, 4, 5 |
+| --- | --- |
+| L4H8 | 0.15, 0.37, 0.74 |
+| L4H6 | 0.13, 0.25, 0.45 |
+| L4H2 | 0.23, 0.25, under 0.17 |
+| L5H3 | 0.15, 0.26, 0.39 |
+| L7H4 | 0.36, 0.26, 0.41 |
+| L8 MLP | 0.60, 0.39, 0.23 |
 
-N689 ranks first by attribution at each depth. Held alone, it removes 0.59, 0.34 and 0.50 of the drop at depths 3, 4 and 5. No other neuron of the top 10 removes more than 0.06. So most of what L3H5 sends to the MLP of L8 reaches one neuron, L8 N689+. That is one of the round-depth poles of *Other round-depth poles*, VERIFIED as firing on code tokens inside an open round bracket. The path runs from one round-depth pole to another: L2 N676+, then L3H5, then L8 N689+. Ablating L8 N689+ alone changes the count of brackets closed by at most 0.1 (see *How many brackets close*). So other paths can stand in for it when it is missing.
+The shares add up to more than 1, so the paths overlap. The signal goes from L3H5 through heads of L4, and through L5H3 and L7H4, to the MLP of L8. Which step matters most changes with depth: the MLP of L8 at depth 3, and L4H8 at depth 5. To find which neurons of the MLP of L8 carry it, we used attribution patching (Syed et al., 2023). It ranks each neuron by its gradient times its change, with L3H5 noised. Then we held the top 10 neurons at their clean values one at a time, and measured each share exactly.
+
+| Neuron of L8 | Share, depths 3, 4, 5 | Rank by attribution |
+| --- | --- | --- |
+| N689 | 0.59, 0.34, 0.50 | first at each depth |
+| Next best of the top 10 | 0.04, 0.06, 0.05 | – |
+
+So most of what L3H5 sends to the MLP of L8 reaches one neuron, L8 N689+. That is one of the round-depth poles of *Other round-depth poles*, VERIFIED as firing on code tokens inside an open round bracket. The path runs from one round-depth pole to another: L2 N676+, then L3H5, then L8 N689+. Ablating L8 N689+ alone changes the count of brackets closed by at most 0.1 (see *How many brackets close*). So other paths can stand in for it when it is missing.
 
 ### L3H5 through the protocol
 
@@ -238,9 +260,11 @@ At depths 4 and 5, the model still gives 0.16 and 0.20 to one more closer after 
 | Model | −7.39 | −4.80 | −7.10 | −3.01 | −3.24 |
 | L2 N676+ ablated | −7.61 | −5.58 | −8.28 | −4.47 | −5.65 |
 | L2 N1195+ ablated | −5.41 | −0.04 | −1.70 | −0.28 | −0.87 |
+| L3 N695+ ablated | −7.34 | −4.57 | −6.67 | −2.20 | −2.26 |
 | Strength of L8 N689+ at the last closer | 0.00 | 0.00 | 0.00 | 0.24 | 0.71 |
+| Strength of L9 N340+ at the last closer | 0.00 | 0.00 | 0.00 | 0.13 | 0.45 |
 
-The two L2 poles and L3 N695+ read 0.00 at the last closer at every depth. L2 N1195+ holds closers back: without it, one more closer has log-odds of −1.70 or more from depth 2. L2 N676+ pushes the other way, through the earlier tokens, and its push grows with depth. Ablating it lowers the log-odds by 1.18 at depth 3, 1.46 at depth 4 and 2.41 at depth 5. At depths 4 and 5, L8 N689+ and L9 N340+ (0.13 and 0.45) still fire a little after the last closer. Ablating L3 N695+ raises the log-odds by up to 0.98. Ablating either lowers the log-odds by 0.6 or less. So no single pole explains the extra closer. A push that grows with depth, against a brake that does not, could explain it. To test that, we scaled the strength of each pole at every token. We read the log-odds of a closer in two states. With brackets still open, the model should close more. With all brackets closed, it should not.
+The two L2 poles and L3 N695+ read 0.00 at the last closer at every depth. L2 N1195+ holds closers back: without it, one more closer has log-odds of −1.70 or more from depth 2. L2 N676+ pushes the other way, through the earlier tokens, and its push grows with depth. Ablating it lowers the log-odds by 1.18 at depth 3, 1.46 at depth 4 and 2.41 at depth 5. At depths 4 and 5, L8 N689+ and L9 N340+ still fire a little after the last closer. Ablating either lowers the log-odds by 0.6 or less. So no single pole explains the extra closer. A push that grows with depth, against a brake that does not, could explain it. To test that, we scaled the strength of each pole at every token. We read the log-odds of a closer in two states. With brackets still open, the model should close more. With all brackets closed, it should not.
 
 | Change | Still open, depths 3, 4, 5 | All closed, depths 3, 4, 5 |
 | --- | --- | --- |
@@ -255,7 +279,9 @@ A stronger brake removes the extra closer at depths 4 and 5. But it also stops t
 
 ### Why the push survives closing
 
-First, the closers' tokens are not the cause. We closed every bracket in other ways: one `)` per token, `))` tokens, or the fewest tokens, such as one `))))`. Each way leaves one more closer at log-odds of −2.3 to −0.7 at depths 4 and 5. More closer tokens make it worse: at depth 3, one `)` per token gives −2.83, where the model's own `))` then `)` gives −7.10. Then we read L3H5, which carries the push, in both states. The script is `scripts/syntax_close_states.py`. The carried push is the drop in log-odds when L3H5 takes its output from the run with L2 N676+ ablated.
+First, the closers' tokens are not the cause. We closed every bracket in other ways: one `)` per token, `))` tokens, or the fewest tokens, such as one `))))`. Each way leaves one more closer at log-odds of −2.3 to −0.7 at depths 4 and 5. More closer tokens make it worse: at depth 3, one `)` per token gives −2.83, where the model's own `))` then `)` gives −7.10.
+
+Then we read L3H5, which carries the push, in both states. The script is `scripts/syntax_close_states.py`. The carried push is the drop in log-odds when L3H5 takes its output from the run with L2 N676+ ablated.
 
 | Depth | 3 | 4 | 5 |
 | --- | --- | --- | --- |
@@ -339,7 +365,15 @@ The records were added by pull requests [2508](https://github.com/8W9aG/openinte
 
 The revision scanned the same corpus with the same windows. The proposer (Claude Opus 5.5) read the first record, and tested its wording on the model. Its claim drops the lookahead. The pole is a retrospective sign of an open round bracket, from the `(` to the token before its `)`, in code, comments, strings and prose. The `(` and a function word just after it are moderate. Content words, names, numbers and commas inside are strongest. Articles and prepositions in the middle of a phrase are weak. Curly brackets and quotes do not drive it, and square brackets give a weaker response that varies. The proposer found that the earlier failures fit this claim. `(although the` peaks at 2.00 on the `(` itself, and the JavaScript probe peaks at 3.53 on `opts` inside `console.log(`. The object literal reads 0.00.
 
-The first claim earned NEEDS_REVISION (0.89), with 11 of 14 hard negatives, and detection and fuzzing of 0.96 and 0.67. The revised claim is VERIFIED (0.96). It passed 12 of 13 hard negatives, 7 of 7 positive holdouts and 7 of 7 counterfactuals, with detection 0.92 and fuzzing 0.98. The reviewer (Claude Sonnet 5.5) first wrote four hard negatives with an open round bracket, which the claim calls active. We sent them back, and the same reviewer replaced them. [Pull request 2756](https://github.com/8W9aG/openinterpretability/pull/2756) added the record.
+| Gate or score | First claim | Revised claim |
+| --- | --- | --- |
+| Hard negatives | 11 of 14 | 12 of 13 |
+| Positive holdouts | 6 of 6 | 7 of 7 |
+| Counterfactuals | 8 of 8 | 7 of 7 |
+| Detection, fuzzing | 0.96, 0.67 | 0.92, 0.98 |
+| Verdict | NEEDS_REVISION (0.89) | VERIFIED (0.96) |
+
+The reviewer (Claude Sonnet 5.5) first wrote four hard negatives with an open round bracket, which the claim calls active. We sent them back, and the same reviewer replaced them. [Pull request 2756](https://github.com/8W9aG/openinterpretability/pull/2756) added the record.
 
 ## Cut documents
 
@@ -441,7 +475,16 @@ So the selectivity holds on new text, and the mechanism does not. The measured e
 
 The revision read the same scan. Its proposer (Claude Opus 5.5) found that the failed hard negative peaked on `value` in `print(value`, a plain argument at the end of a snippet. `g.__next__` reads 0.00, since no round bracket is open there. It also found that the pole does not follow the chance of a closer. `(France)` in prose reads 0.4, where the model gives 0.95 to `)`, and several tokens inside one bracket fire, not only the last. So the revised claim is retrospective. The pole fires on content tokens while a round bracket is open, in code, or around a quoted string in prose. It reads 10 to 21 on the name after `__`, and 4 to 9 on the words of a quoted string and on digits. It reads 1 to 4 on plain names in short calls, and under 1.5 in prose with no quote.
 
-The revised claim is VERIFIED (0.93). It passed the lookahead check that the first claim failed, 13 of 13 hard negatives, 6 of 7 positive holdouts and 9 of 9 counterfactuals. Detection rose from 0.80 to 0.82, and fuzzing from 0.75 to 0.96. The failed holdout is `print(value` at the end of a function, which read 3.02 against a line of 4.87. The claim puts a late lone argument at 4 to 9, so that tier is too high. [Pull request 2763](https://github.com/8W9aG/openinterpretability/pull/2763) added the record. So the best round-depth pole of Qwen2.5-0.5B is a sign of an open round bracket, strongest on dunder names. It does not count depth.
+| Gate or score | First claim | Revised claim |
+| --- | --- | --- |
+| Hard negatives | 12 of 13 | 13 of 13 |
+| Positive holdouts | 7 of 7 | 6 of 7 |
+| Counterfactuals | 8 of 8 | 9 of 9 |
+| Detection, fuzzing | 0.80, 0.75 | 0.82, 0.96 |
+| Lookahead check | failed | passed |
+| Verdict | NEEDS_REVISION (0.96) | VERIFIED (0.93) |
+
+The failed holdout is `print(value` at the end of a function, which read 3.02 against a line of 4.87. The claim puts a late lone argument at 4 to 9, so that tier is too high. [Pull request 2763](https://github.com/8W9aG/openinterpretability/pull/2763) added the record. So the best round-depth pole of Qwen2.5-0.5B is a sign of an open round bracket, strongest on dunder names. It does not count depth.
 
 ## Caveats
 

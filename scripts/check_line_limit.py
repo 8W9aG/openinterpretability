@@ -1,7 +1,7 @@
 """Fail if any source file or function exceeds its line limit.
 
 Files: at most 500 lines. Tests, configuration, lockfiles, vendored code, the
-changelog and generated data (audit records and wiki pages) are exempt.
+changelog, papers and generated data (audit records and wiki pages) are exempt.
 
 Functions: at most 40 lines: the signature as one line, plus the body.
 Decorators, the parameter list and the docstring do not count, so long Click
@@ -31,6 +31,7 @@ EXEMPT = (
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows
     "papers/*/results*.jsonl",  # generated result rows of a paper
+    "papers/*/README.md",  # a paper is one page, however long its argument
     "benchmark/*.jsonl",  # frozen benchmark data (openinterp benchmark freeze)
     "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
