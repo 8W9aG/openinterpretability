@@ -23,9 +23,13 @@ verification.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
+from openinterp.builder.disk_memo import DiskMemo
+from openinterp.core import stats
 from openinterp.core.schemas import AuditRecord, ReviewPolicy
 from openinterp.core.stats import EffectiveCounts, effective_counts, p_balanced_above
 
@@ -72,7 +76,7 @@ def significance(record: AuditRecord) -> Significance:
         )
 
     negatives, holdouts = counts("hard_negative"), counts("positive_holdout")
-    p_useful = p_balanced_above(negatives, holdouts, policy.reject_below_balanced_accuracy)
+    p_useful = _p_useful(negatives, holdouts, policy.reject_below_balanced_accuracy)
     return Significance(
         p_useful=round(p_useful, 4),
         conclusiveness=round(abs(2 * p_useful - 1), 4),
@@ -80,3 +84,20 @@ def significance(record: AuditRecord) -> Significance:
         negatives=negatives,
         holdouts=holdouts,
     )
+
+
+# p_balanced_above samples 4,000 draws per record, so its results are kept on disk. The
+# version is the code that computes them: a change to it starts a new memo.
+P_USEFUL = DiskMemo("p-useful", Path(stats.__file__).read_bytes())
+
+
+def _p_useful(negatives: EffectiveCounts, holdouts: EffectiveCounts, threshold: float) -> float:
+    """Return :func:`p_balanced_above` for these counts, from the memo when it has it."""
+    key = json.dumps(
+        [negatives.passed, negatives.clusters, holdouts.passed, holdouts.clusters, threshold]
+    )
+    found = P_USEFUL.get(key)
+    if found is None:
+        found = p_balanced_above(negatives, holdouts, threshold)
+        P_USEFUL.put(key, found)
+    return found
