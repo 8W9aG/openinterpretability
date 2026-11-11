@@ -58,6 +58,7 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# The spans are built in Python (builder/heat.py), because pages show many thousands of tokens. #}
 {% macro heat_tokens(tokens) -%}
-{%- for t in tokens %}<span class="tok heat{{ ' peak' if t.peak }}{{ ' marked' if t.marked }}" style="--a: {{ t.shade }}" data-v="{{ t.value | num(3) }}{{ ' · peak' if t.peak }}{{ ' · marked' if t.marked }}">{{ t.text }}</span>{% endfor -%}
+{{ heat_html(tokens) }}
 {%- endmacro %}

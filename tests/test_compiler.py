@@ -655,7 +655,7 @@ def test_token_heat_windows_long_snippets_around_the_peak():
 def test_heatmap_renders_exact_values_and_peak(tmp_path, record):
     compile_site([record], tmp_path)
     page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
-    assert 'class="tok heat peak" style="--a: 1.0" data-v="2.500 · peak"' in page
+    assert '<i class="p" style=--a:1 data-v="2.500 · peak">' in page
     assert 'data-v="0.300"' in page  # exact stored value, not a rounded shade
     assert "--heat-rgb: 234 88 12" in page  # positive pole hue
     assert '<summary class="cursor-pointer">Values</summary>' in page
@@ -705,7 +705,7 @@ def test_explanation_scores_rendered_mistakes_first(tmp_path, record):
     page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
     assert "Explanation scores on held-out text" in page and "40 active of 900" in page
     assert page.index(">missed<") < page.index(">correct rejection<")  # mistakes first
-    assert "peak marked" in page and "marks right · judged right" in page
+    assert '<i class="p m"' in page and "marks right · judged right" in page
     row = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()[0]
     assert (row["detection_score"], row["fuzzing_score"]) == (0.5, 1.0)
 
@@ -1442,3 +1442,52 @@ def test_the_page_says_where_each_step_ran_and_whether_it_streamed(tmp_path, rec
     page = next((tmp_path / "models").rglob("N*.html")).read_text()
     text = re.sub(r"<[^>]+>", "", page)
     assert "scan cpu (streamed from disk) · review mps" in text
+
+
+# Earlier tests leave native threads in this process (the CLI build has none), so the fork
+# warns. The workers only render templates, so they need no lock that a thread could hold.
+@pytest.mark.filterwarnings("ignore:This process .* is multi-threaded:DeprecationWarning")
+def test_parallel_render_writes_the_same_site_as_one_process(tmp_path, records):
+    one = compile_site(records, tmp_path / "one", jobs=1)
+    two = compile_site(records, tmp_path / "two", jobs=2)
+    rel = [p.relative_to(tmp_path / "one") for p in one.pages]
+    assert rel == [p.relative_to(tmp_path / "two") for p in two.pages]  # same order too
+    for path in (tmp_path / "one").rglob("*"):
+        if path.is_file():
+            assert (
+                path.read_bytes()
+                == (tmp_path / "two" / path.relative_to(tmp_path / "one")).read_bytes()
+            )
+
+
+def test_heat_html_is_short_and_escaped():
+    from openinterp.builder.heat import HeatToken, heat_html
+
+    tokens = [
+        HeatToken('<a & "b">', 0.5, 1.23456, peak=False),
+        HeatToken("x", 1.0, 2.0, peak=True),
+        HeatToken("↵", 0.0, 0.0, peak=False, marked=True),
+        HeatToken(" y", 0.0, 0.0, peak=False),
+        HeatToken(" w", 0.0, -0.0004, peak=False),
+        HeatToken(" z", 0.007, 0.0004, peak=False),
+    ]
+    assert str(heat_html(tokens)) == (
+        '<span class="hm">'
+        '<i style=--a:.5 data-v="1.235">&lt;a &amp; &#34;b&#34;&gt;</i>'
+        '<i class="p" style=--a:1 data-v="2.000 · peak">x</i>'
+        '<i class="m" data-v="0.000 · marked">↵</i>'
+        "<i> y</i>"  # no shade and a value of 0.000: base.html supplies both
+        '<i data-v="-0.000"> w</i>'
+        "<i style=--a:.007> z</i>"
+        "</span>"
+    )
+
+
+def test_values_rows_are_short_and_mark_the_peak():
+    from openinterp.builder.heat import PEAK_ROW, HeatToken, values_rows
+
+    tokens = [HeatToken("<x>", 0.2, 0.25, peak=False), HeatToken("y", 1.0, 1.0, peak=True)]
+    assert str(values_rows(tokens)) == (
+        '<tr><td><code class="tok">&lt;x&gt;</code><td>0.250'
+        f'<tr class="{PEAK_ROW}"><td><code class="tok">y</code><td>1.000'
+    )

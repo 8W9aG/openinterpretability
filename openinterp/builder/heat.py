@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
+
+from markupsafe import Markup, escape
 
 from openinterp.core.examples import ActivatingExample
 from openinterp.sensitive import is_offensive
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class HeatToken:
     """One token of a heatmap, shaded by its strength."""
 
@@ -73,3 +76,46 @@ def token_heat(
             for i, w in zip(example.attends_to, example.attention_weights, strict=True)
         ],
     )
+
+
+def _short(shade: float) -> str:
+    """Return ``shade`` with no leading ``0`` and no trailing ``.0``: ``.25``, ``1``."""
+    text = str(shade)
+    text = text[1:] if text.startswith("0.") else text
+    return text[:-2] if text.endswith(".0") else text
+
+
+def heat_html(tokens: Iterable[HeatToken]) -> Markup:
+    """Return the tokens as one ``<span class="hm">`` of ``<i>`` elements, one per token.
+
+    Heatmaps are most of the site's bytes, so the markup is short. ``base.html`` styles a
+    token as a ``.tok.heat`` span. A token with no ``style`` has ``--a: 0``, and a token
+    with no ``data-v`` has the value 0.000. The classes ``p`` and ``m`` mark the peak and a
+    token that the fuzzing judge was told is active. Hover (or tap) a token for its value.
+    """
+    parts = ['<span class="hm">']
+    for t in tokens:
+        classes = " ".join(c for c, on in (("p", t.peak), ("m", t.marked)) if on)
+        value = f"{t.value:.3f}" + (" · peak" if t.peak else "") + (" · marked" if t.marked else "")
+        attrs = f' class="{classes}"' if classes else ""
+        attrs += f" style=--a:{_short(t.shade)}" if t.shade else ""
+        attrs += f' data-v="{value}"' if value != "0.000" else ""
+        parts.append(f"<i{attrs}>{escape(t.text)}</i>")
+    parts.append("</span>")
+    return Markup("".join(parts))  # noqa: S704  (the token text is escaped above)
+
+
+PEAK_ROW = "font-semibold text-slate-900 dark:text-slate-100"  # the peak's row in a values table
+
+
+def values_rows(tokens: Iterable[HeatToken]) -> Markup:
+    """Return one table row per token: the token and its value, as a heatmap's values table.
+
+    The rows leave out their closing tags, as HTML allows, and ``base.html`` styles the
+    cells of a ``.vt`` table. So a row is short: tables of values are a large part of a page.
+    """
+    rows = []
+    for t in tokens:
+        start = f'<tr class="{PEAK_ROW}">' if t.peak else "<tr>"
+        rows.append(f'{start}<td><code class="tok">{escape(t.text)}</code><td>{t.value:.3f}')
+    return Markup("".join(rows))  # noqa: S704  (the token text is escaped above)
