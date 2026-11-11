@@ -251,6 +251,18 @@ We audited L3H5 as a chosen unit, on the seed-1 sample of `github-code` at 128-t
 
 The verdict is NEEDS_REVISION (0.77). The claim passed 7 of 7 positive holdouts and 7 of 7 counterfactuals, but only 7 of 13 hard negatives. Ordinary prose, a licence header and a copyright notice with no ` All` read 5.0 to 7.0, above the activity line of 5.01. On held-out windows, 2,421 of 4,000 are active. Detection and fuzzing are 0.48 and 0.50, no better than chance, and token identity predicts the head better than the claim does. So L3H5 is active on much of the text, and the copyright peak is only its top. The open-bracket signal that it carries to the closer is one part of its middle range. [Pull request 2770](https://github.com/8W9aG/openinterpretability/pull/2770) added the record.
 
+A revision read the same scan. Its proposer (Claude Opus 5.5) found that the head's strength grows as its attention leaves the first token of the text. Over 30,000 tokens, the two correlate at r = −0.72. So no token in the first 6 or so reaches the line. After that, token type decides: later clause words of English prose and licence text, a `.` or `?` that ends a sentence, `}`, ` {`, ` return` and line breaks reach it. Word pieces, indentation, nouns and some prepositions do not. The copyright ` All` stays the peak.
+
+| Gate or score | First claim | Revised claim |
+| --- | --- | --- |
+| Hard negatives | 7 of 13 | 10 of 13 |
+| Specificity, balanced accuracy | 0.54, 0.77 | 0.79, 0.90 |
+| Token identity, as a baseline | 0.88 | 0.94 |
+| Detection, fuzzing | 0.48, 0.50 | 0.54, 0.58 |
+| Verdict | NEEDS_REVISION (0.77) | NEEDS_REVISION (0.90) |
+
+The revision is closer, but it still fails specificity, and token identity still predicts the head better. Its failed hard negatives read 5.4 to 6.5: a sentence of 5 tokens, Japanese text and a URL. Of the held-out windows, 2,384 of 4,000 are active, so the line falls in the middle of the head's usual range. A short claim is unlikely to place it well. [Pull request 2774](https://github.com/8W9aG/openinterpretability/pull/2774) added the record.
+
 ## Closing too many
 
 At depths 4 and 5, the model still gives 0.16 and 0.20 to one more closer after it closes every bracket. At depth 3 it gives 0.001. We read the round-depth poles at that last closer, and ablated each of them in turn. The table gives the log-odds of one more closer.
@@ -529,7 +541,6 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 
 ## Next
 
-- Revise the claim of L3H5 (NEEDS_REVISION) to describe its broad activity, not only its copyright peak.
 - Find what reads the closers between L3H5 and L8 N689+, and why it cancels the push less at depths 4 and 5.
 
 ## References
