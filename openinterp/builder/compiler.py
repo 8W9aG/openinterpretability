@@ -30,6 +30,7 @@ from openinterp.builder.agents import (
 from openinterp.builder.aligned import aligned_latents
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
+from openinterp.builder.dashboard import dashboard
 from openinterp.builder.heat import HeatToken, heat_html, token_heat, values_rows
 from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
@@ -389,6 +390,7 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         models=models,
         explore=explore_focus(models, draws),  # draws and stops: proven dead counts as verified
         stats=stats,
+        dashboard=dashboard(stats["verdicts"], models),
         agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),

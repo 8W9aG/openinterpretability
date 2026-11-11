@@ -36,6 +36,10 @@ jobs:
       TRANSFORMERS_VERBOSITY: error
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Each signature is checked at the time it landed on main, which needs main's
+          # history (openinterp/signing.py landing_times).
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true

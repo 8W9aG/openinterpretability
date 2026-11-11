@@ -1491,3 +1491,10 @@ def test_values_rows_are_short_and_mark_the_peak():
         '<tr><td><code class="tok">&lt;x&gt;</code><td>0.250'
         f'<tr class="{PEAK_ROW}"><td><code class="tok">y</code><td>1.000'
     )
+
+
+def test_home_page_shows_dashboard(tmp_path, records):
+    compile_site(records, tmp_path)
+    index = (tmp_path / "index.html").read_text()
+    assert 'id="dashboard"' in index
+    assert "Verdicts per model" in index and "Verdicts per layer" in index

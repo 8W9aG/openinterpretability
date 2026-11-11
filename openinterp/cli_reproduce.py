@@ -1,4 +1,4 @@
-"""Commands that vouch for records: ``reproduce`` and ``sign``."""
+"""Commands that vouch for records: ``reproduce``, ``sign`` and ``signatures``."""
 
 from __future__ import annotations
 
@@ -39,7 +39,8 @@ from openinterp.core.paths import experiments_dir
 @click.option(
     "--include-signed",
     is_flag=True,
-    help="Reproduce signed records too. A signature that doesn't verify still fails.",
+    help="Reproduce signed records too. A signature that doesn't verify still fails. A "
+    "signature that landed outside its key's validity window is reproduced anyway.",
 )
 @wiki_dir_option()
 @click.option(
@@ -103,6 +104,7 @@ def reproduce(
 
     from openinterp.cli_evidence import read_corpus
     from openinterp.reproduce import Tolerance
+    from openinterp.signing import landing_times
 
     paths = _chosen_records(records, base_ref, sample, sample_date, wiki_dir)
     if not paths:
@@ -115,6 +117,7 @@ def reproduce(
         scan_corpus = (texts, corpus_sha)
     reproducer = _Reproducer(
         signers=_allowed_signers(allowed_signers, base_ref),
+        landed=landing_times(base_ref or "HEAD"),
         tolerance=Tolerance(atol=atol, rtol=rtol),
         scan_corpus=scan_corpus,
         allowed_models=allowed_models,
@@ -176,6 +179,7 @@ class _Reproducer:
     """Checks one record at a time, loading each pinned model once."""
 
     signers: object
+    landed: dict  # record path -> when its signature landed (signing.landing_times)
     tolerance: object
     scan_corpus: tuple[list[str], str] | None
     allowed_models: tuple[str, ...]
@@ -190,10 +194,13 @@ class _Reproducer:
 
         from openinterp.core.schemas import AuditRecord
         from openinterp.reproduce import reproduce_record
-        from openinterp.signing import SignatureError, verify_record
+        from openinterp.signing import SignatureError, SignatureOutsideWindow, verify_record
 
+        notes = []
         try:
-            signer = verify_record(path, self.signers)
+            signer = verify_record(path, self.signers, self.landed.get(path.resolve()))
+        except SignatureOutsideWindow as exc:
+            signer, notes = None, [f"{exc}, so it is reproduced"]
         except SignatureError as exc:
             return "FAILED", [str(exc)], []
         if signer and not self.include_signed:
@@ -204,7 +211,7 @@ class _Reproducer:
             return "FAILED", ["invalid experiment record"], []
         reason = self.refusal(record)
         if reason:
-            return "FAILED", [reason], []
+            return "FAILED", [reason], notes
         runner = self.runner(record)
         report = reproduce_record(
             record,
@@ -214,7 +221,8 @@ class _Reproducer:
             self.scan_corpus,
             measurements_only=self.measurements_only,
         )
-        return ("FAILED" if report.mismatches else "REPRODUCED"), report.mismatches, report.warnings
+        status = "FAILED" if report.mismatches else "REPRODUCED"
+        return status, report.mismatches, notes + report.warnings
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
@@ -313,13 +321,22 @@ def sign(records, key, allowed_signers):
     verdict still comes from the review protocol: a signature only says you vouch that
     the record is what it claims to be. Commit the .sig files with the records.
     """
-    from openinterp.signing import SignatureError, sign_record, verify_record
+    from openinterp.signing import (
+        SignatureError,
+        SignatureOutsideWindow,
+        sign_record,
+        verify_record,
+    )
 
     signers = _allowed_signers(allowed_signers, None)
     for path in records:
         sig = sign_record(path, key.expanduser())
         try:
             signer = verify_record(path, signers)
+        except SignatureOutsideWindow as exc:
+            sig.unlink()
+            click.echo(f"Did not sign {path}: {exc}.", err=True)
+            raise SystemExit(1) from None
         except SignatureError:
             click.echo(
                 f"Wrote {sig}, but {key}.pub is not in {allowed_signers}, so CI will reject "
@@ -330,3 +347,51 @@ def sign(records, key, allowed_signers):
             )
             raise SystemExit(1) from None
         click.echo(f"Signed {path} as {signer}: {sig}")
+
+
+@cli.command()
+@click.argument("records", nargs=-1, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--ref",
+    default="HEAD",
+    show_default=True,
+    help="Check each signature at the time it landed on this ref's first-parent history.",
+)
+@click.option(
+    "--allowed-signers",
+    default=Path(".github/allowed_signers"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+)
+@click.option("--paths-only", is_flag=True, help="Print only the paths, one per line.")
+@wiki_dir_option()
+def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
+    """List signed records whose signature CI must not trust (default: every record).
+
+    Each signature is checked at the time it landed on --ref, against the validity
+    window of its key in --allowed-signers. After you revoke a key with valid-before
+    (SECURITY.md), use it to find the records signed in its exposure window. Then
+    reproduce them: openinterp reproduce --include-signed $(openinterp signatures
+    --paths-only).
+    """
+    from openinterp.signing import (
+        SignatureError,
+        landing_times,
+        signature_path,
+        verify_record,
+    )
+
+    paths = list(records) or sorted(experiments_dir(wiki_dir).rglob("*.json"))
+    paths = [p for p in paths if signature_path(p).exists()]
+    signers, landed = _allowed_signers(allowed_signers, None), landing_times(ref)
+    untrusted = 0
+    for path in paths:
+        at = landed.get(path.resolve())
+        try:
+            verify_record(path, signers, at)
+        except SignatureError as exc:
+            untrusted += 1
+            when = "not landed" if at is None else f"landed {at:%Y-%m-%d %H:%M}Z"
+            click.echo(path if paths_only else f"{path} ({when}): {exc}")
+    if not paths_only:
+        click.echo(f"{untrusted} of {len(paths)} signed record(s) not trusted.")
