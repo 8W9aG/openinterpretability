@@ -241,6 +241,9 @@ def test_card_less_revisions_take_the_default_branchs_licence(tmp_path, shards, 
         ("fineweb-2", "HuggingFaceFW/fineweb-2",
          ",".join(f"data/{f}/train/000_00000.parquet" for f in FINEWEB2_LANGUAGES), None, None,
          "text", 20),
+        ("pes2o", "allenai/peS2o",
+         "v2/partial-train/*.parquet,v2/partial-validation/000[1-3].parquet",
+         "refs/convert/parquet", None, "text", 20),
     ],
 )  # fmt: skip
 def test_cli_uses_the_presets_settings(
@@ -294,13 +297,18 @@ def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
         "fineweb-edu": 84, "c4": 84, "pile-uncopyrighted": 84, "wikitext": 42,
         "github-code": 62, "wikipedia-multilingual": 62, "open-web-math": 41, "ultrachat": 41,
     }  # fmt: skip
-    assert blend_shares("mixed", 500) == blend_shares("mixed-v5", 500) == {
+    assert blend_shares("mixed-v5", 500) == {
         "fineweb-edu": 75, "c4": 75, "pile-uncopyrighted": 74, "wikitext": 37,
         "github-code": 55, "wikipedia-multilingual": 55, "open-web-math": 37, "ultrachat": 37,
         "fineweb-2": 55,
     }  # fmt: skip
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v6", 500) == {
+        "fineweb-edu": 69, "c4": 69, "pile-uncopyrighted": 69, "wikitext": 35,
+        "github-code": 52, "wikipedia-multilingual": 52, "open-web-math": 35, "ultrachat": 34,
+        "fineweb-2": 51, "pes2o": 34,
+    }  # fmt: skip
     shares = blend_shares("mixed", 25)
-    assert sum(shares.values()) == 25 and list(shares.values()) == [4, 4, 4, 2, 3, 3, 2, 1, 2]
+    assert sum(shares.values()) == 25 and list(shares.values()) == [4, 4, 4, 2, 3, 3, 1, 1, 2, 1]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
 
 

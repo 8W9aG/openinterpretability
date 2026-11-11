@@ -106,6 +106,19 @@ PRESETS = {
         ",".join(f"data/{folder}/train/000_00000.parquet" for folder in FINEWEB2_LANGUAGES),
         lang_pattern=r"^data/([a-z]{3}_[A-Z][a-z]{3})/",
     ),
+    # Scientific papers from Semantic Scholar (peS2o v2), for academic prose, citations and
+    # section structure. Half the documents are abstracts with their titles (`s2ag`). Half
+    # are full texts (`s2orc`): title, abstract, then the body with its section headings
+    # and in-text citations. The main branch is gzipped JSON, so read the Hub's Parquet
+    # conversion. Its train split holds only abstracts, so full texts come from its
+    # validation split: 3 files of 41,032 papers, all full texts. Row groups are
+    # 1,000 documents (~1 MB of abstracts, ~32 MB of full texts). ODC-By 1.0: attribute
+    # excerpts.
+    "pes2o": Preset(
+        "allenai/peS2o",
+        "v2/partial-train/*.parquet,v2/partial-validation/000[1-3].parquet",
+        revision="refs/convert/parquet",
+    ),
     # Mathematical web text from Common Crawl, with LaTeX, for number, operator and LaTeX
     # neurons. Row groups are 1,000 documents of ~3.6 MB. ODC-By 1.0: attribute excerpts.
     # The card also requires users to obey the Common Crawl terms of use.
