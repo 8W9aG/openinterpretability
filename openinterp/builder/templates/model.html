@@ -41,7 +41,7 @@
     {% if i % lm.label_every == 0 %}<text x="{{ lm.left - 6 }}" y="{{ y + lm.row - 1 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">L{{ i }}</text>{% endif %}
     {% endfor %}
     {% for m in lm.marks %}
-    <a href="{{ root }}{{ m.href }}"><title>{{ m.label }}</title><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ lm.mark_w }}" height="{{ lm.row }}" class="{{ map_fill[m.status] }}"/></a>
+    {% if m.href %}<a href="{{ root }}{{ m.href }}">{% endif %}<title>{{ m.label }}</title><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ lm.mark_w }}" height="{{ lm.row }}" class="{{ map_fill[m.status] }}"/>{% if m.href %}</a>{% endif %}
     {% endfor %}
     {% for tx, label in lm.ticks %}
     <line x1="{{ tx }}" y1="{{ lm.axis_y - 2 }}" x2="{{ tx }}" y2="{{ lm.axis_y + 2 }}" class="stroke-slate-400" stroke-width="1"/>
@@ -54,7 +54,7 @@
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
     {% endfor %}
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lm.unexplored | thousands }}</span>
-    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. Dead neurons have no record, so they count as unexplored here. The home page counts the ones that the weights prove dead as verified.</span>
+    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment or page. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</span>
   </figcaption>
 </figure>
 {% else %}
@@ -84,7 +84,7 @@
       {% for layer in model.layers %}
       <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
-        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons | length }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.studied }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.heads | length }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.verified }}</td>

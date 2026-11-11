@@ -36,7 +36,7 @@ class ModelCoverage:
     """How much of one model's MLP the registry and open claims cover."""
 
     model: str
-    covered: int  # neurons with a record or an open claim
+    covered: int  # neurons with a record, a stopped scan or an open claim
     total: int | None  # every MLP neuron (layers × width); None when unknown
     verified: int = 0  # neurons with a VERIFIED pole
 
@@ -99,11 +99,13 @@ def model_coverage(
     records: Iterable[AuditRecord],
     claims: Sequence[str],
     dead: Iterable[ComponentIdentifier] = (),
+    stopped: Iterable[ComponentIdentifier] = (),
 ) -> dict[str, ModelCoverage]:
     """Coverage of each model in ``pool``.
 
     ``records`` are the latest record of each pole. A neuron is verified when one of
-    them is VERIFIED. A pole in ``dead`` (proven dead by the weights) also counts. The
+    them is VERIFIED. A pole in ``dead`` (proven dead by the weights) also counts. A pole
+    in ``stopped`` (a scan stopped on it: dead or default-on) counts as covered. The
     size comes from the records (``model_num_layers × model_mlp_width``), else from the
     model's cached ``config.json``.
     """
@@ -123,6 +125,9 @@ def model_coverage(
         if ident.model_name in neurons and isinstance(ident, NeuronIdentifier):
             neurons[ident.model_name].add((ident.layer, ident.neuron_idx))
             verified[ident.model_name].add((ident.layer, ident.neuron_idx))
+    for ident in stopped:
+        if ident.model_name in neurons and isinstance(ident, NeuronIdentifier):
+            neurons[ident.model_name].add((ident.layer, ident.neuron_idx))
     coverage = {}
     for model in pool:
         claim = re.compile(rf"{re.escape(model_slug(model))}-L(\d+)-N(\d+)-")  # see claim_key
