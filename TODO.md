@@ -327,7 +327,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Seal the test split of the explainer benchmark v1 (`docs/benchmark.md`, *Make a new version*, steps 2–5). For each of its 241 test units, write fresh probes with a reviewer that has not reviewed the unit, measure them with `openinterp benchmark measure`, then `openinterp benchmark seal`. Keep the private labels file out of the repository and store it where maintainers can read it. Then publish a registry baseline score for both splits, with its judge.
+- [ ] Publish a registry baseline score for both splits of the explainer benchmark v1, with its judge (`docs/benchmark.md`, *Score an explainer*). Use `external/claude-haiku-5-5` through the `explanation-judge` agent, one agent per unit: 1,012 dev and 241 test units. The test split needs the private labels file (`v1-test.private.jsonl`, in the maintainer's Google Drive). `--judge-model external/...` judges one unit at a time, so first add a way to answer the prompts in parallel.
 
 ## Datasets
 

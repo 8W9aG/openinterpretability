@@ -16,8 +16,8 @@
     "salt": "v1",
     "test_fraction": 0.2
   },
-  "test_labels_sha256": null,
-  "test_probes": null,
+  "test_labels_sha256": "25a29a945481b79b1b4e3aa444e0b622666de919bb233ea5575fd976926d2f83",
+  "test_probes": 5153,
   "units": {
     "dev": 1012,
     "test": 241
