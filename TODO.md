@@ -327,13 +327,12 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Seal the test split of the explainer benchmark v1 (`docs/benchmark.md`, *Make a new version*, steps 2–5). For each of its 241 test units, write fresh probes with a reviewer that has not reviewed the unit, measure them with `openinterp benchmark measure`, then `openinterp benchmark seal`. Keep the private labels file out of the repository and store it where maintainers can read it. Then publish a registry baseline score for both splits, with its judge.
+- [ ] Publish a registry baseline score for both splits of the explainer benchmark v1, with its judge (`docs/benchmark.md`, *Score an explainer*). Use `external/claude-haiku-5-5` through the `explanation-judge` agent, one agent per unit: 1,012 dev and 241 test units. The test split needs the private labels file (`v1-test.private.jsonl`, in the maintainer's Google Drive). `--judge-model external/...` judges one unit at a time, so first add a way to answer the prompts in parallel.
 
 ## Datasets
 
 Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission. The default, `mixed`, is a versioned blend of the presets. Adding a dataset below is mostly a new preset in `openinterp/corpus.py`, plus a new version of the `mixed` blend that includes it. The other way is an entry in `NOT_BLENDED` in `openinterp/blends.py` saying why not. A test enforces this. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
-- [ ] Scientific papers: peS2o (`allenai/peS2o`, ODC-By), full texts and abstracts from Semantic Scholar. Academic prose, citations and section structure that fineweb-edu has little of.
 - [ ] Books: PG-19 (`deepmind/pg19`, public-domain Project Gutenberg books). Long documents with narrative, dialogue and older English. `openinterp corpus --max-chars` already cuts each document, so check that a cut book still gives useful contexts.
 - [ ] Legal text: Pile of Law (`pile-of-law/pile-of-law`). Court opinions, contracts and legislation. Its licence is CC BY-NC-SA 4.0, so check that the non-commercial terms allow excerpts in the wiki, or add it to `NOT_BLENDED` with that reason.
 - [ ] Forum questions and answers: a Stack Exchange dump on the Hub (CC BY-SA, so excerpts need attribution). Question/answer structure, and code mixed with prose, which neither `github-code` nor `ultrachat` has. Choose a dump that records the site and post IDs, so attribution can link back.

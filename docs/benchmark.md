@@ -75,5 +75,5 @@ A version is frozen after its first publication. Change nothing in it. For more 
      --probes exchange/bench/<unit>.probes.json --labels ~/benchmark/v2-test.private.jsonl
    ```
 
-4. `uv run openinterp benchmark seal --bench benchmark/v2 --labels ~/benchmark/v2-test.private.jsonl` sorts the file and writes its SHA-256 into the manifest. It fails if a test unit has too few probes of a label.
+4. `uv run openinterp benchmark seal --bench benchmark/v2 --labels ~/benchmark/v2-test.private.jsonl` sorts the file and writes its SHA-256 into the manifest. It fails if a test unit has too few probes of a label. For each such unit, write a second probe set with another fresh reviewer and measure it into the same file. Tell that reviewer to change the mix of probes. If the unit has too few active probes, ask for mostly positives near the activating examples. If it has too few inactive probes, ask for mostly plain negatives. The model measures the labels, so this changes the mix and not the labels.
 5. Store the private file where only maintainers can read it, and commit the version.
