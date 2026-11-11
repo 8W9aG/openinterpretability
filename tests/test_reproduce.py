@@ -312,6 +312,24 @@ def test_cli_include_signed_runs_the_review(tmp_path, monkeypatch, record, toy_r
     assert result.exit_code == 0 and "REPRODUCED" in result.output, result.output
 
 
+def test_cli_reproduces_a_record_signed_outside_its_keys_window(
+    tmp_path, monkeypatch, record, toy_runner
+):
+    from openinterp.signing import sign_record
+    from tests.test_signing import keypair, signer_line
+
+    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    path = _wiki_record(tmp_path, record)
+    key = keypair(tmp_path, "maintainer")
+    sign_record(path, key)
+    signers = tmp_path / "allowed_signers"
+    signers.write_text(signer_line("will", key, 'valid-before="20200101Z"'))  # revoked
+    args = ["reproduce", str(path), "--allowed-signers", str(signers)]
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0 and "REPRODUCED" in result.output, result.output
+    assert "not valid now" in result.output and "so it is reproduced" in result.output
+
+
 def test_nightly_workflow_opens_issues_and_keeps_failures_visible():
     root = Path(__file__).parent.parent
     workflow = (root / ".github/workflows/reproduce-nightly.yml").read_text()
@@ -319,4 +337,5 @@ def test_nightly_workflow_opens_issues_and_keeps_failures_visible():
     assert "shell: bash" in workflow  # pipefail: tee can't hide a failed reproduction
     assert "openinterp reproduce" in workflow and "--sample" in workflow
     assert "--time-budget" in workflow  # a night that draws slow records still finishes
+    assert "fetch-depth: 0" in workflow  # signing.landing_times needs main's history
     assert "gh issue create" in workflow and "gh issue comment" in workflow
