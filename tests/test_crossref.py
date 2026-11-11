@@ -8,6 +8,7 @@ import email.message
 import io
 import json
 import urllib.error
+import urllib.parse
 
 import pytest
 import torch
@@ -275,7 +276,9 @@ def test_neuronpedia_is_asked_once_per_latent_and_credited(planted, tmp_path, mo
     assert (found.description, found.explainer) == ("closing quotes", "gpt-4-turbo")
     assert "someone" not in next((tmp_path / "np").rglob("*.json")).read_text()
     ua = requests[0].get_header("User-agent")
-    assert ua.startswith("openinterp/") and "github.com" in ua
+    name, _, repo = ua.partition(" (+")
+    assert name.startswith("openinterp/")
+    assert urllib.parse.urlparse(repo.rstrip(")")).hostname == "github.com"
     assert neuronpedia_description(row, 2, opener=opener) == found
     assert len(requests) == 1  # the second answer came from the cache
 
