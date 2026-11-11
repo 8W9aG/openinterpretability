@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 from train_resting import (  # noqa: E402
     CONDITIONS,
+    INIT_MEAN_GELU,
+    INIT_MEAN_RELU,
     LEAKY_SLOPE,
     SGD_MOMENTUM,
     Activation,
@@ -140,3 +142,64 @@ def test_leaky_relu_condition_sets_its_own_slope():
     h = torch.randn(32)
     out = model.transformer.h[0].mlp.act(h)
     assert out.equal(torch.nn.functional.leaky_relu(h, 0.01))
+
+
+def test_output_shift_adds_a_constant_and_leaves_the_slope():
+    h = torch.randn(4, 16, 8)
+    act = Activation("relu", None, None, output_shift=-0.1)
+    assert act(h).allclose(torch.nn.functional.relu(h) - 0.1)
+    assert act._slope(h).equal((h > 0).float())
+
+
+def test_init_means_are_those_of_relu_and_gelu_at_an_sd_of_0_31():
+    h = torch.randn(1_000_000, generator=torch.Generator().manual_seed(0)) * 0.31
+    assert torch.nn.functional.relu(h).mean().item() == pytest.approx(INIT_MEAN_RELU, abs=0.002)
+    assert torch.nn.functional.gelu(h).mean().item() == pytest.approx(INIT_MEAN_GELU, abs=0.002)
+
+
+def test_centred_output_has_no_output_push():
+    free, _, _ = _one_recorded_step("gelu")
+    model, optimizer, recorder = _one_recorded_step("gelu_output_centred")
+    for centred, block in zip(model.transformer.h, free.transformer.h, strict=True):
+        # Only rounding is left: a millionth of the uncentred output's push, or less.
+        scale = block.mlp.act.output_grad.abs().max()
+        assert centred.mlp.act.output_grad.abs().max() < 1e-6 * scale
+    optimizer.step()
+    recorder.after_step()
+    row = recorder.row()[1]
+    assert abs(row["median_push_slope"]) < 1e-3 * abs(row["median_push"])
+
+
+def test_slope_and_spread_terms_add_up_to_the_push_on_each_neuron():
+    model, optimizer, recorder = _one_recorded_step("relu")
+    act = model.transformer.h[1].mlp.act
+    push, output_push = -act.rest_grad, -act.output_grad
+    slope_term = output_push * act.mean_slope
+    optimizer.step()
+    recorder.after_step()
+    window = recorder.window
+    assert window["push_slope"][1].allclose(slope_term)
+    assert (window["push"][1] - window["push_slope"][1]).allclose(push - slope_term)
+
+
+def test_energy_push_and_output_correlation_of_an_l2_loss():
+    act = Activation("softplus", None, None)
+    act.record = True
+    h = torch.randn(2, 16, 8, requires_grad=True)
+    out = act(h)
+    (out.square().sum() / 2).backward()  # then dL/da is a on each token
+    assert act.output_correlation.allclose(torch.ones(8), atol=1e-5)
+    expected = -(out * torch.sigmoid(h)).sum((0, 1)).detach()
+    assert act.energy_push.allclose(expected, atol=1e-5)
+    assert (-act.rest_grad).allclose(act.energy_push, atol=1e-5)
+
+
+@pytest.mark.parametrize(
+    ("name", "final"), [("relu_norms_centred", False), ("relu_all_norms_centred", True)]
+)
+def test_centred_norms_ignore_a_constant_offset_in_their_input(name, final):
+    model = build_model(CONDITIONS[name], vocab_size=50, seed=0)
+    norm = model.transformer.h[0].ln_1
+    x = torch.randn(2, 16, model.config.n_embd)
+    assert norm(x + 3.0).allclose(norm(x), atol=1e-5)
+    assert hasattr(model.transformer.ln_f, "norm") == final

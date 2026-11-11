@@ -13,11 +13,15 @@
 7. **The optimizer's step size sets the depth.** With AdamW, L1's rest at step 4,000 is −0.37, −1.11 and −3.18 at learning rates of 1e-4, 3e-4 and 1e-3. That is close to proportional to the rate. The two larger rates end at the same loss, so the loss doesn't need a particular depth. Under SGD the rest forms, but it is shallower than AdamW's at the same loss.
 8. **ReLU and GELU agree only under AdamW.** They rest at the same depth at AdamW's two lower rates. Under SGD, ReLU rests nearly twice as deep as GELU (−0.59 against −0.32 at L1). At 1e-3, ReLU is deeper (−4.04 against −3.18).
 9. **No dip and no floor sets the depth.** Every one-sided activation that we tried rests below 0, with its weights against the mean input. But softplus rests at −4.68, leaky ReLU at −0.69 and SiLU at −0.49 at L1. SiLU's dip is deeper than GELU's, and its neurons rest shallower than GELU's.
-10. **A small, steady push sets the depth.** The gradient on each neuron's rest points down on only 50%–52% of single steps. But its mean over 100 steps points down in 85%–100% of windows for each one-sided activation. Its size, as mean over RMS, gives the order of depth. Softplus is first. ReLU, GELU and leaky ReLU at slope 0.01 are next, then leaky ReLU at slope 0.1, SiLU and tanh. The push moves the rest through the weights, which carry 97%–99% of each step's movement. We measured it along each run, so it doesn't show that the activation sets the push. Where a neuron rests also changes the push it gets.
+10. **A small, steady push sets the depth.** The gradient on each neuron's rest points down on only 50%–52% of single steps. But its mean over 100 steps points down in 85%–100% of windows for each one-sided activation. Its size, as mean over RMS, gives the order of depth. Softplus is first. ReLU, GELU and leaky ReLU at slope 0.01 are next, then leaky ReLU at slope 0.1, SiLU and tanh. The push moves the rest through the weights, which carry 97%–99% of each step's movement.
+11. **At an equal rest, the activation sets only a coarse order.** Held at a rest of 0, softplus, ReLU and leaky ReLU at slope 0.1 get the same push, to 0.001, on two seeds. GELU's push is a little weaker, SiLU's is weaker again, and tanh gets none. So the depth that a neuron reaches changes its push, and that change sets most of the order.
+12. **The push has two terms, and each one-sided activation has at least one that points down.** On each token, the push is the output's gradient times the activation's slope. The slope term is the output's push times the mean slope. The spread term comes from tokens whose slope differs from the mean. For ReLU and softplus, the output's push points down all through training, and the slope term carries the push. For GELU and SiLU, the output's push points up, and the spread term carries the push down. For tanh, both terms are 0.
+13. **A neuron's mean output decides which term carries the push.** ReLU and softplus have large mean outputs at init, and GELU and SiLU small ones. Adding a constant to the output leaves the activation's shape the same. ReLU shifted to GELU's mean output then gets GELU's pattern: its output's push points up, and it rests about a third shallower. GELU shifted to ReLU's mean output loses its up phase and rests about twice as deep. One cause is a weak pull of the loss on the MLP's mean output toward 0, which holds in every window of every run.
+14. **The push survives at depth only if the slope does.** Held at −1, ReLU keeps a ninth of its push at 0, and at −2 none. Softplus keeps three quarters of its push even at −4, because every token still has a slope. So softplus keeps sinking long after ReLU slows, and rests about twice as deep as its mean push predicts. Leaky ReLU at slope 0.1 is pushed back up at −1, where its mean output turns negative. So it settles between 0 and −1.
 
 ![GELU, ReLU and tanh curves, with the rest of layers L1 to L3 marked on each](media/activations.svg)
 
-We still don't know why one-sided activations favour a low rest. The runs now record the push that training keeps up for as long as it runs. It is weak on each step, and steady over many steps. Under AdamW, a steady sign is what moves a parameter, so a steadier push gives a deeper rest. The runs don't show where the push comes from. They also don't show whether its strength is set by the activation, or by where the neurons already rest.
+**Why neurons rest low.** Training keeps up a weak push on each neuron's rest that is steady over many steps. Under AdamW, a steady sign is what moves a parameter. So at each step the rest drifts by about the learning rate times the push's steadiness. Two terms make up the push. When a neuron's mean output is large, the output's own gradient points down, partly because the loss pulls the MLP's mean output toward 0. When the mean output is small, the tokens on the steep part of the activation carry a push down instead. Neither term needs a dip or a floor, and tanh, with a symmetric shape and a mean output of 0, gets neither. The rest slows when few tokens keep a slope to carry the push. So ReLU slows near 1.6 SDs below its mean, and softplus keeps going. Leaky ReLU at slope 0.1 can make its mean output negative, so it stops where its mean output is near 0. Two causes stay open. We don't know why the loss wants the MLP's mean output removed, but LayerNorm doesn't explain it. We also don't know why the steepest tokens get a gradient that points down.
 
 ## Method
 
@@ -30,6 +34,10 @@ The script is `scripts/train_resting.py`. Its output is in `results.jsonl`. `scr
 - **Measures.** The median over neurons of each neuron's median h, and the median offset (w·x̄, with x̄ the mean of the MLP's input). Then the median bias, the skew, and the share of neurons with weights against x̄.
 - **Push.** With `--push-every 100`, each run also records the gradient on each neuron's rest at every step, and how far the step moves the rest. It writes a summary of each 100 steps as a `push` row (*The push on the rest*). Recording doesn't change training: a 500-step GELU run with it matched the earlier run's loss and rests exactly.
 - **Centred conditions.** h is centred per neuron over each batch, then moved to a rest. That rest is fixed for `rest_0` and `rest_-1`, and is a parameter for each neuron for `rest_learned` and `rest_learned_fast`. Centring removes the weights' effect on the rest, so we report the rest as applied, not the raw h.
+- **Held rests.** Conditions such as `relu_rest_0` and `softplus_rest_-2` centre h in the same way and hold it at a fixed rest, with another activation. The gradient on that rest is then the push at a rest chosen in advance (*The push at an equal rest*, *Push against depth*).
+- **Norm conditions.** `relu_norms_centred` and `relu_all_norms_centred` centre the input of the LayerNorms over the batch's tokens, so that no LayerNorm sees a constant offset.
+- **Output conditions.** `gelu_output_centred` and `silu_output_centred` centre each neuron's output a over the batch, so the output's gradient sums to 0 over tokens. `relu_output_shift` and `gelu_output_shift` add a constant to the output that moves its mean at init to the other activation's (*Where the push comes from*).
+- **Terms of the push.** The recorder also splits the push into a slope term and a spread term, and keeps the push ratio of the weights along x̄. It keeps the cosine of the MLP's mean output with the gradient on its output bias. It also keeps two correlations: the mean output against the output's push over neurons, and the output against its gradient over tokens. `--push-part` labels the push rows of a rerun so that they don't mix with the first run's rows.
 
 ## GPT-2 small
 
@@ -166,9 +174,105 @@ Step 4,000 of each run, with AdamW at the base rate. The push columns are means 
 - **The order forms early.** Over steps 3,500–4,000, ReLU, leaky ReLU at slope 0.01, GELU and SiLU all have push ratios of −0.010 to −0.013, and softplus has −0.019. So late in the run, the push no longer gives the order. The differences come from the first 1,000 steps. There, the order is softplus, ReLU and leaky ReLU at slope 0.01, leaky ReLU at slope 0.1, GELU, then SiLU and tanh. That is the order of depth, except that GELU's early push is weaker than that of leaky ReLU at slope 0.1, while GELU rests deeper.
 - **GELU and SiLU are first pushed up.** Their push points up until step 200 for GELU and step 400 for SiLU. The push on ReLU, leaky ReLU and softplus points down from the first step. The gradient on their output points up all through training. Their push on h turns down only because the activation's slope weights the tokens, and where those tokens lie changes as the rest moves. For ReLU, both leaky ReLUs early on, and softplus, the gradient on the output points down from the start. So a single property of the loss, such as "make each neuron's output smaller", doesn't explain all six.
 - **The weights carry the push.** 97%–99% of each step's movement of the rest is x̄·ΔW, and 1%–3% is the bias. This matches *GPT-2 small*, where the offset and not the bias sets the rest.
-- **This is a correlation along each run.** We measured each push where that run's neurons rest at that step. So the activation may set the push, or the depth that a run reaches may set its push. The next test measures the push with every activation held at the same rest (see *Next*).
+- **This is a correlation along each run.** We measured each push where that run's neurons rest at that step. So the activation may set the push, or the depth that a run reaches may set its push. *The push at an equal rest* separates the two: the depth sets most of the order.
 - **Leaky ReLU at slope 0.01 rests like ReLU.** It rests at −1.11 and −1.16 at L1, against −1.13 for ReLU. So the shallow rest of leaky ReLU at slope 0.1 comes from its large slope below 0.
 - **One run has gradient spikes.** Leaky ReLU at slope 0.1, seed 0, has a few windows near step 3,600–3,900 where the push ratio jumps above 0. Its seed 1 has none. We report medians and ratios, because such spikes dominate the means of the raw push.
+
+## The push at an equal rest
+
+*The push on the rest* measured each run's push where that run's neurons rest. So it couldn't tell whether the activation sets the push, or the depth sets it. These runs hold every activation at the same rest. h is centred per neuron over each batch and moved to 0, as in `rest_0`. Then no parameter can move the rest, and the gradient on that rest is the push at an equal state for all 4,000 steps.
+
+| Activation | Push ratio held at 0, seed 0 | Seed 1 | Free push ratio | Free rest, L1–L3 | Loss held at 0, seed 0 |
+| --- | --- | --- | --- | --- | --- |
+| Softplus | −0.069 | −0.070 | −0.043 | −4.27 | 6.019 |
+| ReLU | −0.070 | −0.070 | −0.020 | −1.10 | 5.659 |
+| Leaky ReLU, slope 0.1 | −0.070 | −0.070 | −0.015 | −0.70 | 5.674 |
+| GELU | −0.064 | −0.065 | −0.019 | −0.98 | 5.645 |
+| SiLU | −0.041 | −0.043 | −0.010 | −0.38 | 5.686 |
+| Tanh | 0.000 | +0.002 | +0.001 | 0.00 | 5.757 |
+
+Push ratios are means over steps 1–4,000 and over L1–L3. The free columns are from *The push on the rest*.
+
+![The push ratio at rest 0 over training, and the mean push ratio at each held rest](media/equal-rest.svg)
+
+- **The activation sets only a coarse order.** Held at 0, softplus, ReLU and leaky ReLU at slope 0.1 get the same push, to 0.001. GELU is a little weaker, SiLU is weaker again, and tanh gets none. The two seeds agree to 0.002.
+- **Softplus and leaky ReLU differ from ReLU only by depth.** At the same rest they get ReLU's push. In free runs, softplus rests 4 times as deep as ReLU and leaky ReLU 0.6 times as deep. So where a neuron rests changes the push it gets, and the order of depth comes from that change.
+- **A held rest gets a stronger push than a free one.** Each held run's push is 1.6–4.7 times its free run's. A free rest moves away from the push, and the push weakens as it does (see *Push against depth*).
+- **GELU and SiLU are pushed up for the first 100 steps.** Held at 0, as in free runs, their first window points up. ReLU, leaky ReLU and softplus point down from the start.
+
+## Where the push comes from
+
+On each token, the push on h is the output's push, −dL/da, times the slope a′(h). So the push over the batch is the sum of two terms:
+
+- The **slope term** is the output's push summed over tokens, times the mean slope over tokens.
+- The **spread term** is the remainder. It comes from tokens whose slope differs from the mean.
+
+Runs labelled `training_offset` repeat seven activations for 2,000 steps, seed 0, and record both terms. Runs labelled `training_push_split` record them for GELU and SiLU over 1,000 steps, in finer detail. The losses of both sets match the earlier runs exactly, except ReLU's, which differ by up to 0.004.
+
+| Activation | Output's push, steps 1–200 | Slope term | Spread term | Output's push, steps 1,001–2,000 | Slope term | Spread term |
+| --- | --- | --- | --- | --- | --- | --- |
+| ReLU | −12.3 | −5.9 | +1.6 | −30.5 | −3.4 | −0.7 |
+| Softplus | −3.1 | −1.4 | +0.1 | −7.3 | −1.1 | +0.3 |
+| GELU | +8.9 | +1.6 | −1.5 | +16.3 | +2.6 | −6.9 |
+| SiLU | +11.4 | +3.9 | −1.1 | +8.2 | +2.9 | −4.5 |
+| ReLU, shifted down | +7.4 | −1.1 | −1.6 | +15.3 | +1.5 | −6.0 |
+| GELU, shifted up | +0.2 | −2.6 | −0.1 | +2.4 | −0.5 | −3.6 |
+| Tanh | +0.6 | +0.5 | 0.0 | 0.0 | 0.0 | 0.0 |
+
+Units are 10⁻⁶, as medians over neurons and means over L1–L3 and over the steps. Medians of the terms don't add up to the median of the push.
+
+- **Two groups of activations.** For ReLU and softplus, the output's push points down all through training, and the slope term carries the push. Their spread term is small, and points up early. For GELU and SiLU, the output's push points up, and the spread term carries the push down. For tanh, both terms are 0.
+- **GELU and SiLU start up because their output's push points up.** Near h = 0, GELU's and SiLU's slopes are close to 0.5 on every token. So the slope term follows the output's push, which points up for both. The spread term points down from the first steps and grows as h spreads. It passes the slope term near step 200 for GELU, and between steps 400 and 500 for SiLU.
+- **SiLU turns later because its slope varies less.** Near 0, GELU's slope changes by 0.80 for each unit of h, and SiLU's by 0.50. So the same spread of h gives GELU a larger spread term. SiLU also has a larger slope term.
+- **Removing the output's push removes the up phase.** Runs labelled `training_output` centre each neuron's output a over the batch. Then −dL/da sums to 0 over tokens, and only the spread term remains. GELU's push ratio is then −0.048 over steps 1–100 and SiLU's −0.045, against +0.005 and +0.016 in free runs. At step 1,000, GELU's L1 rests at −0.60 against −0.42, and SiLU's at −0.40 against −0.15.
+- **A neuron's mean output decides the group.** At init, with h's SD near 0.31, ReLU's mean output is 0.124 and GELU's is 0.038. `relu_output_shift` adds −0.086 to ReLU's output, and `gelu_output_shift` adds +0.086 to GELU's. A constant changes neither the slope nor the shape. It moves only the mean output. Shifted ReLU then falls in GELU's group: its output's push points up, and the spread term carries its push. Shifted GELU's output's push falls to about 0, and its push points down from the first step.
+- **Swapping the mean outputs swaps the depths.** At step 1,000, shifted ReLU rests at −0.44 to −0.48 at L1–L3, against −0.64 to −0.69 for ReLU. Shifted GELU rests at −0.51 to −0.85, against −0.28 to −0.42 for GELU. So a larger mean output gives a deeper rest, with the same activation shape.
+- **The loss pulls the MLP's mean output toward 0.** Runs labelled `training_offset` repeat seven activations for 2,000 steps. At every step they record the cosine between the MLP's mean output, ā·W_out + b_out, and the gradient on b_out. A positive cosine means that gradient descent shrinks the mean output. It is positive in all 140 windows of the seven runs, at +0.007 to +0.10. The correlation over neurons between each neuron's mean output ā and its output's push is negative in all 140 windows, at −0.002 to −0.10. So a neuron with a larger mean output is pushed down more. Tanh shows the same pull, but its neurons' mean outputs have both signs, so the pull has no net direction.
+- **It is a pull on the mean, not on each token.** If the loss pulled each token's output toward 0, the output's gradient on each token would follow the output. Over tokens, the two correlate at −0.003 to +0.002, a median over neurons. So the pull acts on the mean output only.
+- **LayerNorm doesn't cause the pull.** A constant offset in the residual stream adds to each token's norm, so LayerNorm was a candidate. `relu_norms_centred` centres the input of each block's LayerNorms over the batch's tokens, and `relu_all_norms_centred` also the final LayerNorm's. Then no LayerNorm sees a constant offset. The cosine stays positive in all 20 windows of both runs, at +0.051 and +0.059, against +0.072 for ReLU. With every norm centred, a constant offset can reach the loss only through dropout, which acts on the MLP's output before the residual stream. Dropout turns a constant into noise on each token. We didn't test whether that causes the pull. These runs also shrink x̄, the route by which the weights move the rest, so their depths say nothing about the pull.
+
+| Activation | Cosine, mean output to its gradient | Mean output against output push, over neurons | Output against its gradient, over tokens |
+| --- | --- | --- | --- |
+| ReLU | +0.07 | −0.03 | −0.002 |
+| GELU | +0.06 | −0.04 | 0.000 |
+| ReLU, shifted down | +0.06 | −0.04 | −0.001 |
+| GELU, shifted up | +0.05 | −0.05 | −0.001 |
+| Softplus | +0.07 | −0.02 | −0.003 |
+| SiLU | +0.04 | −0.03 | +0.001 |
+| Tanh | +0.02 | −0.03 | +0.002 |
+
+Means over steps 1–2,000 and over L1–L3. The last column is a median over neurons.
+
+## Push against depth
+
+Runs labelled `training_depth` hold activations at rests below 0, seed 0. Push ratios are means over steps 1–4,000 and over L1–L3. The rows at 0 are the equal-rest runs.
+
+| Held rest | ReLU | Softplus | GELU | Leaky ReLU, slope 0.1 | SiLU |
+| --- | --- | --- | --- | --- | --- |
+| 0 | −0.070 | −0.069 | −0.064 | −0.070 | −0.041 |
+| −0.5 | −0.038 | | −0.032 | | |
+| −1 | −0.008 | −0.064 | −0.042 | +0.031 | −0.018 |
+| −2 | 0 | −0.062 | | | |
+| −4 | 0 | −0.052 | | | |
+
+Loss at step 4,000:
+
+| Held rest | ReLU | Softplus | GELU | Leaky ReLU, slope 0.1 | SiLU |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 5.659 | 6.019 | 5.645 | 5.674 | 5.686 |
+| −0.5 | 5.526 | | 5.613 | | |
+| −1 | 5.562 | 5.919 | 5.657 | 5.717 | 5.749 |
+| −2 | 5.748 | 5.820 | | | |
+| −4 | 5.748 | 5.645 | | | |
+
+- **ReLU's push fades as its neurons sink.** At −1 it keeps a ninth of its push at 0. At −2 and −4 no token reaches 0, because h's SD stays near 0.3. So no gradient passes ReLU, its MLPs never train, and both runs end at the same loss.
+- **Leaky ReLU at slope 0.1 is pushed back up from −1.** So it has a rest between 0 and −1 where the push is 0, and its free rest of −0.70 lies there. Below 0, it outputs 0.1h, so a deep rest makes its mean output negative. The pull on the mean output toward 0 then points up (*Where the push comes from*). At its free rest, with an SD of about 0.6, its mean output is about −0.04. ReLU and softplus can't have a negative mean output, so the pull never turns them back.
+- **GELU's push doesn't fall steadily.** It is −0.032 at −0.5 and −0.042 at −1. Its h widens as the rest deepens, to an SD of 0.95 at −1. Below −0.75 its slope is negative, so tokens in the dip push the other way. We didn't separate these effects.
+- **SiLU keeps less than half its push at −1.** It falls from −0.041 to −0.018, and its h widens to an SD of 1.26.
+- **Softplus keeps its push at every depth.** Its slope σ(h) is above 0 on every token. The push ratio is a mean over an RMS, so a small slope doesn't weaken it. Only fewer tokens, or noisier ones, weaken it.
+- **This is why softplus rests about twice as deep as its push predicts.** In free runs, ReLU's push ratio falls from −0.044 in steps 1–500 to −0.011 in steps 3,001–4,000. Over that time its rest goes from 1.2 to 1.6 SDs below the mean. Softplus's falls from −0.089 to −0.020, and its rest goes down to 2.2 SDs. Under AdamW, depth adds up the push over the run. So an activation whose push survives at depth keeps going.
+- **Softplus also turns a push into more movement late in the run.** After step 1,000, each unit of its push ratio moves the rest about twice as far as ReLU's, GELU's and leaky ReLU's. Its mean input is also larger, at 0.47 of the input's norm against 0.39 for ReLU. We didn't find the rest of the cause.
+- **Some depth helps.** Softplus's loss falls from 6.019 at 0 to 5.645 at −4, better than free softplus at 5.826. ReLU trains best of its held rests at −0.5, and GELU at −0.5. Leaky ReLU and SiLU train worse at −1 than at 0, which fits their shallower free rests.
 
 ## Does the model need the rest?
 
@@ -226,6 +330,11 @@ Most of the cost of the negative side in GPT-2 is its resting level ([What defau
 - **Few seeds.** The baseline, ReLU, the fixed and fast centred conditions, softplus, both leaky ReLUs, SiLU, SGD and each AdamW rate have two seeds. The rest have one. The push has two seeds for softplus, both leaky ReLUs and SiLU, and one for GELU, ReLU and tanh.
 - **Two leaky slopes.** At slope 0.01, the usual default, leaky ReLU rests like ReLU. At 0.1 it rests shallower. We didn't try slopes between them.
 - **Centring is a blunt tool.** It takes its mean from the batch, also at evaluation, and the gradient passes through that mean.
+- **A held rest changes the model.** The held runs centre h, so the weights can no longer turn against x̄. They train worse than free runs, at a loss of 5.56–6.02 against 5.49–5.83. So the push at an equal rest is the push in a centred model. A free model at that rest may get a different push.
+- **The newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The split, output, offset, depth and norm runs have one.
+- **ReLU reruns drift a little.** Same-seed reruns of GELU, SiLU, softplus and tanh match the earlier rows exactly, also with the new recording. ReLU's differ by up to 0.004 in loss at step 2,000 and 0.002 at step 4,000, as the earlier ReLU rerun did. The step-0 evaluation of one GELU rerun differed by 0.007, while every later step matched exactly.
+- **Medians don't add.** The slope term, the spread term and the push are each a median over neurons, so the first two don't sum to the third.
+- **Some runs were slow.** Leaky ReLU held at 0 and ReLU held at −1 took 37–39 minutes against about 25, while other jobs used the machine. The same-seed reruns before and after them matched.
 - **"Seeks" means the gradient pushes that way.** It doesn't show a designed function.
 
 ## Reproduce
@@ -253,14 +362,37 @@ uv run python scripts/train_resting.py train --seed 0 --part training_push_rerun
 uv run python scripts/train_resting.py train --seed 1 --condition softplus --condition leaky_relu \
     --condition silu --condition leaky_relu_0.01 --condition sgd --condition relu_sgd \
     --condition lr_1e-4 --condition lr_1e-3 --condition relu_lr_1e-4 --condition relu_lr_1e-3 $PUSH
+T="--eval-every 500 --push-every 100 --cache tokens.pt --out $OUT"
+uv run python scripts/train_resting.py train --seed 0 --seed 1 --steps 4000 --part training_equal_rest \
+    --condition rest_0 --condition relu_rest_0 --condition softplus_rest_0 \
+    --condition leaky_relu_rest_0 --condition silu_rest_0 --condition tanh_rest_0 $T
+uv run python scripts/train_resting.py train --seed 0 --steps 1000 --part training_push_split \
+    --push-part push_split --condition gelu --condition silu $T
+uv run python scripts/train_resting.py train --seed 0 --steps 4000 --part training_push_split \
+    --push-part push_split --condition softplus --condition relu $T
+uv run python scripts/train_resting.py train --seed 0 --steps 1000 --part training_output \
+    --push-part push_output --condition gelu_output_centred --condition silu_output_centred \
+    --condition relu_output_shift --condition gelu_output_shift $T
+uv run python scripts/train_resting.py train --seed 0 --steps 4000 --part training_depth \
+    --push-part push_depth --condition relu_rest_-1 --condition relu_rest_-2 --condition relu_rest_-4 \
+    --condition softplus_rest_-1 --condition softplus_rest_-2 --condition softplus_rest_-4 \
+    --condition rest_-1 --condition rest_-0.5 --condition relu_rest_-0.5 \
+    --condition leaky_relu_rest_-1 --condition silu_rest_-1 $T
+uv run python scripts/train_resting.py train --seed 0 --steps 2000 --part training_offset \
+    --push-part push_offset --condition relu --condition gelu --condition relu_output_shift \
+    --condition gelu_output_shift --condition softplus --condition silu --condition tanh $T
+uv run python scripts/train_resting.py train --seed 0 --steps 2000 --part training_offset \
+    --push-part push_offset --condition relu_norms_centred --condition relu_all_norms_centred $T
 uv run python scripts/paper_figures.py
 ```
+
+The seed-1 equal-rest runs ran after the seed-0 ones, in a run of their own. The split and output runs ran before the recorder kept the offset and token correlations, so their rows lack those fields.
 
 The 12,000-step runs of GELU and the fast control were labelled `training_long` by hand. The `--part` option does this now.
 
 ## Next
 
-[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). We measured the push in item 10 where each run's neurons rest, so it can't tell cause from effect. The next test holds every activation at the same rest, with h centred and moved to 0 as in `rest_0`. The gradient on that rest is then the push at an equal state, all through training. If its size still gives the order of depth, the activation sets the push.
+[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). Two causes stay open. The first is why the loss pulls the MLP's mean output toward 0. LayerNorm is ruled out. Dropout on the MLP's output is the next candidate, and a run with no dropout would test it. The second is why the steepest tokens of GELU and SiLU get a gradient that points down. A third test would check the two terms of the push on GPT-2 small itself.
 
 ## References
 
