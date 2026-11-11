@@ -82,6 +82,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 - [ ] Open question: can anything move to Protocol Buffers, e.g. dataclasses or JSON files?
 - [ ] Pin GitHub Actions to commit SHAs and add Dependabot. The workflows use tags (`actions/checkout@v4`, `astral-sh/setup-uv@v6`), which can be moved, and CI decides which records to trust. Pin each action to a full SHA with the tag as a comment. Configure Dependabot (`.github/dependabot.yml`) for `github-actions` and the `uv` lockfile so the pins stay current through reviewed PRs.
 - [ ] Make Dependabot PRs auto-merge (once CI is green).
+- [ ] Run CodeQL once a day rather than on every merge. No workflow in `.github/workflows/` runs it, so it is probably GitHub's default setup. Switch to an advanced-setup workflow with a daily `schedule` trigger, or change the default setup's settings.
 - [ ] Check dependencies for known vulnerabilities in CI with `pip-audit` against `uv.lock`. Dependabot (item above) keeps pins current, but doesn't fail a build on a known vulnerability.
 - [ ] Set `timeout-minutes` on CI's "Lint and tests" job and on the deploy job. Neither has one, so a hung job can run until GitHub's default limit. Pytest's per-test timeout doesn't cover the other steps.
 - [ ] Scan for secrets in CI (e.g. gitleaks or trufflehog), on pull requests and across history once. Nothing does this today, and agent loops commit and push without a person watching. Planned transcript telemetry (Pipeline) adds more risk. Bandit (above) doesn't cover this.
