@@ -20,7 +20,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder import charts, statuses
+from openinterp.builder import charts, pieces, statuses
 from openinterp.builder.agents import (
     agent_href,
     agents_view,
@@ -39,6 +39,7 @@ from openinterp.builder.research import copy_assets, load_papers
 from openinterp.builder.significance import evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
+from openinterp.builder.stopped import add_stopped
 from openinterp.builder.stops import pageless_stops, stops_by_unit
 from openinterp.builder.tree import (
     Experiment,
@@ -99,7 +100,8 @@ def _environment() -> Environment:
     # p-values below 0.001 would round to 0.000, so show them in scientific notation.
     env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
     env.globals["roles"] = ROLES
-    env.globals["charts"] = charts  # page-level charts: the layer map and pieces bars
+    env.globals["charts"] = charts  # page-level charts: the layer map
+    env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
@@ -303,6 +305,7 @@ def compile_site(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     models = build_tree(records)
+    add_stopped(models, (*draws, *stops))  # neurons that only stopped scans cover
     experiments = [
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
@@ -311,6 +314,8 @@ def compile_site(
     with TemporaryDirectory() as unpublished:
         true_text = export_registry(experiments, Path(unpublished), corpus_sources)
         stats = scrub(registry_stats(true_text, draws))  # leaderboards show explanations
+    stopped = sum(len(layer.stopped) for m in models for layer in m.layers)
+    stats["totals"]["neurons"] += stopped  # studied neurons with no record
     for experiment in experiments:
         experiment.record = scrub_record(experiment.record)
     report = BuildReport(output_dir, len(records), len(experiments))

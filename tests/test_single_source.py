@@ -13,7 +13,7 @@ from typing import get_args
 import pytest
 
 from openinterp.agents.reviewer import ProbeSet
-from openinterp.builder.statuses import MAP_STATUSES, STATUS_BADGE, STATUS_FILL
+from openinterp.builder.statuses import MAP_STATUSES, STATUS_BADGE, STATUS_FILL, STOPPED
 from openinterp.core.schemas import (
     ACTIVATION_THRESHOLD,
     PROTOCOL_VERSION,
@@ -36,8 +36,9 @@ check_line_limit = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(check_line_limit)
 
 
-def test_site_statuses_are_the_verdicts_plus_contested():
-    assert set(MAP_STATUSES) == set(get_args(VerdictStatus)) | {"CONTESTED"}
+def test_site_statuses_are_the_verdicts_plus_contested_and_stopped():
+    assert set(MAP_STATUSES) == set(get_args(VerdictStatus)) | {"CONTESTED", STOPPED}
+    assert MAP_STATUSES[-1] == STOPPED  # any verdict in a cell wins over a stopped scan
     assert tuple(STATUS_FILL) == tuple(STATUS_BADGE) == MAP_STATUSES
 
 
