@@ -40,11 +40,18 @@
     .tok { white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 2px; }
     /* Token heatmaps: one hue per pole, tinted over the page so it works in both themes.
        The tint stops at 80% so token text keeps >= 4.5:1 contrast in light and dark. */
-    .heat { --heat-max: 0.8; position: relative; background-color: rgb(var(--heat-rgb) / calc(var(--a) * var(--heat-max))); }
-    .heat.peak { font-weight: 600; box-shadow: inset 0 -2px 0 currentColor; }
-    .heat:hover { outline: 1px solid currentColor; }
-    .heat.marked { outline: 1.5px dashed currentColor; outline-offset: -1px; }
-    .heat:hover::after {
+    /* A heatmap is a .hm span of <i> tokens, styled as .tok.heat (builder/heat.py). A token
+       with no style has --a 0, and one with no data-v has the value 0.000. */
+    .hm > i { --a: 0; font-style: normal; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 2px; }
+    .heat, .hm > i { --heat-max: 0.8; position: relative; background-color: rgb(var(--heat-rgb) / calc(var(--a) * var(--heat-max))); }
+    .heat.peak, .hm > i.p { font-weight: 600; box-shadow: inset 0 -2px 0 currentColor; }
+    .heat:hover, .hm > i:hover { outline: 1px solid currentColor; }
+    .heat.marked, .hm > i.m { outline: 1.5px dashed currentColor; outline-offset: -1px; }
+    .hm > i:not([data-v]):hover::after { content: "0.000"; }
+    /* A heatmap's values table (builder/heat.py: values_rows). */
+    .vt td:first-child { padding-right: 1rem; }
+    .vt td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+    .heat:hover::after, .hm > i:hover::after {
       content: attr(data-v); position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
       z-index: 10; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none;
       font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: #0f172a; color: #f8fafc;

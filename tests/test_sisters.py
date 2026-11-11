@@ -356,3 +356,13 @@ def test_the_sister_graph_joins_both_searches_by_relative_depth():
     (sister,) = g["sisters"]
     assert sister["a"]["y"] == sister["b"]["y"] and sister["a"]["label"] == "L3/N1+"
     assert g["lines"][-1]["sister"]  # drawn on top
+
+
+def test_the_sister_graph_layout_does_not_depend_on_set_order():
+    from openinterp.builder.sister_graph import _nodes
+
+    poles = ["m/L1/N4-positive", "m/L1/N4-negative", "m/L1/N2-positive"]
+    a = _nodes(set(poles), 100.0, 4, set())
+    b = _nodes(set(reversed(poles)), 100.0, 4, set())
+    assert list(a.items()) == list(b.items())
+    assert [n["label"] for n in a.values()] == ["L1/N2+", "L1/N4−", "L1/N4+"]

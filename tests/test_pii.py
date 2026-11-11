@@ -253,3 +253,37 @@ def test_offensive_examples_are_masked_and_kept_out_of_search(tmp_path, record):
     # The mask covers the example: its heatmap comes after the opening of the guard.
     guard = masked[0].index('class="spoiler-body"')
     assert 'class="tok heat' in masked[0][guard:]
+
+
+def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
+    from openinterp.builder import pii
+
+    def fresh():
+        for f in (pii._cache_file, pii._stored, pii.find_spans):
+            f.cache_clear()
+
+    monkeypatch.setenv("OPENINTERP_PII_CACHE", str(tmp_path))
+    fresh()
+    text = "Call me on +44 20 7946 0958 after six."
+    spans = pii.find_spans(text)
+    assert spans
+    pii.save_spans()
+    assert list(tmp_path.glob("spans-*.sqlite"))
+    fresh()
+
+    def no_search(_text):
+        raise AssertionError("searched again")
+
+    monkeypatch.setattr(pii, "_search", no_search)
+    assert pii.find_spans(text) == spans
+    assert pii.find_spans("ab") == ()  # too short to match: never searched or stored
+    fresh()
+
+
+def test_no_cache_when_turned_off(tmp_path, monkeypatch):
+    from openinterp.builder import pii
+
+    monkeypatch.setenv("OPENINTERP_PII_CACHE", "off")
+    pii._cache_file.cache_clear()
+    assert pii._cache_file() is None
+    pii._cache_file.cache_clear()
