@@ -12,11 +12,11 @@ make vale           # comment and docstring prose against our STE rules (needs V
 make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)
 make check-all      # the same for every record (what it runs on main)
 make sample-run     # build dist/ from a few real records in the wiki
-make build          # build dist/ from the wiki archive, plus the Pagefind index (about 1 min)
+make build          # build dist/ from the wiki archive, plus the Pagefind index (about 1 min with caches)
 openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
 
-`openinterp build` renders the unit pages in one worker process per CPU (`--jobs`, where the platform can fork). `--jobs 1` renders them in one process. The build keeps the personal-data matches of each text on disk, in `~/.cache/openinterp/pii`. So a build searches only new text. `OPENINTERP_PII_CACHE` moves the cache, and `off` turns it off. The deploy keeps this cache between runs. The build gives the same files on every run, whatever the hash seed.
+`openinterp build` renders the unit pages in one worker process per CPU (`--jobs`, where the platform can fork). `--jobs 1` renders them in one process. The build keeps the personal-data matches of each text on disk, in `~/.cache/openinterp/pii`. So a build searches only new text. `OPENINTERP_PII_CACHE` moves the cache, and `off` turns it off. The deploy keeps this cache between runs. The significance of each record is kept the same way, in `~/.cache/openinterp/build` (`OPENINTERP_BUILD_CACHE`). The two Parquet exports run in forked processes while the pages render. The build gives the same files on every run, whatever the hash seed.
 
 `make vale` needs [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk. Search and the SQL console need HTTP (`make serve`). No step needs Node.js: Pagefind is a locked Python dev dependency.
 
