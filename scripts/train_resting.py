@@ -31,6 +31,7 @@ from default_on_poles import (
     write_row,
 )
 from figure_svg import LEAKY_SLOPE
+from resting_push import PushRecorder
 
 from openinterp.cli import _load, resolve_device
 from openinterp.cli_evidence import read_corpus
@@ -63,7 +64,18 @@ class Condition:
     optimizer: str = "adamw"  # "adamw", or "sgd" with momentum SGD_MOMENTUM
     learning_rate: float = LEARNING_RATE
     leaky_slope: float = LEAKY_SLOPE  # the slope of leaky ReLU below 0
+    output_shift: float = 0.0  # a constant added to the activation's output
+    centre_output: bool = False  # the activation's output is centred per neuron over each batch
+    # "blocks" centres the input of each block's LayerNorms over the batch's tokens, and
+    # "all" also the final LayerNorm's. Then no LayerNorm sees a constant offset.
+    centre_norms: str = ""
 
+
+# The mean output of ReLU and of GELU at init, where h has an SD of about 0.31. For ReLU it
+# is 0.31/√(2π), and for GELU about 0.31² × φ(0). The shifts swap the two means. They test
+# whether the mean output sets the sign of the output's push.
+INIT_MEAN_RELU = 0.124
+INIT_MEAN_GELU = 0.038
 
 BASE = Condition()
 CONDITIONS = {
@@ -88,6 +100,32 @@ CONDITIONS = {
     "lr_1e-3": replace(BASE, learning_rate=1e-3),
     "relu_lr_1e-4": replace(BASE, activation="relu", learning_rate=1e-4),
     "relu_lr_1e-3": replace(BASE, activation="relu", learning_rate=1e-3),
+    # rest_0 with another activation: the push on the rest when every activation rests at 0.
+    "relu_rest_0": replace(BASE, activation="relu", fixed_rest=0.0),
+    "softplus_rest_0": replace(BASE, activation="softplus", fixed_rest=0.0),
+    "leaky_relu_rest_0": replace(BASE, activation="leaky_relu", fixed_rest=0.0),
+    "silu_rest_0": replace(BASE, activation="silu", fixed_rest=0.0),
+    "tanh_rest_0": replace(BASE, activation="tanh", fixed_rest=0.0),
+    # Fixed rests below 0: the push on the rest at each of several depths.
+    "relu_rest_-0.5": replace(BASE, activation="relu", fixed_rest=-0.5),
+    "relu_rest_-1": replace(BASE, activation="relu", fixed_rest=-1.0),
+    "relu_rest_-2": replace(BASE, activation="relu", fixed_rest=-2.0),
+    "relu_rest_-4": replace(BASE, activation="relu", fixed_rest=-4.0),
+    "softplus_rest_-1": replace(BASE, activation="softplus", fixed_rest=-1.0),
+    "softplus_rest_-2": replace(BASE, activation="softplus", fixed_rest=-2.0),
+    "softplus_rest_-4": replace(BASE, activation="softplus", fixed_rest=-4.0),
+    "rest_-0.5": replace(BASE, fixed_rest=-0.5),
+    "leaky_relu_rest_-1": replace(BASE, activation="leaky_relu", fixed_rest=-1.0),
+    "silu_rest_-1": replace(BASE, activation="silu", fixed_rest=-1.0),
+    # Centring the output removes the output's push, so only the spread term pushes h.
+    "gelu_output_centred": replace(BASE, centre_output=True),
+    "silu_output_centred": replace(BASE, activation="silu", centre_output=True),
+    "relu_output_shift": replace(
+        BASE, activation="relu", output_shift=INIT_MEAN_GELU - INIT_MEAN_RELU
+    ),
+    "gelu_output_shift": replace(BASE, output_shift=INIT_MEAN_RELU - INIT_MEAN_GELU),
+    "relu_norms_centred": replace(BASE, activation="relu", centre_norms="blocks"),
+    "relu_all_norms_centred": replace(BASE, activation="relu", centre_norms="all"),
     "sgd": replace(BASE, optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
     "relu_sgd": replace(BASE, activation="relu", optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
 }
@@ -102,16 +140,29 @@ class Activation(nn.Module):
         fixed_rest: float | None,
         learned_width: int | None,
         leaky_slope: float = LEAKY_SLOPE,
+        output_shift: float = 0.0,
+        centre_output: bool = False,
     ) -> None:
         super().__init__()
         self.name = name
         self.fixed_rest = fixed_rest
         self.leaky_slope = leaky_slope
+        self.output_shift = output_shift
+        self.centre_output = centre_output
         # When ``record`` is true, each backward pass sets ``rest_grad`` and ``output_grad``.
         # Each is the sum over tokens of dL/dh or dL/da, one value for each neuron.
+        # Each forward pass also sets ``mean_slope``, the mean over tokens of the slope a'(h).
         self.record = False
         self.rest_grad: torch.Tensor | None = None
         self.output_grad: torch.Tensor | None = None
+        self.mean_slope: torch.Tensor | None = None
+        # ``mean_output`` is the mean over tokens of the output that the MLP's c_proj reads.
+        self.mean_output: torch.Tensor | None = None
+        # ``energy_push`` is −Σ a·a'(h) over tokens: the push if dL/da were a itself, which
+        # is −½ d/d(rest) of Σ a². ``output_correlation`` is the correlation over tokens of
+        # dL/da with a, one value for each neuron.
+        self.energy_push: torch.Tensor | None = None
+        self.output_correlation: torch.Tensor | None = None
         # This control separates the cost of centring from the cost of a shared, fixed rest.
         self.learned_rest = nn.Parameter(torch.zeros(learned_width)) if learned_width else None
 
@@ -123,13 +174,37 @@ class Activation(nn.Module):
             h = h - h.mean((0, 1), keepdim=True) + self.fixed_rest
         elif self.learned_rest is not None:
             h = h - h.mean((0, 1), keepdim=True) + self.learned_rest
-        out = self._shape(h)
+        out = self._shape(h) + self.output_shift
         if self.record and out.requires_grad:
             # dL/dh summed over tokens is the gradient on a shift of the neuron's whole h,
             # after any centring. Without centring, it equals the gradient on the bias.
             h.register_hook(lambda g: setattr(self, "rest_grad", g.sum((0, 1)).detach()))
             out.register_hook(lambda g: setattr(self, "output_grad", g.sum((0, 1)).detach()))
+            slope = self._slope(h.detach())
+            self.mean_slope = slope.mean((0, 1))
+            output = out.detach()
+            self.energy_push = -(output * slope).sum((0, 1))
+            out.register_hook(lambda g: self._correlate(g.detach(), output))
+        if self.centre_output:
+            # dL/da summed over tokens, the output's push, is then 0 on every step.
+            out = out - out.mean((0, 1), keepdim=True)
+        if self.record:
+            self.mean_output = out.detach().mean((0, 1))
         return out
+
+    def _correlate(self, grad: torch.Tensor, output: torch.Tensor) -> None:
+        """Keep the correlation over tokens of dL/da with a, for each neuron."""
+        grad = grad - grad.mean((0, 1))
+        output = output - output.mean((0, 1))
+        norm = (grad.square().sum((0, 1)) * output.square().sum((0, 1))).sqrt()
+        self.output_correlation = (grad * output).sum((0, 1)) / norm.clamp_min(1e-30)
+
+    def _slope(self, h: torch.Tensor) -> torch.Tensor:
+        """Return the slope a'(h) on each element, in a graph of its own."""
+        with torch.enable_grad():
+            h = h.clone().requires_grad_(True)
+            (slope,) = torch.autograd.grad(self._shape(h).sum(), h)
+        return slope
 
     def _shape(self, h: torch.Tensor) -> torch.Tensor:
         """Return the activation function of ``h``, with no centring."""
@@ -148,6 +223,18 @@ class Activation(nn.Module):
         if self.name == "silu":
             return nn.functional.silu(h)
         raise ValueError(f"unknown activation {self.name}")
+
+
+class CentredNorm(nn.Module):
+    """A LayerNorm whose input is first centred over the batch's tokens."""
+
+    def __init__(self, norm: nn.Module) -> None:
+        super().__init__()
+        self.norm = norm
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Return the norm of ``x``, ``[batch, seq, d_model]``, less its mean over tokens."""
+        return self.norm(x - x.mean((0, 1), keepdim=True))
 
 
 def build_model(condition: Condition, vocab_size: int, seed: int):
@@ -170,8 +257,17 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
     learned_width = config.n_inner if condition.learned_rest else None
     for block in model.transformer.h:
         block.mlp.act = Activation(
-            condition.activation, condition.fixed_rest, learned_width, condition.leaky_slope
+            condition.activation,
+            condition.fixed_rest,
+            learned_width,
+            condition.leaky_slope,
+            condition.output_shift,
+            condition.centre_output,
         )
+        if condition.centre_norms:
+            block.ln_1, block.ln_2 = CentredNorm(block.ln_1), CentredNorm(block.ln_2)
+    if condition.centre_norms == "all":
+        model.transformer.ln_f = CentredNorm(model.transformer.ln_f)
     return model
 
 
@@ -258,119 +354,6 @@ def _layer_stats(mlp, x: torch.Tensor) -> dict:
     }
 
 
-class PushRecorder:
-    """Record, at each step, the push on each neuron's rest and how far the rest moves.
-
-    The push is −dL/dh summed over the batch's tokens: the direction in which gradient
-    descent moves the neuron's whole h. It is negative when descent moves the rest down.
-    The weights' push is −(dL/dw)·x̄, the gradient on the neuron's input weights along the
-    batch's mean input. It is |x̄|² times the push, plus a term from tokens whose input
-    lines up with x̄ more or less than the mean does.
-    The output's push is −dL/da for the activation's output a. On each token, the rest's
-    push is the output's push times the slope of the activation. The movement
-    is x̄·ΔW + Δb for one optimizer step, with x̄ the mean of the batch's MLP input.
-    """
-
-    def __init__(self, model) -> None:
-        self.mlps = [block.mlp for block in model.transformer.h]
-        self.inputs: list[torch.Tensor | None] = [None] * len(self.mlps)
-        self.before: list[tuple[torch.Tensor, torch.Tensor]] = []
-        for i, mlp in enumerate(self.mlps):
-            mlp.act.record = True
-            mlp.register_forward_pre_hook(self._input_hook(i))
-        self.steps = 0
-        self.run_steps = 0
-        self.run_down = [torch.zeros_like(m.c_fc.bias) for m in self.mlps]
-        self.run_down_weights = [torch.zeros_like(m.c_fc.bias) for m in self.mlps]
-        self._reset()
-
-    def _input_hook(self, i: int):
-        def hook(_module, args):
-            x = args[0].detach()
-            self.inputs[i] = x.reshape(-1, x.shape[-1]).mean(0)
-
-        return hook
-
-    def _reset(self) -> None:
-        zeros = [torch.zeros_like(m.c_fc.bias, dtype=torch.float32) for m in self.mlps]
-        self.window = {
-            key: [z.clone() for z in zeros]
-            for key in (
-                "push",
-                "push_sq",
-                "down",
-                "output_push",
-                "push_weights",
-                "down_weights",
-                "moved_weights",
-                "moved_bias",
-            )
-        }
-        self.steps = 0
-
-    def before_step(self) -> None:
-        """Keep the input weights and biases, and add this step's gradients to the window."""
-        self.before = [
-            (m.c_fc.weight.detach().clone(), m.c_fc.bias.detach().clone()) for m in self.mlps
-        ]
-        for i, mlp in enumerate(self.mlps):
-            push = -mlp.act.rest_grad.float()
-            self.window["push"][i] += push
-            self.window["push_sq"][i] += push**2
-            self.window["down"][i] += (push < 0).float()
-            self.run_down[i] += (push < 0).float()
-            self.window["output_push"][i] += -mlp.act.output_grad.float()
-            push_weights = -(self.inputs[i] @ mlp.c_fc.weight.grad).float()
-            self.window["push_weights"][i] += push_weights
-            self.window["down_weights"][i] += (push_weights < 0).float()
-            self.run_down_weights[i] += (push_weights < 0).float()
-
-    def after_step(self) -> None:
-        """Add how far this step moved each neuron's rest, at the batch's mean input."""
-        for i, (mlp, (weight, bias)) in enumerate(zip(self.mlps, self.before, strict=True)):
-            delta = mlp.c_fc.weight.detach() - weight  # Conv1D: [d_model, width]
-            self.window["moved_weights"][i] += (self.inputs[i] @ delta).float()
-            self.window["moved_bias"][i] += (mlp.c_fc.bias.detach() - bias).float()
-        self.steps += 1
-        self.run_steps += 1
-
-    def row(self) -> list[dict]:
-        """Return each layer's summary of the steps since the last row, and start a new window."""
-        layers = []
-        n = self.steps
-        for i in range(len(self.mlps)):
-            w = {key: values[i].cpu() for key, values in self.window.items()}
-            mean = w["push"] / n
-            rms = (w["push_sq"] / n).sqrt()
-            moved = w["moved_weights"] + w["moved_bias"]
-            layers.append(
-                {
-                    "median_push": mean.median().item(),
-                    "median_output_push": (w["output_push"] / n).median().item(),
-                    # Adam moves a parameter by about lr × mean / rms of its gradient.
-                    "median_push_ratio": (mean / rms.clamp_min(1e-30)).median().item(),
-                    "share_neurons_pushed_down": (mean < 0).float().mean().item(),
-                    "median_share_steps_down": (w["down"] / n).median().item(),
-                    "median_run_share_steps_down": (self.run_down[i].cpu() / self.run_steps)
-                    .median()
-                    .item(),
-                    "median_push_weights": (w["push_weights"] / n).median().item(),
-                    "median_share_steps_down_weights": (w["down_weights"] / n).median().item(),
-                    "median_run_share_steps_down_weights": (
-                        self.run_down_weights[i].cpu() / self.run_steps
-                    )
-                    .median()
-                    .item(),
-                    "median_moved": moved.median().item(),
-                    "median_moved_weights": w["moved_weights"].median().item(),
-                    "median_moved_bias": w["moved_bias"].median().item(),
-                    "share_neurons_moved_down": (moved < 0).float().mean().item(),
-                }
-            )
-        self._reset()
-        return layers
-
-
 def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
     """Return the condition's optimizer, with the learned rests in a group of their own."""
     # At the base rate, Adam cannot move one parameter by much more than 1 in a short run.
@@ -398,10 +381,11 @@ def train(
     out,
     part,
     push_every: int = 0,
+    push_part: str = "push",
 ) -> None:
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
-    If ``push_every`` is not 0, also append a row labelled ``push`` after each
+    If ``push_every`` is not 0, also append a row labelled ``push_part`` after each
     ``push_every`` steps. The row summarises the push on the rest over those steps.
     """
     condition = CONDITIONS[name]
@@ -432,7 +416,7 @@ def train(
         if recorder:
             recorder.after_step()
             if (step + 1) % push_every == 0:
-                row = {"part": "push", "condition": name, "seed": seed, "step": step + 1}
+                row = {"part": push_part, "condition": name, "seed": seed, "step": step + 1}
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
 
 
@@ -458,7 +442,10 @@ def cli():
     show_default=True,
     help="Steps in each row of the push on the rest. 0 records no push.",
 )
-def train_command(names, seeds, steps, eval_every, corpus, cache, device, out, part, push_every):
+@click.option("--push-part", default="push", show_default=True, help="The label of the push rows.")
+def train_command(
+    names, seeds, steps, eval_every, corpus, cache, device, out, part, push_every, push_part
+):
     """Train each condition with each seed, and append the rows to ``--out``."""
     from transformers import AutoTokenizer
 
@@ -470,7 +457,19 @@ def train_command(names, seeds, steps, eval_every, corpus, cache, device, out, p
     for seed in seeds:
         for name in names or sorted(CONDITIONS):
             device_ = resolve_device(device)
-            train(name, seed, steps, eval_every, tokens, test_ids, device_, out, part, push_every)
+            train(
+                name,
+                seed,
+                steps,
+                eval_every,
+                tokens,
+                test_ids,
+                device_,
+                out,
+                part,
+                push_every,
+                push_part,
+            )
 
 
 @cli.command()
