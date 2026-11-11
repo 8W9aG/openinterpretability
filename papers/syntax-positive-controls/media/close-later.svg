@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 444" width="760" height="444" role="img">
+<title>A plot of closer probability against the number of brackets first opened. With brackets still open, the model gives 0.62 at depth 3, 0.55 at 4 and 0.36 at 5. Once all are closed it gives 0.001 at depth 3, and about 0.2 at depths 4 and 5. With L2 N676+ ablated it gives 0.02 or less at every depth.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="444" rx="10"/>
+<text x="20.0" y="30.0" class="title">GPT-2 closes the rest of its brackets later, and not without L2 N676+</text>
+<text x="20.0" y="50.0" class="sub">Probability that the next token closes a round bracket, just after the model&#x27;s most probable closer, with brackets still open.</text>
+<text x="20.0" y="68.0" class="sub">A point needs at least 4 of the 8 written items to still have a bracket open. Hollow dots: the model, once every bracket is closed.</text>
+<path class="grid" d="M117.3 114.0L117.3 334.0"/>
+<text x="117.3" y="349.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M295.1 114.0L295.1 334.0"/>
+<text x="295.1" y="349.0" class="small" text-anchor="middle">3</text>
+<path class="grid" d="M472.9 114.0L472.9 334.0"/>
+<text x="472.9" y="349.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M650.7 114.0L650.7 334.0"/>
+<text x="650.7" y="349.0" class="small" text-anchor="middle">5</text>
+<path class="grid" d="M64.0 334.0L704.0 334.0"/>
+<text x="57.0" y="338.0" class="small" text-anchor="end">0.0</text>
+<path class="grid" d="M64.0 271.1L704.0 271.1"/>
+<text x="57.0" y="275.1" class="small" text-anchor="end">0.2</text>
+<path class="grid" d="M64.0 208.3L704.0 208.3"/>
+<text x="57.0" y="212.3" class="small" text-anchor="end">0.4</text>
+<path class="grid" d="M64.0 145.4L704.0 145.4"/>
+<text x="57.0" y="149.4" class="small" text-anchor="end">0.6</text>
+<text x="384.0" y="365.0" class="small" text-anchor="middle">brackets open before the first closer</text>
+<circle class="open sneutral" cx="117.3" cy="330.6" r="6"/>
+<circle class="open sneutral" cx="295.1" cy="333.7" r="6"/>
+<circle class="open sneutral" cx="472.9" cy="283.5" r="6"/>
+<circle class="open sneutral" cx="650.7" cy="272.3" r="6"/>
+<path class="line sc1" d="M295.1 138.6L472.9 162.7L650.7 219.8"/>
+<circle class="fc1" cx="295.1" cy="138.6" r="3"/>
+<circle class="fc1" cx="472.9" cy="162.7" r="3"/>
+<circle class="fc1" cx="650.7" cy="219.8" r="3"/>
+<path class="line sc2" d="M117.3 333.4L295.1 331.4L472.9 329.2L650.7 326.5"/>
+<circle class="fc2" cx="117.3" cy="333.4" r="3"/>
+<circle class="fc2" cx="295.1" cy="331.4" r="3"/>
+<circle class="fc2" cx="472.9" cy="329.2" r="3"/>
+<circle class="fc2" cx="650.7" cy="326.5" r="3"/>
+<circle class="fc1" cx="25.0" cy="392.0" r="5"/>
+<text x="35.0" y="396.0">model, brackets still open</text>
+<circle class="fc2" cx="222.6" cy="392.0" r="5"/>
+<text x="232.6" y="396.0">L2 N676+ ablated, brackets still open</text>
+<circle class="open sneutral" cx="492.8" cy="392.0" r="5"/>
+<text x="502.8" y="396.0">model, all closed</text>
+</svg>

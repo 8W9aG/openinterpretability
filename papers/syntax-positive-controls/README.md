@@ -16,12 +16,15 @@ Syntax labels from a parser should find the code neurons that the literature lea
 8. **Other poles carry depth too, and pull the other way.** L2 N1195+ responds to depth almost as L2 N676+ does. L3 N695+ responds more weakly, and L8 N689+ and L9 N340+ peak at depth 2 or 3 and reach further. Ablating these four raises the count of brackets closed to about 3.8 from depth 3, where the model closes about 1.8. Through the protocol, L2 N1195+, L3 N695+ and L8 N689+ are VERIFIED. L9 N340+ is NEEDS_REVISION, because it also fires on function words inside an open round bracket.
 9. **Qwen2.5 has no such pole.** The same sweep finds no pole of Qwen2.5-0.5B or 1.5B above an R² of 0.175 for round depth, against 0.277 for L2 N676+. The best of each is in a late layer. Their best `syntax construct` poles are stronger than GPT-2's, at 0.466 and 0.554 against 0.273.
 10. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Against the parse of the whole file, a single parse of a cut document loses 27.8% of the characters that lie in a construct to `top level`. Adding the missing closing brackets lowers this to 7.7%. Trying several endings, including a line break, a quote and Ruby's `end`, lowers it to 1.7%, and to 0.3% on a second sample.
+11. **The model closes the rest later, and needs L2 N676+ to do so.** When its first closer leaves brackets open, the model gives 0.36 to 0.62 to one more closer. Once the last one closes, it gives 0.001 at depth 3. With L2 N676+ ablated, it gives 0.024 or less with brackets still open, and every greedy line that ends closes too few.
+12. **Curly brackets that hold blocks don't count.** No round-depth pole responds to a code block or to indentation. Four of them respond to an object literal. This fits the corpus R² of zero for curly depth in L2 N676+, since most curly brackets in code hold blocks.
+13. **Qwen's best round-depth poles don't count.** On written text, L21 N953− of Qwen2.5-0.5B fires inside round brackets without rising with depth, and grows as a bracketed list gets longer. L26 N7101+ of Qwen2.5-1.5B fires outside them. Neither changes the probability of a closer when ablated.
 
 These results do not show that L2 N676+ is the only bracket signal in GPT-2. They do not show how the model computes depth. The probes and ablations use narrow templates.
 
 ## Method
 
-The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py` and `scripts/figures_syntax.py`. The tagger is `openinterp/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
+The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py` and `scripts/figures_syntax.py`. The tagger is `openinterp/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
 
 - **Model.** GPT-2 small (Radford et al., 2019), at 128-token windows, as the registry scans it. Each neuron has 2 poles, so each layer has 6,144. The sweeps ran on Apple's MPS backend, in float32.
 - **Data.** 500 documents of [`codeparrot/github-code-clean`](https://huggingface.co/datasets/codeparrot/github-code-clean) at commit `c48d40f9`, seed 0, each cut to 3,000 characters. The card gives the licence as Apache-2.0 and names no citation. Its `license` column shows that each file keeps its repository's licence. Of these, 396 documents have a grammar, and the seeded 200,000-token sample holds 266 of them.
@@ -168,9 +171,41 @@ Each closing token in GPT-2's vocabulary closes one to four brackets (`)` to `))
 | All five ablated | 1.07 | 1.74 | 2.05 | 2.07 | 2.05 |
 | 20 random sets ablated, range of means | 1.02 | 1.57 to 1.58 | 1.78 to 1.79 | 1.89 to 1.91 | 1.94 to 1.96 |
 
-L3 N695+ and L8 N689+ alone change the count by at most 0.1. With L2 N676+ ablated, the model closes one bracket at every depth. With the other four ablated, it closes too many. From depth 3 it puts 0.91 to 0.99 of its probability on a closer, and most of that on `))))`. With all five ablated, the two effects about cancel. So L2 N676+ pushes the count up, and the other four, mostly L2 N1195+ and L9 N340+, hold it down. From depth 2, the model closes fewer brackets than are open. This fits a model that closes some of them now and the rest later, but we did not test that.
+L3 N695+ and L8 N689+ alone change the count by at most 0.1. With L2 N676+ ablated, the model closes one bracket at every depth. With the other four ablated, it closes too many. From depth 3 it puts 0.91 to 0.99 of its probability on a closer, and most of that on `))))`. With all five ablated, the two effects about cancel. So L2 N676+ pushes the count up, and the other four, mostly L2 N1195+ and L9 N340+, hold it down. From depth 2, the model closes fewer brackets than are open. This fits a model that closes some of them now and the rest later. *Closing the rest later* tests that.
 
 This explains the first ablation table. There, the effect of L2 N676+ shrinks with depth. The model's closers at depth 5 are mostly `))` and `)))`, and with the pole ablated they become `)`. Both count as a closer, so a measure of any closer can't see the change. The count is capped at 4, because no single token closes more.
+
+## Closing the rest later
+
+At depth 2 and more, the model's first closer closes fewer brackets than are open. So we tested whether it closes the rest with its next tokens. We take the 8 items of each depth, and add the closing token that the model finds most probable. We read the probability that the next token starts with `)`, and add the most probable closer again, until no bracket is open. The script is `scripts/syntax_followups.py`, and its rows are in `followups.jsonl`.
+
+![Probability of one more closer after the first, with and without L2 N676+](media/close-later.svg)
+
+| Open brackets | 1 | 2 | 3 | 4 | 5 |
+| --- | --- | --- | --- | --- | --- |
+| Items with brackets open after the first closer | 0 | 1 | 8 | 8 | 8 |
+| P(one more closer), brackets still open | – | 0.174 | 0.622 | 0.545 | 0.363 |
+| P(one more closer), all closed | 0.001 | 0.011 | 0.001 | 0.161 | 0.196 |
+| Same, L2 N676+ ablated: brackets still open | – | 0.002 | 0.008 | 0.015 | 0.024 |
+
+The model does close the rest later. At depth 3, its most probable closer is `))` in all 8 items. It then gives 0.62 to one more closer, and 0.001 after it closes the last bracket. At depths 4 and 5 it still gives 0.55 and 0.36 with brackets open. But it also gives 0.16 and 0.20 after it closes them all, so it counts less well there. Greedy text agrees. We let the model write its most probable tokens to the end of the line, for up to 16 tokens. Lines that end close every bracket at depths 1 to 3 (8, 8 and 5 lines of 8). At depth 4, 1 of 5 lines closes every bracket, 3 close too many and 1 too few. At depth 5, none of 3 does. The other lines repeat an argument, such as `, first, first, first`, and never end.
+
+With L2 N676+ ablated, the model closes one bracket and stops. Its probability of one more closer falls to 0.024 or less, with up to 4 brackets still open. At depths 2 to 5, each greedy line that ends closes too few, 31 lines of 31. So the pole carries more than the size of the first closer. Without it, the model does not act on the brackets that stay open. The ablation zeroes the pole at every token, including the closers that the chain adds.
+
+## Curly brackets that hold blocks
+
+The pole responds to `load{first, value`, but its corpus R² for curly depth is zero. We guessed that this is because curly brackets in real code mostly hold blocks. So we wrote probes with real blocks. Each target is the token after `x = first +`. Each block header holds a round bracket that is already closed, such as `if (ready) {`. Each cell is a mean over 8 items, and the standard errors are at most 0.18.
+
+| Pole | Round, `x = load(parse(` | Object literal, `x = {a: {b: ` | Blocks, each on its own line | Blocks on one line | Python indentation |
+| --- | --- | --- | --- | --- | --- |
+| L2 N676+ | 3.57 to 10.13 | 0.54 to 3.21 | 0.00 | 0.02 or less | 0.00 |
+| L2 N1195+ | 2.91 to 9.14 | 0.24 to 2.76 | 0.00 | 0.00 | 0.00 |
+| L3 N695+ | 0.92 to 2.71 | 0.43 to 1.73 | 0.01 or less | 0.07 or less | 0.02 or less |
+| L8 N689+ | 1.82 to 3.14 | 0.01 to 0.39 | 0.00 | 0.00 | 0.00 |
+| L9 N340+ | 1.96 to 3.02 | 0.00 | 0.00 | 0.00 | 0.00 |
+| L4 N3038− | 0.15 to 0.16 | 0.15 | 0.14 to 0.15 | 0.14 to 0.15 | 0.13 to 0.14 |
+
+Ranges run over depths 1 to 5. No round-depth pole responds to a curly bracket that opens a block, on one line or on several, and none responds to indentation. Four of them respond to curly brackets that hold an object literal, and rise with its depth, more weakly than with round brackets. L9 N340+ responds to neither. So the guess holds: the poles respond to curly brackets that hold a list of items, and a block holds statements. This fits the revised claim of L2 N676+, which calls curly brackets weak. L4 N3038−, the best pole for curly depth, reads about 0.15 in every condition, so it does not track blocks either.
 
 ## Through the protocol
 
@@ -272,17 +307,35 @@ Each cell is the best pole of all layers for that label set, and its held-out R�
 
 ![The best R² per layer for round depth and syntax construct, in GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B](media/models.svg)
 
-For round depth, GPT-2 has four layers whose best pole reaches 0.187 or more, the poles of the section above. In Qwen2.5-0.5B the best of each layer lies between 0.059 and 0.160, with no layer that stands out. Its best pole is in L21 of 24, not in an early layer. The second best in that layer has 0.126, so the gap is smaller than in GPT-2's L2 (0.277 and 0.236). In Qwen2.5-1.5B the best of each layer lies between 0.044 and 0.175. Its best pole, L26 N7101+, is two layers from the output, and the second best in its layer has 0.077. A pole that late may predict a closing bracket, not count open ones. We did not probe Qwen's poles with written text, so we don't know if any of them counts depth.
+For round depth, GPT-2 has four layers whose best pole reaches 0.187 or more, the poles of the section above. In Qwen2.5-0.5B the best of each layer lies between 0.059 and 0.160, with no layer that stands out. Its best pole is in L21 of 24, not in an early layer. The second best in that layer has 0.126, so the gap is smaller than in GPT-2's L2 (0.277 and 0.236). In Qwen2.5-1.5B the best of each layer lies between 0.044 and 0.175. Its best pole, L26 N7101+, is two layers from the output, and the second best in its layer has 0.077. A pole that late may predict a closing bracket, not count open ones. *Qwen's best poles on written text* tests both poles.
 
 The null is higher in Qwen. Its highest is 0.097 in Qwen2.5-0.5B (L0) and 0.060 in Qwen2.5-1.5B (L18), against 0.028 in GPT-2. Whole documents give a pole room to track position, and the null keeps each label's position. So a pole that follows position scores in the null too. L0 N2546+ has the best curly-depth R² (0.158) with a null of 0.092 in its layer. The best pole of that set by its margin over the null is L12 N1468+ (0.158, null 0.032). The other label sets' best poles, in both Qwen models, have a null of at most 0.039 in their layer.
 
 GPT-2 and Qwen read different windows, so their R² are not directly comparable: a longer window holds more depth and more constructs. A sweep of Qwen at 128-token windows would remove that difference.
 
+### Qwen's best poles on written text
+
+We read L21 N953− of Qwen2.5-0.5B and L26 N7101+ of Qwen2.5-1.5B on the probes of *On written text*, with the same templates and targets. Each cell is a mean over 8 items.
+
+| Condition, depths 1 to 5 | L21 N953−, 0.5B | L26 N7101+, 1.5B |
+| --- | --- | --- |
+| Open | 1.66, 0.24, 0.82, 1.65, 1.76 | 0.00 at each depth |
+| Closed | 0.00 at each depth | 2.59, 2.37, 2.24, 2.11, 2.00 |
+| One closed | 1.33, 0.11, 0.26, 0.47, 0.55 | 0.00 at each depth |
+| In a string | 2.61, then 0.06 to 0.41 | 3.11, then 0.00 |
+| Square brackets | 0.73, 0.19, 0.01, 0.40, 0.42 | 5.29, 3.63, 1.90, 0.66, 0.48 |
+| Curly brackets | 0.00 at each depth | 3.53, 2.26, 1.62, 1.07, 1.05 |
+
+The standard errors are at most 0.45 for L21 N953− and 0.72 for L26 N7101+. Neither pole counts depth. L21 N953− fires under open round brackets and not after they close, but it does not rise with depth. With one open bracket and a list of filler items before the target, it rises from 1.20 with no filler to 2.89 after 80 items. GPT-2's L2 N676+ falls to zero after 20 items. L26 N7101+ is silent under open round brackets, and fires once they close or under other brackets. So its R² for round depth comes from telling outside from inside, and it is high outside.
+
+We then tested whether either pole predicts a closing bracket. Through the direct path, from the pole's output to the unembedding, L21 N953− raises closers. Its 15 tokens raised most include `)` with line breaks, `.)` and `())`, and 40 of its top 100 tokens start with `)`. L26 N7101+ raises a quote or a backtick followed by a closer, such as `")`, `')` and `` `) ``. None of its top 100 tokens starts with `)`, and `)` alone ranks 562 of 151,936. The direct path leaves out every later layer. Ablation shows no effect. We ablated each pole on the 8 items of each depth. The probability of a closer moved by at most 0.003, and the count of brackets closed by at most 0.007. Ablating 20 random poles of the same layer and sign moves them as much or more. So L21 N953− writes toward a closer, and it grows as a bracketed list gets longer. But these templates show no effect of it on the output. L26 N7101+ does not predict a closing bracket.
+
 ## Caveats
 
 - **Few models, one sample for the sweep.** The sweep ran on GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B, on one sample of documents. The label stability and the audit used a second sample.
 - **Selection.** We chose this pole from 73,728 poles, and we changed the label after seeing results. Held-out R² guards against noise in the fit, not against our choices. The written probes and the ablation are separate tests of the pole, but they came after we chose it.
-- **Few probes.** Each cell has 8 items from one template family, in Python-like text. Standard errors cover the items, not the choice of template.
+- **Few probes.** Each cell has 8 items from one template family, in Python-like or C-like text. Standard errors cover the items, not the choice of template.
+- **One path of closers.** *Closing the rest later* follows the model's most probable closer at each step, and greedy text follows its most probable token. Other closers and other text can lead elsewhere.
 - **No confidence interval on ablation.** The 20 controls show the size of a random pole's effect, and no more.
 - **R² is a weak search.** A pole that responds to a label only sometimes scores low, and the depth-tracking poles here score under 0.32. A sweep can miss signals, including any spread over several neurons.
 - **The label is approximate.** Node names are sorted by pattern, and angle brackets don't count.

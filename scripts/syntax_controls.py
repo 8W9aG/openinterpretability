@@ -291,16 +291,23 @@ def bracket_kind_taggers(languages) -> list[SyntaxTagger]:
 @click.option("--model", default="openai-community/gpt2")
 @click.option("--device", default="cpu")
 @click.option("--max-tokens", default=DEFAULT_SAMPLE_TOKENS)
-def kinds(corpus, out, model, device, max_tokens):
+@click.option(
+    "--window",
+    type=int,
+    default=None,
+    help="Scan window in tokens. Default: the registry's window for the model, if any.",
+)
+def kinds(corpus, out, model, device, max_tokens, window):
     """Append the sweep of depth by bracket kind to ``out``, replacing any earlier rows."""
     runner = _load(model, resolve_device(device), torch.float32, None, None)
     texts, languages, _ = load_code(runner, corpus, max_tokens)
     taggers = bracket_kind_taggers(languages)
     tokens = TokenLabels(runner.tokenizer, texts, taggers)
-    pieces = list(cut_pieces(runner.tokenizer, texts, configured_windows().get(model), None))
-    lines = out.read_text(encoding="utf-8").splitlines()
+    window = window or configured_windows().get(model)
+    pieces = list(cut_pieces(runner.tokenizer, texts, window, None))
+    lines = out.read_text(encoding="utf-8").splitlines() if out.exists() else []
     kept = [line for line in lines if json.loads(line)["kind"] != "kinds"]
-    out.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    out.write_text("".join(f"{line}\n" for line in kept), encoding="utf-8")
     with out.open("a", encoding="utf-8") as sink:
         for layer in range(runner.n_layers):
             width = runner.mlp_width(layer)
@@ -321,13 +328,19 @@ def kinds(corpus, out, model, device, max_tokens):
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 @click.option("--device", default="cpu")
 @click.option("--max-tokens", default=DEFAULT_SAMPLE_TOKENS)
-def main(model, corpus, out, device, max_tokens):
+@click.option(
+    "--window",
+    type=int,
+    default=None,
+    help="Scan window in tokens. Default: the registry's window for the model, if any.",
+)
+def main(model, corpus, out, device, max_tokens, window):
     """Write each layer's best poles per syntax label set, then scan the best of each."""
     runner = _load(model, resolve_device(device), torch.float32, None, None)
     texts, languages, sample = load_code(runner, corpus, max_tokens)
     # `kinds` measures round depth, with its neighbours and a parser-free count.
     taggers = [t for t in syntax_taggers(languages) if t.name != ROUND_DEPTH]
-    window = configured_windows().get(model)
+    window = window or configured_windows().get(model)
     pieces = list(cut_pieces(runner.tokenizer, texts, window, None))
     tokens = TokenLabels(runner.tokenizer, texts, taggers)
     click.echo(f"{sample.documents} documents, {sample.tokens} tokens, {len(pieces)} pieces")
@@ -339,7 +352,7 @@ def main(model, corpus, out, device, max_tokens):
             sink.write(json.dumps(row) + "\n")
             sink.flush()
 
-        write({"kind": "sample", "model": model, **sample.model_dump()})
+        write({"kind": "sample", "model": model, "window": window, **sample.model_dump()})
         for layer in range(runner.n_layers):
             width = runner.mlp_width(layer)
             for name, (real, null) in sweep_layer(runner, tokens, pieces, layer).items():
