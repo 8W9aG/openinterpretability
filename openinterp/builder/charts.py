@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from functools import partial
 
-from openinterp.builder.statuses import MAP_STATUSES
+from openinterp.builder.statuses import MAP_STATUSES, STOPPED
 from openinterp.core.schemas import Histogram
 
 
@@ -328,12 +328,19 @@ def _pair_values(p, counterfactuals) -> dict[str, tuple[float | None, str]]:
     return values
 
 
-def _best_status(neuron) -> str:
+def best_status(neuron) -> str:
+    """The best status of the neuron's poles, in ``MAP_STATUSES`` order."""
     statuses = {st.status for st in neuron.standings.values()}
     return next(s for s in MAP_STATUSES if s in statuses)
 
 
-def _poles(neuron) -> str:
+def stopped_label(neuron) -> str:
+    """The tooltip text of a neuron whose scans all stopped."""
+    return f"{neuron.label} · scan stopped: " + ", ".join(neuron.outcomes)
+
+
+def pole_text(neuron) -> str:
+    """Each pole of the neuron and its status, for example ``positive VERIFIED``."""
     return ", ".join(f"{side} {st.status}" for side, st in neuron.standings.items()).replace(
         "_", " "
     )
@@ -385,7 +392,7 @@ def _layer_marks(model, x, top: float, pitch: float) -> tuple[list[dict], dict[s
     for layer in model.layers:
         y = top + layer.layer * pitch
         for n in layer.neurons:
-            status = _best_status(n)
+            status = best_status(n)
             counts[status] += 1
             marks.append(
                 {
@@ -393,98 +400,12 @@ def _layer_marks(model, x, top: float, pitch: float) -> tuple[list[dict], dict[s
                     "y": y,
                     "status": status,
                     "href": n.href,
-                    "label": f"L{layer.layer} {n.label} · {_poles(n)}",
+                    "label": f"L{layer.layer} {n.label} · {pole_text(n)}",
                 }
             )
+        for n in layer.stopped:
+            counts[STOPPED] += 1
+            label = f"L{layer.layer} {stopped_label(n)}"
+            marks.append({"x": x(n.idx), "y": y, "status": STOPPED, "href": None, "label": label})
     marks.sort(key=lambda m: -MAP_STATUSES.index(m["status"]))
     return marks, counts
-
-
-# Pieces bars: BitTorrent-style coverage, one cell per neuron or block of neurons. Cells sit
-# on an integer pitch so the empty-cell grid can be one SVG pattern rather than a rect each.
-PIECE_ROW = 128  # cells per bar
-PIECE_PITCH = 5  # px per cell, 1px gap included
-
-
-def model_pieces(model) -> dict | None:
-    """One pieces bar per layer, each cell a block of ``ceil(mlp_width / PIECE_ROW)`` neurons.
-
-    A cell is lit when any neuron in its block is studied, and takes the best status among
-    them (``MAP_STATUSES`` order). With blocks this wide a lit cell is not a covered block:
-    the bars show where the studied neurons are and where the gaps are, not how many.
-    """
-    if not model.mlp_width or not model.neurons:
-        return None
-    block = math.ceil(model.mlp_width / PIECE_ROW)
-    n_cells = math.ceil(model.mlp_width / block)
-    by_layer = {layer.layer: layer for layer in model.layers}
-    rows = []
-    for i in range(model.n_layers):
-        cells: dict[int, list] = {}
-        for n in by_layer[i].neurons if i in by_layer else ():
-            cells.setdefault(n.idx // block, []).append(n)
-        lit = []
-        for c, neurons in sorted(cells.items()):
-            status = min((_best_status(n) for n in neurons), key=MAP_STATUSES.index)
-            lo, hi = c * block, min((c + 1) * block, model.mlp_width) - 1
-            lit.append(
-                {
-                    "x": c * PIECE_PITCH,
-                    "status": status,
-                    "label": f"L{i} N{lo:,}–{hi:,}: "
-                    + "; ".join(f"{n.label} {_poles(n)}" for n in neurons),
-                }
-            )
-        rows.append({"layer": i, "cells": lit})
-    return {
-        "block": block,
-        "pitch": PIECE_PITCH,
-        "width": n_cells * PIECE_PITCH - 1,
-        "rows": rows,
-        "lit": sum(len(r["cells"]) for r in rows),
-        "cells": n_cells * model.n_layers,
-    }
-
-
-def layer_pieces(model, layer) -> dict | None:
-    """Return the layer's neurons as a grid of ``PIECE_ROW``-wide rows, one cell per neuron.
-
-    Each studied neuron is a lit cell, coloured by its best pole's status, linked to its page.
-    """
-    if not model.mlp_width:
-        return None
-    left, top = 8 * PIECE_PITCH, 0  # room for row labels; multiples of the pitch keep
-    # the empty-cell pattern aligned with the lit cells
-    n_rows = math.ceil(model.mlp_width / PIECE_ROW)
-    cells = [
-        {
-            "x": left + (n.idx % PIECE_ROW) * PIECE_PITCH,
-            "y": top + (n.idx // PIECE_ROW) * PIECE_PITCH,
-            "status": _best_status(n),
-            "href": n.href,
-            "label": f"{n.label} · {_poles(n)}",
-        }
-        for n in layer.neurons
-    ]
-    rows = [
-        {
-            "y": top + r * PIECE_PITCH,
-            "start": r * PIECE_ROW,
-            "width": min(PIECE_ROW, model.mlp_width - r * PIECE_ROW) * PIECE_PITCH - 1,
-        }
-        for r in range(n_rows)
-    ]
-    counts = dict.fromkeys(MAP_STATUSES, 0)
-    for c in cells:
-        counts[c["status"]] += 1
-    return {
-        "left": left,
-        "pitch": PIECE_PITCH,
-        "width": left + PIECE_ROW * PIECE_PITCH,
-        "height": top + n_rows * PIECE_PITCH,
-        "rows": rows,
-        "label_every": 8,
-        "cells": cells,
-        "counts": counts,
-        "unexplored": model.mlp_width - len(cells),
-    }

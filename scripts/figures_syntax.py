@@ -1,6 +1,7 @@
 """The figures of papers/syntax-positive-controls/README.md, from its results.jsonl."""
 
 from figure_svg import Figure, Panel, columns
+from figures_syntax_followups import close_later
 from figures_syntax_models import models
 
 DEPTHS = [1, 2, 3, 4, 5]
@@ -471,9 +472,18 @@ def _lines_panel(fig: Figure, rows: list[dict], y0: float) -> None:
         fig.text(right.x(5) + 7, right.y(values[-1]) + 4, name, "small")
 
 
-def build(rows: list[dict], others: dict[str, list[dict]] | None = None) -> dict[str, Figure]:
-    """Return each figure by its file name. ``others`` holds the sweeps of other models."""
+def build(
+    rows: list[dict],
+    others: dict[str, list[dict]] | None = None,
+    followups: list[dict] | None = None,
+) -> dict[str, Figure]:
+    """Return each figure by its file name.
+
+    ``others`` holds the sweeps of other models. ``followups`` holds the rows of
+    ``scripts/syntax_followups.py``.
+    """
     sweeps = {"GPT-2 small": rows, **(others or {})}
+    extra = {"close-later.svg": close_later(followups)} if followups else {}
     return {
         "models.svg": models(sweeps),
         "trace.svg": trace(rows),
@@ -482,4 +492,5 @@ def build(rows: list[dict], others: dict[str, list[dict]] | None = None) -> dict
         "reach.svg": reach(rows),
         "ablation.svg": ablation(rows),
         "joint.svg": joint(rows),
+        **extra,
     }

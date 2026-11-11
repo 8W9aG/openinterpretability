@@ -422,7 +422,8 @@ def plan_next(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
         key=lambda c: -c.weight,
     )
-    coverage = model_coverage(pool, (s.record for s in states.values()), claims, dead(wiki_dir))
+    records = (s.record for s in states.values())
+    coverage = model_coverage(pool, records, claims, dead(wiki_dir), stopped(wiki_dir))
     target = coverage_target(pyproject)
     explore = explore_weights(coverage, target, others_share(pyproject))
     focus = focus_model(coverage.values(), target)
@@ -433,6 +434,17 @@ def plan_next(
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
     choice = rng.choices(candidates, weights=weights, k=1)[0]
     return Plan(seed, choice, False, candidates, explore, coverage, focus)
+
+
+def stopped(wiki_dir: Path) -> list:
+    """Every unit that a scan stopped on (dead or default-on), chosen or drawn at random.
+
+    Such a unit has no experiment, but it counts as studied.
+    """
+    from openinterp.core.draws import load_draws, load_stops
+
+    wiki_dir = Path(wiki_dir)
+    return [d.identifier for d in (*load_draws(wiki_dir), *load_stops(wiki_dir))]
 
 
 def dead(wiki_dir: Path) -> list:
