@@ -9,6 +9,9 @@ ordered by how conclusive the result is (see :mod:`significance`). So a strong n
 result sits next to a strong positive one, and is not hidden.
 
 A pole's status is derived from its experiments by :mod:`standing`.
+
+A neuron whose scans all stopped (dead or default-on) has no experiment. It still counts
+as studied, as a stopped neuron of its layer (:mod:`openinterp.builder.stopped`).
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from openinterp.core.schemas import AuditRecord
 
 if TYPE_CHECKING:
     from openinterp.builder.standing import Standing
+    from openinterp.builder.stopped import StoppedNeuron
 
 
 @dataclass
@@ -159,6 +163,12 @@ class LayerNode:
     layer: int
     href: str
     units: list[UnitNode] = field(default_factory=list)  # neurons, then heads, then features
+    stopped: list[StoppedNeuron] = field(default_factory=list)  # by index
+
+    @property
+    def studied(self) -> int:
+        """Studied neurons: those with an experiment, and those whose scans all stopped."""
+        return len(self.neurons) + len(self.stopped)
 
     @property
     def neurons(self) -> list[UnitNode]:
@@ -209,8 +219,8 @@ class ModelNode:
 
     @property
     def neurons(self) -> int:
-        """Studied neurons over every layer."""
-        return sum(len(layer.neurons) for layer in self.layers)
+        """Studied neurons over every layer, including those whose scans all stopped."""
+        return sum(layer.studied for layer in self.layers)
 
     @property
     def heads(self) -> int:
@@ -249,7 +259,7 @@ class ModelNode:
 
     @property
     def coverage(self) -> float | None:
-        """Share of the model's neurons with at least one experiment."""
+        """Share of the model's neurons that are studied (see :attr:`neurons`)."""
         return self.neurons / self.total_neurons if self.total_neurons else None
 
     @property
@@ -259,7 +269,7 @@ class ModelNode:
 
     def layer_counts(self) -> list[int]:
         """Studied neurons per layer index, including unstudied layers (0)."""
-        counts = {layer.layer: len(layer.neurons) for layer in self.layers}
+        counts = {layer.layer: layer.studied for layer in self.layers}
         return [counts.get(i, 0) for i in range(self.n_layers)]
 
 
