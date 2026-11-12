@@ -411,3 +411,12 @@ def test_an_ane_failure_during_a_scan_redoes_it_on_torch(tiny_gpt2, capsys):
     assert [e.activations for e in got.examples] == [e.activations for e in exact.examples]
     assert "it failed during a scan" in ane.scan_backend.broken
     assert "The ANE failed, so this scan runs again on cpu" in capsys.readouterr().err
+
+
+def test_a_retry_after_an_mps_failure_scans_on_the_ane(monkeypatch):
+    from openinterp.cli import resolve_device
+
+    monkeypatch.setenv(devices.FORCE_ENV, "cpu")
+    monkeypatch.setattr(devices, "ane_possible", lambda: True)
+    assert resolve_device("auto") == "cpu"
+    assert devices.scans_on_ane()  # MPS, then the ANE, then the CPU
