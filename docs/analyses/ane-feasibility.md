@@ -2,7 +2,7 @@
 
 Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It answers the Performance TODO item "Can we run any of this on Apple's Neural Engine (ANE)?". Raw results are in `ane-feasibility.jsonl`, one line per model. The script is `scripts/ane_benchmark.py`.
 
-**Answer: it can, but it is slower than MPS.** As first converted, the ANE gave Qwen2.5 activations with no relation to fp32. Three changes to the model's code make it as accurate as any other fp16 backend (see "Making the ANE accurate"). Even so, a forward pass takes 1.5–1.6× as long as on MPS. And on Qwen, fp16 on any device is often outside the tolerance of `openinterp reproduce`. A scan can still record exact values. The ANE ranks every token, and fp32 measures each pole's top 40 again (see "Screen on the ANE, then measure the top exactly").
+**Answer: it can, but it is slower than MPS.** As first converted, the ANE gave Qwen2.5 activations with no relation to fp32. Three changes to the model's code make it as accurate as any other fp16 backend (see "Making the ANE accurate"). Even so, a forward pass takes 1.5–1.6× as long as on MPS. And on Qwen, fp16 on any device is often outside the tolerance of `openinterp reproduce`. A scan can still record exact values. The ANE ranks every document, and fp32 measures at most 120 candidates again. On a real corpus, that gives the exact top 20 for every neuron of all three models (see "On a real corpus").
 
 ## Method
 
@@ -101,12 +101,34 @@ Share of neurons whose 20 kept values match fp32's top 20 inside the tolerance:
 
 The check compares values, not which tokens are chosen. GPT-2's top negative values are all at GELU's lowest value, −0.170, with a median gap of 2 × 10⁻⁵ between the 20th and 21st. So any fp16 device, CPU fp16 included, orders them differently, but their values agree.
 
-Then the numbers that `reproduce` checks are fp32 numbers, and a record can pin fp32. The other scan statistics (histogram, partner correlations, confound profile) would have the ANE's fp16 error of about 1%. `reproduce` does not check them.
+Then the numbers that `reproduce` checks are fp32 numbers, and a record can pin fp32. The other scan statistics (histogram, partner correlations, confound profile) would have the ANE's fp16 error. `reproduce` does not check them.
+
+### On a real corpus
+
+`scripts/ane_corpus_screen.py` does this on `corpus.jsonl` (500 documents, 209k–229k tokens), as a whole-document scan does. A document's strength is its peak token, and the top examples are the 20 strongest documents. The ANE needs input shapes that do not change. So each document goes in the smallest of three shapes that holds it, padded on the right: 8 × 256, 4 × 512 or 2 × 1,024 tokens. With causal attention, that padding does not change the real tokens' activations. The script compares every neuron of the layer, for both poles, with fp32 on MPS. Results are in `ane-corpus-screen.jsonl`.
+
+Share of neurons whose 20 values are inside the tolerance:
+
+| Candidates measured again in fp32 | GPT-2 + | GPT-2 − | Qwen 0.5B + | Qwen 0.5B − | Qwen 1.5B + | Qwen 1.5B − |
+| --- | --- | --- | --- | --- | --- | --- |
+| None (the ANE's own values) | 0.998 | 1.000 | 0.806 | 0.803 | 0.723 | 0.720 |
+| Top 20 | 1.000 | 1.000 | 0.992 | 0.993 | 0.990 | 0.989 |
+| Top 40 | 1.000 | 1.000 | 0.9998 | 1.000 | 0.9998 | 0.9999 |
+| Top 60 | 1.000 | 1.000 | 0.9998 | 1.000 | 1.000 | 1.000 |
+| Inside a 6% margin | 1.000 | 1.000 | 1.000 | 1.000 | 0.9993 | 0.9996 |
+| **Top 60, or inside a 6% margin, at most 120** | **1.000** | **1.000** | **1.000** | **1.000** | **1.000** | **1.000** |
+
+- **The last rule agrees for every neuron.** That is 3,072, 4,864 and 8,960 neurons, on both poles. It measures 60 documents again for most neurons, and never more than 120.
+- **The same number for every neuron is not enough.** Qwen2.5-0.5B's neuron 4,495 has about 90 documents within 3% of its 20th value. The ANE's error of about 2% put two true top-20 documents at ranks 87 and 88. The margin includes them.
+- **A margin alone is not enough either.** It missed a few Qwen2.5-1.5B neurons that the top 60 found. On GPT-2's negative pole, the margin holds almost every document, because the values are equal at −0.170. So the rule has a limit of 120.
+- **The other statistics are close to exact.** Over all tokens, the ANE's activations correlate with fp32 at r ≥ 0.99986 for every neuron.
+- **Measuring 120 documents again is a small cost.** It is at most a quarter of the corpus for one pole, and usually an eighth, and only the pole under study needs it.
+- **The ANE is still slower.** It took 15.5, 44.9 and 88.3 s over the corpus, and MPS fp32 took 8.9, 26.5 and 58.3 s.
 
 ## Other findings
 
 - **MPS fp16 is accurate here, given the changes for fp16 above.** Its error is 0.2–1.1%. Every sampled neuron has r ≥ 0.9997 with fp32. It is at most 1.4× faster than MPS fp32 in these runs. This bears on the "Try bf16/fp16 on MPS" item of the sister-search TODO, and so does the tolerance check above. We also ran HF's own code (transformers 4.46, SDPA attention) in fp16 on MPS on the same inputs. Its activations were finite, with errors of 0.008 (0.5B) and 0.010 (1.5B). So the overflows above are not a problem for the HF models we run.
-- **The forward pass may be a small part of a scan.** Take one pass over a corpus of about 212k tokens, which is about 104 batches. At these speeds, the model's share of it on MPS is about 4 s on GPT-2 and 33 s on Qwen2.5-1.5B. The baseline in TODO.md gives 13–15 minutes for a whole scan. If both figures hold for the current scan, most of the time is outside the forward pass. Copying the whole layer to the CPU and the statistics on it are candidates. That is an estimate, not a profile. The TODO item "Can we do performance tests on memory, compute and wall time?" is where to measure it.
+- **The forward pass may be a small part of a scan.** On `corpus.jsonl`, the forward pass to one layer took 8.9 s on GPT-2 and 58.3 s on Qwen2.5-1.5B, in fp32 on MPS. The baseline in TODO.md gives 13–15 minutes for a whole scan. If the baseline holds for the current scan, most of the time is outside the forward pass. Copying the whole layer to the CPU and the statistics on it are candidates. That is not a profile. The TODO item "Can we do performance tests on memory, compute and wall time?" is where to measure it.
 
 ## What would change the answer
 
