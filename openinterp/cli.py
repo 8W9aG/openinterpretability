@@ -42,18 +42,27 @@ def _load_runner(
 
 
 def resolve_device(device: str) -> str:
-    """Resolve ``auto`` to CUDA, else Apple's GPU (MPS), else the CPU.
+    """Resolve ``auto`` to CUDA, else Apple's GPU (MPS) if it is free, else the CPU.
 
+    The device planner (``openinterp/harness/devices.py``) decides if the GPU is free.
+    A process that uses MPS keeps a lease on it, so other processes see that it is busy.
     float32 activations on MPS match the CPU's to about 1e-4 of a neuron's peak. That is
     inside the tolerance of ``openinterp reproduce``.
     """
     import torch
 
-    if device != "auto":
-        return device
-    if torch.cuda.is_available():
-        return "cuda"
-    return "mps" if torch.backends.mps.is_available() else "cpu"
+    from openinterp.harness import devices
+
+    if device == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        plan = devices.planned()
+        if note := devices.notice():
+            click.echo(note, err=True)
+        device = plan.device
+    if device == "mps":
+        devices.take_lease("mps")
+    return device
 
 
 def _load_unit_runner(ident, device: str, dtype: str, revision: str | None = None):
@@ -120,7 +129,7 @@ model_options = [
         "--device",
         default="auto",
         show_default=True,
-        help="cpu, cuda, mps or auto (CUDA, else MPS, else CPU).",
+        help="cpu, cuda, mps or auto (CUDA, else MPS if no other job uses it, else CPU).",
     ),
     click.option(
         "--dtype",

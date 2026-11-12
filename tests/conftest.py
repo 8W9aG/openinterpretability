@@ -231,6 +231,18 @@ def _no_wordnet(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _idle_devices(tmp_path_factory, monkeypatch):
+    """The device planner sees no other jobs and an idle GPU, and keeps leases in tmp."""
+    from openinterp.harness import devices
+
+    monkeypatch.setenv(devices.LEASES_ENV, str(tmp_path_factory.mktemp("leases")))
+    monkeypatch.setattr(devices, "gpu_utilization", lambda *a, **k: 0.0)
+    devices.forget()
+    yield
+    devices.forget()
+
+
+@pytest.fixture(autouse=True)
 def _scan_cache(tmp_path_factory, monkeypatch):
     """Cache layer scans in a temporary directory, never the developer's real cache."""
     from openinterp.harness.layer_cache import ENV
