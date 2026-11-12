@@ -72,6 +72,8 @@ jobs:
           python scripts/check_data_files.py
           interrogate openinterp
           python scripts/check_markdown.py
+      - name: Shell scripts (ShellCheck)
+        run: make shell SHELLCHECK=shellcheck
       - name: Install Vale
         # A release binary, pinned and checked: Vale is a Go program, not a Python package.
         env:
