@@ -60,5 +60,5 @@ On the registry corpus, the 0.8 line labels 416 documents English and leaves 71 
 
 - **One label per document.** Mixed documents get their majority language at best: fastText picks it 78% of the time. A scan's tokens in a document's minority language are mislabelled. Labelling paragraphs or sentences would need spans and a per-span detector, and short spans are exactly where detection fails (the 50-character columns).
 - **The test languages are Wikipedia's.** Encyclopaedic prose in 16 languages is easier than web text. lid.176 covers 176 languages, but this note measured 16.
-- **Code is left out, not labelled.** Its programming language is a separate question (TODO, *Open question: can we detect programming languages in unlabelled corpora?*).
+- **Code is left out, not labelled.** `openinterp corpus --detect-code` labels its programming language with Magika (`docs/analyses/code-detection.md`).
 - **The registry's own corpus is not relabelled.** Adding `lang` to `corpus.jsonl` would change its bytes and SHA-256, which every record scanned on it pins. A labelled copy would be a new corpus, which is a decision for the registry, not for this tool.
