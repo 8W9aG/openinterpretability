@@ -2,7 +2,6 @@
 
 Papers and posts to review for the literature review (`TODO.md`, Protocol and science). Add new entries at the end. When an entry has a page in `docs/literature/`, remove it from this list.
 
-- Review "Recursive Language Models" (arXiv 2512.24601, [paper](https://arxiv.org/abs/2512.24601)).
 - Review "Conditional Memory via Scalable Lookup: A New Axis of Sparsity for Large Language Models" (arXiv 2601.07372, [paper](https://arxiv.org/pdf/2601.07372)).
 - Review Alex Wang's post on associative memory ([post](https://alexwang.ai/posts/associative-memory/)).
 - Review Sasha Rush's "Sampling to Reinforce" ([post](https://srush.github.io/sampling-to-reinforce/)).
