@@ -69,7 +69,7 @@ A scan's forward pass captures the whole layer, so `audit` caches every neuron's
 
 When the GPU is busy, the job runs on the CPU and says why. The CPU is 4–10× slower than a free GPU (`docs/analyses/ane-feasibility.md`). But two jobs on one GPU slow down each other, and once a training run that shared the GPU with `make test` gave wrong results. `--device mps` uses the GPU even when it is busy. A process plans once, and each model it loads uses the same device. The record's `environment.device` says which one ran.
 
-If the GPU fails during a command, for example because it is out of memory or has no kernel for an operation, the command runs again from the start on the CPU. It says why, and it runs in a new process, so none of the GPU's state stays. A command runs again only once (`$OPENINTERP_DEVICE_FORCE` marks the retry), and files that the first run wrote are written again.
+The GPU can fail during a command, for example when it is out of memory or has no kernel for an operation. Then the command runs again from the start on the CPU. It says why, and it runs in a new process, so none of the GPU's state stays. A command runs again only once (`$OPENINTERP_DEVICE_FORCE` marks the retry), and files that the first run wrote are written again.
 
 ## Memory
 
