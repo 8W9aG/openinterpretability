@@ -1,5 +1,7 @@
 # Open Interpretability
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
+
 `openinterp` is a decentralized, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
 The registry is published at **[open-interpretability.com](https://open-interpretability.com/)**: every experiment, unit, model and paper, with search and the Parquet export.
@@ -94,7 +96,7 @@ The code is under the MIT licence (`LICENSE`). The data (the records and pages u
 
 ## Citing
 
-To cite the registry or the package, use [CITATION.cff](CITATION.cff). GitHub shows it as "Cite this repository". Each release is archived on Zenodo with its own DOI, so a citation can name an exact version.
+To cite the registry or the package, use [CITATION.cff](CITATION.cff). GitHub shows it as "Cite this repository". The concept DOI, [10.5281/zenodo.24150022](https://doi.org/10.5281/zenodo.24150022), names every version and resolves to the latest. Each release is archived on Zenodo with its own DOI, so a citation can name an exact version.
 
 ## Status
 
