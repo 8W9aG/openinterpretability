@@ -24,8 +24,10 @@ class PushRecorder:
     is x̄·ΔW + Δb for one optimizer step, with x̄ the mean of the batch's MLP input.
     """
 
-    def __init__(self, model) -> None:
-        self.mlps = [block.mlp for block in model.transformer.h]
+    def __init__(self, model, mlps: list[nn.Module] | None = None) -> None:
+        # ``mlps`` is for a model that is not a GPT-2. Each must have GPT-2's ``c_fc``,
+        # ``act`` and ``c_proj``.
+        self.mlps = mlps if mlps is not None else [block.mlp for block in model.transformer.h]
         self.inputs: list[torch.Tensor | None] = [None] * len(self.mlps)
         self.before: list[tuple[torch.Tensor, torch.Tensor]] = []
         for i, mlp in enumerate(self.mlps):
