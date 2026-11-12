@@ -1,4 +1,4 @@
-.PHONY: install test lint markdown vale ste format check check-all stats build search-index sample-run serve loop clean
+.PHONY: install test lint markdown shell vale ste format check check-all stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -18,11 +18,21 @@ lint:
 	uv run python scripts/check_data_files.py
 	uv run interrogate openinterp
 	$(MAKE) markdown
+	$(MAKE) shell
 	$(MAKE) ste
 
 # Style and relative links of hand-written Markdown; see scripts/check_markdown.py.
 markdown:
 	uv run python scripts/check_markdown.py
+
+# Shell scripts, with ShellCheck. The shellcheck-py dev dependency ships the binary, so
+# `uv sync` installs it. git ls-files finds every tracked .sh file, so a new script is
+# checked without a change here. CI sets SHELLCHECK=shellcheck: its venv is already on PATH,
+# and `uv run` would sync the locked CUDA torch into it.
+SHELLCHECK ?= uv run shellcheck
+SHELL_PATHS ?= $(shell git ls-files -co --exclude-standard '*.sh')
+shell:
+	$(SHELLCHECK) $(SHELL_PATHS)
 
 # Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.

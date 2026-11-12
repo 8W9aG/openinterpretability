@@ -12,6 +12,7 @@ The project has two version numbers:
 ### Added
 
 - **Zenodo concept DOI** (`CITATION.cff`, `README.md`). Zenodo archived the 0.0.18 release. The concept DOI, 10.5281/zenodo.24150022, names every version. It is now `doi:` in `CITATION.cff`, and the README has its badge and names it in *Citing*.
+- **Shell linter** (`Makefile`, `.github/workflows/ci.yml`, `pyproject.toml`). `make shell` runs ShellCheck on every tracked `.sh` file. `make lint` and CI run it. The `shellcheck-py` dev dependency supplies the binary, so `uv sync` installs it. Both scripts pass already.
 
 ## [0.0.18] - 2026-11-11
 
