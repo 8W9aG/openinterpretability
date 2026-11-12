@@ -420,3 +420,13 @@ def test_a_retry_after_an_mps_failure_scans_on_the_ane(monkeypatch):
     monkeypatch.setattr(devices, "ane_possible", lambda: True)
     assert resolve_device("auto") == "cpu"
     assert devices.scans_on_ane()  # MPS, then the ANE, then the CPU
+
+
+def test_a_compile_that_takes_too_long_keeps_the_scan_on_torch(tiny_qwen2, monkeypatch, tmp_path):
+    import time
+
+    monkeypatch.setenv(backend.PREPARE_ENV, "0.01")  # 0.6 s
+    ane, _ = _ane(tiny_qwen2, monkeypatch, tmp_path, compiled=lambda *a: time.sleep(2))
+    reason = ane.prepare([10], 1, 64)
+    assert "took more than 0.01 minutes" in reason
+    assert ane.prepare([11], 1, 64) == reason  # not again in this process

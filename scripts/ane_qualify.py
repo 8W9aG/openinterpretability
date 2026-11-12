@@ -20,6 +20,7 @@ It prints one JSON line per layer, and the verdict. Results go to
 docs/analyses/ane-qualification.md.
 
     uv run python scripts/ane_qualify.py Qwen/Qwen2.5-0.5B --layers 4,20 --corpus corpus.jsonl
+    uv run python scripts/ane_qualify.py openai-community/gpt2 --layers 5,11 --window-tokens 512
 """
 
 from __future__ import annotations
@@ -158,6 +159,9 @@ def main() -> None:
     parser.add_argument("--layers", required=True, help="comma-separated, e.g. 4,20")
     parser.add_argument("--corpus", default="corpus.jsonl")
     parser.add_argument("--max-docs", type=int, default=0, help="0: every document")
+    parser.add_argument(
+        "--window-tokens", type=int, help="scan overlapping windows (for GPT-2's 1,024)"
+    )
     parser.add_argument("--out", help="also append each JSON line to this file")
     args = parser.parse_args()
     with open(args.corpus) as lines:
@@ -165,7 +169,7 @@ def main() -> None:
     texts = texts[: args.max_docs] if args.max_docs else texts
     runner = _load_runner(args.model, "mps", "float32")
     ane = AneScan(runner.model, args.model, runner.model_revision, cache.ConversionCache.default())
-    pieces = list(cut_pieces(runner.tokenizer, texts, None, None))
+    pieces = list(cut_pieces(runner.tokenizer, texts, args.window_tokens, None))
     results = [
         qualify_layer(ane, runner, args.model, pieces, int(n)) for n in args.layers.split(",")
     ]

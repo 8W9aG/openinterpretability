@@ -11,7 +11,10 @@ model with the layers and date of its passing run.
 from __future__ import annotations
 
 # Model name -> the layers that its qualification run checked, and the run's date.
-QUALIFIED: dict[str, tuple[tuple[int, ...], str]] = {}
+QUALIFIED: dict[str, tuple[tuple[int, ...], str]] = {
+    "openai-community/gpt2": ((5, 11), "2026-11-12"),  # with 512-token windows
+    "Qwen/Qwen2.5-0.5B": ((12, 20), "2026-11-12"),
+}
 
 
 def qualified(model_name: str) -> bool:

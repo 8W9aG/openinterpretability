@@ -16,8 +16,10 @@ measures its top candidates again on the torch device (``TopExamples.rescore`` i
 from __future__ import annotations
 
 import copy
+import os
 import shutil
 import tempfile
+import threading
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -42,6 +44,10 @@ if TYPE_CHECKING:
 NAME = "coreml-ane"  # recorded as the scan's backend
 SEQS = (128, 256, 512, 1024, 2048)
 SHAPE_TOKENS = 2048  # rows × seq of each shape, as BATCH_TOKENS
+PREPARE_ENV = "OPENINTERP_ANE_PREPARE_MINUTES"
+# The longest that a scan waits for its models to convert and compile, before it runs on
+# torch. A first compile can take minutes for each shape (Qwen2.5-0.5B: about 1-3 min).
+DEFAULT_PREPARE_MINUTES = 20.0
 # Peak memory of a conversion, as a multiple of the fp32 weights it converts. Measured:
 # 4.2 (GPT-2 L11), 3.1 (Qwen2.5-0.5B L23) and 2.5 (Qwen2.5-1.5B L14), with a margin.
 CONVERSION_OVERHEAD = 4.5
@@ -110,11 +116,36 @@ class AneScan:
         missing = any(not self._cached(layer, *shape) for shape in shapes)
         if missing and (short := self._memory_short(layer)):
             return short
-        try:
-            for shape in sorted(shapes):
-                self.compiled(layer, *shape)
-        except Exception as exc:  # any failure to convert: the scan runs on torch
-            return f"its conversion failed ({type(exc).__name__}: {exc})"
+        return self._ready_in_time(layer, sorted(shapes))
+
+    def _ready_in_time(self, layer: int, shapes: list) -> str | None:
+        """Load (and if needed convert) ``shapes`` within the time limit; else say why not.
+
+        The work runs on a background thread, because a call into Core ML can't be
+        stopped. If it takes longer than the limit, the ANE is not used again in this
+        process, and the scan runs on torch.
+        """
+        done, failed = threading.Event(), []
+
+        def work() -> None:
+            try:
+                for shape in shapes:
+                    self.compiled(layer, *shape)
+            except Exception as exc:  # any failure to convert: the scan runs on torch
+                failed.append(exc)
+            finally:
+                done.set()
+
+        threading.Thread(target=work, daemon=True, name="ane-prepare").start()
+        minutes = prepare_minutes()
+        if not done.wait(timeout=minutes * 60):
+            self.broken = (
+                f"converting and compiling for the ANE took more than {minutes:g} minutes "
+                f"(${PREPARE_ENV}); a later run tries again"
+            )
+            return self.broken
+        if failed:
+            return f"its conversion failed ({type(failed[0]).__name__}: {failed[0]})"
         return None
 
     def _cached(self, layer: int, rows: int, seq: int) -> bool:
@@ -275,3 +306,8 @@ def copy_to_layer(model, layer: int):
     finally:
         setattr(body, name, blocks)
         model.set_output_embeddings(head)
+
+
+def prepare_minutes() -> float:
+    """``$OPENINTERP_ANE_PREPARE_MINUTES``, else :data:`DEFAULT_PREPARE_MINUTES`."""
+    return float(os.environ.get(PREPARE_ENV) or DEFAULT_PREPARE_MINUTES)
