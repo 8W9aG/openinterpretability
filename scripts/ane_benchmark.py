@@ -25,6 +25,7 @@ The script has its own dependencies, so run it with uv, not in the project envir
 from __future__ import annotations
 
 import json
+import math
 import sys
 import tempfile
 import time
@@ -42,9 +43,18 @@ REPS = 5
 UNITS = ["CPU_ONLY", "CPU_AND_GPU", "CPU_AND_NE", "ALL"]
 
 
+def gelu_new(x: torch.Tensor) -> torch.Tensor:
+    """GPT-2's tanh GELU, the same as HF's ``gelu_new``, with ``x * x * x`` for ``pow(x, 3)``.
+
+    The ANE computes ``pow`` incorrectly (docs/analyses/ane-feasibility.md).
+    """
+    return 0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * x * x * x)))
+
+
 class ToLayer(torch.nn.Module):
     """GPT-2 or Qwen2 up to ``layer``. It returns the MLP activations of that layer.
 
+    It squares with ``x * x``, never ``pow``, because the ANE computes ``pow`` incorrectly.
     Two steps keep fp16 finite on Qwen2.5, where the residual stream gets to about 6,600.
     RMSNorm divides each row by its largest value before it squares the row. Attention
     scales q before ``q @ k^T``, because the products before scaling get to about 1e5.
@@ -71,7 +81,7 @@ class ToLayer(torch.nn.Module):
         """RMSNorm, the same as HF's, with no square larger than the row size."""
         peak = x.abs().amax(-1, keepdim=True).clamp_min(1e-6)
         s, e = x / peak, self.eps_root / peak
-        return weight * (s * torch.rsqrt(s.pow(2).mean(-1, keepdim=True) + e * e))
+        return weight * (s * torch.rsqrt((s * s).mean(-1, keepdim=True) + e * e))
 
     def rope(self, x: torch.Tensor) -> torch.Tensor:
         """Rotary position embedding, in HF's half-split layout."""
@@ -97,7 +107,7 @@ class ToLayer(torch.nn.Module):
         x = b.wte(ids) + b.wpe(torch.arange(SEQ, device=ids.device))
         for i, blk in enumerate(b.h[: self.layer + 1]):
             x = x + blk.attn.c_proj(self.attend(*blk.attn.c_attn(blk.ln_1(x)).chunk(3, -1)))
-            hidden = blk.mlp.act(blk.mlp.c_fc(blk.ln_2(x)))
+            hidden = gelu_new(blk.mlp.c_fc(blk.ln_2(x)))
             if i == self.layer:
                 return hidden
             x = x + blk.mlp.c_proj(hidden)
