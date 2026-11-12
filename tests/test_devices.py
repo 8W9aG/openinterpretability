@@ -99,6 +99,54 @@ def test_leases_can_be_turned_off(monkeypatch):
     assert devices.holders("mps") == []
 
 
+def _oom():
+    try:
+        raise RuntimeError("MPS backend out of memory (MPS allocated: 40 GB)")
+    except RuntimeError as inner:
+        raise ValueError("the scan failed") from inner
+
+
+def test_an_mps_error_in_a_process_on_mps_is_retried():
+    devices.take_lease("mps")
+    with pytest.raises(ValueError) as caught:
+        _oom()
+    assert devices.mps_failed(caught.value)  # found down the chain
+    assert not devices.mps_failed(RuntimeError("index out of range"))
+
+
+def test_no_retry_without_mps_or_twice(monkeypatch):
+    with pytest.raises(ValueError) as caught:
+        _oom()
+    assert not devices.mps_failed(caught.value)  # this process never ran on MPS
+    devices.take_lease("mps")
+    monkeypatch.setenv(devices.FORCE_ENV, "cpu")
+    assert not devices.mps_failed(caught.value)  # a retry already
+
+
+def test_a_retry_forces_every_model_onto_the_cpu(monkeypatch):
+    monkeypatch.setenv(devices.FORCE_ENV, "cpu")
+    assert resolve_device("auto") == "cpu" and resolve_device("mps") == "cpu"
+
+
+def test_main_runs_the_command_again_on_the_cpu(monkeypatch, capsys):
+    import openinterp.cli as cli_module
+
+    def failing(**_):
+        devices.take_lease("mps")
+        _oom()
+
+    calls = []
+    monkeypatch.setattr(cli_module, "cli", failing)
+    monkeypatch.setattr(
+        os, "execve", lambda *a: calls.append(a) or (_ for _ in ()).throw(SystemExit(0))
+    )
+    with pytest.raises(SystemExit):
+        cli_module.main()
+    (exe, argv, env) = calls[0]
+    assert exe == sys.executable and argv == sys.orig_argv and env[devices.FORCE_ENV] == "cpu"
+    assert "Running the command again on the CPU" in capsys.readouterr().err
+
+
 @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="needs Apple's GPU")
 def test_an_mps_scan_reproduces_on_the_cpu(tiny_gpt2):
     cpu = NeuronHookRunner(tiny_gpt2, FakeTokenizer())

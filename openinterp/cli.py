@@ -79,6 +79,10 @@ def resolve_device(device: str) -> str:
 
     from openinterp.harness import devices
 
+    if devices.forced():  # a retry after an MPS failure: scans on the ANE if they can be
+        if devices.ane_possible():
+            devices.force_ane()
+        return devices.forced()
     if device == "ane":  # scans on the ANE; the rest where the planner puts it
         devices.force_ane()
         device = "auto"
@@ -447,11 +451,20 @@ from openinterp import (  # noqa: E402, F401
 
 
 def main() -> None:
-    """The console entry point: run the CLI, and turn an ``OpenInterpError`` into a message."""
+    """The console entry point: run the CLI, and turn an ``OpenInterpError`` into a message.
+
+    If the GPU (MPS) fails, it runs the command again on the CPU (``harness/devices.py``).
+    """
+    from openinterp.harness import devices
+
     try:
         cli(standalone_mode=True)
     except OpenInterpError as exc:
         raise SystemExit(f"error: {exc}") from exc
+    except Exception as exc:
+        if devices.mps_failed(exc):
+            devices.rerun_on_cpu(exc)
+        raise
 
 
 if __name__ == "__main__":

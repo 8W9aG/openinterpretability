@@ -78,6 +78,8 @@ The CPU is 4–10× slower than a free GPU, and the ANE is 1.5–1.7× slower (`
 
 Before a scan runs on the ANE, its model is converted to Core ML and compiled, once per layer and input shape. That takes 5–50 s, and the ANE's own compile when it first loads the model takes 10–35 s more. So converted models stay in `~/.cache/openinterp/coreml` (`$OPENINTERP_COREML_CACHE`, `off` to disable), capped at 20 GB (`$OPENINTERP_COREML_CACHE_GB`), least recently used first. An entry is keyed by the model, its revision, the layer and the shape. It is also keyed by a hash of the conversion code, the coremltools and torch versions, and the macOS version and chip. So a model update, a change to the conversion code or a macOS update builds new entries. A new entry is loaded once at its final path, because macOS keeps the ANE's compile by path. Then it is checked against fp32 on a test batch, and an entry more than 3% off is removed and not used. A GPT-2 layer is about 150 MB.
 
+If the GPU fails during a command, for example because it is out of memory or has no kernel for an operation, the command runs again from the start on the CPU. It says why, and it runs in a new process, so none of the GPU's state stays. A command runs again only once (`$OPENINTERP_DEVICE_FORCE` marks the retry), and files that the first run wrote are written again.
+
 ## Memory
 
 The weights set the floor, and what a scan or a review adds on top of them is small. These are peak memory footprints, measured with macOS `/usr/bin/time -l` on CPU in float32. The scan is the default 200,000-token `audit` scan, and the review is `openinterp reproduce` of one record.
