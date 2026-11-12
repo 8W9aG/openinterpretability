@@ -14,6 +14,7 @@ from openinterp.blends import (
     BLEND_ALIASES,
     BLENDS,
     NO_CODE_LANGUAGE,
+    NO_DETECTION,
     NOT_BLENDED,
     blend_shares,
     build_blend,
@@ -253,7 +254,9 @@ def test_cli_uses_the_presets_settings(
 
     def fake_build(dataset, out, **kw):
         calls.update(kw, dataset=dataset)
-        return SimpleNamespace(documents=kw["documents"], license="odc-by", lang_detector=None)
+        return SimpleNamespace(
+            documents=kw["documents"], license="odc-by", lang_detector=None, code_detector=None
+        )
 
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", preset, "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
@@ -273,7 +276,7 @@ def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_pat
 
     def fake_build(dataset, out, **kw):
         calls.update(kw)
-        return SimpleNamespace(documents=3, license=None, lang_detector="d")
+        return SimpleNamespace(documents=3, license=None, lang_detector="d", code_detector=None)
 
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
     out = ["--docs", "3", "--out", str(tmp_path / "c.jsonl")]
@@ -282,6 +285,22 @@ def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_pat
     assert (calls["detect_lang"], calls["lang_pattern"]) == (True, None)
     both = CliRunner().invoke(cli, [*args, "--lang-pattern", "x"])
     assert both.exit_code != 0 and "both set the languages" in both.output
+
+
+def test_cli_detect_code_reaches_the_builder_but_not_for_exact_languages(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_build(dataset, out, **kw):
+        calls.update(kw)
+        return SimpleNamespace(documents=3, license=None, lang_detector=None, code_detector="d")
+
+    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    out = ["--docs", "3", "--out", str(tmp_path / "c.jsonl")]
+    result = CliRunner().invoke(cli, ["corpus", "--dataset", "pile-10k", *out, "--detect-code"])
+    assert result.exit_code == 0 and calls["detect_code"] is True
+    assert "Programming languages detected by d" in result.output
+    exact = CliRunner().invoke(cli, ["corpus", "--dataset", "github-code", *out, "--detect-code"])
+    assert exact.exit_code != 0 and "exact programming languages" in exact.output
 
 
 def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
@@ -302,7 +321,8 @@ def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
         "github-code": 55, "wikipedia-multilingual": 55, "open-web-math": 37, "ultrachat": 37,
         "fineweb-2": 55,
     }  # fmt: skip
-    assert blend_shares("mixed", 500) == blend_shares("mixed-v6", 500) == {
+    assert BLENDS["mixed-v7"] == BLENDS["mixed-v6"]
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v7", 500) == {
         "fineweb-edu": 69, "c4": 69, "pile-uncopyrighted": 69, "wikitext": 35,
         "github-code": 52, "wikipedia-multilingual": 52, "open-web-math": 35, "ultrachat": 34,
         "fineweb-2": 51, "pes2o": 34,
@@ -374,6 +394,7 @@ def test_a_blend_concatenates_its_presets_samples_and_labels_their_source(
         Preset("org/wiki", "1.en/*.parquet,1.de/*.parquet", lang_pattern=r"^1\.(\w+)/"),
     )
     monkeypatch.setitem(BLENDS, "test-v1", {"web": 2, "wiki": 1})
+    monkeypatch.setattr("openinterp.blends.NO_DETECTION", {"test-v1"})
 
     out = tmp_path / "mixed.jsonl"
     source = build_blend("test-v1", out, documents=9, seed=3, max_chars=99)
@@ -432,6 +453,9 @@ def test_rebuild_pins_a_datasets_source(monkeypatch, tmp_path):
     assert rebuild(source, tmp_path / "c.jsonl").sha256 == source.sha256
     assert (calls["first_arg"], calls["revision"], calls["text_column"]) == ("org/a", "r1", "q,a")
     assert (calls["seed"], calls["detect_lang"], calls["first"]) == (7, True, True)
+    assert calls["detect_code"] is False
+    rebuild(_source(code_detector="magika"), tmp_path / "c.jsonl")
+    assert calls["detect_code"] is True
 
 
 def test_rebuild_pins_each_part_of_a_blend(monkeypatch, tmp_path):
@@ -520,6 +544,7 @@ def test_cli_builds_the_mixed_blend_by_default(monkeypatch, tmp_path):
     def fake_blend(name, out, **kw):
         calls.update(kw, name=name)
         return SimpleNamespace(documents=kw["documents"], license=None, lang_detector=None,
+                               code_detector=None,
                                components=[])  # fmt: skip
 
     monkeypatch.setattr("openinterp.blends.build_blend", fake_blend)
@@ -687,6 +712,7 @@ def code_blend(monkeypatch, code_shards):
     for name in ("test-v1", "test-v2"):
         monkeypatch.setitem(BLENDS, name, {"code": 1, "prose": 1})
     monkeypatch.setattr("openinterp.blends.NO_CODE_LANGUAGE", {"test-v1"})
+    monkeypatch.setattr("openinterp.blends.NO_DETECTION", {"test-v1", "test-v2"})
 
 
 def test_a_blend_records_code_languages_and_its_older_version_stays_without(code_blend, tmp_path):
@@ -705,6 +731,32 @@ def test_a_blend_records_code_languages_and_its_older_version_stays_without(code
     assert "code_language" not in old.read_text()
     kept = [{k: v for k, v in r.items() if k != "code_language"} for r in rows]
     assert [json.loads(line) for line in old.read_text().splitlines()] == kept
+
+
+def test_a_blend_detects_only_the_labels_a_part_lacks(code_blend, tmp_path, monkeypatch):
+    from openinterp import codeid, langid
+
+    monkeypatch.setattr(langid, "detect", lambda texts: ["en"] * len(texts))
+    monkeypatch.setattr(langid, "DETECTOR", "fake lid")
+    monkeypatch.setattr(codeid, "detect", lambda texts: ["Python"] * len(texts))
+    monkeypatch.setattr(codeid, "detector", lambda: "fake magika")
+    monkeypatch.setitem(BLENDS, "test-v3", {"code": 1, "prose": 1})
+    plain, detected = tmp_path / "v2.jsonl", tmp_path / "v3.jsonl"
+    build_blend("test-v2", plain, documents=4, seed=1, max_chars=9)
+    source = build_blend("test-v3", detected, documents=4, seed=1, max_chars=9)
+
+    rows = [json.loads(line) for line in detected.read_text().splitlines()]
+    assert all(r["code_language"].startswith("lang") for r in rows[:2])  # exact, kept
+    assert [r["code_language"] for r in rows[2:]] == ["Python", "Python"]
+    assert [r["lang"] for r in rows] == ["en"] * 4
+    code, prose = source.components
+    assert (code.code_detector, code.lang_detector) == (None, "fake lid")
+    assert (prose.code_detector, prose.lang_detector) == ("fake magika", "fake lid")
+    assert "Python" not in plain.read_text() and '"en"' not in plain.read_text()
+
+
+def test_released_blends_keep_their_bytes_without_detection():
+    assert {"mixed-v1", "mixed-v6"} <= NO_DETECTION and "mixed-v7" not in NO_DETECTION
 
 
 def test_released_mixed_v1_keeps_its_bytes_and_mixed_v2_its_mix():
@@ -783,7 +835,9 @@ def test_cli_chat_presets_take_their_template_unless_told_another(monkeypatch, t
 
     def fake_build(dataset, out, **kw):
         calls.update(kw, dataset=dataset)
-        return SimpleNamespace(documents=kw["documents"], license="mit", lang_detector=None)
+        return SimpleNamespace(
+            documents=kw["documents"], license="mit", lang_detector=None, code_detector=None
+        )
 
     monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", "ultrachat", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
