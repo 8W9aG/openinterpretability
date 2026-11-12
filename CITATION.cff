@@ -1,7 +1,7 @@
 # How to cite the registry. GitHub shows it as "Cite this repository", and Zenodo reads it
 # when it archives a GitHub release. The version and release date are not kept here:
-# Zenodo takes them from each release, and gives each release its own DOI. When the
-# Zenodo integration is on, add the concept DOI (it names every version) as `doi:`.
+# Zenodo takes them from each release, and gives each release its own DOI. `doi` is
+# the concept DOI, which names every version.
 # Zenodo takes one licence only: a list makes it fail with "Citation metadata load
 # failed". So `license` names the code's licence, and the abstract names the data's.
 cff-version: 1.2.0
@@ -10,6 +10,7 @@ message: >-
   it as below. To name an exact version, cite the Zenodo DOI of that release.
 title: "Open Interpretability: an agent-audited registry of native neurons in open-weight models"
 type: software
+doi: 10.5281/zenodo.24150022
 authors:
   - given-names: Will
     family-names: Sackfield

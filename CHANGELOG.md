@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **Zenodo concept DOI** (`CITATION.cff`, `README.md`). Zenodo archived the 0.0.18 release. The concept DOI, 10.5281/zenodo.24150022, names every version. It is now `doi:` in `CITATION.cff`, and the README has its badge and names it in *Citing*.
+
 ## [0.0.18] - 2026-11-11
 
 Ships with protocol version **0.8**.
