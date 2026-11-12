@@ -35,26 +35,94 @@ from pathlib import Path
 import coremltools as ct
 import numpy as np
 import torch
-import torch.nn.functional as F
 from transformers import AutoModelForCausalLM
 
 BATCH, SEQ = 8, 256  # 2,048 tokens, as the scan's BATCH_TOKENS
 REPS = 5
 UNITS = ["CPU_ONLY", "CPU_AND_GPU", "CPU_AND_NE", "ALL"]
+WEIGHT_RMS = 0.25  # what rescale_projections scales each weight matrix's RMS to
+OUTPUT_PEAK = 16384.0  # largest scaled output it permits: a quarter of fp16's largest
 
 
 def gelu_new(x: torch.Tensor) -> torch.Tensor:
-    """GPT-2's tanh GELU, the same as HF's ``gelu_new``, with ``x * x * x`` for ``pow(x, 3)``.
+    """GPT-2's tanh GELU, the same as HF's ``gelu_new``, in a form the ANE computes accurately.
 
-    The ANE computes ``pow`` incorrectly (docs/analyses/ane-feasibility.md).
+    It uses ``x * x * x`` for ``pow(x, 3)``, and ``1 / (1 + exp(-2z))`` for
+    ``0.5 * (1 + tanh(z))``. The ANE computes ``pow`` incorrectly, and its ``tanh`` is
+    a coarse approximation (docs/analyses/ane-feasibility.md).
     """
-    return 0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * x * x * x)))
+    z = math.sqrt(2.0 / math.pi) * (x + 0.044715 * x * x * x)
+    return x / (1.0 + torch.exp(-2.0 * z))
+
+
+def swiglu(gate: torch.Tensor, up: torch.Tensor) -> torch.Tensor:
+    """``silu(gate) * up``, in a form the ANE computes accurately.
+
+    The ANE's ``silu`` and ``sigmoid`` are approximate: 2% error on Qwen2.5's MLP. If
+    ``exp`` overflows, the result is 0, which is the correct limit.
+    """
+    return gate * up / (1.0 + torch.exp(-gate))
+
+
+class Rescaled(torch.nn.Module):
+    """``inner(x) / scale``, with the weight and bias of ``inner`` multiplied by ``scale``.
+
+    ``scale`` is a power of two, so the result is the same in fp32. On the ANE, a matmul
+    whose products ``x * w`` are very small loses precision. A larger weight prevents that.
+    """
+
+    def __init__(self, inner: torch.nn.Module, scale: float):
+        super().__init__()
+        self.inner, self.scale = inner, scale
+        with torch.no_grad():
+            inner.weight.mul_(scale)
+            if inner.bias is not None:
+                inner.bias.mul_(scale)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """The output of ``inner`` before the weights were scaled."""
+        return self.inner(x) / self.scale
+
+
+def rescale_projections(net: torch.nn.Module, blocks: torch.nn.ModuleList) -> None:
+    """Wrap each projection in ``blocks`` in :class:`Rescaled`.
+
+    The scale makes the RMS of the weights about ``WEIGHT_RMS``. One fp32 pass on random
+    tokens measures each output's peak, and the scale stays small enough that the scaled
+    peak is at most ``OUTPUT_PEAK``. That keeps a margin below fp16's largest value.
+    """
+    projections = {
+        path: mod
+        for path, mod in blocks.named_modules()
+        if type(mod).__name__ in ("Linear", "Conv1D")
+    }
+    peaks: dict[str, float] = {}
+    hooks = [
+        mod.register_forward_hook(
+            lambda _m, _a, out, p=path: peaks.__setitem__(p, float(out.abs().max()))
+        )
+        for path, mod in projections.items()
+    ]
+    with torch.no_grad():
+        net(torch.randint(0, 50000, (BATCH, SEQ), generator=torch.Generator().manual_seed(1)))
+    for hook in hooks:
+        hook.remove()
+    for path, mod in projections.items():
+        if path not in peaks:  # after the layer the run returns
+            continue
+        rms = float(mod.weight.pow(2).mean().sqrt())
+        scale = 2.0 ** round(math.log2(WEIGHT_RMS / rms))
+        while scale > 1 and peaks[path] * scale > OUTPUT_PEAK:
+            scale /= 2
+        parent, attr = path.rsplit(".", 1)
+        setattr(blocks.get_submodule(parent), attr, Rescaled(mod, scale))
 
 
 class ToLayer(torch.nn.Module):
     """GPT-2 or Qwen2 up to ``layer``. It returns the MLP activations of that layer.
 
     It squares with ``x * x``, never ``pow``, because the ANE computes ``pow`` incorrectly.
+    Each projection is wrapped in :class:`Rescaled` (see :func:`rescale_projections`).
     Two steps keep fp16 finite on Qwen2.5, where the residual stream gets to about 6,600.
     RMSNorm divides each row by its largest value before it squares the row. Attention
     scales q before ``q @ k^T``, because the products before scaling get to about 1e5.
@@ -76,6 +144,7 @@ class ToLayer(torch.nn.Module):
             angles = torch.outer(torch.arange(SEQ).float(), inv).repeat(1, 2)
             self.register_buffer("cos", angles.cos())
             self.register_buffer("sin", angles.sin())
+        rescale_projections(self, self.body.h if self.gpt2 else self.body.layers)
 
     def rms(self, x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
         """RMSNorm, the same as HF's, with no square larger than the row size."""
@@ -120,7 +189,7 @@ class ToLayer(torch.nn.Module):
             h = self.rms(x, blk.input_layernorm.weight)
             x = x + at.o_proj(self.attend(at.q_proj(h), at.k_proj(h), at.v_proj(h)))
             h = self.rms(x, blk.post_attention_layernorm.weight)
-            hidden = F.silu(mlp.gate_proj(h)) * mlp.up_proj(h)
+            hidden = swiglu(mlp.gate_proj(h), mlp.up_proj(h))
             if i == self.layer:
                 return hidden
             x = x + mlp.down_proj(hidden)
