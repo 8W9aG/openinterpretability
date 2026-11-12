@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.17] - 2026-11-11
+
+Ships with protocol version **0.8**.
+
 ### Added
 
 - **Scientific papers, and `mixed-v6`, which `mixed` now names** (`openinterp corpus --dataset pes2o`, from TODO, Datasets). The `pes2o` preset samples peS2o v2 (`allenai/peS2o`, ODC-By), papers from Semantic Scholar, through the Hub's Parquet conversion. Half its documents are abstracts with their titles. Half are full texts, with section headings and in-text citations. The conversion's train split holds only abstracts, so the full texts come from its validation split (41,032 papers). A cold sample of 34 documents takes 12 s. `mixed-v6` is `mixed-v5` plus `pes2o` at the weight of `wikitext`, so the blend has academic prose and citations, which FineWeb-Edu has little of.
@@ -32,6 +36,21 @@ The project has two version numbers:
 - **The site builds in about a seventh of the time** (from TODO, Performance). A full `openinterp build` took 4 min 42 s on an M-series Mac. With its caches filled, it now takes about 40 s, and Pagefind about 20 s more. The unit pages render in one worker process per CPU, where the platform can fork (`openinterp build --jobs`, `builder/parallel.py`). The two Parquet exports run in forked processes while the pages render. The token heatmaps and their tables of values are built in Python, with short markup, so the site shrinks from 1.6 GB to 1.1 GB. The build keeps the personal-data matches of each text on disk (`~/.cache/openinterp/pii`, `OPENINTERP_PII_CACHE`). It also keeps the significance of each record (`~/.cache/openinterp/build`, `OPENINTERP_BUILD_CACHE`). So a build searches only new text, and the deploy keeps the matches between runs. The scrub skips lists of numbers. The sister graphs no longer depend on Python's hash seed, so the deploy no longer uploads unchanged model pages. The `build` command moved to `cli_build.py`, and a page's aligned latents to `builder/aligned.py`.
 
 - **A neuron whose scans all stopped counts as studied** (from TODO, Pipeline). A scan stops on a pole that is dead or default-on, so the pole gets no experiment. Before, such a neuron counted as unexplored on the site, and only a pole that the weights prove dead counted as verified. Now the neuron counts as studied in the home page's total, in each model's coverage and in each layer's count. The layer map and the pieces bars show it as STOPPED, in grey, with no link. The planner counts it as covered, so `openinterp next` reports it. A proven-dead pole still counts as verified. On the registry at the time, 353 GPT-2 neurons changed from unexplored to studied, so GPT-2's studied neurons went from 665 to 1,018. The pieces bars moved to `builder/pieces.py`, and stopped neurons are in `builder/stopped.py`.
+
+- **The sister search covers the poles VERIFIED since 0.0.16** (`docs/analyses/sister-neurons.jsonl`, 2026-11-11). It adds 40 rows and 9 sisters. By pair, the rows and sisters are:
+  - Qwen2.5-0.5B → Qwen2.5-1.5B: 4 rows, 1 sister.
+  - Qwen2.5-0.5B → GPT-2: 4 rows, 0 sisters.
+  - Qwen2.5-1.5B → Qwen2.5-0.5B: 6 rows, 2 sisters.
+  - Qwen2.5-1.5B → GPT-2: 6 rows, 1 sister.
+  - GPT-2 → Qwen2.5-0.5B: 10 rows, 3 sisters.
+  - GPT-2 → Qwen2.5-1.5B: 10 rows, 2 sisters.
+
+  The strongest are GPT-2 L9/N340+ → Qwen2.5-0.5B L20/N2412+ (r = 0.81), GPT-2 L0/N137+ → Qwen2.5-0.5B L0/N775− (0.80) and GPT-2 L9/N340+ → Qwen2.5-1.5B L24/N2075+ (0.72). Each new sister is now a `sister` draw. One run in a single process grew to 57 GB on a 64 GB Mac and stalled in swap on the last pair. A fresh process finished that pair at a peak of 36 GB.
+
+### Fixed
+
+- **`filelock` is upgraded to 4.2.10, which closes 13 Dependabot alerts** (#2840). The locked 3.32.7 had 1 high, 9 medium and 3 low advisories, all fixed in 4.2.1. Only `uv.lock` changes. `litellm` 1.106 required `filelock<4.0`, so `litellm` moves to 1.109.0, which needs `certifi` 2026.10.23.
+- **Both open code scanning alerts are resolved** (#2842). The User-Agent test in `tests/test_crossref.py` now parses the repo URL and checks its hostname, not a substring. The CodeQL alert on `ste-lint.py`'s HTML comment pattern is dismissed as a false positive. CommonMark ends a comment block at `-->` only, and a code comment now says so.
 
 ## [0.0.16] - 2026-11-10
 
