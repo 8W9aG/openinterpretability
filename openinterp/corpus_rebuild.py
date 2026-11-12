@@ -81,6 +81,7 @@ def _build(source: CorpusSource, out: Path) -> CorpusSource:
         lang_pattern=source.lang_pattern,
         detect_lang=source.lang_detector is not None,
         code_language_column=source.code_language_column,
+        detect_code=source.code_detector is not None,
         chat_template=source.chat_template,
         chat_template_revision=source.chat_template_revision,
     )

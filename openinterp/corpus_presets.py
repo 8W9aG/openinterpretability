@@ -42,6 +42,16 @@ FINEWEB2_LANGUAGES = {
     "ell_Grek": "el", "tam_Taml": "ta",
 }  # fmt: skip
 
+# The values of the github-code preset's `language` column (the dataset card's list).
+# `openinterp corpus --detect-code` (openinterp.codeid) gives only these names too, so one
+# programming language has one label in exact and detected corpora.
+GITHUB_CODE_LANGUAGES = (
+    "Assembly", "Batchfile", "C", "C#", "C++", "CMake", "CSS", "Dockerfile", "FORTRAN",
+    "GO", "HTML", "Haskell", "Java", "JavaScript", "Julia", "Lua", "Makefile", "Markdown",
+    "PHP", "Perl", "PowerShell", "Python", "Ruby", "Rust", "SQL", "Scala", "Shell", "TeX",
+    "TypeScript", "Visual Basic",
+)  # fmt: skip
+
 PRESETS = {
     # Clean, educational web text (FineWeb filtered by an educational-quality classifier),
     # closer to recent models' pretraining mix than the Pile. ODC-By: attribute excerpts.
