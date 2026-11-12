@@ -2,6 +2,8 @@
 # when it archives a GitHub release. The version and release date are not kept here:
 # Zenodo takes them from each release, and gives each release its own DOI. When the
 # Zenodo integration is on, add the concept DOI (it names every version) as `doi:`.
+# Zenodo takes one licence only: a list makes it fail with "Citation metadata load
+# failed". So `license` names the code's licence, and the abstract names the data's.
 cff-version: 1.2.0
 message: >-
   If you use the Open Interpretability registry or the openinterp package, please cite
@@ -19,13 +21,12 @@ abstract: >-
   neuron (or one attention head or dictionary latent). A proposer agent writes a
   falsifiable hypothesis from the unit's top-activating examples, a reviewer agent writes
   adversarial probes, and the verdict comes from measuring those probes on the model, so
-  anyone with the weights can reproduce it.
+  anyone with the weights can reproduce it. The code is under the MIT licence. The data
+  (the records and pages under wiki/) is under CC-BY-4.0.
 keywords:
   - mechanistic interpretability
   - neurons
   - large language models
   - explanation scoring
   - reproducibility
-license:
-  - MIT
-  - CC-BY-4.0
+license: MIT
