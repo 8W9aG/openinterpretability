@@ -252,7 +252,9 @@ def test_the_record_names_the_scan_backend_when_the_ane_ran(tiny_gpt2):
     runner.scan_backend = FakeAne()
     assert _scan_environment(runner).scan_backend is None  # attached, not used
     runner.scan_backend.used = True
-    assert _scan_environment(runner).scan_backend == backend.NAME
+    env = _scan_environment(runner)
+    assert env.scan_backend == backend.NAME
+    assert env.coremltools_version == backend.convert.version()
 
 
 # -- the planner's ANE tier --------------------------------------------------

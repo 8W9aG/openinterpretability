@@ -287,7 +287,10 @@ def _scan_environment(runner):
     environment = run_environment(runner)
     backend = getattr(runner, "scan_backend", None)
     if backend is not None and backend.used:
-        environment = environment.model_copy(update={"scan_backend": backend.name})
+        from openinterp.harness.ane import convert
+
+        update = {"scan_backend": backend.name, "coremltools_version": convert.version()}
+        environment = environment.model_copy(update=update)
     return environment
 
 

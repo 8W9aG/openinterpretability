@@ -202,6 +202,20 @@ def _running(pid: int) -> bool:
     return True
 
 
+_choice: str | None = None  # how this process chose its device, for the record
+
+
+def note_choice(text: str) -> None:
+    """Record how this process chose its device (``RunEnvironment.device_choice``)."""
+    global _choice
+    _choice = text
+
+
+def choice() -> str | None:
+    """How this process chose its device, or None if nothing chose it (e.g. in a test)."""
+    return _choice
+
+
 _planned: DevicePlan | None = None
 _noticed = False
 _forced_ane = False
@@ -248,8 +262,8 @@ def ane_possible() -> bool:
 
 def forget() -> None:
     """Make the next :func:`planned` plan again (for tests)."""
-    global _planned, _noticed, _forced_ane, _start_checked
-    _planned, _noticed, _forced_ane, _start_checked = None, False, False, False
+    global _planned, _noticed, _forced_ane, _start_checked, _choice
+    _planned, _noticed, _forced_ane, _start_checked, _choice = None, False, False, False, None
     _used.clear()
 
 

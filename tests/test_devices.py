@@ -188,3 +188,50 @@ def test_a_first_mps_operation_that_fails_is_reported_at_once(monkeypatch):
 @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="needs Apple's GPU")
 def test_a_working_gpu_starts_in_time():
     assert devices._probe_mps(60) is None
+
+
+# -- what the record says about the device ------------------------------------
+
+
+def _environment(tiny_gpt2):
+    from openinterp.harness.environment import run_environment
+    from openinterp.harness.hooks import NeuronHookRunner
+
+    return run_environment(NeuronHookRunner(tiny_gpt2, FakeTokenizer()))
+
+
+def test_the_record_names_the_hardware_and_the_os(tiny_gpt2):
+    env = _environment(tiny_gpt2)
+    assert env.device == "cpu" and env.device_name and env.os
+    assert "pid" not in env.os.lower()  # nothing personal: no hostname or user name
+
+
+@pytest.mark.parametrize(
+    ("asked", "holders", "choice"),
+    [
+        ("auto", [], "auto: mps, because the GPU is free"),
+        ("auto", [41], "auto: cpu, because another openinterp job uses the GPU (process 41)"),
+        ("cpu", [], "--device cpu"),
+    ],
+)
+def test_the_record_says_how_the_device_was_chosen(monkeypatch, tiny_gpt2, asked, holders, choice):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    monkeypatch.setattr(devices, "holders", lambda device: holders if device == "mps" else [])
+    resolve_device(asked)
+    assert _environment(tiny_gpt2).device_choice == choice
+
+
+def test_a_retry_and_a_stuck_gpu_are_recorded(monkeypatch, tiny_gpt2):
+    monkeypatch.setenv(devices.FORCE_ENV, "cpu")
+    resolve_device("auto")
+    assert _environment(tiny_gpt2).device_choice == "cpu: a retry after the GPU failed"
+    monkeypatch.delenv(devices.FORCE_ENV)
+    devices.forget()
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(devices, "mps_stuck", lambda: "the GPU (MPS) didn't start in 120 s")
+    resolve_device("mps")
+    assert (
+        _environment(tiny_gpt2).device_choice
+        == "mps: cpu, because the GPU (MPS) didn't start in 120 s"
+    )
