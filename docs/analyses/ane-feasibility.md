@@ -12,7 +12,7 @@ Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It answers the Performance
 - **Two changes keep fp16 finite on Qwen2.5,** on every device:
   - The residual stream gets to about 6,600 (1.5B) and 1,700 (0.5B). RMSNorm squares it (6,600² ≈ 4 × 10⁷, but fp16's largest value is 65,504). HF's RMSNorm moves to fp32 for this step, which the ANE can't do. The copy divides each row by its largest value first. That is exact.
   - The k projections have large biases (|k| up to 220), so q·k gets to about 10⁵ before the 1/√d scale. The copy scales q first.
-- **Agreement.** The script compares each result with the fp32 CPU activations. It reports three figures: the relative RMS error over all values, the worst Pearson correlation over 64 neurons, and the overlap of neuron 0's top 20 tokens. The 64 neurons are spread across the layer. A separate check uses the tolerance of `openinterp reproduce`: 1e-3 × the neuron's peak + 1e-2 × the value.
+- **Agreement.** The script compares each result with the fp32 CPU activations. It reports three figures. They are the relative RMS error over all values, the worst Pearson correlation over 64 neurons, and the overlap of neuron 0's top 20 tokens. The 64 neurons are spread across the layer. A separate check uses the tolerance of `openinterp reproduce`: 1e-3 × the neuron's peak + 1e-2 × the value.
 - **Timing.** The median of 5 runs after a warm-up, with no other jobs on the machine. Timings changed by up to 2× between runs. Read them as rough.
 
 ## Making the ANE accurate
