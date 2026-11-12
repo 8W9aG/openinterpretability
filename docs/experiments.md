@@ -65,7 +65,7 @@ A scan's forward pass captures the whole layer, so `audit` caches every neuron's
 `--device auto`, the default, uses a CUDA GPU if there is one. On a Mac it uses Apple's GPU (MPS) only when the GPU is free, and else the CPU (`openinterp/harness/devices.py`). Two things make the GPU busy:
 
 - **Another `openinterp` job.** A process that runs a model on MPS keeps a lease, an empty file named for its process id in `~/.cache/openinterp/devices/mps/`. `$OPENINTERP_DEVICE_LEASES` moves the folder, and `off` turns leases off. A lease of a process that has stopped doesn't count.
-- **Other programs.** If no other job has a lease, the planner reads the GPU's utilization from `ioreg`. It takes the mean of 5 readings over about 2 s, because one reading can change from 0% to 50% in a second. Above 50% the GPU is busy (`$OPENINTERP_GPU_BUSY_PERCENT`). That threshold is provisional, until it is measured.
+- **Other programs.** If no other job has a lease, the planner reads the GPU's utilization from `ioreg`. It takes the mean of 5 readings over about 2 s, because one reading can change from 0% to 50% in a second. Above 50% the GPU is busy (`$OPENINTERP_GPU_BUSY_PERCENT`). An idle GPU reads about 1%, and one job 93–97% (`docs/analyses/device-contention.md`).
 
 When the GPU is busy, the order is MPS, then Apple's Neural Engine (ANE), then the CPU. The job says which it chose, and why:
 

@@ -38,7 +38,7 @@ LEASES_ENV = "OPENINTERP_DEVICE_LEASES"  # lease directory, or "off"
 # Set by the retry after an MPS failure: every model of the command loads on this device.
 FORCE_ENV = "OPENINTERP_DEVICE_FORCE"
 GPU_BUSY_ENV = "OPENINTERP_GPU_BUSY_PERCENT"
-# Provisional: replace it with the measured value when docs/experiments.md, Devices, has one.
+# Idle reads 1%, one job 93-97% (docs/analyses/device-contention.md).
 DEFAULT_GPU_BUSY_PERCENT = 50.0
 GPU_SAMPLES = 5
 GPU_SAMPLE_SECONDS = 0.4
