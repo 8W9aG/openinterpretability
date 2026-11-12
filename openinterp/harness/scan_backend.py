@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
+import click
 import torch
 
 from openinterp.harness.hooks import pole_strength
@@ -40,19 +41,48 @@ RESCORE_BATCH = 16  # pieces per forward pass when measuring again
 RESCORE_ROUNDS = 5  # rounds that add examples the selection would keep unmeasured
 
 
-def ane_scan(runner: NeuronHookRunner, pieces: Sequence[Piece]):
-    """The runner's ANE backend if it can run all of ``pieces``, else None."""
+def ane_scan(runner: NeuronHookRunner, pieces: Sequence[Piece], layer: int, batch_tokens: int):
+    """The runner's ANE backend, made ready for this scan, if it can run it; else None.
+
+    If it can't, it says why on stderr, once for each reason.
+    """
     backend = getattr(runner, "scan_backend", None)
     if backend is None or not pieces:
         return None
     every = runner.tokenizer([p.text for p in pieces], return_tensors="pt", padding=True)
     mask = every.get("attention_mask", torch.ones_like(every["input_ids"]))
-    return backend if backend.why_not(mask.sum(1).tolist()) is None else None
+    reason = backend.prepare(mask.sum(1).tolist(), layer, batch_tokens)
+    if reason is None:
+        return backend
+    if reason not in backend.noted:
+        backend.noted.add(reason)
+        click.echo(f"This scan runs on {runner.device.type}, not the ANE: {reason}.", err=True)
+    return None
 
 
-def scan_device(runner: NeuronHookRunner, pieces: Sequence[Piece]) -> str:
+class AneError(RuntimeError):
+    """The ANE failed during a scan. The scan is then done again on torch."""
+
+
+def with_ane_fallback(runner: NeuronHookRunner, run: Callable):
+    """``run()``; if the ANE fails during it, stop using the ANE and ``run()`` again.
+
+    The second run starts from nothing, so no partial result of the ANE is kept.
+    """
+    try:
+        return run()
+    except AneError as exc:
+        backend = runner.scan_backend
+        backend.broken = f"it failed during a scan ({exc.__cause__ or exc})"
+        click.echo(
+            f"The ANE failed, so this scan runs again on {runner.device.type}: {exc}", err=True
+        )
+        return run()
+
+
+def scan_device(runner: NeuronHookRunner, pieces: Sequence[Piece], layer, batch_tokens) -> str:
     """The device a scan of ``pieces`` runs on: the backend's name, or the runner's device."""
-    backend = ane_scan(runner, pieces)
+    backend = ane_scan(runner, pieces, layer, batch_tokens)
     return backend.name if backend is not None else runner.device.type
 
 
@@ -62,20 +92,22 @@ def forward_chunks(
     """``layer``'s chunks over ``pieces``, from the ANE if it can run them, else torch."""
     from openinterp.harness.scan import layer_chunks
 
-    backend = ane_scan(runner, pieces)
+    backend = ane_scan(runner, pieces, layer, batch_tokens)
     if backend is None:
         return layer_chunks(runner, pieces, layer, batch_tokens)
     backend.used = True
     return backend.chunks(runner, pieces, layer, batch_tokens)
 
 
-def rescore_scan(runner, pieces, layer: int, neuron_idx: int, poles, tops, ks) -> None:
+def rescore_scan(
+    runner, pieces, layer: int, neuron_idx: int, poles, tops, ks, batch_tokens
+) -> None:
     """Measure again the top candidates of each pole, if the scan's values are the ANE's.
 
     ``poles``, ``tops`` and ``ks`` are each pole, its :class:`TopExamples` and the number
     of examples it keeps.
     """
-    if ane_scan(runner, pieces) is None:
+    if ane_scan(runner, pieces, layer, batch_tokens) is None:
         return
     for pole, top, k in zip(poles, tops, ks, strict=True):
         rescore(top, _measure(runner, layer, neuron_idx, pole), k)

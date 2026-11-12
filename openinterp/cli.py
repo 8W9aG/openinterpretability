@@ -58,7 +58,8 @@ def _attach_ane(runner) -> None:
     if backend is None:
         click.echo(
             f"Scans run on {runner.device.type}: the ANE needs coremltools (Apple-silicon "
-            "Macs) and a GPT-2 or Qwen2 model loaded whole (docs/experiments.md, Devices).",
+            "Macs), and a model loaded whole that passed scripts/ane_qualify.py "
+            "(openinterp/harness/ane/qualified.py).",
             err=True,
         )
         return

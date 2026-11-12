@@ -43,7 +43,7 @@ from openinterp.harness.annotations import LabelPass, Tagger, TokenLabels
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.covariance import PartnerSearch
 from openinterp.harness.hooks import Inputs, NeuronHookRunner, pole_strength
-from openinterp.harness.scan_backend import forward_chunks, rescore_scan
+from openinterp.harness.scan_backend import forward_chunks, rescore_scan, with_ane_fallback
 
 if TYPE_CHECKING:
     from openinterp.harness.layer_cache import LayerCache
@@ -378,16 +378,18 @@ def scan_neuron(
         raise ValueError("scan_neuron requires a tokenizer")
     other: Pole = "negative" if pole == "positive" else "positive"
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
-    labels = LabelPass(runner.tokenizer, texts, taggers)
-    scan = _pole_pass(runner, pieces, layer, neuron_idx, (pole, other), batch_tokens, cache, labels)
+
+    def run():  # fresh accumulators, so a pass redone on torch starts from nothing
+        labels = LabelPass(runner.tokenizer, texts, taggers)
+        poles = (pole, other)
+        return labels, _pole_pass(
+            runner, pieces, layer, neuron_idx, poles, batch_tokens, cache, labels
+        )
+
+    labels, scan = with_ane_fallback(runner, run)
+    tops = (scan.top, scan.other_top)
     rescore_scan(
-        runner,
-        pieces,
-        layer,
-        neuron_idx,
-        (pole, other),
-        (scan.top, scan.other_top),
-        (k, opposite_k),
+        runner, pieces, layer, neuron_idx, (pole, other), tops, (k, opposite_k), batch_tokens
     )
     read, read_other = (_reader(runner, layer, neuron_idx, p) for p in (pole, other))
     tokens = labels.tokens

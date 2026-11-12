@@ -25,8 +25,15 @@ from typing import TYPE_CHECKING
 import torch
 
 from openinterp.harness.ane import convert
-from openinterp.harness.ane.cache import MAX_ERROR, ConversionCache, ConversionRejected, fields
+from openinterp.harness.ane.cache import (
+    MAX_ERROR,
+    META,
+    ConversionCache,
+    ConversionRejected,
+    fields,
+)
 from openinterp.harness.ane.forward import ToLayer, supported
+from openinterp.harness.ane.qualified import qualified
 
 if TYPE_CHECKING:
     from openinterp.harness.hooks import NeuronHookRunner
@@ -35,6 +42,8 @@ if TYPE_CHECKING:
 NAME = "coreml-ane"  # recorded as the scan's backend
 SEQS = (128, 256, 512, 1024, 2048)
 SHAPE_TOKENS = 2048  # rows × seq of each shape, as BATCH_TOKENS
+# Peak memory of a conversion, as a multiple of the fp32 weights it converts. Provisional.
+CONVERSION_OVERHEAD = 3.0
 
 
 def shape_for(length: int, longest: int) -> tuple[int, int] | None:
@@ -58,11 +67,18 @@ class AneScan:
         self._loaded: dict[tuple[int, int, int], object] = {}
         self._scratch: list[Path] = []
         self.used = False  # True once a scan ran on it
+        self.noted: set[str] = set()  # reasons already shown, so each shows once
+        self.broken: str | None = None  # why it may not run again in this process
+        self._decided: dict[tuple, str | None] = {}
 
     @classmethod
     def for_model(cls, model, model_name: str, revision: str | None) -> AneScan | None:
-        """An :class:`AneScan` for ``model``, or None if Core ML or the architecture is missing."""
-        if not convert.available() or not supported(model):
+        """An :class:`AneScan` for ``model``, or None if it can't or may not use the ANE.
+
+        It needs coremltools, a supported architecture, and a model that passed
+        qualification (``harness/ane/qualified.py``).
+        """
+        if not convert.available() or not supported(model) or not qualified(model_name):
             return None
         return cls(model, model_name, revision, ConversionCache.default())
 
@@ -72,12 +88,49 @@ class AneScan:
         context = getattr(cfg, "n_positions", None) or getattr(cfg, "max_position_embeddings", None)
         return min(SEQS[-1], context or SEQS[-1])
 
-    def why_not(self, lengths: Sequence[int]) -> str | None:
-        """Why it can't run pieces of these token lengths, or None if it can."""
-        too_long = max(lengths, default=0)
-        if too_long > self.longest():
+    def prepare(self, lengths: Sequence[int], layer: int, batch_tokens: int) -> str | None:
+        """Make ready every model a scan of pieces of these token lengths needs.
+
+        Return why the ANE can't run that scan, or None if it can. The answer is kept,
+        so every part of one scan (its cache key, its pass, its rescoring) agrees.
+        """
+        if self.broken:
+            return self.broken
+        key = (layer, batch_tokens, tuple(lengths))
+        if key not in self._decided:
+            self._decided[key] = self._prepare(lengths, layer, batch_tokens)
+        return self._decided[key]
+
+    def _prepare(self, lengths: Sequence[int], layer: int, batch_tokens: int) -> str | None:
+        shapes = needed_shapes(lengths, batch_tokens, self.longest())
+        if shapes is None:
+            too_long = max(lengths, default=0)
             return f"a piece has {too_long} tokens, more than the ANE's {self.longest()}"
+        missing = any(not self._cached(layer, *shape) for shape in shapes)
+        if missing and (short := self._memory_short(layer)):
+            return short
+        try:
+            for shape in sorted(shapes):
+                self.compiled(layer, *shape)
+        except Exception as exc:  # any failure to convert: the scan runs on torch
+            return f"its conversion failed ({type(exc).__name__}: {exc})"
         return None
+
+    def _cached(self, layer: int, rows: int, seq: int) -> bool:
+        if (layer, rows, seq) in self._loaded:
+            return True
+        key_fields = fields(self.model_name, self.revision, layer, rows, seq)
+        return self.cache is not None and (self.cache.path(key_fields) / META).exists()
+
+    def _memory_short(self, layer: int) -> str | None:
+        """Why a conversion to ``layer`` would not fit in free memory, or None."""
+        from openinterp.harness.memory import available_bytes
+
+        need = int(sum(p.numel() for p in _kept(self.model, layer)) * 4 * CONVERSION_OVERHEAD)
+        have = available_bytes("cpu")
+        if have is None or need <= have:
+            return None
+        return f"converting it needs about {need / 2**30:.1f} GB and {have / 2**30:.1f} GB is free"
 
     def chunks(
         self, runner: NeuronHookRunner, pieces: Sequence[Piece], layer: int, batch_tokens: int
@@ -86,26 +139,39 @@ class AneScan:
         from openinterp.harness.scan import Chunk, batches
 
         for batch in batches(runner, pieces, batch_tokens):
-            width = batch.ids.shape[1]
-            rows, seq = shape_for(width, self.longest()) or (0, 0)
-            if not rows:
-                raise ValueError(f"no ANE shape holds {width} tokens")
+            acts = self.batch_acts(batch, layer)
+            mask = batch.mask
+            yield Chunk(
+                pieces=batch.pieces,
+                lengths=mask.sum(1).tolist(),
+                ids=batch.ids[mask],
+                positions=batch.positions[mask],
+                counted=batch.counted[mask],
+                acts=acts[mask],
+            )
+
+    def batch_acts(self, batch, layer: int) -> torch.Tensor:
+        """``layer``'s activations on one scan batch, ``[pieces, width, d_mlp]`` in fp32.
+
+        The batch goes in the smallest shape that holds it, in parts of that shape's rows.
+        """
+        width = batch.ids.shape[1]
+        rows, seq = shape_for(width, self.longest()) or (0, 0)
+        if not rows:
+            raise ValueError(f"no ANE shape holds {width} tokens")
+        from openinterp.harness.scan_backend import AneError
+
+        try:
             model = self.compiled(layer, rows, seq)
+            parts = []
             for start in range(0, len(batch.pieces), rows):
-                part = slice(start, start + rows)
                 ids = torch.zeros((rows, seq), dtype=torch.long)
-                n = len(batch.pieces[part])
-                ids[:n, :width] = batch.ids[part]
-                acts = convert.predict(model, ids)[:n, :width]
-                mask = batch.mask[part]
-                yield Chunk(
-                    pieces=batch.pieces[part],
-                    lengths=mask.sum(1).tolist(),
-                    ids=batch.ids[part][mask],
-                    positions=batch.positions[part][mask],
-                    counted=batch.counted[part][mask],
-                    acts=acts[mask],
-                )
+                part = batch.ids[start : start + rows]
+                ids[: len(part), :width] = part
+                parts.append(convert.predict(model, ids)[: len(part), :width])
+        except Exception as exc:  # Core ML's errors have no common type
+            raise AneError(f"{type(exc).__name__}: {exc}") from exc
+        return torch.cat(parts)
 
     def compiled(self, layer: int, rows: int, seq: int):
         """The loaded Core ML model for ``layer`` and shape ``(rows, seq)``."""
@@ -125,7 +191,7 @@ class AneScan:
         state: dict[str, torch.Tensor] = {}
 
         def build(dest: Path) -> None:
-            source = copy.deepcopy(self.model).to("cpu", torch.float32)
+            source = copy_to_layer(self.model, layer).to("cpu", torch.float32)
             net = ToLayer(source, layer, rows, seq).eval()
             generator = torch.Generator().manual_seed(2)
             ids = torch.randint(0, net_vocab(source), (rows, seq), generator=generator)
@@ -161,3 +227,50 @@ class AneScan:
 def net_vocab(model) -> int:
     """The model's vocabulary size."""
     return int(model.config.vocab_size)
+
+
+def needed_shapes(lengths: Sequence[int], batch_tokens: int, longest: int) -> set | None:
+    """The ``(rows, seq)`` shapes that a scan's batches need, or None if one has none.
+
+    The batches are those of ``batches`` in ``harness/scan.py``: each is as wide as its
+    longest piece.
+    """
+    from openinterp.harness.scan import plan_batches
+
+    shapes, start = set(), 0
+    for size in plan_batches(list(lengths), batch_tokens):
+        shape = shape_for(max(lengths[start : start + size]), longest)
+        if shape is None:
+            return None
+        shapes.add(shape)
+        start += size
+    return shapes
+
+
+def _kept(model, layer: int) -> list:
+    """The parameters that a conversion to ``layer`` uses: embeddings and layers 0..layer."""
+    gpt2 = model.config.model_type == "gpt2"
+    body = model.transformer if gpt2 else model.model
+    blocks = body.h if gpt2 else body.layers
+    embeds = [body.wte, body.wpe] if gpt2 else [body.embed_tokens]
+    return [p for m in [*embeds, *blocks[: layer + 1]] for p in m.parameters()]
+
+
+def copy_to_layer(model, layer: int):
+    """A copy of ``model`` with only its embeddings and layers 0..``layer``.
+
+    It leaves out the later layers, the final norm and the output head, which
+    :class:`ToLayer` doesn't run. So a conversion copies only the weights it uses.
+    """
+    gpt2 = model.config.model_type == "gpt2"
+    body = model.transformer if gpt2 else model.model
+    name = "h" if gpt2 else "layers"
+    blocks = getattr(body, name)
+    head = model.get_output_embeddings()
+    setattr(body, name, torch.nn.ModuleList(blocks[: layer + 1]))
+    model.set_output_embeddings(torch.nn.Identity())
+    try:
+        return copy.deepcopy(model)
+    finally:
+        setattr(body, name, blocks)
+        model.set_output_embeddings(head)

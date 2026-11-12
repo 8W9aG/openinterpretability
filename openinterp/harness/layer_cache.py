@@ -157,7 +157,9 @@ class LayerCache:
             "model": model,
             "revision": getattr(runner, "model_revision", None),
             "dtype": str(next(runner.model.parameters()).dtype).removeprefix("torch."),
-            "device": scan_device(runner, pieces),  # the ANE's activations differ from torch's
+            "device": scan_device(
+                runner, pieces, layer, batch_tokens
+            ),  # the ANE's activations differ from torch's
             "torch": torch.__version__,
             "transformers": transformers_version,
             "layer": layer,

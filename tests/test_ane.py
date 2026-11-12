@@ -203,15 +203,17 @@ class FakeAne:
 
     name = backend.NAME
 
-    def __init__(self):
-        self.used = False
+    def __init__(self, fail_at=None):
+        self.used, self.noted, self.broken, self.fail_at = False, set(), None, fail_at
 
-    def why_not(self, lengths):
-        return None
+    def prepare(self, lengths, layer, batch_tokens):
+        return self.broken
 
     def chunks(self, runner, pieces, layer, batch_tokens):
         generator = torch.Generator().manual_seed(4)
-        for chunk in layer_chunks(runner, pieces, layer, batch_tokens):
+        for i, chunk in enumerate(layer_chunks(runner, pieces, layer, batch_tokens)):
+            if i == self.fail_at:
+                raise scan_backend.AneError("RuntimeError: E5 stream failed")
             noise = 1 + 0.01 * torch.randn(chunk.acts.shape, generator=generator)
             chunk.acts = chunk.acts * noise
             yield chunk
@@ -322,3 +324,90 @@ def test_an_idle_model_does_not_crash_the_process(tiny_qwen2, tmp_path, monkeypa
     )
     done = subprocess.run([sys.executable, "-c", script, str(path)], capture_output=True, text=True)
     assert done.returncode == 0 and done.stdout.strip() == "ok"
+
+
+# -- preparing a scan: shapes, memory and failures ---------------------------
+
+
+def test_the_shapes_a_scan_needs_follow_its_batches():
+    assert backend.needed_shapes([100, 120, 300], 2048, 2048) == {(8, 256)}
+    assert backend.needed_shapes([100] * 30, 2048, 2048) == {(16, 128)}
+    assert backend.needed_shapes([3000], 4096, 2048) is None
+
+
+def test_a_conversion_copies_only_the_layers_it_needs(tiny_qwen2):
+    copied = backend.copy_to_layer(tiny_qwen2, 0)
+    assert len(copied.model.layers) == 1 and len(tiny_qwen2.model.layers) == 2
+    assert isinstance(copied.get_output_embeddings(), torch.nn.Identity)
+    assert isinstance(tiny_qwen2.get_output_embeddings(), torch.nn.Linear)  # unchanged
+    ids = torch.randint(0, VOCAB, (2, 16), generator=torch.Generator().manual_seed(5))
+    with torch.no_grad():
+        small = forward.ToLayer(copied, 0, 2, 16)(ids)
+    assert torch.allclose(small, _hf_activations(tiny_qwen2, 0, ids), atol=1e-5, rtol=1e-4)
+
+
+def _ane(model, monkeypatch, tmp_path, compiled=None):
+    ane = backend.AneScan(model, "tiny", None, cache.ConversionCache(tmp_path))
+    monkeypatch.setattr(backend, "SEQS", (16, 32, 64))
+    monkeypatch.setattr(backend, "SHAPE_TOKENS", 64)
+    calls = []
+    monkeypatch.setattr(ane, "compiled", compiled or (lambda *a: calls.append(a)))
+    return ane, calls
+
+
+def test_a_conversion_that_wont_fit_in_memory_keeps_the_scan_on_torch(
+    tiny_qwen2, monkeypatch, tmp_path
+):
+    import openinterp.harness.memory as memory
+
+    monkeypatch.setattr(memory, "available_bytes", lambda device=None: 1000)
+    ane, calls = _ane(tiny_qwen2, monkeypatch, tmp_path)
+    reason = ane.prepare([10, 12], 1, 64)
+    assert "GB is free" in reason and calls == []
+    monkeypatch.setattr(ane, "_cached", lambda *a: True)  # nothing to convert: memory is moot
+    assert ane.prepare([10, 13], 1, 64) is None and calls == [(1, 4, 16)]
+
+
+def test_a_failed_conversion_keeps_the_scan_on_torch_and_says_why_once(
+    tiny_qwen2, monkeypatch, tmp_path, capsys
+):
+    def fail(*a):
+        raise cache.ConversionRejected("relative error 0.5")
+
+    ane, _ = _ane(tiny_qwen2, monkeypatch, tmp_path, compiled=fail)
+    runner = NeuronHookRunner(tiny_qwen2, FakeTokenizer())
+    runner.scan_backend = ane
+    pieces = list(cut_pieces(runner.tokenizer, TEXTS, None, None))
+    assert scan_backend.ane_scan(runner, pieces, 1, 64) is None
+    assert scan_backend.ane_scan(runner, pieces, 1, 64) is None
+    err = capsys.readouterr().err
+    assert err.count("not the ANE: its conversion failed") == 1
+
+
+def test_one_scan_gets_one_answer(tiny_qwen2, monkeypatch, tmp_path):
+    ane, calls = _ane(tiny_qwen2, monkeypatch, tmp_path)
+    assert ane.prepare([10], 1, 64) is None
+    monkeypatch.setattr(ane, "_prepare", lambda *a: "changed its mind")
+    assert ane.prepare([10], 1, 64) is None  # the cache key and the pass must agree
+
+
+def test_only_a_qualified_model_scans_on_the_ane(tiny_qwen2, monkeypatch):
+    from openinterp.harness.ane import qualified
+
+    monkeypatch.setattr(backend.convert, "available", lambda: True)
+    assert backend.AneScan.for_model(tiny_qwen2, "tiny", None) is None
+    monkeypatch.setitem(qualified.QUALIFIED, "tiny", ((1,), "2026-11-12"))
+    assert backend.AneScan.for_model(tiny_qwen2, "tiny", None) is not None
+
+
+def test_an_ane_failure_during_a_scan_redoes_it_on_torch(tiny_gpt2, capsys):
+    texts = [t * 3 for t in TEXTS] * 4
+    plain = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
+    ane = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
+    ane.scan_backend = FakeAne(fail_at=1)
+    exact = scan_neuron(plain, texts, 1, 2, "positive", k=5, batch_tokens=64)
+    got = scan_neuron(ane, texts, 1, 2, "positive", k=5, batch_tokens=64)
+    assert got.values == exact.values  # every value from torch: nothing kept from the ANE
+    assert [e.activations for e in got.examples] == [e.activations for e in exact.examples]
+    assert "it failed during a scan" in ane.scan_backend.broken
+    assert "The ANE failed, so this scan runs again on cpu" in capsys.readouterr().err
