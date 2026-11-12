@@ -30,6 +30,8 @@ from pathlib import Path
 from openinterp.core.cache_dirs import cache_root
 
 LEASES_ENV = "OPENINTERP_DEVICE_LEASES"  # lease directory, or "off"
+# Set by the retry after an MPS failure: every model of the command loads on this device.
+FORCE_ENV = "OPENINTERP_DEVICE_FORCE"
 GPU_BUSY_ENV = "OPENINTERP_GPU_BUSY_PERCENT"
 # Provisional: replace it with the measured value when docs/experiments.md, Devices, has one.
 DEFAULT_GPU_BUSY_PERCENT = 50.0
@@ -141,8 +143,12 @@ def holders(device: str) -> list[int]:
     return sorted(found)
 
 
+_used: set[str] = set()  # devices that this process ran models on
+
+
 def take_lease(device: str) -> None:
     """Record that this process uses ``device``, until it stops."""
+    _used.add(device)
     root = lease_root()
     if root is None:
         return
@@ -197,3 +203,42 @@ def forget() -> None:
     """Make the next :func:`planned` plan again (for tests)."""
     global _planned, _noticed
     _planned, _noticed = None, False
+    _used.clear()
+
+
+def forced() -> str | None:
+    """The device that a retry after an MPS failure set, or None."""
+    return os.environ.get(FORCE_ENV) or None
+
+
+def mps_failed(exc: BaseException) -> bool:
+    """True if ``exc`` is an MPS failure that a retry on the CPU can get past.
+
+    That is when this process ran a model on MPS, an exception in the chain names MPS,
+    and the command is not a retry already.
+    """
+    if "mps" not in _used or forced():
+        return False
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, Exception) and "mps" in str(exc).lower():
+            return True
+        exc = exc.__cause__ or exc.__context__
+    return False
+
+
+def rerun_on_cpu(exc: BaseException) -> None:
+    """Run this command again from the start, in a new process, with every model on the CPU.
+
+    The new process has none of the GPU's state. Files that the first run wrote are
+    written again.
+    """
+    import sys
+
+    first = str(exc).strip().splitlines()[0][:200] if str(exc).strip() else type(exc).__name__
+    print(f"The GPU (MPS) failed ({first}). Running the command again on the CPU.", file=sys.stderr)
+    sys.stderr.flush()
+    sys.stdout.flush()
+    # The same command line that started this process, so nothing new runs.
+    os.execve(sys.executable, sys.orig_argv, {**os.environ, FORCE_ENV: "cpu"})  # noqa: S606
