@@ -72,14 +72,28 @@ class Rescaled(nn.Module):
 
 
 class ToLayer(nn.Module):
-    """GPT-2 or Qwen2 up to ``layer``, on inputs of shape ``[rows, seq]``.
+    """GPT-2 or Qwen2 from layer ``start`` to ``layer``, on ``rows × seq`` tokens.
 
-    It returns the MLP activations of ``layer``, ``[rows, seq, width]``. It changes the
-    weights of ``model`` (see :class:`Rescaled`), so give it a copy that nothing else uses.
+    With ``start`` 0 it reads token ids ``[rows, seq]``, else the residual stream
+    ``[rows, seq, d_model]``. It returns the MLP activations of ``layer``,
+    ``[rows, seq, width]``, or with ``resid_out`` the residual stream after ``layer``. That
+    is one chunk of a pass (``chunks.py``). ``sample`` is an input that calibrates the
+    scales of :class:`Rescaled`. The default is random token ids, for ``start`` 0. It changes
+    the weights of ``model``, so give it a copy that nothing else uses.
     """
 
-    def __init__(self, model: nn.Module, layer: int, rows: int, seq: int):
+    def __init__(
+        self,
+        model: nn.Module,
+        layer: int,
+        rows: int,
+        seq: int,
+        start: int = 0,
+        resid_out: bool = False,
+        sample: torch.Tensor | None = None,
+    ):
         super().__init__()
+        self.start, self.resid_out = start, resid_out
         cfg = model.config
         self.gpt2 = cfg.model_type == "gpt2"
         self.body = model.transformer if self.gpt2 else model.model
@@ -95,7 +109,10 @@ class ToLayer(nn.Module):
             angles = torch.outer(torch.arange(seq).float(), inv).repeat(1, 2)
             self.register_buffer("cos", angles.cos())
             self.register_buffer("sin", angles.sin())
-        rescale_projections(self, self.blocks(), cfg.vocab_size)
+        if sample is None:
+            generator = torch.Generator().manual_seed(1)
+            sample = torch.randint(0, cfg.vocab_size, (rows, seq), generator=generator)
+        rescale_projections(self, self.blocks(), sample)
 
     def blocks(self) -> nn.ModuleList:
         """The decoder layers."""
@@ -126,36 +143,40 @@ class ToLayer(nn.Module):
         """The MLP activations of ``self.layer``."""
         return self._gpt2(ids) if self.gpt2 else self._qwen(ids)
 
-    def _gpt2(self, ids: torch.Tensor) -> torch.Tensor:
+    def _gpt2(self, inp: torch.Tensor) -> torch.Tensor:
         b = self.body
-        x = b.wte(ids) + b.wpe(torch.arange(self.seq, device=ids.device))
-        for i, blk in enumerate(b.h[: self.layer + 1]):
+        x = inp
+        if self.start == 0:
+            x = b.wte(inp) + b.wpe(torch.arange(self.seq, device=inp.device))
+        for i in range(self.start, self.layer + 1):
+            blk = b.h[i]
             x = x + blk.attn.c_proj(self.attend(*blk.attn.c_attn(blk.ln_1(x)).chunk(3, -1)))
             hidden = gelu_new(blk.mlp.c_fc(blk.ln_2(x)))
-            if i == self.layer:
+            if i == self.layer and not self.resid_out:
                 return hidden
             x = x + blk.mlp.c_proj(hidden)
-        raise IndexError(self.layer)
+        return x
 
-    def _qwen(self, ids: torch.Tensor) -> torch.Tensor:
-        x = self.body.embed_tokens(ids)
-        for i, blk in enumerate(self.body.layers[: self.layer + 1]):
+    def _qwen(self, inp: torch.Tensor) -> torch.Tensor:
+        x = self.body.embed_tokens(inp) if self.start == 0 else inp
+        for i in range(self.start, self.layer + 1):
+            blk = self.body.layers[i]
             at, mlp = blk.self_attn, blk.mlp
             h = self.rms(x, blk.input_layernorm.weight)
             x = x + at.o_proj(self.attend(at.q_proj(h), at.k_proj(h), at.v_proj(h)))
             h = self.rms(x, blk.post_attention_layernorm.weight)
             hidden = swiglu(mlp.gate_proj(h), mlp.up_proj(h))
-            if i == self.layer:
+            if i == self.layer and not self.resid_out:
                 return hidden
             x = x + mlp.down_proj(hidden)
-        raise IndexError(self.layer)
+        return x
 
 
-def rescale_projections(net: ToLayer, blocks: nn.ModuleList, vocab: int) -> None:
+def rescale_projections(net: ToLayer, blocks: nn.ModuleList, sample: torch.Tensor) -> None:
     """Wrap each projection that ``net`` runs in :class:`Rescaled`.
 
     The scale makes the RMS of the weights about :data:`WEIGHT_RMS`. One fp32 pass on
-    random tokens measures each output's peak. The scale stays small enough that the
+    ``sample`` measures each output's peak. The scale stays small enough that the
     scaled peak is at most :data:`OUTPUT_PEAK`, a margin below fp16's largest value.
     """
     found = {p: m for p, m in blocks.named_modules() if type(m).__name__ in ("Linear", "Conv1D")}
@@ -166,9 +187,8 @@ def rescale_projections(net: ToLayer, blocks: nn.ModuleList, vocab: int) -> None
         )
         for p, m in found.items()
     ]
-    generator = torch.Generator().manual_seed(1)
     with torch.no_grad():
-        net(torch.randint(0, vocab, (net.rows, net.seq), generator=generator))
+        net(sample)
     for hook in hooks:
         hook.remove()
     for path, module in found.items():

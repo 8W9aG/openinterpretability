@@ -129,7 +129,7 @@ def test_a_new_revision_code_library_or_os_builds_a_new_entry(tmp_path, change):
 
 def test_the_code_digest_covers_the_conversion_code():
     assert len(cache.code_digest()) == 16
-    assert set(cache.SOURCES) == {"forward.py", "convert.py"}
+    assert set(cache.SOURCES) == {"forward.py", "convert.py", "chunks.py"}
 
 
 def test_a_model_that_disagrees_with_fp32_is_rejected_and_not_kept(tmp_path):
@@ -337,15 +337,14 @@ def test_the_shapes_a_scan_needs_follow_its_batches():
     assert backend.needed_shapes([3000], 4096, 2048) is None
 
 
-def test_a_conversion_copies_only_the_layers_it_needs(tiny_qwen2):
-    copied = backend.copy_to_layer(tiny_qwen2, 0)
-    assert len(copied.model.layers) == 1 and len(tiny_qwen2.model.layers) == 2
-    assert isinstance(copied.get_output_embeddings(), torch.nn.Identity)
-    assert isinstance(tiny_qwen2.get_output_embeddings(), torch.nn.Linear)  # unchanged
-    ids = torch.randint(0, VOCAB, (2, 16), generator=torch.Generator().manual_seed(5))
-    with torch.no_grad():
-        small = forward.ToLayer(copied, 0, 2, 16)(ids)
-    assert torch.allclose(small, _hf_activations(tiny_qwen2, 0, ids), atol=1e-5, rtol=1e-4)
+def test_a_chunk_copies_only_its_layers(tiny_qwen2):
+    from openinterp.harness.ane import chunks
+
+    part = chunks.part(tiny_qwen2, "tiny", None, 1, 1)
+    assert isinstance(part.model.layers[0], torch.nn.Identity)  # not copied
+    assert isinstance(part.model.embed_tokens, torch.nn.Identity)  # only chunk 0 has them
+    assert isinstance(tiny_qwen2.model.embed_tokens, torch.nn.Embedding)  # unchanged
+    assert len(tiny_qwen2.model.layers) == 2
 
 
 def _ane(model, monkeypatch, tmp_path, compiled=None):
@@ -432,3 +431,46 @@ def test_a_compile_that_takes_too_long_keeps_the_scan_on_torch(tiny_qwen2, monke
     reason = ane.prepare([10], 1, 64)
     assert "took more than 0.01 minutes" in reason
     assert ane.prepare([11], 1, 64) == reason  # not again in this process
+
+
+# -- chunks: large models, and models that stream -----------------------------
+
+
+def test_layers_split_into_chunks_that_every_target_shares(tiny_qwen2, monkeypatch):
+    from openinterp.harness.ane import chunks
+
+    layer = 2 * sum(p.numel() for p in tiny_qwen2.model.layers[0].parameters())
+    embeds = 2 * tiny_qwen2.model.embed_tokens.weight.numel()
+    monkeypatch.setattr(chunks, "CHUNK_BYTES", embeds + layer)  # one layer a chunk
+    assert chunks.boundaries(tiny_qwen2) == [0, 1, 2]
+    assert chunks.chain(tiny_qwen2, 1) == [(0, 0, False), (1, 1, True)]
+    assert chunks.chain(tiny_qwen2, 0) == [(0, 0, True)]
+    monkeypatch.setattr(chunks, "CHUNK_BYTES", 10**12)
+    assert chunks.chain(tiny_qwen2, 1) == [(0, 1, True)]  # small models: one chunk
+
+
+def test_a_chunk_reads_the_same_weights_from_the_checkpoint(tiny_qwen2, tmp_path):
+    from openinterp.harness.ane import chunks
+
+    tiny_qwen2.save_pretrained(tmp_path, safe_serialization=True)
+    read = chunks._from_checkpoint(tiny_qwen2, str(tmp_path), None, 1, 1)
+    for name, want in tiny_qwen2.model.layers[1].state_dict().items():
+        assert torch.equal(read.model.layers[1].state_dict()[name], want.float()), name
+    assert read.model.layers[0].self_attn.q_proj.weight.is_meta  # never read
+    assert read.model.embed_tokens.weight.is_meta  # chunk 0 only
+
+
+@pytest.mark.skipif(not devices.ane_possible(), reason="needs Apple's Neural Engine")
+def test_a_chain_of_chunks_on_the_ane_matches_torch(tiny_qwen2, tmp_path, monkeypatch):
+    from openinterp.harness.ane import chunks
+
+    monkeypatch.setattr(backend, "SEQS", (16, 32, 64))
+    monkeypatch.setattr(backend, "SHAPE_TOKENS", 64)
+    monkeypatch.setattr(chunks, "CHUNK_BYTES", 1)  # every layer its own chunk
+    runner = NeuronHookRunner(tiny_qwen2, FakeTokenizer())
+    pieces = list(cut_pieces(runner.tokenizer, TEXTS, None, None))
+    ane = backend.AneScan(tiny_qwen2, "tiny-qwen2", None, cache.ConversionCache(tmp_path))
+    got = torch.cat([c.acts for c in ane.chunks(runner, pieces, 1, 64)])
+    want = torch.cat([c.acts for c in layer_chunks(runner, pieces, 1, 64)])
+    assert all(len(paths) == 2 for paths in ane.paths.values())  # two chunks each
+    assert float((got - want).norm() / want.norm()) < cache.MAX_ERROR

@@ -50,15 +50,12 @@ def _attach_ane(runner) -> None:
     """Run ``runner``'s scans on Apple's Neural Engine, if it can run the model."""
     from openinterp.harness import devices
     from openinterp.harness.ane.backend import AneScan
-    from openinterp.harness.memory import is_streamed
 
-    backend = None
-    if not is_streamed(runner.model):
-        backend = AneScan.for_model(runner.model, runner.model_name, runner.model_revision)
+    backend = AneScan.for_model(runner.model, runner.model_name, runner.model_revision)
     if backend is None:
         click.echo(
             f"Scans run on {runner.device.type}: the ANE needs coremltools (Apple-silicon "
-            "Macs), and a model loaded whole that passed scripts/ane_qualify.py "
+            "Macs), and a model that passed scripts/ane_qualify.py "
             "(openinterp/harness/ane/qualified.py).",
             err=True,
         )

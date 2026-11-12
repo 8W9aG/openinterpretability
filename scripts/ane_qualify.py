@@ -93,22 +93,20 @@ def pearson(sums: torch.Tensor) -> torch.Tensor:
 
 
 def ane_ops(ane: AneScan, layer: int) -> float:
-    """The smallest share of operations that Core ML puts on the ANE, over the layer's shapes."""
+    """The smallest share of operations that Core ML puts on the ANE, over the layer's chunks."""
     import coremltools as ct
     from coremltools.models.compute_plan import MLComputePlan
 
     shares = []
-    for path in ane.cache.root.glob(f"*/L{layer}/*/{cache.MODEL}"):
-        meta = json.loads((path.parent / cache.META).read_text())["fields"]
-        if meta["model"] != ane.model_name:
-            continue
-        plan = MLComputePlan.load_from_path(str(path), compute_units=ct.ComputeUnit.CPU_AND_NE)
-        devices = Counter()
-        for op in plan.model_structure.program.functions["main"].block.operations:
-            if usage := plan.get_compute_device_usage_for_mlprogram_operation(op):
-                devices[type(usage.preferred_compute_device).__name__] += 1
-        total = sum(devices.values())
-        shares.append(devices["MLNeuralEngineComputeDevice"] / total if total else 0.0)
+    for (target, _, _), paths in ane.paths.items():
+        for path in paths if target == layer else []:
+            plan = MLComputePlan.load_from_path(str(path), compute_units=ct.ComputeUnit.CPU_AND_NE)
+            devices = Counter()
+            for op in plan.model_structure.program.functions["main"].block.operations:
+                if usage := plan.get_compute_device_usage_for_mlprogram_operation(op):
+                    devices[type(usage.preferred_compute_device).__name__] += 1
+            total = sum(devices.values())
+            shares.append(devices["MLNeuralEngineComputeDevice"] / total if total else 0.0)
     return min(shares, default=0.0)
 
 

@@ -15,7 +15,6 @@ measures its top candidates again on the torch device (``TopExamples.rescore`` i
 
 from __future__ import annotations
 
-import copy
 import os
 import shutil
 import tempfile
@@ -26,10 +25,11 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from openinterp.harness.ane import convert
+from openinterp.harness.ane import chunks, convert
 from openinterp.harness.ane.cache import (
     MAX_ERROR,
     META,
+    MODEL,
     ConversionCache,
     ConversionRejected,
     fields,
@@ -71,7 +71,8 @@ class AneScan:
         self.model_name = model_name
         self.revision = revision
         self.cache: ConversionCache | None = cache
-        self._loaded: dict[tuple[int, int, int], object] = {}
+        self._loaded: dict[tuple[int, int, int], list] = {}
+        self.paths: dict[tuple[int, int, int], list[Path]] = {}  # each pass's chunk models
         self._scratch: list[Path] = []
         self.used = False  # True once a scan ran on it
         self.noted: set[str] = set()  # reasons already shown, so each shows once
@@ -151,14 +152,27 @@ class AneScan:
     def _cached(self, layer: int, rows: int, seq: int) -> bool:
         if (layer, rows, seq) in self._loaded:
             return True
-        key_fields = fields(self.model_name, self.revision, layer, rows, seq)
-        return self.cache is not None and (self.cache.path(key_fields) / META).exists()
+        return all(self._entry(link, rows, seq) for link in chunks.chain(self.model, layer))
+
+    def _entry(self, link: tuple[int, int, bool], rows: int, seq: int) -> Path | None:
+        """The cached compiled model of one chunk, or None if the cache has none."""
+        if self.cache is None:
+            return None
+        start, last, final = link
+        key_fields = fields(self.model_name, self.revision, last, rows, seq, start, not final)
+        entry = self.cache.path(key_fields)
+        return entry / MODEL if (entry / META).exists() else None
 
     def _memory_short(self, layer: int) -> str | None:
-        """Why a conversion to ``layer`` would not fit in free memory, or None."""
+        """Why converting the chunks of a pass to ``layer`` would not fit in memory, or None.
+
+        Chunks are converted one at a time, so the largest chunk sets the need.
+        """
         from openinterp.harness.memory import available_bytes
 
-        need = int(sum(p.numel() for p in _kept(self.model, layer)) * 4 * CONVERSION_OVERHEAD)
+        links = chunks.chain(self.model, layer)
+        largest = max(chunks.chunk_bytes(self.model, start, last) for start, last, _ in links)
+        need = int(largest * CONVERSION_OVERHEAD)
         have = available_bytes("cpu")
         if have is None or need <= have:
             return None
@@ -186,6 +200,7 @@ class AneScan:
         """``layer``'s activations on one scan batch, ``[pieces, width, d_mlp]`` in fp32.
 
         The batch goes in the smallest shape that holds it, in parts of that shape's rows.
+        Each part goes through the chain of chunks (``chunks.py``).
         """
         width = batch.ids.shape[1]
         rows, seq = shape_for(width, self.longest()) or (0, 0)
@@ -194,49 +209,64 @@ class AneScan:
         from openinterp.harness.scan_backend import AneError
 
         try:
-            model = self.compiled(layer, rows, seq)
+            models = self.compiled(layer, rows, seq)
             parts = []
             for start in range(0, len(batch.pieces), rows):
-                ids = torch.zeros((rows, seq), dtype=torch.long)
+                x = torch.zeros((rows, seq), dtype=torch.long)
                 part = batch.ids[start : start + rows]
-                ids[: len(part), :width] = part
-                parts.append(convert.predict(model, ids)[: len(part), :width])
+                x[: len(part), :width] = part
+                for model in models:
+                    x = convert.predict(model, x)
+                parts.append(x[: len(part), :width])
         except Exception as exc:  # Core ML's errors have no common type
             raise AneError(f"{type(exc).__name__}: {exc}") from exc
         return torch.cat(parts)
 
-    def compiled(self, layer: int, rows: int, seq: int):
-        """The loaded Core ML model for ``layer`` and shape ``(rows, seq)``."""
+    def compiled(self, layer: int, rows: int, seq: int) -> list:
+        """The loaded Core ML models, chunk by chunk, of a pass to ``layer`` at ``(rows, seq)``."""
         key = (layer, rows, seq)
         if key not in self._loaded:
-            build, check = self._builder(layer, rows, seq)
-            if self.cache is None:
-                path = self._uncached(build, check)
-            else:
-                key_fields = fields(self.model_name, self.revision, layer, rows, seq)
-                path = self.cache.get(key_fields, build, check)
-            self._loaded[key] = convert.load(path)
+            links = chunks.chain(self.model, layer)
+            paths = [self._entry(link, rows, seq) for link in links]
+            if not all(paths):
+                paths = self._build(links, rows, seq)
+            self.paths[key] = paths
+            self._loaded[key] = [convert.load(path) for path in paths]
         return self._loaded[key]
 
-    def _builder(self, layer: int, rows: int, seq: int):
-        """``build`` and ``check`` for :meth:`ConversionCache.get`."""
-        state: dict[str, torch.Tensor] = {}
+    def _build(self, links: list, rows: int, seq: int) -> list[Path]:
+        """Convert and check each chunk that the cache doesn't hold, in order.
+
+        Each chunk's fp32 output is the next chunk's input, both to calibrate its scales
+        and to check it. Only one chunk's weights are in memory at a time.
+        """
+        vocab = int(self.model.config.vocab_size)
+        x = torch.randint(0, vocab, (rows, seq), generator=torch.Generator().manual_seed(2))
+        paths = []
+        for start, last, final in links:
+            source = chunks.part(self.model, self.model_name, self.revision, start, last)
+            net = ToLayer(source, last, rows, seq, start, not final, sample=x).eval()
+            with torch.no_grad():
+                ref = net(x)
+            key_fields = fields(self.model_name, self.revision, last, rows, seq, start, not final)
+            paths.append(self._get(key_fields, net, x, ref))
+            x = ref
+            del source, net
+        return paths
+
+    def _get(self, key_fields: dict, net: ToLayer, x: torch.Tensor, ref: torch.Tensor) -> Path:
+        """One chunk's compiled model, from the cache or built now, and checked if built."""
 
         def build(dest: Path) -> None:
-            source = copy_to_layer(self.model, layer).to("cpu", torch.float32)
-            net = ToLayer(source, layer, rows, seq).eval()
-            generator = torch.Generator().manual_seed(2)
-            ids = torch.randint(0, net_vocab(source), (rows, seq), generator=generator)
-            with torch.no_grad():
-                state["ref"], state["ids"] = net(ids), ids
-            convert.compile_to(net, rows, seq, dest)
+            convert.compile_to(net, x, dest)
 
         def check(path: Path) -> float:
-            got = convert.predict(convert.load(path), state["ids"])
-            ref = state["ref"]
+            got = convert.predict(convert.load(path), x)
             return float((ref - got).pow(2).mean().sqrt() / ref.pow(2).mean().sqrt())
 
-        return build, check
+        if self.cache is None:
+            return self._uncached(build, check)
+        return self.cache.get(key_fields, build, check)
 
     def _uncached(self, build, check) -> Path:
         """Build into a temporary directory, for a run with the cache turned off."""
@@ -256,11 +286,6 @@ class AneScan:
         self._scratch.clear()
 
 
-def net_vocab(model) -> int:
-    """The model's vocabulary size."""
-    return int(model.config.vocab_size)
-
-
 def needed_shapes(lengths: Sequence[int], batch_tokens: int, longest: int) -> set | None:
     """The ``(rows, seq)`` shapes that a scan's batches need, or None if one has none.
 
@@ -277,35 +302,6 @@ def needed_shapes(lengths: Sequence[int], batch_tokens: int, longest: int) -> se
         shapes.add(shape)
         start += size
     return shapes
-
-
-def _kept(model, layer: int) -> list:
-    """The parameters that a conversion to ``layer`` uses: embeddings and layers 0..layer."""
-    gpt2 = model.config.model_type == "gpt2"
-    body = model.transformer if gpt2 else model.model
-    blocks = body.h if gpt2 else body.layers
-    embeds = [body.wte, body.wpe] if gpt2 else [body.embed_tokens]
-    return [p for m in [*embeds, *blocks[: layer + 1]] for p in m.parameters()]
-
-
-def copy_to_layer(model, layer: int):
-    """A copy of ``model`` with only its embeddings and layers 0..``layer``.
-
-    It leaves out the later layers, the final norm and the output head, which
-    :class:`ToLayer` doesn't run. So a conversion copies only the weights it uses.
-    """
-    gpt2 = model.config.model_type == "gpt2"
-    body = model.transformer if gpt2 else model.model
-    name = "h" if gpt2 else "layers"
-    blocks = getattr(body, name)
-    head = model.get_output_embeddings()
-    setattr(body, name, torch.nn.ModuleList(blocks[: layer + 1]))
-    model.set_output_embeddings(torch.nn.Identity())
-    try:
-        return copy.deepcopy(model)
-    finally:
-        setattr(body, name, blocks)
-        model.set_output_embeddings(head)
 
 
 def prepare_minutes() -> float:

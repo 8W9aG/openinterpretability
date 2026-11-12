@@ -8,7 +8,7 @@ loaded there once, which warms the ANE's compile, and checked (:data:`MAX_ERROR`
 
 An entry is keyed by everything that changes the compiled model:
 
-- the model, its revision, the layer and the input shape;
+- the model, its revision, the chunk's layers and the input shape;
 - a hash of the source of the conversion code (``forward.py`` and ``convert.py``),
   so any change to that code makes new entries;
 - the coremltools and torch versions;
@@ -40,12 +40,12 @@ import torch
 from openinterp.core.cache_dirs import cache_root
 from openinterp.harness.ane import convert
 
-FORMAT = 1
+FORMAT = 2  # 2: chunks of layers
 ENV = "OPENINTERP_COREML_CACHE"  # cache directory, or "off"
 SIZE_ENV = "OPENINTERP_COREML_CACHE_GB"
 DEFAULT_GB = 20.0
 MAX_ERROR = 0.03  # largest relative RMS error against fp32 (measured: 0.003 to 0.011)
-SOURCES = ("forward.py", "convert.py")  # the code that sets what an entry holds
+SOURCES = ("forward.py", "convert.py", "chunks.py")  # the code that sets what an entry holds
 MODEL = "model.mlmodelc"
 META = "meta.json"
 
@@ -72,13 +72,23 @@ def machine() -> dict:
     return {"macos": platform.mac_ver()[0] or None, "chip": chip or platform.machine()}
 
 
-def fields(model: str, revision: str | None, layer: int, rows: int, seq: int) -> dict:
-    """What an entry is keyed by."""
+def fields(
+    model: str,
+    revision: str | None,
+    layer: int,
+    rows: int,
+    seq: int,
+    start: int = 0,
+    resid_out=False,
+) -> dict:
+    """What an entry is keyed by: one chunk, layers ``start..layer`` (``chunks.py``)."""
     return {
         "format": FORMAT,
         "model": model,
         "revision": revision,
         "layer": layer,
+        "start": start,
+        "resid_out": resid_out,
         "shape": [rows, seq],
         "code": code_digest(),
         "coremltools": convert.version(),
