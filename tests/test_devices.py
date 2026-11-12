@@ -24,6 +24,7 @@ REAL_GPU_UTILIZATION = devices.gpu_utilization  # conftest replaces it for every
 )
 def test_auto_prefers_cuda_then_mps(monkeypatch, cuda, mps, expected):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
     monkeypatch.setattr(torch.backends.mps, "is_available", lambda: mps)
     assert resolve_device("auto") == expected
     assert resolve_device("cpu") == "cpu"
@@ -110,17 +111,17 @@ def test_an_mps_error_in_a_process_on_mps_is_retried():
     devices.take_lease("mps")
     with pytest.raises(ValueError) as caught:
         _oom()
-    assert devices.mps_failed(caught.value)  # found down the chain
-    assert not devices.mps_failed(RuntimeError("index out of range"))
+    assert devices.gpu_failed(caught.value)  # found down the chain
+    assert not devices.gpu_failed(RuntimeError("index out of range"))
 
 
 def test_no_retry_without_mps_or_twice(monkeypatch):
     with pytest.raises(ValueError) as caught:
         _oom()
-    assert not devices.mps_failed(caught.value)  # this process never ran on MPS
+    assert not devices.gpu_failed(caught.value)  # this process never ran on MPS
     devices.take_lease("mps")
     monkeypatch.setenv(devices.FORCE_ENV, "cpu")
-    assert not devices.mps_failed(caught.value)  # a retry already
+    assert not devices.gpu_failed(caught.value)  # a retry already
 
 
 def test_a_retry_forces_every_model_onto_the_cpu(monkeypatch):
@@ -158,3 +159,50 @@ def test_an_mps_scan_reproduces_on_the_cpu(tiny_gpt2):
     pairs = zip(on_mps.values, on_cpu.values, strict=True)
     assert all(DEFAULT_TOLERANCE.close(m, c, scale) for m, c in pairs)
     assert [ex.text for ex in on_mps.examples] == [ex.text for ex in on_cpu.examples]
+
+
+# -- CUDA --------------------------------------------------------------------
+
+
+def test_nvidia_smi_output_gives_each_gpus_utilization():
+    from openinterp.harness.cuda_devices import parse_nvidia_smi
+
+    assert parse_nvidia_smi("0, 3\n1, 97\n") == {0: 3.0, 1: 97.0}
+    assert parse_nvidia_smi("No devices were found") == {}
+
+
+def test_the_first_free_cuda_gpu_is_chosen():
+    from openinterp.harness.cuda_devices import choose_cuda
+
+    plan = choose_cuda(3, {0: [11]}, {1: 95.0, 2: 4.0}, 50.0)
+    assert (plan.device, plan.fallback) == ("cuda:2", False)
+    assert choose_cuda(1, {}, {0: 2.0}, 50.0).device == "cuda"  # one GPU keeps "cuda"
+
+
+def test_every_busy_cuda_gpu_sends_the_job_to_the_cpu_with_a_cuda_hint():
+    from openinterp.harness.cuda_devices import choose_cuda
+
+    plan = choose_cuda(2, {0: [11]}, {1: 99.0}, 50.0)
+    assert (plan.device, plan.fallback, plan.hint) == ("cpu", True, "cuda")
+    assert "GPU 0 is in use" in plan.reason and "GPU 1 is 99% busy" in plan.reason
+
+
+def test_auto_on_cuda_skips_a_gpu_another_job_holds(monkeypatch, capsys):
+    from openinterp.harness import cuda_devices
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    monkeypatch.setattr(cuda_devices, "holders", lambda name: [7] if name == "cuda0" else [])
+    assert resolve_device("auto") == "cuda:1"
+    assert (devices.lease_root() / "cuda1" / str(os.getpid())).exists()
+
+
+def test_cuda_leases_are_named_by_gpu():
+    assert devices.lease_name("cuda") == "cuda0" and devices.lease_name("cuda:3") == "cuda3"
+    assert devices.lease_name("mps") == "mps" and devices.lease_name("cpu") is None
+
+
+def test_a_cuda_out_of_memory_error_is_retried_on_the_cpu():
+    devices.take_lease("cuda:1")
+    assert devices.gpu_failed(RuntimeError("CUDA out of memory. Tried to allocate 2 GiB")) == "CUDA"
+    assert devices.gpu_failed(RuntimeError("MPS backend out of memory")) is None  # not used

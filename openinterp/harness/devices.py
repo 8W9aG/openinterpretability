@@ -1,4 +1,7 @@
-"""Device planner: with ``--device auto`` on a Mac, use Apple's GPU only when it is free.
+"""Device planner: with ``--device auto``, use a GPU only when it is free.
+
+This module plans for Apple's GPU (MPS). ``cuda_devices.py`` plans for CUDA GPUs with
+the same leases and threshold, and chooses the first free GPU.
 
 Two things make the GPU busy. One is another ``openinterp`` process that uses it. Each
 process that runs a model on MPS keeps a *lease*. That is an empty file named for its
@@ -56,6 +59,7 @@ class DevicePlan:
     device: str
     reason: str
     fallback: bool = False  # True when a busy device was not used
+    hint: str = "mps"  # the --device value that uses the GPU even when it is busy
 
 
 def choose(load: Load, mps_available: bool, busy_percent: float) -> DevicePlan:
@@ -146,13 +150,25 @@ def holders(device: str) -> list[int]:
 _used: set[str] = set()  # devices that this process ran models on
 
 
+def lease_name(device: str) -> str | None:
+    """The lease folder of a GPU device (``mps``, ``cuda0``, ``cuda1``, …), or None."""
+    if device == "mps":
+        return "mps"
+    if device.startswith("cuda"):
+        return f"cuda{device.partition(':')[2] or 0}"
+    return None
+
+
 def take_lease(device: str) -> None:
-    """Record that this process uses ``device``, until it stops."""
-    _used.add(device)
+    """Record that this process uses the GPU ``device``, until it stops."""
+    name = lease_name(device)
+    if name is None:
+        return
+    _used.add(name)
     root = lease_root()
     if root is None:
         return
-    lease = root / device / str(os.getpid())
+    lease = root / name / str(os.getpid())
     if lease.exists():
         return
     with suppress(OSError):
@@ -186,7 +202,9 @@ def notice() -> str | None:
     if _noticed or _planned is None or not _planned.fallback:
         return None
     _noticed = True
-    return f"Using the CPU, because {_planned.reason}. Pass --device mps to share the GPU."
+    return (
+        f"Using the CPU, because {_planned.reason}. Pass --device {_planned.hint} to share the GPU."
+    )
 
 
 def planned() -> DevicePlan:
@@ -195,7 +213,12 @@ def planned() -> DevicePlan:
     if _planned is None:
         import torch
 
-        _planned = choose(read_load(), torch.backends.mps.is_available(), busy_percent())
+        if torch.cuda.is_available():
+            from openinterp.harness.cuda_devices import plan_cuda
+
+            _planned = plan_cuda(busy_percent())
+        else:
+            _planned = choose(read_load(), torch.backends.mps.is_available(), busy_percent())
     return _planned
 
 
@@ -207,28 +230,30 @@ def forget() -> None:
 
 
 def forced() -> str | None:
-    """The device that a retry after an MPS failure set, or None."""
+    """The device that a retry after a GPU failure set, or None."""
     return os.environ.get(FORCE_ENV) or None
 
 
-def mps_failed(exc: BaseException) -> bool:
-    """True if ``exc`` is an MPS failure that a retry on the CPU can get past.
+def gpu_failed(exc: BaseException) -> str | None:
+    """``MPS`` or ``CUDA`` if ``exc`` is a GPU failure that a retry on the CPU can get past.
 
-    That is when this process ran a model on MPS, an exception in the chain names MPS,
-    and the command is not a retry already.
+    It is one if this process ran a model on that GPU and an exception in the chain
+    names it. A command that is a retry already is not retried. Else None.
     """
-    if "mps" not in _used or forced():
-        return False
+    if forced():
+        return None
+    kinds = {"mps"} & _used | ({"cuda"} if any(u.startswith("cuda") for u in _used) else set())
     seen: set[int] = set()
     while exc is not None and id(exc) not in seen:
         seen.add(id(exc))
-        if isinstance(exc, Exception) and "mps" in str(exc).lower():
-            return True
+        text = str(exc).lower() if isinstance(exc, Exception) else ""
+        if found := next((k for k in sorted(kinds) if k in text), None):
+            return found.upper()
         exc = exc.__cause__ or exc.__context__
-    return False
+    return None
 
 
-def rerun_on_cpu(exc: BaseException) -> None:
+def rerun_on_cpu(exc: BaseException, gpu: str = "MPS") -> None:
     """Run this command again from the start, in a new process, with every model on the CPU.
 
     The new process has none of the GPU's state. Files that the first run wrote are
@@ -237,7 +262,9 @@ def rerun_on_cpu(exc: BaseException) -> None:
     import sys
 
     first = str(exc).strip().splitlines()[0][:200] if str(exc).strip() else type(exc).__name__
-    print(f"The GPU (MPS) failed ({first}). Running the command again on the CPU.", file=sys.stderr)
+    print(
+        f"The GPU ({gpu}) failed ({first}). Running the command again on the CPU.", file=sys.stderr
+    )
     sys.stderr.flush()
     sys.stdout.flush()
     # The same command line that started this process, so nothing new runs.

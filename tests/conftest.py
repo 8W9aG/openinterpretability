@@ -238,6 +238,7 @@ def _idle_devices(tmp_path_factory, monkeypatch):
     monkeypatch.setenv(devices.LEASES_ENV, str(tmp_path_factory.mktemp("leases")))
     monkeypatch.delenv(devices.FORCE_ENV, raising=False)
     monkeypatch.setattr(devices, "gpu_utilization", lambda *a, **k: 0.0)
+    monkeypatch.setattr("openinterp.harness.cuda_devices.utilization", lambda *a, **k: None)
     devices.forget()
     yield
     devices.forget()
