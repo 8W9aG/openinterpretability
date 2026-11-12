@@ -68,7 +68,17 @@ def load(path: Path):
     return ct.models.CompiledMLModel(str(path), compute_units=ct.ComputeUnit.CPU_AND_NE)
 
 
+# Every input array given to Core ML, kept until the process stops. When a model is idle
+# for about half a second, Core ML resets its execution stream on a background thread
+# and releases the last input. coremltools 9.0 then frees that array without the
+# interpreter's lock, and the process ends with a segmentation fault. An array that is
+# still referenced here is not freed. Each is 8 KB (2,048 int32 token ids).
+_INPUTS: list[np.ndarray] = []
+
+
 def predict(model, ids: torch.Tensor) -> torch.Tensor:
     """Run ``model`` on ``ids`` ``[rows, seq]``; return fp32 activations ``[rows, seq, width]``."""
-    out = model.predict({"ids": ids.numpy().astype(np.int32)})["acts"]
+    array = ids.numpy().astype(np.int32)
+    _INPUTS.append(array)  # see _INPUTS
+    out = model.predict({"ids": array})["acts"]
     return torch.as_tensor(np.asarray(out, dtype=np.float32)).reshape(*ids.shape, -1)

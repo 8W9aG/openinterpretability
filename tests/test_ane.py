@@ -1,6 +1,8 @@
 """Scans on Apple's Neural Engine: the forward pass, the conversion cache and rescoring."""
 
 import json
+import subprocess
+import sys
 
 import pytest
 import torch
@@ -301,3 +303,22 @@ def test_the_ane_scans_a_tiny_model_and_the_cache_keeps_it(tiny_qwen2, tmp_path,
     again = backend.AneScan(tiny_qwen2, "tiny-qwen2", None, store)
     list(again.chunks(runner, pieces, 1, 64))
     assert len(builds) == len(store.entries())  # the second scan converted nothing
+
+
+@pytest.mark.skipif(not devices.ane_possible(), reason="needs Apple's Neural Engine")
+def test_an_idle_model_does_not_crash_the_process(tiny_qwen2, tmp_path, monkeypatch):
+    monkeypatch.setattr(backend, "SEQS", (16, 32, 64))
+    monkeypatch.setattr(backend, "SHAPE_TOKENS", 64)
+    ane = backend.AneScan(tiny_qwen2, "tiny-qwen2", None, cache.ConversionCache(tmp_path))
+    ane.compiled(1, 4, 16)
+    path = next(tmp_path.rglob(cache.MODEL))
+    script = (
+        "import sys, time, torch\n"
+        "from openinterp.harness.ane import convert\n"
+        "model = convert.load(sys.argv[1])\n"
+        "convert.predict(model, torch.zeros((4, 16), dtype=torch.long))\n"
+        "time.sleep(2)  # Core ML resets an idle stream after about 0.5 s\n"
+        "print('ok')\n"
+    )
+    done = subprocess.run([sys.executable, "-c", script, str(path)], capture_output=True, text=True)
+    assert done.returncode == 0 and done.stdout.strip() == "ok"
