@@ -203,3 +203,35 @@ def test_centred_norms_ignore_a_constant_offset_in_their_input(name, final):
     x = torch.randn(2, 16, model.config.n_embd)
     assert norm(x + 3.0).allclose(norm(x), atol=1e-5)
     assert hasattr(model.transformer.ln_f, "norm") == final
+
+
+def test_final_norm_condition_centres_only_the_final_norm():
+    model = build_model(CONDITIONS["relu_final_norm_centred_dropout_0"], vocab_size=50, seed=0)
+    assert not hasattr(model.transformer.h[0].ln_1, "norm")
+    assert hasattr(model.transformer.ln_f, "norm")
+
+
+@pytest.mark.parametrize(
+    "name", ["dropout_0", "relu_dropout_0", "relu_all_norms_centred_dropout_0"]
+)
+def test_no_dropout_conditions_turn_off_every_dropout(name):
+    config = build_model(CONDITIONS[name], vocab_size=50, seed=0).config
+    assert config.resid_pdrop == config.embd_pdrop == config.attn_pdrop == 0.0
+
+
+def test_mlp_output_bias_gets_no_gradient_when_no_route_sees_a_constant():
+    # Every norm centres its input over tokens and nothing drops out, so a constant added to
+    # the residual stream has no effect on the loss.
+    model = build_model(CONDITIONS["relu_all_norms_centred_dropout_0"], vocab_size=50, seed=0)
+    ids = torch.randint(50, (2, 16))
+    model(ids, labels=ids).loss.backward()
+    bias_grad = model.transformer.h[0].mlp.c_proj.bias.grad
+    weight_grad = model.transformer.h[0].mlp.c_proj.weight.grad
+    assert bias_grad.abs().max() < 1e-6 * weight_grad.abs().max().clamp_min(1.0)
+
+
+def test_gelu_new_is_the_tanh_form_that_gpt2_uses():
+    from transformers.activations import NewGELUActivation
+
+    h = torch.randn(64)
+    assert Activation("gelu_new", None, None)(h).allclose(NewGELUActivation()(h), atol=1e-6)
