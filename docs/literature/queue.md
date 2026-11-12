@@ -79,3 +79,10 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review arXiv 2611.10974 ([paper](https://arxiv.org/abs/2611.10974)).
 - Review Google DeepMind's "Introducing AlphaProof code" ([post](https://deepmind.google/blog/introducing-alphaproof-code/)).
 - Review arXiv 2611.09501 ([paper](https://huggingface.co/papers/2611.09501)).
+- Review "Comparing Sparsified MLPs and Transcoders: Many Transcoder Features Are Neurons in Disguise" (Shabalin and Piotrowski, arXiv 2610.24521, [paper](https://arxiv.org/abs/2610.24521)).
+- Review "Evaluating Neuron Explanations: A Unified Framework with Sanity Checks" (arXiv 2506.05774, [paper](https://arxiv.org/abs/2506.05774)).
+- Review "Explaining Attention with Program Synthesis" (Hayes, Li and Andreas, arXiv 2606.19317, [paper](https://arxiv.org/abs/2606.19317)).
+- Review "Linear Explanations for Individual Neurons" (Oikarinen and Weng, arXiv 2405.06855, [paper](https://arxiv.org/abs/2405.06855)).
+- Review "Automated Interpretability and Feature Discovery in Language Models with Agents" (InterpAgent, arXiv 2605.01555, [paper](https://arxiv.org/abs/2605.01555)).
+- Review "The Story is Not the Science: Execution-Grounded Evaluation of Mechanistic Interpretability Research" (arXiv 2602.18458, [paper](https://arxiv.org/abs/2602.18458)).
+- Review "Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations" (arXiv 2603.09988, [paper](https://arxiv.org/abs/2603.09988)).
