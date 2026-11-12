@@ -42,8 +42,9 @@ if TYPE_CHECKING:
 NAME = "coreml-ane"  # recorded as the scan's backend
 SEQS = (128, 256, 512, 1024, 2048)
 SHAPE_TOKENS = 2048  # rows × seq of each shape, as BATCH_TOKENS
-# Peak memory of a conversion, as a multiple of the fp32 weights it converts. Provisional.
-CONVERSION_OVERHEAD = 3.0
+# Peak memory of a conversion, as a multiple of the fp32 weights it converts. Measured:
+# 4.2 (GPT-2 L11), 3.1 (Qwen2.5-0.5B L23) and 2.5 (Qwen2.5-1.5B L14), with a margin.
+CONVERSION_OVERHEAD = 4.5
 
 
 def shape_for(length: int, longest: int) -> tuple[int, int] | None:
