@@ -5,10 +5,10 @@ all of them. Later audits of any neuron in that layer, and per-token analysis
 (``openinterp activations``), replay the stored tokens instead of re-running the model.
 
 An entry is keyed by everything that sets its numbers. That is the model, its revision,
-the weights' dtype and the device type. It is also the torch and transformers versions
-and the layer. Last, it is the token budget per batch (which sets padding), and the
-exact pieces scanned (texts and windows). Replaying an entry gives the same scan result
-as running the model, bit for bit.
+the weights' dtype and the device type (``coreml-ane`` for a scan on the ANE). It is also
+the torch and transformers versions and the layer. Last, it is the token budget per
+batch (which sets padding), and the exact pieces scanned (texts and windows). Replaying
+an entry gives the same scan result as running the model, bit for bit.
 
 Each entry is a directory ``<root>/<model>/L<layer>/<key>/``. It holds ``meta.json``,
 ``pieces.json`` and ``acts.bin`` (``[rows, width]`` in the activation dtype). It also
@@ -38,6 +38,7 @@ import torch
 from openinterp.core.cache_dirs import cache_root
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.scan import Chunk, Piece
+from openinterp.harness.scan_backend import scan_device
 
 FORMAT = 2  # 2: batches by token budget, recorded in meta.json
 ENV = "OPENINTERP_SCAN_CACHE"  # cache directory, or "off"
@@ -156,7 +157,7 @@ class LayerCache:
             "model": model,
             "revision": getattr(runner, "model_revision", None),
             "dtype": str(next(runner.model.parameters()).dtype).removeprefix("torch."),
-            "device": runner.device.type,
+            "device": scan_device(runner, pieces),  # the ANE's activations differ from torch's
             "torch": torch.__version__,
             "transformers": transformers_version,
             "layer": layer,

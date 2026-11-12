@@ -39,10 +39,11 @@ from openinterp.core.schemas import (
     Pole,
     ReviewPolicy,
 )
-from openinterp.harness.annotations import LabelAccumulator, Tagger, TokenLabels
+from openinterp.harness.annotations import LabelPass, Tagger, TokenLabels
 from openinterp.harness.confounds import ConfoundAccumulator
 from openinterp.harness.covariance import PartnerSearch
 from openinterp.harness.hooks import Inputs, NeuronHookRunner, pole_strength
+from openinterp.harness.scan_backend import forward_chunks, rescore_scan
 
 if TYPE_CHECKING:
     from openinterp.harness.layer_cache import LayerCache
@@ -291,7 +292,7 @@ def scan_chunks(
 
     Otherwise they come from the model, and are stored in ``cache``.
     """
-    chunks = layer_chunks(runner, pieces, layer, batch_tokens)
+    chunks = forward_chunks(runner, pieces, layer, batch_tokens)  # on the ANE if it can
     return chunks if cache is None else cache.through(runner, layer, pieces, batch_tokens, chunks)
 
 
@@ -379,6 +380,15 @@ def scan_neuron(
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
     labels = LabelPass(runner.tokenizer, texts, taggers)
     scan = _pole_pass(runner, pieces, layer, neuron_idx, (pole, other), batch_tokens, cache, labels)
+    rescore_scan(
+        runner,
+        pieces,
+        layer,
+        neuron_idx,
+        (pole, other),
+        (scan.top, scan.other_top),
+        (k, opposite_k),
+    )
     read, read_other = (_reader(runner, layer, neuron_idx, p) for p in (pole, other))
     tokens = labels.tokens
     examples, values, floor = settle(runner, read, scan.values, scan.first, scan.top, k, tokens)
@@ -429,49 +439,6 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
         scan.other_values.extend(other_strengths[counted].tolist())
         scan.other_top.update_chunk(chunk, other_strengths)
     return scan
-
-
-class LabelPass:
-    """Each tagger's labels of a scan's counted tokens, with their strengths.
-
-    They are gathered pass by pass. They give the label confounds (see
-    ``harness/annotations.py``).
-    """
-
-    def __init__(self, tokenizer, texts: Sequence[str], taggers: Sequence[Tagger]) -> None:
-        self.tokens = TokenLabels(tokenizer, texts, taggers)
-        self.accumulators = {t.name: LabelAccumulator() for t in self.tokens.taggers}
-
-    def update_chunk(self, chunk: Chunk, strengths: torch.Tensor) -> None:
-        """Add a chunk's counted tokens; ``strengths`` is ``[n]``, one per real token."""
-        if self.accumulators:
-            rows = [self.tokens.of(piece, chunk.ids[r]) for piece, r in chunk.rows()]
-            self._add(rows, chunk.counted, strengths)
-
-    def update(self, batch: Batch, strengths: torch.Tensor) -> None:
-        """Add a batch's counted tokens; ``strengths`` is ``[b, seq]``, padding included."""
-        if self.accumulators:
-            mask = batch.mask
-            rows = [self.tokens.of(p, batch.ids[i][mask[i]]) for i, p in enumerate(batch.pieces)]
-            self._add(rows, batch.counted[mask], strengths.cpu()[mask])
-
-    def _add(self, rows, counted: torch.Tensor, strengths: torch.Tensor) -> None:
-        for name, accumulator in self.accumulators.items():
-            every = torch.cat([row[name] for row in rows])
-            accumulator.update(every[counted], strengths[counted])
-
-    def finalize(self, confounds: ConfoundProfile, values: Sequence[float]) -> ConfoundProfile:
-        """Return ``confounds`` with each label set's confound added.
-
-        A token counts as active at or above the protocol's line for the scan's settled
-        ``values``.
-        """
-        if not self.accumulators:
-            return confounds
-        line = ReviewPolicy().activation_threshold * max(values, default=0.0)
-        names = self.tokens.names
-        by_label = {n: a.finalize(names[n], line) for n, a in self.accumulators.items()}
-        return confounds.model_copy(update={"labels": by_label})
 
 
 def _reader(runner, layer: int, neuron_idx: int, pole: Pole) -> Strengths:
