@@ -330,7 +330,7 @@ def test_an_idle_model_does_not_crash_the_process(tiny_qwen2, tmp_path, monkeypa
 
 
 def test_the_shapes_a_scan_needs_follow_its_batches():
-    assert backend.needed_shapes([100, 120, 300], 2048, 2048) == {(8, 256)}
+    assert backend.needed_shapes([100, 120, 300], 2048, 2048) == {(4, 512)}  # one batch, 300 wide
     assert backend.needed_shapes([100] * 30, 2048, 2048) == {(16, 128)}
     assert backend.needed_shapes([3000], 4096, 2048) is None
 
