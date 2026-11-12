@@ -2,7 +2,7 @@
 
 Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It answers the Performance TODO item "Can we run any of this on Apple's Neural Engine (ANE)?". Raw results are in `ane-feasibility.jsonl`, one line per model. The script is `scripts/ane_benchmark.py`.
 
-**Answer: it can, but it is slower than MPS.** As first converted, the ANE gave Qwen2.5 activations with no relation to fp32. Three changes to the model's code make it as accurate as any other fp16 backend (see "Making the ANE accurate"). Even so, a forward pass takes 1.5–1.6× as long as on MPS. And on Qwen, fp16 on any device is often outside the tolerance of `openinterp reproduce`.
+**Answer: it can, but it is slower than MPS.** As first converted, the ANE gave Qwen2.5 activations with no relation to fp32. Three changes to the model's code make it as accurate as any other fp16 backend (see "Making the ANE accurate"). Even so, a forward pass takes 1.5–1.6× as long as on MPS. And on Qwen, fp16 on any device is often outside the tolerance of `openinterp reproduce`. A scan can still record exact values. The ANE ranks every token, and fp32 measures each pole's top 40 again (see "Screen on the ANE, then measure the top exactly").
 
 ## Method
 
@@ -68,10 +68,40 @@ Milliseconds per 2,048-token batch, with all three changes. *Rel. err* is the re
 | ANE with all changes, against fp32 | 0.851 | 0.499 | 0.297 |
 
 - **On Qwen, the ANE is now as accurate as fp16 on the CPU.** Against fp32, 50% and 30% of its neurons pass, and 52% and 30% of CPU fp16's.
-- **On GPT-2 a gap remains:** 85% against fp32, and 97% for CPU fp16. We did not look for its cause. LayerNorm, which GPT-2 uses as Core ML's own operation, is one candidate.
+- **On GPT-2 a gap remains:** 85% against fp32, and 97% for CPU fp16. The next section gives what we found.
 - **fp16 is the limit on Qwen, not the device.** PyTorch fp16 on MPS and on the CPU disagree with each other for 36–50% of Qwen's neurons. The tolerance suits fp32. A Qwen record made in fp16 on a Mac would often fail `reproduce` on CI's CPU runners, on any device.
 
 These figures are from random token ids, not real text, so take them as an indication.
+
+### The gap on GPT-2
+
+We looked for a cause of GPT-2's gap in the same way, and found no single operation:
+
+- Through all 6 layers, the ANE's error is 1.5–2× that of CPU fp16 at every intermediate tensor. It starts at the first LayerNorm.
+- LayerNorm alone is as accurate on the ANE as on the GPU. Followed by a linear layer, its error goes up by about 1.5×, because the ANE compiler fuses the two operations. We tried four alternatives, and none was better. They were LayerNorm from basic operations, γ and β moved into the linear layer, rows divided by their largest value, and larger weights.
+- No other form of GELU did better than the `exp` form. Core ML's own `gelu` operation had 8× the error. Applying GELU on the host in fp32, to the ANE's pre-activations, changed nothing. The error is already in the pre-activations.
+
+A probable cause is how each device rounds. PyTorch's fp16 on the CPU computes each operation in fp32 and rounds only its result. The ANE computes in fp16 from start to end, so it rounds more often. We did not find a change that removes this.
+
+### Screen on the ANE, then measure the top exactly
+
+`reproduce` checks the top examples' strengths and the scale (the largest strength). A scan can get those exactly while the ANE does most of the work:
+
+1. Run the whole corpus on the ANE, and rank every token by the ANE's strengths.
+2. Take each pole's top K candidates. Measure them again in fp32 on the CPU or MPS, which is a few windows of work.
+3. Keep the best 20 of those exact values.
+
+Share of neurons whose 20 kept values match fp32's top 20 inside the tolerance:
+
+| K | GPT-2 + | GPT-2 − | Qwen 0.5B + | Qwen 0.5B − | Qwen 1.5B + | Qwen 1.5B − |
+| --- | --- | --- | --- | --- | --- | --- |
+| 20 | 0.981 | 1.000 | 0.962 | 0.956 | 0.965 | 0.963 |
+| 30 | 0.995 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 40 | 0.996 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+The check compares values, not which tokens are chosen. GPT-2's top negative values are all at GELU's lowest value, −0.170, with a median gap of 2 × 10⁻⁵ between the 20th and 21st. So any fp16 device, CPU fp16 included, orders them differently, but their values agree.
+
+Then the numbers that `reproduce` checks are fp32 numbers, and a record can pin fp32. The other scan statistics (histogram, partner correlations, confound profile) would have the ANE's fp16 error of about 1%. `reproduce` does not check them.
 
 ## Other findings
 
@@ -81,4 +111,4 @@ These figures are from random token ids, not real text, so take them as an indic
 ## What would change the answer
 
 - **Speed.** Apple's [ml-ane-transformers](https://github.com/apple/ml-ane-transformers) rewrites a transformer for the ANE: channels-first layout, attention split per head, and LayerNorm built from ANE-friendly operations. It reports large speed-ups for BERT-sized models. That is a second implementation of every architecture, with its own correctness check per model. Unless a profile shows the forward pass is most of a scan's time, it isn't worth doing.
-- **Use as a second device.** With the three changes, the ANE could run fp16 scans next to MPS. A record made that way must pin fp16, and the reproduce tolerance must suit fp16 first.
+- **Use as a second device.** With the three changes, the ANE could run scans next to MPS. With the screen and exact measurement above, the record's checked numbers are fp32, so the record can pin fp32. Without it, a record must pin fp16, and the reproduce tolerance must suit fp16 first. Either way, the scan needs a Core ML path. That is a second copy of each model architecture, and a dependency on coremltools, which can't yet convert transformers 5's code.
