@@ -17,6 +17,7 @@ from tests.conftest import FakeTokenizer
 from tests.test_agents import TEXTS
 
 REAL_GPU_UTILIZATION = devices.gpu_utilization  # conftest replaces it for every test
+REAL_MPS_STUCK = devices.mps_stuck
 
 
 @pytest.mark.parametrize(
@@ -158,3 +159,32 @@ def test_an_mps_scan_reproduces_on_the_cpu(tiny_gpt2):
     pairs = zip(on_mps.values, on_cpu.values, strict=True)
     assert all(DEFAULT_TOLERANCE.close(m, c, scale) for m, c in pairs)
     assert [ex.text for ex in on_mps.examples] == [ex.text for ex in on_cpu.examples]
+
+
+# -- a first MPS operation that never ends -----------------------------------
+
+
+def test_a_first_mps_operation_that_never_ends_sends_the_job_to_the_cpu(monkeypatch, capsys):
+    import time
+
+    monkeypatch.setattr(devices, "mps_stuck", REAL_MPS_STUCK)
+    monkeypatch.setattr(torch, "ones", lambda *a, **k: time.sleep(5))  # as the Metal hang
+    monkeypatch.setenv(devices.START_ENV, "0.2")
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    assert resolve_device("mps") == "cpu"
+    assert "didn't start in 0.2 s" in capsys.readouterr().err
+    assert not (devices.lease_root() / "mps" / str(os.getpid())).exists()  # no lease
+
+
+def test_a_first_mps_operation_that_fails_is_reported_at_once(monkeypatch):
+    def broken(*a, **k):
+        raise RuntimeError("no Metal device")
+
+    monkeypatch.setattr(torch, "ones", broken)
+    assert "failed at once" in devices._probe_mps(30)
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="needs Apple's GPU")
+def test_a_working_gpu_starts_in_time():
+    assert devices._probe_mps(60) is None

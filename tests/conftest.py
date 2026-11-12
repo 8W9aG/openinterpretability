@@ -238,6 +238,7 @@ def _idle_devices(tmp_path_factory, monkeypatch):
     monkeypatch.setenv(devices.LEASES_ENV, str(tmp_path_factory.mktemp("leases")))
     monkeypatch.delenv(devices.FORCE_ENV, raising=False)
     monkeypatch.setattr(devices, "gpu_utilization", lambda *a, **k: 0.0)
+    monkeypatch.setattr(devices, "mps_stuck", lambda: None)  # a fresh MPS start for each test
     devices.forget()
     yield
     devices.forget()
