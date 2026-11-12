@@ -292,11 +292,15 @@ def train(
     part,
     push_every: int = 0,
     push_part: str = "push",
+    save_every: int = 0,
+    save_dir: Path | None = None,
 ) -> None:
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
     If ``push_every`` is not 0, also append a row labelled ``push_part`` after each
     ``push_every`` steps. The row summarises the push on the rest over those steps.
+    If ``save_every`` is not 0, save the weights to ``save_dir`` every ``save_every`` steps,
+    as ``checkpoint_path`` names them.
     """
     condition = CONDITIONS[name]
     vocab = int(tokens.max()) + 1
@@ -306,6 +310,9 @@ def train(
     recorder = PushRecorder(model) if push_every else None
     start = time.time()
     for step in range(steps + 1):
+        if save_every and step % save_every == 0:
+            save_dir.mkdir(parents=True, exist_ok=True)
+            torch.save(model.state_dict(), checkpoint_path(save_dir, name, seed, step))
         if step % eval_every == 0:
             row = {"part": part, "condition": name, "seed": seed, "step": step}
             write_row(out, {**row, **evaluate(model, test_ids)})
@@ -328,6 +335,11 @@ def train(
             if (step + 1) % push_every == 0:
                 row = {"part": push_part, "condition": name, "seed": seed, "step": step + 1}
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
+
+
+def checkpoint_path(save_dir: Path, name: str, seed: int, step: int | str) -> Path:
+    """Return the file of one saved checkpoint of a training run. A ``step`` of "*" globs."""
+    return save_dir / f"{name}_seed{seed}_step{step}.pt"
 
 
 @click.group()
@@ -353,10 +365,26 @@ def cli():
     help="Steps in each row of the push on the rest. 0 records no push.",
 )
 @click.option("--push-part", default="push", show_default=True, help="The label of the push rows.")
+@click.option("--save-every", type=int, default=0, show_default=True, help="0 saves no weights.")
+@click.option("--save-dir", type=click.Path(path_type=Path), default=None)
 def train_command(
-    names, seeds, steps, eval_every, corpus, cache, device, out, part, push_every, push_part
+    names,
+    seeds,
+    steps,
+    eval_every,
+    corpus,
+    cache,
+    device,
+    out,
+    part,
+    push_every,
+    push_part,
+    save_every,
+    save_dir,
 ):
     """Train each condition with each seed, and append the rows to ``--out``."""
+    if save_every and save_dir is None:
+        raise click.UsageError("--save-every needs --save-dir")
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER)
@@ -379,6 +407,8 @@ def train_command(
                 part,
                 push_every,
                 push_part,
+                save_every,
+                save_dir,
             )
 
 

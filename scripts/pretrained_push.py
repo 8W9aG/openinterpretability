@@ -25,7 +25,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 from default_on_poles import GPT2, load_split, write_row
 from resting_modules import Activation
 from resting_push import PushRecorder
-from train_resting import BATCH, _layer_stats
+from train_resting import (
+    BATCH,
+    CONDITIONS,
+    TOKENIZER,
+    _layer_stats,
+    build_model,
+    checkpoint_path,
+)
 
 from openinterp.cli import resolve_device
 from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
@@ -179,17 +186,67 @@ def pythia(corpus, steps, batches, device, out):
 
     device = resolve_device(device)
     ids = corpus_windows(AutoTokenizer.from_pretrained(PYTHIA), corpus)
+
+    def checkpoints():
+        for step in steps or CHECKPOINTS:
+            model = GPTNeoXForCausalLM.from_pretrained(
+                PYTHIA, revision=f"step{step}", dtype=torch.float32
+            )
+            for layer in model.gpt_neox.layers:
+                layer.mlp = ConvMLP(layer.mlp)
+            model = model.to(device).eval()  # Pythia has no dropout
+            mlps = [layer.mlp for layer in model.gpt_neox.layers]
+            row, neurons = push_row(model, mlps, ids, batches)
+            yield {"part": "pythia_push", "model": PYTHIA, "step": step, **row}, neurons
+
+    write_checkpoint_rows(out, checkpoints())
+
+
+@cli.command()
+@corpus_option
+@click.option("--condition", "name", required=True, type=click.Choice(sorted(CONDITIONS)))
+@click.option("--seed", type=int, default=0, show_default=True)
+@click.option("--save-dir", type=click.Path(path_type=Path, exists=True), required=True)
+@batches_option
+@device_option
+@out_option
+def small(corpus, name, seed, save_dir, batches, device, out):
+    """Append one ``small_push`` row for each saved checkpoint of a small model to ``--out``.
+
+    The checkpoints come from ``train_resting.py train --save-every``. This applies the
+    test of the ``pythia`` command to a run whose push during training is known.
+    """
+    from transformers import AutoTokenizer
+
+    device = resolve_device(device)
+    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER)
+    ids = corpus_windows(tokenizer, corpus)
+    files = save_dir.glob(checkpoint_path(Path(), name, seed, "*").name)
+    steps = sorted(int(f.stem.rsplit("step", 1)[1]) for f in files)
+
+    def checkpoints():
+        for step in steps:
+            state = torch.load(checkpoint_path(save_dir, name, seed, step), map_location="cpu")
+            vocab = state["transformer.wte.weight"].shape[0]  # training sets it from its tokens
+            model = build_model(CONDITIONS[name], vocab, seed)
+            model.load_state_dict(state)
+            model = model.to(device).eval()  # the same as training if dropout is 0
+            mlps = [block.mlp for block in model.transformer.h]
+            row, neurons = push_row(model, mlps, ids, batches)
+            row = {"part": "small_push", "condition": name, "seed": seed, "step": step, **row}
+            yield row, neurons
+
+    write_checkpoint_rows(out, checkpoints())
+
+
+def write_checkpoint_rows(out: Path, checkpoints) -> None:
+    """Append each checkpoint's row, with how well its push predicts the move to the next.
+
+    ``checkpoints`` yields ``(row, neurons)`` from ``push_row``, in order of step. The last
+    row has no move.
+    """
     previous = None
-    for step in steps or CHECKPOINTS:
-        model = GPTNeoXForCausalLM.from_pretrained(
-            PYTHIA, revision=f"step{step}", dtype=torch.float32
-        )
-        for layer in model.gpt_neox.layers:
-            layer.mlp = ConvMLP(layer.mlp)
-        model = model.to(device).eval()  # Pythia has no dropout
-        mlps = [layer.mlp for layer in model.gpt_neox.layers]
-        row, neurons = push_row(model, mlps, ids, batches)
-        row = {"part": "pythia_push", "model": PYTHIA, "step": step, **row}
+    for row, neurons in checkpoints:
         if previous is not None:
             before_row, before = previous
             for layer, (push, rest), (_, rest_after) in zip(
@@ -198,7 +255,7 @@ def pythia(corpus, steps, batches, device, out):
                 layer.update(move_stats(push, rest, rest_after))
             write_row(out, before_row)
         previous = row, neurons
-        click.echo(f"step {step} done", err=True)
+        click.echo(f"step {row['step']} done", err=True)
     if previous is not None:
         write_row(out, previous[0])
 

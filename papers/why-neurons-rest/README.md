@@ -20,7 +20,7 @@
 14. **The push survives at depth only if the slope does.** Held at −1, ReLU keeps a ninth of its push at 0, and at −2 none. Softplus keeps three quarters of its push even at −4, because every token still has a slope. So softplus keeps sinking long after ReLU slows, and rests about twice as deep as its mean push predicts. Leaky ReLU at slope 0.1 is pushed back up at −1, where its mean output turns negative. So it settles between 0 and −1.
 15. **The pull on the mean output goes through the final LayerNorm and dropout.** With dropout at 0, the pull stays, but it is weaker: ReLU's cosine falls from +0.072 to +0.043, on two seeds. When the final LayerNorm can't see a constant and nothing drops out, the pull stops. The block LayerNorms alone don't make it. With both routes closed, the push on ReLU's rest keeps its pace, so the pull is not needed for the rest.
 16. **At its trained weights, GPT-2 small has no steady push and no pull.** The slope term points up and the spread term down, as for the small GELU models, but they cancel. Half of its neurons are pushed down, and the cosine of the mean output with its gradient is negative in all 12 layers.
-17. **Pythia-70m's checkpoints don't show the push clearly.** Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and predicts each neuron's next move only weakly.
+17. **Pythia-70m's checkpoints don't show the push clearly.** Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model. So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it.
 
 ![GELU, ReLU and tanh curves, with the rest of layers L1 to L3 marked on each](media/activations.svg)
 
@@ -376,7 +376,22 @@ GPT-2's training run isn't public, but Pythia's checkpoints are (Biderman et al.
 - **The push at a checkpoint doesn't point down steadily.** While the rest forms, at steps 512–2,000, only 1 or 2 of the 6 layers have a median push below 0. Half the neurons are pushed down at every checkpoint (43%–56%).
 - **A neuron's push predicts its move only weakly.** Up to step 4,000, the correlation is above 0 in 27 of 30 layers and intervals, at up to +0.24. But the push's sign matches the move's for only 45%–54% of neurons. After step 8,000 the correlation is near 0 (−0.11 to +0.07).
 - **The pull on the mean output is there late.** From step 16,000 on, the cosine of the mean output with its gradient is above 0 in 5 or 6 of the 6 layers. Early on it has both signs. Pythia has no dropout. So by the small models' result, its final LayerNorm is the likely route.
-- **These checkpoints can't test the small models' account well.** Between checkpoints are 488–79,000 steps, each with 2 million tokens of the Pile, during warm-up for the first 1,430. Our push is from 50 batches of 4,000 tokens of another corpus, at fixed weights. Under Adam, a parameter moves with its gradient's steadiness, which one checkpoint can't show. So the weak result neither supports nor refutes the account at scale.
+- **The checkpoints are far apart.** Between checkpoints are 488–79,000 steps, each with 2 million tokens of the Pile, during warm-up for the first 1,430. Our push is from 50 batches of 4,000 tokens of another corpus, at fixed weights. *Calibrating the checkpoint test* asks whether such a test can find a push that is known to be there.
+
+### Calibrating the checkpoint test
+
+Rows labelled `small_push` apply the same test to small models whose push during training is known. GELU and ReLU, both with no dropout as in Pythia, trained for 2,000 steps and saved a checkpoint every 250 steps. `scripts/pretrained_push.py small` then read each checkpoint as the `pythia` command reads Pythia's. The same runs recorded their push during training, in rows labelled `push_calib`. During training, the push over each 250 steps points down in 47 of the 48 layers and intervals.
+
+| Test, L1–L3 for the small models, L0–L5 for Pythia | GELU | ReLU | Pythia-70m, steps 0–4,000 |
+| --- | --- | --- | --- |
+| Checkpoints and layers with the push down | 24 of 27 | 26 of 27 | 13 of 30 |
+| Push against the next move, median | +0.16 | +0.12 | +0.07 |
+| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 58% | 55% | 51% |
+
+- **The test finds a steady push where there is one.** In the small models, the push at a checkpoint points down in nearly every layer. Its sign matches the neuron's next move for more than half the neurons, in 47 of 48 layers and intervals.
+- **Pythia's push is weaker or less steady.** Its push points down in fewer than half its layers while its rest forms. Its sign matches the move at chance, and the correlation is about half the small models'. So the weak result is a property of Pythia or of its gaps between checkpoints, and not of the test alone.
+- **The gaps can still hide a push.** Pythia's checkpoints are 2 to 300 times further apart than ours, and each step sees 500 times the tokens. A run with Pythia's batch size and schedule would tell the two apart.
 
 ## Why this matters for reading negative poles
 
@@ -392,7 +407,7 @@ Most of the cost of the negative side in GPT-2 is its resting level ([What defau
 - **Two leaky slopes.** At slope 0.01, the usual default, leaky ReLU rests like ReLU. At 0.1 it rests shallower. We didn't try slopes between them.
 - **Centring is a blunt tool.** It takes its mean from the batch, also at evaluation, and the gradient passes through that mean.
 - **A held rest changes the model.** The held runs centre h, so the weights can no longer turn against x̄. They train worse than free runs, at a loss of 5.56–6.02 against 5.49–5.83. So the push at an equal rest is the push in a centred model. A free model at that rest may get a different push.
-- **Some of the newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The offset runs of ReLU and GELU, the norm runs and the no-dropout runs have two, which agree to 0.004 in cosine. The split, output and depth runs have one, and so do the other offset runs.
+- **Some of the newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The offset, norm and no-dropout runs have two, which agree to 0.008 in cosine. The output and split runs have two, and every term has the same sign on both seeds. The depth runs and the calibration runs have one.
 - **One norm run partly failed.** With only the final LayerNorm centred and no dropout, L2 and L3 nearly shut on seed 0 (*Where the push comes from*). Seed 1 shows the same, with h's SD there at 0.10 and 0.08. So the condition causes it, and the run didn't fail. We don't know why.
 - **ReLU reruns drift a little.** Same-seed reruns of GELU, SiLU, softplus and tanh match the earlier rows exactly, also with the new recording. ReLU's differ by up to 0.004 in loss at step 2,000 and 0.002 at step 4,000, as the earlier ReLU rerun did. The step-0 evaluation of one GELU rerun differed by 0.007, while every later step matched exactly.
 - **Medians don't add.** The slope term, the spread term and the push are each a median over neurons, so the first two don't sum to the third.
@@ -455,6 +470,21 @@ uv run python scripts/train_resting.py train --seed 1 --condition relu --conditi
 uv run python scripts/train_resting.py train --seed 0 --condition relu_final_norm_centred_dropout_0 $O
 uv run python scripts/pretrained_push.py gpt2 --out $OUT
 uv run python scripts/pretrained_push.py pythia --out $OUT
+uv run python scripts/train_resting.py train --seed 1 --steps 2000 --part training_offset \
+    --push-part push_offset --condition relu_output_shift --condition gelu_output_shift \
+    --condition softplus --condition silu --condition tanh $T
+uv run python scripts/train_resting.py train --seed 1 --steps 1000 --part training_output \
+    --push-part push_output --condition gelu_output_centred --condition silu_output_centred \
+    --condition relu_output_shift --condition gelu_output_shift $T
+uv run python scripts/train_resting.py train --seed 1 --steps 1000 --part training_push_split \
+    --push-part push_split --condition gelu --condition silu $T
+uv run python scripts/train_resting.py train --seed 1 --steps 4000 --part training_push_split \
+    --push-part push_split --condition softplus --condition relu $T
+for C in dropout_0 relu_dropout_0; do
+  uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
+      --part training_calib --push-part push_calib --save-every 250 --save-dir ckpt $T
+  uv run python scripts/pretrained_push.py small --condition $C --save-dir ckpt --out $OUT
+done
 uv run python scripts/train_resting.py train --seed 1 --condition relu_norms_centred_dropout_0 \
     --condition relu_all_norms_centred_dropout_0 --condition relu_final_norm_centred_dropout_0 $O
 uv run python scripts/paper_figures.py
@@ -466,7 +496,7 @@ The 12,000-step runs of GELU and the fast control were labelled `training_long` 
 
 ## Next
 
-[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). Two causes stay open. The pull goes through the final LayerNorm and dropout. So the first cause is why a constant offset at the final LayerNorm raises the loss. The second is why the steepest tokens of GELU and SiLU get a gradient that points down. At Pythia's checkpoints the push is weak and mixed. A checkpoint test on a small model, where the push during training is known, would show whether that is the test or the model.
+[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). Two causes stay open. The pull goes through the final LayerNorm and dropout. So the first cause is why a constant offset at the final LayerNorm raises the loss. The second is why the steepest tokens of GELU and SiLU get a gradient that points down. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. A small run with Pythia's batch size and schedule would show whether the training setup weakens the push.
 
 ## References
 
