@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+## [0.0.18] - 2026-11-11
+
+Ships with protocol version **0.8**.
+
 ### Fixed
 
 - **Zenodo can archive a release** (`CITATION.cff`, `tests/test_citation.py`). Zenodo did not archive the 0.0.17 release, and gave the error "Citation metadata load failed". `license` listed MIT and CC-BY-4.0, and Zenodo takes one licence only. `license` is now MIT, the code's licence. The abstract says that the data under `wiki/` is CC-BY-4.0. A test fails if `license` becomes a list again.
