@@ -34,7 +34,7 @@ openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
   echo "<github-user> valid-after=\"$(date -u +%Y%m%d)Z\",namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterp_signing.pub)" >> .github/allowed_signers
   ```
 
-A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. A PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
+A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. So is a PR that the maintainer opened from a branch of this repository, whatever it changes. Agents that use the maintainer's GitHub login open PRs as the maintainer, so their PRs merge this way too. Any other PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
 
 Run `make check` locally before pushing. The [PR template](../.github/pull_request_template.md) has a checklist for posting experiments.
 
