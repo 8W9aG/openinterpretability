@@ -28,15 +28,17 @@ jobs:
     # Skipped (not failed) until the deploy is configured; see docs/development.md "Deploy".
     if: ${{ vars.R2_BUCKET != '' }}
     runs-on: ubuntu-latest
+    # A hung build or sync fails here, not at GitHub's 6-hour limit.
+    timeout-minutes: 60
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           ref: main
           # `openinterp check` checks the errata file's signature at the time it landed,
           # which needs main's history (openinterp/signing.py landing_times).
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -48,14 +50,14 @@ jobs:
         run: openinterp check
       # The personal-data matches of each text that earlier builds searched
       # (openinterp/builder/pii.py), so this build searches only new text.
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: ~/.cache/openinterp/pii
           key: pii-spans-${{ github.run_id }}
           restore-keys: pii-spans-
       # The author of the PR that merged each record without a contributor
       # (openinterp/builder/users.py), so this build asks GitHub only for new PRs.
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: ~/.cache/openinterp/pr-authors
           key: pr-authors-${{ github.run_id }}
