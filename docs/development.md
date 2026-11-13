@@ -7,7 +7,7 @@ How to change the code, what CI checks on a pull request, where the code lives, 
 ```bash
 make install        # uv sync
 make test           # pytest (CPU only, no downloads)
-make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, Markdown
+make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, Markdown, Vale, STE
 make vale           # comment and docstring prose against our STE rules (needs Vale)
 make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)
 make check-all      # the same for every record (what it runs on main)
@@ -18,7 +18,7 @@ openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 
 `openinterp build` renders the unit pages in one worker process per CPU (`--jobs`, where the platform can fork). `--jobs 1` renders them in one process. The build keeps the personal-data matches of each text on disk, in `~/.cache/openinterp/pii`. So a build searches only new text. `OPENINTERP_PII_CACHE` moves the cache, and `off` turns it off. The deploy keeps this cache between runs. The significance of each record is kept the same way, in `~/.cache/openinterp/build` (`OPENINTERP_BUILD_CACHE`). The two Parquet exports run in forked processes while the pages render. The build gives the same files on every run, whatever the hash seed.
 
-`make vale` needs [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk. Search and the SQL console need HTTP (`make serve`). No step needs Node.js: Pagefind is a locked Python dev dependency.
+`make lint` and `make vale` need [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk. Search and the SQL console need HTTP (`make serve`). No step needs Node.js: Pagefind is a locked Python dev dependency.
 
 ## Pull requests
 

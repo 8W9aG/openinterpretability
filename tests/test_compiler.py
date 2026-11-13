@@ -802,7 +802,7 @@ def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
     report = compile_site(records, tmp_path)
     stats = registry_stats(report.parquet)
     assert (stats["totals"]["verified"], stats["totals"]["contested"]) == (0, 1)
-    assert stats["verified"] == []
+    assert "verified" not in stats  # the home page lists no verified units (#3273)
     neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
     assert "CONTESTED" in neuron and "Reviews of this hypothesis disagree" in neuron
     home = (tmp_path / "index.html").read_text()

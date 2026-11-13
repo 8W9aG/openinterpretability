@@ -61,6 +61,6 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 ## Before you finish
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
-- Run `make lint`, `make vale` and `make test`.
+- Run `make lint` (it includes Vale) and `make test`.
 - Build the site with `make build`, and open the Research index and the paper.
 - Merging to `main` publishes the paper. Let a person read it first.
