@@ -82,17 +82,29 @@ def resolve_device(device: str) -> str:
     if devices.forced():  # a retry after an MPS failure: scans on the ANE if they can be
         if devices.ane_possible():
             devices.force_ane()
+        devices.note_choice(f"{devices.forced()}: a retry after the GPU failed")
         return devices.forced()
+    asked = device
     if device == "ane":  # scans on the ANE; the rest where the planner puts it
         devices.force_ane()
         device = "auto"
     if device == "auto":
         if torch.cuda.is_available():
+            devices.note_choice(f"{asked}: cuda, the first CUDA device")
             return "cuda"
         plan = devices.planned()
         if note := devices.notice():
             click.echo(note, err=True)
         device = plan.device
+        devices.note_choice(f"{asked}: {device}, because {plan.reason}")
+    else:
+        devices.note_choice(f"--device {device}")
+    if device == "mps" and (stuck := devices.mps_stuck()):
+        click.echo(f"Using the CPU, because {stuck}.", err=True)
+        if devices.ane_possible():
+            devices.force_ane()
+        devices.note_choice(f"{asked}: cpu, because {stuck}")
+        return "cpu"
     if device == "mps":
         devices.take_lease("mps")
     return device

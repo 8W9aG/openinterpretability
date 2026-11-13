@@ -27,6 +27,7 @@ import os
 import platform
 import re
 import subprocess
+import threading
 import time
 from contextlib import suppress
 from dataclasses import dataclass, field
@@ -40,6 +41,9 @@ FORCE_ENV = "OPENINTERP_DEVICE_FORCE"
 GPU_BUSY_ENV = "OPENINTERP_GPU_BUSY_PERCENT"
 # Idle reads 1%, one job 93-97% (docs/analyses/device-contention.md).
 DEFAULT_GPU_BUSY_PERCENT = 50.0
+# The longest the first operation on MPS may take before the process uses the CPU.
+START_ENV = "OPENINTERP_MPS_START_SECONDS"
+DEFAULT_START_SECONDS = 120.0
 GPU_SAMPLES = 5
 GPU_SAMPLE_SECONDS = 0.4
 
@@ -198,6 +202,20 @@ def _running(pid: int) -> bool:
     return True
 
 
+_choice: str | None = None  # how this process chose its device, for the record
+
+
+def note_choice(text: str) -> None:
+    """Record how this process chose its device (``RunEnvironment.device_choice``)."""
+    global _choice
+    _choice = text
+
+
+def choice() -> str | None:
+    """How this process chose its device, or None if nothing chose it (e.g. in a test)."""
+    return _choice
+
+
 _planned: DevicePlan | None = None
 _noticed = False
 _forced_ane = False
@@ -244,8 +262,8 @@ def ane_possible() -> bool:
 
 def forget() -> None:
     """Make the next :func:`planned` plan again (for tests)."""
-    global _planned, _noticed, _forced_ane
-    _planned, _noticed, _forced_ane = None, False, False
+    global _planned, _noticed, _forced_ane, _start_checked, _choice
+    _planned, _noticed, _forced_ane, _start_checked, _choice = None, False, False, False, None
     _used.clear()
 
 
@@ -285,3 +303,43 @@ def rerun_on_cpu(exc: BaseException) -> None:
     sys.stdout.flush()
     # The same command line that started this process, so nothing new runs.
     os.execve(sys.executable, sys.orig_argv, {**os.environ, FORCE_ENV: "cpu"})  # noqa: S606
+
+
+_start_checked: str | None | bool = False  # False: not checked yet
+
+
+def mps_stuck() -> str | None:
+    """Why this process can't use MPS, or None if a first operation on it ends in time.
+
+    Several processes that start on MPS at the same moment can each stop for good in
+    Metal's compiler. It opens Metal's shared cache of compiled programs on disk
+    (docs/analyses/device-contention.md). So a first small operation runs on a
+    background thread. The process waits for it at most ``$OPENINTERP_MPS_START_SECONDS``
+    (default :data:`DEFAULT_START_SECONDS`). The check runs once in a process.
+    """
+    global _start_checked
+    if _start_checked is False:
+        _start_checked = _probe_mps(float(os.environ.get(START_ENV) or DEFAULT_START_SECONDS))
+    return _start_checked
+
+
+def _probe_mps(seconds: float) -> str | None:
+    done, failed = threading.Event(), []
+
+    def probe() -> None:
+        try:
+            import torch
+
+            torch.ones(1024, device="mps").mul(2).cpu()
+            torch.mps.synchronize()
+        except Exception as exc:  # a GPU that fails at once can't be used
+            failed.append(exc)
+        finally:
+            done.set()
+
+    threading.Thread(target=probe, daemon=True, name="mps-start").start()
+    if not done.wait(timeout=seconds):
+        return f"the GPU (MPS) didn't start in {seconds:g} s (${START_ENV})"
+    if failed:
+        return f"the GPU (MPS) failed at once ({type(failed[0]).__name__}: {failed[0]})"
+    return None

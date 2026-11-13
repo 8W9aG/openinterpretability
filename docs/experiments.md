@@ -74,9 +74,20 @@ When the GPU is busy, the order is MPS, then Apple's Neural Engine (ANE), then t
 
 The CPU is 4–10× slower than a free GPU, and the ANE is 1.5–1.7× slower (`docs/analyses/ane-feasibility.md`). But two jobs on one GPU slow down each other, and once a training run that shared the GPU with `make test` gave wrong results. Take an audit of GPT-2 L5 with 128-token windows over `corpus.jsonl`. It took 77 s on the CPU and 30 s on a free GPU. With the scan on the ANE and the rest on the CPU, it took 55 s. The top examples were the same each time.
 
-`--device mps` uses the GPU even when it is busy. `--device ane` runs the scans on the ANE, and the rest on the GPU if it is free, else the CPU. A process plans once, and each model it loads uses the same device. The record's `environment.device` says which one ran.
+`--device mps` uses the GPU even when it is busy. `--device ane` runs the scans on the ANE, and the rest on the GPU if it is free, else the CPU. A process plans once, and each model it loads uses the same device.
+
+Each record says where it ran, for its scan (`submission.provenance.environment`) and for its review (`verdict.environment`):
+
+- `device`, e.g. `mps:0`, `cuda:0` or `cpu`, and `scan_backend` (`coreml-ane`) with `coremltools_version` for a scan on the ANE.
+- `device_name`, the hardware: a CUDA GPU's name, else the chip or CPU's name, e.g. `Apple M1 Max`.
+- `os`, e.g. `macOS-15.6` or `Linux-6.8.0-x86_64-with-glibc2.39`.
+- `device_choice`, how the device was chosen. Examples are `--device cpu`, `auto: mps, because the GPU is free`, `auto: cpu, because another openinterp job uses the GPU (process 41)`, and `cpu: a retry after the GPU failed`.
+
+These fields hold no hostname or user name. Records from before version 0.0.19 have only `device`. `openinterp reproduce` warns when the device or its name differs from the record's.
 
 Before a scan runs on the ANE, its model is converted to Core ML and compiled, once per layer and input shape. That takes 5–50 s, and the ANE's own compile when it first loads the model takes 10–35 s more. A scan waits at most 20 minutes for both (`$OPENINTERP_ANE_PREPARE_MINUTES`), and then runs on torch. A conversion that wouldn't fit in free memory, at about 4.5 times the fp32 weights it converts, is not tried. So converted models stay in `~/.cache/openinterp/coreml` (`$OPENINTERP_COREML_CACHE`, `off` to disable), capped at 20 GB (`$OPENINTERP_COREML_CACHE_GB`), least recently used first. An entry is keyed by the model, its revision, the layer and the shape. It is also keyed by a hash of the conversion code, the coremltools and torch versions, and the macOS version and chip. So a model update, a change to the conversion code or a macOS update builds new entries. A new entry is loaded once at its final path, because macOS keeps the ANE's compile by path. Then it is checked against fp32 on a test batch, and an entry more than 3% off is removed and not used. A GPT-2 layer is about 150 MB.
+
+Before a process first uses the GPU, it runs one small operation on it, and waits at most 120 s (`$OPENINTERP_MPS_START_SECONDS`). Processes that start on MPS at the same moment can stop for good in Metal's compiler (`docs/analyses/device-contention.md`). If the operation doesn't end in time, or fails, the process uses the CPU, and the ANE for scans. A normal first operation takes less than a second.
 
 The GPU can fail during a command, for example when it is out of memory or has no kernel for an operation. Then the command runs again from the start on the CPU. It says why, and it runs in a new process, so none of the GPU's state stays. A command runs again only once (`$OPENINTERP_DEVICE_FORCE` marks the retry), and files that the first run wrote are written again.
 
