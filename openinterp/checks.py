@@ -18,9 +18,9 @@ checks enforce that:
    model fields (``_check_model_fields``).
 5. The errata file (``wiki/errata.jsonl``) is valid and signed
    (:mod:`openinterp.errata_checks`).
-6. Every record judged under the current protocol gets the same verdict, gates and
-   balanced accuracy when the current code recomputes them from its stored results
-   (:mod:`openinterp.verdict_regression`). So a refactor of the gates can't silently
+6. The current code recomputes each record's verdict, gates and balanced accuracy from
+   its stored results (:mod:`openinterp.verdict_regression`). For each record judged
+   under the current protocol, they must match. So a refactor of the gates can't silently
    change what the registry claims.
 
 With ``base_ref``, checks 1 and 2 read only the files that the branch adds or changes,

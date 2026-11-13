@@ -6,10 +6,9 @@ need nothing else. So a change to the gates that would change an old record's ve
 shows here, without a model run. ``openinterp check`` calls ``verdict_drift`` for
 every record it reads.
 
-Only records judged under the current ``PROTOCOL_VERSION`` must match. A record from an
-older protocol was decided by older rules (docs/PROTOCOL.md §6), for example before
-protocol 0.8 added the ``not_default_on`` gate and let a tie with the confound baseline
-pass. A pull request that bumps ``PROTOCOL_VERSION`` makes today's records older ones,
+Only records judged under the current ``PROTOCOL_VERSION`` must match. Older protocols had
+older rules (docs/PROTOCOL.md §6). For example, protocol 0.8 added the
+``not_default_on`` gate, and it let a tie with the confound baseline pass. A pull request that bumps ``PROTOCOL_VERSION`` makes today's records older ones,
 so a deliberate change to the rule doesn't fail the check.
 """
 
