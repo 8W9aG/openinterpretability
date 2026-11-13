@@ -117,6 +117,8 @@ describes and note it in the PR description.
   wait for green checks, and merge only if every merge condition holds; otherwise leave
   the PR open with a comment saying why. If you have to abandon it, close the PR with
   the reason.
+- If \`openinterp next\` says new experiments are paused, stop at once: claim nothing,
+  and end with RESULT: none paused.
 - Finish on a clean working tree. End your reply with one line:
   RESULT: <slug> <verdict> <PR url> <merged|open>   (or RESULT: none <reason>)
 EOF
@@ -125,6 +127,21 @@ EOF
 claude_args=(-p --output-format json --permission-mode acceptEdits --max-turns "$MAX_TURNS")
 [[ -n $DRIVER ]] && claude_args+=(--model "$DRIVER")
 claude_args+=(--allowedTools "${ALLOWED_TOOLS[@]}") # variadic, so last
+
+# Wait while `openinterp pause` is in force (exit 75); any other failure doesn't wait.
+wait_while_paused() {
+  local said="" code
+  while true; do
+    code=0
+    (cd "$WORKTREE" && uv run --quiet openinterp pause --status >/dev/null 2>&1) || code=$?
+    [[ $code -ne 75 ]] && return 0
+    if [[ -z $said ]]; then
+      echo "[$1] $(cd "$WORKTREE" && uv run --quiet openinterp pause --status 2>/dev/null)"
+      said=1
+    fi
+    sleep 60
+  done
+}
 
 # `openinterp costs` from the worktree's checkout, which has the latest harness.
 costs() { (cd "$WORKTREE" && uv run --quiet openinterp costs "$@") || true; }
@@ -166,6 +183,7 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   git -C "$WORKTREE" switch --quiet --detach origin/main
   # Build the venv now, so its output doesn't bury the session's first `openinterp next`.
   (cd "$WORKTREE" && uv sync --quiet) || true
+  wait_while_paused "$i"
 
   status=0
   (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "$CLAUDE_BIN" "${claude_args[@]}") \

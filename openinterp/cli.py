@@ -403,6 +403,7 @@ from openinterp import (  # noqa: E402, F401
     cli_crossref,
     cli_evidence,
     cli_neuronpedia,
+    cli_pause,
     cli_probing,
     cli_registry,
     cli_reproduce,

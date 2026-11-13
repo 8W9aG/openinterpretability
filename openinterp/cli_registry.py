@@ -104,6 +104,15 @@ def show(path, full):
         raise click.BadParameter(str(exc), param_hint="PATH") from exc
 
 
+def _refuse_while_paused() -> None:
+    """Exit 75 with the reason if `openinterp pause` is in force."""
+    from openinterp.core import pause
+
+    if paused := pause.read():
+        click.echo(paused.describe(), err=True)
+        raise SystemExit(pause.EXIT_PAUSED)
+
+
 @cli.command(name="next")
 @wiki_dir_option()
 @click.option("--seed", type=int, help="Reproduce a previous choice. Default: fresh randomness.")
@@ -176,8 +185,13 @@ def next_experiment(
     proposer,
     reviewer,
 ):
-    """Pick the next experiment (randomised; balances exploration and follow-ups)."""
+    """Pick the next experiment (randomised; balances exploration and follow-ups).
+
+    While `openinterp pause` is in force it draws nothing and exits 75.
+    """
     from openinterp.planner import open_pr_claims, plan_next
+
+    _refuse_while_paused()
 
     source = click.get_current_context().get_parameter_source("corpus")
     if fresh_corpus and source != ParameterSource.DEFAULT:
