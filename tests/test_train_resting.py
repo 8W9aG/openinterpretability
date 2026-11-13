@@ -13,6 +13,7 @@ from train_resting import (  # noqa: E402
     INIT_MEAN_GELU,
     INIT_MEAN_RELU,
     LEAKY_SLOPE,
+    PUSH_BINS,
     SGD_MOMENTUM,
     Activation,
     PushRecorder,
@@ -235,3 +236,22 @@ def test_gelu_new_is_the_tanh_form_that_gpt2_uses():
 
     h = torch.randn(64)
     assert Activation("gelu_new", None, None)(h).allclose(NewGELUActivation()(h), atol=1e-6)
+
+
+def test_spread_bins_add_up_to_the_spread_term_on_each_neuron():
+    condition = CONDITIONS["gelu"]
+    model = build_model(condition, vocab_size=50, seed=0).train()
+    optimizer = make_optimizer(condition, model)
+    recorder = PushRecorder(model, bins=torch.tensor(PUSH_BINS))
+    batch = torch.randint(50, (2, 16), generator=torch.Generator().manual_seed(0))
+    model(batch, labels=batch).loss.backward()
+    recorder.before_step()
+    act = model.transformer.h[1].mlp.act
+    spread = -act.rest_grad - (-act.output_grad) * act.mean_slope
+    assert act.spread_bins.shape == (len(PUSH_BINS) + 1, model.config.n_inner)
+    assert act.spread_bins.sum(0).allclose(spread, atol=1e-7)
+    optimizer.step()
+    recorder.after_step()
+    row = recorder.row()[1]
+    assert len(row["median_spread_bins"]) == len(PUSH_BINS) + 1
+    assert row["median_spread_binned"] == pytest.approx(row["median_push_spread"], abs=1e-9)
