@@ -238,6 +238,7 @@ def _idle_devices(tmp_path_factory, monkeypatch):
     monkeypatch.setenv(devices.LEASES_ENV, str(tmp_path_factory.mktemp("leases")))
     monkeypatch.delenv(devices.FORCE_ENV, raising=False)
     monkeypatch.setattr(devices, "gpu_utilization", lambda *a, **k: 0.0)
+    monkeypatch.setattr(devices, "mps_stuck", lambda: None)  # a fresh MPS start for each test
     monkeypatch.setattr("openinterp.harness.cuda_devices.utilization", lambda *a, **k: None)
     devices.forget()
     yield
@@ -254,7 +255,9 @@ def _no_pause(tmp_path_factory, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _scan_cache(tmp_path_factory, monkeypatch):
-    """Cache layer scans in a temporary directory, never the developer's real cache."""
+    """Cache layer scans and first positions in a temporary directory, never the real cache."""
+    from openinterp.harness import first_position
     from openinterp.harness.layer_cache import ENV
 
     monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("scan-cache")))
+    monkeypatch.setenv(first_position.ENV, str(tmp_path_factory.mktemp("first-position")))

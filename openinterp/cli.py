@@ -38,7 +38,36 @@ def _load_runner(
     }[dtype]
     click.echo(f"Loading {model_name} on {device}…", err=True)
     with costs.stage("model_load"):
-        return _load(model_name, device, torch_dtype, revision, attn_implementation)
+        runner = _load(model_name, device, torch_dtype, revision, attn_implementation)
+    from openinterp.harness import devices
+
+    if devices.scans_on_ane():
+        from openinterp.harness.memory import is_streamed
+
+        if is_streamed(runner.model) and (why := devices.streamed_scans_skip_ane()):
+            click.echo(f"Scans run on the CPU, not the ANE, because {why}.", err=True)
+            devices.note_choice(f"{devices.choice()}; scans on the cpu, because {why}")
+        else:
+            _attach_ane(runner)
+    return runner
+
+
+def _attach_ane(runner) -> None:
+    """Run ``runner``'s scans on Apple's Neural Engine, if it can run the model."""
+    from openinterp.harness import devices
+    from openinterp.harness.ane.backend import AneScan
+
+    backend = AneScan.for_model(runner.model, runner.model_name, runner.model_revision)
+    if backend is None:
+        click.echo(
+            f"Scans run on {runner.device.type}: the ANE needs coremltools (Apple-silicon "
+            "Macs), and a model that passed scripts/ane_qualify.py "
+            "(openinterp/harness/ane/qualified.py).",
+            err=True,
+        )
+        return
+    runner.scan_backend = backend
+    devices.take_lease("ane")
 
 
 def resolve_device(device: str) -> str:
@@ -51,13 +80,30 @@ def resolve_device(device: str) -> str:
     """
     from openinterp.harness import devices
 
-    if devices.forced():  # a retry after a GPU failure
+    if devices.forced():  # a retry after a GPU failure: scans on the ANE if they can be
+        if devices.ane_possible():
+            devices.force_ane()
+        devices.note_choice(f"{devices.forced()}: a retry after the GPU failed")
         return devices.forced()
+    asked = device
+    if device == "ane":  # scans on the ANE; the rest where the planner puts it
+        devices.force_ane()
+        device = "auto"
     if device == "auto":
         plan = devices.planned()
         if note := devices.notice():
             click.echo(note, err=True)
         device = plan.device
+        rest = "scans on the ane, the rest on " if asked == "ane" else ""
+        devices.note_choice(f"{asked}: {rest}{device}, because {plan.reason}")
+    else:
+        devices.note_choice(f"--device {device}")
+    if device == "mps" and (stuck := devices.mps_stuck()):
+        click.echo(f"Using the CPU, because {stuck}.", err=True)
+        if devices.ane_possible():
+            devices.force_ane()
+        devices.note_choice(f"{asked}: cpu, because {stuck}")
+        return "cpu"
     devices.take_lease(device)  # a GPU only
     return device
 
@@ -126,8 +172,9 @@ model_options = [
         "--device",
         default="auto",
         show_default=True,
-        help="cpu, cuda, cuda:N, mps or auto: a free CUDA GPU, else MPS if it is free, else "
-        "the CPU. See docs/experiments.md, Devices.",
+        help="cpu, cuda, cuda:N, mps, ane or auto: a free CUDA GPU, else MPS if it is free, "
+        "else scans on the ANE (Apple's Neural Engine) and the rest on the CPU. See "
+        "docs/experiments.md, Devices.",
     ),
     click.option(
         "--dtype",
