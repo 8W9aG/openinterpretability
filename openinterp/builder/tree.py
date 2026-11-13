@@ -16,7 +16,7 @@ as studied, as a stopped neuron of its layer (:mod:`openinterp.builder.stopped`)
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -31,7 +31,7 @@ from openinterp.builder.hrefs import (  # noqa: F401  (re-exported: pages import
 from openinterp.builder.significance import Significance, significance
 from openinterp.builder.standing import native_standings, pole_standing
 from openinterp.builder.wiki import experiment_id
-from openinterp.core.errata import AppliedEdit, Erratum, apply_errata, covering
+from openinterp.core.errata import AppliedEdit, Erratum, apply_errata, covering, record_ref
 from openinterp.core.schemas import AuditRecord
 
 if TYPE_CHECKING:
@@ -56,6 +56,7 @@ class Experiment:
     standing: Standing | None = field(default=None, repr=False, compare=False)  # its pole's
     errata: list[Erratum] = field(default_factory=list, repr=False, compare=False)  # covering it
     edits: list[AppliedEdit] = field(default_factory=list, repr=False, compare=False)  # theirs
+    user: str | None = None  # who made it: its contributor, else its PR's author (users.py)
 
     @property
     def set_aside(self) -> bool:
@@ -366,11 +367,16 @@ def experiment_order(e: Experiment) -> tuple:
     )
 
 
-def build_tree(records: Sequence[AuditRecord], errata: Sequence[Erratum] = ()) -> list[ModelNode]:
+def build_tree(
+    records: Sequence[AuditRecord],
+    errata: Sequence[Erratum] = (),
+    users: Mapping[str, str] | None = None,
+) -> list[ModelNode]:
     """Group the reviewed records into models, layers and units.
 
     Each experiment lists the ``errata`` that cover its record (:mod:`openinterp.core.errata`),
-    and holds the record with their edits applied.
+    and holds the record with their edits applied. Its ``user`` is the proposer's recorded
+    contributor, else the record's entry in ``users`` (:func:`.users.load_users`).
     """
     reviewed = [r for r in records if r.verdict is not None]
     latest: dict[str, AuditRecord] = {}
@@ -388,6 +394,7 @@ def build_tree(records: Sequence[AuditRecord], errata: Sequence[Erratum] = ()) -
         is_latest = latest[r.submission.identifier.slug] is r
         experiment = _add_experiment(models, units, edited, is_latest, widths)
         experiment.errata, experiment.edits = found, edits
+        experiment.user = r.submission.contributor or (users or {}).get(record_ref(r))
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)

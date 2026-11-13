@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Users · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Users</nav>
+<h1 class="text-2xl font-semibold">Users</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  Everyone who made an experiment, by their public GitHub handle. A person made an experiment when they recorded it with
+  <code>--contributor</code>. For a record without one, it is the person who opened the pull request that merged it.
+  Reviews count the experiments that a person reviewed with <code>--contributor</code>.
+</p>
+<div class="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr>
+        <th class="px-3 py-2">User</th>
+        <th class="px-3 py-2 text-right">Experiments</th>
+        <th class="px-3 py-2 text-right">VERIFIED</th>
+        <th class="px-3 py-2 text-right" title="experiments with strong evidence against them">Well-probed rejections</th>
+        <th class="px-3 py-2 text-right" title="experiments reviewed">Reviews</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr class="border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900">
+        <td class="px-3 py-2 font-mono text-xs"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ u.href }}">{{ u.handle }}</a></td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ u.experiments }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ u.verified }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ u.conclusive_nulls }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ u.reviews }}</td>
+      </tr>
+      {% else %}
+      <tr><td class="px-3 py-2 text-slate-500" colspan="5">No users yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

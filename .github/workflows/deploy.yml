@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read  # the build reads each record's PR author (openinterp/builder/users.py)
 
 concurrency:
   group: deploy-registry
@@ -52,7 +53,16 @@ jobs:
           path: ~/.cache/openinterp/pii
           key: pii-spans-${{ github.run_id }}
           restore-keys: pii-spans-
+      # The author of the PR that merged each record without a contributor
+      # (openinterp/builder/users.py), so this build asks GitHub only for new PRs.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/openinterp/pr-authors
+          key: pr-authors-${{ github.run_id }}
+          restore-keys: pr-authors-
       - name: Build site
+        env:
+          GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
         run: |
           openinterp build --wiki-dir wiki --output-dir dist
           python -m pagefind --site dist

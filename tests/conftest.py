@@ -215,6 +215,18 @@ def _no_auto_sign(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_github(monkeypatch, tmp_path_factory):
+    """Builds read PR authors from GitHub (builder/users.py); tests never reach the network."""
+
+    def offline(url):
+        raise OSError("no network in tests")
+
+    monkeypatch.setattr("openinterp.builder.users._get", offline)
+    cache = tmp_path_factory.mktemp("pr-authors")
+    monkeypatch.setenv("OPENINTERP_PR_AUTHORS_CACHE", str(cache))
+
+
+@pytest.fixture(autouse=True)
 def _no_costs_ledger(monkeypatch):
     """Keep test commands out of a loop's real costs ledger (tests opt back in)."""
     from openinterp.core.costs import LEDGER_ENV

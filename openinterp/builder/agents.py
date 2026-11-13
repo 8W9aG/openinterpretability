@@ -10,8 +10,10 @@ Records spell one model in several ways. So pages are per canonical name
 (:func:`openinterp.core.agent_names.canonical_agent`). Each old per-spelling page
 redirects to its model's page (:func:`legacy_redirects`).
 
-The same page credits the people who ran the agents, by the ``contributor`` handle a
-submission or verdict records (:func:`contributors_view`).
+The same page credits the people who ran the agents (:func:`contributors_view`). A
+person's handle is the ``contributor`` that a submission or verdict records. When the
+submission records none, it is the author of the PR that merged it
+(:mod:`openinterp.builder.users`). Each person also gets a page under ``users/``.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from openinterp.builder.hrefs import user_href
 from openinterp.builder.significance import STRONG_EVIDENCE
 from openinterp.builder.tree import LABEL_PREFIX, Experiment, unit_href
 from openinterp.core.agent_names import NOTES, canonical_agent
@@ -187,34 +190,45 @@ def _recent_row(e: Experiment, roles: list[str]) -> dict:
 
 @dataclass
 class ContributorStats:
-    """One human contributor's part in the registry, as proposer and as reviewer."""
+    """One person's part in the registry, as maker of experiments and as reviewer."""
 
     handle: str
-    experiments: int = 0  # proposed
+    experiments: int = 0  # made: proposed, or merged when no contributor is recorded
     verified: int = 0
     conclusive_nulls: int = 0  # well-probed rejections: strong evidence against
     reviews: int = 0
+    made: list[dict] = field(default_factory=list)  # rows of their experiments, newest first
+    reviewed: list[dict] = field(default_factory=list)  # rows of the experiments they reviewed
+
+    @property
+    def href(self) -> str:
+        """Their page on the site."""
+        return user_href(self.handle)
 
 
 def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStats]:
-    """Return one row per recorded contributor, most experiments and reviews first.
+    """Return one row per person, most experiments and reviews first.
 
-    Records without a contributor (all before it was recorded) count for nobody.
+    An experiment's maker is ``Experiment.user``. That is the proposer's recorded
+    contributor, else the author of the PR that merged it (:mod:`openinterp.builder.users`). Its
+    reviewer is the verdict's recorded contributor. Each list of rows is newest first.
     """
     people: dict[str, ContributorStats] = {}
-    for e in experiments:
-        sub, verdict = e.record.submission, e.record.verdict
-        if sub.contributor:
-            row = people.setdefault(sub.contributor, ContributorStats(sub.contributor))
+    newest = sorted(experiments, key=lambda e: (e.record.verdict.timestamp, e.id), reverse=True)
+    for e in newest:
+        verdict = e.record.verdict
+        if e.user:
+            row = people.setdefault(e.user, ContributorStats(e.user))
             row.experiments += 1
+            row.made.append(_recent_row(e, []))
             row.verified += e.record.is_verified
             row.conclusive_nulls += (
                 e.sig.direction == "refutes" and e.sig.conclusiveness >= STRONG_EVIDENCE
             )
         if verdict.contributor:
-            people.setdefault(
-                verdict.contributor, ContributorStats(verdict.contributor)
-            ).reviews += 1
+            row = people.setdefault(verdict.contributor, ContributorStats(verdict.contributor))
+            row.reviews += 1
+            row.reviewed.append(_recent_row(e, []))
     return sorted(people.values(), key=lambda c: (-c.experiments - c.reviews, c.handle.lower()))
 
 
