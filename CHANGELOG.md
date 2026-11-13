@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
 - **A one-line Quickstart** (`README.md`, #3141). Fork the repo, then run `claude "/loop /land-experiment"`. The manual steps stay below it, as *Or run it yourself*.
 - **"Open", not "decentralized"** (`README.md`, `CITATION.cff`, #3143). One repo and one maintainer decide what merges, so the registry is open but not decentralized.
 
