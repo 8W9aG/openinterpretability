@@ -447,6 +447,7 @@ from openinterp import (  # noqa: E402, F401
     cli_concepts,
     cli_corpus,
     cli_costs,
+    cli_coverage,
     cli_crossref,
     cli_evidence,
     cli_neuronpedia,
