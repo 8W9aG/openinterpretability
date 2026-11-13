@@ -1,0 +1,13 @@
+# Secret scanning (.github/workflows/secret-scan.yml). The default rules, minus paths
+# that hold third-party text: experiment records and pages quote corpus excerpts, and
+# benchmark files quote them too. A key-shaped string there is not one of ours.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Corpus excerpts in records, pages and benchmark data"
+paths = [
+  '''^wiki/experiments/''',
+  '''^wiki/draws/''',
+  '''^benchmark/''',
+]

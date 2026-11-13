@@ -9,6 +9,12 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Security
+
+- **Actions pinned to commit SHAs, and Dependabot** (`.github/workflows/`, `.github/dependabot.yml`, #3176). A tag such as `actions/checkout@v4` can be moved, and CI decides which records to trust. Each action now names a full SHA, with its version as a comment. Dependabot opens a weekly PR for the actions and for `uv.lock`.
+- **A secret scan on every pull request** (`.github/workflows/secret-scan.yml`, `.gitleaks.toml`, #3181). gitleaks checks the commits each PR adds. Run by hand, it scans the whole history. Paths that quote corpus text are left out.
+- **Timeouts on the "Lint and tests" and deploy jobs** (#3180): 30 and 60 minutes, so a hung step fails early.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.
