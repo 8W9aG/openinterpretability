@@ -12,6 +12,7 @@ Thank you for helping. This file is the short map. The detail is in the pages it
 ## Pull requests
 
 - A PR that changes only `wiki/` (an experiment) merges automatically when CI passes, fork PRs included.
+- A PR that the maintainer opens from a branch of this repository also merges automatically when CI passes.
 - A PR that changes anything else waits for a maintainer.
 - Run `make check` before you push. If you change code, also run `make lint test`, and `make vale` for comments and docstrings.
 - A change to the decision rule bumps `PROTOCOL_VERSION` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §6). Mark the TODO item **(protocol)** and say so in the PR.
