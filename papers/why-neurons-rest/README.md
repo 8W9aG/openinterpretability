@@ -44,7 +44,7 @@ The script is `scripts/train_resting.py`. Its output is in `results.jsonl`. `scr
 - **GPT-2 push.** `scripts/pretrained_push.py gpt2` records the same terms for trained GPT-2 small, over 50 batches of the corpus sample's windows, with no optimizer step. It records with dropout off (`eval`) and with GPT-2's dropout of 0.1 (`train`).
 - **Output conditions.** `gelu_output_centred` and `silu_output_centred` centre each neuron's output a over the batch, so the output's gradient sums to 0 over tokens. `relu_output_shift` and `gelu_output_shift` add a constant to the output that moves its mean at init to the other activation's (*Where the push comes from*).
 - **Offsets.** `scripts/ln_offset.py` adds an offset to the input of a trained model's LayerNorm. It measures the loss's slope by autograd (*What the final LayerNorm does with a constant*). The small models are saved with `--save-every`.
-- **Terms of the push.** The recorder also splits the push into a slope term and a spread term, and keeps the push ratio of the weights along x̄. It keeps the cosine of the MLP's mean output with the gradient on its output bias. It also keeps two correlations: the mean output against the output's push over neurons, and the output against its gradient over tokens. `--push-part` labels the push rows of a rerun so that they don't mix with the first run's rows.
+- **Terms of the push.** The recorder also splits the push into a slope term and a spread term, and keeps the push ratio of the weights along x̄. It keeps the cosine of the MLP's mean output with the gradient on its output bias. It also keeps two correlations: the mean output against the output's push over neurons, and the output against its gradient over tokens. `--push-part` labels the push rows of a rerun so that they don't mix with the first run's rows. `--spread-bins` also splits the spread term by bins of h, with the edges in `PUSH_BINS`.
 
 ## GPT-2 small
 
@@ -528,6 +528,11 @@ uv run python scripts/train_resting.py train --seed 1 --steps 1000 --part traini
     --push-part push_split --condition gelu --condition silu $T
 uv run python scripts/train_resting.py train --seed 1 --steps 4000 --part training_push_split \
     --push-part push_split --condition softplus --condition relu $T
+for SEED in 0 1; do
+  uv run python scripts/train_resting.py train --seed $SEED --steps 1000 --part training_spread_bins \
+      --push-part push_spread_bins --spread-bins --device cpu --condition gelu --condition silu \
+      --condition relu $T
+done
 for C in dropout_0 relu_dropout_0; do
   uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
       --part training_calib --push-part push_calib --save-every 250 --save-dir ckpt $T
@@ -554,7 +559,7 @@ uv run python scripts/ln_offset.py frequency --condition relu --cache tokens.pt 
 uv run python scripts/paper_figures.py
 ```
 
-The seed-1 equal-rest runs ran after the seed-0 ones, in a run of their own. The split and output runs ran before the recorder kept the offset and token correlations, so their rows lack those fields.
+The seed-1 equal-rest runs ran after the seed-0 ones, in a run of their own. The split and output runs ran before the recorder kept the offset and token correlations, so their rows lack those fields. The binned runs ran on the CPU, while the GPU ran other runs.
 
 The 12,000-step runs of GELU and the fast control were labelled `training_long` by hand. The `--part` option does this now.
 
