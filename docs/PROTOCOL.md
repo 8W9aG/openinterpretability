@@ -215,7 +215,7 @@ A record must let a third party re-derive its verdict:
 
 `openinterp reevaluate --record <file>` re-measures a record's stored probes under the current policy, without LLM calls. The result is a new experiment.
 
-`openinterp reproduce <file>…` (or `--base-ref origin/main` for every record a branch adds or changes) checks that a record is what it claims to be. It loads the model commit and dtype the record pins and re-runs everything the verdict rests on, without LLM calls:
+`openinterp reproduce <file>…` (or `--base-ref origin/main` for every record a branch adds or changes) checks that a record is what it claims to be. It loads the model commit and dtype the record pins and re-runs everything the verdict rests on, without LLM calls. A record in a 16-bit dtype (bfloat16 or float16) is the exception: it re-runs in float32 (below).
 
 - each top example's per-token strengths, and the scale (`max_activation`) that every threshold is a fraction of.
 - each counterfactual's observed Δ.
@@ -223,6 +223,13 @@ A record must let a third party re-derive its verdict:
 - with `--corpus <the scan's corpus>`, the corpus sample: re-drawn from its seed and budget, it must hash the same and contain every top example. A different corpus is a warning. CI has no corpus, so it skips this check.
 
 Numbers must agree within `atol × scale + rtol × |recorded|` (defaults 0.001 and 0.01). These absorb float differences between devices and library versions, but not an edited number. Every pass/fail, every gate and the status must agree exactly. Causal metrics and joint ablation are not gated, so a difference there is only a warning. A different device or library version is reported as a warning. A record judged under another protocol version can't be reproduced by the current harness, because its decision rule was different: re-evaluate it instead.
+
+A record in a 16-bit dtype is re-run in float32. 16-bit rounding moves a number by a few percent from one device to another, so these records are compared with wider rules (`openinterp/half_precision.py`, `docs/analyses/half-precision-reproduce.md`):
+
+- Numbers must agree within `0.05 × scale + 0.02 × |recorded|`. At a peak that is 7%, so a 10% edit of a peak still fails.
+- Up to 4 tokens of each top example may differ by more, as a warning. Deep layers on unusual text can move a few tokens by up to 22% of the peak.
+- A pass/fail may flip when rounding moves its number across the threshold. That is a warning only if the numbers agree, and the recorded pass/fail follows from the recorded number. The recorded gates, balanced accuracy and status must then follow exactly from the recorded results.
+- Every recorded pass/fail must follow from its own recorded number, whether or not it flips.
 
 A trusted maintainer can instead **sign** a record (`openinterp sign <file>`, with an SSH key listed in `.github/allowed_signers`). This writes `<id>.json.sig` next to the record, over its exact bytes. `reproduce` then skips the record, reporting it as signed. An invalid signature fails like a mismatch. With `--base-ref`, the signers list is read from the base ref, so a branch can't trust its own key. A signature doesn't change the verdict, which still comes from the review protocol. It only records that the signer vouches for the record.
 

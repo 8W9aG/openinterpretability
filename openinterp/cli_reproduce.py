@@ -238,11 +238,13 @@ class _Reproducer:
 
     def runner(self, record):
         from openinterp.cli import _load_runner
+        from openinterp.half_precision import reproduction_dtype
         from openinterp.harness.units import attn_implementation
         from openinterp.reproduce import pinned_environment
 
         model = record.submission.identifier.model_name
-        revision, dtype = pinned_environment(record)
+        revision, pinned = pinned_environment(record)
+        dtype = reproduction_dtype(pinned)
         attn = attn_implementation(record.submission.identifier)
         key = (model, revision, dtype, attn)
         if key not in self.runners:
