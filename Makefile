@@ -19,6 +19,7 @@ lint:
 	uv run interrogate openinterp
 	$(MAKE) markdown
 	$(MAKE) shell
+	$(MAKE) vale
 	$(MAKE) ste
 
 # Style and relative links of hand-written Markdown; see scripts/check_markdown.py.
@@ -36,6 +37,7 @@ shell:
 
 # Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
+# `make lint` runs it, so a long sentence fails locally as it does in CI.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
 VALE_PATHS ?= openinterp scripts tests

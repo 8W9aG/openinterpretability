@@ -85,6 +85,12 @@ def _threshold(submission) -> float:
 )
 @click.option("--max-windows", default=4000, show_default=True, type=click.IntRange(1))
 @click.option(
+    "--controls",
+    is_flag=True,
+    help="Also judge the same windows with no explanation and with another unit's, and "
+    "report the gaps (openinterp/score_controls.py).",
+)
+@click.option(
     "--out",
     type=click.Path(dir_okay=False, path_type=Path),
     help="ExplanationScores JSON (default with --task: score.scores.json next to it).",
@@ -102,6 +108,7 @@ def score(
     quantiles,
     per_quantile,
     max_windows,
+    controls,
     out,
     device,
     dtype,
@@ -136,7 +143,7 @@ def score(
             raise click.UsageError("--out is required when scoring in one step.")
         submission = _load_submission(audit_file)
         runner = _load_unit_runner(submission.identifier, device, dtype)
-        sampling = (seed, window_tokens, quantiles, per_quantile, max_windows)
+        sampling = (seed, window_tokens, quantiles, per_quantile, max_windows, controls)
         if emit_task is not None:
             task = _draw_task(runner, submission, corpus, *sampling)
             _write_task(task.model_copy(update={"costs": costs.measured()}), emit_task)
@@ -172,8 +179,11 @@ def _score_answers(task_file: Path, judge_model: str, embedding_model, device, d
             _sibling(task_file, f".{kind}.json"),
         )
         costs.add_external("judge", judge_model, prompt, answer)
+    from openinterp.score_controls import read_answers
+
     runner = _load_unit_runner(task.identifier, device, dtype)
-    scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model)
+    controls = read_answers(task, task_file)
+    scores = _score_task(task, runner, detection, fuzzing, judge_model, embedding_model, controls)
     return scores.model_copy(update={"costs": costs.merge(task.costs, costs.measured())})
 
 
@@ -188,11 +198,13 @@ def score_submission(
     quantiles: int = 5,
     per_quantile: int = 5,
     max_windows: int = 4000,
+    controls: bool = False,
 ):
     """Draw held-out windows and score the explanation with an LLM judge, in one step."""
     from openinterp.agents.judge import ExplanationJudge, FuzzingAnswer
+    from openinterp.score_controls import judge_controls
 
-    sampling = (seed, window_tokens, quantiles, per_quantile, max_windows)
+    sampling = (seed, window_tokens, quantiles, per_quantile, max_windows, controls)
     task = _draw_task(runner, submission, corpus, *sampling)
     judge = ExplanationJudge(judge_model)
     click.echo(f"Asking {judge.model} to judge {len(task.detection)} windows…", err=True)
@@ -203,12 +215,16 @@ def score_submission(
         if task.fuzzing
         else FuzzingAnswer(correct=[])
     )
-    return _score_task(task, runner, detection, fuzzing, judge.model, embedding_model)
+    judged = judge_controls(judge, task, noun)
+    return _score_task(task, runner, detection, fuzzing, judge.model, embedding_model, judged)
 
 
-def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_quantile, cap):
+def _draw_task(
+    runner, submission, corpus, seed, window_tokens, quantiles, per_quantile, cap, controls=False
+):
     from openinterp.agents.judge import ScoringTask
     from openinterp.cli_evidence import read_corpus
+    from openinterp.score_controls import control_tasks
 
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
     seed = secrets.randbits(32) if seed is None else seed
@@ -236,6 +252,7 @@ def _draw_task(runner, submission, corpus, seed, window_tokens, quantiles, per_q
         active_windows=sample.active_windows,
         detection=windows(sample.detection),
         fuzzing=windows(sample.fuzzing),
+        controls=control_tasks(submission.identifier.slug, seed) if controls else [],
     )
 
 
@@ -307,9 +324,14 @@ def _write_task(task, path: Path) -> None:
         text = prompt(task.explanation, getattr(task, kind), _noun(task.identifier))
         prompt_path.write_text(ExplanationJudge.render_prompt(model, text, answer))
         click.echo(f"Judge prompt: {prompt_path} (answer in {answer})")
+    if task.controls:
+        from openinterp.score_controls import write_prompts
+
+        write_prompts(task, path, _noun(task.identifier))
+        click.echo(f"Control prompts: {len(task.controls)} controls, next to {path}")
 
 
-def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
+def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model, controls=()):
     from openinterp.agents.judge import answered
     from openinterp.core import costs
     from openinterp.core.explanation import ExplanationScores
@@ -345,6 +367,7 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model):
         embedding_model=embedding_model or None,
         detection_windows=unmeasured(task.detection, det, sims),
         fuzzing_windows=unmeasured(task.fuzzing, fuz, [None] * len(task.fuzzing)),
+        controls=list(controls),
     )
     with costs.stage("remeasure"):
         return remeasure(scores, runner, submission_unit(task))
@@ -381,11 +404,14 @@ def _summary(scores) -> str:
             f"FPR {_num(s.false_positive_rate)})"
         )
 
-    return (
+    from openinterp.score_controls import gap_summary
+
+    line = (
         f"Detection {judged(scores.detection)} · fuzzing {judged(scores.fuzzing)} · "
         f"embedding AUROC {_num(scores.embedding_auroc)} · "
         f"{scores.active_windows}/{scores.candidate_windows} held-out windows active"
     )
+    return line + ("\n" + gap_summary(scores) if scores.controls else "")
 
 
 def _num(value: float | None) -> str:

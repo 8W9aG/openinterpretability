@@ -15,7 +15,7 @@ from dataclasses import dataclass, replace
 
 import torch
 
-from openinterp.core.explanation import ExplanationScores, JudgeScore, ScoredWindow
+from openinterp.core.explanation import ControlScore, ExplanationScores, JudgeScore, ScoredWindow
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.units import Unit
 
@@ -239,6 +239,24 @@ def finalize_scores(scores: ExplanationScores) -> ExplanationScores:
             "detection": judge_score(det, scores.quantiles),
             "fuzzing": judge_score(scores.fuzzing_windows, scores.quantiles),
             "embedding_auroc": emb,
+            "controls": [_control_scores(c, scores) for c in scores.controls],
+        }
+    )
+
+
+def _control_scores(control: ControlScore, scores: ExplanationScores) -> ControlScore:
+    """Score a control's answers against the real windows' labels."""
+
+    def judged(windows: Sequence[ScoredWindow], answers: Sequence[bool]):
+        if len(answers) != len(windows):
+            return None
+        marked = [w.model_copy(update={"judged": a}) for w, a in zip(windows, answers, strict=True)]
+        return judge_score(marked, scores.quantiles)
+
+    return control.model_copy(
+        update={
+            "detection": judged(scores.detection_windows, control.detection_judged),
+            "fuzzing": judged(scores.fuzzing_windows, control.fuzzing_judged),
         }
     )
 
