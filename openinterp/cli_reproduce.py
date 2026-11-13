@@ -103,8 +103,9 @@ def reproduce(
     import os
 
     from openinterp.cli_evidence import read_corpus
+    from openinterp.core.errata import load_errata
     from openinterp.reproduce import Tolerance
-    from openinterp.signing import landing_times
+    from openinterp.signing import allowed_signers_text, landing_times
 
     paths = _chosen_records(records, base_ref, sample, sample_date, wiki_dir)
     if not paths:
@@ -116,7 +117,7 @@ def reproduce(
         texts, _, corpus_sha, _ = read_corpus(corpus)
         scan_corpus = (texts, corpus_sha)
     reproducer = _Reproducer(
-        signers=_allowed_signers(allowed_signers, base_ref),
+        signers=allowed_signers_text(allowed_signers, base_ref),
         landed=landing_times(base_ref or "HEAD"),
         tolerance=Tolerance(atol=atol, rtol=rtol),
         scan_corpus=scan_corpus,
@@ -124,6 +125,7 @@ def reproduce(
         device=device,
         include_signed=include_signed or sample is not None,
         measurements_only=sample is not None,
+        errata=load_errata(wiki_dir),
     )
     results, unreached = _check_all(reproducer, paths, in_actions, time_budget)
     failed = sum(bool(problems) for _, problems, _ in results)
@@ -186,6 +188,7 @@ class _Reproducer:
     device: str
     include_signed: bool = False
     measurements_only: bool = False  # for records from another protocol version
+    errata: list = field(default_factory=list)  # wiki/errata.jsonl (core/errata.py)
     runners: dict[tuple, object] = field(default_factory=dict)
 
     def check(self, path: Path) -> tuple[str, list[str], list[str]]:
@@ -209,6 +212,9 @@ class _Reproducer:
             record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
         except ValidationError:
             return "FAILED", ["invalid experiment record"], []
+        record, aside = self.corrected(record, notes)
+        if aside:
+            return f"SET ASIDE by erratum {aside} (reproduction skipped)", [], notes
         reason = self.refusal(record)
         if reason:
             return "FAILED", [reason], notes
@@ -223,6 +229,21 @@ class _Reproducer:
         )
         status = "FAILED" if report.mismatches else "REPRODUCED"
         return status, report.mismatches, notes + report.warnings
+
+    def corrected(self, record, notes: list[str]):
+        """``record`` with its errata's edits, and the id of an erratum that sets it aside.
+
+        A harness fix can change what a record reproduces to. Its erratum's edits give the
+        corrected values, so those are the values to check.
+        """
+        from openinterp.core.errata import apply_errata, covering
+
+        found = covering(self.errata, record)
+        aside = next((x.id for x in found if x.set_aside), None)
+        if aside or not found:
+            return record, aside
+        notes.append(f"checked with the edits of erratum {', '.join(x.id for x in found)}")
+        return apply_errata(record, found)[0], None
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
@@ -285,18 +306,6 @@ def _preset_dictionary(record) -> bool:
     return spec is not None and (spec.repo, spec.revision) == (profile.repo, profile.revision)
 
 
-def _allowed_signers(path: Path, base_ref: str | None) -> str:
-    """The allowed-signers file's content: from ``base_ref`` if given, else from disk."""
-    import subprocess
-
-    if base_ref:
-        shown = subprocess.run(
-            ["git", "show", f"{base_ref}:{path.as_posix()}"], capture_output=True, text=True
-        )
-        return shown.stdout if shown.returncode == 0 else ""
-    return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
 @cli.command()
 @click.argument(
     "records", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path)
@@ -326,11 +335,12 @@ def sign(records, key, allowed_signers):
     from openinterp.signing import (
         SignatureError,
         SignatureOutsideWindow,
+        allowed_signers_text,
         sign_record,
         verify_record,
     )
 
-    signers = _allowed_signers(allowed_signers, None)
+    signers = allowed_signers_text(allowed_signers)
     for path in records:
         sig = sign_record(path, key.expanduser())
         try:
@@ -378,6 +388,7 @@ def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
     """
     from openinterp.signing import (
         SignatureError,
+        allowed_signers_text,
         landing_times,
         signature_path,
         verify_record,
@@ -385,7 +396,7 @@ def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
 
     paths = list(records) or sorted(experiments_dir(wiki_dir).rglob("*.json"))
     paths = [p for p in paths if signature_path(p).exists()]
-    signers, landed = _allowed_signers(allowed_signers, None), landing_times(ref)
+    signers, landed = allowed_signers_text(allowed_signers), landing_times(ref)
     untrusted = 0
     for path in paths:
         at = landed.get(path.resolve())

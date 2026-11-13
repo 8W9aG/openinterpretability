@@ -12,7 +12,6 @@ import math
 import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from importlib.metadata import metadata
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -38,7 +37,7 @@ from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import save_spans, scrub, scrub_record
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
-from openinterp.builder.research import copy_assets, load_papers
+from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
@@ -54,10 +53,10 @@ from openinterp.builder.tree import (
 )
 from openinterp.core.agent_names import canonical_agent
 from openinterp.core.draws import ChosenStop
+from openinterp.core.errata import Erratum
 from openinterp.core.exceptions import RegistryError
-from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.project import project_links
-from openinterp.core.schemas import ActivatingExample, AuditRecord, ReviewPolicy
+from openinterp.core.schemas import ActivatingExample, AuditRecord
 from openinterp.planner import configured_licenses
 from openinterp.sensitive import is_offensive
 from openinterp.sisters import by_match_slug, sister_source_href, sister_tests, sister_view
@@ -291,6 +290,7 @@ def compile_site(
     stops: Sequence[ChosenStop] = (),
     model_facts: dict[str, ModelFacts] | None = None,
     jobs: int = 1,
+    errata: Sequence[Erratum] = (),
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -303,13 +303,15 @@ def compile_site(
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
     Models page, which lists every model in ``[tool.openinterp] models``.
     ``jobs`` is the number of worker processes that render the unit pages.
+    ``errata`` (:func:`openinterp.core.errata.load_errata`) alter the experiments they cover:
+    each shows the erratum, and one set aside counts toward no standing.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    models = build_tree(records)
+    models = build_tree(records, errata)
     add_stopped(models, (*draws, *stops))  # neurons that only stopped scans cover
     experiments = [
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
@@ -338,9 +340,7 @@ def compile_site(
     stats["totals"]["neurons"] += sum(len(layer.stopped) for m in models for layer in m.layers)
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
-    license = metadata("openinterp")["License-Expression"]
-    render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
-    _render_research(render, papers_dir, output_dir, report)
+    render_reference_pages(render, papers_dir, report)
     _save_memos()
     return report
 
@@ -371,16 +371,6 @@ def _render_agents(render, experiments, output_dir, report) -> list:
     for old, new in legacy_redirects(agents).items():
         _write_redirect(output_dir / old, Path(new).name, report)
     return agents
-
-
-def _render_research(render, papers_dir, output_dir, report) -> None:
-    """Write the Research section: its index, each paper, and their media."""
-    papers = load_papers(papers_dir, render.common["repo_url"])
-    render("research/index.html", "research.html", papers=papers)
-    for paper in papers:
-        report.pages.extend(copy_assets(papers_dir, paper, output_dir))
-        if not paper.interactive:
-            render(f"research/{paper.href}", "paper.html", paper=paper)
 
 
 def _render_index(render, models, experiments, agents, stats, draws, by_unit, studied) -> None:

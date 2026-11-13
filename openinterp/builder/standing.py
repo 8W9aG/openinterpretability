@@ -1,7 +1,8 @@
 """A unit's standing: what all of its experiments say now (``docs/PROTOCOL.md`` §3 step 9).
 
 The newest hypothesis counts, one reading per probe set, independent reviews outweigh
-self-reviews, and the unit is CONTESTED when those readings disagree on VERIFIED. Also the
+self-reviews, and the unit is CONTESTED when those readings disagree on VERIFIED. An erratum
+can set experiments aside (:mod:`openinterp.core.errata`). Also the
 registry-wide reviewer agreement those readings give. Derived, never stored.
 """
 
@@ -22,6 +23,7 @@ ROLES = {
     "remeasured": "re-measured since",
     "outweighed": "outweighed by an independent review",
     "earlier_hypothesis": "earlier hypothesis",
+    "set_aside": "set aside by an erratum",
 }
 
 
@@ -52,6 +54,11 @@ class Standing:
         """Only self-reviews back it: an independent review would have outweighed them."""
         return all(e.record.self_reviewed for e in self.readings)
 
+    @property
+    def errata(self) -> list:
+        """The errata that cover a reading it rests on, each once, in first-seen order."""
+        return list({x.id: x for e in self.readings for x in e.errata}.values())
+
 
 def _newest_first(experiments: Sequence[Experiment]) -> list[Experiment]:
     return sorted(experiments, key=lambda e: (e.record.verdict.timestamp, e.id), reverse=True)
@@ -81,8 +88,15 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     3. If any reading is an independent review, self-reviews are outweighed.
     4. The readings left agree, or the pole is CONTESTED. Only VERIFIED against anything
        else is a disagreement; if none is VERIFIED, the newest reading's status stands.
+
+    Before step 1, experiments that an erratum sets aside are left out, unless that leaves
+    none. Then the standing rests on them, and :attr:`Standing.errata` names the errata.
     """
-    newest = _newest_first(experiments)
+    kept = [e for e in experiments if not e.set_aside]
+    for e in experiments:
+        if kept and e.set_aside:
+            e.role = "set_aside"
+    newest = _newest_first(kept or experiments)
     introduced = {e.claim: e for e in reversed(newest)}  # each claim's first experiment
     current = max(introduced.values(), key=lambda e: (e.record.verdict.timestamp, e.id)).claim
     latest = _readings([e for e in newest if e.claim == current])
@@ -100,7 +114,7 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     statuses = {e.record.verdict.status for e in readings}
     contested = "VERIFIED" in statuses and len(statuses) > 1
     standing = Standing("CONTESTED" if contested else readings[0].record.verdict.status, readings)
-    for e in newest:
+    for e in experiments:
         e.standing = standing
     return standing
 

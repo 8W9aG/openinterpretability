@@ -3,7 +3,8 @@
 One row per experiment, whatever its verdict. ``unit_status`` is the standing of the row's
 neuron pole, head or feature (``docs/PROTOCOL.md`` §3 step 9). It is CONTESTED when the
 unit's reviews disagree, and is repeated on each of its rows. ``counts_toward_status``
-marks the rows that the standing rests on. ``is_latest`` marks the newest experiment for
+marks the rows that the standing rests on. ``errata`` lists the ids of the errata
+(``wiki/errata.jsonl``) that cover the row's record. ``is_latest`` marks the newest experiment for
 each unit, which is not necessarily one of those.
 
 ``kind`` tells the units apart:
@@ -58,6 +59,7 @@ REGISTRY_SCHEMA = pa.schema(
         ("is_latest", pa.bool_()),
         ("unit_status", pa.string()),
         ("counts_toward_status", pa.bool_()),
+        ("errata", pa.list_(pa.string())),
         ("model_name", pa.string()),
         ("kind", pa.string()),
         ("layer", pa.int32()),
@@ -300,6 +302,7 @@ def _standing_columns(exp: Experiment) -> dict:
         "is_latest": exp.is_latest,
         "unit_status": exp.standing.status if exp.standing else None,
         "counts_toward_status": exp.counts,
+        "errata": [erratum.id for erratum in exp.errata],
         "p_useful": exp.sig.p_useful,
         "conclusiveness": exp.sig.conclusiveness,
         "evidence_direction": exp.sig.direction,

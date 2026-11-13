@@ -75,7 +75,7 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    3. *Independent over self-review.* If any reading came from a reviewer model other than the proposer's, self-reviews are outweighed.
    4. *Agreement.* If the readings left agree, that is the status. If one is VERIFIED and another is not, the status is **CONTESTED**, and the unit is not counted as verified. If none is VERIFIED, the newest reading's status stands: NEEDS_REVISION against REJECTED is not a disagreement about whether the claim holds.
 
-   Unit pages show which reviews the status rests on, and mark every other experiment as re-measured, outweighed or an earlier hypothesis. The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
+   Unit pages show which reviews the status rests on. They mark every other experiment as re-measured, outweighed, an earlier hypothesis or set aside by an erratum (§5). The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
 
 ## 4. Decision rule
 
@@ -234,6 +234,27 @@ A record in a 16-bit dtype is re-run in float32. 16-bit rounding moves a number 
 A trusted maintainer can instead **sign** a record (`openinterp sign <file>`, with an SSH key listed in `.github/allowed_signers`). This writes `<id>.json.sig` next to the record, over its exact bytes. `reproduce` then skips the record, reporting it as signed. An invalid signature fails like a mismatch. With `--base-ref`, the signers list is read from the base ref, so a branch can't trust its own key. A signature doesn't change the verdict, which still comes from the review protocol. It only records that the signer vouches for the record.
 
 Each key in `.github/allowed_signers` has a validity window: `valid-after`, and `valid-before` when the key is revoked or expires. A signature is checked at the time it landed on `main`. That time is the committer date of the newest first-parent commit on `main` that added or changed the record or its `.sig` file. GitHub sets that date when it merges a pull request. A record that is not on `main` yet is checked at the current time. A listed key can make a signature that landed outside the key's window. Such a signature vouches for nothing, so `reproduce` re-runs the record and reports why. `openinterp signatures` lists the records whose signatures are not trusted in this way. `SECURITY.md` says how to rotate and revoke a key.
+
+Records are write-once, so a harness bug found after a record landed can't be fixed in the record. Instead a maintainer adds an **erratum** to `wiki/errata.jsonl`, one JSON object per line (`openinterp/core/errata.py`). An erratum has these fields:
+
+- `id`, `date` and a one-line `title`.
+- `bug`: what was wrong, and what it did to the records.
+- `fixed_in`: the commit that fixed the bug.
+- the records it covers. `records` lists paths relative to `wiki/experiments/`. A `rule` selects records by model, unit kind, protocol version, harness version and verdict time (`reviewed_from`, `reviewed_before`). A record matches a rule when it matches every field given. An erratum can have both.
+- what to do with the records: `edits` or `set_aside`, never both.
+  - `edits` lists changes to the records. Each has a `path` and a new `value`. The path names keys and list indices in the record's JSON, for example `verdict.status` or `submission.top_examples.0.max_activation`. The field must exist, and the edited record must be valid. An edit can't change `submission.identifier` or `verdict.timestamp`, because they give the record's place. Edits apply in file order.
+  - `set_aside: true` means the records count toward no status (§3 step 9). The exception is when every experiment on a pole or head is set aside. Then the status rests on them, and the site says so.
+
+The process:
+
+1. Fix the bug and merge the fix.
+2. Find the affected records. Prefer a rule when the bug depends on a version or a time, so that the erratum also covers records that no one listed.
+3. Append the erratum to `wiki/errata.jsonl`. Never change or remove a line. To fix an earlier erratum, append a new one.
+4. Run `openinterp check --base-ref origin/main`. It applies each edit to every record that the erratum covers.
+5. Sign the file: `openinterp sign wiki/errata.jsonl`. This writes `wiki/errata.jsonl.sig`.
+6. Open a pull request with the two files.
+
+`openinterp check` verifies the file. Each line must parse, ids must be unique, and listed records must exist. A key in `.github/allowed_signers` must sign it, and with `--base-ref` that list comes from the base ref. The signature is checked at the time it landed on `main`, as a record's is. With `--base-ref`, the file is append-only. If the branch changes the file, each erratum must cover at least one record, and its edits must apply to each record. Its `fixed_in` commit must also exist. Errata have no page of their own. The record files and their signatures never change. Each build applies the edits to a copy of each covered record, so pages, standings and `registry.parquet` read the edited values. Each covered experiment shows the erratum's title, bug and fix commit. It also shows each edit's old and new value, or says that the record is set aside. `registry.parquet` has an `errata` column. `openinterp reproduce` checks the edited record, and skips a record that is set aside.
 
 A nightly workflow (`.github/workflows/reproduce-nightly.yml`) runs `openinterp reproduce --sample 20` on `main`, because a library upgrade can shift activations in records that no pull request touches. The date chooses the records in rotation, so the registry is covered in about 100 days. Signed records are re-run too, and a bad signature still fails. A record from another protocol version gets its scan evidence and counterfactuals compared, without its review. The run starts no record after 140 minutes (`--time-budget`), so a night that draws several slow records still ends inside its time limit. A record not reached is listed, and waits for its next turn in the rotation. A failed run opens an issue, or comments on the open one. It changes no record or verdict.
 

@@ -16,6 +16,8 @@ checks enforce that:
    generated index (``README.md``) was committed. Records added since then name their
    agents in canonical spelling (``openinterp.core.agent_names``) and have one shape of
    model fields (``_check_model_fields``).
+5. The errata file (``wiki/errata.jsonl``) is valid and signed
+   (:mod:`openinterp.errata_checks`).
 
 With ``base_ref``, checks 1 and 2 read only the files that the branch adds or changes,
 committed or not. So their cost doesn't grow with the registry. If the branch also
@@ -40,6 +42,8 @@ from openinterp.builder.wiki import _read_front_matter, archive_path
 from openinterp.core.agent_names import spelling_problem
 from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
+from openinterp.errata_checks import check_errata
+from openinterp.signing import ALLOWED_SIGNERS
 
 DISCUSSION_HEADING = "## Discussion"
 LEGACY_AUDITS_DIR = Path("audits")
@@ -87,6 +91,7 @@ def check_registry(
     *,
     base_ref: str | None = None,
     legacy_audits_dir: Path = LEGACY_AUDITS_DIR,
+    allowed_signers: Path = ALLOWED_SIGNERS,
 ) -> CheckReport:
     """Run every registry check on ``wiki_dir`` (see the module docstring)."""
     report = CheckReport()
@@ -99,6 +104,7 @@ def check_registry(
     _check_pages(wiki_dir, report, scope)
     _check_draws(wiki_dir, report, scope)
     _check_stops(wiki_dir, report, scope)
+    check_errata(wiki_dir, report, base_ref, changes, allowed_signers)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, changes, report)
         root = experiments_dir(wiki_dir)

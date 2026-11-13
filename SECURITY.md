@@ -33,6 +33,7 @@ What the maintainer does:
 2. In a commit to `main`, add `valid-before="YYYYMMDDHHMMSSZ"` (UTC) to the key's line in `.github/allowed_signers`, at the start of the exposure. Don't delete the line. CI checks each signature at the time it landed on `main` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §5). So signatures that landed before the exposure stay trusted, and the other signatures by the key vouch for nothing. CI reads the file from the base branch, so the change applies to every PR after the commit.
 3. List the records that the key signed in its exposure: `openinterp signatures`. Reproduce them: `openinterp reproduce --include-signed $(openinterp signatures --paths-only)`. Until then, the nightly run reproduces each one when its rotation gets to it, and does not skip it.
 4. Deal with each record that doesn't reproduce in a PR that a maintainer reviews, and list them in the advisory.
+   If the key signed `wiki/errata.jsonl` in its exposure, `openinterp check` now fails on `main`. Read every erratum in the file again, then sign the file with a trusted key ([docs/PROTOCOL.md](docs/PROTOCOL.md) §5).
 5. If the owner still contributes, they make a new key and add it to `.github/allowed_signers` in its own commit to `main` (see [Rotating a signing key](#rotating-a-signing-key)).
 
 If you delete a key's line, every signature by the key fails, including the signatures from before the exposure.

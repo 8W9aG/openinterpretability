@@ -75,6 +75,7 @@ def build(
     from openinterp.builder.parallel import default_jobs
     from openinterp.builder.wiki import load_archive
     from openinterp.core.draws import load_draws, load_stops
+    from openinterp.core.errata import load_errata
     from openinterp.corpus import load_sources
     from openinterp.crossref import load_rows as load_alignment
     from openinterp.planner import configured_models
@@ -93,6 +94,7 @@ def build(
         stops=load_stops(wiki_dir),
         model_facts=load_model_facts(configured_models()),  # config.json only, no weights
         jobs=jobs or default_jobs(),
+        errata=load_errata(wiki_dir),
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
