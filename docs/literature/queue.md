@@ -85,3 +85,18 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "Automated Interpretability and Feature Discovery in Language Models with Agents" (InterpAgent, arXiv 2605.01555, [paper](https://arxiv.org/abs/2605.01555)).
 - Review "The Story is Not the Science: Execution-Grounded Evaluation of Mechanistic Interpretability Research" (arXiv 2602.18458, [paper](https://arxiv.org/abs/2602.18458)).
 - Review "Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations" (arXiv 2603.09988, [paper](https://arxiv.org/abs/2603.09988)).
+- Review "Massive Activations Confound Sparse Autoencoders" (arXiv 2611.13548, [paper](https://arxiv.org/abs/2611.13548)).
+- Review "Sanity Checks for Sparse Autoencoders: Do SAEs Beat Random Baselines?" (arXiv 2602.14111, [paper](https://arxiv.org/abs/2602.14111)).
+- Review "Tree-Ising: Repairing Language Models with Bit-Level Ising Edits" (arXiv 2611.14210, [paper](https://arxiv.org/abs/2611.14210)).
+- Review Microsoft Research's "Lazare, veni foras: reprogramming dormant neurons to backdoor AI agents" ([post](https://www.microsoft.com/en-us/research/blog/lazare-veni-foras-reprogramming-dormant-neurons-to-backdoor-ai-agents/)). The title is from the URL, because the page refuses automated reads.
+- Review "Predictive Surprise as Self-Grounding Concept Bottleneck for Interpretable Time Series" (arXiv 2611.12955, [paper](https://arxiv.org/abs/2611.12955)).
+- Review "Are Dense Rewards Worth Their Tokens in GRPO?" (arXiv 2611.13560, [paper](https://arxiv.org/abs/2611.13560)).
+- Review Meta's "Introducing Our Smallest, Most Efficient Model: Muse Ember" ([post](https://research.meta.ai/blog/muse-ember)).
+- Review Hugging Face's "Token Pooling-Aware Training for Multi-Vector Embedding Models" ([post](https://huggingface.co/blog/token-pooling)).
+- Review "Faithful and Stable Neuron Explanations for Trustworthy Mechanistic Interpretability" (arXiv 2512.18092, [paper](https://arxiv.org/abs/2512.18092)).
+- Review "Neurons Speak in Ranges: Breaking Free from Discrete Neuronal Attribution" (arXiv 2502.06809, [paper](https://arxiv.org/abs/2502.06809)).
+- Review "Exploring the Robustness of Model-Graded Evaluations and Automated Interpretability" (arXiv 2312.03721, [paper](https://arxiv.org/abs/2312.03721)).
+- Review "Constructing Interpretable Features from Compositional Neuron Groups" (arXiv 2506.10920, [paper](https://arxiv.org/abs/2506.10920)).
+- Review "Circuit Insights: Towards Interpretability Beyond Activations" (arXiv 2510.14936, [paper](https://arxiv.org/abs/2510.14936)).
+- Review Transluce's "Scaling Automatic Neuron Description", with its descriptions of all 458,752 MLP neurons of Llama-3.1-8B-Instruct ([post](https://transluce.org/neuron-descriptions)).
+- Review the neuron descriptions that came with Goodfire's *Neural Networks Are Already Clean*, of neurons in Qwen3.6-35B-A3B ([essay](https://already-clean.goodfire.com/)). Secondary coverage says 1,500 neurons. The essay page doesn't give the count.
