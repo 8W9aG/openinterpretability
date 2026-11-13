@@ -231,6 +231,19 @@ def _no_wordnet(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _idle_devices(tmp_path_factory, monkeypatch):
+    """The device planner sees no other jobs and an idle GPU, and keeps leases in tmp."""
+    from openinterp.harness import devices
+
+    monkeypatch.setenv(devices.LEASES_ENV, str(tmp_path_factory.mktemp("leases")))
+    monkeypatch.delenv(devices.FORCE_ENV, raising=False)
+    monkeypatch.setattr(devices, "gpu_utilization", lambda *a, **k: 0.0)
+    devices.forget()
+    yield
+    devices.forget()
+
+
+@pytest.fixture(autouse=True)
 def _no_pause(tmp_path_factory, monkeypatch):
     """Keep tests away from a real pause of new experiments (``openinterp pause``)."""
     from openinterp.core.pause import ENV

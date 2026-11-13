@@ -60,6 +60,17 @@ Builds keep what they read on disk by dataset commit, up to 5 GB, so a repeated 
 
 A scan's forward pass captures the whole layer, so `audit` caches every neuron's activations in that layer in `~/.cache/openinterp/scans`. `$OPENINTERP_SCAN_CACHE` moves it, and `off` disables it. A later audit of any neuron in the layer replays the cache instead of running the model, and gets the same numbers. It needs the same model, corpus options and dtype. The cache is capped at 40 GB (`$OPENINTERP_SCAN_CACHE_GB`). A 200,000-token Qwen2.5-0.5B layer in float32 takes about 4 GB, and the least recently used layers go first. `openinterp scan-cache` lists or clears it. For a neuron's per-token activations over the scan, e.g. every occurrence of one token, use `openinterp activations --model … --layer … --neuron … --corpus corpus.jsonl` (`--token`, `--min-strength`, `--top 0` for all, `--format jsonl`) rather than writing a scan loop.
 
+## Devices
+
+`--device auto`, the default, uses a CUDA GPU if there is one. On a Mac it uses Apple's GPU (MPS) only when the GPU is free, and else the CPU (`openinterp/harness/devices.py`). Two things make the GPU busy:
+
+- **Another `openinterp` job.** A process that runs a model on MPS keeps a lease, an empty file named for its process id in `~/.cache/openinterp/devices/mps/`. `$OPENINTERP_DEVICE_LEASES` moves the folder, and `off` turns leases off. A lease of a process that has stopped doesn't count.
+- **Other programs.** If no other job has a lease, the planner reads the GPU's utilization from `ioreg`. It takes the mean of 5 readings over about 2 s, because one reading can change from 0% to 50% in a second. Above 50% the GPU is busy (`$OPENINTERP_GPU_BUSY_PERCENT`). That threshold is provisional, until it is measured.
+
+When the GPU is busy, the job runs on the CPU and says why. The CPU is 4–10× slower than a free GPU (`docs/analyses/ane-feasibility.md`). But two jobs on one GPU slow down each other, and once a training run that shared the GPU with `make test` gave wrong results. `--device mps` uses the GPU even when it is busy. A process plans once, and each model it loads uses the same device. The record's `environment.device` says which one ran.
+
+The GPU can fail during a command, for example when it is out of memory or has no kernel for an operation. Then the command runs again from the start on the CPU. It says why, and it runs in a new process, so none of the GPU's state stays. A command runs again only once (`$OPENINTERP_DEVICE_FORCE` marks the retry), and files that the first run wrote are written again.
+
 ## Memory
 
 The weights set the floor, and what a scan or a review adds on top of them is small. These are peak memory footprints, measured with macOS `/usr/bin/time -l` on CPU in float32. The scan is the default 200,000-token `audit` scan, and the review is `openinterp reproduce` of one record.
