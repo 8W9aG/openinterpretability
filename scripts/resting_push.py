@@ -24,14 +24,16 @@ class PushRecorder:
     is x̄·ΔW + Δb for one optimizer step, with x̄ the mean of the batch's MLP input.
     """
 
-    def __init__(self, model, mlps: list[nn.Module] | None = None) -> None:
+    def __init__(self, model, mlps: list[nn.Module] | None = None, bins=None) -> None:
         # ``mlps`` is for a model that is not a GPT-2. Each must have GPT-2's ``c_fc``,
         # ``act`` and ``c_proj``.
         self.mlps = mlps if mlps is not None else [block.mlp for block in model.transformer.h]
         self.inputs: list[torch.Tensor | None] = [None] * len(self.mlps)
         self.before: list[tuple[torch.Tensor, torch.Tensor]] = []
+        self.bins = bins
         for i, mlp in enumerate(self.mlps):
             mlp.act.record = True
+            mlp.act.bins = bins
             mlp.register_forward_pre_hook(self._input_hook(i))
         self.steps = 0
         self.run_steps = 0
@@ -64,6 +66,7 @@ class PushRecorder:
                 "moved_bias",
             )
         }
+        self.spread_bins = [None] * len(self.mlps)
         self.steps = 0
         self.offset = [{"cosine": 0.0, "correlation": 0.0} for _ in self.mlps]
         self.energy = [{"correlation": 0.0} for _ in self.mlps]
@@ -98,6 +101,11 @@ class PushRecorder:
             pair = torch.stack([push, mlp.act.energy_push.float()])
             self.energy[i]["correlation"] += torch.corrcoef(pair)[0, 1].nan_to_num().item()
             self.window["down_weights"][i] += (push_weights < 0).float()
+            if self.bins is not None:
+                split = mlp.act.spread_bins.float()
+                self.spread_bins[i] = (
+                    split if self.spread_bins[i] is None else self.spread_bins[i] + split
+                )
             self.run_down_weights[i] += (push_weights < 0).float()
 
     def after_step(self) -> None:
@@ -158,4 +166,17 @@ class PushRecorder:
             "mean_energy_correlation": self.energy[i]["correlation"] / n,
             # Over tokens: dL/da against a, as a median over neurons.
             "median_output_correlation": (w["output_correlation"] / n).median().item(),
+            **self._bins_row(i),
+        }
+
+    def _bins_row(self, i: int) -> dict:
+        """The spread term by bin of h: medians over neurons, and shares of neurons below 0."""
+        if self.bins is None or self.spread_bins[i] is None:
+            return {}
+        split = self.spread_bins[i].cpu() / self.steps
+        return {
+            "spread_bin_edges": [float(e) for e in self.bins],
+            "median_spread_bins": split.median(1).values.tolist(),
+            "share_spread_bins_down": (split < 0).float().mean(1).tolist(),
+            "median_spread_binned": split.sum(0).median().item(),
         }
