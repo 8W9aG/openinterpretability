@@ -18,6 +18,10 @@ checks enforce that:
    model fields (``_check_model_fields``).
 5. The errata file (``wiki/errata.jsonl``) is valid and signed
    (:mod:`openinterp.errata_checks`).
+6. The current code recomputes each record's verdict, gates and balanced accuracy from
+   its stored results (:mod:`openinterp.verdict_regression`). For each record judged
+   under the current protocol, they must match. So a refactor of the gates can't silently
+   change what the registry claims.
 
 With ``base_ref``, checks 1 and 2 read only the files that the branch adds or changes,
 committed or not. So their cost doesn't grow with the registry. If the branch also
@@ -44,6 +48,7 @@ from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
 from openinterp.errata_checks import check_errata
 from openinterp.signing import ALLOWED_SIGNERS
+from openinterp.verdict_regression import verdict_drift
 
 DISCUSSION_HEADING = "## Discussion"
 LEGACY_AUDITS_DIR = Path("audits")
@@ -182,6 +187,9 @@ def _check_records(wiki_dir: Path, report: CheckReport, scope: set[Path] | None 
         if path != expected:
             report.add(path, f"experiment record belongs at {expected}")
         _check_supersedes(path, record, report)
+        drift = verdict_drift(record)
+        if drift:
+            report.add(path, drift)
         page = path.with_suffix(".md")
         if not page.exists():
             report.add(path, "experiment record has no page; run `openinterp wiki`")
