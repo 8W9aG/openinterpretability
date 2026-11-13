@@ -228,33 +228,6 @@
   <a class="underline" href="{{ root }}agents/index.html">Agents</a> has each one's VERIFIED rate and costs by role.
 </p>
 
-<section class="mb-10">
-  <h2 class="mb-3 text-lg font-semibold">Verified neurons and heads</h2>
-  {% if stats.verified %}
-  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-        <tr><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Explanation</th><th class="px-3 py-2 text-right">Bal. acc.</th></tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-        {% for r in stats.verified %}
-        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
-          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
-            <div class="text-slate-500">{{ r.model_name }}</div>
-          </td>
-          <td class="px-3 py-2">{% if r.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ r.explanation | truncate(140) }}</td>
-          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ r.confidence_score | num(2) }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="text-sm text-slate-500">No verified neurons or heads yet.</p>
-  {% endif %}
-</section>
-
 {% if contested %}
 <section id="contested" class="mb-10 scroll-mt-4">
   <h2 class="mb-1 text-lg font-semibold">Contested neurons and heads</h2>

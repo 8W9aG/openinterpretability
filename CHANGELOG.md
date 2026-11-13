@@ -13,6 +13,10 @@ The project has two version numbers:
 
 - **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
 
+### Removed
+
+- **The home page's "Verified neurons and heads" table** (`index.html`, `openinterp/builder/registry_stats.py`, #3273). It listed every verified unit, so it grew with the registry. The "Verified units" count stays. Verified units are still reachable from the model and layer maps, search and `registry.parquet`.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.
