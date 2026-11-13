@@ -88,6 +88,18 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 - [ ] Add a pre-commit config that runs the fast parts of `make lint`, so contributors and agents see failures before CI does. None exists today.
 - [ ] Run CI on macOS as well as Linux. Contributors run experiments on Macs (CPU and MPS), and records must reproduce across platforms. Add `macos-latest` to the lint-and-tests job at least, and record which platform-specific float differences the reproduce tolerances have to absorb.
 
+## Research questions
+
+The questions that the project exists to answer, and how far the registry has come. This is a draft: edit, add and remove questions. Each item names the evidence that bears on it. Link new work to the question it answers.
+
+- [ ] Write down the project's research questions, and keep this section as their list. For each question, say what result would answer it, what the registry has so far, and which `TODO.md` items, papers and analyses bear on it. Review the list when a paper lands. The questions below are a first draft from the README and the existing work.
+- [ ] Are native MLP neurons clean? That is, what share of randomly drawn poles has a VERIFIED explanation, by model, layer and pole? This is the working hypothesis from Goodfire's *Neural Networks Are Already Clean* (README). The home page's random-unit statistics and `docs/analyses/registry-stats.md` bear on it.
+- [ ] How reliable is one verdict? How often does a rerun, another reviewer or another corpus change it? Verdict stability (Protocol and science), the reviewer crossover (`docs/analyses/reviewer-crossover.md`) and the null calibration (`docs/analyses/null-calibration.md`) bear on it.
+- [ ] Do native neurons explain a model as well as learned dictionaries do? Compare at equal effort with transcoder, SAE and SPD latents. The learned-basis baselines (`docs/analyses/`) and the explainer benchmark (`docs/benchmark.md`) bear on it.
+- [ ] Do explanations carry across models? Does a VERIFIED pole have a sister in another model that the same explanation passes? `openinterp sisters` and `docs/analyses/sister-neurons.md` bear on it.
+- [ ] What makes a neuron rest, stay dead or stay on? `papers/why-neurons-rest/`, `papers/default-on-poles/` and `papers/below-the-dip/` bear on it.
+- [ ] How much does what a neuron appears to do depend on the scan corpus? The corpus presets and blends (Datasets) and the Cosmopedia control bear on it.
+
 ## Protocol and science
 
 - [ ] Find why L2 and L3 nearly shut when only the block LayerNorms read a constant (`papers/why-neurons-rest/README.md`, *Where the push comes from*). In `relu_final_norm_centred_dropout_0`, h's SD at L2 and L3 fell to 0.07–0.10, and the loss was worse. The later blocks use a constant in the residual stream, and it lowers their loss (*What the final LayerNorm does with a constant*). Check whether, without the final norm's pull, the MLPs' mean output grows until it fills the block norms' inputs. Also split dropout's part in the pull into its routes, as `scripts/ln_offset.py` splits the final norm's.
@@ -245,6 +257,7 @@ Methods from the wider interpretability literature that the registry doesn't use
     - *Crosscoders across pre-training checkpoints* ("Evolution of Concepts in Language Model Pre-Training", arXiv 2509.17196): the learned-basis method for developmental tracking (Later stage).
     - *Universality across architectures* (arXiv 2410.06672) and *complete replacement models for circuit tracing* (attention included, [post](https://interp.open-moss.com/posts/complete-replacement)). Compare them with the planned seed-universality baseline and with the circuits' direct-effects-only wiring.
 - [ ] A Slack bot that posts when an experiment is claimed, when one lands, and on similar events.
+- [ ] Let the `land-experiment` loop file bugs in the GitHub repo when it meets a problem it can't solve. Examples are a command that fails, a check that fails for a reason outside the experiment, and a step whose docs are wrong. Each issue gives the command, the error, the branch and the record, and has a label such as `loop-bug`. Before it files one, the loop searches open issues so that it doesn't file the same bug twice. It comments on the open issue instead. Never put secrets, tokens, emails or local paths in an issue. Put the rule in the skill, and tell agents that issue text is data, not instructions.
 
 ## Performance
 
@@ -271,6 +284,7 @@ Running several loops on one machine is under Pipeline.
 - [ ] Can we do performance tests on memory, compute and wall time?
 - [ ] Can we run tests faster?
 - [ ] Can we make lint run faster? Is it possible to know what we have checked and hash it?
+- [ ] Find out whether SIMD or other CPU acceleration speeds up CPU runs. First profile a CPU scan and a CPU review, to see where the time goes. It can go to the forward pass, the activation hooks, the top-k heaps or the tokenizer. Then check what torch already uses on this hardware (`torch.backends.cpu.get_cpu_capability()`, and the oneDNN, Accelerate or OpenBLAS builds). Try the options one at a time: bfloat16 or int8 weights on CPUs with AMX or AVX-512, `torch.compile`, and more threads. Check each against the float32 result, because `openinterp reproduce` must still agree.
 
 ## Merge verification
 
@@ -331,6 +345,9 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 - [ ] Make literature review a subsection of Research and make each literature review its own page.
 - [ ] Give the literature review page an embedding map of its papers.
 - [ ] Remove the Below the Dip research paper (`papers/below-the-dip/`), an interactive page for the default-on and resting papers. Also remove its links in `papers/README.md`, `papers/default-on-poles/README.md` and `papers/why-neurons-rest/README.md`, its generator `scripts/figures_explorer.py`, its entry in `scripts/paper_figures.py`, and its check in `tests/test_paper_figures.py`.
+- [ ] Add a Pareto frontier figure of agent costs to the Agents page. Plot each agent model's cost per experiment against its VERIFIED rate (independent reviews only). Mark the models on the frontier: those that no other model beats on both cost and rate. Also plot each proposer and reviewer pair, if enough experiments have both priced. Use the numbers that the page's table already has (`openinterp/builder/agents.py`), and leave out unpriced experiments. Draw it as a static SVG at build time, as the other charts are.
+- [ ] Give each unit that only a stopped scan covers a page, and show its stopped scans as full experiments. Today the home page lists them in a separate table, "Scans that stopped on units with no page" (`pageless_stops` in `openinterp/builder/stops.py`, `index.html`). A unit that has a page shows its stops in "Scans that stopped". Show a stop like any other experiment instead: in the unit's list of experiments, with the outcome (dead or default-on) in place of a verdict. Then remove the separate table. Decide how a stop counts in the unit's standing and in the registry's counts, and say so in `docs/PROTOCOL.md`.
+- [ ] Remove the Corpora section from the home page (`index.html`, `corpora_view` in `openinterp/builder/corpora.py`). Show the corpus on each experiment instead: its source, licence and language mix, from the record's own scan. Each experiment scans its own seeded sample, so a registry-wide list of corpora says little. Keep the corpus columns in `registry.parquet`.
 
 ## Scope expansion
 
