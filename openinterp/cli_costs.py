@@ -37,6 +37,16 @@ def read_session(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def reported_usd(entries: list[dict], sessions: list[dict]) -> tuple[float, int]:
+    """Dollars reported by the LLM calls and driving sessions, and the count left unpriced."""
+    calls = [c for e in entries for c in e.get("llm_calls", [])]
+    priced = [c["cost_usd"] for c in calls if c.get("cost_usd") is not None]
+    priced += [s["total_cost_usd"] for s in sessions if s.get("total_cost_usd") is not None]
+    unpriced = sum(c.get("cost_usd") is None for c in calls)
+    unpriced += sum(s.get("total_cost_usd") is None for s in sessions)
+    return sum(priced), unpriced
+
+
 def summarise(entries: list[dict], sessions: list[dict]) -> str:
     """Tables of wall time per command and stage, and of LLM usage, from ledgers and sessions."""
     commands: dict[str, list[float]] = defaultdict(list)
@@ -157,7 +167,13 @@ def registry_costs(wiki_dir: Path) -> str:
     help="Summarise the registry's records instead: LLM cost per experiment by role and "
     "model, mean and per VERIFIED result.",
 )
-def costs(ledgers, sessions, wiki_dir):
+@click.option(
+    "--usd",
+    is_flag=True,
+    help="Print only the dollars reported, as one number. The count of unpriced calls "
+    "goes to stderr. scripts/experiment-loop.sh compares it with its budgets.",
+)
+def costs(ledgers, sessions, wiki_dir, usd):
     """Summarise wall time and LLM usage, from ledgers or from the registry.
 
     The ledgers are $OPENINTERP_COSTS_LOG files. With --wiki-dir, it gives the registry's
@@ -173,8 +189,17 @@ def costs(ledgers, sessions, wiki_dir):
         click.echo(registry_costs(wiki_dir))
         return
     if not ledgers and not sessions:
+        if usd:  # no experiment has run yet, so nothing is spent
+            click.echo("0.0000")
+            return
         raise click.UsageError("Pass at least one ledger, --session file or --wiki-dir.")
     found = [s for s in (read_session(p) for p in sessions) if s is not None]
+    if usd:
+        dollars, unpriced = reported_usd(read_ledger(ledgers), found)
+        if unpriced:
+            click.echo(f"{unpriced} unpriced calls or sessions are not counted", err=True)
+        click.echo(f"{dollars:.4f}")
+        return
     click.echo(summarise(read_ledger(ledgers), found))
 
 
