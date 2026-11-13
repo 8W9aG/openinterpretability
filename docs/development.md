@@ -40,7 +40,7 @@ Linear sets the priority and the workstream. Every hour, `scripts/linear_sync.py
 gh issue create --title "..." --body "..." --label "area: pipeline" --label "priority: medium"
 ```
 
-A pull request that does an issue says `Closes #<number>`. Its CHANGELOG entry names the issue.
+A pull request that does an issue says `Closes #<number>`. Its changelog entry is a fragment named for the issue, `changelog.d/<number>.<type>.md` (`changelog.d/README.md`).
 
 ## Pull requests
 

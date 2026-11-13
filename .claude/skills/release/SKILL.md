@@ -69,21 +69,17 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
        if r.sister: print(" ", r.slug, "->", r.sister.slug(r.other), round(r.sister.pearson, 2))
    EOF
    ```
-   Add a bullet under `### Changed` in the CHANGELOG's Unreleased section. Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
+   Write the bullet in a fragment, `changelog.d/sisters-<version>.changed.md` (`changelog.d/README.md`). Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
    Then check memory: `uv run python scripts/memory_benchmark.py` (about 7 minutes on CPU). Run it in the background, and keep the machine otherwise idle. It scans and reviews GPT-2 and Qwen2.5-0.5B and compares each peak with `scripts/memory_baseline.json`. If a peak is more than 25% above the baseline, it exits 1. Stop and report the regression, as for a failed test. If it says a peak is lower, run it again with `--update` and commit the new baseline in the release PR. On a platform other than the baseline's it only reports. Don't overwrite the baseline from there.
-6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. In `CHANGELOG.md`, put a dated heading under `## [Unreleased]`, so every entry that was there now sits under the new version:
-   ```markdown
-   ## [Unreleased]
-
-   ## [<version>] - <YYYY-MM-DD>
-
-   Ships with protocol version **<PROTOCOL_VERSION>**.
+6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. Then gather the changelog fragments into the version's section. The script writes it under `## [Unreleased]`, which stays empty, and removes the fragments:
+   ```bash
+   python3 scripts/changelog.py collect <version> <YYYY-MM-DD> "Ships with protocol version **<PROTOCOL_VERSION>**."
    ```
    If the protocol version changed since the last tag (`git diff v<previous> -- openinterp/core/schemas.py | grep PROTOCOL_VERSION`), say so in that line: "Ships with protocol version **0.9** (was 0.8)." The section's entries explain why.
 7. **Commit and push.** Check the branch first (`git branch --show-current` prints `release/<version>`):
    ```bash
-   git add CHANGELOG.md openinterp/__init__.py docs/analyses/sister-neurons.jsonl
+   git add CHANGELOG.md changelog.d openinterp/__init__.py docs/analyses/sister-neurons.jsonl
    git commit -m "Release <version> (protocol v<PROTOCOL_VERSION>)"
    git push -u origin release/<version>
    ```

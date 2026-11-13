@@ -7,32 +7,9 @@ The project has two version numbers:
 - **Package version** (`openinterp.__version__`): the code. Bump it in `openinterp/__init__.py`, which `pyproject.toml` reads.
 - **Protocol version** (`openinterp.core.schemas.PROTOCOL_VERSION`): the review decision rule. It is stored in every verdict and documented in `docs/PROTOCOL.md` §6. A protocol change always needs a package release too, but not the other way round.
 
+Changes waiting for the next release are files in [changelog.d/](changelog.d/README.md). Each release gathers them into its own section below, so `[Unreleased]` stays empty.
+
 ## [Unreleased]
-
-### Added
-
-- **Spend caps and a kill switch for `scripts/experiment-loop.sh`** (#3244). `--budget USD` stops a loop once it has spent that much. `--daily-budget USD` stops it once all loops on the machine have spent that much today, UTC, going by `logs/loop/`. The stop file `~/.cache/openinterp/stop` stops every loop before its next experiment. The loop checks between experiments, never during one. `openinterp costs --usd` prints the dollars reported by ledgers and sessions, for the loop to compare.
-- **Null-explanation controls for `openinterp score`** (`openinterp/score_controls.py`, `--controls`, `docs/analyses/null-explanation-control.md`, #3236). The judge also scores the same held-out windows with no explanation and with another unit's VERIFIED explanation. Each control is stored in `ExplanationScores.controls`, and the summary prints the gaps. Reported, not gated. On 7 VERIFIED Qwen2.5-0.5B poles, with a `claude-haiku-5-5` judge, both controls scored 0.50 on every unit. So this judge gives no credit to structure in the windows. The real explanations scored 0.60 on detection and 0.69 on fuzzing on average, gaps of +0.10 and +0.18. One explanation (L18/N4729+) scored 0.40 on detection, below the controls, because it is broader than where the pole fires.
-- **A registry coverage metric, `openinterp coverage`** (`openinterp/coverage.py`, `docs/analyses/registry-coverage.md`, #3371). For each MLP layer, it measures the share of the layer's loss effect that comes back when only the VERIFIED poles keep their real activations. Every other pole is mean-ablated. A baseline keeps as many random poles. Reported, not gated. On 2026-11-13 the registry brought back 0.60% on GPT-2, 0.42% on Qwen2.5-0.5B and 0.01% on Qwen2.5-1.5B. On Qwen2.5-0.5B that is about 2.6 times what random poles bring back. On GPT-2 it is no more than random.
-- **A verdict regression check in `openinterp check`** (`openinterp/verdict_regression.py`, #3169). It recomputes each record's metrics, gates and status from its stored probe results and policy, with no model. Every record judged under the current protocol must match, so a change to the gates that would change a verdict fails CI. A PR that bumps `PROTOCOL_VERSION` makes today's records older ones, which the check only reads. All 1,598 protocol-0.8 records match. Under today's rule, 4 of the 866 protocol-0.7 records would be VERIFIED, not NEEDS_REVISION, because protocol 0.8 lets a tie with the confound baseline pass. The check adds about 1 second to `openinterp check`.
-
-### Changed
-
-- **Open work moved from `TODO.md` to GitHub issues, mirrored in Linear** (`docs/development.md` *Open work*, `scripts/linear_sync.py`, `.github/workflows/linear-sync.yml`). Its 242 items became issues, labelled `area: <old section>` and `priority: urgent|high|medium|low`. The 97 entries of `docs/literature/queue.md` became issues labelled `area: literature` (#3145). Linear's two-way GitHub sync mirrors each issue into one of 33 workstreams, such as *Why neurons rest* or *Verdict reliability*. An hourly job copies Linear's priority and project back to the `priority:` label and to the GitHub Roadmap project. `TODO.md` now keeps each section's notes, and `queue.md` says how to add a paper. The `work-an-issue` skill and `scripts/issue_state.py` cover how to work an issue. Only eligible issues are worked: ones that the maintainer, Dependabot, CodeQL or the nightly reproduction opened, or that the maintainer gave a thumbs up. Each starts with a plan comment, and each deviation from the plan gets its own comment. The `release` skill now waits 24 hours after the last release. It also resolves Dependabot and code-scanning alerts and proposes new issues first.
-- **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
-- **`make lint` runs Vale** (`Makefile`, #3149). Before, `make lint` skipped Vale, so a long sentence in a docstring passed locally and failed in CI. `make lint` now needs Vale installed.
-- **A one-line Quickstart** (`README.md`, #3141). Fork the repo, then run `claude "/loop /land-experiment"`. The manual steps stay below it, as *Or run it yourself*.
-- **"Open", not "decentralized"** (`README.md`, `CITATION.cff`, #3143). One repo and one maintainer decide what merges, so the registry is open but not decentralized.
-
-### Removed
-
-- **The home page's "Verified neurons and heads" table** (`index.html`, `openinterp/builder/registry_stats.py`, #3273). It listed every verified unit, so it grew with the registry. The "Verified units" count stays. Verified units are still reachable from the model and layer maps, search and `registry.parquet`.
-
-### Security
-
-- **Actions pinned to commit SHAs, and Dependabot** (`.github/workflows/`, `.github/dependabot.yml`, #3176). A tag such as `actions/checkout@v4` can be moved, and CI decides which records to trust. Each action now names a full SHA, with its version as a comment. Dependabot opens a weekly PR for the actions and for `uv.lock`.
-- **A secret scan on every pull request** (`.github/workflows/secret-scan.yml`, `.gitleaks.toml`, #3181). gitleaks checks the commits each PR adds. Run by hand, it scans the whole history. Paths that quote corpus text are left out.
-- **Timeouts on the "Lint and tests" and deploy jobs** (#3180): 30 and 60 minutes, so a hung step fails early.
 
 ## [0.0.19] - 2026-11-13
 
