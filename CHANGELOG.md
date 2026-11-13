@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **`make lint` runs Vale** (`Makefile`, #3149). Before, `make lint` skipped Vale, so a long sentence in a docstring passed locally and failed in CI. `make lint` now needs Vale installed.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.
