@@ -42,7 +42,13 @@ def _load_runner(
     from openinterp.harness import devices
 
     if devices.scans_on_ane():
-        _attach_ane(runner)
+        from openinterp.harness.memory import is_streamed
+
+        if is_streamed(runner.model) and (why := devices.streamed_scans_skip_ane()):
+            click.echo(f"Scans run on the CPU, not the ANE, because {why}.", err=True)
+            devices.note_choice(f"{devices.choice()}; scans on the cpu, because {why}")
+        else:
+            _attach_ane(runner)
     return runner
 
 
@@ -93,7 +99,8 @@ def resolve_device(device: str) -> str:
         if note := devices.notice():
             click.echo(note, err=True)
         device = plan.device
-        devices.note_choice(f"{asked}: {device}, because {plan.reason}")
+        rest = "scans on the ane, the rest on " if asked == "ane" else ""
+        devices.note_choice(f"{asked}: {rest}{device}, because {plan.reason}")
     else:
         devices.note_choice(f"--device {device}")
     if device == "mps" and (stuck := devices.mps_stuck()):

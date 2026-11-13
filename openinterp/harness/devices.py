@@ -17,6 +17,13 @@ each other, and one such run gave wrong results (docs/experiments.md, Devices).
 ``--device mps`` uses the GPU even when it is busy. ``--device ane`` runs the scans on
 the ANE, and the rest where the planner puts it.
 
+A model that streams (``--memory stream``) is the exception. Its scan on the CPU reads
+each layer once for the whole corpus, and with the CPU free that is faster than the ANE.
+On a 50,000-token Qwen2.5-0.5B scan, the CPU's pass took about 16 s. The ANE's took
+39 s, and it needed 40 s more to measure the top pieces again. So a streamed model's
+scans use the ANE only if the CPU is busy too. That is a load average of at least
+``$OPENINTERP_CPU_BUSY_PERCENT`` (default :data:`DEFAULT_CPU_BUSY_PERCENT`) of its cores.
+
 A process plans once, and every model it loads after that uses the same device.
 """
 
@@ -41,6 +48,8 @@ FORCE_ENV = "OPENINTERP_DEVICE_FORCE"
 GPU_BUSY_ENV = "OPENINTERP_GPU_BUSY_PERCENT"
 # Idle reads 1%, one job 93-97% (docs/analyses/device-contention.md).
 DEFAULT_GPU_BUSY_PERCENT = 50.0
+CPU_BUSY_ENV = "OPENINTERP_CPU_BUSY_PERCENT"
+DEFAULT_CPU_BUSY_PERCENT = 50.0  # the 1-minute load average, as a share of the cores
 # The longest the first operation on MPS may take before the process uses the CPU.
 START_ENV = "OPENINTERP_MPS_START_SECONDS"
 DEFAULT_START_SECONDS = 120.0
@@ -225,6 +234,25 @@ def force_ane() -> None:
     """Run scans on the ANE whatever the plan says (``--device ane``)."""
     global _forced_ane
     _forced_ane = True
+
+
+def cpu_load_percent() -> float:
+    """The 1-minute load average, as a percentage of the CPU's cores."""
+    return 100.0 * os.getloadavg()[0] / (os.cpu_count() or 1)
+
+
+def streamed_scans_skip_ane() -> str | None:
+    """Why a streamed model's scans run on the CPU and not on the planned ANE, or None.
+
+    The CPU's scan of a streamed model is faster than the ANE's when the CPU is free.
+    ``--device ane`` keeps the ANE.
+    """
+    if _forced_ane:
+        return None
+    load = cpu_load_percent()
+    if load >= float(os.environ.get(CPU_BUSY_ENV) or DEFAULT_CPU_BUSY_PERCENT):
+        return None
+    return f"the model streams and the CPU is free (load {load:.0f}% of its cores)"
 
 
 def scans_on_ane() -> bool:
