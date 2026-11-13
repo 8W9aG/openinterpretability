@@ -43,7 +43,7 @@ dependencies = [
     "tree-sitter-ruby>=0.23.1",
     "tree-sitter-php>=0.25.1",
     "tree-sitter-bash>=0.25.1",
-    "tree-sitter-scala>=0.26.4",
+    "tree-sitter-scala>=0.26.11",
     "tree-sitter-lua>=0.5.0",
     "tree-sitter-haskell>=0.24.1",
     # Scans on Apple's Neural Engine (openinterp/harness/ane/, docs/experiments.md, Devices).
