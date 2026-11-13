@@ -126,3 +126,13 @@ def test_logins_that_are_not_handles_are_dropped(monkeypatch, login):
         users, "_get", lambda url: [{"number": 1, "user": {"login": login, "type": "User"}}]
     )
     assert users.pr_authors({1}, "o/r") == {}
+
+
+def test_a_user_page_shows_the_ten_most_recent_experiments(tmp_path, record):
+    records = [later(record, hours) for hours in range(12)]
+    compile_site(records, tmp_path, users={record_ref(r): "bob" for r in records})
+    page = (tmp_path / "users" / "bob.html").read_text()
+    assert "12 experiments," in page and "The latest 10 of 12, newest first." in page
+    assert page.count('<tr class="align-top') == 10
+    assert "#positive-20261001T230000Z" in page and "#positive-20261001T140000Z" in page
+    assert "T130000Z" not in page and "T120000Z" not in page  # the oldest two are left out

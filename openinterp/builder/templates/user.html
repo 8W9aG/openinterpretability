@@ -39,13 +39,15 @@
 
 {% if user.made %}
 <section class="mt-8">
-  <h2 class="mb-3 text-lg font-semibold">Experiments</h2>
+  <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ user.made | length }} of {{ user.experiments }}, newest first.</p>
   {{ experiment_rows(user.made) }}
 </section>
 {% endif %}
 {% if user.reviewed %}
 <section class="mt-8">
-  <h2 class="mb-3 text-lg font-semibold">Reviews</h2>
+  <h2 class="mb-1 text-lg font-semibold">Most recent reviews</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ user.reviewed | length }} of {{ user.reviews }}, newest first.</p>
   {{ experiment_rows(user.reviewed) }}
 </section>
 {% endif %}

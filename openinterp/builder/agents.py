@@ -30,6 +30,7 @@ from openinterp.core.costs import ROLE_ORDER, by_agent
 from openinterp.core.exceptions import RegistryError
 
 RECENT_PER_AGENT = 20  # rows in an agent page's "Most recent experiments"
+RECENT_PER_USER = 10  # rows in each list of a user's page
 
 
 def _slug(name: str) -> str:
@@ -197,8 +198,8 @@ class ContributorStats:
     verified: int = 0
     conclusive_nulls: int = 0  # well-probed rejections: strong evidence against
     reviews: int = 0
-    made: list[dict] = field(default_factory=list)  # rows of their experiments, newest first
-    reviewed: list[dict] = field(default_factory=list)  # rows of the experiments they reviewed
+    made: list[dict] = field(default_factory=list)  # their newest experiments, at most 10
+    reviewed: list[dict] = field(default_factory=list)  # the newest they reviewed, at most 10
 
     @property
     def href(self) -> str:
@@ -211,7 +212,8 @@ def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStat
 
     An experiment's maker is ``Experiment.user``. That is the proposer's recorded
     contributor, else the author of the PR that merged it (:mod:`openinterp.builder.users`). Its
-    reviewer is the verdict's recorded contributor. Each list of rows is newest first.
+    reviewer is the verdict's recorded contributor. Each list of rows is newest first, and
+    keeps at most :data:`RECENT_PER_USER` rows. The counts include every experiment.
     """
     people: dict[str, ContributorStats] = {}
     newest = sorted(experiments, key=lambda e: (e.record.verdict.timestamp, e.id), reverse=True)
@@ -220,7 +222,8 @@ def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStat
         if e.user:
             row = people.setdefault(e.user, ContributorStats(e.user))
             row.experiments += 1
-            row.made.append(_recent_row(e, []))
+            if len(row.made) < RECENT_PER_USER:
+                row.made.append(_recent_row(e, []))
             row.verified += e.record.is_verified
             row.conclusive_nulls += (
                 e.sig.direction == "refutes" and e.sig.conclusiveness >= STRONG_EVIDENCE
@@ -228,7 +231,8 @@ def contributors_view(experiments: Sequence[Experiment]) -> list[ContributorStat
         if verdict.contributor:
             row = people.setdefault(verdict.contributor, ContributorStats(verdict.contributor))
             row.reviews += 1
-            row.reviewed.append(_recent_row(e, []))
+            if len(row.reviewed) < RECENT_PER_USER:
+                row.reviewed.append(_recent_row(e, []))
     return sorted(people.values(), key=lambda c: (-c.experiments - c.reviews, c.handle.lower()))
 
 
