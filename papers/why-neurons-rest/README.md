@@ -314,7 +314,7 @@ The two ways match two kinds of neuron that Stolfo et al. (2024) found in traine
 
 ## Push against depth
 
-Runs labelled `training_depth` hold activations at rests below 0, seed 0. Push ratios are means over steps 1–4,000 and over L1–L3. The rows at 0 are the equal-rest runs.
+Runs labelled `training_depth` hold activations at rests below 0, on seeds 0 and 1. The tables give seed 0. Seed 1 gives the same push ratios to 0.003 and the same losses to 0.025. Push ratios are means over steps 1–4,000 and over L1–L3. The rows at 0 are the equal-rest runs.
 
 | Held rest | ReLU | Softplus | GELU | Leaky ReLU, slope 0.1 | SiLU |
 | --- | --- | --- | --- | --- | --- |
@@ -428,16 +428,17 @@ GPT-2's training run isn't public, but Pythia's checkpoints are (Biderman et al.
 
 ### Calibrating the checkpoint test
 
-Rows labelled `small_push` apply the same test to small models whose push during training is known. GELU and ReLU, both with no dropout as in Pythia, trained for 2,000 steps and saved a checkpoint every 250 steps. `scripts/pretrained_push.py small` then read each checkpoint as the `pythia` command reads Pythia's. The same runs recorded their push during training, in rows labelled `push_calib`. During training, the push over each 250 steps points down in 47 of the 48 layers and intervals.
+Rows labelled `small_push` apply the same test to small models whose push during training is known. GELU and ReLU, both with no dropout as in Pythia, trained for 2,000 steps and saved a checkpoint every 250 steps. `scripts/pretrained_push.py small` then read each checkpoint as the `pythia` command reads Pythia's. The same runs recorded their push during training, in rows labelled `push_calib`. During training, the push over each 250 steps points down in most layers and intervals. It does so in 47 of 48 on seed 0, and in 45 of 48 on seed 1.
 
-| Test, L1–L3 for the small models, L0–L5 for Pythia | GELU | ReLU | Pythia-70m, steps 0–4,000 |
-| --- | --- | --- | --- |
-| Checkpoints and layers with the push down | 24 of 27 | 26 of 27 | 13 of 30 |
-| Push against the next move, median | +0.16 | +0.12 | +0.07 |
-| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 27 of 30 |
-| Neurons whose push has the sign of their move, median | 58% | 55% | 51% |
+| Test, L1–L3 for the small models, L0–L5 for Pythia | GELU, seed 0 | GELU, seed 1 | ReLU, seed 0 | ReLU, seed 1 | Pythia-70m, steps 0–4,000 |
+| --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down | 24 of 27 | 18 of 27 | 26 of 27 | 23 of 27 | 13 of 30 |
+| Push against the next move, median | +0.16 | +0.14 | +0.12 | +0.15 | +0.07 |
+| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 24 of 24 | 24 of 24 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 58% | 55% | 55% | 56% | 51% |
 
-- **The test finds a steady push where there is one.** In the small models, the push at a checkpoint points down in nearly every layer. Its sign matches the neuron's next move for more than half the neurons, in 47 of 48 layers and intervals.
+- **The test finds a steady push where there is one.** In the small models, the push at a checkpoint points down in nearly every layer. Its sign matches the neuron's next move for more than half the neurons. That holds in 47 of 48 layers and intervals on seed 0, and 46 of 48 on seed 1.
+- **GELU's seed 1 is weaker at the checkpoints.** Its push points down in 18 of 27 checkpoints and layers, against 24 on seed 0. That is still more than Pythia's 13 of 30. On both seeds, the correlation with the next move and the share of neurons that match it are above Pythia's.
 - **Pythia's push is weaker or less steady.** Its push points down in fewer than half its layers while its rest forms. Its sign matches the move at chance, and the correlation is about half the small models'. So the weak result is a property of Pythia or of its gaps between checkpoints, and not of the test alone.
 - **The gaps can still hide a push.** Pythia's checkpoints are 2 to 300 times further apart than ours, and each step sees 500 times the tokens. A run with Pythia's batch size and schedule would tell the two apart.
 
@@ -455,7 +456,7 @@ Most of the cost of the negative side in GPT-2 is its resting level ([What defau
 - **Two leaky slopes.** At slope 0.01, the usual default, leaky ReLU rests like ReLU. At 0.1 it rests shallower. We didn't try slopes between them.
 - **Centring is a blunt tool.** It takes its mean from the batch, also at evaluation, and the gradient passes through that mean.
 - **A held rest changes the model.** The held runs centre h, so the weights can no longer turn against x̄. They train worse than free runs, at a loss of 5.56–6.02 against 5.49–5.83. So the push at an equal rest is the push in a centred model. A free model at that rest may get a different push.
-- **Some of the newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The offset, norm and no-dropout runs have two, which agree to 0.008 in cosine. The output and split runs have two, and every term has the same sign on both seeds. The depth runs and the calibration runs have one.
+- **Some of the newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The offset, norm and no-dropout runs have two, which agree to 0.008 in cosine. The output and split runs have two, and every term has the same sign on both seeds. The depth runs and the calibration runs now have two. The depth runs agree to 0.003 in push ratio. The calibration runs agree in direction, but GELU's push at the checkpoints is weaker on seed 1 (*Calibrating the checkpoint test*).
 - **One norm run partly failed.** With only the final LayerNorm centred and no dropout, L2 and L3 nearly shut on seed 0 (*Where the push comes from*). Seed 1 shows the same, with h's SD there at 0.10 and 0.08. So the condition causes it, and the run didn't fail. We don't know why.
 - **ReLU reruns drift a little.** Same-seed reruns of GELU, SiLU, softplus and tanh match the earlier rows exactly, also with the new recording. ReLU's differ by up to 0.004 in loss at step 2,000 and 0.002 at step 4,000, as the earlier ReLU rerun did. The step-0 evaluation of one GELU rerun differed by 0.007, while every later step matched exactly.
 - **Medians don't add.** The slope term, the spread term and the push are each a median over neurons, so the first two don't sum to the third.
