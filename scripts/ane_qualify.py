@@ -8,13 +8,15 @@ the same batches:
 - on the ANE, through :class:`~openinterp.harness.ane.backend.AneScan`;
 - in fp32 on Apple's GPU, which is the reference.
 
-A model passes if every layer passes all four checks (:data:`CHECKS`):
+A model passes if every layer passes all five checks (:data:`CHECKS`):
 
 - *top 20*: for every neuron and both poles, the scan's rescoring rule
   (``harness/scan_backend.py``) gives the exact values of the 20 strongest documents;
 - *correlation*: each neuron's ANE activations correlate with fp32 over all tokens;
 - *placement*: Core ML puts almost all operations on the ANE, not the CPU;
-- *speed*: the ANE pass is faster than the fp32 pass on the CPU, which is the fallback.
+- *speed*: the ANE pass is faster than the fp32 pass on the CPU, which is the fallback;
+- *worst batch*: no batch is more than :data:`WORST_BATCH` from fp32. One bad batch can
+  hide in the other checks' averages.
 
 It prints one JSON line per layer, and the verdict. Results go to
 docs/analyses/ane-qualification.md.
@@ -39,7 +41,15 @@ from openinterp.harness.ane.backend import AneScan
 from openinterp.harness.scan import BATCH_TOKENS, batches, cut_pieces
 from openinterp.reproduce import DEFAULT_TOLERANCE
 
-CHECKS = {"top20": 1.0, "pearson_min": 0.9998, "ane_ops": 0.95, "speedup_over_cpu": 1.0}
+CHECKS = {
+    "top20": 1.0,
+    "pearson_min": 0.9998,
+    "ane_ops": 0.95,
+    "speedup_over_cpu": 1.0,
+    "worst_batch_ok": 1.0,  # no batch more than WORST_BATCH from fp32
+}
+WORST_BATCH = 0.05  # relative RMS error of one batch; one bad batch can hide in the averages
+
 CPU_BATCHES = 10  # batches that time the CPU fallback
 
 
@@ -49,6 +59,7 @@ def scan_both(ane: AneScan, runner, pieces, layer: int) -> dict:
     blank = lambda: torch.full((n, width), -torch.inf)  # noqa: E731
     peaks = {(b, p): blank() for b in ("ane", "fp32") for p in (1, -1)}
     sums, seconds, index = torch.zeros(6, width, dtype=torch.float64), Counter(), 0
+    worst = 0.0
     for batch in batches(runner, pieces, BATCH_TOKENS):
         start = time.perf_counter()
         y = ane.batch_acts(batch, layer)
@@ -57,6 +68,9 @@ def scan_both(ane: AneScan, runner, pieces, layer: int) -> dict:
         with torch.no_grad():
             x = runner.layer_activations(batch.encoded, [layer])[layer].float().cpu()
         seconds["fp32"] += time.perf_counter() - start
+        m = batch.mask
+        err = (x[m] - y[m]).pow(2).mean().sqrt() / x[m].pow(2).mean().sqrt()
+        worst = max(worst, float(err))
         for row in range(len(batch.pieces)):
             mask = batch.mask[row]
             for name, acts in (("ane", y[row][mask]), ("fp32", x[row][mask])):
@@ -68,7 +82,7 @@ def scan_both(ane: AneScan, runner, pieces, layer: int) -> dict:
                 [count, a.sum(0), b.sum(0), (a * a).sum(0), (b * b).sum(0), (a * b).sum(0)]
             )
         index += len(batch.pieces)
-    return {"peaks": peaks, "sums": sums, "seconds": dict(seconds)}
+    return {"peaks": peaks, "sums": sums, "seconds": dict(seconds), "worst": worst}
 
 
 def top20_share(exact: torch.Tensor, ane: torch.Tensor) -> float:
@@ -93,13 +107,19 @@ def pearson(sums: torch.Tensor) -> torch.Tensor:
 
 
 def ane_ops(ane: AneScan, layer: int) -> float:
-    """The smallest share of operations that Core ML puts on the ANE, over the layer's chunks."""
+    """The smallest share of operations that Core ML puts on the ANE, over the layer's chunks.
+
+    It checks the shortest and the longest shape that the scan used, where Core ML's
+    choices differ most. Checking every shape makes Core ML compile each one again.
+    """
     import coremltools as ct
     from coremltools.models.compute_plan import MLComputePlan
 
+    shapes = sorted((seq, rows) for target, rows, seq in ane.paths if target == layer)
+    checked = {shapes[0], shapes[-1]} if shapes else set()  # the shortest and longest it used
     shares = []
-    for (target, _, _), paths in ane.paths.items():
-        for path in paths if target == layer else []:
+    for (target, rows, seq), paths in ane.paths.items():
+        for path in paths if target == layer and (seq, rows) in checked else []:
             plan = MLComputePlan.load_from_path(str(path), compute_units=ct.ComputeUnit.CPU_AND_NE)
             devices = Counter()
             for op in plan.model_structure.program.functions["main"].block.operations:
@@ -143,6 +163,8 @@ def qualify_layer(ane: AneScan, runner, model_name: str, pieces, layer: int) -> 
         "pearson_min": float(corr.min()),
         "ane_ops": ane_ops(ane, layer),
         "speedup_over_cpu": cpu_seconds_per_batch(model_name, pieces, layer) / ane_per_batch,
+        "worst_batch": both["worst"],
+        "worst_batch_ok": float(both["worst"] <= WORST_BATCH),
         "ane_s_per_batch": ane_per_batch,
         "mps_fp32_s_per_batch": both["seconds"]["fp32"] / n_batches,
     }

@@ -35,7 +35,7 @@ from openinterp.harness.ane.cache import (
     fields,
 )
 from openinterp.harness.ane.forward import ToLayer, supported
-from openinterp.harness.ane.qualified import qualified
+from openinterp.harness.ane.qualified import qualified, too_deep
 
 if TYPE_CHECKING:
     from openinterp.harness.hooks import NeuronHookRunner
@@ -110,6 +110,8 @@ class AneScan:
         return self._decided[key]
 
     def _prepare(self, lengths: Sequence[int], layer: int, batch_tokens: int) -> str | None:
+        if deep := too_deep(self.model_name, layer):
+            return deep
         shapes = needed_shapes(lengths, batch_tokens, self.longest())
         if shapes is None:
             too_long = max(lengths, default=0)

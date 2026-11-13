@@ -26,7 +26,12 @@ from torch import nn
 
 ARCHITECTURES = ("gpt2", "qwen2")  # config.model_type values that ToLayer runs
 WEIGHT_RMS = 0.25  # what rescale_projections scales each weight matrix's RMS to
-OUTPUT_PEAK = 16384.0  # the largest scaled output it permits: a quarter of fp16's largest
+# The largest scaled output that rescale_projections permits, on its random-token sample.
+# Real text can go much higher. On a 1,604-token document, Qwen2.5-1.5B's layer-1
+# down_proj reached 4 times its peak on random tokens. A cap of 16,384 gave it a scale of 8.
+# Then the ANE's fp16 sums went past fp16's range, and the batch was 23% off. At 2,048,
+# the projections that need a scale keep it. They have small outputs, e.g. o_proj near 4.
+OUTPUT_PEAK = 2048.0
 
 
 def supported(model: nn.Module) -> bool:

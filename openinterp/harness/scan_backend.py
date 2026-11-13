@@ -114,13 +114,26 @@ def rescore_scan(
 
 
 def _measure(runner, layer: int, neuron_idx: int, pole: Pole) -> Callable:
-    def measure(texts: list[str]) -> list[list[float]]:
+    """A function that measures the pole's strengths on texts, :data:`RESCORE_BATCH` a pass.
+
+    On a model that streams, the passes run layer-major (``harness/layer_major.py``), so
+    each layer is read from disk once for all of them.
+    """
+    from openinterp.harness.layer_major import map_layer_major, prompt_tokens
+
+    def one(texts: list[str]) -> list[list[float]]:
         encoded = runner.encode(texts)
         mask = encoded.get("attention_mask", torch.ones_like(encoded["input_ids"])).bool()
         with torch.no_grad():
             acts = runner.layer_activations(encoded, [layer])[layer][..., neuron_idx]
         values = pole_strength(acts.float(), pole).cpu()
         return [values[r][mask[r].cpu()].tolist() for r in range(len(texts))]
+
+    def measure(texts: list[str]) -> list[list[float]]:
+        parts = [texts[i : i + RESCORE_BATCH] for i in range(0, len(texts), RESCORE_BATCH)]
+        tokens = RESCORE_BATCH * prompt_tokens(runner, texts)
+        done = map_layer_major(runner, one, parts, tokens=tokens, logits=False)
+        return [values for part in done for values in part]
 
     return measure
 
@@ -137,14 +150,12 @@ def rescore(top: TopExamples, measure: Callable[[list[str]], list[list[float]]],
         if not todo:
             break
         order = sorted(todo)
-        for start in range(0, len(order), RESCORE_BATCH):
-            part = order[start : start + RESCORE_BATCH]
-            new = measure([top.candidates[i][0].text for i in part])
-            for i, values in zip(part, new, strict=True):
-                piece, ids, old = top.candidates[i]
-                if len(values) != len(old):
-                    raise ValueError(f"measured {len(values)} tokens of a {len(old)}-token piece")
-                top.candidates[i] = (piece, ids, values)
+        new = measure([top.candidates[i][0].text for i in order])  # all of them at once
+        for i, values in zip(order, new, strict=True):
+            piece, ids, old = top.candidates[i]
+            if len(values) != len(old):
+                raise ValueError(f"measured {len(values)} tokens of a {len(old)}-token piece")
+            top.candidates[i] = (piece, ids, values)
         done |= todo
         todo = kept(top.candidates, k)
     return len(done)

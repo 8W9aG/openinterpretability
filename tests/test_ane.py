@@ -401,6 +401,15 @@ def test_only_a_qualified_model_scans_on_the_ane(tiny_qwen2, monkeypatch):
     assert backend.AneScan.for_model(tiny_qwen2, "tiny", None) is not None
 
 
+def test_a_layer_past_the_deepest_qualified_one_scans_on_torch(tiny_qwen2, monkeypatch):
+    from openinterp.harness.ane import qualified
+
+    monkeypatch.setitem(qualified.QUALIFIED, "tiny", ((0,), "2026-11-12"))
+    monkeypatch.setitem(qualified.DEEPEST, "tiny", 0)
+    ane = backend.AneScan(tiny_qwen2, "tiny", None, None)
+    assert "only to layer 0" in ane.prepare([10], 1, 64)
+
+
 def test_an_ane_failure_during_a_scan_redoes_it_on_torch(tiny_gpt2, capsys):
     texts = [t * 3 for t in TEXTS] * 4
     plain = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
