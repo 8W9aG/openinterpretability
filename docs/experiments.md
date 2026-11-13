@@ -62,7 +62,7 @@ A scan's forward pass captures the whole layer, so `audit` caches every neuron's
 
 ## Devices
 
-`--device auto`, the default, uses a CUDA GPU if there is one. On a Mac it uses Apple's GPU (MPS) only when the GPU is free, and else the CPU (`openinterp/harness/devices.py`). Two things make the GPU busy:
+`--device auto`, the default, uses a GPU only when it is free. On a Mac that GPU is Apple's (MPS, `openinterp/harness/devices.py`). Two things make the GPU busy:
 
 - **Another `openinterp` job.** A process that runs a model on MPS keeps a lease, an empty file named for its process id in `~/.cache/openinterp/devices/mps/`. `$OPENINTERP_DEVICE_LEASES` moves the folder, and `off` turns leases off. A lease of a process that has stopped doesn't count.
 - **Other programs.** If no other job has a lease, the planner reads the GPU's utilization from `ioreg`. It takes the mean of 5 readings over about 2 s, because one reading can change from 0% to 50% in a second. Above 50% the GPU is busy (`$OPENINTERP_GPU_BUSY_PERCENT`). An idle GPU reads about 1%, and one job 93–97% (`docs/analyses/device-contention.md`).
@@ -75,6 +75,8 @@ When the GPU is busy, the order is MPS, then Apple's Neural Engine (ANE), then t
 The CPU is 4–10× slower than a free GPU, and the ANE is 1.5–1.7× slower (`docs/analyses/ane-feasibility.md`). But two jobs on one GPU slow down each other, and once a training run that shared the GPU with `make test` gave wrong results. Take an audit of GPT-2 L5 with 128-token windows over `corpus.jsonl`. It took 77 s on the CPU and 30 s on a free GPU. With the scan on the ANE and the rest on the CPU, it took 55 s. The top examples were the same each time.
 
 `--device mps` uses the GPU even when it is busy. `--device ane` runs the scans on the ANE, and the rest on the GPU if it is free, else the CPU. A process plans once, and each model it loads uses the same device.
+
+**CUDA.** On a machine with CUDA GPUs, `--device auto` uses the first GPU that is free (`openinterp/harness/cuda_devices.py`). As on a Mac, a GPU is busy when another job has a lease on it (`~/.cache/openinterp/devices/cuda0/`, `cuda1/`, …). It is also busy when `nvidia-smi` reads it as more than 50% busy, the mean of 5 readings. When every GPU is busy, the job runs on the CPU. A machine with one GPU uses `cuda`, and a machine with more uses `cuda:<index>`. `--device cuda` or `--device cuda:1` uses that GPU even when it is busy. These checks are tested with simulated `nvidia-smi` output, not yet on a CUDA machine.
 
 Each record says where it ran, for its scan (`submission.provenance.environment`) and for its review (`verdict.environment`):
 
