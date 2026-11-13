@@ -93,19 +93,13 @@ def first_position_share(
     sees only the token itself. So this is a property of the weights, the same for every
     corpus.
     """
-    tokenizer = runner.tokenizer
-    try:
-        size = len(tokenizer)
-    except TypeError:  # a tokenizer without a length: one id per embedding row
-        size = runner.model.get_input_embeddings().num_embeddings
-    special = set(getattr(tokenizer, "all_special_ids", None) or [])
-    vocab = [i for i in range(size) if i not in special]
-    above = 0
-    for start in range(0, len(vocab), batch_size):
-        ids = torch.tensor(vocab[start : start + batch_size], device=runner.device).unsqueeze(1)
-        out = strengths({"input_ids": ids, "attention_mask": torch.ones_like(ids)})
-        above += int((out[:, 0] >= line).sum())
-    return above / max(len(vocab), 1)
+    from openinterp.harness import first_position
+
+    if reader := getattr(strengths, "first_position", None):  # a neuron's: computed once
+        values = reader()
+    else:
+        values = first_position.strengths_of(runner, strengths, batch_size)
+    return float((values >= line).sum()) / max(len(values), 1)
 
 
 def has_first_token_floor(
@@ -444,7 +438,9 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
 
 
 def _reader(runner, layer: int, neuron_idx: int, pole: Pole) -> Strengths:
-    return lambda inputs: runner.neuron_activations(inputs, layer, neuron_idx, pole)
+    from openinterp.harness.first_position import NeuronReader
+
+    return NeuronReader(runner, layer, neuron_idx, pole)
 
 
 def top_activating_examples(

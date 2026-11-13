@@ -42,7 +42,13 @@ def _load_runner(
     from openinterp.harness import devices
 
     if devices.scans_on_ane():
-        _attach_ane(runner)
+        from openinterp.harness.memory import is_streamed
+
+        if is_streamed(runner.model) and (why := devices.streamed_scans_skip_ane()):
+            click.echo(f"Scans run on the CPU, not the ANE, because {why}.", err=True)
+            devices.note_choice(f"{devices.choice()}; scans on the cpu, because {why}")
+        else:
+            _attach_ane(runner)
     return runner
 
 
@@ -50,15 +56,12 @@ def _attach_ane(runner) -> None:
     """Run ``runner``'s scans on Apple's Neural Engine, if it can run the model."""
     from openinterp.harness import devices
     from openinterp.harness.ane.backend import AneScan
-    from openinterp.harness.memory import is_streamed
 
-    backend = None
-    if not is_streamed(runner.model):
-        backend = AneScan.for_model(runner.model, runner.model_name, runner.model_revision)
+    backend = AneScan.for_model(runner.model, runner.model_name, runner.model_revision)
     if backend is None:
         click.echo(
             f"Scans run on {runner.device.type}: the ANE needs coremltools (Apple-silicon "
-            "Macs), and a model loaded whole that passed scripts/ane_qualify.py "
+            "Macs), and a model that passed scripts/ane_qualify.py "
             "(openinterp/harness/ane/qualified.py).",
             err=True,
         )
@@ -96,7 +99,8 @@ def resolve_device(device: str) -> str:
         if note := devices.notice():
             click.echo(note, err=True)
         device = plan.device
-        devices.note_choice(f"{asked}: {device}, because {plan.reason}")
+        rest = "scans on the ane, the rest on " if asked == "ane" else ""
+        devices.note_choice(f"{asked}: {rest}{device}, because {plan.reason}")
     else:
         devices.note_choice(f"--device {device}")
     if device == "mps" and (stuck := devices.mps_stuck()):

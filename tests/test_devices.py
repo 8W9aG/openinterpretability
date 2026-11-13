@@ -212,6 +212,7 @@ def test_the_record_names_the_hardware_and_the_os(tiny_gpt2):
         ("auto", [], "auto: mps, because the GPU is free"),
         ("auto", [41], "auto: cpu, because another openinterp job uses the GPU (process 41)"),
         ("cpu", [], "--device cpu"),
+        ("ane", [], "ane: scans on the ane, the rest on mps, because the GPU is free"),
     ],
 )
 def test_the_record_says_how_the_device_was_chosen(monkeypatch, tiny_gpt2, asked, holders, choice):
@@ -235,3 +236,17 @@ def test_a_retry_and_a_stuck_gpu_are_recorded(monkeypatch, tiny_gpt2):
         _environment(tiny_gpt2).device_choice
         == "mps: cpu, because the GPU (MPS) didn't start in 120 s"
     )
+
+
+@pytest.mark.parametrize(("load", "skips"), [(10.0, True), (80.0, False)])
+def test_a_streamed_scan_leaves_the_ane_only_while_the_cpu_is_free(monkeypatch, load, skips):
+    monkeypatch.setattr(devices, "cpu_load_percent", lambda: load)
+    why = devices.streamed_scans_skip_ane()
+    assert (why is not None) == skips
+    assert why is None or "the CPU is free (load 10% of its cores)" in why
+
+
+def test_device_ane_keeps_a_streamed_scan_on_the_ane(monkeypatch):
+    monkeypatch.setattr(devices, "cpu_load_percent", lambda: 0.0)
+    devices.force_ane()
+    assert devices.streamed_scans_skip_ane() is None

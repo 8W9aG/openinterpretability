@@ -254,7 +254,9 @@ def _no_pause(tmp_path_factory, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _scan_cache(tmp_path_factory, monkeypatch):
-    """Cache layer scans in a temporary directory, never the developer's real cache."""
+    """Cache layer scans and first positions in a temporary directory, never the real cache."""
+    from openinterp.harness import first_position
     from openinterp.harness.layer_cache import ENV
 
     monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("scan-cache")))
+    monkeypatch.setenv(first_position.ENV, str(tmp_path_factory.mktemp("first-position")))

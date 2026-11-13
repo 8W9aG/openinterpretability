@@ -8,7 +8,7 @@ loaded there once, which warms the ANE's compile, and checked (:data:`MAX_ERROR`
 
 An entry is keyed by everything that changes the compiled model:
 
-- the model, its revision, the layer and the input shape;
+- the model, its revision, the chunk's layers and the input shape;
 - a hash of the source of the conversion code (``forward.py`` and ``convert.py``),
   so any change to that code makes new entries;
 - the coremltools and torch versions;
@@ -18,6 +18,11 @@ An entry is ``<root>/<model>/L<layer>/<key>/`` with ``model.mlmodelc`` and
 ``meta.json``. It is complete only when ``meta.json`` exists, which is written last.
 A lock per key stops two processes from building one entry at the same time. Once the
 cache is larger than its cap, the least recently used entries go.
+
+The weights of one chunk are the same file for every input shape
+(``forward.shape_inputs``). So each weight file is kept once, in ``<root>/.blobs/``
+under its SHA-256, and each entry holds a hard link to it. A blob that no entry links to
+goes when the cache next evicts. The cache's size counts each file once.
 """
 
 from __future__ import annotations
@@ -40,14 +45,15 @@ import torch
 from openinterp.core.cache_dirs import cache_root
 from openinterp.harness.ane import convert
 
-FORMAT = 1
+FORMAT = 3  # 2: chunks of layers; 3: shape tables as inputs, one calibration sample
 ENV = "OPENINTERP_COREML_CACHE"  # cache directory, or "off"
 SIZE_ENV = "OPENINTERP_COREML_CACHE_GB"
 DEFAULT_GB = 20.0
 MAX_ERROR = 0.03  # largest relative RMS error against fp32 (measured: 0.003 to 0.011)
-SOURCES = ("forward.py", "convert.py")  # the code that sets what an entry holds
+SOURCES = ("forward.py", "convert.py", "chunks.py")  # the code that sets what an entry holds
 MODEL = "model.mlmodelc"
 META = "meta.json"
+BLOBS = ".blobs"
 
 
 class ConversionRejected(RuntimeError):
@@ -72,13 +78,23 @@ def machine() -> dict:
     return {"macos": platform.mac_ver()[0] or None, "chip": chip or platform.machine()}
 
 
-def fields(model: str, revision: str | None, layer: int, rows: int, seq: int) -> dict:
-    """What an entry is keyed by."""
+def fields(
+    model: str,
+    revision: str | None,
+    layer: int,
+    rows: int,
+    seq: int,
+    start: int = 0,
+    resid_out=False,
+) -> dict:
+    """What an entry is keyed by: one chunk, layers ``start..layer`` (``chunks.py``)."""
     return {
         "format": FORMAT,
         "model": model,
         "revision": revision,
         "layer": layer,
+        "start": start,
+        "resid_out": resid_out,
         "shape": [rows, seq],
         "code": code_digest(),
         "coremltools": convert.version(),
@@ -144,8 +160,55 @@ class ConversionCache:
         if not error <= MAX_ERROR:
             shutil.rmtree(entry, ignore_errors=True)
             raise ConversionRejected(f"relative error {error:.4f} is more than {MAX_ERROR}")
+        self._share(entry / MODEL)
         meta = {"fields": key_fields, "error": error, "built": _now(), "last_used": _now()}
         _write_json(entry / META, meta)
+
+    def _share(self, model: Path) -> None:
+        """Replace each weight file in ``model`` by a hard link to the blob with its contents."""
+        blobs = self.root / BLOBS
+        blobs.mkdir(parents=True, exist_ok=True)
+        for weights in model.glob("weights/*.bin"):
+            blob = blobs / f"{_sha256(weights)}.bin"
+            if not blob.exists():
+                with suppress(FileExistsError):  # another process stored it first
+                    os.link(weights, blob)
+                continue
+            if os.path.samefile(blob, weights):
+                continue
+            tmp = weights.with_name(f".{weights.name}.{secrets.token_hex(4)}")
+            os.link(blob, tmp)
+            os.replace(tmp, weights)  # atomic: the file is whole at every moment
+
+    def size(self) -> int:
+        """Bytes on disk: each file once, however many entries link to it."""
+        seen, total = set(), 0
+        for path in self.root.rglob("*"):
+            with suppress(OSError):
+                info = path.stat()
+                if path.is_file() and (info.st_dev, info.st_ino) not in seen:
+                    seen.add((info.st_dev, info.st_ino))
+                    total += info.st_size
+        return total
+
+    def _drop_old_formats(self) -> list[Path]:
+        """Delete the entries of another :data:`FORMAT`. No key can find them again."""
+        gone = []
+        for meta in self.root.glob(f"*/L*/*/{META}"):
+            with suppress(OSError, ValueError):
+                if json.loads(meta.read_text())["fields"].get("format") != FORMAT:
+                    shutil.rmtree(meta.parent, ignore_errors=True)
+                    gone.append(meta.parent)
+        if gone:
+            self._sweep()
+        return gone
+
+    def _sweep(self) -> None:
+        """Delete each blob that no entry links to."""
+        for blob in (self.root / BLOBS).glob("*.bin"):
+            with suppress(OSError):
+                if blob.stat().st_nlink == 1:
+                    blob.unlink()
 
     @contextmanager
     def _lock(self, entry: Path) -> Iterator[None]:
@@ -175,21 +238,32 @@ class ConversionCache:
         return found
 
     def evict(self, keep: Path | None = None) -> list[Path]:
-        """Delete the least recently used entries until the cache is inside its cap."""
+        """Delete old entries, then the least recently used, until the cache is inside its cap.
+
+        Old entries are those of another :data:`FORMAT`. An entry frees its weights only
+        if no other entry links to them.
+        """
+        gone = self._drop_old_formats()
         if self.max_bytes is None:
-            return []
-        entries = sorted(self.entries(), key=lambda e: e[2])
-        total = sum(size for _, size, _ in entries)
-        gone = []
-        for path, size, _ in entries:
-            if total <= self.max_bytes:
+            return gone
+        self._sweep()
+        for path, _, _ in sorted(self.entries(), key=lambda e: e[2]):
+            if self.size() <= self.max_bytes:
                 break
             if path == keep:
                 continue
             shutil.rmtree(path, ignore_errors=True)
-            total -= size
+            self._sweep()
             gone.append(path)
         return gone
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 24), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _now() -> str:
