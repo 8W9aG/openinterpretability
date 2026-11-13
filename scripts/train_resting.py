@@ -47,6 +47,7 @@ BATCH = 32
 LEARNING_RATE = 3e-4
 GRADIENT_CLIP = 1.0
 EVAL_WINDOWS = 128
+PUSH_BINS = (-1.5, -0.75, -0.25, 0.25, 0.75, 1.5)  # edges of h for --spread-bins
 SGD_MOMENTUM = 0.9
 SGD_LEARNING_RATE = 0.1  # the best of 0.01, 0.03, 0.1 and 0.3 over 500 steps that trained stably
 
@@ -294,11 +295,14 @@ def train(
     push_part: str = "push",
     save_every: int = 0,
     save_dir: Path | None = None,
+    spread_bins: bool = False,
 ) -> None:
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
     If ``push_every`` is not 0, also append a row labelled ``push_part`` after each
     ``push_every`` steps. The row summarises the push on the rest over those steps.
+    If ``spread_bins`` is true, the row also splits the spread term by the bins of h
+    that ``PUSH_BINS`` gives.
     If ``save_every`` is not 0, save the weights to ``save_dir`` every ``save_every`` steps,
     as ``checkpoint_path`` names them.
     """
@@ -307,7 +311,8 @@ def train(
     model = build_model(condition, vocab, seed).to(device).train()
     optimizer = make_optimizer(condition, model)
     generator = torch.Generator().manual_seed(seed)
-    recorder = PushRecorder(model) if push_every else None
+    bins = torch.tensor(PUSH_BINS) if spread_bins else None
+    recorder = PushRecorder(model, bins=bins) if push_every else None
     start = time.time()
     for step in range(steps + 1):
         if save_every and step % save_every == 0:
@@ -333,7 +338,12 @@ def train(
         if recorder:
             recorder.after_step()
             if (step + 1) % push_every == 0:
-                row = {"part": push_part, "condition": name, "seed": seed, "step": step + 1}
+                row = {
+                    "part": push_part,
+                    "condition": name,
+                    "seed": seed,
+                    "step": step + 1,
+                }
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
 
 
@@ -365,6 +375,11 @@ def cli():
     help="Steps in each row of the push on the rest. 0 records no push.",
 )
 @click.option("--push-part", default="push", show_default=True, help="The label of the push rows.")
+@click.option(
+    "--spread-bins",
+    is_flag=True,
+    help="Also split the push rows' spread term by the bins of h in PUSH_BINS.",
+)
 @click.option("--save-every", type=int, default=0, show_default=True, help="0 saves no weights.")
 @click.option("--save-dir", type=click.Path(path_type=Path), default=None)
 def train_command(
@@ -379,12 +394,15 @@ def train_command(
     part,
     push_every,
     push_part,
+    spread_bins,
     save_every,
     save_dir,
 ):
     """Train each condition with each seed, and append the rows to ``--out``."""
     if save_every and save_dir is None:
         raise click.UsageError("--save-every needs --save-dir")
+    if spread_bins and not push_every:
+        raise click.UsageError("--spread-bins needs --push-every")
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER)
@@ -409,6 +427,7 @@ def train_command(
                 push_part,
                 save_every,
                 save_dir,
+                spread_bins,
             )
 
 

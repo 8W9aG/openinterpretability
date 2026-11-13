@@ -17,6 +17,7 @@ from tests.conftest import FakeTokenizer
 from tests.test_agents import TEXTS
 
 REAL_GPU_UTILIZATION = devices.gpu_utilization  # conftest replaces it for every test
+REAL_MPS_STUCK = devices.mps_stuck
 
 
 @pytest.mark.parametrize(
@@ -24,6 +25,7 @@ REAL_GPU_UTILIZATION = devices.gpu_utilization  # conftest replaces it for every
 )
 def test_auto_prefers_cuda_then_mps(monkeypatch, cuda, mps, expected):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
     monkeypatch.setattr(torch.backends.mps, "is_available", lambda: mps)
     assert resolve_device("auto") == expected
     assert resolve_device("cpu") == "cpu"
@@ -110,17 +112,17 @@ def test_an_mps_error_in_a_process_on_mps_is_retried():
     devices.take_lease("mps")
     with pytest.raises(ValueError) as caught:
         _oom()
-    assert devices.mps_failed(caught.value)  # found down the chain
-    assert not devices.mps_failed(RuntimeError("index out of range"))
+    assert devices.gpu_failed(caught.value)  # found down the chain
+    assert not devices.gpu_failed(RuntimeError("index out of range"))
 
 
 def test_no_retry_without_mps_or_twice(monkeypatch):
     with pytest.raises(ValueError) as caught:
         _oom()
-    assert not devices.mps_failed(caught.value)  # this process never ran on MPS
+    assert not devices.gpu_failed(caught.value)  # this process never ran on MPS
     devices.take_lease("mps")
     monkeypatch.setenv(devices.FORCE_ENV, "cpu")
-    assert not devices.mps_failed(caught.value)  # a retry already
+    assert not devices.gpu_failed(caught.value)  # a retry already
 
 
 def test_a_retry_forces_every_model_onto_the_cpu(monkeypatch):
@@ -158,3 +160,141 @@ def test_an_mps_scan_reproduces_on_the_cpu(tiny_gpt2):
     pairs = zip(on_mps.values, on_cpu.values, strict=True)
     assert all(DEFAULT_TOLERANCE.close(m, c, scale) for m, c in pairs)
     assert [ex.text for ex in on_mps.examples] == [ex.text for ex in on_cpu.examples]
+
+
+# -- a first MPS operation that never ends -----------------------------------
+
+
+def test_a_first_mps_operation_that_never_ends_sends_the_job_to_the_cpu(monkeypatch, capsys):
+    import time
+
+    monkeypatch.setattr(devices, "mps_stuck", REAL_MPS_STUCK)
+    monkeypatch.setattr(torch, "ones", lambda *a, **k: time.sleep(5))  # as the Metal hang
+    monkeypatch.setenv(devices.START_ENV, "0.2")
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    assert resolve_device("mps") == "cpu"
+    assert "didn't start in 0.2 s" in capsys.readouterr().err
+    assert not (devices.lease_root() / "mps" / str(os.getpid())).exists()  # no lease
+
+
+def test_a_first_mps_operation_that_fails_is_reported_at_once(monkeypatch):
+    def broken(*a, **k):
+        raise RuntimeError("no Metal device")
+
+    monkeypatch.setattr(torch, "ones", broken)
+    assert "failed at once" in devices._probe_mps(30)
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="needs Apple's GPU")
+def test_a_working_gpu_starts_in_time():
+    assert devices._probe_mps(60) is None
+
+
+# -- what the record says about the device ------------------------------------
+
+
+def _environment(tiny_gpt2):
+    from openinterp.harness.environment import run_environment
+    from openinterp.harness.hooks import NeuronHookRunner
+
+    return run_environment(NeuronHookRunner(tiny_gpt2, FakeTokenizer()))
+
+
+def test_the_record_names_the_hardware_and_the_os(tiny_gpt2):
+    env = _environment(tiny_gpt2)
+    assert env.device == "cpu" and env.device_name and env.os
+    assert "pid" not in env.os.lower()  # nothing personal: no hostname or user name
+
+
+@pytest.mark.parametrize(
+    ("asked", "holders", "choice"),
+    [
+        ("auto", [], "auto: mps, because the GPU is free"),
+        ("auto", [41], "auto: cpu, because another openinterp job uses the GPU (process 41)"),
+        ("cpu", [], "--device cpu"),
+        ("ane", [], "ane: scans on the ane, the rest on mps, because the GPU is free"),
+    ],
+)
+def test_the_record_says_how_the_device_was_chosen(monkeypatch, tiny_gpt2, asked, holders, choice):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    monkeypatch.setattr(devices, "holders", lambda device: holders if device == "mps" else [])
+    resolve_device(asked)
+    assert _environment(tiny_gpt2).device_choice == choice
+
+
+def test_a_retry_and_a_stuck_gpu_are_recorded(monkeypatch, tiny_gpt2):
+    monkeypatch.setenv(devices.FORCE_ENV, "cpu")
+    resolve_device("auto")
+    assert _environment(tiny_gpt2).device_choice == "cpu: a retry after the GPU failed"
+    monkeypatch.delenv(devices.FORCE_ENV)
+    devices.forget()
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(devices, "mps_stuck", lambda: "the GPU (MPS) didn't start in 120 s")
+    resolve_device("mps")
+    assert (
+        _environment(tiny_gpt2).device_choice
+        == "mps: cpu, because the GPU (MPS) didn't start in 120 s"
+    )
+
+
+@pytest.mark.parametrize(("load", "skips"), [(10.0, True), (80.0, False)])
+def test_a_streamed_scan_leaves_the_ane_only_while_the_cpu_is_free(monkeypatch, load, skips):
+    monkeypatch.setattr(devices, "cpu_load_percent", lambda: load)
+    why = devices.streamed_scans_skip_ane()
+    assert (why is not None) == skips
+    assert why is None or "the CPU is free (load 10% of its cores)" in why
+
+
+def test_device_ane_keeps_a_streamed_scan_on_the_ane(monkeypatch):
+    monkeypatch.setattr(devices, "cpu_load_percent", lambda: 0.0)
+    devices.force_ane()
+    assert devices.streamed_scans_skip_ane() is None
+
+
+# -- CUDA --------------------------------------------------------------------
+
+
+def test_nvidia_smi_output_gives_each_gpus_utilization():
+    from openinterp.harness.cuda_devices import parse_nvidia_smi
+
+    assert parse_nvidia_smi("0, 3\n1, 97\n") == {0: 3.0, 1: 97.0}
+    assert parse_nvidia_smi("No devices were found") == {}
+
+
+def test_the_first_free_cuda_gpu_is_chosen():
+    from openinterp.harness.cuda_devices import choose_cuda
+
+    plan = choose_cuda(3, {0: [11]}, {1: 95.0, 2: 4.0}, 50.0)
+    assert (plan.device, plan.fallback) == ("cuda:2", False)
+    assert choose_cuda(1, {}, {0: 2.0}, 50.0).device == "cuda"  # one GPU keeps "cuda"
+
+
+def test_every_busy_cuda_gpu_sends_the_job_to_the_cpu_with_a_cuda_hint():
+    from openinterp.harness.cuda_devices import choose_cuda
+
+    plan = choose_cuda(2, {0: [11]}, {1: 99.0}, 50.0)
+    assert (plan.device, plan.fallback, plan.hint) == ("cpu", True, "cuda")
+    assert "GPU 0 is in use" in plan.reason and "GPU 1 is 99% busy" in plan.reason
+
+
+def test_auto_on_cuda_skips_a_gpu_another_job_holds(monkeypatch, capsys):
+    from openinterp.harness import cuda_devices
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    monkeypatch.setattr(cuda_devices, "holders", lambda name: [7] if name == "cuda0" else [])
+    assert resolve_device("auto") == "cuda:1"
+    assert (devices.lease_root() / "cuda1" / str(os.getpid())).exists()
+
+
+def test_cuda_leases_are_named_by_gpu():
+    assert devices.lease_name("cuda") == "cuda0" and devices.lease_name("cuda:3") == "cuda3"
+    assert devices.lease_name("mps") == "mps" and devices.lease_name("cpu") is None
+
+
+def test_a_cuda_out_of_memory_error_is_retried_on_the_cpu():
+    devices.take_lease("cuda:1")
+    assert devices.gpu_failed(RuntimeError("CUDA out of memory. Tried to allocate 2 GiB")) == "CUDA"
+    assert devices.gpu_failed(RuntimeError("MPS backend out of memory")) is None  # not used
