@@ -245,6 +245,14 @@ def _idle_devices(tmp_path_factory, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_pause(tmp_path_factory, monkeypatch):
+    """Keep tests away from a real pause of new experiments (``openinterp pause``)."""
+    from openinterp.core.pause import ENV
+
+    monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("pause") / "pause"))
+
+
+@pytest.fixture(autouse=True)
 def _scan_cache(tmp_path_factory, monkeypatch):
     """Cache layer scans in a temporary directory, never the developer's real cache."""
     from openinterp.harness.layer_cache import ENV
