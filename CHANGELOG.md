@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Removed
+
+- **The home page's "Verified neurons and heads" table** (`index.html`, `openinterp/builder/registry_stats.py`, #3273). It listed every verified unit, so it grew with the registry. The "Verified units" count stays. Verified units are still reachable from the model and layer maps, search and `registry.parquet`.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.
