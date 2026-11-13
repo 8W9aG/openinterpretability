@@ -162,6 +162,8 @@ cd ../openinterpretability-2 && uv sync && claude
 
 Two `experiment-loop.sh` runs need different `--worktree` directories, since both default to `../<repo>-loop`. A branch can be checked out in only one worktree, which is why the workflow starts each experiment from a detached `origin/main`. Each session holds its own copy of the model, up to 9.2 GB for a Qwen2.5-1.5B scan (see *Memory*). So memory, not checkouts, limits how many sessions run in parallel.
 
+**Pausing new experiments.** A measurement such as a benchmark needs a machine with no other jobs. `openinterp pause --reason "…" --for 60` stops new experiments on this machine for 60 minutes (default 120). While it lasts, `openinterp next` draws nothing and exits 75, the skill tells a session to stop with `RESULT: none paused`, and `experiment-loop.sh` waits before each new session. Experiments that already run go on to the end. `openinterp pause --status` shows the pause, and `openinterp resume` ends it. The pause is a file, `~/.cache/openinterp/pause` (`$OPENINTERP_PAUSE_FILE`), so it covers every checkout and worktree on the machine. It ends by itself, so a pause that nobody ends can't stop the loops for ever.
+
 ## Running it yourself
 
 ```bash
