@@ -57,6 +57,12 @@ class CorpusSource(StrictModel):
         description="The dataset column that gave each document's 'code_language' field; "
         "None: documents carry no programming language.",
     )
+    code_detector: str | None = Field(
+        default=None,
+        description="The detector that gave each document's 'code_language' field "
+        "(openinterp.codeid.detector()), when the dataset doesn't say; documents it was "
+        "unsure of, and prose, have none. None: no detected programming languages.",
+    )
     chat_template: str | None = Field(
         default=None,
         description="The model whose tokenizer's chat template wrote each conversation in "

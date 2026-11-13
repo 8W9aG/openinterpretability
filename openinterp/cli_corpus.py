@@ -82,6 +82,14 @@ from openinterp.corpus import LAYOUTS, PRESETS
     "sidecar records the detector. Replaces a preset's exact languages; not with --lang-pattern.",
 )
 @click.option(
+    "--detect-code",
+    is_flag=True,
+    help="Detect each document's programming language (Magika) and record it as "
+    "'code_language' where the detector is sure, for datasets that don't say (e.g. the "
+    "Pile's GitHub files). Prose stays unlabelled. The source sidecar records the "
+    "detector. Not with a preset that gives exact programming languages.",
+)
+@click.option(
     "--chat-template",
     metavar="MODEL",
     help="Write each conversation in --text-column (a list of role/content messages) with "
@@ -114,6 +122,7 @@ def corpus(
     ascii_,
     lang_pattern,
     detect_lang,
+    detect_code,
     chat_template,
     same_as,
     out,
@@ -133,11 +142,11 @@ def corpus(
             "--files": files, "--text-column": text_column, "--revision": revision,
             "--layout": layout, "--docs-per-row-group": docs_per_row_group, "--first": first,
             "--lang-pattern": lang_pattern, "--detect-lang": detect_lang,
-            "--chat-template": chat_template,
+            "--detect-code": detect_code, "--chat-template": chat_template,
         }  # fmt: skip
         return _blend(dataset, per_dataset, out, documents, seed, max_chars, ascii_)
     preset = PRESETS.get(dataset)
-    _check_dataset(dataset, preset, files, lang_pattern, detect_lang)
+    _check_dataset(dataset, preset, files, lang_pattern, detect_lang, detect_code)
     try:
         source = build_from_hub(
             preset.dataset if preset else dataset,
@@ -155,6 +164,7 @@ def corpus(
             lang_pattern=None if detect_lang else lang_pattern or (preset and preset.lang_pattern),
             detect_lang=detect_lang,
             code_language_column=preset.code_language_column if preset else None,
+            detect_code=detect_code,
             chat_template=chat_template or (preset.chat_template if preset else None),
         )
     except ValueError as error:  # e.g. a model without a chat template
@@ -162,10 +172,12 @@ def corpus(
     _report(source, out, documents)
 
 
-def _check_dataset(dataset, preset, files, lang_pattern, detect_lang) -> None:
+def _check_dataset(dataset, preset, files, lang_pattern, detect_lang, detect_code) -> None:
     """Raise ``click.UsageError`` if the options can't sample ``dataset``."""
     if detect_lang and lang_pattern:
         raise click.UsageError("--detect-lang and --lang-pattern both set the languages.")
+    if detect_code and preset and preset.code_language_column:
+        raise click.UsageError(f"{dataset!r} has exact programming languages: no --detect-code.")
     if preset is None and not files:
         raise click.UsageError(f"--files is required for {dataset!r}, which is not a preset.")
 
@@ -233,6 +245,8 @@ def _report(source, out: Path, documents: int) -> None:
     click.echo(f"Wrote {source.documents} documents to {out}: {source}")
     if source.lang_detector:
         click.echo(f"Languages detected by {source.lang_detector}", err=True)
+    if source.code_detector:
+        click.echo(f"Programming languages detected by {source.code_detector}", err=True)
     if source.documents < documents:
         click.echo(f"warning: only {source.documents} of {documents} documents found", err=True)
     click.echo(f"Licence: {source.license or 'not stated on the dataset card'}")

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import sys
 import time
+import types
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -31,6 +32,7 @@ from default_on_poles import (
     write_row,
 )
 from figure_svg import LEAKY_SLOPE
+from resting_modules import Activation, CentredNorm, parallel_forward, warmup
 from resting_push import PushRecorder
 
 from openinterp.cli import _load, resolve_device
@@ -46,7 +48,19 @@ BATCH = 32
 LEARNING_RATE = 3e-4
 GRADIENT_CLIP = 1.0
 EVAL_WINDOWS = 128
+PUSH_BINS = (-1.5, -0.75, -0.25, 0.25, 0.75, 1.5)  # edges of h for --spread-bins
 SGD_MOMENTUM = 0.9
+ADAM_BETAS = (0.9, 0.999)  # torch's default
+# Pythia's training setup (Biderman et al., 2023) uses AdamW at 1e-3, betas (0.9, 0.95)
+# and weight decay 0.01. It has no dropout and has parallel attention. It warms up over 1%
+# of 143,000 steps.
+# Its warm-up is 1,430 of the 4,000 steps that the checkpoint test reads. 715 keeps that
+# share in a 2,000-step run.
+PYTHIA_LEARNING_RATE = 1e-3
+PYTHIA_BETAS = (0.9, 0.95)
+PYTHIA_WEIGHT_DECAY = 0.01
+PYTHIA_WARMUP = 715
+PYTHIA_BATCH_FACTOR = 4  # Pythia's batch is 500 times ours. 4 times fits the time we have.
 SGD_LEARNING_RATE = 0.1  # the best of 0.01, 0.03, 0.1 and 0.3 over 500 steps that trained stably
 
 
@@ -67,8 +81,13 @@ class Condition:
     output_shift: float = 0.0  # a constant added to the activation's output
     centre_output: bool = False  # the activation's output is centred per neuron over each batch
     # "blocks" centres the input of each block's LayerNorms over the batch's tokens, and
-    # "all" also the final LayerNorm's. Then no LayerNorm sees a constant offset.
+    # "all" also the final LayerNorm's. Then no LayerNorm sees a constant offset. "final"
+    # centres only the final LayerNorm's input.
     centre_norms: str = ""
+    batch: int = BATCH  # windows in each step
+    warmup_steps: int = 0  # the learning rate grows linearly over these steps, then holds
+    adam_betas: tuple[float, float] = ADAM_BETAS
+    parallel: bool = False  # attention and the MLP read the same input, as in GPT-NeoX
 
 
 # The mean output of ReLU and of GELU at init, where h has an SD of about 0.31. For ReLU it
@@ -85,6 +104,8 @@ CONDITIONS = {
     "mirrored_gelu": replace(BASE, activation="mirrored_gelu"),
     "dropout_0": replace(BASE, dropout=0.0),
     "dropout_0.3": replace(BASE, dropout=0.3),
+    # With no dropout, a constant offset in the MLP's output stays constant on each token.
+    "relu_dropout_0": replace(BASE, activation="relu", dropout=0.0),
     "weight_decay_0.1": replace(BASE, weight_decay=0.1),
     "mlp_1x": replace(BASE, mlp_ratio=1),
     "mlp_16x": replace(BASE, mlp_ratio=16),
@@ -126,115 +147,41 @@ CONDITIONS = {
     "gelu_output_shift": replace(BASE, output_shift=INIT_MEAN_RELU - INIT_MEAN_GELU),
     "relu_norms_centred": replace(BASE, activation="relu", centre_norms="blocks"),
     "relu_all_norms_centred": replace(BASE, activation="relu", centre_norms="all"),
+    # Every norm centred and no dropout: a constant offset in the residual stream then has no
+    # route to the loss.
+    "relu_norms_centred_dropout_0": replace(
+        BASE, activation="relu", centre_norms="blocks", dropout=0.0
+    ),
+    "relu_all_norms_centred_dropout_0": replace(
+        BASE, activation="relu", centre_norms="all", dropout=0.0
+    ),
+    # Only the block LayerNorms can see a constant offset.
+    "relu_final_norm_centred_dropout_0": replace(
+        BASE, activation="relu", centre_norms="final", dropout=0.0
+    ),
+    # Pythia's setup, one part at a time, on the no-dropout baseline, then all parts.
+    "pythia_lr": replace(BASE, dropout=0.0, learning_rate=PYTHIA_LEARNING_RATE),
+    "pythia_warmup": replace(
+        BASE, dropout=0.0, learning_rate=PYTHIA_LEARNING_RATE, warmup_steps=PYTHIA_WARMUP
+    ),
+    "pythia_adam": replace(
+        BASE, dropout=0.0, adam_betas=PYTHIA_BETAS, weight_decay=PYTHIA_WEIGHT_DECAY
+    ),
+    "pythia_parallel": replace(BASE, dropout=0.0, parallel=True),
+    "pythia_batch": replace(BASE, dropout=0.0, batch=BATCH * PYTHIA_BATCH_FACTOR),
+    "pythia_all": replace(
+        BASE,
+        dropout=0.0,
+        learning_rate=PYTHIA_LEARNING_RATE,
+        warmup_steps=PYTHIA_WARMUP,
+        adam_betas=PYTHIA_BETAS,
+        weight_decay=PYTHIA_WEIGHT_DECAY,
+        parallel=True,
+        batch=BATCH * PYTHIA_BATCH_FACTOR,
+    ),
     "sgd": replace(BASE, optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
     "relu_sgd": replace(BASE, activation="relu", optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
 }
-
-
-class Activation(nn.Module):
-    """The MLP's activation, with an optional fixed resting level for each neuron."""
-
-    def __init__(
-        self,
-        name: str,
-        fixed_rest: float | None,
-        learned_width: int | None,
-        leaky_slope: float = LEAKY_SLOPE,
-        output_shift: float = 0.0,
-        centre_output: bool = False,
-    ) -> None:
-        super().__init__()
-        self.name = name
-        self.fixed_rest = fixed_rest
-        self.leaky_slope = leaky_slope
-        self.output_shift = output_shift
-        self.centre_output = centre_output
-        # When ``record`` is true, each backward pass sets ``rest_grad`` and ``output_grad``.
-        # Each is the sum over tokens of dL/dh or dL/da, one value for each neuron.
-        # Each forward pass also sets ``mean_slope``, the mean over tokens of the slope a'(h).
-        self.record = False
-        self.rest_grad: torch.Tensor | None = None
-        self.output_grad: torch.Tensor | None = None
-        self.mean_slope: torch.Tensor | None = None
-        # ``mean_output`` is the mean over tokens of the output that the MLP's c_proj reads.
-        self.mean_output: torch.Tensor | None = None
-        # ``energy_push`` is −Σ a·a'(h) over tokens: the push if dL/da were a itself, which
-        # is −½ d/d(rest) of Σ a². ``output_correlation`` is the correlation over tokens of
-        # dL/da with a, one value for each neuron.
-        self.energy_push: torch.Tensor | None = None
-        self.output_correlation: torch.Tensor | None = None
-        # This control separates the cost of centring from the cost of a shared, fixed rest.
-        self.learned_rest = nn.Parameter(torch.zeros(learned_width)) if learned_width else None
-
-    def forward(self, h: torch.Tensor) -> torch.Tensor:
-        """Return the activation of ``h``, ``[batch, seq, width]``."""
-        if self.fixed_rest is not None:
-            # The batch's mean holds for evaluation too, because a batch has about 4,000
-            # tokens. The gradient passes through the mean, as in batch normalisation.
-            h = h - h.mean((0, 1), keepdim=True) + self.fixed_rest
-        elif self.learned_rest is not None:
-            h = h - h.mean((0, 1), keepdim=True) + self.learned_rest
-        out = self._shape(h) + self.output_shift
-        if self.record and out.requires_grad:
-            # dL/dh summed over tokens is the gradient on a shift of the neuron's whole h,
-            # after any centring. Without centring, it equals the gradient on the bias.
-            h.register_hook(lambda g: setattr(self, "rest_grad", g.sum((0, 1)).detach()))
-            out.register_hook(lambda g: setattr(self, "output_grad", g.sum((0, 1)).detach()))
-            slope = self._slope(h.detach())
-            self.mean_slope = slope.mean((0, 1))
-            output = out.detach()
-            self.energy_push = -(output * slope).sum((0, 1))
-            out.register_hook(lambda g: self._correlate(g.detach(), output))
-        if self.centre_output:
-            # dL/da summed over tokens, the output's push, is then 0 on every step.
-            out = out - out.mean((0, 1), keepdim=True)
-        if self.record:
-            self.mean_output = out.detach().mean((0, 1))
-        return out
-
-    def _correlate(self, grad: torch.Tensor, output: torch.Tensor) -> None:
-        """Keep the correlation over tokens of dL/da with a, for each neuron."""
-        grad = grad - grad.mean((0, 1))
-        output = output - output.mean((0, 1))
-        norm = (grad.square().sum((0, 1)) * output.square().sum((0, 1))).sqrt()
-        self.output_correlation = (grad * output).sum((0, 1)) / norm.clamp_min(1e-30)
-
-    def _slope(self, h: torch.Tensor) -> torch.Tensor:
-        """Return the slope a'(h) on each element, in a graph of its own."""
-        with torch.enable_grad():
-            h = h.clone().requires_grad_(True)
-            (slope,) = torch.autograd.grad(self._shape(h).sum(), h)
-        return slope
-
-    def _shape(self, h: torch.Tensor) -> torch.Tensor:
-        """Return the activation function of ``h``, with no centring."""
-        if self.name == "gelu":
-            return nn.functional.gelu(h)
-        if self.name == "relu":
-            return nn.functional.relu(h)
-        if self.name == "tanh":
-            return torch.tanh(h)
-        if self.name == "mirrored_gelu":
-            return -nn.functional.gelu(-h)
-        if self.name == "softplus":
-            return nn.functional.softplus(h)
-        if self.name == "leaky_relu":
-            return nn.functional.leaky_relu(h, self.leaky_slope)
-        if self.name == "silu":
-            return nn.functional.silu(h)
-        raise ValueError(f"unknown activation {self.name}")
-
-
-class CentredNorm(nn.Module):
-    """A LayerNorm whose input is first centred over the batch's tokens."""
-
-    def __init__(self, norm: nn.Module) -> None:
-        super().__init__()
-        self.norm = norm
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Return the norm of ``x``, ``[batch, seq, d_model]``, less its mean over tokens."""
-        return self.norm(x - x.mean((0, 1), keepdim=True))
 
 
 def build_model(condition: Condition, vocab_size: int, seed: int):
@@ -264,9 +211,11 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
             condition.output_shift,
             condition.centre_output,
         )
-        if condition.centre_norms:
+        if condition.centre_norms in ("blocks", "all"):
             block.ln_1, block.ln_2 = CentredNorm(block.ln_1), CentredNorm(block.ln_2)
-    if condition.centre_norms == "all":
+        if condition.parallel:
+            block.forward = types.MethodType(parallel_forward, block)
+    if condition.centre_norms in ("all", "final"):
         model.transformer.ln_f = CentredNorm(model.transformer.ln_f)
     return model
 
@@ -297,9 +246,11 @@ def training_tokens(tokenizer, corpus: Path, cache: Path) -> torch.Tensor:
     return tokens
 
 
-def sample_batch(tokens: torch.Tensor, generator: torch.Generator) -> torch.Tensor:
-    """Return ``BATCH`` random windows of the training tokens."""
-    starts = torch.randint(len(tokens) - WINDOW_TOKENS, (BATCH,), generator=generator)
+def sample_batch(
+    tokens: torch.Tensor, generator: torch.Generator, size: int = BATCH
+) -> torch.Tensor:
+    """Return ``size`` random windows of the training tokens."""
+    starts = torch.randint(len(tokens) - WINDOW_TOKENS, (size,), generator=generator)
     return torch.stack([tokens[s : s + WINDOW_TOKENS] for s in starts.tolist()])
 
 
@@ -366,7 +317,7 @@ def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
     if condition.optimizer == "sgd":
         return torch.optim.SGD(groups, lr=lr, momentum=SGD_MOMENTUM, weight_decay=decay)
     if condition.optimizer == "adamw":
-        return torch.optim.AdamW(groups, lr=lr, weight_decay=decay)
+        return torch.optim.AdamW(groups, lr=lr, betas=condition.adam_betas, weight_decay=decay)
     raise ValueError(f"unknown optimizer {condition.optimizer}")
 
 
@@ -382,27 +333,39 @@ def train(
     part,
     push_every: int = 0,
     push_part: str = "push",
+    save_every: int = 0,
+    save_dir: Path | None = None,
+    spread_bins: bool = False,
 ) -> None:
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
     If ``push_every`` is not 0, also append a row labelled ``push_part`` after each
     ``push_every`` steps. The row summarises the push on the rest over those steps.
+    If ``spread_bins`` is true, the row also splits the spread term by the bins of h
+    that ``PUSH_BINS`` gives.
+    If ``save_every`` is not 0, save the weights to ``save_dir`` every ``save_every`` steps,
+    as ``checkpoint_path`` names them.
     """
     condition = CONDITIONS[name]
     vocab = int(tokens.max()) + 1
     model = build_model(condition, vocab, seed).to(device).train()
     optimizer = make_optimizer(condition, model)
+    schedule = warmup(optimizer, condition.warmup_steps)
     generator = torch.Generator().manual_seed(seed)
-    recorder = PushRecorder(model) if push_every else None
+    bins = torch.tensor(PUSH_BINS) if spread_bins else None
+    recorder = PushRecorder(model, bins=bins) if push_every else None
     start = time.time()
     for step in range(steps + 1):
+        if save_every and step % save_every == 0:
+            save_dir.mkdir(parents=True, exist_ok=True)
+            torch.save(model.state_dict(), checkpoint_path(save_dir, name, seed, step))
         if step % eval_every == 0:
             row = {"part": part, "condition": name, "seed": seed, "step": step}
             write_row(out, {**row, **evaluate(model, test_ids)})
             click.echo(f"{name} seed {seed} step {step} {time.time() - start:.0f}s", err=True)
         if step == steps:
             break
-        batch = sample_batch(tokens, generator).to(device)
+        batch = sample_batch(tokens, generator, condition.batch).to(device)
         loss = model(batch, labels=batch).loss
         if not loss.isfinite():
             # MPS can fail a command buffer and return NaN, so stop and let a person look.
@@ -413,11 +376,18 @@ def train(
             recorder.before_step()  # before the clip, which scales every gradient alike
         nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIP)
         optimizer.step()
+        if schedule:
+            schedule.step()
         if recorder:
             recorder.after_step()
             if (step + 1) % push_every == 0:
                 row = {"part": push_part, "condition": name, "seed": seed, "step": step + 1}
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
+
+
+def checkpoint_path(save_dir: Path, name: str, seed: int, step: int | str) -> Path:
+    """Return the file of one saved checkpoint of a training run. A ``step`` of "*" globs."""
+    return save_dir / f"{name}_seed{seed}_step{step}.pt"
 
 
 @click.group()
@@ -443,10 +413,34 @@ def cli():
     help="Steps in each row of the push on the rest. 0 records no push.",
 )
 @click.option("--push-part", default="push", show_default=True, help="The label of the push rows.")
+@click.option(
+    "--spread-bins",
+    is_flag=True,
+    help="Also split the push rows' spread term by the bins of h in PUSH_BINS.",
+)
+@click.option("--save-every", type=int, default=0, show_default=True, help="0 saves no weights.")
+@click.option("--save-dir", type=click.Path(path_type=Path), default=None)
 def train_command(
-    names, seeds, steps, eval_every, corpus, cache, device, out, part, push_every, push_part
+    names,
+    seeds,
+    steps,
+    eval_every,
+    corpus,
+    cache,
+    device,
+    out,
+    part,
+    push_every,
+    push_part,
+    spread_bins,
+    save_every,
+    save_dir,
 ):
     """Train each condition with each seed, and append the rows to ``--out``."""
+    if save_every and save_dir is None:
+        raise click.UsageError("--save-every needs --save-dir")
+    if spread_bins and not push_every:
+        raise click.UsageError("--spread-bins needs --push-every")
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER)
@@ -469,6 +463,9 @@ def train_command(
                 part,
                 push_every,
                 push_part,
+                save_every,
+                save_dir,
+                spread_bins,
             )
 
 
