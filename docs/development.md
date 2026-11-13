@@ -28,7 +28,7 @@ Each issue has these labels:
 
 - `area: <topic>`, for example `area: pipeline` or `area: models`.
 - `priority: urgent`, `high`, `medium` or `low`.
-- `protocol`, if the change alters the decision rule. Then it must bump `PROTOCOL_VERSION` (docs/PROTOCOL.md §6).
+- `protocol`, if the work changes the decision rule. Then it must bump `PROTOCOL_VERSION` (docs/PROTOCOL.md §6).
 - `question`, if the issue asks a question that needs a decision.
 - `release: <version>`, if the issue is planned for that release. The same issues have the milestone `v<version>`.
 

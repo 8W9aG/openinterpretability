@@ -88,9 +88,9 @@ Routed expert neurons, shared-expert neurons and dense neurons are three arms, n
 ### 7. Models, in order
 
 1. **Granite 3.0 1B-A400M** (`ibm-granite/granite-3.0-1b-a400m-base`, Apache-2.0). It is 5.5 GB in float32, so it runs on CPU and fits CI's runners. It is the model to build and test the harness on.
-2. **OLMoE-1B-7B** (`allenai/OLMoE-1B-7B-0924`, Apache-2.0). Its training data is open, which the training-data links item in `TODO.md` needs. It is 28 GB in float32, so it needs bfloat16 or streaming (`--memory stream`).
+2. **OLMoE-1B-7B** (`allenai/OLMoE-1B-7B-0924`, Apache-2.0). Its training data is open, which the training-data links issue ([issue #3377](https://github.com/8W9aG/openinterpretability/issues/3377)) needs. It is 28 GB in float32, so it needs bfloat16 or streaming (`--memory stream`).
 3. **Qwen1.5-MoE-A2.7B**, for a gated shared expert. It is under the Tongyi Qianwen licence, which must be checked first.
-4. **GPT-OSS**, after its own item in `TODO.md`. Its gating function (`_apply_gate`) is a clamped SwiGLU, which the forward already calls.
+4. **GPT-OSS**, after its own issue ([issue #3362](https://github.com/8W9aG/openinterpretability/issues/3362)). Its gating function (`_apply_gate`) is a clamped SwiGLU, which the forward already calls.
 5. **Mistral Large 4**, last. Its weights are stored in FP8, and the experts of one layer take about 14.5 GB. So it needs the streaming below. transformers 5.20.1, which openinterp uses today, has no `mistral_large4` model type, so it also needs a newer transformers. Check then that its experts use the registry.
 
 ### 8. Streaming only the routed experts
