@@ -16,7 +16,7 @@ Thank you for helping. This file is the short map. The detail is in the pages it
 - A PR that changes anything else waits for a maintainer.
 - Run `make check` before you push. If you change code, also run `make lint test`, and `make vale` for comments and docstrings.
 - A change to the decision rule bumps `PROTOCOL_VERSION` ([docs/PROTOCOL.md](docs/PROTOCOL.md) §6). Mark the TODO item **(protocol)** and say so in the PR.
-- Add an entry to the `[Unreleased]` section of [CHANGELOG.md](CHANGELOG.md) for a change that a user or contributor will notice.
+- For a change that a user or contributor will notice, add a changelog fragment in [changelog.d/](changelog.d/README.md). Don't edit `CHANGELOG.md` itself: each release gathers the fragments into it.
 - The [PR template](.github/pull_request_template.md) has the checklist for an experiment.
 
 ## Style

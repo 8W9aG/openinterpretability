@@ -37,7 +37,7 @@ Open work is in GitHub issues, and Linear mirrors them (`docs/development.md`, *
 
    If the plan would change the decision rule, say so. That needs a `PROTOCOL_VERSION` bump (`docs/PROTOCOL.md` §6).
 4. **Post every deviation when it happens.** A deviation is any change to the plan's steps, files, scope or definition of done. A bug you find, a result that changes the approach, a step that can't run here, a unit dropped from a sample: each counts. Post one comment that starts with `**Deviation**`. It says what changed, why, and what it means for the result. Don't save deviations for the end, and don't edit the plan comment.
-5. **Open the PR.** Its body starts with `Closes #<number>`, and the CHANGELOG entry names the issue. Then:
+5. **Open the PR.** Its body starts with `Closes #<number>`. Its changelog entry is a fragment, `changelog.d/<number>.<type>.md` (`changelog.d/README.md`), never an edit to `CHANGELOG.md`. Then:
    ```bash
    python3 scripts/issue_state.py <number> "In Review"
    ```
