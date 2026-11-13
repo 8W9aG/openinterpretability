@@ -11,6 +11,7 @@ The project has two version numbers:
 
 ### Changed
 
+- **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
 - **`make lint` runs Vale** (`Makefile`, #3149). Before, `make lint` skipped Vale, so a long sentence in a docstring passed locally and failed in CI. `make lint` now needs Vale installed.
 
 ## [0.0.19] - 2026-11-13
