@@ -75,6 +75,8 @@ Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Huggin
 
 [Open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+label%3A%22area%3A%20models%22).
 
+**Add no new model until every configured model has reached `coverage_target`.** That is the share of a model's neurons that is VERIFIED (`[tool.openinterp]` in `pyproject.toml`, default 80%). `openinterp next` prints each model's share. Until then every `area: models` issue stays at the lowest priority.
+
 The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test. It needs a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means). It also needs a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
 
 ## Later stage

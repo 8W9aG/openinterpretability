@@ -18,7 +18,7 @@ gh release view --json tagName,publishedAt --jq '"\(.tagName) \(.publishedAt)"'
 date -u +%Y-%m-%dT%H:%M:%SZ
 ```
 
-If less than 24 hours have passed, stop and say when the next release may go out. Until then, keep working issues from the open milestone (`work-an-issue`). When the milestone has no eligible issue left, add more. Choose eligible issues from Linear by priority, across research, engineering, the site and docs. Give each one the milestone and the `release: <version>` label.
+If less than 24 hours have passed, stop and say when the next release may go out. Until then, keep working issues from the open milestone (`work-an-issue`). When the milestone has no eligible issue left, add more. Choose eligible issues from Linear by priority, across research, engineering, the site and docs. Leave out `area: models` issues until every configured model has reached `coverage_target` VERIFIED (`TODO.md`, *Models*). Give each one the milestone and the `release: <version>` label.
 
 ## Before the release
 
