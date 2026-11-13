@@ -1,10 +1,12 @@
 name: Auto-merge
 
-# Turns on GitHub's auto-merge (squash) for pull requests that change only files under
-# wiki/: experiment records, their .sig files and pages. GitHub then merges once the
-# required checks ("Lint and tests", "Experiment records", "Reproduce records") pass on
-# the head commit. Any change outside wiki/ (code, workflows, .github/allowed_signers)
-# leaves the PR for a human, and turns auto-merge off if an earlier push had turned it on.
+# Turns on GitHub's auto-merge (squash) for two kinds of pull request:
+# - one that changes only files under wiki/: experiment records, their .sig files and pages.
+# - one that the maintainer opened from a branch of this repository, whatever it changes.
+# GitHub then merges once the required checks ("Lint and tests", "Experiment records",
+# "Reproduce records") pass on the head commit. Any other PR that changes files outside
+# wiki/ (code, workflows, .github/allowed_signers) is left for a human, and auto-merge is
+# turned off if an earlier push had turned it on.
 #
 # pull_request_target runs this file from main with a write token, also for fork PRs, so
 # it must never check out or run the PR's code: it reads the PR's file list through the
@@ -32,10 +34,20 @@ jobs:
       REPO: ${{ github.repository }}
       PR: ${{ github.event.pull_request.number }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      AUTHOR: ${{ github.event.pull_request.user.login }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      # Agents that run under the maintainer's GitHub login open PRs as the maintainer too.
+      MAINTAINER: 8W9aG
     steps:
-      - name: Auto-merge if every change is under wiki/
+      - name: Auto-merge if the maintainer opened it, or every change is under wiki/
         run: |
           set -euo pipefail
+          # A fork's branch can be pushed by someone else, so only this repo's branches count.
+          if [ "$AUTHOR" = "$MAINTAINER" ] && [ "$HEAD_REPO" = "$REPO" ]; then
+            gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
+            echo "Auto-merge on: opened by $MAINTAINER." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           # A rename lists its old path too, so moving a file into wiki/ isn't wiki-only.
           gh api --paginate "repos/$REPO/pulls/$PR/files" \
             --jq '.[] | .filename, (.previous_filename // empty)' > files.txt
