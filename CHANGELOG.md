@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **Titles for four bare arXiv IDs in the literature queue** (`docs/literature/queue.md`, #3145): 2611.14483, 2611.12206, 2611.10974 and 2611.09501. Each entry now has its title, authors and one line on what it is, so the triage can tag it.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.

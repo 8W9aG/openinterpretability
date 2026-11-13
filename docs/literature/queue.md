@@ -72,11 +72,11 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review Goodfire's "Neurons as an interpretable basis" ([post](https://www.goodfire.com/research/neurons-as-an-interpretable-basis)).
 - Review Agentic Learning's post on deleting weights ([post](https://agenticlearning.ai/deleting-weights/)).
 - Review E-means ([site](https://e-means.github.io/)).
-- Review arXiv 2611.14483 ([paper](https://arxiv.org/abs/2611.14483)).
-- Review arXiv 2611.12206 ([paper](https://arxiv.org/abs/2611.12206)).
-- Review arXiv 2611.10974 ([paper](https://arxiv.org/abs/2611.10974)).
+- Review "Mechanistic Interpretability Needs a Logic of Inference" (Hu et al., arXiv 2611.14483, [paper](https://arxiv.org/abs/2611.14483)). A position paper: five principles that turn local findings into cumulative, testable knowledge of mechanisms.
+- Review "A Geometric Invariant of Attention Predicts Head Specialization from Weights Alone" (Bento, arXiv 2611.12206, [paper](https://arxiv.org/abs/2611.12206)). A weight-only measure of how much a head can use rotary positions, which tracks induction heads.
+- Review "SWEET: Mitigating Spurious Feature Reliance in LLM Reasoning via Weight Editing" (Fu et al., arXiv 2611.10974, [paper](https://arxiv.org/abs/2611.10974)). It finds the MLP neurons and heads behind spurious reasoning, then edits their weights.
 - Review Google DeepMind's "Introducing AlphaProof code" ([post](https://deepmind.google/blog/introducing-alphaproof-code/)).
-- Review arXiv 2611.09501 ([paper](https://huggingface.co/papers/2611.09501)).
+- Review "e-means: outperforming k-means (in one-tenth the epochs)" (Bessa et al., arXiv 2611.09501, [paper](https://arxiv.org/abs/2611.09501)). A clustering method, probably not applicable here.
 - Review "Comparing Sparsified MLPs and Transcoders: Many Transcoder Features Are Neurons in Disguise" (Shabalin and Piotrowski, arXiv 2610.24521, [paper](https://arxiv.org/abs/2610.24521)).
 - Review "Evaluating Neuron Explanations: A Unified Framework with Sanity Checks" (arXiv 2506.05774, [paper](https://arxiv.org/abs/2506.05774)).
 - Review "Explaining Attention with Program Synthesis" (Hayes, Li and Andreas, arXiv 2606.19317, [paper](https://arxiv.org/abs/2606.19317)).
