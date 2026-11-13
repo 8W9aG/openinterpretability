@@ -9,9 +9,13 @@ It takes the mean of :data:`GPU_SAMPLES` readings, because one reading changes m
 second to second. Above ``$OPENINTERP_GPU_BUSY_PERCENT`` (default
 :data:`DEFAULT_GPU_BUSY_PERCENT`), the GPU is busy.
 
-When the GPU is busy, the model runs on the CPU. The CPU is slower than a free GPU. But
-two processes on one GPU can slow down each other, and one such run gave wrong results
-(docs/experiments.md, Devices). ``--device mps`` uses the GPU even when it is busy.
+When the GPU is busy, the order is MPS, then the ANE, then the CPU. The ANE is Apple's
+Neural Engine. If this Mac can run Core ML and no other job has a lease on the ANE, the
+scans' forward passes run there (``harness/ane/``). The rest runs on the CPU. Else everything runs
+on the CPU. The CPU is slower than a free GPU. But two processes on one GPU can slow down
+each other, and one such run gave wrong results (docs/experiments.md, Devices).
+``--device mps`` uses the GPU even when it is busy. ``--device ane`` runs the scans on
+the ANE, and the rest where the planner puts it.
 
 A process plans once, and every model it loads after that uses the same device.
 """
@@ -20,8 +24,10 @@ from __future__ import annotations
 
 import atexit
 import os
+import platform
 import re
 import subprocess
+import threading
 import time
 from contextlib import suppress
 from dataclasses import dataclass, field
@@ -33,8 +39,11 @@ LEASES_ENV = "OPENINTERP_DEVICE_LEASES"  # lease directory, or "off"
 # Set by the retry after an MPS failure: every model of the command loads on this device.
 FORCE_ENV = "OPENINTERP_DEVICE_FORCE"
 GPU_BUSY_ENV = "OPENINTERP_GPU_BUSY_PERCENT"
-# Provisional: replace it with the measured value when docs/experiments.md, Devices, has one.
+# Idle reads 1%, one job 93-97% (docs/analyses/device-contention.md).
 DEFAULT_GPU_BUSY_PERCENT = 50.0
+# The longest the first operation on MPS may take before the process uses the CPU.
+START_ENV = "OPENINTERP_MPS_START_SECONDS"
+DEFAULT_START_SECONDS = 120.0
 GPU_SAMPLES = 5
 GPU_SAMPLE_SECONDS = 0.4
 
@@ -56,21 +65,38 @@ class DevicePlan:
     device: str
     reason: str
     fallback: bool = False  # True when a busy device was not used
+    scan: str | None = None  # "ane" when scans run on Apple's Neural Engine
 
 
-def choose(load: Load, mps_available: bool, busy_percent: float) -> DevicePlan:
-    """The device for ``load``: MPS if it is free, else the CPU."""
+def choose(
+    load: Load, mps_available: bool, busy_percent: float, ane_ok: bool = False
+) -> DevicePlan:
+    """The device for ``load``: MPS if it is free, else the ANE for scans, else the CPU.
+
+    With the ANE, the scans' forward passes run there, and the rest runs on the CPU.
+    ``ane_ok`` says that this machine can run Core ML on the ANE.
+    """
     if not mps_available:
         return DevicePlan("cpu", "this machine has no Apple GPU")
-    others = load.jobs.get("mps", [])
+    busy = _busy(load.jobs.get("mps", []), "the GPU", load.gpu_percent, busy_percent)
+    if busy is None:
+        return DevicePlan("mps", "the GPU is free")
+    if ane_ok and not load.jobs.get("ane"):
+        return DevicePlan("cpu", busy, True, scan="ane")
+    if ane_ok:
+        busy += " and " + _busy(load.jobs["ane"], "the ANE", None, busy_percent)
+    return DevicePlan("cpu", busy, True)
+
+
+def _busy(others: list[int], name: str, percent: float | None, limit: float) -> str | None:
+    """Why ``name`` is busy, or None if it is free."""
     if others:
         ids = ", ".join(str(pid) for pid in others)
         noun = "job uses" if len(others) == 1 else "jobs use"
-        return DevicePlan("cpu", f"another openinterp {noun} the GPU (process {ids})", True)
-    if load.gpu_percent is not None and load.gpu_percent > busy_percent:
-        reason = f"the GPU is {load.gpu_percent:.0f}% busy, more than {busy_percent:.0f}%"
-        return DevicePlan("cpu", reason, True)
-    return DevicePlan("mps", "the GPU is free")
+        return f"another openinterp {noun} {name} (process {ids})"
+    if percent is not None and percent > limit:
+        return f"{name} is {percent:.0f}% busy, more than {limit:.0f}%"
+    return None
 
 
 def busy_percent() -> float:
@@ -79,8 +105,8 @@ def busy_percent() -> float:
 
 
 def read_load() -> Load:
-    """The other processes on MPS, and the GPU's utilization if no other process is on it."""
-    jobs = {"mps": holders("mps")}
+    """The other processes on MPS and the ANE, and the GPU's utilization if no job is on it."""
+    jobs = {"mps": holders("mps"), "ane": holders("ane")}
     return Load(jobs, None if jobs["mps"] else gpu_utilization())
 
 
@@ -176,8 +202,34 @@ def _running(pid: int) -> bool:
     return True
 
 
+_choice: str | None = None  # how this process chose its device, for the record
+
+
+def note_choice(text: str) -> None:
+    """Record how this process chose its device (``RunEnvironment.device_choice``)."""
+    global _choice
+    _choice = text
+
+
+def choice() -> str | None:
+    """How this process chose its device, or None if nothing chose it (e.g. in a test)."""
+    return _choice
+
+
 _planned: DevicePlan | None = None
 _noticed = False
+_forced_ane = False
+
+
+def force_ane() -> None:
+    """Run scans on the ANE whatever the plan says (``--device ane``)."""
+    global _forced_ane
+    _forced_ane = True
+
+
+def scans_on_ane() -> bool:
+    """True if scans should run on the ANE: ``--device ane``, or the plan's choice."""
+    return _forced_ane or (_planned is not None and _planned.scan == "ane")
 
 
 def notice() -> str | None:
@@ -186,7 +238,8 @@ def notice() -> str | None:
     if _noticed or _planned is None or not _planned.fallback:
         return None
     _noticed = True
-    return f"Using the CPU, because {_planned.reason}. Pass --device mps to share the GPU."
+    ane = " Scans run on Apple's Neural Engine." if _planned.scan == "ane" else ""
+    return f"Using the CPU, because {_planned.reason}.{ane} Pass --device mps to share the GPU."
 
 
 def planned() -> DevicePlan:
@@ -195,14 +248,22 @@ def planned() -> DevicePlan:
     if _planned is None:
         import torch
 
-        _planned = choose(read_load(), torch.backends.mps.is_available(), busy_percent())
+        mps = torch.backends.mps.is_available()
+        _planned = choose(read_load(), mps, busy_percent(), mps and ane_possible())
     return _planned
+
+
+def ane_possible() -> bool:
+    """True if this machine can run Core ML models on the ANE: a Mac with coremltools."""
+    from openinterp.harness.ane import convert
+
+    return platform.system() == "Darwin" and platform.machine() == "arm64" and convert.available()
 
 
 def forget() -> None:
     """Make the next :func:`planned` plan again (for tests)."""
-    global _planned, _noticed
-    _planned, _noticed = None, False
+    global _planned, _noticed, _forced_ane, _start_checked, _choice
+    _planned, _noticed, _forced_ane, _start_checked, _choice = None, False, False, False, None
     _used.clear()
 
 
@@ -242,3 +303,43 @@ def rerun_on_cpu(exc: BaseException) -> None:
     sys.stdout.flush()
     # The same command line that started this process, so nothing new runs.
     os.execve(sys.executable, sys.orig_argv, {**os.environ, FORCE_ENV: "cpu"})  # noqa: S606
+
+
+_start_checked: str | None | bool = False  # False: not checked yet
+
+
+def mps_stuck() -> str | None:
+    """Why this process can't use MPS, or None if a first operation on it ends in time.
+
+    Several processes that start on MPS at the same moment can each stop for good in
+    Metal's compiler. It opens Metal's shared cache of compiled programs on disk
+    (docs/analyses/device-contention.md). So a first small operation runs on a
+    background thread. The process waits for it at most ``$OPENINTERP_MPS_START_SECONDS``
+    (default :data:`DEFAULT_START_SECONDS`). The check runs once in a process.
+    """
+    global _start_checked
+    if _start_checked is False:
+        _start_checked = _probe_mps(float(os.environ.get(START_ENV) or DEFAULT_START_SECONDS))
+    return _start_checked
+
+
+def _probe_mps(seconds: float) -> str | None:
+    done, failed = threading.Event(), []
+
+    def probe() -> None:
+        try:
+            import torch
+
+            torch.ones(1024, device="mps").mul(2).cpu()
+            torch.mps.synchronize()
+        except Exception as exc:  # a GPU that fails at once can't be used
+            failed.append(exc)
+        finally:
+            done.set()
+
+    threading.Thread(target=probe, daemon=True, name="mps-start").start()
+    if not done.wait(timeout=seconds):
+        return f"the GPU (MPS) didn't start in {seconds:g} s (${START_ENV})"
+    if failed:
+        return f"the GPU (MPS) failed at once ({type(failed[0]).__name__}: {failed[0]})"
+    return None
