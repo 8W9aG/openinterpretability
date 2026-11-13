@@ -355,36 +355,69 @@ Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Huggin
 
 The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test. It needs a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means). It also needs a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
 
-- [ ] Qwen2.5 family: 3B and the `-Instruct` variants, for base ↔ instruct and size-scaling comparisons with the default model (1.5B is in).
-- [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate. That makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
-- [ ] GPT-2 medium (GPT-2 small is in): the best-documented model family in the circuits literature, good for the positive-control task.
-- [ ] SmolLM2 (135M, 360M, 1.7B): fully open data, cheap enough for CI smoke tests.
-- [ ] Pythia suite (70M–1.4B, with training checkpoints and the `-deduped` variants): the standard for tracking a neuron across training.
-- [ ] EleutherAI's other models ([site](https://eleuther.ai/)), beyond Pythia (item above): e.g. GPT-Neo, GPT-J and GPT-NeoX-20B, whose MLP layouts the hooks already resolve (GPT-Neo's attention output, `attn.attention.out_proj`, isn't in `ATTN_OUT_PATHS` yet).
-- [ ] Qwen3 (0.6B, 1.7B, 4B): the successor architecture. Check `q_norm`/`k_norm` don't break hook resolution.
-- [ ] Llama 3.2 (1B, 3B) and Llama 3.1 8B (gated licence).
-- [ ] Gemma 2 (2B, 9B) and Gemma 3 (1B, 4B): GeGLU MLPs, and Gemma Scope / Gemma Scope 2 SAEs and transcoders for the baseline arm.
-- [ ] OLMo 2 (1B, 7B): open data and checkpoints, so activating examples can be traced to training documents.
-- [ ] Marin models (Stanford's Marin project with Open Athena, `marin-community/marin-8b-base` and `-instruct` on Hugging Face, newer releases possibly under `open-athena`). Fully open like OLMo: code, data mixes, training logs and intermediate checkpoints. So they also suit tracing activating examples to training documents and developmental tracking (Later stage). Marin 8B uses the Llama 3 8B architecture (32 layers, MLP width 14336, SwiGLU) with a modified Llama 3 tokenizer. So the Llama hook path should resolve, but the tokenizer still needs a check. 8B needs a GPU or quantised loading, as Mistral 7B does. Check both orgs for smaller models or checkpoints first, and confirm the licence (reported as Apache 2.0) and context length from the model card.
-- [ ] Stanford `stanford-crfm` GPT-2 seeds (alias/battlestar/…): same architecture, different seeds, for a universality baseline.
-- [ ] DistilGPT-2 (`distilbert/distilgpt2`) as a sister model of GPT-2. It has GPT-2's tokenizer and MLP width, and 6 layers instead of 12. Use `openinterp sisters` to test whether verified GPT-2 neurons survive distillation, and at which depth they land. "What Survives Distillation? A Mechanistic Interpretability Study of GPT-2 and DistilGPT-2" (arXiv 2610.37157, `docs/literature/queue.md`) asks the same question. The model is small, so the sister run is fast.
-- [ ] Phi-3.5-mini / Phi-4-mini: a fused `gate_up_proj`, so check the `mlp.down_proj` input still exposes one value per neuron.
-- [ ] Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
-- [ ] Liquid AI LFM3 1.7B ([model](https://huggingface.co/LiquidAI/LFM3-1.7B)). Earlier LFM releases are hybrids of short convolution and attention blocks with their own module names. So check the architecture from the model card and config against the hook resolver first. Note the MLP activation.
-- [ ] Activation Oracle baseline, once a model with a released oracle is in the registry (Karvonen et al., 2025). Oracles exist for Gemma-2, Gemma-3, Qwen3 and Llama 3 models, and the README warns the 1–4B ones are weaker out of distribution. Record the oracle's description of each unit's output direction next to `submission.patchscope`. Score it as a blind proposer baseline as `openinterp patchscope-baseline` scores the Patchscope readout (`docs/analyses/patchscope-baseline.md`: at chance on Qwen2.5-0.5B). Never show it to the reviewer. Check first that the oracle copes with a single scaled direction rather than a real residual activation. Check also that it copes with a base model when it was trained on the instruct one.
-- [ ] Audit neurons in mixture-of-experts models, as `docs/moe.md` decides. The experts forward and its hook are built (`harness/moe.py`, `tests/test_moe.py`). In order, each step tested before the next:
+- [ ] **70M** Pythia-70M: the standard for tracking a neuron across training, with its training checkpoints and its `-deduped` variant.
+- [ ] **82M** DistilGPT-2 (`distilbert/distilgpt2`) as a sister model of GPT-2. It has GPT-2's tokenizer and MLP width, and 6 layers instead of 12. Use `openinterp sisters` to test whether verified GPT-2 neurons survive distillation, and at which depth they land. "What Survives Distillation? A Mechanistic Interpretability Study of GPT-2 and DistilGPT-2" (arXiv 2610.37157, `docs/literature/queue.md`) asks the same question. The model is small, so the sister run is fast.
+- [ ] **size not yet checked** OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate. That makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed alias: same architecture as the others of its size, a different seed, for a universality baseline. Check the repo name on Hugging Face.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed battlestar: as alias.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed caprica: as alias.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed darkmatter: as alias.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed expanse: as alias.
+- [ ] **125M** GPT-Neo 125M (EleutherAI, [site](https://eleuther.ai/)): the hooks already resolve its MLP layout, but its attention output, `attn.attention.out_proj`, isn't in `ATTN_OUT_PATHS` yet.
+- [ ] **135M** SmolLM2 135M: fully open data, cheap enough for CI smoke tests.
+- [ ] **160M** Pythia-160M: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **355M** GPT-2 medium (GPT-2 small is in): the best-documented model family in the circuits literature, good for the positive-control task.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed arwen: same architecture as the others of its size, a different seed, for a universality baseline. Check the repo name on Hugging Face.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed beren: as arwen.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed celebrimbor: as arwen.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed durin: as arwen.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed eowyn: as arwen.
+- [ ] **360M** SmolLM2 360M: fully open data, as SmolLM2 135M.
+- [ ] **410M** Pythia-410M: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **0.49B** Qwen2.5-0.5B-Instruct: for base ↔ instruct comparisons with Qwen2.5-0.5B, which is in.
+- [ ] **0.6B** Qwen3 0.6B: the successor architecture. Check `q_norm`/`k_norm` don't break hook resolution.
+- [ ] **0.8B** ML-Intern-lab Qwen3.5-0.8B-weight-space-programming ([model](https://huggingface.co/ML-Intern-lab/Qwen3.5-0.8B-weight-space-programming)).
+- [ ] **1.0B** Gemma 3 1B: GeGLU MLPs, and Gemma Scope / Gemma Scope 2 SAEs and transcoders for the baseline arm.
+- [ ] **1.0B** Pythia-1B: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **1.24B** Llama 3.2 1B (gated licence).
+- [ ] **1.3B total, 0.4B active (Granite 3.0 1B-A400M)** Audit neurons in mixture-of-experts models, as `docs/moe.md` decides. The experts forward and its hook are built (`harness/moe.py`, `tests/test_moe.py`). In order, each step tested before the next:
   - Add `ExpertNeuronIdentifier` (`kind = "moe_expert_neuron_pole"`, `L<layer>/E<expert>/N<idx>-<pole>`, `expert` an index or `"shared"`) and its unit, with strengths and ablation. Make every place that branches on a unit's kind support it or refuse it.
   - Scan it: the strength is the routing weight times the hidden activation, 0 on tokens not routed to the expert. Add the routing profile, and record a draw the scan never sees active as unauditable.
   - Review it: probes, counterfactuals, ablation KL, patching and steering, on routed tokens only (`docs/moe.md`, section 3). Partner search within the expert and the shared expert.
   - Add the arm to `openinterp next` and the registry statistics (never pooled with dense neurons), then bump the protocol (`docs/PROTOCOL.md` §1, §3 and §6).
   - Run the first experiments on Granite 3.0 1B-A400M (`ibm-granite/granite-3.0-1b-a400m-base`), then OLMoE-1B-7B.
-- [ ] GPT-OSS (20B, 120B): add it to the docs as a very unusual model. It's a mixture-of-experts with MXFP4-quantised expert weights and a non-standard clamped SwiGLU (its `_apply_gate`, which the MoE forward calls). It has learned attention sinks and alternating sliding-window/full attention layers, so most of the harness's assumptions need checking. Depends on MoE support above (`docs/moe.md`).
-- [ ] CUA-Master 27B ([article](https://aiweekly.co/alerts/cua-master-27b-scores-802-on-osworld-verified-from-cuhk-thu-jd)).
-- [ ] ML-Intern-lab Qwen3.5-0.8B-weight-space-programming ([model](https://huggingface.co/ML-Intern-lab/Qwen3.5-0.8B-weight-space-programming)).
-- [ ] Kimi K3.1 Pro ([model](https://huggingface.co/moonshotai/Kimi-K3.1-Pro)).
-- [ ] Ricursive AI Ripple 65B Preview ([model](https://huggingface.co/ricursiveAI/Ripple-65B-Preview)).
-- [ ] Nous Research's model from this announcement. Name it here once identified ([post](https://x.com/nousresearch/status/2118822925445050435)).
-- [ ] LongCat-2.5 ([model](https://huggingface.co/meituan-longcat/LongCat-2.5)).
+- [ ] **1.3B** GPT-Neo 1.3B: as GPT-Neo 125M.
+- [ ] **1.4B** Pythia-1.4B: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **1.48B** OLMo 2 1B: open data and checkpoints, so activating examples can be traced to training documents.
+- [ ] **1.54B** Qwen2.5-1.5B-Instruct: for base ↔ instruct comparisons with Qwen2.5-1.5B, which is in.
+- [ ] **1.7B** Liquid AI LFM3 1.7B ([model](https://huggingface.co/LiquidAI/LFM3-1.7B)). Earlier LFM releases are hybrids of short convolution and attention blocks with their own module names. So check the architecture from the model card and config against the hook resolver first. Note the MLP activation.
+- [ ] **1.7B** SmolLM2 1.7B: fully open data, as SmolLM2 135M.
+- [ ] **1.7B** Qwen3 1.7B: as Qwen3 0.6B.
+- [ ] **2.6B** Gemma 2 2B: as Gemma 3 1B.
+- [ ] **2.7B** GPT-Neo 2.7B: as GPT-Neo 125M.
+- [ ] **3.1B** Qwen2.5-3B: for size-scaling comparisons with the default model.
+- [ ] **3.1B** Qwen2.5-3B-Instruct: for base ↔ instruct comparisons with Qwen2.5-3B.
+- [ ] **3.2B** Llama 3.2 3B (gated licence).
+- [ ] **3.8B** Phi-3.5-mini: a fused `gate_up_proj`, so check the `mlp.down_proj` input still exposes one value per neuron.
+- [ ] **3.8B** Phi-4-mini: as Phi-3.5-mini.
+- [ ] **4.0B** Qwen3 4B: as Qwen3 0.6B.
+- [ ] **4.3B** Gemma 3 4B: as Gemma 3 1B.
+- [ ] **6.1B** GPT-J 6B (EleutherAI): the hooks already resolve its MLP layout.
+- [ ] **7.2B** Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
+- [ ] **7.3B** OLMo 2 7B: as OLMo 2 1B.
+- [ ] **8.0B** Marin 8B base (Stanford's Marin project with Open Athena, `marin-community/marin-8b-base` on Hugging Face, newer releases possibly under `open-athena`). Fully open like OLMo: code, data mixes, training logs and intermediate checkpoints. So it also suits tracing activating examples to training documents and developmental tracking (Later stage). Marin 8B uses the Llama 3 8B architecture (32 layers, MLP width 14336, SwiGLU) with a modified Llama 3 tokenizer. So the Llama hook path should resolve, but the tokenizer still needs a check. 8B needs a GPU or quantised loading, as Mistral 7B does. Check both orgs for smaller models or checkpoints first, and confirm the licence (reported as Apache 2.0) and context length from the model card.
+- [ ] **8.0B** Marin 8B instruct (`marin-community/marin-8b-instruct`): as Marin 8B base.
+- [ ] **8.0B** Llama 3.1 8B (gated licence).
+- [ ] **9.2B** Gemma 2 9B: as Gemma 3 1B.
+- [ ] **20.6B** GPT-NeoX-20B (EleutherAI): the hooks already resolve its MLP layout.
+- [ ] **21B total, 3.6B active** GPT-OSS 20B: add it to the docs as a very unusual model. It's a mixture-of-experts with MXFP4-quantised expert weights and a non-standard clamped SwiGLU (its `_apply_gate`, which the MoE forward calls). It has learned attention sinks and alternating sliding-window/full attention layers, so most of the harness's assumptions need checking. Depends on MoE support above (`docs/moe.md`).
+- [ ] **27B** CUA-Master 27B ([article](https://aiweekly.co/alerts/cua-master-27b-scores-802-on-osworld-verified-from-cuhk-thu-jd)).
+- [ ] **65B** Ricursive AI Ripple 65B Preview ([model](https://huggingface.co/ricursiveAI/Ripple-65B-Preview)).
+- [ ] **117B total, 5.1B active** GPT-OSS 120B: as GPT-OSS 20B.
+- [ ] **size not yet checked** LongCat-2.5 ([model](https://huggingface.co/meituan-longcat/LongCat-2.5)).
+- [ ] **size not yet checked** Kimi K3.1 Pro ([model](https://huggingface.co/moonshotai/Kimi-K3.1-Pro)).
+- [ ] **size not yet checked** Nous Research's model from this announcement. Name it here once identified ([post](https://x.com/nousresearch/status/2118822925445050435)).
+- [ ] Activation Oracle baseline, once a model with a released oracle is in the registry (Karvonen et al., 2025). Oracles exist for Gemma-2, Gemma-3, Qwen3 and Llama 3 models, and the README warns the 1–4B ones are weaker out of distribution. Record the oracle's description of each unit's output direction next to `submission.patchscope`. Score it as a blind proposer baseline as `openinterp patchscope-baseline` scores the Patchscope readout (`docs/analyses/patchscope-baseline.md`: at chance on Qwen2.5-0.5B). Never show it to the reviewer. Check first that the oracle copes with a single scaled direction rather than a real residual activation. Check also that it copes with a base model when it was trained on the instruct one.
 - [ ] What is the process for adding a model? Do we need to construct a latent learned-basis dictionary? Do we need to construct an SPD model? Can we formalise this process?
 
 ## Later stage
