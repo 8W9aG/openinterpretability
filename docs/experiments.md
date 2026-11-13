@@ -166,6 +166,8 @@ Two `experiment-loop.sh` runs need different `--worktree` directories, since bot
 
 **Pausing new experiments.** A measurement such as a benchmark needs a machine with no other jobs. `openinterp pause --reason "…" --for 60` stops new experiments on this machine for 60 minutes (default 120). While it lasts, `openinterp next` draws nothing and exits 75, the skill tells a session to stop with `RESULT: none paused`, and `experiment-loop.sh` waits before each new session. Experiments that already run go on to the end. `openinterp pause --status` shows the pause, and `openinterp resume` ends it. The pause is a file, `~/.cache/openinterp/pause` (`$OPENINTERP_PAUSE_FILE`), so it covers every checkout and worktree on the machine. It ends by itself, so a pause that nobody ends can't stop the loops for ever.
 
+**Spend caps and the kill switch.** `--budget 20` stops a loop once it has spent $20 or more. `--daily-budget 50` stops it once all loops together have spent $50 or more today, in UTC, going by the logs in `logs/loop/`. The loop counts what `openinterp costs --usd` reports: priced LLM calls and each session's own cost. It checks between experiments, so the experiment that crosses a cap still finishes and posts. Calls with no price are not counted, and the loop warns about them. To stop every loop on the machine after its current experiment, create the stop file: `touch ~/.cache/openinterp/stop` (`$OPENINTERP_STOP_FILE`). A paused loop also stops when the file appears. Unlike a pause, the stop file never expires. Remove it before you start a loop again.
+
 ## Running it yourself
 
 ```bash

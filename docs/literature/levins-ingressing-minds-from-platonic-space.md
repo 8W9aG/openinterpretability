@@ -38,6 +38,6 @@ These are our observations, not the page's. The preprint may answer some of them
 
 **Not applicable.** The repo explains native units of pretrained models with falsifiable hypotheses and probes run on a pinned model revision (`docs/PROTOCOL.md`). The page is about phenomenal consciousness, which no verdict measures, and it gives no method to apply to a model.
 
-**Only the name overlaps.** "Platonic space" here is a metaphysical claim. The Platonic Representation Hypothesis in `TODO.md` (*Scope expansion*, PRH with Procrustes snap training) is an empirical claim that different models' representations converge. The queue also has "Proving and Improving the Platonic Representation Hypothesis with JEPAs" (arXiv 2610.39302), which bears on that item. This page doesn't, and shouldn't be cited for it.
+**Only the name overlaps.** "Platonic space" here is a metaphysical claim. The Platonic Representation Hypothesis in [issue #3379](https://github.com/8W9aG/openinterpretability/issues/3379) is an empirical claim that different models' representations converge. The queue also has "Proving and Improving the Platonic Representation Hypothesis with JEPAs" (arXiv 2610.39302), which bears on that item. This page doesn't, and shouldn't be cited for it.
 
 **What doesn't carry over.** "AI computers" as interfaces to minds is not a claim about any neuron, feature or circuit. The page's call to treat machine mindedness as "an empirical question" agrees with the repo's habits, but names no test the registry could run.

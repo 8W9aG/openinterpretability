@@ -591,7 +591,7 @@ The 12,000-step runs of GELU and the fast control were labelled `training_long` 
 
 ## Next
 
-[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. Pythia's warm-up and AdamW settings don't weaken the push in a small model. Its parallel attention and its larger batch are not tested yet.
+[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Why neurons rest* ([open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+%22papers%2Fwhy-neurons-rest%22)). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. Pythia's warm-up and AdamW settings don't weaken the push in a small model. Its parallel attention and its larger batch are not tested yet.
 
 ## References
 

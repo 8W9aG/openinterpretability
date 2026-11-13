@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a package release of openinterp. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterp. First resolve the open Dependabot and code-scanning alerts, and propose new issues and papers for the literature review. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterp
@@ -8,6 +8,35 @@ description: Cut a package release of openinterp. Refresh the sister-neuron rows
 A release does two jobs. It refreshes the analyses that are too slow to run per experiment, which today is the sister search. Then it versions what's on `main`. Do them in that order, so that the release ships the refreshed rows.
 
 The CHANGELOG's header explains the two version numbers. The **package version** (`openinterp/__init__.py`) changes every release. The **protocol version** (`PROTOCOL_VERSION` in `openinterp/core/schemas.py`) changes only in the PR that changes the decision rule, never here. A release only reports it.
+
+## When to release
+
+Wait at least 24 hours after the last release was published. Check before anything else:
+
+```bash
+gh release view --json tagName,publishedAt --jq '"\(.tagName) \(.publishedAt)"'
+date -u +%Y-%m-%dT%H:%M:%SZ
+```
+
+If less than 24 hours have passed, stop and say when the next release may go out. Until then, keep working issues from the open milestone (`work-an-issue`). When the milestone has no eligible issue left, add more. Choose eligible issues from Linear by priority, across research, engineering, the site and docs. Give each one the milestone and the `release: <version>` label.
+
+## Before the release
+
+Do these four steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
+
+1. **Resolve every open Dependabot alert.**
+   ```bash
+   gh api "repos/8W9aG/openinterpretability/dependabot/alerts?state=open" --jq '.[] | "\(.number) \(.security_advisory.severity) \(.dependency.package.name) -> \(.security_vulnerability.first_patched_version.identifier)"'
+   gh pr list --author app/dependabot
+   ```
+   Merge Dependabot's own PRs when CI is green. For an alert with no PR, upgrade the package (`uv lock --upgrade-package <name>`), run `make lint test`, and open one PR for all of them. GitHub closes an alert when `main` no longer has the vulnerable version. If no fixed version exists, or the package is never reached at run time, don't dismiss the alert yourself. List it in the release PR with the reason, and the maintainer decides.
+2. **Resolve every open code-scanning (CodeQL) alert.**
+   ```bash
+   gh api "repos/8W9aG/openinterpretability/code-scanning/alerts?state=open" --jq '.[] | "\(.number) \(.rule.severity) \(.rule.id) \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"'
+   ```
+   Fix each one in the code, with a test where the fix changes behaviour. GitHub closes an alert when the next scan of `main` no longer finds it. A false positive is listed in the release PR with the reason, for the maintainer to dismiss.
+3. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label, a priority label and the label `proposed`, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the labels `area: literature` and `proposed`. The maintainer triages `proposed` issues. Until the label is removed, don't work on them (`work-an-issue`). List them all in the release PR.
+4. **Release the version**, with the procedure below.
 
 ## Procedure
 
@@ -77,3 +106,8 @@ The CHANGELOG's header explains the two version numbers. The **package version**
     gh release create v<version> --verify-tag --title "openinterp <version> (protocol v<PROTOCOL_VERSION>)" --notes-file "$notes"
     ```
     Then check that Zenodo made the DOI: the release's Zenodo record appears under the repository's concept DOI after a few minutes. If it doesn't, the Zenodo GitHub integration is off. Tell the user, since only the repository owner can turn it on at zenodo.org.
+11. **Close the milestone.** Move any open issues in `v<version>` to the next milestone, then close it:
+    ```bash
+    gh issue list --milestone v<version> --state open --json number --jq '.[].number' | xargs -I{} gh issue edit {} --milestone v<next>
+    gh api -X PATCH repos/8W9aG/openinterpretability/milestones/<number> -f state=closed
+    ```

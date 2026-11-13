@@ -87,7 +87,7 @@ Specificity fails about equally often under every reviewer: all of them can writ
 
 - **Registry rates per agent pair mostly reflect the proposer.** Over a fixed set of hypotheses the submission explains about eight times as much variance as the reviewer, and muse-spark's hypotheses fail under every reviewer. The low rates for muse-spark records are mostly the hypotheses, not muse-spark's reviewing.
 - **The reviewer still shifts the rate by about a factor of two.** Sonnet verifies roughly twice as often as Opus and 2.6 times as often as Haiku. Rates should not be compared across reviewer models without saying which reviewer each used, and registry-wide statistics should report the reviewer mix. The rotated-basis null's native arm (18 of 30 VERIFIED, `null-calibration.md`) was reviewed by Sonnet and is likely at the lenient end. Its comparison with the rotated arm is unaffected, since Sonnet reviewed both arms.
-- **A single review is noisy.** A third or more of the variance is residual, so the *verdict stability* item (TODO) should split that residual into same-reviewer noise and interaction. Independent reviews by different models would reduce it, as would replications.
+- **A single review is noisy.** A third or more of the variance is residual, so the *verdict stability* issue ([issue #3196](https://github.com/8W9aG/openinterpretability/issues/3196)) should split that residual into same-reviewer noise and interaction. Independent reviews by different models would reduce it, as would replications.
 
 ## Caveats
 
