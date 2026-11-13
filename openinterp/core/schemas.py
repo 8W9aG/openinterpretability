@@ -103,10 +103,9 @@ class LookaheadProfile(StrictModel):
 
 
 class RunEnvironment(StrictModel):
-    """Where a measurement ran.
+    """Where a measurement ran. Reproducing a record pins the model revision and dtype.
 
-    Reproducing a record pins the model revision and dtype. The device and library
-    versions explain drift that a different setup can cause.
+    The device, versions and scan backend (coreml-ane) explain drift another setup can cause.
     """
 
     device: str
@@ -117,6 +116,7 @@ class RunEnvironment(StrictModel):
     transformers_version: str | None = None
     streamed: bool | None = Field(default=None, description="Layers read from disk per pass.")
     experts_implementation: str | None = Field(default=None, description="MoE experts forward.")
+    scan_backend: str | None = Field(default=None, description="Scan's pass, if not on device.")
 
 
 class ExperimentProvenance(StrictModel):
