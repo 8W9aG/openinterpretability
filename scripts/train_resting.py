@@ -32,7 +32,7 @@ from default_on_poles import (
     write_row,
 )
 from figure_svg import LEAKY_SLOPE
-from resting_modules import Activation, CentredNorm
+from resting_modules import Activation, CentredNorm, parallel_forward, warmup
 from resting_push import PushRecorder
 
 from openinterp.cli import _load, resolve_device
@@ -220,27 +220,6 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
     return model
 
 
-def parallel_forward(
-    self,
-    hidden_states,
-    past_key_values=None,
-    attention_mask=None,
-    encoder_hidden_states=None,
-    encoder_attention_mask=None,
-    use_cache=False,
-    **kwargs,
-):
-    """Run a GPT-2 block with GPT-NeoX's parallel residual: x + attn(ln_1(x)) + mlp(ln_2(x))."""
-    attn, _ = self.attn(
-        self.ln_1(hidden_states),
-        past_key_values=past_key_values,
-        attention_mask=attention_mask,
-        use_cache=use_cache,
-        **kwargs,
-    )
-    return hidden_states + attn + self.mlp(self.ln_2(hidden_states))
-
-
 def training_tokens(tokenizer, corpus: Path, cache: Path) -> torch.Tensor:
     """Return pile-10k's tokens as one vector, without the corpus sample's documents."""
     if cache.exists():
@@ -342,13 +321,6 @@ def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
     raise ValueError(f"unknown optimizer {condition.optimizer}")
 
 
-def warmup(optimizer: torch.optim.Optimizer, steps: int):
-    """Return a schedule that grows the learning rate linearly over ``steps``, or None."""
-    if not steps:
-        return None
-    return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / steps))
-
-
 def train(
     name: str,
     seed: int,
@@ -409,12 +381,7 @@ def train(
         if recorder:
             recorder.after_step()
             if (step + 1) % push_every == 0:
-                row = {
-                    "part": push_part,
-                    "condition": name,
-                    "seed": seed,
-                    "step": step + 1,
-                }
+                row = {"part": push_part, "condition": name, "seed": seed, "step": step + 1}
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
 
 
