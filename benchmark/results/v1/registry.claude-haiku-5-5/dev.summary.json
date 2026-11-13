@@ -1,0 +1,20 @@
+{
+  "benchmark": "v1",
+  "ci95": [
+    0.692901,
+    0.753588
+  ],
+  "explained": 100,
+  "explanations": "registry",
+  "judge_model": "external/claude-haiku-5-5",
+  "limit": 100,
+  "mean_balanced_accuracy": 0.724223,
+  "per_model": {
+    "Qwen/Qwen2.5-0.5B": {
+      "mean_balanced_accuracy": 0.724223,
+      "units": 100
+    }
+  },
+  "split": "dev",
+  "units": 100
+}

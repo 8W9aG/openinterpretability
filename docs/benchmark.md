@@ -52,9 +52,27 @@ uv run openinterp benchmark score --bench benchmark/v1 --split dev \
 
 `--explanations registry` scores the registry's own explanations, as a baseline. The registry's explanations had the advantage that the probes target them. A review VERIFIES only an explanation that predicts most of its own probes. So expect the registry baseline to score high on units where the registry has a VERIFIED explanation.
 
-The scorer writes one row per unit to `--out` as it goes. If you run it again, it judges only the units not already in that file. It writes the summary next to it, as `<name>.summary.json`. `--limit N` scores only the first N units, for a cheap trial. `--judge-model external/<name>` writes each judge prompt to a file for any agent or person to answer (see the `explanation-judge` agent).
+The scorer writes one row per unit to `--out` as it goes. If you run it again, it judges only the units not already in that file. It writes the summary next to it, as `<name>.summary.json`. `--limit N` scores only the first N units, for a cheap trial. `--judge-model external/<name>` writes each judge prompt to a file for any agent or person to answer (see the `explanation-judge` agent). It asks one unit at a time. To have many judges answer at once, add `--prompts-dir`:
+
+```bash
+uv run openinterp benchmark score --bench benchmark/v1 --split dev --explanations registry \
+  --judge-model external/claude-haiku-5-5 --out results/dev.jsonl --prompts-dir exchange/bench-dev
+```
+
+The first run writes one prompt per unit, `<unit>.prompt.md`, with `--` for each `/` of the slug, and exits. Give each prompt to its own judge, for example one `explanation-judge` agent per file. A judge writes its answer to the file that the prompt names, `<unit>.json`. Then run the same command again. It scores the units that have an answer and writes a prompt again for each unit that has none. If an answer is not valid, the command moves it to `<unit>.rejected.json` and gives the reason in `<unit>.error.txt`. The summary is written only when every unit has an answer.
 
 The judge model changes the scores. Always report the judge with a score, and compare explainers only under the same judge.
+
+## Registry baseline
+
+The registry's own explanations (`--explanations registry`), judged by Claude Haiku 5.5 (`external/claude-haiku-5-5`): one `explanation-judge` agent per unit, through `--prompts-dir`. The rows and summaries are in [`benchmark/results/v1/registry.claude-haiku-5-5/`](../benchmark/results/v1/registry.claude-haiku-5-5/).
+
+| Split | Units scored | Mean balanced accuracy | 95% CI |
+| --- | --- | --- | --- |
+| dev | 100 of 1,012 | 0.724 | 0.693–0.754 |
+| test | 0 of 241 | not run yet | |
+
+The run is in stages, and the scored units are the first 100 dev units in slug order. They are all Qwen2.5-0.5B poles from layers 0–13. So this is not yet a score for the dev split: don't compare it with a full-split score. To continue, run the score command with a larger `--limit` and the same `--out` and `--prompts-dir`. It judges only the units that have no row yet.
 
 ## Make a new version
 

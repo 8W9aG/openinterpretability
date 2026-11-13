@@ -334,7 +334,7 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 ## Scope expansion
 
-- [ ] Publish a registry baseline score for both splits of the explainer benchmark v1, with its judge (`docs/benchmark.md`, *Score an explainer*). Use `external/claude-haiku-5-5` through the `explanation-judge` agent, one agent per unit: 1,012 dev and 241 test units. The test split needs the private labels file (`v1-test.private.jsonl`, in the maintainer's Google Drive). `--judge-model external/...` judges one unit at a time, so first add a way to answer the prompts in parallel.
+- [ ] Finish the registry baseline of the explainer benchmark v1 (`docs/benchmark.md`, *Registry baseline*). Stage 1 judged the first 100 of 1,012 dev units (mean 0.724, all Qwen2.5-0.5B layers 0–13). Next, judge the other 912 dev units and the 241 test units in stages, with the same judge (`external/claude-haiku-5-5`, one `explanation-judge` agent per unit, through `--prompts-dir`). Each stage of 100 units took about 3 minutes and 1.2M subagent tokens in a workflow. Raise `--limit` and keep `--out` and `--prompts-dir`, so the scorer judges only new units. The test split needs the private labels (`--labels ~/benchmark/v1-test.private.jsonl`, from the maintainer's Google Drive). Then update the table and the result files in `benchmark/results/v1/registry.claude-haiku-5-5/`.
 - [ ] Do evals.
 
 ## Datasets

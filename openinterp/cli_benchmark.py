@@ -11,6 +11,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli, recorded_model_option, wiki_option, with_model_options
+from openinterp.core.agent_names import EXTERNAL_PREFIX
 
 PRIVATE_SUFFIX = ".private.jsonl"  # .gitignore keeps these files out of the repository
 
@@ -148,10 +149,23 @@ def seal(bench_dir, labels_path):
     "The summary goes next to it as <name>.summary.json.",
 )
 @click.option("--limit", type=int, help="Score only the first N units, for a cheap trial.")
-def score(bench_dir, split, explanations, labels_path, judge_model, out_path, limit):
-    """Apply each explanation to its unit's probes with a judge, and score the labels."""
+@click.option(
+    "--prompts-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="With an external/<name> judge: write the prompt of every unit without an answer "
+    "to this directory at once, and score the units whose answers are there. Run the "
+    "command again when the answers are written.",
+)
+def score(bench_dir, split, explanations, labels_path, judge_model, out_path, limit, prompts_dir):
+    """Apply each explanation to its unit's probes with a judge, and score the labels.
+
+    With ``--prompts-dir``, many judges answer at once, one prompt file each. The summary
+    is written only when every explained unit has an answer.
+    """
     from openinterp import benchmark as bench
 
+    if prompts_dir and not judge_model.startswith(EXTERNAL_PREFIX):
+        raise click.UsageError(f"--prompts-dir needs an {EXTERNAL_PREFIX}<name> judge model")
     try:
         probes = bench.load_labels(bench_dir, split, labels_path)
     except ValueError as exc:
@@ -161,6 +175,7 @@ def score(bench_dir, split, explanations, labels_path, judge_model, out_path, li
     probes = {u.unit: probes[u.unit] for u in units}
     explained = _explanations(bench_dir, split, explanations)
     done = {r["unit"]: r for r in bench.read_jsonl(out_path)} if out_path.exists() else {}
+    judge = _file_judge(prompts_dir) if prompts_dir else _judge(judge_model)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("a", encoding="utf-8") as f:
@@ -170,19 +185,28 @@ def score(bench_dir, split, explanations, labels_path, judge_model, out_path, li
             f.flush()
             click.echo(f"{row['unit']}: {row['balanced_accuracy']:.3f}", err=True)
 
-        rows = bench.score(probes, explained, _judge(judge_model), done=done, on_row=write)
-    summary = {
-        "benchmark": bench.read_manifest(bench_dir)["version"],
-        "split": split,
-        "explanations": explanations,
-        "judge_model": judge_model,
-        "limit": limit,
-        **bench.summarize(rows, units),
-    }
+        rows = bench.score(probes, explained, judge, done=done, on_row=write)
+    pending = len({u.unit for u in units} & set(explained)) - len(rows)
+    if pending:
+        click.echo(
+            f"{pending} unit(s) wait for a judge's answer, one prompt each in {prompts_dir}. "
+            "Run this command again when they are answered."
+        )
+        return
+    meta = {"split": split, "explanations": explanations, "judge_model": judge_model}
+    _write_summary(bench_dir, out_path, rows, units, {**meta, "limit": limit})
+
+
+def _write_summary(bench_dir: Path, out_path: Path, rows, units, meta: dict) -> None:
+    """Write ``<out>.summary.json`` next to ``out_path``, and print the split's score."""
+    from openinterp import benchmark as bench
+
+    version = bench.read_manifest(bench_dir)["version"]
+    summary = {"benchmark": version, **meta, **bench.summarize(rows, units)}
     summary_path = out_path.with_name(out_path.name.removesuffix(".jsonl") + ".summary.json")
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     click.echo(
-        f"{split}: mean balanced accuracy {summary['mean_balanced_accuracy']} over "
+        f"{meta['split']}: mean balanced accuracy {summary['mean_balanced_accuracy']} over "
         f"{summary['units']} units ({summary['explained']} explained), 95% CI {summary['ci95']}"
     )
 
@@ -196,14 +220,51 @@ def _explanations(bench_dir: Path, split: str, source: str) -> dict[str, str]:
 
 
 def _judge(model: str):
-    """``judge(explanation, texts)``: which texts the explanation says make the neuron fire."""
+    """``judge(unit, explanation, texts)``: which texts the explanation says make it fire."""
     from openinterp.agents.judge import ExplanationJudge, TaskWindow, answered
 
     agent = ExplanationJudge(model)
 
-    def judge(explanation: str, texts: list[str]) -> list[bool]:
+    def judge(unit: str, explanation: str, texts: list[str]) -> list[bool]:
         windows = [TaskWindow(text=t, tokens=[t]) for t in texts]
         answer = agent.detect(explanation, windows)
         return answered(answer.active, len(texts), "detection")
+
+    return judge
+
+
+def _file_judge(directory: Path):
+    """A judge that reads each unit's answer from ``directory``, or asks for it there.
+
+    A unit's prompt is ``<unit>.prompt.md``, with ``--`` for each ``/`` of the slug. It is
+    the prompt that an ``external/<name>`` judge writes, and it names the answer file,
+    ``<unit>.json``. The judge returns ``None`` until that answer exists. A bad answer is
+    moved to ``<unit>.rejected.json`` with the reason in ``<unit>.error.txt``. Then the
+    unit waits for a new answer.
+    """
+    from pydantic import ValidationError
+
+    from openinterp.agents.judge import DetectionAnswer, ExplanationJudge, TaskWindow, answered
+
+    directory.mkdir(parents=True, exist_ok=True)
+
+    def judge(unit: str, explanation: str, texts: list[str]) -> list[bool] | None:
+        name = unit.replace("/", "--")
+        answer_path, error_path = directory / f"{name}.json", directory / f"{name}.error.txt"
+        if answer_path.exists():
+            try:
+                answer = DetectionAnswer.model_validate_json(answer_path.read_text())
+                result = answered(answer.active, len(texts), "detection")
+            except (ValidationError, ValueError) as exc:
+                error_path.write_text(f"{exc}\n", encoding="utf-8")
+                answer_path.replace(directory / f"{name}.rejected.json")
+            else:
+                error_path.unlink(missing_ok=True)
+                return result
+        windows = [TaskWindow(text=t, tokens=[t]) for t in texts]
+        prompt = ExplanationJudge.detection_prompt(explanation, windows)
+        text = ExplanationJudge.render_prompt(DetectionAnswer, prompt, answer_path)
+        (directory / f"{name}.prompt.md").write_text(text, encoding="utf-8")
+        return None
 
     return judge
