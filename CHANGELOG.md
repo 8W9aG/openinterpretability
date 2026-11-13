@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **A registry coverage metric, `openinterp coverage`** (`openinterp/coverage.py`, `docs/analyses/registry-coverage.md`, #3371). For each MLP layer, it measures the share of the layer's loss effect that comes back when only the VERIFIED poles keep their real activations. Every other pole is mean-ablated. A baseline keeps as many random poles. Reported, not gated. On 2026-11-13 the registry brought back 0.60% on GPT-2, 0.42% on Qwen2.5-0.5B and 0.01% on Qwen2.5-1.5B. On Qwen2.5-0.5B that is about 2.6 times what random poles bring back. On GPT-2 it is no more than random.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.
