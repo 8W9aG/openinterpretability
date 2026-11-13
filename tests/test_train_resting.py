@@ -9,16 +9,22 @@ import torch
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 from train_resting import (  # noqa: E402
+    BATCH,
     CONDITIONS,
     INIT_MEAN_GELU,
     INIT_MEAN_RELU,
     LEAKY_SLOPE,
+    PUSH_BINS,
+    PYTHIA_BETAS,
+    PYTHIA_WEIGHT_DECAY,
     SGD_MOMENTUM,
     Activation,
     PushRecorder,
     _layer_stats,
     build_model,
     make_optimizer,
+    sample_batch,
+    warmup,
 )
 
 
@@ -235,3 +241,60 @@ def test_gelu_new_is_the_tanh_form_that_gpt2_uses():
 
     h = torch.randn(64)
     assert Activation("gelu_new", None, None)(h).allclose(NewGELUActivation()(h), atol=1e-6)
+
+
+def test_spread_bins_add_up_to_the_spread_term_on_each_neuron():
+    condition = CONDITIONS["gelu"]
+    model = build_model(condition, vocab_size=50, seed=0).train()
+    optimizer = make_optimizer(condition, model)
+    recorder = PushRecorder(model, bins=torch.tensor(PUSH_BINS))
+    batch = torch.randint(50, (2, 16), generator=torch.Generator().manual_seed(0))
+    model(batch, labels=batch).loss.backward()
+    recorder.before_step()
+    act = model.transformer.h[1].mlp.act
+    spread = -act.rest_grad - (-act.output_grad) * act.mean_slope
+    assert act.spread_bins.shape == (len(PUSH_BINS) + 1, model.config.n_inner)
+    assert act.spread_bins.sum(0).allclose(spread, atol=1e-7)
+    optimizer.step()
+    recorder.after_step()
+    row = recorder.row()[1]
+    assert len(row["median_spread_bins"]) == len(PUSH_BINS) + 1
+    assert row["median_spread_binned"] == pytest.approx(row["median_push_spread"], abs=1e-9)
+
+
+def test_parallel_block_adds_attention_and_mlp_of_the_same_input():
+    model = build_model(CONDITIONS["pythia_parallel"], vocab_size=50, seed=0).eval()
+    block = model.transformer.h[0]
+    x = torch.randn(2, 8, model.config.n_embd)
+    attn, _ = block.attn(block.ln_1(x))
+    expected = x + attn + block.mlp(block.ln_2(x))
+    assert block(x).allclose(expected, atol=1e-6)
+    serial = build_model(CONDITIONS["dropout_0"], vocab_size=50, seed=0).eval()
+    ids = torch.randint(50, (1, 8))
+    assert not model(ids).logits.allclose(serial(ids).logits)
+
+
+def test_warmup_grows_the_learning_rate_then_holds_it():
+    condition = CONDITIONS["pythia_warmup"]
+    model = build_model(condition, vocab_size=50, seed=0)
+    optimizer = make_optimizer(condition, model)
+    schedule = warmup(optimizer, 4)
+    rates = []
+    for _ in range(6):
+        rates.append(optimizer.param_groups[0]["lr"])
+        optimizer.step()
+        schedule.step()
+    base = condition.learning_rate
+    assert rates == pytest.approx([base / 4, base / 2, 3 * base / 4, base, base, base])
+    assert warmup(optimizer, 0) is None
+
+
+def test_pythia_conditions_set_its_optimizer_and_batch():
+    condition = CONDITIONS["pythia_all"]
+    optimizer = make_optimizer(condition, build_model(condition, vocab_size=50, seed=0))
+    group = optimizer.param_groups[0]
+    assert group["betas"] == PYTHIA_BETAS
+    assert group["weight_decay"] == PYTHIA_WEIGHT_DECAY
+    assert condition.batch == 4 * BATCH and condition.dropout == 0.0 and condition.parallel
+    tokens = torch.arange(1000)
+    assert sample_batch(tokens, torch.Generator().manual_seed(0), condition.batch).shape[0] == 128

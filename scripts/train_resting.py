@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import sys
 import time
+import types
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from default_on_poles import (
     write_row,
 )
 from figure_svg import LEAKY_SLOPE
-from resting_modules import Activation, CentredNorm
+from resting_modules import Activation, CentredNorm, parallel_forward, warmup
 from resting_push import PushRecorder
 
 from openinterp.cli import _load, resolve_device
@@ -47,7 +48,19 @@ BATCH = 32
 LEARNING_RATE = 3e-4
 GRADIENT_CLIP = 1.0
 EVAL_WINDOWS = 128
+PUSH_BINS = (-1.5, -0.75, -0.25, 0.25, 0.75, 1.5)  # edges of h for --spread-bins
 SGD_MOMENTUM = 0.9
+ADAM_BETAS = (0.9, 0.999)  # torch's default
+# Pythia's training setup (Biderman et al., 2023) uses AdamW at 1e-3, betas (0.9, 0.95)
+# and weight decay 0.01. It has no dropout and has parallel attention. It warms up over 1%
+# of 143,000 steps.
+# Its warm-up is 1,430 of the 4,000 steps that the checkpoint test reads. 715 keeps that
+# share in a 2,000-step run.
+PYTHIA_LEARNING_RATE = 1e-3
+PYTHIA_BETAS = (0.9, 0.95)
+PYTHIA_WEIGHT_DECAY = 0.01
+PYTHIA_WARMUP = 715
+PYTHIA_BATCH_FACTOR = 4  # Pythia's batch is 500 times ours. 4 times fits the time we have.
 SGD_LEARNING_RATE = 0.1  # the best of 0.01, 0.03, 0.1 and 0.3 over 500 steps that trained stably
 
 
@@ -71,6 +84,10 @@ class Condition:
     # "all" also the final LayerNorm's. Then no LayerNorm sees a constant offset. "final"
     # centres only the final LayerNorm's input.
     centre_norms: str = ""
+    batch: int = BATCH  # windows in each step
+    warmup_steps: int = 0  # the learning rate grows linearly over these steps, then holds
+    adam_betas: tuple[float, float] = ADAM_BETAS
+    parallel: bool = False  # attention and the MLP read the same input, as in GPT-NeoX
 
 
 # The mean output of ReLU and of GELU at init, where h has an SD of about 0.31. For ReLU it
@@ -142,6 +159,26 @@ CONDITIONS = {
     "relu_final_norm_centred_dropout_0": replace(
         BASE, activation="relu", centre_norms="final", dropout=0.0
     ),
+    # Pythia's setup, one part at a time, on the no-dropout baseline, then all parts.
+    "pythia_lr": replace(BASE, dropout=0.0, learning_rate=PYTHIA_LEARNING_RATE),
+    "pythia_warmup": replace(
+        BASE, dropout=0.0, learning_rate=PYTHIA_LEARNING_RATE, warmup_steps=PYTHIA_WARMUP
+    ),
+    "pythia_adam": replace(
+        BASE, dropout=0.0, adam_betas=PYTHIA_BETAS, weight_decay=PYTHIA_WEIGHT_DECAY
+    ),
+    "pythia_parallel": replace(BASE, dropout=0.0, parallel=True),
+    "pythia_batch": replace(BASE, dropout=0.0, batch=BATCH * PYTHIA_BATCH_FACTOR),
+    "pythia_all": replace(
+        BASE,
+        dropout=0.0,
+        learning_rate=PYTHIA_LEARNING_RATE,
+        warmup_steps=PYTHIA_WARMUP,
+        adam_betas=PYTHIA_BETAS,
+        weight_decay=PYTHIA_WEIGHT_DECAY,
+        parallel=True,
+        batch=BATCH * PYTHIA_BATCH_FACTOR,
+    ),
     "sgd": replace(BASE, optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
     "relu_sgd": replace(BASE, activation="relu", optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
 }
@@ -176,6 +213,8 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
         )
         if condition.centre_norms in ("blocks", "all"):
             block.ln_1, block.ln_2 = CentredNorm(block.ln_1), CentredNorm(block.ln_2)
+        if condition.parallel:
+            block.forward = types.MethodType(parallel_forward, block)
     if condition.centre_norms in ("all", "final"):
         model.transformer.ln_f = CentredNorm(model.transformer.ln_f)
     return model
@@ -207,9 +246,11 @@ def training_tokens(tokenizer, corpus: Path, cache: Path) -> torch.Tensor:
     return tokens
 
 
-def sample_batch(tokens: torch.Tensor, generator: torch.Generator) -> torch.Tensor:
-    """Return ``BATCH`` random windows of the training tokens."""
-    starts = torch.randint(len(tokens) - WINDOW_TOKENS, (BATCH,), generator=generator)
+def sample_batch(
+    tokens: torch.Tensor, generator: torch.Generator, size: int = BATCH
+) -> torch.Tensor:
+    """Return ``size`` random windows of the training tokens."""
+    starts = torch.randint(len(tokens) - WINDOW_TOKENS, (size,), generator=generator)
     return torch.stack([tokens[s : s + WINDOW_TOKENS] for s in starts.tolist()])
 
 
@@ -276,7 +317,7 @@ def make_optimizer(condition: Condition, model) -> torch.optim.Optimizer:
     if condition.optimizer == "sgd":
         return torch.optim.SGD(groups, lr=lr, momentum=SGD_MOMENTUM, weight_decay=decay)
     if condition.optimizer == "adamw":
-        return torch.optim.AdamW(groups, lr=lr, weight_decay=decay)
+        return torch.optim.AdamW(groups, lr=lr, betas=condition.adam_betas, weight_decay=decay)
     raise ValueError(f"unknown optimizer {condition.optimizer}")
 
 
@@ -294,11 +335,14 @@ def train(
     push_part: str = "push",
     save_every: int = 0,
     save_dir: Path | None = None,
+    spread_bins: bool = False,
 ) -> None:
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
     If ``push_every`` is not 0, also append a row labelled ``push_part`` after each
     ``push_every`` steps. The row summarises the push on the rest over those steps.
+    If ``spread_bins`` is true, the row also splits the spread term by the bins of h
+    that ``PUSH_BINS`` gives.
     If ``save_every`` is not 0, save the weights to ``save_dir`` every ``save_every`` steps,
     as ``checkpoint_path`` names them.
     """
@@ -306,8 +350,10 @@ def train(
     vocab = int(tokens.max()) + 1
     model = build_model(condition, vocab, seed).to(device).train()
     optimizer = make_optimizer(condition, model)
+    schedule = warmup(optimizer, condition.warmup_steps)
     generator = torch.Generator().manual_seed(seed)
-    recorder = PushRecorder(model) if push_every else None
+    bins = torch.tensor(PUSH_BINS) if spread_bins else None
+    recorder = PushRecorder(model, bins=bins) if push_every else None
     start = time.time()
     for step in range(steps + 1):
         if save_every and step % save_every == 0:
@@ -319,7 +365,7 @@ def train(
             click.echo(f"{name} seed {seed} step {step} {time.time() - start:.0f}s", err=True)
         if step == steps:
             break
-        batch = sample_batch(tokens, generator).to(device)
+        batch = sample_batch(tokens, generator, condition.batch).to(device)
         loss = model(batch, labels=batch).loss
         if not loss.isfinite():
             # MPS can fail a command buffer and return NaN, so stop and let a person look.
@@ -330,6 +376,8 @@ def train(
             recorder.before_step()  # before the clip, which scales every gradient alike
         nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIP)
         optimizer.step()
+        if schedule:
+            schedule.step()
         if recorder:
             recorder.after_step()
             if (step + 1) % push_every == 0:
@@ -365,6 +413,11 @@ def cli():
     help="Steps in each row of the push on the rest. 0 records no push.",
 )
 @click.option("--push-part", default="push", show_default=True, help="The label of the push rows.")
+@click.option(
+    "--spread-bins",
+    is_flag=True,
+    help="Also split the push rows' spread term by the bins of h in PUSH_BINS.",
+)
 @click.option("--save-every", type=int, default=0, show_default=True, help="0 saves no weights.")
 @click.option("--save-dir", type=click.Path(path_type=Path), default=None)
 def train_command(
@@ -379,12 +432,15 @@ def train_command(
     part,
     push_every,
     push_part,
+    spread_bins,
     save_every,
     save_dir,
 ):
     """Train each condition with each seed, and append the rows to ``--out``."""
     if save_every and save_dir is None:
         raise click.UsageError("--save-every needs --save-dir")
+    if spread_bins and not push_every:
+        raise click.UsageError("--spread-bins needs --push-every")
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER)
@@ -409,6 +465,7 @@ def train_command(
                 push_part,
                 save_every,
                 save_dir,
+                spread_bins,
             )
 
 
