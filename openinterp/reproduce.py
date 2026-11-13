@@ -19,6 +19,11 @@ ablation and explanation scores are reported but not gated, so a difference ther
 only a warning. Explanation scores are re-derived from re-measured windows and the
 judge's stored answers; the judge and embedding model are not re-run.
 
+A record made in a 16-bit dtype (bfloat16 or float16) is reproduced in float32. Its
+numbers are compared within :data:`HALF_TOLERANCE`, because 16-bit rounding moves a
+number by a few percent from one device to another (issue #2995). float32 is also about
+10 times faster than bfloat16 on a CPU. ``half_precision.py`` has the other rules.
+
 A record judged under another protocol version can't be reproduced by this harness:
 its decision rule was different. Re-evaluate it instead (`openinterp reevaluate`). A
 library upgrade can still shift its activations. So ``measurements_only`` compares its
@@ -36,6 +41,7 @@ from functools import partial
 from pathlib import Path
 
 from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord, RunEnvironment
+from openinterp.half_precision import HALF, recorded_pass, rederived, reproduction_dtype
 from openinterp.harness.environment import run_environment
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.layer_major import map_layer_major, prompt_tokens
@@ -58,8 +64,22 @@ class Tolerance:
             return recorded is None and reproduced is None
         return abs(reproduced - recorded) <= self.atol * scale + self.rtol * abs(recorded)
 
+    def for_dtype(self, dtype: str) -> Tolerance:
+        """This tolerance, widened to :data:`HALF_TOLERANCE` for a record in a 16-bit dtype."""
+        if dtype not in HALF:
+            return self
+        return Tolerance(
+            atol=max(self.atol, HALF_TOLERANCE.atol), rtol=max(self.rtol, HALF_TOLERANCE.rtol)
+        )
+
 
 DEFAULT_TOLERANCE = Tolerance()
+# Set from cross-device re-measurements (docs/analyses/half-precision-reproduce.md).
+# At a peak it allows 7%, so a 10% edit of a peak still fails.
+HALF_TOLERANCE = Tolerance(atol=0.05, rtol=0.02)
+# Tokens of one top example that a 16-bit record may have outside HALF_TOLERANCE. Deep
+# layers on unusual text can move a few tokens by up to 22% of the peak; 3 was the most.
+HALF_STRAY_TOKENS = 4
 
 
 @dataclass
@@ -143,6 +163,8 @@ def reproduce_record(
 
     sub, verdict = record.submission, record.verdict
     unit = submission_unit(sub)
+    half = pinned_environment(record)[1] in HALF
+    tolerance = tolerance.for_dtype(pinned_environment(record)[1])
     _compare_environment(record, run_environment(runner), report)
 
     scale = sub.max_activation or 0.0
@@ -151,7 +173,8 @@ def reproduce_record(
     # 1. Scan evidence.
     if corpus is not None:
         _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
-    _check_examples(sub.top_examples, unit, runner, tolerance, scale, report)
+    stray = HALF_STRAY_TOKENS if half else 0
+    _check_examples(sub.top_examples, unit, runner, tolerance, scale, report, stray)
 
     # 2. Counterfactuals as submitted.
     _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
@@ -160,7 +183,7 @@ def reproduce_record(
         return report
 
     # 3. The review, under the record's own policy and reviewer.
-    _compare_verdicts(verdict, _review_again(record, runner), tolerance, scale, report)
+    _compare_verdicts(verdict, _review_again(record, runner), tolerance, scale, report, half=half)
 
     # 4. Explanation scores (reported, not gated): re-measure the windows, keep the answers.
     if verdict.explanation_scores is not None:
@@ -221,19 +244,24 @@ def _check_counterfactuals(sub, unit, runner, tolerance: Tolerance, scale: float
             )
 
 
-def _check_examples(examples, unit, runner, tolerance: Tolerance, scale: float, report) -> None:
-    """Each top example's tokens and activations, measured layer-major when streamed."""
+def _check_examples(
+    examples, unit, runner, tolerance: Tolerance, scale: float, report, stray: int = 0
+) -> None:
+    """Each top example's tokens and activations, measured layer-major when streamed.
+
+    Up to ``stray`` tokens of each example may differ beyond ``tolerance``, as a warning.
+    """
     texts = [ex.text for ex in examples]
     measured = map_layer_major(
         runner, partial(unit.strengths, runner), texts,
         tokens=prompt_tokens(runner, texts), logits=False,
     )  # fmt: skip
     for n, (ex, strengths) in enumerate(zip(examples, measured, strict=True), 1):
-        _check_example(n, ex, unit, runner, tolerance, scale, report, strengths)
+        _check_example(n, ex, unit, runner, tolerance, scale, report, strengths, stray)
 
 
 def _check_example(
-    n: int, ex, unit, runner, tolerance: Tolerance, scale: float, report, strengths
+    n: int, ex, unit, runner, tolerance: Tolerance, scale: float, report, strengths, stray=0
 ) -> None:
     """Top example ``n``'s tokens and per-token activations (``strengths``), and its peak."""
     tokens = runner.encode(ex.text)["input_ids"][0].tolist()
@@ -248,6 +276,13 @@ def _check_example(
         for i, (a, b) in enumerate(zip(ex.activations, values, strict=False))
         if not tolerance.close(a, b, scale)
     ]
+    if bad and len(bad) <= stray and len(values) == len(ex.activations):
+        report.warnings.append(
+            f"top example {n}: {len(bad)} token(s) differ beyond the 16-bit tolerance, "
+            f"e.g. token {bad[0]} (recorded {ex.activations[bad[0]]}, "
+            f"reproduced {round(values[bad[0]], 6)})"
+        )
+        bad = []
     if len(values) != len(ex.activations) or bad:
         where = f"token {bad[0]}" if bad else "length"
         report.fail(
@@ -307,8 +342,13 @@ def _compare_environment(record: AuditRecord, now: RunEnvironment, report) -> No
     revision, dtype = pinned_environment(record)
     if revision and now.model_revision and revision != now.model_revision:
         report.fail(f"model revision {now.model_revision} is not the pinned {revision}")
-    if dtype not in {"auto", now.dtype}:
+    if dtype not in {"auto", now.dtype} and reproduction_dtype(dtype) != now.dtype:
         report.fail(f"loaded {now.dtype} weights; the record pins {dtype}")
+    elif dtype in HALF and now.dtype != dtype:
+        report.warnings.append(
+            f"reproduced in {now.dtype}; the record pins {dtype}, so its numbers are compared "
+            "within the 16-bit tolerance"
+        )
     then = record.verdict.environment
     if then is None:
         report.warnings.append("record predates environment pinning; device and versions unknown")
@@ -323,26 +363,63 @@ def _compare_environment(record: AuditRecord, now: RunEnvironment, report) -> No
             )
 
 
-def _compare_verdicts(old, new, tolerance: Tolerance, scale: float, report) -> None:
+def _compare_verdicts(
+    old, new, tolerance: Tolerance, scale: float, report, *, half: bool = False
+) -> None:
+    """Each test's numbers and result, then the decision.
+
+    For a 16-bit record (``half``), a result may flip where 16-bit rounding moves a number
+    across its threshold. The flip is only a warning when the numbers agree within
+    ``tolerance`` and the recorded result follows from the recorded number. The recorded
+    decision must then follow exactly from the recorded results.
+    """
     if len(old.adversarial_test_results) != len(new.adversarial_test_results):
         report.fail("the record's test results don't match the probes and pairs it stores")
         return
+    flips = 0
     for n, (a, b) in enumerate(
         zip(old.adversarial_test_results, new.adversarial_test_results, strict=True), 1
     ):
-        label = f"test {n} ({a.kind}: {a.prompt[:40]!r})"
-        if (a.kind, a.prompt) != (b.kind, b.prompt):
-            report.fail(f"{label}: does not match the stored probe")
-            continue
-        report.compared += 1
-        if not tolerance.close(a.activation, b.activation, scale):
-            report.fail(f"{label}: activation recorded {a.activation}, reproduced {b.activation}")
-        if not tolerance.close(a.observed_delta, b.observed_delta, 1.0):
-            report.fail(f"{label}: Δ recorded {a.observed_delta}, reproduced {b.observed_delta}")
-        if a.passed != b.passed:
-            report.fail(f"{label}: recorded passed={a.passed}, reproduced passed={b.passed}")
+        flips += _compare_result(n, a, b, old.policy, tolerance, scale, report, half)
 
-    _compare_decision(old, new, report)
+    if flips and old.metrics is None:
+        report.fail("a result flipped, and the record has no metrics to re-derive")
+    elif flips:
+        _compare_decision(old, rederived(old), report)
+        if (old.metrics and old.metrics.gates) != new.metrics.gates or old.status != new.status:
+            report.warnings.append(
+                f"reproduced decision {new.status} with gates {new.metrics.gates}; the "
+                "recorded decision follows from the recorded results"
+            )
+    else:
+        _compare_decision(old, new, report)
+
+
+def _compare_result(n, a, b, policy, tolerance, scale: float, report, half: bool) -> int:
+    """Compare recorded test ``a`` with reproduced test ``b``. Return 1 for a 16-bit flip."""
+    label = f"test {n} ({a.kind}: {a.prompt[:40]!r})"
+    if (a.kind, a.prompt) != (b.kind, b.prompt):
+        report.fail(f"{label}: does not match the stored probe")
+        return 0
+    report.compared += 1
+    close = tolerance.close(a.activation, b.activation, scale)
+    if not close:
+        report.fail(f"{label}: activation recorded {a.activation}, reproduced {b.activation}")
+    if not tolerance.close(a.observed_delta, b.observed_delta, 1.0):
+        close = False
+        report.fail(f"{label}: Δ recorded {a.observed_delta}, reproduced {b.observed_delta}")
+    follows = recorded_pass(a, policy, scale)
+    if half and follows not in {None, a.passed}:
+        report.fail(f"{label}: recorded passed={a.passed} does not follow from its number")
+    elif a.passed != b.passed:
+        if half and close and follows is not None:
+            report.warnings.append(
+                f"{label}: passed={a.passed} recorded, {b.passed} reproduced, at its "
+                "threshold within 16-bit rounding"
+            )
+            return 1
+        report.fail(f"{label}: recorded passed={a.passed}, reproduced passed={b.passed}")
+    return 0
 
 
 def _compare_decision(old, new, report) -> None:
