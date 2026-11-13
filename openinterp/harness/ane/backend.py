@@ -34,7 +34,7 @@ from openinterp.harness.ane.cache import (
     ConversionRejected,
     fields,
 )
-from openinterp.harness.ane.forward import ToLayer, supported
+from openinterp.harness.ane.forward import ToLayer, calibration_ids, shape_inputs, supported
 from openinterp.harness.ane.qualified import qualified, too_deep
 
 if TYPE_CHECKING:
@@ -217,15 +217,18 @@ class AneScan:
                 x = torch.zeros((rows, seq), dtype=torch.long)
                 part = batch.ids[start : start + rows]
                 x[: len(part), :width] = part
-                for model in models:
-                    x = convert.predict(model, x)
+                for model, extra in models:
+                    x = convert.predict(model, x, extra)
                 parts.append(x[: len(part), :width])
         except Exception as exc:  # Core ML's errors have no common type
             raise AneError(f"{type(exc).__name__}: {exc}") from exc
         return torch.cat(parts)
 
     def compiled(self, layer: int, rows: int, seq: int) -> list:
-        """The loaded Core ML models, chunk by chunk, of a pass to ``layer`` at ``(rows, seq)``."""
+        """The loaded Core ML models of a pass to ``layer`` at ``(rows, seq)``, chunk by chunk.
+
+        Each comes with its other inputs (``forward.shape_inputs``), ready for ``predict``.
+        """
         key = (layer, rows, seq)
         if key not in self._loaded:
             links = chunks.chain(self.model, layer)
@@ -233,26 +236,36 @@ class AneScan:
             if not all(paths):
                 paths = self._build(links, rows, seq)
             self.paths[key] = paths
-            self._loaded[key] = [convert.load(path) for path in paths]
+            cfg = self.model.config
+            self._loaded[key] = [
+                (convert.load(path), convert.feed(shape_inputs(cfg, seq, start)))
+                for path, (start, _, _) in zip(paths, links, strict=True)
+            ]
         return self._loaded[key]
 
     def _build(self, links: list, rows: int, seq: int) -> list[Path]:
         """Convert and check each chunk that the cache doesn't hold, in order.
 
-        Each chunk's fp32 output is the next chunk's input, both to calibrate its scales
-        and to check it. Only one chunk's weights are in memory at a time.
+        Each chunk's fp32 output is the next chunk's input. On the calibration tokens it
+        sets the next chunk's scales, the same for every shape. On random tokens of the
+        shape, it checks the next chunk. Only one chunk's weights are in memory at a time.
         """
-        vocab = int(self.model.config.vocab_size)
-        x = torch.randint(0, vocab, (rows, seq), generator=torch.Generator().manual_seed(2))
+        cfg = self.model.config
+        x = torch.randint(
+            0, cfg.vocab_size, (rows, seq), generator=torch.Generator().manual_seed(2)
+        )
+        calibration = calibration_ids(cfg)
         paths = []
         for start, last, final in links:
             source = chunks.part(self.model, self.model_name, self.revision, start, last)
-            net = ToLayer(source, last, rows, seq, start, not final, sample=x).eval()
+            net = ToLayer(source, last, rows, seq, start, not final, sample=calibration).eval()
             with torch.no_grad():
                 ref = net(x)
+                with net.shaped(*calibration.shape[:2]):
+                    calibrated = net(calibration)
             key_fields = fields(self.model_name, self.revision, last, rows, seq, start, not final)
             paths.append(self._get(key_fields, net, x, ref))
-            x = ref
+            x, calibration = ref, calibrated
             del source, net
         return paths
 
@@ -263,7 +276,7 @@ class AneScan:
             convert.compile_to(net, x, dest)
 
         def check(path: Path) -> float:
-            got = convert.predict(convert.load(path), x)
+            got = convert.predict(convert.load(path), x, convert.feed(net.extra))
             return float((ref - got).pow(2).mean().sqrt() / ref.pow(2).mean().sqrt())
 
         if self.cache is None:

@@ -15,11 +15,18 @@ on the ANE (docs/analyses/ane-feasibility.md):
   loses precision on the ANE.
 
 It supports the GPT-2 and Qwen2 architectures (:data:`ARCHITECTURES`).
+
+Nothing in the converted weights depends on the input shape. The causal mask, Qwen's
+rotary tables and GPT-2's positions are inputs (:func:`shape_inputs`). The scales of
+:class:`Rescaled` come from one sample of :data:`CALIBRATION` tokens, whatever the shape.
+So every shape of one chunk has the same weights, and the cache keeps them once.
 """
 
 from __future__ import annotations
 
 import math
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 import torch
 from torch import nn
@@ -32,6 +39,26 @@ WEIGHT_RMS = 0.25  # what rescale_projections scales each weight matrix's RMS to
 # Then the ANE's fp16 sums went past fp16's range, and the batch was 23% off. At 2,048,
 # the projections that need a scale keep it. They have small outputs, e.g. o_proj near 4.
 OUTPUT_PEAK = 2048.0
+CALIBRATION = (4, 512)  # rows and seq of the random tokens that set the scales
+MASK = -3e4  # added to the scores of later positions; fp16 holds it
+
+
+def shape_inputs(config, seq: int, start: int = 0) -> dict[str, torch.Tensor]:
+    """The inputs, after the first, of a :class:`ToLayer` chunk at sequence length ``seq``.
+
+    Every chunk has the causal ``mask``. Qwen2 also has the rotary ``cos`` and ``sin``,
+    computed in fp32. GPT-2's first chunk has the ``positions`` of its position embeddings.
+    """
+    out = {"mask": torch.full((seq, seq), MASK).triu(1)}
+    if config.model_type == "gpt2":
+        if start == 0:
+            out["positions"] = torch.arange(seq, dtype=torch.int32)
+        return out
+    head_dim = config.hidden_size // config.num_attention_heads
+    theta = getattr(config, "rope_theta", None) or config.rope_parameters["rope_theta"]
+    inv = 1.0 / (theta ** (torch.arange(0, head_dim, 2).float() / head_dim))
+    angles = torch.outer(torch.arange(seq).float(), inv).repeat(1, 2)
+    return {**out, "cos": angles.cos(), "sin": angles.sin()}
 
 
 def supported(model: nn.Module) -> bool:
@@ -76,15 +103,25 @@ class Rescaled(nn.Module):
         return self.inner(x) / self.scale
 
 
+def calibration_ids(config) -> torch.Tensor:
+    """The random token ids that set the scales: :data:`CALIBRATION`, within the context."""
+    context = getattr(config, "n_positions", None) or config.max_position_embeddings
+    rows, seq = CALIBRATION
+    generator = torch.Generator().manual_seed(1)
+    return torch.randint(0, config.vocab_size, (rows, min(seq, context)), generator=generator)
+
+
 class ToLayer(nn.Module):
     """GPT-2 or Qwen2 from layer ``start`` to ``layer``, on ``rows × seq`` tokens.
 
     With ``start`` 0 it reads token ids ``[rows, seq]``, else the residual stream
     ``[rows, seq, d_model]``. It returns the MLP activations of ``layer``,
     ``[rows, seq, width]``, or with ``resid_out`` the residual stream after ``layer``. That
-    is one chunk of a pass (``chunks.py``). ``sample`` is an input that calibrates the
-    scales of :class:`Rescaled`. The default is random token ids, for ``start`` 0. It changes
-    the weights of ``model``, so give it a copy that nothing else uses.
+    is one chunk of a pass (``chunks.py``). The other inputs are :func:`shape_inputs`; a
+    call without them uses those of ``seq``. ``sample`` calibrates the scales of
+    :class:`Rescaled`: token ids, or for ``start`` > 0 the residual stream, of any shape.
+    The default is :data:`CALIBRATION` random token ids. It changes the weights of
+    ``model``, so give it a copy that nothing else uses.
     """
 
     def __init__(
@@ -106,18 +143,29 @@ class ToLayer(nn.Module):
         self.nh = cfg.n_head if self.gpt2 else cfg.num_attention_heads
         self.nkv = self.nh if self.gpt2 else cfg.num_key_value_heads
         self.hd = (cfg.n_embd if self.gpt2 else cfg.hidden_size) // self.nh
-        self.register_buffer("causal", torch.full((seq, seq), -3e4).triu(1))
+        self.config = cfg
         if not self.gpt2:
             self.eps_root = cfg.rms_norm_eps**0.5
-            theta = getattr(cfg, "rope_theta", None) or cfg.rope_parameters["rope_theta"]
-            inv = 1.0 / (theta ** (torch.arange(0, self.hd, 2).float() / self.hd))
-            angles = torch.outer(torch.arange(seq).float(), inv).repeat(1, 2)
-            self.register_buffer("cos", angles.cos())
-            self.register_buffer("sin", angles.sin())
+        self.extra = shape_inputs(cfg, seq, start)
         if sample is None:
-            generator = torch.Generator().manual_seed(1)
-            sample = torch.randint(0, cfg.vocab_size, (rows, seq), generator=generator)
-        rescale_projections(self, self.blocks(), sample)
+            sample = calibration_ids(cfg)
+        with self.shaped(*sample.shape[:2]):
+            rescale_projections(self, self.blocks(), sample)
+
+    @contextmanager
+    def shaped(self, rows: int, seq: int) -> Iterator[None]:
+        """Run at ``rows × seq`` for a while, e.g. to calibrate on a sample of another shape."""
+        saved = self.rows, self.seq, self.extra
+        self.rows, self.seq = rows, seq
+        self.extra = shape_inputs(self.config, seq, self.start)
+        try:
+            yield
+        finally:
+            self.rows, self.seq, self.extra = saved
+
+    def names(self) -> list[str]:
+        """The names of the inputs after the first, in order."""
+        return list(self.extra)
 
     def blocks(self) -> nn.ModuleList:
         """The decoder layers."""
@@ -129,46 +177,49 @@ class ToLayer(nn.Module):
         s, e = x / peak, self.eps_root / peak
         return weight * (s * torch.rsqrt((s * s).mean(-1, keepdim=True) + e * e))
 
-    def rope(self, x: torch.Tensor) -> torch.Tensor:
+    def rope(self, x: torch.Tensor, extra: dict) -> torch.Tensor:
         """Rotary position embedding, in HF's half-split layout."""
         h = self.hd // 2
-        return x * self.cos + torch.cat([-x[..., h:], x[..., :h]], -1) * self.sin
+        return x * extra["cos"] + torch.cat([-x[..., h:], x[..., :h]], -1) * extra["sin"]
 
-    def attend(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    def attend(self, q, k, v, extra: dict | None = None) -> torch.Tensor:
         """Causal attention over ``[rows, seq, heads × dim]`` q, k and v."""
+        extra = self.extra if extra is None else extra
         q, k, v = (t.view(self.rows, self.seq, -1, self.hd).transpose(1, 2) for t in (q, k, v))
         if not self.gpt2:
-            q, k = self.rope(q), self.rope(k)
+            q, k = self.rope(q, extra), self.rope(k, extra)
             rep = self.nh // self.nkv
             k, v = k.repeat_interleave(rep, 1), v.repeat_interleave(rep, 1)
-        scores = (q * self.hd**-0.5) @ k.transpose(-1, -2) + self.causal
+        scores = (q * self.hd**-0.5) @ k.transpose(-1, -2) + extra["mask"]
         return (scores.softmax(-1) @ v).transpose(1, 2).reshape(self.rows, self.seq, -1)
 
-    def forward(self, ids: torch.Tensor) -> torch.Tensor:
-        """The MLP activations of ``self.layer``."""
-        return self._gpt2(ids) if self.gpt2 else self._qwen(ids)
+    def forward(self, inp: torch.Tensor, *extra: torch.Tensor) -> torch.Tensor:
+        """The MLP activations of ``self.layer``, or the residual stream after it."""
+        named = dict(zip(self.names(), extra, strict=True)) if extra else self.extra
+        return self._gpt2(inp, named) if self.gpt2 else self._qwen(inp, named)
 
-    def _gpt2(self, inp: torch.Tensor) -> torch.Tensor:
+    def _gpt2(self, inp: torch.Tensor, extra: dict) -> torch.Tensor:
         b = self.body
         x = inp
         if self.start == 0:
-            x = b.wte(inp) + b.wpe(torch.arange(self.seq, device=inp.device))
+            x = b.wte(inp) + b.wpe(extra["positions"])
         for i in range(self.start, self.layer + 1):
             blk = b.h[i]
-            x = x + blk.attn.c_proj(self.attend(*blk.attn.c_attn(blk.ln_1(x)).chunk(3, -1)))
+            qkv = blk.attn.c_attn(blk.ln_1(x)).chunk(3, -1)
+            x = x + blk.attn.c_proj(self.attend(*qkv, extra))
             hidden = gelu_new(blk.mlp.c_fc(blk.ln_2(x)))
             if i == self.layer and not self.resid_out:
                 return hidden
             x = x + blk.mlp.c_proj(hidden)
         return x
 
-    def _qwen(self, inp: torch.Tensor) -> torch.Tensor:
+    def _qwen(self, inp: torch.Tensor, extra: dict) -> torch.Tensor:
         x = self.body.embed_tokens(inp) if self.start == 0 else inp
         for i in range(self.start, self.layer + 1):
             blk = self.body.layers[i]
             at, mlp = blk.self_attn, blk.mlp
             h = self.rms(x, blk.input_layernorm.weight)
-            x = x + at.o_proj(self.attend(at.q_proj(h), at.k_proj(h), at.v_proj(h)))
+            x = x + at.o_proj(self.attend(at.q_proj(h), at.k_proj(h), at.v_proj(h), extra))
             h = self.rms(x, blk.post_attention_layernorm.weight)
             hidden = swiglu(mlp.gate_proj(h), mlp.up_proj(h))
             if i == self.layer and not self.resid_out:

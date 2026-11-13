@@ -87,8 +87,14 @@ def _job(args):
         from openinterp.harness.ane.backend import AneScan
 
         ane = AneScan.for_model(runner.model, args.model, runner.model_revision)
-        model = ane.compiled(args.layer, ROWS, SEQ)
-        return (lambda ids: convert.predict(model, ids)), batch
+        models = ane.compiled(args.layer, ROWS, SEQ)
+
+        def on_ane(ids):
+            for model, extra in models:
+                ids = convert.predict(model, ids, extra)
+            return ids
+
+        return on_ane, batch
 
     def run(ids):
         with torch.no_grad():

@@ -16,22 +16,22 @@ Every new model must also pass the check of each conversion: a relative error of
 
 ## Results
 
-These are from the second run, with models split into chunks (see the next section) and the scale fix below. The first run's results are in the `.jsonl` too.
+These are from the third run. It splits the models into chunks (see *The cause*) and has the scale fix below. Its shape tables are inputs (see *One weight file for every shape*). Layer 27 is from the second run. The earlier runs' results are in the `.jsonl` too.
 
 | Model | Layer | Pieces | Top 20 | Worst r | Worst batch | On the ANE | Speed vs the CPU | Passed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| GPT-2 (512-token windows) | 5 | 824 | 1.000 | 0.99993 | 0.4% | 98.4% | 2.52× | yes |
-| GPT-2 (512-token windows) | 11 | 824 | 1.000 | 0.99993 | 0.8% | 99.2% | 2.84× | yes |
-| Qwen2.5-0.5B | 12 | 500 | 1.000 | 0.99992 | 1.6% | 99.6% | 1.71× | yes |
-| Qwen2.5-0.5B | 20 | 500 | 1.000 | 0.99989 | 1.3% | 99.8% | 1.95× | yes |
-| Qwen2.5-1.5B | 8 | 500 | 1.000 | 0.99986 | 1.4% | 99.5% | 1.85× | yes |
-| Qwen2.5-1.5B | 20 | 500 | 1.000 | 0.99984 | 1.7% | 99.6% | 1.19× | yes |
+| GPT-2 (512-token windows) | 5 | 824 | 1.000 | 0.99993 | 0.4% | 97.6% | 4.73× | yes |
+| GPT-2 (512-token windows) | 11 | 824 | 1.000 | 0.99993 | 0.8% | 98.8% | 3.96× | yes |
+| Qwen2.5-0.5B | 12 | 500 | 1.000 | 0.99992 | 1.6% | 99.6% | 1.51× | yes |
+| Qwen2.5-0.5B | 20 | 500 | 1.000 | 0.99989 | 1.3% | 99.8% | 1.46× | yes |
+| Qwen2.5-1.5B | 8 | 500 | 1.000 | 0.99986 | 1.4% | 99.5% | 1.51× | yes |
+| Qwen2.5-1.5B | 20 | 500 | 1.000 | 0.99984 | 1.7% | 99.6% | 1.17× | yes |
 | Qwen2.5-1.5B | 27 | 500 | 0.9997 | 0.97510 | 1.8% | 99.6% | 1.17× | no |
 
 GPT-2 and Qwen2.5-0.5B are qualified. Qwen2.5-1.5B is qualified to layer 20, and its deeper layers scan on torch (`DEEPEST` in `qualified.py`). Layers 21 to 26 were not checked.
 
 - **Layer 27 is past fp16's precision.** Its worst neurons fail on torch's fp16 (on Apple's GPU) by the same amount as on the ANE. Neuron 3987 has r = 0.9751 on the ANE and 0.9746 in torch fp16. 378 neurons are below r = 0.9998 on the ANE, and 342 in torch fp16. They are neurons with large peaks (30 to 100) and errors of about 0.15 at those peaks. So no change to the ANE pass can fix the layer.
-- **Whole documents are slow on the ANE.** Qwen's scans read whole documents. A long document needs the 1,024- or 2,048-token shape, which the ANE runs much less well than short ones. So Qwen is only 1.2–2.0× faster than the CPU. GPT-2 was scanned in 512-token windows and is 2.5–2.8× faster. On fixed 256-token batches, the ANE was about 3× faster than the CPU for both models (`device-contention.md`).
+- **Whole documents are slow on the ANE.** Qwen's scans read whole documents. A long document needs the 1,024- or 2,048-token shape, which the ANE runs much less well than short ones. So Qwen is only 1.2–2.0× faster than the CPU over the runs. GPT-2 was scanned in 512-token windows and is 2.5–4.7× faster. The CPU's time varies with other work on the machine. On fixed 256-token batches, the ANE was about 3× faster than the CPU for both models (`device-contention.md`).
 - **GPT-2 needs windows.** `corpus.jsonl` has a document of 1,689 GPT-2 tokens, longer than GPT-2's context of 1,024. A whole-document GPT-2 scan of that corpus can't run on torch either.
 - **Qwen2.5-1.5B's deep layers failed at first.** In the first run, its layer 20 failed the conversion check. On the test batch, the ANE's error against fp32 was 4.25%. On the same batch, Core ML on the GPU (fp16) had 1.37% and PyTorch fp16 on the CPU 1.28%. The next section finds the cause.
 - **A scale on random tokens was too large for real text.** The conversion scales each small projection up by a power of 2 for precision, measured on random tokens. In the second run, one batch of Qwen2.5-1.5B (a 1,604-token document) was 23% off. Its layer-1 `down_proj` output was 4 times larger on that text than on random tokens, and the scale sent the ANE's fp16 sums past fp16's range. Now no projection is scaled past an output of 2,048 on random tokens (`OUTPUT_PEAK` in `forward.py`), and that batch is 0.5% off.
@@ -58,3 +58,11 @@ So the ANE handles a Core ML model of more than about 2 GB of fp16 weights less 
 ## Also found
 
 A first compile for the ANE can take minutes for each input shape. So a scan now waits at most 20 minutes (`$OPENINTERP_ANE_PREPARE_MINUTES`) for its models. After that it runs on torch, and the ANE is not used again in that process.
+
+## One weight file for every shape
+
+Each input shape of a chunk is its own Core ML model. Each one had its own copy of the weights, so the cache reached 52 GB. Those copies were not the same file. The causal mask and the position tables were constants in the weights, and the scales were set on a sample of each shape. Now the mask, Qwen's rotary tables and GPT-2's positions are inputs (`forward.shape_inputs`). The rotary tables are still computed in fp32 and given in fp16, as before. The scales come from one sample of 4 × 512 random tokens. Then two shapes of GPT-2's layer 5 had the same weight file, byte for byte, and so did two of Qwen2.5-0.5B's layer 12. The cache keeps each file once and links each entry to it. After the third run, the three models' entries held 7 weight files of 5.3 GB in all. GPT-2 had 0.38 GB, Qwen2.5-0.5B 1.44 GB and Qwen2.5-1.5B 3.43 GB.
+
+GPT-2's and Qwen's correlations and worst batches are the same as in the second run, to every digit shown. Placement on the ANE went down a little for GPT-2, from 98.4% and 99.2% to 97.6% and 98.8%.
+
+The first scan of Qwen2.5-1.5B's layer 20 needs every shape of two chunks. In the third run that took more than the 20 minutes that a scan waits. The scan then ran on torch, and the models that were ready stayed in the cache. With 60 minutes, the run passed.

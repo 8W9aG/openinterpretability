@@ -36,24 +36,31 @@ def version() -> str | None:
     return coremltools.__version__
 
 
-def compile_to(net: torch.nn.Module, sample: torch.Tensor, dest: Path) -> None:
+def _spec(name: str, tensor: torch.Tensor):
+    import coremltools as ct
+
+    dtype = np.float16 if tensor.is_floating_point() else np.int32
+    return ct.TensorType(name=name, shape=tuple(tensor.shape), dtype=dtype)
+
+
+def compile_to(net, sample: torch.Tensor, dest: Path) -> None:
     """Trace ``net`` on ``sample``, convert it to fp16, and compile it to ``dest``.
 
     ``sample`` is token ids ``[rows, seq]`` (the input ``ids``) or the residual stream
-    ``[rows, seq, d_model]`` (the input ``resid``, in fp16). ``dest`` is a ``.mlmodelc``
+    ``[rows, seq, d_model]`` (the input ``resid``, in fp16). The other inputs are
+    ``net.extra``, by name (``forward.shape_inputs``). ``dest`` is a ``.mlmodelc``
     directory that does not exist yet.
     """
     import coremltools as ct
 
+    extra = list(net.extra.items())
     with torch.no_grad():
-        traced = torch.jit.trace(net.eval(), sample, check_trace=False)
-    if sample.is_floating_point():
-        spec = ct.TensorType(name="resid", shape=sample.shape, dtype=np.float16)
-    else:
-        spec = ct.TensorType(name="ids", shape=sample.shape, dtype=np.int32)
+        args = (sample, *(t for _, t in extra))
+        traced = torch.jit.trace(net.eval(), args, check_trace=False)
+    first = "resid" if sample.is_floating_point() else "ids"
     model = ct.convert(
         traced,
-        inputs=[spec],
+        inputs=[_spec(first, sample), *(_spec(name, t) for name, t in extra)],
         outputs=[ct.TensorType(name="acts")],
         compute_precision=ct.precision.FLOAT16,
         minimum_deployment_target=getattr(ct.target, MIN_MACOS),
@@ -86,15 +93,24 @@ _INPUTS: dict[int, collections.deque] = collections.defaultdict(
 )
 
 
-def predict(model, inputs: torch.Tensor) -> torch.Tensor:
+def feed(extra: dict[str, torch.Tensor]) -> dict[str, np.ndarray]:
+    """``extra`` (``forward.shape_inputs``) as the arrays that Core ML takes."""
+    return {
+        name: t.numpy().astype(np.float16 if t.is_floating_point() else np.int32)
+        for name, t in extra.items()
+    }
+
+
+def predict(model, inputs: torch.Tensor, extra: dict[str, np.ndarray]) -> torch.Tensor:
     """Run ``model`` on token ids or the residual stream; return its output in fp32.
 
-    The output is ``[rows, seq, width]``: activations, or the residual stream.
+    ``extra`` is the model's other inputs, from :func:`feed`. The output is
+    ``[rows, seq, width]``: activations, or the residual stream.
     """
     if inputs.is_floating_point():
         name, array = "resid", inputs.numpy().astype(np.float16)
     else:
         name, array = "ids", inputs.numpy().astype(np.int32)
-    _INPUTS[id(model)].append(array)  # see _INPUTS
-    out = model.predict({name: array})["acts"]
+    _INPUTS[id(model)].append(array)  # see _INPUTS; extra is kept by its caller
+    out = model.predict({name: array, **extra})["acts"]
     return torch.as_tensor(np.asarray(out, dtype=np.float32)).reshape(*inputs.shape[:2], -1)

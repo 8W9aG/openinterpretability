@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 
+import numpy as np
 import pytest
 import torch
 
@@ -84,13 +85,14 @@ def test_each_length_gets_the_smallest_shape_that_holds_it():
 # -- the conversion cache ----------------------------------------------------
 
 
-def _fake(error: float = 0.001):
+def _fake(error: float = 0.001, weights: bytes | None = None):
     calls = {"build": 0, "check": 0}
 
     def build(dest):
         calls["build"] += 1
-        dest.mkdir()
-        (dest / "weights.bin").write_bytes(b"x" * 100)
+        (dest / "weights").mkdir(parents=True)
+        blob = weights or b"x" * 100 + bytes([calls["build"]])
+        (dest / "weights" / "weight.bin").write_bytes(blob)
 
     def check(path):
         calls["check"] += 1
@@ -157,6 +159,29 @@ def test_the_least_recently_used_entries_go_first(tmp_path):
     store.get(_key(layer=1), build, check)  # used again: now the newest
     store.get(_key(layer=3), build, check)
     assert old.exists() and not store.path(_key(layer=2)).exists()
+
+
+def test_entries_with_the_same_weights_share_one_file(tmp_path):
+    store = cache.ConversionCache(tmp_path)
+    _, build, check = _fake(weights=b"w" * 1000)
+    a = store.get(_key(shape=[16, 128]), build, check) / "weights" / "weight.bin"
+    b = store.get(_key(shape=[2, 1024]), build, check) / "weights" / "weight.bin"
+    assert a.samefile(b) and a.read_bytes() == b"w" * 1000
+    assert store.size() < 2 * 1000  # the weights count once
+    store.max_bytes = store.size() - 1  # one entry must go; its weights stay for the other
+    store.evict(keep=b.parent.parent.parent)
+    assert not a.exists() and b.read_bytes() == b"w" * 1000
+    store.max_bytes = 0  # both go, and the blob that no entry links to
+    store.evict()
+    assert not list((tmp_path / cache.BLOBS).glob("*.bin"))
+
+
+def test_entries_of_an_old_format_go_at_the_next_eviction(tmp_path):
+    store = cache.ConversionCache(tmp_path)
+    _, build, check = _fake()
+    old = store.get(_key(format=cache.FORMAT - 1), build, check).parent
+    new = store.get(_key(), build, check).parent
+    assert not old.exists() and new.exists()  # the second get evicted the first
 
 
 def test_the_cache_can_be_turned_off(monkeypatch):
@@ -316,15 +341,20 @@ def test_an_idle_model_does_not_crash_the_process(tiny_qwen2, tmp_path, monkeypa
     ane = backend.AneScan(tiny_qwen2, "tiny-qwen2", None, cache.ConversionCache(tmp_path))
     ane.compiled(1, 4, 16)
     path = next(tmp_path.rglob(cache.MODEL))
+    extra = tmp_path / "extra.npz"
+    np.savez(extra, **backend.convert.feed(forward.shape_inputs(tiny_qwen2.config, 16, 0)))
     script = (
-        "import sys, time, torch\n"
+        "import sys, time, numpy, torch\n"
         "from openinterp.harness.ane import convert\n"
         "model = convert.load(sys.argv[1])\n"
-        "convert.predict(model, torch.zeros((4, 16), dtype=torch.long))\n"
+        "extra = dict(numpy.load(sys.argv[2]))\n"
+        "convert.predict(model, torch.zeros((4, 16), dtype=torch.long), extra)\n"
         "time.sleep(2)  # Core ML resets an idle stream after about 0.5 s\n"
         "print('ok')\n"
     )
-    done = subprocess.run([sys.executable, "-c", script, str(path)], capture_output=True, text=True)
+    done = subprocess.run(
+        [sys.executable, "-c", script, str(path), str(extra)], capture_output=True, text=True
+    )
     assert done.returncode == 0 and done.stdout.strip() == "ok"
 
 
