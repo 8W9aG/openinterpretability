@@ -41,6 +41,7 @@ from openinterp.corpus import (
     wikitext_articles,
     write_corpus,
 )
+from openinterp.corpus_layouts import BOOK_BACK, BOOK_FRONT, PASSAGE_CHARS, book_passages
 from openinterp.corpus_rebuild import rebuild, scanned_source
 from openinterp.evidence import read_labels
 from tests.conftest import FakeTokenizer
@@ -98,6 +99,38 @@ def test_wikitext_rows_become_whole_detokenised_articles():
         "Second\n\nIts only paragraph.",
     ]
     assert wikitext_articles(WIKITEXT[:10]) == []  # no article ends within the rows
+
+
+def book(paragraphs: list[str]) -> str:
+    """A book of wrapped lines, like PG-19's: front matter, the body, then back matter."""
+    body = "\n\n".join(p.replace(" ", "\n", 2) for p in paragraphs)
+    front = "Produced by a proofreader\n\nCONTENTS\n\n" + "x\n" * 200
+    return front + "\n\n" + body + "\n\n" + "End of the Project Gutenberg EBook\n" * 30
+
+
+def test_book_passages_come_from_the_body_and_end_at_paragraph_breaks():
+    paragraphs = [f"Paragraph {i} says something about the sea." for i in range(400)]
+    passages = book_passages([book(paragraphs), None, ""])
+    text = "\n\n".join(passages)
+    assert "Produced by" not in text and "CONTENTS" not in text and "Gutenberg" not in text
+    assert all(len(p) <= PASSAGE_CHARS for p in passages) and len(passages) > 3
+    kept = text.split("\n\n")
+    assert all(p in paragraphs for p in kept)  # whole paragraphs, line breaks unwrapped
+    assert kept == paragraphs[paragraphs.index(kept[0]) :][: len(kept)]  # in order, none lost
+    assert len(kept) > (1 - BOOK_FRONT - BOOK_BACK) * len(paragraphs) - 30
+
+
+def test_a_paragraph_longer_than_a_passage_is_a_passage_alone():
+    long = "word " * (PASSAGE_CHARS // 4)
+    pages = ["a"] * 2000 + ["short", long.strip(), "after"] + ["z"] * 2000
+    passages = book_passages(["\n\n".join(pages)])
+    assert long.strip() in passages
+
+
+def test_pg19_records_its_originals_licence():
+    info = SimpleNamespace(card_data=None)
+    assert _license(None, "emozilla/pg19", info, None) == "apache-2.0"
+    assert PRESETS["pg19"].layout == "book_passages"
 
 
 def test_a_layout_joins_each_row_groups_rows_into_documents(tmp_path):
@@ -322,13 +355,18 @@ def test_blend_shares_follow_the_weights_and_sum_to_the_documents():
         "fineweb-2": 55,
     }  # fmt: skip
     assert BLENDS["mixed-v7"] == BLENDS["mixed-v6"]
-    assert blend_shares("mixed", 500) == blend_shares("mixed-v7", 500) == {
+    assert blend_shares("mixed-v7", 500) == {
         "fineweb-edu": 69, "c4": 69, "pile-uncopyrighted": 69, "wikitext": 35,
         "github-code": 52, "wikipedia-multilingual": 52, "open-web-math": 35, "ultrachat": 34,
         "fineweb-2": 51, "pes2o": 34,
     }  # fmt: skip
+    assert blend_shares("mixed", 500) == blend_shares("mixed-v8", 500) == {
+        "fineweb-edu": 65, "c4": 65, "pile-uncopyrighted": 65, "wikitext": 33,
+        "github-code": 48, "wikipedia-multilingual": 48, "open-web-math": 32, "ultrachat": 32,
+        "fineweb-2": 48, "pes2o": 32, "pg19": 32,
+    }  # fmt: skip
     shares = blend_shares("mixed", 25)
-    assert sum(shares.values()) == 25 and list(shares.values()) == [4, 4, 4, 2, 3, 3, 1, 1, 2, 1]
+    assert sum(shares.values()) == 25 and list(shares.values()) == [4, 4, 4, 2, 3, 2, 1, 1, 2, 1, 1]
     assert all(set(weights) <= set(PRESETS) for weights in BLENDS.values())
 
 

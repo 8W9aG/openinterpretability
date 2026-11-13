@@ -38,6 +38,7 @@ from openinterp.corpus_layouts import (  # noqa: F401  (wikitext_articles is re-
 from openinterp.corpus_presets import (  # noqa: F401
     FINEWEB2_LANGUAGES,
     PRESETS,
+    UNSTATED_LICENSES,
     WIKIPEDIA_LANGUAGES,
     Preset,
 )
@@ -458,7 +459,7 @@ def _glob_lang(pattern: str | None, glob: str) -> str | None:
 
 
 def _license(api, dataset: str, info, revision: str | None):
-    """The dataset card's licence (a string or a list), or ``None``."""
+    """The dataset card's licence (a string or a list), else :data:`UNSTATED_LICENSES`'s."""
     if info.card_data is None and revision is not None:
         # Branches like refs/convert/parquet carry no dataset card: use the default branch's.
         card_data = api.dataset_info(dataset).card_data
@@ -468,4 +469,5 @@ def _license(api, dataset: str, info, revision: str | None):
     # OpenWebMath's card puts the licence inside its single `dataset_info`, which is a mapping.
     # Cards with several configs have a list there, and it holds no licence.
     nested = card.get("dataset_info")
-    return card.get("license") or (nested.get("license") if isinstance(nested, dict) else None)
+    nested_license = nested.get("license") if isinstance(nested, dict) else None
+    return card.get("license") or nested_license or UNSTATED_LICENSES.get(dataset)

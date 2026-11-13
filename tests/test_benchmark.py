@@ -1,4 +1,7 @@
+import json
+import re
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -119,7 +122,7 @@ def test_scores_count_missing_units_at_chance_and_resume():
     }
     calls = []
 
-    def judge(explanation, texts):
+    def judge(unit, explanation, texts):
         calls.append(texts)
         return ["fire" in t for t in texts]
 
@@ -166,7 +169,7 @@ def test_the_score_command_writes_rows_and_a_summary(tmp_path, record, monkeypat
     records = [make_record(record, idx=1, results=balanced("one"), text="Fires on fire.")]
     bench.write(bench.freeze(records, "v1", test_fraction=0.0), tmp_path / "v1")
     monkeypatch.setattr(
-        cli_benchmark, "_judge", lambda model: lambda e, ts: ["fire" in t for t in ts]
+        cli_benchmark, "_judge", lambda model: lambda u, e, ts: ["fire" in t for t in ts]
     )
     out = tmp_path / "results.jsonl"
     args = ["benchmark", "score", "--bench", str(tmp_path / "v1"), "--explanations", "registry"]
@@ -175,6 +178,56 @@ def test_the_score_command_writes_rows_and_a_summary(tmp_path, record, monkeypat
     assert bench.read_jsonl(out)[0]["balanced_accuracy"] == 1.0
     summary = (tmp_path / "results.summary.json").read_text()
     assert '"mean_balanced_accuracy": 1.0' in summary
+
+
+def test_judges_can_answer_every_prompt_at_once(tmp_path, record):
+    records = [
+        make_record(record, idx=i, results=balanced(str(i)), text="Fires on fire.") for i in (1, 2)
+    ]
+    bench.write(bench.freeze(records, "v1", test_fraction=0.0), tmp_path / "v1")
+    prompts, out = tmp_path / "prompts", tmp_path / "results.jsonl"
+    args = ["benchmark", "score", "--bench", str(tmp_path / "v1"), "--explanations", "registry"]
+    args += ["--judge-model", "external/judge", "--out", str(out), "--prompts-dir", str(prompts)]
+
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0, result.output
+    assert "2 unit(s) wait for a judge's answer" in result.output
+    files = sorted(prompts.glob("*.prompt.md"))
+    assert len(files) == 2 and not (tmp_path / "results.summary.json").exists()
+    assert "Fires on fire." in files[0].read_text()
+
+    def answer(prompt: Path, numbers) -> None:
+        texts = prompt.read_text().split("# Prompt")[1]
+        listed = re.findall(r"^(\d+)\. (.*)$", texts, re.MULTILINE)
+        chosen = [int(n) for n, text in listed if "fire" in text] if numbers is None else numbers
+        prompt.with_name(prompt.name.replace(".prompt.md", ".json")).write_text(
+            json.dumps({"active": chosen})
+        )
+
+    answer(files[0], None)
+    answer(files[1], [99])  # names a text that doesn't exist
+    result = CliRunner().invoke(cli, args)
+    assert "1 unit(s) wait" in result.output and len(bench.read_jsonl(out)) == 1
+    assert "only" in next(prompts.glob("*.error.txt")).read_text()
+    assert next(prompts.glob("*.rejected.json"))
+
+    answer(files[1], None)
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 0, result.output
+    assert [r["balanced_accuracy"] for r in bench.read_jsonl(out)] == [1.0, 1.0]
+    summary = json.loads((tmp_path / "results.summary.json").read_text())
+    assert summary["judge_model"] == "external/judge" and summary["explained"] == 2
+    assert not list(prompts.glob("*.error.txt"))
+
+
+def test_prompt_files_need_an_external_judge(tmp_path, record):
+    bench.write(bench.freeze([make_record(record, idx=1, results=balanced("1"))], "v1",
+                             test_fraction=0.0), tmp_path / "v1")  # fmt: skip
+    args = ["benchmark", "score", "--bench", str(tmp_path / "v1"), "--explanations", "registry",
+            "--judge-model", "openai/judge", "--out", str(tmp_path / "o.jsonl"),
+            "--prompts-dir", str(tmp_path / "p")]  # fmt: skip
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 2 and "needs an external/<name> judge" in result.output
 
 
 def test_measure_appends_fresh_test_labels_from_the_model(

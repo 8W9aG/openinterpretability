@@ -383,15 +383,17 @@ def _bootstrap(values: Sequence[float], seed: int) -> list[float] | None:
 def score(
     probes_by_unit: dict[str, list[dict]],
     explanations: dict[str, str],
-    judge: Callable[[str, list[str]], list[bool]],
+    judge: Callable[[str, str, list[str]], list[bool] | None],
     *,
     done: dict[str, dict] | None = None,
     cluster_threshold: float = ReviewPolicy().probe_cluster_threshold,
     on_row: Callable[[dict], None] | None = None,
 ) -> list[dict]:
-    """Score each explained unit; ``judge(explanation, texts)`` says which texts fire.
+    """Score each explained unit; ``judge(unit, explanation, texts)`` says which texts fire.
 
-    Units in ``done`` (from an earlier, interrupted run) are not judged again.
+    Units in ``done`` (from an earlier, interrupted run) are not judged again. A judge that
+    has no answer yet returns ``None``. Then the unit is left out of the rows, and a later
+    run scores it.
     """
     rows = []
     for slug in sorted(probes_by_unit):
@@ -401,7 +403,9 @@ def score(
             rows.append(done[slug])
             continue
         probes = shuffled(probes_by_unit[slug], slug)
-        predicted = judge(explanations[slug], [p["text"] for p in probes])
+        predicted = judge(slug, explanations[slug], [p["text"] for p in probes])
+        if predicted is None:
+            continue
         row = {"unit": slug, **unit_score(probes, predicted, cluster_threshold)}
         rows.append(row)
         if on_row:
