@@ -21,6 +21,7 @@ from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 # from v4, chat transcripts, from v5, web text in 22 languages besides English, and from
 # v6, scientific papers. From v7, a part without exact labels gets detected ones: its
 # documents' languages (openinterp.langid) and programming languages (openinterp.codeid).
+# From v8, they include passages from books.
 BLENDS = {
     "mixed-v1": {
         "fineweb-edu": 4,
@@ -102,8 +103,23 @@ BLENDS = {
         "fineweb-2": 3,
         "pes2o": 2,
     },
+    # v7's mix and weights, plus passages from public-domain books (PG-19) at the weight of
+    # wikitext, for narrative, dialogue and older English.
+    "mixed-v8": {
+        "fineweb-edu": 4,
+        "c4": 4,
+        "pile-uncopyrighted": 4,
+        "wikitext": 2,
+        "github-code": 3,
+        "wikipedia-multilingual": 3,
+        "open-web-math": 2,
+        "ultrachat": 2,
+        "fineweb-2": 3,
+        "pes2o": 2,
+        "pg19": 2,
+    },
 }
-BLEND_ALIASES = {"mixed": "mixed-v7"}
+BLEND_ALIASES = {"mixed": "mixed-v8"}
 # Released before documents recorded a programming language. So their bytes stay without it.
 NO_CODE_LANGUAGE = {"mixed-v1"}
 # Released before parts without exact labels got detected ones. So their bytes stay without.

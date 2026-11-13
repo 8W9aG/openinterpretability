@@ -52,6 +52,9 @@ GITHUB_CODE_LANGUAGES = (
     "TypeScript", "Visual Basic",
 )  # fmt: skip
 
+# Licences of datasets whose cards state none: copies of a dataset, with its licence.
+UNSTATED_LICENSES = {"emozilla/pg19": "apache-2.0"}  # deepmind/pg19's card
+
 PRESETS = {
     # Clean, educational web text (FineWeb filtered by an educational-quality classifier),
     # closer to recent models' pretraining mix than the Pile. ODC-By: attribute excerpts.
@@ -141,6 +144,18 @@ PRESETS = {
     # filtered and truecased), for instruct models. Qwen2.5's chat template writes each, so
     # every model scans the same text (`--chat-template MODEL` writes it with another
     # model's). Row groups are 1,000 conversations of ~6.5 MB. MIT.
+    # Project Gutenberg books published before 1919 (PG-19), for narrative, dialogue and
+    # older English. deepmind/pg19 has only a loading script, so read emozilla/pg19, its
+    # Parquet copy. Only its validation and test splits: 150 books in ~35 MB. A training
+    # row group is 1,000 books (~380 MB). Each book is one row, of ~270,000 characters
+    # (median), so the book_passages layout gives passages from its body
+    # (openinterp.corpus_layouts). Public-domain texts; PG-19 is Apache-2.0
+    # (UNSTATED_LICENSES).
+    "pg19": Preset(
+        "emozilla/pg19",
+        "data/validation-*.parquet,data/test-*.parquet",
+        layout="book_passages",
+    ),
     "ultrachat": Preset(
         "HuggingFaceH4/ultrachat_200k",
         "data/train_sft-*.parquet",
