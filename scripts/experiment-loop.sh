@@ -27,7 +27,19 @@ Usage: scripts/experiment-loop.sh [options]
   --epsilon P          Exploration probability passed to `openinterp next` (default: 0.7)
   --worktree DIR       Worktree to run in (default: ../<repo>-loop, created if missing)
   --max-turns N        Turn limit per session, a guard against runaway sessions (default: 200)
+  --budget USD         Stop once this loop has spent USD or more (default: no cap)
+  --daily-budget USD   Stop once all loops together have spent USD or more today, UTC,
+                       going by the logs in <repo>/logs/loop/ (default: no cap)
   -h, --help           Show this help
+
+Budgets count the dollars that `openinterp costs --usd` reports: priced LLM calls and
+each session's own cost. The loop checks them between experiments, never during one, so
+the experiment that crosses a cap still finishes and posts. Calls with no price are not
+counted, and the loop warns when there are some.
+
+To stop every loop on this machine after its current experiment, create the stop file:
+  touch "${XDG_CACHE_HOME:-$HOME/.cache}/openinterp/stop"   (or $OPENINTERP_STOP_FILE)
+Remove it before you start a loop again.
 
 Logs go to <repo>/logs/loop/: per experiment, the session's stderr and result (.log),
 its `claude --output-format json` result (.json), and the costs ledger every openinterp
@@ -45,6 +57,8 @@ MAX=0
 EPSILON=0.7
 WORKTREE="$(dirname "$REPO")/$(basename "$REPO")-loop"
 MAX_TURNS=200
+BUDGET=""
+DAILY_BUDGET=""
 CLAUDE_BIN=${CLAUDE_BIN:-claude}
 
 while [[ $# -gt 0 ]]; do
@@ -57,6 +71,8 @@ while [[ $# -gt 0 ]]; do
     --epsilon) EPSILON=$2; shift 2 ;;
     --worktree) WORKTREE=$2; shift 2 ;;
     --max-turns) MAX_TURNS=$2; shift 2 ;;
+    --budget) BUDGET=$2; shift 2 ;;
+    --daily-budget) DAILY_BUDGET=$2; shift 2 ;;
     -h | --help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -135,12 +151,63 @@ wait_while_paused() {
     code=0
     (cd "$WORKTREE" && uv run --quiet openinterp pause --status >/dev/null 2>&1) || code=$?
     [[ $code -ne 75 ]] && return 0
+    stop_requested && return 0 # check_limits stops the loop
     if [[ -z $said ]]; then
       echo "[$1] $(cd "$WORKTREE" && uv run --quiet openinterp pause --status 2>/dev/null)"
       said=1
     fi
     sleep 60
   done
+}
+
+# The kill switch: while this file exists, no loop on the machine starts an experiment.
+stop_file() { echo "${OPENINTERP_STOP_FILE:-${XDG_CACHE_HOME:-$HOME/.cache}/openinterp/stop}"; }
+stop_requested() { [[ -e $(stop_file) ]]; }
+
+# True when the cap $2 is set and the dollars spent, $1, reach it.
+over_budget() { [[ -n $2 ]] && awk -v spent="$1" -v cap="$2" 'BEGIN { exit !(spent >= cap) }'; }
+
+# Dollars reported by the ledgers and --session files given; 0 if none can be read.
+spent() {
+  local out
+  out=$(cd "$WORKTREE" && uv run --quiet openinterp costs --usd "$@" 2>/dev/null) || out=0
+  echo "${out:-0}"
+}
+
+# Every loop's ledgers and sessions logged today (UTC), as `openinterp costs` arguments.
+todays_logs() {
+  local f day
+  day=$(date -u +%Y%m%d)
+  for f in "$LOG_DIR/$day"T*.costs.jsonl; do [[ -e $f ]] && echo "$f"; done
+  for f in "$LOG_DIR/$day"T*-[0-9]*.json; do [[ -e $f ]] && printf '%s\n' --session "$f"; done
+}
+
+# Stop between experiments when the stop file exists or a budget is spent.
+check_limits() { # $1: the iteration about to start, or that just ended
+  if stop_requested; then
+    echo "[$1] stop file $(stop_file) exists; stopping. Remove it to run loops again."
+    exit 0
+  fi
+  local args=() s f total today
+  if [[ -n $BUDGET && ${#LEDGERS[@]} -gt 0 ]]; then
+    args=("${LEDGERS[@]}")
+    for s in "${SESSIONS[@]}"; do args+=(--session "$s"); done
+    total=$(spent "${args[@]}")
+    if over_budget "$total" "$BUDGET"; then
+      echo "[$1] this loop spent \$$total, at or over --budget \$$BUDGET; stopping."
+      exit 0
+    fi
+  fi
+  if [[ -n $DAILY_BUDGET ]]; then
+    args=()
+    while IFS= read -r f; do args+=("$f"); done < <(todays_logs) # bash 3.2 has no mapfile
+    today=0
+    [[ ${#args[@]} -gt 0 ]] && today=$(spent "${args[@]}")
+    if over_budget "$today" "$DAILY_BUDGET"; then
+      echo "[$1] loops spent \$$today today (UTC), at or over --daily-budget \$$DAILY_BUDGET; stopping."
+      exit 0
+    fi
+  fi
 }
 
 # `openinterp costs` from the worktree's checkout, which has the latest harness.
@@ -168,6 +235,7 @@ report() { # $1: iteration, $2: its ledger, $3: its session result
 i=0
 while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   i=$((i + 1))
+  check_limits "$i"
   stem="$LOG_DIR/$(date -u +%Y%m%dT%H%M%SZ)-$i"
   log="$stem.log" ledger="$stem.costs.jsonl" session="$stem.json"
   LEDGERS+=("$ledger")
@@ -184,6 +252,7 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   # Build the venv now, so its output doesn't bury the session's first `openinterp next`.
   (cd "$WORKTREE" && uv sync --quiet) || true
   wait_while_paused "$i"
+  check_limits "$i"
 
   status=0
   (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "$CLAUDE_BIN" "${claude_args[@]}") \
@@ -195,5 +264,7 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
     exit 1
   fi
   grep -E '^RESULT:' "$log" | tail -n 1 | sed "s/^/[$i] /" || echo "[$i] done (no RESULT line)"
+  [[ -n $BUDGET || -n $DAILY_BUDGET ]] && (cd "$WORKTREE" && uv run --quiet openinterp costs --usd \
+    "$ledger" --session "$session" 2>&1 >/dev/null | sed "s/^/[$i] warning: budget skips /") || true
 done
 echo "Reached --max $MAX; stopping."
