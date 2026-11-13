@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, stop_outcome %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, stop_outcome, errata_banner %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
@@ -9,6 +9,8 @@
   <header class="mb-8">
     <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · L{{ neuron.layer }}/{{ neuron.label }}</h1>
     <p class="mt-1 hidden" data-pagefind-filter="model">{{ model.name }}</p>
+    {% set unit_errata = neuron.experiments | map(attribute="errata") | sum(start=[]) | unique(attribute="id") | list %}
+    {{ errata_banner(root, unit_errata, "experiments on this " ~ neuron.noun) }}
     {# A neuron's two poles are read together: the negative pole often encodes the contrast the positive one draws. A head has one card. #}
     <div class="mt-4 grid gap-3 sm:grid-cols-2">
       {% for pole in neuron.sides %}

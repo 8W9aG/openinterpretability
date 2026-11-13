@@ -20,9 +20,18 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from openinterp.builder.hrefs import (  # noqa: F401  (re-exported: pages import them from here)
+    circuits_href,
+    feature_href,
+    head_href,
+    layer_href,
+    model_href,
+    neuron_href,
+)
 from openinterp.builder.significance import Significance, significance
 from openinterp.builder.standing import native_standings, pole_standing
 from openinterp.builder.wiki import experiment_id
+from openinterp.core.errata import Erratum, covering
 from openinterp.core.schemas import AuditRecord
 
 if TYPE_CHECKING:
@@ -45,6 +54,12 @@ class Experiment:
     revises: Experiment | None = field(default=None, repr=False, compare=False)
     revised_by: list[Experiment] = field(default_factory=list, repr=False, compare=False)
     standing: Standing | None = field(default=None, repr=False, compare=False)  # its pole's
+    errata: list[Erratum] = field(default_factory=list, repr=False, compare=False)  # covering it
+
+    @property
+    def set_aside(self) -> bool:
+        """Whether an erratum sets this experiment aside, so it counts toward no standing."""
+        return any(erratum.action == "set_aside" for erratum in self.errata)
 
     @property
     def independent(self) -> bool:
@@ -322,36 +337,6 @@ def mlp_widths(records: Iterable[AuditRecord]) -> dict[str, int]:
     return widths
 
 
-def model_href(slug: str) -> str:
-    """The model's index page."""
-    return f"models/{slug}/index.html"
-
-
-def circuits_href(slug: str) -> str:
-    """The model's circuits page."""
-    return f"models/{slug}/circuits.html"
-
-
-def layer_href(slug: str, layer: int) -> str:
-    """The layer's index page."""
-    return f"models/{slug}/L{layer}/index.html"
-
-
-def neuron_href(slug: str, layer: int, idx: int) -> str:
-    """The neuron's page (both poles)."""
-    return f"models/{slug}/L{layer}/N{idx}.html"
-
-
-def head_href(slug: str, layer: int, idx: int) -> str:
-    """The head's page."""
-    return f"models/{slug}/L{layer}/H{idx}.html"
-
-
-def feature_href(slug: str, layer: int, dictionary: str, idx: int) -> str:
-    """The dictionary feature's page."""
-    return f"models/{slug}/L{layer}/{dictionary}/F{idx}.html"
-
-
 def unit_side(ident) -> str:
     """What a unit page groups ``ident`` under: a neuron's pole, else ``head`` or ``feature``."""
     return ident.pole or SIDES[ident.kind][0]
@@ -380,8 +365,11 @@ def experiment_order(e: Experiment) -> tuple:
     )
 
 
-def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
-    """Group the reviewed records into models, layers and units."""
+def build_tree(records: Sequence[AuditRecord], errata: Sequence[Erratum] = ()) -> list[ModelNode]:
+    """Group the reviewed records into models, layers and units.
+
+    Each experiment lists the ``errata`` that cover its record (:mod:`openinterp.core.errata`).
+    """
     reviewed = [r for r in records if r.verdict is not None]
     latest: dict[str, AuditRecord] = {}
     for r in reviewed:
@@ -393,7 +381,10 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
     units: dict[tuple[str, int, int, str, int], UnitNode] = {}  # neurons, heads, features
     widths = mlp_widths(reviewed)
     for r in reviewed:
-        _add_experiment(models, units, r, latest[r.submission.identifier.slug] is r, widths)
+        experiment = _add_experiment(
+            models, units, r, latest[r.submission.identifier.slug] is r, widths
+        )
+        experiment.errata = covering(errata, r)
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)
@@ -412,7 +403,7 @@ def build_tree(records: Sequence[AuditRecord]) -> list[ModelNode]:
 
 def _add_experiment(
     models: dict, units: dict, r: AuditRecord, is_latest: bool, widths: dict[str, int]
-) -> None:
+) -> Experiment:
     """File ``r`` under its unit, creating the model and unit nodes on first sight."""
     ident = r.submission.identifier
     mslug = ident.model_slug
@@ -438,15 +429,15 @@ def _add_experiment(
             ident.kind,
             dictionary=dictionary,
         )
-    units[key].experiments.append(
-        Experiment(
-            r,
-            significance(r),
-            experiment_id(r),
-            is_latest,
-            claim=r.submission.model_dump_json(exclude={"provenance"}),
-        )
+    experiment = Experiment(
+        r,
+        significance(r),
+        experiment_id(r),
+        is_latest,
+        claim=r.submission.model_dump_json(exclude={"provenance"}),
     )
+    units[key].experiments.append(experiment)
+    return experiment
 
 
 def _mark_reuse(experiments: list[Experiment]) -> None:

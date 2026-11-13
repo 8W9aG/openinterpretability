@@ -32,6 +32,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          # `openinterp check` checks the errata file's signature at the time it landed,
+          # which needs main's history (openinterp/signing.py landing_times).
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true

@@ -1,5 +1,5 @@
 {# One experiment on a neuron, head or feature page. Expects `v` from compiler._experiment_view. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_banner %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
@@ -21,7 +21,7 @@
       {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
     </div>
-    <p class="mt-3 max-w-3xl text-base leading-relaxed">{{ sub.natural_language_explanation }}</p>
+    {{ errata_banner(root, e.errata, "this record") }}<p class="mt-3 max-w-3xl text-base leading-relaxed">{{ sub.natural_language_explanation }}</p>
     <p class="mt-2 text-xs text-slate-500">
       Hard negatives {{ "%g" | format(e.sig.negatives.passed) }}/{{ e.sig.negatives.clusters }} rejected ·
       holdouts {{ "%g" | format(e.sig.holdouts.passed) }}/{{ e.sig.holdouts.clusters }} fired

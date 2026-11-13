@@ -104,7 +104,7 @@ def reproduce(
 
     from openinterp.cli_evidence import read_corpus
     from openinterp.reproduce import Tolerance
-    from openinterp.signing import landing_times
+    from openinterp.signing import allowed_signers_text, landing_times
 
     paths = _chosen_records(records, base_ref, sample, sample_date, wiki_dir)
     if not paths:
@@ -116,7 +116,7 @@ def reproduce(
         texts, _, corpus_sha, _ = read_corpus(corpus)
         scan_corpus = (texts, corpus_sha)
     reproducer = _Reproducer(
-        signers=_allowed_signers(allowed_signers, base_ref),
+        signers=allowed_signers_text(allowed_signers, base_ref),
         landed=landing_times(base_ref or "HEAD"),
         tolerance=Tolerance(atol=atol, rtol=rtol),
         scan_corpus=scan_corpus,
@@ -285,18 +285,6 @@ def _preset_dictionary(record) -> bool:
     return spec is not None and (spec.repo, spec.revision) == (profile.repo, profile.revision)
 
 
-def _allowed_signers(path: Path, base_ref: str | None) -> str:
-    """The allowed-signers file's content: from ``base_ref`` if given, else from disk."""
-    import subprocess
-
-    if base_ref:
-        shown = subprocess.run(
-            ["git", "show", f"{base_ref}:{path.as_posix()}"], capture_output=True, text=True
-        )
-        return shown.stdout if shown.returncode == 0 else ""
-    return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
 @cli.command()
 @click.argument(
     "records", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path)
@@ -326,11 +314,12 @@ def sign(records, key, allowed_signers):
     from openinterp.signing import (
         SignatureError,
         SignatureOutsideWindow,
+        allowed_signers_text,
         sign_record,
         verify_record,
     )
 
-    signers = _allowed_signers(allowed_signers, None)
+    signers = allowed_signers_text(allowed_signers)
     for path in records:
         sig = sign_record(path, key.expanduser())
         try:
@@ -378,6 +367,7 @@ def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
     """
     from openinterp.signing import (
         SignatureError,
+        allowed_signers_text,
         landing_times,
         signature_path,
         verify_record,
@@ -385,7 +375,7 @@ def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
 
     paths = list(records) or sorted(experiments_dir(wiki_dir).rglob("*.json"))
     paths = [p for p in paths if signature_path(p).exists()]
-    signers, landed = _allowed_signers(allowed_signers, None), landing_times(ref)
+    signers, landed = allowed_signers_text(allowed_signers), landing_times(ref)
     untrusted = 0
     for path in paths:
         at = landed.get(path.resolve())

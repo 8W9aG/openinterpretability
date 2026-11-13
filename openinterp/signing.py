@@ -158,6 +158,8 @@ def _signed_by(record_path: Path, allowed_signers: str, at: datetime | None):
 def landing_times(ref: str = "HEAD") -> dict[Path, datetime]:
     """When each record's signature landed on ``ref``, by resolved path of the record.
 
+    It also covers the errata file (``wiki/errata.jsonl``), which is signed the same way.
+
     Each time is a committer date. It comes from the newest commit on ``ref``'s first-parent
     history that added or changed the record or its ``.sig`` file. On ``main`` that is the merge
     time GitHub sets, which a pull request's author can't choose. A record not on ``ref``
@@ -180,10 +182,24 @@ def landing_times(ref: str = "HEAD") -> dict[Path, datetime]:
     for line in log.splitlines():
         if line.startswith("@"):
             when = datetime.fromtimestamp(int(line[1:]), UTC)
-        elif line.endswith((".json", ".json.sig")) and when is not None:
+        elif line.endswith((".json", ".json.sig", ".jsonl", ".jsonl.sig")) and when is not None:
             record = (Path(root) / line.removesuffix(".sig")).resolve()
             times.setdefault(record, when)  # the log is newest first
     return times
+
+
+def allowed_signers_text(path: Path = ALLOWED_SIGNERS, base_ref: str | None = None) -> str:
+    """The allowed-signers file's content: from ``base_ref`` if given, else from disk.
+
+    CI gives the pull request's base branch, so a pull request can't trust its own key. A
+    missing file gives an empty string, which trusts no key.
+    """
+    if base_ref:
+        shown = subprocess.run(
+            ["git", "show", f"{base_ref}:{path.as_posix()}"], capture_output=True, text=True
+        )
+        return shown.stdout if shown.returncode == 0 else ""
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
 def _ssh_keygen(*args: str, check: bool = True) -> subprocess.CompletedProcess:

@@ -203,9 +203,9 @@ def test_the_evidence_numbers_come_from_the_true_probe_text(tmp_path, record, mo
     seen = []
     real = compiler.build_tree
 
-    def spy(records):
+    def spy(records, errata=()):
         seen.extend(records)
-        return real(records)
+        return real(records, errata)
 
     explanations = []
     real_stats = compiler.registry_stats
