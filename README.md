@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
 
-`openinterp` is a decentralized, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
+`openinterp` is an open, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
 The registry is published at **[open-interpretability.com](https://open-interpretability.com/)**: every experiment, unit, model and paper, with search and the Parquet export.
 
@@ -20,47 +20,37 @@ An experiment takes one neuron, proposes what it does, has a *different* model t
 | [Python](https://www.python.org/) 3.11+ | Runs `openinterp` and the model | Always |
 | [uv](https://docs.astral.sh/uv/) | Installs the dependencies into `.venv` and runs the commands (`uv run …`) | Always |
 | [GitHub CLI](https://cli.github.com/) (`gh`) | Opens the draft PR that claims a neuron. The planner also reads open PRs with it, to skip neurons that others have claimed | To contribute. Without it, the planner can't see claims, and you open the PR on github.com |
-| [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | Path A. Path B with no API keys too |
-| An LLM API key (any [LiteLLM](https://docs.litellm.ai/) provider) | Proposer and reviewer through an API instead of Claude Code | Path B only |
+| [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | To run the loop. Also to run it yourself with no API keys |
+| An LLM API key (any [LiteLLM](https://docs.litellm.ai/) provider) | Proposer and reviewer through an API instead of Claude Code | Only to run it yourself through an API |
 
 Node.js is not needed: no step of the build uses it, and Claude Code's native installer doesn't need it either (only its npm install does). [Vale](https://vale.sh) is needed only for `make vale` when you change code.
 
 A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). An 8 GB machine runs GPT-2 and Qwen2.5-0.5B, and Qwen2.5-1.5B needs 16 GB ([Memory](docs/experiments.md#memory)). The first scan also downloads about 1.5 GB of labelling models.
 
-### 1. Set up (once)
+### Run it
 
 ```bash
 gh repo fork 8W9aG/openinterpretability --clone   # or fork on GitHub and git clone your fork
 cd openinterpretability
-make install                                      # creates .venv with everything
-uv run openinterp corpus --dataset pile-10k --first --ascii \
-  --revision 127bfedcd5047750df5ccf3a12979a47bfa0bafa --out corpus.jsonl   # the registry's scan corpus
-export OPENINTERP_CONTRIBUTOR=<your GitHub username>                       # to be credited (never an email)
+claude "/loop /land-experiment"
 ```
 
-### 2A. Let an agent run it (Claude Code)
+That is all. The loop runs one experiment after another until you stop it. Each one draws a neuron with `openinterp next` and claims it with a draft PR. It then scans the neuron, has one subagent propose a hypothesis and another review it, and posts the result. `uv run` installs the dependencies on first use. Each scan builds its own corpus. A scan takes about 10–15 minutes on CPU.
 
-Start Claude Code in the repo (`claude`) and ask:
+`land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. To be credited, set `export OPENINTERP_CONTRIBUTOR=<your GitHub username>` (never an email) before you start Claude Code. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result."
 
-```text
-Run the next experiment and open a PR with the result.
-```
-
-The repo's skills load automatically. The agent draws an experiment with `openinterp next`, claims it with a draft PR and scans the neuron. Then one subagent proposes a hypothesis, another reviews it, and the agent posts the result. A scan takes about 10–15 minutes on CPU. Review the PR before marking it ready.
-
-### 2B. Run it yourself
+### Or run it yourself
 
 With API keys set for the proposer and the reviewer (e.g. `export ANTHROPIC_API_KEY=...` for the default proposer, `anthropic/claude-opus-5-5`, and `OPENAI_API_KEY` for the `openai/gpt-5` reviewer below):
 
 ```bash
+make install                              # creates .venv with everything
 uv run openinterp next --steps            # draws an experiment and prints every step as exact commands
 uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
 uv run openinterp verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
 ```
 
-`audit` scans the neuron and asks the proposer for a hypothesis. `verify` has the reviewer write probes, measures them on the model, and writes the experiment under `wiki/experiments/`.
-
-### 3. Contribute it
+`audit` scans the neuron and asks the proposer for a hypothesis. `verify` has the reviewer write probes, measures them on the model, and writes the experiment under `wiki/experiments/`. Build `corpus.jsonl` first with the command in [The scan corpus](docs/experiments.md#the-scan-corpus).
 
 Claim the neuron with a draft PR before the scan, so others don't draw it too (`next --steps` prints the commands). When it finishes, run `make check`, commit `wiki/` and mark the PR ready. A PR that changes only `wiki/` merges automatically when CI passes.
 

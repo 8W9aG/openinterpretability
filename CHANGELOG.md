@@ -9,6 +9,11 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **A one-line Quickstart** (`README.md`, #3141). Fork the repo, then run `claude "/loop /land-experiment"`. The manual steps stay below it, as *Or run it yourself*.
+- **"Open", not "decentralized"** (`README.md`, `CITATION.cff`, #3143). One repo and one maintainer decide what merges, so the registry is open but not decentralized.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.

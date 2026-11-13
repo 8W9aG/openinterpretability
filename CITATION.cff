@@ -17,7 +17,7 @@ authors:
 repository-code: "https://github.com/8W9aG/openinterpretability"
 url: "https://open-interpretability.com/"
 abstract: >-
-  openinterp is a decentralized, agent-audited mechanistic interpretability registry and
+  openinterp is an open, agent-audited mechanistic interpretability registry and
   testing protocol for open-weight foundation models. Each entry is one pole of one MLP
   neuron (or one attention head or dictionary latent). A proposer agent writes a
   falsifiable hypothesis from the unit's top-activating examples, a reviewer agent writes
