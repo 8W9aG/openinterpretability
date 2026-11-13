@@ -3,7 +3,8 @@
 The file parses, has unique ids, and names records that exist. A key in the allowed
 signers (from ``base_ref`` if given) signed it. The signature is checked at the time it
 landed on ``main``, as a record's is. With ``base_ref`` the file is append-only. If the
-branch changes the file, each erratum must cover a record, and its fix commit must exist.
+branch changes the file, each erratum must cover a record. Its edits must apply to each
+record it covers, and its fix commit must exist.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from openinterp.core.errata import Erratum, errata_path, parse_errata
+from openinterp.core.errata import Erratum, apply_errata, errata_path, parse_errata, record_ref
 from openinterp.core.paths import experiments_dir
 from openinterp.core.schemas import AuditRecord
 from openinterp.signing import (
@@ -85,11 +86,18 @@ def _check_entries(errata: list[Erratum], root: Path, report: CheckReport, path:
 
 
 def _check_new_errata(errata: list[Erratum], root: Path, report: CheckReport, path: Path) -> None:
-    """Each erratum covers a record, and the commit that fixed its bug exists."""
+    """Each erratum covers a record, its edits apply to each, and its fix commit exists."""
     records = [r for r in map(_load, sorted(root.rglob("*.json"))) if r is not None]
     for erratum in errata:
-        if not any(erratum.covers(r) for r in records):
+        covered = [r for r in records if erratum.covers(r)]
+        if not covered:
             report.add(path, f"erratum {erratum.id} covers no record")
+        for record in covered:
+            try:
+                apply_errata(record, [erratum])
+            except ValueError as exc:
+                report.add(path, f"erratum {erratum.id} on {record_ref(record)}: {exc}")
+                break  # one example is enough
         found = subprocess.run(
             ["git", "cat-file", "-e", f"{erratum.fixed_in}^{{commit}}"], capture_output=True
         )

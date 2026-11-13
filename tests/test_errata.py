@@ -13,7 +13,15 @@ from openinterp.builder.compiler import compile_site
 from openinterp.builder.tree import build_tree
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.checks import check_registry
-from openinterp.core.errata import Erratum, ErratumRule, errata_path, parse_errata, record_ref
+from openinterp.core.errata import (
+    Edit,
+    Erratum,
+    ErratumRule,
+    apply_errata,
+    errata_path,
+    parse_errata,
+    record_ref,
+)
 from openinterp.core.schemas import AuditRecord
 from openinterp.signing import sign_record
 
@@ -34,8 +42,9 @@ def erratum(**fields) -> Erratum:
         "title": "Activations were scaled twice",
         "bug": "The scan divided by the scale twice.",
         "fixed_in": "abcdef1",
-        "action": "set_aside",
     }
+    if "edits" not in fields:
+        base["set_aside"] = True
     return Erratum.model_validate_json(json.dumps(base | fields))
 
 
@@ -46,6 +55,10 @@ def test_an_erratum_must_select_records():
         erratum(rule={})
     with pytest.raises(ValidationError):  # a naive time can't be compared with a verdict's
         erratum(rule={"reviewed_before": "2026-11-01T00:00:00"})
+    with pytest.raises(ValidationError, match="either lists edits or sets its records aside"):
+        erratum(records=["a"], set_aside=False)
+    with pytest.raises(ValidationError, match="either lists edits or sets its records aside"):
+        erratum(records=["a"], edits=[{"path": "verdict.status", "value": "X"}], set_aside=True)
     with pytest.raises(ValueError, match="line 2"):
         parse_errata(erratum(records=["a"]).model_dump_json() + "\n{}\n")
 
@@ -63,6 +76,45 @@ def test_an_erratum_covers_listed_records_and_rule_matches(record):
     assert not ErratumRule(models=[model], kinds=["attn_head"]).matches(record)
 
 
+def test_edits_correct_a_copy_of_the_record(record):
+    x = erratum(
+        records=[record_ref(record)],
+        edits=[
+            {"path": "verdict.status", "value": "REJECTED"},
+            {"path": "submission.top_examples.0.max_activation", "value": 2.0},
+        ],
+    )
+    edited, applied = apply_errata(record, [x])
+    assert edited.verdict.status == "REJECTED" and record.verdict.status == "VERIFIED"
+    assert edited.submission.top_examples[0].max_activation == 2.0
+    assert [(a.path, a.before, a.after) for a in applied] == [
+        ("verdict.status", "VERIFIED", "REJECTED"),
+        ("submission.top_examples.0.max_activation", 2.5, 2.0),
+    ]
+    assert edited.model_copy(update={"verdict": record.verdict}).submission != record.submission
+    assert apply_errata(record, [erratum(records=["a"])]) == (record, [])  # set aside: no edit
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "message"),
+    [
+        ("verdict.no_such_field", 1, "no field verdict.no_such_field"),
+        ("submission.top_examples.9.max_activation", 1.0, "no field"),
+        ("verdict.status", "MAYBE", "edited record is not valid"),
+    ],
+)
+def test_bad_edits_are_refused(record, path, value, message):
+    x = erratum(records=["a"], edits=[{"path": path, "value": value}])
+    with pytest.raises(ValueError, match=message):
+        apply_errata(record, [x])
+
+
+@pytest.mark.parametrize("path", ["verdict.timestamp", "submission.identifier.layer"])
+def test_edits_cannot_move_a_record(path):
+    with pytest.raises(ValidationError, match="places the record"):
+        Edit(path=path, value=1)
+
+
 def test_set_aside_readings_do_not_count(record):
     newer = later(record, 1, "REJECTED")
     x = erratum(records=[record_ref(newer)])
@@ -73,10 +125,13 @@ def test_set_aside_readings_do_not_count(record):
     roles = {e.id: e.role for e in unit.experiments}
     assert roles == {"20261001T120000Z": "current", "20261001T130000Z": "set_aside"}
 
-    flagged = erratum(records=[record_ref(newer)], action="flag")
-    (model,) = build_tree([record, newer], [flagged])
+    corrected = erratum(
+        records=[record_ref(newer)], edits=[{"path": "verdict.status", "value": "VERIFIED"}]
+    )
+    (model,) = build_tree([record, newer], [corrected])
     standing = model.layers[0].units[0].standings["positive"]
-    assert standing.status == "REJECTED" and standing.errata == [flagged]
+    assert standing.status == "VERIFIED" and standing.errata == [corrected]
+    assert standing.lead.record.verdict.status == "VERIFIED"
 
 
 def test_a_pole_whose_readings_are_all_set_aside_keeps_them(record):
@@ -99,6 +154,20 @@ def test_the_site_shows_errata_only_on_the_experiments_they_alter(tmp_path, reco
     assert "set aside by an erratum" in html
     rows = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
     assert sorted(tuple(r["errata"]) for r in rows) == [(), ("scale-bug",)]
+
+
+def test_the_site_shows_each_edit(tmp_path, record):
+    x = erratum(
+        records=[record_ref(record)], edits=[{"path": "verdict.status", "value": "REJECTED"}]
+    )
+    compile_site([record], tmp_path, errata=[x])
+    (unit,) = (tmp_path / "models").rglob("N117.html")
+    html = unit.read_text()
+    assert "This page shows the record with these corrections:" in html
+    assert '<code>verdict.status</code>: <span class="line-through">"VERIFIED"</span>' in html
+    assert '→ "REJECTED"' in html
+    rows = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
+    assert [r["status"] for r in rows] == ["REJECTED"]
 
 
 def test_a_site_without_errata_mentions_none(tmp_path, record):
@@ -191,6 +260,14 @@ def test_errata_name_real_records_and_commits(repo):
     assert "erratum ruled covers no record" in found
     assert "erratum missing: no commit 1234567 in this clone" in found
 
+    bad = erratum(
+        records=[record_ref(repo["record"])],
+        edits=[{"path": "verdict.nope", "value": 1}],
+        fixed_in=repo["commit"],
+    )
+    write_errata(bad, key=repo["key"])
+    assert "verdict.nope" in problems(base_ref="main")
+
 
 def test_errata_are_append_only(repo):
     first = erratum(id="first", records=[record_ref(repo["record"])], fixed_in=repo["commit"])
@@ -220,3 +297,24 @@ def test_a_revoked_key_still_vouches_for_errata_that_landed_before(repo, monkeyp
     git("switch", "-qc", "pr")
     write_errata(x, erratum(id="new", records=x.records, fixed_in=x.fixed_in), key=repo["key"])
     assert "signature is not trusted" in problems()  # a new signature is checked now
+
+
+def test_reproduce_checks_corrected_records_and_skips_set_aside_ones(record):
+    from openinterp.cli_reproduce import _Reproducer
+
+    def reproducer(*errata):
+        args = {"landed": {}, "tolerance": None, "scan_corpus": None, "allowed_models": ()}
+        return _Reproducer(signers="", device="cpu", errata=list(errata), **args)
+
+    notes: list[str] = []
+    assert reproducer().corrected(record, notes) == (record, None) and notes == []
+    aside = erratum(records=[record_ref(record)])
+    assert reproducer(aside).corrected(record, notes) == (record, "scale-bug")
+    fix = erratum(
+        id="fix",
+        records=[record_ref(record)],
+        edits=[{"path": "verdict.status", "value": "REJECTED"}],
+    )
+    corrected, why = reproducer(fix).corrected(record, notes)
+    assert corrected.verdict.status == "REJECTED" and why is None
+    assert notes == ["checked with the edits of erratum fix"]

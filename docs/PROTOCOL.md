@@ -241,17 +241,20 @@ Records are write-once, so a harness bug found after a record landed can't be fi
 - `bug`: what was wrong, and what it did to the records.
 - `fixed_in`: the commit that fixed the bug.
 - the records it covers. `records` lists paths relative to `wiki/experiments/`. A `rule` selects records by model, unit kind, protocol version, harness version and verdict time (`reviewed_from`, `reviewed_before`). A record matches a rule when it matches every field given. An erratum can have both.
-- `action`: `flag` or `set_aside`. A flagged record still counts toward its unit's status. A record set aside counts toward no status (§3 step 9), unless every experiment on its pole or head is set aside. Then the status rests on them, and the site says so.
+- what to do with the records: `edits` or `set_aside`, never both.
+  - `edits` lists changes to the records. Each has a `path` and a new `value`. The path names keys and list indices in the record's JSON, for example `verdict.status` or `submission.top_examples.0.max_activation`. The field must exist, and the edited record must be valid. An edit can't change `submission.identifier` or `verdict.timestamp`, because they give the record's place. Edits apply in file order.
+  - `set_aside: true` means the records count toward no status (§3 step 9). The exception is when every experiment on a pole or head is set aside. Then the status rests on them, and the site says so.
 
 The process:
 
 1. Fix the bug and merge the fix.
 2. Find the affected records. Prefer a rule when the bug depends on a version or a time, so that the erratum also covers records that no one listed.
 3. Append the erratum to `wiki/errata.jsonl`. Never change or remove a line. To fix an earlier erratum, append a new one.
-4. Sign the file: `openinterp sign wiki/errata.jsonl`. This writes `wiki/errata.jsonl.sig`.
-5. Open a pull request with the two files.
+4. Run `openinterp check --base-ref origin/main`. It applies each edit to every record that the erratum covers.
+5. Sign the file: `openinterp sign wiki/errata.jsonl`. This writes `wiki/errata.jsonl.sig`.
+6. Open a pull request with the two files.
 
-`openinterp check` verifies the file. Each line must parse, ids must be unique, and listed records must exist. A key in `.github/allowed_signers` must sign it, and with `--base-ref` that list comes from the base ref. The signature is checked at the time it landed on `main`, as a record's is. With `--base-ref`, the file is append-only. If the branch changes the file, each erratum must cover at least one record, and its `fixed_in` commit must exist. Errata have no page of their own. They only change the experiments they cover: each one shows the erratum's title, bug and fix commit, and says whether it still counts. `registry.parquet` has an `errata` column. An erratum changes no record and no signature. The standing it changes is derived again at each build.
+`openinterp check` verifies the file. Each line must parse, ids must be unique, and listed records must exist. A key in `.github/allowed_signers` must sign it, and with `--base-ref` that list comes from the base ref. The signature is checked at the time it landed on `main`, as a record's is. With `--base-ref`, the file is append-only. If the branch changes the file, each erratum must cover at least one record, and its edits must apply to each record. Its `fixed_in` commit must also exist. Errata have no page of their own. The record files and their signatures never change. Each build applies the edits to a copy of each covered record, so pages, standings and `registry.parquet` read the edited values. Each covered experiment shows the erratum's title, bug and fix commit. It also shows each edit's old and new value, or says that the record is set aside. `registry.parquet` has an `errata` column. `openinterp reproduce` checks the edited record, and skips a record that is set aside.
 
 A nightly workflow (`.github/workflows/reproduce-nightly.yml`) runs `openinterp reproduce --sample 20` on `main`, because a library upgrade can shift activations in records that no pull request touches. The date chooses the records in rotation, so the registry is covered in about 100 days. Signed records are re-run too, and a bad signature still fails. A record from another protocol version gets its scan evidence and counterfactuals compared, without its review. The run starts no record after 140 minutes (`--time-budget`), so a night that draws several slow records still ends inside its time limit. A record not reached is listed, and waits for its next turn in the rotation. A failed run opens an issue, or comments on the open one. It changes no record or verdict.
 

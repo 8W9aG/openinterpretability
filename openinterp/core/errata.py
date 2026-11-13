@@ -4,22 +4,30 @@ Records cannot be rewritten. A maintainer who finds a bug that affected some of 
 appends an erratum to ``wiki/errata.jsonl``. Then they sign the file with
 ``openinterp sign wiki/errata.jsonl``. Each line is one :class:`Erratum`. It names the
 records it covers (a list of record paths, a :class:`ErratumRule`, or both), the bug, and
-the commit that fixed it.
+the commit that fixed it. It either lists :class:`Edit` objects for the records, or sets
+the records aside.
+
+The record files never change. The site build applies the edits to a copy of each covered
+record (:func:`apply_errata`). So pages, standings and ``registry.parquet`` read the
+corrected values. ``openinterp reproduce`` checks the corrected record, and skips a record
+that is set aside.
 
 ``openinterp check`` verifies the file (:mod:`openinterp.errata_checks`). Errata have no
-page of their own. The site shows each erratum on the experiments it covers. The standing rule
-(:mod:`openinterp.builder.standing`) sets aside the readings of an erratum whose action is
-``set_aside``. An erratum with the action ``flag`` changes no standing.
+page of their own. The site shows each erratum on the experiments it covers, with the old
+and new value of each edit. The standing rule (:mod:`openinterp.builder.standing`) leaves
+out the records that are set aside.
 """
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date as Date
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, JsonValue, model_validator
 
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.strict import StrictModel
@@ -30,11 +38,35 @@ if TYPE_CHECKING:
 ERRATA_FILE = "errata.jsonl"
 """The errata file's name in the wiki directory."""
 
-ACTIONS = {
-    "flag": "This record still counts toward the status.",
-    "set_aside": "This record is set aside: it no longer counts toward the status.",
-}
-"""What an erratum does to the records it covers, with the label the site shows."""
+FIXED_PATHS = ("submission.identifier", "verdict.timestamp")
+"""Fields an edit can't change: they give the record's unit and id, so its place."""
+
+
+class Edit(StrictModel):
+    """One corrected field of a record: its dotted path and its new value.
+
+    The path names keys and list indices of the record's JSON, for example
+    ``verdict.status`` or ``submission.top_examples.0.max_activation``. The field must exist.
+    """
+
+    path: str = Field(pattern=r"^[a-z_]+(\.([a-z_]+|[0-9]+))*$")
+    value: JsonValue
+
+    @model_validator(mode="after")
+    def _not_fixed(self) -> Edit:
+        if any(self.path == p or self.path.startswith(p + ".") for p in FIXED_PATHS):
+            raise ValueError(f"an edit can't change {self.path}: it places the record")
+        return self
+
+
+@dataclass(frozen=True)
+class AppliedEdit:
+    """An edit as applied to one record: which erratum made it, and the value before."""
+
+    erratum: str  # the erratum's id
+    path: str
+    before: Any
+    after: Any
 
 
 class ErratumRule(StrictModel):
@@ -90,7 +122,8 @@ class Erratum(StrictModel):
     title: str = Field(min_length=1, description="One line for the banner.")
     bug: str = Field(min_length=1, description="What was wrong, and what it did to records.")
     fixed_in: str = Field(pattern=r"^[0-9a-f]{7,40}$", description="The commit that fixed it.")
-    action: Literal["flag", "set_aside"]
+    edits: list[Edit] = Field(default_factory=list, description="Corrections to each record.")
+    set_aside: bool = Field(default=False, description="The records count toward no status.")
     records: list[str] = Field(
         default_factory=list,
         description="Covered records, as paths relative to wiki/experiments/.",
@@ -101,6 +134,8 @@ class Erratum(StrictModel):
     def _covers_something(self) -> Erratum:
         if not self.records and self.rule is None:
             raise ValueError("an erratum needs records, a rule, or both")
+        if bool(self.edits) == self.set_aside:
+            raise ValueError("an erratum either lists edits or sets its records aside")
         return self
 
     def covers(self, record: AuditRecord) -> bool:
@@ -143,3 +178,42 @@ def load_errata(wiki_dir: Path | str = DEFAULT_WIKI_DIR) -> list[Erratum]:
 def covering(errata: Sequence[Erratum], record: AuditRecord) -> list[Erratum]:
     """The errata in ``errata`` that cover ``record``, in file order."""
     return [erratum for erratum in errata if erratum.covers(record)]
+
+
+def apply_errata(
+    record: AuditRecord, errata: Sequence[Erratum]
+) -> tuple[AuditRecord, list[AppliedEdit]]:
+    """``record`` with the edits of ``errata`` applied in order, and what each edit changed.
+
+    Returns ``record`` itself when no erratum edits it. Raises ``ValueError`` when an edit's
+    path is not in the record, or the edited record is not valid.
+    """
+    from openinterp.core.schemas import AuditRecord
+
+    edits = [(erratum.id, edit) for erratum in errata for edit in erratum.edits]
+    if not edits:
+        return record, []
+    data = record.model_dump(mode="json")
+    applied = []
+    for erratum_id, edit in edits:
+        before = _replace(data, edit.path, edit.value)
+        applied.append(AppliedEdit(erratum_id, edit.path, before, edit.value))
+    try:
+        return AuditRecord.model_validate_json(json.dumps(data)), applied
+    except ValueError as exc:
+        raise ValueError(f"the edited record is not valid: {exc}") from exc
+
+
+def _replace(data: Any, path: str, value: Any) -> Any:
+    """Set the field at dotted ``path`` in ``data`` to ``value``; return its old value."""
+    *parents, last = path.split(".")
+    node = data
+    try:
+        for part in parents:
+            node = node[int(part)] if isinstance(node, list) else node[part]
+        key = int(last) if isinstance(node, list) else last
+        before = node[key]
+    except (KeyError, IndexError, TypeError, ValueError):
+        raise ValueError(f"the record has no field {path}") from None
+    node[key] = value
+    return before

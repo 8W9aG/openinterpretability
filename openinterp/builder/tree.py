@@ -31,7 +31,7 @@ from openinterp.builder.hrefs import (  # noqa: F401  (re-exported: pages import
 from openinterp.builder.significance import Significance, significance
 from openinterp.builder.standing import native_standings, pole_standing
 from openinterp.builder.wiki import experiment_id
-from openinterp.core.errata import Erratum, covering
+from openinterp.core.errata import AppliedEdit, Erratum, apply_errata, covering
 from openinterp.core.schemas import AuditRecord
 
 if TYPE_CHECKING:
@@ -55,11 +55,12 @@ class Experiment:
     revised_by: list[Experiment] = field(default_factory=list, repr=False, compare=False)
     standing: Standing | None = field(default=None, repr=False, compare=False)  # its pole's
     errata: list[Erratum] = field(default_factory=list, repr=False, compare=False)  # covering it
+    edits: list[AppliedEdit] = field(default_factory=list, repr=False, compare=False)  # theirs
 
     @property
     def set_aside(self) -> bool:
         """Whether an erratum sets this experiment aside, so it counts toward no standing."""
-        return any(erratum.action == "set_aside" for erratum in self.errata)
+        return any(erratum.set_aside for erratum in self.errata)
 
     @property
     def independent(self) -> bool:
@@ -368,7 +369,8 @@ def experiment_order(e: Experiment) -> tuple:
 def build_tree(records: Sequence[AuditRecord], errata: Sequence[Erratum] = ()) -> list[ModelNode]:
     """Group the reviewed records into models, layers and units.
 
-    Each experiment lists the ``errata`` that cover its record (:mod:`openinterp.core.errata`).
+    Each experiment lists the ``errata`` that cover its record (:mod:`openinterp.core.errata`),
+    and holds the record with their edits applied.
     """
     reviewed = [r for r in records if r.verdict is not None]
     latest: dict[str, AuditRecord] = {}
@@ -381,10 +383,11 @@ def build_tree(records: Sequence[AuditRecord], errata: Sequence[Erratum] = ()) -
     units: dict[tuple[str, int, int, str, int], UnitNode] = {}  # neurons, heads, features
     widths = mlp_widths(reviewed)
     for r in reviewed:
-        experiment = _add_experiment(
-            models, units, r, latest[r.submission.identifier.slug] is r, widths
-        )
-        experiment.errata = covering(errata, r)
+        found = covering(errata, r)
+        edited, edits = apply_errata(r, found)
+        is_latest = latest[r.submission.identifier.slug] is r
+        experiment = _add_experiment(models, units, edited, is_latest, widths)
+        experiment.errata, experiment.edits = found, edits
 
     for (name, layer_idx, *_), node in sorted(units.items()):
         _mark_reuse(node.experiments)

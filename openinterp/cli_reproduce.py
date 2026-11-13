@@ -103,6 +103,7 @@ def reproduce(
     import os
 
     from openinterp.cli_evidence import read_corpus
+    from openinterp.core.errata import load_errata
     from openinterp.reproduce import Tolerance
     from openinterp.signing import allowed_signers_text, landing_times
 
@@ -124,6 +125,7 @@ def reproduce(
         device=device,
         include_signed=include_signed or sample is not None,
         measurements_only=sample is not None,
+        errata=load_errata(wiki_dir),
     )
     results, unreached = _check_all(reproducer, paths, in_actions, time_budget)
     failed = sum(bool(problems) for _, problems, _ in results)
@@ -186,6 +188,7 @@ class _Reproducer:
     device: str
     include_signed: bool = False
     measurements_only: bool = False  # for records from another protocol version
+    errata: list = field(default_factory=list)  # wiki/errata.jsonl (core/errata.py)
     runners: dict[tuple, object] = field(default_factory=dict)
 
     def check(self, path: Path) -> tuple[str, list[str], list[str]]:
@@ -209,6 +212,9 @@ class _Reproducer:
             record = AuditRecord.model_validate_json(path.read_text(encoding="utf-8"))
         except ValidationError:
             return "FAILED", ["invalid experiment record"], []
+        record, aside = self.corrected(record, notes)
+        if aside:
+            return f"SET ASIDE by erratum {aside} (reproduction skipped)", [], notes
         reason = self.refusal(record)
         if reason:
             return "FAILED", [reason], notes
@@ -223,6 +229,21 @@ class _Reproducer:
         )
         status = "FAILED" if report.mismatches else "REPRODUCED"
         return status, report.mismatches, notes + report.warnings
+
+    def corrected(self, record, notes: list[str]):
+        """``record`` with its errata's edits, and the id of an erratum that sets it aside.
+
+        A harness fix can change what a record reproduces to. Its erratum's edits give the
+        corrected values, so those are the values to check.
+        """
+        from openinterp.core.errata import apply_errata, covering
+
+        found = covering(self.errata, record)
+        aside = next((x.id for x in found if x.set_aside), None)
+        if aside or not found:
+            return record, aside
+        notes.append(f"checked with the edits of erratum {', '.join(x.id for x in found)}")
+        return apply_errata(record, found)[0], None
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
