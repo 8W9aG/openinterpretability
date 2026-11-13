@@ -13,6 +13,10 @@ The project has two version numbers:
 
 - **A verdict regression check in `openinterp check`** (`openinterp/verdict_regression.py`, #3169). It recomputes each record's metrics, gates and status from its stored probe results and policy, with no model. Every record judged under the current protocol must match, so a change to the gates that would change a verdict fails CI. A PR that bumps `PROTOCOL_VERSION` makes today's records older ones, which the check only reads. All 1,598 protocol-0.8 records match. Under today's rule, 4 of the 866 protocol-0.7 records would be VERIFIED, not NEEDS_REVISION, because protocol 0.8 lets a tie with the confound baseline pass. The check adds about 1 second to `openinterp check`.
 
+### Changed
+
+- **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
+
 ## [0.0.19] - 2026-11-13
 
 Ships with protocol version **0.8**.
