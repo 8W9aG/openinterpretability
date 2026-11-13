@@ -93,6 +93,11 @@ def resolve_device(device: str) -> str:
         if note := devices.notice():
             click.echo(note, err=True)
         device = plan.device
+    if device == "mps" and (stuck := devices.mps_stuck()):
+        click.echo(f"Using the CPU, because {stuck}.", err=True)
+        if devices.ane_possible():
+            devices.force_ane()
+        return "cpu"
     if device == "mps":
         devices.take_lease("mps")
     return device
