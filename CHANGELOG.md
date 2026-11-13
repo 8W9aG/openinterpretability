@@ -9,11 +9,26 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Added
+
+- **Null-explanation controls for `openinterp score`** (`openinterp/score_controls.py`, `--controls`, `docs/analyses/null-explanation-control.md`, #3236). The judge also scores the same held-out windows with no explanation and with another unit's VERIFIED explanation. Each control is stored in `ExplanationScores.controls`, and the summary prints the gaps. Reported, not gated. On 7 VERIFIED Qwen2.5-0.5B poles, with a `claude-haiku-5-5` judge, both controls scored 0.50 on every unit. So this judge gives no credit to structure in the windows. The real explanations scored 0.60 on detection and 0.69 on fuzzing on average, gaps of +0.10 and +0.18. One explanation (L18/N4729+) scored 0.40 on detection, below the controls, because it is broader than where the pole fires.
+
 ### Changed
 
 - **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
+- **`make lint` runs Vale** (`Makefile`, #3149). Before, `make lint` skipped Vale, so a long sentence in a docstring passed locally and failed in CI. `make lint` now needs Vale installed.
 - **A one-line Quickstart** (`README.md`, #3141). Fork the repo, then run `claude "/loop /land-experiment"`. The manual steps stay below it, as *Or run it yourself*.
 - **"Open", not "decentralized"** (`README.md`, `CITATION.cff`, #3143). One repo and one maintainer decide what merges, so the registry is open but not decentralized.
+
+### Removed
+
+- **The home page's "Verified neurons and heads" table** (`index.html`, `openinterp/builder/registry_stats.py`, #3273). It listed every verified unit, so it grew with the registry. The "Verified units" count stays. Verified units are still reachable from the model and layer maps, search and `registry.parquet`.
+
+### Security
+
+- **Actions pinned to commit SHAs, and Dependabot** (`.github/workflows/`, `.github/dependabot.yml`, #3176). A tag such as `actions/checkout@v4` can be moved, and CI decides which records to trust. Each action now names a full SHA, with its version as a comment. Dependabot opens a weekly PR for the actions and for `uv.lock`.
+- **A secret scan on every pull request** (`.github/workflows/secret-scan.yml`, `.gitleaks.toml`, #3181). gitleaks checks the commits each PR adds. Run by hand, it scans the whole history. Paths that quote corpus text are left out.
+- **Timeouts on the "Lint and tests" and deploy jobs** (#3180): 30 and 60 minutes, so a hung step fails early.
 
 ## [0.0.19] - 2026-11-13
 

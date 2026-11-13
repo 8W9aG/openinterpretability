@@ -56,6 +56,26 @@ class JudgeScore(StrictModel):
     recall_by_quantile: list[UnitFloat | None]
 
 
+class ControlScore(StrictModel):
+    """The judge's scores for a control explanation, on the same windows as the real one.
+
+    A control shows how much of a score comes from the windows and not from the
+    explanation. ``empty`` gives the judge no explanation. ``other_unit`` gives it the
+    explanation of another unit of the same model. A real explanation should score well
+    above both.
+    """
+
+    kind: str = Field(description="'empty' or 'other_unit'.")
+    explanation: str = Field(description="What the judge saw; '' for the empty control.")
+    source_slug: str | None = Field(
+        default=None, description="other_unit: the unit whose explanation this is."
+    )
+    detection_judged: list[bool] = Field(default_factory=list)
+    fuzzing_judged: list[bool] = Field(default_factory=list)
+    detection: JudgeScore | None = None
+    fuzzing: JudgeScore | None = None
+
+
 class ExplanationScores(StrictModel):
     """Delphi-style scores of ``explanation`` on windows the proposer never saw.
 
@@ -86,6 +106,11 @@ class ExplanationScores(StrictModel):
     )
     detection_windows: list[ScoredWindow] = Field(default_factory=list)
     fuzzing_windows: list[ScoredWindow] = Field(default_factory=list)
+    controls: list[ControlScore] = Field(
+        default_factory=list,
+        description="The same windows judged with control explanations (openinterp score "
+        "--controls). Each control's answers are scored against these windows' labels.",
+    )
     costs: ExperimentCosts | None = Field(
         default=None,
         description="What scoring cost; a review moves it into the record's provenance.",
