@@ -44,8 +44,44 @@ def _wikitext_article(rows: Sequence[str | None]) -> str:
     return "\n\n".join(paragraphs)
 
 
+# The parts of a book that are left out: its first 10% and its last 5%. They hold its front
+# matter (producer credits, title page, contents, preface) and back matter (notes, index).
+BOOK_FRONT = 0.10
+BOOK_BACK = 0.05
+PASSAGE_CHARS = 3000  # a passage's length, at most: the default of `openinterp corpus --max-chars`
+_PARAGRAPH_BREAK = re.compile(r"\n[ \t]*\n")
+_LINE_BREAK = re.compile(r"[ \t]*\n[ \t]*")
+
+
+def book_passages(rows: Sequence[str | None]) -> list[str]:
+    """Return passages from the body of each book in ``rows``, in order.
+
+    A book is one row, often hundreds of thousands of characters. Cut to its start, it
+    would give only front matter. So each book loses its first :data:`BOOK_FRONT` and last
+    :data:`BOOK_BACK`. The paragraphs at those cuts can be partial, so they are dropped
+    too. The paragraphs left join into passages of at most :data:`PASSAGE_CHARS`, which
+    always start and end at a paragraph break. A longer paragraph is a passage alone. The
+    books' lines are wrapped at about 70 characters, so a line break within a paragraph
+    becomes a space. Verse loses its line breaks too.
+    """
+    passages = []
+    for book in rows:
+        text = book or ""
+        body = text[int(len(text) * BOOK_FRONT) : len(text) - int(len(text) * BOOK_BACK)]
+        paragraphs = [_LINE_BREAK.sub(" ", p).strip() for p in _PARAGRAPH_BREAK.split(body)]
+        passage: list[str] = []
+        for paragraph in filter(None, paragraphs[1:-1]):
+            if passage and len("\n\n".join([*passage, paragraph])) > PASSAGE_CHARS:
+                passages.append("\n\n".join(passage))
+                passage = []
+            passage.append(paragraph)
+        if passage:
+            passages.append("\n\n".join(passage))
+    return passages
+
+
 # Row layouts other than one document per row: rows of one row group -> its documents.
-LAYOUTS = {"wikitext": wikitext_articles}
+LAYOUTS = {"wikitext": wikitext_articles, "book_passages": book_passages}
 
 
 def chat_formatter(model: str, revision: str | None = None):
