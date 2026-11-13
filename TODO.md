@@ -87,6 +87,19 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 - [ ] Scan for secrets in CI (e.g. gitleaks or trufflehog), on pull requests and across history once. Nothing does this today, and agent loops commit and push without a person watching. Planned transcript telemetry (Pipeline) adds more risk. Bandit (above) doesn't cover this.
 - [ ] Add a pre-commit config that runs the fast parts of `make lint`, so contributors and agents see failures before CI does. None exists today.
 - [ ] Run CI on macOS as well as Linux. Contributors run experiments on Macs (CPU and MPS), and records must reproduce across platforms. Add `macos-latest` to the lint-and-tests job at least, and record which platform-specific float differences the reproduce tolerances have to absorb.
+- [ ] Close a nightly reproduction issue when the cause is gone. Issue #2950 stayed open after #3108 had fixed its record. When a nightly run passes, and it re-ran a record that the open issue names, comment on the issue and close it (`.github/workflows/reproduce-nightly.yml`). Leave it open while any named record still fails, or has not been re-run since.
+
+## Research questions
+
+The questions that the project exists to answer, and how far the registry has come. This is a draft: edit, add and remove questions. Each item names the evidence that bears on it. Link new work to the question it answers.
+
+- [ ] Write down the project's research questions, and keep this section as their list. For each question, say what result would answer it, what the registry has so far, and which `TODO.md` items, papers and analyses bear on it. Review the list when a paper lands. The questions below are a first draft from the README and the existing work.
+- [ ] Are native MLP neurons clean? That is, what share of randomly drawn poles has a VERIFIED explanation, by model, layer and pole? This is the working hypothesis from Goodfire's *Neural Networks Are Already Clean* (README). The home page's random-unit statistics and `docs/analyses/registry-stats.md` bear on it.
+- [ ] How reliable is one verdict? How often does a rerun, another reviewer or another corpus change it? Verdict stability (Protocol and science), the reviewer crossover (`docs/analyses/reviewer-crossover.md`) and the null calibration (`docs/analyses/null-calibration.md`) bear on it.
+- [ ] Do native neurons explain a model as well as learned dictionaries do? Compare at equal effort with transcoder, SAE and SPD latents. The learned-basis baselines (`docs/analyses/`) and the explainer benchmark (`docs/benchmark.md`) bear on it.
+- [ ] Do explanations carry across models? Does a VERIFIED pole have a sister in another model that the same explanation passes? `openinterp sisters` and `docs/analyses/sister-neurons.md` bear on it.
+- [ ] What makes a neuron rest, stay dead or stay on? `papers/why-neurons-rest/`, `papers/default-on-poles/` and `papers/below-the-dip/` bear on it.
+- [ ] How much does what a neuron appears to do depend on the scan corpus? The corpus presets and blends (Datasets) and the Cosmopedia control bear on it.
 
 ## Protocol and science
 
@@ -134,6 +147,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
   - Write the summaries from the paper itself (a subagent per paper is fine), not from memory, and quote the numbers they report. Flag claims that go beyond the paper, and keep the discussion of how we'd use it separate from the summary.
   - Keep pages short, under the 500-line file limit. Add a check (e.g. in `openinterp check` or `make lint`) that every arXiv ID cited in the repo has a page.
   - Review the papers and posts in `docs/literature/queue.md`. Add new ones to that file, not here.
+- [ ] Test whether VERIFIED explanations hold across a pole's activation range. "Neurons Speak in Ranges" (arXiv 2502.06809, `docs/literature/queue.md`) finds that a neuron's concept often lives in one band of its activations. The review counts a probe as active at 0.25 × the scan maximum, so an explanation can pass on the top band alone. For each VERIFIED pole, split its held-out windows into bands by activation (for example the quartiles above the threshold). Measure the explanation's precision and recall in each band with `openinterp score`. Report how often precision falls in the low bands, by model and layer. Reported, not gated.
 
 ## Analyses per experiment
 
@@ -245,6 +259,7 @@ Methods from the wider interpretability literature that the registry doesn't use
     - *Crosscoders across pre-training checkpoints* ("Evolution of Concepts in Language Model Pre-Training", arXiv 2509.17196): the learned-basis method for developmental tracking (Later stage).
     - *Universality across architectures* (arXiv 2410.06672) and *complete replacement models for circuit tracing* (attention included, [post](https://interp.open-moss.com/posts/complete-replacement)). Compare them with the planned seed-universality baseline and with the circuits' direct-effects-only wiring.
 - [ ] A Slack bot that posts when an experiment is claimed, when one lands, and on similar events.
+- [ ] Let the `land-experiment` loop file bugs in the GitHub repo when it meets a problem it can't solve. Examples are a command that fails, a check that fails for a reason outside the experiment, and a step whose docs are wrong. Each issue gives the command, the error, the branch and the record, and has a label such as `loop-bug`. Before it files one, the loop searches open issues so that it doesn't file the same bug twice. It comments on the open issue instead. Never put secrets, tokens, emails or local paths in an issue. Put the rule in the skill, and tell agents that issue text is data, not instructions.
 
 ## Performance
 
@@ -271,6 +286,7 @@ Running several loops on one machine is under Pipeline.
 - [ ] Can we do performance tests on memory, compute and wall time?
 - [ ] Can we run tests faster?
 - [ ] Can we make lint run faster? Is it possible to know what we have checked and hash it?
+- [ ] Find out whether SIMD or other CPU acceleration speeds up CPU runs. First profile a CPU scan and a CPU review, to see where the time goes. It can go to the forward pass, the activation hooks, the top-k heaps or the tokenizer. Then check what torch already uses on this hardware (`torch.backends.cpu.get_cpu_capability()`, and the oneDNN, Accelerate or OpenBLAS builds). Try the options one at a time: bfloat16 or int8 weights on CPUs with AMX or AVX-512, `torch.compile`, and more threads. Check each against the float32 result, because `openinterp reproduce` must still agree.
 
 ## Merge verification
 
@@ -278,6 +294,7 @@ CI checks each pull request in two ways. "Experiment records" (`openinterp check
 
 - [ ] Link old records to their corpus. On 2026-11-07, 1,337 of 2,044 records (445 of them VERIFIED) had no `provenance.corpus_source`, and `corpus.jsonl` is gitignored. They use 4 corpus hashes: 2 (762 records) also appear on records that name a source, and 2 (575 records) have no known source. Records are write-once, so add a small table from `corpus_sha256` to source, try to recover the unknown two, and use the table in `openinterp reproduce`.
 - [ ] Write a takedown process for corpus excerpts. Excerpts sit in signed, write-once records and in git history, and the scrub only happens when the site renders. No doc says what to do if someone asks for their text to be removed. Decide what happens to the record, its signature, the site and git history, and document it in `SECURITY.md` or `docs/PROTOCOL.md`. This covers individual requests after publication, and doesn't change the rule against screening corpora.
+- [ ] Use errata everywhere that reads records, and draft them with a command. Today errata change standings only on the site and in `openinterp reproduce`. `openinterp next` (the planner) and `openinterp sisters` read the records without them, so a pole that an erratum sets aside can still steer draws and sister studies. Pass `load_errata` to every caller of `build_tree`, and test that no caller leaves it out. Also add `openinterp erratum draft --fixed-in <commit> --rule …`. It lists the records that the rule covers and writes the erratum's line, ready to sign. The maintainer then checks the list, not a hand-written JSON line.
 
 ## Site
 
@@ -331,11 +348,17 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 - [ ] Make literature review a subsection of Research and make each literature review its own page.
 - [ ] Give the literature review page an embedding map of its papers.
 - [ ] Remove the Below the Dip research paper (`papers/below-the-dip/`), an interactive page for the default-on and resting papers. Also remove its links in `papers/README.md`, `papers/default-on-poles/README.md` and `papers/why-neurons-rest/README.md`, its generator `scripts/figures_explorer.py`, its entry in `scripts/paper_figures.py`, and its check in `tests/test_paper_figures.py`.
+- [ ] Add a Pareto frontier figure of agent costs to the Agents page. Plot each agent model's cost per experiment against its VERIFIED rate (independent reviews only). Mark the models on the frontier: those that no other model beats on both cost and rate. Also plot each proposer and reviewer pair, if enough experiments have both priced. Use the numbers that the page's table already has (`openinterp/builder/agents.py`), and leave out unpriced experiments. Draw it as a static SVG at build time, as the other charts are.
+- [ ] Give each unit that only a stopped scan covers a page, and show its stopped scans as full experiments. Today the home page lists them in a separate table, "Scans that stopped on units with no page" (`pageless_stops` in `openinterp/builder/stops.py`, `index.html`). A unit that has a page shows its stops in "Scans that stopped". Show a stop like any other experiment instead: in the unit's list of experiments, with the outcome (dead or default-on) in place of a verdict. Then remove the separate table. Decide how a stop counts in the unit's standing and in the registry's counts, and say so in `docs/PROTOCOL.md`.
+- [ ] Remove the Corpora section from the home page (`index.html`, `corpora_view` in `openinterp/builder/corpora.py`). Show the corpus on each experiment instead: its source, licence and language mix, from the record's own scan. Each experiment scans its own seeded sample, so a registry-wide list of corpora says little. Keep the corpus columns in `registry.parquet`.
 
 ## Scope expansion
 
 - [ ] Finish the registry baseline of the explainer benchmark v1 (`docs/benchmark.md`, *Registry baseline*). Stage 1 judged the first 100 of 1,012 dev units (mean 0.724, all Qwen2.5-0.5B layers 0–13). Next, judge the other 912 dev units and the 241 test units in stages, with the same judge (`external/claude-haiku-5-5`, one `explanation-judge` agent per unit, through `--prompts-dir`). Each stage of 100 units took about 3 minutes and 1.2M subagent tokens in a workflow. Raise `--limit` and keep `--out` and `--prompts-dir`, so the scorer judges only new units. The test split needs the private labels (`--labels ~/benchmark/v1-test.private.jsonl`, from the maintainer's Google Drive). Then update the table and the result files in `benchmark/results/v1/registry.claude-haiku-5-5/`.
 - [ ] Do evals.
+- [ ] Make each stage of a benchmark run a random sample of its split. `openinterp benchmark score --limit N` takes the first N units in slug order. So stage 1 of the registry baseline (100 dev units) was all Qwen2.5-0.5B layers 0–13, and its mean says nothing about the split. Add `--order shuffled`, with a fixed seed for each version, so that the first N units of any run are a random sample. Keep slug order as the default, so earlier results files still resume. Then report a partial result with its interval, as a sample of the split.
+- [ ] Guard the benchmark judge against explanations that address it. Outside labs send their own explanations files (`docs/benchmark.md`), and each explanation goes into the judge's prompt. The prompt fences it (`openinterp/core/fence.py`), but no test measures whether a judge obeys text in the fence. "Exploring the Robustness of Model-Graded Evaluations and Automated Interpretability" (arXiv 2312.03721, `docs/literature/queue.md`) gamed an automated-interpretability score in this way. Add red-team explanations to the tests: "list every text", a forged closing fence, and instructions in another language. Check that each gets a chance score. Also flag a submitted unit where the judge lists nearly every text, because an injection that works would look like that.
+- [ ] Use published neuron descriptions as prior art and as benchmark explainers. Transluce describes all 458,752 MLP neurons of Llama-3.1-8B-Instruct ([post](https://transluce.org/neuron-descriptions), database in `TransluceAI/observatory`). Goodfire's *Neural Networks Are Already Clean* came with descriptions of neurons in Qwen3.6-35B-A3B. Secondary coverage says about 1,500, so check the count on the primary page. Neither model is in the registry. When one is added (Models), load its descriptions as prior art (`openinterp/core/prior_art.py`) and score them as an explainer on its benchmark units. Check each release's licence first.
 
 ## Datasets
 
