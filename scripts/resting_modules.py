@@ -136,3 +136,31 @@ class CentredNorm(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Return the norm of ``x``, ``[batch, seq, d_model]``, less its mean over tokens."""
         return self.norm(x - x.mean((0, 1), keepdim=True))
+
+
+def parallel_forward(
+    self,
+    hidden_states,
+    past_key_values=None,
+    attention_mask=None,
+    encoder_hidden_states=None,
+    encoder_attention_mask=None,
+    use_cache=False,
+    **kwargs,
+):
+    """Run a GPT-2 block with GPT-NeoX's parallel residual: x + attn(ln_1(x)) + mlp(ln_2(x))."""
+    attn, _ = self.attn(
+        self.ln_1(hidden_states),
+        past_key_values=past_key_values,
+        attention_mask=attention_mask,
+        use_cache=use_cache,
+        **kwargs,
+    )
+    return hidden_states + attn + self.mlp(self.ln_2(hidden_states))
+
+
+def warmup(optimizer: torch.optim.Optimizer, steps: int):
+    """Return a schedule that grows the learning rate linearly over ``steps``, or None."""
+    if not steps:
+        return None
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / steps))
