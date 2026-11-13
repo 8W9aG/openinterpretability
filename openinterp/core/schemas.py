@@ -46,6 +46,7 @@ from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
 from openinterp.core.patchscope import PatchscopeReadout
 from openinterp.core.prior_art import PriorArtField
 from openinterp.core.profiles import DictionaryProfile, DictionarySite, HeadProfile  # noqa: F401
+from openinterp.core.run_environment import RunEnvironment  # noqa: F401  (re-exported)
 from openinterp.core.specificity import WordnetSpecificity, WordStrength  # noqa: F401
 from openinterp.core.steering import SteeringSamples
 from openinterp.core.strict import StrictModel, UnitFloat
@@ -100,23 +101,6 @@ class LookaheadProfile(StrictModel):
     is_lookahead: bool
     target_upcoming_tokens: list[str] = Field(default_factory=list)
     kl_divergence: float = Field(ge=0.0)
-
-
-class RunEnvironment(StrictModel):
-    """Where a measurement ran.
-
-    Reproducing a record pins the model revision and dtype. The device and library
-    versions explain drift that a different setup can cause.
-    """
-
-    device: str
-    dtype: str = Field(description="Dtype of the loaded weights, e.g. float32.")
-    model_revision: str | None = Field(default=None, description="Hugging Face commit hash.")
-    openinterp_version: str
-    torch_version: str
-    transformers_version: str | None = None
-    streamed: bool | None = Field(default=None, description="Layers read from disk per pass.")
-    experts_implementation: str | None = Field(default=None, description="MoE experts forward.")
 
 
 class ExperimentProvenance(StrictModel):

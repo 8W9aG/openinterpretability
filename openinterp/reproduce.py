@@ -313,7 +313,10 @@ def _compare_environment(record: AuditRecord, now: RunEnvironment, report) -> No
     if then is None:
         report.warnings.append("record predates environment pinning; device and versions unknown")
         return
-    for name in ("device", "torch_version", "transformers_version", "experts_implementation"):
+    names = ("device", "device_name", "torch_version", "transformers_version")
+    for name in (*names, "experts_implementation"):
+        if name == "device_name" and then.device_name is None:  # recorded before 0.0.19
+            continue
         if getattr(then, name) != getattr(now, name):
             report.warnings.append(
                 f"{name}: recorded {getattr(then, name)}, now {getattr(now, name)}"
