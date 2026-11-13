@@ -4,11 +4,11 @@
 
 **Status.** Not applicable. It is a preprint on model architecture, with no venue given. It trains new models with an added memory module, and its interpretability content is a short analysis section (logit lens, CKA, ablation, gate heatmaps). The repository has a demo of the module with the backbone stubbed out. It has no trained weights.
 
-**Read.** A text extraction of the v2 PDF, including all appendices, on 2026-11-13. The figures are images, so numbers below come from the text, the tables and the figure labels that the extraction kept. The code's README was read; the code was not.
+**Read.** A text extraction of the v2 PDF, including all appendices, on 2026-11-13. The figures are images, so numbers below come from the text, the tables and the figure labels that the extraction kept. We read the code's README but not the code.
 
 ## Summary
 
-**Claim.** Transformers have no primitive for looking up static knowledge, so they rebuild it with computation in their early layers. A hashed N-gram embedding table ("Engram"), added beside Mixture-of-Experts (MoE), takes over that work. With total parameters and per-token FLOPs fixed, moving part of the MoE's inactive parameters into Engram lowers loss and raises benchmark scores, including reasoning, code and maths.
+**Claim.** Transformers have no primitive for looking up static knowledge, so they rebuild it with computation in their early layers. A hashed N-gram embedding table ("Engram"), added beside Mixture-of-Experts (MoE), takes over that work. Total parameters and per-token FLOPs stay fixed. Moving part of the MoE's inactive parameters into Engram then lowers loss and raises benchmark scores, including reasoning, code and maths.
 
 **Method.**
 
@@ -40,7 +40,7 @@ These are our observations, not the paper's.
 
 - **Benchmark gaps from one run each.** Most Table 1 differences between Engram-27B and MoE-27B are 1–5 points, one checkpoint per model. Appendix B shows the last 10k steps of each benchmark, which helps, but they are still single runs. On BBH (about 6,500 items), one accuracy near 0.5 has a standard error of about 0.6 points (our calculation). On HumanEval (164 problems) it is about 3.8 points, so the +3.0 there is within noise.
 - **The abstract's MMLU number differs from the table.** The abstract and introduction say MMLU +3.4. Table 1 gives 57.4 → 60.4, +3.0, and Section 4.2 says +3.0. +3.4 is the MMLU-Redux gap.
-- **"Iso-FLOPs" isn't itemised.** Activated parameters are given as 3.8B for every model, "w/o token embed". The paper doesn't say whether Engram's key and value projections, the four gates and the convolution are inside that count, or how many FLOPs they add per token. The embedding rows also train with Adam at 5× the learning rate, while the backbone uses Muon.
+- **"Iso-FLOPs" isn't itemised.** Activated parameters are given as 3.8B for every model, "w/o token embed". Engram's key and value projections, four gates and convolution add FLOPs per token. The paper doesn't say whether they are inside that count, or how many FLOPs they add. The embedding rows also train with Adam at 5× the learning rate, while the backbone uses Muon.
 - **A "law" from two budgets.** The U-shape comes from two compute budgets, single runs and a loss gain of 0.0139 at its best. It shows a stable optimum over the two scales tried, not a scaling law. The "strict power law" for slots covers about 1.6 orders of magnitude.
 - **One table caption overstates.** Table 2 says Engram-27B at iso-loss and iso-FLOPs "substantially outperforms the baseline across all metrics". At iso-loss (46k), single-needle NIAH is 97.6 against 100.0, and common-words extraction 4.3 against 4.5. At 50k, single-needle is 99.3 against 100.0. The largest gain is frequent-words extraction (73.0 → 98.6).
 - **Iso-loss on a step schedule.** The 46k checkpoint is chosen because its pre-training loss matches MoE-27B at 50k. Under step decay, a mid-training checkpoint and a fully decayed one at the same loss need not be in the same state. The paper shows one such pair.
@@ -56,7 +56,7 @@ These are our observations, not the paper's.
 
 **Not applicable as a method or a model.** The registry explains native units of pretrained models at pinned revisions (`docs/PROTOCOL.md`). The configured models are Qwen2.5-0.5B, Qwen2.5-1.5B and GPT-2 (`pyproject.toml`, `[tool.openinterp] models`). None has an Engram module, and no Engram weights are released, so there are no gates or memory rows to audit.
 
-**Its premise is a claim about our models' early layers, which the registry could check.** The paper argues that standard transformers spend early layers on local, static patterns: multi-token entities and set phrases. The registry's random draws make this testable without an Engram model. Among VERIFIED poles, what share in the first few layers are explained as completing a local N-gram or multi-token name, and how does that share change with depth? `neuron-family-triage` already lists token and N-gram detectors (Voita et al., Gurnee et al.). The N2G baseline item (`TODO.md`, *Protocol and science*) would give the floor for that question: how much of a VERIFIED explanation a token-pattern matcher already predicts. No `TODO.md` item asks the depth question itself.
+**Its premise is a claim about our models' early layers, which the registry could check.** The paper argues that standard transformers spend early layers on local, static patterns: multi-token entities and set phrases. The registry's random draws make this testable without an Engram model. Take the VERIFIED poles in the first few layers. What share are explained as completing a local N-gram or multi-token name? And how does that share change with depth? `neuron-family-triage` already lists token and N-gram detectors (Voita et al., Gurnee et al.). The N2G baseline item (`TODO.md`, *Protocol and science*) would give the floor for that question: how much of a VERIFIED explanation a token-pattern matcher already predicts. No `TODO.md` item asks the depth question itself.
 
 **Two habits of the analysis section are illusions our reviewer looks for.**
 
