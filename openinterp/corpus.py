@@ -49,7 +49,8 @@ DEFAULT_SAMPLE_SEED = 0
 
 
 # Document fields a corpus may carry besides "text", and the label set each gives the scan
-# (`harness/annotations.py`). Exact labels from the dataset, never detected.
+# (`harness/annotations.py`). Labels from the dataset, or detected where the source
+# sidecar names a detector (`lang_detector`, `code_detector`).
 DOCUMENT_LABELS = {
     "lang": LANGUAGE,
     "source": SOURCE,
@@ -277,6 +278,7 @@ def build_from_hub(
     lang_pattern: str | None = None,
     detect_lang: bool = False,
     code_language_column: str | None = None,
+    detect_code: bool = False,
     chat_template: str | None = None,
     chat_template_revision: str | None = None,
 ) -> CorpusSource:
@@ -286,6 +288,8 @@ def build_from_hub(
     each document records its glob's language as ``lang``. With ``detect_lang``, ``lang``
     is the language that :mod:`openinterp.langid` detects, where it is sure of one. With
     ``code_language_column``, each document records that column's value as ``code_language``.
+    With ``detect_code``, ``code_language`` is the programming language that
+    :mod:`openinterp.codeid` detects, where it is sure of one.
     With ``chat_template``, a model ID, ``text_column`` holds conversations. That model's
     chat template writes each one as a document. The template comes from the model's
     commit ``chat_template_revision`` (default: its latest commit, pinned on use).
@@ -304,6 +308,7 @@ def build_from_hub(
         lang_pattern=lang_pattern,
         detect_lang=detect_lang,
         code_language_column=code_language_column,
+        detect_code=detect_code,
         chat_template=chat_template,
         chat_template_revision=chat_template_revision,
     )
@@ -325,6 +330,7 @@ def _sample_hub(
     lang_pattern: str | None = None,
     detect_lang: bool = False,
     code_language_column: str | None = None,
+    detect_code: bool = False,
     chat_template: str | None = None,
     chat_template_revision: str | None = None,
 ) -> tuple[list[str], dict | None, dict]:
@@ -332,10 +338,8 @@ def _sample_hub(
 
     Also returns the fields of their :class:`CorpusSource`, except those of the written file.
     """
-    _check_options(layout, lang_pattern, detect_lang, code_language_column, chat_template)
-    chat, chat_template_revision = (
-        chat_formatter(chat_template, chat_template_revision) if chat_template else (None, None)
-    )
+    _check_options(layout, lang_pattern, detect_lang, code_language_column, detect_code)
+    chat, chat_template_revision = _chat(chat_template, chat_template_revision, layout)
     from huggingface_hub import HfApi, HfFileSystem
 
     api = HfApi()
@@ -350,8 +354,7 @@ def _sample_hub(
     take = partial(reader, fs, **read)
     texts, globs = _read_globs(fs, f"{dataset}@{info.sha}", files, documents, take)
     labels, detector = _document_labels(texts, globs, lang_pattern, detect_lang)
-    if code_language_column:
-        labels["code_language"] = code_languages
+    code_detector = _code_labels(labels, texts, code_language_column, code_languages, detect_code)
     source = dict(
         dataset=dataset,
         revision=info.sha,
@@ -365,6 +368,7 @@ def _sample_hub(
         lang_pattern=lang_pattern,
         lang_detector=detector,
         code_language_column=code_language_column,
+        code_detector=code_detector,
         chat_template=chat_template,
         chat_template_revision=chat_template_revision,
         license=", ".join(license_) if isinstance(license_, list) else license_,
@@ -372,14 +376,29 @@ def _sample_hub(
     return texts, labels or None, source
 
 
-def _check_options(layout, lang_pattern, detect_lang, code_language_column, chat_template):
-    """Raise ``ValueError`` for options of :func:`_sample_hub` that can't go together."""
+def _check_options(layout, lang_pattern, detect_lang, code_language_column, detect_code):
+    """Raise ``ValueError`` for labelling options of :func:`_sample_hub` that can't go together."""
     if lang_pattern and detect_lang:
         raise ValueError("a corpus's languages come from lang_pattern or detect_lang, not both")
+    if code_language_column and detect_code:
+        raise ValueError(
+            "a corpus's programming languages come from code_language_column or detect_code, "
+            "not both"
+        )
     if code_language_column and layout:
         raise ValueError("a layout joins rows, so a column can't label its documents")
-    if chat_template and layout:
+
+
+def _chat(chat_template: str | None, revision: str | None, layout: str | None):
+    """Return the chat formatter of ``chat_template`` and its pinned revision, or ``None``s.
+
+    Raises ``ValueError`` with a ``layout``, which joins rows of text, not conversations.
+    """
+    if not chat_template:
+        return None, None
+    if layout:
         raise ValueError("a layout joins rows of text, not conversations")
+    return chat_formatter(chat_template, revision)
 
 
 def _document_labels(
@@ -391,6 +410,24 @@ def _document_labels(
 
         return {"lang": langid.detect(texts)}, langid.DETECTOR
     return ({"lang": [_glob_lang(lang_pattern, g) for g in globs]} if lang_pattern else {}), None
+
+
+def _code_labels(
+    labels: dict, texts: list[str], column: str | None, exact: list, detect_code: bool
+) -> str | None:
+    """Add each document's programming language to ``labels``, if the corpus has them.
+
+    With a dataset ``column``, ``exact`` holds its values. With ``detect_code``,
+    :mod:`openinterp.codeid` detects the languages. Returns the detector, or ``None``.
+    """
+    if column:
+        labels["code_language"] = exact
+    elif detect_code:
+        from openinterp import codeid
+
+        labels["code_language"] = codeid.detect(texts)
+        return codeid.detector()
+    return None
 
 
 def _read_globs(fs, repo: str, files: str, documents: int, take):

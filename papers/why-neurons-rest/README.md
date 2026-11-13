@@ -18,10 +18,15 @@
 12. **The push has two terms, and each one-sided activation has at least one that points down.** On each token, the push is the output's gradient times the activation's slope. The slope term is the output's push times the mean slope. The spread term comes from tokens whose slope differs from the mean. For ReLU and softplus, the output's push points down all through training, and the slope term carries the push. For GELU and SiLU, the output's push points up, and the spread term carries the push down. For tanh, both terms are 0.
 13. **A neuron's mean output decides which term carries the push.** ReLU and softplus have large mean outputs at init, and GELU and SiLU small ones. Adding a constant to the output leaves the activation's shape the same. ReLU shifted to GELU's mean output then gets GELU's pattern: its output's push points up, and it rests about a third shallower. GELU shifted to ReLU's mean output loses its up phase and rests about twice as deep. One cause is a weak pull of the loss on the MLP's mean output toward 0, which holds in every window of every run.
 14. **The push survives at depth only if the slope does.** Held at −1, ReLU keeps a ninth of its push at 0, and at −2 none. Softplus keeps three quarters of its push even at −4, because every token still has a slope. So softplus keeps sinking long after ReLU slows, and rests about twice as deep as its mean push predicts. Leaky ReLU at slope 0.1 is pushed back up at −1, where its mean output turns negative. So it settles between 0 and −1.
+15. **The pull on the mean output goes through the final LayerNorm and dropout.** With dropout at 0, the pull stays, but it is weaker: ReLU's cosine falls from +0.072 to +0.043, on two seeds. When the final LayerNorm can't see a constant and nothing drops out, the pull stops. The block LayerNorms alone don't make it. With both routes closed, the push on ReLU's rest keeps its pace, so the pull is not needed for the rest.
+16. **At its trained weights, GPT-2 small has no steady push and no pull.** The slope term points up and the spread term down, as for the small GELU models, but they cancel. Half of its neurons are pushed down, and the cosine of the mean output with its gradient is negative in all 12 layers.
+17. **Pythia-70m's checkpoints don't show the push clearly.** Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model. So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. Pythia's warm-up and AdamW settings don't weaken the push in a small model.
+18. **The final LayerNorm's pull comes from the unigram prior.** An offset along the MLPs' mean output costs loss through the final LayerNorm only by moving its input. That move adds a fixed logit vector that follows token frequency (r = +0.75 to +0.91). The larger divisor flattens the logits and lowers the loss. The later blocks' LayerNorms use the same offset, and it lowers their loss. So they don't make the pull.
+19. **The spread term comes from tokens with a low slope, not from the steepest tokens.** For GELU and SiLU, the output's push points up mostly on tokens below the rest. Their slope is below the mean, so they make the spread term point down. In GELU's dip their slope is negative, so they push h down directly. The steepest tokens, from 0.75 to 1.5, make the spread term point up. Two seeds agree to 0.13 (10⁻⁶) in each bin.
 
 ![GELU, ReLU and tanh curves, with the rest of layers L1 to L3 marked on each](media/activations.svg)
 
-**Why neurons rest low.** Training keeps up a weak push on each neuron's rest that is steady over many steps. Under AdamW, a steady sign is what moves a parameter. So at each step the rest drifts by about the learning rate times the push's steadiness. Two terms make up the push. When a neuron's mean output is large, the output's own gradient points down, partly because the loss pulls the MLP's mean output toward 0. When the mean output is small, the tokens on the steep part of the activation carry a push down instead. Neither term needs a dip or a floor, and tanh, with a symmetric shape and a mean output of 0, gets neither. The rest slows when few tokens keep a slope to carry the push. So ReLU slows near 1.6 SDs below its mean, and softplus keeps going. Leaky ReLU at slope 0.1 can make its mean output negative, so it stops where its mean output is near 0. Two causes stay open. We don't know why the loss wants the MLP's mean output removed, but LayerNorm doesn't explain it. We also don't know why the steepest tokens get a gradient that points down.
+**Why neurons rest low.** Training keeps up a weak push on each neuron's rest that is steady over many steps. Under AdamW, a steady sign is what moves a parameter. So at each step the rest drifts by about the learning rate times the push's steadiness. Two terms make up the push. When a neuron's mean output is large, the output's own gradient points down, partly because the loss pulls the MLP's mean output toward 0. When the mean output is small, the output's push points up instead. It points up most on tokens below the rest, where the slope is low, so it moves h less than the mean slope predicts. In GELU's dip the slope is negative, and there a push up on the output is a push down on h. Neither term needs a dip or a floor, and tanh, with a symmetric shape and a mean output of 0, gets neither. The rest slows when few tokens keep a slope to carry the push. So ReLU slows near 1.6 SDs below its mean, and softplus keeps going. Leaky ReLU at slope 0.1 can make its mean output negative, so it stops where its mean output is near 0. The loss pulls the MLP's mean output toward 0 through the final LayerNorm and through dropout, and the block LayerNorms don't take part. A constant offset at the final LayerNorm raises the loss because it adds the model's unigram prior to every token's logits. The section *What the final LayerNorm does with a constant* shows this. One cause stays open. We don't know why the output's push points up most on tokens below the rest.
 
 ## Method
 
@@ -35,9 +40,12 @@ The script is `scripts/train_resting.py`. Its output is in `results.jsonl`. `scr
 - **Push.** With `--push-every 100`, each run also records the gradient on each neuron's rest at every step, and how far the step moves the rest. It writes a summary of each 100 steps as a `push` row (*The push on the rest*). Recording doesn't change training: a 500-step GELU run with it matched the earlier run's loss and rests exactly.
 - **Centred conditions.** h is centred per neuron over each batch, then moved to a rest. That rest is fixed for `rest_0` and `rest_-1`, and is a parameter for each neuron for `rest_learned` and `rest_learned_fast`. Centring removes the weights' effect on the rest, so we report the rest as applied, not the raw h.
 - **Held rests.** Conditions such as `relu_rest_0` and `softplus_rest_-2` centre h in the same way and hold it at a fixed rest, with another activation. The gradient on that rest is then the push at a rest chosen in advance (*The push at an equal rest*, *Push against depth*).
-- **Norm conditions.** `relu_norms_centred` and `relu_all_norms_centred` centre the input of the LayerNorms over the batch's tokens, so that no LayerNorm sees a constant offset.
+- **Norm conditions.** `relu_norms_centred` centres the input of each block's LayerNorms over the batch's tokens, and `relu_all_norms_centred` also the final LayerNorm's, so that no LayerNorm sees a constant offset. `relu_final_norm_centred_dropout_0` centres only the final LayerNorm's input. A `_dropout_0` suffix, and the `dropout_0` condition for GELU, set every dropout to 0.
+- **GPT-2 push.** `scripts/pretrained_push.py gpt2` records the same terms for trained GPT-2 small, over 50 batches of the corpus sample's windows, with no optimizer step. It records with dropout off (`eval`) and with GPT-2's dropout of 0.1 (`train`).
 - **Output conditions.** `gelu_output_centred` and `silu_output_centred` centre each neuron's output a over the batch, so the output's gradient sums to 0 over tokens. `relu_output_shift` and `gelu_output_shift` add a constant to the output that moves its mean at init to the other activation's (*Where the push comes from*).
-- **Terms of the push.** The recorder also splits the push into a slope term and a spread term, and keeps the push ratio of the weights along x̄. It keeps the cosine of the MLP's mean output with the gradient on its output bias. It also keeps two correlations: the mean output against the output's push over neurons, and the output against its gradient over tokens. `--push-part` labels the push rows of a rerun so that they don't mix with the first run's rows.
+- **Pythia's setup.** Each `pythia_` condition adds one part of Pythia's training to the no-dropout model. The parts are its warm-up, its AdamW settings, parallel attention, its learning rate and a larger batch. `pythia_all` adds all of them (*Pythia's training setup, one part at a time*).
+- **Offsets.** `scripts/ln_offset.py` adds an offset to the input of a trained model's LayerNorm. It measures the loss's slope by autograd (*What the final LayerNorm does with a constant*). The small models are saved with `--save-every`.
+- **Terms of the push.** The recorder also splits the push into a slope term and a spread term, and keeps the push ratio of the weights along x̄. It keeps the cosine of the MLP's mean output with the gradient on its output bias. It also keeps two correlations: the mean output against the output's push over neurons, and the output against its gradient over tokens. `--push-part` labels the push rows of a rerun so that they don't mix with the first run's rows. `--spread-bins` also splits the spread term by bins of h, with the edges in `PUSH_BINS`.
 
 ## GPT-2 small
 
@@ -224,12 +232,44 @@ Units are 10⁻⁶, as medians over neurons and means over L1–L3 and over the 
 - **Two groups of activations.** For ReLU and softplus, the output's push points down all through training, and the slope term carries the push. Their spread term is small, and points up early. For GELU and SiLU, the output's push points up, and the spread term carries the push down. For tanh, both terms are 0.
 - **GELU and SiLU start up because their output's push points up.** Near h = 0, GELU's and SiLU's slopes are close to 0.5 on every token. So the slope term follows the output's push, which points up for both. The spread term points down from the first steps and grows as h spreads. It passes the slope term near step 200 for GELU, and between steps 400 and 500 for SiLU.
 - **SiLU turns later because its slope varies less.** Near 0, GELU's slope changes by 0.80 for each unit of h, and SiLU's by 0.50. So the same spread of h gives GELU a larger spread term. SiLU also has a larger slope term.
+- **The spread term comes from tokens with a low slope.** Runs labelled `training_spread_bins` repeat GELU, SiLU and ReLU for 1,000 steps on seeds 0 and 1. They split each neuron's spread term by bins of h, and the bins add up to the same spread term as `training_push_split`. The table gives each bin's part as a median over neurons. It is a mean over L1–L3, over steps 201–1,000 and over the two seeds. The seeds agree to 0.13 in each bin.
+
+| Activation | Below −1.5 | −1.5 to −0.75 | −0.75 to −0.25 | −0.25 to 0.25 | 0.25 to 0.75 | 0.75 to 1.5 | Above 1.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GELU | −0.10 | −3.09 | −1.62 | −1.58 | +0.24 | +0.53 | 0.00 |
+| SiLU | 0.00 | −1.20 | −1.73 | −0.66 | +0.14 | +0.31 | 0.00 |
+| ReLU | −0.01 | −1.61 | −0.18 | −1.93 | +3.41 | +0.65 | 0.00 |
+
+Units are 10⁻⁶.
+
+- **The steepest tokens push up, not down.** From 0.75 to 1.5, each activation's part is above 0, and only 28%–32% of neurons get a part below 0. So the spread term doesn't come from the steep part of the activation.
+- **The push down comes from below the rest.** A token's part is its output's push times the amount by which its slope differs from the mean. Below the rest the slope is below the mean, so a negative part means that the output's push points up there. For GELU, the bin from −1.5 to −0.75 gives the largest part, and 90% of neurons get a part below 0 there. Most of that bin lies in GELU's dip, where the slope is negative. There, a push up on the output is a push down on h. SiLU's slope is still above 0 down to −1.28, so its largest part comes from −0.75 to −0.25.
+- **In the first 200 steps, the push down comes from just below 0.** Then the rests are shallow, and few tokens reach the dip. GELU's largest part is then −1.3 to −1.4, from −0.75 to −0.25, on each seed.
+- **ReLU has the same pattern, but its two sides cancel.** Below 0 its slope is 0, and its part is below 0. Above 0 its slope is 1, and its part is above 0, at +3.4 from 0.25 to 0.75. So ReLU's spread term is small, and its slope term carries its push.
+- **We don't know why the output's push points up below the rest.** Over tokens, the output and its gradient don't correlate (see below), so it isn't a pull on each token's output.
 - **Removing the output's push removes the up phase.** Runs labelled `training_output` centre each neuron's output a over the batch. Then −dL/da sums to 0 over tokens, and only the spread term remains. GELU's push ratio is then −0.048 over steps 1–100 and SiLU's −0.045, against +0.005 and +0.016 in free runs. At step 1,000, GELU's L1 rests at −0.60 against −0.42, and SiLU's at −0.40 against −0.15.
 - **A neuron's mean output decides the group.** At init, with h's SD near 0.31, ReLU's mean output is 0.124 and GELU's is 0.038. `relu_output_shift` adds −0.086 to ReLU's output, and `gelu_output_shift` adds +0.086 to GELU's. A constant changes neither the slope nor the shape. It moves only the mean output. Shifted ReLU then falls in GELU's group: its output's push points up, and the spread term carries its push. Shifted GELU's output's push falls to about 0, and its push points down from the first step.
 - **Swapping the mean outputs swaps the depths.** At step 1,000, shifted ReLU rests at −0.44 to −0.48 at L1–L3, against −0.64 to −0.69 for ReLU. Shifted GELU rests at −0.51 to −0.85, against −0.28 to −0.42 for GELU. So a larger mean output gives a deeper rest, with the same activation shape.
 - **The loss pulls the MLP's mean output toward 0.** Runs labelled `training_offset` repeat seven activations for 2,000 steps. At every step they record the cosine between the MLP's mean output, ā·W_out + b_out, and the gradient on b_out. A positive cosine means that gradient descent shrinks the mean output. It is positive in all 140 windows of the seven runs, at +0.007 to +0.10. The correlation over neurons between each neuron's mean output ā and its output's push is negative in all 140 windows, at −0.002 to −0.10. So a neuron with a larger mean output is pushed down more. Tanh shows the same pull, but its neurons' mean outputs have both signs, so the pull has no net direction.
 - **It is a pull on the mean, not on each token.** If the loss pulled each token's output toward 0, the output's gradient on each token would follow the output. Over tokens, the two correlate at −0.003 to +0.002, a median over neurons. So the pull acts on the mean output only.
-- **LayerNorm doesn't cause the pull.** A constant offset in the residual stream adds to each token's norm, so LayerNorm was a candidate. `relu_norms_centred` centres the input of each block's LayerNorms over the batch's tokens, and `relu_all_norms_centred` also the final LayerNorm's. Then no LayerNorm sees a constant offset. The cosine stays positive in all 20 windows of both runs, at +0.051 and +0.059, against +0.072 for ReLU. With every norm centred, a constant offset can reach the loss only through dropout, which acts on the MLP's output before the residual stream. Dropout turns a constant into noise on each token. We didn't test whether that causes the pull. These runs also shrink x̄, the route by which the weights move the rest, so their depths say nothing about the pull.
+- **The final LayerNorm and dropout carry the pull.** A constant offset in the residual stream can reach the loss in two ways. It adds to each token's input to the LayerNorms that read the stream. Dropout on the MLP's output also turns it into noise on each token. The norm conditions close the LayerNorm routes, and the `_dropout_0` conditions close the dropout route, each for 2,000 steps on ReLU. The table gives the cosine as a mean over L1–L3 and over the 20 windows.
+
+| Run | Routes open | Cosine, seed 0 | Cosine, seed 1 | Windows above 0, seed 0 |
+| --- | --- | --- | --- | --- |
+| ReLU | block norms, final norm, dropout | +0.072 | +0.072 | 20 of 20 |
+| ReLU, no dropout | block norms, final norm | +0.043 | +0.044 | 20 of 20 |
+| Block norms centred | final norm, dropout | +0.051 | +0.052 | 20 of 20 |
+| Block norms centred, no dropout | final norm | +0.046 | +0.048 | 20 of 20 |
+| All norms centred | dropout | +0.059 | +0.060 | 20 of 20 |
+| Final norm centred, no dropout | block norms | −0.017 | −0.019 | 1 of 20 |
+| All norms centred, no dropout | none | −0.001 | 0.000 | 6 of 20 |
+| GELU | block norms, final norm, dropout | +0.063 | +0.066 | 20 of 20 |
+| GELU, no dropout | block norms, final norm | +0.049 | +0.053 | 20 of 20 |
+
+- **Each of the two routes makes the pull alone.** Dropout alone gives +0.059, and the final LayerNorm alone gives +0.046. Removing dropout from a model with every route open lowers the cosine by 0.03 for ReLU and 0.013–0.014 for GELU, on each seed. The earlier test centred every norm but kept dropout, so it couldn't rule LayerNorm out.
+- **The block LayerNorms don't make the pull.** With only them open, the cosine is −0.017 and −0.019 on the two seeds, and is above 0 in 1 window of 20 on each. But in these runs L2 and L3 nearly shut: h's SD there fell to 0.07–0.10, against about 0.5 in the other runs. Their loss is 5.937 and 5.950, against 5.758 and 5.753 with no dropout. At L1, where h's SD is 0.42, the cosine is −0.02 to −0.04 over the last 5 windows.
+- **With no route open, the pull is 0.** Then every reader of the residual stream centres it over tokens. So the gradient on b_out is exactly 0, and so is the output's push summed over tokens. The cosine is noise, at −0.008 to +0.007 over the two seeds.
+- **The rest doesn't need the pull.** In that run, the slope term is 0, because the output's push is. But ReLU's push ratio at L1 over steps 1,001–2,000 is −0.075 and −0.074 on the two seeds, against −0.077 with dropout. The spread term carries all of it, at −17.3 against −15.0 (10⁻⁶). So for ReLU the pull adds to the slope term, but the spread term alone gives the same push. These runs shrink x̄, so their depths say nothing here.
 
 | Activation | Cosine, mean output to its gradient | Mean output against output push, over neurons | Output against its gradient, over tokens |
 | --- | --- | --- | --- |
@@ -243,9 +283,39 @@ Units are 10⁻⁶, as medians over neurons and means over L1–L3 and over the 
 
 Means over steps 1–2,000 and over L1–L3. The last column is a median over neurons.
 
+## What the final LayerNorm does with a constant
+
+The pull goes through the final LayerNorm. One reading was that a constant takes part of each token's norm. Then the LayerNorm divides by a larger norm, shrinks the parts that differ between tokens, and flattens the logits. `scripts/ln_offset.py` tests this on trained models. It adds an offset c along a direction to the input of a LayerNorm, in three ways:
+
+- **Full** is what the model computes: ln(x + c).
+- **Shrink** keeps only the larger divisor. It normalises x by the standard deviation of x + c.
+- **Shift** keeps only the moved input. It normalises x + c by the standard deviation of x.
+
+To first order, the full effect is the sum of the other two. So autograd gives the loss's slope as c grows from 0, for each way. The unit of c is the mean norm of x − x̄, the part of x that differs between tokens. The models are the base GELU on seeds 0 and 1, and ReLU on seed 0, saved every 1,000 steps. Retrained, GELU on seed 0 matches the earlier run exactly, and the others are within 0.003 in loss. Each slope is over the 128 test windows, in eval mode, so dropout is off.
+
+- **The cost comes from the shift, and the shrink lowers the loss.** The direction is each MLP's mean output, at the final LayerNorm. Over the 9 trained checkpoints and 4 layers, the shrink lowers the loss in 36 of 36. The shift raises it in 34 of 36, and the full slope is a pull in 32 of 36. So a constant does flatten the logits, but flatter logits help these models.
+
+| Model, step 4,000 | Layer | Full | Shrink | Shift |
+| --- | --- | --- | --- | --- |
+| GELU, seed 0 | L1 | +0.053 | −0.057 | +0.110 |
+| GELU, seed 0 | L2 | +0.058 | −0.035 | +0.093 |
+| GELU, seed 1 | L1 | +0.093 | −0.052 | +0.145 |
+| ReLU, seed 0 | L1 | +0.234 | −0.053 | +0.287 |
+| ReLU, seed 0 | L2 | +0.074 | −0.035 | +0.109 |
+
+Slopes of the loss per unit of offset at the final LayerNorm, along the layer's MLP mean output.
+
+- **The shift adds the model's unigram prior.** Through the final LayerNorm, the MLPs' mean output changes the logits by one fixed vector, the same on every token. In every trained checkpoint, that vector correlates with the log frequency of each token in the training text, at +0.75 to +0.91. At initialisation the correlation is 0.00. On GELU seed 0 at step 4,000, the tokens it raises most are `,` `the` `\n` `in` `a` and `.`. Those it lowers are rare. So more mean output makes the model more sure of frequent tokens, and the loss rises.
+- **The direction matters, not the sharing.** A random direction of the same norm, shared by all tokens, has a full slope of −0.023 on GELU seed 0. GPT-2 small gives the same answer: a random direction costs as much when each token gets its own as when all tokens share one. This is in the size sweep, which also has GPT-2.
+- **The block LayerNorms push the other way.** The same offset, seen only by the LayerNorms of the later blocks, lowers the loss. At L0 and L1 it does so in 9 of 9 trained checkpoints each, and the shift carries it. At L2, which only one block reads, the sign is mixed. So the later blocks use a constant in the residual stream. This is why the block LayerNorms don't make the pull. With only them open, the earlier runs measured a cosine of −0.017 and −0.019.
+- **With every route open, the sign depends on the layer.** L0's total is a push up in 9 of 9 checkpoints, and L1's in 8 of 9, because the block route is larger. L2's and L3's totals are pulls, in 8 and 6 of 9. In training, dropout adds a pull of its own, and these slopes leave it out.
+- **GPT-2 small has no pull here either.** Along its MLP mean output, the full slope is −0.099 at the final LayerNorm, with shrink at −0.032 and shift at −0.067. The shrink still flattens its logits, with an entropy slope of +1.82, and the shift sharpens them, at −1.13.
+
+The two ways match two kinds of neuron that Stolfo et al. (2024) found in trained models. Entropy neurons change the final LayerNorm's scale, which is the shrink. Token frequency neurons move the output toward or away from the unigram distribution, which is the shift. Here a constant in the MLPs' output does both, and the shift sets the sign.
+
 ## Push against depth
 
-Runs labelled `training_depth` hold activations at rests below 0, seed 0. Push ratios are means over steps 1–4,000 and over L1–L3. The rows at 0 are the equal-rest runs.
+Runs labelled `training_depth` hold activations at rests below 0, on seeds 0 and 1. The tables give seed 0. Seed 1 gives the same push ratios to 0.003 and the same losses to 0.025. Push ratios are means over steps 1–4,000 and over L1–L3. The rows at 0 are the equal-rest runs.
 
 | Held rest | ReLU | Softplus | GELU | Leaky ReLU, slope 0.1 | SiLU |
 | --- | --- | --- | --- | --- | --- |
@@ -267,7 +337,7 @@ Loss at step 4,000:
 
 - **ReLU's push fades as its neurons sink.** At −1 it keeps a ninth of its push at 0. At −2 and −4 no token reaches 0, because h's SD stays near 0.3. So no gradient passes ReLU, its MLPs never train, and both runs end at the same loss.
 - **Leaky ReLU at slope 0.1 is pushed back up from −1.** So it has a rest between 0 and −1 where the push is 0, and its free rest of −0.70 lies there. Below 0, it outputs 0.1h, so a deep rest makes its mean output negative. The pull on the mean output toward 0 then points up (*Where the push comes from*). At its free rest, with an SD of about 0.6, its mean output is about −0.04. ReLU and softplus can't have a negative mean output, so the pull never turns them back.
-- **GELU's push doesn't fall steadily.** It is −0.032 at −0.5 and −0.042 at −1. Its h widens as the rest deepens, to an SD of 0.95 at −1. Below −0.75 its slope is negative, so tokens in the dip push the other way. We didn't separate these effects.
+- **GELU's push is steadier at −1, not larger.** Its push ratio is −0.032 at −0.5 and −0.042 at −1. But its push, as a median over neurons and a mean over L1–L3 and the steps, is smaller at −1: −5.2 against −7.3 (10⁻⁶). The slope term falls from +2.1 to +0.7, because few tokens near −1 have a large slope. The push's size from step to step falls more, from about 230 to about 125 (10⁻⁶), estimated as the push over its ratio. The push ratio is the mean over that size, so it grows. Its h also widens as the rest deepens, to an SD of 0.95 at −1.
 - **SiLU keeps less than half its push at −1.** It falls from −0.041 to −0.018, and its h widens to an SD of 1.26.
 - **Softplus keeps its push at every depth.** Its slope σ(h) is above 0 on every token. The push ratio is a mean over an RMS, so a small slope doesn't weaken it. Only fewer tokens, or noisier ones, weaken it.
 - **This is why softplus rests about twice as deep as its push predicts.** In free runs, ReLU's push ratio falls from −0.044 in steps 1–500 to −0.011 in steps 3,001–4,000. Over that time its rest goes from 1.2 to 1.6 SDs below the mean. Softplus's falls from −0.089 to −0.020, and its rest goes down to 2.2 SDs. Under AdamW, depth adds up the push over the run. So an activation whose push survives at depth keeps going.
@@ -317,6 +387,81 @@ Step 4,000 is early, because the rest is still moving. So seed 0 of the baseline
 
 **One run was discarded.** The first 12,000-step baseline gave a loss of 5.908 at step 4,000 and a much wider h. The earlier run with the same seed gave 5.509. It overlapped other jobs on the machine, and it showed no error. A rerun with nothing else running gave 5.510. The fast control ran after that overlap, and it matched its earlier values at steps 2,000 and 4,000. We did not find the cause, so we kept the discarded rows in the data as `training_long_discarded`.
 
+## The push in GPT-2 small
+
+Rows labelled `gpt2_push` record the push and its terms for trained GPT-2 small, as `scripts/resting_push.py` does for the small models. Each is over 50 batches of 32 windows from the corpus sample, with no optimizer step. So they show the push at the end of training, and not while the rest formed.
+
+| Measure, over the 12 layers | No dropout | Dropout 0.1 |
+| --- | --- | --- |
+| Push ratio, median over neurons | −0.041 to +0.043 | −0.116 to +0.234 |
+| Share of neurons pushed down | 48%–52% | 39%–58% |
+| Slope term above 0 | 12 layers | 8 layers |
+| Spread term below 0 | 11 layers | 2 layers |
+| Cosine, mean output to its gradient | −0.075 to −0.006 | −0.046 to +0.042 |
+| Output against its gradient, over tokens | 0.000 to +0.001 | −0.003 to 0.000 |
+
+- **At its trained weights, GPT-2's rest is not pushed.** Half of its neurons are pushed down and half up, and the median push ratio is near 0 in every layer. The small models' push points down in 85%–100% of windows while their rest forms. So GPT-2's rest looks settled.
+- **With no dropout, the terms have the small GELU models' signs.** The slope term points up in all 12 layers and the spread term down in 11, as for GELU in *Where the push comes from*. Here they cancel.
+- **There is no pull toward 0.** With no dropout, the cosine of the mean output with its gradient is below 0 in all 12 layers. So at these weights the loss would grow the mean output a little. With dropout it has both signs. For 768 dimensions, a random cosine has an SD of about 0.036, so the mean over 50 batches has an SD of about 0.005.
+- **We can't see GPT-2 while it trains.** Its training run isn't public, so these rows can't show whether the two terms carried its rest down. A match at the end point is a weak test.
+
+## The push in Pythia-70m
+
+GPT-2's training run isn't public, but Pythia's checkpoints are (Biderman et al., 2023). Rows labelled `pythia_push` record Pythia-70m at 10 checkpoints from step 0 to step 143,000, with `scripts/pretrained_push.py pythia`. Each row reads the rest and the push as the GPT-2 rows do, over 50 batches of the corpus sample's windows. Pythia has GELU, parallel attention and no dropout. Each row also gives, for each layer, the correlation over neurons between a neuron's push and how far its rest moves by the next checkpoint.
+
+| Step | Loss | Rest, L0–L5 | Layers with the push down | Push against the next move |
+| --- | --- | --- | --- | --- |
+| 0 | 11.10 | 0.00 to −0.02 | 4 of 6 | −0.00 to +0.15 |
+| 512 | 5.19 | −0.03 to −0.22 | 2 of 6 | −0.06 to +0.16 |
+| 1,000 | 4.28 | −0.25 to −0.39 | 1 of 6 | +0.04 to +0.24 |
+| 2,000 | 3.79 | −0.39 to −0.64 | 2 of 6 | −0.00 to +0.12 |
+| 4,000 | 3.56 | −0.42 to −0.72 | 4 of 6 | +0.03 to +0.14 |
+| 16,000 | 3.39 | −0.47 to −0.78 | 2 of 6 | −0.01 to +0.07 |
+| 143,000 | 3.35 | −0.46 to −0.87 | 2 of 6 | |
+
+"Layers with the push down" counts layers whose median push ratio is below 0. The rows at steps 8,000, 32,000 and 64,000 are in `results.jsonl`.
+
+- **Pythia's rest forms early and by the same route.** Its neurons rest at −0.25 to −0.39 by step 1,000 and at −0.42 to −0.72 by step 4,000. Then they change little. From step 512 on, the median neuron's weights point against the mean input, as in GPT-2 and the small models.
+- **The push at a checkpoint doesn't point down steadily.** While the rest forms, at steps 512–2,000, only 1 or 2 of the 6 layers have a median push below 0. Half the neurons are pushed down at every checkpoint (43%–56%).
+- **A neuron's push predicts its move only weakly.** Up to step 4,000, the correlation is above 0 in 27 of 30 layers and intervals, at up to +0.24. But the push's sign matches the move's for only 45%–54% of neurons. After step 8,000 the correlation is near 0 (−0.11 to +0.07).
+- **The pull on the mean output is there late.** From step 16,000 on, the cosine of the mean output with its gradient is above 0 in 5 or 6 of the 6 layers. Early on it has both signs. Pythia has no dropout. So by the small models' result, its final LayerNorm is the likely route.
+- **The checkpoints are far apart.** Between checkpoints are 488–79,000 steps, each with 2 million tokens of the Pile, during warm-up for the first 1,430. Our push is from 50 batches of 4,000 tokens of another corpus, at fixed weights. *Calibrating the checkpoint test* asks whether such a test can find a push that is known to be there.
+
+### Calibrating the checkpoint test
+
+Rows labelled `small_push` apply the same test to small models whose push during training is known. GELU and ReLU, both with no dropout as in Pythia, trained for 2,000 steps and saved a checkpoint every 250 steps. `scripts/pretrained_push.py small` then read each checkpoint as the `pythia` command reads Pythia's. The same runs recorded their push during training, in rows labelled `push_calib`. During training, the push over each 250 steps points down in most layers and intervals. It does so in 47 of 48 on seed 0, and in 45 of 48 on seed 1.
+
+| Test, L1–L3 for the small models, L0–L5 for Pythia | GELU, seed 0 | GELU, seed 1 | ReLU, seed 0 | ReLU, seed 1 | Pythia-70m, steps 0–4,000 |
+| --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down | 24 of 27 | 18 of 27 | 26 of 27 | 23 of 27 | 13 of 30 |
+| Push against the next move, median | +0.16 | +0.14 | +0.12 | +0.15 | +0.07 |
+| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 24 of 24 | 24 of 24 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 58% | 55% | 55% | 56% | 51% |
+
+- **The test finds a steady push where there is one.** In the small models, the push at a checkpoint points down in nearly every layer. Its sign matches the neuron's next move for more than half the neurons. That holds in 47 of 48 layers and intervals on seed 0, and 46 of 48 on seed 1.
+- **GELU's seed 1 is weaker at the checkpoints.** Its push points down in 18 of 27 checkpoints and layers, against 24 on seed 0. That is still more than Pythia's 13 of 30. On both seeds, the correlation with the next move and the share of neurons that match it are above Pythia's.
+- **Pythia's push is weaker or less steady.** Its push points down in fewer than half its layers while its rest forms. Its sign matches the move at chance, and the correlation is about half the small models'. So the weak result is a property of Pythia or of its gaps between checkpoints, and not of the test alone.
+- **The gaps can still hide a push.** Pythia's checkpoints are 2 to 300 times further apart than ours, and each step sees 500 times the tokens. A run with Pythia's batch size and schedule would tell the two apart.
+
+### Pythia's training setup, one part at a time
+
+Pythia differs from the small models in its schedule, its optimizer, its parallel attention and its batch. The `pythia_` conditions add one of these at a time to the no-dropout GELU model. Each trains for 2,000 steps on seed 0 and saves a checkpoint every 250 steps, and `pretrained_push.py small` reads the checkpoints. Their rows are labelled `training_pythia`, `push_pythia` and `small_push`.
+
+- `pythia_warmup` uses Pythia's learning rate of 1e-3. It grows the rate linearly over the first 715 steps. Pythia warms up over 1,430 of the 4,000 steps that the test reads, and 715 keeps that share.
+- `pythia_adam` uses Pythia's AdamW betas of (0.9, 0.95) and weight decay of 0.01.
+
+| Test, L1–L3 | No dropout, seed 0 | No dropout, seed 1 | Warm-up at 1e-3 | Pythia's AdamW | Pythia-70m |
+| --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down | 24 of 27 | 18 of 27 | 22 of 27 | 19 of 27 | 13 of 30 |
+| Push against the next move, median | +0.16 | +0.14 | +0.12 | +0.10 | +0.07 |
+| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 22 of 24 | 22 of 24 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 58% | 55% | 59% | 56% | 51% |
+| Intervals of 250 steps with the push down in training | 23 of 24 | 21 of 24 | 21 of 24 | 24 of 24 | |
+
+- **Neither the warm-up nor Pythia's AdamW makes the push look like Pythia's.** Each stays inside or near the range of the two no-dropout seeds. Pythia's AdamW lowers the correlation with the next move to +0.10, the closest to Pythia's +0.07. Its push in training points down in all 24 intervals.
+- **The warm-up deepens the rest, as a higher rate does.** At step 2,000, L1 rests at −1.48, against −0.66 for the no-dropout run at 3e-4 (*Optimizer and learning rate*).
+- **Four conditions are not run yet.** `pythia_parallel`, `pythia_lr`, `pythia_batch` (4 times our batch) and `pythia_all` are in `scripts/train_resting.py`. The batch is the largest difference from Pythia, and its runs take about 2 hours each.
+
 ## Why this matters for reading negative poles
 
 Most of the cost of the negative side in GPT-2 is its resting level ([What default-on negative poles do as a population](../default-on-poles/README.md)). Clamping it at its mean adds 0.19 nats, and zeroing it adds 3.72. These runs fit that. Training pushes the level down, while variation below the dip has less effect. This supports the protocol's stop on auditing a default-on pole, but it doesn't show that a pole has no content.
@@ -331,7 +476,8 @@ Most of the cost of the negative side in GPT-2 is its resting level ([What defau
 - **Two leaky slopes.** At slope 0.01, the usual default, leaky ReLU rests like ReLU. At 0.1 it rests shallower. We didn't try slopes between them.
 - **Centring is a blunt tool.** It takes its mean from the batch, also at evaluation, and the gradient passes through that mean.
 - **A held rest changes the model.** The held runs centre h, so the weights can no longer turn against x̄. They train worse than free runs, at a loss of 5.56–6.02 against 5.49–5.83. So the push at an equal rest is the push in a centred model. A free model at that rest may get a different push.
-- **The newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The split, output, offset, depth and norm runs have one.
+- **Some of the newest runs have one seed.** The equal-rest runs at 0 have two seeds, which agree to 0.002 in push ratio. The offset, norm and no-dropout runs have two, which agree to 0.008 in cosine. The output and split runs have two, and every term has the same sign on both seeds. The depth runs and the calibration runs now have two. The depth runs agree to 0.003 in push ratio. The calibration runs agree in direction, but GELU's push at the checkpoints is weaker on seed 1 (*Calibrating the checkpoint test*).
+- **One norm run partly failed.** With only the final LayerNorm centred and no dropout, L2 and L3 nearly shut on seed 0 (*Where the push comes from*). Seed 1 shows the same, with h's SD there at 0.10 and 0.08. So the condition causes it, and the run didn't fail. We don't know why.
 - **ReLU reruns drift a little.** Same-seed reruns of GELU, SiLU, softplus and tanh match the earlier rows exactly, also with the new recording. ReLU's differ by up to 0.004 in loss at step 2,000 and 0.002 at step 4,000, as the earlier ReLU rerun did. The step-0 evaluation of one GELU rerun differed by 0.007, while every later step matched exactly.
 - **Medians don't add.** The slope term, the spread term and the push are each a median over neurons, so the first two don't sum to the third.
 - **Some runs were slow.** Leaky ReLU held at 0 and ReLU held at −1 took 37–39 minutes against about 25, while other jobs used the machine. The same-seed reruns before and after them matched.
@@ -383,19 +529,73 @@ uv run python scripts/train_resting.py train --seed 0 --steps 2000 --part traini
     --condition gelu_output_shift --condition softplus --condition silu --condition tanh $T
 uv run python scripts/train_resting.py train --seed 0 --steps 2000 --part training_offset \
     --push-part push_offset --condition relu_norms_centred --condition relu_all_norms_centred $T
+O="--steps 2000 --part training_offset --push-part push_offset $T"
+uv run python scripts/train_resting.py train --seed 0 --condition relu_dropout_0 --condition dropout_0 $O
+uv run python scripts/train_resting.py train --seed 0 --condition relu_norms_centred_dropout_0 \
+    --condition relu_all_norms_centred_dropout_0 $O
+uv run python scripts/train_resting.py train --seed 1 --condition relu_dropout_0 --condition dropout_0 $O
+uv run python scripts/train_resting.py train --seed 1 --condition relu --condition gelu \
+    --condition relu_norms_centred --condition relu_all_norms_centred $O
+uv run python scripts/train_resting.py train --seed 0 --condition relu_final_norm_centred_dropout_0 $O
+uv run python scripts/pretrained_push.py gpt2 --out $OUT
+uv run python scripts/pretrained_push.py pythia --out $OUT
+uv run python scripts/train_resting.py train --seed 1 --steps 2000 --part training_offset \
+    --push-part push_offset --condition relu_output_shift --condition gelu_output_shift \
+    --condition softplus --condition silu --condition tanh $T
+uv run python scripts/train_resting.py train --seed 1 --steps 1000 --part training_output \
+    --push-part push_output --condition gelu_output_centred --condition silu_output_centred \
+    --condition relu_output_shift --condition gelu_output_shift $T
+uv run python scripts/train_resting.py train --seed 1 --steps 1000 --part training_push_split \
+    --push-part push_split --condition gelu --condition silu $T
+uv run python scripts/train_resting.py train --seed 1 --steps 4000 --part training_push_split \
+    --push-part push_split --condition softplus --condition relu $T
+for SEED in 0 1; do
+  uv run python scripts/train_resting.py train --seed $SEED --steps 1000 --part training_spread_bins \
+      --push-part push_spread_bins --spread-bins --device cpu --condition gelu --condition silu \
+      --condition relu $T
+done
+for C in dropout_0 relu_dropout_0; do
+  uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
+      --part training_calib --push-part push_calib --save-every 250 --save-dir ckpt $T
+  uv run python scripts/pretrained_push.py small --condition $C --save-dir ckpt --out $OUT
+done
+uv run python scripts/train_resting.py train --seed 1 --condition relu_norms_centred_dropout_0 \
+    --condition relu_all_norms_centred_dropout_0 --condition relu_final_norm_centred_dropout_0 $O
+for C in gelu relu; do
+  uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 4000 --eval-every 1000 \
+      --cache tokens.pt --part training_ln_offset --save-every 1000 --save-dir ckpt --out $OUT
+done
+uv run python scripts/train_resting.py train --seed 1 --condition gelu --steps 4000 --eval-every 1000 \
+    --cache tokens.pt --part training_ln_offset --save-every 1000 --save-dir ckpt --out $OUT
+for C in pythia_warmup pythia_adam; do
+  uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
+      --part training_pythia --push-part push_pythia --save-every 250 --save-dir ckpt $T
+  uv run python scripts/pretrained_push.py small --condition $C --save-dir ckpt --out $OUT
+done
+uv run python scripts/ln_offset.py gpt2 --out $OUT
+uv run python scripts/ln_offset.py small --checkpoint ckpt/gelu_seed0_step4000.pt --out $OUT
+for F in ckpt/gelu_seed1_step*.pt ckpt/relu_seed0_step*.pt ckpt/gelu_seed0_step0.pt; do
+  C=$(basename $F | cut -d_ -f1)
+  uv run python scripts/ln_offset.py small --slopes-only --condition $C --checkpoint $F --out $OUT
+done
+uv run python scripts/ln_offset.py frequency --condition gelu --cache tokens.pt --out $OUT \
+    $(for F in ckpt/gelu_*.pt; do echo --checkpoint $F; done)
+uv run python scripts/ln_offset.py frequency --condition relu --cache tokens.pt --out $OUT \
+    $(for F in ckpt/relu_*.pt; do echo --checkpoint $F; done)
 uv run python scripts/paper_figures.py
 ```
 
-The seed-1 equal-rest runs ran after the seed-0 ones, in a run of their own. The split and output runs ran before the recorder kept the offset and token correlations, so their rows lack those fields.
+The seed-1 equal-rest runs ran after the seed-0 ones, in a run of their own. The split and output runs ran before the recorder kept the offset and token correlations, so their rows lack those fields. The binned runs ran on the CPU, while the GPU ran other runs.
 
 The 12,000-step runs of GELU and the fast control were labelled `training_long` by hand. The `--part` option does this now.
 
 ## Next
 
-[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). Two causes stay open. The first is why the loss pulls the MLP's mean output toward 0. LayerNorm is ruled out. Dropout on the MLP's output is the next candidate, and a run with no dropout would test it. The second is why the steepest tokens of GELU and SiLU get a gradient that points down. A third test would check the two terms of the push on GPT-2 small itself.
+[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. Pythia's warm-up and AdamW settings don't weaken the push in a small model. Its parallel attention and its larger batch are not tested yet.
 
 ## References
 
+- Biderman, S., et al. (2023). *Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling*. ICML 2023. [arXiv:2304.01373](https://arxiv.org/abs/2304.01373).
 - Dugas, C., Bengio, Y., Bélisle, F., Nadeau, C. & Garcia, R. (2001). *Incorporating Second-Order Functional Knowledge for Better Option Pricing*. Advances in Neural Information Processing Systems 13 (NIPS 2000), 472–478. [NeurIPS proceedings](https://proceedings.neurips.cc/paper/2000/hash/44968aece94f667e4095002d140b5896-Abstract.html).
 - Elfwing, S., Uchibe, E. & Doya, K. (2017). *Sigmoid-Weighted Linear Units for Neural Network Function Approximation in Reinforcement Learning*. [arXiv:1702.03118](https://arxiv.org/abs/1702.03118).
 - Elhage, N., et al. (2022). *Toy Models of Superposition*. Transformer Circuits Thread. [arXiv:2209.10652](https://arxiv.org/abs/2209.10652).
@@ -403,6 +603,7 @@ The 12,000-step runs of GELU and the fast control were labelled `training_long` 
 - Hendrycks, D. & Gimpel, K. (2016). *Gaussian Error Linear Units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
 - Loshchilov, I. & Hutter, F. (2019). *Decoupled Weight Decay Regularization*. ICLR 2019. [arXiv:1711.05101](https://arxiv.org/abs/1711.05101).
 - Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Stolfo, A., Wu, B., Gurnee, W., Belinkov, Y., Song, X., Sachan, M. & Nanda, N. (2024). *Confidence Regulation Neurons in Language Models*. NeurIPS 2024. [arXiv:2406.16254](https://arxiv.org/abs/2406.16254).
 
 ### Data
 

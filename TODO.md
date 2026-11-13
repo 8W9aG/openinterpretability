@@ -90,10 +90,9 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 
 ## Protocol and science
 
-- [ ] Find why the loss pulls each MLP's mean output toward 0. In the small models, the gradient on the MLP's output bias points along its mean output in every window of every run. This pull sets which term pushes a neuron's rest down (`papers/why-neurons-rest/README.md`, *Where the push comes from*). LayerNorm is ruled out: with every norm's input centred, the pull stays. Dropout on the MLP's output is the next candidate, because it turns a constant offset into noise on each token. Rerun the `training_offset` recording (`--push-every 100 --push-part push_offset`, 2,000 steps) for ReLU and GELU with dropout 0, and check whether the cosine falls to 0.
-- [ ] Find why the steepest tokens of GELU and SiLU get a push down. Their output's push points up, and the spread term (tokens whose slope is above the mean) carries their rest down (`papers/why-neurons-rest/README.md`, *Where the push comes from*). Over tokens, the output's gradient doesn't follow the output, so it isn't a pull on each output. Also explain why GELU held at −1 gets a stronger push than at −0.5 (*Push against depth*). Tokens in GELU's dip, below −0.75, have a negative slope.
-- [ ] Check the two terms of the push on GPT-2 small. Over the corpus sample, compute each MLP's slope term and spread term, as `scripts/resting_push.py` does for the small models. Also compute the cosine of its mean output with the gradient on its output bias. If GPT-2's terms match the small models', the account in `papers/why-neurons-rest/README.md` holds at scale.
-- [ ] Give the split, output, offset, depth and norm runs of `papers/why-neurons-rest/` a second seed. Only the equal-rest runs at 0 have two.
+- [ ] Find why L2 and L3 nearly shut when only the block LayerNorms read a constant (`papers/why-neurons-rest/README.md`, *Where the push comes from*). In `relu_final_norm_centred_dropout_0`, h's SD at L2 and L3 fell to 0.07–0.10, and the loss was worse. The later blocks use a constant in the residual stream, and it lowers their loss (*What the final LayerNorm does with a constant*). Check whether, without the final norm's pull, the MLPs' mean output grows until it fills the block norms' inputs. Also split dropout's part in the pull into its routes, as `scripts/ln_offset.py` splits the final norm's.
+- [ ] Find why the output's push of GELU and SiLU points up most on tokens below the rest. That makes their spread term point down, and in GELU's dip it pushes h down directly (`papers/why-neurons-rest/README.md`, *Where the push comes from*, `training_spread_bins`). The steepest tokens push up. Record the output's push itself for each bin of h, not only its part of the spread term. Then check whether the pattern stays when the final LayerNorm and dropout can't see a constant, with a GELU version of the norm conditions.
+- [ ] Finish the test of Pythia's training setup (`papers/why-neurons-rest/README.md`, *Pythia's training setup, one part at a time*). At Pythia-70m's checkpoints the push points down in 13 of 30 layers and checkpoints, and its sign matches each neuron's next move at chance. Pythia's warm-up and AdamW settings don't weaken the push in a small model. Run the other four conditions on seed 0, as the paper's Reproduce runs `pythia_warmup`: `pythia_parallel`, `pythia_lr`, `pythia_batch` and `pythia_all`. The last two take about 2 hours each on MPS. Then check which change makes the push and the checkpoint test look like Pythia's.
 - [ ] Test whether the negative side's small lead over random features on the model's next-token distribution belongs to that side. Both sides read the same h, so weights learned for the positive side could explain the lead (`papers/default-on-poles/README.md`). Compare the negative side of learned weights with the positive side of the same weights, and keep the random-feature null.
 - [ ] Measure verdict stability. Rerunning one prompt on the same unit agrees only about half the time (`docs/analyses/prompt-trim-ab.md`), which limits every registry-level claim. Rerun the review of about 30 records 3 times each (same submission, same reviewer model). Report agreement overall and per gate, and find the noisiest gate. The reviewer crossover (`docs/analyses/reviewer-crossover.md`) left 20% of the variance in balanced accuracy (34% in VERIFIED) unexplained by submission or reviewer. Reusing its 30 submissions would split that into same-reviewer noise and interaction. Then decide whether that gate needs more probes, a different threshold, or a majority over repeated reviews. **(protocol)** if the rule changes.
 - [ ] Competing hypotheses per unit. Have the proposer write two or three rival hypotheses for a pole. Have the reviewer write probes that tell them apart, as well as probes against each one. Record which hypothesis survives, reported and not gated. Rival hypotheses force probes that separate readings, not only probes that break one claim. They may also explain why a rerun agrees only about half the time (verdict stability, above). The idea comes from Macke, Gedon and Wahl, "Teaching AI to build scientific models" (`docs/literature/queue.md`). They argue for a range of plausible models, not one best fit. **(protocol)** if the surviving hypothesis ever decides the verdict.
@@ -140,7 +139,6 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 
 Methods from the wider interpretability literature that the registry doesn't use yet. Each one starts as a recorded number, reported and not gated, as in `docs/PROTOCOL.md` §4 "What is not evidence (yet)". It becomes a gate only through a protocol change. The tagging items below (language, WordNet, part of speech) plug into the scan's annotation layer (`harness/annotations.py`). A tagger returns labelled character spans of a document. The scan aligns them to tokens and reports each label set's R² and mutual information.
 
-- [ ] Open question: can we detect programming languages in unlabelled corpora? pile-10k mixes GitHub text into prose, and no field marks it. A per-document detector (e.g. Google's Magika, guesslang, or GitHub Linguist's heuristics) would tag code and its language without a code-only preset. Then the syntax label sets (`openinterp/syntax.py`) can read it, and so can the reviewer and site uses language labels already have. As with natural languages (`docs/analyses/language-detection.md`), check accuracy on short and mixed documents on a labelled sample first. fastText's `lid.176` already leaves most code unlabelled (below its 0.8 line), so a code detector could label what it leaves.
 - [ ] Investigate using part-of-speech (PoS) tags in the process. Tag the scan corpus (e.g. spaCy, or Universal Dependencies' gold tags, which `openinterp concepts --dataset ud-upos` writes as spans). Align word tags to model tokens, and report the PoS distribution of the pole's top activations against the corpus base rate. Uses to try:
   - *proposer*: give it the PoS enrichment as evidence, so syntactic neurons ("verbs after a modal") are easier to spot than from raw tokens.
   - *reviewer*: build hard negatives from the same word in a different role ("run" as noun vs verb) and check probe labels against the tags.
@@ -257,13 +255,12 @@ Make each experiment faster and cheaper in tokens without changing what it measu
 
 Measure before optimising, and check that any change to what the agents see doesn't move verdict rates. Verdicts are noisy: rerunning one prompt on the same unit agrees only about half the time. So an A/B needs about 16 units to detect a 0.10 shift in balanced accuracy (`docs/analyses/prompt-trim-ab.md`).
 
-- [ ] Can we run any of this on Apple's Neural Engine (ANE)?
 - [ ] Make the sister search fast, so it stays part of the release (`release` skill, step 3) without a release waiting hours on it. The 0.0.12 run (2026-11-02) took over two hours for five pairs. Its last pair was GPT-2 → Qwen2.5-1.5B: 74 poles, and a first search because Qwen2.5-1.5B was newly configured. It swapped on a 64 GB Mac and was still unfinished after another two. Today each ordered pair with any new VERIFIED pole runs both models over all of `corpus.jsonl` twice (forward, then backward). So cost scales with the number of pairs (n² in models), not poles: 2 poles cost as much as 74. Three models and six pairs is 24 corpus passes. In rough order of payoff:
   - **One pass per model, not per pair.** A pole's own series is tiny (one number per token, ~212k). Compute every new pole's series once. Then run each model once, correlating its layers with every incoming series from all other models at once. Align tokenizers on the CPU from character offsets. Run a second pass per model for the backward partners and rotations. That's 2 passes per model (6, not 24, for three models), whatever the number of models. Rows must come out identical to today's (pin with a test on a small corpus).
   - **Cut peak memory.** `run_with_cache` clones every requested layer at full `[batch, seq, width]` and `_gather` then keeps only the boundary rows. Gather them inside the hook. `_backward` holds a `[width, width]` rotation per matched layer on the device at once. That is 8960² floats ≈ 320 MB each, up to ~9 GB for Qwen2.5-1.5B. Process them a few layers at a time. Empty the MPS cache between batches. The 0.0.12 run held 27 GB through the forward pass and 50 GB in the backward pass. Swapping slowed it from ~850 to ~365 positions a minute.
   - **Free memory between pairs.** The 0.0.17 run (2026-11-11) grew to 57 GB in one process. Its last pair, GPT-2 → Qwen2.5-1.5B, stalled in swap after 20k of 193k forward positions. A fresh process ran that pair alone at a peak of 36 GB, at about 200 positions a second. So something from the earlier pairs stays allocated. Release each pair's models, caches and tensors and empty the MPS cache before the next pair, or run each pair in its own process.
   - **Stop the forward pass at the deepest layer needed** on the side whose poles are fixed.
-  - **Try bf16/fp16 on MPS**, checking that the correlations and which matches are sisters don't move.
+  - **Try bf16/fp16 on MPS**, checking that the correlations and which matches are sisters don't move. On one 2,048-token batch, fp16 MPS activations were within 1% of fp32 and at most 1.25× faster (`docs/analyses/ane-feasibility.md`).
 - [ ] Make the sister search in the release generate a new mixed corpus.
 
   Don't subsample the corpus: rows over a different sample aren't comparable with the existing ones. Target: a run with no new model in ~15–25 min on an M-series Mac. This is an estimate, so measure it.
@@ -356,36 +353,69 @@ Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Huggin
 
 The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test. It needs a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means). It also needs a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
 
-- [ ] Qwen2.5 family: 3B and the `-Instruct` variants, for base ↔ instruct and size-scaling comparisons with the default model (1.5B is in).
-- [ ] OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate. That makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
-- [ ] GPT-2 medium (GPT-2 small is in): the best-documented model family in the circuits literature, good for the positive-control task.
-- [ ] SmolLM2 (135M, 360M, 1.7B): fully open data, cheap enough for CI smoke tests.
-- [ ] Pythia suite (70M–1.4B, with training checkpoints and the `-deduped` variants): the standard for tracking a neuron across training.
-- [ ] EleutherAI's other models ([site](https://eleuther.ai/)), beyond Pythia (item above): e.g. GPT-Neo, GPT-J and GPT-NeoX-20B, whose MLP layouts the hooks already resolve (GPT-Neo's attention output, `attn.attention.out_proj`, isn't in `ATTN_OUT_PATHS` yet).
-- [ ] Qwen3 (0.6B, 1.7B, 4B): the successor architecture. Check `q_norm`/`k_norm` don't break hook resolution.
-- [ ] Llama 3.2 (1B, 3B) and Llama 3.1 8B (gated licence).
-- [ ] Gemma 2 (2B, 9B) and Gemma 3 (1B, 4B): GeGLU MLPs, and Gemma Scope / Gemma Scope 2 SAEs and transcoders for the baseline arm.
-- [ ] OLMo 2 (1B, 7B): open data and checkpoints, so activating examples can be traced to training documents.
-- [ ] Marin models (Stanford's Marin project with Open Athena, `marin-community/marin-8b-base` and `-instruct` on Hugging Face, newer releases possibly under `open-athena`). Fully open like OLMo: code, data mixes, training logs and intermediate checkpoints. So they also suit tracing activating examples to training documents and developmental tracking (Later stage). Marin 8B uses the Llama 3 8B architecture (32 layers, MLP width 14336, SwiGLU) with a modified Llama 3 tokenizer. So the Llama hook path should resolve, but the tokenizer still needs a check. 8B needs a GPU or quantised loading, as Mistral 7B does. Check both orgs for smaller models or checkpoints first, and confirm the licence (reported as Apache 2.0) and context length from the model card.
-- [ ] Stanford `stanford-crfm` GPT-2 seeds (alias/battlestar/…): same architecture, different seeds, for a universality baseline.
-- [ ] DistilGPT-2 (`distilbert/distilgpt2`) as a sister model of GPT-2. It has GPT-2's tokenizer and MLP width, and 6 layers instead of 12. Use `openinterp sisters` to test whether verified GPT-2 neurons survive distillation, and at which depth they land. "What Survives Distillation? A Mechanistic Interpretability Study of GPT-2 and DistilGPT-2" (arXiv 2610.37157, `docs/literature/queue.md`) asks the same question. The model is small, so the sister run is fast.
-- [ ] Phi-3.5-mini / Phi-4-mini: a fused `gate_up_proj`, so check the `mlp.down_proj` input still exposes one value per neuron.
-- [ ] Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
-- [ ] Liquid AI LFM3 1.7B ([model](https://huggingface.co/LiquidAI/LFM3-1.7B)). Earlier LFM releases are hybrids of short convolution and attention blocks with their own module names. So check the architecture from the model card and config against the hook resolver first. Note the MLP activation.
-- [ ] Activation Oracle baseline, once a model with a released oracle is in the registry (Karvonen et al., 2025). Oracles exist for Gemma-2, Gemma-3, Qwen3 and Llama 3 models, and the README warns the 1–4B ones are weaker out of distribution. Record the oracle's description of each unit's output direction next to `submission.patchscope`. Score it as a blind proposer baseline as `openinterp patchscope-baseline` scores the Patchscope readout (`docs/analyses/patchscope-baseline.md`: at chance on Qwen2.5-0.5B). Never show it to the reviewer. Check first that the oracle copes with a single scaled direction rather than a real residual activation. Check also that it copes with a base model when it was trained on the instruct one.
-- [ ] Audit neurons in mixture-of-experts models, as `docs/moe.md` decides. The experts forward and its hook are built (`harness/moe.py`, `tests/test_moe.py`). In order, each step tested before the next:
+- [ ] **70M** Pythia-70M: the standard for tracking a neuron across training, with its training checkpoints and its `-deduped` variant.
+- [ ] **82M** DistilGPT-2 (`distilbert/distilgpt2`) as a sister model of GPT-2. It has GPT-2's tokenizer and MLP width, and 6 layers instead of 12. Use `openinterp sisters` to test whether verified GPT-2 neurons survive distillation, and at which depth they land. "What Survives Distillation? A Mechanistic Interpretability Study of GPT-2 and DistilGPT-2" (arXiv 2610.37157, `docs/literature/queue.md`) asks the same question. The model is small, so the sister run is fast.
+- [ ] **size not yet checked** OpenAI's weight-sparse transformers (Gao et al., 2025, `openai/circuit_sparsity`): trained so that circuits are small and neurons are close to monosemantic by construction. They should have a high VERIFIED rate. That makes them a positive-control model family and a reference point for how clean dense models' native neurons are. Check the architecture against the hook resolver first.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed alias: same architecture as the others of its size, a different seed, for a universality baseline. Check the repo name on Hugging Face.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed battlestar: as alias.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed caprica: as alias.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed darkmatter: as alias.
+- [ ] **124M** Stanford `stanford-crfm` GPT-2 small, seed expanse: as alias.
+- [ ] **125M** GPT-Neo 125M (EleutherAI, [site](https://eleuther.ai/)): the hooks already resolve its MLP layout, but its attention output, `attn.attention.out_proj`, isn't in `ATTN_OUT_PATHS` yet.
+- [ ] **135M** SmolLM2 135M: fully open data, cheap enough for CI smoke tests.
+- [ ] **160M** Pythia-160M: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **355M** GPT-2 medium (GPT-2 small is in): the best-documented model family in the circuits literature, good for the positive-control task.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed arwen: same architecture as the others of its size, a different seed, for a universality baseline. Check the repo name on Hugging Face.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed beren: as arwen.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed celebrimbor: as arwen.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed durin: as arwen.
+- [ ] **355M** Stanford `stanford-crfm` GPT-2 medium, seed eowyn: as arwen.
+- [ ] **360M** SmolLM2 360M: fully open data, as SmolLM2 135M.
+- [ ] **410M** Pythia-410M: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **0.49B** Qwen2.5-0.5B-Instruct: for base ↔ instruct comparisons with Qwen2.5-0.5B, which is in.
+- [ ] **0.6B** Qwen3 0.6B: the successor architecture. Check `q_norm`/`k_norm` don't break hook resolution.
+- [ ] **0.8B** ML-Intern-lab Qwen3.5-0.8B-weight-space-programming ([model](https://huggingface.co/ML-Intern-lab/Qwen3.5-0.8B-weight-space-programming)).
+- [ ] **1.0B** Gemma 3 1B: GeGLU MLPs, and Gemma Scope / Gemma Scope 2 SAEs and transcoders for the baseline arm.
+- [ ] **1.0B** Pythia-1B: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **1.24B** Llama 3.2 1B (gated licence).
+- [ ] **1.3B total, 0.4B active (Granite 3.0 1B-A400M)** Audit neurons in mixture-of-experts models, as `docs/moe.md` decides. The experts forward and its hook are built (`harness/moe.py`, `tests/test_moe.py`). In order, each step tested before the next:
   - Add `ExpertNeuronIdentifier` (`kind = "moe_expert_neuron_pole"`, `L<layer>/E<expert>/N<idx>-<pole>`, `expert` an index or `"shared"`) and its unit, with strengths and ablation. Make every place that branches on a unit's kind support it or refuse it.
   - Scan it: the strength is the routing weight times the hidden activation, 0 on tokens not routed to the expert. Add the routing profile, and record a draw the scan never sees active as unauditable.
   - Review it: probes, counterfactuals, ablation KL, patching and steering, on routed tokens only (`docs/moe.md`, section 3). Partner search within the expert and the shared expert.
   - Add the arm to `openinterp next` and the registry statistics (never pooled with dense neurons), then bump the protocol (`docs/PROTOCOL.md` §1, §3 and §6).
   - Run the first experiments on Granite 3.0 1B-A400M (`ibm-granite/granite-3.0-1b-a400m-base`), then OLMoE-1B-7B.
-- [ ] GPT-OSS (20B, 120B): add it to the docs as a very unusual model. It's a mixture-of-experts with MXFP4-quantised expert weights and a non-standard clamped SwiGLU (its `_apply_gate`, which the MoE forward calls). It has learned attention sinks and alternating sliding-window/full attention layers, so most of the harness's assumptions need checking. Depends on MoE support above (`docs/moe.md`).
-- [ ] CUA-Master 27B ([article](https://aiweekly.co/alerts/cua-master-27b-scores-802-on-osworld-verified-from-cuhk-thu-jd)).
-- [ ] ML-Intern-lab Qwen3.5-0.8B-weight-space-programming ([model](https://huggingface.co/ML-Intern-lab/Qwen3.5-0.8B-weight-space-programming)).
-- [ ] Kimi K3.1 Pro ([model](https://huggingface.co/moonshotai/Kimi-K3.1-Pro)).
-- [ ] Ricursive AI Ripple 65B Preview ([model](https://huggingface.co/ricursiveAI/Ripple-65B-Preview)).
-- [ ] Nous Research's model from this announcement. Name it here once identified ([post](https://x.com/nousresearch/status/2118822925445050435)).
-- [ ] LongCat-2.5 ([model](https://huggingface.co/meituan-longcat/LongCat-2.5)).
+- [ ] **1.3B** GPT-Neo 1.3B: as GPT-Neo 125M.
+- [ ] **1.4B** Pythia-1.4B: as Pythia-70M, with its training checkpoints and its `-deduped` variant.
+- [ ] **1.48B** OLMo 2 1B: open data and checkpoints, so activating examples can be traced to training documents.
+- [ ] **1.54B** Qwen2.5-1.5B-Instruct: for base ↔ instruct comparisons with Qwen2.5-1.5B, which is in.
+- [ ] **1.7B** Liquid AI LFM3 1.7B ([model](https://huggingface.co/LiquidAI/LFM3-1.7B)). Earlier LFM releases are hybrids of short convolution and attention blocks with their own module names. So check the architecture from the model card and config against the hook resolver first. Note the MLP activation.
+- [ ] **1.7B** SmolLM2 1.7B: fully open data, as SmolLM2 135M.
+- [ ] **1.7B** Qwen3 1.7B: as Qwen3 0.6B.
+- [ ] **2.6B** Gemma 2 2B: as Gemma 3 1B.
+- [ ] **2.7B** GPT-Neo 2.7B: as GPT-Neo 125M.
+- [ ] **3.1B** Qwen2.5-3B: for size-scaling comparisons with the default model.
+- [ ] **3.1B** Qwen2.5-3B-Instruct: for base ↔ instruct comparisons with Qwen2.5-3B.
+- [ ] **3.2B** Llama 3.2 3B (gated licence).
+- [ ] **3.8B** Phi-3.5-mini: a fused `gate_up_proj`, so check the `mlp.down_proj` input still exposes one value per neuron.
+- [ ] **3.8B** Phi-4-mini: as Phi-3.5-mini.
+- [ ] **4.0B** Qwen3 4B: as Qwen3 0.6B.
+- [ ] **4.3B** Gemma 3 4B: as Gemma 3 1B.
+- [ ] **6.1B** GPT-J 6B (EleutherAI): the hooks already resolve its MLP layout.
+- [ ] **7.2B** Mistral 7B v0.3: a common 7B baseline (needs GPU or quantised loading).
+- [ ] **7.3B** OLMo 2 7B: as OLMo 2 1B.
+- [ ] **8.0B** Marin 8B base (Stanford's Marin project with Open Athena, `marin-community/marin-8b-base` on Hugging Face, newer releases possibly under `open-athena`). Fully open like OLMo: code, data mixes, training logs and intermediate checkpoints. So it also suits tracing activating examples to training documents and developmental tracking (Later stage). Marin 8B uses the Llama 3 8B architecture (32 layers, MLP width 14336, SwiGLU) with a modified Llama 3 tokenizer. So the Llama hook path should resolve, but the tokenizer still needs a check. 8B needs a GPU or quantised loading, as Mistral 7B does. Check both orgs for smaller models or checkpoints first, and confirm the licence (reported as Apache 2.0) and context length from the model card.
+- [ ] **8.0B** Marin 8B instruct (`marin-community/marin-8b-instruct`): as Marin 8B base.
+- [ ] **8.0B** Llama 3.1 8B (gated licence).
+- [ ] **9.2B** Gemma 2 9B: as Gemma 3 1B.
+- [ ] **20.6B** GPT-NeoX-20B (EleutherAI): the hooks already resolve its MLP layout.
+- [ ] **21B total, 3.6B active** GPT-OSS 20B: add it to the docs as a very unusual model. It's a mixture-of-experts with MXFP4-quantised expert weights and a non-standard clamped SwiGLU (its `_apply_gate`, which the MoE forward calls). It has learned attention sinks and alternating sliding-window/full attention layers, so most of the harness's assumptions need checking. Depends on MoE support above (`docs/moe.md`).
+- [ ] **27B** CUA-Master 27B ([article](https://aiweekly.co/alerts/cua-master-27b-scores-802-on-osworld-verified-from-cuhk-thu-jd)).
+- [ ] **65B** Ricursive AI Ripple 65B Preview ([model](https://huggingface.co/ricursiveAI/Ripple-65B-Preview)).
+- [ ] **117B total, 5.1B active** GPT-OSS 120B: as GPT-OSS 20B.
+- [ ] **size not yet checked** LongCat-2.5 ([model](https://huggingface.co/meituan-longcat/LongCat-2.5)).
+- [ ] **size not yet checked** Kimi K3.1 Pro ([model](https://huggingface.co/moonshotai/Kimi-K3.1-Pro)).
+- [ ] **size not yet checked** Nous Research's model from this announcement. Name it here once identified ([post](https://x.com/nousresearch/status/2118822925445050435)).
+- [ ] Activation Oracle baseline, once a model with a released oracle is in the registry (Karvonen et al., 2025). Oracles exist for Gemma-2, Gemma-3, Qwen3 and Llama 3 models, and the README warns the 1–4B ones are weaker out of distribution. Record the oracle's description of each unit's output direction next to `submission.patchscope`. Score it as a blind proposer baseline as `openinterp patchscope-baseline` scores the Patchscope readout (`docs/analyses/patchscope-baseline.md`: at chance on Qwen2.5-0.5B). Never show it to the reviewer. Check first that the oracle copes with a single scaled direction rather than a real residual activation. Check also that it copes with a base model when it was trained on the instruct one.
 - [ ] What is the process for adding a model? Do we need to construct a latent learned-basis dictionary? Do we need to construct an SPD model? Can we formalise this process?
 
 ## Later stage
