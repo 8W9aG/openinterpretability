@@ -44,19 +44,6 @@ TOTALS = f"""
     FROM r
     """  # noqa: S608  (interpolates module constants only)
 
-VERIFIED = """
-    SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
-           experiment_id,
-           explanation, self_reviewed,
-           confidence_score, sufficiency_score, necessity_score, is_lookahead
-    FROM r
-    WHERE counts_toward_status AND unit_status = 'VERIFIED' AND kind != 'dictionary_feature'
-    QUALIFY row_number() OVER (
-        PARTITION BY slug ORDER BY reviewed_at DESC, experiment_id
-    ) = 1  -- one row per unit: its newest agreeing review
-    ORDER BY confidence_score DESC, slug
-    """
-
 CONCLUSIVE = """
     SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
            experiment_id,
@@ -97,7 +84,6 @@ VERDICTS = """
 # The queries in the order the page's stats come in; TOTALS is one row.
 QUERIES = {
     "totals": TOTALS,
-    "verified": VERIFIED,
     "conclusive": CONCLUSIVE,
     "recent": RECENT,
     "verdicts": VERDICTS,
@@ -113,7 +99,7 @@ def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
     stats["totals"] = stats["totals"][0]
     stats["baseline"] = learned_baseline(con, draws)
     con.close()
-    for row in stats["verified"] + stats["conclusive"] + stats["recent"]:
+    for row in stats["conclusive"] + stats["recent"]:
         row["href"] = _anchor_href(row)
         row["unit"] = _unit_label(row)
     return stats

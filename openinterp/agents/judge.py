@@ -16,6 +16,7 @@ from openinterp.agents.base import LLMAgent
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.fence import FENCE_RULE, fence
 from openinterp.core.schemas import ComponentIdentifier, DictionaryProfile, HeadProfile
+from openinterp.score_controls import ControlTask
 
 MARK_OPEN, MARK_CLOSE = "<<", ">>"
 
@@ -48,6 +49,7 @@ class ScoringTask(BaseModel):
     active_windows: int
     detection: list[TaskWindow]
     fuzzing: list[TaskWindow]
+    controls: list[ControlTask] = Field(default_factory=list)  # judged on the same windows
     costs: ExperimentCosts | None = None  # of drawing the windows
 
 
