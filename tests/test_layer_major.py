@@ -97,3 +97,14 @@ def test_a_model_that_fits_runs_the_loop_in_order(runners):
         _two_passes(whole, t) for t in TEXTS
     ]
     assert not hasattr(whole, "layer_loads")
+
+
+def test_rescoring_a_streamed_scan_reads_each_layer_once(runners, monkeypatch):
+    from openinterp.harness import scan_backend
+
+    whole, streamed = runners
+    texts = TEXTS * 4  # 40 pieces: three passes of RESCORE_BATCH
+    want = scan_backend._measure(whole, 1, 7, "positive")(texts)
+    got = scan_backend._measure(streamed, 1, 7, "positive")(texts)
+    assert got == want
+    assert streamed.layer_loads <= streamed.n_layers  # one sweep for all three passes

@@ -39,6 +39,12 @@ class Activation(nn.Module):
         # dL/da with a, one value for each neuron.
         self.energy_push: torch.Tensor | None = None
         self.output_correlation: torch.Tensor | None = None
+        # When bins holds edges of h, each backward pass also sets spread_bins, [bins, width].
+        # It is the spread term, split by the bin of each token's h. For each bin, it sums
+        # (g - mean g)(s - mean s) over the bin's tokens. Here g is -dL/da and s is a'(h).
+        # The bins add up to the spread term, whatever the mean of g.
+        self.bins: torch.Tensor | None = None
+        self.spread_bins: torch.Tensor | None = None
         # This control separates the cost of centring from the cost of a shared, fixed rest.
         self.learned_rest = nn.Parameter(torch.zeros(learned_width)) if learned_width else None
 
@@ -61,6 +67,10 @@ class Activation(nn.Module):
             output = out.detach()
             self.energy_push = -(output * slope).sum((0, 1))
             out.register_hook(lambda g: self._correlate(g.detach(), output))
+            if self.bins is not None:
+                where = torch.bucketize(h.detach(), self.bins.to(h.device))
+                centred = slope - slope.mean((0, 1))
+                out.register_hook(lambda g: self._split_spread(g.detach(), centred, where))
         if self.centre_output:
             # dL/da summed over tokens, the output's push, is then 0 on every step.
             out = out - out.mean((0, 1), keepdim=True)
@@ -74,6 +84,19 @@ class Activation(nn.Module):
         output = output - output.mean((0, 1))
         norm = (grad.square().sum((0, 1)) * output.square().sum((0, 1))).sqrt()
         self.output_correlation = (grad * output).sum((0, 1)) / norm.clamp_min(1e-30)
+
+    def _split_spread(self, grad: torch.Tensor, centred: torch.Tensor, where: torch.Tensor):
+        """Keep the spread term split by the bin of h, one row per bin."""
+        push = -grad
+        product = (push - push.mean((0, 1))) * centred
+        rows = len(self.bins) + 1
+        out = torch.zeros(rows, product.shape[-1], device=product.device)
+        out.scatter_add_(
+            0,
+            where.reshape(-1, product.shape[-1]),
+            product.reshape(-1, product.shape[-1]),
+        )
+        self.spread_bins = out
 
     def _slope(self, h: torch.Tensor) -> torch.Tensor:
         """Return the slope a'(h) on each element, in a graph of its own."""
@@ -113,3 +136,31 @@ class CentredNorm(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Return the norm of ``x``, ``[batch, seq, d_model]``, less its mean over tokens."""
         return self.norm(x - x.mean((0, 1), keepdim=True))
+
+
+def parallel_forward(
+    self,
+    hidden_states,
+    past_key_values=None,
+    attention_mask=None,
+    encoder_hidden_states=None,
+    encoder_attention_mask=None,
+    use_cache=False,
+    **kwargs,
+):
+    """Run a GPT-2 block with GPT-NeoX's parallel residual: x + attn(ln_1(x)) + mlp(ln_2(x))."""
+    attn, _ = self.attn(
+        self.ln_1(hidden_states),
+        past_key_values=past_key_values,
+        attention_mask=attention_mask,
+        use_cache=use_cache,
+        **kwargs,
+    )
+    return hidden_states + attn + self.mlp(self.ln_2(hidden_states))
+
+
+def warmup(optimizer: torch.optim.Optimizer, steps: int):
+    """Return a schedule that grows the learning rate linearly over ``steps``, or None."""
+    if not steps:
+        return None
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / steps))
