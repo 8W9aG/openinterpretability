@@ -27,12 +27,15 @@ from bisect import bisect_left
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from itertools import accumulate
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import torch
 
 from openinterp.core.confounds import NO_MATCH
-from openinterp.core.schemas import LabelConfound, LabelStat
+from openinterp.core.schemas import ConfoundProfile, LabelConfound, LabelStat, ReviewPolicy
+
+if TYPE_CHECKING:
+    from openinterp.harness.scan import Batch, Chunk
 
 ACTIVATION_BINS = 8
 MAX_LEVELS = 50  # labels listed in a record, most frequent first
@@ -281,3 +284,46 @@ def _entropy(counts: torch.Tensor, total: int) -> float:
     counts = counts[counts > 0]
     p = counts / total
     return float(-(p * p.log()).sum()) + (counts.numel() - 1) / (2 * total)
+
+
+class LabelPass:
+    """Each tagger's labels of a scan's counted tokens, with their strengths.
+
+    They are gathered pass by pass. They give the label confounds (see
+    ``harness/annotations.py``).
+    """
+
+    def __init__(self, tokenizer, texts: Sequence[str], taggers: Sequence[Tagger]) -> None:
+        self.tokens = TokenLabels(tokenizer, texts, taggers)
+        self.accumulators = {t.name: LabelAccumulator() for t in self.tokens.taggers}
+
+    def update_chunk(self, chunk: Chunk, strengths: torch.Tensor) -> None:
+        """Add a chunk's counted tokens; ``strengths`` is ``[n]``, one per real token."""
+        if self.accumulators:
+            rows = [self.tokens.of(piece, chunk.ids[r]) for piece, r in chunk.rows()]
+            self._add(rows, chunk.counted, strengths)
+
+    def update(self, batch: Batch, strengths: torch.Tensor) -> None:
+        """Add a batch's counted tokens; ``strengths`` is ``[b, seq]``, padding included."""
+        if self.accumulators:
+            mask = batch.mask
+            rows = [self.tokens.of(p, batch.ids[i][mask[i]]) for i, p in enumerate(batch.pieces)]
+            self._add(rows, batch.counted[mask], strengths.cpu()[mask])
+
+    def _add(self, rows, counted: torch.Tensor, strengths: torch.Tensor) -> None:
+        for name, accumulator in self.accumulators.items():
+            every = torch.cat([row[name] for row in rows])
+            accumulator.update(every[counted], strengths[counted])
+
+    def finalize(self, confounds: ConfoundProfile, values: Sequence[float]) -> ConfoundProfile:
+        """Return ``confounds`` with each label set's confound added.
+
+        A token counts as active at or above the protocol's line for the scan's settled
+        ``values``.
+        """
+        if not self.accumulators:
+            return confounds
+        line = ReviewPolicy().activation_threshold * max(values, default=0.0)
+        names = self.tokens.names
+        by_label = {n: a.finalize(names[n], line) for n, a in self.accumulators.items()}
+        return confounds.model_copy(update={"labels": by_label})

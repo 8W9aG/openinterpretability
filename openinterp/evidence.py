@@ -280,6 +280,20 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
     return scan
 
 
+def _scan_environment(runner):
+    """The runner's environment, with the scan's backend if the scan ran on the ANE."""
+    from openinterp.harness.environment import run_environment
+
+    environment = run_environment(runner)
+    backend = getattr(runner, "scan_backend", None)
+    if backend is not None and backend.used:
+        from openinterp.harness.ane import convert
+
+        update = {"scan_backend": backend.name, "coremltools_version": convert.version()}
+        environment = environment.model_copy(update=update)
+    return environment
+
+
 def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
     """Where and how the scan ran, for the evidence's provenance."""
     from openinterp import __version__, names, sensitive, syntax, toxicity
@@ -300,7 +314,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         selection="random" if request.random_pick else "manual",
         seed=seed if request.random_pick else None,
         harness_version=__version__,
-        environment=run_environment(runner),
+        environment=_scan_environment(runner),
         corpus_source=corpus.source,
         corpus_sample=corpus.sample,
         label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}"
