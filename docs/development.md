@@ -20,6 +20,28 @@ openinterp deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 
 `make vale` needs [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk. Search and the SQL console need HTTP (`make serve`). No step needs Node.js: Pagefind is a locked Python dev dependency.
 
+## Open work
+
+Open work is in [GitHub issues](https://github.com/8W9aG/openinterpretability/issues). Linear's GitHub integration copies each issue into Linear, and it copies changes in both directions. Until 2026-11-13 the list was `TODO.md`.
+
+Each issue has these labels:
+
+- `area: <topic>`, for example `area: pipeline` or `area: models`.
+- `priority: urgent`, `high`, `medium` or `low`.
+- `protocol`, if the change alters the decision rule. Then it must bump `PROTOCOL_VERSION` (docs/PROTOCOL.md §6).
+- `question`, if the issue asks a question that needs a decision.
+- `release: <version>`, if the issue is planned for that release. The same issues have the milestone `v<version>`.
+
+Each issue also has a workstream. A workstream is a Linear project, for example *Why neurons rest*. On GitHub, the [Roadmap](https://github.com/users/8W9aG/projects/2) project shows it in its Workstream field. When you find a follow-up, open an issue in the workstream that it continues.
+
+Linear sets the priority and the workstream. Every hour, `scripts/linear_sync.py` copies them to the `priority:` label and to the Roadmap. If Linear has no priority, the label sets it. So give a priority label when you open an issue:
+
+```bash
+gh issue create --title "..." --body "..." --label "area: pipeline" --label "priority: medium"
+```
+
+A pull request that does an issue says `Closes #<number>`. Its CHANGELOG entry names the issue.
+
 ## Pull requests
 
 [CI](../.github/workflows/ci.yml) runs three required jobs on every PR:

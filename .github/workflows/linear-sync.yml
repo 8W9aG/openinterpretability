@@ -1,0 +1,40 @@
+name: Linear sync
+
+# Linear's GitHub integration syncs each issue's title, body, state, labels and
+# comments. It does not sync Linear's priority or project. This job copies them to
+# the issue's `priority:` label and to the Roadmap project's Priority and Workstream
+# fields (scripts/linear_sync.py). Linear is the source of truth.
+
+on:
+  schedule:
+    - cron: "17 * * * *"  # off the top of the hour, when Actions is busiest
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the changes and make none
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: linear-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync priority and workstream
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          # A user-owned project needs a token with the `project` scope.
+          # GITHUB_TOKEN can't write to it. Without this secret the job skips the Roadmap.
+          ROADMAP_TOKEN: ${{ secrets.ROADMAP_TOKEN }}
+        run: python3 scripts/linear_sync.py ${{ inputs.dry_run && '--dry-run' || '' }}

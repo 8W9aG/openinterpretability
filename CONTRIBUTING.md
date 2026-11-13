@@ -6,7 +6,7 @@ Thank you for helping. This file is the short map. The detail is in the pages it
 
 - **Run an experiment.** Take one neuron, propose what it does, have a different model try to break the claim, and post the result, whatever it is. Start with the README's [Quickstart](README.md#quickstart). Then read [Contributing a result](docs/experiments.md#contributing-a-result) for how to claim a neuron, name the branch and get credit.
 - **Review or revise an existing experiment.** `openinterp next` also draws follow-ups: re-reviews, revisions, opposite poles and sister neurons. Run the commands that `openinterp next --steps` prints.
-- **Change the code, the skills or the docs.** Read [docs/development.md](docs/development.md) for the make targets, what CI checks and the code layout. Open work is in [TODO.md](TODO.md).
+- **Change the code, the skills or the docs.** Read [docs/development.md](docs/development.md) for the make targets, what CI checks and the code layout. Open work is in [GitHub issues](https://github.com/8W9aG/openinterpretability/issues). [Open work](docs/development.md#open-work) says how they are labelled.
 - **Write a paper.** Analyses go in `papers/`. The `write-paper` skill (`.claude/skills/write-paper/SKILL.md`) gives the form.
 
 ## Pull requests

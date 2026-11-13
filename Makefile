@@ -47,13 +47,13 @@ vale:
 # words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
 # only the standard library. Passive voice and compound tenses are advisory and never fail.
 # A ratchet: add a path here once it passes. The vendored skill's examples break the rules
-# on purpose. CHANGELOG.md and TODO.md are logs, so STE_LOG_PATHS skips synonym rotation
+# on purpose. CHANGELOG.md is a log, so STE_LOG_PATHS skips synonym rotation
 # there: Keep a Changelog requires a "Fixed" heading, and entries quote command names such
 # as `verify` and `check`.
 STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \
 	':!.claude/skills/asd-ste100' 'docs/*.md' 'papers/*.md' README.md REVIEW.md CONTRIBUTING.md SECURITY.md \
 	.github/pull_request_template.md)
-STE_LOG_PATHS ?= CHANGELOG.md TODO.md
+STE_LOG_PATHS ?= CHANGELOG.md
 ste:
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py --disable synonym-rotation $(STE_LOG_PATHS)
