@@ -9,6 +9,10 @@ The project has two version numbers:
 
 ## [Unreleased]
 
+### Changed
+
+- **The maintainer's pull requests merge automatically** (`.github/workflows/auto-merge.yml`). A PR that the maintainer opens from a branch of this repository now gets auto-merge (squash), whatever it changes. GitHub merges it when the required checks pass. Before, only PRs that changed nothing outside `wiki/` did. Fork PRs still need a maintainer unless they change only `wiki/`.
+
 ### Security
 
 - **Actions pinned to commit SHAs, and Dependabot** (`.github/workflows/`, `.github/dependabot.yml`, #3176). A tag such as `actions/checkout@v4` can be moved, and CI decides which records to trust. Each action now names a full SHA, with its version as a comment. Dependabot opens a weekly PR for the actions and for `uv.lock`.
