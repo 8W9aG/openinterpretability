@@ -1142,7 +1142,7 @@ def test_agents_page_credits_contributors(tmp_path, records):
     assert (rows["bob"].experiments, rows["bob"].conclusive_nulls, rows["bob"].reviews) == (1, 0, 2)
     assert [c.handle for c in contributors_view(experiments)] == ["bob", "alice"]
     page = (tmp_path / "agents" / "index.html").read_text()
-    assert 'id="contributors"' in page and ">alice</td>" in page
+    assert 'id="contributors"' in page and 'href="../users/alice.html">alice</a></td>' in page
     neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
     assert "run by</span> alice" in neuron and "run by</span> bob" in neuron
     row = {
@@ -1159,7 +1159,7 @@ def test_agents_page_credits_contributors(tmp_path, records):
 
 def test_agents_page_without_contributors(tmp_path, records):
     compile_site(records, tmp_path)
-    assert "No contributors recorded yet." in (tmp_path / "agents" / "index.html").read_text()
+    assert "No contributors yet." in (tmp_path / "agents" / "index.html").read_text()
 
 
 def _write_paper(papers, slug, text):

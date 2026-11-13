@@ -2,7 +2,8 @@
 
 A contributor is a public handle such as a GitHub username, never an email, and is only
 recorded when given: ``--contributor`` or ``$OPENINTERP_CONTRIBUTOR``. Git config is never
-read, so nobody is named without choosing to be.
+read, so no record names a person who did not choose it. The site credits a record with no
+contributor to the author of the PR that merged it (:mod:`openinterp.builder.users`).
 """
 
 from __future__ import annotations

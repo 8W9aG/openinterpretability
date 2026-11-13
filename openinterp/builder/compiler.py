@@ -183,6 +183,7 @@ OWNED_PATHS = (
     "about.html",
     "models",
     "agents",
+    "users",
     "neurons",
     "research",
     "data",
@@ -291,6 +292,7 @@ def compile_site(
     model_facts: dict[str, ModelFacts] | None = None,
     jobs: int = 1,
     errata: Sequence[Erratum] = (),
+    users: dict[str, str] | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -305,13 +307,15 @@ def compile_site(
     ``jobs`` is the number of worker processes that render the unit pages.
     ``errata`` (:func:`openinterp.core.errata.load_errata`) alter the experiments they cover:
     each shows the erratum, and one set aside counts toward no standing.
+    ``users`` (:func:`openinterp.builder.users.load_users`) name who made the records that
+    record no contributor. Each person gets a page under ``users/``.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    models = build_tree(records, errata)
+    models = build_tree(records, errata, users)
     add_stopped(models, (*draws, *stops))  # neurons that only stopped scans cover
     experiments = [
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
@@ -362,10 +366,13 @@ def _true_text_stats(experiments, draws, corpus_sources) -> dict:
 
 
 def _render_agents(render, experiments, output_dir, report) -> list:
-    """Write the agents page, each agent's page and redirects from old agent paths."""
+    """Write the Agents and Users pages, each agent's and person's page, and redirects."""
     agents = agents_view(experiments)
     contributors = contributors_view(experiments)
     render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
+    render("users/index.html", "users.html", users=contributors)
+    for person in contributors:
+        render(person.href, "user.html", user=person)
     for agent in agents:
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, self_review_badge, pole_mark %}
+
+{% block title %}{{ user.handle }} · Users · {{ site_title }}{% endblock %}
+
+{% macro experiment_rows(rows) -%}
+<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Result</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for r in rows %}
+      {% set v = r.e.record.verdict %}
+      <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+        <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ v.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ v.timestamp.strftime('%Y-%m-%d') }}</time></td>
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+          <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ r.href }}">{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+          <div class="text-slate-500">{{ r.model_name }}</div>
+        </td>
+        <td class="px-3 py-2">
+          <div class="mb-1 flex flex-wrap gap-1">{{ status_badge(v.status) }}{% if r.e.record.self_reviewed %} {{ self_review_badge() }}{% endif %}</div>
+          {{ r.e.record.submission.natural_language_explanation | truncate(140) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}users/index.html">Users</a> / {{ user.handle }}</nav>
+<h1 class="break-all font-mono text-2xl font-semibold">{{ user.handle }}</h1>
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+  <a class="underline" href="https://github.com/{{ user.handle }}" rel="noopener">github.com/{{ user.handle }}</a> ·
+  {{ user.experiments }} experiment{{ "" if user.experiments == 1 else "s" }}, {{ user.verified }} VERIFIED, {{ user.conclusive_nulls }} well-probed rejection{{ "" if user.conclusive_nulls == 1 else "s" }} · {{ user.reviews }} review{{ "" if user.reviews == 1 else "s" }}
+</p>
+
+{% if user.made %}
+<section class="mt-8">
+  <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ user.made | length }} of {{ user.experiments }}, newest first.</p>
+  {{ experiment_rows(user.made) }}
+</section>
+{% endif %}
+{% if user.reviewed %}
+<section class="mt-8">
+  <h2 class="mb-1 text-lg font-semibold">Most recent reviews</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ user.reviewed | length }} of {{ user.reviews }}, newest first.</p>
+  {{ experiment_rows(user.reviewed) }}
+</section>
+{% endif %}
+{% endblock %}

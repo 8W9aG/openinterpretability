@@ -31,3 +31,8 @@ def head_href(slug: str, layer: int, idx: int) -> str:
 def feature_href(slug: str, layer: int, dictionary: str, idx: int) -> str:
     """The dictionary feature's page."""
     return f"models/{slug}/L{layer}/{dictionary}/F{idx}.html"
+
+
+def user_href(handle: str) -> str:
+    """The page of the person with the public handle ``handle``."""
+    return f"users/{handle}.html"
