@@ -93,3 +93,10 @@ Papers and posts to review for the literature review (`TODO.md`, Protocol and sc
 - Review "Are Dense Rewards Worth Their Tokens in GRPO?" (arXiv 2611.13560, [paper](https://arxiv.org/abs/2611.13560)).
 - Review Meta's "Introducing Our Smallest, Most Efficient Model: Muse Ember" ([post](https://research.meta.ai/blog/muse-ember)).
 - Review Hugging Face's "Token Pooling-Aware Training for Multi-Vector Embedding Models" ([post](https://huggingface.co/blog/token-pooling)).
+- Review "Faithful and Stable Neuron Explanations for Trustworthy Mechanistic Interpretability" (arXiv 2512.18092, [paper](https://arxiv.org/abs/2512.18092)).
+- Review "Neurons Speak in Ranges: Breaking Free from Discrete Neuronal Attribution" (arXiv 2502.06809, [paper](https://arxiv.org/abs/2502.06809)).
+- Review "Exploring the Robustness of Model-Graded Evaluations and Automated Interpretability" (arXiv 2312.03721, [paper](https://arxiv.org/abs/2312.03721)).
+- Review "Constructing Interpretable Features from Compositional Neuron Groups" (arXiv 2506.10920, [paper](https://arxiv.org/abs/2506.10920)).
+- Review "Circuit Insights: Towards Interpretability Beyond Activations" (arXiv 2510.14936, [paper](https://arxiv.org/abs/2510.14936)).
+- Review Transluce's "Scaling Automatic Neuron Description", with its descriptions of all 458,752 MLP neurons of Llama-3.1-8B-Instruct ([post](https://transluce.org/neuron-descriptions)).
+- Review the neuron descriptions that came with Goodfire's *Neural Networks Are Already Clean*, of neurons in Qwen3.6-35B-A3B ([essay](https://already-clean.goodfire.com/)). Secondary coverage says 1,500 neurons. The essay page doesn't give the count.
