@@ -61,7 +61,7 @@ The k-sparse curves (held-out BA):
 - **The labels approximate the concepts.** The `thousands` rule marks every digit and comma of the numeral. L17/N1420+ claims only the non-final digits after a separator and stays silent on a group's last digit. The `year` rule marks any number from 1500 to 2029, some of which are counts. A pole that matches its explanation exactly can still lose BA to a rule that is broader than the explanation. Both effects lower the pole's score, not the probes'. Rank is less affected by this than BA, because every neuron is measured against the same labels.
 - **Thresholds transfer worse than rankings.** Every probe's AUROC is about 0.99–1.00, but the dense logistic probe's BA at its training threshold is 0.80–0.92 on two rows. Its scores shift between the Pile and FineWeb-Edu. That is why *neurons needed* is measured against the better of the two dense probes. It is also why the k-sparse curve of L17/N1420+ falls past k = 32.
 - **One seed, one rule per concept, five records.** These are point estimates with no intervals. The numbers support the qualitative reading above, not small differences between rows.
-- **Correlational only.** A probe finds information that is linearly present, whether or not the model uses it. The causal counterpart is the next item of `TODO.md` (a DAS direction compared with the pole by interchange intervention).
+- **Correlational only.** A probe finds information that is linearly present, whether or not the model uses it. The causal counterpart is issue #3229 (a DAS direction compared with the pole by interchange intervention).
 
 ## Reproduce
 
