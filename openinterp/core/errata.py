@@ -6,8 +6,8 @@ appends an erratum to ``wiki/errata.jsonl``. Then they sign the file with
 records it covers (a list of record paths, a :class:`ErratumRule`, or both), the bug, and
 the commit that fixed it.
 
-``openinterp check`` verifies the file (:func:`openinterp.checks._check_errata`). The site
-shows a banner on each covered record and on its unit's page. The standing rule
+``openinterp check`` verifies the file (:mod:`openinterp.errata_checks`). Errata have no
+page of their own. The site shows each erratum on the experiments it covers. The standing rule
 (:mod:`openinterp.builder.standing`) sets aside the readings of an erratum whose action is
 ``set_aside``. An erratum with the action ``flag`` changes no standing.
 """
@@ -31,8 +31,8 @@ ERRATA_FILE = "errata.jsonl"
 """The errata file's name in the wiki directory."""
 
 ACTIONS = {
-    "flag": "flagged: its readings still count",
-    "set_aside": "set aside: its readings do not count toward any standing",
+    "flag": "This record still counts toward the status.",
+    "set_aside": "This record is set aside: it no longer counts toward the status.",
 }
 """What an erratum does to the records it covers, with the label the site shows."""
 

@@ -86,24 +86,24 @@ def test_a_pole_whose_readings_are_all_set_aside_keeps_them(record):
     assert standing.status == "VERIFIED" and standing.errata == [x]
 
 
-def test_site_shows_errata(tmp_path, record):
+def test_the_site_shows_errata_only_on_the_experiments_they_alter(tmp_path, record):
     newer = later(record, 1, "REJECTED")
     x = erratum(records=[record_ref(newer)])
     compile_site([record, newer], tmp_path, errata=[x])
-    page = (tmp_path / "errata.html").read_text()
-    assert 'id="scale-bug"' in page and "abcdef1" in page and "Covers 1 record" in page
+    assert not (tmp_path / "errata.html").exists()
     (unit,) = (tmp_path / "models").rglob("N117.html")
     html = unit.read_text()
-    assert "Erratum: a harness bug affected experiments on this neuron" in html
-    assert "Erratum: a harness bug affected this record" in html
+    assert html.count("Erratum, 2026-11-13: Activations were scaled twice.") == 1
+    assert "it no longer counts toward the status" in html
+    assert "The scan divided by the scale twice." in html and "/commit/abcdef1" in html
     assert "set aside by an erratum" in html
     rows = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
     assert sorted(tuple(r["errata"]) for r in rows) == [(), ("scale-bug",)]
 
 
-def test_site_without_errata_says_so(tmp_path, record):
+def test_a_site_without_errata_mentions_none(tmp_path, record):
     compile_site([record], tmp_path)
-    assert "No errata." in (tmp_path / "errata.html").read_text()
+    assert not any("Erratum" in p.read_text() for p in tmp_path.rglob("*.html"))
 
 
 # --- openinterp check ---------------------------------------------------------------

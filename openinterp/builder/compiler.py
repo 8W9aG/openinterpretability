@@ -183,7 +183,6 @@ def explanation_view(scores, scale: float) -> dict | None:
 OWNED_PATHS = (
     "index.html",
     "about.html",
-    "errata.html",
     "models",
     "agents",
     "neurons",
@@ -306,8 +305,8 @@ def compile_site(
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
     Models page, which lists every model in ``[tool.openinterp] models``.
     ``jobs`` is the number of worker processes that render the unit pages.
-    ``errata`` (:func:`openinterp.core.errata.load_errata`) get banners on the records they
-    cover, and on the Errata page. Those that set records aside change their standings.
+    ``errata`` (:func:`openinterp.core.errata.load_errata`) alter the experiments they cover:
+    each shows the erratum, and one set aside counts toward no standing.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -343,7 +342,7 @@ def compile_site(
     stats["totals"]["neurons"] += sum(len(layer.stopped) for m in models for layer in m.layers)
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
-    render_reference_pages(render, models, errata, papers_dir, report)
+    render_reference_pages(render, papers_dir, report)
     _save_memos()
     return report
 
