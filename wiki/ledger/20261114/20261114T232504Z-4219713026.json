@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T23:25:04Z","seed":4219713026,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L1/H2","record":null,"audit":"--model openai-community/gpt2 --random --seed 3196692038 --unit head --window-tokens 128","pole_forced":false,"harness_version":"0.0.19"}
