@@ -1,4 +1,4 @@
-"""``openinterp audit`` and its helpers: scan caching and prompt/answer files.
+"""``open-interpretability audit`` and its helpers: scan caching and prompt/answer files.
 
 Corpus loading and the scan itself are in :mod:`openinterp.evidence`.
 """
@@ -257,7 +257,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
     default=True,
     show_default=True,
     help="Show the proposer the pole's sister neurons in other models that this registry "
-    "has studied (`openinterp sisters`), with their explanations.",
+    "has studied (`open-interpretability sisters`), with their explanations.",
 )
 @click.option(
     "--supersedes",
@@ -316,10 +316,10 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
     \b
     In one step, the proposer is an LLM (or external/<name>, answered through exchange/).
     In two steps, any agent can propose without an API key or a waiting process:
-      openinterp audit --model M --random --evidence-out ev.json
-      (answer ev.prompt.md by writing ev.hypothesis.json)
-      openinterp audit --evidence ev.json --hypothesis ev.hypothesis.json \\
-        --agent-model external/<model that wrote it>
+        open-interpretability audit --model M --random --evidence-out ev.json
+        (answer ev.prompt.md by writing ev.hypothesis.json)
+        open-interpretability audit --evidence ev.json --hypothesis ev.hypothesis.json \\
+          --agent-model external/<model that wrote it>
     """
     unit = resolve_unit(unit, neuron, pole, head, feature, dictionary)
     if unit == "feature" and evidence_file is None:
@@ -434,7 +434,7 @@ def scan_corpus(corpus: Path | None) -> Path:
         return REGISTRY_CORPUS
     raise click.UsageError(
         f"No --corpus given and no {REGISTRY_CORPUS} here. Build the registry's scan corpus "
-        "with `openinterp corpus` (see the README), copy it in, or pass --corpus."
+        "with `open-interpretability corpus` (see the README), copy it in, or pass --corpus."
     )
 
 

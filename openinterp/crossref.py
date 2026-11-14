@@ -1,4 +1,4 @@
-"""Cross-reference neuron poles with published dictionaries (`openinterp crossref`).
+"""Cross-reference neuron poles with published dictionaries (`open-interpretability crossref`).
 
 This takes every neuron pole in the archive whose model has a dictionary preset for its
 layer. It finds the latents whose decoder aligns with the pole's write, and whose encoder
@@ -13,7 +13,7 @@ is looked up when shown, and kept on disk so that each latent is fetched only on
 Neuronpedia is credited to it and to the model that wrote it.
 
 Agreement between a pole's explanation and an aligned latent's is supporting evidence.
-Disagreement is something for the reviewer to probe (`openinterp review
+Disagreement is something for the reviewer to probe (`open-interpretability review
 --dictionary-latents`). Neither is gated.
 """
 

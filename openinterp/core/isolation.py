@@ -7,7 +7,7 @@ hold them. Two things use :func:`forbidden`:
 - The ``PreToolUse`` hook of ``.claude/agents/neuron-reviewer.md`` runs this module
   (``python -m openinterp.core.isolation``) before each tool call of the reviewer. It
   denies a call that reads, searches (``Grep``) or writes a blocked path.
-- ``openinterp usage`` reads the reviewer's transcript
+- ``open-interpretability usage`` reads the reviewer's transcript
   (:func:`openinterp.core.transcripts.forbidden_reads`). A blocked read that completed
   is written to the usage file, and ``review --probes`` then refuses the probe set.
 

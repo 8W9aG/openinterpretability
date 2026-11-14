@@ -74,4 +74,4 @@ Run on 2026-11-13. The same 30 submissions, each reviewed twice more by Sonnet (
 
 **Limits.** 30 submissions and two reviews each, so the gain in agreement has a wide interval. One pair of 20-probe reviews also agreed at 0.90. 14 of the 60 reviews first wrote 31 or 32 probes, all extra hard negatives. Each reviewer was asked to drop its weakest extra negatives, with no activations shown. Two reviews wrote 19 negatives and 11 holdouts, and were kept.
 
-**Adopted.** `openinterp review` asks for 30 probes, split 20 and 10. `ReviewPolicy` is unchanged, so `PROTOCOL_VERSION` stays 0.8. Older records keep their 20-probe reviews and are not re-reviewed.
+**Adopted.** `open-interpretability review` asks for 30 probes, split 20 and 10. `ReviewPolicy` is unchanged, so `PROTOCOL_VERSION` stays 0.8. Older records keep their 20-probe reviews and are not re-reviewed.

@@ -1,4 +1,4 @@
-"""``openinterp wiring-backfill``: wiring for archived records that predate it.
+"""``open-interpretability wiring-backfill``: wiring for archived records that predate it.
 
 See :mod:`openinterp.wiring_backfill`.
 """
@@ -32,8 +32,8 @@ from openinterp.wiring_backfill import DEFAULT_PATH
 def wiring_backfill(wiki_dir, out, limit, device):
     """Record the wiring of every archived experiment that has none, in --out.
 
-    Records are write-once and often signed, so they are left alone; `openinterp build`
-    shows a row's wiring for its record, marked as backfilled.
+    Records are write-once and often signed, so they are left alone.
+    `open-interpretability build` shows a row's wiring for its record, marked as backfilled.
     """
     from openinterp.builder.wiki import load_archive
     from openinterp.harness.units import attn_implementation

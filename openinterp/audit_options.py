@@ -1,4 +1,6 @@
-"""Options that ``openinterp audit`` and ``scan`` share: the scan cache and ``--selection``.
+"""Options that ``open-interpretability audit`` and ``scan`` share.
+
+The options are the scan cache and ``--selection``.
 
 ``--selection`` says how a chosen unit was selected, as its provenance records it.
 
@@ -17,7 +19,8 @@ scan_cache_option = click.option(
     "use_scan_cache",
     default=True,
     show_default=True,
-    help="Replay a cached scan of the layer, or store this one (see `openinterp scan-cache`).",
+    help="Replay a cached scan of the layer, or store this one "
+    "(see `open-interpretability scan-cache`).",
 )
 
 

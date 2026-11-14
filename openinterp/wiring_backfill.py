@@ -1,4 +1,4 @@
-"""Wiring for archived records that predate it (`openinterp wiring-backfill`).
+"""Wiring for archived records that predate it (`open-interpretability wiring-backfill`).
 
 Archived records are write-once and many are signed, so their wiring is not written into
 them. It goes to ``docs/analyses/wiring.jsonl``, one row per experiment. The site

@@ -58,4 +58,4 @@
 
 **It matches the circuits result.** The paper starts from Arora et al.'s finding that circuits are sparse in the neuron basis (`neuron-basis-circuits.md`). It adds that transcoder features which don't align with a neuron are less stable across training runs. That supports the registry's choice to audit native neurons first, with dictionaries as a baseline.
 
-**One measure carries over.** Our cross-reference (`openinterp crossref`) already finds the latents whose decoder aligns with a pole's write. The paper's test also needs the encoder to align. Issue #3608 adds that side.
+**One measure carries over.** Our cross-reference (`open-interpretability crossref`) already finds the latents whose decoder aligns with a pole's write. The paper's test also needs the encoder to align. Issue #3608 adds that side.

@@ -51,7 +51,7 @@
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
     {{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.
     {% if t.verified %}So were {{ t.verified_self_reviewed }} of the {{ t.verified }} current verified claims.{% endif %}
-    That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">openinterp next</code> draws re-reviews of these.
+    That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">open-interpretability next</code> draws re-reviews of these.
   </p>
   {% endif %}
   {% if agreement.claims %}
@@ -137,7 +137,7 @@
     {% set pc = pieces.model_pieces(m) %}
     <a href="{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: openinterp next draws most new neurons from it.">explore focus</span>{% endif %}</span>
+        <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: open-interpretability next draws most new neurons from it.">explore focus</span>{% endif %}</span>
         <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
           {{ m.experiments }} experiments ·
           {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }}) ·

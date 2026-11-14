@@ -1,4 +1,4 @@
-"""Registry coverage for the site: each model's newest `openinterp coverage` run.
+"""Registry coverage for the site: each model's newest `open-interpretability coverage` run.
 
 ``openinterp/coverage.py`` measures coverage, which needs the model. This module only
 reads the rows that the command wrote, so the site build needs no model and no torch.

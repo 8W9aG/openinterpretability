@@ -1,4 +1,4 @@
-"""``openinterp sisters``: VERIFIED neuron poles matched to other models' poles.
+"""``open-interpretability sisters``: VERIFIED neuron poles matched to other models' poles.
 
 See :mod:`openinterp.sisters`.
 """

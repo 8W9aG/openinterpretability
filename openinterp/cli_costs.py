@@ -1,7 +1,7 @@
-"""``openinterp costs`` and ``openinterp usage``: what experiments cost.
+"""``open-interpretability costs`` and ``open-interpretability usage``: what experiments cost.
 
-``openinterp costs`` summarises costs from ledgers of commands or from the registry's
-records. ``openinterp usage`` records what an external answerer used.
+``open-interpretability costs`` summarises costs from ledgers of commands or from the registry's
+records. ``open-interpretability usage`` records what an external answerer used.
 """
 
 from __future__ import annotations

@@ -1,7 +1,9 @@
-"""Reproduce an experiment record from its JSON before it merges (`openinterp reproduce`).
+"""Reproduce an experiment record from its JSON before it merges.
 
-`openinterp check` only validates a record's shape. This runs again every measurement
-that the verdict rests on. It uses the model revision and dtype that the record pins:
+The command is `open-interpretability reproduce`.
+
+`open-interpretability check` only validates a record's shape. This runs again every
+measurement that the verdict rests on. It uses the model revision and dtype that the record pins:
 
 1. The scan evidence: each top example's per-token strengths. Also the scale
    (``max_activation``) that every "active" threshold is a fraction of.
@@ -25,7 +27,7 @@ number by a few percent from one device to another (issue #2995). float32 is als
 10 times faster than bfloat16 on a CPU. ``half_precision.py`` has the other rules.
 
 A record judged under another protocol version can't be reproduced by this harness:
-its decision rule was different. Re-evaluate it instead (`openinterp reevaluate`). A
+its decision rule was different. Re-evaluate it instead (`open-interpretability reevaluate`). A
 library upgrade can still shift its activations. So ``measurements_only`` compares its
 scan evidence and counterfactuals, and leaves out the review.
 """

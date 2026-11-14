@@ -8,7 +8,7 @@ Every neuron in the registry generates candidate follow-up experiments:
 - Rescan a record that was scanned on the built-in sample.
 
 A VERIFIED pole also offers its unstudied matches in other configured models
-(``openinterp sisters``), audited with its explanation. Any match can be drawn, and any
+(``open-interpretability sisters``), audited with its explanation. Any match can be drawn, and any
 pole of another model at random. But the pole's sister is drawn far more often than the
 rest.
 
@@ -100,7 +100,7 @@ class Candidate:
     skills: list[str] = field(default_factory=list)
     layer: int | None = None
     record: str | None = None  # the record a follow-up builds on
-    audit: str | None = None  # `openinterp audit` options, for kinds that scan
+    audit: str | None = None  # `open-interpretability audit` options, for kinds that scan
 
 
 @dataclass
@@ -281,10 +281,13 @@ def _default_on(record: AuditRecord) -> bool:
 
 
 def _audit_options(commands: list[str]) -> str | None:
-    """The options of the ``openinterp audit`` among ``commands``, without --supersedes."""
+    """The options of the audit command among ``commands``, without --supersedes.
+
+    The audit command is the one that starts with ``open-interpretability audit``.
+    """
     for command in commands:
-        if command.startswith("openinterp audit "):
-            return command.removeprefix("openinterp audit ").split(" --supersedes ")[0]
+        if command.startswith("open-interpretability audit "):
+            return command.removeprefix("open-interpretability audit ").split(" --supersedes ")[0]
     return None
 
 
@@ -314,11 +317,11 @@ def _commands(state: NeuronState) -> _Commands:
         target += f" --window-tokens {provenance.snippet_tokens}"
     proposer = record.submission.submitting_agent_model
     review = (
-        f"openinterp verify --audit-file {path} --corpus <scan corpus> "
+        f"open-interpretability verify --audit-file {path} --corpus <scan corpus> "
         f"--agent-model <model other than {proposer}>"
     )
     pole = f" --pole {ident.pole}" if ident.pole else ""
-    revise = f"openinterp audit {target}{pole} --supersedes {path}"
+    revise = f"open-interpretability audit {target}{pole} --supersedes {path}"
     return _Commands(path, target, review, revise)
 
 
@@ -330,7 +333,7 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
     record, verdict = state.record, state.record.verdict
     kinds: list[Kind] = []
     if verdict.policy is None or verdict.policy.protocol_version != PROTOCOL_VERSION:
-        reevaluate = [f"openinterp reevaluate --record {c.path}"]
+        reevaluate = [f"open-interpretability reevaluate --record {c.path}"]
         kinds.append(("reevaluate", "verdict predates the current protocol", reevaluate, None))
     # Not the gate: it passes self-reviews unless the policy requires independence.
     if record.self_reviewed:
@@ -339,7 +342,10 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
         )
     gates = verdict.metrics.gates if verdict.metrics else {}
     failed = [g for g, ok in gates.items() if not ok]
-    resubmit = [c.revise, "openinterp verify --audit-file <new submission> --corpus <scan corpus>"]
+    resubmit = [
+        c.revise,
+        "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>",
+    ]
     if verdict.status == "NEEDS_REVISION":
         kinds.append(("revise", f"failed gates: {', '.join(failed) or 'unknown'}", resubmit, None))
     elif verdict.status == "REJECTED":
@@ -361,7 +367,7 @@ def _rescan(c: _Commands) -> list[Kind]:
     Re-evaluating or re-reviewing the record would reuse its scan.
     """
     why = "scanned on the 552-token built-in sample; rescan on the corpus"
-    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    verify = "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>"
     return [("rescan", why, [c.revise, verify], None)]
 
 
@@ -371,7 +377,7 @@ def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Ki
     other_slug = ident.slug.rsplit("-", 1)[0] + f"-{other}"
     if not ident.pole or other_slug in slugs:  # heads and features have no poles
         return []
-    audit = f"openinterp audit {c.target} --pole {other}"
+    audit = f"open-interpretability audit {c.target} --pole {other}"
     return [("opposite_pole", f"the {other} pole is unstudied", [audit], other_slug)]
 
 

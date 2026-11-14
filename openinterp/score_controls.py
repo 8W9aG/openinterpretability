@@ -1,4 +1,4 @@
-"""Control explanations for ``openinterp score --controls``.
+"""Control explanations for ``open-interpretability score --controls``.
 
 A detection or fuzzing score can be high for reasons that have nothing to do with the
 explanation. The held-out windows can have structure that a judge picks up without it,
@@ -30,7 +30,7 @@ KINDS = ("detection", "fuzzing")
 
 
 class ControlTask(BaseModel):
-    """One control explanation, as ``openinterp score --emit-task`` writes it."""
+    """One control explanation, as ``open-interpretability score --emit-task`` writes it."""
 
     kind: str
     explanation: str
@@ -152,7 +152,7 @@ def read_answers(task, task_path: Path) -> list[ControlScore]:
 
 
 def judge_controls(judge, task, noun: str) -> list[ControlScore]:
-    """Ask an LLM judge each control's questions (the one-step ``openinterp score``)."""
+    """Ask an LLM judge each control's questions (the one-step ``open-interpretability score``)."""
     from openinterp.agents.judge import answered
 
     out = []

@@ -9,7 +9,7 @@ removes the matched text from each page, above its Discussion section.
     uv run python scripts/takedown.py --passage ~/request.txt --id 2026-11-14-a \\
         --reason "author's request"
 
-Then sign the file (``openinterp sign wiki/takedowns.jsonl``), and open a pull request
+Then sign the file (``open-interpretability sign wiki/takedowns.jsonl``), and open a pull request
 with the file, its signature and the pages. Records and their signatures don't change.
 """
 
@@ -96,13 +96,15 @@ def main() -> int:
     path = takedowns_path(opts.wiki_dir)
     with path.open("a", encoding="utf-8") as f:
         f.write(to_line(takedown))
-    # With every takedown's shingles, as `openinterp check` compares: a page added after an
-    # earlier takedown can still hold that takedown's text.
+    # With every takedown's shingles, as `open-interpretability check` compares: a page added
+    # after an earlier takedown can still hold that takedown's text.
     every = all_hashes(load_takedowns(opts.wiki_dir))
     for page in pages:
         redact_page(page, every)
     print(f"Appended {takedown.id} to {path}, and removed the passage from {len(pages)} page(s).")
-    print(f"Next: openinterp sign {path}, then open a pull request with the file, its .sig")
+    print(
+        f"Next: open-interpretability sign {path}, then open a pull request with the file, its .sig"
+    )
     print("and the pages. Rebuild and deploy the site after it merges.")
     return 0
 

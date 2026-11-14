@@ -18,7 +18,7 @@ An experiment takes one neuron, proposes what it does, has a *different* model t
 | Tool | What it is for | Needed |
 | --- | --- | --- |
 | [Git](https://git-scm.com/) and a GitHub account | Fork the repo, and push your experiment as a pull request | Always |
-| [Python](https://www.python.org/) 3.11+ | Runs `openinterp` and the model | Always |
+| [Python](https://www.python.org/) 3.11+ | Runs `open-interpretability` and the model | Always |
 | [uv](https://docs.astral.sh/uv/) | Installs the dependencies into `.venv` and runs the commands (`uv run …`) | Always |
 | [GitHub CLI](https://cli.github.com/) (`gh`) | Opens the draft PR that claims a neuron. The planner also reads open PRs with it, to skip neurons that others have claimed | To contribute. Without it, the planner can't see claims, and you open the PR on github.com |
 | [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | To run the loop. Also to run it yourself with no API keys |
@@ -36,7 +36,7 @@ cd openinterpretability
 claude "/loop /land-experiment"
 ```
 
-That is all. The loop runs one experiment after another until you stop it. Each one draws a neuron with `openinterp next` and claims it with a draft PR. It then scans the neuron, has one subagent propose a hypothesis and another review it, and posts the result. `uv run` installs the dependencies on first use. Each scan builds its own corpus. A scan takes about 10–15 minutes on CPU.
+That is all. The loop runs one experiment after another until you stop it. Each one draws a neuron with `open-interpretability next` and claims it with a draft PR. It then scans the neuron, has one subagent propose a hypothesis and another review it, and posts the result. `uv run` installs the dependencies on first use. Each scan builds its own corpus. A scan takes about 10–15 minutes on CPU.
 
 `land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. To be credited, set `export OPENINTERP_CONTRIBUTOR=<your GitHub username>` (never an email) before you start Claude Code. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result."
 
@@ -46,9 +46,9 @@ With API keys set for the proposer and the reviewer (e.g. `export ANTHROPIC_API_
 
 ```bash
 make install                              # creates .venv with everything
-uv run openinterp next --steps            # draws an experiment and prints every step as exact commands
-uv run openinterp audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
-uv run openinterp verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
+uv run open-interpretability next --steps            # draws an experiment and prints every step as exact commands
+uv run open-interpretability audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
+uv run open-interpretability verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
 ```
 
 `audit` scans the neuron and asks the proposer for a hypothesis. `verify` has the reviewer write probes, measures them on the model, and writes the experiment under `wiki/experiments/`. Build `corpus.jsonl` first with the command in [The scan corpus](docs/experiments.md#the-scan-corpus).
@@ -68,7 +68,7 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 
 ### Install the package
 
-To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability` (`openinterp` still works for now):
+To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability`:
 
 ```bash
 pip install open-interpretability          # add [site] to build the site's search index
@@ -103,4 +103,4 @@ To cite the registry or the package, use [CITATION.cff](CITATION.cff). GitHub sh
 
 ## Status
 
-Early scaffold. `make sample-run` builds the site from six real experiments in `wiki/experiments/` (listed in the `Makefile`), imported with `openinterp wiki --import-dir`.
+Early scaffold. `make sample-run` builds the site from six real experiments in `wiki/experiments/` (listed in the `Makefile`), imported with `open-interpretability wiki --import-dir`.
