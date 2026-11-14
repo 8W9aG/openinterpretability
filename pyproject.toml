@@ -93,6 +93,12 @@ packages = ["openinterp"]
 # under "Models" in TODO.md first.
 models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2"]
 
+[tool.openinterp.size_budget]
+# scripts/repo_size.py warns in CI past these, and never fails (issue #3254). 1,000 MB is
+# GitHub's recommended largest repository. Where records live in the long term is open.
+tracked_mb = 1000
+files = 20000
+
 [tool.openinterp.window_tokens]
 # Scan window for models that read fewer positions than the corpus's longest documents.
 # GPT-2 reads 1,024, but its transcoders fit only 128 (harness/dictionaries.py), and the
