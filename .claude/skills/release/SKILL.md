@@ -108,6 +108,7 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
     awk '/^## \[<version>\]/{f=1; next} /^## \[/{f=0} f' CHANGELOG.md > "$notes"
     gh release create v<version> --verify-tag --title "openinterp <version> (protocol v<PROTOCOL_VERSION>)" --notes-file "$notes"
     ```
+    Publishing the release also starts `.github/workflows/publish.yml`, which uploads the package to PyPI as `open-interpretability`. Check that its run passed (`gh run list --workflow publish.yml --limit 1`). If it failed on the version check, the tag doesn't match `openinterp.__version__`. If it failed on upload, the `PYPI_TOKEN` secret is missing or expired (`docs/development.md`, *Releases on PyPI*). Tell the user either way.
     Then check that Zenodo made the DOI: the release's Zenodo record appears under the repository's concept DOI after a few minutes. If it doesn't, the Zenodo GitHub integration is off. Tell the user, since only the repository owner can turn it on at zenodo.org.
 11. **Close the milestone.** Move any open issues in `v<version>` to the next milestone, then close it:
     ```bash

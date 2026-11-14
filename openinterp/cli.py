@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from openinterp import runner_cache
+from openinterp import DISTRIBUTION, runner_cache
 from openinterp.cli_memory import memory_option
 from openinterp.core.contributors import CONTRIBUTOR_ENV, contributor_problem
 from openinterp.core.exceptions import OpenInterpError
@@ -328,7 +328,7 @@ def with_model_options(fn):
 
 
 @click.group()
-@click.version_option(package_name="openinterp")
+@click.version_option(package_name=DISTRIBUTION)
 @click.option(
     "--quiet",
     "-q",

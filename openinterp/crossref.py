@@ -28,6 +28,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
+from openinterp import DISTRIBUTION
 from openinterp.core.cache_dirs import cache_root
 from openinterp.core.fence import fence
 from openinterp.core.schemas import AuditRecord, NeuronIdentifier
@@ -245,7 +246,7 @@ def user_agent() -> str:
     from openinterp import __version__
 
     try:
-        urls = metadata("openinterp").get_all("Project-URL") or []
+        urls = metadata(DISTRIBUTION).get_all("Project-URL") or []
     except PackageNotFoundError:
         urls = []
     repo = next((u.split(", ", 1)[1] for u in urls if u.startswith("Repository, ")), None)
