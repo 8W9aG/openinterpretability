@@ -67,6 +67,10 @@ EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 SISTER_OF_PATTERN = r"^[A-Za-z0-9._-]+/L\d+/N\d+-(positive|negative)/\d{8}T\d{6}Z$"
 # ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
 BUILTIN_CORPUS = "builtin:sample_corpus"
+# Sources of corpora that records scanned without recording one. They match by SHA-256.
+# The first is the default scan corpus's sidecar (README, "A scan corpus"). The second is
+# a table of the others.
+COMMITTED_SOURCES = ("corpus.source.json", "corpus-sources.json")
 Contributor = Annotated[
     str,
     Field(
