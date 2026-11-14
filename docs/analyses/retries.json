@@ -1,0 +1,138 @@
+{
+ "shares": {
+  "per_record": "27.8% [26.1, 29.5]",
+  "per_unit": "29.9% [27.8, 32.0]",
+  "per_attempt": "24.2% [22.5, 26.0]",
+  "per_independent_attempt": "25.1% [23.3, 26.9]",
+  "units": 1909,
+  "units_verified": 570,
+  "records": 2550,
+  "verified_records": 708,
+  "attempts": 2355,
+  "independent_attempts": 2275
+ },
+ "attempts_to_first_verified": {
+  "all": {
+   "1": 463,
+   "2": 88,
+   "3": 18,
+   "4": 1
+  },
+  "independent": {
+   "1": 463,
+   "2": 93,
+   "3": 14
+  }
+ },
+ "by_selection": {
+  "attribution": {
+   "per_record": "100.0% [20.7, 100.0]",
+   "per_unit": "100.0% [20.7, 100.0]",
+   "per_attempt": "100.0% [20.7, 100.0]",
+   "per_independent_attempt": "100.0% [20.7, 100.0]",
+   "units": 1,
+   "units_verified": 1,
+   "records": 1,
+   "verified_records": 1,
+   "attempts": 1,
+   "independent_attempts": 1,
+   "independent_to_first": {
+    "1": 1
+   }
+  },
+  "manual": {
+   "per_record": "26.3% [21.4, 31.9]",
+   "per_unit": "28.2% [22.5, 34.8]",
+   "per_attempt": "22.7% [18.0, 28.3]",
+   "per_independent_attempt": "23.2% [18.3, 28.8]",
+   "units": 202,
+   "units_verified": 57,
+   "records": 270,
+   "verified_records": 71,
+   "attempts": 251,
+   "independent_attempts": 246,
+   "independent_to_first": {
+    "1": 37,
+    "2": 14,
+    "3": 6
+   }
+  },
+  "random": {
+   "per_record": "27.9% [26.1, 29.8]",
+   "per_unit": "30.0% [27.9, 32.2]",
+   "per_attempt": "24.3% [22.6, 26.2]",
+   "per_independent_attempt": "25.2% [23.4, 27.2]",
+   "units": 1706,
+   "units_verified": 512,
+   "records": 2279,
+   "verified_records": 636,
+   "attempts": 2103,
+   "independent_attempts": 2028,
+   "independent_to_first": {
+    "1": 425,
+    "2": 79,
+    "3": 8
+   }
+  }
+ },
+ "by_model": {
+  "Qwen/Qwen2.5-0.5B": {
+   "units": 901,
+   "verified": 337,
+   "independent_to_first": {
+    "1": 264,
+    "2": 65,
+    "3": 8
+   }
+  },
+  "Qwen/Qwen2.5-1.5B": {
+   "units": 223,
+   "verified": 41,
+   "independent_to_first": {
+    "1": 36,
+    "2": 4,
+    "3": 1
+   }
+  },
+  "openai-community/gpt2": {
+   "units": 785,
+   "verified": 192,
+   "independent_to_first": {
+    "1": 163,
+    "2": 24,
+    "3": 5
+   }
+  }
+ },
+ "false_discoveries": {
+  "claims": 522,
+  "expected_false": 22.1,
+  "rate": 0.0423,
+  "union_bound_false": 26.07,
+  "union_bound_rate": 0.0499
+ },
+ "held_out": {
+  "detection": {
+   "n_first": 431,
+   "n_later": 104,
+   "mean_first": 0.6551450321196095,
+   "mean_later": 0.6009813490173397,
+   "within_judge": 0.04295473556648348,
+   "within_judge_ci": [
+    0.00790081961838608,
+    0.07975693090626415
+   ]
+  },
+  "fuzzing": {
+   "n_first": 368,
+   "n_later": 91,
+   "mean_first": 0.6262940524149763,
+   "mean_later": 0.5795205739872485,
+   "within_judge": 0.03225553646323542,
+   "within_judge_ci": [
+    -0.001032548670674803,
+    0.06834762344349907
+   ]
+  }
+ }
+}

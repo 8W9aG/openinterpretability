@@ -1,6 +1,6 @@
 # Literature review
 
-One page per paper or post. Each has its citation, a summary written from the source, and a separate discussion of how this repo can or can't use it. The issue *A literature review in docs/literature* sets the scope. Papers and posts waiting for a page are in [queue.md](queue.md).
+One page per paper or post. Each has its citation, a summary written from the source, and a separate discussion of how this repo can or can't use it. The issue *A literature review in docs/literature* sets the scope. Papers and posts waiting for a page are in [queue.md](queue.md). The `literature-review` skill (`.claude/skills/literature-review/SKILL.md`) gives the procedure and the form of a page.
 
 Status marks how the work relates to this repo:
 
@@ -20,6 +20,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Scoring Explanations Without Reading Them](scoring-explanations-without-reading-them.md) (Chen, 2026) | used | Evaluation items can be scored by rules that never read the explanation. Our null-explanation control comes from it, and its check found that our fuzzing decoys leak contiguity. |
+| [Beyond Top Activations](beyond-top-activations.md) (Oikarinen, Yan, Kulkarni and Weng, 2025) | planned | Evaluating on top activations alone measures only recall. Model-guided importance sampling finds false positives cheaply. Our detection already stratifies active windows, but draws inactive ones uniformly (#3595). |
 
 ## Model architecture
 
@@ -38,6 +39,14 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Activation Probes Are Reliable With a Handful of Positive Examples](activation-probes-few-positives.md) (Tyagi and Heimersheim, 2026) | not applicable | Train on all the negatives, with a class-weighted loss, when positives are rare. `probe-compare` already does. Our thin probe rows lack held-out positives, which the paper does not address. |
+| [Is a Linear Probe Evidence of a Linear Representation?](linear-probe-evidence.md) (Kutluozen, Internò and Klindt, 2026) | planned | A random feature map also decodes factors linearly, so probe accuracy needs a random-init control. Our verdicts have one (the untrained null). `probe-compare`'s dense probes don't yet (#3559). |
+
+## Neurons, circuits and dictionaries
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Language Model Circuits Are Sparse in the Neuron Basis](neuron-basis-circuits.md) (Arora, Wu, Steinhardt and Schwettmann, 2026) | planned | Task circuits of about 10² MLP neurons, the protocol's unit, control Llama 3.1 8B's behaviour. Its RelP attribution is a candidate for our wiring and attribution selection (#3582). |
+| [Neurons as an Interpretable Basis](neurons-as-an-interpretable-basis.md) (Tigges, Kowal, McGrath, Lewis and Cammarata, 2026) | planned | The companion to the essay behind `native-neuron-audit`, on Qwen3.6-35B-A3B. 47% of poles have one mode. The double-negative SwiGLU regime is a third of firings but rare in top examples. Its mode split is a template for #3215. |
 
 ## Philosophy of mind
 
