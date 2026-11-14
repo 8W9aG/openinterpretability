@@ -10,6 +10,8 @@ that the release has served least, then oldest first.
     python3 scripts/next_issue.py            # print the pick and the runners-up
     python3 scripts/next_issue.py --pull     # also add a pulled issue to the milestone
     python3 scripts/next_issue.py --json     # machine-readable
+    python3 scripts/next_issue.py --unprioritised         # open issues with no priority
+    python3 scripts/next_issue.py --prioritise 3525 high  # set the label and Linear's
 
 Needs `gh` and LINEAR_API_KEY. The `work-an-issue` skill takes over from the pick.
 """
@@ -42,6 +44,23 @@ def next_milestone() -> str | None:
     """The title of the oldest open milestone, which is the next release."""
     milestones = gh_json("api", f"repos/{issue_state.REPO}/milestones?state=open")
     return min((m["title"] for m in milestones), default=None)
+
+
+def open_issues_all() -> list[dict]:
+    """Every open issue, in a milestone or not."""
+    fields = "number,title,labels,createdAt,milestone"
+    return gh_json(
+        "issue",
+        "list",
+        "--repo",
+        issue_state.REPO,
+        "--state",
+        "open",
+        "--limit",
+        "1000",
+        "--json",
+        fields,
+    )
 
 
 def open_issues(milestone: str | None) -> list[dict]:
@@ -175,6 +194,40 @@ def choose() -> dict:
     return {"milestone": milestone, "pulled": pulled, "pick": best, "runners_up": others}
 
 
+def unprioritised(issues: list[dict], states: dict) -> list[dict]:
+    """Open issues that neither Linear nor a `priority:` label gives a priority."""
+    return [i for i in issues if priority(i, states.get(str(i["number"]), {})) == NO_PRIORITY]
+
+
+def set_priority(number: str, level: str) -> str:
+    """Give issue ``number`` the `priority: <level>` label and the same priority in Linear."""
+    subprocess.run(
+        [
+            "gh",
+            "issue",
+            "edit",
+            number,
+            "--repo",
+            issue_state.REPO,
+            "--add-label",
+            f"priority: {level}",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    url = f"https://github.com/{issue_state.REPO}/issues/{number}"
+    query = "query($u: String!) { attachmentsForURL(url: $u) { nodes { issue { id } } } }"
+    nodes = issue_state.linear(query, {"u": url})["attachmentsForURL"]["nodes"]
+    if not nodes:
+        return f"#{number}: priority: {level} (not in Linear yet; the hourly sync copies it)"
+    mutation = (
+        "mutation($id: String!, $p: Int!) { issueUpdate(id: $id, input: {priority: $p}) "
+        "{ success } }"
+    )
+    issue_state.linear(mutation, {"id": nodes[0]["issue"]["id"], "p": PRIORITIES[level]})
+    return f"#{number}: priority: {level}"
+
+
 def describe(issue: dict) -> str:
     """One line: number, title, area and priority label."""
     prio = next((n for n in labels(issue) if n.startswith("priority: ")), "no priority")
@@ -204,6 +257,14 @@ def pull_into(milestone: str, issue: dict) -> None:
 
 def main() -> None:
     """Print the next issue. With --pull, add a pulled issue to the milestone."""
+    args = sys.argv[1:]
+    if args[:1] == ["--prioritise"] and len(args) == 3 and args[2] in PRIORITIES:
+        print(set_priority(args[1].lstrip("#"), args[2]))
+        return
+    if args[:1] == ["--unprioritised"]:
+        for issue in unprioritised(open_issues_all(), linear_states()):
+            print(describe(issue))
+        return
     result = choose()
     if "--json" in sys.argv:
         print(json.dumps(result, indent=1))

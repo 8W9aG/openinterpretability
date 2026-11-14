@@ -61,3 +61,22 @@ def test_choose_pulls_from_the_backlog_when_the_release_has_nothing(monkeypatch)
     monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
     result = next_issue.choose()
     assert result["pulled"] and result["pick"]["number"] == 8  # area: models is held back
+
+
+def test_unprioritised_finds_issues_with_neither_source():
+    issues = [_issue(1, "a", "low"), _issue(2, "a"), _issue(3, "a")]
+    states = {"3": {"priority": 2}}
+    assert [i["number"] for i in next_issue.unprioritised(issues, states)] == [2]
+
+
+def test_set_priority_sets_the_label_and_linear(monkeypatch):
+    calls, queries = [], []
+    monkeypatch.setattr(next_issue.subprocess, "run", lambda args, **k: calls.append(args))
+
+    def linear(query, variables):
+        queries.append(variables)
+        return {"attachmentsForURL": {"nodes": [{"issue": {"id": "L1"}}]}}
+
+    monkeypatch.setattr(next_issue.issue_state, "linear", linear)
+    assert next_issue.set_priority("7", "high") == "#7: priority: high"
+    assert calls[0][-1] == "priority: high" and queries[-1] == {"id": "L1", "p": 2}
