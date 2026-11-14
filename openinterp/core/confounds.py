@@ -34,6 +34,9 @@ HATE_SPEECH = "hate speech"  # a model's guess (`openinterp/toxicity.py`)
 NAMES = "names"  # a model's guess (`openinterp/names.py`)
 POSTAL_ADDRESSES = "postal addresses"
 NO_MATCH = "none"
+# Each word's universal part-of-speech tag, from the names model (`openinterp/names.py`).
+# It labels every word, so it is not a match set: its whitespace gaps are NO_MATCH.
+PART_OF_SPEECH = "part of speech"
 MATCH_LABEL_SETS = (PERSONAL_DATA, TOXICITY, HATE_SPEECH, NAMES, POSTAL_ADDRESSES)
 # Recorded, but not in the proposer's prompt. Most units have an active token in some name,
 # so every prompt would carry this noisy label.
