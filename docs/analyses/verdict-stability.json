@@ -1,0 +1,35 @@
+{
+ "submissions": 30,
+ "status_pairwise": 0.6666666666666666,
+ "status_fleiss": 0.4712103407755581,
+ "status_all_three": 0.5,
+ "verified_pairwise": 0.8222222222222222,
+ "verified_fleiss": 0.6120689655172415,
+ "verified_any": 14,
+ "verified_all": 6,
+ "verified_majority": 12,
+ "gate_flip_rate": {
+  "beats_confound_baseline": 0.15555555555555556,
+  "counterfactual_reproduction": 0.0,
+  "enough_hard_negatives": 0.0,
+  "enough_holdouts": 0.0,
+  "independent_review": 0.0,
+  "lookahead_consistent": 0.0,
+  "not_default_on": 0.0,
+  "sensitivity": 0.0444444444444444,
+  "specificity": 0.19999999999999996
+ },
+ "variance": {
+  "submissions": 30,
+  "same_reviewer_noise": 0.005536955427311112,
+  "interaction": 0.0023156679908528715,
+  "reviewer": 0.0029497283940360156,
+  "submission": 0.01604996393190498,
+  "shares": {
+   "submission": 0.5977124686323751,
+   "reviewer": 0.10985005621660708,
+   "interaction": 0.08623718017174148,
+   "same_reviewer_noise": 0.2062002949792763
+  }
+ }
+}
