@@ -1,0 +1,117 @@
+"""Carry a pull request's evidence blobs to the dataset without them entering ``main`` (#3254).
+
+A slim record (:mod:`openinterp.core.evidence`) refers to blobs by hash. The pull request
+that adds it must not carry the blobs itself, or the squash merge would put them into
+``main``'s history. So :func:`push` commits the blobs as one commit with no parent, and
+pushes it to its own branch, ``evidence/<branch>``. CI reads that branch
+(:func:`load_branch`), uploads the blobs to the public dataset (:func:`upload`), and checks
+every record (:func:`unresolved`). A workflow deletes the branch when the pull request
+closes. This uses git plumbing and a separate index, so it never touches the work tree.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import tempfile
+from collections.abc import Iterable, Sequence
+from pathlib import Path
+
+from openinterp.core import evidence
+
+BRANCH_PREFIX = "evidence/"
+
+
+def _git(*args: str, env: dict | None = None, data: bytes | None = None) -> bytes:
+    done = subprocess.run(
+        ["git", *args], input=data, capture_output=True, check=True,
+        env={**os.environ, **(env or {})},
+    )  # fmt: skip
+    return done.stdout
+
+
+def record_refs(paths: Iterable[Path]) -> set[str]:
+    """The blob hashes that the slim records at ``paths`` refer to."""
+    found = set()
+    for path in paths:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        for parent, field in evidence.FIELDS:
+            value = (data.get(parent) or {}).get(field)
+            if evidence.is_ref(value):
+                found.add(value[evidence.REF_KEY])
+    return found
+
+
+def blob_commit(shas: Iterable[str], root: Path | None = None) -> str:
+    """A commit with no parent whose tree holds each blob at its store path."""
+    store = root or evidence.store_dir()
+    with tempfile.TemporaryDirectory() as tmp:
+        env = {"GIT_INDEX_FILE": str(Path(tmp) / "index")}
+        for sha in sorted(shas):
+            data = evidence.get(sha, store)  # checks the hash
+            oid = _git("hash-object", "-w", "--stdin", data=data).decode().strip()
+            info = f"100644,{oid},{evidence.blob_name(sha)}"
+            _git("update-index", "--add", "--cacheinfo", info, env=env)
+        tree = _git("write-tree", env=env).decode().strip()
+    return _git("commit-tree", tree, "-m", "Evidence blobs (issue #3254)").decode().strip()
+
+
+def push(branch: str, shas: Iterable[str], remote: str = "origin") -> str:
+    """Push the blobs to ``evidence/<branch>`` on ``remote``; return the branch's name."""
+    target = BRANCH_PREFIX + branch
+    commit = blob_commit(shas)
+    _git("push", "--force", remote, f"{commit}:refs/heads/{target}")
+    return target
+
+
+def load_branch(ref: str, root: Path | None = None) -> list[str]:
+    """Copy every blob of ``ref`` into the local store, checking each hash; return them."""
+    loaded = []
+    for line in _git("ls-tree", "-r", ref).decode().splitlines():
+        meta, name = line.split("\t", 1)
+        sha = Path(name).stem
+        data = _git("cat-file", "blob", meta.split()[2])
+        if evidence.sha256(data) != sha:
+            raise evidence.EvidenceMissing(f"{ref}:{name} has the wrong hash")
+        evidence.put(data, root)
+        loaded.append(sha)
+    return loaded
+
+
+def upload(shas: Sequence[str], root: Path | None = None, api=None) -> int:
+    """Upload the blobs to :data:`~openinterp.core.evidence.EVIDENCE_REPO`; return how many.
+
+    The dataset is created, public, if it doesn't exist yet.
+    """
+    if not shas:
+        return 0
+    if api is None:
+        from huggingface_hub import HfApi
+
+        api = HfApi()
+    store = root or evidence.store_dir()
+    api.create_repo(evidence.EVIDENCE_REPO, repo_type="dataset", private=False, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        for sha in shas:
+            target = Path(tmp) / evidence.blob_name(sha)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(evidence.get(sha, store))
+        api.upload_folder(
+            repo_id=evidence.EVIDENCE_REPO, repo_type="dataset", folder_path=tmp,
+            commit_message=f"{len(shas)} evidence blobs (issue #3254)",
+        )  # fmt: skip
+    return len(shas)
+
+
+def unresolved(paths: Iterable[Path]) -> list[str]:
+    """``path: reason`` for each record whose evidence can't be had or has a wrong hash."""
+    from openinterp.core.schemas import AuditRecord
+
+    problems = []
+    for path in paths:
+        try:
+            AuditRecord.model_validate_json(Path(path).read_text(encoding="utf-8"))
+        except evidence.EvidenceMissing as exc:
+            problems.append(f"{path}: {exc}")
+    return problems
