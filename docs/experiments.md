@@ -154,6 +154,22 @@ make loop LOOP_ARGS="--reviewer openai/gpt-5"   # the same, via make
 
 It works in a separate worktree (`../<repo>-loop`) reset to `origin/main` before each experiment, so your checkout is untouched, and writes one log per experiment to `logs/loop/`. Each session follows `land-experiment`. Each new scan builds a fresh `mixed` corpus from its draw's seed (pass `--corpus` to use one corpus instead). A review of an existing record rebuilds that record's corpus with `openinterp corpus --same-as`. It posts the PR, waits for CI to go green and merges it if the PR only touches `wiki/` and your `gh` account has write access. Otherwise it leaves the PR open for review and moves on. `--driver` picks the Claude model that drives the session. The default is Haiku, which landed every experiment in two pilots at about a tenth of Sonnet's cost (`docs/analyses/driver-model-pilot.md`). `--epsilon` sets how often `openinterp next` explores new neurons, and a proposer or reviewer of `external/<name>` makes the driving session answer that role itself. The session can edit files and run `uv run`, `make`, `git`, `gh pr`, `gh run` and `gh repo view` without asking. See `ALLOWED_TOOLS` in the script. After each experiment it prints what that experiment cost and a running total. The total covers wall time per `openinterp` command and stage, LLM tokens and cost, and the driving session's turns, tokens and cost. Every `openinterp` command appends its measurements to the ledger in `$OPENINTERP_COSTS_LOG` when that is set, and `openinterp costs <ledger> [--session <claude json>]` summarises one. Records store their own experiment's costs in `provenance.costs`. Run `scripts/experiment-loop.sh --help` for every option.
 
+**In a loop without Claude Code.** `openinterp loop` runs the same workflow from the CLI, with no Claude session driving it. It needs LiteLLM models for both roles, and refuses `external/<name>`, because nobody would answer the prompt files:
+
+```bash
+uv run openinterp loop --proposer anthropic/claude-opus-5-5 --reviewer openai/gpt-5 --max 10
+```
+
+Each iteration resets the worktree (`../<repo>-loop` by default) to a detached `origin/main` and draws with `openinterp next`. It claims the draw with a branch, an empty commit and a draft PR. It runs the commands that `openinterp next --steps` prints for API models, in the same process, so a model loads once for the whole loop. Then it runs `openinterp wiki` and `openinterp check`, commits `wiki/` and marks the PR ready. It lands the PR as `land-experiment` does, and waits up to 45 minutes for green checks. It merges only a PR that touches nothing outside `wiki/`, with a token that has write access. Otherwise it leaves the PR open with a comment that says why. A failed experiment closes its PR with the reason.
+
+- **Revisions.** A revise draw's proposer sees the record it supersedes: the old hypothesis, its verdict, its failed gates and the probes it got wrong (`openinterp/revision.py`). `openinterp audit --supersedes` gives the same brief.
+- **Independent reviews.** A review draw of the `--reviewer` model's own record is drawn again once.
+- **When it stops.** It stops after `--max` experiments (0 runs until stopped), and after `--max-failures` failures in a row (default 3). On a provider's rate or usage limit it waits 1, 5 and 15 minutes, then stops.
+- **Pause and logs.** It honours `openinterp pause` and the stop file, as the script does. It writes one log per experiment to `logs/loop/` and prints a `RESULT:` line for each.
+- **Code version.** The loop runs the code of the checkout you start it from, on the worktree's registry. Update that checkout to change the code it runs.
+
+It has no `--budget` yet. Use `scripts/experiment-loop.sh` for spending caps and for subagent (`external/`) runs.
+
 **Several sessions at once.** Give every session that runs experiments its own working directory, whether it's a loop or an interactive one. Git keeps one current branch per directory, so sessions that share a checkout switch branches under each other. One session's commits end up on another's claim branch and PR. A `git worktree` per session is enough. Worktrees share the git objects and the Hugging Face model cache, but `corpus.jsonl` is untracked, so copy it in (its sidecar is tracked):
 
 ```bash

@@ -277,8 +277,7 @@ def _post(key: str, kind: str) -> Step:
         [
             "uv run openinterp wiki",
             "make check lint test",
-            f'git add wiki && git commit -m "{_VERBS[kind]} {key} '
-            '(<VERDICT>, <balanced accuracy>)"',
+            f'git add wiki && git commit -m "{VERBS[kind]} {key} (<VERDICT>, <balanced accuracy>)"',
             "git push && gh pr ready",
         ],
         "Commit the record's .sig if verify printed 'Signed as …'. Never abandon a claim "
@@ -286,7 +285,7 @@ def _post(key: str, kind: str) -> Step:
     )
 
 
-_VERBS = {
+VERBS = {
     "explore": "Explore",
     "reevaluate": "Reevaluate",
     "independent_review": "Independent review of",

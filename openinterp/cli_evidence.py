@@ -90,18 +90,20 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
         click.echo(f"Recorded the {outcome} stop: {write_stop_page(exc.draw, wiki_dir)}", err=True)
 
 
-def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None) -> str:
+def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None, superseded=None):
     """Return what other research links to the unit, for the proposer.
 
-    That is the unit's studied sisters. In a sister study (``sister_file``), it is only
-    the study's brief, because the explanation is fixed.
+    That is the unit's studied sisters, and the record a revision supersedes. In a sister
+    study (``sister_file``), it is only the study's brief, because the explanation is fixed.
     """
     from openinterp.cli_review import sisters_text
+    from openinterp.revision import previous_attempt
     from openinterp.sisters import sister_brief
 
     if sister_file:
         return sister_brief(load_sister(sister_file, evidence.identifier))
-    return sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
+    related = sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
+    return related + (previous_attempt(superseded) if superseded else "")
 
 
 def load_sister(path: Path, unit):
@@ -358,7 +360,7 @@ def audit(
             sample_seed=sample_seed,
         )
         runner, evidence = scan_or_record(request, use_scan_cache, wiki_dir, device)
-        related = proposer_context(evidence, wiki_dir, sisters, sister_file)
+        related = proposer_context(evidence, wiki_dir, sisters, sister_file, superseded)
         if evidence_out is not None:
             write_evidence(evidence, evidence_out, full_snippets, related)
             return
