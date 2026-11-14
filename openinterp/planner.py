@@ -428,7 +428,7 @@ def plan_next(
     explore = explore_weights(coverage, target, others_share(pyproject))
     focus = focus_model(coverage.values(), target)
     if not candidates or rng.random() < epsilon:
-        choice = _explore(rng, pool, explore, pyproject, focus)
+        choice = _explore(rng, pool, explore, pyproject, focus, slugs | set(claims))
         return Plan(seed, choice, True, candidates, explore, coverage, focus)
 
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
@@ -471,17 +471,23 @@ def _model_pool(models: Sequence[str], pyproject: Path, states) -> list[str]:
 
 
 def _explore(
-    rng: random.Random, pool: list[str], explore: dict, pyproject: Path, focus: str | None
-) -> Candidate:
-    """A random new unit of a model drawn by size and coverage (two draws from ``rng``)."""
+    rng: random.Random, pool: list[str], explore: dict, pyproject: Path, focus: str | None,
+    taken: set[str] = frozenset(),
+) -> Candidate:  # fmt: skip
+    """A new unit of a model drawn by size and coverage: random, or weighted by effect."""
+    from openinterp.planner_effects import effect_draw
+
     model = rng.choices(pool, weights=[explore[m] for m in pool], k=1)[0]
     audit_seed = rng.getrandbits(32)
+    window = configured_windows(pyproject).get(model)
+    if weighted := effect_draw(rng, model, pyproject, taken, window):
+        return weighted
     rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
     if len(pool) > 1:
         why = "the smallest model below its verified target" if model == focus else "coverage"
         rationale += f"; {model} drawn with probability {explore[model]:.0%} by {why}"
     audit = f"openinterp audit --model {model} --random --seed {audit_seed}"
-    if window := configured_windows(pyproject).get(model):
+    if window:
         audit += f" --window-tokens {window}"
     return Candidate(
         kind="explore",
