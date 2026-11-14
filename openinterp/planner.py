@@ -83,6 +83,7 @@ SKILLS = {
     "new_hypothesis": ["native-neuron-audit", "neuron-steering-tests"],
     "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
     "sister": ["native-neuron-audit", "interpretability-illusions-review"],
+    "superposition": ["native-neuron-audit", "interpretability-illusions-review"],
 }
 DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
 
@@ -420,12 +421,15 @@ def plan_next(
     slugs = set(states)
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
-    # Imported here: planner_sisters builds its candidates from this module's weights.
+    # Imported here: these modules build their candidates from this module's weights.
     from openinterp.planner_sisters import sister_candidates
+    from openinterp.planner_superpositions import superposition_candidates
 
-    sisters = sister_candidates(states, claims, now, pool, Path(wiki_dir).parent, seed)
+    root = Path(wiki_dir).parent
+    sisters = sister_candidates(states, claims, now, pool, root, seed)
+    extra = [*sisters, *superposition_candidates(states, claims, root)]
     candidates = sorted(
-        [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
+        [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *extra],
         key=lambda c: -c.weight,
     )
     records = (s.record for s in states.values())

@@ -15,7 +15,16 @@ from openinterp.core.paths import DEFAULT_EXCHANGE_DIR
 from openinterp.planner import Candidate, Plan, claim_key
 from openinterp.planner_models import model_dims, model_heads
 
-SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan", "sister")
+SCAN_KINDS = (
+    "explore",
+    "opposite_pole",
+    "revise",
+    "new_hypothesis",
+    "rescan",
+    "sister",
+    "superposition",
+)
+NEW_UNIT_KINDS = ("explore", "opposite_pole", "superposition")  # no history to read
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
 REVIEW_KINDS = ("independent_review", "replicate", "challenge")
 
@@ -102,7 +111,7 @@ def steps(
     run = _run(c, key, out, corpus, _api(proposer), _api(reviewer))
     return [
         _claim(c, key, plan.seed, known=slug is not None, ledger=ledger),
-        *([] if c.kind in ("explore", "opposite_pole") else [_history(c)]),
+        *([] if c.kind in NEW_UNIT_KINDS else [_history(c)]),
         *build,
         *run,
         _post(key, c.kind),
@@ -128,11 +137,7 @@ def _api(model: str | None) -> str | None:
 
 
 def _claim(c: Candidate, key: str, seed: int, known: bool, ledger: str | None = None) -> Step:
-    branch = (
-        f"experiment/{key}"
-        if c.kind in ("explore", "opposite_pole")
-        else f"experiment/{key}-{c.kind}"
-    )
+    branch = f"experiment/{key}" if c.kind in NEW_UNIT_KINDS else f"experiment/{key}-{c.kind}"
     # The claim commits the draw's ledger entry, so the draw reaches main whatever the run does.
     commit = (
         [f"git add {ledger}", f'git commit -m "Claim {key}"']
@@ -175,7 +180,15 @@ def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
         return _review(c.record, out, corpus, reviewer, independent=True)
     submission = f"submissions/{key}.json"
     scan = _scan(c, out, corpus, proposer, submission)
-    return scan + _review(submission, out, corpus, reviewer, independent=False)
+    return [*_definition(c), *scan, *_review(submission, out, corpus, reviewer, independent=False)]
+
+
+def _definition(c) -> list[Step]:
+    """A superposition draw first writes its definition, which the scan reads."""
+    from openinterp.planner_superpositions import SHOW_COMMAND
+
+    shows = [command for command in c.commands if command.startswith(SHOW_COMMAND)]
+    return [Step("Write the superposition's definition", [f"uv run {shows[0]}"])] if shows else []
 
 
 def _scan(c, out, corpus, proposer, submission) -> list[Step]:
@@ -329,6 +342,7 @@ VERBS = {
     "challenge": "Challenge",
     "opposite_pole": "Explore",
     "sister": "Sister study of",
+    "superposition": "Explore",
 }
 
 
