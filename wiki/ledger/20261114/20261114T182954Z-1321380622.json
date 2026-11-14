@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T18:29:54Z","seed":1321380622,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L1/N948-negative","record":null,"audit":"--model openai-community/gpt2 --random --seed 3770707364 --window-tokens 128","pole_forced":false,"harness_version":"0.0.19"}
