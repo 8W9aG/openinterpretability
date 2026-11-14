@@ -243,6 +243,7 @@ def _task(record, explanation: str):
         identifier=sub.identifier,
         head_profile=sub.head_profile,
         dictionary_profile=sub.dictionary_profile,
+        superposition_profile=sub.superposition_profile,
         explanation=explanation,
         threshold=scores.threshold,
         window_tokens=scores.window_tokens,
