@@ -316,7 +316,7 @@ def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:
 def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
     """Store the record of a completed experiment next to its page (write-once).
 
-    With ``OPENINTERP_OFFLOAD_EVIDENCE=1`` the record is slim: its bulky evidence goes to
+    The record is slim unless ``OPENINTERP_OFFLOAD_EVIDENCE=0``: its bulky evidence goes to
     the evidence store, and the file holds references (:mod:`openinterp.core.evidence`).
     """
     from openinterp.core import evidence

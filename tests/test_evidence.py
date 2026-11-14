@@ -55,10 +55,11 @@ def test_a_fetched_blob_is_checked_and_kept(record, store, tmp_path):
     assert evidence.sha256(fetched) == sha and (store / evidence.blob_name(sha)).exists()
 
 
-def test_archive_record_writes_slim_only_when_asked(record, store, tmp_path, monkeypatch):
-    whole_path = archive_record(record, tmp_path / "wiki-a")
+def test_archive_record_writes_slim_unless_turned_off(record, store, tmp_path, monkeypatch):
+    whole_path = archive_record(record, tmp_path / "wiki-a")  # the tests' default is "0"
     assert evidence.REF_KEY not in whole_path.read_text()
-    monkeypatch.setenv(evidence.OFFLOAD_ENV, "1")
+    monkeypatch.delenv(evidence.OFFLOAD_ENV)  # the real default
+    assert evidence.offload_enabled()
     slim_path = archive_record(record, tmp_path / "wiki-b")
     assert evidence.REF_KEY in slim_path.read_text()
     loaded = AuditRecord.model_validate_json(slim_path.read_text())

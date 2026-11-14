@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T21:06:49Z","seed":3922888236,"kind":"rescan","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L13/N1537-negative","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L13/N1537-negative/20261031T122508Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 13 --neuron 1537 --pole negative","pole_forced":null,"harness_version":"0.0.19"}
