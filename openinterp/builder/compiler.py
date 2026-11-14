@@ -204,7 +204,7 @@ def _clean_owned_paths(output_dir: Path) -> None:
 def _experiment_view(
     e: Experiment, studied: set[str], rows: dict | None = None, circuit: str | None = None
 ) -> dict:
-    """Render a unit's page.
+    """What an experiment's page shows.
 
     ``rows`` is backfilled wiring (see :mod:`openinterp.wiring_backfill`). ``circuit`` is
     the link to the unit's circuit, if any.
@@ -475,14 +475,16 @@ def _render_model(
     def unit_page(layer, neuron) -> None:
         anchor = anchor_of.get(neuron.href)
         circuit = f"{page}#{anchor}" if anchor else None
-        views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
+        for rank, e in enumerate(neuron.experiments, 1):
+            view = _experiment_view(e, studied, rows, circuit)
+            unit = {"model": model, "layer": layer, "neuron": neuron}
+            render(e.href, "experiment.html", **unit, v=view, rank=rank)
         render(
             neuron.href,
             "neuron.html",
             model=model,
             layer=layer,
             neuron=neuron,
-            views=views,
             poles=pole_scans(neuron),
             aligned=aligned_latents(model, neuron, alignment or {}, studied),
             sisters=sister_view(model.slug, neuron, sister_rows, named_by, studied, tests),

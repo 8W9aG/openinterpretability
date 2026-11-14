@@ -24,6 +24,7 @@ from openinterp.core.errata import (
 )
 from openinterp.core.schemas import AuditRecord
 from openinterp.signing import sign_record
+from tests.site_pages import unit_pages
 
 GIT = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
 
@@ -147,7 +148,7 @@ def test_the_site_shows_errata_only_on_the_experiments_they_alter(tmp_path, reco
     compile_site([record, newer], tmp_path, errata=[x])
     assert not (tmp_path / "errata.html").exists()
     (unit,) = (tmp_path / "models").rglob("N117.html")
-    html = unit.read_text()
+    html = unit_pages(unit)
     assert html.count("Erratum, 2026-11-13: Activations were scaled twice.") == 1
     assert "it no longer counts toward the status" in html
     assert "The scan divided by the scale twice." in html and "/commit/abcdef1" in html
@@ -162,7 +163,7 @@ def test_the_site_shows_each_edit(tmp_path, record):
     )
     compile_site([record], tmp_path, errata=[x])
     (unit,) = (tmp_path / "models").rglob("N117.html")
-    html = unit.read_text()
+    html = unit_pages(unit)
     assert "This page shows the record with these corrections:" in html
     assert '<code>verdict.status</code>: <span class="line-through">"VERIFIED"</span>' in html
     assert '→ "REJECTED"' in html

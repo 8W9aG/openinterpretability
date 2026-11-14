@@ -45,6 +45,7 @@ from openinterp.corpus_layouts import BOOK_BACK, BOOK_FRONT, PASSAGE_CHARS, book
 from openinterp.corpus_rebuild import rebuild, scanned_source
 from openinterp.evidence import read_labels
 from tests.conftest import FakeTokenizer
+from tests.site_pages import unit_pages
 
 
 @pytest.fixture
@@ -651,7 +652,7 @@ def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
     sub = record.submission.model_copy(update={"provenance": provenance})
     rec = AuditRecord(submission=sub, verdict=record.verdict)
     compile_site([rec], tmp_path / "site")
-    page = next((tmp_path / "site" / "models").rglob("N*.html")).read_text()
+    page = unit_pages(next((tmp_path / "site" / "models").rglob("N*.html")))
     assert "fineweb-edu@87f09149" in page and "licence odc-by" in page
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "licence odc-by" in wiki
@@ -681,7 +682,7 @@ def test_build_infers_the_source_of_records_that_predate_their_corpus_sidecar(tm
         site = tmp_path / f"site-{corpus_source is None}"
         report = compile_site([AuditRecord(submission=sub, verdict=record.verdict)], site,
                               corpus_sources={source.sha256: source})  # fmt: skip
-        page = next((site / "models").rglob("N*.html")).read_text()
+        page = unit_pages(next((site / "models").rglob("N*.html")))
         return page, pq.read_table(report.parquet).to_pylist()[0]
 
     page, row = built(None)  # scanned before the sidecar existed

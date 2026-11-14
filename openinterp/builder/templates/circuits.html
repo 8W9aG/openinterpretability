@@ -59,7 +59,7 @@
         <td class="py-0.5 pr-4"><a class="underline" href="{{ root }}{{ e.source.href }}">{{ unit_name(e.source) }}</a> → <a class="underline" href="{{ root }}{{ e.target.href }}">{{ unit_name(e.target) }}</a></td>
         <td class="py-0.5">
           {% for r in e.readings %}
-          <a class="underline" href="{{ root }}{{ r.unit.href }}#{{ r.experiment.anchor }}" title="{% for ch, x in r.channels.items() %}{{ ch }} {{ '%+.3g' | format(x) }}{{ ' · ' if not loop.last }}{% endfor %}">{{ r.experiment.id }}</a>
+          <a class="underline" href="{{ root }}{{ r.experiment.href }}" title="{% for ch, x in r.channels.items() %}{{ ch }} {{ '%+.3g' | format(x) }}{{ ' · ' if not loop.last }}{% endfor %}">{{ r.experiment.id }}</a>
           {{ r.method }} {{ '%+.3g' | format(r.weight) }}{{ " (backfilled)" if r.backfilled }}{{ "; " if not loop.last }}
           {% endfor %}
         </td>
