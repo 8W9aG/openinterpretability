@@ -184,9 +184,14 @@ def _recent_row(e: Experiment, roles: list[str]) -> dict:
         "roles": roles,
         "href": e.href,
         "model_name": ident.model_name,
-        "unit": f"L{ident.layer}/{LABEL_PREFIX[ident.kind]}{ident.index}",
+        "unit": f"L{ident.layer}/{LABEL_PREFIX[ident.kind]}{_unit_index(ident)}",
         "pole": ident.pole,
     }
+
+
+def _unit_index(ident) -> int | str:
+    """What follows the kind's prefix in a unit's label: a superposition's id, else its index."""
+    return getattr(ident, "superposition_id", ident.index)
 
 
 @dataclass

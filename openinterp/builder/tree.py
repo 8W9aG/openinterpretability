@@ -1,8 +1,9 @@
 """Group every archived experiment into Model → Layer → Unit → Experiments.
 
-A unit is an MLP neuron (both poles on one page), an attention head, or a latent of a
-sparse dictionary. Latents are the learned-basis baseline, kept apart from native-unit
-counts.
+A unit is an MLP neuron (both poles on one page), an attention head, a latent of a
+sparse dictionary or a superposition. Latents are the learned-basis baseline. A
+superposition is a sparse direction over one layer's neurons. Both are kept apart from
+native-unit counts.
 
 All experiments are published, whatever their verdict. Within a neuron, they are
 ordered by how conclusive the result is (see :mod:`significance`). So a strong null
@@ -20,6 +21,14 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from openinterp.builder.experiment import (  # noqa: F401  (re-exported)
+    LABEL_PREFIX,
+    NATIVE_KINDS,
+    NOUNS,
+    SIDES,
+    Experiment,
+    unit_side,
+)
 from openinterp.builder.hrefs import (  # noqa: F401  (re-exported: pages import them from here)
     circuits_href,
     experiment_href,
@@ -30,94 +39,25 @@ from openinterp.builder.hrefs import (  # noqa: F401  (re-exported: pages import
     neuron_href,
     unit_href,
 )
-from openinterp.builder.significance import Significance, significance
+from openinterp.builder.significance import significance
 from openinterp.builder.standing import native_standings, pole_standing
 from openinterp.builder.wiki import experiment_id
-from openinterp.core.errata import AppliedEdit, Erratum, apply_errata, covering, record_ref
+from openinterp.core.errata import Erratum, apply_errata, covering, record_ref
 from openinterp.core.schemas import AuditRecord
 
 if TYPE_CHECKING:
     from openinterp.builder.standing import Standing
     from openinterp.builder.stopped import StoppedNeuron
-
-
-@dataclass
-class Experiment:
-    """One experiment, with what the site needs to place it."""
-
-    record: AuditRecord
-    sig: Significance
-    id: str
-    is_latest: bool  # newest experiment for this neuron pole
-    reuses: str | None = None  # id of an earlier experiment with the same probe set
-    claim: str = ""  # the submission without its provenance: equal for re-reviews of one hypothesis
-    role: str = "current"  # what it counts for in the pole's standing (standing.ROLES)
-    # Revision links (``supersedes``) point both ways, so keep them out of repr and ==.
-    revises: Experiment | None = field(default=None, repr=False, compare=False)
-    revised_by: list[Experiment] = field(default_factory=list, repr=False, compare=False)
-    standing: Standing | None = field(default=None, repr=False, compare=False)  # its pole's
-    errata: list[Erratum] = field(default_factory=list, repr=False, compare=False)  # covering it
-    edits: list[AppliedEdit] = field(default_factory=list, repr=False, compare=False)  # theirs
-    user: str | None = None  # who made it: its contributor, else its PR's author (users.py)
-
-    @property
-    def set_aside(self) -> bool:
-        """Whether an erratum sets this experiment aside, so it counts toward no standing."""
-        return any(erratum.set_aside for erratum in self.errata)
-
-    @property
-    def independent(self) -> bool:
-        """False when this re-measures an earlier experiment's probes.
-
-        An example is a re-evaluation. The two are not independent evidence, and must not
-        be counted twice.
-        """
-        return self.reuses is None
-
-    @property
-    def side(self) -> str:
-        """What the unit page groups the experiment under.
-
-        That is a neuron experiment's pole, else ``head`` or ``feature``.
-        """
-        return unit_side(self.record.submission.identifier)
-
-    @property
-    def anchor(self) -> str:
-        """The experiment's old anchor on its unit's page, which now redirects to its page."""
-        return f"{self.side}-{self.id}"
-
-    @property
-    def href(self) -> str:
-        """The experiment's own page."""
-        return experiment_href(self.record.submission.identifier.slug, self.id)
-
-    @property
-    def probe_set(self) -> str:
-        """The experiment whose probes this one measured: re-measurements share it."""
-        return self.reuses or self.id
-
-    @property
-    def counts(self) -> bool:
-        """Whether the pole's current status rests on this experiment."""
-        return self.role == "current"
-
-
-# What a unit page groups experiments under, per kind, and the prefix of a unit's label.
-SIDES = {
-    "mlp_neuron_pole": ("positive", "negative"),
-    "attn_head": ("head",),
-    "dictionary_feature": ("feature",),
-}
-LABEL_PREFIX = {"mlp_neuron_pole": "N", "attn_head": "H", "dictionary_feature": "F"}
-NOUNS = {"mlp_neuron_pole": "neuron", "attn_head": "head", "dictionary_feature": "feature"}
+    from openinterp.core.profiles import SuperpositionProfile
 
 
 @dataclass
 class UnitNode:
     """One unit with all of its experiments.
 
-    The unit is a neuron (both poles), an attention head or a dictionary feature.
+    The unit is a neuron (both poles), an attention head, a dictionary feature or a
+    superposition. A neuron's ``part_of`` lists the superpositions that it is a member of
+    (:mod:`openinterp.builder.superpositions`).
     """
 
     model: str
@@ -128,6 +68,10 @@ class UnitNode:
     experiments: list[Experiment] = field(default_factory=list)
     dictionary: str | None = None  # a feature's dictionary
     standings: dict[str, Standing] = field(default_factory=dict)  # per pole (or head, feature)
+    superposition_id: str | None = None  # a superposition's id
+    members: list = field(default_factory=list)  # a superposition's members, by |weight|
+    profile: SuperpositionProfile | None = None  # a superposition's, from its newest record
+    part_of: list = field(default_factory=list, repr=False, compare=False)  # a neuron's
 
     @property
     def is_head(self) -> bool:
@@ -143,6 +87,16 @@ class UnitNode:
     def is_feature(self) -> bool:
         """True for a dictionary feature."""
         return self.kind == "dictionary_feature"
+
+    @property
+    def is_superposition(self) -> bool:
+        """True for a superposition: a sparse direction over one layer's neurons."""
+        return self.kind == "superposition"
+
+    @property
+    def is_native(self) -> bool:
+        """True for a neuron or a head: a claim about the model's own units."""
+        return self.kind in NATIVE_KINDS
 
     @property
     def neuronpedia(self) -> str | None:
@@ -165,8 +119,8 @@ class UnitNode:
 
     @property
     def label(self) -> str:
-        """The unit within its layer, for example ``N7`` or ``H3``."""
-        return f"{LABEL_PREFIX[self.kind]}{self.idx}"
+        """The unit within its layer, for example ``N7``, ``H3`` or ``S0123456789ab``."""
+        return f"{LABEL_PREFIX[self.kind]}{self.superposition_id or self.idx}"
 
     @property
     def verified(self) -> bool:
@@ -186,8 +140,9 @@ class LayerNode:
     model: str
     layer: int
     href: str
-    units: list[UnitNode] = field(default_factory=list)  # neurons, then heads, then features
+    units: list[UnitNode] = field(default_factory=list)  # neurons, heads, features, superpositions
     stopped: list[StoppedNeuron] = field(default_factory=list)  # by index
+    members: list[UnitNode] = field(default_factory=list)  # member neurons with no experiment
 
     @property
     def studied(self) -> int:
@@ -210,6 +165,27 @@ class LayerNode:
         return [u for u in self.units if u.is_feature]
 
     @property
+    def pages(self) -> list[UnitNode]:
+        """The layer's units with a page: its units, then its member neurons with no experiment."""
+        return [*self.units, *self.members]
+
+    @property
+    def superpositions(self) -> list[UnitNode]:
+        """The layer's studied superpositions."""
+        return [u for u in self.units if u.is_superposition]
+
+    @property
+    def member_only(self) -> int:
+        """Neurons studied only as members of a superposition: no experiment, no stopped scan."""
+        stopped = {s.idx for s in self.stopped}
+        return sum(n.idx not in stopped for n in self.members)
+
+    @property
+    def neurons_studied(self) -> int:
+        """Studied neurons, with those studied only as members of a superposition."""
+        return self.studied + self.member_only
+
+    @property
     def experiments(self) -> int:
         """Experiments on the layer's units."""
         return sum(len(n.experiments) for n in self.units)
@@ -228,6 +204,11 @@ class LayerNode:
     def verified_features(self) -> int:
         """Dictionary features with a VERIFIED standing."""
         return sum(n.verified for n in self.features)
+
+    @property
+    def verified_superpositions(self) -> int:
+        """Superpositions with a VERIFIED standing."""
+        return sum(n.verified for n in self.superpositions)
 
 
 @dataclass
@@ -267,6 +248,26 @@ class ModelNode:
         return sum(layer.verified_features for layer in self.layers)
 
     @property
+    def superpositions(self) -> int:
+        """Studied superpositions over every layer."""
+        return sum(len(layer.superpositions) for layer in self.layers)
+
+    @property
+    def verified_superpositions(self) -> int:
+        """VERIFIED superpositions over every layer."""
+        return sum(layer.verified_superpositions for layer in self.layers)
+
+    @property
+    def member_only(self) -> int:
+        """Neurons studied only as members of a superposition, over every layer."""
+        return sum(layer.member_only for layer in self.layers)
+
+    @property
+    def neurons_studied(self) -> int:
+        """Studied neurons, with those studied only as members of a superposition."""
+        return self.neurons + self.member_only
+
+    @property
     def experiments(self) -> int:
         """Experiments over every layer."""
         return sum(layer.experiments for layer in self.layers)
@@ -297,35 +298,6 @@ class ModelNode:
         return [counts.get(i, 0) for i in range(self.n_layers)]
 
 
-def explore_focus(models: Sequence[ModelNode], draws: Sequence = ()) -> dict:
-    """The coverage target, the explore focus, and each model's verified neurons.
-
-    A neuron counts as verified when a pole stands VERIFIED or is proven dead in
-    ``draws``. Give it the random draws and the stops of chosen units together, as the
-    planner reads both (:func:`openinterp.planner.dead`). The site reads a standing and
-    the planner reads the latest record. So the two can name a different focus for a time.
-    """
-    from openinterp.planner import coverage_target  # it reads pyproject.toml
-    from openinterp.planner_models import ModelCoverage, focus_model
-
-    dead = {
-        (d.identifier.model_name, d.identifier.layer, d.identifier.neuron_idx)
-        for d in draws
-        if d.proven_dead
-    }
-    counts = {}
-    for m in models:
-        verified = {(lay.layer, n.idx) for lay in m.layers for n in lay.neurons if n.verified}
-        proven = {(layer, idx) for name, layer, idx in dead if name == m.name}
-        counts[m.name] = {"verified": len(verified | proven), "dead": len(proven)}
-    target = coverage_target()
-    covered = (
-        ModelCoverage(m.name, m.neurons, m.total_neurons, counts[m.name]["verified"])
-        for m in models
-    )
-    return {"target": target, "model": focus_model(covered, target), "models": counts}
-
-
 # MLP width of models whose early records predate ``model_mlp_width``. Records are
 # write-once, so the width can't be backfilled into them; a width on any record wins.
 KNOWN_MLP_WIDTHS = {
@@ -344,11 +316,6 @@ def mlp_widths(records: Iterable[AuditRecord]) -> dict[str, int]:
         if r.submission.model_mlp_width:
             widths[r.submission.identifier.model_name] = r.submission.model_mlp_width
     return widths
-
-
-def unit_side(ident) -> str:
-    """What a unit page groups ``ident`` under: a neuron's pole, else ``head`` or ``feature``."""
-    return ident.pole or SIDES[ident.kind][0]
 
 
 def experiment_order(e: Experiment) -> tuple:
@@ -427,8 +394,9 @@ def _add_experiment(
         )
     model.n_layers = max(model.n_layers, r.submission.model_num_layers or 0, ident.layer + 1)
     dictionary = getattr(ident, "dictionary", None)
+    sid = getattr(ident, "superposition_id", None)
     order = list(SIDES).index(ident.kind)
-    key = (ident.model_name, ident.layer, order, dictionary or "", ident.index)
+    key = (ident.model_name, ident.layer, order, dictionary or sid or "", ident.index)
     if key not in units:
         units[key] = UnitNode(
             ident.model_name,
@@ -437,6 +405,7 @@ def _add_experiment(
             unit_href(ident),
             ident.kind,
             dictionary=dictionary,
+            superposition_id=sid,
         )
     experiment = Experiment(
         r,
@@ -476,8 +445,8 @@ def _link_revisions(experiments: list[Experiment]) -> None:
 def false_discovery(models: Sequence[ModelNode]) -> dict:
     """Return the expected false discoveries among the current VERIFIED claims.
 
-    There is one claim per native neuron pole or head. Dictionary features are left out:
-    they are a baseline, not claims about the model's own units.
+    There is one claim per native neuron pole or head. Dictionary features and
+    superpositions are left out. They are not claims about one of the model's own units.
 
     Each claim is false with probability 1 − P(useful). So the expected number of false
     claims is their sum. The estimated false discovery rate is that sum over the number
