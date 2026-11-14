@@ -16,6 +16,7 @@ from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.sisters import Correlations, find_sisters, paired_rows, shared_boundaries
 from openinterp.sisters import SIBLINGS, SisterRow, format_sisters, load_rows, pairs, sisters
 from tests.conftest import FakeTokenizer
+from tests.site_pages import unit_pages
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
 
 
@@ -320,9 +321,9 @@ def test_pages_link_a_sister_study_to_its_source(tmp_path, record):
     rows = {slug: [_sister_row(slug, "o/m", [(2, 9, "negative", 0.7, slug, 0.7)])]}
     site = tmp_path / "site"
     compile_site([source, study], site, sister_rows=rows)
-    page = (site / "models/o--m/L2/N9.html").read_text()
+    page = unit_pages(site / "models/o--m/L2/N9.html")
     assert "Sister study: tests the explanation of" in page
-    assert f"models/Qwen--Qwen2.5-0.5B/L3/N117.html#positive-{experiment_id(source)}" in page
+    assert f"models/Qwen--Qwen2.5-0.5B/L3/N117-positive/{experiment_id(source)}.html" in page
     assert "tested here: VERIFIED" in page
     source_page = (site / "models/Qwen--Qwen2.5-0.5B/L3/N117.html").read_text()
     assert "models/o--m/L2/N9.html" in source_page

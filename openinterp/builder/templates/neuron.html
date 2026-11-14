@@ -27,7 +27,7 @@
         <p class="mt-2 text-xs">{{ s.lead.record.submission.natural_language_explanation | truncate(120) }}</p>
         {% if s.readings | length > 1 %}
         <p class="mt-2 text-xs text-slate-500">{% if s.contested %}Reviews of this hypothesis disagree:{% else %}Every review of this hypothesis agrees:{% endif %}
-          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="#{{ r.anchor }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <a class="font-mono underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a>{{ "; " if not loop.last }}{% endfor %}.
+          {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="{{ root }}{{ r.href }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <a class="font-mono underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a>{{ "; " if not loop.last }}{% endfor %}.
         </p>
         {% endif %}
         {% elif stops | selectattr("side", "equalto", pole) | list %}
@@ -42,7 +42,7 @@
     <section class="mt-6" aria-labelledby="both-poles">
       <h2 id="both-poles" class="text-base font-semibold">Both poles</h2>
       <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        {% if poles.shared %}Top examples of each pole from one scan, that of <a class="underline-offset-2 hover:underline" href="#{{ poles.shared.anchor }}">experiment {{ poles.shared.id }}</a>{% else %}Top examples of each pole from its newest experiment's scan{% endif %}.
+        {% if poles.shared %}Top examples of each pole from one scan, that of <a class="underline-offset-2 hover:underline" href="{{ root }}{{ poles.shared.href }}">experiment {{ poles.shared.id }}</a>{% else %}Top examples of each pole from its newest experiment's scan{% endif %}.
         Each column is shaded by its own pole's max; hover a token for its value.
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
@@ -58,7 +58,7 @@
             <li class="break-words text-sm leading-7">{% call spoiler(ex.offensive) %}{% if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}{% endcall %}</li>
             {% endfor %}
           </ol>
-          {% if not poles.shared and p.source %}<p class="mt-2 text-xs text-slate-500">From <a class="underline-offset-2 hover:underline" href="#{{ p.source.anchor }}">experiment {{ p.source.id }}</a>.</p>{% endif %}
+          {% if not poles.shared and p.source %}<p class="mt-2 text-xs text-slate-500">From <a class="underline-offset-2 hover:underline" href="{{ root }}{{ p.source.href }}">experiment {{ p.source.id }}</a>.</p>{% endif %}
           {% else %}
           <p class="mt-2 text-xs text-slate-500">Not scanned yet.</p>
           {% endif %}
@@ -177,17 +177,57 @@
       </div>
     </section>
     {% endif %}
-    <p class="mt-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-      Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
-      conclusive its probe evidence is (in either direction).
-    </p>
   </header>
 
-  <div class="space-y-6">
-    {% for v in views %}
-    {% set rank = loop.index %}
-    {% include "_experiment.html" %}
-    {% endfor %}
-  </div>
+  {% if neuron.experiments %}
+  <section aria-labelledby="experiments">
+    <h2 id="experiments" class="text-base font-semibold">Experiments</h2>
+    <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+      Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
+      conclusive its probe evidence is (in either direction). Each has its own page with the evidence and the review.
+    </p>
+    <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+          <tr>
+            <th class="px-3 py-2">#</th>
+            <th class="px-3 py-2">Verdict</th>
+            {% if neuron.is_neuron %}<th class="px-3 py-2">Pole</th>{% endif %}
+            <th class="px-3 py-2">Date</th>
+            <th class="px-3 py-2">Proposer · reviewer</th>
+            <th class="px-3 py-2">Hypothesis</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for e in neuron.experiments %}
+          {% set sub = e.record.submission %}{% set verdict = e.record.verdict %}
+          {# The id keeps the experiment's old anchor on this page; the script below sends it on to the experiment's page. #}
+          <tr id="{{ e.anchor }}" class="scroll-mt-4 align-top">
+            <td class="px-3 py-2 font-mono text-xs text-slate-500">{{ loop.index }}</td>
+            <td class="px-3 py-2">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <a href="{{ root }}{{ e.href }}">{{ status_badge(verdict.status) }}</a>
+                {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
+                {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
+                <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-500' }}" title="How this experiment counts toward the status">{{ roles[e.role] }}</span>
+              </div>
+            </td>
+            {% if neuron.is_neuron %}<td class="whitespace-nowrap px-3 py-2">{{ e.side | capitalize }} {{ pole_mark(e.side) }}</td>{% endif %}
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ verdict.timestamp.isoformat() }}">{{ verdict.timestamp.strftime("%Y-%m-%d") }}</time></td>
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+              <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(sub.submitting_agent_model) }}" title="recorded as {{ sub.submitting_agent_model }}">{{ agent_name(sub.submitting_agent_model) }}</a> ·
+              <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(verdict.reviewer_agent_model) }}" title="recorded as {{ verdict.reviewer_agent_model }}">{{ agent_name(verdict.reviewer_agent_model) }}</a>
+            </td>
+            <td class="px-3 py-2"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ e.href }}">{{ sub.natural_language_explanation | truncate(160) }}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {# Links made before experiments had their own pages point at #<side>-<id> here. Send them on. #}
+  {% set moved = {} %}{% for e in neuron.experiments %}{% set _ = moved.update({e.anchor: root ~ e.href}) %}{% endfor %}
+  <script>(function () { var moved = {{ moved | tojson }}; var to = moved[location.hash.slice(1)]; if (to) location.replace(to); })();</script>
+  {% endif %}
 </article>
 {% endblock %}

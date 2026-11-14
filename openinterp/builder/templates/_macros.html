@@ -35,12 +35,12 @@
 <span class="{{ 'text-orange-600' if pole == 'positive' else 'text-sky-600' }}">{{ '+' if pole == 'positive' else '−' }}</span>
 {%- endmacro %}
 
-{% macro breadcrumb(root, model=none, layer=none, neuron=none) -%}
+{% macro breadcrumb(root, model=none, layer=none, neuron=none, unit_link=false) -%}
 <nav class="mb-4 text-xs text-slate-500">
   <a class="underline" href="{{ root }}index.html">Registry</a>
   {% if model %} / {% if layer %}<a class="underline" href="{{ root }}{{ model.href }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}{% endif %}
   {% if layer %} / {% if neuron %}<a class="underline" href="{{ root }}{{ layer.href }}">Layer {{ layer.layer }}</a>{% else %}Layer {{ layer.layer }}{% endif %}{% endif %}
-  {% if neuron %} / {{ neuron.noun | capitalize }} {{ neuron.idx }}{% if neuron.dictionary %} ({{ neuron.dictionary }}){% endif %}{% endif %}
+  {% if neuron %} / {% if unit_link %}<a class="underline" href="{{ root }}{{ neuron.href }}">{% endif %}{{ neuron.noun | capitalize }} {{ neuron.idx }}{% if neuron.dictionary %} ({{ neuron.dictionary }}){% endif %}{% if unit_link %}</a>{% endif %}{% endif %}
 </nav>
 {%- endmacro %}
 
