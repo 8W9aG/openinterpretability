@@ -171,7 +171,7 @@ def test_layer_map(tmp_path, records):
     from openinterp.builder.charts import layer_map
     from openinterp.builder.tree import ModelNode, build_tree
 
-    (model,) = build_tree(records)
+    (model,) = build_tree(records, [])
     chart = layer_map(model)
     assert chart["counts"] == {
         "VERIFIED": 1,
@@ -206,7 +206,7 @@ def test_pieces_bars(tmp_path, record, records):
 
     # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
     records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
-    (model,) = build_tree(records)
+    (model,) = build_tree(records, [])
     bars = model_pieces(model)
     assert bars["block"] == 38 and bars["cells"] == 24 * 128 and bars["lit"] == 2
     assert len(bars["rows"]) == 24 and not bars["rows"][0]["cells"]
@@ -814,7 +814,7 @@ def _reviewed_by(rec, reviewer, *, status, hours, counts=(10, 0, 5, 0)):
 def _standing(records, idx=117, pole="positive"):
     from openinterp.builder.tree import build_tree
 
-    (model,) = build_tree(records)
+    (model,) = build_tree(records, [])
     (unit,) = [n for layer in model.layers for n in layer.units if n.idx == idx]
     return unit.standings[pole], unit
 
@@ -928,7 +928,7 @@ def test_reviewer_agreement(records):
     records.append(
         _reviewed_by(verified, "other/model", status="NEEDS_REVISION", hours=4, counts=(5, 5, 1, 4))
     )
-    agreement = reviewer_agreement(build_tree(records))
+    agreement = reviewer_agreement(build_tree(records, []))
     assert agreement["claims"] == 1 and agreement["unanimous"] == 0
     assert agreement["pairs"] == 3 and agreement["pair_agreement"] == round(1 / 3, 4)
     assert agreement["cross_model_pairs"] == 3
@@ -1172,7 +1172,7 @@ def test_agents_page_credits_contributors(tmp_path, records):
     records[3] = credited(records[3], "bob")  # N9+ REJECTED, thinly probed
     compile_site(records, tmp_path)
 
-    (model,) = build_tree(records)
+    (model,) = build_tree(records, [])
     experiments = [e for layer in model.layers for n in layer.units for e in n.experiments]
     rows = {c.handle: c for c in contributors_view(experiments)}
     assert (rows["alice"].experiments, rows["alice"].verified) == (2, 1)

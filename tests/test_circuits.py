@@ -50,7 +50,7 @@ def test_circuits_chain_edges_between_studied_units(tmp_path, record):
         at(record, 6, 2, weights=wiring("weights", up=[("mlp_neuron", 3, 117, -0.3)])),
         at(record, 12, 1),  # wired to nothing
     ]  # fmt: skip
-    (model,) = build_tree(records)
+    (model,) = build_tree(records, [])
     (circuit,) = circuits(model, {})
     assert [(u.layer, u.idx) for u in circuit.units] == [(1, 5), (3, 117), (6, 2)]
     first, second = circuit.edges
@@ -82,7 +82,7 @@ def test_hubs_dont_join_circuits(tmp_path, record):
         *(at(record, 2, i, activations=spoke) for i in range(9)),
         at(record, 12, 1),  # 10 units are wired into it, of 12
     ]
-    (model,) = build_tree(records)
+    (model,) = build_tree(records, [])
     found, (hub,) = circuits_and_hubs(model, {})
     (circuit,) = found
     assert [(u.layer, u.idx) for u in circuit.units] == [(1, 5), (3, 117)]
