@@ -24,7 +24,8 @@ Every registry-wide claim inherits the noise of single verdicts.
 
 - **What would answer it.** How often a rerun, another reviewer or another corpus changes a verdict, and a review rule whose verdict is stable.
 - **So far.** A second reading of a hypothesis agrees with the first on status 56% of the time (`registry-stats.md`). The reviewer explains 6–8% of the variance in verdicts (`docs/analyses/reviewer-crossover.md`). No swapped hypothesis was VERIFIED in 255 tries (`null-calibration.md`). Today's rule still verifies 326 of 331 older VERIFIED records (`docs/analyses/protocol-mix.md`). VERIFIED explanations score only 0.04 higher on held-out detection than others, within judge (`docs/analyses/verified-vs-detection.md`).
-- **Bears on it.** Verdict stability (#3196), rival hypotheses, reviewer drift, the human baseline, ground-truth models, held-out scoring (#3499, #3505).
+- **Update (2026-11-13).** With the same reviewer and prompt, VERIFIED-or-not flips between two reviews 18% of the time. That noise is 21% of balanced accuracy's variance, twice the reviewer model's share (`docs/analyses/verdict-stability.md`). The `specificity` gate causes most flips (#3509).
+- **Bears on it.** Rival hypotheses, reviewer drift, the human baseline, ground-truth models, held-out scoring (#3499, #3505).
 
 ## 3. Do native neurons explain a model as well as learned dictionaries do? (#3188)
 
