@@ -1,6 +1,6 @@
 ---
 name: next-issue
-description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next", or asks you to keep working through the issues. Also use it when you finish an issue and should continue.
+description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". It works one issue and stops. To work through several, run it under `/loop`.
 ---
 
 # The next issue
@@ -42,7 +42,7 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    ```
    Pull one issue at a time, and only when the release has nothing left. The release cadence (`release` skill, *When to release*) decides when the release goes out, not how full it is.
 5. **Work it with `work-an-issue`.** That skill marks the issue In Progress, posts the plan, posts deviations, opens the PR and posts what shipped. Its eligibility check runs again there.
-6. **Continue.** When the issue is In Review, go back to step 1, unless the user asked for one issue. Don't wait for a PR to merge before you start the next issue. Do resync a PR if `main` moves under it and it conflicts.
+6. **Stop.** When the issue is In Review, report the issue, its PR and what shipped, then stop. One run works one issue. To work through several, run this skill under `/loop`. Each iteration then picks afresh, so it sees what other agents started in the meantime.
 
 ## Notes
 
