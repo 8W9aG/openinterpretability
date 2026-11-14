@@ -52,6 +52,14 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     help="Each VERIFIED pole's matches in other models (`openinterp sisters`); skipped if missing.",
 )
 @click.option(
+    "--coverage",
+    "coverage_path",
+    default=Path("docs/analyses/registry-coverage.jsonl"),
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Registry coverage rows (`openinterp coverage`) for the home page; skipped if missing.",
+)
+@click.option(
     "--papers",
     "papers_dir",
     default=Path("papers"),
@@ -66,11 +74,20 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     help="Worker processes that render the unit pages. Default: one per CPU. 1 renders in "
     "this process.",
 )
-def build(
-    wiki_dir, output_dir, wiring_path, source_paths, alignment_path, sisters_path, papers_dir, jobs
+def build(  # noqa: PLR0913 (one option per input file)
+    wiki_dir,
+    output_dir,
+    wiring_path,
+    source_paths,
+    alignment_path,
+    sisters_path,
+    coverage_path,
+    papers_dir,
+    jobs,
 ):
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterp.builder.compiler import compile_site
+    from openinterp.builder.coverage import load_rows as load_coverage
     from openinterp.builder.model_facts import load_model_facts
     from openinterp.builder.parallel import default_jobs
     from openinterp.builder.users import load_users
@@ -98,6 +115,7 @@ def build(
         jobs=jobs or default_jobs(),
         errata=load_errata(wiki_dir),
         users=load_users(project_links()["repo_url"], wiki_dir),
+        coverage_rows=load_coverage(coverage_path),
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
