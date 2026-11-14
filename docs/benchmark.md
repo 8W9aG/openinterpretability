@@ -63,6 +63,12 @@ The first run writes one prompt per unit, `<unit>.prompt.md`, with `--` for each
 
 The judge model changes the scores. Always report the judge with a score, and compare explainers only under the same judge.
 
+## Robustness
+
+Your explanation goes into the judge's prompt, fenced as data (`openinterp/core/fence.py`). An explanation that gives the judge an order can't raise its score. The judge never sees the labels, and a judge that lists every text, or none, scores 0.5, which is chance. A red-team run with Claude Haiku 5.5 judges tried five attacks on 12 dev units. They were orders in English, French and Chinese, a forged closing fence, and an order after a real explanation. No attack scored above chance or above the explanation alone, and no judge obeyed (`docs/analyses/judge-injection.md`).
+
+Each scored row records `listed_share`, the share of texts that the judge listed. The summary names the units where the judge listed at least 90% of texts, in `listed_nearly_all`, and the scorer prints a warning. A working injection would look like that, and so would an honest explanation that is too broad. The flag marks units for a person to read. It doesn't change a score.
+
 ## Registry baseline
 
 The registry's own explanations (`--explanations registry`), judged by Claude Haiku 5.5 (`external/claude-haiku-5-5`): one `explanation-judge` agent per unit, through `--prompts-dir`. The rows and summaries are in [`benchmark/results/v1/registry.claude-haiku-5-5/`](../benchmark/results/v1/registry.claude-haiku-5-5/).

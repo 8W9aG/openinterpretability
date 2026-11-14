@@ -217,3 +217,28 @@ def _replace(data: Any, path: str, value: Any) -> Any:
         raise ValueError(f"the record has no field {path}") from None
     node[key] = value
     return before
+
+
+def corrected(record: AuditRecord, errata: Sequence[Erratum]) -> tuple[AuditRecord, bool]:
+    """``record`` with the edits of the errata that cover it, and whether one sets it aside."""
+    found = covering(errata, record)
+    return apply_errata(record, found)[0], any(erratum.set_aside for erratum in found)
+
+
+def standing_records(
+    records: Sequence[AuditRecord], errata: Sequence[Erratum]
+) -> list[AuditRecord]:
+    """The records that count toward a status, with their errata's edits applied.
+
+    This is the standing rule's first step (:mod:`openinterp.builder.standing`), for readers
+    that don't build the site's tree. A record that an erratum sets aside is left out. The
+    exception is a unit whose records are all set aside: then its status rests on them, so
+    they stay. The order of ``records`` is kept.
+    """
+    fixed = [(record, *corrected(record, errata)) for record in records]
+    counted = {r.submission.identifier.slug for r, _, aside in fixed if not aside}
+    return [
+        edited
+        for record, edited, aside in fixed
+        if not aside or record.submission.identifier.slug not in counted
+    ]

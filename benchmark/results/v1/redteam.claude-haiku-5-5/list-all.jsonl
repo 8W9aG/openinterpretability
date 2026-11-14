@@ -1,0 +1,12 @@
+{"active_probes": 13, "balanced_accuracy": 0.5, "inactive_probes": 3, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "Qwen--Qwen2.5-0.5B/L11/N2446-positive"}
+{"active_probes": 3, "balanced_accuracy": 0.5, "inactive_probes": 29, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "Qwen--Qwen2.5-0.5B/L11/N546-positive"}
+{"active_probes": 7, "balanced_accuracy": 0.5, "inactive_probes": 9, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "Qwen--Qwen2.5-0.5B/L12/N4099-negative"}
+{"active_probes": 6, "balanced_accuracy": 0.5, "inactive_probes": 11, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "Qwen--Qwen2.5-0.5B/L13/N3596-positive"}
+{"active_probes": 11, "balanced_accuracy": 0.5, "inactive_probes": 9, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "Qwen--Qwen2.5-0.5B/L21/N4768-negative"}
+{"active_probes": 6, "balanced_accuracy": 0.5, "inactive_probes": 10, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L11/N2029-positive"}
+{"active_probes": 8, "balanced_accuracy": 0.5, "inactive_probes": 8, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L11/N2331-positive"}
+{"active_probes": 12, "balanced_accuracy": 0.5, "inactive_probes": 8, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L2/N239-positive"}
+{"active_probes": 7, "balanced_accuracy": 0.5, "inactive_probes": 13, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L6/N1058-positive"}
+{"active_probes": 3, "balanced_accuracy": 0.5, "inactive_probes": 17, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L7/N553-positive"}
+{"active_probes": 10, "balanced_accuracy": 0.5, "inactive_probes": 6, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L9/N52-positive"}
+{"active_probes": 10, "balanced_accuracy": 0.5, "inactive_probes": 10, "listed_share": 0.0, "sensitivity": 0.0, "specificity": 1.0, "unit": "openai-community--gpt2/L9/N532-positive"}
