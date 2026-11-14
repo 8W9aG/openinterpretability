@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 from openinterp.core.paths import DEFAULT_EXCHANGE_DIR
 from openinterp.planner import Candidate, Plan, claim_key
-from openinterp.planner_models import model_dims
+from openinterp.planner_models import model_dims, model_heads
 
 SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan", "sister")
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
@@ -44,6 +44,19 @@ def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None
     return NeuronIdentifier(model_name=model, layer=layer, neuron_idx=neuron, pole=pole).slug
 
 
+def random_head(model: str, seed: int, dims: tuple[int, int]) -> str:
+    """The slug ``openinterp audit --model M --random --unit head --seed S`` scans.
+
+    Mirrors :func:`openinterp.evidence.pick_unit` for heads: the layer, then the head.
+    """
+    from openinterp.core.identifiers import HeadIdentifier
+
+    rng = random.Random(seed)
+    layer = rng.randrange(dims[0])
+    head = rng.randrange(dims[1])
+    return HeadIdentifier(model_name=model, layer=layer, head_idx=head).slug
+
+
 def draw_slug(choice: Candidate) -> str | None:
     """Return the unit that the draw studies.
 
@@ -53,9 +66,14 @@ def draw_slug(choice: Candidate) -> str | None:
     options = (choice.audit or "").split()
     if choice.slug or "--random" not in options:
         return choice.slug
-    if "--seed" not in options or (dims := model_dims(choice.model)) is None:
+    if "--seed" not in options:
         return None
     seed = int(options[options.index("--seed") + 1])
+    if "--unit" in options and options[options.index("--unit") + 1] == "head":
+        heads = model_heads(choice.model)
+        return random_head(choice.model, seed, heads) if heads else None
+    if (dims := model_dims(choice.model)) is None:
+        return None
     pole = options[options.index("--pole") + 1] if "--pole" in options else None
     return random_neuron(choice.model, seed, dims, pole)
 
