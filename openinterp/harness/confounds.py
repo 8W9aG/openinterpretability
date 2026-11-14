@@ -17,6 +17,7 @@ adds nothing beyond "this neuron fires on token X" (or "at position p").
 
 from __future__ import annotations
 
+import statistics
 from collections.abc import Sequence
 from typing import Any
 
@@ -147,3 +148,37 @@ def length_predictions(
         for text in texts
     ]
     return {f"probe length ≥ {n} tokens": [n <= k for k in lengths] for n in sorted(set(lengths))}
+
+
+# A ratio of the two probe groups' median token lengths above which the reviewer is warned.
+# Probes that differ this much in length can be told apart by length alone (issue #3525).
+LENGTH_RATIO_WARN = 1.5
+
+
+def length_ratio(probes: Sequence[Any], tokenizer, skip_first: bool) -> float | None:
+    """The larger median token length of the two probe groups over the smaller.
+
+    The groups are the probes expected active and those expected inactive. Tokens are
+    counted as the unit reads them. ``None`` when a group is empty.
+    """
+    groups: dict[bool, list[int]] = {True: [], False: []}
+    for probe in probes:
+        n = len(tokenizer.encode(probe.text)) - int(skip_first)
+        groups[probe.expected_active].append(max(n, 1))
+    if not groups[True] or not groups[False]:
+        return None
+    medians = sorted(statistics.median(g) for g in groups.values())
+    return medians[1] / medians[0]
+
+
+def length_warning(probes: Sequence[Any], tokenizer, skip_first: bool) -> str | None:
+    """A warning when the two probe groups differ in length by more than LENGTH_RATIO_WARN."""
+    ratio = length_ratio(probes, tokenizer, skip_first)
+    if ratio is None or ratio <= LENGTH_RATIO_WARN:
+        return None
+    return (
+        f"The median token lengths of the active and inactive probes differ {ratio:.1f}×, "
+        f"above {LENGTH_RATIO_WARN}×. A rule that reads only probe length may then explain "
+        "the probes as well as the hypothesis does, and the review fails a hypothesis that "
+        "doesn't beat it."
+    )

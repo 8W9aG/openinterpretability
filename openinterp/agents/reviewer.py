@@ -44,7 +44,13 @@ from openinterp.core.schemas import (
     scan_active_share,
 )
 from openinterp.core.stats import balanced_accuracy, effective_counts
-from openinterp.harness.confounds import baseline_predictions
+from openinterp.harness.confounds import (
+    LENGTH_RATIO_WARN,  # noqa: F401 - re-exported
+    baseline_predictions,
+    length_predictions,
+    length_ratio,  # noqa: F401 - re-exported
+    length_warning,
+)
 from openinterp.harness.environment import run_environment
 from openinterp.harness.hooks import NeuronHookRunner
 
@@ -70,6 +76,15 @@ class ProbeSet(BaseModel):  # noqa: D101 (a docstring would join the JSON schema
 
 DEFAULT_POLICY = ReviewPolicy()
 
+# Probes in two groups of very different lengths can be told apart by length alone. Since
+# protocol 0.9 the confound baseline includes that rule (issue #3525), so the reviewer is
+# asked to match lengths (and warned: harness.confounds.length_warning).
+LENGTH_MATCHED = (
+    " Give the hard negatives and the positive holdouts similar lengths in tokens. The "
+    "review compares the hypothesis with a rule that reads only a probe's length. If your "
+    "holdouts are much longer than your negatives, that rule can explain them as well as "
+    "the hypothesis does, and the hypothesis fails."
+)
 HEAD_ACTIVITY = (
     "A head counts as active at a token when its write to the residual stream there is far "
     "from its average write: what it attends to and copies at that token is unusual. A "
@@ -187,6 +202,7 @@ class ReviewerAgent(LLMAgent):
             + (f"{related}\n" if related else "")
             + (f"{art}\n" if (art := prior_art.format_for_reviewer(submission.prior_art)) else "")
             + "Write {} probes: {} hard negatives and {} positive holdouts.".format(n, *split(n))
+            + LENGTH_MATCHED
         )
 
     @staticmethod
@@ -219,10 +235,13 @@ class ReviewerAgent(LLMAgent):
             if is_head
             else ""
         )
+        unequal = length_warning(probes, tokenizer, bool(submission.first_token_floor))
+        rebalance = f"{unequal} Rewrite some probes to match the lengths. " if unequal else ""
         return (
             ReviewerAgent.probe_prompt(submission, len(probes))
             + "\n\nYou wrote the probes below. Here they are as the model's tokens. "
             + repeats
+            + rebalance
             + "Check each label against what the hypothesis predicts for these tokens, not "
             "for the words. Where a label is wrong, rewrite the probe so it tests what you "
             "meant (preferred, to keep the share of hard negatives), or relabel it. Leave "
@@ -348,8 +367,10 @@ def confound_baseline(
     threshold: float,
     policy: ReviewPolicy,
 ) -> tuple[str, float] | None:
-    """Best trivial explanation of the probes' activity: (name, balanced accuracy).
+    """Return the best trivial explanation of the probes' activity: (name, accuracy).
 
+    The candidates are the token-identity and position rules, and "never active". Since
+    protocol 0.9 they also include each "at least n tokens" rule of probe length (#3525).
     ``None`` when the submission has no confound profile (scan predates protocol 0.3).
     """
     if submission.confounds is None or runner.tokenizer is None or not probes:
@@ -359,6 +380,7 @@ def confound_baseline(
     candidates = baseline_predictions(
         submission.confounds, runner.tokenizer, texts, threshold, skip_first
     )
+    candidates |= length_predictions(runner.tokenizer, texts, skip_first)  # protocol 0.9
     candidates["never active"] = [False] * len(probes)
     return best_baseline(candidates, probes, actual, policy)
 
