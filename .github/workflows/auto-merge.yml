@@ -83,3 +83,34 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - run: gh workflow run deploy.yml --repo "${{ github.repository }}" --ref main
+
+  close-issues:
+    name: Close the issues an auto-merged PR closes
+    # GitHub doesn't act on "Closes #N" when the workflow token merges a PR (#3522), so
+    # this job closes each linked issue that is still open, naming the PR.
+    if: >-
+      github.event.action == 'closed' && github.event.pull_request.merged &&
+      github.event.pull_request.merged_by.login == 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Close linked issues
+        run: |
+          set -euo pipefail
+          jq_filter='.closingIssuesReferences[]
+            | select(.repository.owner.login + "/" + .repository.name == env.REPO)
+            | .number'
+          gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences --jq "$jq_filter" \
+            > issues.txt
+          while read -r number; do
+            if [ "$(gh issue view "$number" --repo "$REPO" --json state -q .state)" = OPEN ]; then
+              gh issue close "$number" --repo "$REPO" \
+                --comment "Closed by #$PR, which auto-merge merged."
+            fi
+          done < issues.txt
