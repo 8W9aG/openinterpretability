@@ -1,0 +1,65 @@
+{
+ "current_protocol": "0.8",
+ "by_protocol": {
+  "0.4": {
+   "kept": 5
+  },
+  "0.5": {
+   "kept": 42
+  },
+  "0.6": {
+   "kept": 14
+  },
+  "0.7": {
+   "kept": 265,
+   "lost": 5
+  }
+ },
+ "failed_gates": {
+  "0.7": {
+   "not_default_on": 5
+  }
+ },
+ "lost": [
+  {
+   "record": "wiki/experiments/openai-community--gpt2/L1/N277-negative/20261028T110618Z.json",
+   "protocol": "0.7",
+   "now": "NEEDS_REVISION",
+   "failed": [
+    "not_default_on"
+   ]
+  },
+  {
+   "record": "wiki/experiments/openai-community--gpt2/L5/N4-negative/20261028T111028Z.json",
+   "protocol": "0.7",
+   "now": "NEEDS_REVISION",
+   "failed": [
+    "not_default_on"
+   ]
+  },
+  {
+   "record": "wiki/experiments/openai-community--gpt2/L6/N1635-negative/20261028T170948Z.json",
+   "protocol": "0.7",
+   "now": "NEEDS_REVISION",
+   "failed": [
+    "not_default_on"
+   ]
+  },
+  {
+   "record": "wiki/experiments/openai-community--gpt2/L7/N1883-negative/20261028T032706Z.json",
+   "protocol": "0.7",
+   "now": "NEEDS_REVISION",
+   "failed": [
+    "not_default_on"
+   ]
+  },
+  {
+   "record": "wiki/experiments/openai-community--gpt2/L9/N2000-negative/20261028T105613Z.json",
+   "protocol": "0.7",
+   "now": "NEEDS_REVISION",
+   "failed": [
+    "not_default_on"
+   ]
+  }
+ ]
+}

@@ -14,6 +14,7 @@ import duckdb
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.significance import STRONG_EVIDENCE
 from openinterp.builder.tree import LABEL_PREFIX, SIDES, feature_href, head_href, neuron_href
+from openinterp.core.schemas import PROTOCOL_VERSION
 
 RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
 
@@ -43,6 +44,18 @@ TOTALS = f"""
                AS verified_self_reviewed
     FROM r
     """  # noqa: S608  (interpolates module constants only)
+
+# The protocol version that each verified unit's standing rests on: its newest record
+# that agrees with the standing (issue #3207). Older verdicts were judged by older rules.
+PROTOCOL_MIX = """
+    SELECT coalesce(protocol_version, 'unknown') AS protocol_version, count(*) AS units
+    FROM (
+        SELECT slug, protocol_version FROM r
+        WHERE counts_toward_status AND unit_status = 'VERIFIED' AND kind != 'dictionary_feature'
+        QUALIFY row_number() OVER (PARTITION BY slug ORDER BY reviewed_at DESC, experiment_id) = 1
+    )
+    GROUP BY ALL ORDER BY protocol_version DESC
+    """
 
 CONCLUSIVE = """
     SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
@@ -84,6 +97,7 @@ VERDICTS = """
 # The queries in the order the page's stats come in; TOTALS is one row.
 QUERIES = {
     "totals": TOTALS,
+    "protocol_mix": PROTOCOL_MIX,
     "conclusive": CONCLUSIVE,
     "recent": RECENT,
     "verdicts": VERDICTS,
@@ -97,6 +111,7 @@ def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
     con.execute(f"CREATE VIEW r AS SELECT * FROM read_parquet('{parquet.as_posix()}')")  # noqa: S608
     stats = {name: _rows(con, sql) for name, sql in QUERIES.items()}
     stats["totals"] = stats["totals"][0]
+    stats["current_protocol"] = PROTOCOL_VERSION
     stats["baseline"] = learned_baseline(con, draws)
     con.close()
     for row in stats["conclusive"] + stats["recent"]:

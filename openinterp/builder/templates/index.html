@@ -40,6 +40,13 @@
     Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a learned-basis baseline, {{ t.verified_features }} of them verified.
   </p>
   {% endif %}
+  {% if stats.protocol_mix %}
+  {% set current = stats.protocol_mix | selectattr("protocol_version", "equalto", stats.current_protocol) | map(attribute="units") | sum %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" title="Each verified unit counts the protocol of its newest record that agrees with its standing">
+    Protocol of the verified claims: {{ current }} of {{ t.verified }} were judged under the current protocol ({{ stats.current_protocol }}){% for row in stats.protocol_mix if row.protocol_version != stats.current_protocol %}{{ "; " if loop.first else ", " }}{{ row.units }} under {{ row.protocol_version }}{% endfor %}.
+    Older verdicts were judged by older rules (<a class="underline" href="{{ repo_url }}/blob/main/docs/PROTOCOL.md">protocol §6</a>).
+  </p>
+  {% endif %}
   {% if t.self_reviewed %}
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
     {{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.

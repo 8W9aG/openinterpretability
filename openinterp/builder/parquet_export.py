@@ -79,6 +79,7 @@ REGISTRY_SCHEMA = pa.schema(
         ("max_activation", pa.float64()),
         ("counterfactuals", pa.list_(COUNTERFACTUAL_TYPE)),
         ("status", pa.string()),
+        ("protocol_version", pa.string()),
         ("confidence_score", pa.float64()),
         ("sufficiency_score", pa.float64()),
         ("necessity_score", pa.float64()),
@@ -199,6 +200,8 @@ def _verdict_columns(record: AuditRecord) -> dict:
     tests = [t for t in verdict.adversarial_test_results if t.measured] if verdict else []
     return {
         "status": verdict.status if verdict else None,
+        # The decision rule the verdict was judged under (docs/PROTOCOL.md §6).
+        "protocol_version": verdict.policy.protocol_version if verdict and verdict.policy else None,
         "confidence_score": verdict.confidence_score if verdict else None,
         **_columns(causal, CAUSAL_COLUMNS),
         "tests_total": len(tests),
