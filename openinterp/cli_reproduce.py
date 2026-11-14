@@ -60,9 +60,12 @@ from openinterp.core.paths import experiments_dir
 )
 @click.option(
     "--corpus",
+    "corpora",
+    multiple=True,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="The scans' corpus: re-draw each record's corpus sample from it and check it "
-    "holds the top examples. Records scanned on another corpus get a warning.",
+    help="A scan corpus (repeatable): re-draw the corpus sample of each record that "
+    "scanned it, matched by SHA-256, and check it holds the top examples. The built-in "
+    "corpus is always known. Other records get a warning.",
 )
 @click.option(
     "--allow-model",
@@ -90,7 +93,7 @@ def reproduce(
     atol,
     rtol,
     device,
-    corpus,
+    corpora,
     allowed_models,
     allowed_signers,
 ):
@@ -102,7 +105,6 @@ def reproduce(
     """
     import os
 
-    from openinterp.cli_evidence import read_corpus
     from openinterp.core.errata import load_errata
     from openinterp.reproduce import Tolerance
     from openinterp.signing import allowed_signers_text, landing_times
@@ -112,15 +114,12 @@ def reproduce(
         click.echo("No records to reproduce.")
         return
     in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
-    scan_corpus = None
-    if corpus is not None:
-        texts, _, corpus_sha, _ = read_corpus(corpus)
-        scan_corpus = (texts, corpus_sha)
     reproducer = _Reproducer(
         signers=allowed_signers_text(allowed_signers, base_ref),
         landed=landing_times(base_ref or "HEAD"),
         tolerance=Tolerance(atol=atol, rtol=rtol),
-        scan_corpus=scan_corpus,
+        scan_corpora=scan_corpora(corpora),
+        corpus_given=bool(corpora),
         allowed_models=allowed_models,
         device=device,
         include_signed=include_signed or sample is not None,
@@ -183,9 +182,10 @@ class _Reproducer:
     signers: object
     landed: dict  # record path -> when its signature landed (signing.landing_times)
     tolerance: object
-    scan_corpus: tuple[list[str], str] | None
+    scan_corpora: dict[str, list[str]]  # documents by the SHA-256 of their corpus file
     allowed_models: tuple[str, ...]
     device: str
+    corpus_given: bool = False  # --corpus given: warn for records it doesn't cover
     include_signed: bool = False
     measurements_only: bool = False  # for records from another protocol version
     errata: list = field(default_factory=list)  # wiki/errata.jsonl (core/errata.py)
@@ -224,11 +224,25 @@ class _Reproducer:
             runner,
             self.tolerance,
             path,
-            self.scan_corpus,
+            self.scan_corpus(record, path, notes),
             measurements_only=self.measurements_only,
         )
         status = "FAILED" if report.mismatches else "REPRODUCED"
         return status, report.mismatches, notes + report.warnings
+
+    def scan_corpus(self, record, path: Path, notes: list[str]):
+        """(documents, SHA-256) of the corpus that ``record`` scanned, if it is known here."""
+        prov = record.submission.provenance
+        if prov is None or prov.corpus_sample is None:
+            return None
+        if prov.corpus_sha256 in self.scan_corpora:
+            return self.scan_corpora[prov.corpus_sha256], prov.corpus_sha256
+        if self.corpus_given:
+            notes.append(
+                "no corpus given is the scan's, so its sample was not checked. "
+                + _rebuild_hint(record, path)
+            )
+        return None
 
     def corrected(self, record, notes: list[str]):
         """``record`` with its errata's edits, and the id of an erratum that sets it aside.
@@ -408,3 +422,25 @@ def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
             click.echo(path if paths_only else f"{path} ({when}): {exc}")
     if not paths_only:
         click.echo(f"{untrusted} of {len(paths)} signed record(s) not trusted.")
+
+
+def scan_corpora(paths) -> dict[str, list[str]]:
+    """Documents by the SHA-256 of their corpus file: the built-in corpus and ``paths``."""
+    from openinterp.cli_evidence import read_corpus
+
+    corpora = {}
+    for path in (None, *paths):
+        texts, _, sha, _ = read_corpus(path)
+        corpora[sha] = texts
+    return corpora
+
+
+def _rebuild_hint(record, path: Path) -> str:
+    """How to get the corpus that ``record`` scanned, from its source or the committed table."""
+    from openinterp.corpus_rebuild import scanned_source
+
+    try:
+        scanned_source(record.submission)
+    except ValueError as error:
+        return f"Its corpus can't be rebuilt: {error}."
+    return f"Rebuild it with `openinterp corpus --same-as {path} --out <file>`."

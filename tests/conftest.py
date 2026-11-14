@@ -193,6 +193,7 @@ def toy_runner(toy_model):
 def no_name_model(monkeypatch):
     """Scans in tests find no names: the real model is a 460 MB download."""
     monkeypatch.setattr("openinterp.names.person_matches", lambda text: ())
+    monkeypatch.setattr("openinterp.names.pos_matches", lambda text: ())
 
 
 @pytest.fixture(autouse=True)
