@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T23:57:22Z","seed":3828831307,"kind":"revise","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L13/N1134-negative","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L13/N1134-negative/20261113T145655Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 13 --neuron 1134 --window-tokens 512 --pole negative","pole_forced":null,"harness_version":"0.0.19"}
