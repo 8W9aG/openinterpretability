@@ -1,4 +1,4 @@
-"""Options that ``openinterp audit`` and ``scan`` share, and how the unit options resolve.
+"""Options that ``open-interpretability audit`` and ``scan`` share, and how unit options resolve.
 
 The shared ones are the scan cache and ``--selection``.
 
