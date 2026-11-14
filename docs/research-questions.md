@@ -15,7 +15,7 @@ The north star: total interpretability of open models, as one number per model.
 The working hypothesis from Goodfire's *Neural Networks Are Already Clean*: most apparent polysemanticity in native neurons comes from tooling, not superposition.
 
 - **What would answer it.** The share of randomly drawn poles with a VERIFIED explanation, by model, layer and pole, with the dead and default-on draws counted. A high share supports the hypothesis, and a low one with a clean protocol counts against it.
-- **So far.** About a quarter of random audited poles are VERIFIED on their first reading. Follow-ups raise that to 30.6% standing (`docs/analyses/registry-stats.md`). Counting the draws that a scan stopped on, 11.5% of GPT-2's random draws are VERIFIED. Rotated units, which aren't native neurons, verify far less often than native ones (`docs/analyses/null-calibration.md`), so the native basis is privileged under this protocol.
+- **So far.** On 2026-11-14, 25.1% of 1,711 random audited poles were VERIFIED on their first reading, and 27.9% standing (`docs/analyses/registry-stats.md`). By model, first reading: Qwen2.5-0.5B 30.2%, GPT-2 small 21.1% and Qwen2.5-1.5B 18.9%. The proposer moves these shares more than the model does. Counting the draws that a scan stopped on, 12.1% of GPT-2's random draws are VERIFIED. Rotated units, which aren't native neurons, verify far less often than native ones (`docs/analyses/null-calibration.md`), so the native basis is privileged under this protocol.
 - **Bears on it.** Polysemantic experiments (#3215), multi-dimensional features, `papers/default-on-poles/`.
 
 ## 2. How reliable is one verdict? (#3187)
