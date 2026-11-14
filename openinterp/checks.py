@@ -74,12 +74,13 @@ class CheckReport:
     pages: int = 0
     draws: int = 0
     stops: int = 0
+    ledger: int = 0
     changed_only: bool = False  # the record and page checks read only the branch's changes
 
     @property
     def extra_counts(self) -> dict[str, int]:
         """How many records of each optional kind the check read."""
-        return {"draw": self.draws, "stop": self.stops}
+        return {"draw": self.draws, "stop": self.stops, "ledger entry": self.ledger}
 
     @property
     def ok(self) -> bool:
@@ -109,6 +110,7 @@ def check_registry(
     _check_pages(wiki_dir, report, scope)
     _check_draws(wiki_dir, report, scope)
     _check_stops(wiki_dir, report, scope)
+    _check_ledger(wiki_dir, report, scope)
     check_errata(wiki_dir, report, base_ref, changes, allowed_signers)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, changes, report)
@@ -224,6 +226,23 @@ def _check_draws(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = 
             report.add(path, "only random draws are recorded")
         if path != draw_path(wiki_dir, draw):
             report.add(path, f"draw record belongs at {draw_path(wiki_dir, draw)}")
+
+
+def _check_ledger(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
+    """Draw-ledger entries (wiki/ledger/) parse and sit where they belong."""
+    from pydantic import ValidationError
+
+    from openinterp.core.ledger import DrawEntry, ledger_files, ledger_path
+
+    for path in _chosen(ledger_files(wiki_dir), scope):
+        report.ledger += 1
+        try:
+            entry = DrawEntry.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValidationError:
+            report.add(path, "invalid ledger entry")
+            continue
+        if path != ledger_path(wiki_dir, entry):
+            report.add(path, f"ledger entry belongs at {ledger_path(wiki_dir, entry)}")
 
 
 def _check_stops(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:

@@ -127,6 +127,11 @@ class ExperimentProvenance(StrictModel):
         description="How the neuron was chosen; only 'random' gives unbiased registry statistics."
     )
     seed: int | None = None
+    pole_forced: bool | None = Field(
+        default=None,
+        description="For a random draw: True when --pole fixed the pole, False when the seed "
+        "drew it. None for a chosen unit, and for records before issue #3205.",
+    )
     harness_version: str
     environment: RunEnvironment | None = None
     corpus_source: CorpusSource | None = None
