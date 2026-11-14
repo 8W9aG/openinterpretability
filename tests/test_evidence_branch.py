@@ -64,6 +64,11 @@ def test_upload_creates_the_public_dataset_and_sends_each_blob(record, repo, tmp
     calls = {}
 
     class FakeApi:
+        exists = False
+
+        def repo_exists(self, repo_id, repo_type):
+            return self.exists
+
         def create_repo(self, repo_id, **kwargs):
             calls["create"] = (repo_id, kwargs)
 
@@ -75,10 +80,14 @@ def test_upload_creates_the_public_dataset_and_sends_each_blob(record, repo, tmp
             )
 
     assert eb.upload(shas, store, api=FakeApi()) == len(shas)
-    assert calls["create"] == (evidence.EVIDENCE_REPO, {"repo_type": "dataset", "private": False,
-                                                        "exist_ok": True})  # fmt: skip
+    assert calls["create"] == (evidence.EVIDENCE_REPO, {"repo_type": "dataset", "private": False})
     assert calls["files"] == sorted(evidence.blob_name(s) for s in shas)
     assert eb.upload([], store, api=FakeApi()) == 0
+    calls.clear()
+    existing = FakeApi()
+    existing.exists = True  # a token with write access to the dataset only can't create it
+    assert eb.upload(shas, store, api=existing) == len(shas)
+    assert "create" not in calls
 
 
 def test_a_draw_pushes_its_evidence_before_its_branch():

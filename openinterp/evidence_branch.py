@@ -82,7 +82,8 @@ def load_branch(ref: str, root: Path | None = None) -> list[str]:
 def upload(shas: Sequence[str], root: Path | None = None, api=None) -> int:
     """Upload the blobs to :data:`~openinterp.core.evidence.EVIDENCE_REPO`; return how many.
 
-    The dataset is created, public, if it doesn't exist yet.
+    The dataset is created, public, only if it doesn't exist yet. So a token with write
+    access to that one dataset is enough once it exists.
     """
     if not shas:
         return 0
@@ -91,7 +92,8 @@ def upload(shas: Sequence[str], root: Path | None = None, api=None) -> int:
 
         api = HfApi()
     store = root or evidence.store_dir()
-    api.create_repo(evidence.EVIDENCE_REPO, repo_type="dataset", private=False, exist_ok=True)
+    if not api.repo_exists(evidence.EVIDENCE_REPO, repo_type="dataset"):
+        api.create_repo(evidence.EVIDENCE_REPO, repo_type="dataset", private=False)
     with tempfile.TemporaryDirectory() as tmp:
         for sha in shas:
             target = Path(tmp) / evidence.blob_name(sha)
