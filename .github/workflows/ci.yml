@@ -72,6 +72,7 @@ jobs:
           ruff format --check .
           python scripts/check_line_limit.py
           python scripts/check_data_files.py
+          python scripts/exchange.py check
           python scripts/changelog.py check
           interrogate openinterp
           python scripts/check_markdown.py
