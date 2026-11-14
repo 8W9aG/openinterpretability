@@ -50,6 +50,7 @@ Status marks how the work relates to this repo:
 | --- | --- | --- |
 | [Language Model Circuits Are Sparse in the Neuron Basis](neuron-basis-circuits.md) (Arora, Wu, Steinhardt and Schwettmann, 2026) | planned | Task circuits of about 10² MLP neurons, the protocol's unit, control Llama 3.1 8B's behaviour. Its RelP attribution is a candidate for our wiring and attribution selection (#3582). |
 | [Many Transcoder Features Are Neurons in Disguise](neurons-in-disguise.md) (Shabalin and Piotrowski, 2026) | planned | On gated models, 14–59% of late-layer active transcoder features align with one neuron, and only those match the MLP across training runs. Our GPT-2 transcoder baseline may partly compare neurons with neurons (#3608). |
+| [Neurons Speak in Ranges](neurons-speak-in-ranges.md) (Haider, Rizwan, Sajjad, Ju and Siddique, 2026) | not applicable | Concepts occupy distinct activation ranges of residual-stream dimensions, and masking only the range spares other concepts. Not MLP neurons, but range-split modes are one form for #3215. |
 | [Neurons as an Interpretable Basis](neurons-as-an-interpretable-basis.md) (Tigges, Kowal, McGrath, Lewis and Cammarata, 2026) | planned | The companion to the essay behind `native-neuron-audit`, on Qwen3.6-35B-A3B. 47% of poles have one mode. The double-negative SwiGLU regime is a third of firings but rare in top examples. Its mode split is a template for #3215. |
 
 ## Philosophy of mind
