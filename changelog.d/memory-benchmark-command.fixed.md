@@ -1,0 +1,1 @@
+- **`scripts/memory_benchmark.py` runs again.** It still called the removed `openinterp` command, so every run failed before measuring anything. It now calls `open-interpretability`.

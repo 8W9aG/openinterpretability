@@ -102,7 +102,7 @@ def window_args(model: str) -> list[str]:
 
 def measure(bench: Benchmark, device: str) -> dict:
     """Peak memory (MB) and time (s) of ``bench``'s scan and review."""
-    cli = [str(Path(sys.executable).parent / "openinterp")]
+    cli = [str(Path(sys.executable).parent / "open-interpretability")]
     with tempfile.TemporaryDirectory() as tmp:
         scan = [
             *cli, "audit", "--model", bench.model, "--layer", str(bench.layer),
