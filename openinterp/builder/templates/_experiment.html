@@ -1,4 +1,4 @@
-{# One experiment on a neuron, head or feature page. Expects `v` from compiler._experiment_view. #}
+{# One experiment, on its own page (experiment.html). Expects `v` from compiler._experiment_view and `rank`. #}
 {% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_notes %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
@@ -34,9 +34,9 @@
     {% endif %}
     {% if e.revises or e.revised_by %}
     <p class="mt-1 text-xs text-slate-500">
-      {% if e.revises %}Revises <a class="font-mono underline" href="#{{ e.revises.anchor }}">{{ e.revises.id }}</a> ({{ e.revises.record.verdict.status }}){% endif %}
+      {% if e.revises %}Revises <a class="font-mono underline" href="{{ root }}{{ e.revises.href }}">{{ e.revises.id }}</a> ({{ e.revises.record.verdict.status }}){% endif %}
       {% if e.revises and e.revised_by %} · {% endif %}
-      {% if e.revised_by %}Revised by {% for r in e.revised_by %}<a class="font-mono underline" href="#{{ r.anchor }}">{{ r.id }}</a> ({{ r.record.verdict.status }}){{ ", " if not loop.last }}{% endfor %}{% endif %}
+      {% if e.revised_by %}Revised by {% for r in e.revised_by %}<a class="font-mono underline" href="{{ root }}{{ r.href }}">{{ r.id }}</a> ({{ r.record.verdict.status }}){{ ", " if not loop.last }}{% endfor %}{% endif %}
     </p>
     {% endif %}
     {% if sub.activating_tokens %}
@@ -45,7 +45,7 @@
     </p>
     {% endif %}
   </header>
-  <details class="border-t border-slate-200 p-5 dark:border-slate-800" {{ 'open' if rank == 1 }}>
+  <details class="border-t border-slate-200 p-5 dark:border-slate-800" open>
     <summary class="cursor-pointer text-sm font-medium text-slate-600 dark:text-slate-400">Evidence and review</summary>
     <div class="mt-5">
   <section class="mb-10 grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-800" data-pagefind-ignore>

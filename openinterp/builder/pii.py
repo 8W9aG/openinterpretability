@@ -1,4 +1,4 @@
-"""Remove personal data from the text that the site shows.
+"""Remove personal data, and passages under a takedown, from the text that the site shows.
 
 Records keep their text unchanged, because experiments study this text, and records are
 signed. Only the build's output changes. :mod:`openinterp.sensitive` does the search.
@@ -22,6 +22,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from openinterp import sensitive
+from openinterp.core import takedowns
 from openinterp.core.cache_dirs import cache_root
 from openinterp.core.schemas import AuditRecord
 from openinterp.sensitive import pii_matches
@@ -72,7 +73,16 @@ def save_spans() -> None:
 
 @cache
 def find_spans(text: str) -> tuple[Span, ...]:
-    """Return the ``(start, end)`` of each match in ``text``, sorted and merged."""
+    """Return the ``(start, end)`` of each match in ``text``, sorted and merged.
+
+    A match is personal data, or a passage that a takedown names
+    (:mod:`openinterp.core.takedowns`).
+    """
+    return _merge((*_personal_spans(text), *takedowns.covered(text, takedowns.active_hashes())))
+
+
+def _personal_spans(text: str) -> tuple[Span, ...]:
+    """The personal-data matches in ``text``, from the cache when it has them."""
     if not sensitive.may_match(text):
         return ()
     digest = hashlib.sha256(text.encode()).hexdigest()
@@ -80,6 +90,17 @@ def find_spans(text: str) -> tuple[Span, ...]:
         return stored[digest]
     _found[digest] = spans = _search(text)
     return spans
+
+
+def _merge(spans: Sequence[Span]) -> tuple[Span, ...]:
+    """``spans`` sorted, with overlapping and touching spans joined."""
+    merged: list[Span] = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return tuple(merged)
 
 
 def _search(text: str) -> tuple[Span, ...]:
