@@ -1,1 +1,2 @@
 - The `next-issue` skill now lands its own PR before it moves on. It brings the branch up to date with `main`, waits for every CI check, and fixes its own failures twice at most. Then it squash-merges with `--match-head-commit`, never `--admin`, and starts the next issue from the merged `main`.
+- The `next-issue` skill cuts a release in place of an issue once the last release is more than 24 hours old.

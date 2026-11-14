@@ -1,6 +1,6 @@
 ---
 name: next-issue
-description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". It works one issue, waits for CI, merges the PR, and stops. To work through several, run it under `/loop`.
+description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". When the last release is over 24 hours old, it cuts a release in place of an issue. It works one issue, waits for CI, merges the PR, and stops. To work through several, run it under `/loop`.
 ---
 
 # The next issue
@@ -9,6 +9,12 @@ description: Give unprioritised issues a priority, then pick the next issue to w
 
 ## Procedure
 
+0. **Release first, if one is due.** Once 24 hours have passed since the last release was published, a release takes the place of the next issue. The maintainer decided this on 2026-11-14:
+   ```bash
+   gh release view --json tagName,publishedAt --jq '"\(.tagName) \(.publishedAt)"'
+   date -u +%Y-%m-%dT%H:%M:%SZ
+   ```
+   If the last release is more than 24 hours old, run the `release` skill as this iteration's work, in place of an issue. It has its own checks and steps. Its release PR lands as in step 6, and then the iteration stops at step 7. Otherwise go on to step 1.
 1. **Give every open issue a priority.** The ranking is only as good as the priorities, so first list the issues that have none:
    ```bash
    python3 scripts/next_issue.py --unprioritised
