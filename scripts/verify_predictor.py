@@ -105,14 +105,19 @@ def add_output_norms(rows: list[dict], device: str) -> None:
         del runner
 
 
-def design(rows: list[dict], reference: list[dict], extra: tuple[str, ...] = ()):
+def design(
+    rows: list[dict],
+    reference: list[dict],
+    extra: tuple[str, ...] = (),
+    numeric: tuple[str, ...] = NUMERIC,
+):
     """The feature matrix of ``rows``, standardised and filled from ``reference``.
 
     Each numeric feature gets an indicator for a missing value. Models, poles and the
     ``extra`` categorical columns are one-hot, from the values in ``reference``.
     """
     columns = []
-    for name in NUMERIC:
+    for name in numeric:
         known = [r[name] for r in reference if r[name] is not None]
         mean = sum(known) / len(known)
         sd = (sum((v - mean) ** 2 for v in known) / len(known)) ** 0.5 or 1.0
@@ -189,25 +194,32 @@ def gain_interval(p: torch.Tensor, base: float, y: torch.Tensor, seed: int = 0) 
     return out
 
 
-def choose_penalty(train: list[dict], extra: tuple[str, ...]) -> float:
+def choose_penalty(train: list[dict], extra: tuple[str, ...], numeric=NUMERIC) -> float:
     """The penalty with the best log score on the latest 30% of the training units."""
     cut = int(len(train) * TRAIN_SHARE)
     early, late = train[:cut], train[cut:]
     y_early = torch.tensor([float(r["verified"]) for r in early], dtype=torch.float64)
     y_late = torch.tensor([float(r["verified"]) for r in late], dtype=torch.float64)
-    x_early, x_late = design(early, early, extra), design(late, early, extra)
+    x_early = design(early, early, extra, numeric)
+    x_late = design(late, early, extra, numeric)
     return min(
         PENALTIES, key=lambda c: scores(predict(fit(x_early, y_early, c), x_late), y_late)["log"]
     )
 
 
+def fit_and_predict(train, test, extra: tuple[str, ...] = (), numeric=NUMERIC):
+    """(weights, penalty, test forecasts) of the model chosen and fitted on ``train``."""
+    penalty = choose_penalty(train, extra, numeric)
+    y_train = torch.tensor([float(r["verified"]) for r in train], dtype=torch.float64)
+    w = fit(design(train, train, extra, numeric), y_train, penalty)
+    return w, penalty, predict(w, design(test, train, extra, numeric))
+
+
 def evaluate(train, test, extra: tuple[str, ...] = (), label: str = "neuron features") -> dict:
     """Fit on ``train``, and score the model and the base rate on ``test``."""
-    penalty = choose_penalty(train, extra)
+    w, penalty, p = fit_and_predict(train, test, extra)
     y_train = torch.tensor([float(r["verified"]) for r in train], dtype=torch.float64)
     y_test = torch.tensor([float(r["verified"]) for r in test], dtype=torch.float64)
-    w = fit(design(train, train, extra), y_train, penalty)
-    p = predict(w, design(test, train, extra))
     base = float(y_train.mean())
     names = [f"{n}{s}" for n in NUMERIC for s in ("", " missing")]
     names += [f"{c}={v}" for c in ("model_name", "pole", *extra)
