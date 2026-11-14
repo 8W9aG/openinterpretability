@@ -56,6 +56,8 @@ Repository = "https://github.com/8W9aG/openinterpretability"
 
 [project.scripts]
 open-interpretability = "openinterp.cli:main"
+# The old name, kept until every doc, skill and workflow uses the new one (issue #3251).
+openinterp = "openinterp.cli:main"
 
 [project.optional-dependencies]
 # `open-interpretability build` makes the site's search index with Pagefind.

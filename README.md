@@ -68,7 +68,7 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 
 ### Install the package
 
-To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability`:
+To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability` (`openinterp` still works for now):
 
 ```bash
 pip install open-interpretability          # add [site] to build the site's search index

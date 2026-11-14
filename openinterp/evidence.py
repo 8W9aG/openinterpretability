@@ -75,6 +75,7 @@ class ScanRequest:
     head: int | None = None
     feature: int | None = None
     dictionary: str | None = None
+    superposition: object | None = None  # its SuperpositionProfile, with unit="superposition"
     random_pick: bool = False
     seed: int | None = None
     corpus: Path | None = None
@@ -151,6 +152,8 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise dead_unit(runner, ident, provenance)
     check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
+    from openinterp.evidence_lenses import read_lenses
+
     lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
     return ScanEvidence(
         identifier=ident,
@@ -165,6 +168,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
         head_profile=scan.profile if unit == "head" else None,
         model_n_heads=runner.n_heads if unit == "head" else None,
         dictionary_profile=scan.profile if unit == "feature" else None,
+        superposition_profile=scan.profile if unit == "superposition" else None,
         opposite_pole=opposite_pole(scan),
     )
 
@@ -180,6 +184,10 @@ def pick_unit(runner, request: ScanRequest, spec):
     from openinterp.harness.dictionaries import load_spec
 
     unit, layer, pole, seed = request.unit, request.layer, request.pole, request.seed
+    if unit == "superposition":  # chosen, never drawn: its file names the direction
+        from openinterp.harness.superpositions import superposition_identifier
+
+        return superposition_identifier(request.model_name, layer, request.superposition), None
     index = {"head": request.head, "feature": request.feature}.get(unit, request.neuron)
     if not request.random_pick and (layer is None or index is None):
         raise click.UsageError(f"--layer and --{unit} are required unless --random is given.")
@@ -261,6 +269,7 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
     from openinterp.harness.features import scan_feature
     from openinterp.harness.heads import scan_head
     from openinterp.harness.scan import scan_neuron
+    from openinterp.harness.superpositions import scan_superposition
 
     texts, unit, top_k = corpus.texts, request.unit, request.top_k
     windows = {"window_tokens": request.window_tokens, "stride": corpus.stride}
@@ -274,6 +283,10 @@ def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cac
             scan = scan_head(runner, texts, ident, k=top_k, taggers=taggers, **windows)
         elif unit == "feature":
             scan = scan_feature(runner, texts, ident, spec, k=top_k, taggers=taggers, **windows)
+        elif unit == "superposition":
+            scan = scan_superposition(
+                runner, texts, ident, request.superposition, k=top_k, taggers=taggers, **windows
+            )
         else:
             scan = scan_neuron(
                 runner,
@@ -334,48 +347,6 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}"
         + (f"; {syntax.detector()}" if PROGRAMMING_LANGUAGE in corpus.labels else ""),
     )
-
-
-def read_lenses(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan):
-    """Return the vocabulary lens and, for a neuron, the top examples' input attribution.
-
-    A head has no lens, because it writes a subspace, not one direction that a lens can
-    read.
-    """
-    from openinterp.core import costs
-    from openinterp.harness.dictionaries import load_spec
-    from openinterp.harness.input_attribution import input_attribution
-    from openinterp.harness.jlens import direction_lens, vocabulary_lens
-    from openinterp.harness.scan import cut_pieces
-
-    lens = attribution = None
-    kind = request.unit
-    if kind != "head":
-        click.echo("Reading the output direction through the logit and Jacobian lenses…", err=True)
-        # The first 100 documents, each cut to its first window when scanning windows.
-        texts, window = corpus.texts[:100], request.window_tokens
-        pieces = cut_pieces(runner.tokenizer, texts, window, corpus.stride)
-        lens_texts = [p.text for p in pieces if p.start == 0]
-        with costs.stage("lenses"):
-            if kind == "feature":
-                direction = load_spec(spec, ident.layer, runner.device).w_dec[ident.feature_idx]
-                lens = direction_lens(runner, lens_texts, ident.layer, direction)
-            else:
-                lens = vocabulary_lens(
-                    runner, lens_texts, ident.layer, ident.neuron_idx, ident.pole
-                )
-    if kind == "neuron":
-        click.echo("Attributing the top examples' peaks to their context tokens…", err=True)
-        with costs.stage("input_attribution"):
-            attribution = input_attribution(
-                runner,
-                scan.examples,
-                ident.layer,
-                ident.neuron_idx,
-                ident.pole,
-                skip_first=scan.first_token_floor,
-            )
-    return lens, attribution
 
 
 def opposite_pole(scan):

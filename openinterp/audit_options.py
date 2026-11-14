@@ -1,6 +1,6 @@
-"""Options that ``open-interpretability audit`` and ``scan`` share.
+"""Options that ``openinterp audit`` and ``scan`` share, and how the unit options resolve.
 
-The options are the scan cache and ``--selection``.
+The shared ones are the scan cache and ``--selection``.
 
 ``--selection`` says how a chosen unit was selected, as its provenance records it.
 
@@ -11,6 +11,9 @@ drawn in proportion to an attribution-patching estimate, so they must not count 
 """
 
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import click
 
@@ -44,3 +47,33 @@ selection_option = click.option(
 def selection(random_pick: bool, chosen: str | None) -> str:
     """The ``provenance.selection`` of a scan."""
     return "random" if random_pick else chosen or "manual"
+
+
+def read_superposition(path: Path, unit: str):
+    """(unit, model, layer, profile) from a superposition's definition file."""
+    from pydantic import ValidationError
+
+    from openinterp.core.profiles import SuperpositionProfile
+
+    if unit != "neuron":
+        raise click.UsageError("--superposition is a unit of its own; don't combine it.")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        model, layer = data.pop("model"), data.pop("layer")
+        return "superposition", model, layer, SuperpositionProfile.model_validate(data)
+    except (KeyError, ValidationError) as exc:
+        raise click.BadParameter(str(exc), param_hint="--superposition") from exc
+
+
+def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:
+    """The unit ``--unit`` names, or the one the other options imply."""
+    if unit is None:
+        unit = "head" if head is not None else "neuron"
+        unit = "feature" if feature is not None or dictionary is not None else unit
+    if unit != "neuron" and (neuron is not None or pole is not None):
+        raise click.UsageError(f"--neuron and --pole are for neurons; a {unit} has neither.")
+    if head is not None and unit != "head":
+        raise click.UsageError("--head needs --unit head (or no --unit).")
+    if unit != "feature" and (feature is not None or dictionary is not None):
+        raise click.UsageError("--feature and --dictionary need --unit feature (or no --unit).")
+    return unit

@@ -109,11 +109,20 @@ Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) a
 
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
 
+## Inputs in exchange/
+
+`exchange/` is git-ignored working space. A paper, analysis or script that reads a file from it must cite a published copy, so that others can reproduce the result (issue #3255). The copies are on the public Hugging Face dataset [`sackfield/open-interpretability-exchange`](https://huggingface.co/datasets/sackfield/open-interpretability-exchange). `data/exchange-manifest.json` pins its revision and each file's SHA-256.
+
+- `uv run python scripts/exchange.py fetch [dir …]` downloads the pinned files into `exchange/` and checks their hashes.
+- Before a pull request that cites a new input merges, run `scripts/exchange.py stage`, then `upload`, and commit the manifest. `stage` writes the local home folder as `~`, so no published file holds a local path.
+- `scripts/exchange.py check` runs in `make lint` and CI. It fails when a tracked file cites an `exchange/` folder that the manifest doesn't pin.
+- Output-only names are left out of the check, as are working folders such as `bench/`, which holds the benchmark's private test probes (`OUTPUTS` in the script). Inputs kept back on purpose are listed in `UNPUBLISHED` with the reason. For example, pile-10k excerpts stay back because the Pile corpus is not published.
+
 ## Releases on PyPI
 
-The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterp`. The old `openinterp` command is gone since issue #3691. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterp.__version__`. It uploads with the repository secret `PYPI_TOKEN`, a PyPI API token for the project.
+The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterp`, and the `openinterp` command remains as an alias until every doc, skill and workflow uses the new name. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterp.__version__`. It uploads with the repository secret `PYPI_TOKEN`, a PyPI API token for the project.
 
-A checkout from before the rename needs `make install` once. A plain `uv sync` there can leave no command at all, because it uninstalls the old distribution after it installs the new one.
+After pulling the rename, run `make install` once in each checkout. A plain `uv sync` loses the `openinterp` command with the old distribution.
 
 ## Deploy
 

@@ -3,16 +3,16 @@
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
-{% set is_feature = ident.kind == "dictionary_feature" %}
+{% set is_feature = ident.kind == "dictionary_feature" %}{% set is_sup = ident.kind == "superposition" %}
 {% set positive = ident.pole != "negative" %}{# heads and features share the positive pole's colours #}
-{% set what = "head" if is_head else ("feature" if is_feature else "pole") %}
-{% set peer = "head" if is_head else ("latent" if is_feature else "neuron") %}
+{% set what = "head" if is_head else ("feature" if is_feature else ("superposition" if is_sup else "pole")) %}
+{% set peer = "head" if is_head else ("latent" if is_feature else ("null direction" if is_sup else "neuron")) %}
 {% set peers = peer ~ "s" %}
-{% set strength = "head strength" if is_head else ("latent activation" if is_feature else ident.pole ~ "-pole strength") %}
+{% set strength = "head strength" if is_head else ("latent activation" if is_feature else ("superposition strength" if is_sup else ident.pole ~ "-pole strength")) %}
 <section id="{{ e.anchor }}" class="scroll-mt-4 rounded-xl border border-slate-200 dark:border-slate-800">
   <header class="p-5">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="font-mono text-sm font-semibold">#{{ rank }} · {% if is_head %}attention head{% elif is_feature %}{{ ident.dictionary }} latent{% else %}{{ ident.pole }} pole {{ pole_mark(ident.pole) }}{% endif %}</span>
+      <span class="font-mono text-sm font-semibold">#{{ rank }} · {% if is_head %}attention head{% elif is_feature %}{{ ident.dictionary }} latent{% elif is_sup %}superposition{% else %}{{ ident.pole }} pole {{ pole_mark(ident.pole) }}{% endif %}</span>
       {{ status_badge(verdict.status) }}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
@@ -53,7 +53,7 @@
       ("Balanced accuracy", verdict.confidence_score if verdict else none, "Mean of hard-negative specificity and holdout sensitivity"),
       ("Sufficiency", c.sufficiency_score if c else none, "Clean→corrupted patch: percentile of the " ~ what ~ "'s effect among comparable " ~ peers if c and c.target else "Clean→corrupted patch: fraction of clean prediction restored"),
       ("Necessity", c.necessity_score if c else none, "Corrupted→clean patch: percentile of the " ~ what ~ "'s effect among comparable " ~ peers if c and c.target else "Corrupted→clean patch: fraction of prediction lost"),
-      ("Lookahead KL", none, "KL(clean ‖ " ~ ("head mean-ablated" if is_head else ("latent-ablated" if is_feature else "pole-ablated")) ~ ") over next-token distributions"),
+      ("Lookahead KL", none, "KL(clean ‖ " ~ ("head mean-ablated" if is_head else ("latent-ablated" if is_feature else ("superposition-ablated" if is_sup else "pole-ablated"))) ~ ") over next-token distributions"),
     ] %}
     <div class="bg-white p-4 dark:bg-slate-950" title="{{ hint }}">
       <div class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</div>
@@ -201,7 +201,7 @@
         <span class="ml-2"><span class="tok heat peak" style="--a: 1">peak</span> token</span>
       </div>
     </div>
-    <p class="mb-3 text-xs text-slate-500">Each token is shaded by {{ strength }} as a fraction of the {{ peer if is_head or is_feature else "neuron" }}'s max activation;{% if is_head %} the tokens the peak attends to most are listed under each example;{% endif %} hover a token for its value. Up to 30 tokens before and 10 after each peak are shown.</p>
+    <p class="mb-3 text-xs text-slate-500">Each token is shaded by {{ strength }} as a fraction of the {{ peer if is_head or is_feature else ("superposition" if is_sup else "neuron") }}'s max activation;{% if is_head %} the tokens the peak attends to most are listed under each example;{% endif %} hover a token for its value. Up to 30 tokens before and 10 after each peak are shown.</p>
     <ol class="space-y-2">
       {% for ex in examples %}
       <li class="rounded-lg border border-slate-200 p-3 text-sm leading-7 dark:border-slate-800">

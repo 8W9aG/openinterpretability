@@ -11,6 +11,8 @@ import click
 
 from openinterp.audit_options import (  # noqa: F401  (re-exported)
     open_scan_cache,
+    read_superposition,
+    resolve_unit,
     scan_cache_option,
     selection_option,
 )
@@ -130,6 +132,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
         bool(evidence.first_token_floor),
         full_snippets,
         related,
+        superposition_profile=evidence.superposition_profile,
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -162,6 +165,13 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
     help="Sparse dictionary (transcoder or SAE) whose latent to audit, e.g. "
     "gpt2-small-transcoders or gemma-scope-2b-mlp-saes; it implies --model. See "
     "openinterp/harness/dictionaries.py.",
+)
+@click.option(
+    "--superposition",
+    "superposition_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Audit the superposition that this JSON file defines: {model, layer, members: "
+    "[{neuron_idx, weight}], method, source}. It implies --model and --layer.",
 )
 @click.option(
     "--unit",
@@ -284,6 +294,7 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
     head,
     feature,
     dictionary,
+    superposition_file,
     unit,
     random_pick,
     seed,
@@ -311,7 +322,7 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
 ):
     """Scan a unit, get a hypothesis, and write a submission.
 
-    The unit is a neuron pole, an attention head or a dictionary feature.
+    The unit is a neuron pole, an attention head, a dictionary feature or a superposition.
 
     \b
     In one step, the proposer is an LLM (or external/<name>, answered through exchange/).
@@ -322,6 +333,9 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
           --agent-model external/<model that wrote it>
     """
     unit = resolve_unit(unit, neuron, pole, head, feature, dictionary)
+    superposition = None
+    if superposition_file is not None:
+        unit, model_name, layer, superposition = read_superposition(superposition_file, unit)
     if unit == "feature" and evidence_file is None:
         model_name = check_dictionary(dictionary, model_name, window_tokens)
     check_steps(evidence_file, hypothesis_file, evidence_out, superseded_file, agent_model)
@@ -341,6 +355,7 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
             head=head,
             feature=feature,
             dictionary=dictionary,
+            superposition=superposition,
             random_pick=random_pick,
             seed=seed,
             corpus=scan_corpus(corpus),
@@ -361,20 +376,6 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
     from openinterp.cli_submission import write_submission
 
     write_submission(agent, draft, runner, evidence, superseded, out, contributor, sister_file)
-
-
-def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:
-    """The unit ``--unit`` names, or the one the other options imply."""
-    if unit is None:
-        unit = "head" if head is not None else "neuron"
-        unit = "feature" if feature is not None or dictionary is not None else unit
-    if unit != "neuron" and (neuron is not None or pole is not None):
-        raise click.UsageError(f"--neuron and --pole are for neurons; a {unit} has neither.")
-    if head is not None and unit != "head":
-        raise click.UsageError("--head needs --unit head (or no --unit).")
-    if unit != "feature" and (feature is not None or dictionary is not None):
-        raise click.UsageError("--feature and --dictionary need --unit feature (or no --unit).")
-    return unit
 
 
 def check_dictionary(dictionary, model_name, window_tokens) -> str:
@@ -487,5 +488,6 @@ def ask_proposer(agent_model, evidence, full_snippets: bool, related: str = ""):
         bool(evidence.first_token_floor),
         full_snippets,
         related,
+        superposition_profile=evidence.superposition_profile,
     )
     return agent, draft

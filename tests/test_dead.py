@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 import pytest
 import torch
 
-from openinterp.builder.tree import build_tree, explore_focus
+from openinterp.builder.stopped import explore_focus
+from openinterp.builder.tree import build_tree
 from openinterp.core.draws import UnauditableDraw, load_draws, write_draw
 from openinterp.core.identifiers import NeuronIdentifier
 from openinterp.core.schemas import AuditRecord, ExperimentProvenance

@@ -122,13 +122,13 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
 def native_standings(models: Sequence[ModelNode]):
     """Return ``(unit, side, standing)`` for every native neuron pole and head.
 
-    Dictionary features are left out: they are a baseline, not claims about the model's
-    own units.
+    Dictionary features and superpositions are left out. They are not claims about one
+    of the model's own units.
     """
     for m in models:
         for layer in m.layers:
             for n in layer.units:
-                if not n.is_feature:
+                if n.is_native:
                     for side, standing in n.standings.items():
                         yield n, side, standing
 
@@ -155,7 +155,7 @@ def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
     for m in models:
         for layer in m.layers:
             for n in layer.units:
-                if n.is_feature:
+                if not n.is_native:
                     continue
                 by_claim: dict[tuple[str, str], list[Experiment]] = {}
                 for e in n.experiments:
