@@ -135,6 +135,17 @@ With less memory than the checkpoint, each pass reads from the disk itself. A st
 
 A record says that its run streamed (`environment.streamed`), and it reproduces in either mode. A mixture-of-experts model runs its experts with openinterp's own forward (`harness/moe.py`, `docs/moe.md`). Streamed, that forward reads only the slices of the experts that a pass's tokens are routed to. Granite 3.0 1B-A400M has 32 experts per layer and 8 per token. A streamed one-token pass read 1.41 GB, against 4.78 GB with each layer's experts read whole. A 13-token pass read 4.15 GB, since its tokens reach most experts. In Mistral Large 4 the same choice is between about 113 MB and 14.5 GB of experts in memory at once. Granite stores its experts stacked, so they are read in place. A checkpoint that stores each expert apart (Mixtral, OLMoE) is stacked by transformers as it loads. Streaming then writes the stacks at the chosen dtype to the offload folder (`$XDG_CACHE_HOME/openinterp/offload`), and reads its slices from there.
 
+## Explaining one answer
+
+`openinterp explain "<prompt>"` explains the model's answer to one prompt as fully as the registry allows (`openinterp/explain.py`). It takes the logit of the answer, the model's top token unless you pass `--token`, at the last position unless you pass `--position`.
+
+- **Attribute.** Each neuron's contribution at each position is (a − mean) · ∂logit/∂a. The mean is the neuron's mean activation over the first `--mean-tokens` tokens of `--corpus`, cached in `~/.cache/openinterp/means/` (`$OPENINTERP_MEANS`). A contribution goes to the pole that the sign of `a` names. The first token is left out, because it is an attention sink.
+- **Explain.** The top `--top` poles are listed with their share of the total |attribution|, their peak on the prompt against their record's `max_activation`, and their registry status. Only a VERIFIED pole's explanation is shown. Other poles show their status (*unstudied*, *stopped*, or the newest verdict) and no label.
+- **Gaps.** It reports the share of the total |attribution| that VERIFIED poles hold. The rest is unexplained. On Qwen2.5-0.5B in November 2026 that share is about 0.1%.
+- **Check.** It mean-ablates each of the top 10 poles alone, and reports the change in the answer's logit. That should be about minus the attribution. It then mean-ablates the VERIFIED poles among the top together, and says whether the answer changes.
+
+MLP neuron poles only, so far. `--json` prints the result as JSON.
+
 ## Letting an agent run it (Claude Code)
 
 The repo's skills load automatically, and `choose-next-experiment` defines the workflow. The agent:
