@@ -40,6 +40,16 @@
     Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a learned-basis baseline, {{ t.verified_features }} of them verified.
   </p>
   {% endif %}
+  {% if t.superpositions %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    Not in the verified units: {{ t.superpositions }} superpositions studied, {{ t.verified_superpositions }} of them verified. A superposition is a sparse direction over the neurons of one layer.
+  </p>
+  {% endif %}
+  {% if t.member_only %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    {{ t.neurons }} neurons studied, {{ t.member_only }} of them only as part of a superposition.
+  </p>
+  {% endif %}
   {% if stats.protocol_mix %}
   {% set current = stats.protocol_mix | selectattr("protocol_version", "equalto", stats.current_protocol) | map(attribute="units") | sum %}
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" title="Each verified unit counts the protocol of its newest record that agrees with its standing">
@@ -140,7 +150,7 @@
         <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: openinterp next draws most new neurons from it.">explore focus</span>{% endif %}</span>
         <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
           {{ m.experiments }} experiments ·
-          {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }}) ·
+          {{ m.neurons_studied }}/{{ m.total_neurons | thousands }} neurons studied{% if m.member_only %}, {{ m.member_only }} of them only as part of a superposition{% endif %} ({{ m.coverage | pct_fine }}) ·
           {% set v = explore.models[m.name] %}{{ v.verified }}/{{ m.total_neurons | thousands }} verified ({{ (v.verified / m.total_neurons if m.total_neurons else none) | pct_fine }}; target {{ '{:g}%'.format(100 * explore.target) }}){% if v.dead %}, {{ v.dead }} of them proven dead{% endif %}
         </span>
       </div>

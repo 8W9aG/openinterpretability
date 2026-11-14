@@ -1,0 +1,62 @@
+{# A superposition's members, and the superpositions that a neuron is a member of (builder/superpositions.py). Included from neuron.html. #}
+{% from "_macros.html" import status_badge %}
+{% if neuron.is_superposition and neuron.members %}
+<section class="mt-6" aria-labelledby="members">
+  <h2 id="members" class="text-base font-semibold">Members</h2>
+  <p class="mt-1 max-w-3xl text-xs text-slate-500">
+    This superposition is a sparse direction over the neurons of layer {{ neuron.layer }}. Its strength at a token is the positive part of the projection on that direction.
+    Each weight is relative to the largest weight magnitude, and the list is sorted by magnitude.
+    {% if neuron.profile %}Method: <code>{{ neuron.profile.method }}</code>. Source: <code>{{ neuron.profile.source }}</code>.{% endif %}
+  </p>
+  <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr>
+          <th class="px-3 py-2">Neuron</th>
+          <th class="px-3 py-2 text-right">Relative weight</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for m in neuron.members %}
+        <tr>
+          <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ m.href }}">N{{ m.neuron_idx }}</a></td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums" title="weight {{ m.weight }}">{{ '%+.2f' | format(m.relative) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% if neuron.part_of %}
+<section class="mt-6" aria-labelledby="superpositions">
+  <h2 id="superpositions" class="text-base font-semibold">Superpositions</h2>
+  <p class="mt-1 max-w-3xl text-xs text-slate-500">
+    {% if not neuron.experiments %}This neuron has no experiment of its own. It is studied only as a member of the superpositions below.{% else %}The studied superpositions that this neuron is a member of.{% endif %}
+    The weight is this neuron's weight, relative to the largest weight magnitude in the superposition.
+  </p>
+  <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr>
+          <th class="px-3 py-2">Superposition</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2 text-right">Weight</th>
+          <th class="px-3 py-2">Explanation</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for x in neuron.part_of %}
+        {% set sup = x.superposition %}
+        <tr class="align-top">
+          <td class="whitespace-nowrap px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ sup.href }}">L{{ sup.layer }}/{{ sup.label }}</a></td>
+          <td class="px-3 py-2">{% if x.standing %}{{ status_badge(x.standing.status) }}{% endif %}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ '%+.2f' | format(x.relative) }}</td>
+          <td class="px-3 py-2 text-xs">{% if x.standing %}{{ x.standing.lead.record.submission.natural_language_explanation | truncate(160) }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
