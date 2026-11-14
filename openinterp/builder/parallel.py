@@ -46,7 +46,8 @@ def render_in_parallel(render, page: Callable[..., None], items: Sequence[tuple]
             shares = list(pool.map(_render_share, range(jobs), [jobs] * jobs))
     finally:
         _WORK.clear()
-    written = sorted(pair for share in shares for pair in share)
+    # Sort by item only. The sort is stable, so one item's pages keep the order it wrote them.
+    written = sorted((pair for share in shares for pair in share), key=lambda pair: pair[0])
     render.report.pages.extend(path for _, path in written)
 
 

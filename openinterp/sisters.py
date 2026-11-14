@@ -446,9 +446,11 @@ def sister_brief(source: AuditRecord) -> str:
 
 
 def sister_source_href(ref: str) -> str:
-    """The page and anchor of the experiment a ``sister_of`` names."""
+    """The page of the experiment a ``sister_of`` names."""
+    from openinterp.builder.hrefs import experiment_href
+
     slug, experiment = ref.rsplit("/", 1)
-    return f"{pole_href(slug)}#{slug.rsplit('-', 1)[1]}-{experiment}"
+    return experiment_href(slug, experiment)
 
 
 def sister_tests(experiments) -> dict[tuple[str, str], str]:

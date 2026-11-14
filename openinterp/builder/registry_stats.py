@@ -11,9 +11,10 @@ from pathlib import Path
 
 import duckdb
 
+from openinterp.builder.hrefs import experiment_href
 from openinterp.builder.learned_baseline import learned_baseline
 from openinterp.builder.significance import STRONG_EVIDENCE
-from openinterp.builder.tree import LABEL_PREFIX, SIDES, feature_href, head_href, neuron_href
+from openinterp.builder.tree import LABEL_PREFIX
 from openinterp.core.schemas import PROTOCOL_VERSION
 
 RECENT_EXPERIMENTS = 10  # rows in the home page's "Most recent experiments"
@@ -115,7 +116,7 @@ def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
     stats["baseline"] = learned_baseline(con, draws)
     con.close()
     for row in stats["conclusive"] + stats["recent"]:
-        row["href"] = _anchor_href(row)
+        row["href"] = _experiment_href(row)
         row["unit"] = _unit_label(row)
     return stats
 
@@ -126,16 +127,8 @@ def _rows(con, sql: str) -> list[dict]:
     return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
 
 
-def _anchor_href(row: dict) -> str:
-    model_slug = row["slug"].split("/", 1)[0]
-    kind, layer = row["kind"], row["layer"]
-    if kind == "attn_head":
-        page = head_href(model_slug, layer, row["head_idx"])
-    elif kind == "dictionary_feature":
-        page = feature_href(model_slug, layer, row["dictionary"], row["feature_idx"])
-    else:
-        page = neuron_href(model_slug, layer, row["neuron_idx"])
-    return f"{page}#{row['pole'] or SIDES[kind][0]}-{row['experiment_id']}"
+def _experiment_href(row: dict) -> str:
+    return experiment_href(row["slug"], row["experiment_id"])
 
 
 def _unit_label(row: dict) -> str:
