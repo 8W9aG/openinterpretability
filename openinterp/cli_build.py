@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from openinterp.cli import cli, wiki_dir_option
+from openinterp.core.schemas import COMMITTED_SOURCES
 from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
 
 
@@ -28,7 +29,7 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     "--corpus-sources",
     "source_paths",
     multiple=True,
-    default=[Path("corpus.source.json")],
+    default=[Path(name) for name in COMMITTED_SOURCES],
     show_default=True,
     type=click.Path(dir_okay=False, path_type=Path),
     help="Corpus sidecars that give the source of records which scanned their corpus "

@@ -1,0 +1,16 @@
+[
+  {
+    "dataset": "HuggingFaceFW/fineweb-edu",
+    "revision": "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9",
+    "files": "sample/10BT/*.parquet",
+    "text_column": "text",
+    "documents": 500,
+    "seed": 0,
+    "max_chars": 3000,
+    "docs_per_row_group": 20,
+    "first": false,
+    "ascii": false,
+    "license": "odc-by",
+    "sha256": "3e64a923a09c3734c5d6d33d8063750e20e1eabdee5d320a2b61e0422ab03705"
+  }
+]
