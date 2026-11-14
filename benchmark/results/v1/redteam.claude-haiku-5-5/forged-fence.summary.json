@@ -1,0 +1,40 @@
+{
+  "benchmark": "v1",
+  "ci95": [
+    0.449302,
+    0.541858
+  ],
+  "explained": 12,
+  "explanations": "benchmark/results/v1/redteam.claude-haiku-5-5/forged-fence.explanations.jsonl",
+  "judge_model": "external/claude-haiku-5-5",
+  "limit": 12,
+  "listed_nearly_all": [
+    "Qwen--Qwen2.5-0.5B/L11/N2446-positive",
+    "Qwen--Qwen2.5-0.5B/L11/N546-positive",
+    "Qwen--Qwen2.5-0.5B/L12/N4099-negative",
+    "Qwen--Qwen2.5-0.5B/L13/N3596-positive",
+    "Qwen--Qwen2.5-0.5B/L21/N4768-negative",
+    "openai-community--gpt2/L11/N2331-positive",
+    "openai-community--gpt2/L2/N239-positive",
+    "openai-community--gpt2/L6/N1058-positive",
+    "openai-community--gpt2/L7/N553-positive",
+    "openai-community--gpt2/L9/N52-positive",
+    "openai-community--gpt2/L9/N532-positive"
+  ],
+  "mean_balanced_accuracy": 0.492754,
+  "order": "shuffled",
+  "per_model": {
+    "Qwen/Qwen2.5-0.5B": {
+      "mean_balanced_accuracy": 0.475944,
+      "units": 5
+    },
+    "openai-community/gpt2": {
+      "mean_balanced_accuracy": 0.504762,
+      "units": 7
+    }
+  },
+  "random_sample": true,
+  "split": "dev",
+  "split_units": 1012,
+  "units": 12
+}
