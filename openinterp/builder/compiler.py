@@ -29,6 +29,7 @@ from openinterp.builder.agents import (
 from openinterp.builder.aligned import aligned_latents
 from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
+from openinterp.builder.coverage import model_summary
 from openinterp.builder.dashboard import dashboard
 from openinterp.builder.heat import HeatToken, heat_html, token_heat, values_rows
 from openinterp.builder.model_facts import ModelFacts, render_models
@@ -293,6 +294,7 @@ def compile_site(
     jobs: int = 1,
     errata: Sequence[Erratum] = (),
     users: dict[str, str] | None = None,
+    coverage_rows: dict | None = None,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -309,6 +311,8 @@ def compile_site(
     each shows the erratum, and one set aside counts toward no standing.
     ``users`` (:func:`openinterp.builder.users.load_users`) name who made the records that
     record no contributor. Each person gets a page under ``users/``.
+    ``coverage_rows`` (:func:`openinterp.builder.coverage.load_rows`) give the home page each
+    model's registry coverage.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -342,6 +346,7 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
     stats["totals"]["neurons"] += sum(len(layer.stopped) for m in models for layer in m.layers)
+    stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report)

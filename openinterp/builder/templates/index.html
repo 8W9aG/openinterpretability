@@ -58,6 +58,31 @@
 
 {% if dashboard %}{% include "_dashboard.html" %}{% endif %}
 
+{% if stats.coverage %}
+<section class="mb-10" id="coverage">
+  <h2 class="mb-1 text-lg font-semibold">How much of each model is explained</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">For each MLP layer, mean-ablating every neuron raises the next-token loss. The share of that rise that comes back when only the VERIFIED poles keep their real activations is the registry's coverage. It is weighted by each layer's rise. The baseline keeps as many random poles. Method: <a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">registry coverage</a>.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Model</th><th class="px-3 py-2 text-right">VERIFIED poles</th><th class="px-3 py-2 text-right">Loss effect kept</th><th class="px-3 py-2 text-right">Random poles, same count</th><th class="px-3 py-2 text-right">Measured</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for c in stats.coverage %}
+        <tr>
+          <td class="px-3 py-2 font-mono text-xs">{{ c.model }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ c.verified_poles | thousands }} of {{ c.poles | thousands }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "—" if c.recovered is none else "{:.2%}".format(c.recovered) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "—" if c.recovered_random is none else "{:.2%}".format(c.recovered_random) }}</td>
+          <td class="px-3 py-2 text-right font-mono text-xs">{{ c.date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 {% if stats.baseline %}
 <section class="mb-10" id="learned-baseline">
   <h2 class="mb-1 text-lg font-semibold">Learned-basis baseline</h2>
