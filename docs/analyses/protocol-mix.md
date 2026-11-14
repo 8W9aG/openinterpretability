@@ -26,6 +26,16 @@ The script applies today's `ReviewPolicy` to the stored results of every VERIFIE
   - `openai-community--gpt2/L7/N1883-negative/20261028T032706Z`
   - `openai-community--gpt2/L9/N2000-negative/20261028T105613Z`
 
+## A proposed rule: probe length (issue #3525)
+
+On a randomly initialised GPT-2, two units were VERIFIED with "silent on short texts" hypotheses (`untrained-null.md`). A rule that reads only probe length would have passed them too. So #3525 proposes a fourth confound baseline: "active if the probe has at least n tokens". The best n is chosen on the probes, as for the other baselines. A hypothesis would have to tie or beat it. The script measures it before any change to the decision rule. It reads the stored probes of every VERIFIED record from protocol 0.8 (`length_rule` in the JSON).
+
+**It would fail 45 of the 380 current VERIFIED records (12%).** In each, the best length rule beats the hypothesis's balanced accuracy, by a median of 0.07.
+
+**The main cause is how reviewers write probes.** In those 45 records, positive holdouts are a median of 4.75 times as long as hard negatives. Over all 1,613 records under protocol 0.8, holdouts are a median of 2.16 times as long. In 52% of records they are more than twice as long. With long holdouts and short negatives, probe length alone can separate active from inactive. So the rule finds mostly a habit of the reviewers, and only in a few records a unit that responds to context length.
+
+The rule is not part of the decision rule. Whether to adopt it, and whether to ask reviewers for negatives and holdouts of matched length first, is a decision for the maintainer (#3525).
+
 ## Limits
 
 - **The first-token floor isn't re-measured.** Protocol 0.8 settles the floor when it measures the probes. Older records were measured without it, and only a new measurement can apply it.

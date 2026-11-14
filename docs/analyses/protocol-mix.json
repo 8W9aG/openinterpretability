@@ -1,5 +1,281 @@
 {
  "current_protocol": "0.8",
+ "length_rule": {
+  "verified": 380,
+  "would_fail": 45,
+  "failed": [
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L10/N1791-negative/20261112T034951Z.json",
+    "rule": "probe length \u2265 74 tokens",
+    "rule_accuracy": 0.954545,
+    "balanced_accuracy": 0.709091
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L10/N4700-positive/20261029T171520Z.json",
+    "rule": "probe length \u2265 19 tokens",
+    "rule_accuracy": 0.816667,
+    "balanced_accuracy": 0.733333
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L11/N4284-negative/20261106T124035Z.json",
+    "rule": "probe length \u2265 21 tokens",
+    "rule_accuracy": 0.851648,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L13/N4162-positive/20261030T012032Z.json",
+    "rule": "probe length \u2265 31 tokens",
+    "rule_accuracy": 0.816667,
+    "balanced_accuracy": 0.783333
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L14/N2307-positive/20261101T121114Z.json",
+    "rule": "probe length \u2265 42 tokens",
+    "rule_accuracy": 1.0,
+    "balanced_accuracy": 0.857143
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L14/N2690-positive/20261101T170542Z.json",
+    "rule": "probe length \u2265 41 tokens",
+    "rule_accuracy": 0.807692,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L16/N1584-negative/20261029T183246Z.json",
+    "rule": "probe length \u2265 33 tokens",
+    "rule_accuracy": 0.909091,
+    "balanced_accuracy": 0.809091
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L17/N1022-negative/20261031T053101Z.json",
+    "rule": "probe length \u2265 17 tokens",
+    "rule_accuracy": 0.854545,
+    "balanced_accuracy": 0.754545
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L18/N2588-negative/20261101T182313Z.json",
+    "rule": "probe length \u2265 59 tokens",
+    "rule_accuracy": 0.851648,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L18/N4729-positive/20261031T153912Z.json",
+    "rule": "probe length \u2265 48 tokens",
+    "rule_accuracy": 1.0,
+    "balanced_accuracy": 0.8
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L19/N1638-negative/20261031T015759Z.json",
+    "rule": "probe length \u2265 19 tokens",
+    "rule_accuracy": 0.954545,
+    "balanced_accuracy": 0.854545
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L2/N2529-negative/20261030T081345Z.json",
+    "rule": "probe length \u2265 15 tokens",
+    "rule_accuracy": 0.863636,
+    "balanced_accuracy": 0.809091
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L2/N3477-positive/20261029T003946Z.json",
+    "rule": "probe length \u2265 17 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.8
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L20/N4066-negative/20261029T021051Z.json",
+    "rule": "probe length \u2265 12 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.709091
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L21/N2858-positive/20261113T033123Z.json",
+    "rule": "probe length \u2265 47 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.754545
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L22/N1162-positive/20261030T171709Z.json",
+    "rule": "probe length \u2265 11 tokens",
+    "rule_accuracy": 0.954545,
+    "balanced_accuracy": 0.754545
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L22/N2267-positive/20261103T123617Z.json",
+    "rule": "probe length \u2265 17 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.709091
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L22/N2511-positive/20261030T094834Z.json",
+    "rule": "probe length \u2265 42 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.8
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L23/N726-positive/20261111T075206Z.json",
+    "rule": "probe length \u2265 26 tokens",
+    "rule_accuracy": 1.0,
+    "balanced_accuracy": 0.9
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L4/N1861-positive/20261031T181534Z.json",
+    "rule": "probe length \u2265 17 tokens",
+    "rule_accuracy": 1.0,
+    "balanced_accuracy": 0.854545
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L4/N52-negative/20261029T032537Z.json",
+    "rule": "probe length \u2265 14 tokens",
+    "rule_accuracy": 0.854545,
+    "balanced_accuracy": 0.8
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L5/N151-negative/20261031T233345Z.json",
+    "rule": "probe length \u2265 31 tokens",
+    "rule_accuracy": 0.961538,
+    "balanced_accuracy": 0.923077
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L6/N3619-negative/20261103T032933Z.json",
+    "rule": "probe length \u2265 18 tokens",
+    "rule_accuracy": 0.813187,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-0.5B/L6/N4062-negative/20261112T060217Z.json",
+    "rule": "probe length \u2265 23 tokens",
+    "rule_accuracy": 1.0,
+    "balanced_accuracy": 0.9
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-1.5B/L11/N526-positive/20261106T043200Z.json",
+    "rule": "probe length \u2265 26 tokens",
+    "rule_accuracy": 0.884615,
+    "balanced_accuracy": 0.851648
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-1.5B/L11/N6990-negative/20261102T121234Z.json",
+    "rule": "probe length \u2265 53 tokens",
+    "rule_accuracy": 0.964286,
+    "balanced_accuracy": 0.928571
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-1.5B/L17/N1630-negative/20261109T201241Z.json",
+    "rule": "probe length \u2265 27 tokens",
+    "rule_accuracy": 0.928571,
+    "balanced_accuracy": 0.857143
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-1.5B/L17/N6653-positive/20261104T030851Z.json",
+    "rule": "probe length \u2265 20 tokens",
+    "rule_accuracy": 0.785714,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/Qwen--Qwen2.5-1.5B/L25/N548-negative/20261105T043652Z.json",
+    "rule": "probe length \u2265 70 tokens",
+    "rule_accuracy": 0.964286,
+    "balanced_accuracy": 0.928571
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L10/N177-positive/20261104T051215Z.json",
+    "rule": "probe length \u2265 38 tokens",
+    "rule_accuracy": 0.851648,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L10/N3013-positive/20261030T060621Z.json",
+    "rule": "probe length \u2265 11 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.754545
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L11/N2411-positive/20261105T152751Z.json",
+    "rule": "probe length \u2265 25 tokens",
+    "rule_accuracy": 0.89011,
+    "balanced_accuracy": 0.851648
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L11/N438-positive/20261031T164441Z.json",
+    "rule": "probe length \u2265 20 tokens",
+    "rule_accuracy": 0.928571,
+    "balanced_accuracy": 0.89011
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L3/N297-positive/20261029T174017Z.json",
+    "rule": "probe length \u2265 21 tokens",
+    "rule_accuracy": 0.809091,
+    "balanced_accuracy": 0.709091
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L3/N830-positive/20261029T202748Z.json",
+    "rule": "probe length \u2265 24 tokens",
+    "rule_accuracy": 0.866667,
+    "balanced_accuracy": 0.816667
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L4/N1294-positive/20261030T201129Z.json",
+    "rule": "probe length \u2265 8 tokens",
+    "rule_accuracy": 0.909091,
+    "balanced_accuracy": 0.809091
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L4/N2549-positive/20261030T122712Z.json",
+    "rule": "probe length \u2265 16 tokens",
+    "rule_accuracy": 0.754545,
+    "balanced_accuracy": 0.709091
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L5/N2201-positive/20261104T141334Z.json",
+    "rule": "probe length \u2265 24 tokens",
+    "rule_accuracy": 0.928571,
+    "balanced_accuracy": 0.857143
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L5/N766-positive/20261107T130754Z.json",
+    "rule": "probe length \u2265 18 tokens",
+    "rule_accuracy": 0.961538,
+    "balanced_accuracy": 0.89011
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L6/N1140-positive/20261109T152759Z.json",
+    "rule": "probe length \u2265 49 tokens",
+    "rule_accuracy": 0.928571,
+    "balanced_accuracy": 0.851648
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L6/N1470-positive/20261104T232803Z.json",
+    "rule": "probe length \u2265 24 tokens",
+    "rule_accuracy": 0.851648,
+    "balanced_accuracy": 0.78022
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L6/N645-positive/20261030T145413Z.json",
+    "rule": "probe length \u2265 14 tokens",
+    "rule_accuracy": 0.863636,
+    "balanced_accuracy": 0.809091
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L8/N129-positive/20261029T051635Z.json",
+    "rule": "probe length \u2265 18 tokens",
+    "rule_accuracy": 0.9,
+    "balanced_accuracy": 0.8
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L8/N1343-positive/20261031T121453Z.json",
+    "rule": "probe length \u2265 12 tokens",
+    "rule_accuracy": 0.863636,
+    "balanced_accuracy": 0.709091
+   },
+   {
+    "record": "wiki/experiments/openai-community--gpt2/L9/N617-positive/20261104T211541Z.json",
+    "rule": "probe length \u2265 31 tokens",
+    "rule_accuracy": 0.880952,
+    "balanced_accuracy": 0.797619
+   }
+  ]
+ },
  "by_protocol": {
   "0.4": {
    "kept": 5
