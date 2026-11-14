@@ -53,6 +53,7 @@ Status marks how the work relates to this repo:
 | [Many Transcoder Features Are Neurons in Disguise](neurons-in-disguise.md) (Shabalin and Piotrowski, 2026) | planned | On gated models, 14–59% of late-layer active transcoder features align with one neuron, and only those match the MLP across training runs. Our GPT-2 transcoder baseline may partly compare neurons with neurons (#3608). |
 | [Neurons Speak in Ranges](neurons-speak-in-ranges.md) (Haider, Rizwan, Sajjad, Ju and Siddique, 2026) | not applicable | Concepts occupy distinct activation ranges of residual-stream dimensions, and masking only the range spares other concepts. Not MLP neurons, but range-split modes are one form for #3215. |
 | [Neurons as an Interpretable Basis](neurons-as-an-interpretable-basis.md) (Tigges, Kowal, McGrath, Lewis and Cammarata, 2026) | planned | The companion to the essay behind `native-neuron-audit`, on Qwen3.6-35B-A3B. 47% of poles have one mode. The double-negative SwiGLU regime is a third of firings but rare in top examples. Its mode split is a template for #3215. |
+| [Calibrated Concept Profiles](calibrated-concept-profiles.md) (Wilam, 2026) | not applicable | It reads every neuron's response to a named Python construct in OpenCoder-1.5B, which is the opposite direction to ours. Its twin draws, nulls and untrained reference match controls we run. Its untrained probe result (0.80) supports #3559. |
 
 ## Philosophy of mind
 
