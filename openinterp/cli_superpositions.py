@@ -1,7 +1,8 @@
-"""``open-interpretability superpositions``: write superposition definitions (issue #3686).
+"""``open-interpretability superpositions``: write and show superposition definitions.
 
-Each subcommand writes one definition per line. A line is what ``audit --superposition``
-reads. :mod:`openinterp.superposition_finders` holds the finders.
+The finders write one definition per line (issue #3686). A line is what ``audit
+--superposition`` reads. :mod:`openinterp.superposition_finders` holds the finders.
+``show`` writes one definition to its own file, for a planner draw (issue #3687).
 """
 
 from __future__ import annotations
@@ -79,3 +80,39 @@ def grammatical_number_command(model, layers, k, n, seed, device, out):
     for layer, _, accuracy in found:
         click.echo(f"layer {layer}: held-out accuracy {accuracy:.3f}")
     _write(out, [definition(model, layer, profile) for layer, profile, _ in found])
+
+
+@superpositions.command("show")
+@click.argument("superposition_id")
+@click.option("--model", "model", required=True, help="The model that the superposition is on.")
+@click.option(
+    "--definitions",
+    "definitions_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="The JSONL file to search. Default: data/superpositions/<model slug>.jsonl.",
+)
+@click.option(
+    "--out",
+    "out",
+    required=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="The JSON file to write: the one definition that `audit --superposition` reads.",
+)
+def show_command(superposition_id, model, definitions_file, out):
+    """Write the definition whose id is SUPERPOSITION_ID, as one JSON object."""
+    from openinterp.planner_superpositions import (
+        default_definitions,
+        definition_identifier,
+        load_definitions,
+    )
+
+    path = definitions_file or default_definitions(model)
+    if not path.is_file():
+        raise click.ClickException(f"no definitions file at {path}")
+    for definition in load_definitions(path):
+        if definition_identifier(definition).superposition_id == superposition_id:
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(definition) + "\n", encoding="utf-8")
+            click.echo(f"wrote {model} superposition {superposition_id} → {out}")
+            return
+    raise click.ClickException(f"no definition in {path} has the id {superposition_id}")
