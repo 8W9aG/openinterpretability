@@ -109,6 +109,7 @@ class _Texts:
         from openinterp.core.confounds import (
             HATE_SPEECH,
             NAMES,
+            PART_OF_SPEECH,
             PERSONAL_DATA,
             POSTAL_ADDRESSES,
             PROGRAMMING_LANGUAGE,
@@ -124,6 +125,7 @@ class _Texts:
             MatchTagger(TOXICITY, toxicity.toxicity_matches),
             MatchTagger(HATE_SPEECH, toxicity.hate_matches),
             MatchTagger(NAMES, names.person_matches),
+            MatchTagger(PART_OF_SPEECH, names.pos_matches),
             MatchTagger(POSTAL_ADDRESSES, sensitive.address_matches),
         ]
 
@@ -194,6 +196,13 @@ def pick_unit(runner, request: ScanRequest, spec):
         if unit == "neuron":
             pole = rng.choice(["positive", "negative"]) if pole is None else pole
     return identifier(request, layer, index, pole), seed
+
+
+def pole_forced(request: ScanRequest) -> bool | None:
+    """Whether ``--pole`` fixed a random draw's pole. None for a chosen unit or a head."""
+    if not request.random_pick or request.unit != "neuron":
+        return None
+    return request.pole is not None
 
 
 def identifier(request: ScanRequest, layer: int, index: int, pole: str | None):
@@ -316,6 +325,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         snippet_stride=corpus.stride if windowed else None,
         selection=chosen_selection(request.random_pick, request.selection),
         seed=seed if request.random_pick else None,
+        pole_forced=pole_forced(request),
         harness_version=__version__,
         environment=_scan_environment(runner),
         corpus_source=corpus.source,

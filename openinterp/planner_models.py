@@ -85,6 +85,16 @@ def model_dims(model: str, download: bool = True) -> tuple[int, int] | None:
     return config_dims(config)
 
 
+def model_heads(model: str, download: bool = True) -> tuple[int, int] | None:
+    """(layers, attention heads per layer) from ``config.json``, or None if it can't be read."""
+    config = model_config(model, download)
+    if config is None:
+        return None
+    layers = config.get("num_hidden_layers") or config.get("n_layer")
+    heads = config.get("num_attention_heads") or config.get("n_head")
+    return (layers, heads) if layers and heads else None
+
+
 def config_dims(config: dict) -> tuple[int, int] | None:
     """(layers, MLP width) from a ``config.json``, or None if it does not give them."""
     layers = config.get("num_hidden_layers") or config.get("n_layer")

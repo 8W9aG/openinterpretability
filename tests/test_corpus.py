@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import fsspec
@@ -901,3 +902,24 @@ def test_cli_reports_a_model_without_a_chat_template(monkeypatch, tmp_path):
     args = ["corpus", "--dataset", "ultrachat", "--chat-template", "openai-community/gpt2"]
     result = CliRunner().invoke(cli, [*args, "--out", str(tmp_path / "c.jsonl")])
     assert result.exit_code == 1 and "has no chat template" in result.output
+
+
+def test_scanned_source_reads_the_committed_table_of_sources(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    first, second = _source(sha256="a" * 64), _source(dataset="org/b", sha256="b" * 64)
+    table = [s.model_dump(mode="json") for s in (first, second)]
+    (tmp_path / "corpus-sources.json").write_text(json.dumps(table))
+    legacy = SimpleNamespace(corpus="c.jsonl", corpus_sha256="b" * 64, corpus_source=None)
+    assert scanned_source(SimpleNamespace(provenance=legacy)) == second
+
+
+def test_committed_table_names_corpora_not_covered_elsewhere():
+    """Each table entry is a valid source, and none repeats the default corpus's sidecar."""
+    from openinterp.core.schemas import COMMITTED_SOURCES
+
+    root = Path(__file__).resolve().parents[1]
+    sidecar, table = (root / name for name in COMMITTED_SOURCES)
+    entries = json.loads(table.read_text())
+    shas = [CorpusSource.model_validate(e).sha256 for e in entries]
+    assert len(set(shas)) == len(shas)
+    assert CorpusSource.model_validate_json(sidecar.read_text()).sha256 not in shas

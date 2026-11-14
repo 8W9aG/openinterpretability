@@ -67,6 +67,10 @@ EXPERIMENT_ID_PATTERN = r"^\d{8}T\d{6}Z$"
 SISTER_OF_PATTERN = r"^[A-Za-z0-9._-]+/L\d+/N\d+-(positive|negative)/\d{8}T\d{6}Z$"
 # ``provenance.corpus`` of a scan without ``--corpus``: the 552-token built-in sample.
 BUILTIN_CORPUS = "builtin:sample_corpus"
+# Sources of corpora that records scanned without recording one. They match by SHA-256.
+# The first is the default scan corpus's sidecar (README, "A scan corpus"). The second is
+# a table of the others.
+COMMITTED_SOURCES = ("corpus.source.json", "corpus-sources.json")
 Contributor = Annotated[
     str,
     Field(
@@ -127,6 +131,11 @@ class ExperimentProvenance(StrictModel):
         description="How the neuron was chosen; only 'random' gives unbiased registry statistics."
     )
     seed: int | None = None
+    pole_forced: bool | None = Field(
+        default=None,
+        description="For a random draw: True when --pole fixed the pole, False when the seed "
+        "drew it. None for a chosen unit, and for records before issue #3205.",
+    )
     harness_version: str
     environment: RunEnvironment | None = None
     corpus_source: CorpusSource | None = None

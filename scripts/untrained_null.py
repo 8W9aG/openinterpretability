@@ -145,16 +145,24 @@ def strengths(unit_dir, texts, plan_file):
     The peak is a fraction of the unit's own scale, from its ev.json. So it does not
     say which arm the unit is in. It runs on the CPU.
     """
+    units = load_plan(plan_file)["units"]
+    arm = next(u["arm"] for u in units if Path(u["dir"]).resolve() == unit_dir.resolve())
+    print_strengths(unit_dir, texts, runner(arm, "cpu"))
+
+
+def print_strengths(unit_dir: Path, texts, run) -> None:
+    """Print each text's peak and per-token values on ``run``, as fractions of the scale.
+
+    The scale is the unit's own, from its ev.json, so the numbers do not say which model
+    or arm the unit is in.
+    """
     from openinterp.core.schemas import ScanEvidence
     from openinterp.harness.units import unit_of
 
-    units = load_plan(plan_file)["units"]
-    arm = next(u["arm"] for u in units if Path(u["dir"]).resolve() == unit_dir.resolve())
     evidence = ScanEvidence.model_validate_json((unit_dir / "ev.json").read_text())
     skip = bool(evidence.first_token_floor)
     unit = unit_of(evidence.identifier, None, None, skip)
     scale = evidence.top_examples[0].max_activation
-    run = runner(arm, "cpu")
     for text in texts:
         values = unit.strengths(run, text)[0].tolist()
         tokens = [run.tokenizer.decode([i]) for i in run.tokenizer(text)["input_ids"]]
@@ -171,19 +179,22 @@ def strengths(unit_dir, texts, plan_file):
 @click.option("--agent-model", required=True, help="The proposer's model, as recorded.")
 def submit(plan_file, names, agent_model):
     """Build each submission on its arm's weights, and write the reviewer's prompt."""
+    for unit in pending(load_plan(plan_file), names, "ev.hypothesis.json", ("submission.json",)):
+        build_and_write(Path(unit["dir"]), runner(unit["arm"]), agent_model)
+
+
+def build_and_write(out: Path, run, agent_model: str) -> None:
+    """Build the submission in ``out`` from its draft on ``run``, and write the review prompt."""
     from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
     from openinterp.cli_review import write_review_prompt
     from openinterp.cli_submission import build_submission
     from openinterp.core.schemas import ScanEvidence
 
-    for unit in pending(load_plan(plan_file), names, "ev.hypothesis.json", ("submission.json",)):
-        out = Path(unit["dir"])
-        evidence = ScanEvidence.model_validate_json((out / "ev.json").read_text())
-        draft = HypothesisDraft.model_validate_json((out / "ev.hypothesis.json").read_text())
-        run = runner(unit["arm"])
-        submission = build_submission(ProposerAgent(agent_model), draft, run, evidence)
-        (out / "submission.json").write_text(submission.model_dump_json(indent=2))
-        write_review_prompt(submission, out / "review.prompt.md", N_PROBES, False)
+    evidence = ScanEvidence.model_validate_json((out / "ev.json").read_text())
+    draft = HypothesisDraft.model_validate_json((out / "ev.hypothesis.json").read_text())
+    submission = build_submission(ProposerAgent(agent_model), draft, run, evidence)
+    (out / "submission.json").write_text(submission.model_dump_json(indent=2))
+    write_review_prompt(submission, out / "review.prompt.md", N_PROBES, False)
 
 
 @cli.command()
@@ -192,22 +203,30 @@ def submit(plan_file, names, agent_model):
 @click.option("--agent-model", required=True, help="The reviewer's model, as recorded.")
 def measure(plan_file, names, agent_model):
     """Run each review's probes on its arm and decide (result.json), as today's policy does."""
+    for unit in pending(load_plan(plan_file), names, "review.probes.json", ("result.json",)):
+        outcome = measure_unit_dir(Path(unit["dir"]), runner(unit["arm"]), agent_model)
+        click.echo(f"{unit['name']}: {outcome}")
+
+
+def measure_unit_dir(out: Path, run, agent_model: str) -> str:
+    """Measure the probes in ``out`` on ``run`` and write result.json. Return the outcome.
+
+    Invalid probes are left for the reviewer to fix, so the other units go ahead.
+    """
     from null_calibration import review_probes
 
     from openinterp.agents.reviewer import ProbeSet
     from openinterp.core.schemas import NeuronAuditSubmission
 
-    for unit in pending(load_plan(plan_file), names, "review.probes.json", ("result.json",)):
-        out = Path(unit["dir"])
-        sub = NeuronAuditSubmission.model_validate_json((out / "submission.json").read_text())
-        try:
-            probes = ProbeSet.model_validate_json((out / "review.probes.json").read_text()).probes
-        except ValueError as exc:  # left for the reviewer to fix; the others go ahead
-            click.echo(f"{unit['name']}: invalid probes, skipped: {exc}", err=True)
-            continue
-        result = review_probes(sub, runner(unit["arm"]), probes, agent_model)
-        (out / "result.json").write_text(json.dumps(result, indent=2))
-        click.echo(f"{unit['name']}: {result['outcome']}")
+    sub = NeuronAuditSubmission.model_validate_json((out / "submission.json").read_text())
+    try:
+        probes = ProbeSet.model_validate_json((out / "review.probes.json").read_text()).probes
+    except ValueError as exc:
+        click.echo(f"{out.name}: invalid probes, skipped: {exc}", err=True)
+        return "INVALID_PROBES"
+    result = review_probes(sub, run, probes, agent_model)
+    (out / "result.json").write_text(json.dumps(result, indent=2))
+    return result["outcome"]
 
 
 @cli.command()

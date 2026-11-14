@@ -12,12 +12,13 @@ checks enforce that:
 3. The retired ``audits/`` directory holds no records. Import them with
    ``openinterp wiki --import-dir audits``.
 4. With ``base_ref``: existing experiment pages were not deleted, or edited outside
-   their Discussion section. Archived records were not touched (write-once). No
-   generated index (``README.md``) was committed. Records added since then name their
-   agents in canonical spelling (``openinterp.core.agent_names``) and have one shape of
-   model fields (``_check_model_fields``).
-5. The errata file (``wiki/errata.jsonl``) is valid and signed
-   (:mod:`openinterp.errata_checks`).
+   their Discussion section, except to remove what a takedown covers. Archived records
+   were not touched (write-once). No generated index (``README.md``) was committed.
+   Records added since then name their agents in canonical spelling
+   (``openinterp.core.agent_names``) and have one shape of model fields
+   (``_check_model_fields``).
+5. The errata file (``wiki/errata.jsonl``) and the takedown file (``wiki/takedowns.jsonl``)
+   are valid and signed (:mod:`openinterp.errata_checks`, :mod:`openinterp.takedown_checks`).
 6. The current code recomputes each record's verdict, gates and balanced accuracy from
    its stored results (:mod:`openinterp.verdict_regression`). For each record judged
    under the current protocol, they must match. So a refactor of the gates can't silently
@@ -48,6 +49,7 @@ from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
 from openinterp.errata_checks import check_errata
 from openinterp.signing import ALLOWED_SIGNERS
+from openinterp.takedown_checks import check_takedowns, page_redaction_ok
 from openinterp.verdict_regression import verdict_drift
 
 DISCUSSION_HEADING = "## Discussion"
@@ -74,12 +76,13 @@ class CheckReport:
     pages: int = 0
     draws: int = 0
     stops: int = 0
+    ledger: int = 0
     changed_only: bool = False  # the record and page checks read only the branch's changes
 
     @property
     def extra_counts(self) -> dict[str, int]:
         """How many records of each optional kind the check read."""
-        return {"draw": self.draws, "stop": self.stops}
+        return {"draw": self.draws, "stop": self.stops, "ledger entry": self.ledger}
 
     @property
     def ok(self) -> bool:
@@ -109,7 +112,9 @@ def check_registry(
     _check_pages(wiki_dir, report, scope)
     _check_draws(wiki_dir, report, scope)
     _check_stops(wiki_dir, report, scope)
+    _check_ledger(wiki_dir, report, scope)
     check_errata(wiki_dir, report, base_ref, changes, allowed_signers)
+    check_takedowns(wiki_dir, report, base_ref, changes, allowed_signers)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, changes, report)
         root = experiments_dir(wiki_dir)
@@ -224,6 +229,23 @@ def _check_draws(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = 
             report.add(path, "only random draws are recorded")
         if path != draw_path(wiki_dir, draw):
             report.add(path, f"draw record belongs at {draw_path(wiki_dir, draw)}")
+
+
+def _check_ledger(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
+    """Draw-ledger entries (wiki/ledger/) parse and sit where they belong."""
+    from pydantic import ValidationError
+
+    from openinterp.core.ledger import DrawEntry, ledger_files, ledger_path
+
+    for path in _chosen(ledger_files(wiki_dir), scope):
+        report.ledger += 1
+        try:
+            entry = DrawEntry.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValidationError:
+            report.add(path, "invalid ledger entry")
+            continue
+        if path != ledger_path(wiki_dir, entry):
+            report.add(path, f"ledger entry belongs at {ledger_path(wiki_dir, entry)}")
 
 
 def _check_stops(wiki_dir: Path, report: CheckReport, scope: set[Path] | None = None) -> None:
@@ -383,7 +405,8 @@ def _check_write_once(
         elif status == "M":
             before = _git("show", f"{base_ref}:{path.as_posix()}")
             after = path.read_text(encoding="utf-8")
-            if before.split(DISCUSSION_HEADING)[0] != after.split(DISCUSSION_HEADING)[0]:
+            head, new_head = before.split(DISCUSSION_HEADING)[0], after.split(DISCUSSION_HEADING)[0]
+            if head != new_head and not page_redaction_ok(head, new_head, wiki_dir):
                 report.add(
                     path,
                     "experiment pages are write-once; only the Discussion section may be edited",

@@ -479,3 +479,38 @@ def test_a_10_percent_edit_of_a_16_bit_peak_is_caught(record, toy_runner):
     assert any(
         "max_activation differs" in m for m in reproduce_record(tampered, toy_runner).mismatches
     )
+
+
+def test_reproduce_picks_each_records_scan_corpus_by_sha(record, tmp_path, monkeypatch):
+    from openinterp.cli_evidence import read_corpus
+    from openinterp.cli_reproduce import _Reproducer, scan_corpora
+    from openinterp.core.schemas import CorpusSample, ExperimentProvenance
+
+    monkeypatch.chdir(tmp_path)
+    given = tmp_path / "given.txt"
+    given.write_text("one document\nanother document\n")
+    corpora = scan_corpora([given])
+    builtin_sha, given_sha = read_corpus(None)[2], read_corpus(given)[2]
+    assert set(corpora) == {builtin_sha, given_sha}
+
+    def scanned(sha):
+        prov = ExperimentProvenance(
+            dtype="float32", corpus="c", corpus_sha256=sha, n_snippets=2, tokens_scanned=4,
+            selection="manual", harness_version="t",
+            corpus_sample=CorpusSample(seed=0, max_tokens=10, documents=2, corpus_documents=2,
+                                       tokens=4, sha256="0" * 64),
+        )  # fmt: skip
+        sub = record.submission.model_copy(update={"provenance": prov})
+        return record.model_copy(update={"submission": sub})
+
+    args = {"signers": "", "landed": {}, "tolerance": None, "allowed_models": (), "device": "cpu"}
+    reproducer = _Reproducer(scan_corpora=corpora, corpus_given=True, **args)
+    notes: list[str] = []
+    assert reproducer.scan_corpus(scanned(builtin_sha), Path("r.json"), notes)[1] == builtin_sha
+    assert reproducer.scan_corpus(scanned(given_sha), Path("r.json"), notes)[1] == given_sha
+    assert notes == []
+    assert reproducer.scan_corpus(scanned("f" * 64), Path("r.json"), notes) is None
+    assert "can't be rebuilt" in notes[-1]
+    quiet = _Reproducer(scan_corpora=corpora, **args)
+    assert quiet.scan_corpus(scanned("f" * 64), Path("r.json"), notes := []) is None
+    assert notes == []
