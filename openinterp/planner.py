@@ -40,7 +40,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from openinterp.core.agent_names import canonical_agent
 from openinterp.core.licenses import ModelLicense
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import (
@@ -57,6 +56,7 @@ from openinterp.planner_models import (
     focus_model,
     model_coverage,
 )
+from openinterp.planner_states import NeuronState, load_states  # noqa: F401 - re-exported
 
 # Expected information value per experiment kind, before decay.
 # Probability of an explore draw (a random new unit) instead of a follow-up.
@@ -102,19 +102,6 @@ class Candidate:
     layer: int | None = None
     record: str | None = None  # the record a follow-up builds on
     audit: str | None = None  # `open-interpretability audit` options, for kinds that scan
-
-
-@dataclass
-class NeuronState:
-    """What the registry holds on one unit: its latest record and how much it has been studied."""
-
-    slug: str
-    record: AuditRecord
-    record_path: Path
-    experiments: int = 0
-    reviewers: set[str] = field(default_factory=set)
-    independent_reviews: int = 0  # experiments reviewed by a model other than the proposer's
-    last: datetime | None = None
 
 
 def claim_key(slug: str) -> str:
@@ -194,26 +181,6 @@ def others_share(pyproject: Path = Path("pyproject.toml")) -> float:
     It is the share of explore draws for the models that are not the focus.
     """
     return float(_config(pyproject).get("others_share", DEFAULT_OTHERS_SHARE))
-
-
-def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
-    """One state per neuron pole, derived from all of its archived experiments.
-
-    Follow-ups are planned from the most recent experiment; the count, reviewers and
-    recency cover every experiment on the neuron.
-    """
-    from openinterp.builder.wiki import load_archive_paths  # Jinja: keep the CLI start light
-
-    states: dict[str, NeuronState] = {}
-    for path, record in load_archive_paths(Path(wiki_dir)):  # oldest first
-        slug = record.submission.identifier.slug
-        state = states.setdefault(slug, NeuronState(slug, record, path))
-        state.record, state.record_path = record, path
-        state.experiments += 1
-        state.reviewers.add(canonical_agent(record.verdict.reviewer_agent_model))
-        state.independent_reviews += not record.self_reviewed
-        state.last = record.verdict.timestamp
-    return states
 
 
 def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[float, list[str]]:

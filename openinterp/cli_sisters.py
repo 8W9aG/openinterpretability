@@ -69,14 +69,16 @@ def sisters_command(wiki_dir, model_name, others, corpus, path, k, device):
     if not todo:
         raise click.UsageError("no model pairs to match; pass --model and --other")
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
+    from openinterp.core.errata import load_errata
+
     records = load_archive(wiki_dir)
 
     def load(name, revision):  # not cached: each stage frees its model before the next
         return _load_runner(name, device, "float32", revision)
 
     wrote = sisters(
-        records, load, path, texts, todo, corpus=corpus_name, corpus_sha256=corpus_sha, k=k,
-        echo=click.echo,
+        records, load, path, texts, todo, corpus=corpus_name, corpus_sha256=corpus_sha,
+        errata=load_errata(wiki_dir), k=k, echo=click.echo,
     )  # fmt: skip
     for (source, other), n in wrote.items():
         click.echo(f"Matched {n} poles of {source} against {other} → {path}")

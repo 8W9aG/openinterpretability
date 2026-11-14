@@ -56,8 +56,9 @@ def studied_poles(model_name: str) -> list[tuple[int, int, str, str]]:
     from openinterp.builder.compiler import load_records
     from openinterp.builder.standing import native_standings
     from openinterp.builder.tree import build_tree
+    from openinterp.core.errata import load_errata
 
-    models = build_tree(load_records(Path("wiki/experiments")))
+    models = build_tree(load_records(Path("wiki/experiments")), load_errata(Path("wiki")))
     return [(n.layer, n.idx, side, st.status) for n, side, st in native_standings(models)
             if n.model == model_name and n.kind == "mlp_neuron_pole"]  # fmt: skip
 

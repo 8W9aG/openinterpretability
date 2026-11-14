@@ -453,6 +453,7 @@ from openinterp import (  # noqa: E402, F401
     cli_costs,
     cli_coverage,
     cli_crossref,
+    cli_errata,
     cli_evidence,
     cli_explain,
     cli_loop,

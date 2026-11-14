@@ -129,7 +129,7 @@ def test_rows_cover_verified_poles_and_link_both_ways(tmp_path, qwen_runner, tex
         loads.append(name)
         return qwen_runner if name == "tiny" else twin
 
-    kw = {"corpus": "c", "corpus_sha256": "0" * 64, "echo": lambda _: None}
+    kw = {"corpus": "c", "corpus_sha256": "0" * 64, "errata": [], "echo": lambda _: None}
     pair = ("tiny", "tiny-twin")
     assert sisters(records, load, out, texts, [pair], k=2, **kw) == {pair: 1}
     assert loads == ["tiny", "tiny-twin", "tiny-twin", "tiny"]  # one model at a time

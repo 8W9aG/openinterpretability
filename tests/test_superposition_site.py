@@ -60,7 +60,7 @@ def test_superposition_pages_members_counts_and_parquet(qwen_runner, tmp_path): 
 
 def test_superpositions_stay_out_of_native_counts_and_neuronpedia(qwen_runner, tmp_path):  # noqa: F811
     record = _reviewed(qwen_runner)
-    (model,) = build_tree([record])
+    (model,) = build_tree([record], [])
     (unit,) = model.layers[0].units
     assert unit.is_superposition and not unit.is_native and model.neurons == 0
     assert model.superpositions == 1 and false_discovery([model])["claims"] == 0

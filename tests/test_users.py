@@ -25,7 +25,7 @@ def later(record, hours, **submission):
 def test_the_recorded_contributor_wins_over_the_pr_author(record):
     named = later(record, 1, contributor="alice")
     (model,) = build_tree(
-        [record, named], users={record_ref(record): "bob", record_ref(named): "bob"}
+        [record, named], [], users={record_ref(record): "bob", record_ref(named): "bob"}
     )
     makers = {e.id: e.user for e in model.layers[0].units[0].experiments}
     assert makers == {"20261001T120000Z": "bob", "20261001T130000Z": "alice"}
@@ -36,7 +36,8 @@ def test_contributors_view_lists_each_persons_experiments_newest_first(record):
     reviewed = reviewed.model_copy(
         update={"verdict": reviewed.verdict.model_copy(update={"contributor": "carol"})}
     )
-    (model,) = build_tree([record, later(record, 1), reviewed], users={record_ref(record): "bob"})
+    records = [record, later(record, 1), reviewed]
+    (model,) = build_tree(records, [], users={record_ref(record): "bob"})
     experiments = model.layers[0].units[0].experiments
     people = {p.handle: p for p in contributors_view(experiments)}
     assert sorted(people) == ["bob", "carol"]
