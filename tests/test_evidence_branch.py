@@ -79,3 +79,12 @@ def test_upload_creates_the_public_dataset_and_sends_each_blob(record, repo, tmp
                                                         "exist_ok": True})  # fmt: skip
     assert calls["files"] == sorted(evidence.blob_name(s) for s in shas)
     assert eb.upload([], store, api=FakeApi()) == 0
+
+
+def test_a_draw_pushes_its_evidence_before_its_branch():
+    from openinterp.draw_steps import _post
+
+    commands = _post("k", "explore").commands
+    assert commands.index("uv run open-interpretability evidence push") < commands.index(
+        "git push && gh pr ready"
+    )
