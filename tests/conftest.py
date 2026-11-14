@@ -274,3 +274,13 @@ def _scan_cache(tmp_path_factory, monkeypatch):
 
     monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("scan-cache")))
     monkeypatch.setenv(first_position.ENV, str(tmp_path_factory.mktemp("first-position")))
+
+
+@pytest.fixture(autouse=True)
+def _whole_records(monkeypatch, tmp_path):
+    """Write whole records, and keep any evidence blob out of the developer's store.
+
+    Slim records are the default (openinterp/core/evidence.py, issue #3254). Tests opt in.
+    """
+    monkeypatch.setenv("OPENINTERP_OFFLOAD_EVIDENCE", "0")
+    monkeypatch.setenv("OPENINTERP_EVIDENCE_DIR", str(tmp_path / "evidence-store"))
