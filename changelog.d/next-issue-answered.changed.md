@@ -1,1 +1,0 @@
-- `scripts/next_issue.py` picks an answered issue first. That is a started issue where an agent asked the maintainer and the maintainer has replied since, so the loop no longer forgets it. Agents ask in a comment that starts with `**Question**`. After a merge, the `next-issue` skill starts the *Close merged issues* workflow, so the issue closes at once.

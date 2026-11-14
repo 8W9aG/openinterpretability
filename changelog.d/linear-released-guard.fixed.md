@@ -1,1 +1,0 @@
-- **The hourly Linear sync moves an issue out of Released when its release is not published** (`scripts/linear_sync.py`). Linear's GitHub integration moves a closed issue to Released, not Done. The sync now moves each such issue back to Done, unless its milestone is a published release.
