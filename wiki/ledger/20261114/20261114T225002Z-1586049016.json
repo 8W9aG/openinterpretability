@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T22:50:02Z","seed":1586049016,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L6/N311-negative","record":null,"audit":"--model openai-community/gpt2 --layer 6 --neuron 311 --pole negative --selection attribution --window-tokens 128","pole_forced":null,"harness_version":"0.0.19"}
