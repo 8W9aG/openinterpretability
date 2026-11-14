@@ -103,11 +103,14 @@ jobs:
       - name: Close linked issues
         run: |
           set -euo pipefail
-          gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences \
-            --jq '.closingIssuesReferences[] | select(.repository.owner.login + "/" + .repository.name == env.REPO) | .number' \
+          jq_filter='.closingIssuesReferences[]
+            | select(.repository.owner.login + "/" + .repository.name == env.REPO)
+            | .number'
+          gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences --jq "$jq_filter" \
             > issues.txt
           while read -r number; do
             if [ "$(gh issue view "$number" --repo "$REPO" --json state -q .state)" = OPEN ]; then
-              gh issue close "$number" --repo "$REPO" --comment "Closed by #$PR, which auto-merge merged."
+              gh issue close "$number" --repo "$REPO" \
+                --comment "Closed by #$PR, which auto-merge merged."
             fi
           done < issues.txt
