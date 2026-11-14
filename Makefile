@@ -24,6 +24,7 @@ lint:
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
 	uv run python scripts/check_data_files.py
+	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
 	uv run interrogate openinterp
 	$(MAKE) markdown
