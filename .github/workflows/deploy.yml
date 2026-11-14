@@ -46,6 +46,13 @@ jobs:
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      # The evidence blobs of slim records (openinterp/core/evidence.py, issue #3254), so
+      # this build fetches only the blobs of new records from the dataset.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.cache/openinterp/evidence
+          key: evidence-blobs-${{ github.run_id }}
+          restore-keys: evidence-blobs-
       - name: Check registry consistency
         run: open-interpretability check
       # The personal-data matches of each text that earlier builds searched
