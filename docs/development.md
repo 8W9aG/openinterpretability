@@ -6,7 +6,7 @@ How to change the code, what CI checks on a pull request, where the code lives, 
 
 ```bash
 make install        # uv sync
-make test           # pytest (CPU only, no downloads)
+make test           # pytest (CPU only, no downloads); waits for other heavy jobs with OPENINTERP_HEAVY_LOCK=1
 make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, Markdown, Vale, STE
 make vale           # comment and docstring prose against our STE rules (needs Vale)
 make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)

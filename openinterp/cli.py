@@ -30,7 +30,9 @@ def _load_runner(
     import torch
 
     from openinterp.core import costs
+    from openinterp.core.heavy_lock import hold_for_process
 
+    hold_for_process()  # with OPENINTERP_HEAVY_LOCK=1, wait for any other heavy job first
     device = resolve_device(device)
     torch_dtype = {
         "auto": "auto",

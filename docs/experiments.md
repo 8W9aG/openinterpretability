@@ -93,6 +93,8 @@ Before a process first uses the GPU, it runs one small operation on it, and wait
 
 The GPU can fail during a command, for example when it is out of memory or has no kernel for an operation. Then the command runs again from the start on the CPU. It says why, and it runs in a new process, so none of the GPU's state stays. A command runs again only once (`$OPENINTERP_DEVICE_FORCE` marks the retry), and files that the first run wrote are written again.
 
+**One heavy job at a time, when you ask for it.** The planner moves a job off a busy GPU, but loops in several checkouts can still overlap on the CPU, or with the test suite. With `OPENINTERP_HEAVY_LOCK=1`, every model load and `make test` first takes an exclusive lock on one file, `~/.cache/openinterp/heavy.lock` (`$OPENINTERP_HEAVY_LOCK_FILE`). So they queue, and a waiting job prints which process it waits for. A process holds the lock until it exits, because its model stays in memory until then. Its child processes don't wait for it. `scripts/experiment-loop.sh --one-heavy-job` and `openinterp loop --one-heavy-job` turn it on for a loop. `openinterp loop` keeps its model loaded, so it holds the lock for the whole loop. The lock is off by default, because it makes parallel loops run one after the other (`openinterp/core/heavy_lock.py`).
+
 ## Memory
 
 The weights set the floor, and what a scan or a review adds on top of them is small. These are peak memory footprints, measured with macOS `/usr/bin/time -l` on CPU in float32. The scan is the default 200,000-token `audit` scan, and the review is `openinterp reproduce` of one record.
