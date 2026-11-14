@@ -5,7 +5,6 @@ See :mod:`openinterp.sisters`.
 
 from __future__ import annotations
 
-from functools import cache
 from pathlib import Path
 
 import click
@@ -72,23 +71,14 @@ def sisters_command(wiki_dir, model_name, others, corpus, path, k, device):
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
     records = load_archive(wiki_dir)
 
-    @cache
-    def load(name, revision):
+    def load(name, revision):  # not cached: each stage frees its model before the next
         return _load_runner(name, device, "float32", revision)
 
-    for source, other in todo:
-        wrote = sisters(
-            records,
-            load,
-            path,
-            texts,
-            model_name=source,
-            other=other,
-            corpus=corpus_name,
-            corpus_sha256=corpus_sha,
-            k=k,
-            echo=click.echo,
-        )
-        click.echo(f"Matched {wrote} poles of {source} against {other} → {path}")
+    wrote = sisters(
+        records, load, path, texts, todo, corpus=corpus_name, corpus_sha256=corpus_sha, k=k,
+        echo=click.echo,
+    )  # fmt: skip
+    for (source, other), n in wrote.items():
+        click.echo(f"Matched {n} poles of {source} against {other} → {path}")
     if path.exists():
         sort_rows(path)
