@@ -210,6 +210,7 @@ def build_submission(agent, draft, runner, evidence):
                 head_profile=evidence.head_profile,
                 dictionary_profile=evidence.dictionary_profile,
                 first_token_floor=evidence.first_token_floor,
+                superposition_profile=evidence.superposition_profile,
             )
         except ValueError as exc:  # e.g. a one-token counterfactual prompt
             raise click.ClickException(f"Counterfactual: {exc}") from exc

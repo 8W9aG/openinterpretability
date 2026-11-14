@@ -3,8 +3,10 @@
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
 
+# Reinstalls the package itself: when the distribution was renamed to open-interpretability
+# (issue #3251), a plain sync removed the `openinterp` command with the old distribution.
 install:
-	uv sync
+	uv sync --reinstall-package open-interpretability
 
 # Single-threaded: the tests use tiny models, and thread pools contending with other
 # jobs on the machine have hung the suite.

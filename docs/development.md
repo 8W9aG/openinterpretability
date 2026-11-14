@@ -109,6 +109,12 @@ Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) a
 
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
 
+## Releases on PyPI
+
+The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterp`, and the `openinterp` command remains as an alias until every doc, skill and workflow uses the new name. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterp.__version__`. It uploads with the repository secret `PYPI_TOKEN`, a PyPI API token for the project.
+
+After pulling the rename, run `make install` once in each checkout. A plain `uv sync` loses the `openinterp` command with the old distribution.
+
 ## Deploy
 
 [deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main` (plus every 6 hours as a backstop, and on manual dispatch), runs `openinterp check`, and runs `openinterp deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
