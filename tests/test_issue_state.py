@@ -63,3 +63,25 @@ def test_proposed_issues_wait_for_triage(monkeypatch):
     _stub(monkeypatch, "8W9aG", labels=["proposed", "area: pipeline"])
     allowed, reason = issue_state.eligibility("1")
     assert not allowed and "triaged" in reason
+
+
+def test_release_moves_only_closed_issues(monkeypatch, capsys):
+    monkeypatch.setattr(
+        issue_state, "milestone_issues", lambda tag: [("1", "CLOSED"), ("2", "OPEN")]
+    )
+    moved = []
+    monkeypatch.setattr(issue_state, "set_state", lambda n, s: moved.append((n, s)) or f"#{n}: {s}")
+    assert issue_state.release("v1")
+    assert moved == [("1", "Released")]
+    assert "#2: still open" in capsys.readouterr().out
+    assert issue_state.release("v1", dry_run=True) and len(moved) == 1
+
+
+def test_release_reports_a_failure(monkeypatch):
+    monkeypatch.setattr(issue_state, "milestone_issues", lambda tag: [("1", "CLOSED")])
+
+    def fail(n, s):
+        raise RuntimeError("no such state")
+
+    monkeypatch.setattr(issue_state, "set_state", fail)
+    assert not issue_state.release("v1")

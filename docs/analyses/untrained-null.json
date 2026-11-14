@@ -1,0 +1,28 @@
+{
+ "trained": {
+  "units": 20,
+  "measured": 20,
+  "verified": 9,
+  "verified_interval": "45.0% [25.8, 65.8]",
+  "probe_verified": 11,
+  "mean_balanced_accuracy": 0.8712500000000001,
+  "outcomes": {
+   "NEEDS_REVISION": 11,
+   "VERIFIED": 9
+  }
+ },
+ "untrained": {
+  "units": 20,
+  "measured": 20,
+  "verified": 2,
+  "verified_interval": "10.0% [2.8, 30.1]",
+  "probe_verified": 2,
+  "mean_balanced_accuracy": 0.6246857,
+  "outcomes": {
+   "REJECTED": 8,
+   "NEEDS_REVISION": 10,
+   "VERIFIED": 2
+  }
+ },
+ "fisher_p_trained_more": 0.015475152571926765
+}
