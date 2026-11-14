@@ -9,7 +9,7 @@ Open work is in GitHub issues, and Linear mirrors them (`docs/development.md`, *
 
 ## Procedure
 
-1. **Choose from the next release.** The next release is the oldest open milestone:
+1. **Choose from the next release.** The `next-issue` skill makes this choice for you (`scripts/next_issue.py`), and pulls an issue in when the release has none. To choose by hand: the next release is the oldest open milestone.
    ```bash
    gh api repos/8W9aG/openinterpretability/milestones --jq 'sort_by(.title) | .[0].title'
    gh issue list --milestone <that milestone> --state open

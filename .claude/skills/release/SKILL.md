@@ -114,3 +114,4 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
     gh issue list --milestone v<version> --state open --json number --jq '.[].number' | xargs -I{} gh issue edit {} --milestone v<next>
     gh api -X PATCH repos/8W9aG/openinterpretability/milestones/<number> -f state=closed
     ```
+    Publishing the release also starts the *Linear released* workflow. It moves every closed issue in `v<version>` to Linear's Released state. Check that its run passed: `gh run list --workflow linear-released.yml --limit 1`. If it failed, or the release was published before the workflow existed, run it by hand: `python3 scripts/issue_state.py --release v<version>`.
