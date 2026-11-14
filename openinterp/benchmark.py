@@ -70,6 +70,27 @@ def split_of(slug: str, version: str, test_fraction: float = TEST_FRACTION) -> s
     return "test" if int(digest[:8], 16) / 0x1_0000_0000 < test_fraction else "dev"
 
 
+ORDERS = ("slug", "shuffled")  # the orders that `benchmark score --limit` takes units in
+
+
+def ordered(units: Iterable[Unit], order: str, version: str) -> list[Unit]:
+    """``units`` in slug order, or in a shuffled order fixed by ``version`` (issue #3302).
+
+    A shuffled unit's place is a hash of its slug, salted with ``version`` and its split.
+    So the first N units of a split are a random sample of it, the same one on every run.
+    Adding units to a later version doesn't move the others within it.
+    """
+    if order not in ORDERS:
+        raise ValueError(f"unknown order {order!r}; use one of {', '.join(ORDERS)}")
+    if order == "slug":
+        return sorted(units, key=lambda u: u.unit)
+
+    def key(u: Unit) -> str:
+        return hashlib.sha256(f"order:{version}:{u.split}:{u.unit}".encode()).hexdigest()
+
+    return sorted(units, key=key)
+
+
 def probe_labels(record: AuditRecord) -> list[tuple[str, bool, str]]:
     """Return each measured reviewer probe in ``record`` as (text, active, kind).
 
@@ -345,11 +366,14 @@ def unit_score(
     }
 
 
-def summarize(rows: Sequence[dict], units: Sequence[Unit], seed: int = 0) -> dict:
+def summarize(
+    rows: Sequence[dict], units: Sequence[Unit], seed: int = 0, split_units: int | None = None
+) -> dict:
     """The split's score: mean balanced accuracy over every unit, chance where missing.
 
     A unit without an explanation scores :data:`CHANCE`, so leaving hard units out does not
-    raise the mean. The interval is a bootstrap over units.
+    raise the mean. The interval is a bootstrap over units. ``split_units`` is the size of
+    the whole split, when ``units`` are only part of it.
     """
     scored = {r["unit"]: r["balanced_accuracy"] for r in rows}
     values = [scored.get(u.unit, CHANCE) for u in units]
@@ -359,6 +383,7 @@ def summarize(rows: Sequence[dict], units: Sequence[Unit], seed: int = 0) -> dic
         "mean_balanced_accuracy": _mean(values),
         "ci95": _bootstrap(values, seed),
         "per_model": {},
+        "split_units": len(units) if split_units is None else split_units,
     }
     for model in sorted({u.model for u in units}):
         mine = [scored.get(u.unit, CHANCE) for u in units if u.model == model]
