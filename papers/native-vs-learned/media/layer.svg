@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 425" width="760" height="425" role="img">
+<title>Two bar charts. Audits per layer: latents 16115, positive poles 3072. VERIFIED units to expect: latents 14907, positive poles 1536.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="425" rx="10"/>
+<text x="20.0" y="30.0" class="title">To audit a whole GPT-2 layer, latents need five times the audits</text>
+<text x="20.0" y="53.0" class="title">and give ten times the VERIFIED units</text>
+<text x="20.0" y="73.0" class="sub">An extrapolation of the measured shares to one layer: 24,576 latents, of which 66% fire, against 3,072 positive poles.</text>
+<text x="70.0" y="129.0" class="head">audits</text>
+<path class="grid" d="M70.0 337.0L373.0 337.0"/>
+<text x="63.0" y="341.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M70.0 292.6L373.0 292.6"/>
+<text x="63.0" y="296.6" class="small" text-anchor="end">4000</text>
+<path class="grid" d="M70.0 248.1L373.0 248.1"/>
+<text x="63.0" y="252.1" class="small" text-anchor="end">8000</text>
+<path class="grid" d="M70.0 203.7L373.0 203.7"/>
+<text x="63.0" y="207.7" class="small" text-anchor="end">12000</text>
+<path class="grid" d="M70.0 159.2L373.0 159.2"/>
+<text x="63.0" y="163.2" class="small" text-anchor="end">16000</text>
+<rect class="fc1" x="100.3" y="157.9" width="90.9" height="179.1" rx="1.5"/>
+<text x="145.8" y="151.9" class="small" text-anchor="middle">16115</text>
+<rect class="fc2" x="251.8" y="302.9" width="90.9" height="34.1" rx="1.5"/>
+<text x="297.2" y="296.9" class="small" text-anchor="middle">3072</text>
+<text x="433.0" y="129.0" class="head">VERIFIED units to expect</text>
+<path class="grid" d="M433.0 337.0L736.0 337.0"/>
+<path class="grid" d="M433.0 292.6L736.0 292.6"/>
+<path class="grid" d="M433.0 248.1L736.0 248.1"/>
+<path class="grid" d="M433.0 203.7L736.0 203.7"/>
+<path class="grid" d="M433.0 159.2L736.0 159.2"/>
+<rect class="fc1" x="463.3" y="171.4" width="90.9" height="165.6" rx="1.5"/>
+<text x="508.8" y="165.4" class="small" text-anchor="middle">14907</text>
+<rect class="fc2" x="614.8" y="319.9" width="90.9" height="17.1" rx="1.5"/>
+<text x="660.2" y="313.9" class="small" text-anchor="middle">1536</text>
+<circle class="fc1" cx="25.0" cy="373.0" r="5"/>
+<text x="35.0" y="377.0">transcoder latents</text>
+<circle class="fc2" cx="169.8" cy="373.0" r="5"/>
+<text x="179.8" y="377.0">positive neuron poles</text>
+</svg>

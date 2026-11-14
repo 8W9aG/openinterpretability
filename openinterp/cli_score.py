@@ -243,6 +243,7 @@ def _draw_task(
         identifier=submission.identifier,
         head_profile=submission.head_profile,
         dictionary_profile=submission.dictionary_profile,
+        superposition_profile=submission.superposition_profile,
         first_token_floor=submission.first_token_floor,
         explanation=submission.natural_language_explanation,
         threshold=threshold,

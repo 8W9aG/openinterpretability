@@ -64,4 +64,4 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
 - Build the site with `make build`, and open the Research index and the paper.
-- Merging to `main` publishes the paper. Let a person read it first.
+- Open the PR ready for review, not as a draft. Merge it when CI passes, as for every other PR. Do not wait for a person to read the paper first.

@@ -31,7 +31,7 @@ Every registry-wide claim inherits the noise of single verdicts.
 ## 3. Do native neurons explain a model as well as learned dictionaries do? (#3188)
 
 - **What would answer it.** At equal effort, VERIFIED rates, explanation sharpness and coverage for native poles, transcoder latents, SAE latents and SPD components.
-- **So far.** On GPT-2 small, 37 of 40 random transcoder latents verified, against 20 of 40 positive poles. A verified pole is about as sharp as a verified latent (`docs/analyses/transcoder-baseline.md`). Counting dead draws, the gap is no longer significant. Linear probes need about 32 neurons to match a concept that one VERIFIED pole carries in part (`docs/analyses/probe-comparison.md`).
+- **So far.** On 2026-11-14, `papers/native-vs-learned/` drew it together. On GPT-2 small, 37 of 40 random transcoder latents verified, against 20 of 40 positive poles, at equal effort per audit. Counting dead draws, the gap is no longer significant. Per layer, auditing every live latent would take about five times the audits for ten times the VERIFIED units. On Qwen2.5-0.5B the native basis beats a random rotation of itself, 18 of 30 against 1 of 30. A verified pole is about as sharp as a verified latent (`docs/analyses/transcoder-baseline.md`). Linear probes need about 32 neurons to match a concept that one VERIFIED pole carries in part (`docs/analyses/probe-comparison.md`). How much of a layer a set of VERIFIED units explains is still unmeasured.
 - **Bears on it.** How many transcoder features are really neurons, the N2G baseline, the explainer benchmark (`docs/benchmark.md`), `papers/spd-input-projections/`.
 
 ## 4. Do explanations carry across models? (#3189)
