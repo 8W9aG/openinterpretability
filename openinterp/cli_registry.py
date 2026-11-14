@@ -222,11 +222,98 @@ def next_experiment(
     )
     _list_candidates(plan, top)
     if steps:
-        from openinterp.draw_steps import render
-        from openinterp.draw_steps import steps as draw_steps
+        _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus)
 
-        click.echo("\nSteps:")
-        click.echo(render(draw_steps(plan, corpus, proposer, reviewer, fresh_corpus)))
+
+def _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus) -> None:
+    """Record the draw in the ledger, then print its steps, whose claim commits the entry."""
+    from openinterp.draw_steps import render
+    from openinterp.draw_steps import steps as draw_steps
+
+    ledger = record_draw_entry(plan, wiki_dir)
+    click.echo(f"\nDraw recorded in the ledger: {ledger}")
+    click.echo("\nSteps:")
+    click.echo(render(draw_steps(plan, corpus, proposer, reviewer, fresh_corpus, ledger)))
+
+
+@cli.command(name="ledger")
+@wiki_dir_option()
+@click.option("--json", "as_json", is_flag=True, help="Print the summary as JSON.")
+def ledger_report(wiki_dir, as_json):
+    """Report every recorded draw's outcome, and VERIFIED rates against all draws.
+
+    The ledger (wiki/ledger/) holds every draw that `openinterp next --steps` made, before
+    its run. A draw with no record and no stop was dropped, or is still running.
+    """
+    import json
+
+    from openinterp.core.ledger import load_ledger, resolve, summary
+
+    entries = load_ledger(Path(wiki_dir))
+    records, stopped = _ledger_rows(Path(wiki_dir))
+    resolved = [(e, *resolve(e, records, stopped)) for e in entries]
+    result = summary(resolved)
+    if as_json:
+        click.echo(json.dumps(result, indent=1))
+        return
+    for e, outcome, status in resolved:
+        what = e.slug or f"{e.model} (seed {e.audit_seed})"
+        click.echo(f"{e.timestamp:%Y-%m-%d %H:%M} {e.kind:<18} {what}: {status or outcome}")
+    n = result["explore_entries"]
+    click.echo(
+        f"{result['entries']} draws: {result['outcomes']}. Explore draws: {n}, "
+        f"{result['explore_verified']} VERIFIED."
+    )
+    if n:
+        share = result["verified_share_of_finished_explore"]
+        click.echo(
+            f"VERIFIED share of explore draws: {result['verified_share_of_all_explore']:.1%} "
+            f"of all, {share:.1%} of finished."
+            if share is not None
+            else ""
+        )
+
+
+def _ledger_rows(wiki_dir: Path):
+    """(slug, random seed, time, status) of every record, and of every draw or stop."""
+    from openinterp.core.draws import load_draws, load_stops
+    from openinterp.core.schemas import AuditRecord
+
+    records = []
+    for path in sorted(experiments_dir(wiki_dir).rglob("*.json")):
+        r = AuditRecord.model_validate_json(path.read_text())
+        if r.verdict is None:
+            continue
+        p = r.submission.provenance
+        seed = p.seed if p and p.selection == "random" else None
+        records.append((r.submission.identifier.slug, seed, r.verdict.timestamp, r.verdict.status))
+    stopped = [
+        (d.identifier.slug, d.provenance.seed, d.timestamp, None)
+        for d in [*load_draws(wiki_dir), *load_stops(wiki_dir)]
+    ]
+    return records, stopped
+
+
+def record_draw_entry(plan, wiki_dir) -> str:
+    """Write the draw's ledger entry before any run (issue #3205), and return its path."""
+    from datetime import UTC, datetime
+
+    from openinterp.core.ledger import DrawEntry, write_entry
+    from openinterp.draw_steps import draw_slug
+
+    c = plan.choice
+    options = (c.audit or "").split()
+    entry = DrawEntry(
+        timestamp=datetime.now(UTC).replace(microsecond=0),
+        seed=plan.seed,
+        kind=c.kind,
+        model=c.model,
+        slug=draw_slug(c),
+        record=c.record,
+        audit=c.audit,
+        pole_forced=("--pole" in options) if "--random" in options else None,
+    )
+    return str(write_entry(entry, Path(wiki_dir)))
 
 
 def _scan_cache_note(c) -> None:

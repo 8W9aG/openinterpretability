@@ -27,14 +27,15 @@ Both matter, and so do null results. A REJECTED or NEEDS_REVISION verdict is dat
    ```bash
    KEY=Qwen--Qwen2.5-0.5B-L11-N4255-positive        # slug with "/" → "-" (planner.claim_key)
    git switch -c "experiment/$KEY"
-   git commit --allow-empty -m "Claim $KEY"
+   git add wiki/ledger/<day>/<entry>.json                   # the path `next --steps` printed
+   git commit -m "Claim $KEY"
    git push -u origin HEAD
    gh pr create --draft --title "experiment: $KEY (<kind>)" --body "openinterp next seed: <seed>"
    ```
-   For `explore`, run `openinterp audit --random` first. The neuron it picks becomes the key.
+   For `explore`, run `openinterp audit --random` first. The neuron it picks becomes the key. `openinterp next --steps` writes the draw's ledger entry and prints its path. The claim commits it, so the draw reaches `main` whatever the run does.
 5. **Read the history.** Before writing anything, run `uv run openinterp wiki` (the indexes are generated, not committed). Then run `uv run openinterp show wiki/experiments/<slug>`. It prints a compact summary of every experiment on the unit (verdict, failed gates and probes, scores, Discussion). Use `show` for any record or `ev.json` instead of opening the JSON, which runs to hundreds of KB. `--full` uncuts it. Revisions must address the failed gates and failed probes recorded there.
 6. **Run the experiment** using the table below and the skills the planner lists.
-7. **Post the result, whatever it is.** Run `openinterp wiki`, then `make check`, then mark the PR ready. An experiment branch changes only `wiki/`, so its code is the same as on `main`, and CI skips "Lint and tests" for it. Run `make lint test` too only if the branch changes a file outside `wiki/`. Commit `wiki/`. The gitignore keeps the generated `README.md` indexes out. If `verify` printed "Signed as …", commit the `<id>.json.sig` next to the record: CI then skips reproducing it. A failed hypothesis gets committed exactly like a verified one. Never abandon a claimed experiment silently: if you stop, close the PR with a note saying why.
+7. **Post the result, whatever it is.** Run `openinterp wiki`, then `make check`, then mark the PR ready. An experiment branch changes only `wiki/`, so its code is the same as on `main`, and CI skips "Lint and tests" for it. Run `make lint test` too only if the branch changes a file outside `wiki/`. Commit `wiki/`. The gitignore keeps the generated `README.md` indexes out. If `verify` printed "Signed as …", commit the `<id>.json.sig` next to the record: CI then skips reproducing it. A failed hypothesis gets committed exactly like a verified one. Never abandon a claimed experiment silently. If you stop, say why in the PR and land it with only its ledger entry (`wiki/ledger/`, which the claim commits). Don't close it: the entry is how a dropped draw still counts (`openinterp ledger`).
 
 ## Proposer and reviewer without API keys
 

@@ -46,7 +46,7 @@ Random draws since 2026-10-29T00:16Z, by model and pole:
 - **41% of GPT-2 draws stop at the scan** (131 of 322), all of them negative poles that are default-on. That agrees with the 87% of GPT-2 small's negative poles that `position-zero.md` measured as default-on. No Qwen draw stopped.
 - **With the stopped draws counted, 11.5% of GPT-2 small's random draws are VERIFIED** on first reading (37 of 322), against 19.4% of the 191 audited. A registry-wide rate without the draws overstates GPT-2's share of poles with a verified explanation by about two thirds.
 - **No neuron pole was dead** in 526 draws. The share dead before the draws were recorded can't be known. Among dictionary latents, 21 of 61 random draws were dead.
-- The pole of a random draw is random unless `--pole positive` is passed, as the learned-basis baseline did for GPT-2. Records don't say whether it was passed, so the split between poles is not exactly uniform.
+- The pole of a random draw is random unless `--pole positive` is passed, as the learned-basis baseline did for GPT-2. Records before issue #3205 don't say whether it was passed, so the split between poles is not exactly uniform. Since then, `provenance.pole_forced` says it.
 
 ## By layer
 
