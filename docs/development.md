@@ -32,7 +32,7 @@ Each issue has these labels:
 - `question`, if the issue asks a question that needs a decision.
 - `release: <version>`, if the issue is planned for that release. The same issues have the milestone `v<version>`.
 
-Each issue also has a workstream. A workstream is a Linear project, for example *Why neurons rest*. On GitHub, the [Roadmap](https://github.com/users/8W9aG/projects/2) project shows it in its Workstream field. When you find a follow-up, open an issue in the workstream that it continues.
+Each issue also has a workstream. A workstream is a Linear project, for example *Why neurons rest*. On GitHub, the [Roadmap](https://github.com/users/8W9aG/projects/2) project shows it in its Workstream field. When you find a follow-up, open an issue in the workstream that it continues. Say in it which research question it answers ([docs/research-questions.md](research-questions.md)).
 
 Linear sets the priority and the workstream. Every hour, `scripts/linear_sync.py` copies them to the `priority:` label and to the Roadmap. If Linear has no priority, the label sets it. So give a priority label when you open an issue:
 

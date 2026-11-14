@@ -20,7 +20,7 @@ Lint rules, tests, releases and repository automation. Prefer a deterministic ch
 
 [Open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+label%3A%22area%3A%20research%20questions%22).
 
-The questions that the project exists to answer, and how far the registry has come. This is a draft: edit, add and remove questions. Each item names the evidence that bears on it. Link new work to the question it answers.
+The questions that the project exists to answer, and how far the registry has come, are in [docs/research-questions.md](docs/research-questions.md). This is a draft: edit, add and remove questions. Each item names the evidence that bears on it. Link new work to the question it answers.
 
 ## Protocol and science
 
