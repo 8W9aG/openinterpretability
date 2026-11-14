@@ -19,6 +19,9 @@
   "sensitivity": 0.0444444444444444,
   "specificity": 0.19999999999999996
  },
+ "specificity_mean": 0.7600631333333333,
+ "sensitivity_mean": 0.7891534333333333,
+ "specificity_noise": 0.006731725657911111,
  "variance": {
   "submissions": 30,
   "same_reviewer_noise": 0.005536955427311112,

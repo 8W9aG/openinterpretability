@@ -47,4 +47,31 @@ Run on 2026-11-13 for issue #3196, with `scripts/verdict_stability.py`. The numb
   - more hard negatives per review (for example 20 negatives and 10 holdouts), so one probe moves specificity less.
   - a margin or interval rule on specificity, instead of a hard 0.80 line.
   - a majority over two or three independent reviews before VERIFIED, which costs two or three times as much review.
-- **Each changes the decision rule,** so it needs a protocol change and a `PROTOCOL_VERSION` bump (`docs/PROTOCOL.md` §6). This analysis recommends and doesn't apply one. Issue #3509 holds the choice.
+- **The second and third change the decision rule,** so they would need a `PROTOCOL_VERSION` bump (`docs/PROTOCOL.md` §6). The first changes only how many probes a review asks for. Issue #3509 chose it, measured below.
+
+## 30 probes a review (issue #3509)
+
+Run on 2026-11-13. The same 30 submissions, each reviewed twice more by Sonnet (`claude-sonnet-5-5`, `neuron-reviewer`). Each prompt asked for 30 probes: 20 hard negatives and 10 positive holdouts. Both reviews were measured under today's policy. The rows are in `verdict-stability-30.json`.
+
+    uv run python scripts/verdict_stability.py prepare --probes 30 --arms sonnet30,sonnet30b
+    uv run python scripts/verdict_stability.py measure --agent-model external/claude-sonnet-5-5 --arms sonnet30,sonnet30b
+    uv run python scripts/verdict_stability.py report --arms sonnet30,sonnet30b --out docs/analyses/verdict-stability-30.json
+
+| Measure | 20 probes (3 reviews) | 30 probes (2 reviews) |
+| --- | --- | --- |
+| VERIFIED-or-not, agreement over pairs | 0.82 | 0.90 |
+| Fleiss' κ on VERIFIED | 0.61 | 0.79 |
+| `specificity` flip rate | 20% | 7% |
+| `beats_confound_baseline` flip rate | 16% | 3% |
+| `sensitivity` flip rate | 4% | 7% |
+| Same-reviewer variance of balanced accuracy | 0.0055 | 0.0032 |
+| Same-reviewer variance of specificity | 0.0067 | 0.0049 |
+| VERIFIED per review, mean | 10.7 | 11.5 |
+
+- **Repeated reviews agree more.** One review in ten flips VERIFIED-or-not, against one in five with 20 probes. The noise in balanced accuracy falls by 42%.
+- **The flips left the specificity gate.** It flips in 7% of pairs, against 20%. One failed negative now moves specificity by 0.05, not about 0.08.
+- **The rule is no stricter.** About as many reviews end VERIFIED. Mean sensitivity is a little lower (0.73 against 0.79), with 10 holdouts in place of about 7.
+
+**Limits.** 30 submissions and two reviews each, so the gain in agreement has a wide interval. One pair of 20-probe reviews also agreed at 0.90. 14 of the 60 reviews first wrote 31 or 32 probes, all extra hard negatives. Each reviewer was asked to drop its weakest extra negatives, with no activations shown. Two reviews wrote 19 negatives and 11 holdouts, and were kept.
+
+**Adopted.** `openinterp review` asks for 30 probes, split 20 and 10. `ReviewPolicy` is unchanged, so `PROTOCOL_VERSION` stays 0.8. Older records keep their 20-probe reviews and are not re-reviewed.

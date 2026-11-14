@@ -1,0 +1,26 @@
+{
+ "submissions": 30,
+ "status_pairwise": 0.7333333333333333,
+ "status_fleiss": 0.5872742906276869,
+ "status_all_three": 0.7333333333333333,
+ "verified_pairwise": 0.9,
+ "verified_fleiss": 0.7884841363102233,
+ "verified_any": 13,
+ "verified_all": 10,
+ "verified_majority": 10,
+ "gate_flip_rate": {
+  "beats_confound_baseline": 0.033333333333333326,
+  "counterfactual_reproduction": 0.0,
+  "enough_hard_negatives": 0.0,
+  "enough_holdouts": 0.0,
+  "independent_review": 0.0,
+  "lookahead_consistent": 0.0,
+  "not_default_on": 0.0,
+  "sensitivity": 0.06666666666666665,
+  "specificity": 0.06666666666666665
+ },
+ "specificity_mean": 0.7642543833333334,
+ "sensitivity_mean": 0.7333333333333333,
+ "specificity_noise": 0.004932479986149999,
+ "noise": 0.0031914521237333343
+}

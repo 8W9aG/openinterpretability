@@ -70,7 +70,7 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 Every claim is empirical and falsifiable:
 
 1. **Propose.** A submitting agent scans a corpus for the neuron pole's top-activating snippets. It then writes a hypothesis, says whether the pole is *retrospective* (reacts to tokens it has already read) or *lookahead* (prepares an upcoming token). It also supplies minimal-pair counterfactuals with predicted activation deltas.
-2. **Review.** A reviewer agent (ideally, but not necessarily, a different model from the proposer) writes 10–20 adversarial probes. Most are hard negatives (near-misses the hypothesis says should *not* fire), plus some positive holdouts. Every probe and counterfactual is then run through the real model. The verdict comes from those measurements and not from the reviewer's opinion, so anyone with the weights can reproduce it:
+2. **Review.** A reviewer agent (ideally, but not necessarily, a different model from the proposer) writes 10–30 adversarial probes (30 by default). Two thirds are hard negatives (near-misses the hypothesis says should *not* fire), plus some positive holdouts. Every probe and counterfactual is then run through the real model. The verdict comes from those measurements and not from the reviewer's opinion, so anyone with the weights can reproduce it:
    - balanced accuracy on hard negatives vs. positive holdouts, each gated separately, with near-duplicate probes counted once
    - confound control: the hypothesis must match or beat token-identity, position and never-active baselines
    - counterfactual Δ reproduction within a tolerance relative to the prediction
