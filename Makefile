@@ -1,4 +1,4 @@
-.PHONY: install test lint markdown shell vale ste format check check-all stats build search-index sample-run serve loop clean
+.PHONY: install test perf lint markdown shell vale ste format check check-all stats build search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -10,6 +10,12 @@ install:
 # jobs on the machine have hung the suite.
 test:
 	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterp.core.heavy_lock pytest
+
+# Wall time, CPU time and peak memory of fixed workloads, checked against
+# docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.
+# The heavy lock keeps another heavy job from overlapping the timings.
+perf:
+	uv run python -m openinterp.core.heavy_lock python scripts/perf_bench.py
 
 lint:
 	uv run ruff check .
