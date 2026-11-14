@@ -1,4 +1,7 @@
-"""``openinterp activations`` (a scan's per-token data) and ``openinterp scan-cache``."""
+"""Two commands: a scan's per-token data, and the scan cache.
+
+The commands are ``open-interpretability activations`` and ``open-interpretability scan-cache``.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Sister neurons across models (`openinterp sisters`).
+"""Sister neurons across models (`open-interpretability sisters`).
 
 This takes every VERIFIED neuron pole of a model. It finds the poles of another model
 whose activity over the corpus correlates best with it. Each match has its own best
@@ -340,9 +340,9 @@ def _linked(slug: str, rows: dict, named_by: dict) -> list[tuple[str, float, boo
 
 INTRO = (
     "Neurons in other models whose activity over the corpus correlates with this pole's "
-    "(`openinterp sisters`: r is the Pearson correlation of the two poles' strengths where "
-    "both models have read the same text; a sister is a mutual best match, each the other's "
-    "best partner, above what a random rotation of the layer reaches), "
+    "(`open-interpretability sisters`: r is the Pearson correlation of the two poles' "
+    "strengths where both models have read the same text; a sister is a mutual best match, "
+    "each the other's best partner, above what a random rotation of the layer reaches), "
     "and what this registry's experiments concluded about them. A correlated neuron may "
     "encode a related feature rather than the same one."
 )
@@ -436,8 +436,9 @@ def sister_brief(source: AuditRecord) -> str:
     return (
         f"This is a sister-neuron study. The hypothesis under test is fixed: the explanation "
         f"VERIFIED for {ident}, a pole whose activity correlates with "
-        f"this one's (`openinterp sisters`). It is recorded as this submission's explanation "
-        f"word for word, whatever you write, so the review tests whether it carries over:\n\n"
+        f"this one's (`open-interpretability sisters`). It is recorded as this submission's "
+        f"explanation word for word, whatever you write, so the review tests whether it "
+        f"carries over:\n\n"
         f"> {source.submission.natural_language_explanation}\n\n"
         f"Write `explanation` as exactly that text. Choose the activating tokens, mechanism and "
         f"counterfactuals that this explanation predicts for this pole, using the evidence "

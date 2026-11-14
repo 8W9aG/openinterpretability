@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: main
-          # `openinterp check` checks the errata file's signature at the time it landed,
+          # `open-interpretability check` checks the errata file's signature at the time it landed,
           # which needs main's history (openinterp/signing.py landing_times).
           fetch-depth: 0
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
@@ -47,7 +47,7 @@ jobs:
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: Check registry consistency
-        run: openinterp check
+        run: open-interpretability check
       # The personal-data matches of each text that earlier builds searched
       # (openinterp/builder/pii.py), so this build searches only new text.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
@@ -66,7 +66,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
         run: |
-          openinterp build --wiki-dir wiki --output-dir dist
+          open-interpretability build --wiki-dir wiki --output-dir dist
           python -m pagefind --site dist
       - name: Sync to R2
         env:
@@ -79,7 +79,8 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           OPENINTERP_SITE_URL: ${{ vars.OPENINTERP_SITE_URL }}
         run: |
-          openinterp deploy --dist-dir dist --bucket "$R2_BUCKET" --delete | tee deploy.log
+          open-interpretability deploy --dist-dir dist --bucket "$R2_BUCKET" --delete \
+            | tee deploy.log
           {
             echo "### Registry deploy"
             echo

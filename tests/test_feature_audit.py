@@ -471,7 +471,9 @@ def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatc
 
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     assert "opposite_pole" not in {c.kind for c in plan.candidates}
-    audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
+    audits = [
+        cmd for c in plan.candidates for cmd in c.commands if "open-interpretability audit" in cmd
+    ]
     assert audits and all("--dictionary tiny-tc --feature 5" in cmd for cmd in audits)
     assert not any("--pole" in cmd for cmd in audits)
 

@@ -60,7 +60,7 @@ def test_explore_steps_claim_the_unit_the_seed_picks(tmp_path, monkeypatch):
     assert f"git switch -c experiment/{key}\n" in text
     assert f"--evidence-out exchange/{key}/ev.json" in text
     assert f"--out submissions/{key}.json" in text
-    assert "openinterp show" not in text  # nothing to read for a new unit
+    assert "open-interpretability show" not in text  # nothing to read for a new unit
     assert "wiki/draws/" in text  # a random draw the scan stops on is a result
 
 
@@ -80,8 +80,11 @@ def test_revise_steps_read_the_history_and_supersede(tmp_path, record):
     text = _text(plan, corpus="c.jsonl")
     key = "Qwen--Qwen2.5-0.5B-L3-N117-positive"
     assert f"experiment/{key}-revise" in text
-    assert f"openinterp show {wiki}/experiments/Qwen--Qwen2.5-0.5B/L3/N117-positive\n" in text
-    scan, submit = [line for line in text.splitlines() if "openinterp audit" in line]
+    assert (
+        f"open-interpretability show {wiki}/experiments/Qwen--Qwen2.5-0.5B/L3/N117-positive\n"
+        in text
+    )
+    scan, submit = [line for line in text.splitlines() if "open-interpretability audit" in line]
     assert "--supersedes" not in scan and "--corpus c.jsonl" in scan
     assert "--supersedes" in submit  # with the hypothesis, not the scan
     assert "--explanation-scores" in text
@@ -106,8 +109,8 @@ def test_rescan_steps_scan_the_corpus_and_supersede(tmp_path, record):
     )
     text = _text(plan, corpus="c.jsonl")
     assert "experiment/Qwen--Qwen2.5-0.5B-L3-N117-positive-rescan" in text
-    assert "openinterp show " in text
-    scan, submit = [line for line in text.splitlines() if "openinterp audit" in line]
+    assert "open-interpretability show " in text
+    scan, submit = [line for line in text.splitlines() if "open-interpretability audit" in line]
     assert "--supersedes" not in scan and "--corpus c.jsonl" in scan
     assert f"--supersedes {plan.choice.record}" in submit
     assert 'git commit -m "Rescan ' in text
@@ -121,9 +124,9 @@ def test_review_steps_with_api_models(tmp_path, record):
         if p.choice.kind == "replicate"
     )
     text = _text(plan, reviewer="openai/gpt-test")
-    assert f"openinterp verify --audit-file {plan.choice.record}" in text
+    assert f"open-interpretability verify --audit-file {plan.choice.record}" in text
     assert "--agent-model openai/gpt-test" in text
-    assert "neuron-reviewer" not in text and "openinterp audit" not in text
+    assert "neuron-reviewer" not in text and "open-interpretability audit" not in text
     assert "must differ from the record's proposer" in text
     assert f"--same-as {plan.choice.record} --out {_scanned(plan)}" in text
     assert f"--corpus {_scanned(plan)} --agent-model" in text
@@ -141,7 +144,10 @@ def test_a_review_reads_the_records_corpus_even_with_a_fresh_one(tmp_path, recor
         if p.choice.kind == "replicate"
     )
     text = _text(plan, corpus="c.jsonl", fresh_corpus=True)
-    assert f"openinterp score --audit-file {plan.choice.record} --corpus {_scanned(plan)}" in text
+    assert (
+        f"open-interpretability score --audit-file {plan.choice.record} --corpus {_scanned(plan)}"
+        in text
+    )
     assert "exchange/fresh" not in text and "c.jsonl" not in text
 
 
@@ -150,11 +156,11 @@ def test_a_fresh_corpus_is_built_from_the_draws_seed_before_the_scan(tmp_path, m
     plan = plan_next(tmp_path / "wiki", seed=1, now=NOW)  # empty registry: explore
     fresh = f"exchange/fresh/corpus-{plan.seed}.jsonl"
     text = _text(plan, fresh_corpus=True)
-    assert text.index(f"openinterp corpus --seed {plan.seed} --out {fresh}") < text.index(
-        f"--corpus {fresh} --evidence-out"
-    )
+    assert text.index(
+        f"open-interpretability corpus --seed {plan.seed} --out {fresh}"
+    ) < text.index(f"--corpus {fresh} --evidence-out")
     assert "--corpus corpus.jsonl" not in text
-    assert "openinterp corpus --" not in _text(plan)  # only when asked
+    assert "open-interpretability corpus --" not in _text(plan)  # only when asked
 
 
 def test_cli_next_refuses_two_corpora(tmp_path):
@@ -165,7 +171,10 @@ def test_cli_next_refuses_two_corpora(tmp_path):
     args = ["next", "--wiki-dir", str(tmp_path), "--no-claims", "--steps"]
     both = CliRunner().invoke(cli, [*args, "--fresh-corpus", "--corpus", "c.jsonl"])
     assert both.exit_code != 0 and "both set" in both.output
-    assert "openinterp corpus --seed" in CliRunner().invoke(cli, [*args, "--fresh-corpus"]).output
+    assert (
+        "open-interpretability corpus --seed"
+        in CliRunner().invoke(cli, [*args, "--fresh-corpus"]).output
+    )
 
 
 def test_cli_next_steps(tmp_path, record):

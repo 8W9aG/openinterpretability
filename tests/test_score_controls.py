@@ -1,4 +1,7 @@
-"""Control explanations for `openinterp score --controls` (openinterp/score_controls.py)."""
+"""Control explanations for `open-interpretability score --controls`.
+
+The code is in openinterp/score_controls.py.
+"""
 
 import json
 

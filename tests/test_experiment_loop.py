@@ -1,4 +1,7 @@
-"""``openinterp loop`` (issue #3246): a temporary git repo, a stubbed ``gh`` and fake commands."""
+"""``open-interpretability loop`` (issue #3246), in a temporary git repo.
+
+The tests use a stubbed ``gh`` and fake commands.
+"""
 
 from __future__ import annotations
 

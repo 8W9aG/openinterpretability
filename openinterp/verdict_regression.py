@@ -3,7 +3,7 @@
 A record stores each probe's measured result, the policy, the confound baseline, the
 active share and whether the review was independent. ``review_metrics`` and ``decide``
 need nothing else. So a change to the gates that would change an old record's verdict
-shows here, without a model run. ``openinterp check`` calls ``verdict_drift`` for
+shows here, without a model run. ``open-interpretability check`` calls ``verdict_drift`` for
 every record it reads.
 
 Only records judged under the current ``PROTOCOL_VERSION`` must match. Older protocols

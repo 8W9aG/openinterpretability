@@ -1,4 +1,4 @@
-"""Fixed, versioned blends of corpus presets (`openinterp corpus --dataset mixed`).
+"""Fixed, versioned blends of corpus presets (`open-interpretability corpus --dataset mixed`).
 
 A blend samples each of its presets for its share of the documents, with one seed. It
 writes them in order as one corpus. Each document records its preset as ``source``.
@@ -14,7 +14,7 @@ from openinterp.corpus import PRESETS, _sample_hub, jsonl_bytes, write_corpus
 
 # Fixed blends of presets, by versioned name. Each value is a preset's weight in the blend.
 # A blend is never edited once released. A new mix is a new version, so a corpus's name
-# says what it holds. `mixed` is the latest version and `openinterp corpus`'s default. It
+# says what it holds. `mixed` is the latest version and `open-interpretability corpus`'s default. It
 # spreads random-selection statistics over domains, not one dataset's. They are web
 # text, the Pile's mix of sources (papers, legal text, forums, code), long encyclopedic
 # articles, source code and nine languages besides English. From v3, they include maths,
@@ -200,9 +200,10 @@ def build_blend(
     in the versions of :data:`NO_CODE_LANGUAGE`. Outside :data:`NO_DETECTION`, the other
     presets' documents record a detected language and programming language, where the
     detector is sure of one. The sidecar lists the source of every preset, as
-    ``openinterp corpus --dataset <preset>`` writes it alone. So you can rebuild and check
-    each part separately. ``revisions`` pins datasets to commits, by dataset, and chat
-    templates' models to commits, by model. Without it, each preset reads its latest commits.
+    ``open-interpretability corpus --dataset <preset>`` writes it alone. So you can rebuild
+    and check each part separately. ``revisions`` pins datasets to commits, by dataset, and
+    chat templates' models to commits, by model. Without it, each preset reads its latest
+    commits.
     """
     name = BLEND_ALIASES.get(name, name)
     texts: list[str] = []

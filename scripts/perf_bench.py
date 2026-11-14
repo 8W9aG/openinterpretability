@@ -1,6 +1,6 @@
 """Wall time, CPU time and peak memory of fixed workloads (issue #3265, docs/analyses/perf.md).
 
-Each workload is an ``openinterp`` command on GPT-2 small, with no LLM call. It runs in a
+Each workload is an ``open-interpretability`` command on GPT-2 small, with no LLM call. It runs in a
 child process under ``/usr/bin/time``, so the measurement doesn't change the code that it
 measures. The peak memory is the *peak memory footprint* on macOS, and the maximum
 resident set size elsewhere. On macOS the resident set also counts the clean pages of
@@ -130,7 +130,9 @@ def main() -> int:
     """Run the workloads, then write or check the baseline."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--device", default="cpu", help="cpu (default), mps, cuda or auto.")
-    parser.add_argument("--build", action="store_true", help="Also time `openinterp build`.")
+    parser.add_argument(
+        "--build", action="store_true", help="Also time `open-interpretability build`."
+    )
     parser.add_argument("--write", action="store_true", help=f"Replace {BASELINE}.")
     parser.add_argument("--strict", action="store_true", help="Exit 1 on a regression.")
     parser.add_argument("--baseline", type=Path, default=BASELINE)

@@ -44,5 +44,5 @@ The rule is not part of the decision rule. Whether to adopt it, and whether to a
 ## What this means
 
 - **Standing doesn't need a different rule for older verdicts.** Today's rule keeps almost all of them, and the split is now visible.
-- **Re-evaluate the 5 default-on poles** with `openinterp reevaluate`. It writes new records under protocol 0.8, and their units' standing changes by the usual rule, with no protocol change. A follow-up issue holds this.
+- **Re-evaluate the 5 default-on poles** with `open-interpretability reevaluate`. It writes new records under protocol 0.8, and their units' standing changes by the usual rule, with no protocol change. A follow-up issue holds this.
 - **Run the script after each protocol change.** It shows at once how many older claims the new rule would reject.

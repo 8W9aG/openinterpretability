@@ -4,9 +4,9 @@ On GPT-2, VERIFIED poles bring back no more of a layer's loss than random poles 
 (``docs/analyses/registry-coverage.md``). So the registry may favour poles that are easy
 to explain over poles that matter. So a share of explore draws (``[tool.openinterp]
 effect_share``) picks a pole in proportion to its estimated effect. The effects come from
-the model's table in ``data/pole-effects/`` (``openinterp pole-effects``). These draws record
-``selection: attribution``, so they never count towards the registry statistics, which
-use only random draws. A model with no table always draws uniformly.
+the model's table in ``data/pole-effects/`` (``open-interpretability pole-effects``). These
+draws record ``selection: attribution``, so they never count towards the registry
+statistics, which use only random draws. A model with no table always draws uniformly.
 """
 
 from __future__ import annotations
@@ -72,8 +72,8 @@ def effect_draw(rng: random.Random, model: str, pyproject: Path, taken: set[str]
     if row is None:
         return None
     audit = (
-        f"openinterp audit --model {model} --layer {row['layer']} --neuron {row['neuron']} "
-        f"--pole {row['pole']} --selection attribution"
+        f"open-interpretability audit --model {model} --layer {row['layer']} "
+        f"--neuron {row['neuron']} --pole {row['pole']} --selection attribution"
     ) + (f" --window-tokens {window}" if window else "")
     return Candidate(
         kind="explore",

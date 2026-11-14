@@ -56,8 +56,6 @@ Repository = "https://github.com/8W9aG/openinterpretability"
 
 [project.scripts]
 open-interpretability = "openinterp.cli:main"
-# The old name, kept until every doc, skill and workflow uses the new one (issue #3251).
-openinterp = "openinterp.cli:main"
 
 [project.optional-dependencies]
 # `open-interpretability build` makes the site's search index with Pagefind.
@@ -91,7 +89,7 @@ path = "openinterp/__init__.py"
 packages = ["openinterp"]
 
 [tool.openinterp]
-# Models `openinterp next` explores: most draws go to the smallest model whose share is
+# Models `open-interpretability next` explores: most draws go to the smallest model whose share is
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
 # openinterp/planner_models.py). Keep in
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so

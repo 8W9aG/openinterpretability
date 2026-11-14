@@ -581,9 +581,9 @@ None. The labels are reported, not gated. A scan of a corpus that records progra
 On an Apple M-series MPS backend, the sweep takes about 40 minutes for GPT-2, 3 hours for Qwen2.5-0.5B and 4.5 hours for Qwen2.5-1.5B. The sweep by bracket kind takes 15 minutes, 1 hour and 3 hours. CPU is slower. The other commands take a few minutes. `results.jsonl` stores the outputs for GPT-2, and `results-qwen2.5-0.5b.jsonl` and `results-qwen2.5-1.5b.jsonl` those for Qwen. The sweep by bracket kind at 128-token windows takes 45 minutes for Qwen2.5-0.5B and 1.5 hours for Qwen2.5-1.5B, and `results.window128-*.jsonl` stores it. `results.followups.jsonl` stores the written follow-ups, which run on CPU in about 30 minutes. Parser and grammar versions are in `uv.lock`.
 
 ```bash
-uv run openinterp corpus --dataset github-code --docs 500 --seed 0 --out code.jsonl
-uv run openinterp corpus --dataset github-code --docs 500 --seed 0 --max-chars 1000000 --out code-whole.jsonl
-uv run openinterp corpus --dataset github-code --docs 500 --seed 1 --max-chars 1000000 --out code-seed1-whole.jsonl
+uv run open-interpretability corpus --dataset github-code --docs 500 --seed 0 --out code.jsonl
+uv run open-interpretability corpus --dataset github-code --docs 500 --seed 0 --max-chars 1000000 --out code-whole.jsonl
+uv run open-interpretability corpus --dataset github-code --docs 500 --seed 1 --max-chars 1000000 --out code-seed1-whole.jsonl
 P=papers/syntax-positive-controls
 uv run python scripts/syntax_controls.py sweep --device mps --corpus code.jsonl --out $P/results.jsonl
 uv run python scripts/syntax_controls.py kinds --device mps --corpus code.jsonl --out $P/results.jsonl

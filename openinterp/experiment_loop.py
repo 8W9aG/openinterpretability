@@ -1,10 +1,11 @@
-"""``openinterp loop``: run experiments back to back with API agents (issue #3246).
+"""``open-interpretability loop``: run experiments back to back with API agents (issue #3246).
 
 Each iteration resets a detached worktree to ``origin/main`` and draws with the planner.
 It claims the draw as ``choose-next-experiment`` does, then runs the draw's steps
-(``draw_steps.steps``, the commands ``openinterp next --steps`` prints). Then it posts the
-result, and lands it as the ``land-experiment`` skill does. ``openinterp`` commands run in
-this process, so a model loads once (``runner_cache``). git and gh run as subprocesses.
+(``draw_steps.steps``, the commands ``open-interpretability next --steps`` prints). Then it
+posts the result, and lands it as the ``land-experiment`` skill does.
+``open-interpretability`` commands run in this process, so a model loads once
+(``runner_cache``). git and gh run as subprocesses.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from openinterp.planner import claim_key
 
 MERGE_PERMISSIONS = ("ADMIN", "MAINTAIN", "WRITE")
 CHECKS_TIMEOUT = 45 * 60  # seconds; the land-experiment skill gives up after 45 minutes
-OPENINTERP = ("uv", "run", "openinterp")
+OPENINTERP = ("uv", "run", "open-interpretability")
 
 
 class LoopError(Exception):
@@ -70,12 +71,15 @@ def sh(args: list[str], check: bool = True, timeout: float | None = None) -> str
 
 
 def openinterp(args: list[str]) -> None:
-    """Run one ``openinterp`` command in this process. A non-zero exit raises LoopError."""
+    """Run one ``open-interpretability`` command in this process.
+
+    A non-zero exit raises LoopError.
+    """
     from openinterp.cli import cli
 
     sys.stdout.write(f"$ openinterp {shlex.join(args)}\n")
     try:
-        cli.main(args=args, prog_name="openinterp", standalone_mode=False)
+        cli.main(args=args, prog_name="open-interpretability", standalone_mode=False)
     except SystemExit as exc:
         if exc.code not in (0, None):
             raise LoopError(f"`openinterp {args[0]}` exited {exc.code}") from exc
@@ -228,7 +232,14 @@ def iteration(options: Options, plan_next, claims) -> Result:
         status = run_work(work, plan.choice.kind, claim_key(slug))
     except Exception as exc:
         sh(
-            ["gh", "pr", "close", url, "--comment", f"Abandoned by `openinterp loop`: {exc}"],
+            [
+                "gh",
+                "pr",
+                "close",
+                url,
+                "--comment",
+                f"Abandoned by `open-interpretability loop`: {exc}",
+            ],
             check=False,
         )
         delete_branch()
@@ -335,7 +346,7 @@ class Loop:
         return 1 if self.failures >= self.max_failures else None
 
     def _wait_while_paused(self) -> None:
-        """Wait, a minute at a time, while ``openinterp pause`` is in force."""
+        """Wait, a minute at a time, while ``open-interpretability pause`` is in force."""
         from openinterp.core import pause
 
         said = False

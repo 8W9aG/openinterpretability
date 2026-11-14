@@ -1,4 +1,4 @@
-"""Labelled text for `openinterp probe-compare`, and the rows of its analysis.
+"""Labelled text for `open-interpretability probe-compare`, and the rows of its analysis.
 
 Each concept is a regular expression over characters, so its labels never depend on
 the model. ``labels`` marks a corpus with one concept; ``report`` gathers the

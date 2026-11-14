@@ -1,7 +1,7 @@
 """The project's public links, read from ``pyproject.toml``'s metadata.
 
 ``[project.urls]`` holds the site's URL (``Homepage``) and the repo's (``Repository``).
-The builder and ``openinterp deploy`` read them here, so each URL is written down once.
+The builder and ``open-interpretability deploy`` read them here, so each URL is written down once.
 """
 
 from __future__ import annotations

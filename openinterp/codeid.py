@@ -1,6 +1,6 @@
 """A document's programming language, for corpora whose dataset doesn't say it.
 
-Used by ``openinterp corpus --detect-code``. The detector is Google's Magika, a file-type
+Used by ``open-interpretability corpus --detect-code``. The detector is Google's Magika, a file-type
 model that reads content only (a corpus has no file names). We compared it with go-enry
 (GitHub Linguist), a CodeBERTa language classifier and Pygments
 (``docs/analyses/code-detection.md``). The tests were labelled GitHub files, prose, prose

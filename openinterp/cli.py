@@ -1,4 +1,4 @@
-"""Command-line interface: the `openinterp` group, shared options and core commands."""
+"""Command-line interface: the `open-interpretability` group, shared options and core commands."""
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ def resolve_device(device: str) -> str:
     The device planner (``openinterp/harness/devices.py``) decides if the GPU is free.
     A process that uses a GPU keeps a lease on it, so other processes see that it is busy.
     float32 activations on MPS match the CPU's to about 1e-4 of a neuron's peak. That is
-    inside the tolerance of ``openinterp reproduce``.
+    inside the tolerance of ``open-interpretability reproduce``.
     """
     from openinterp.harness import devices
 
@@ -213,8 +213,8 @@ explanation_scores_option = click.option(
     "--explanation-scores",
     "scores_file",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="ExplanationScores JSON from `openinterp score` for this explanation, recorded in "
-    "the verdict (reported, not gated).",
+    help="ExplanationScores JSON from `open-interpretability score` for this explanation, "
+    "recorded in the verdict (reported, not gated).",
 )
 
 
@@ -346,7 +346,7 @@ def cli(ctx, quiet) -> None:
     quiet_libraries(quiet)
     costs.reset()
     start = time.perf_counter()
-    command = ctx.invoked_subcommand or "openinterp"
+    command = ctx.invoked_subcommand or "open-interpretability"
     if command not in ("costs", "usage"):  # bookkeeping, not an experiment step
         ctx.call_on_close(lambda: costs.append_ledger(command, time.perf_counter() - start))
 

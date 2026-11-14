@@ -7,7 +7,7 @@ build then records them in the same order as one process does. With one job, or 
 ``fork`` on the platform, the pages render in this process, one by one.
 
 A fork is safe while the build runs no other thread, and the build starts none. If that
-changes, Python warns at the fork, and ``openinterp build --jobs 1`` avoids it.
+changes, Python warns at the fork, and ``open-interpretability build --jobs 1`` avoids it.
 """
 
 from __future__ import annotations

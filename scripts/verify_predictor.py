@@ -10,7 +10,7 @@ in the training units, the forecast that needs no features. Both are scored on t
 units with the Brier and log scores. A bootstrap over test units gives the interval of
 the difference.
 
-    uv run openinterp build --output-dir build/site
+    uv run open-interpretability build --output-dir build/site
     uv run python scripts/verify_predictor.py --site-dir build/site \\
         --out docs/analyses/verify-predictor.jsonl
 """
