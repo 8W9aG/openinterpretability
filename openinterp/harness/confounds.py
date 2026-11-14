@@ -130,3 +130,20 @@ def baseline_predictions(
         token_pred.append(any(i in triggers for i in ids[start:]))
         position_pred.append(any(p in hot_positions for p in range(start, len(ids))))
     return {"token identity": token_pred, "position": position_pred}
+
+
+def length_predictions(
+    tokenizer: Any, texts: Sequence[str], skip_first: bool = False
+) -> dict[str, list[bool]]:
+    """Return "active if the probe has at least n tokens" for each cut n.
+
+    A unit that responds to position passes probes that differ only in length. On a
+    randomly initialised GPT-2, two units were VERIFIED that way (issue #3525). Tokens are
+    counted as the unit reads them, so the first is left out when ``skip_first``. It is a
+    proposed confound baseline: ``scripts/protocol_mix.py`` measures what it would change.
+    """
+    lengths = [
+        len(tokenizer([text], return_tensors="pt")["input_ids"][0]) - int(skip_first)
+        for text in texts
+    ]
+    return {f"probe length ≥ {n} tokens": [n <= k for k in lengths] for n in sorted(set(lengths))}

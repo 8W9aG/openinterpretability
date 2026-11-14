@@ -360,6 +360,19 @@ def confound_baseline(
         submission.confounds, runner.tokenizer, texts, threshold, skip_first
     )
     candidates["never active"] = [False] * len(probes)
+    return best_baseline(candidates, probes, actual, policy)
+
+
+def best_baseline(
+    candidates: dict[str, Sequence[bool]],
+    probes: Sequence[AdversarialProbe],
+    actual: Sequence[bool],
+    policy: ReviewPolicy,
+) -> tuple[str, float]:
+    """The candidate rule that explains the probes' activity best: (name, balanced accuracy).
+
+    Ties go to the first name in sorted order.
+    """
     scored = {name: _probe_score(probes, pred, actual, policy) for name, pred in candidates.items()}
     best = max(sorted(scored), key=lambda name: scored[name])
     return best, round(scored[best], 6)

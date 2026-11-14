@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 from openinterp.core.paths import DEFAULT_EXCHANGE_DIR
 from openinterp.planner import Candidate, Plan, claim_key
-from openinterp.planner_models import model_dims
+from openinterp.planner_models import model_dims, model_heads
 
 SCAN_KINDS = ("explore", "opposite_pole", "revise", "new_hypothesis", "rescan", "sister")
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
@@ -44,6 +44,19 @@ def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None
     return NeuronIdentifier(model_name=model, layer=layer, neuron_idx=neuron, pole=pole).slug
 
 
+def random_head(model: str, seed: int, dims: tuple[int, int]) -> str:
+    """The slug ``openinterp audit --model M --random --unit head --seed S`` scans.
+
+    Mirrors :func:`openinterp.evidence.pick_unit` for heads: the layer, then the head.
+    """
+    from openinterp.core.identifiers import HeadIdentifier
+
+    rng = random.Random(seed)
+    layer = rng.randrange(dims[0])
+    head = rng.randrange(dims[1])
+    return HeadIdentifier(model_name=model, layer=layer, head_idx=head).slug
+
+
 def draw_slug(choice: Candidate) -> str | None:
     """Return the unit that the draw studies.
 
@@ -53,9 +66,14 @@ def draw_slug(choice: Candidate) -> str | None:
     options = (choice.audit or "").split()
     if choice.slug or "--random" not in options:
         return choice.slug
-    if "--seed" not in options or (dims := model_dims(choice.model)) is None:
+    if "--seed" not in options:
         return None
     seed = int(options[options.index("--seed") + 1])
+    if "--unit" in options and options[options.index("--unit") + 1] == "head":
+        heads = model_heads(choice.model)
+        return random_head(choice.model, seed, heads) if heads else None
+    if (dims := model_dims(choice.model)) is None:
+        return None
     pole = options[options.index("--pole") + 1] if "--pole" in options else None
     return random_neuron(choice.model, seed, dims, pole)
 
@@ -66,13 +84,15 @@ def steps(
     proposer: str | None = None,
     reviewer: str | None = None,
     fresh_corpus: bool = False,
+    ledger: str | None = None,
 ) -> list[Step]:
     """Return every step of ``plan``'s draw.
 
     A ``proposer`` or ``reviewer`` of None, or one named ``external/…``, means that a
     Claude Code subagent answers a prompt that the CLI writes. A new scan reads ``corpus``,
     or with ``fresh_corpus`` a corpus that it first builds from the draw's seed. A review of
-    a record reads the corpus that the record scanned, whichever these say.
+    a record reads the corpus that the record scanned, whichever these say. ``ledger`` is
+    the draw's ledger entry (:mod:`openinterp.core.ledger`), which the claim commits.
     """
     c = plan.choice
     slug = draw_slug(c)
@@ -81,7 +101,7 @@ def steps(
     corpus, build = _corpus(c, out, corpus, plan.seed, fresh_corpus)
     run = _run(c, key, out, corpus, _api(proposer), _api(reviewer))
     return [
-        _claim(c, key, plan.seed, known=slug is not None),
+        _claim(c, key, plan.seed, known=slug is not None, ledger=ledger),
         *([] if c.kind in ("explore", "opposite_pole") else [_history(c)]),
         *build,
         *run,
@@ -107,15 +127,21 @@ def _api(model: str | None) -> str | None:
     return None if model is None or model.startswith("external/") else model
 
 
-def _claim(c: Candidate, key: str, seed: int, known: bool) -> Step:
+def _claim(c: Candidate, key: str, seed: int, known: bool, ledger: str | None = None) -> Step:
     branch = (
         f"experiment/{key}"
         if c.kind in ("explore", "opposite_pole")
         else f"experiment/{key}-{c.kind}"
     )
+    # The claim commits the draw's ledger entry, so the draw reaches main whatever the run does.
+    commit = (
+        [f"git add {ledger}", f'git commit -m "Claim {key}"']
+        if ledger
+        else [f'git commit --allow-empty -m "Claim {key}"']
+    )
     commands = [
         f"git switch -c {branch}",
-        f'git commit --allow-empty -m "Claim {key}"',
+        *commit,
         "git push -u origin HEAD",
         f'gh pr create --draft --title "experiment: {key} ({c.kind})" '
         f'--body "openinterp next seed: {seed}"',
@@ -281,7 +307,8 @@ def _post(key: str, kind: str) -> Step:
             "git push && gh pr ready",
         ],
         "Commit the record's .sig if verify printed 'Signed as …'. Never abandon a claim "
-        "silently: if you stop, close the PR saying why.",
+        "silently: if you stop, say why in the PR and land it with only its ledger entry "
+        "(wiki/ledger/), so the draw still counts. Don't close it.",
     )
 
 
