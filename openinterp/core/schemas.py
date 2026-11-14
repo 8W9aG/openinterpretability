@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
+from openinterp.core import evidence
 from openinterp.core.agent_names import same_agent
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.causal import (  # noqa: F401  (re-exported)
@@ -63,7 +64,7 @@ VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 
-PROTOCOL_VERSION = "0.8"
+PROTOCOL_VERSION = "0.9"
 # Probes a review asks for (PROTOCOL.md §2, step 5): 20 hard negatives, 10 holdouts.
 MAX_PROBES = 30
 # Share of max activation counted as "active" (PROTOCOL.md §1); ReviewPolicy's default.
@@ -450,10 +451,24 @@ class VerificationVerdict(StrictModel):
 
 
 class AuditRecord(StrictModel):
-    """The unit stored in the registry: a submission plus its review verdict."""
+    """The unit stored in the registry: a submission plus its review verdict.
+
+    Loading resolves a slim record's evidence references (:mod:`.evidence`, issue #3254).
+    """
 
     submission: NeuronAuditSubmission
     verdict: VerificationVerdict | None = None
+
+    @classmethod
+    def model_validate_json(cls, json_data, **kwargs) -> AuditRecord:  # noqa: D102
+        return super().model_validate_json(evidence.resolved_text(json_data), **kwargs)
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs) -> AuditRecord:  # noqa: D102
+        text = evidence.resolved_dict_text(obj)
+        if text is None:
+            return super().model_validate(obj, **kwargs)
+        return super().model_validate_json(text, **kwargs)
 
     @property
     def is_verified(self) -> bool:

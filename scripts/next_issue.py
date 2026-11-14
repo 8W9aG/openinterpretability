@@ -7,6 +7,13 @@ is a candidate instead. The exception is `area: models`: no new model until ever
 configured model reaches its coverage target. Candidates rank by priority, then by the workstream
 that the release has served least, then oldest first.
 
+An answered issue comes before all of them. That is a started issue (In Progress or In
+Review) where an agent asked the maintainer something and stopped, and the maintainer has
+replied since. Agents and the maintainer comment from one account. So an agent's comment
+is one that starts with an agent's marker (:data:`AGENT_MARKS`), and any other comment is
+the maintainer's. An issue is answered when its newest comment is the maintainer's and an
+agent's comment comes before it.
+
     python3 scripts/next_issue.py            # print the pick and the runners-up
     python3 scripts/next_issue.py --pull     # also add a pulled issue to the milestone
     python3 scripts/next_issue.py --json     # machine-readable
@@ -32,6 +39,10 @@ NO_PRIORITY = 5
 STARTED = ("In Progress", "In Review")
 HELD_AREAS = ("area: models",)  # not pulled into a release (see the docstring)
 RUNNERS_UP = 4
+# How every agent comment starts. Most start with a bold marker, such as **Plan** or
+# **Question**. The others are the merge line of the next-issue skill, the fallback line of
+# issue_state.py, and the line that the Linear sync posts.
+AGENT_MARKS = ("**", "Merged in #", "Working on this.", "<!-- linear-linkback")
 
 
 def gh_json(*args: str):
@@ -145,6 +156,37 @@ def rank(candidates: list[dict], states: dict, served: Counter) -> list[dict]:
     return ordered
 
 
+def is_agent(body: str) -> bool:
+    """Whether a comment is an agent's: it starts with one of :data:`AGENT_MARKS`."""
+    return body.lstrip().startswith(AGENT_MARKS)
+
+
+def waiting_answer(comments: list[dict]) -> str | None:
+    """The maintainer's reply that an agent hasn't acted on yet, else ``None``.
+
+    That is the newest comment, when it isn't an agent's and an agent's comment is before it.
+    """
+    if not comments or is_agent(comments[-1]["body"]):
+        return None
+    if not any(is_agent(c["body"]) for c in comments[:-1]):
+        return None
+    return comments[-1]["body"]
+
+
+def answered(states: dict) -> list[dict]:
+    """Started open issues with a reply that no agent has acted on, each with ``answer``."""
+    out = []
+    for number, linear in sorted(states.items()):
+        if linear.get("state") not in STARTED:
+            continue
+        issue = gh_json("issue", "view", number, "--repo", issue_state.REPO, "--json",
+                        "number,title,labels,createdAt,milestone,state,comments")  # fmt: skip
+        reply = waiting_answer(issue.pop("comments")) if issue["state"] == "OPEN" else None
+        if reply is not None:
+            out.append(issue | {"answer": reply})
+    return out
+
+
 def unstarted(issues: list[dict], states: dict) -> list[dict]:
     """Issues whose Linear state isn't In Progress or In Review, and not held back."""
     return [
@@ -185,13 +227,20 @@ def choose() -> dict:
         *(["--milestone", milestone] if milestone else []),
     )
     served = Counter(area(i) for i in released)
+    replied, rest = pick(rank(answered(states), states, served))
+    if replied is not None:
+        _, normal = pick(rank(unstarted(in_release, states), states, served))
+        others = (rest + normal)[:RUNNERS_UP]
+        return {"milestone": milestone, "pulled": False, "resume": True, "pick": replied,
+                "runners_up": others}  # fmt: skip
     best, others = pick(rank(unstarted(in_release, states), states, served))
     pulled = False
     if best is None:
         backlog = [i for i in open_issues(None) if area(i) not in HELD_AREAS]
         best, others = pick(rank(unstarted(backlog, states), states, served))
         pulled = best is not None
-    return {"milestone": milestone, "pulled": pulled, "pick": best, "runners_up": others}
+    return {"milestone": milestone, "pulled": pulled, "resume": False, "pick": best,
+            "runners_up": others}  # fmt: skip
 
 
 def unprioritised(issues: list[dict], states: dict) -> list[dict]:
@@ -272,7 +321,11 @@ def main() -> None:
     if result["pick"] is None:
         sys.exit("No eligible issue, in the release or out of it.")
     where = f"pulled into {result['milestone']}" if result["pulled"] else result["milestone"]
+    if result["resume"]:
+        where = "answered: resume it"
     print(f"Next ({where}): {describe(result['pick'])}")
+    if result["resume"]:
+        print(f"  The maintainer's reply: {result['pick']['answer'][:300]}")
     for issue in result["runners_up"]:
         print(f"  then: {describe(issue)}")
     if result["pulled"] and "--pull" in sys.argv and result["milestone"]:

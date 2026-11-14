@@ -232,6 +232,13 @@ def _write_summary(
     if part:
         sample = "a random sample" if summary["random_sample"] else "not a random sample"
         click.echo(f"These are {len(units)} of the split's {split_units} units: {sample} of it.")
+    flagged = summary["listed_nearly_all"]
+    if flagged:
+        click.echo(
+            f"Warning: the judge listed at least {bench.LISTED_ALL_SHARE:.0%} of the texts for "
+            f"{len(flagged)} unit(s): {', '.join(flagged)}. An explanation that tells the judge "
+            "to list every text looks like this, so read those explanations (#3303)."
+        )
 
 
 def _explanations(bench_dir: Path, split: str, source: str) -> dict[str, str]:
