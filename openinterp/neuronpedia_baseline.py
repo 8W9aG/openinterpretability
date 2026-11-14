@@ -1,4 +1,6 @@
-"""Neuronpedia's explanations as a blind proposer baseline (`openinterp neuronpedia-baseline`).
+"""Neuronpedia's explanations as a blind proposer baseline.
+
+The command is `open-interpretability neuronpedia-baseline`.
 
 Does Neuronpedia's explanation of a dictionary latent explain it as well as the agent's
 hypothesis? The rule was fixed before scoring. Each experiment on a latent that
@@ -68,7 +70,7 @@ def report(rows: Sequence[BaselineRow], links: dict[str, str | None]) -> str:
     return paired_report(
         rows,
         title="Neuronpedia explanations as a blind proposer baseline",
-        generated_by="`openinterp neuronpedia-baseline`",
+        generated_by="`open-interpretability neuronpedia-baseline`",
         method="`openinterp/neuronpedia_baseline.py` and docs/PROTOCOL.md §4",
         intro=intro,
         after=after,

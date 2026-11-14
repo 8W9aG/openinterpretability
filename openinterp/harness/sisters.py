@@ -107,7 +107,7 @@ class Correlations:
 
 
 def _seed(model_name: str, layer: int) -> int:
-    digest = hashlib.sha256(f"openinterp sisters {model_name} {layer}".encode()).digest()
+    digest = hashlib.sha256(f"open-interpretability sisters {model_name} {layer}".encode()).digest()
     return int.from_bytes(digest[:8])
 
 

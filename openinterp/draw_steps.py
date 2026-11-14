@@ -1,6 +1,6 @@
 """The steps of one drawn experiment as exact commands: claim, read the history, run, post.
 
-``openinterp next --steps`` prints them. A driving agent then runs them in order. It
+``open-interpretability next --steps`` prints them. A driving agent then runs them in order. It
 does not work them out again from the skills and ``docs/PROTOCOL.md`` on every
 experiment. The skills stay the reference for *why*. This is only the *what*, filled in
 for the draw.
@@ -30,7 +30,7 @@ class Step:
 
 
 def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None = None) -> str:
-    """The slug ``openinterp audit --model M --random --seed S`` scans, without a scan.
+    """The slug ``open-interpretability audit --model M --random --seed S`` scans, without a scan.
 
     Mirrors :func:`openinterp.evidence.pick_unit`'s draws (layer, neuron, pole), assuming
     every layer has the same MLP width.
@@ -45,7 +45,7 @@ def random_neuron(model: str, seed: int, dims: tuple[int, int], pole: str | None
 
 
 def random_head(model: str, seed: int, dims: tuple[int, int]) -> str:
-    """The slug ``openinterp audit --model M --random --unit head --seed S`` scans.
+    """The slug ``open-interpretability audit --model M --random --unit head --seed S`` scans.
 
     Mirrors :func:`openinterp.evidence.pick_unit` for heads: the layer, then the head.
     """
@@ -113,12 +113,12 @@ def _corpus(c, out, corpus, seed, fresh: bool) -> tuple[str, list[Step]]:
     """Return the corpus that the draw reads, and the steps that build it, if any."""
     if c.kind in REVIEW_KINDS:
         scanned = f"{out}/scan-corpus.jsonl"
-        command = f"uv run openinterp corpus --same-as {c.record} --out {scanned}"
+        command = f"uv run open-interpretability corpus --same-as {c.record} --out {scanned}"
         return scanned, [Step("Rebuild the corpus the record scanned", [command], _NO_REBUILD)]
     if fresh and c.kind in SCAN_KINDS:
         # Not under `out`: an explore draw's key can be unknown until its scan starts.
         built = f"{DEFAULT_EXCHANGE_DIR}/fresh/corpus-{seed}.jsonl"
-        command = f"uv run openinterp corpus --seed {seed} --out {built}"
+        command = f"uv run open-interpretability corpus --seed {seed} --out {built}"
         return built, [Step("Build a fresh scan corpus (about a minute)", [command])]
     return corpus, []
 
@@ -144,7 +144,7 @@ def _claim(c: Candidate, key: str, seed: int, known: bool, ledger: str | None = 
         *commit,
         "git push -u origin HEAD",
         f'gh pr create --draft --title "experiment: {key} ({c.kind})" '
-        f'--body "openinterp next seed: {seed}"',
+        f'--body "open-interpretability next seed: {seed}"',
     ]
     note = (
         ""
@@ -164,12 +164,12 @@ def _history(c: Candidate) -> Step:
         if c.kind == "sister"
         else "Read the history (revisions must address the failed gates and probes it lists)"
     )
-    return Step(title, [f"uv run openinterp show {unit_dir}"])
+    return Step(title, [f"uv run open-interpretability show {unit_dir}"])
 
 
 def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
     if c.kind == "reevaluate":
-        command = f"uv run openinterp reevaluate --record {c.record}"
+        command = f"uv run open-interpretability reevaluate --record {c.record}"
         return [Step("Re-evaluate (no LLM calls)", [command])]
     if c.kind in REVIEW_KINDS:
         return _review(c.record, out, corpus, reviewer, independent=True)
@@ -183,13 +183,13 @@ def _scan(c, out, corpus, proposer, submission) -> list[Step]:
     if c.kind == "sister":  # the scan's options carry it; the submit step needs it too
         supersedes = f" --sister-of {c.record}"
     stopped = _STOPPED if "--random" in (c.audit or "").split() else _STOPPED_CHOSEN
-    audit = f"uv run openinterp audit {c.audit} --corpus {corpus}"
+    audit = f"uv run open-interpretability audit {c.audit} --corpus {corpus}"
     if proposer:
         once = "" if c.kind == "sister" else supersedes  # already in c.audit
         command = f"{audit} --agent-model {proposer}{once} --out {submission}"
         return [Step(f"Scan and propose ({_SLOW})", [command], stopped)]
     submit = (
-        f"uv run openinterp audit --evidence {out}/ev.json "
+        f"uv run open-interpretability audit --evidence {out}/ev.json "
         f"--hypothesis {out}/ev.hypothesis.json "
         f"--agent-model external/<proposer model ID>{supersedes} --out {submission}"
     )
@@ -226,7 +226,7 @@ _INDEPENDENT = (
 def _agent(agent: str, prompt: str, answer: str) -> Step:
     return Step(
         f"Ask `{agent}` to answer {prompt}, then record its cost",
-        [f"uv run openinterp usage <agent ID> --answer {answer}"],
+        [f"uv run open-interpretability usage <agent ID> --answer {answer}"],
         "Give it only that path. Note the model ID it reports.",
     )
 
@@ -235,12 +235,12 @@ def _review(audit_file, out, corpus, reviewer, independent: bool) -> list[Step]:
     note = _INDEPENDENT if independent else ""
     if reviewer:
         command = (
-            f"uv run openinterp verify --audit-file {audit_file} --corpus {corpus} "
+            f"uv run open-interpretability verify --audit-file {audit_file} --corpus {corpus} "
             f"--agent-model {reviewer}"
         )
         return [Step("Review", [command], note)]
     review = (
-        f"uv run openinterp review --audit-file {audit_file} "
+        f"uv run open-interpretability review --audit-file {audit_file} "
         f"--probes {out}/review.probes.json --agent-model external/<reviewer model ID> "
         f"--explanation-scores {out}/score.scores.json"
     )
@@ -254,10 +254,11 @@ def _review(audit_file, out, corpus, reviewer, independent: bool) -> list[Step]:
 def _probes(audit_file, out) -> list[Step]:
     """The reviewer subagent writes probes, and checks them as tokens when that matters."""
     emit = (
-        f"uv run openinterp review --audit-file {audit_file} --emit-prompt {out}/review.prompt.md"
+        f"uv run open-interpretability review --audit-file {audit_file} "
+        f"--emit-prompt {out}/review.prompt.md"
     )
     check = (
-        f"uv run openinterp review --audit-file {audit_file} "
+        f"uv run open-interpretability review --audit-file {audit_file} "
         f"--check-probes {out}/review.probes.json"
     )
     return [
@@ -278,11 +279,11 @@ def _probes(audit_file, out) -> list[Step]:
 def _scores(audit_file, out, corpus) -> list[Step]:
     """Two judge subagents score the explanation on held-out windows."""
     emit = (
-        f"uv run openinterp score --audit-file {audit_file} --corpus {corpus} "
+        f"uv run open-interpretability score --audit-file {audit_file} --corpus {corpus} "
         f"--emit-task {out}/score.task.json"
     )
     score = (
-        f"uv run openinterp score --task {out}/score.task.json "
+        f"uv run open-interpretability score --task {out}/score.task.json "
         "--judge-model external/<judge model ID>"
     )
     return [
@@ -291,8 +292,10 @@ def _scores(audit_file, out, corpus) -> list[Step]:
             f"Ask one `explanation-judge` to answer {out}/score.detection.prompt.md and a "
             f"second to answer {out}/score.fuzzing.prompt.md (if written), then record costs",
             [
-                f"uv run openinterp usage <first agent ID> --answer {out}/score.detection.json",
-                f"uv run openinterp usage <second agent ID> --answer {out}/score.fuzzing.json",
+                f"uv run open-interpretability usage <first agent ID> "
+                f"--answer {out}/score.detection.json",
+                f"uv run open-interpretability usage <second agent ID> "
+                f"--answer {out}/score.fuzzing.json",
             ],
             "Give each only its own path. Note the model ID they report.",
         ),
@@ -304,7 +307,7 @@ def _post(key: str, kind: str) -> Step:
     return Step(
         "Post the result, whatever it is",
         [
-            "uv run openinterp wiki",
+            "uv run open-interpretability wiki",
             "make check lint test",
             f'git add wiki && git commit -m "{VERBS[kind]} {key} (<VERDICT>, <balanced accuracy>)"',
             "git push && gh pr ready",

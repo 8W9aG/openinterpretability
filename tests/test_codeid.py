@@ -1,4 +1,7 @@
-"""Detecting a document's programming language (`openinterp/codeid.py`) for `openinterp corpus`."""
+"""Detecting a document's programming language (`openinterp/codeid.py`).
+
+The detector serves `open-interpretability corpus`.
+"""
 
 import json
 from types import SimpleNamespace

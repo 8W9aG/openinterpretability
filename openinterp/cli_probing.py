@@ -1,4 +1,4 @@
-"""``openinterp probe-compare``: a verified pole against linear probes for its concept.
+"""``open-interpretability probe-compare``: a verified pole against linear probes for its concept.
 
 See :mod:`openinterp.harness.probing` for the probes and :mod:`openinterp.core.probing`
 for what is reported.

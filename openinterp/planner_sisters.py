@@ -1,5 +1,6 @@
-"""``sister`` draws for ``openinterp next``: VERIFIED poles' explanations tested in other models.
+"""``sister`` draws: VERIFIED poles' explanations tested in other models.
 
+``open-interpretability next`` makes these draws.
 :func:`openinterp.planner.plan_next` adds these to the follow-up candidates. The weights
 are in docs/PROTOCOL.md (Sister study).
 """
@@ -44,7 +45,7 @@ def sister_candidates(
     """Return the ``sister`` draws for the models of ``pool``.
 
     A sister draw audits a pole of another model with a VERIFIED pole's explanation,
-    unchanged. The draws are every unstudied match that ``openinterp sisters`` found
+    unchanged. The draws are every unstudied match that ``open-interpretability sisters`` found
     (read from ``root``), weighted by :func:`link_affinity`. Each model also gets a
     random pole (:data:`UNMATCHED_WEIGHT`, seeded from ``seed``). Only models in the pool
     are drawn, so CI can reproduce the record.
@@ -81,13 +82,13 @@ def _unmatched(state, other: str, window: int | None, seed: int, claims, now) ->
         f"a random pole of {other}, matched by no search, with {state.slug}'s explanation: "
         "the control for its matches"
     )
-    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    verify = "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>"
     return Candidate(
         kind="sister",
         model=other,
         weight=BASE_WEIGHTS["sister"] * UNMATCHED_WEIGHT * factor,
         rationale="; ".join([why, *notes]),
-        commands=[f"openinterp audit {audit}", verify],
+        commands=[f"open-interpretability audit {audit}", verify],
         skills=SKILLS["sister"],
         record=state.record_path.as_posix(),
         audit=audit,
@@ -106,13 +107,13 @@ def _sister(state, row, m, window: int | None, claims, now) -> Candidate:
     audit += f" --sister-of {state.record_path.as_posix()}"
     link = "sister" if row.sister is m else "correlated match (not a sister)"
     why = f"{link} of {state.slug} (r {m.pearson:+.2f}): does its explanation carry over?"
-    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    verify = "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>"
     return Candidate(
         kind="sister",
         model=row.other,
         weight=BASE_WEIGHTS["sister"] * link_affinity(row, m) * factor,
         rationale="; ".join([why, *notes]),
-        commands=[f"openinterp audit {audit}", verify],
+        commands=[f"open-interpretability audit {audit}", verify],
         slug=target,
         skills=SKILLS["sister"],
         layer=m.layer,

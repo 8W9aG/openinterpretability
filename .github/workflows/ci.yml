@@ -120,15 +120,15 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ -n "$BASE_REF" ]; then
-            openinterp check --base-ref "origin/$BASE_REF"
+            open-interpretability check --base-ref "origin/$BASE_REF"
           else
-            openinterp check
+            open-interpretability check
           fi
 
   record-changes:
     name: Record changes
     # Whether a pull request adds or changes a record, by the same rule as
-    # `openinterp reproduce --base-ref` (openinterp/checks.py changed_records), so PRs
+    # `open-interpretability reproduce --base-ref` (openinterp/checks.py changed_records), so PRs
     # without record changes never wait in the reproduce queue.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -197,7 +197,7 @@ jobs:
         run: |
           flags=()
           for model in $ALLOWED_MODELS; do flags+=(--allow-model "$model"); done
-          openinterp reproduce --base-ref "origin/$BASE_REF" --device cpu "${flags[@]}"
+          open-interpretability reproduce --base-ref "origin/$BASE_REF" --device cpu "${flags[@]}"
 
   model-cache:
     name: Model cache

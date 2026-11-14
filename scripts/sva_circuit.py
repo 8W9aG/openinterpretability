@@ -16,7 +16,7 @@ This replicates the method of Arora et al. (arXiv 2601.22594,
 4. **Registry.** How many of the circuit's neurons the registry has studied, how many
    are VERIFIED, and what their explanations say.
 
-It reads the site's parquet (``openinterp build``) for step 4 and writes nothing in
+It reads the site's parquet (``open-interpretability build``) for step 4 and writes nothing in
 ``wiki/``::
 
     uv run python scripts/sva_circuit.py --site-dir build/site \\

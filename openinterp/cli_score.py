@@ -1,4 +1,4 @@
-"""``openinterp score``: detection, fuzzing and embedding scores for an explanation."""
+"""``open-interpretability score``: detection, fuzzing and embedding scores for an explanation."""
 
 from __future__ import annotations
 
@@ -117,13 +117,16 @@ def score(
 
     \b
     Reported, not gated (docs/PROTOCOL.md §4), but every review records them: pass the
-    result to `openinterp review … --explanation-scores <file>`. In one step the judge is
-    an LLM:
-      openinterp score --audit-file sub.json --corpus corpus.jsonl --judge-model M --out s.json
+    result to `open-interpretability review … --explanation-scores <file>`. In one step the
+    judge is an LLM:
+        open-interpretability score --audit-file sub.json --corpus corpus.jsonl \\
+          --judge-model M --out s.json
     In two steps any agent can judge, without an API key:
-      openinterp score --audit-file sub.json --corpus corpus.jsonl --emit-task score.task.json
-      (answer score.detection.prompt.md and score.fuzzing.prompt.md)
-      openinterp score --task score.task.json --judge-model external/<model that answered>
+        open-interpretability score --audit-file sub.json --corpus corpus.jsonl \\
+          --emit-task score.task.json
+        (answer score.detection.prompt.md and score.fuzzing.prompt.md)
+        open-interpretability score --task score.task.json \\
+          --judge-model external/<model that answered>
     """
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.cli import _load_unit_runner  # looked up per call, so tests can swap it
@@ -434,7 +437,9 @@ def load_scores(path: Path | None, submission):
     if scores.slug != submission.identifier.slug:
         raise click.UsageError(f"{path} scores {scores.slug}, not {submission.identifier.slug}.")
     if scores.explanation != submission.natural_language_explanation:
-        raise click.UsageError(f"{path} scores a different explanation; re-run openinterp score.")
+        raise click.UsageError(
+            f"{path} scores a different explanation; re-run open-interpretability score."
+        )
     if not math.isclose(scores.threshold, _threshold(submission), rel_tol=1e-9):
         raise click.UsageError(f"{path} used another activation threshold; re-run it.")
     return scores

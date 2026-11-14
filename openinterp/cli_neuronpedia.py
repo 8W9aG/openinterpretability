@@ -1,5 +1,6 @@
-"""``openinterp neuronpedia-review``: Neuronpedia's explanations through the adversarial review.
+"""Neuronpedia's explanations through the adversarial review.
 
+The command is ``open-interpretability neuronpedia-review``.
 See :mod:`openinterp.neuronpedia_review` for the rule and the comparison.
 """
 

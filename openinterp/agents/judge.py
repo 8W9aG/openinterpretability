@@ -30,7 +30,7 @@ class TaskWindow(BaseModel):
 
 
 class ScoringTask(BaseModel):
-    """What ``openinterp score --emit-task`` writes: everything but the labels."""
+    """What ``open-interpretability score --emit-task`` writes: everything but the labels."""
 
     identifier: ComponentIdentifier
     head_profile: HeadProfile | None = None  # a head's strength is defined by its mean output

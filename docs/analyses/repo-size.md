@@ -47,8 +47,8 @@ So the per-token evidence makes up most of the size: the top examples and the sc
 
 The decision is open (#3254). Each option can keep the records write-once and checkable, at different costs.
 
-- **Stay in this repository.** It needs no change, and `openinterp check` reads the files directly. Every clone and every agent worktree pays the full history, and the cost grows without limit. CI's write-once check needs the history, so CI can't use a shallow clone.
-- **Move the bulky evidence out, and keep the verdicts.** Records keep their verdict, metrics and hashes. The top examples and scored windows go to a content-addressed store by SHA-256, such as a Hugging Face dataset or release assets. About 70% of each record would leave the repository. `openinterp check`, `reproduce` and the site would fetch evidence by its hash.
+- **Stay in this repository.** It needs no change, and `open-interpretability check` reads the files directly. Every clone and every agent worktree pays the full history, and the cost grows without limit. CI's write-once check needs the history, so CI can't use a shallow clone.
+- **Move the bulky evidence out, and keep the verdicts.** Records keep their verdict, metrics and hashes. The top examples and scored windows go to a content-addressed store by SHA-256, such as a Hugging Face dataset or release assets. About 70% of each record would leave the repository. `open-interpretability check`, `reproduce` and the site would fetch evidence by its hash.
 - **A Hugging Face dataset for the records.** Parquet export plus the signed JSON, versioned by the dataset's own history. The repository keeps only pages and code. Records then live outside pull requests, so the write-once check needs a different mechanism.
 - **Git LFS.** It is a small change for contributors. But GitHub's LFS storage and bandwidth are metered, and every CI checkout would use bandwidth.
 

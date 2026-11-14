@@ -1,4 +1,4 @@
-"""Maintainer signatures on experiment records (`openinterp sign`).
+"""Maintainer signatures on experiment records (`open-interpretability sign`).
 
 A trusted signer can vouch for a record with their SSH key, so CI need not reproduce
 it. The signature is a separate file, ``<id>.json.sig``, next to the write-once record.

@@ -56,8 +56,8 @@ GATE_ADVICE = {
     "requires them to differ. Re-review with a different reviewer model.",
     "beats_confound_baseline": "A trivial baseline (token identity, position or 'never "
     "active') explains the probes at least as well as the hypothesis, or the scan predates "
-    "confound profiling. Rescan with `openinterp audit` and sharpen the claim beyond the "
-    "trigger tokens (skill: `interpretability-illusions-review`).",
+    "confound profiling. Rescan with `open-interpretability audit` and sharpen the claim "
+    "beyond the trigger tokens (skill: `interpretability-illusions-review`).",
     "not_default_on": "The unit is active on at least half of its scan's tokens, so no hard "
     "negative of a few words can stay inactive. It can't be audited as a detector; record "
     "it as default-on (docs/PROTOCOL.md §1).",

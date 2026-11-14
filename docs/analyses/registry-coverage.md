@@ -1,6 +1,6 @@
 # Registry coverage
 
-Run on 2026-11-13 for issue #3371, with `openinterp coverage`. The question: how much of each model does the registry explain? This is the project's north star, total interpretability of open models, as one number. The rows are in `registry-coverage.jsonl`, one per model and layer.
+Run on 2026-11-13 for issue #3371, with `open-interpretability coverage`. The question: how much of each model does the registry explain? This is the project's north star, total interpretability of open models, as one number. The rows are in `registry-coverage.jsonl`, one per model and layer.
 
 ## Method
 
@@ -36,5 +36,5 @@ recovered = (loss with every pole ablated − loss with the VERIFIED poles kept)
 
 ## What this means
 
-- The metric works, and it gives the registry its first number for how much of a model it explains. It should be rerun at each release (`openinterp coverage --model M`) and shown on the site (a follow-up issue).
+- The metric works, and it gives the registry its first number for how much of a model it explains. It should be rerun at each release (`open-interpretability coverage --model M`) and shown on the site (a follow-up issue).
 - On GPT-2, VERIFIED poles do no better than random ones at keeping the loss. One reading is that the registry favours poles that are easy to explain, not poles that matter to the loss. The planner could weight draws by each pole's effect on the loss.

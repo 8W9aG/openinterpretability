@@ -1,4 +1,4 @@
-"""``openinterp review``: adversarially review a submission and post the experiment."""
+"""``open-interpretability review``: adversarially review a submission and post the experiment."""
 
 from __future__ import annotations
 
@@ -61,14 +61,14 @@ from openinterp.core.schemas import MAX_PROBES
     "--dictionary-latents",
     is_flag=True,
     help="Show the reviewer the published dictionary latents aligned with the pole "
-    "(`openinterp crossref`) and their descriptions, fetched from Neuronpedia.",
+    "(`open-interpretability crossref`) and their descriptions, fetched from Neuronpedia.",
 )
 @click.option(
     "--sisters/--no-sisters",
     default=True,
     show_default=True,
     help="Show the reviewer the pole's sister neurons in other models that this registry "
-    "has studied (`openinterp sisters`), with their explanations.",
+    "has studied (`open-interpretability sisters`), with their explanations.",
 )
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @explanation_scores_option
@@ -105,7 +105,7 @@ def verify(
 ):
     """Adversarially review a submission and post it as a new experiment.
 
-    Every review records explanation scores on held-out text (`openinterp score`). Pass
+    Every review records explanation scores on held-out text (`open-interpretability score`). Pass
     them with --explanation-scores; in one step (no --probes), they are measured here.
     """
     from openinterp.agents.base import DEFAULT_MODEL
@@ -235,7 +235,8 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
         )
     if scores_file is None and (probes_file is not None or corpus is None):
         raise click.UsageError(
-            "--explanation-scores is required (from `openinterp score`, docs/PROTOCOL.md §4); "
+            "--explanation-scores is required (from `open-interpretability score`, "
+            "docs/PROTOCOL.md §4); "
             "without --probes, --corpus <the scan's corpus> also works."
         )
 
@@ -243,7 +244,7 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
 def refuse_unisolated(probes_file: Path) -> None:
     """Stop if the usage file of ``probes_file`` says that the reviewer read blocked paths.
 
-    ``openinterp usage`` writes that list from the reviewer's transcript
+    ``open-interpretability usage`` writes that list from the reviewer's transcript
     (``openinterp/core/isolation.py``). With no usage file, nothing is checked.
     """
     from openinterp.core.costs import ExternalUsage, usage_path

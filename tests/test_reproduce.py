@@ -335,7 +335,7 @@ def test_nightly_workflow_opens_issues_and_keeps_failures_visible():
     workflow = (root / ".github/workflows/reproduce-nightly.yml").read_text()
     assert "issues: write" in workflow and "if: failure()" in workflow
     assert "shell: bash" in workflow  # pipefail: tee can't hide a failed reproduction
-    assert "openinterp reproduce" in workflow and "--sample" in workflow
+    assert "open-interpretability reproduce" in workflow and "--sample" in workflow
     assert "--time-budget" in workflow  # a night that draws slow records still finishes
     assert "fetch-depth: 0" in workflow  # signing.landing_times needs main's history
     assert "gh issue create" in workflow and "gh issue comment" in workflow
