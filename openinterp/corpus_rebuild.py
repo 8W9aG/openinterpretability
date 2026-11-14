@@ -10,11 +10,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from openinterp.blends import build_blend
-from openinterp.core.schemas import CorpusSource
+from openinterp.core.schemas import COMMITTED_SOURCES, CorpusSource
 from openinterp.corpus import build_from_hub, load_sources, source_path
 
-# Records that scanned this corpus before they recorded a source (README, "A scan corpus").
-COMMITTED_SIDECARS = (Path("corpus.source.json"),)
+COMMITTED_SIDECARS = tuple(Path(name) for name in COMMITTED_SOURCES)
 
 
 def scanned_source(submission) -> CorpusSource:

@@ -12,6 +12,7 @@ from openinterp.core.confounds import (
     MATCH_LABEL_SETS,
     NAMES,
     NO_MATCH,
+    PART_OF_SPEECH,
     PERSONAL_DATA,
     POSTAL_ADDRESSES,
 )
@@ -21,6 +22,7 @@ from openinterp.harness.annotations import LabelAccumulator, MatchTagger, TokenL
 from openinterp.harness.scan import Piece
 from openinterp.names import MODEL_SHA256, PERSON, _download
 from openinterp.names import person_matches as real_person_matches
+from openinterp.names import pos_matches as real_pos_matches
 from openinterp.sensitive import address_matches, detector, pii_matches
 from tests.test_annotations import CharTokenizer
 
@@ -89,7 +91,9 @@ def _texts(labels=None):
 
 def test_every_scan_labels_matches_after_the_corpus_labels():
     names = [t.name for t in _texts({"language": ["en"]}).taggers()]
-    assert names == ["language", *MATCH_LABEL_SETS]
+    matches = list(MATCH_LABEL_SETS)  # part of speech comes right after names (#3223)
+    matches.insert(matches.index(NAMES) + 1, PART_OF_SPEECH)
+    assert names == ["language", *matches]
     assert [t.name for t in _texts().taggers()][-1] == POSTAL_ADDRESSES
 
 
@@ -166,11 +170,16 @@ def test_the_site_never_removes_a_name():
 
 
 def _fake_model(monkeypatch, calls):
-    def fake(text):
-        calls.append(text)
+    class Doc(list):
         ents = [SimpleNamespace(start_char=0, end_char=3, label_="PERSON"),
                 SimpleNamespace(start_char=4, end_char=9, label_="ORG")]  # fmt: skip
-        return SimpleNamespace(ents=ents)
+
+    def fake(text):
+        calls.append(text)
+        word = lambda i, t, p, s=False: SimpleNamespace(idx=i, text=t, pos_=p, is_space=s)  # noqa: E731
+        return Doc(
+            [word(0, "Ada", "PROPN"), word(3, " ", "SPACE", True), word(4, "Bytes", "PROPN")]
+        )
 
     monkeypatch.setattr("openinterp.names._model", lambda: fake)
 
@@ -181,6 +190,16 @@ def test_names_keep_people_only_and_later_scans_read_the_disk(tmp_path, monkeypa
     _fake_model(monkeypatch, calls)
     assert real_person_matches("Ada Bytes") == ((0, 3, PERSON),)
     assert real_person_matches("Ada Bytes") == ((0, 3, PERSON),)
+    assert calls == ["Ada Bytes"]
+
+
+def test_tags_come_from_the_same_pass_as_names(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    calls = []
+    _fake_model(monkeypatch, calls)
+    assert real_person_matches("Ada Bytes") == ((0, 3, PERSON),)
+    # The names pass cached the tags too, so the model doesn't run again. Whitespace has none.
+    assert real_pos_matches("Ada Bytes") == ((0, 3, "PROPN"), (4, 9, "PROPN"))
     assert calls == ["Ada Bytes"]
 
 

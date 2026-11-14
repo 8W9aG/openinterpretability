@@ -264,10 +264,13 @@ def _probes(audit_file, out) -> list[Step]:
         Step("Write the reviewer prompt", [emit]),
         _agent("neuron-reviewer", f"{out}/review.prompt.md", f"{out}/review.probes.json"),
         Step(
-            "For a head or any claim about tokens: show the reviewer its probes as tokens",
+            "Show the reviewer its probes as tokens (every review)",
             [check],
             f"Send the same reviewer {out}/review.check.prompt.md with SendMessage; "
-            "it rewrites the probes.",
+            "it rewrites the probes. Don't skip it: reviewers label by words, and a wrong "
+            "guess about a token split fails correct hypotheses (issue #3592). If it changed "
+            "any probe, run the check again, so new probes are checked too, until it "
+            "changes none (at most 3 rounds).",
         ),
     ]
 
