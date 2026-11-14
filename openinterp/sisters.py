@@ -110,10 +110,11 @@ def sort_rows(path: Path) -> None:
     path.write_text("".join(r.model_dump_json() + "\n" for r in rows))
 
 
-def verified_poles(records: Sequence[AuditRecord], model_name: str):
+def verified_poles(records: Sequence[AuditRecord], errata: Sequence, model_name: str):
     """Return ``{slug: (identifier, revision)}`` for each VERIFIED pole of ``model_name``.
 
-    The revision is the model revision that the pole's records pin most often.
+    Standing uses the site's rule, with ``errata`` applied. The revision is the model
+    revision that the pole's records pin most often.
     """
     from openinterp.builder.tree import build_tree
 
@@ -124,7 +125,7 @@ def verified_poles(records: Sequence[AuditRecord], model_name: str):
             prov = r.submission.provenance
             revisions[ident.slug][prov.model_revision if prov else None] += 1
     out = {}
-    for model in build_tree(records):
+    for model in build_tree(records, errata):
         if model.name != model_name:
             continue
         for layer in model.layers:
@@ -157,6 +158,7 @@ def sisters(
     *,
     corpus: str,
     corpus_sha256: str,
+    errata: Sequence,
     k: int = 5,
     echo: Callable[[str], None] = print,
 ) -> dict[tuple[str, str], int]:
@@ -164,16 +166,16 @@ def sisters(
 
     ``todo`` holds (model, other) pairs. The rows of a pair are for ``other``. One search
     covers every pair (:mod:`openinterp.harness.sister_passes`), and ``load_runner`` is
-    called once per model and stage. Returns how many rows each pair got.
+    called once per model and stage. ``errata`` decide which poles stand VERIFIED, as on
+    the site. Returns how many rows each pair got.
     """
     from openinterp.harness.sister_passes import Job, search
 
     done = {(r.slug, r.other) for rows in load_rows(out).values() for r in rows}
     jobs, slugs = [], {}
     for model_name, other in todo:
-        poles = {
-            s: v for s, v in verified_poles(records, model_name).items() if (s, other) not in done
-        }
+        verified = verified_poles(records, errata, model_name)
+        poles = {s: v for s, v in verified.items() if (s, other) not in done}
         if not poles:
             continue
         revision = _pinned(sum((revisions for _, revisions in poles.values()), Counter()))
@@ -293,15 +295,16 @@ def sister_view(
     return poles
 
 
-def pole_findings(records: Sequence[AuditRecord]) -> dict[str, tuple[str, str]]:
+def pole_findings(records: Sequence[AuditRecord], errata: Sequence) -> dict[str, tuple[str, str]]:
     """Return ``{slug: (status, explanation)}`` for every studied neuron pole.
 
-    That is its standing, and the explanation of the experiment that the standing rests on.
+    That is its standing, with ``errata`` applied, and the explanation of the experiment
+    that the standing rests on.
     """
     from openinterp.builder.tree import build_tree
 
     out = {}
-    for model in build_tree(records):
+    for model in build_tree(records, errata):
         for layer in model.layers:
             for node in layer.units:
                 if not node.is_neuron:
@@ -390,7 +393,9 @@ def sister_context(
     if identifier.kind != "mlp_neuron_pole" or not rows or not Path(wiki_dir).exists():
         return ""
     linked = {other for other, _, _ in _linked(identifier.slug, rows, by_match_slug(rows))}
-    findings = pole_findings(_records_of(wiki_dir, linked))
+    from openinterp.core.errata import load_errata
+
+    findings = pole_findings(_records_of(wiki_dir, linked), load_errata(wiki_dir))
     return format_sisters(identifier.slug, rows, findings, role, exclude)
 
 

@@ -335,13 +335,15 @@ def experiment_order(e: Experiment) -> tuple:
 
 def build_tree(
     records: Sequence[AuditRecord],
-    errata: Sequence[Erratum] = (),
+    errata: Sequence[Erratum],
     users: Mapping[str, str] | None = None,
 ) -> list[ModelNode]:
     """Group the reviewed records into models, layers and units.
 
     Each experiment lists the ``errata`` that cover its record (:mod:`openinterp.core.errata`),
-    and holds the record with their edits applied. Its ``user`` is the proposer's recorded
+    and holds the record with their edits applied. ``errata`` has no default, so that no
+    caller can leave them out by mistake: pass ``load_errata(wiki_dir)``, or ``[]`` in a
+    test. Its ``user`` is the proposer's recorded
     contributor, else the record's entry in ``users`` (:func:`.users.load_users`).
     """
     reviewed = [r for r in records if r.verdict is not None]
