@@ -22,6 +22,7 @@ Status marks how the work relates to this repo:
 | [Scoring Explanations Without Reading Them](scoring-explanations-without-reading-them.md) (Chen, 2026) | used | Evaluation items can be scored by rules that never read the explanation. Our null-explanation control comes from it, and its check found that our fuzzing decoys leak contiguity. |
 | [Beyond Top Activations](beyond-top-activations.md) (Oikarinen, Yan, Kulkarni and Weng, 2025) | planned | Evaluating on top activations alone measures only recall. Model-guided importance sampling finds false positives cheaply. Our detection already stratifies active windows, but draws inactive ones uniformly (#3595). |
 | [Evaluating Neuron Explanations](evaluating-neuron-explanations.md) (Oikarinen, Yan and Weng, 2025) | used | Two sanity tests for explanation metrics, which `scripts/score_sanity.py` runs on our scores. Balanced accuracy fails the extra-labels test on rare concepts, so `openinterp score` may use it only because its sample is balanced. |
+| [Causally Grounded Explanations](causally-grounded-explanations.md) (Mahale, 2026) | not applicable | An MSc thesis on six IOI heads in GPT-2 small, with no held-out tests. Its sufficiency is 100% by construction, which shows why our causal scores rank against matched neurons. |
 
 ## Model architecture
 
