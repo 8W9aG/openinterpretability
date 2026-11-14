@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T07:09:42Z","seed":137759921,"kind":"opposite_pole","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L9/N1564-negative","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L9/N1564-positive/20261026T125501Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 9 --neuron 1564 --pole negative","pole_forced":null,"harness_version":"0.0.19"}
