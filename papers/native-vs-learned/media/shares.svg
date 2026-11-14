@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 383" width="760" height="383" role="img">
+<title>Five dots with intervals. GPT-2 small: transcoder latents that fire 0.93, latents with dead draws counted 0.61, positive neuron poles 0.50. Qwen2.5-0.5B: native positive poles 0.60, the same layers rotated at random 0.03.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="383" rx="10"/>
+<text x="20.0" y="30.0" class="title">Per unit audited, learned latents verify most often,</text>
+<text x="20.0" y="53.0" class="title">and the native basis beats a random rotation of it</text>
+<text x="20.0" y="73.0" class="sub">Share VERIFIED with its 95% Wilson interval. One audit per unit, one agent pair and one protocol in each model.</text>
+<path class="grid" d="M280.0 131.0L280.0 335.0"/>
+<text x="280.0" y="350.0" class="small" text-anchor="middle">0.00</text>
+<path class="grid" d="M380.0 131.0L380.0 335.0"/>
+<text x="380.0" y="350.0" class="small" text-anchor="middle">0.25</text>
+<path class="grid" d="M480.0 131.0L480.0 335.0"/>
+<text x="480.0" y="350.0" class="small" text-anchor="middle">0.50</text>
+<path class="grid" d="M580.0 131.0L580.0 335.0"/>
+<text x="580.0" y="350.0" class="small" text-anchor="middle">0.75</text>
+<path class="grid" d="M680.0 131.0L680.0 335.0"/>
+<text x="680.0" y="350.0" class="small" text-anchor="middle">1.00</text>
+<text x="480.0" y="366.0" class="small" text-anchor="middle">share VERIFIED</text>
+<text x="20.0" y="152.1" class="head">GPT-2 small</text>
+<path class="line sc1" d="M600.6 168.4L669.7 168.4"/>
+<circle class="fc1 ring" cx="650.0" cy="168.4" r="6"/>
+<text x="32.0" y="172.4">Transcoder latents that fire</text>
+<text x="677.7" y="172.4" class="small">37 of 40</text>
+<path class="line sc1" d="M472.5 202.4L567.7 202.4"/>
+<circle class="fc1 ring" cx="522.6" cy="202.4" r="6"/>
+<text x="32.0" y="206.4">Transcoder latents, dead draws counted</text>
+<text x="575.7" y="206.4" class="small">37 of 61</text>
+<path class="line sc2" d="M420.8 236.4L539.2 236.4"/>
+<circle class="fc2 ring" cx="480.0" cy="236.4" r="6"/>
+<text x="32.0" y="240.4">Positive neuron poles</text>
+<text x="547.2" y="240.4" class="small">20 of 40</text>
+<text x="20.0" y="274.5" class="head">Qwen2.5-0.5B</text>
+<path class="line sc2" d="M449.3 290.8L581.6 290.8"/>
+<circle class="fc2 ring" cx="520.0" cy="290.8" r="6"/>
+<text x="32.0" y="294.8">Native positive poles</text>
+<text x="589.6" y="294.8" class="small">18 of 30</text>
+<path class="line sc3" d="M282.4 324.8L346.7 324.8"/>
+<circle class="fc3 ring" cx="293.3" cy="324.8" r="6"/>
+<text x="32.0" y="328.8">The same layers, rotated at random</text>
+<text x="354.7" y="328.8" class="small">1 of 30</text>
+</svg>
