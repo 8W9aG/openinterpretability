@@ -1,6 +1,6 @@
 ---
 name: next-issue
-description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". When the last release is over 24 hours old, it cuts a release in place of an issue. It works one issue, waits for CI, merges the PR, and stops. To work through several, run it under `/loop`.
+description: Give unprioritised issues a priority, then pick the next issue to work and start it. It resumes an answered issue first, one where an agent asked the maintainer and the maintainer replied. Otherwise it takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". When the last release is over 24 hours old, it cuts a release in place of an issue. It works one issue, waits for CI, merges the PR, and stops. To work through several, run it under `/loop`.
 ---
 
 # The next issue
@@ -35,11 +35,12 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    python3 scripts/next_issue.py
    ```
    It prints the pick and up to four runners-up. It chooses in this order:
+   - **Answered issues first.** An answered issue is a started issue (In Progress or In Review) with a reply that no agent has acted on. An agent asked the maintainer something and stopped, and the maintainer has replied since. The maintainer decided on 2026-11-14 that the loop must not forget these. The script prints "answered: resume it" and the reply. Agents and the maintainer comment from one account. So the script reads a comment as an agent's when it starts with an agent's marker, such as `**Plan**`, `**Deviation**`, `**Question**`, `**Shipped**` or `Merged in #`. It reads any other comment as the maintainer's. An issue is answered when its newest comment is the maintainer's, after an agent's comment. Resume it, although it is started: see *Resume an answered issue* below.
    - **The release first.** The next release is the oldest open milestone. Its open issues are candidates when their Linear state is not In Progress or In Review, they have no `proposed` label, and `issue_state.py --check` says they are eligible.
    - **Then the backlog.** If the release has no candidate, every open issue with no milestone is a candidate, by the same rules. `area: models` is held back: no new model until every configured model reaches `coverage_target`.
    - **Ranking.** Candidates rank by priority, which comes from Linear, or from the `priority:` label when Linear has none. Ties go to the area that the release has served least, then to the oldest issue. Each place in the ranking counts against its area, so the runners-up spread across workstreams.
 3. **Check the pick before you take it.** Skip it and take the next runner-up if any of these holds. Say why in one line.
-   - **It needs the maintainer's decision.** One example is a protocol change that offers options with no choice made. Comment on the issue with the question, and leave it.
+   - **It needs the maintainer's decision.** One example is a protocol change that offers options with no choice made. Post the question in a comment that starts with `**Question**`, and give numbered options when there are any. Then leave the issue, in whatever state it is. When the maintainer replies, the script offers the issue again as answered.
    - **It depends on an open issue or PR.** Name the blocker in a comment.
    - **It can't run here.** For example, it needs a GPU this machine doesn't have.
 4. **Pull it in if it came from the backlog.** The script says "pulled into". Then run it again with `--pull`. That adds the milestone and the `release: <version>` label:
@@ -59,12 +60,18 @@ description: Give unprioritised issues a priority, then pick the next issue to w
       git push origin :<branch>                                 # the remote branch
       ```
       `--match-head-commit` refuses the merge if someone pushed after the checks ran. Never pass `--admin`, and never get round a failing or pending check another way. Drop the remote branch with the push above, not with `--delete-branch`, which tries to switch the local checkout.
-   5. A merged PR whose body says `Closes #<number>` closes the issue. Post one line on the issue that it merged, with the merge commit.
+   5. A merged PR whose body says `Closes #<number>` closes the issue. Post one line on the issue that it merged, with the merge commit. An auto-merged PR closes its issue only when the *Close merged issues* workflow runs, and GitHub delays its schedule by hours. So start it now: `gh workflow run close-merged-issues.yml`.
    6. Return the checkout to `main` and pull it, so the next issue starts from the merged state.
 7. **Stop.** Report the issue, its PR, what shipped and whether it merged, then stop. One run works one issue. To work through several, run this skill under `/loop`. Each iteration then picks afresh, so it sees what other agents started in the meantime. A PR left unmerged in step 6 stays open for the maintainer. Say why in the report.
+
+## Resume an answered issue
+
+1. Read the whole thread: the plan, each deviation, the question and the reply. If the reply is not clear, post a new `**Question**` and leave the issue.
+2. Before you change any file, post a `**Deviation**` that records the reply and what it changes in the plan. That comment is also how the script knows an agent has acted on the reply.
+3. If the issue is not In Progress, set it: `python3 scripts/issue_state.py <number> "In Progress"`. Then go on with `work-an-issue` from where the issue stopped, and land the PR as in step 6.
 
 ## Notes
 
 - **An empty pick means nothing is eligible.** The script then exits with "No eligible issue". Say so, and propose new work as the `release` skill's step 3 does. Don't work on an ineligible issue.
-- **Linear's states are the record of who is working on what.** An issue In Progress belongs to whoever started it. Never take it, even if it looks stalled. Ask instead.
+- **Linear's states are the record of who is working on what.** An issue In Progress belongs to whoever started it. Never take it, even if it looks stalled. Ask instead. The one exception is an answered issue (step 2): an agent stopped to ask, the maintainer replied, so any agent resumes it.
 - **The script only reads, except with `--pull` and `--prioritise`.** `--pull` sets one milestone and one label. `--prioritise` sets one label and Linear's priority. `work-an-issue` sets the states.
