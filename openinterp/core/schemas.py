@@ -233,9 +233,9 @@ class JointAblation(StrictModel):
 
 
 class ScanEvidence(StrictModel):
-    """What ``openinterp audit --evidence-out`` measured, for a proposer working offline.
+    """What ``open-interpretability audit --evidence-out`` measured, for a proposer working offline.
 
-    It holds everything a submission needs except the hypothesis, so ``openinterp audit
+    It holds everything a submission needs except the hypothesis, so ``open-interpretability audit
     --evidence <file> --hypothesis <file>`` can build the submission without rescanning.
     """
 

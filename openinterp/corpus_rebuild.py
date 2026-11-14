@@ -1,6 +1,6 @@
-"""Rebuild the corpus that a record scanned (`openinterp corpus --same-as`).
+"""Rebuild the corpus that a record scanned (`open-interpretability corpus --same-as`).
 
-A follow-up review draws held-out windows from the scan's corpus (`openinterp score`).
+A follow-up review draws held-out windows from the scan's corpus (`open-interpretability score`).
 Corpora are git-ignored, and a scan can read a corpus that only one experiment used. So
 the record's source is what brings the same bytes back.
 """

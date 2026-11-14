@@ -1,4 +1,4 @@
-"""Sister neurons across models (`openinterp sisters`).
+"""Sister neurons across models (`open-interpretability sisters`).
 
 The models are random tiny Qwen2 and GPT-2 models (no download).
 """
@@ -293,7 +293,7 @@ def test_any_pole_of_another_model_is_drawable_but_sisters_most(tmp_path, record
     plan.choice = sister
     text = render(steps(plan, corpus="c.jsonl"))
     assert "experiment/o--m-L2-N9-negative-sister" in text and "VERIFIED pole's history" in text
-    scan, submit = [line for line in text.splitlines() if "openinterp audit" in line]
+    scan, submit = [line for line in text.splitlines() if "open-interpretability audit" in line]
     assert scan.count("--sister-of") == submit.count("--sister-of") == 1
 
     other = _sister_registry(tmp_path / "x", record, other="not/configured")

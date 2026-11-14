@@ -1,6 +1,6 @@
 ---
 name: neuron-reviewer
-description: Adversarial reviewer for one openinterp experiment. Give it the path of a reviewer prompt written by `openinterp review --emit-prompt` (e.g. review.prompt.md); it writes 10–30 probes designed to break the hypothesis as ProbeSet JSON. It cannot run the model, so it never sees probe activations. Use instead of an API-key reviewer when running experiments from Claude Code.
+description: Adversarial reviewer for one openinterp experiment. Give it the path of a reviewer prompt written by `open-interpretability review --emit-prompt` (e.g. review.prompt.md); it writes 10–30 probes designed to break the hypothesis as ProbeSet JSON. It cannot run the model, so it never sees probe activations. Use instead of an API-key reviewer when running experiments from Claude Code.
 tools: Read, Write, Glob, Grep
 model: sonnet
 hooks:

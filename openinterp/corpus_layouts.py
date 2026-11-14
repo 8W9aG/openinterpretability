@@ -1,4 +1,4 @@
-"""How a dataset's rows become documents, for the layouts of ``openinterp corpus``."""
+"""How a dataset's rows become documents, for the layouts of ``open-interpretability corpus``."""
 
 from __future__ import annotations
 
@@ -48,7 +48,9 @@ def _wikitext_article(rows: Sequence[str | None]) -> str:
 # matter (producer credits, title page, contents, preface) and back matter (notes, index).
 BOOK_FRONT = 0.10
 BOOK_BACK = 0.05
-PASSAGE_CHARS = 3000  # a passage's length, at most: the default of `openinterp corpus --max-chars`
+PASSAGE_CHARS = (
+    3000  # a passage's length, at most: the default of `open-interpretability corpus --max-chars`
+)
 _PARAGRAPH_BREAK = re.compile(r"\n[ \t]*\n")
 _LINE_BREAK = re.compile(r"[ \t]*\n[ \t]*")
 

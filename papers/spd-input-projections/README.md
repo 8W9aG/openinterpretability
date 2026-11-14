@@ -120,7 +120,7 @@ Run D's cosine with its start equals its closest-neuron cosine, so the table giv
 
 ## Reproduce
 
-Open `scripts/train_spd_colab.ipynb` on a Colab A100, with `corpus.jsonl` in `MyDrive/openinterp/`. Run it with `MATRICES = "both"` and `STEPS = 50_000`, once per start, with the default seed of 0. Each run writes `compare.json` and `train.log` to its Drive folder. Copy each run's `compare.json` into `docs/analyses/`, and each `train.log` to `exchange/spd-logs/` as `A.log` to `D.log`. Then:
+Open `scripts/train_spd_colab.ipynb` on a Colab A100, with `corpus.jsonl` in `MyDrive/openinterp/`. Run it with `MATRICES = "both"` and `STEPS = 50_000`, once per start, with the default seed of 0. Each run writes `compare.json` and `train.log` to its Drive folder. Copy each run's `compare.json` into `docs/analyses/`, and each `train.log` to `exchange/spd-logs/` as `A.log` to `D.log`. The four logs of this paper's runs are published: `uv run python scripts/exchange.py fetch spd-logs` downloads them. Then:
 
 ```bash
 uv run python scripts/spd_up_neurons.py --device cpu \

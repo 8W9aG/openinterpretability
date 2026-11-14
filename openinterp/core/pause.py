@@ -1,9 +1,9 @@
 """A pause of new experiments on this machine, for a measurement that needs a quiet machine.
 
-``openinterp pause`` writes a file, ``$OPENINTERP_PAUSE_FILE`` (default
-``~/.cache/openinterp/pause``). While it is there, ``openinterp next`` draws no
+``open-interpretability pause`` writes a file, ``$OPENINTERP_PAUSE_FILE`` (default
+``~/.cache/openinterp/pause``). While it is there, ``open-interpretability next`` draws no
 experiment, and ``scripts/experiment-loop.sh`` starts no session. Experiments that
-already run go on to the end. ``openinterp resume`` removes the file.
+already run go on to the end. ``open-interpretability resume`` removes the file.
 
 A pause ends by itself at its ``until`` time, so a pause that nobody removes can't stop
 the loops for ever. A file that can't be read counts as a pause that started when the
@@ -40,7 +40,7 @@ class Pause:
         until = datetime.fromisoformat(self.until).astimezone().strftime("%H:%M")
         return (
             f"New experiments are paused until {until}: {self.reason} (by {self.by}). "
-            "Run `openinterp resume` to continue sooner."
+            "Run `open-interpretability resume` to continue sooner."
         )
 
 

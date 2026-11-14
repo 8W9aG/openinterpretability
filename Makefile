@@ -24,6 +24,7 @@ lint:
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
 	uv run python scripts/check_data_files.py
+	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
 	uv run interrogate openinterp
 	$(MAKE) markdown
@@ -72,22 +73,22 @@ ste:
 # What a pull request's check runs: only the branch's changes, unless it changes code.
 BASE_REF ?= origin/main
 check:
-	uv run openinterp check --base-ref $(BASE_REF)
+	uv run open-interpretability check --base-ref $(BASE_REF)
 
 # What CI runs on main: every record.
 check-all:
-	uv run openinterp check
+	uv run open-interpretability check
 
 # Experiments, units, models, VERIFIED and self-reviewed shares, and protocol versions.
 stats:
-	uv run openinterp stats --wiki-dir $(WIKI_DIR)
+	uv run open-interpretability stats --wiki-dir $(WIKI_DIR)
 
 format:
 	uv run ruff format .
 	uv run ruff check --fix .
 
 build:
-	uv run openinterp build --wiki-dir $(WIKI_DIR) --output-dir $(DIST_DIR)
+	uv run open-interpretability build --wiki-dir $(WIKI_DIR) --output-dir $(DIST_DIR)
 	@$(MAKE) --no-print-directory search-index
 
 # Pagefind (a locked dev dependency, so no Node is needed) indexes dist/ for search.
@@ -109,7 +110,7 @@ sample-run:
 	rm -rf build/sample-records build/sample-wiki
 	mkdir -p build/sample-records
 	cp $(SAMPLE_RECORDS) build/sample-records/
-	uv run openinterp wiki --import-dir build/sample-records --wiki-dir build/sample-wiki
+	uv run open-interpretability wiki --import-dir build/sample-records --wiki-dir build/sample-wiki
 	@$(MAKE) --no-print-directory build WIKI_DIR=build/sample-wiki
 	@echo "Open $(DIST_DIR)/index.html, or run 'make serve' for DuckDB/Pagefind (needs HTTP)."
 

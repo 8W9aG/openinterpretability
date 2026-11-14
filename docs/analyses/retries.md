@@ -13,7 +13,7 @@ The question: every follow-up on a unit is another chance to reach VERIFIED. The
   - *per unit*: units ever VERIFIED over units.
   - *per attempt*: units ever VERIFIED over the attempts spent on all units.
 - **Union bound.** Take each current VERIFIED claim. P is its weakest agreeing review's P(useful), as on the site. k is its independent attempts to the first VERIFIED. The bound charges the claim min(1, k × (1 − P)). That bounds the chance that any of its k tries passed by error. It needs no model of how the tries depend on each other. It can only overstate.
-- **Held-out text.** The comparison uses the detection and fuzzing balanced accuracy (`openinterp score`) of the record that first VERIFIED each unit. It compares units VERIFIED at the first independent attempt with units VERIFIED later, within each judge, pooled with weights n₁n₂/(n₁+n₂). The intervals come from 2,000 bootstrap samples drawn within each judge (`scripts/verified_vs_detection.py`).
+- **Held-out text.** The comparison uses the detection and fuzzing balanced accuracy (`open-interpretability score`) of the record that first VERIFIED each unit. It compares units VERIFIED at the first independent attempt with units VERIFIED later, within each judge, pooled with weights n₁n₂/(n₁+n₂). The intervals come from 2,000 bootstrap samples drawn within each judge (`scripts/verified_vs_detection.py`).
 
 ## Result
 
@@ -66,7 +66,7 @@ Detection's interval excludes zero, and fuzzing's just includes it. So an explan
 
 - **The union bound ignores how the tries were made.** A revision that answers the failed probes is not a blind retry, so the bound overstates its risk. A re-review of an unchanged hypothesis is closer to a blind retry.
 - **Later tries differ in more than their number.** They come later, often under newer protocol versions and on harder units. The held-out comparison controls for the judge only.
-- **Held-out scores exist for 535 of the 570 first VERIFIED records.** The rest predate `openinterp score` or were not scored.
+- **Held-out scores exist for 535 of the 570 first VERIFIED records.** The rest predate `open-interpretability score` or were not scored.
 
 ## Reproduce
 

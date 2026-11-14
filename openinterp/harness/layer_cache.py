@@ -2,7 +2,7 @@
 
 One forward pass over the corpus captures every neuron of a layer, so a scan stores
 all of them. Later audits of any neuron in that layer, and per-token analysis
-(``openinterp activations``), replay the stored tokens instead of re-running the model.
+(``open-interpretability activations``), replay the stored tokens instead of re-running the model.
 
 An entry is keyed by everything that sets its numbers. That is the model, its revision,
 the weights' dtype and the device type (``coreml-ane`` for a scan on the ANE). It is also

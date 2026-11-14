@@ -203,7 +203,9 @@ def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     kinds = {c.kind for c in plan.candidates}
     assert "opposite_pole" not in kinds
-    audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
+    audits = [
+        cmd for c in plan.candidates for cmd in c.commands if "open-interpretability audit" in cmd
+    ]
     assert audits and all("--head 1" in cmd and "--pole" not in cmd for cmd in audits)
 
 

@@ -62,7 +62,7 @@ def sha256(data: bytes) -> str:
 
 @dataclass(frozen=True)
 class ScanRequest:
-    """What ``openinterp audit`` scans: the unit (or how to draw it) and the corpus.
+    """What ``open-interpretability audit`` scans: the unit (or how to draw it) and the corpus.
 
     ``None`` for ``layer`` or the unit's index means "draw it" (with ``random_pick``).
     """
@@ -240,7 +240,8 @@ def load_texts(runner, request: ScanRequest) -> _Texts:
 
         click.echo(
             f"warning: {corpus} has no {source_path(corpus).name} describing these bytes, "
-            "so nobody can rebuild this scan's corpus. Build corpora with `openinterp corpus`; "
+            "so nobody can rebuild this scan's corpus. "
+            "Build corpora with `open-interpretability corpus`; "
             "for the registry's corpus, see the README.",
             err=True,
         )

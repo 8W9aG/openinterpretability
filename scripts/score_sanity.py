@@ -1,4 +1,4 @@
-"""Label sanity checks on the metrics of `openinterp score` (issue #3237).
+"""Label sanity checks on the metrics of `open-interpretability score` (issue #3237).
 
 "Evaluating Neuron Explanations" (Oikarinen et al., arXiv 2506.05774) gives two tests.
 An explanation metric must drop when the explanation's labels lose part of the concept
@@ -40,7 +40,7 @@ def _rates(pairs: Pairs) -> tuple[int, int, int, int]:
 
 
 def balanced(pairs: Pairs) -> float | None:
-    """Mean of recall and specificity: the metric that `openinterp score` reports."""
+    """Mean of recall and specificity: the metric that `open-interpretability score` reports."""
     tp, fp, fn, tn = _rates(pairs)
     if not tp + fn or not fp + tn:
         return None

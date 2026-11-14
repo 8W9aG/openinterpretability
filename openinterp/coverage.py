@@ -16,7 +16,7 @@ VERIFIED poles that recover no more than random ones explain no more of the loss
 any poles would.
 
 This is a running measure of how much of the model the registry explains. It is
-reported, not gated. ``openinterp coverage`` writes one row per layer.
+reported, not gated. ``open-interpretability coverage`` writes one row per layer.
 """
 
 from __future__ import annotations

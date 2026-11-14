@@ -11,7 +11,7 @@ Run on 2026-10-29, by hand, before making the windowed prompts the default (TODO
   - Each arm changes both the proposer's and the reviewer's prompt.
 - **Blinding.** Each unit's arms were labelled `a`/`b` at random, so a subagent couldn't tell which arm it was in. Every subagent was given only its own prompt path.
 - **Agents.** Proposers were `neuron-proposer` subagents (claude-opus-5-5) and reviewers were `neuron-reviewer` subagents (claude-sonnet-5-5), so every review is independent of its proposer. No token check was run, in either arm.
-- **Verdict.** `openinterp audit --evidence … --hypothesis …`, then `ReviewerAgent.review` on the probes, under the default policy. Explanation scores were skipped in both arms. They are reported, not gated, so they can't change a verdict.
+- **Verdict.** `open-interpretability audit --evidence … --hypothesis …`, then `ReviewerAgent.review` on the probes, under the default policy. Explanation scores were skipped in both arms. They are reported, not gated, so they can't change a verdict.
 - **Caveats.**
   - The first proposers shared one scratch directory and overwrote each other's scripts. Every affected agent reported that it re-ran its measurements from a private directory before answering.
   - Nine proposers and one reviewer were stopped by an API session limit and then resumed. Their token counts therefore cover two transcript segments.

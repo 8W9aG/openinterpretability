@@ -1,4 +1,4 @@
-"""``openinterp benchmark``: freeze, measure, seal and score the explainer benchmark.
+"""``open-interpretability benchmark``: freeze, measure, seal and score the explainer benchmark.
 
 See docs/benchmark.md. :mod:`openinterp.benchmark` holds the logic that needs no model.
 """
@@ -60,7 +60,7 @@ def freeze(wiki_dir, version, out_root, force):
     "probes_file",
     required=True,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="ProbeSet JSON, e.g. a reviewer's answer to `openinterp review --emit-prompt`.",
+    help="ProbeSet JSON, e.g. a reviewer's answer to `open-interpretability review --emit-prompt`.",
 )
 @click.option(
     "--labels",

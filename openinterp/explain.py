@@ -1,6 +1,6 @@
 """Explain one answer of a model as fully as the registry allows (issue #3250).
 
-``openinterp explain "<prompt>"`` attributes the logit of the model's answer to every
+``open-interpretability explain "<prompt>"`` attributes the logit of the model's answer to every
 MLP neuron pole. It labels the poles from the registry, and says how much of the answer is
 explained. A sparse registry is fine: the output's job is also to show how little is
 explained so far.
@@ -57,7 +57,7 @@ class PoleAttribution:
 
 @dataclass
 class Explanation:
-    """Everything ``openinterp explain`` reports for one prompt."""
+    """Everything ``open-interpretability explain`` reports for one prompt."""
 
     prompt: str
     position: int

@@ -17,8 +17,8 @@ Each probe's raw activation is stored in the record. So the same hypothesis and 
 ## Method
 
 - **Records.** 40 first readings of random native neuron poles under protocol 0.8. All of them were scanned on the default corpus (pile-10k, `ded48cfc…`). There are 10 for each pair of model and outcome: GPT-2 small and Qwen2.5-0.5B, VERIFIED and not. They were drawn with seed 0 from 265 GPT-2 and 158 Qwen records.
-- **The other corpus.** fineweb-edu (`3e64a923…`), rebuilt from its pinned source with `openinterp corpus --same-as`. It has the same 500 documents of 3,000 characters at most.
-- **Rescan.** Each pole was scanned on fineweb-edu with its record's token budget and windows (`openinterp audit --evidence-out`). One Qwen record had scanned every document with no budget, so its rescan did too.
+- **The other corpus.** fineweb-edu (`3e64a923…`), rebuilt from its pinned source with `open-interpretability corpus --same-as`. It has the same 500 documents of 3,000 characters at most.
+- **Rescan.** Each pole was scanned on fineweb-edu with its record's token budget and windows (`open-interpretability audit --evidence-out`). One Qwen record had scanned every document with no budget, so its rescan did too.
 - **Judge again.** Each record's stored probe and counterfactual results went through `review_metrics` and `decide` with the new scan:
   - its scale, the threshold that follows from it, and its active share
   - the confound baselines from its own confound profile

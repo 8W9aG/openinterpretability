@@ -16,15 +16,15 @@ usage() {
   cat <<'EOF'
 Usage: scripts/experiment-loop.sh [options]
 
-  --proposer MODEL     LiteLLM model or external/<name> for `openinterp audit`
+  --proposer MODEL     LiteLLM model or external/<name> for `open-interpretability audit`
                        (default: $OPENINTERP_AGENT_MODEL, else anthropic/claude-opus-5-5)
-  --reviewer MODEL     LiteLLM model or external/<name> for `openinterp verify`
+  --reviewer MODEL     LiteLLM model or external/<name> for `open-interpretability verify`
                        (default: same as the proposer; records are then not independent)
   --driver MODEL       Claude model that drives each session (default: claude-haiku-5-5;
                        '' for claude's own; see docs/analyses/driver-model-pilot.md)
   --corpus PATH        Scan corpus (default: each new scan builds a fresh `mixed` corpus)
   --max N              Stop after N experiments; 0 = until claude fails (default: 0)
-  --epsilon P          Exploration probability passed to `openinterp next` (default: 0.7)
+  --epsilon P          Exploration probability passed to `open-interpretability next` (default: 0.7)
   --worktree DIR       Worktree to run in (default: ../<repo>-loop, created if missing)
   --max-turns N        Turn limit per session, a guard against runaway sessions (default: 200)
   --budget USD         Stop once this loop has spent USD or more (default: no cap)
@@ -35,7 +35,7 @@ Usage: scripts/experiment-loop.sh [options]
                        openinterp/core/heavy_lock.py)
   -h, --help           Show this help
 
-Budgets count the dollars that `openinterp costs --usd` reports: priced LLM calls and
+Budgets count the dollars that `open-interpretability costs --usd` reports: priced LLM calls and
 each session's own cost. The loop checks them between experiments, never during one, so
 the experiment that crosses a cap still finishes and posts. Calls with no price are not
 counted, and the loop warns when there are some.
@@ -47,7 +47,7 @@ Remove it before you start a loop again.
 Logs go to <repo>/logs/loop/: per experiment, the session's stderr and result (.log),
 its `claude --output-format json` result (.json), and the costs ledger every openinterp
 command appends to (.costs.jsonl). After each experiment the loop prints what it cost
-and a running total (`openinterp costs`). Set CLAUDE_BIN if `claude` is not on PATH.
+and a running total (`open-interpretability costs`). Set CLAUDE_BIN if `claude` is not on PATH.
 EOF
 }
 
@@ -120,10 +120,10 @@ Run exactly one experiment end to end and land it, following the land-experiment
 (which builds on choose-next-experiment), then stop. You are in an unattended loop: don't ask questions; make the call the skill
 describes and note it in the PR description.
 
-- Plan with: uv run openinterp next --top 5 --epsilon $EPSILON --steps $CORPUS_OPTION$STEP_MODELS
+- Plan with: uv run open-interpretability next --top 5 --epsilon $EPSILON --steps $CORPUS_OPTION$STEP_MODELS
   and follow the steps it prints.
-- Proposer: pass --agent-model $PROPOSER to every \`openinterp audit\`.
-- Reviewer: pass --agent-model $REVIEWER to every \`openinterp verify\`, replacing any
+- Proposer: pass --agent-model $PROPOSER to every \`open-interpretability audit\`.
+- Reviewer: pass --agent-model $REVIEWER to every \`open-interpretability verify\`, replacing any
   <model …> placeholder in the planner's commands. If the draw needs a reviewer
   different from the record's proposer and $REVIEWER is the same model, re-draw once
   as the skill allows and say why in the PR.
@@ -137,7 +137,7 @@ describes and note it in the PR description.
   wait for green checks, and merge only if every merge condition holds; otherwise leave
   the PR open with a comment saying why. If you have to abandon it, say why in the PR and
   land it with only its ledger entry (wiki/ledger/). Don't close it.
-- If \`openinterp next\` says new experiments are paused, stop at once: claim nothing,
+- If \`open-interpretability next\` says new experiments are paused, stop at once: claim nothing,
   and end with RESULT: none paused.
 - Finish on a clean working tree. End your reply with one line:
   RESULT: <slug> <verdict> <PR url> <merged|open>   (or RESULT: none <reason>)
@@ -148,16 +148,16 @@ claude_args=(-p --output-format json --permission-mode acceptEdits --max-turns "
 [[ -n $DRIVER ]] && claude_args+=(--model "$DRIVER")
 claude_args+=(--allowedTools "${ALLOWED_TOOLS[@]}") # variadic, so last
 
-# Wait while `openinterp pause` is in force (exit 75); any other failure doesn't wait.
+# Wait while `open-interpretability pause` is in force (exit 75); any other failure doesn't wait.
 wait_while_paused() {
   local said="" code
   while true; do
     code=0
-    (cd "$WORKTREE" && uv run --quiet openinterp pause --status >/dev/null 2>&1) || code=$?
+    (cd "$WORKTREE" && uv run --quiet open-interpretability pause --status >/dev/null 2>&1) || code=$?
     [[ $code -ne 75 ]] && return 0
     stop_requested && return 0 # check_limits stops the loop
     if [[ -z $said ]]; then
-      echo "[$1] $(cd "$WORKTREE" && uv run --quiet openinterp pause --status 2>/dev/null)"
+      echo "[$1] $(cd "$WORKTREE" && uv run --quiet open-interpretability pause --status 2>/dev/null)"
       said=1
     fi
     sleep 60
@@ -174,11 +174,11 @@ over_budget() { [[ -n $2 ]] && awk -v spent="$1" -v cap="$2" 'BEGIN { exit !(spe
 # Dollars reported by the ledgers and --session files given; 0 if none can be read.
 spent() {
   local out
-  out=$(cd "$WORKTREE" && uv run --quiet openinterp costs --usd "$@" 2>/dev/null) || out=0
+  out=$(cd "$WORKTREE" && uv run --quiet open-interpretability costs --usd "$@" 2>/dev/null) || out=0
   echo "${out:-0}"
 }
 
-# Every loop's ledgers and sessions logged today (UTC), as `openinterp costs` arguments.
+# Every loop's ledgers and sessions logged today (UTC), as `open-interpretability costs` arguments.
 todays_logs() {
   local f day
   day=$(date -u +%Y%m%d)
@@ -214,8 +214,8 @@ check_limits() { # $1: the iteration about to start, or that just ended
   fi
 }
 
-# `openinterp costs` from the worktree's checkout, which has the latest harness.
-costs() { (cd "$WORKTREE" && uv run --quiet openinterp costs "$@") || true; }
+# `open-interpretability costs` from the worktree's checkout, which has the latest harness.
+costs() { (cd "$WORKTREE" && uv run --quiet open-interpretability costs "$@") || true; }
 
 # The session's final message, from its JSON result.
 session_result() {
@@ -253,7 +253,7 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
     exit 1
   fi
   git -C "$WORKTREE" switch --quiet --detach origin/main
-  # Build the venv now, so its output doesn't bury the session's first `openinterp next`.
+  # Build the venv now, so its output doesn't bury the session's first `open-interpretability next`.
   (cd "$WORKTREE" && uv sync --quiet) || true
   wait_while_paused "$i"
   check_limits "$i"
@@ -268,7 +268,7 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
     exit 1
   fi
   grep -E '^RESULT:' "$log" | tail -n 1 | sed "s/^/[$i] /" || echo "[$i] done (no RESULT line)"
-  [[ -n $BUDGET || -n $DAILY_BUDGET ]] && (cd "$WORKTREE" && uv run --quiet openinterp costs --usd \
+  [[ -n $BUDGET || -n $DAILY_BUDGET ]] && (cd "$WORKTREE" && uv run --quiet open-interpretability costs --usd \
     "$ledger" --session "$session" 2>&1 >/dev/null | sed "s/^/[$i] warning: budget skips /") || true
 done
 echo "Reached --max $MAX; stopping."

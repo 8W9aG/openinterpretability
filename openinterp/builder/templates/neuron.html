@@ -33,7 +33,7 @@
         {% elif stops | selectattr("side", "equalto", pole) | list %}
         <p class="mt-2 text-xs text-slate-500">No experiment: the scan stopped before a hypothesis. See <a class="underline-offset-2 hover:underline" href="#scans-that-stopped">Scans that stopped</a>.</p>
         {% else %}
-        <p class="mt-2 text-xs text-slate-500">Not studied yet: a candidate for <code>openinterp next</code>.</p>
+        <p class="mt-2 text-xs text-slate-500">Not studied yet: a candidate for <code>open-interpretability next</code>.</p>
         {% endif %}
       </div>
       {% endfor %}
@@ -72,7 +72,7 @@
     <section class="mt-6" aria-labelledby="dictionary-latents" data-pagefind-ignore>
       <h2 id="dictionary-latents" class="text-base font-semibold">Dictionary latents</h2>
       <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        Latents of published sparse dictionaries whose weights align with each pole's, from <code>openinterp crossref</code>. <em>Writes</em>: the cosine of a latent's decoder row with what the pole writes. <em>Reads</em>: of its encoder with the neuron's read of the MLP input (channel on hover), signed so + drives this pole. Grey latents fall below chance, the cosine a random direction's best match reaches 1% of the time; the percentile says how this pole's best match ranks among its layer's neurons. Supporting evidence where a latent's description agrees with the hypothesis, something to probe where it doesn't. Reported, not gated.
+        Latents of published sparse dictionaries whose weights align with each pole's, from <code>open-interpretability crossref</code>. <em>Writes</em>: the cosine of a latent's decoder row with what the pole writes. <em>Reads</em>: of its encoder with the neuron's read of the MLP input (channel on hover), signed so + drives this pole. Grey latents fall below chance, the cosine a random direction's best match reaches 1% of the time; the percentile says how this pole's best match ranks among its layer's neurons. Supporting evidence where a latent's description agrees with the hypothesis, something to probe where it doesn't. Reported, not gated.
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         {% for p in aligned %}
@@ -107,7 +107,7 @@
     <section class="mt-6" aria-labelledby="sister-neurons" data-pagefind-ignore>
       <h2 id="sister-neurons" class="text-base font-semibold">Sister neurons</h2>
       <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        Poles of other models whose activity over the corpus correlates best with this pole's, from <code>openinterp sisters</code>. The two models are compared where both have read the same text (where a token ends in both tokenizations), leaving out first tokens; <em>coverage</em> is the share of this model's tokens that pairs. <em>r</em>: Pearson correlation of the two poles' strengths. <em>Back</em>: the matched pole's best correlation with any pole of this model; ✓ when that best partner is this pole (a mutual best match). <em>Rotated</em>: the best correlation this pole reaches with a unit of a random rotation of the top match's layer. A mutual best match above it is a <em>sister</em>: a candidate for the same feature. A badge gives the verdict of a <em>sister study</em>, which audits the match with this pole's explanation, unchanged. Reported, not gated.
+        Poles of other models whose activity over the corpus correlates best with this pole's, from <code>open-interpretability sisters</code>. The two models are compared where both have read the same text (where a token ends in both tokenizations), leaving out first tokens; <em>coverage</em> is the share of this model's tokens that pairs. <em>r</em>: Pearson correlation of the two poles' strengths. <em>Back</em>: the matched pole's best correlation with any pole of this model; ✓ when that best partner is this pole (a mutual best match). <em>Rotated</em>: the best correlation this pole reaches with a unit of a random rotation of the top match's layer. A mutual best match above it is a <em>sister</em>: a candidate for the same feature. A badge gives the verdict of a <em>sister study</em>, which audits the match with this pole's explanation, unchanged. Reported, not gated.
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         {% for p in sisters %}

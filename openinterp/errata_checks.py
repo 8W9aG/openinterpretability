@@ -1,4 +1,4 @@
-"""Check 5 of ``openinterp check``: the errata file (:mod:`openinterp.core.errata`).
+"""Check 5 of ``open-interpretability check``: the errata file (:mod:`openinterp.core.errata`).
 
 The file parses, has unique ids, and names records that exist. A key in the allowed
 signers (from ``base_ref`` if given) signed it. The signature is checked at the time it
@@ -118,7 +118,9 @@ def check_signature(
 ) -> None:
     """A trusted key signed ``path``: at the time it landed, or now if it changed since."""
     if not signature_path(path).exists():
-        report.add(path, f"the {what} is unsigned; a maintainer runs `openinterp sign {path}`")
+        report.add(
+            path, f"the {what} is unsigned; a maintainer runs `open-interpretability sign {path}`"
+        )
         return
     at = None if changed else landing_times().get(path.resolve())
     try:

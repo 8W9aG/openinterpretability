@@ -1,5 +1,6 @@
-"""``openinterp patchscope-baseline``: the Patchscope readout as a blind proposer baseline.
+"""The Patchscope readout as a blind proposer baseline.
 
+The command is ``open-interpretability patchscope-baseline``.
 See :mod:`openinterp.baseline` for the rule and the comparison.
 """
 

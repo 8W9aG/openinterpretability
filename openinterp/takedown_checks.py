@@ -1,4 +1,6 @@
-"""Part of check 5 of ``openinterp check``: the takedown file (:mod:`openinterp.core.takedowns`).
+"""Part of check 5 of ``open-interpretability check``: the takedown file.
+
+The file's format is in :mod:`openinterp.core.takedowns`.
 
 The file parses and has unique ids. A key in the allowed signers (from ``base_ref`` if
 given) signed it, so a branch can't add a takedown of its own. With ``base_ref`` the file
@@ -65,7 +67,8 @@ def page_redaction_ok(before: str, after: str, wiki_dir: Path) -> bool:
     """Whether ``after`` is ``before`` with exactly the text that the takedowns cover removed.
 
     Both are a page's text before its Discussion section. The check that the takedown
-    file is signed is :func:`check_takedowns`, which runs in the same ``openinterp check``.
+    file is signed is :func:`check_takedowns`, which runs in the same
+    ``open-interpretability check``.
     """
     from openinterp.builder.pii import REMOVED_TEXT
 
