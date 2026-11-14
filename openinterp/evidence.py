@@ -109,6 +109,7 @@ class _Texts:
         from openinterp.core.confounds import (
             HATE_SPEECH,
             NAMES,
+            PART_OF_SPEECH,
             PERSONAL_DATA,
             POSTAL_ADDRESSES,
             PROGRAMMING_LANGUAGE,
@@ -124,6 +125,7 @@ class _Texts:
             MatchTagger(TOXICITY, toxicity.toxicity_matches),
             MatchTagger(HATE_SPEECH, toxicity.hate_matches),
             MatchTagger(NAMES, names.person_matches),
+            MatchTagger(PART_OF_SPEECH, names.pos_matches),
             MatchTagger(POSTAL_ADDRESSES, sensitive.address_matches),
         ]
 
