@@ -112,7 +112,6 @@ def verify(
     from openinterp.agents.reviewer import ReviewerAgent
     from openinterp.cli import _add_costs, _load_unit_runner, _write_copy, _write_wiki
     from openinterp.cli_score import load_scores, score_submission
-    from openinterp.core.agent_names import same_agent
     from openinterp.core.schemas import AuditRecord
 
     submission = load_submission(audit_file)
@@ -126,15 +125,10 @@ def verify(
     check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus)
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
-    if same_agent(reviewer.model, submission.submitting_agent_model):
-        click.echo(
-            f"warning: {reviewer.model} both proposed and reviewed this, so the review is not "
-            "independent. It will be recorded and badged as self-reviewed; a different "
-            "reviewer model is preferred (docs/PROTOCOL.md §2).",
-            err=True,
-        )
+    warn_self_review(reviewer.model, submission)
     probes = review_probes(reviewer, submission, probes_file, n_probes, full_snippets, latents)
     runner = _load_unit_runner(submission.identifier, device, dtype)
+    warn_unequal_lengths(probes, runner, submission)
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
@@ -257,6 +251,30 @@ def refuse_unisolated(probes_file: Path) -> None:
             f"The reviewer that wrote {probes_file} read blocked paths ({', '.join(read)}). "
             "They can hold probe activations (docs/PROTOCOL.md §2). Ask a new reviewer."
         )
+
+
+def warn_self_review(reviewer_model: str, submission) -> None:
+    """Warn when the reviewer model also proposed the hypothesis."""
+    from openinterp.core.agent_names import same_agent
+
+    if same_agent(reviewer_model, submission.submitting_agent_model):
+        click.echo(
+            f"warning: {reviewer_model} both proposed and reviewed this, so the review is not "
+            "independent. It will be recorded and badged as self-reviewed; a different "
+            "reviewer model is preferred (docs/PROTOCOL.md §2).",
+            err=True,
+        )
+
+
+def warn_unequal_lengths(probes, runner, submission) -> None:
+    """Warn when the probe groups differ in length, as advice and not a gate (issue #3525)."""
+    from openinterp.harness.confounds import length_warning
+
+    if runner.tokenizer is None:
+        return
+    unequal = length_warning(probes, runner.tokenizer, bool(submission.first_token_floor))
+    if unequal:
+        click.echo(f"warning: {unequal}", err=True)
 
 
 def review_probes(
