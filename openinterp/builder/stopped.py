@@ -2,7 +2,7 @@
 
 A scan stops on a neuron pole that is dead or default-on (:mod:`openinterp.core.draws`).
 The neuron still counts as studied, in the site's counts and maps. When the weights prove
-the pole dead, it also counts as verified (:func:`openinterp.builder.tree.explore_focus`).
+the pole dead, it also counts as verified (:func:`explore_focus`).
 """
 
 from __future__ import annotations
@@ -60,3 +60,32 @@ def add_stopped(models: Sequence[ModelNode], stops: Sequence) -> None:
             model.layers.sort(key=lambda lay: lay.layer)
             model.n_layers = max(model.n_layers, layer_idx + 1)
         layer.stopped.append(StoppedNeuron(layer_idx, idx, sorted(outcomes)))
+
+
+def explore_focus(models: Sequence[ModelNode], draws: Sequence = ()) -> dict:
+    """The coverage target, the explore focus, and each model's verified neurons.
+
+    A neuron counts as verified when a pole stands VERIFIED or is proven dead in
+    ``draws``. Give it the random draws and the stops of chosen units together, as the
+    planner reads both (:func:`openinterp.planner.dead`). The site reads a standing and
+    the planner reads the latest record. So the two can name a different focus for a time.
+    """
+    from openinterp.planner import coverage_target  # it reads pyproject.toml
+    from openinterp.planner_models import ModelCoverage, focus_model
+
+    dead = {
+        (d.identifier.model_name, d.identifier.layer, d.identifier.neuron_idx)
+        for d in draws
+        if d.proven_dead
+    }
+    counts = {}
+    for m in models:
+        verified = {(lay.layer, n.idx) for lay in m.layers for n in lay.neurons if n.verified}
+        proven = {(layer, idx) for name, layer, idx in dead if name == m.name}
+        counts[m.name] = {"verified": len(verified | proven), "dead": len(proven)}
+    target = coverage_target()
+    covered = (
+        ModelCoverage(m.name, m.neurons, m.total_neurons, counts[m.name]["verified"])
+        for m in models
+    )
+    return {"target": target, "model": focus_model(covered, target), "models": counts}
