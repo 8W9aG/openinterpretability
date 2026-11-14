@@ -66,13 +66,15 @@ def steps(
     proposer: str | None = None,
     reviewer: str | None = None,
     fresh_corpus: bool = False,
+    ledger: str | None = None,
 ) -> list[Step]:
     """Return every step of ``plan``'s draw.
 
     A ``proposer`` or ``reviewer`` of None, or one named ``external/…``, means that a
     Claude Code subagent answers a prompt that the CLI writes. A new scan reads ``corpus``,
     or with ``fresh_corpus`` a corpus that it first builds from the draw's seed. A review of
-    a record reads the corpus that the record scanned, whichever these say.
+    a record reads the corpus that the record scanned, whichever these say. ``ledger`` is
+    the draw's ledger entry (:mod:`openinterp.core.ledger`), which the claim commits.
     """
     c = plan.choice
     slug = draw_slug(c)
@@ -81,7 +83,7 @@ def steps(
     corpus, build = _corpus(c, out, corpus, plan.seed, fresh_corpus)
     run = _run(c, key, out, corpus, _api(proposer), _api(reviewer))
     return [
-        _claim(c, key, plan.seed, known=slug is not None),
+        _claim(c, key, plan.seed, known=slug is not None, ledger=ledger),
         *([] if c.kind in ("explore", "opposite_pole") else [_history(c)]),
         *build,
         *run,
@@ -107,15 +109,21 @@ def _api(model: str | None) -> str | None:
     return None if model is None or model.startswith("external/") else model
 
 
-def _claim(c: Candidate, key: str, seed: int, known: bool) -> Step:
+def _claim(c: Candidate, key: str, seed: int, known: bool, ledger: str | None = None) -> Step:
     branch = (
         f"experiment/{key}"
         if c.kind in ("explore", "opposite_pole")
         else f"experiment/{key}-{c.kind}"
     )
+    # The claim commits the draw's ledger entry, so the draw reaches main whatever the run does.
+    commit = (
+        [f"git add {ledger}", f'git commit -m "Claim {key}"']
+        if ledger
+        else [f'git commit --allow-empty -m "Claim {key}"']
+    )
     commands = [
         f"git switch -c {branch}",
-        f'git commit --allow-empty -m "Claim {key}"',
+        *commit,
         "git push -u origin HEAD",
         f'gh pr create --draft --title "experiment: {key} ({c.kind})" '
         f'--body "openinterp next seed: {seed}"',
@@ -281,7 +289,8 @@ def _post(key: str, kind: str) -> Step:
             "git push && gh pr ready",
         ],
         "Commit the record's .sig if verify printed 'Signed as …'. Never abandon a claim "
-        "silently: if you stop, close the PR saying why.",
+        "silently: if you stop, say why in the PR and land it with only its ledger entry "
+        "(wiki/ledger/), so the draw still counts. Don't close it.",
     )
 
 

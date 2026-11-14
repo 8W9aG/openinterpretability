@@ -131,8 +131,8 @@ describes and note it in the PR description.
   scores. Record the model IDs they report.
 - Post the result whatever the verdict, then land it as land-experiment describes: build,
   wait for green checks, and merge only if every merge condition holds; otherwise leave
-  the PR open with a comment saying why. If you have to abandon it, close the PR with
-  the reason.
+  the PR open with a comment saying why. If you have to abandon it, say why in the PR and
+  land it with only its ledger entry (wiki/ledger/). Don't close it.
 - If \`openinterp next\` says new experiments are paused, stop at once: claim nothing,
   and end with RESULT: none paused.
 - Finish on a clean working tree. End your reply with one line:

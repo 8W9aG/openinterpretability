@@ -30,6 +30,11 @@ def draws_dir(wiki_dir: Path | str) -> Path:
     return Path(wiki_dir) / "draws"
 
 
+def ledger_dir(wiki_dir: Path | str) -> Path:
+    """Each draw that ``openinterp next --steps`` made, by day: ``ledger/<day>/``."""
+    return Path(wiki_dir) / "ledger"
+
+
 def stops_dir(wiki_dir: Path | str) -> Path:
     """Chosen units the scan stopped on, one directory per unit: ``stops/<slug>/``."""
     return Path(wiki_dir) / "stops"
