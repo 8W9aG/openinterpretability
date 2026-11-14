@@ -9,7 +9,7 @@ install:
 # Single-threaded: the tests use tiny models, and thread pools contending with other
 # jobs on the machine have hung the suite.
 test:
-	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run pytest
+	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterp.core.heavy_lock pytest
 
 lint:
 	uv run ruff check .

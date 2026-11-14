@@ -476,25 +476,14 @@ def _explore(
 ) -> Candidate:  # fmt: skip
     """A new unit of a model drawn by size and coverage: random, or weighted by effect."""
     from openinterp.planner_effects import effect_draw
+    from openinterp.planner_heads import head_draw, neuron_draw
 
     model = rng.choices(pool, weights=[explore[m] for m in pool], k=1)[0]
     audit_seed = rng.getrandbits(32)
     window = configured_windows(pyproject).get(model)
+    if head := head_draw(model, audit_seed, pyproject, window):  # the unit kind, its own draw
+        return head
     if weighted := effect_draw(rng, model, pyproject, taken, window):
         return weighted
-    rationale = "uniformly random new neuron (unbiased; counts towards registry statistics)"
-    if len(pool) > 1:
-        why = "the smallest model below its verified target" if model == focus else "coverage"
-        rationale += f"; {model} drawn with probability {explore[model]:.0%} by {why}"
-    audit = f"openinterp audit --model {model} --random --seed {audit_seed}"
-    if window:
-        audit += f" --window-tokens {window}"
-    return Candidate(
-        kind="explore",
-        model=model,
-        weight=0.0,
-        rationale=rationale,
-        commands=[audit],
-        skills=SKILLS["explore"],
-        audit=_audit_options([audit]),
-    )
+    why = "the smallest model below its verified target" if model == focus else "coverage"
+    return neuron_draw(model, audit_seed, window, explore[model] if len(pool) > 1 else None, why)

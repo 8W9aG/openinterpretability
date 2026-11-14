@@ -46,7 +46,7 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
    git push origin --delete "experiment/$KEY"
    ```
    `--match-head-commit` refuses the merge if someone pushed after your checks ran. Squash, as auto-merge does, so `main` gets one commit per experiment. Don't pass `--admin` or use any other way around a failing or pending check. Delete the remote branch yourself rather than with `gh pr merge --delete-branch`, which tries to switch the local checkout to `main` and fails if `main` is checked out in another worktree. If the merge is refused because auto-merge got there first, that's done. If it's refused for another reason, go back to step 5 once. If it's refused again, comment and move on.
-9. **Continue.** If you were asked for one experiment (e.g. by `scripts/experiment-loop.sh`), stop. Make sure the working tree is clean, and end with the result line the caller asked for. Otherwise go back to step 1. An unmerged PR stays open for a maintainer: don't wait on it, and don't close it unless the experiment itself was abandoned.
+9. **Continue.** If you were asked for one experiment (e.g. by `scripts/experiment-loop.sh`), stop. Make sure the working tree is clean, and end with the result line the caller asked for. Otherwise go back to step 1. An unmerged PR stays open for a maintainer: don't wait on it, and don't close it. An abandoned experiment lands too, with only its ledger entry and a note saying why.
 
 ## Rules
 

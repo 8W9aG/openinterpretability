@@ -196,6 +196,13 @@ def pick_unit(runner, request: ScanRequest, spec):
     return identifier(request, layer, index, pole), seed
 
 
+def pole_forced(request: ScanRequest) -> bool | None:
+    """Whether ``--pole`` fixed a random draw's pole. None for a chosen unit or a head."""
+    if not request.random_pick or request.unit != "neuron":
+        return None
+    return request.pole is not None
+
+
 def identifier(request: ScanRequest, layer: int, index: int, pole: str | None):
     """The identifier of the unit that ``request`` scans, at ``layer`` and ``index``."""
     from openinterp.core.schemas import FeatureIdentifier, HeadIdentifier, NeuronIdentifier
@@ -316,6 +323,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         snippet_stride=corpus.stride if windowed else None,
         selection=chosen_selection(request.random_pick, request.selection),
         seed=seed if request.random_pick else None,
+        pole_forced=pole_forced(request),
         harness_version=__version__,
         environment=_scan_environment(runner),
         corpus_source=corpus.source,

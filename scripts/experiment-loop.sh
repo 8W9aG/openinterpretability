@@ -30,6 +30,9 @@ Usage: scripts/experiment-loop.sh [options]
   --budget USD         Stop once this loop has spent USD or more (default: no cap)
   --daily-budget USD   Stop once all loops together have spent USD or more today, UTC,
                        going by the logs in <repo>/logs/loop/ (default: no cap)
+  --one-heavy-job      Queue model loads and `make test` behind a machine-wide lock, so
+                       loops in other checkouts don't run them at the same time (opt-in;
+                       openinterp/core/heavy_lock.py)
   -h, --help           Show this help
 
 Budgets count the dollars that `openinterp costs --usd` reports: priced LLM calls and
@@ -73,6 +76,7 @@ while [[ $# -gt 0 ]]; do
     --max-turns) MAX_TURNS=$2; shift 2 ;;
     --budget) BUDGET=$2; shift 2 ;;
     --daily-budget) DAILY_BUDGET=$2; shift 2 ;;
+    --one-heavy-job) export OPENINTERP_HEAVY_LOCK=1; shift ;;
     -h | --help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -131,8 +135,8 @@ describes and note it in the PR description.
   scores. Record the model IDs they report.
 - Post the result whatever the verdict, then land it as land-experiment describes: build,
   wait for green checks, and merge only if every merge condition holds; otherwise leave
-  the PR open with a comment saying why. If you have to abandon it, close the PR with
-  the reason.
+  the PR open with a comment saying why. If you have to abandon it, say why in the PR and
+  land it with only its ledger entry (wiki/ledger/). Don't close it.
 - If \`openinterp next\` says new experiments are paused, stop at once: claim nothing,
   and end with RESULT: none paused.
 - Finish on a clean working tree. End your reply with one line:
