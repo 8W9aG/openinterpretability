@@ -22,11 +22,13 @@ from typing import TYPE_CHECKING
 
 from openinterp.builder.hrefs import (  # noqa: F401  (re-exported: pages import them from here)
     circuits_href,
+    experiment_href,
     feature_href,
     head_href,
     layer_href,
     model_href,
     neuron_href,
+    unit_href,
 )
 from openinterp.builder.significance import Significance, significance
 from openinterp.builder.standing import native_standings, pole_standing
@@ -82,8 +84,13 @@ class Experiment:
 
     @property
     def anchor(self) -> str:
-        """The experiment's anchor on its unit's page."""
+        """The experiment's old anchor on its unit's page, which now redirects to its page."""
         return f"{self.side}-{self.id}"
+
+    @property
+    def href(self) -> str:
+        """The experiment's own page."""
+        return experiment_href(self.record.submission.identifier.slug, self.id)
 
     @property
     def probe_set(self) -> str:
@@ -342,14 +349,6 @@ def mlp_widths(records: Iterable[AuditRecord]) -> dict[str, int]:
 def unit_side(ident) -> str:
     """What a unit page groups ``ident`` under: a neuron's pole, else ``head`` or ``feature``."""
     return ident.pole or SIDES[ident.kind][0]
-
-
-def unit_href(ident) -> str:
-    """The page of the neuron, head or feature ``ident`` names."""
-    if ident.kind == "dictionary_feature":
-        return feature_href(ident.model_slug, ident.layer, ident.dictionary, ident.index)
-    href = head_href if ident.kind == "attn_head" else neuron_href
-    return href(ident.model_slug, ident.layer, ident.index)
 
 
 def experiment_order(e: Experiment) -> tuple:
