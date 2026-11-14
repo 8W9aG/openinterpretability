@@ -50,7 +50,7 @@ def check_errata(
         report.add(path, f"invalid erratum: {exc}")
         return
     _check_entries(errata, experiments_dir(wiki_dir), report, path)
-    changed = _changed(path, base_ref, changes)
+    changed = changed_file(path, base_ref, changes)
     if base_ref and changed:
         shown = subprocess.run(
             ["git", "show", f"{base_ref}:{path.as_posix()}"], capture_output=True, text=True
@@ -58,11 +58,11 @@ def check_errata(
         if shown.returncode == 0 and not text.startswith(shown.stdout):
             report.add(path, "the errata file is append-only: add lines at the end, change none")
         _check_new_errata(errata, experiments_dir(wiki_dir), report, path)
-    _check_signature(path, report, allowed_signers_text(allowed_signers, base_ref), changed)
+    check_signature(path, report, allowed_signers_text(allowed_signers, base_ref), changed)
 
 
-def _changed(path: Path, base_ref: str | None, changes: list[tuple[str, Path]]) -> bool:
-    """Whether the branch, or an uncommitted edit, changed the errata file or its signature."""
+def changed_file(path: Path, base_ref: str | None, changes: list[tuple[str, Path]]) -> bool:
+    """Whether the branch, or an uncommitted edit, changed ``path`` or its signature."""
     files = {path, signature_path(path)}
     if any(status != "D" and p in files for status, p in changes):
         return True
@@ -113,13 +113,15 @@ def _load(path: Path) -> AuditRecord | None:
         return None
 
 
-def _check_signature(path: Path, report: CheckReport, signers: str, changed: bool) -> None:
-    """A trusted key signed the file: at the time it landed, or now if it changed since."""
+def check_signature(
+    path: Path, report: CheckReport, signers: str, changed: bool, what: str = "errata file"
+) -> None:
+    """A trusted key signed ``path``: at the time it landed, or now if it changed since."""
     if not signature_path(path).exists():
-        report.add(path, f"the errata file is unsigned; a maintainer runs `openinterp sign {path}`")
+        report.add(path, f"the {what} is unsigned; a maintainer runs `openinterp sign {path}`")
         return
     at = None if changed else landing_times().get(path.resolve())
     try:
         verify_record(path, signers, at)
     except SignatureError as exc:
-        report.add(signature_path(path), f"the errata file's signature is not trusted: {exc}")
+        report.add(signature_path(path), f"the {what}'s signature is not trusted: {exc}")
