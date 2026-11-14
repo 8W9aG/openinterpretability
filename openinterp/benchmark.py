@@ -36,6 +36,9 @@ TEST_FRACTION = 0.2
 MIN_PER_CLASS = 3  # active and inactive probes a unit needs, so that both rates exist
 PROBE_KINDS = ("hard_negative", "positive_holdout")
 CHANCE = 0.5  # the score of a unit that has no explanation
+# A unit whose judge listed this share of its texts or more is flagged (issue #3303). An
+# injection that makes the judge list every text would look like that.
+LISTED_ALL_SHARE = 0.9
 BOOTSTRAP_SAMPLES = 2000
 
 MANIFEST = "manifest.json"
@@ -348,7 +351,8 @@ def unit_score(
 ) -> dict[str, float | int | None]:
     """Balanced accuracy of ``predicted`` against the probes' labels.
 
-    Near-duplicate probes count once, as in the review (docs/PROTOCOL.md §4).
+    Near-duplicate probes count once, as in the review (docs/PROTOCOL.md §4). The row also
+    gives ``listed_share``, the share of texts that the judge listed (issue #3303).
     """
 
     def rate(active: bool):
@@ -359,6 +363,7 @@ def unit_score(
     inactive, active = rate(False), rate(True)
     return {
         "balanced_accuracy": round(balanced_accuracy(inactive, active), 6),
+        "listed_share": round(sum(predicted) / len(predicted), 6) if predicted else None,
         "specificity": None if inactive.rate is None else round(inactive.rate, 6),
         "sensitivity": None if active.rate is None else round(active.rate, 6),
         "active_probes": active.raw,
@@ -374,6 +379,10 @@ def summarize(
     A unit without an explanation scores :data:`CHANCE`, so leaving hard units out does not
     raise the mean. The interval is a bootstrap over units. ``split_units`` is the size of
     the whole split, when ``units`` are only part of it.
+
+    ``listed_nearly_all`` names the units whose judge listed at least
+    :data:`LISTED_ALL_SHARE` of the texts. An explanation that tells the judge to list
+    every text would look like that. Rows from before ``listed_share`` existed are skipped.
     """
     scored = {r["unit"]: r["balanced_accuracy"] for r in rows}
     values = [scored.get(u.unit, CHANCE) for u in units]
@@ -384,6 +393,9 @@ def summarize(
         "ci95": _bootstrap(values, seed),
         "per_model": {},
         "split_units": len(units) if split_units is None else split_units,
+        "listed_nearly_all": sorted(
+            r["unit"] for r in rows if (r.get("listed_share") or 0) >= LISTED_ALL_SHARE
+        ),
     }
     for model in sorted({u.model for u in units}):
         mine = [scored.get(u.unit, CHANCE) for u in units if u.model == model]
