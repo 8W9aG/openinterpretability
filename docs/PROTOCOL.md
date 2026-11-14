@@ -1,4 +1,4 @@
-# Audit protocol (v0.8)
+# Audit protocol (v0.9)
 
 This document defines what one Open Interpretability experiment is, who does what, and how a verdict is decided. The code implements it: the decision rule is `openinterp.agents.reviewer.evaluate_submission`, and its parameters are `openinterp.core.schemas.ReviewPolicy`. Every verdict stores the policy it was computed under, so any record can be re-checked with `open-interpretability reevaluate`.
 
@@ -110,7 +110,7 @@ A verdict is **VERIFIED** only if every gate passes:
 | `counterfactual_reproduction` | ≥ 0.75 of pairs | The proposer's predicted Δ reproduce within `max(0.10, 0.50 × |predicted|)`, with the right sign. |
 | `lookahead_consistent` | — | The measured mechanism matches the claim. |
 | `independent_review` | off (`require_independent_review`) | The reviewer model differs from the proposer model. Always recorded, and gated only when the policy requires it. |
-| `beats_confound_baseline` | ≥ best baseline | The hypothesis explains the probes at least as well as token identity, position or "never active". It fails when the submission has no confound profile. |
+| `beats_confound_baseline` | ≥ best baseline | The hypothesis explains the probes at least as well as token identity, position, probe length or "never active". Probe length is "active if the probe has at least n tokens", with the best n on the same probes (since 0.9). It fails when the submission has no confound profile. |
 | `not_default_on` | active share < 0.50 | The unit is not default-on (§1), so a hard negative can stay inactive at all. It passes when the submission has no histogram. |
 
 If the probe set is adequate (both count gates pass) and balanced accuracy is below **0.60**, the verdict is **REJECTED**. The hypothesis then predicts the neuron barely better than chance. Every other outcome is **NEEDS_REVISION**, and the failed gates are listed in `verdict.notes`.
@@ -275,6 +275,7 @@ Any change to the decision rule or its defaults bumps `PROTOCOL_VERSION` in `cor
 | 0.6 | Attention heads can be audited. A head's strength is \|W_O (z − z̄)\| against its mean output over the scan, stored in the record. Its ablation is mean ablation, and its causal metrics rank it against the other heads of its layer. The decision rule for neuron poles is unchanged. `CausalMetrics.null_neurons` now records how many comparison units were used. |
 | 0.7 | A scan reads a seeded sample of whole documents within a token budget (default 200,000 tokens, seed 0), recorded in `provenance.corpus_sample`, instead of the whole corpus. The scale, and so the "active" threshold, is the maximum over that sample. The decision rule is unchanged. A record without a sample scanned its whole corpus, and re-evaluating it keeps that scale. |
 | 0.8 | A unit active at the first position on at least half the vocabulary has a first-token floor. It is not measured at a text's first token: its peaks, scan statistics, confound baselines, held-out windows, wiring and input attribution skip it. For it, a one-token probe or counterfactual is recorded as unmeasured and counts in no metric. A unit active on at least half its scan's tokens is default-on: the scan stops on it, and a review fails the new `not_default_on` gate (`ReviewPolicy.max_active_share`). A hypothesis that ties the confound baseline passes, as intended. Before, a rounding mismatch failed some ties. This settles how GPT-2's negative poles and its early-layer positive poles with a first-token floor are audited (`docs/analyses/position-zero.md`). Re-evaluating an older record keeps its scale, and judges its floor against it. |
+| 0.9 | The confound baseline adds probe length: "active if the probe has at least n tokens", for every n (issue #3525). For a unit with a first-token floor, the first token isn't counted. A unit that responds to position passes probes that differ only in length. On a randomly initialised GPT-2 two such units were VERIFIED (`docs/analyses/untrained-null.md`). The rule would have failed 45 of the 380 VERIFIED records of protocol 0.8 (`docs/analyses/protocol-mix.md`). In most of them the holdouts were much longer than the hard negatives. So the reviewer is now asked for hard negatives and holdouts of similar length. `review --check-probes` and `review --probes` warn when the two groups' median token lengths differ by more than 1.5× (`LENGTH_RATIO_WARN`). The warning is advice, not a gate. |
 
 ### Registry-level dependence
 
