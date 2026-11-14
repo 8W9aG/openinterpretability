@@ -80,3 +80,23 @@ def test_set_priority_sets_the_label_and_linear(monkeypatch):
     monkeypatch.setattr(next_issue.issue_state, "linear", linear)
     assert next_issue.set_priority("7", "high") == "#7: priority: high"
     assert calls[0][-1] == "priority: high" and queries[-1] == {"id": "L1", "p": 2}
+
+
+def _comments(*bodies):
+    return [{"body": b} for b in bodies]
+
+
+def test_a_reply_after_an_agent_comment_is_an_answer():
+    asked = _comments("<!-- linear-linkback -->", "**Plan**\n\n…", "**Deviation**\n\nA, B or C?")
+    assert next_issue.waiting_answer(asked) is None  # still waiting for the maintainer
+    assert next_issue.waiting_answer([*asked, {"body": "2"}]) == "2"
+    acted = [*asked, {"body": "2"}, {"body": "**Deviation**\n\nThe maintainer chose 2."}]
+    assert next_issue.waiting_answer(acted) is None  # an agent has acted on it
+
+
+def test_a_comment_with_no_agent_comment_before_it_is_not_an_answer():
+    assert next_issue.waiting_answer(_comments("Working on this.")) is None
+    assert next_issue.waiting_answer(_comments("a note from the maintainer")) is None
+    assert next_issue.waiting_answer([]) is None
+    merged = _comments("**Shipped** in #1.", "Merged in #1 as abc.")
+    assert next_issue.waiting_answer(merged) is None
