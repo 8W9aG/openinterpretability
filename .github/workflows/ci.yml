@@ -112,6 +112,8 @@ jobs:
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Repository size against its budget (warns only)
+        run: python3 scripts/repo_size.py
       - name: Every experiment has a valid record and wiki page
         env:
           BASE_REF: ${{ github.base_ref }}
