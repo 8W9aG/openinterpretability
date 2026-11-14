@@ -12,9 +12,11 @@ _SPEC.loader.exec_module(rules)
 
 
 def test_balanced_accuracy_and_contiguity():
-    assert rules.balanced([(True, True), (False, False), (True, False), (True, True)]) == 0.75
-    assert rules.balanced([(True, True)]) is None
-    assert rules.contiguous([3, 4, 5]) and not rules.contiguous([3, 5]) and not rules.contiguous([])
+    from openinterp.harness.explanation_scores import _balanced, _contiguous
+
+    assert _balanced([(True, True), (False, False), (True, False), (True, True)]) == 0.75
+    assert _balanced([(True, True)]) is None
+    assert _contiguous([3, 4, 5]) and not _contiguous([3, 5]) and not _contiguous([])
 
 
 def win(marks, label):
@@ -27,5 +29,5 @@ def test_a_leaky_item_set_is_caught():
     det = [SimpleNamespace(tokens=["a"] * 32, label=True, judged=None)]
     det += [SimpleNamespace(tokens=["a"] * 20, label=False, judged=None)]
     out = rules.pooled([SimpleNamespace(detection_windows=det, fuzzing_windows=fuz)])
-    assert out["fuzzing_marks_contiguous"] == 1.0
-    assert out["detection_length_rule"] == 1.0
+    assert out["fuzzing_contiguous"] == 1.0
+    assert out["detection_length"] == 1.0

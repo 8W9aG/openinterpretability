@@ -106,6 +106,18 @@ class ExplanationScores(StrictModel):
     )
     detection_windows: list[ScoredWindow] = Field(default_factory=list)
     fuzzing_windows: list[ScoredWindow] = Field(default_factory=list)
+    fuzzing_decoys: str | None = Field(
+        default=None,
+        description="How fuzzing decoys were marked: 'matched-shape' (the real marks' count "
+        "and spacing, moved) since issue #3505. None for older scores, whose decoys were "
+        "random tokens that explanation-free rules could tell apart.",
+    )
+    rule_baseline: dict[str, float] = Field(
+        default_factory=dict,
+        description="Balanced accuracy of explanation-free rules on these windows, best cut "
+        "chosen on them, so an upper bound: detection_length, fuzzing_contiguous, "
+        "fuzzing_count. A score means something only above these.",
+    )
     controls: list[ControlScore] = Field(
         default_factory=list,
         description="The same windows judged with control explanations (openinterp score "

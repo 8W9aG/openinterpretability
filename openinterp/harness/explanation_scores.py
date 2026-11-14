@@ -105,6 +105,28 @@ def measure_windows(
     return windows
 
 
+# How sample_heldout marks fuzzing decoys; recorded in each ExplanationScores.
+DECOYS = "matched-shape"
+
+
+def placed(rng: random.Random, shape: Sequence[int], free: Sequence[int]) -> list[int]:
+    """Marks with ``shape``'s offsets, moved to a random place where every mark is in ``free``.
+
+    A decoy that copies the real marks' count and spacing gives a judge no cue from them
+    ("Scoring Explanations Without Reading Them", arXiv 2610.37676). If the shape fits
+    nowhere, it falls back to as many marks drawn at random from ``free``.
+    """
+    if not shape:
+        return []
+    offsets = [i - shape[0] for i in sorted(shape)]
+    allowed = set(free)
+    starts = [s for s in sorted(allowed) if all(s + o in allowed for o in offsets)]
+    if starts:
+        start = rng.choice(starts)
+        return [start + o for o in offsets]
+    return rng.sample(list(free), min(len(free), len(shape)))
+
+
 def sample_heldout(
     runner: NeuronHookRunner,
     texts: Sequence[str],
@@ -124,8 +146,9 @@ def sample_heldout(
     equal bins. Each bin gives ``per_quantile`` windows to detection and as many to
     fuzzing. So the weakest activations count as much as the top ones. Detection gets as
     many inactive windows as active ones. In half its active windows, fuzzing marks the
-    active tokens. In the other half, it marks as many random inactive tokens. It also
-    adds half as many inactive windows, with random tokens marked. With no active window at all,
+    active tokens. In the other half, it marks inactive tokens in the same shape: the same
+    count and spacing, moved (:func:`placed`). It also adds half as many inactive windows,
+    each marked in the shape of a random active window's tokens. With no active window at all,
     detection gets ``quantiles × per_quantile`` inactive ones and fuzzing none.
     """
     rng = random.Random(seed)
@@ -154,14 +177,15 @@ def sample_heldout(
     detection = detect_active + rng.sample(inactive, min(len(inactive), len(detect_active)))
 
     fuzzing = []
+    shapes = [w.hot(threshold) for w in fuzz_active]
     for n, w in enumerate(fuzz_active):
         hot, cold = w.hot(threshold), w.cold(threshold)
-        marks = hot if n % 2 == 0 or len(cold) < len(hot) else rng.sample(cold, len(hot))
+        marks = hot if n % 2 == 0 or len(cold) < len(hot) else placed(rng, hot, cold)
         fuzzing.append(replace(w, highlighted=tuple(sorted(marks))))
     rest = [w for w in inactive if w not in detection]
     for w in rng.sample(rest, min(len(rest), len(fuzz_active) // 2)):
-        tokens = range(w.start, len(w.tokens))
-        marks = rng.sample(tokens, min(len(tokens), rng.randint(1, 3)))
+        cold = list(range(w.start, len(w.tokens)))
+        marks = placed(rng, rng.choice(shapes), cold)
         fuzzing.append(replace(w, highlighted=tuple(sorted(marks))))
     rng.shuffle(detection)
     rng.shuffle(fuzzing)
@@ -229,6 +253,45 @@ def auroc(scores: Sequence[float], labels: Sequence[bool]) -> float | None:
     return wins / (len(pos) * len(neg))
 
 
+def _balanced(pairs: Sequence[tuple[bool, bool]]) -> float | None:
+    """Balanced accuracy of (predicted, label) pairs, or ``None`` with one class."""
+    pos = [p for p, y in pairs if y]
+    neg = [not p for p, y in pairs if not y]
+    if not pos or not neg:
+        return None
+    return (sum(pos) / len(pos) + sum(neg) / len(neg)) / 2
+
+
+def _contiguous(marks: Sequence[int]) -> bool:
+    """True when the marked tokens form one unbroken run."""
+    return bool(marks) and max(marks) - min(marks) + 1 == len(marks)
+
+
+def _best_cut(values: Sequence[float], labels: Sequence[bool]) -> float | None:
+    """The best balanced accuracy of "positive if value >= cut" over every cut."""
+    scores = [
+        _balanced([(v >= c, y) for v, y in zip(values, labels, strict=True)]) for c in set(values)
+    ]
+    return max((s for s in scores if s is not None), default=None)
+
+
+def explanation_free_baseline(detection, fuzzing) -> dict[str, float]:
+    """Explanation-free rules' balanced accuracy on scored windows (arXiv 2610.37676).
+
+    Each cut is chosen on the same windows, so each number is an upper bound.
+    """
+    out = {
+        "detection_length": _best_cut(
+            [len(w.tokens) for w in detection], [w.label for w in detection]
+        ),
+        "fuzzing_contiguous": _balanced([(_contiguous(w.highlighted), w.label) for w in fuzzing]),
+        "fuzzing_count": _best_cut(
+            [len(w.highlighted) for w in fuzzing], [w.label for w in fuzzing]
+        ),
+    }
+    return {k: round(v, 6) for k, v in out.items() if v is not None}
+
+
 def finalize_scores(scores: ExplanationScores) -> ExplanationScores:
     """Recompute the summary scores from the stored windows, labels and answers."""
     det = scores.detection_windows
@@ -240,6 +303,7 @@ def finalize_scores(scores: ExplanationScores) -> ExplanationScores:
             "fuzzing": judge_score(scores.fuzzing_windows, scores.quantiles),
             "embedding_auroc": emb,
             "controls": [_control_scores(c, scores) for c in scores.controls],
+            "rule_baseline": explanation_free_baseline(det, scores.fuzzing_windows),
         }
     )
 

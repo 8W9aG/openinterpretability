@@ -21,9 +21,11 @@ from openinterp.core.schemas import AuditRecord, NeuronIdentifier
 from openinterp.harness.explanation_scores import (
     Window,
     auroc,
+    explanation_free_baseline,
     judge_score,
     label_windows,
     measure_windows,
+    placed,
     remeasure,
     sample_heldout,
 )
@@ -190,6 +192,7 @@ def test_two_step_scoring_attaches_to_a_review(flow):
     assert "Detection" in out and "embedding AUROC" in out
     scores = ExplanationScores.model_validate_json((flow.path / "score.scores.json").read_text())
     assert scores.judge_model == "external/judge" and scores.seed == 3
+    assert scores.fuzzing_decoys == "matched-shape" and "fuzzing_contiguous" in scores.rule_baseline
     assert scores.detection is not None and scores.fuzzing is not None
     assert scores.embedding_auroc is not None
     assert [w.judged for w in scores.detection_windows][:2] == [True, False]
@@ -317,3 +320,35 @@ def test_a_floor_units_task_scores_without_the_first_token(flow):
     from openinterp.harness.units import submission_unit
 
     assert submission_unit(task).skip_first
+
+
+def test_placed_copies_the_shape_or_falls_back():
+    rng = random.Random(0)
+    marks = placed(rng, [3, 4, 6], range(10, 20))
+    assert [m - marks[0] for m in marks] == [0, 1, 3] and all(10 <= m < 20 for m in marks)
+    assert len(placed(rng, [0, 5, 9], [1, 2, 3])) == 3  # doesn't fit: random marks instead
+    assert placed(rng, [], range(5)) == []
+
+
+def test_decoys_leave_explanation_free_rules_at_chance(toy_runner, monkeypatch):
+    # Active windows hold one contiguous run of hot tokens, of length 1 to 4. With decoys
+    # in the same shape, neither the count nor the contiguity of marks gives the answer.
+    def measure(runner, texts, unit):
+        out = []
+        for t in texts:
+            i = int(t)
+            acts = [0.0] * 12
+            if i % 2:
+                start, length = i % 7, 1 + i % 4
+                acts[start : start + length] = [1.0] * length
+            out.append(Window(t, ["x"] * 12, acts))
+        return out
+
+    monkeypatch.setattr("openinterp.harness.explanation_scores.cut_windows", lambda r, t, n: t)
+    monkeypatch.setattr("openinterp.harness.explanation_scores.measure_windows", measure)
+    texts = [str(i) for i in range(400)]
+    sample = sample_heldout(toy_runner, texts, UNIT, 0.5, seed=3, quantiles=1, per_quantile=40)
+    fuzzing = label_windows(sample.fuzzing, 0.5, sample.quantile_edges, fuzzing=True)
+    rules = explanation_free_baseline([], fuzzing)
+    assert rules["fuzzing_contiguous"] == 0.5
+    assert rules["fuzzing_count"] < 0.6
