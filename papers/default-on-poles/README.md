@@ -325,7 +325,7 @@ uv run python scripts/paper_figures.py
 
 ## Next
 
-[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are in `TODO.md` (*Protocol and science*).
+[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Default-on poles*, and the research questions are in [docs/research-questions.md](../../docs/research-questions.md).
 
 ## References
 

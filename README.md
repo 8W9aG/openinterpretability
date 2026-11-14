@@ -59,6 +59,7 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 - [docs/experiments.md](docs/experiments.md): other LLMs, answer files without API keys, the scan corpus and caches, and loops and parallel sessions. Also attention heads and dictionary latents, contributing and credit, the skills, definitions and the models.
 - [docs/benchmark.md](docs/benchmark.md): the public benchmark for explanation tools, and how to score an explainer on it.
 - [docs/development.md](docs/development.md): make targets, what CI checks on a pull request, record signing, the code layout, and the static site and deploy.
+- [docs/research-questions.md](docs/research-questions.md): the questions the project exists to answer, and how close the registry is to each.
 - [docs/PROTOCOL.md](docs/PROTOCOL.md): how verdicts are decided.
 - [docs/moe.md](docs/moe.md): how neurons in mixture-of-experts models will be audited. It is a decision, not built yet.
 - [CONTRIBUTING.md](CONTRIBUTING.md): the ways to contribute, and the rules for pull requests and style.
