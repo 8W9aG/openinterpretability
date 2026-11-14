@@ -56,13 +56,21 @@ def _api_model(_ctx, param, value: str) -> str:
     help="Worktree to run in. Default: ../<repo>-loop, created if missing.",
 )
 @click.option(
+    "--one-heavy-job",
+    is_flag=True,
+    help="Queue behind a machine-wide lock before loading the model (openinterp/core/"
+    "heavy_lock.py). The loop keeps its model loaded, so it holds the lock until it ends.",
+)
+@click.option(
     "--max-failures",
     default=3,
     show_default=True,
     type=click.IntRange(1),
     help="Stop after this many failed experiments in a row.",
 )
-def loop_command(proposer, reviewer, max_experiments, epsilon, corpus, worktree, max_failures):
+def loop_command(
+    proposer, reviewer, max_experiments, epsilon, corpus, worktree, one_heavy_job, max_failures
+):
     """Run experiments back to back: draw, claim, audit, review, post and land each one.
 
     Each runs in a detached worktree reset to origin/main. A model loads once for the
@@ -87,6 +95,10 @@ def loop_command(proposer, reviewer, max_experiments, epsilon, corpus, worktree,
             "self-reviewed; pass another --reviewer for independent ones.",
             err=True,
         )
+    if one_heavy_job:  # every model load in this process, and every child, takes the lock
+        from openinterp.core.heavy_lock import ENABLE_ENV
+
+        os.environ[ENABLE_ENV] = "1"
     runner_cache.keep()
     os.chdir(worktree)
     options = Options(proposer, reviewer, epsilon, corpus)
