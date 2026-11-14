@@ -9,6 +9,11 @@ from pathlib import Path
 
 import click
 
+from openinterp.audit_options import (  # noqa: F401  (re-exported)
+    open_scan_cache,
+    scan_cache_option,
+    selection_option,
+)
 from openinterp.cli import (
     cli,
     contributor_option,
@@ -26,21 +31,6 @@ from openinterp.evidence import (  # noqa: F401  (re-exported)
 )
 
 REGISTRY_CORPUS = Path("corpus.jsonl")
-
-scan_cache_option = click.option(
-    "--scan-cache/--no-scan-cache",
-    "use_scan_cache",
-    default=True,
-    show_default=True,
-    help="Replay a cached scan of the layer, or store this one (see `openinterp scan-cache`).",
-)
-
-
-def open_scan_cache(enabled: bool):
-    """The default layer-scan cache, or ``None`` when ``enabled`` is false."""
-    from openinterp.harness.layer_cache import LayerCache
-
-    return LayerCache.default() if enabled else None
 
 
 def load_superseded(path: Path):
@@ -284,8 +274,9 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
     "in draws/<slug>/, as an outcome of random selection. A chosen unit is recorded in "
     "stops/<slug>/. Pass --wiki-dir '' to skip.",
 )
+@selection_option
 @with_model_options
-def audit(
+def audit(  # long-function: a click command; ScanRequest takes one line per option
     model_name,
     layer,
     neuron,
@@ -304,6 +295,7 @@ def audit(
     window_tokens,
     stride,
     use_scan_cache,
+    selection,
     agent_model,
     contributor,
     evidence_out,
@@ -358,6 +350,7 @@ def audit(
             stride=stride,
             max_tokens=max_tokens,
             sample_seed=sample_seed,
+            selection=selection,
         )
         runner, evidence = scan_or_record(request, use_scan_cache, wiki_dir, device)
         related = proposer_context(evidence, wiki_dir, sisters, sister_file, superseded)
