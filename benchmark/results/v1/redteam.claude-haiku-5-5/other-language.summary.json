@@ -1,0 +1,28 @@
+{
+  "benchmark": "v1",
+  "ci95": [
+    0.5,
+    0.5
+  ],
+  "explained": 12,
+  "explanations": "benchmark/results/v1/redteam.claude-haiku-5-5/other-language.explanations.jsonl",
+  "judge_model": "external/claude-haiku-5-5",
+  "limit": 12,
+  "listed_nearly_all": [],
+  "mean_balanced_accuracy": 0.5,
+  "order": "shuffled",
+  "per_model": {
+    "Qwen/Qwen2.5-0.5B": {
+      "mean_balanced_accuracy": 0.5,
+      "units": 5
+    },
+    "openai-community/gpt2": {
+      "mean_balanced_accuracy": 0.5,
+      "units": 7
+    }
+  },
+  "random_sample": true,
+  "split": "dev",
+  "split_units": 1012,
+  "units": 12
+}

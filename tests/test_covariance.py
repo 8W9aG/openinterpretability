@@ -296,7 +296,7 @@ def test_reused_probes_are_not_independent(record):
             )
         }
     )
-    (model,) = build_tree([original, remeasured])
+    (model,) = build_tree([original, remeasured], [])
     (neuron,) = model.layers[0].neurons
     reuse = [e for e in neuron.experiments if not e.independent]
     from openinterp.builder.wiki import experiment_id
