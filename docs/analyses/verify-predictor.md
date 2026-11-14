@@ -51,3 +51,4 @@ A ranking alone could still steer draws: draw more often from the poles ranked h
 - **One split and one model class.** A tree model or other features could rank better. The interval on the AUC is wide (0.58–0.70).
 - **The maximum activation is partly the corpus.** Units scanned on the 552-token built-in sample have smaller maxima and verify less often (`registry-stats.md`). They are all in the training half. Within deepseek-flash, about 90% of units scanned a real corpus, and the ranking holds there.
 - **First readings are noisy.** Two readings of one hypothesis agree on VERIFIED or not 71% of the time (`registry-stats.md`). So no forecast can rank much better than a reading repeats.
+- **A weight-only kurtosis doesn't help.** ROTATE's vocabulary-projection kurtosis, on both the input and output sides, adds nothing to these features (`weight-kurtosis.md`, #3226).
