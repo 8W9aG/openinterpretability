@@ -47,3 +47,4 @@ The build's time is with its on-disk memo warm (`openinterp/builder/disk_memo.py
 - **One pole and one record.** A change that affects only another kind of unit, such as an attention head or a dictionary latent, isn't measured.
 - **GPT-2 small only.** Costs that grow with the model's size, such as Qwen2.5-1.5B's memory, are not measured. The sister search's own measurements are in `sister-neurons.md`.
 - **The LLM agents aren't timed.** On 2026-10-20 an explore draw took 25–40 minutes, of which the CPU scan was 13–15 (#3265). Most of the rest is the proposer and the reviewer.
+- **CPU options.** Threads, half precision, a fused GELU and compiling to C++ are compared in `cpu-acceleration.md` (#3268).
