@@ -24,8 +24,10 @@ from openinterp.core.schemas import (
     PatchEffect,
     ReviewPolicy,
 )
+from tests.site_pages import experiment_pages, unit_pages
 
 MODEL = "Qwen--Qwen2.5-0.5B"
+PAGE = f"models/{MODEL}/L3/N117-positive/20261001T"  # an experiment page, but its time
 
 
 def probes(neg_pass, neg_fail, pos_pass, pos_fail):
@@ -101,7 +103,7 @@ def test_every_experiment_published_in_hierarchy(tmp_path, records):
     for page in ["index.html", "L3/index.html", "L3/N117.html", "L3/N9.html"]:
         assert (model / page).exists(), page
 
-    neuron = (model / "L3" / "N117.html").read_text()
+    neuron = unit_pages(model / "L3" / "N117.html")
     assert "data-pagefind-body" in neuron
     assert 'href="../../../index.html"' in neuron  # relative root from nested pages
     assert "Fires on commas." in neuron and "Early idea." in neuron  # null + superseded shown
@@ -249,10 +251,39 @@ def test_pct_fine():
 def test_experiments_ordered_by_conclusiveness(tmp_path, records):
     compile_site(records, tmp_path)
     neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
-    order = re.findall(r'<section id="(\w+)-(\d+T\d+Z)"', neuron)
+    order = re.findall(r'<tr id="(\w+)-(\d+T\d+Z)"', neuron)
     # Strong verification, then the well-probed null, then the thin early attempt.
     assert [pole for pole, _ in order] == ["positive", "negative", "positive"]
     assert "strong evidence for" in neuron and "evidence against" in neuron
+
+
+def test_each_experiment_has_its_own_page_and_the_unit_page_lists_them(tmp_path, records):
+    report = compile_site(records, tmp_path)
+    layer = tmp_path / "models" / MODEL / "L3"
+    unit = layer / "N117.html"
+    pages = [p.relative_to(layer).as_posix() for p in experiment_pages(unit)]
+    # The record paths under wiki/experiments/, one directory per pole.
+    assert [p.split("/")[0] for p in pages] == ["N117-negative", "N117-positive", "N117-positive"]
+    assert all(layer / p in report.pages for p in pages)
+
+    neuron = unit.read_text()
+    assert "<section id=" not in neuron  # no experiment is rendered inline any more
+    assert "Evidence and review" not in neuron
+    links = re.findall(r'<tr id="(\w+-\d+T\d+Z)"', neuron)
+    assert len(links) == 3
+    # The old anchors move on to the experiments' pages.
+    moved = json.loads(re.search(r"var moved = (\{.*?\});", neuron).group(1))
+    assert sorted(moved) == sorted(links)
+    for anchor, href in moved.items():
+        side, id_ = anchor.split("-", 1)
+        assert href == f"../../../models/{MODEL}/L3/N117-{side}/{id_}.html"
+        assert f'href="{href}"' in neuron
+
+    page = (layer / pages[0]).read_text()
+    assert "Evidence and review" in page and "data-pagefind-body" in page
+    assert 'href="../../../../index.html"' in page  # relative root, one level deeper
+    assert f'<a class="underline" href="../../../../models/{MODEL}/L3/N117.html">' in page
+    assert f"wiki/experiments/{MODEL}/L3/{pages[0].removesuffix('.html')}.json" in page
 
 
 def test_index_highlights_conclusive_results_both_ways(tmp_path, records):
@@ -260,7 +291,7 @@ def test_index_highlights_conclusive_results_both_ways(tmp_path, records):
     index = (tmp_path / "index.html").read_text()
     assert "Most conclusive results" in index
     assert "Fires on commas." in index  # a null result is featured
-    assert "models/Qwen--Qwen2.5-0.5B/L3/N117.html#positive-" in index
+    assert "models/Qwen--Qwen2.5-0.5B/L3/N117-positive/2026" in index
     assert "openai/gpt-test" in index
     assert "duckdb-wasm@1.29.0" in index
 
@@ -295,9 +326,15 @@ def test_revisions_linked_both_ways(tmp_path, records):
     sub = verified.submission.model_copy(update={"supersedes": "20261001T120000Z"})
     records[1] = verified.model_copy(update={"submission": sub})
     compile_site(records, tmp_path)
-    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
-    assert 'Revises <a class="font-mono underline" href="#positive-20261001T120000Z">' in neuron
-    assert 'Revised by <a class="font-mono underline" href="#positive-20261001T140000Z">' in neuron
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
+    assert (
+        'Revises <a class="font-mono underline" href="../../../../' + PAGE + '120000Z.html">'
+        in neuron
+    )
+    assert (
+        'Revised by <a class="font-mono underline" href="../../../../' + PAGE + '140000Z.html">'
+        in neuron
+    )
     rows = pq.read_table(tmp_path / "data" / "registry.parquet").to_pylist()
     assert sorted(r["supersedes"] or "" for r in rows) == ["", "", "", "20261001T120000Z"]
 
@@ -392,7 +429,7 @@ def test_probe_chart(verdict):
 def test_probe_chart_rendered(tmp_path, record):
     scored = record.model_copy(update={"verdict": _scored(record.verdict)})
     compile_site([scored], tmp_path)
-    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    page = unit_pages(next((tmp_path / "models").rglob("N*.html")))
     assert "Probe strengths against the activation threshold" in page
     assert "2 of 3 hard negatives passed; 1 of 2 positive holdouts passed" in page
     assert "threshold 0.62 (25% of max)" in page
@@ -445,7 +482,7 @@ def test_causal_chart_rendered(tmp_path, record):
     causal = _causal_pairs(record.verdict.causal_metrics)
     verdict = record.verdict.model_copy(update={"causal_metrics": causal})
     compile_site([record.model_copy(update={"verdict": verdict})], tmp_path)
-    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    page = unit_pages(next((tmp_path / "models").rglob("N*.html")))
     assert "Causal effects per minimal pair" in page
     assert "Sufficiency and necessity percentiles for 2 minimal pairs" in page
     assert "Per-pair numbers" in page
@@ -557,13 +594,13 @@ def test_vocabulary_lens_rendered(tmp_path, record):
         return record.model_copy(update={"submission": sub})
 
     compile_site([with_lens(_lens())], tmp_path / "old")
-    page = (tmp_path / "old" / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "old" / "models" / MODEL / "L3" / "N117.html")
     assert "Vocabulary projection" in page and "predates vocabulary z-scores" in page
     assert " including" in page and "cos(w, J·w) 0.31" in page
 
     rec = with_lens(_lens(**Z_SCORES))
     compile_site([rec], tmp_path / "new")
-    page = (tmp_path / "new" / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "new" / "models" / MODEL / "L3" / "N117.html")
     assert "predates vocabulary" not in page and "␣including · z = +9.00 · #1 promoted" in page
     row = pq.read_table(tmp_path / "new" / "data" / "registry.parquet").to_pylist()[0]
     assert row["jacobian_promoted"] == [" including", "inc"] and row["lens_overlap"] == 0.0
@@ -612,7 +649,7 @@ def test_input_attribution_rendered(tmp_path, record):
     sub = record.submission.model_copy(update={"input_attribution": attribution})
     rec = record.model_copy(update={"submission": sub})
     compile_site([rec], tmp_path / "site")
-    page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "site" / "models" / MODEL / "L3" / "N117.html")
     assert "Input attribution" in page and "65+ back" in page and "ρ = 0.80" in page
     row = pq.read_table(tmp_path / "site" / "data" / "registry.parquet").to_pylist()[0]
     assert row["current_token_share"] == 0.5 and row["context_mean_distance"] == 7.25
@@ -654,7 +691,7 @@ def test_token_heat_windows_long_snippets_around_the_peak():
 
 def test_heatmap_renders_exact_values_and_peak(tmp_path, record):
     compile_site([record], tmp_path)
-    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert '<i class="p" style=--a:1 data-v="2.500 · peak">' in page
     assert 'data-v="0.300"' in page  # exact stored value, not a rounded shade
     assert "--heat-rgb: 234 88 12" in page  # positive pole hue
@@ -671,7 +708,7 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
     )
     assert recent[0]["reviewed_iso"] == "2026-10-01T14:00:00Z"  # the +2 h verification
     assert recent[0]["reviewed_time"] == "14:00 UTC" and recent[0]["href"].endswith(
-        recent[0]["experiment_id"]
+        f"/N117-positive/{recent[0]['experiment_id']}.html"
     )
     home = (tmp_path / "index.html").read_text()
     section = home.split("Most recent experiments")[1].split("Most conclusive results")[0]
@@ -702,7 +739,7 @@ def test_explanation_scores_rendered_mistakes_first(tmp_path, record):
         update={"verdict": record.verdict.model_copy(update={"explanation_scores": scores})}
     )
     compile_site([rec], tmp_path)
-    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "Explanation scores on held-out text" in page and "40 active of 900" in page
     assert page.index(">missed<") < page.index(">correct rejection<")  # mistakes first
     assert '<i class="p m"' in page and "marks right · judged right" in page
@@ -727,10 +764,11 @@ def test_self_reviews_badged_and_counted(tmp_path, records):
     assert pq.read_table(report.parquet).column("self_reviewed").to_pylist().count(True) == 1
 
     layer = tmp_path / "models" / MODEL / "L3"
-    neuron = (layer / "N117.html").read_text()
-    assert neuron.count(">self-reviewed</span>") == 2  # the positive pole's card and experiment
+    neuron = unit_pages(layer / "N117.html")
+    # The positive pole's card, its row in the table, and its experiment's page.
+    assert neuron.count(">self-reviewed</span>") == 3
     assert "same model as the proposer" in neuron
-    assert ">self-reviewed</span>" not in (layer / "N9.html").read_text()
+    assert ">self-reviewed</span>" not in unit_pages(layer / "N9.html")
     home = (tmp_path / "index.html").read_text()
     assert "1 of 4 experiments were" in home and "So were 1 of the 1 current verified" in home
 
@@ -751,9 +789,9 @@ def test_builtin_sample_scans_badged(tmp_path, records):
     records[1] = rec.model_copy(update={"submission": sub})
     compile_site(records, tmp_path)
     layer = tmp_path / "models" / MODEL / "L3"
-    neuron = (layer / "N117.html").read_text()
+    neuron = unit_pages(layer / "N117.html")
     assert neuron.count(">built-in sample</span>") == 2  # the positive pole's card and experiment
-    assert ">built-in sample</span>" not in (layer / "N9.html").read_text()
+    assert ">built-in sample</span>" not in unit_pages(layer / "N9.html")
 
 
 def _reviewed_by(rec, reviewer, *, status, hours, counts=(10, 0, 5, 0)):
@@ -803,7 +841,7 @@ def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
     stats = registry_stats(report.parquet)
     assert (stats["totals"]["verified"], stats["totals"]["contested"]) == (0, 1)
     assert "verified" not in stats  # the home page lists no verified units (#3273)
-    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "CONTESTED" in neuron and "Reviews of this hypothesis disagree" in neuron
     home = (tmp_path / "index.html").read_text()
     assert 'id="contested"' in home and "1 unit is contested" in home
@@ -910,18 +948,18 @@ def _with_opposite(rec):
 def test_neuron_page_shows_both_poles(tmp_path, records):
     # Without an opposite-pole scan, each pole's newest experiment supplies its examples.
     compile_site(records, tmp_path)
-    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     section = page.split('id="both-poles"')[1].split("</section>")[0]
     assert "newest experiment" in section and section.count("From <a") == 2
     assert "--heat-rgb: 234 88 12" in section and "--heat-rgb: 2 132 199" in section
 
     # N9 has only a positive experiment; its negative column waits for a scan.
-    page = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N9.html")
     assert "Not scanned yet." in page.split('id="both-poles"')[1]
 
     # One scan that read both poles supplies both columns.
     compile_site([*records[:3], _with_opposite(records[3])], tmp_path)
-    page = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N9.html")
     section = page.split('id="both-poles"')[1].split("</section>")[0]
     assert "from one scan" in section and "Not scanned yet." not in section
     assert 'data-v="0.900 · peak"' in section and "max 0.90" in section
@@ -956,9 +994,9 @@ def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
         update={"submission": record.submission.model_copy(update={"identifier": other_ident})}
     )
     compile_site([rec, other], tmp_path / "site")
-    page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "site" / "models" / MODEL / "L3" / "N117.html")
     assert "From the weights" in page and "on 4 of the review" in page
-    assert 'href="../../../models/' + MODEL + '/L1/N5.html">L1/N5</a>' in page
+    assert 'href="../../../../models/' + MODEL + '/L1/N5.html">L1/N5</a>' in page
     assert ">L2/N9<" in page and "L2/N9</a>" not in page  # no page for it: not linked
     assert "gate -0.42 · up +0.1" in page and ">k</td>" in page
     assert "Not measured." in page and "None: no later layer." in page
@@ -995,7 +1033,7 @@ def test_label_confounds_rendered(tmp_path, record):
     update = {"confounds": confounds, "provenance": scan_provenance()}
     rec = record.model_copy(update={"submission": record.submission.model_copy(update=update)})
     compile_site([rec], tmp_path / "site")
-    page = (tmp_path / "site" / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "site" / "models" / MODEL / "L3" / "N117.html")
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
     assert "fr 19% · other 81%" in page  # 63 of 327 labelled tokens
     index = (tmp_path / "site" / "index.html").read_text()
@@ -1042,7 +1080,7 @@ def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
     # Agent names link to their pages from the home page and experiment pages.
     home = (tmp_path / "index.html").read_text()
     assert 'href="agents/gpt-test.html"' in home and "Agent costs" not in home
-    neuron = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N9.html")
     assert 'href="../../../agents/claude-test.html"' in neuron
     # The old per-spelling pages redirect to the merged ones.
     moved = (tmp_path / "agents" / "openai-gpt-test.html").read_text()
@@ -1143,7 +1181,7 @@ def test_agents_page_credits_contributors(tmp_path, records):
     assert [c.handle for c in contributors_view(experiments)] == ["bob", "alice"]
     page = (tmp_path / "agents" / "index.html").read_text()
     assert 'id="contributors"' in page and 'href="../users/alice.html">alice</a></td>' in page
-    neuron = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "run by</span> alice" in neuron and "run by</span> bob" in neuron
     row = {
         r["neuron_idx"]: r
@@ -1254,7 +1292,7 @@ def test_unit_page_shows_a_stop_and_links_its_wiki_page(tmp_path, record):
     # The positive pole has an experiment. The negative pole has only the stop.
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop()])
-    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "Scans that stopped" in page and "default-on" in page and "55%" in page
     assert f"/blob/main/wiki/stops/{MODEL}/L3/N117-negative/20261105T230800Z.md" in page
     assert "No experiment: the scan stopped before a hypothesis" in page
@@ -1265,7 +1303,7 @@ def test_unit_page_shows_a_stop_and_links_its_wiki_page(tmp_path, record):
 def test_unit_page_without_a_stop_has_no_stop_section(tmp_path, record):
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop(idx=9)])
-    page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "Scans that stopped" not in page and "Not studied yet" in page
 
 
@@ -1439,7 +1477,7 @@ def test_the_page_says_where_each_step_ran_and_whether_it_streamed(tmp_path, rec
         }
     )
     compile_site([streamed], tmp_path)
-    page = next((tmp_path / "models").rglob("N*.html")).read_text()
+    page = unit_pages(next((tmp_path / "models").rglob("N*.html")))
     text = re.sub(r"<[^>]+>", "", page)
     assert "scan cpu (streamed from disk) · review mps" in text
 

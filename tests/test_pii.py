@@ -238,21 +238,23 @@ def test_the_word_list_matches_whole_words_only(text, flagged):
 def test_offensive_examples_are_masked_and_kept_out_of_search(tmp_path, record):
     examples = record.submission.top_examples
     compile_site([record], tmp_path / "clean")
-    pages = list((tmp_path / "clean" / "models").rglob("N*.html"))
+    pages = list((tmp_path / "clean" / "models").rglob("*.html"))
     assert pages and not any('class="spoiler"' in page.read_text() for page in pages)
 
     flagged = examples[0].model_copy(update={"text": "what the fuck"})
     sub = record.submission.model_copy(update={"top_examples": [flagged, *examples[1:]]})
     compile_site([AuditRecord(submission=sub, verdict=record.verdict)], tmp_path / "flagged")
-    pages = [p.read_text() for p in (tmp_path / "flagged" / "models").rglob("N*.html")]
+    pages = [p.read_text() for p in (tmp_path / "flagged" / "models").rglob("*.html")]
     masked = [page for page in pages if 'class="spoiler"' in page]
     assert masked
     for page in masked:
         assert '<div class="spoiler" data-pagefind-ignore>' in page
         assert 'type="checkbox" class="spoiler-toggle"' in page
-    # The mask covers the example: its heatmap comes after the opening of the guard.
-    guard = masked[0].index('class="spoiler-body"')
-    assert 'class="tok heat' in masked[0][guard:]
+    # On the experiment's page, the mask covers the example: its heatmap comes after the
+    # opening of the guard.
+    (page,) = [p.read_text() for p in (tmp_path / "flagged" / "models").rglob("*Z.html")]
+    guard = page.index('class="spoiler-body"')
+    assert page[guard:].startswith('class="spoiler-body"><span class="hm">')
 
 
 def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):

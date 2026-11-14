@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb %}
+{# One experiment's page, at the path of its record under wiki/experiments/. Expects `v` from compiler._experiment_view and `rank`, its place on its unit's page. #}
+
+{% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ v.e.id }} · {{ site_title }}{% endblock %}
+
+{% block content %}
+<article data-pagefind-body>
+  {{ breadcrumb(root, model, layer, neuron, unit_link=true) }}
+  <header class="mb-6">
+    <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · L{{ neuron.layer }}/{{ neuron.label }} · {{ v.e.id }}</h1>
+    <p class="mt-1 hidden" data-pagefind-filter="model">{{ model.name }}</p>
+    <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      Experiment {{ rank }} of {{ neuron.experiments | length }} on
+      <a class="underline-offset-2 hover:underline" href="{{ root }}{{ neuron.href }}">this {{ neuron.noun }}</a>, ordered by how conclusive its probe evidence is.
+      Its record is <a class="font-mono underline-offset-2 hover:underline" href="{{ repo_url }}/blob/main/wiki/experiments/{{ v.ident.slug }}/{{ v.e.id }}.json">wiki/experiments/{{ v.ident.slug }}/{{ v.e.id }}.json</a>.
+    </p>
+  </header>
+  {% include "_experiment.html" %}
+</article>
+{% endblock %}
