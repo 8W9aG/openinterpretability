@@ -11,6 +11,12 @@ script syncs those two fields:
   has no project, the Roadmap's Workstream sets it. So an agent that files an
   issue with `gh` can give both.
 
+It also corrects one state. When a GitHub issue closes, Linear's integration can
+move its Linear issue to Released, not Done. An issue is Released only when its
+milestone is a published release (the `linear-released` workflow). So the script
+moves an issue in Released back to Done when its milestone is not a published
+release.
+
 The workflow `.github/workflows/linear-sync.yml` runs it every hour. Run it by
 hand with `--dry-run` to print the changes without making them.
 
@@ -24,8 +30,13 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import issue_state  # noqa: E402
 
 REPO = "8W9aG/openinterpretability"
 ROADMAP_OWNER = "8W9aG"
@@ -99,6 +110,11 @@ def plan(issue: Linked, workstreams: set[str]) -> Actions:
     return act
 
 
+def released_early(milestone: str | None, published: set[str]) -> bool:
+    """Return True when an issue in Released has no milestone that is a published release."""
+    return milestone not in published
+
+
 def linear(query: str, variables: dict | None = None) -> dict:
     """Run one query on Linear's GraphQL API and return its data."""
     body = json.dumps({"query": query, "variables": variables or {}}).encode()
@@ -161,6 +177,77 @@ def github_labels() -> dict[str, list[str]]:
         )
     )
     return {r["url"]: [lab["name"] for lab in r["labels"] or []] for r in rows}
+
+
+RELEASED_ISSUES = """query($k: String!, $s: String!, $after: String) { issues(first: 100,
+  after: $after, filter: {team: {key: {eq: $k}}, state: {name: {eq: $s}}}) {
+  pageInfo { hasNextPage endCursor }
+  nodes { id identifier attachments { nodes { url sourceType } } } } }"""
+
+
+def released_issues() -> list[tuple[str, str, str]]:
+    """Return the ID, identifier and GitHub issue URL of each linked Linear issue in Released."""
+    out, after = [], None
+    variables = {"k": issue_state.TEAM_KEY, "s": issue_state.RELEASED}
+    while True:
+        page = linear(RELEASED_ISSUES, {**variables, "after": after})["issues"]
+        for n in page["nodes"]:
+            for a in n["attachments"]["nodes"]:
+                if a["sourceType"] == "github" and f"github.com/{REPO}/issues/" in a["url"]:
+                    out.append((n["id"], n["identifier"], a["url"]))
+                    break
+        if not page["pageInfo"]["hasNextPage"]:
+            return out
+        after = page["pageInfo"]["endCursor"]
+
+
+def published_releases() -> set[str]:
+    """Return the tags of the repository's published releases. Drafts are not published."""
+    rows = json.loads(
+        gh("release", "list", "--repo", REPO, "--limit", "1000", "--json", "tagName,isDraft")
+    )
+    return {r["tagName"] for r in rows if not r["isDraft"]}
+
+
+def github_milestones() -> dict[str, str | None]:
+    """Map each GitHub issue URL to the title of its milestone, or None."""
+    rows = json.loads(
+        gh(
+            "issue",
+            "list",
+            "--repo",
+            REPO,
+            "--state",
+            "all",
+            "--limit",
+            "5000",
+            "--json",
+            "url,milestone",
+        )
+    )
+    return {r["url"]: (r["milestone"] or {}).get("title") for r in rows}
+
+
+def unrelease(dry: bool) -> int:
+    """Move each issue in Released to Done when its milestone is not a published release.
+
+    Return the number of issues to move (dry run) or moved.
+    """
+    issues = released_issues()
+    if not issues:
+        return 0
+    published, milestones = published_releases(), github_milestones()
+    done = None if dry else issue_state.state_id(issue_state.DONE)
+    moved = 0
+    for linear_id, identifier, url in issues:
+        milestone = milestones.get(url)
+        if not released_early(milestone, published):
+            continue
+        moved += 1
+        print(f"{url} {identifier}: milestone {milestone!r} is not released, so move to Done")
+        if not dry:
+            linear(UPDATE_ISSUE, {"id": linear_id, "i": {"stateId": done}})
+    return moved
 
 
 ROADMAP = """query($owner: String!, $number: Int!, $after: String) { user(login: $owner) {
@@ -295,6 +382,8 @@ def main() -> None:
             if token:
                 apply_roadmap(issue, act, meta, token)
     print(f"{len(issues)} linked issues, {changed} {'to change' if dry else 'changed'}")
+    early = unrelease(dry)
+    print(f"{early} issues in Released before their release, {'to move' if dry else 'moved'}")
 
 
 if __name__ == "__main__":

@@ -39,7 +39,10 @@ from pathlib import Path
 REPO = "8W9aG/openinterpretability"
 TEAM_KEY = "OPE"
 LINEAR_API = "https://api.linear.app/graphql"
-STATES = ("Todo", "In Progress", "In Review", "Done", "Released")
+DONE = "Done"
+# The state of an issue that shipped in a published release.
+RELEASED = "Released"
+STATES = ("Todo", "In Progress", "In Review", DONE, RELEASED)
 MAINTAINER = "8W9aG"
 # Bots whose issues an agent may work on. CodeQL files code-scanning issues as the
 # GitHub Advanced Security app.
@@ -164,10 +167,10 @@ def release(tag: str, dry_run: bool = False) -> bool:
         if state != "CLOSED":
             print(f"#{number}: still open, left as it is")
         elif dry_run:
-            print(f"#{number}: would move to Released")
+            print(f"#{number}: would move to {RELEASED}")
         else:
             try:
-                print(set_state(number, "Released"))
+                print(set_state(number, RELEASED))
             except (RuntimeError, OSError) as exc:
                 ok = False
                 print(f"#{number}: failed: {exc}")
