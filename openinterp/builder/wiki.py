@@ -314,11 +314,20 @@ def archive_path(wiki_dir: Path, record: AuditRecord) -> Path:
 
 
 def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
-    """Store the full record of a completed experiment next to its page (write-once)."""
+    """Store the record of a completed experiment next to its page (write-once).
+
+    With ``OPENINTERP_OFFLOAD_EVIDENCE=1`` the record is slim: its bulky evidence goes to
+    the evidence store, and the file holds references (:mod:`openinterp.core.evidence`).
+    """
+    from openinterp.core import evidence
+
     path = archive_path(wiki_dir, record)
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(record.model_dump_json() + "\n", encoding="utf-8")
+        text = record.model_dump_json()
+        if evidence.offload_enabled():
+            text = json.dumps(evidence.split(json.loads(text)))
+        path.write_text(text + "\n", encoding="utf-8")
     return path
 
 
