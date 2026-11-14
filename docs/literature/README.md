@@ -21,6 +21,7 @@ Status marks how the work relates to this repo:
 | --- | --- | --- |
 | [Scoring Explanations Without Reading Them](scoring-explanations-without-reading-them.md) (Chen, 2026) | used | Evaluation items can be scored by rules that never read the explanation. Our null-explanation control comes from it, and its check found that our fuzzing decoys leak contiguity. |
 | [Beyond Top Activations](beyond-top-activations.md) (Oikarinen, Yan, Kulkarni and Weng, 2025) | planned | Evaluating on top activations alone measures only recall. Model-guided importance sampling finds false positives cheaply. Our detection already stratifies active windows, but draws inactive ones uniformly (#3595). |
+| [Evaluating Neuron Explanations](evaluating-neuron-explanations.md) (Oikarinen, Yan and Weng, 2025) | used | Two sanity tests for explanation metrics, which `scripts/score_sanity.py` runs on our scores. Balanced accuracy fails the extra-labels test on rare concepts, so `openinterp score` may use it only because its sample is balanced. |
 
 ## Model architecture
 
@@ -46,6 +47,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Language Model Circuits Are Sparse in the Neuron Basis](neuron-basis-circuits.md) (Arora, Wu, Steinhardt and Schwettmann, 2026) | planned | Task circuits of about 10² MLP neurons, the protocol's unit, control Llama 3.1 8B's behaviour. Its RelP attribution is a candidate for our wiring and attribution selection (#3582). |
+| [Many Transcoder Features Are Neurons in Disguise](neurons-in-disguise.md) (Shabalin and Piotrowski, 2026) | planned | On gated models, 14–59% of late-layer active transcoder features align with one neuron, and only those match the MLP across training runs. Our GPT-2 transcoder baseline may partly compare neurons with neurons (#3608). |
 | [Neurons as an Interpretable Basis](neurons-as-an-interpretable-basis.md) (Tigges, Kowal, McGrath, Lewis and Cammarata, 2026) | planned | The companion to the essay behind `native-neuron-audit`, on Qwen3.6-35B-A3B. 47% of poles have one mode. The double-negative SwiGLU regime is a third of firings but rare in top examples. Its mode split is a template for #3215. |
 
 ## Philosophy of mind
