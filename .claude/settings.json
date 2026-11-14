@@ -15,7 +15,8 @@
       "Bash(grep:*)",
       "Bash(jq:*)",
       "Agent",
-      "Skill"
+      "Skill",
+      "Bash(gh pr merge:*)"
     ]
   }
 }
