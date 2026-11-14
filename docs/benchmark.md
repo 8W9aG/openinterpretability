@@ -69,10 +69,20 @@ The registry's own explanations (`--explanations registry`), judged by Claude Ha
 
 | Split | Units scored | Mean balanced accuracy | 95% CI |
 | --- | --- | --- | --- |
-| dev | 100 of 1,012 | 0.724 | 0.693–0.754 |
-| test | 0 of 241 | not run yet | |
+| dev | 1,012 of 1,012 | 0.739 | 0.730–0.749 |
+| test | 241 of 241 | 0.801 | 0.783–0.818 |
 
-The run is in stages, and the scored units are the first 100 dev units in slug order. They are all Qwen2.5-0.5B poles from layers 0–13. So this is not yet a score for the dev split: don't compare it with a full-split score. To continue, run the score command with `--order shuffled`, a larger `--limit`, and the same `--out` and `--prompts-dir`. It judges only the units that have no row yet, so the 100 already scored are reused when the shuffled order reaches them. Each stage's summary is then a random sample of the split, with its interval.
+By model:
+
+| Model | Dev units | Dev | Test units | Test |
+| --- | --- | --- | --- | --- |
+| GPT-2 small | 427 | 0.745 | 95 | 0.797 |
+| Qwen2.5-0.5B | 511 | 0.732 | 127 | 0.799 |
+| Qwen2.5-1.5B | 74 | 0.752 | 19 | 0.838 |
+
+The run went in four dev stages in shuffled order (#3302), each a random sample of the split, and one test stage. The means were stable as the sample grew: 0.737 at 250 units, 0.738 at 500, 0.737 at 750 and 0.739 at all 1,012. No judge's answer was rejected. This run's 1,153 judges used 12.6M subagent tokens, about 1.1M per 100 units (#3300).
+
+The test split scores higher than dev, by 0.06. The two splits use different probes: dev uses the registry's own review probes, and test uses fresh probes written and measured for the benchmark. So the gap is a fact about the probe sets as much as about the units. Compare a test score only with other test scores.
 
 ## Make a new version
 

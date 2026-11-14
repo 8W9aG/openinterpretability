@@ -1,0 +1,31 @@
+{
+  "benchmark": "v1",
+  "ci95": [
+    0.783061,
+    0.818417
+  ],
+  "explained": 241,
+  "explanations": "registry",
+  "judge_model": "external/claude-haiku-5-5",
+  "limit": null,
+  "mean_balanced_accuracy": 0.801345,
+  "order": "shuffled",
+  "per_model": {
+    "Qwen/Qwen2.5-0.5B": {
+      "mean_balanced_accuracy": 0.798939,
+      "units": 127
+    },
+    "Qwen/Qwen2.5-1.5B": {
+      "mean_balanced_accuracy": 0.838406,
+      "units": 19
+    },
+    "openai-community/gpt2": {
+      "mean_balanced_accuracy": 0.797148,
+      "units": 95
+    }
+  },
+  "random_sample": true,
+  "split": "test",
+  "split_units": 241,
+  "units": 241
+}
