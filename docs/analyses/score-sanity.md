@@ -56,7 +56,7 @@ The rest of the scores above chance are noise: 20 draws can miss a small fall wh
 
 - **The perturbations are random.** A real wrong explanation misses or adds a *kind* of window, not random ones. The tests show that the metric responds to errors. They don't measure how well a judge detects a specific wrong claim. The shuffled-explanation control is the realistic case, and it used 7 units.
 - **The judges' answers are taken as the explanation's labels.** A judge that misreads a good explanation looks here like a wrong explanation. These tests can't separate the two.
-- **The windows are balanced by construction.** The metrics' behaviour on ordinary text, where active windows are rare, can differ. That is the case for F1 in particular.
+- **The windows are balanced by construction.** The metrics' behaviour on ordinary text, where active windows are rare, can differ. The paper itself finds that balanced accuracy *fails* the extra-labels test on rare concepts. Its fall, γ / (2(1 − γ)), vanishes as the active share γ falls. So balanced accuracy is safe here only because the sample is balanced. A score on ordinary text should use correlation, AUPRC or F1 (`docs/literature/evaluating-neuron-explanations.md`).
 
 ## Reproduce
 
