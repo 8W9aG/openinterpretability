@@ -1,20 +1,31 @@
 {
   "benchmark": "v1",
   "ci95": [
-    0.692901,
-    0.753588
+    0.729519,
+    0.748711
   ],
-  "explained": 100,
+  "explained": 1012,
   "explanations": "registry",
   "judge_model": "external/claude-haiku-5-5",
-  "limit": 100,
-  "mean_balanced_accuracy": 0.724223,
+  "limit": null,
+  "mean_balanced_accuracy": 0.73908,
+  "order": "shuffled",
   "per_model": {
     "Qwen/Qwen2.5-0.5B": {
-      "mean_balanced_accuracy": 0.724223,
-      "units": 100
+      "mean_balanced_accuracy": 0.731916,
+      "units": 511
+    },
+    "Qwen/Qwen2.5-1.5B": {
+      "mean_balanced_accuracy": 0.751772,
+      "units": 74
+    },
+    "openai-community/gpt2": {
+      "mean_balanced_accuracy": 0.745453,
+      "units": 427
     }
   },
+  "random_sample": true,
   "split": "dev",
-  "units": 100
+  "split_units": 1012,
+  "units": 1012
 }
