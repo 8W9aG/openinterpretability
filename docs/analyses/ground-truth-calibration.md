@@ -71,6 +71,18 @@ A stronger L2 penalty (10⁻² or 10⁻¹) does not rescue the dropped plants: p
 - **The union was VERIFIED with half its rule played down.** The proposer described weekdays as the response, and drinks as a "secondary moderate response (about 0.3–0.5)". Measured on the plant, drinks read 0.27–0.58 of the scale, and a weekday 0.62. So the numbers are about right, but the framing ranks one half below the other. Only 4 of the 30 probes mention a drink, so the review hardly tested that half. A union passes when the reviewer probes mostly the half that the explanation stresses.
 - **No label error helped a unit pass.** On the five VERIFIED units, four probes disagreed with their labels. Two were plants that fire slightly off their rule (0.28 on "might", 0.33 on a sports sentence). Two were wrong side claims in the colour explanation ("Redis" fires, "crimson" doesn't). All four counted against their units.
 
+## With the token check (issue #3592)
+
+The reviews above skipped the probe-token check (`openinterp review --check-probes`), which shows a reviewer its probes as the model's tokens. On 2026-11-14 each of the 7 reviewers got its check prompt by SendMessage. Each then re-checked its own probes, and the probes were measured again on the planted model.
+
+| Round | Probes changed | What they caught |
+| --- | --- | --- |
+| 1 | 4 in 3 sets | Both known label errors (`arr[2] before`, `Mayday`). Also a probe whose trigger was the first token (`Redis`, `Sept`) |
+| 2, on the 3 changed sets | 1 | The new probe for u06, `Marching`, splits as ` March` + `ing`: a new label error from round 1 |
+| 3, on u06 | 0 | — |
+
+After the check, **all 7 plants are VERIFIED**, at balanced accuracy 0.97–1.00, against 5 of 7 without it. So the check found every label error that a split caused, as long as it ran again after each rewrite. A probe that a reviewer writes during a check has not been checked, which is why one round was not enough. The review steps now run the check for every unit, and again after any change, for at most 3 rounds.
+
 ## Limits
 
 - **Seven units.** Every interval is wide. The study shows whether the pipeline can recover a planted token detector. It does not give a rate to quote for the registry.
