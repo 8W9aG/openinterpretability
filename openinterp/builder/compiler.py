@@ -182,6 +182,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 OWNED_PATHS = (
     "index.html",
     "about.html",
+    "learned-baseline.html",
     "models",
     "agents",
     "users",
@@ -401,6 +402,8 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         contested=contested_units(models),
         pageless_stops=pageless_stops(by_unit, studied),
     )
+    if stats["baseline"]:  # the home page links to it (#3272)
+        render("learned-baseline.html", "learned-baseline.html", stats=stats)
 
 
 def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
