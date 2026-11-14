@@ -1,0 +1,30 @@
+name: Evidence branch cleanup
+
+# A pull request's evidence blobs ride on evidence/<branch> until CI uploads them to the
+# dataset (openinterp/evidence_branch.py, issue #3254). When the pull request closes, the
+# branch has done its job, so this deletes it.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  delete:
+    name: Delete the PR's evidence branch
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete evidence/<branch> if it exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          ref="heads/evidence/$HEAD_REF"
+          if gh api "repos/$REPO/git/ref/$ref" >/dev/null 2>&1; then
+            gh api -X DELETE "repos/$REPO/git/refs/$ref"
+            echo "Deleted evidence/$HEAD_REF"
+          fi
