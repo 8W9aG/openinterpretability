@@ -20,6 +20,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Scoring Explanations Without Reading Them](scoring-explanations-without-reading-them.md) (Chen, 2026) | used | Evaluation items can be scored by rules that never read the explanation. Our null-explanation control comes from it, and its check found that our fuzzing decoys leak contiguity. |
+| [Beyond Top Activations](beyond-top-activations.md) (Oikarinen, Yan, Kulkarni and Weng, 2025) | planned | Evaluating on top activations alone measures only recall. Model-guided importance sampling finds false positives cheaply. Our detection already stratifies active windows, but draws inactive ones uniformly (#3595). |
 
 ## Model architecture
 
