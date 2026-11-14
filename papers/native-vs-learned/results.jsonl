@@ -1,0 +1,10 @@
+{"kind": "share", "arm": "transcoder latents", "model": "GPT-2 small", "verified": 37, "units": 40, "share": 0.925, "ci95": [0.8014, 0.9742], "note": "latents that fired"}
+{"kind": "share", "arm": "transcoder latents, dead draws counted", "model": "GPT-2 small", "verified": 37, "units": 61, "share": 0.6066, "ci95": [0.4812, 0.7193], "note": "a dead draw counts as not VERIFIED"}
+{"kind": "share", "arm": "positive neuron poles", "model": "GPT-2 small", "verified": 20, "units": 40, "share": 0.5, "ci95": [0.352, 0.648], "note": ""}
+{"kind": "share", "arm": "native positive poles", "model": "Qwen2.5-0.5B", "verified": 18, "units": 30, "share": 0.6, "ci95": [0.4232, 0.7541], "note": ""}
+{"kind": "share", "arm": "rotated directions", "model": "Qwen2.5-0.5B", "verified": 1, "units": 30, "share": 0.0333, "ci95": [0.0059, 0.1667], "note": ""}
+{"kind": "prompt", "arm": "latent", "agent": "proposer", "calls": 40, "median_chars": 17417.0}
+{"kind": "prompt", "arm": "latent", "agent": "reviewer", "calls": 40, "median_chars": 8238.5}
+{"kind": "prompt", "arm": "positive_pole", "agent": "proposer", "calls": 40, "median_chars": 17876.5}
+{"kind": "prompt", "arm": "positive_pole", "agent": "reviewer", "calls": 40, "median_chars": 9391.5}
+{"kind": "layer", "latents": 24576, "neurons": 3072, "latent_live_share": 0.6557, "latent_audits": 16115, "latent_verified": 14907, "pole_audits": 3072, "pole_verified": 1536}
