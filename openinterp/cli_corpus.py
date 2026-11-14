@@ -1,4 +1,4 @@
-"""``openinterp corpus``: build a scan corpus from a Hugging Face dataset."""
+"""``open-interpretability corpus``: build a scan corpus from a Hugging Face dataset."""
 
 from __future__ import annotations
 
@@ -130,7 +130,7 @@ def corpus(
     """Sample a scan corpus from a Hugging Face dataset, without downloading all of it.
 
     Writes <out> (one {"text": ...} per line) and <name>.source.json next to it, which
-    pins the dataset commit, files, seed and licence. `openinterp audit --corpus <out>`
+    pins the dataset commit, files, seed and licence. `open-interpretability audit --corpus <out>`
     records that source in the submission's provenance.
     """
     from openinterp.corpus import build_from_hub

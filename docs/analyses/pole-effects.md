@@ -1,6 +1,6 @@
 # Pole effects on the loss, by attribution patching
 
-Run on 2026-11-14 for issue #3486, with `openinterp pole-effects`. The tables are in `data/pole-effects/`, one per model. Each holds the 2,000 poles with the largest estimated effect, and the check described below.
+Run on 2026-11-14 for issue #3486, with `open-interpretability pole-effects`. The tables are in `data/pole-effects/`, one per model. Each holds the 2,000 poles with the largest estimated effect, and the check described below.
 
 ## Why
 
@@ -26,7 +26,7 @@ On GPT-2, VERIFIED poles bring back no more of a layer's loss than random poles 
 
 ## Use
 
-`openinterp next` now draws a share of explore units in proportion to effect: `[tool.openinterp] effect_share`, default 0.3, from the model's table. Such a draw names its pole (`audit --layer --neuron --pole`) and records `selection: attribution`. The registry statistics count only `random` draws, so they stay unbiased. A model with no table, such as Qwen2.5-1.5B for now, always draws uniformly.
+`open-interpretability next` now draws a share of explore units in proportion to effect: `[tool.openinterp] effect_share`, default 0.3, from the model's table. Such a draw names its pole (`audit --layer --neuron --pole`) and records `selection: attribution`. The registry statistics count only `random` draws, so they stay unbiased. A model with no table, such as Qwen2.5-1.5B for now, always draws uniformly.
 
 ## Limits
 

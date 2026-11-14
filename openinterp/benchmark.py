@@ -10,7 +10,7 @@ random draw chose, so that the scores are not read as covering a hand-picked set
 of each unit's slug puts the unit in the dev split or the test split. The dev split
 publishes the probes and labels that the records hold. Those records are public, so the
 test split uses fresh probes instead. A maintainer measures them
-(``openinterp benchmark measure``) and keeps them out of the repository. The manifest
+(``open-interpretability benchmark measure``) and keeps them out of the repository. The manifest
 publishes only their SHA-256 (:func:`seal`).
 
 This module loads no model. ``openinterp/cli_benchmark.py`` has the commands.

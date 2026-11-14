@@ -3,7 +3,7 @@
 This module plans for Apple's GPU (MPS). ``cuda_devices.py`` plans for CUDA GPUs with
 the same leases and threshold, and chooses the first free GPU.
 
-Two things make the GPU busy. One is another ``openinterp`` process that uses it. Each
+Two things make the GPU busy. One is another ``open-interpretability`` process that uses it. Each
 process that runs a model on MPS keeps a *lease*. That is an empty file named for its
 process id, in ``$OPENINTERP_DEVICE_LEASES`` (default ``~/.cache/openinterp/devices/mps/``).
 The planner ignores and removes the lease of a process that stopped. The other is load

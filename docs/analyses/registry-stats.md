@@ -2,7 +2,7 @@
 
 This analysis gives the registry's verdict rates over units chosen at random. The random draws that the scan stopped on count as outcomes. It is the evidence for research question 1, *Are native MLP neurons clean?* (#3186, `docs/research-questions.md`). The registry was read on 2026-11-14, at 2,617 experiments. The first reading was on 2026-11-02, at 1,594 experiments. Where a number changed in a way that matters, the text says so.
 
-The rows are in `registry-stats.jsonl`, written by `scripts/registry_stats.py` from the parquet that `openinterp build` exports. Reported, not gated.
+The rows are in `registry-stats.jsonl`, written by `scripts/registry_stats.py` from the parquet that `open-interpretability build` exports. Reported, not gated.
 
 ## Method
 

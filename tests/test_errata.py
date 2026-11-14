@@ -176,7 +176,7 @@ def test_a_site_without_errata_mentions_none(tmp_path, record):
     assert not any("Erratum" in p.read_text() for p in tmp_path.rglob("*.html"))
 
 
-# --- openinterp check ---------------------------------------------------------------
+# --- open-interpretability check ---------------------------------------------------------------
 
 
 def keypair(directory: Path, name: str) -> Path:

@@ -1,6 +1,6 @@
 # Explainer benchmark
 
-A frozen, versioned benchmark for tools that explain neurons. Other labs can score their own explainers on it. The data is in [`benchmark/`](../benchmark/), and `openinterp benchmark` freezes and scores it ([openinterp/benchmark.py](../openinterp/benchmark.py), [openinterp/cli_benchmark.py](../openinterp/cli_benchmark.py)).
+A frozen, versioned benchmark for tools that explain neurons. Other labs can score their own explainers on it. The data is in [`benchmark/`](../benchmark/), and `open-interpretability benchmark` freezes and scores it ([openinterp/benchmark.py](../openinterp/benchmark.py), [openinterp/cli_benchmark.py](../openinterp/cli_benchmark.py)).
 
 ## What it measures
 
@@ -45,7 +45,7 @@ The data is under CC-BY-4.0, like the records it comes from (`wiki/LICENSE.md`).
 Write one JSON object per line, `{"unit": "<slug>", "explanation": "<text>"}`, for the units of a split. Then run the scorer:
 
 ```bash
-uv run openinterp benchmark score --bench benchmark/v1 --split dev \
+uv run open-interpretability benchmark score --bench benchmark/v1 --split dev \
   --explanations my-explanations.jsonl --judge-model anthropic/claude-sonnet-5-5 \
   --out results/dev.jsonl
 ```
@@ -55,7 +55,7 @@ uv run openinterp benchmark score --bench benchmark/v1 --split dev \
 The scorer writes one row per unit to `--out` as it goes. If you run it again, it judges only the units not already in that file. It writes the summary next to it, as `<name>.summary.json`. `--limit N` scores only the first N units, for a cheap trial. By default they are the first in slug order, so they cluster in a few models and layers. With `--order shuffled` they are a random sample of the split instead. The order is fixed by the version, so every run and every agent takes the same sample. The summary records `order`, `split_units` and `random_sample`. Only a random sample's mean and interval estimate the split's. `--judge-model external/<name>` writes each judge prompt to a file for any agent or person to answer (see the `explanation-judge` agent). It asks one unit at a time. To have many judges answer at once, add `--prompts-dir`:
 
 ```bash
-uv run openinterp benchmark score --bench benchmark/v1 --split dev --explanations registry \
+uv run open-interpretability benchmark score --bench benchmark/v1 --split dev --explanations registry \
   --judge-model external/claude-haiku-5-5 --out results/dev.jsonl --prompts-dir exchange/bench-dev
 ```
 
@@ -78,20 +78,20 @@ The run is in stages, and the scored units are the first 100 dev units in slug o
 
 A version is frozen after its first publication. Change nothing in it. For more units or a new rule, freeze a new version:
 
-1. `uv run openinterp benchmark freeze --version v2` writes `benchmark/v2/` from the records in `wiki/`. The test units have no probes yet.
+1. `uv run open-interpretability benchmark freeze --version v2` writes `benchmark/v2/` from the records in `wiki/`. The test units have no probes yet.
 2. For each test unit, write a fresh probe set. Use the review prompt of its newest record, and a reviewer that has not reviewed that unit before:
 
    ```bash
-   uv run openinterp review --audit-file wiki/experiments/<slug>/<record>.json \
+   uv run open-interpretability review --audit-file wiki/experiments/<slug>/<record>.json \
      --emit-prompt exchange/bench/<unit>.prompt.md
    ```
 
-3. Measure the probes and add their labels to the private file. Its name must end with `.private.jsonl`, which `.gitignore` keeps out of the repository. Never run `openinterp review --probes` on these probes, because it publishes a record:
+3. Measure the probes and add their labels to the private file. Its name must end with `.private.jsonl`, which `.gitignore` keeps out of the repository. Never run `open-interpretability review --probes` on these probes, because it publishes a record:
 
    ```bash
-   uv run openinterp benchmark measure --bench benchmark/v2 --unit <slug> \
+   uv run open-interpretability benchmark measure --bench benchmark/v2 --unit <slug> \
      --probes exchange/bench/<unit>.probes.json --labels ~/benchmark/v2-test.private.jsonl
    ```
 
-4. `uv run openinterp benchmark seal --bench benchmark/v2 --labels ~/benchmark/v2-test.private.jsonl` sorts the file and writes its SHA-256 into the manifest. It fails if a test unit has too few probes of a label. For each such unit, write a second probe set with another fresh reviewer and measure it into the same file. Tell that reviewer to change the mix of probes. If the unit has too few active probes, ask for mostly positives near the activating examples. If it has too few inactive probes, ask for mostly plain negatives. The model measures the labels, so this changes the mix and not the labels.
+4. `uv run open-interpretability benchmark seal --bench benchmark/v2 --labels ~/benchmark/v2-test.private.jsonl` sorts the file and writes its SHA-256 into the manifest. It fails if a test unit has too few probes of a label. For each such unit, write a second probe set with another fresh reviewer and measure it into the same file. Tell that reviewer to change the mix of probes. If the unit has too few active probes, ask for mostly positives near the activating examples. If it has too few inactive probes, ask for mostly plain negatives. The model measures the labels, so this changes the mix and not the labels.
 5. Store the private file where only maintainers can read it, and commit the version.

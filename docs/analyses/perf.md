@@ -4,7 +4,7 @@ Issue #3265 asks for performance tests on memory, compute and wall time. `script
 
 ## What it measures
 
-Each workload is one `openinterp` command on GPT-2 small, with no LLM call:
+Each workload is one `open-interpretability` command on GPT-2 small, with no LLM call:
 
 | Workload | Command | What it stands for |
 | --- | --- | --- |

@@ -68,7 +68,7 @@ jobs:
         run: |
           flags=(--sample "$SAMPLE" --device cpu --time-budget 140)
           if [ -n "$SAMPLE_DATE" ]; then flags+=(--date "$SAMPLE_DATE"); fi
-          openinterp reproduce "${flags[@]}" | tee reproduce.log
+          open-interpretability reproduce "${flags[@]}" | tee reproduce.log
       - name: Open an issue, or comment on the open one
         if: failure()
         env:

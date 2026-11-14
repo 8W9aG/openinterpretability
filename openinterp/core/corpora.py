@@ -1,6 +1,6 @@
 """Schemas for where a scan's corpus came from.
 
-:class:`CorpusSource` is the sidecar of the dataset sample that ``openinterp corpus``
+:class:`CorpusSource` is the sidecar of the dataset sample that ``open-interpretability corpus``
 wrote. :class:`CorpusSample` is the token-bounded part of it that an audit read. Both
 are built by ``openinterp.corpus``.
 """
@@ -13,7 +13,9 @@ from openinterp.core.strict import StrictModel
 
 
 class CorpusSource(StrictModel):
-    """Where a scan corpus came from, written by ``openinterp corpus`` next to the corpus.
+    """Where a scan corpus came from.
+
+    ``open-interpretability corpus`` writes it next to the corpus.
 
     Enough to rebuild the same documents: the dataset at an exact commit, the files and
     column read, the seed and sizes. ``license`` is the dataset card's licence, so pages
@@ -81,8 +83,8 @@ class CorpusSource(StrictModel):
     )
     components: list[CorpusSource] | None = Field(
         default=None,
-        description="A blend's samples, one per preset, each as `openinterp corpus` writes "
-        "that preset alone with the same seed and its share of the documents.",
+        description="A blend's samples, one per preset, each as `open-interpretability corpus` "
+        "writes that preset alone with the same seed and its share of the documents.",
     )
 
     def __str__(self) -> str:
@@ -114,7 +116,7 @@ class CorpusSample(StrictModel):
     tokens: int = Field(ge=0, description="Tokenizer tokens in the sampled documents.")
     sha256: str = Field(
         description='SHA-256 of the sampled documents as JSONL ({"text": ...} per line), '
-        "the bytes `openinterp corpus` would write for them."
+        "the bytes `open-interpretability corpus` would write for them."
     )
 
     def __str__(self) -> str:

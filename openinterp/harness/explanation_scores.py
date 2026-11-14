@@ -3,7 +3,7 @@
 The judge only ever sees a window's text. So each window is measured on its own, as
 probes are, not inside the snippet that it was cut from. Labels always come from a new
 measurement. So a task handed to a judge carries no activations, and a stored score can
-be checked again (`openinterp reproduce`).
+be checked again (`open-interpretability reproduce`).
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Build scan corpora from Hugging Face datasets (`openinterp corpus`).
+"""Build scan corpora from Hugging Face datasets (`open-interpretability corpus`).
 
 A corpus is a JSONL file of ``{"text": ...}`` documents, plus a ``<name>.source.json``
 sidecar (:class:`CorpusSource`) that pins where it came from. Sampling does not download
@@ -12,7 +12,7 @@ each. This spreads the corpus over sources and crawl dumps.
 
 The registry's scan corpus is not such a sample. It is pile-10k's first 500 documents,
 each cut to 3,000 characters, with non-ASCII characters escaped. Rebuild it
-byte for byte with ``openinterp corpus --dataset pile-10k --first --ascii`` (README).
+byte for byte with ``open-interpretability corpus --dataset pile-10k --first --ascii`` (README).
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from openinterp.corpus_presets import (  # noqa: F401
     Preset,
 )
 
-# What `openinterp audit` scans by default (protocol 0.7). The seed is fixed, so every
+# What `open-interpretability audit` scans by default (protocol 0.7). The seed is fixed, so every
 # audit of a corpus reads the same documents, and their scales are comparable.
 DEFAULT_SAMPLE_TOKENS = 200_000
 DEFAULT_SAMPLE_SEED = 0

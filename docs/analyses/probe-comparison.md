@@ -2,7 +2,7 @@
 
 This analysis starts the *Linear-probe comparison* item of `TODO.md` (*Analyses per experiment*). The question it asks is whether a VERIFIED pole is the model's representation of its concept, or only part of one. A pole can pass every gate, with its hard negatives silent and its holdouts active. It can still be one of many neurons the concept is spread over. The review cannot tell those cases apart. Linear probes can.
 
-The rows are in `probe-comparison.jsonl`, one per record, written by `openinterp probe-compare` and gathered by `scripts/probe_comparison.py report`. It is reported, not gated.
+The rows are in `probe-comparison.jsonl`, one per record, written by `open-interpretability probe-compare` and gathered by `scripts/probe_comparison.py report`. It is reported, not gated.
 
 ## Method
 
@@ -15,7 +15,7 @@ The rows are in `probe-comparison.jsonl`, one per record, written by `openinterp
 | `feminine` | a feminine-marked word (she, her, women, mother, queen, Mrs, …) | Qwen L6/N4837+ |
 | `street` | a capitalised thoroughfare noun after a word (Street, Avenue, Road, …) | GPT-2 L0/N1923+ |
 
-**Sources.** Probes are trained on the registry's scan corpus (`corpus.jsonl`, 500 Pile documents) and tested on 500 FineWeb-Edu documents (`openinterp corpus --dataset fineweb-edu --seed 0`). This is the two-source rule of the `sparse-probing-search` skill: a probe that only fits the Pile's quirks fails the test set. Documents are cut into 128-token windows as a scan cuts them, and each window's first token is dropped. Up to 2,000 positive and 8,000 negative tokens are sampled per split (seed 0 for training, 1 for testing).
+**Sources.** Probes are trained on the registry's scan corpus (`corpus.jsonl`, 500 Pile documents) and tested on 500 FineWeb-Edu documents (`open-interpretability corpus --dataset fineweb-edu --seed 0`). This is the two-source rule of the `sparse-probing-search` skill: a probe that only fits the Pile's quirks fails the test set. Documents are cut into 128-token windows as a scan cuts them, and each window's first token is dropped. Up to 2,000 positive and 8,000 negative tokens are sampled per split (seed 0 for training, 1 for testing).
 
 **Probes.** Each probe reads the layer's MLP hidden activations (signed, every neuron) or the residual stream after the layer's block:
 
@@ -67,12 +67,12 @@ The k-sparse curves (held-out BA):
 
 ```bash
 E=exchange/probe-comparison
-uv run openinterp corpus --dataset fineweb-edu --docs 500 --seed 0 --out $E/fineweb-edu.jsonl
+uv run open-interpretability corpus --dataset fineweb-edu --docs 500 --seed 0 --out $E/fineweb-edu.jsonl
 for c in thousands year feminine street; do
   uv run python scripts/probe_comparison.py labels --concept $c --corpus corpus.jsonl --out $E/$c.pile.jsonl
   uv run python scripts/probe_comparison.py labels --concept $c --corpus $E/fineweb-edu.jsonl --out $E/$c.fineweb.jsonl
 done
-uv run openinterp probe-compare --record wiki/experiments/Qwen--Qwen2.5-0.5B/L6/N4837-positive/20261028T140732Z.json \
+uv run open-interpretability probe-compare --record wiki/experiments/Qwen--Qwen2.5-0.5B/L6/N4837-positive/20261028T140732Z.json \
   --train $E/feminine.pile.jsonl --test $E/feminine.fineweb.jsonl --concept "<the rule>" --out $E/qwen-L6-N4837.report.json
 # … likewise for the other four records (table above), then:
 uv run python scripts/probe_comparison.py report $E/*.report.json --out docs/analyses/probe-comparison.jsonl

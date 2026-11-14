@@ -1,4 +1,4 @@
-"""The steps of ``openinterp audit`` after the proposer answers.
+"""The steps of ``open-interpretability audit`` after the proposer answers.
 
 The steps are counterfactuals, the Patchscope, steering, WordNet specificity and wiring
 readouts, and writing the submission.

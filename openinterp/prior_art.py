@@ -1,8 +1,8 @@
-"""Find prior art for a unit after the proposer answers (`openinterp audit`).
+"""Find prior art for a unit after the proposer answers (`open-interpretability audit`).
 
 A dictionary latent that Neuronpedia hosts is looked up directly. A neuron pole is
 aligned with each dictionary preset that Neuronpedia hosts at its layer
-(:func:`openinterp.harness.crossref.align_layer`). Rows from ``openinterp crossref`` are
+(:func:`openinterp.harness.crossref.align_layer`). Rows from ``open-interpretability crossref`` are
 used where they exist. The latents above chance on each side are then looked up, the best
 ``TOP`` first.
 

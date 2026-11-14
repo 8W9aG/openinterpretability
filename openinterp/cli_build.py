@@ -1,4 +1,4 @@
-"""``openinterp build``: compile the archived experiments into the static site."""
+"""``open-interpretability build``: compile the archived experiments into the static site."""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     default=Path("docs/analyses/wiring.jsonl"),
     show_default=True,
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Backfilled wiring (`openinterp wiring-backfill`) for records without their own; "
-    "skipped if missing.",
+    help="Backfilled wiring (`open-interpretability wiring-backfill`) for records without "
+    "their own; skipped if missing.",
 )
 @click.option(
     "--corpus-sources",
@@ -41,7 +41,7 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     default=Path("docs/analyses/dictionary-alignment.jsonl"),
     show_default=True,
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Dictionary latents aligned with each neuron pole (`openinterp crossref`); "
+    help="Dictionary latents aligned with each neuron pole (`open-interpretability crossref`); "
     "skipped if missing.",
 )
 @click.option(
@@ -50,7 +50,8 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     default=SISTERS_PATH,
     show_default=True,
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Each VERIFIED pole's matches in other models (`openinterp sisters`); skipped if missing.",
+    help="Each VERIFIED pole's matches in other models (`open-interpretability sisters`); "
+    "skipped if missing.",
 )
 @click.option(
     "--coverage",
@@ -58,7 +59,8 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     default=Path("docs/analyses/registry-coverage.jsonl"),
     show_default=True,
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Registry coverage rows (`openinterp coverage`) for the home page; skipped if missing.",
+    help="Registry coverage rows (`open-interpretability coverage`) for the home page; "
+    "skipped if missing.",
 )
 @click.option(
     "--papers",

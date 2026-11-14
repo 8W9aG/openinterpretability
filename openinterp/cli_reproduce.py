@@ -397,8 +397,8 @@ def signatures(records, ref, allowed_signers, paths_only, wiki_dir):
     Each signature is checked at the time it landed on --ref, against the validity
     window of its key in --allowed-signers. After you revoke a key with valid-before
     (SECURITY.md), use it to find the records signed in its exposure window. Then
-    reproduce them: openinterp reproduce --include-signed $(openinterp signatures
-    --paths-only).
+    reproduce them: open-interpretability reproduce --include-signed \\
+    $(open-interpretability signatures --paths-only).
     """
     from openinterp.signing import (
         SignatureError,
@@ -443,4 +443,4 @@ def _rebuild_hint(record, path: Path) -> str:
         scanned_source(record.submission)
     except ValueError as error:
         return f"Its corpus can't be rebuilt: {error}."
-    return f"Rebuild it with `openinterp corpus --same-as {path} --out <file>`."
+    return f"Rebuild it with `open-interpretability corpus --same-as {path} --out <file>`."
