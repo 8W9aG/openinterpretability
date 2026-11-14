@@ -12,8 +12,7 @@ write-once, so the records that are already whole stay whole.
 Blobs live in a local store, ``~/.cache/openinterp/evidence/`` by default
 (``$OPENINTERP_EVIDENCE_DIR``). A blob that isn't there is fetched, read-only, from the
 public dataset :data:`EVIDENCE_REPO`. :func:`openinterp.builder.wiki.archive_record` writes
-slim records only when ``OPENINTERP_OFFLOAD_EVIDENCE=1``. That is off until uploads exist
-(phase 2 of #3254).
+slim records unless ``OPENINTERP_OFFLOAD_EVIDENCE=0``.
 """
 
 from __future__ import annotations
@@ -30,7 +29,7 @@ REF_KEY = "evidence_sha256"
 EVIDENCE_REPO = "sackfield/open-interpretability-evidence"
 """The public Hugging Face dataset that holds the blobs, by path ``<sha[:2]>/<sha>.json``."""
 DIR_ENV = "OPENINTERP_EVIDENCE_DIR"
-OFFLOAD_ENV = "OPENINTERP_OFFLOAD_EVIDENCE"  # "1" makes archive_record write slim records
+OFFLOAD_ENV = "OPENINTERP_OFFLOAD_EVIDENCE"  # "0" makes archive_record write whole records
 
 
 class EvidenceMissing(ValueError):
@@ -38,8 +37,11 @@ class EvidenceMissing(ValueError):
 
 
 def offload_enabled() -> bool:
-    """Whether new archived records are written slim (``OPENINTERP_OFFLOAD_EVIDENCE=1``)."""
-    return os.environ.get(OFFLOAD_ENV) == "1"
+    """Whether new archived records are written slim: yes, unless the variable is ``0``.
+
+    Phase 3 of issue #3254 turned this on. CI uploads the blobs from ``evidence/<branch>``.
+    """
+    return os.environ.get(OFFLOAD_ENV, "1") != "0"
 
 
 def store_dir() -> Path:
