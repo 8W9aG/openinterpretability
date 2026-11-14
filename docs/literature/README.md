@@ -33,6 +33,12 @@ Status marks how the work relates to this repo:
 | --- | --- | --- |
 | [Training LLMs to Predict World Events](training-llms-to-predict-world-events.md) (Jeen, Aitchison and Mantic, 2026) | not applicable | No interpretability content. Its fine-tuned model is not one the registry can study, though two evaluation habits carry over. |
 
+## Probing
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Activation Probes Are Reliable With a Handful of Positive Examples](activation-probes-few-positives.md) (Tyagi and Heimersheim, 2026) | not applicable | Train on all the negatives, with a class-weighted loss, when positives are rare. `probe-compare` already does. Our thin probe rows lack held-out positives, which the paper does not address. |
+
 ## Philosophy of mind
 
 | Page | Status | Why |
