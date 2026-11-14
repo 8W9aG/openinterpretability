@@ -1,4 +1,4 @@
-"""Set the Linear workflow state of GitHub issues: Todo, In Progress, In Review or Done.
+"""Set the Linear workflow state of GitHub issues: Todo, In Progress, In Review, Done, Released.
 
 GitHub issues have no "in progress" state, so the state lives in Linear. Linear's GitHub
 integration links each issue, and this script finds the Linear issue from that link.
@@ -6,6 +6,7 @@ integration links each issue, and this script finds the Linear issue from that l
     python3 scripts/issue_state.py 3371 "In Progress"
     python3 scripts/issue_state.py 3371 3372 "In Review"
     python3 scripts/issue_state.py --check 3371
+    python3 scripts/issue_state.py --release v0.0.20 [--dry-run]
 
 An agent may work only on an eligible issue. It refuses "In Progress" for any other.
 An issue is eligible when one of these holds:
@@ -19,6 +20,8 @@ An issue labelled `proposed` is never eligible, whoever opened it. The maintaine
 the label to hold an issue back, and removes it to release the issue.
 
 `--check` prints whether each issue is eligible, and why. It exits 1 if one is not.
+`--release <tag>` moves every closed issue in milestone ``<tag>`` to Released. The
+`linear-released` workflow runs it when that release is published.
 Setting a state needs LINEAR_API_KEY. The check needs the GitHub CLI (`gh`). The
 `work-an-issue` skill says when to call this script.
 """
@@ -36,7 +39,7 @@ from pathlib import Path
 REPO = "8W9aG/openinterpretability"
 TEAM_KEY = "OPE"
 LINEAR_API = "https://api.linear.app/graphql"
-STATES = ("Todo", "In Progress", "In Review", "Done")
+STATES = ("Todo", "In Progress", "In Review", "Done", "Released")
 MAINTAINER = "8W9aG"
 # Bots whose issues an agent may work on. CodeQL files code-scanning issues as the
 # GitHub Advanced Security app.
@@ -129,14 +132,61 @@ def check(numbers: list[str]) -> bool:
     return ok
 
 
+def milestone_issues(tag: str) -> list[tuple[str, str]]:
+    """``(number, state)`` of every issue in milestone ``tag``, open or closed."""
+    out = subprocess.run(
+        [
+            "gh",
+            "issue",
+            "list",
+            "--repo",
+            REPO,
+            "--milestone",
+            tag,
+            "--state",
+            "all",
+            "--limit",
+            "1000",
+            "--json",
+            "number,state",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [(str(i["number"]), i["state"]) for i in json.loads(out.stdout)]
+
+
+def release(tag: str, dry_run: bool = False) -> bool:
+    """Move the closed issues of milestone ``tag`` to Released. Return False if one failed."""
+    ok = True
+    for number, state in milestone_issues(tag):
+        if state != "CLOSED":
+            print(f"#{number}: still open, left as it is")
+        elif dry_run:
+            print(f"#{number}: would move to Released")
+        else:
+            try:
+                print(set_state(number, "Released"))
+            except (RuntimeError, OSError) as exc:
+                ok = False
+                print(f"#{number}: failed: {exc}")
+    return ok
+
+
 def main() -> None:
     """Check eligibility, or set a state. "In Progress" needs every issue to be eligible."""
     args = [a.lstrip("#") for a in sys.argv[1:]]
     if args[:1] == ["--check"]:
         sys.exit(0 if check(args[1:]) else 1)
+    if args[:1] == ["--release"] and len(args) >= 2:
+        sys.exit(0 if release(args[1], "--dry-run" in args[2:]) else 1)
     *numbers, state = args or [""]
     if not numbers or state not in STATES:
-        sys.exit(f"usage: issue_state.py <number>... <{'|'.join(STATES)}> | --check <number>...")
+        sys.exit(
+            f"usage: issue_state.py <number>... <{'|'.join(STATES)}> | --check <number>..."
+            " | --release <tag> [--dry-run]"
+        )
     if state == "In Progress" and not check(numbers):
         sys.exit("Refused: work only on eligible issues (see the docstring).")
     for number in numbers:
