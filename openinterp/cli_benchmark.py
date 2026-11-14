@@ -150,13 +150,23 @@ def seal(bench_dir, labels_path):
 )
 @click.option("--limit", type=int, help="Score only the first N units, for a cheap trial.")
 @click.option(
+    "--order",
+    type=click.Choice(["slug", "shuffled"]),
+    default="slug",
+    show_default=True,
+    help="The order --limit takes units in. `shuffled` is fixed by the version, so the first "
+    "N units are a random sample of the split. `slug` resumes results files from before it.",
+)
+@click.option(
     "--prompts-dir",
     type=click.Path(file_okay=False, path_type=Path),
     help="With an external/<name> judge: write the prompt of every unit without an answer "
     "to this directory at once, and score the units whose answers are there. Run the "
     "command again when the answers are written.",
 )
-def score(bench_dir, split, explanations, labels_path, judge_model, out_path, limit, prompts_dir):
+def score(
+    bench_dir, split, explanations, labels_path, judge_model, out_path, limit, order, prompts_dir
+):
     """Apply each explanation to its unit's probes with a judge, and score the labels.
 
     With ``--prompts-dir``, many judges answer at once, one prompt file each. The summary
@@ -171,7 +181,9 @@ def score(bench_dir, split, explanations, labels_path, judge_model, out_path, li
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     units = [u for u in bench.read_units(bench_dir).values() if u.split == split]
-    units = sorted(units, key=lambda u: u.unit)[:limit]
+    split_units = len(units)
+    version = bench.read_manifest(bench_dir)["version"]
+    units = bench.ordered(units, order, version)[:limit]
     probes = {u.unit: probes[u.unit] for u in units}
     explained = _explanations(bench_dir, split, explanations)
     done = {r["unit"]: r for r in bench.read_jsonl(out_path)} if out_path.exists() else {}
@@ -194,21 +206,32 @@ def score(bench_dir, split, explanations, labels_path, judge_model, out_path, li
         )
         return
     meta = {"split": split, "explanations": explanations, "judge_model": judge_model}
-    _write_summary(bench_dir, out_path, rows, units, {**meta, "limit": limit})
+    meta |= {"limit": limit, "order": order}
+    _write_summary(bench_dir, out_path, rows, units, meta, split_units)
 
 
-def _write_summary(bench_dir: Path, out_path: Path, rows, units, meta: dict) -> None:
-    """Write ``<out>.summary.json`` next to ``out_path``, and print the split's score."""
+def _write_summary(
+    bench_dir: Path, out_path: Path, rows, units, meta: dict, split_units: int
+) -> None:
+    """Write ``<out>.summary.json`` next to ``out_path``, and print the split's score.
+
+    A run of part of a split is a random sample of it only in shuffled order.
+    """
     from openinterp import benchmark as bench
 
     version = bench.read_manifest(bench_dir)["version"]
-    summary = {"benchmark": version, **meta, **bench.summarize(rows, units)}
+    summary = {"benchmark": version, **meta, **bench.summarize(rows, units, 0, split_units)}
+    part = len(units) < split_units
+    summary["random_sample"] = not part or meta["order"] == "shuffled"
     summary_path = out_path.with_name(out_path.name.removesuffix(".jsonl") + ".summary.json")
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     click.echo(
         f"{meta['split']}: mean balanced accuracy {summary['mean_balanced_accuracy']} over "
         f"{summary['units']} units ({summary['explained']} explained), 95% CI {summary['ci95']}"
     )
+    if part:
+        sample = "a random sample" if summary["random_sample"] else "not a random sample"
+        click.echo(f"These are {len(units)} of the split's {split_units} units: {sample} of it.")
 
 
 def _explanations(bench_dir: Path, split: str, source: str) -> dict[str, str]:

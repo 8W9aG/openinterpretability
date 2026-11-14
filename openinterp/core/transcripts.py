@@ -119,9 +119,12 @@ def forbidden_reads(path: Path) -> tuple[list[str], list[str]]:
                 hit = forbidden(block["name"], block.get("input") or {}, cwd, cwd)
                 if hit is not None:
                     calls[block.get("id")] = (hit, True)
-            elif block.get("type") == "tool_result" and block.get("tool_use_id") in calls:
-                if block.get("is_error"):
-                    calls[block["tool_use_id"]] = (calls[block["tool_use_id"]][0], False)
+            elif (
+                block.get("type") == "tool_result"
+                and block.get("tool_use_id") in calls
+                and block.get("is_error")
+            ):
+                calls[block["tool_use_id"]] = (calls[block["tool_use_id"]][0], False)
     read = [hit for hit, completed in calls.values() if completed]
     tried = [hit for hit, completed in calls.values() if not completed]
     return list(dict.fromkeys(read)), list(dict.fromkeys(tried))

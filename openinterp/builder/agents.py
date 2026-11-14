@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 
 from openinterp.builder.hrefs import user_href
 from openinterp.builder.significance import STRONG_EVIDENCE
-from openinterp.builder.tree import LABEL_PREFIX, Experiment, unit_href
+from openinterp.builder.tree import LABEL_PREFIX, Experiment
 from openinterp.core.agent_names import NOTES, canonical_agent
 from openinterp.core.costs import ROLE_ORDER, by_agent
 from openinterp.core.exceptions import RegistryError
@@ -182,7 +182,7 @@ def _recent_row(e: Experiment, roles: list[str]) -> dict:
     return {
         "e": e,
         "roles": roles,
-        "href": f"{unit_href(ident)}#{e.anchor}",
+        "href": e.href,
         "model_name": ident.model_name,
         "unit": f"L{ident.layer}/{LABEL_PREFIX[ident.kind]}{ident.index}",
         "pole": ident.pole,

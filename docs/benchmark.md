@@ -52,7 +52,7 @@ uv run openinterp benchmark score --bench benchmark/v1 --split dev \
 
 `--explanations registry` scores the registry's own explanations, as a baseline. The registry's explanations had the advantage that the probes target them. A review VERIFIES only an explanation that predicts most of its own probes. So expect the registry baseline to score high on units where the registry has a VERIFIED explanation.
 
-The scorer writes one row per unit to `--out` as it goes. If you run it again, it judges only the units not already in that file. It writes the summary next to it, as `<name>.summary.json`. `--limit N` scores only the first N units, for a cheap trial. `--judge-model external/<name>` writes each judge prompt to a file for any agent or person to answer (see the `explanation-judge` agent). It asks one unit at a time. To have many judges answer at once, add `--prompts-dir`:
+The scorer writes one row per unit to `--out` as it goes. If you run it again, it judges only the units not already in that file. It writes the summary next to it, as `<name>.summary.json`. `--limit N` scores only the first N units, for a cheap trial. By default they are the first in slug order, so they cluster in a few models and layers. With `--order shuffled` they are a random sample of the split instead. The order is fixed by the version, so every run and every agent takes the same sample. The summary records `order`, `split_units` and `random_sample`. Only a random sample's mean and interval estimate the split's. `--judge-model external/<name>` writes each judge prompt to a file for any agent or person to answer (see the `explanation-judge` agent). It asks one unit at a time. To have many judges answer at once, add `--prompts-dir`:
 
 ```bash
 uv run openinterp benchmark score --bench benchmark/v1 --split dev --explanations registry \
@@ -72,7 +72,7 @@ The registry's own explanations (`--explanations registry`), judged by Claude Ha
 | dev | 100 of 1,012 | 0.724 | 0.693–0.754 |
 | test | 0 of 241 | not run yet | |
 
-The run is in stages, and the scored units are the first 100 dev units in slug order. They are all Qwen2.5-0.5B poles from layers 0–13. So this is not yet a score for the dev split: don't compare it with a full-split score. To continue, run the score command with a larger `--limit` and the same `--out` and `--prompts-dir`. It judges only the units that have no row yet.
+The run is in stages, and the scored units are the first 100 dev units in slug order. They are all Qwen2.5-0.5B poles from layers 0–13. So this is not yet a score for the dev split: don't compare it with a full-split score. To continue, run the score command with `--order shuffled`, a larger `--limit`, and the same `--out` and `--prompts-dir`. It judges only the units that have no row yet, so the 100 already scored are reused when the shuffled order reaches them. Each stage's summary is then a random sample of the split, with its interval.
 
 ## Make a new version
 

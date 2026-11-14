@@ -19,6 +19,7 @@ from openinterp.core.schemas import (
     WordStrength,
 )
 from openinterp.harness import specificity
+from tests.site_pages import unit_pages
 
 # name: (lemma, hypernyms, frequency count); depth follows from the hypernyms.
 TREE = {
@@ -299,7 +300,7 @@ def test_specificity_rendered(tmp_path, record):
     rec = specificity_record(record)
     compile_site([rec], tmp_path / "site")
     (page,) = (tmp_path / "site" / "models").rglob("N117.html")
-    html = page.read_text()
+    html = unit_pages(page)
     assert "WordNet specificity" in html and "AUROC <strong>1.00</strong>" in html
     assert "named by the proposer" in html
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()

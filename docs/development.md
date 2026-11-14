@@ -9,6 +9,7 @@ make install        # uv sync
 make test           # pytest (CPU only, no downloads); waits for other heavy jobs with OPENINTERP_HEAVY_LOCK=1
 make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, Markdown, Vale, STE
 make vale           # comment and docstring prose against our STE rules (needs Vale)
+make perf           # wall time, CPU time and peak memory of fixed workloads, against docs/analyses/perf-baseline.json
 make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)
 make check-all      # the same for every record (what it runs on main)
 make sample-run     # build dist/ from a few real records in the wiki

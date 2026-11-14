@@ -18,6 +18,8 @@ For each source pole, every pole of every layer of the other model is a candidat
 
 The 0.5B → 1.5B pair took about 30 minutes for each pass. Each GPT-2 pair took a few minutes.
 
+Since issue #3262, one search covers every pair in four stages (`openinterp/harness/sister_passes.py`). Each stage reads each model once, with one model loaded at a time, so the cost no longer grows with the number of pairs. On the first 40 documents of `corpus.jsonl`, with all six pairs and 1,048 rows, it took 14.3 minutes against 26.0. The peak memory footprint was 18.4 GB against 51.1 GB. The rows were equal to the search per pair's, except one `rotated` value that differs by 0.0001.
+
 ## Results
 
 | Pair | Poles | Median best r | Median rotated | Best r ≥ 0.5 | Sisters |

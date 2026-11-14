@@ -12,6 +12,7 @@ from openinterp.core.wiring import Wiring, WiringEdge
 from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.wiring_backfill import backfill, load_rows, record_wiring, review_prompts
 from tests.conftest import FakeTokenizer
+from tests.site_pages import unit_pages
 
 MODEL = "Qwen--Qwen2.5-0.5B"
 
@@ -64,12 +65,12 @@ def test_circuits_chain_edges_between_studied_units(tmp_path, record):
     page = (tmp_path / "models" / MODEL / "circuits.html").read_text()
     assert "Circuit 1" in page and "3 units, layers 1–6" in page and "L9/N9" not in page
     assert "weights +0.4" in page and "activations +0.7" in page
-    assert 'href="../../models/' + MODEL + "/L1/N5.html#" in page
+    assert 'href="../../models/' + MODEL + "/L1/N5-positive/" in page  # the experiment's page
     model_page = (tmp_path / "models" / MODEL / "index.html").read_text()
     assert "1 circuit</a>" in model_page
-    unit_page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    unit_page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "circuits.html#circuit-1" in unit_page
-    lone = (tmp_path / "models" / MODEL / "L12" / "N1.html").read_text()
+    lone = unit_pages(tmp_path / "models" / MODEL / "L12" / "N1.html")
     assert "circuits.html" not in lone
 
 
@@ -91,9 +92,9 @@ def test_hubs_dont_join_circuits(tmp_path, record):
     page = (tmp_path / "models" / MODEL / "circuits.html").read_text()
     assert 'id="hub-L12-N1"' in page and "wired to 10 studied units (10 edges in, 0 out)" in page
     assert "1 circuit, 1 hub</a>" in (tmp_path / "models" / MODEL / "index.html").read_text()
-    spoke_page = (tmp_path / "models" / MODEL / "L2" / "N4.html").read_text()
+    spoke_page = unit_pages(tmp_path / "models" / MODEL / "L2" / "N4.html")
     assert "circuits.html#hub-L12-N1" in spoke_page
-    unit_page = (tmp_path / "models" / MODEL / "L3" / "N117.html").read_text()
+    unit_page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "circuits.html#circuit-1" in unit_page
 
 
@@ -133,5 +134,5 @@ def test_backfill_writes_resumable_rows_the_build_shows(tmp_path, record, tiny_g
     args = ["build", "--wiki-dir", str(wiki), "--output-dir", str(site), "--wiring", str(out)]
     result = CliRunner().invoke(cli, args)
     assert result.exit_code == 0, result.output
-    page = (site / "models" / MODEL / "L1" / "N5.html").read_text()
+    page = unit_pages(site / "models" / MODEL / "L1" / "N5.html")
     assert "Backfilled after the review" in page and "From activations" in page

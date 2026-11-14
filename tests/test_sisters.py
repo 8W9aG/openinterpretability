@@ -16,6 +16,7 @@ from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.sisters import Correlations, find_sisters, paired_rows, shared_boundaries
 from openinterp.sisters import SIBLINGS, SisterRow, format_sisters, load_rows, pairs, sisters
 from tests.conftest import FakeTokenizer
+from tests.site_pages import unit_pages
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
 
 
@@ -128,15 +129,16 @@ def test_rows_cover_verified_poles_and_link_both_ways(tmp_path, qwen_runner, tex
         loads.append(name)
         return qwen_runner if name == "tiny" else twin
 
-    kw = {"model_name": "tiny", "other": "tiny-twin", "corpus": "c", "corpus_sha256": "0" * 64}
-    assert sisters(records, load, out, texts, k=2, echo=lambda _: None, **kw) == 1
-    assert loads == ["tiny", "tiny-twin"]
+    kw = {"corpus": "c", "corpus_sha256": "0" * 64, "echo": lambda _: None}
+    pair = ("tiny", "tiny-twin")
+    assert sisters(records, load, out, texts, [pair], k=2, **kw) == {pair: 1}
+    assert loads == ["tiny", "tiny-twin", "tiny-twin", "tiny"]  # one model at a time
     rows = load_rows(out)
     (row,) = rows["tiny/L1/N5-positive"]
     assert row.mutual and row.sister is not None and row.coverage == 1.0
     assert row.sister.slug("tiny-twin") == "tiny-twin/L1/N5-positive"
     assert row.layers == row.other_layers == qwen_runner.n_layers
-    assert sisters(records, load, out, texts, echo=lambda _: None, **kw) == 0  # already done
+    assert sisters(records, load, out, texts, [pair], **kw) == {pair: 0}  # already done
 
     site = tmp_path / "site"
     compile_site(records, site, sister_rows=rows)
@@ -319,9 +321,9 @@ def test_pages_link_a_sister_study_to_its_source(tmp_path, record):
     rows = {slug: [_sister_row(slug, "o/m", [(2, 9, "negative", 0.7, slug, 0.7)])]}
     site = tmp_path / "site"
     compile_site([source, study], site, sister_rows=rows)
-    page = (site / "models/o--m/L2/N9.html").read_text()
+    page = unit_pages(site / "models/o--m/L2/N9.html")
     assert "Sister study: tests the explanation of" in page
-    assert f"models/Qwen--Qwen2.5-0.5B/L3/N117.html#positive-{experiment_id(source)}" in page
+    assert f"models/Qwen--Qwen2.5-0.5B/L3/N117-positive/{experiment_id(source)}.html" in page
     assert "tested here: VERIFIED" in page
     source_page = (site / "models/Qwen--Qwen2.5-0.5B/L3/N117.html").read_text()
     assert "models/o--m/L2/N9.html" in source_page
@@ -366,3 +368,51 @@ def test_the_sister_graph_layout_does_not_depend_on_set_order():
     b = _nodes(set(reversed(poles)), 100.0, 4, set())
     assert list(a.items()) == list(b.items())
     assert [n["label"] for n in a.values()] == ["L1/N2+", "L1/N4−", "L1/N4+"]
+
+
+def _same(staged, per_pair):
+    """The staged search's result equals ``find_sisters``'s, to float32 rounding."""
+    assert staged.keys() == per_pair.keys()
+    for unit, s in staged.items():
+        p = per_pair[unit]
+        for got, want in zip(s.matches + s.back, p.matches + p.back, strict=True):
+            assert (got.layer, got.neuron_idx, got.pole) == (want.layer, want.neuron_idx, want.pole)
+            assert got.pearson == pytest.approx(want.pearson, abs=1e-5)
+        assert s.rotated == pytest.approx(p.rotated, abs=1e-5)
+
+
+@pytest.mark.parametrize("budget", [1, 10**9], ids=["one job a pass", "one pass"])
+def test_the_staged_search_over_many_pairs_equals_the_search_per_pair(
+    qwen_runner,  # noqa: F811
+    tiny_gpt2,
+    texts,
+    budget,
+):
+    from openinterp.harness.sister_passes import Job, search
+
+    runners = {
+        "q": qwen_runner,
+        "t": NeuronHookRunner(copy.deepcopy(qwen_runner.model), FakeTokenizer()),
+        "g": NeuronHookRunner(tiny_gpt2, PairTokenizer()),
+    }
+    units = {
+        "q": [(1, 5, "positive"), (2, 11, "negative"), (0, 3, "positive")],
+        "g": [(0, 7, "negative")],
+    }
+    todo = [("q", "t"), ("q", "g"), ("g", "q"), ("g", "t")]
+    jobs = [Job((a, None), (b, None), units[a], other_name=b) for a, b in todo]
+    loads = []
+
+    def load(name, revision):
+        loads.append(name)
+        return runners[name]
+
+    # Tiny batches and rotations one layer at a time, so that every stage takes several
+    # passes. A budget of 1 byte also gives each job a pass of its own.
+    search(jobs, load, texts, k=3, batch_tokens=64, rotation_bytes=1, correlation_bytes=budget)
+    assert len(loads) == 2 * 2 + 2 * 3  # 4 stages: sources q, g; others t, g, q
+    for job, (a, b) in zip(jobs, todo, strict=True):
+        found, tokens = find_sisters(runners[a], runners[b], units[a], texts, other_name=b, k=3)
+        _same(job.found, found)
+        assert job.tokens == tokens
+        assert job.source_layers == runners[a].n_layers and job.other_layers == runners[b].n_layers
