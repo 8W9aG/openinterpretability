@@ -1,0 +1,1 @@
+- The `next-issue` skill now lands its own PR before it moves on. It brings the branch up to date with `main`, waits for every CI check, and fixes its own failures twice at most. Then it squash-merges with `--match-head-commit`, never `--admin`, and starts the next issue from the merged `main`.

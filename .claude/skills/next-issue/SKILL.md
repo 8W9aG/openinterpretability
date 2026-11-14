@@ -1,6 +1,6 @@
 ---
 name: next-issue
-description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". It works one issue and stops. To work through several, run it under `/loop`.
+description: Give unprioritised issues a priority, then pick the next issue to work and start it. It takes the next release's highest-priority unstarted issue. When the release has none left, it pulls one in from Linear. Then it hands over to work-an-issue. Use when the user says "do the next issue" or "what's next". It works one issue, waits for CI, merges the PR, and stops. To work through several, run it under `/loop`.
 ---
 
 # The next issue
@@ -42,7 +42,20 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    ```
    Pull one issue at a time, and only when the release has nothing left. The release cadence (`release` skill, *When to release*) decides when the release goes out, not how full it is.
 5. **Work it with `work-an-issue`.** That skill marks the issue In Progress, posts the plan, posts deviations, opens the PR and posts what shipped. Its eligibility check runs again there.
-6. **Stop.** When the issue is In Review, report the issue, its PR and what shipped, then stop. One run works one issue. To work through several, run this skill under `/loop`. Each iteration then picks afresh, so it sees what other agents started in the meantime.
+6. **Land the PR.** Don't move on while the issue's PR is open. The maintainer decided on 2026-11-14 that this skill merges its own PR once CI passes.
+   1. Bring the branch up to date with `main`: `git fetch origin && git merge origin/main`. If that conflicts, don't resolve someone else's change by hand. Run `git merge --abort`, comment on the PR, and stop at step 7 without merging. Otherwise run `make lint` and `make test`, then push.
+   2. Wait for every check: `gh pr checks <number> --watch --fail-fast --interval 30`. Checks can take a minute to appear after a push. No checks is not green, so wait and retry. If they are still pending after 45 minutes, comment that they didn't finish, and stop at step 7.
+   3. If a check fails, read its log (`gh run view <run-id> --log-failed`). Fix it if this PR caused it, push, and wait again. Stop after two failed attempts, or if the failure isn't this PR's (a flaky runner, a broken `main`). Then comment what you found and stop at step 7 without merging.
+   4. Merge only a PR that this session opened for this issue. It must not be draft, every check must have passed on its head commit, and `gh pr view <number> --json mergeable -q .mergeable` must print `MERGEABLE`:
+      ```bash
+      gh pr view <number> --json headRefOid -q .headRefOid     # the head commit
+      gh pr merge <number> --squash --match-head-commit <that SHA>
+      git push origin :<branch>                                 # the remote branch
+      ```
+      `--match-head-commit` refuses the merge if someone pushed after the checks ran. Never pass `--admin`, and never get round a failing or pending check another way. Drop the remote branch with the push above, not with `--delete-branch`, which tries to switch the local checkout.
+   5. A merged PR whose body says `Closes #<number>` closes the issue. Post one line on the issue that it merged, with the merge commit.
+   6. Return the checkout to `main` and pull it, so the next issue starts from the merged state.
+7. **Stop.** Report the issue, its PR, what shipped and whether it merged, then stop. One run works one issue. To work through several, run this skill under `/loop`. Each iteration then picks afresh, so it sees what other agents started in the meantime. A PR left unmerged in step 6 stays open for the maintainer. Say why in the report.
 
 ## Notes
 
