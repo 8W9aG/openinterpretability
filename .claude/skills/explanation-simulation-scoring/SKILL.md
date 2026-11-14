@@ -36,6 +36,7 @@ uv run openinterp review … --explanation-scores exchange/score.scores.json   #
 - Give each prompt to a separate judge. Fuzzing marks real active tokens, so a judge that saw them would score detection on more than the explanation.
 - Read `recall_by_quantile` as well as the balanced accuracy. Explanations written from top examples typically miss the weaker bins.
 - Add `--controls` to judge the same windows with no explanation and with another unit's explanation. A score means little until it beats both. The summary prints each gap. With `--emit-task`, each control has its own two prompts (`score.control-<kind>.<detection|fuzzing>.prompt.md`), and each prompt needs its own judge. With a `claude-haiku-5-5` judge, both controls scored 0.5 on 7 VERIFIED poles, and the real explanations beat them by 0.10 on detection and 0.18 on fuzzing (`docs/analyses/null-explanation-control.md`).
+- Read each score beside its `rule_baseline`: the best explanation-free rules on the same windows, an upper bound. A score means little until it beats them. Since issue #3505, fuzzing decoys copy the real marks' count and spacing (`fuzzing_decoys: matched-shape`), so these rules sit near 0.5. Older scores, with random decoys, let a contiguity rule reach 0.58.
 - A low score with a VERIFIED verdict is not a contradiction. The probes test the claim where the reviewer looked. These scores test where the pole fires in ordinary text. Say in the next revision which held-out activity the explanation leaves out.
 
 ## Procedure: simulation score

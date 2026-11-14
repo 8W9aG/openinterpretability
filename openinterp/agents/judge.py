@@ -50,6 +50,7 @@ class ScoringTask(BaseModel):
     detection: list[TaskWindow]
     fuzzing: list[TaskWindow]
     controls: list[ControlTask] = Field(default_factory=list)  # judged on the same windows
+    fuzzing_decoys: str | None = None  # "matched-shape" since issue #3505 (ExplanationScores)
     costs: ExperimentCosts | None = None  # of drawing the windows
 
 

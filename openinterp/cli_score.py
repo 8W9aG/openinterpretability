@@ -224,6 +224,7 @@ def _draw_task(
 ):
     from openinterp.agents.judge import ScoringTask
     from openinterp.cli_evidence import read_corpus
+    from openinterp.harness.explanation_scores import DECOYS
     from openinterp.score_controls import control_tasks
 
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
@@ -253,6 +254,7 @@ def _draw_task(
         detection=windows(sample.detection),
         fuzzing=windows(sample.fuzzing),
         controls=control_tasks(submission.identifier.slug, seed) if controls else [],
+        fuzzing_decoys=DECOYS,
     )
 
 
@@ -350,7 +352,6 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model, 
             sims = embedding_similarities(
                 embedding_model, task.explanation, [w.text for w in task.detection]
             )
-    unmeasured = _unmeasured
     scores = ExplanationScores(
         slug=task.identifier.slug,
         explanation=task.explanation,
@@ -365,9 +366,10 @@ def _score_task(task, runner, detection, fuzzing, judge_model, embedding_model, 
         active_windows=task.active_windows,
         judge_model=judge_model,
         embedding_model=embedding_model or None,
-        detection_windows=unmeasured(task.detection, det, sims),
-        fuzzing_windows=unmeasured(task.fuzzing, fuz, [None] * len(task.fuzzing)),
+        detection_windows=_unmeasured(task.detection, det, sims),
+        fuzzing_windows=_unmeasured(task.fuzzing, fuz, [None] * len(task.fuzzing)),
         controls=list(controls),
+        fuzzing_decoys=task.fuzzing_decoys,
     )
     with costs.stage("remeasure"):
         return remeasure(scores, runner, submission_unit(task))
@@ -411,6 +413,10 @@ def _summary(scores) -> str:
         f"embedding AUROC {_num(scores.embedding_auroc)} · "
         f"{scores.active_windows}/{scores.candidate_windows} held-out windows active"
     )
+    rules = scores.rule_baseline
+    if rules:
+        best = ", ".join(f"{k} {v:.2f}" for k, v in sorted(rules.items()))
+        line += f"\nExplanation-free rules (upper bounds): {best}"
     return line + ("\n" + gap_summary(scores) if scores.controls else "")
 
 

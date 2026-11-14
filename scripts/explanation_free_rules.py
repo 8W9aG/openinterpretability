@@ -19,54 +19,24 @@ from pathlib import Path
 
 from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
-
-
-def balanced(pairs: list[tuple[bool, bool]]) -> float | None:
-    """Balanced accuracy of (predicted, label) pairs, or ``None`` with one class."""
-    pos = [p for p, y in pairs if y]
-    neg = [not p for p, y in pairs if not y]
-    if not pos or not neg:
-        return None
-    return (sum(pos) / len(pos) + sum(neg) / len(neg)) / 2
-
-
-def contiguous(marks: list[int]) -> bool:
-    """True when the marked tokens form one unbroken run."""
-    return bool(marks) and max(marks) - min(marks) + 1 == len(marks)
-
-
-FUZZING_RULES = {
-    "marks_at_least_4": lambda w: len(w.highlighted) >= 4,
-    "marks_contiguous": lambda w: contiguous(sorted(w.highlighted)),
-    "contiguous_and_at_least_2": lambda w: (
-        len(w.highlighted) >= 2 and contiguous(sorted(w.highlighted))
-    ),
-}
-
-
-def best_length_rule(windows) -> float | None:
-    """The best "active if the window has at least n tokens" rule, n chosen on the windows."""
-    pairs = [(len(w.tokens), w.label) for w in windows]
-    scores = [balanced([(n >= cut, y) for n, y in pairs]) for cut in sorted({n for n, _ in pairs})]
-    scores = [s for s in scores if s is not None]
-    return max(scores) if scores else None
+from openinterp.harness.explanation_scores import _balanced, explanation_free_baseline
 
 
 def pooled(records) -> dict:
-    """Each rule's balanced accuracy over all records' windows, with the judges' for comparison."""
+    """The rules' balanced accuracy over all records' windows, beside the judges'.
+
+    The rules are ``explanation_free_baseline``, the same ones each new score records.
+    """
     det = [w for r in records for w in r.detection_windows]
     fuz = [w for r in records for w in r.fuzzing_windows]
-    out = {
+    return {
         "records": len(records),
         "detection_windows": len(det),
         "fuzzing_windows": len(fuz),
-        "judge_detection": balanced([(w.judged, w.label) for w in det if w.judged is not None]),
-        "judge_fuzzing": balanced([(w.judged, w.label) for w in fuz if w.judged is not None]),
-        "detection_length_rule": best_length_rule(det),
+        "judge_detection": _balanced([(w.judged, w.label) for w in det if w.judged is not None]),
+        "judge_fuzzing": _balanced([(w.judged, w.label) for w in fuz if w.judged is not None]),
+        **explanation_free_baseline(det, fuz),
     }
-    for name, rule in FUZZING_RULES.items():
-        out[f"fuzzing_{name}"] = balanced([(rule(w), w.label) for w in fuz])
-    return out
 
 
 def scored_records(wiki_dir: Path = DEFAULT_WIKI_DIR) -> list:
