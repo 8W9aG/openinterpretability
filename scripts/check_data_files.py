@@ -5,7 +5,7 @@ newline. A JSONL file has one JSON value on each line and no blank lines. YAML f
 and the YAML front matter of Markdown files must pass yamllint, with the rules in
 `.yamllint.yml`. Front matter has no line limit, because a skill's description is one line.
 
-The records under `wiki/` are exempt: `openinterp check` validates each one against its
+The records under `wiki/` are exempt: `open-interpretability check` validates each one against its
 schema, and they are write-once.
 
 Run with `make lint`. CI runs it in the lint step.
@@ -33,7 +33,7 @@ YAML_PATTERNS = ("*.yml", "*.yaml")
 MARKDOWN_PATTERNS = ("*.md",)
 
 EXEMPT = (
-    "wiki/*",  # generated records and pages, validated by `openinterp check`
+    "wiki/*",  # generated records and pages, validated by `open-interpretability check`
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
 )
 

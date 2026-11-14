@@ -18,18 +18,18 @@ description: Score a neuron explanation by how well it predicts per-token activa
 | Observational precision | Specificity on hard negatives (reviewer probes) |
 | Observational recall | Sensitivity on positive holdouts |
 | Interventional test | Counterfactual Δ and causal metrics (see `activation-patching-practice`) |
-| Detection, fuzzing, embedding | `openinterp score`, recorded as `verdict.explanation_scores` (reported, not gated) |
+| Detection, fuzzing, embedding | `open-interpretability score`, recorded as `verdict.explanation_scores` (reported, not gated) |
 | Simulation correlation | **Not yet in the protocol.** Compute it as supplementary evidence |
 
 ## Cheaper scores: detection, fuzzing and embedding
 
-Paulo et al., 2025 (Delphi, `EleutherAI/delphi`) replace per-token simulation with three cheaper scores. `openinterp score` computes them, and every review records them (docs/PROTOCOL.md §4):
+Paulo et al., 2025 (Delphi, `EleutherAI/delphi`) replace per-token simulation with three cheaper scores. `open-interpretability score` computes them, and every review records them (docs/PROTOCOL.md §4):
 
 ```bash
-uv run openinterp score --audit-file <submission or record> --corpus corpus.jsonl --emit-task exchange/score.task.json
+uv run open-interpretability score --audit-file <submission or record> --corpus corpus.jsonl --emit-task exchange/score.task.json
 # explanation-judge answers exchange/score.detection.prompt.md, a *second* one answers score.fuzzing.prompt.md
-uv run openinterp score --task exchange/score.task.json --judge-model external/<judge model ID>
-uv run openinterp review … --explanation-scores exchange/score.scores.json   # or reevaluate --record …
+uv run open-interpretability score --task exchange/score.task.json --judge-model external/<judge model ID>
+uv run open-interpretability review … --explanation-scores exchange/score.scores.json   # or reevaluate --record …
 ```
 
 - Use the scan's corpus. The scan's top examples are left out, so every window is text the proposer never saw.

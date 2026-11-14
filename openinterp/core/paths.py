@@ -31,7 +31,7 @@ def draws_dir(wiki_dir: Path | str) -> Path:
 
 
 def ledger_dir(wiki_dir: Path | str) -> Path:
-    """Each draw that ``openinterp next --steps`` made, by day: ``ledger/<day>/``."""
+    """Each draw that ``open-interpretability next --steps`` made, by day: ``ledger/<day>/``."""
     return Path(wiki_dir) / "ledger"
 
 

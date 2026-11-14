@@ -2,7 +2,7 @@
 
 Run on 2026-11-13 on an M1 Max (64 GB) with torch 2.14, for issue #2995. The script is `scripts/half_tolerance.py`. One summary row per record is in `half-precision-reproduce.jsonl`.
 
-`openinterp reproduce` re-runs a record in the dtype it pins, and compares each number within `0.001 × scale + 0.01 × |recorded|`. That tolerance suits float32 differences between devices. A record made in bfloat16 on one device drifts by a few percent on another, so no 16-bit record could pass. On the CPU, bfloat16 is also about 10 times slower than float32, and the CI job ran out of time on Qwen2.5-1.5B records.
+`open-interpretability reproduce` re-runs a record in the dtype it pins, and compares each number within `0.001 × scale + 0.01 × |recorded|`. That tolerance suits float32 differences between devices. A record made in bfloat16 on one device drifts by a few percent on another, so no 16-bit record could pass. On the CPU, bfloat16 is also about 10 times slower than float32, and the CI job ran out of time on Qwen2.5-1.5B records.
 
 ## Method
 
@@ -42,7 +42,7 @@ float32 records keep the float32 tolerance and exact checks. Records signed by a
 
 ## With the rules
 
-`openinterp reproduce --device cpu`, with the rules above, reproduces all 8 bfloat16 records:
+`open-interpretability reproduce --device cpu`, with the rules above, reproduces all 8 bfloat16 records:
 
 - **The 6 in the registry** took 28 minutes together, while other jobs used the machine. Only Qwen2.5-0.5B L23 N541 needed the stray tokens: 3, 1 and 1 tokens of three top examples. No result flipped.
 - **The records of #2899 and #2879**, both Qwen2.5-1.5B, took 11 minutes together. In bfloat16 on the CPU, the first of them had run for more than an hour and failed on 5% drift.

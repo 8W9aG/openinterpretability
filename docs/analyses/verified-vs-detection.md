@@ -1,6 +1,6 @@
 # Does VERIFIED predict held-out detection?
 
-Run on 2026-11-13 for issue #3239, with `scripts/verified_vs_detection.py`. The numbers are in `verified-vs-detection.json`. A VERIFIED verdict says that an explanation survived probes that a reviewer chose. Detection and fuzzing scores say how well a judge, given only the explanation, finds where the pole fires in ordinary held-out text (`openinterp score`). If VERIFIED explanations score much higher, the two measures agree, and a score could become a gate. If they score about the same, the verdict measures something the scores don't.
+Run on 2026-11-13 for issue #3239, with `scripts/verified_vs_detection.py`. The numbers are in `verified-vs-detection.json`. A VERIFIED verdict says that an explanation survived probes that a reviewer chose. Detection and fuzzing scores say how well a judge, given only the explanation, finds where the pole fires in ordinary held-out text (`open-interpretability score`). If VERIFIED explanations score much higher, the two measures agree, and a score could become a gate. If they score about the same, the verdict measures something the scores don't.
 
 The null-explanation control (`null-explanation-control.md`) showed that with a Haiku judge a score above 0.5 comes from the explanation. So the scores here can be read as the explanation's own.
 

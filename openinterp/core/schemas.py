@@ -42,10 +42,17 @@ from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     HeadIdentifier,
     NeuronIdentifier,
     Pole,
+    SuperpositionIdentifier,
 )
 from openinterp.core.patchscope import PatchscopeReadout
 from openinterp.core.prior_art import PriorArtField
-from openinterp.core.profiles import DictionaryProfile, DictionarySite, HeadProfile  # noqa: F401
+from openinterp.core.profiles import (  # noqa: F401  (re-exported)
+    DictionaryProfile,
+    DictionarySite,
+    HeadProfile,
+    SuperpositionProfile,
+    require_unit_profile,
+)
 from openinterp.core.run_environment import RunEnvironment  # noqa: F401  (re-exported)
 from openinterp.core.specificity import WordnetSpecificity, WordStrength  # noqa: F401
 from openinterp.core.steering import SteeringSamples
@@ -226,9 +233,9 @@ class JointAblation(StrictModel):
 
 
 class ScanEvidence(StrictModel):
-    """What ``openinterp audit --evidence-out`` measured, for a proposer working offline.
+    """What ``open-interpretability audit --evidence-out`` measured, for a proposer working offline.
 
-    It holds everything a submission needs except the hypothesis, so ``openinterp audit
+    It holds everything a submission needs except the hypothesis, so ``open-interpretability audit
     --evidence <file> --hypothesis <file>`` can build the submission without rescanning.
     """
 
@@ -244,32 +251,13 @@ class ScanEvidence(StrictModel):
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0)
     dictionary_profile: DictionaryProfile | None = None
+    superposition_profile: SuperpositionProfile | None = None
     opposite_pole: OppositePole | None = None
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
         check_opposite_pole(self)
-        return _require_unit_profile(self)
-
-
-def _require_unit_profile(model):
-    """Require the profile that defines a non-neuron unit's strength.
-
-    A head's strength is undefined without its mean output. A dictionary feature's
-    strength is undefined without its dictionary's weights. A neuron needs neither.
-    """
-    kind = model.identifier.kind
-    for field, owner, unit, why in (
-        ("head_profile", "attn_head", "an attention head", "its mean output"),
-        ("dictionary_profile", "dictionary_feature", "a dictionary feature", "its dictionary"),
-    ):
-        present = getattr(model, field) is not None
-        units = unit.split(" ", 1)[1] + "s"
-        if kind == owner and not present:
-            raise ValueError(f"{unit} needs a {field}: {why} defines strength")
-        if kind != owner and present:
-            raise ValueError(f"{field} is only for {units}")
-    return model
+        return require_unit_profile(self)
 
 
 class NeuronAuditSubmission(StrictModel):
@@ -306,6 +294,7 @@ class NeuronAuditSubmission(StrictModel):
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
     dictionary_profile: DictionaryProfile | None = None
+    superposition_profile: SuperpositionProfile | None = None
     patchscope: PatchscopeReadout | None = Field(
         default=None,
         description="The model's own description of the unit's output direction, read after "
@@ -351,7 +340,7 @@ class NeuronAuditSubmission(StrictModel):
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:
         check_opposite_pole(self)
-        return _require_unit_profile(self)
+        return require_unit_profile(self)
 
 
 class AdversarialTestResult(StrictModel):

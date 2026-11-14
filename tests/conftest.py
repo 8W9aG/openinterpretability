@@ -260,7 +260,7 @@ def _idle_devices(tmp_path_factory, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_pause(tmp_path_factory, monkeypatch):
-    """Keep tests away from a real pause of new experiments (``openinterp pause``)."""
+    """Keep tests away from a real pause of new experiments (``open-interpretability pause``)."""
     from openinterp.core.pause import ENV
 
     monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("pause") / "pause"))

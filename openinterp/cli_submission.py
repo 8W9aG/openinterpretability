@@ -1,4 +1,4 @@
-"""The steps of ``openinterp audit`` after the proposer answers.
+"""The steps of ``open-interpretability audit`` after the proposer answers.
 
 The steps are counterfactuals, the Patchscope, steering, WordNet specificity and wiring
 readouts, and writing the submission.
@@ -210,6 +210,7 @@ def build_submission(agent, draft, runner, evidence):
                 head_profile=evidence.head_profile,
                 dictionary_profile=evidence.dictionary_profile,
                 first_token_floor=evidence.first_token_floor,
+                superposition_profile=evidence.superposition_profile,
             )
         except ValueError as exc:  # e.g. a one-token counterfactual prompt
             raise click.ClickException(f"Counterfactual: {exc}") from exc

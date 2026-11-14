@@ -33,7 +33,7 @@ LLMLingua-2's `rate` is the share of tokens kept. Characters and *literals* are 
 Even the mildest rate (0.7) dropped literals that change what an agent does:
 
 - **Proposer definition:** two of the three skill paths it is told to read (`.claude/skills/vocab-projection-lookahead/SKILL.md`, `.claude/skills/neuron-family-triage/SKILL.md`), and the answer file name `<name>.hypothesis.json`.
-- **Skills:** the `openinterp activations … --corpus corpus.jsonl --top 0 --format jsonl` command line, `measure_lookahead(runner, prompts, layer, idx, pole)`, `W_U · w_out` (twice), and `provenance.selection = "manual"`.
+- **Skills:** the `open-interpretability activations … --corpus corpus.jsonl --top 0 --format jsonl` command line, `measure_lookahead(runner, prompts, layer, idx, pole)`, `W_U · w_out` (twice), and `provenance.selection = "manual"`.
 - **Judge definition:** `*.task.json`, the file it must not read.
 
 It also removes the markdown structure (`#` headings, list markers, `---` frontmatter fences). A skill file without its frontmatter isn't a skill Claude Code can load. So the compressed text could only be a second copy next to the real skill, kept in sync by hand, against the `single-source-of-truth` rule.

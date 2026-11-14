@@ -2,18 +2,18 @@
 
 Records cannot be rewritten. A maintainer who finds a bug that affected some of them
 appends an erratum to ``wiki/errata.jsonl``. Then they sign the file with
-``openinterp sign wiki/errata.jsonl``. Each line is one :class:`Erratum`. It names the
+``open-interpretability sign wiki/errata.jsonl``. Each line is one :class:`Erratum`. It names the
 records it covers (a list of record paths, a :class:`ErratumRule`, or both), the bug, and
 the commit that fixed it. It either lists :class:`Edit` objects for the records, or sets
 the records aside.
 
 The record files never change. The site build applies the edits to a copy of each covered
 record (:func:`apply_errata`). So pages, standings and ``registry.parquet`` read the
-corrected values. ``openinterp reproduce`` checks the corrected record, and skips a record
-that is set aside.
+corrected values. ``open-interpretability reproduce`` checks the corrected record, and skips a
+record that is set aside.
 
-``openinterp check`` verifies the file (:mod:`openinterp.errata_checks`). Errata have no
-page of their own. The site shows each erratum on the experiments it covers, with the old
+``open-interpretability check`` verifies the file (:mod:`openinterp.errata_checks`). Errata have
+no page of their own. The site shows each erratum on the experiments it covers, with the old
 and new value of each edit. The standing rule (:mod:`openinterp.builder.standing`) leaves
 out the records that are set aside.
 """

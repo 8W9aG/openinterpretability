@@ -48,7 +48,7 @@ def find_transcript(agent: str) -> Path:
 
 
 def usage_from_transcript(path: Path) -> ExternalUsage:
-    """Tokens per API request in a Claude Code transcript, for ``openinterp usage``.
+    """Tokens per API request in a Claude Code transcript, for ``open-interpretability usage``.
 
     Claude Code writes one line per content block, so a request can have many lines. The
     last line of each request holds its final usage.

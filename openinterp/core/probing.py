@@ -106,7 +106,7 @@ class ProbeComparison(StrictModel):
 class ConceptSource(StrictModel):
     """Where a labelled concept set came from.
 
-    ``openinterp concepts`` writes it next to the set. It holds enough to rebuild the
+    ``open-interpretability concepts`` writes it next to the set. It holds enough to rebuild the
     same file. It records the dataset at an exact commit, the split's files, the label
     column and label, the seed and the sizes. ``license`` comes from the dataset card, or for a
     Universal Dependencies treebank, from the treebank.

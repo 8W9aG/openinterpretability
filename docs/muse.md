@@ -11,13 +11,13 @@ different reviewer model is used.
 
 A full experiment has six stages, in order:
 
-1. Pick a unit with `openinterp next`.
-2. Scan it with `openinterp audit` and read the evidence file.
+1. Pick a unit with `open-interpretability next`.
+2. Scan it with `open-interpretability audit` and read the evidence file.
 3. Write a hypothesis, as the proposer, with falsifiable counterfactuals.
-4. Build the submission with `openinterp audit --evidence --hypothesis`.
-5. Score the explanation with `openinterp score`, answering the
+4. Build the submission with `open-interpretability audit --evidence --hypothesis`.
+5. Score the explanation with `open-interpretability score`, answering the
    detection and fuzzing prompts literally from the explanation.
-6. Review it with `openinterp review`, writing hard negatives and
+6. Review it with `open-interpretability review`, writing hard negatives and
    positive holdouts as the reviewer, then publish the record and page.
 
 Muse can do all six stages on a CPU-only machine. It cannot place phone
@@ -47,7 +47,7 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 .venv/bin/python -m pytest -q
 ## Pick a unit
 
 ```sh
-openinterp next --model openai-community/gpt2 --no-claims --seed YYYYMMDD --steps
+open-interpretability next --model openai-community/gpt2 --no-claims --seed YYYYMMDD --steps
 ```
 
 The steps file lists the full claim, scan, propose, review, score, and
@@ -69,7 +69,7 @@ the PR body. The registry corpus is the pile-10k corpus described in
 the README. A pilot used TinyStories instead:
 
 ```sh
-openinterp corpus --dataset tinystories --docs 200 --out pilot/pilot-corpus.jsonl
+open-interpretability corpus --dataset tinystories --docs 200 --out pilot/pilot-corpus.jsonl
 ```
 
 That pilot sampled 97 of 200 documents, 19,962 tokens, against a
@@ -196,8 +196,8 @@ To publish, copy only the new record `.json` and page `.md` into
 `experiment/<model>-<layer>-<neuron>-<pole>`. Do not commit the
 working `pilot/` folder. Commit, push, and open a draft PR. The PR
 body should state the verdict, the gates, the corpus, whether the
-review was self-reviewed, and that `openinterp check` passes. Give the
-next seed and kind if the experiment came from `openinterp next`.
+review was self-reviewed, and that `open-interpretability check` passes. Give the
+next seed and kind if the experiment came from `open-interpretability next`.
 
 Merge only when all checks pass: lint and tests, experiment records,
 record changes, and reproduce records. A draft PR cannot be merged

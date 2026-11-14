@@ -120,8 +120,9 @@ class ExplanationScores(StrictModel):
     )
     controls: list[ControlScore] = Field(
         default_factory=list,
-        description="The same windows judged with control explanations (openinterp score "
-        "--controls). Each control's answers are scored against these windows' labels.",
+        description="The same windows judged with control explanations "
+        "(open-interpretability score --controls). Each control's answers are scored against "
+        "these windows' labels.",
     )
     costs: ExperimentCosts | None = Field(
         default=None,

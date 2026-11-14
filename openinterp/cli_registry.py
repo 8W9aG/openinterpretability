@@ -105,7 +105,7 @@ def show(path, full):
 
 
 def _refuse_while_paused() -> None:
-    """Exit 75 with the reason if `openinterp pause` is in force."""
+    """Exit 75 with the reason if `open-interpretability pause` is in force."""
     from openinterp.core import pause
 
     if paused := pause.read():
@@ -187,7 +187,7 @@ def next_experiment(
 ):
     """Pick the next experiment (randomised; balances exploration and follow-ups).
 
-    While `openinterp pause` is in force it draws nothing and exits 75.
+    While `open-interpretability pause` is in force it draws nothing and exits 75.
     """
     from openinterp.planner import open_pr_claims, plan_next
 
@@ -212,7 +212,9 @@ def next_experiment(
     click.echo(f"Why: {c.rationale}")
     for command in c.commands:
         click.echo(f"  $ {command}")
-    if any(cmd.startswith("openinterp audit") and "--neuron" in cmd for cmd in c.commands):
+    if any(
+        cmd.startswith("open-interpretability audit") and "--neuron" in cmd for cmd in c.commands
+    ):
         _scan_cache_note(c)
     if c.skills:
         click.echo(f"Skills: {', '.join(c.skills)}")
@@ -242,8 +244,8 @@ def _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus) -> No
 def ledger_report(wiki_dir, as_json):
     """Report every recorded draw's outcome, and VERIFIED rates against all draws.
 
-    The ledger (wiki/ledger/) holds every draw that `openinterp next --steps` made, before
-    its run. A draw with no record and no stop was dropped, or is still running.
+    The ledger (wiki/ledger/) holds every draw that `open-interpretability next --steps` made,
+    before its run. A draw with no record and no stop was dropped, or is still running.
     """
     import json
 

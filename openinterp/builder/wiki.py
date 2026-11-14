@@ -56,8 +56,8 @@ GATE_ADVICE = {
     "requires them to differ. Re-review with a different reviewer model.",
     "beats_confound_baseline": "A trivial baseline (token identity, position or 'never "
     "active') explains the probes at least as well as the hypothesis, or the scan predates "
-    "confound profiling. Rescan with `openinterp audit` and sharpen the claim beyond the "
-    "trigger tokens (skill: `interpretability-illusions-review`).",
+    "confound profiling. Rescan with `open-interpretability audit` and sharpen the claim "
+    "beyond the trigger tokens (skill: `interpretability-illusions-review`).",
     "not_default_on": "The unit is active on at least half of its scan's tokens, so no hard "
     "negative of a few words can stay inactive. It can't be audited as a detector; record "
     "it as default-on (docs/PROTOCOL.md §1).",
@@ -79,11 +79,13 @@ def experiment_id(record: AuditRecord) -> str:
 
 
 def unit_label(meta: dict) -> str:
-    """``L3/N7+``, ``L5/H1`` or ``L8/F40 (dictionary)``, from a page's front matter."""
+    """``L3/N7+``, ``L5/H1``, ``L8/F40 (dictionary)`` or ``L2/S…``, from front matter."""
     if "head" in meta:
         return f"L{meta['layer']}/H{meta['head']}"
     if "feature" in meta:
         return f"L{meta['layer']}/F{meta['feature']} ({meta['dictionary']})"
+    if "superposition" in meta:
+        return f"L{meta['layer']}/S{meta['superposition']}"
     return f"L{meta['layer']}/N{meta['neuron']}{'+' if meta['pole'] == 'positive' else '−'}"
 
 
@@ -179,6 +181,8 @@ def _unit_meta(ident) -> dict:
         return {"head": ident.head_idx}
     if ident.kind == "dictionary_feature":
         return {"dictionary": ident.dictionary, "feature": ident.feature_idx}
+    if ident.kind == "superposition":
+        return {"superposition": ident.superposition_id}
     return {"neuron": ident.neuron_idx, "pole": ident.pole}
 
 

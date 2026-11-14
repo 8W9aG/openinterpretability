@@ -14,7 +14,7 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
    git fetch origin && git switch --detach origin/main
    ```
    Use this instead of `git pull` on a local `main`: `main` may be checked out in another worktree, and a detached start never reuses an old branch.
-2. **Run one experiment** with `choose-next-experiment`, steps 2–7: draw, claim, read the history, run it, then `openinterp wiki` and `make check` (add `lint test` only if the branch changes a file outside `wiki/`). Draw with `uv run openinterp next --top 5 --steps --fresh-corpus`, unless the user names a corpus. Each new scan then builds its own `mixed` corpus from the draw's seed, and the record pins its source. A review of an existing record rebuilds that record's corpus instead. Commit `wiki/` (records, `.sig` files and pages) and push. The generated `README.md` indexes are gitignored.
+2. **Run one experiment** with `choose-next-experiment`, steps 2–7: draw, claim, read the history, run it, then `open-interpretability wiki` and `make check` (add `lint test` only if the branch changes a file outside `wiki/`). Draw with `uv run open-interpretability next --top 5 --steps --fresh-corpus`, unless the user names a corpus. Each new scan then builds its own `mixed` corpus from the draw's seed, and the record pins its source. A review of an existing record rebuilds that record's corpus instead. Commit `wiki/` (records, `.sig` files and pages) and push. The generated `README.md` indexes are gitignored.
 3. **Build the site:**
    ```bash
    make build

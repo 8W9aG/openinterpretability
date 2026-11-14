@@ -1,6 +1,6 @@
 # Predicting which neurons verify
 
-Issue #3372. Can the scan and the weights tell, before any agent writes a hypothesis, whether a random neuron pole will be VERIFIED? If so, the planner could steer explore draws toward poles likely to verify. Run on 2026-11-14 with `scripts/verify_predictor.py`, on the registry as `openinterp build` exported it. The rows are in `verify-predictor.jsonl`. Reported, not gated.
+Issue #3372. Can the scan and the weights tell, before any agent writes a hypothesis, whether a random neuron pole will be VERIFIED? If so, the planner could steer explore draws toward poles likely to verify. Run on 2026-11-14 with `scripts/verify_predictor.py`, on the registry as `open-interpretability build` exported it. The rows are in `verify-predictor.jsonl`. Reported, not gated.
 
 **Answer: not yet.** The neuron's features rank poles better than chance, also within one proposer. But their forecasts are no better than the base rate of VERIFIED in earlier units. So this result doesn't justify steering the planner.
 
@@ -42,7 +42,7 @@ Issue #3372. Can the scan and the weights tell, before any agent writes a hypoth
 
 ## For the planner
 
-The issue's condition for steering was a forecast that beats the earlier base rate, and this one doesn't. So `openinterp next` doesn't change.
+The issue's condition for steering was a forecast that beats the earlier base rate, and this one doesn't. So `open-interpretability next` doesn't change.
 
 A ranking alone could still steer draws: draw more often from the poles ranked high, and keep a share of draws uniform. That would raise the share VERIFIED by the AUC's margin at most. It would also skew any statistic over the steered draws, so the registry's random-unit statistics would have to use only the uniform ones. Whether that trade is worth it is the maintainer's call.
 

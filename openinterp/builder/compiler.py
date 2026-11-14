@@ -42,13 +42,13 @@ from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
-from openinterp.builder.stopped import add_stopped
+from openinterp.builder.stopped import add_stopped, explore_focus
 from openinterp.builder.stops import pageless_stops, stops_by_unit
+from openinterp.builder.superpositions import add_members, count_pageless_neurons
 from openinterp.builder.tree import (
     Experiment,
     build_tree,
     circuits_href,
-    explore_focus,
     false_discovery,
     neuron_href,
 )
@@ -321,6 +321,7 @@ def compile_site(
 
     models = build_tree(records, errata, users)
     add_stopped(models, (*draws, *stops))  # neurons that only stopped scans cover
+    add_members(models)  # the neurons of each superposition, linked back to it
     experiments = [
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
@@ -337,7 +338,7 @@ def compile_site(
 
     common = _site_context(site_title, corpus_sources, experiments)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
-    studied = {n.href for m in models for layer in m.layers for n in layer.units}
+    studied = {n.href for m in models for layer in m.layers for n in layer.pages}
     by_unit = stops_by_unit(stops)
     for model in models:
         sisters = (sister_rows or {}, sister_tests(experiments))
@@ -345,7 +346,7 @@ def compile_site(
     render_models(render, models, model_facts or {}, _render_model)
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
-    stats["totals"]["neurons"] += sum(len(layer.stopped) for m in models for layer in m.layers)
+    count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
@@ -491,5 +492,5 @@ def _render_model(
             stops=(stops or {}).get(neuron.href, []),
         )
 
-    units = [(layer, neuron) for layer in model.layers for neuron in layer.units]
+    units = [(layer, neuron) for layer in model.layers for neuron in layer.pages]
     render_in_parallel(render, unit_page, units)

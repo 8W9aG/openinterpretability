@@ -8,10 +8,11 @@
 <h1 class="font-mono text-2xl font-semibold">{{ model.name }}</h1>
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   {{ model.experiments }} experiments ·
-  {{ model.neurons }}/{{ model.total_neurons | thousands }} neurons studied ({{ model.coverage | pct_fine }}) ·
+  {{ model.neurons_studied }}/{{ model.total_neurons | thousands }} neurons studied{% if model.member_only %}, {{ model.member_only }} of them only as part of a superposition{% endif %} ({{ model.coverage | pct_fine }}) ·
   {{ model.verified }}/{{ model.total_neurons | thousands }} with a verified pole ({{ model.verified_share | pct_fine }}) ·
   {% if model.heads %}{{ model.heads }} attention heads studied ({{ model.verified_heads }} verified) · {% endif %}
   {% if model.features %}{{ model.features }} dictionary features studied as a baseline ({{ model.verified_features }} verified) · {% endif %}
+  {% if model.superpositions %}{{ model.superpositions }} superpositions studied ({{ model.verified_superpositions }} verified) · {% endif %}
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
 
@@ -84,7 +85,7 @@
       {% for layer in model.layers %}
       <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
-        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.studied }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons_studied }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.heads | length }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.verified }}</td>
@@ -97,7 +98,7 @@
 {% if sister_graphs %}
 <section class="mt-10" data-pagefind-ignore>
   <h2 class="text-lg font-semibold">Sister neurons</h2>
-  <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model, from either model's sister search (<code>openinterp sisters</code>). Poles sit at their relative depth, so the same depth is level in both columns. A <em>sister</em> is a mutual best match above the rotated basis: a candidate for the same concept, which a sister study tests.</p>
+  <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model, from either model's sister search (<code>open-interpretability sisters</code>). Poles sit at their relative depth, so the same depth is level in both columns. A <em>sister</em> is a mutual best match above the rotated basis: a candidate for the same concept, which a sister study tests.</p>
   {% for g in sister_graphs %}
   <figure class="mt-6">
     <h3 class="font-mono text-sm font-medium">{{ model.name }} ↔ {{ g.other }}</h3>

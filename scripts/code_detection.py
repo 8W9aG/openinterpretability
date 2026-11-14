@@ -23,8 +23,8 @@ The tests are:
   are GitHub files.
 
     D=exchange/code-detection
-    uv run openinterp corpus --dataset github-code --docs 1000 --out $D/code.jsonl
-    uv run openinterp corpus --dataset fineweb-edu --docs 300 --out $D/prose.jsonl
+    uv run open-interpretability corpus --dataset github-code --docs 1000 --out $D/code.jsonl
+    uv run open-interpretability corpus --dataset fineweb-edu --docs 300 --out $D/prose.jsonl
     (cd scripts/code_detection_enry && go build -o ../../$D/enry-helper .)
     uv run python scripts/code_detection.py $D corpus.jsonl \
         --out docs/analyses/code-detection.jsonl

@@ -1,4 +1,4 @@
-"""Cross-reference neuron poles with published dictionaries (`openinterp crossref`).
+"""Cross-reference neuron poles with published dictionaries (`open-interpretability crossref`).
 
 This takes every neuron pole in the archive whose model has a dictionary preset for its
 layer. It finds the latents whose decoder aligns with the pole's write, and whose encoder
@@ -13,7 +13,7 @@ is looked up when shown, and kept on disk so that each latent is fetched only on
 Neuronpedia is credited to it and to the model that wrote it.
 
 Agreement between a pole's explanation and an aligned latent's is supporting evidence.
-Disagreement is something for the reviewer to probe (`openinterp review
+Disagreement is something for the reviewer to probe (`open-interpretability review
 --dictionary-latents`). Neither is gated.
 """
 
@@ -28,6 +28,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
+from openinterp import DISTRIBUTION
 from openinterp.core.cache_dirs import cache_root
 from openinterp.core.fence import fence
 from openinterp.core.schemas import AuditRecord, NeuronIdentifier
@@ -245,7 +246,7 @@ def user_agent() -> str:
     from openinterp import __version__
 
     try:
-        urls = metadata("openinterp").get_all("Project-URL") or []
+        urls = metadata(DISTRIBUTION).get_all("Project-URL") or []
     except PackageNotFoundError:
         urls = []
     repo = next((u.split(", ", 1)[1] for u in urls if u.startswith("Repository, ")), None)

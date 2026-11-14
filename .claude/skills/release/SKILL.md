@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a package release of openinterp. First resolve the open Dependabot and code-scanning alerts, and propose new issues and papers for the literature review. Refresh the sister-neuron rows (`openinterp sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterp. First resolve the open Dependabot and code-scanning alerts, and propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterp
@@ -49,10 +49,10 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
    shasum -a 256 corpus.jsonl   # must be ded48cfc… (docs/experiments.md, "The scan corpus")
    head -1 docs/analyses/sister-neurons.jsonl | grep -o '"corpus_sha256":"[0-9a-f]*"'
    ```
-   If `corpus.jsonl` is missing, rebuild it with the README's `openinterp corpus` command. If the two hashes differ, stop and ask the user: a new corpus means rerunning every row, not resuming.
+   If `corpus.jsonl` is missing, rebuild it with the README's `open-interpretability corpus` command. If the two hashes differ, stop and ask the user: a new corpus means rerunning every row, not resuming.
 3. **Refresh the sister rows.** Run this on a machine with a GPU (MPS or CUDA). On CPU the passes against Qwen2.5-1.5B take hours. Run it in the background. A run with nothing new finishes in seconds.
    ```bash
-   uv run openinterp sisters --device auto
+   uv run open-interpretability sisters --device auto
    ```
    It searches every ordered pair of the configured models (`[tool.openinterp] models`) plus `SIBLINGS`. It skips every pole that already has a row for that model. So it only searches the poles VERIFIED since the last run, and any pair that a newly configured model adds. Each pair prints `N VERIFIED poles of A against B`. Then one search covers every pair, in four stages (`source:`, `forward:`, `matches:` and `backward:` positions). Each stage reads each model once, with one model loaded at a time. A pair with nothing new prints nothing. If no accelerator is available, skip this step and say so in the PR body. The next release picks the poles up.
 4. **Record what changed.** If the run wrote rows (`git diff --stat docs/analyses/sister-neurons.jsonl`), count them:
@@ -73,7 +73,7 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
    Then refresh the registry coverage, which the home page shows. Run it in the background, one model at a time, on an idle machine:
    ```bash
    for m in $(uv run python -c 'from openinterp.planner import configured_models; print(*configured_models())'); do
-     uv run openinterp coverage --model "$m"
+     uv run open-interpretability coverage --model "$m"
    done
    ```
    Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md`.
@@ -108,6 +108,7 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
     awk '/^## \[<version>\]/{f=1; next} /^## \[/{f=0} f' CHANGELOG.md > "$notes"
     gh release create v<version> --verify-tag --title "openinterp <version> (protocol v<PROTOCOL_VERSION>)" --notes-file "$notes"
     ```
+    Publishing the release also starts `.github/workflows/publish.yml`, which uploads the package to PyPI as `open-interpretability`. Check that its run passed (`gh run list --workflow publish.yml --limit 1`). If it failed on the version check, the tag doesn't match `openinterp.__version__`. If it failed on upload, the `PYPI_TOKEN` secret is missing or expired (`docs/development.md`, *Releases on PyPI*). Tell the user either way.
     Then check that Zenodo made the DOI: the release's Zenodo record appears under the repository's concept DOI after a few minutes. If it doesn't, the Zenodo GitHub integration is off. Tell the user, since only the repository owner can turn it on at zenodo.org.
 11. **Close the milestone.** Move any open issues in `v<version>` to the next milestone, then close it:
     ```bash
