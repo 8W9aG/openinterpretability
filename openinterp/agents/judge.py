@@ -15,7 +15,12 @@ from pydantic import BaseModel, Field
 from openinterp.agents.base import LLMAgent
 from openinterp.core.costs import ExperimentCosts
 from openinterp.core.fence import FENCE_RULE, fence
-from openinterp.core.schemas import ComponentIdentifier, DictionaryProfile, HeadProfile
+from openinterp.core.schemas import (
+    ComponentIdentifier,
+    DictionaryProfile,
+    HeadProfile,
+    SuperpositionProfile,
+)
 from openinterp.score_controls import ControlTask
 
 MARK_OPEN, MARK_CLOSE = "<<", ">>"
@@ -35,6 +40,9 @@ class ScoringTask(BaseModel):
     identifier: ComponentIdentifier
     head_profile: HeadProfile | None = None  # a head's strength is defined by its mean output
     dictionary_profile: DictionaryProfile | None = None  # and a feature's by its dictionary
+    superposition_profile: SuperpositionProfile | None = (
+        None  # and a superposition's by its members (#3767)
+    )
     # v0.8: the unit isn't measured at a window's first token (NeuronAuditSubmission)
     first_token_floor: bool | None = None
     explanation: str
