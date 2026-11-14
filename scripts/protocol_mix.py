@@ -16,6 +16,7 @@ results of every VERIFIED record from an older protocol, with no model:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -27,6 +28,39 @@ from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord, ReviewPolicy,
 # Settings applied when the probes were measured. If one differs from today's, the stored
 # pass or fail of a probe is not what today's measurement would give.
 MEASUREMENT = ("activation_threshold", "delta_abs_tolerance", "delta_rel_tolerance")
+
+
+@functools.cache
+def _tokenizer(model: str):
+    from transformers import AutoTokenizer
+
+    return AutoTokenizer.from_pretrained(model)
+
+
+def length_baseline(record: AuditRecord, today: ReviewPolicy) -> tuple[str, float] | None:
+    """The best probe-length rule on ``record``'s stored probes, as protocol 0.9 scores it.
+
+    A probe's measured activity is read back from its result: a passed hard negative was
+    inactive, and a passed holdout was active. None when no probe was measured.
+    """
+    from openinterp.agents.reviewer import AdversarialProbe, best_baseline
+    from openinterp.harness.confounds import length_predictions
+
+    rows = [
+        r
+        for r in record.verdict.adversarial_test_results
+        if r.kind in ("hard_negative", "positive_holdout") and r.measured
+        and r.expected_active is not None
+    ]  # fmt: skip
+    if not rows:
+        return None
+    probes = [AdversarialProbe(text=r.prompt, expected_active=r.expected_active, rationale="")
+              for r in rows]  # fmt: skip
+    actual = [r.passed == r.expected_active for r in rows]
+    tokenizer = _tokenizer(record.submission.identifier.model_name)
+    skip_first = bool(record.submission.first_token_floor)
+    candidates = length_predictions(tokenizer, [p.text for p in probes], skip_first)
+    return best_baseline(candidates, probes, actual, today)
 
 
 def rejudge(record: AuditRecord, today: ReviewPolicy) -> tuple[str, list[str]] | None:
@@ -49,6 +83,30 @@ def rejudge(record: AuditRecord, today: ReviewPolicy) -> tuple[str, list[str]] |
         first_token_floor=record.submission.first_token_floor,
     )
     return decide(metrics, today), sorted(g for g, ok in metrics.gates.items() if not ok)
+
+
+def length_rule_impact(wiki_dir: Path = DEFAULT_WIKI_DIR) -> dict:
+    """What the proposed probe-length baseline (issue #3525) would do to current VERIFIED records.
+
+    A record fails when the best length rule beats its balanced accuracy. The rule is
+    not part of the decision rule, so this only counts.
+    """
+    today, failed, verified = ReviewPolicy(), [], 0
+    for path in sorted(experiments_dir(wiki_dir).rglob("*.json")):
+        record = AuditRecord.model_validate_json(path.read_text())
+        verdict = record.verdict
+        if verdict is None or verdict.status != "VERIFIED" or verdict.policy is None:
+            continue
+        if verdict.policy.protocol_version != PROTOCOL_VERSION:
+            continue
+        if record.submission.identifier.kind == "dictionary_feature" or verdict.metrics is None:
+            continue
+        verified += 1
+        rule = length_baseline(record, today)
+        if rule is not None and round(verdict.metrics.balanced_accuracy, 6) < rule[1]:
+            failed.append({"record": str(path), "rule": rule[0], "rule_accuracy": rule[1],
+                           "balanced_accuracy": verdict.metrics.balanced_accuracy})  # fmt: skip
+    return {"verified": verified, "would_fail": len(failed), "failed": failed}
 
 
 def report(wiki_dir: Path = DEFAULT_WIKI_DIR) -> dict:
@@ -76,6 +134,7 @@ def report(wiki_dir: Path = DEFAULT_WIKI_DIR) -> dict:
             lost.append({"record": str(path), "protocol": version, "now": status, "failed": failed})
     return {
         "current_protocol": PROTOCOL_VERSION,
+        "length_rule": length_rule_impact(wiki_dir),
         "by_protocol": {v: dict(c) for v, c in sorted(per.items())},
         "failed_gates": {v: dict(c) for v, c in sorted(gates.items())},
         "lost": lost,
@@ -91,6 +150,11 @@ def main() -> None:
     args.out.write_text(json.dumps(result, indent=1) + "\n")
     for version, counts in result["by_protocol"].items():
         print(version, counts, result["failed_gates"].get(version, {}))
+    rule = result["length_rule"]
+    print(
+        f"probe-length rule (#3525): {rule['would_fail']} of {rule['verified']} current "
+        "VERIFIED records would fail"
+    )
 
 
 if __name__ == "__main__":
