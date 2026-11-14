@@ -1,0 +1,44 @@
+name: Close merged issues
+
+# GitHub doesn't act on "Closes #N" when the workflow token merges a PR, and an event
+# that the workflow token causes starts no workflow. So a job triggered by an auto-merge
+# never runs (#3522). Instead, this job runs on a schedule. It lists the PRs merged in the
+# last three days, and closes each still-open issue that a PR says it closes.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: close-merged-issues
+  cancel-in-progress: false
+
+jobs:
+  close:
+    name: Close the issues that merged PRs close
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Close linked issues
+        run: |
+          set -euo pipefail
+          since=$(date -u -d '3 days ago' +%Y-%m-%d)
+          jq_filter='.[] | .number as $pr | .closingIssuesReferences[]
+            | select(.repository.owner.login + "/" + .repository.name == env.REPO)
+            | "\($pr) \(.number)"'
+          gh pr list --repo "$REPO" --state merged --search "merged:>=$since" \
+            --limit 200 --json number,closingIssuesReferences --jq "$jq_filter" > pairs.txt
+          while read -r pr number; do
+            if [ "$(gh issue view "$number" --repo "$REPO" --json state -q .state)" = OPEN ]; then
+              gh issue close "$number" --repo "$REPO" --comment "Closed by #$pr, which has merged."
+              echo "Closed #$number (#$pr)" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done < pairs.txt
