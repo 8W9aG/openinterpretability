@@ -7,7 +7,7 @@
 {{ breadcrumb(root, model, layer) }}
 <h1 class="text-2xl font-semibold"><span class="font-mono">{{ model.name }}</span> · layer {{ layer.layer }}</h1>
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-  {{ layer.studied }} neurons studied{% if layer.stopped %} ({{ layer.stopped | length }} with only stopped scans){% endif %} · {% if layer.heads %}{{ layer.heads | length }} heads studied · {% endif %}{{ layer.experiments }} experiments · {{ layer.verified }} with a verified pole{% if layer.heads %} · {{ layer.verified_heads }} verified heads{% endif %}{% if layer.features %} · {{ layer.features | length }} dictionary features studied as a baseline ({{ layer.verified_features }} verified){% endif %}
+  {{ layer.neurons_studied }} neurons studied{% if layer.member_only %}, {{ layer.member_only }} of them only as part of a superposition{% endif %}{% if layer.stopped %} ({{ layer.stopped | length }} with only stopped scans){% endif %} · {% if layer.heads %}{{ layer.heads | length }} heads studied · {% endif %}{{ layer.experiments }} experiments · {{ layer.verified }} with a verified pole{% if layer.heads %} · {{ layer.verified_heads }} verified heads{% endif %}{% if layer.features %} · {{ layer.features | length }} dictionary features studied as a baseline ({{ layer.verified_features }} verified){% endif %}{% if layer.superpositions %} · {{ layer.superpositions | length }} superpositions studied ({{ layer.verified_superpositions }} verified){% endif %}
 </p>
 
 {% set lp = pieces.layer_pieces(model, layer) %}

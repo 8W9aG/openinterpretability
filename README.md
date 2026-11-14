@@ -1,6 +1,7 @@
 # Open Interpretability
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
+[![PyPI](https://img.shields.io/pypi/v/open-interpretability.svg)](https://pypi.org/project/open-interpretability/)
 
 `openinterp` is an open, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
@@ -64,6 +65,17 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 - [docs/moe.md](docs/moe.md): how neurons in mixture-of-experts models will be audited. It is a decision, not built yet.
 - [CONTRIBUTING.md](CONTRIBUTING.md): the ways to contribute, and the rules for pull requests and style.
 - [SECURITY.md](SECURITY.md): how to report a leaked signing key, a way to get a false VERIFIED past CI, or another security problem. Report it privately, not in an issue.
+
+### Install the package
+
+To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability` (`openinterp` still works for now):
+
+```bash
+pip install open-interpretability          # add [site] to build the site's search index
+uvx open-interpretability --help
+```
+
+torch is installed from PyPI by default. For a CUDA build, add PyTorch's index, for example `--extra-index-url https://download.pytorch.org/whl/cu128`. For a smaller CPU-only build, use `--extra-index-url https://download.pytorch.org/whl/cpu`.
 
 ## Protocol
 

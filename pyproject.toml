@@ -1,5 +1,5 @@
 [project]
-name = "openinterp"
+name = "open-interpretability"
 dynamic = ["version"]
 description = "Open Interpretability: an agent-audited mechanistic interpretability registry for native neurons in open-weight models."
 readme = "README.md"
@@ -55,7 +55,13 @@ Homepage = "https://open-interpretability.com/"  # the site; builder and deploy 
 Repository = "https://github.com/8W9aG/openinterpretability"
 
 [project.scripts]
+open-interpretability = "openinterp.cli:main"
+# The old name, kept until every doc, skill and workflow uses the new one (issue #3251).
 openinterp = "openinterp.cli:main"
+
+[project.optional-dependencies]
+# `open-interpretability build` makes the site's search index with Pagefind.
+site = ["pagefind[bin]>=1.3.0"]
 
 [dependency-groups]
 dev = [
