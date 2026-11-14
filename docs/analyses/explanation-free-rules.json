@@ -1,0 +1,11 @@
+{
+ "records": 2293,
+ "detection_windows": 90410,
+ "fuzzing_windows": 62281,
+ "judge_detection": 0.6017478823619484,
+ "judge_fuzzing": 0.592630055525574,
+ "detection_length_rule": 0.5357336796627835,
+ "fuzzing_marks_at_least_4": 0.5600068451565661,
+ "fuzzing_marks_contiguous": 0.5790103809025324,
+ "fuzzing_contiguous_and_at_least_2": 0.5222873865876192
+}
