@@ -34,6 +34,7 @@ from openinterp.core.agent_names import same_agent
 from openinterp.core.confounds import LANGUAGE, SYNTAX_NODE
 from openinterp.core.fence import FENCE_RULE, fence
 from openinterp.core.schemas import (
+    MAX_PROBES,
     AdversarialTestResult,
     NeuronAuditSubmission,
     ReviewMetrics,
@@ -57,8 +58,14 @@ class AdversarialProbe(BaseModel):  # noqa: D101 (a docstring would join the JSO
     rationale: str
 
 
+def split(n: int) -> tuple[int, int]:
+    """The hard negatives and positive holdouts that a set of ``n`` probes asks for."""
+    holdouts = max(4, round(n / 3))  # the system prompt asks for at least four
+    return n - holdouts, holdouts
+
+
 class ProbeSet(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
-    probes: list[AdversarialProbe] = Field(min_length=10, max_length=20)
+    probes: list[AdversarialProbe] = Field(min_length=10, max_length=MAX_PROBES)
 
 
 DEFAULT_POLICY = ReviewPolicy()
@@ -114,7 +121,7 @@ class ReviewerAgent(LLMAgent):
         "a hypothesis about what makes a neuron pole (or an attention head, or a sparse "
         "dictionary latent) fire, write probes "
         "designed to break it. "
-        "About two thirds of the probes must be hard negatives: near-miss sentences that share "
+        "Two thirds of the probes must be hard negatives: near-miss sentences that share "
         "surface features with the activating examples (same words in other senses, same "
         "topic without the claimed feature, the feature in an unusual position) but which "
         "the hypothesis predicts should NOT activate the pole. The rest (at least four) are "
@@ -127,7 +134,7 @@ class ReviewerAgent(LLMAgent):
     def generate_probes(
         self,
         submission: NeuronAuditSubmission,
-        n: int = 20,
+        n: int = MAX_PROBES,
         full_snippets: bool = False,
         related: str = "",
     ) -> ProbeSet:
@@ -138,7 +145,7 @@ class ReviewerAgent(LLMAgent):
     @staticmethod
     def probe_prompt(
         submission: NeuronAuditSubmission,
-        n: int = 20,
+        n: int = MAX_PROBES,
         full_snippets: bool = False,
         related: str = "",
     ) -> str:
@@ -179,7 +186,7 @@ class ReviewerAgent(LLMAgent):
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
             + (f"{art}\n" if (art := prior_art.format_for_reviewer(submission.prior_art)) else "")
-            + f"Write {n} probes."
+            + "Write {} probes: {} hard negatives and {} positive holdouts.".format(n, *split(n))
         )
 
     @staticmethod

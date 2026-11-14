@@ -8,6 +8,13 @@ less that noise is the reviewer × submission interaction.
 
     uv run python scripts/verdict_stability.py measure --agent-model external/claude-sonnet-5-5
     uv run python scripts/verdict_stability.py report --out docs/analyses/verdict-stability.json
+
+Issue #3509 repeats it with 30 probes a review (20 hard negatives, 10 holdouts):
+
+    uv run python scripts/verdict_stability.py prepare --probes 30 --arms sonnet30,sonnet30b
+    uv run python scripts/verdict_stability.py measure --agent-model ... --arms sonnet30,sonnet30b
+    uv run python scripts/verdict_stability.py report --arms sonnet30,sonnet30b \
+        --out docs/analyses/verdict-stability-30.json
 """
 
 from __future__ import annotations
@@ -31,9 +38,34 @@ def cli() -> None:
     """Verdict stability."""
 
 
+def arms_option(default: tuple[str, ...]):
+    """``--arms a,b``: the repeat arms to work on."""
+    return click.option(
+        "--arms", default=",".join(default), show_default=True,
+        callback=lambda _ctx, _param, value: tuple(value.split(",")),
+    )  # fmt: skip
+
+
+@cli.command()
+@click.option("--probes", "n_probes", required=True, type=int)
+@arms_option(NEW)
+def prepare(n_probes, arms):
+    """Write a reviewer prompt that asks for ``--probes`` probes into each new arm."""
+    from openinterp.cli_review import write_review_prompt
+    from openinterp.core.schemas import AuditRecord
+
+    for unit, arm in itertools.product(sorted(WORK.glob("c*")), arms):
+        if not (unit / arm / "review.prompt.md").exists():
+            path = Path((unit / "record.txt").read_text())
+            record = AuditRecord.model_validate_json(path.read_text())
+            (unit / arm).mkdir(exist_ok=True)
+            write_review_prompt(record.submission, unit / arm / "review.prompt.md", n_probes, False)
+
+
 @cli.command()
 @click.option("--agent-model", required=True, help="The repeat reviewers, as they reported.")
-def measure(agent_model):
+@arms_option(NEW)
+def measure(agent_model, arms):
     """Measure each answered repeat probe set on its unit (<arm>/result.json)."""
     from null_calibration import review_probes
 
@@ -42,7 +74,7 @@ def measure(agent_model):
     from openinterp.core.schemas import AuditRecord
 
     runners: dict[str, object] = {}
-    for unit, arm in itertools.product(sorted(WORK.glob("c*")), NEW):
+    for unit, arm in itertools.product(sorted(WORK.glob("c*")), arms):
         out = unit / arm
         if (out / "result.json").exists() or not (out / "review.probes.json").exists():
             continue
@@ -62,11 +94,11 @@ def measure(agent_model):
         click.echo(f"{unit.name}/{arm}: {result['outcome']}")
 
 
-def load() -> list[dict[str, dict]]:
-    """For each submission with every arm measured: {arm: result}."""
+def load(arms=(*ARMS, *NEW)) -> list[dict[str, dict]]:
+    """For each submission with every arm in ``arms`` measured: {arm: result}."""
     out = []
     for unit in sorted(WORK.glob("c*")):
-        paths = {a: unit / a / "result.json" for a in (*ARMS, *NEW)}
+        paths = {a: unit / a / "result.json" for a in arms}
         if all(p.exists() for p in paths.values()):
             out.append({a: json.loads(p.read_text()) for a, p in paths.items()})
     return out
@@ -87,11 +119,11 @@ def fleiss(values: list[list]) -> float | None:
     return None if p_e == 1 else (p_o - p_e) / (1 - p_e)
 
 
-def agreement(rows: list[dict]) -> dict:
+def agreement(rows: list[dict], repeats=REPEATS) -> dict:
     """Same-reviewer agreement on status and on VERIFIED, and on each gate."""
-    status = [[r[a]["outcome"] for a in REPEATS] for r in rows]
+    status = [[r[a]["outcome"] for a in repeats] for r in rows]
     verified = [[s == "VERIFIED" for s in row] for row in status]
-    gates = sorted(rows[0]["sonnet"]["gates"])
+    gates = sorted(rows[0][repeats[0]]["gates"])
     return {
         "status_pairwise": pairwise(status), "status_fleiss": fleiss(status),
         "status_all_three": sum(len(set(r)) == 1 for r in status) / len(status),
@@ -99,17 +131,29 @@ def agreement(rows: list[dict]) -> dict:
         "verified_any": sum(any(r) for r in verified),
         "verified_all": sum(all(r) for r in verified),
         "verified_majority": sum(sum(r) >= 2 for r in verified),
-        "gate_flip_rate": {g: 1 - pairwise([[r[a]["gates"][g] for a in REPEATS] for r in rows])
+        "gate_flip_rate": {g: 1 - pairwise([[r[a]["gates"][g] for a in repeats] for r in rows])
                            for g in gates},
     }  # fmt: skip
 
 
+def mean_of(rows: list[dict], arms, key: str) -> float:
+    """The mean of ``key`` over every arm's result that has it."""
+    values = [r[a][key] for r in rows for a in arms if r[a][key] is not None]
+    return sum(values) / len(values)
+
+
+def noise_of(rows: list[dict], repeats, key: str = "balanced_accuracy") -> float:
+    """The pooled within-submission variance of ``key`` over the repeat arms."""
+    grid = [[r[a][key] for a in repeats] for r in rows]
+    grid = [row for row in grid if None not in row]
+    return sum(
+        sum((v - sum(row) / len(row)) ** 2 for v in row) / (len(row) - 1) for row in grid
+    ) / len(grid)
+
+
 def variance(rows: list[dict]) -> dict:
     """Balanced-accuracy variance: submission, same-reviewer noise and interaction."""
-    repeats = [[r[a]["balanced_accuracy"] for a in REPEATS] for r in rows]
-    noise = sum(
-        sum((v - sum(row) / len(row)) ** 2 for v in row) / (len(row) - 1) for row in repeats
-    ) / len(repeats)
+    noise = noise_of(rows, REPEATS)
     grid = [[r[a]["balanced_accuracy"] for a in ARMS] for r in rows]
     ss_rows, ss_cols, ss_res, _ = two_way(grid)
     n, k = len(grid), len(grid[0])
@@ -128,12 +172,22 @@ def variance(rows: list[dict]) -> dict:
 
 @cli.command()
 @click.option("--out", required=True, type=click.Path(dir_okay=False, path_type=Path))
-def report(out):
-    """Write agreement, gate flips and the variance split as JSON."""
-    rows = load()
+@arms_option(REPEATS)
+def report(out, arms):
+    """Write agreement, gate flips and the variance split as JSON.
+
+    The variance split needs the crossover's arms, so other ``--arms`` report only the
+    same-reviewer noise of balanced accuracy and specificity.
+    """
+    crossover = arms == REPEATS
+    rows = load((*ARMS, *NEW) if crossover else arms)
     if not rows:
         raise click.ClickException("no submission has every arm measured yet")
-    result = {"submissions": len(rows), **agreement(rows), "variance": variance(rows)}
+    result = {"submissions": len(rows), **agreement(rows, arms)}
+    for key in ("specificity", "sensitivity"):
+        result[f"{key}_mean"] = mean_of(rows, arms, key)
+    result["specificity_noise"] = noise_of(rows, arms, "specificity")
+    result |= {"variance": variance(rows)} if crossover else {"noise": noise_of(rows, arms)}
     out.write_text(json.dumps(result, indent=1) + "\n")
     click.echo(json.dumps(result, indent=1))
 

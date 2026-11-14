@@ -15,6 +15,7 @@ from openinterp.cli import (
     wiki_option,
     with_model_options,
 )
+from openinterp.core.schemas import MAX_PROBES
 
 
 @cli.command()
@@ -27,7 +28,9 @@ from openinterp.cli import (
     "With --probes, the name recorded for whoever wrote them.",
 )
 @contributor_option("reviewer")
-@click.option("--n-probes", default=20, show_default=True, type=click.IntRange(10, 20))
+@click.option(
+    "--n-probes", default=MAX_PROBES, show_default=True, type=click.IntRange(10, MAX_PROBES)
+)
 @click.option(
     "--emit-prompt",
     type=click.Path(dir_okay=False, path_type=Path),

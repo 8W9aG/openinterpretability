@@ -57,6 +57,8 @@ ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "look
 SelectionMethod = Literal["random", "attribution", "manual"]
 
 PROTOCOL_VERSION = "0.8"
+# Probes a review asks for (PROTOCOL.md §2, step 5): 20 hard negatives, 10 holdouts.
+MAX_PROBES = 30
 # Share of max activation counted as "active" (PROTOCOL.md §1); ReviewPolicy's default.
 ACTIVATION_THRESHOLD = 0.25
 # An experiment is named by its verdict timestamp: ``%Y%m%dT%H%M%SZ``.

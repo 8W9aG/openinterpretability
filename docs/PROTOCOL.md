@@ -59,8 +59,8 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    - the mechanism: **retrospective** (reacts to tokens already read) or **lookahead** (prepares specific upcoming tokens).
    - at least three minimal-pair counterfactuals with predicted Δ, including at least one control pair (predicted Δ ≈ 0).
 4. **Submit.** The submission is frozen from here on. Changing anything other than provenance metadata produces a new submission.
-5. **Probe.** The reviewer writes 10–20 probes, of at least two tokens each for a unit with a first-token floor. It labels each with what the *hypothesis* predicts, not with what the reviewer expects the neuron to do:
-   - **hard negatives** (about two thirds): near-misses that share surface features with the activating examples but which the hypothesis says should not fire.
+5. **Probe.** The reviewer writes 10–30 probes, of at least two tokens each for a unit with a first-token floor. The harness asks for 30: 20 hard negatives and 10 positive holdouts (`MAX_PROBES`). With 20 hard negatives, one failed negative moves specificity by 0.05, so repeated reviews agree more often (`docs/analyses/verdict-stability.md`). The reviewer labels each probe with what the *hypothesis* predicts, not with what the reviewer expects the neuron to do:
+   - **hard negatives** (two thirds): near-misses that share surface features with the activating examples but which the hypothesis says should not fire.
    - **positive holdouts** (at least four): new contexts, including paraphrases of the claimed feature, that the hypothesis says should fire.
 6. **Measure.** The harness runs every probe and counterfactual, and computes the causal metrics. It also measures the lookahead profile: the KL between clean and ablated next-token distributions, and how concentrated the change is. A pole is ablated by zeroing it. A head is ablated by replacing its output with z̄ (mean ablation), the change its strength measures. A dictionary feature is ablated by subtracting its write `a_f · W_dec[f]` from its output site. That leaves the dictionary's reconstruction error and every other latent in place.
 7. **Decide.** Apply the rule in §4.

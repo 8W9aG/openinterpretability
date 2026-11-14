@@ -27,9 +27,11 @@ from openinterp.agents.reviewer import (
     evaluate_submission,
     probes_from_verdict,
     review_metrics,
+    split,
 )
 from openinterp.core.exceptions import AgentError
 from openinterp.core.schemas import (
+    MAX_PROBES,
     ActivatingExample,
     AdversarialTestResult,
     CounterfactualPair,
@@ -210,7 +212,14 @@ def test_probe_set_bounds():
     with pytest.raises(ValueError):
         ProbeSet(probes=[probe] * 9)
     with pytest.raises(ValueError):
-        ProbeSet(probes=[probe] * 21)
+        ProbeSet(probes=[probe] * (MAX_PROBES + 1))
+    assert len(ProbeSet(probes=[probe] * MAX_PROBES).probes) == MAX_PROBES
+
+
+def test_probe_prompt_asks_for_the_split():
+    """The prompt names how many hard negatives and holdouts, with at least four holdouts."""
+    assert split(30) == (20, 10)
+    assert split(10) == (6, 4)
 
 
 def _submission(ident, toy_runner, draft, *, honest: bool):
