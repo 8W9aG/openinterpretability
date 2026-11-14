@@ -1,0 +1,1 @@
+- **A `next-issue` skill** (`.claude/skills/next-issue/SKILL.md`, `scripts/next_issue.py`). It picks the next issue to work: the next release's highest-priority unstarted, eligible issue. When the release has none, it pulls one in from the backlog, never from `area: models`. Ties go to the workstream that the release has served least.
