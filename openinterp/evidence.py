@@ -14,6 +14,8 @@ from pathlib import Path
 
 import click
 
+from openinterp.audit_options import selection as chosen_selection
+
 
 def read_corpus(path: Path | None):
     """Return (snippets, description, sha256 of the corpus file, its CorpusSource or None)."""
@@ -82,6 +84,7 @@ class ScanRequest:
     stride: int | None = None
     max_tokens: int | None = None
     sample_seed: int = 0
+    selection: str | None = None  # a chosen unit's selection (openinterp/audit_options.py)
 
 
 @dataclass
@@ -311,7 +314,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         tokens_scanned=tokens_scanned,
         snippet_tokens=request.window_tokens,
         snippet_stride=corpus.stride if windowed else None,
-        selection="random" if request.random_pick else "manual",
+        selection=chosen_selection(request.random_pick, request.selection),
         seed=seed if request.random_pick else None,
         harness_version=__version__,
         environment=_scan_environment(runner),
