@@ -117,11 +117,13 @@ jobs:
         run: python3 scripts/repo_size.py
       - name: Evidence of slim records reaches the dataset
         # A slim record's blobs ride on evidence/<branch>, never on the PR branch, so that
-        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). A
-        # fork PR gets no HF_TOKEN, so its blobs can't be uploaded, and verify fails on it.
+        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). The
+        # upload uses its own write token, HF_EVIDENCE_TOKEN. HF_TOKEN stays read-only, for
+        # downloads. A fork PR gets no secret, so its blobs can't be uploaded, and verify
+        # fails on it.
         if: github.event_name == 'pull_request'
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_EVIDENCE_TOKEN }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |

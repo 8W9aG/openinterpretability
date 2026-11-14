@@ -1,9 +1,9 @@
 """``open-interpretability evidence``: move slim records' blobs to the dataset (issue #3254).
 
 ``push`` runs where the experiment ran. It pushes the blobs of the records that the branch
-adds to ``evidence/<branch>``. CI runs ``upload`` (with ``HF_TOKEN``) or ``load`` (without),
-then ``verify``. :mod:`openinterp.evidence_branch` explains why the blobs ride on their own
-branch.
+adds to ``evidence/<branch>``. CI runs ``upload`` (with ``HF_EVIDENCE_TOKEN``) or ``load``
+(without it), then ``verify``. :mod:`openinterp.evidence_branch` explains why the blobs
+ride on their own branch.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ def load(ref: str) -> None:
 @evidence.command()
 @ref_option
 def upload(ref: str) -> None:
-    """Load an evidence branch's blobs, then upload them to the dataset (needs HF_TOKEN)."""
+    """Load an evidence branch's blobs, then upload them to the dataset (needs a write token)."""
     from openinterp.core.evidence import EVIDENCE_REPO
     from openinterp.evidence_branch import load_branch
     from openinterp.evidence_branch import upload as upload_blobs
