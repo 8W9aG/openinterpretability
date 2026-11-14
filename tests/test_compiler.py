@@ -1498,3 +1498,20 @@ def test_home_page_shows_dashboard(tmp_path, records):
     index = (tmp_path / "index.html").read_text()
     assert 'id="dashboard"' in index
     assert "Verdicts per model" in index and "Verdicts per layer" in index
+
+
+def test_protocol_mix_of_verified_units_is_reported(tmp_path, records):
+    from openinterp.builder.compiler import registry_stats
+    from openinterp.core.schemas import PROTOCOL_VERSION, ReviewPolicy
+
+    old = ReviewPolicy(protocol_version="0.7")
+    records[1] = records[1].model_copy(
+        update={"verdict": records[1].verdict.model_copy(update={"policy": old})}
+    )
+    report = compile_site(records, tmp_path)
+    stats = registry_stats(report.parquet)
+    mix = {row["protocol_version"]: row["units"] for row in stats["protocol_mix"]}
+    assert mix.get("0.7") == 1 and stats["current_protocol"] == PROTOCOL_VERSION
+    assert sum(mix.values()) == stats["totals"]["verified"]
+    home = (tmp_path / "index.html").read_text()
+    assert "Protocol of the verified claims:" in home and "1 under 0.7" in home

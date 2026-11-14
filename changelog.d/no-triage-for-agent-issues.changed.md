@@ -1,0 +1,1 @@
+- **Agent follow-up issues need no triage** (`release` and `work-an-issue` skills). Agents open follow-ups and suggestions with an area and a priority label, and can work on them at once. The `proposed` label is now the maintainer's way to hold an issue back, and `scripts/issue_state.py` still refuses issues that have it.

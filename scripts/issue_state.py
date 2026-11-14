@@ -15,8 +15,8 @@ An issue is eligible when one of these holds:
 - the nightly reproduction workflow opened it, with the title that the workflow sets.
 - the maintainer gave it a thumbs up.
 
-An issue labelled `proposed` is never eligible, whoever opened it. Agents open suggested
-work with that label, and the maintainer removes it after triage.
+An issue labelled `proposed` is never eligible, whoever opened it. The maintainer uses
+the label to hold an issue back, and removes it to release the issue.
 
 `--check` prints whether each issue is eligible, and why. It exits 1 if one is not.
 Setting a state needs LINEAR_API_KEY. The check needs the GitHub CLI (`gh`). The
@@ -42,7 +42,7 @@ MAINTAINER = "8W9aG"
 # GitHub Advanced Security app.
 TRUSTED_BOTS = ("dependabot[bot]", "github-advanced-security[bot]")
 NIGHTLY_BOT = "github-actions[bot]"
-# Agents open suggested work with this label (release skill). It waits for triage.
+# The maintainer holds an issue back with this label.
 PROPOSED = "proposed"
 NIGHTLY_WORKFLOW = Path(__file__).parents[1] / ".github/workflows/reproduce-nightly.yml"
 
