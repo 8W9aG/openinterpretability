@@ -96,12 +96,14 @@ def build(  # noqa: PLR0913 (one option per input file)
     from openinterp.core.draws import load_draws, load_stops
     from openinterp.core.errata import load_errata
     from openinterp.core.project import project_links
+    from openinterp.core.takedowns import activate, load_takedowns
     from openinterp.corpus import load_sources
     from openinterp.crossref import load_rows as load_alignment
     from openinterp.planner import configured_models
     from openinterp.sisters import load_rows as load_sisters
     from openinterp.wiring_backfill import load_rows
 
+    activate(load_takedowns(wiki_dir))  # before any text is scrubbed; workers fork after this
     report = compile_site(
         load_archive(wiki_dir),
         output_dir,
