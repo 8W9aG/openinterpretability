@@ -115,6 +115,24 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: Repository size against its budget (warns only)
         run: python3 scripts/repo_size.py
+      - name: Evidence of slim records reaches the dataset
+        # A slim record's blobs ride on evidence/<branch>, never on the PR branch, so that
+        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). A
+        # fork PR gets no HF_TOKEN, so its blobs can't be uploaded, and verify fails on it.
+        if: github.event_name == 'pull_request'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git fetch --quiet origin "refs/heads/evidence/$HEAD_REF" 2>/dev/null; then
+            if [ -n "$HF_TOKEN" ]; then
+              open-interpretability evidence upload --ref FETCH_HEAD
+            else
+              open-interpretability evidence load --ref FETCH_HEAD
+            fi
+          fi
+          open-interpretability evidence verify --base-ref "origin/$BASE_REF"
       - name: Every experiment has a valid record and wiki page
         env:
           BASE_REF: ${{ github.base_ref }}
@@ -191,6 +209,14 @@ jobs:
           path: ~/.cache/huggingface/hub
           key: hf-hub-v2-
           restore-keys: hf-hub-v2-
+      - name: Load the evidence of slim records
+        # The blobs are on evidence/<branch>, or already on the dataset (issue #3254).
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git fetch --quiet origin "refs/heads/evidence/$HEAD_REF" 2>/dev/null; then
+            open-interpretability evidence load --ref FETCH_HEAD
+          fi
       - name: Reproduce added or changed records
         env:
           BASE_REF: ${{ github.base_ref }}

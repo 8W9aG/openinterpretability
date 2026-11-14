@@ -455,6 +455,7 @@ from openinterp import (  # noqa: E402, F401
     cli_crossref,
     cli_errata,
     cli_evidence,
+    cli_evidence_store,
     cli_explain,
     cli_loop,
     cli_neuronpedia,
