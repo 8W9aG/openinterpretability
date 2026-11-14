@@ -21,7 +21,7 @@ from openinterp.planner import claim_key
 
 MERGE_PERMISSIONS = ("ADMIN", "MAINTAIN", "WRITE")
 CHECKS_TIMEOUT = 45 * 60  # seconds; the land-experiment skill gives up after 45 minutes
-OPENINTERP = ("uv", "run", "open-interpretability")  # the command since issue #3251
+OPENINTERP = ("uv", "run", "openinterp")
 
 
 class LoopError(Exception):
