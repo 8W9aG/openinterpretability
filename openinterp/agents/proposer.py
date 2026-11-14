@@ -9,6 +9,11 @@ from pydantic import BaseModel, Field
 
 from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
+from openinterp.agents.proposer_profiles import (  # noqa: F401  (re-exported)
+    format_dictionary_profile,
+    format_head_profile,
+    format_superposition_profile,
+)
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.confounds import MATCH_LABEL_SETS, NO_MATCH, NOT_SHOWN_TO_PROPOSER
 from openinterp.core.fence import FENCE_RULE, fence
@@ -170,58 +175,6 @@ def format_examples(
     return "\n".join(lines) + ("\n" + dropped_note(dropped).rstrip() if dropped else "")
 
 
-def format_head_profile(profile: HeadProfile) -> str:
-    """The proposer's note on what a head's strength is, and its pattern scores."""
-    return (
-        f"Strength is |W_O (z - mean z)|: how far the head's write to the residual stream is "
-        f"from its average write. Attention-pattern scores on {profile.pattern_sequences} "
-        f"random {profile.pattern_length}-token sequences repeated twice (0-1; mean attention "
-        f"weight): previous token {profile.previous_token_score:.2f}, duplicate token "
-        f"{profile.duplicate_token_score:.2f}, induction (to the token after an earlier copy "
-        f"of the current one) {profile.induction_score:.2f}.\n"
-    )
-
-
-def format_dictionary_profile(profile: DictionaryProfile) -> str:
-    """The proposer's note on what a dictionary latent's strength is, and its fit."""
-    if profile.kind == "basis":  # says nothing of which basis, so a null arm stays blind
-        return (
-            f"This is one direction in this layer's MLP hidden space (one of a basis of "
-            f"{profile.n_features}), read where native neurons are: the input to the down "
-            f"projection. Strength is the positive part of the hidden activations' "
-            f"projection onto it; it writes that strength x the direction, through the "
-            f"down projection, to the MLP output. It is non-zero on {profile.density:.2%} of "
-            f"scanned tokens.\n"
-        )
-    residual = profile.output_site == "resid_post"
-    output = "the residual stream after this layer" if residual else "the MLP output"
-    fit = ""
-    if profile.explained_variance is not None:
-        fit = (
-            f" On the scan the whole dictionary reconstructs "
-            f"{profile.explained_variance:.0%} of {output}'s variance with "
-            f"{profile.mean_l0:.0f} active latents per token."
-        )
-    if profile.kind == "spd":
-        return (
-            f"This is one latent ({profile.n_features} in this layer) of a parameter "
-            f"decomposition of this layer's MLP down projection into rank-1 pieces, not a "
-            f"native neuron. It reads where native neurons are: the input to the down "
-            f"projection. Strength is the positive part of the hidden activations' "
-            f"projection onto the piece's input direction, scaled by the piece's causal "
-            f"importance on that token (0 to 1: how much ablating the piece would change "
-            f"the model's output). It writes strength x the piece's output direction to the "
-            f"MLP output. It is non-zero on {profile.density:.2%} of scanned tokens.{fit}\n"
-        )
-    trained = output if residual else "this layer's MLP"
-    return (
-        f"This is one latent of a sparse {profile.kind} ({profile.n_features} latents) "
-        f"trained on {trained}, not a native neuron. Strength is the latent's "
-        f"activation (non-negative); it writes activation x its decoder vector to "
-        f"{output}. It is non-zero on {profile.density:.2%} of scanned tokens.{fit}\n"
-    )
-
-
 def format_input_attribution(attribution: InputAttribution) -> str:
     """Where in the context the pole's peaks come from, for the proposer and the reviewer."""
     if not attribution.examples:
@@ -302,6 +255,7 @@ class ProposerAgent(LLMAgent):
         first_token_floor: bool = False,
         full_snippets: bool = False,
         related: str = "",
+        superposition_profile=None,
     ) -> HypothesisDraft:
         """Ask the proposer for a hypothesis about ``identifier``."""
         prompt = self.proposal_prompt(
@@ -316,6 +270,7 @@ class ProposerAgent(LLMAgent):
             first_token_floor,
             full_snippets,
             related,
+            superposition_profile,
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -332,6 +287,7 @@ class ProposerAgent(LLMAgent):
         first_token_floor: bool = False,
         full_snippets: bool = False,
         related: str = "",
+        superposition_profile=None,
     ) -> str:
         """Return the task text that the proposer answers.
 
@@ -346,6 +302,8 @@ class ProposerAgent(LLMAgent):
             prompt += format_head_profile(head_profile) + "\n"
         if dictionary_profile is not None:
             prompt += format_dictionary_profile(dictionary_profile) + "\n"
+        if superposition_profile is not None:
+            prompt += format_superposition_profile(superposition_profile) + "\n"
         window = (
             ""
             if full_snippets
@@ -384,13 +342,17 @@ class ProposerAgent(LLMAgent):
         head_profile: HeadProfile | None = None,
         dictionary_profile: DictionaryProfile | None = None,
         first_token_floor: bool | None = None,
+        superposition_profile=None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
         pairs, lookahead = draft_claims(draft)
         is_head = identifier.kind == "attn_head"
         if runner is not None and max_act:
-            unit = unit_of(identifier, head_profile, dictionary_profile, bool(first_token_floor))
+            unit = unit_of(
+                identifier, head_profile, dictionary_profile, bool(first_token_floor),
+                superposition_profile,
+            )  # fmt: skip
             pairs, lookahead = measure_claims(runner, unit, pairs, lookahead, max_act)
 
         return NeuronAuditSubmission(
@@ -414,6 +376,7 @@ class ProposerAgent(LLMAgent):
             input_attribution=input_attribution,
             head_profile=head_profile,
             dictionary_profile=dictionary_profile,
+            superposition_profile=superposition_profile,
         )
 
 
