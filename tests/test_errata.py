@@ -303,7 +303,7 @@ def test_reproduce_checks_corrected_records_and_skips_set_aside_ones(record):
     from openinterp.cli_reproduce import _Reproducer
 
     def reproducer(*errata):
-        args = {"landed": {}, "tolerance": None, "scan_corpus": None, "allowed_models": ()}
+        args = {"landed": {}, "tolerance": None, "scan_corpora": {}, "allowed_models": ()}
         return _Reproducer(signers="", device="cpu", errata=list(errata), **args)
 
     notes: list[str] = []

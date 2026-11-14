@@ -220,7 +220,7 @@ A record must let a third party re-derive its verdict:
 - each top example's per-token strengths, and the scale (`max_activation`) that every threshold is a fraction of.
 - each counterfactual's observed Δ.
 - the review, with the record's own probes, reviewer and policy.
-- with `--corpus <the scan's corpus>`, the corpus sample: re-drawn from its seed and budget, it must hash the same and contain every top example. A different corpus is a warning. CI has no corpus, so it skips this check.
+- the corpus sample, when the scan's corpus is known: re-drawn from its seed and budget, it must hash the same and contain every top example. `--corpus` gives corpora, and can repeat. Each record uses the one whose SHA-256 it recorded. The built-in corpus is always known. With `--corpus`, a record that none of them matches gets a warning, which says how to rebuild its corpus. CI has only the built-in corpus, so it checks only the records that scanned it.
 
 Numbers must agree within `atol × scale + rtol × |recorded|` (defaults 0.001 and 0.01). These absorb float differences between devices and library versions, but not an edited number. Every pass/fail, every gate and the status must agree exactly. Causal metrics and joint ablation are not gated, so a difference there is only a warning. A different device or library version is reported as a warning. A record judged under another protocol version can't be reproduced by the current harness, because its decision rule was different: re-evaluate it instead.
 
