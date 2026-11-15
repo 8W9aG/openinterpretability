@@ -45,6 +45,12 @@ def repo(tmp_path):
         ("Grep", {"pattern": "x", "path": "exchange/k/review.probes.json"}, False),
         ("Grep", {"pattern": "x", "path": ".claude/skills"}, False),
         ("Glob", {"pattern": "**/*"}, False),  # names only
+        # A change of letter case opens the same file on macOS, so it is blocked too.
+        ("Read", {"file_path": "WIKI/Experiments/m/L1/N2-positive/r.json"}, True),
+        ("Read", {"file_path": "Exchange/k/review.log"}, True),
+        ("Read", {"file_path": "SUBMISSIONS/s.json"}, True),
+        ("Grep", {"pattern": "x", "path": "Exchange/K"}, True),
+        ("Write", {"file_path": "Exchange/k/X.PROBES.JSON"}, False),
     ],
 )
 def test_forbidden(repo, tool, tool_input, denied):
