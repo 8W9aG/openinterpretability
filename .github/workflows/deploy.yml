@@ -97,11 +97,16 @@ jobs:
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           OPENINTERP_SITE_URL: ${{ vars.OPENINTERP_SITE_URL }}
+        # `shell: bash` sets pipefail. With the default shell, `| tee` hid a failed deploy:
+        # on 2026-11-15 a refused cache purge (HTTP 401) left the run green.
+        shell: bash
         run: |
-          open-interpretability deploy --dist-dir dist --bucket "$R2_BUCKET" --delete \
-            | tee deploy.log
+          status=0
+          open-interpretability deploy --dist-dir dist --bucket "$R2_BUCKET" --delete 2>&1 \
+            | tee deploy.log || status=$?
           {
             echo "### Registry deploy"
             echo
             tail -n 2 deploy.log
           } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
