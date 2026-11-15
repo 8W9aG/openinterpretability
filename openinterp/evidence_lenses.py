@@ -55,3 +55,21 @@ def read_lenses(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan)
                 skip_first=scan.first_token_floor,
             )
     return lens, attribution
+
+
+def read_manifold(runner, ident, scan):
+    """A neuron pole's multi-dimensional feature check (:mod:`openinterp.harness.manifold`).
+
+    ``None`` for any other unit, and for a pole with no partner poles.
+    """
+    from openinterp.core import costs
+    from openinterp.harness.manifold import axes, manifold_check
+
+    if ident.kind != "mlp_neuron_pole" or not scan.correlated:
+        return None
+    click.echo("Checking the pole and its partners for a circle or a line…", err=True)
+    with costs.stage("manifold"):
+        poles = axes(ident.neuron_idx, ident.pole, scan.correlated)
+        return manifold_check(
+            runner, ident.layer, poles, scan.examples, bool(scan.first_token_floor)
+        )

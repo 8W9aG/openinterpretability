@@ -27,7 +27,8 @@ from openinterp.builder.agents import (
     legacy_redirects,
 )
 from openinterp.builder.aligned import aligned_latents
-from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
+from openinterp.builder.circuit_pages import render_circuits
+from openinterp.builder.circuits import circuits_and_hubs, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.coverage import model_summary
 from openinterp.builder.dashboard import dashboard
@@ -182,6 +183,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 OWNED_PATHS = (
     "index.html",
     "about.html",
+    "learned-baseline.html",
     "models",
     "agents",
     "users",
@@ -401,6 +403,8 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         contested=contested_units(models),
         pageless_stops=pageless_stops(by_unit, studied),
     )
+    if stats["baseline"]:  # the home page links to it (#3272)
+        render("learned-baseline.html", "learned-baseline.html", stats=stats)
 
 
 def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
@@ -461,21 +465,16 @@ def _render_model(
     found, found_hubs = circuits_and_hubs(model, rows)
     sister_rows, tests = sisters
     named_by = by_match_slug(sister_rows)
-    anchor_of = unit_anchors(found, found_hubs)
     page = circuits_href(model.slug)
     graphs = sister_graphs(model, sister_rows, studied)
     shown = {"circuits": found, "hubs": found_hubs, "circuits_page": page, "sister_graphs": graphs}
     render(model.href, "model.html", model=model, **shown)
-    if found or found_hubs:
-        n_units = sum(len(c.units) for c in found)
-        view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
-        render(page, "circuits.html", model=model, **view)
+    circuit_of = render_circuits(render, model, found, found_hubs)
     for layer in model.layers:
         render(layer.href, "layer.html", model=model, layer=layer)
 
     def unit_page(layer, neuron) -> None:
-        anchor = anchor_of.get(neuron.href)
-        circuit = f"{page}#{anchor}" if anchor else None
+        circuit = circuit_of.get(neuron.href)
         for rank, e in enumerate(neuron.experiments, 1):
             view = _experiment_view(e, studied, rows, circuit)
             unit = {"model": model, "layer": layer, "neuron": neuron}

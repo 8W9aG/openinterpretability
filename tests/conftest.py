@@ -284,3 +284,4 @@ def _whole_records(monkeypatch, tmp_path):
     """
     monkeypatch.setenv("OPENINTERP_OFFLOAD_EVIDENCE", "0")
     monkeypatch.setenv("OPENINTERP_EVIDENCE_DIR", str(tmp_path / "evidence-store"))
+    monkeypatch.setenv("OPENINTERP_ROTATION_CACHE", str(tmp_path / "rotations"))  # #3646

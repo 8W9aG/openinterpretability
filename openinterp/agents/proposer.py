@@ -17,6 +17,7 @@ from openinterp.agents.proposer_profiles import (  # noqa: F401  (re-exported)
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.confounds import MATCH_LABEL_SETS, NO_MATCH, NOT_SHOWN_TO_PROPOSER
 from openinterp.core.fence import FENCE_RULE, fence
+from openinterp.core.manifold import format_for_proposer as format_manifold
 from openinterp.core.schemas import (
     ActivatingExample,
     ComponentIdentifier,
@@ -256,6 +257,7 @@ class ProposerAgent(LLMAgent):
         full_snippets: bool = False,
         related: str = "",
         superposition_profile=None,
+        manifold=None,
     ) -> HypothesisDraft:
         """Ask the proposer for a hypothesis about ``identifier``."""
         prompt = self.proposal_prompt(
@@ -271,6 +273,7 @@ class ProposerAgent(LLMAgent):
             full_snippets,
             related,
             superposition_profile,
+            manifold,
         )
         return self.structured(HypothesisDraft, prompt)
 
@@ -288,6 +291,7 @@ class ProposerAgent(LLMAgent):
         full_snippets: bool = False,
         related: str = "",
         superposition_profile=None,
+        manifold=None,
     ) -> str:
         """Return the task text that the proposer answers.
 
@@ -320,6 +324,8 @@ class ProposerAgent(LLMAgent):
         prompt += wordnet.format_for_proposer(examples, wordnet.lexicon())
         if correlated:
             prompt += format_correlated(correlated)
+        if manifold is not None:
+            prompt += format_manifold(manifold)
         if attribution is not None:
             prompt += "\n" + format_input_attribution(attribution)
         if related:
@@ -343,6 +349,7 @@ class ProposerAgent(LLMAgent):
         dictionary_profile: DictionaryProfile | None = None,
         first_token_floor: bool | None = None,
         superposition_profile=None,
+        manifold=None,
     ) -> NeuronAuditSubmission:
         """Convert a draft into a submission, measuring evidence with ``runner`` if given."""
         max_act = max((e.max_activation for e in examples), default=0.0) or None
@@ -377,6 +384,7 @@ class ProposerAgent(LLMAgent):
             head_profile=head_profile,
             dictionary_profile=dictionary_profile,
             superposition_profile=superposition_profile,
+            manifold=manifold,
         )
 
 

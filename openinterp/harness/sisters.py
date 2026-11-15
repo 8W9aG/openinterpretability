@@ -29,8 +29,10 @@ the layer can represent.
 from __future__ import annotations
 
 import hashlib
+import os
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 
@@ -106,6 +108,9 @@ class Correlations:
         return torch.where(denom > 1e-12, cov / denom, torch.zeros_like(cov)).clamp(-1, 1)
 
 
+ROTATION_CACHE_ENV = "OPENINTERP_ROTATION_CACHE"  # a folder, or "0" to turn the cache off
+
+
 def _seed(model_name: str, layer: int) -> int:
     digest = hashlib.sha256(f"open-interpretability sisters {model_name} {layer}".encode()).digest()
     return int.from_bytes(digest[:8])
@@ -115,11 +120,36 @@ def rotation(model_name: str, layer: int, width: int) -> torch.Tensor:
     """Return a Haar-random orthogonal ``[width, width]`` matrix.
 
     It is the QR of a Gaussian, with signs fixed. It is seeded by model and layer, so a
-    rerun draws the same one.
+    rerun draws the same one. The float64 QR takes minutes for a wide layer, so the result
+    is cached on disk (:func:`rotation_cache`, issue #3646).
     """
+    path = rotation_cache(model_name, layer, width)
+    if path is not None and path.exists():
+        return torch.load(path, weights_only=True)
     generator = torch.Generator().manual_seed(_seed(model_name, layer))
     q, r = torch.linalg.qr(torch.randn(width, width, generator=generator, dtype=torch.float64))
-    return (q * torch.sign(torch.diagonal(r))).float()
+    matrix = (q * torch.sign(torch.diagonal(r))).float()
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(f".{os.getpid()}.tmp")
+        torch.save(matrix, tmp)
+        tmp.replace(path)  # atomic: a reader sees no file or a whole one
+    return matrix
+
+
+def rotation_cache(model_name: str, layer: int, width: int) -> Path | None:
+    """Where :func:`rotation` caches a matrix, or ``None`` when the cache is off.
+
+    The folder is ``$OPENINTERP_ROTATION_CACHE``, else ``~/.cache/openinterp/rotations``.
+    The value ``0`` turns the cache off. The name holds the torch version, because the
+    QR's result could change with it. A float32 rotation takes width² × 4 bytes.
+    """
+    folder = os.environ.get(ROTATION_CACHE_ENV)
+    if folder == "0":
+        return None
+    root = Path(folder) if folder else Path.home() / ".cache" / "openinterp" / "rotations"
+    name = f"{model_name.replace('/', '--')}--L{layer}--w{width}--seed{_seed(model_name, layer)}"
+    return root / f"{name}--torch{torch.__version__}.pt"
 
 
 @dataclass(frozen=True)
