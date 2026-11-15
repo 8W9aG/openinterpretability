@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
+{% from "_macros.html" import map_fill, hatch, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
 {% set t = stats.totals %}
 
 {% block content %}
@@ -131,7 +131,7 @@
         <rect width="{{ pc.width + 1 }}" height="{{ 4 * pc.rows | length }}" fill="url(#pieces-{{ loop.index }})"/>
         {% for row in pc.rows %}
         {% for c in row.cells %}
-        <rect x="{{ c.x }}" y="{{ 4 * row.layer }}" width="{{ pc.pitch - 1 }}" height="3" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
+        <rect x="{{ c.x }}" y="{{ 4 * row.layer }}" width="{{ pc.pitch - 1 }}" height="3" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>{{ hatch(c.status, c.x, 4 * row.layer, pc.pitch - 1, '3', 0) }}
         {% endfor %}
         {% endfor %}
       </svg>
