@@ -1,4 +1,6 @@
+import json
 import re
+import subprocess
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -6,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from openinterp import planner_models
+from openinterp import planner, planner_models
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.core.licenses import ModelLicense
 from openinterp.core.schemas import (
@@ -506,3 +508,29 @@ def test_stopped_scans_count_as_covered_and_only_proofs_as_verified():
     ]
     coverage = model_coverage(["a/x"], [], [], dead=stopped[:1], stopped=stopped)["a/x"]
     assert coverage.covered == 3 and coverage.verified == 1
+
+
+def test_fork_prs_claim_only_by_an_experiment_branch(monkeypatch):
+    prs = [
+        {
+            "title": "Mine: L1/N2",
+            "headRefName": "experiment/m-L1-N2-positive",
+            "isCrossRepository": False,
+        },
+        {"title": "x L3/N4 L5/N6 L7/N8", "headRefName": "patch-1", "isCrossRepository": True},
+        {
+            "title": "x L9/N9",
+            "headRefName": "experiment/m-L9-N9-positive",
+            "isCrossRepository": True,
+        },
+    ]
+    monkeypatch.setattr(planner.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(
+        planner.subprocess,
+        "run",
+        lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=json.dumps(prs)),
+    )
+    assert planner.open_pr_claims() == [
+        "Mine: L1/N2 experiment/m-L1-N2-positive",
+        "experiment/m-L9-N9-positive",
+    ]
