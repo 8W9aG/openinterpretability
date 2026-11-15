@@ -26,6 +26,7 @@ lint:
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
+	python3 scripts/ifttt_lint.py
 	uv run interrogate openinterp
 	$(MAKE) markdown
 	$(MAKE) shell
