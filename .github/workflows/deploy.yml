@@ -31,6 +31,11 @@ jobs:
     # A hung build or sync fails here, not at GitHub's 6-hour limit.
     timeout-minutes: 60
     environment: production
+    env:
+      # Read-only, for the evidence blobs that `check` and the build download. Without a
+      # token the downloads are anonymous and get a lower rate limit. The publish step
+      # sets its own write token.
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
