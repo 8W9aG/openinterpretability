@@ -36,3 +36,6 @@ class RunEnvironment(StrictModel):
     coremltools_version: str | None = Field(
         default=None, description="Core ML tools, if the scan ran on the ANE."
     )
+    cpu_threads: int | None = Field(
+        default=None, gt=0, description="Torch's CPU threads; sums depend on the count."
+    )
