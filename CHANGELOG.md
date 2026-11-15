@@ -11,7 +11,7 @@ Changes waiting for the next release are files in [changelog.d/](changelog.d/REA
 
 ## [Unreleased]
 
-## [0.0.20] - 2026-11-14
+## [0.0.20] - 2026-11-15
 
 Ships with protocol version **0.9** (was 0.8).
 
@@ -79,6 +79,12 @@ Ships with protocol version **0.9** (was 0.8).
 - **Superposition finders** (`openinterp/superposition_finders.py`, `open-interpretability superpositions`, #3686). `from-circuit` makes one superposition per layer from a traced circuit's top neurons. `grammatical-number` fits a 16-neuron sparse probe for the number of the agreeing noun at each layer. Both write definitions that `audit --superposition` reads. The agreement prompts moved from `scripts/sva_circuit.py` to `openinterp/agreement.py`. `data/superpositions/Qwen--Qwen2.5-0.5B.jsonl` has both kinds for Qwen2.5-0.5B. `docs/analyses/superposition-finders.md` compares them: they share 51 of the 95 circuit neurons.
 - **Superposition draws** (`openinterp/planner_superpositions.py`, #3687). `open-interpretability next` can now draw a `superposition`. The draw audits one definition in `data/superpositions/` that has no experiment and no claim. Its weight is that of one sister draw. The new command `open-interpretability superpositions show <id> --model M --out FILE` writes one definition, as `audit --superposition` reads it. The draw's steps run it, then scan with `audit --superposition`. The scan records `selection = manual`, so the random-unit statistics never count it.
 - **A `next-issue` skill** (`.claude/skills/next-issue/SKILL.md`, `scripts/next_issue.py`). It first gives every unprioritised issue a priority. Then it picks the next issue to work: the next release's highest-priority unstarted, eligible issue. When the release has none, it pulls one in from the backlog, never from `area: models`. Ties go to the workstream that the release has served least.
+- **A paper on whether explanations carry across models** (`papers/explanations-across-models/`, #3189). The registry has 80 sister studies. A VERIFIED explanation verifies on 8 of 50 sisters, 1 of 26 other close matches and 0 of 4 random poles. It mostly carries in part: the median balanced accuracy is 0.78 on sisters and 0.56 on other matches.
+- **Multi-dimensional features.** A neuron pole's scan now checks whether it and its top 5 partners trace a circle (weekdays, months) or a line (numbers). Engels et al. (2024) found such circles in GPT-2's sparse autoencoder features (#3231).
+  - The record's `manifold` field gives the PCA on the activating set and each family's shape, with a p-value from shuffled orders.
+  - When a family shows a shape, the proposer may call the pole one coordinate of a multi-dimensional feature.
+  - It is reported, not gated, so the protocol version doesn't change. `CorrelatedNeuron` moved to `openinterp/core/partners.py` and is still exported from `openinterp.core.schemas`.
+- **Neuron features among GPT-2's transcoder latents** (`docs/analyses/neuron-features.md`, #3608). Shabalin and Piotrowski call a latent a neuron feature when its encoder and decoder both align with one neuron. At their 0.7 threshold, 1 of the 40 latents in the learned-basis baseline is one. So that baseline doesn't compare neurons against neurons. Over the whole dictionary, 6.6% of latents are neuron features: under 1% in layers 0–1, and 10% in layers 8–9. Those layers stay below the paper's 14% to 59% on gated models. `scripts/neuron_features.py` reproduces it.
 
 ### Changed
 
@@ -114,6 +120,11 @@ Ships with protocol version **0.9** (was 0.8).
   - Qwen2.5-1.5B → either: 8 rows, none
 
   The strongest are GPT-2 L0/N504+ with Qwen2.5-0.5B L0/N965+ (r = 0.96) and with Qwen2.5-1.5B L22/N5737− (0.86). Next come GPT-2 L6/N763+ with Qwen2.5-0.5B L20/N2184− and Qwen2.5-1.5B L23/N5776+ (both 0.66), and Qwen2.5-0.5B L1/N2217− with Qwen2.5-1.5B L2/N7146− (0.55). Each is now a `sister` draw.
+- **The learned-basis baseline has its own page** (`learned-baseline.html`, #3272). The home page keeps one sentence per model, with the latents' and positive poles' verified counts, and a link to the page with the tables. The page links to the paper `papers/native-vs-learned/`.
+- **Circuit and hub pages.** Each circuit and hub now has its own page, `models/<slug>/circuits/<root>.html` or `hubs/<unit>.html`. A circuit is named after its lowest-layer unit, and `circuits.html` is now their index (#3277).
+  - Circuits merge and split as the registry grows, so every unit's name under `circuits/` and `hubs/` redirects to the page it is on now. Old links keep working.
+  - Experiment pages link straight to their circuit or hub page.
+- **The sister search caches its random rotations** (`harness/sisters.py`, #3646). Each is in `~/.cache/openinterp/rotations/`, keyed by model, layer, width, seed and torch version. A Qwen2.5-1.5B layer's rotation took 16.4 s to compute, and takes 0.05 s from the cache, bit for bit the same. Each takes width² × 4 bytes (306 MB for Qwen2.5-1.5B). Set `OPENINTERP_ROTATION_CACHE` to move the cache, or to `0` to turn it off.
 
 ### Removed
 
