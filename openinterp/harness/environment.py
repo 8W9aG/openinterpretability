@@ -43,6 +43,7 @@ def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
         device_name=device_name(runner.device),
         os=platform.platform(terse=True),
         device_choice=devices.choice(),
+        cpu_threads=torch.get_num_threads() if runner.device.type == "cpu" else None,
     )
 
 

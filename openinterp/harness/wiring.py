@@ -53,7 +53,8 @@ MLP_READ_PATHS = (
 )
 # Separate query/key/value projections; GPT-2 fuses them in ``attn.c_attn``.
 QKV_PATHS = ("self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj")
-FUSED_QKV_PATH = "attn.c_attn"
+FUSED_QKV_PATH = "attn.c_attn"  # GPT-2: [q | k | v]
+INTERLEAVED_QKV_PATH = "attention.query_key_value"  # GPT-NeoX: [head][q | k | v]
 PRE_ATTN_NORM_PATHS = (
     "input_layernorm",  # Llama, Qwen2, Mistral, Gemma, GPT-NeoX
     "ln_1",  # GPT-2, GPT-J
@@ -115,8 +116,17 @@ def mlp_reads(runner: NeuronHookRunner, layer: int) -> dict[str, torch.Tensor]:
     )
 
 
-def _qkv_modules(block: nn.Module) -> dict[str, tuple[nn.Module, slice | None]] | None:
-    """Each of q/k/v's projection, with its slice of the output when they are fused."""
+def _qkv_modules(block: nn.Module, n_heads: int) -> dict[str, tuple[nn.Module, object]] | None:
+    """Each of q/k/v's projection, with its part of the output when they are fused.
+
+    The part is a slice for GPT-2's ``[q | k | v]``. For GPT-NeoX, which interleaves
+    them by head, it is the index of each head's rows, in head order.
+    """
+    interleaved = _try_path(block, INTERLEAVED_QKV_PATH)
+    if isinstance(interleaved, nn.Module):
+        head = _matrix(interleaved).shape[0] // (3 * n_heads)
+        starts = torch.arange(n_heads)[:, None] * 3 * head + torch.arange(head)[None, :]
+        return {c: (interleaved, (starts + i * head).reshape(-1)) for i, c in enumerate(QKV)}
     fused = _try_path(block, FUSED_QKV_PATH)
     if isinstance(fused, nn.Module):
         width = _matrix(fused).shape[0] // 3
@@ -138,7 +148,7 @@ def attention_reads(runner: NeuronHookRunner, layer: int) -> dict[str, torch.Ten
         n, hd = runner.n_heads, runner.head_dim(layer)
     except ArchitectureNotSupportedError:
         return None
-    modules = _qkv_modules(block)
+    modules = _qkv_modules(block, n)
     if modules is None:
         return None
     norm = _norm(block, PRE_ATTN_NORM_PATHS)
@@ -277,20 +287,44 @@ def _head_target(runner: NeuronHookRunner, unit: HeadUnit) -> Target:
     )
 
 
-def _upstream_layers(t: Target) -> tuple[range, range]:
-    """Layers of the neurons and heads that write before ``t`` reads."""
+# Model types whose blocks run attention and the MLP side by side on one input. GPT-NeoX
+# says so in its config (``use_parallel_residual``), so it isn't listed here.
+PARALLEL_BLOCKS = ("gptj", "phi")
+
+
+def parallel_residual(runner: NeuronHookRunner) -> bool:
+    """True when attention and the MLP read the same residual stream (GPT-NeoX, GPT-J, Phi).
+
+    Then a layer's MLP doesn't read its own layer's heads.
+    """
+    config = getattr(runner.model, "config", None)
+    if getattr(config, "use_parallel_residual", False):
+        return True
+    return getattr(config, "model_type", None) in PARALLEL_BLOCKS
+
+
+def _upstream_layers(t: Target, parallel: bool = False) -> tuple[range, range]:
+    """Layers of the neurons and heads that write before ``t`` reads.
+
+    In a ``parallel`` block (:func:`parallel_residual`), the MLP reads
+    the stream before its own layer's attention, so that layer's heads are not upstream.
+    """
     if t.site == "mlp_out":
         return range(t.layer, t.layer + 1), range(0)
     if t.site == "resid_post":
         return range(t.layer + 1), range(t.layer + 1)
-    if t.site == "attn_in":
+    if t.site == "attn_in" or parallel:
         return range(t.layer), range(t.layer)
     return range(t.layer), range(t.layer + 1)
 
 
 def _downstream_layers(runner: NeuronHookRunner, t: Target) -> tuple[range, range]:
-    """Layers of the neurons and heads that read after ``t`` writes."""
-    first = t.layer if t.writes_after_attention else t.layer + 1
+    """Layers of the neurons and heads that read after ``t`` writes.
+
+    A head's own layer's MLP reads it, unless the block is parallel.
+    """
+    same = t.writes_after_attention and not parallel_residual(runner)
+    first = t.layer if same else t.layer + 1
     return range(first, runner.n_layers), range(t.layer + 1, runner.n_layers)
 
 
@@ -345,7 +379,7 @@ def weight_wiring(runner: NeuronHookRunner, unit: Unit, *, k: int = 10) -> Wirin
     channels = list(t.reads)
     # Unit-normalised reads, so channels with different scales compare.
     reads = {c: r / r.norm().clamp(min=1e-12) for c, r in t.reads.items()}
-    neuron_layers, head_layers = _upstream_layers(t)
+    neuron_layers, head_layers = _upstream_layers(t, parallel_residual(runner))
     up_neurons = [
         (
             i,

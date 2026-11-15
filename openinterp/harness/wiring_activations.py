@@ -30,6 +30,7 @@ from openinterp.harness.wiring import (
     _qkv_modules,
     _top,
     _upstream_layers,
+    parallel_residual,
     target_of,
 )
 
@@ -39,7 +40,7 @@ def _clean_pass(runner, t: Target, encoded, attention: bool) -> dict:
 
     The pass stops after the deepest layer it reads, so it computes no logits.
     """
-    up_n, up_h = _upstream_layers(t)
+    up_n, up_h = _upstream_layers(t, parallel_residual(runner))
     down_n, down_h = _downstream_layers(runner, t)
     cap = {"acts": {}, "z": {}, "mlp_in": {}, "attn_in": {}}
 
@@ -110,7 +111,7 @@ def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peak
     It moves when ``delta`` is removed from what the head's ``q``, ``k`` or ``v`` reads,
     one channel at a time.
     """
-    modules = _qkv_modules(runner.layers[layer])
+    modules = _qkv_modules(runner.layers[layer], runner.n_heads)
     w_o = _head_outputs(runner, layer)  # [n, d, hd]
     rows = torch.arange(len(peaks))
     clean = cap["z"][layer][rows, peaks].reshape(len(peaks), runner.n_heads, -1)
@@ -187,7 +188,7 @@ def activation_wiring(
     attention = _has_attention(runner)
     if t.site == "attn_in" and not attention:
         raise ArchitectureNotSupportedError("a head's wiring needs supported attention")
-    up_n, up_h = _upstream_layers(t)
+    up_n, up_h = _upstream_layers(t, parallel_residual(runner))
     down_n, down_h = _downstream_layers(runner, t)
     if not attention:
         up_h = down_h = range(0)
