@@ -66,7 +66,7 @@ def test_another_machine_is_named():
 
 def test_workloads_write_only_under_the_output_dir(tmp_path):
     jobs = perf_bench.workloads(tmp_path, "cpu", build=True)
-    assert set(jobs) == {"scan", "reproduce", "build"}
+    assert set(jobs) == {"scan", "review", "build"}
     written = [a for args in jobs.values() for a in args if a.startswith(str(tmp_path))]
     assert len(written) == 2  # the evidence file and the site
     assert Path(perf_bench.RECORD).exists()
