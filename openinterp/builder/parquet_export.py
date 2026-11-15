@@ -95,6 +95,8 @@ REGISTRY_SCHEMA = pa.schema(
         ("reviewer_agent_model", pa.string()),
         ("submitting_contributor", pa.string()),
         ("reviewer_contributor", pa.string()),
+        ("agent_product", pa.string()),
+        ("host", pa.string()),
         ("self_reviewed", pa.bool_()),
         ("reviewed_at", pa.timestamp("us", tz="UTC")),
         ("p_useful", pa.float64()),
@@ -216,9 +218,18 @@ def _verdict_columns(record: AuditRecord) -> dict:
         "reviewer_agent_model": verdict.reviewer_agent_model if verdict else None,
         "submitting_contributor": record.submission.contributor,
         "reviewer_contributor": verdict.contributor if verdict else None,
+        **_product(record),
         "self_reviewed": record.self_reviewed if verdict else None,
         "reviewed_at": verdict.timestamp if verdict else None,
     }
+
+
+def _product(record) -> dict:
+    """The agent product and host, from the verdict's environment, else the scan's."""
+    verdict, provenance = record.verdict, record.submission.provenance
+    found = [verdict and verdict.environment, provenance and provenance.environment]
+    env = next((e for e in found if e is not None), None)
+    return {"agent_product": env and env.agent_product, "host": env and env.host}
 
 
 def _columns(obj, columns: dict[str, str]) -> dict:

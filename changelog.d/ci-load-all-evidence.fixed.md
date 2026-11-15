@@ -1,0 +1,1 @@
+- CI loads the blobs of every evidence branch before it checks records (`open-interpretability evidence load-all`). A record that has just merged no longer fails the check on `main` while the deploy is still publishing its evidence.

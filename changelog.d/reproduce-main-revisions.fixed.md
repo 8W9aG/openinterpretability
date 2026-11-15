@@ -1,0 +1,1 @@
+- **CI reproduces only a model's own commits.** When `reproduce` runs with an allow-list, as CI does, it refuses a record whose model revision isn't a full commit SHA on the model's `main` branch (`openinterp/model_revisions.py`). A record can no longer pick a revision like a Hub pull request's. Every existing record passes.

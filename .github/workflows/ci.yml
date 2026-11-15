@@ -16,7 +16,9 @@ env:
   # Space-separated; add a model before records use it. Kept in sync with
   # [tool.openinterp] models in pyproject.toml, but not read from it: a fork PR could
   # then make CI download any model.
+  # LINT.IfChange
   ALLOWED_MODELS: Qwen/Qwen2.5-0.5B Qwen/Qwen2.5-1.5B openai-community/gpt2 EleutherAI/pythia-70m
+  # LINT.ThenChange(pyproject.toml)
 
 jobs:
   code-changes:
@@ -58,6 +60,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the IFTTT lint diffs against the PR's base branch
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
@@ -66,6 +70,9 @@ jobs:
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Copies kept in sync (IFTTT lint)
+        if: github.event_name == 'pull_request'
+        run: python scripts/ifttt_lint.py --base "origin/${{ github.base_ref }}"
       - name: Lint
         run: |
           ruff check .
@@ -98,6 +105,38 @@ jobs:
       - name: Tests
         run: pytest
 
+  accessibility:
+    name: Accessibility (axe-core)
+    # axe-core over five pages of the sample site, in light and dark (scripts/a11y_check.py,
+    # issue #3280). It fails on a serious or critical violation. Skipped like "Lint and
+    # tests" for a wiki-only PR, which builds the same templates as main.
+    needs: code-changes
+    if: ${{ !cancelled() && needs.code-changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_VERSION: 1.65.2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Build the sample site
+        env:
+          UV_NO_SYNC: "1"  # keep the CPU-only torch that ci-install.sh put in .venv
+        run: make sample-run
+      - name: Install Playwright and Chromium
+        run: |
+          uv pip install --python .venv/bin/python "playwright==$PLAYWRIGHT_VERSION"
+          playwright install --with-deps chromium
+      - name: Check accessibility
+        run: python scripts/a11y_check.py --site dist
+
   experiments:
     name: Experiment records
     runs-on: ubuntu-latest
@@ -115,24 +154,22 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: Repository size against its budget (warns only)
         run: python3 scripts/repo_size.py
-      - name: Evidence of slim records reaches the dataset
+      - name: Evidence of records that merged before the deploy published it
+        # The deploy on main publishes a merged record's blobs (`evidence publish`). Until
+        # then, its evidence branch holds them, so a check that reads that record works.
+        run: open-interpretability evidence load-all
+      - name: Evidence of slim records
         # A slim record's blobs ride on evidence/<branch>, never on the PR branch, so that
-        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). The
-        # upload uses its own write token, HF_EVIDENCE_TOKEN. HF_TOKEN stays read-only, for
-        # downloads. A fork PR gets no secret, so its blobs can't be uploaded, and verify
-        # fails on it.
+        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). This
+        # job only loads and checks them, with no write token: code from the PR runs here.
+        # The deploy on main uploads them after the merge (`evidence publish`).
         if: github.event_name == 'pull_request'
         env:
-          HF_TOKEN: ${{ secrets.HF_EVIDENCE_TOKEN }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           if git fetch --quiet origin "refs/heads/evidence/$HEAD_REF" 2>/dev/null; then
-            if [ -n "$HF_TOKEN" ]; then
-              open-interpretability evidence upload --ref FETCH_HEAD
-            else
-              open-interpretability evidence load --ref FETCH_HEAD
-            fi
+            open-interpretability evidence load --ref FETCH_HEAD
           fi
           open-interpretability evidence verify --base-ref "origin/$BASE_REF"
       - name: Every experiment has a valid record and wiki page

@@ -19,7 +19,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder import charts, pieces, statuses
+from openinterp.builder import charts, palette, pieces, statuses
 from openinterp.builder.agents import (
     agent_href,
     agents_view,
@@ -37,7 +37,7 @@ from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
-from openinterp.builder.pii import save_spans, scrub, scrub_record
+from openinterp.builder.pii import save_spans, scrub, scrub_experiments
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
@@ -105,6 +105,7 @@ def _environment() -> Environment:
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
+    env.globals["palette"] = palette  # the status and pole colours
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands
@@ -331,8 +332,7 @@ def compile_site(
     # group readings by explanation. Only what the site publishes is scrubbed. The two
     # exports run in the background while the pages render (builder/parallel.py).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
-    for experiment in experiments:
-        experiment.record = scrub_record(experiment.record)
+    scrub_experiments(experiments)  # what the pages show: the record and its errata notes
     report = BuildReport(output_dir, len(records), len(experiments))
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
     export_draws(draws, output_dir)  # random draws no experiment could audit

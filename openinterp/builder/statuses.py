@@ -8,20 +8,19 @@ experiment (:class:`openinterp.builder.tree.StoppedNeuron`). It comes last, so a
 in the same cell wins.
 """
 
+from openinterp.builder.palette import STATUS_HEX, badge_text, token
+
 STOPPED = "STOPPED"  # a neuron whose scans all stopped
 
-# Status: (map and bar fill, badge).
+
+# Status: (map and bar fill, badge). The colours are builder/palette.py's.
+def _badge(status: str) -> str:
+    """A filled badge, with text that stays readable on the fill."""
+    return f"bg-{token(status)} text-[{badge_text(STATUS_HEX[status])}]"
+
+
 _CLASSES = {
-    "VERIFIED": (
-        "fill-emerald-500",
-        "bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100",
-    ),
-    "CONTESTED": ("fill-sky-500", "bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100"),
-    "NEEDS_REVISION": (
-        "fill-amber-500",
-        "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
-    ),
-    "REJECTED": ("fill-rose-500", "bg-rose-100 text-rose-900 dark:bg-rose-900 dark:text-rose-100"),
+    **{s: (f"fill-{token(s)}", _badge(s)) for s in STATUS_HEX},
     STOPPED: (
         "fill-slate-400 dark:fill-slate-500",
         "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",

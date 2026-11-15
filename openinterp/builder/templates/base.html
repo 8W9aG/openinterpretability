@@ -11,6 +11,7 @@
     tailwind.config = {
       theme: {
         extend: {
+          colors: {{ palette.tailwind_colors() | tojson }},
           fontFamily: {
             sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
             mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
@@ -29,6 +30,12 @@
         --pagefind-ui-primary: #e2e8f0; --pagefind-ui-text: #e2e8f0;
         --pagefind-ui-background: #0f172a; --pagefind-ui-border: #334155; --pagefind-ui-tag: #1e293b;
       }
+    }
+    /* Secondary text (text-slate-500) is 4.2:1 on the dark page, under WCAG AA's 4.5:1.
+       In dark mode it takes slate-400 (#94a3b8, 7.5:1), unless the element names its own
+       dark colour. One rule here fixes every template (issue #3280). */
+    @media (prefers-color-scheme: dark) {
+      .text-slate-500:not([class*="dark:text-"]) { color: #94a3b8; }
     }
     .spoiler { position: relative; min-height: 3rem; }
     .spoiler-body { filter: blur(0.5em); user-select: none; pointer-events: none; }

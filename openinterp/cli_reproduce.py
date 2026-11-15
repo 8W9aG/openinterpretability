@@ -105,6 +105,7 @@ def reproduce(
     """
     import os
 
+    from openinterp.checks import changed_records
     from openinterp.core.errata import load_errata
     from openinterp.reproduce import Tolerance
     from openinterp.signing import allowed_signers_text, landing_times
@@ -125,6 +126,7 @@ def reproduce(
         include_signed=include_signed or sample is not None,
         measurements_only=sample is not None,
         errata=load_errata(wiki_dir),
+        new={p.resolve() for p in changed_records(wiki_dir, base_ref)} if base_ref else set(),
     )
     results, unreached = _check_all(reproducer, paths, in_actions, time_budget)
     failed = sum(bool(problems) for _, problems, _ in results)
@@ -189,6 +191,7 @@ class _Reproducer:
     include_signed: bool = False
     measurements_only: bool = False  # for records from another protocol version
     errata: list = field(default_factory=list)  # wiki/errata.jsonl (core/errata.py)
+    new: set = field(default_factory=set)  # resolved paths of records added since --base-ref
     runners: dict[tuple, object] = field(default_factory=dict)
 
     def check(self, path: Path) -> tuple[str, list[str], list[str]]:
@@ -214,7 +217,7 @@ class _Reproducer:
             return "FAILED", ["invalid experiment record"], []
         record, aside = self.corrected(record, notes)
         if aside:
-            return f"SET ASIDE by erratum {aside} (reproduction skipped)", [], notes
+            return self.set_aside(path, aside, notes)
         reason = self.refusal(record)
         if reason:
             return "FAILED", [reason], notes
@@ -244,6 +247,16 @@ class _Reproducer:
             )
         return None
 
+    def set_aside(self, path: Path, erratum: str, notes: list[str]):
+        """The result for a record that ``erratum`` sets aside: skipped, unless it is new.
+
+        An erratum describes records that landed before it. A new record that one covers
+        copied its fields, and would skip the protocol and allow-list checks.
+        """
+        if path.resolve() in self.new:
+            return "FAILED", [f"a new record can't be set aside (erratum {erratum})"], notes
+        return f"SET ASIDE by erratum {erratum} (reproduction skipped)", [], notes
+
     def corrected(self, record, notes: list[str]):
         """``record`` with its errata's edits, and the id of an erratum that sets it aside.
 
@@ -261,14 +274,23 @@ class _Reproducer:
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
-        from openinterp.reproduce import check_protocol
+        from openinterp.model_revisions import unapproved_revision
+        from openinterp.planner import signed_models
+        from openinterp.reproduce import check_protocol, pinned_environment
 
         model, allowed = record.submission.identifier.model_name, self.allowed_models
         reason = None if self.measurements_only else check_protocol(record)
-        if allowed and model not in allowed:
+        if allowed and model in signed_models():
+            reason = (
+                f"records of {model} must be signed (open-interpretability sign), "
+                "because CI doesn't run it ([tool.openinterp] signed_models)"
+            )
+        elif allowed and model not in allowed:
             reason = f"model {model} is not on the allow-list ({', '.join(allowed)})"
         elif allowed and not _preset_dictionary(record):
             reason = "its dictionary is not a preset's (openinterp/harness/dictionaries.py)"
+        elif allowed and (why := unapproved_revision(model, pinned_environment(record)[0])):
+            reason = why  # a record can't pick, say, a Hub pull request's weights
         return reason
 
     def runner(self, record):

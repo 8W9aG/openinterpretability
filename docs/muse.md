@@ -83,6 +83,7 @@ below.
 
 ```sh
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+export OPENINTERP_AGENT_PRODUCT=muse-spark  # recorded in each record's environment
 .venv/bin/openinterp audit \
   --model openai-community/gpt2 \
   --random --seed <audit-seed> \

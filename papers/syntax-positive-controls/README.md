@@ -611,10 +611,10 @@ The SHA-256 of `code.jsonl` is `549de3ddf5ee7d13c54dd32241e213745f6a21c8beab3d00
 
 ## References
 
-- Clark, T., Roman, A. & Thurnherr, H. (2023). *Who cares about brackets?* Research report, Apart Research Alignment Jam #10 (Interpretability 3.0). [PDF](https://webflow.com/files/634e78122252d2e2fc3a9ab9/formUploads/4679d69c-0a9d-4e19-a09a-2638b1b8b133.pdf).
-- Friedman, D., Lampinen, A., Dixon, L., Chen, D. & Ghandeharioun, A. (2024). *Interpretability Illusions in the Generalization of Simplified Models*. ICML 2024. [arXiv:2312.03656](https://arxiv.org/abs/2312.03656).
-- Gurnee, W., Horsley, T., Guo, Z. C., Kheirkhah, T. R., Sun, Q., Hathaway, W., Nanda, N. & Bertsimas, D. (2024). *Universal Neurons in GPT2 Language Models*. [arXiv:2401.12181](https://arxiv.org/abs/2401.12181).
-- Karpathy, A., Johnson, J. & Fei-Fei, L. (2015). *Visualizing and Understanding Recurrent Networks*. [arXiv:1506.02078](https://arxiv.org/abs/1506.02078).
-- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
-- Syed, A., Rager, C. & Conmy, A. (2023). *Attribution Patching Outperforms Automated Circuit Discovery*. [arXiv:2310.10348](https://arxiv.org/abs/2310.10348).
-- Yang, A., et al. (2024). *Qwen2.5 Technical Report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).
+- Clark, T., Roman, A., & Thurnherr, H. (2023). *Who cares about brackets?* Research report, Apart Research Alignment Jam #10 (Interpretability 3.0). [PDF](https://webflow.com/files/634e78122252d2e2fc3a9ab9/formUploads/4679d69c-0a9d-4e19-a09a-2638b1b8b133.pdf).
+- Friedman, D., Lampinen, A., Dixon, L., Chen, D., & Ghandeharioun, A. (2024). *Interpretability illusions in the generalization of simplified models*. ICML 2024. [arXiv:2312.03656](https://arxiv.org/abs/2312.03656).
+- Gurnee, W., Horsley, T., Guo, Z. C., Kheirkhah, T. R., Sun, Q., Hathaway, W., Nanda, N., & Bertsimas, D. (2024). *Universal neurons in GPT2 language models*. [arXiv:2401.12181](https://arxiv.org/abs/2401.12181).
+- Karpathy, A., Johnson, J., & Fei-Fei, L. (2015). *Visualizing and understanding recurrent networks*. [arXiv:1506.02078](https://arxiv.org/abs/1506.02078).
+- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., & Sutskever, I. (2019). *Language models are unsupervised multitask learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Syed, A., Rager, C., & Conmy, A. (2023). *Attribution patching outperforms automated circuit discovery*. [arXiv:2310.10348](https://arxiv.org/abs/2310.10348).
+- Yang, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Li, C., Liu, D., Huang, F., Wei, H., Lin, H., Yang, J., Tu, J., Zhang, J., Yang, J., Yang, J., Zhou, J., Lin, J., Dang, K., . . . Qiu, Z. (2024). *Qwen2.5 technical report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).

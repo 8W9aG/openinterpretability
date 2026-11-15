@@ -1,9 +1,9 @@
 """``open-interpretability evidence``: move slim records' blobs to the dataset (issue #3254).
 
 ``push`` runs where the experiment ran. It pushes the blobs of the records that the branch
-adds to ``evidence/<branch>``. CI runs ``upload`` (with ``HF_EVIDENCE_TOKEN``) or ``load``
-(without it), then ``verify``. :mod:`openinterp.evidence_branch` explains why the blobs
-ride on their own branch.
+adds to ``evidence/<branch>``. A pull request's CI runs ``load``, then ``verify``. After the
+merge, the deploy on ``main`` runs ``publish`` with ``HF_EVIDENCE_TOKEN``.
+:mod:`openinterp.evidence_branch` explains why the blobs ride on their own branch.
 """
 
 from __future__ import annotations
@@ -63,16 +63,41 @@ def load(ref: str) -> None:
     click.echo(f"Loaded {len(load_branch(ref))} evidence blobs from {ref}.")
 
 
-@evidence.command()
-@ref_option
-def upload(ref: str) -> None:
-    """Load an evidence branch's blobs, then upload them to the dataset (needs a write token)."""
-    from openinterp.core.evidence import EVIDENCE_REPO
-    from openinterp.evidence_branch import load_branch
-    from openinterp.evidence_branch import upload as upload_blobs
+@evidence.command(name="load-all")
+@click.option("--remote", default="origin", show_default=True)
+def load_all(remote: str) -> None:
+    """Copy the blobs of every evidence branch of ``--remote`` into the local store.
 
-    shas = load_branch(ref)
-    click.echo(f"Uploaded {upload_blobs(shas)} evidence blobs to {EVIDENCE_REPO}.")
+    CI runs it before ``check``. A record that has just merged refers to blobs that the
+    deploy may not have published yet, and its evidence branch still holds them.
+    """
+    from openinterp.evidence_branch import LOCAL_REFS, _git, fetch_branches, load_branch
+
+    fetch_branches(remote)
+    refs = _git("for-each-ref", "--format=%(refname)", LOCAL_REFS).decode().split()
+    count = sum(len(load_branch(ref)) for ref in refs)
+    click.echo(f"Loaded {count} evidence blobs from {len(refs)} evidence branches.")
+
+
+@evidence.command()
+@wiki_dir_option()
+@click.option("--remote", default="origin", show_default=True)
+def publish(wiki_dir: Path, remote: str) -> None:
+    """Upload the blobs that this checkout's records need and the dataset lacks.
+
+    Run it on ``main`` after a merge (the deploy does), with a write token. It reads the
+    blobs from the remote's evidence branches. It fails if a record's blob is on none.
+    """
+    from openinterp.core.evidence import EVIDENCE_REPO
+    from openinterp.core.paths import experiments_dir
+    from openinterp.evidence_branch import fetch_branches, publish_missing
+
+    fetch_branches(remote)
+    records = sorted(experiments_dir(wiki_dir).rglob("*.json"))
+    uploaded, missing = publish_missing(records)
+    click.echo(f"Uploaded {uploaded} evidence blobs to {EVIDENCE_REPO}.")
+    if missing:
+        raise click.ClickException(f"{len(missing)} blobs are on no evidence branch: {missing}")
 
 
 @evidence.command()
