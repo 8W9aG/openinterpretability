@@ -30,11 +30,12 @@ def wiki(import_dir, wiki_dir):
     click.echo(f"{len(written)} new experiments; indexes rebuilt in {wiki_dir}")
 
 
-def registry_stats(records) -> str:
+def registry_stats(records, set_aside: int = 0) -> str:
     """Return the state of the registry.
 
     That is the experiments, units and models, the VERIFIED and self-reviewed shares, and
-    the protocol versions that computed the verdicts.
+    the protocol versions that computed the verdicts. ``set_aside`` is how many records the
+    errata left out of ``records``.
     """
     from collections import Counter
 
@@ -65,6 +66,8 @@ def registry_stats(records) -> str:
         "Protocol versions: "
         + (", ".join(f"{v} ×{n}" for v, n in sorted(versions.items(), key=_newest)) or "none")
     )
+    if set_aside:
+        lines.append(f"Set aside by errata, and not counted: {set_aside} experiments")
     return "\n".join(lines)
 
 
@@ -79,11 +82,15 @@ def stats(wiki_dir):
     """Print the state of the registry.
 
     It prints experiments, units, models, VERIFIED share, self-reviewed share and the
-    protocol versions in use.
+    protocol versions in use. It counts the records as the site does, with the errata's
+    edits applied and the records that they set aside left out.
     """
     from openinterp.builder.compiler import load_records
+    from openinterp.core.errata import load_errata, standing_records
 
-    click.echo(registry_stats(load_records(experiments_dir(wiki_dir))))
+    records = load_records(experiments_dir(wiki_dir))
+    counted = standing_records(records, load_errata(wiki_dir))
+    click.echo(registry_stats(counted, set_aside=len(records) - len(counted)))
 
 
 @cli.command()
@@ -105,7 +112,7 @@ def show(path, full):
 
 
 def _refuse_while_paused() -> None:
-    """Exit 75 with the reason if `openinterp pause` is in force."""
+    """Exit 75 with the reason if `open-interpretability pause` is in force."""
     from openinterp.core import pause
 
     if paused := pause.read():
@@ -187,7 +194,7 @@ def next_experiment(
 ):
     """Pick the next experiment (randomised; balances exploration and follow-ups).
 
-    While `openinterp pause` is in force it draws nothing and exits 75.
+    While `open-interpretability pause` is in force it draws nothing and exits 75.
     """
     from openinterp.planner import open_pr_claims, plan_next
 
@@ -212,7 +219,9 @@ def next_experiment(
     click.echo(f"Why: {c.rationale}")
     for command in c.commands:
         click.echo(f"  $ {command}")
-    if any(cmd.startswith("openinterp audit") and "--neuron" in cmd for cmd in c.commands):
+    if any(
+        cmd.startswith("open-interpretability audit") and "--neuron" in cmd for cmd in c.commands
+    ):
         _scan_cache_note(c)
     if c.skills:
         click.echo(f"Skills: {', '.join(c.skills)}")
@@ -242,8 +251,8 @@ def _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus) -> No
 def ledger_report(wiki_dir, as_json):
     """Report every recorded draw's outcome, and VERIFIED rates against all draws.
 
-    The ledger (wiki/ledger/) holds every draw that `openinterp next --steps` made, before
-    its run. A draw with no record and no stop was dropped, or is still running.
+    The ledger (wiki/ledger/) holds every draw that `open-interpretability next --steps` made,
+    before its run. A draw with no record and no stop was dropped, or is still running.
     """
     import json
 

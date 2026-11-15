@@ -1,4 +1,7 @@
-"""``openinterp loop``: run experiments back to back from the CLI, with no Claude session."""
+"""Run experiments back to back from the CLI, with no Claude session.
+
+The command is ``open-interpretability loop``.
+"""
 
 from __future__ import annotations
 
@@ -43,7 +46,7 @@ def _api_model(_ctx, param, value: str) -> str:
     default=0.7,
     show_default=True,
     type=click.FloatRange(0, 1),
-    help="Exploration probability, as in `openinterp next`.",
+    help="Exploration probability, as in `open-interpretability next`.",
 )
 @click.option(
     "--corpus",
@@ -75,7 +78,7 @@ def loop_command(
 
     Each runs in a detached worktree reset to origin/main. A model loads once for the
     whole loop. Logs go to logs/loop/, one per experiment, and each prints a RESULT line.
-    The loop honours `openinterp pause` and the stop file of scripts/experiment-loop.sh.
+    The loop honours `open-interpretability pause` and the stop file of scripts/experiment-loop.sh.
     """
     import time
 

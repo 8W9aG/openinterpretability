@@ -13,7 +13,7 @@ candidates again on the runner's own device:
 On ``corpus.jsonl`` that rule found the exact top 20 for every neuron and both poles. The
 layers were GPT-2 L5, Qwen2.5-0.5B L12 and Qwen2.5-1.5B L8 (docs/analyses/ane-feasibility.md).
 Then it makes sure that every example the scan will keep was measured again. The
-numbers that ``openinterp reproduce`` checks are then the device's numbers. The
+numbers that ``open-interpretability reproduce`` checks are then the device's numbers. The
 histogram, partners and confounds keep the ANE's values, which correlate with fp32 at
 r ≥ 0.9998 for every neuron.
 """

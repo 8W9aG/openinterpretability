@@ -47,6 +47,6 @@ So a single explanation from CLIP-Dissect is often only one of several concepts 
 
 **Its rate gives the size of that uncertainty.** With the paper's Hoeffding rate for accuracy and δ = 0.05, our 20 hard negatives give r ≈ 0.30, and our 10 holdouts r ≈ 0.43. So one review's specificity of 0.85 is consistent with a true specificity anywhere from about 0.55 to 1. That fits `docs/analyses/verdict-stability.md`: three reviews of the same submission disagree on the status in a third of pairs.
 
-**Its stability test is the registry's replicate review.** BE re-runs identification on resampled probing sets. The registry's `replicate` follow-ups (`openinterp next`) and the verdict-stability study re-test a hypothesis with fresh probes. A hypothesis that holds up under that is stable in the paper's sense.
+**Its stability test is the registry's replicate review.** BE re-runs identification on resampled probing sets. The registry's `replicate` follow-ups (`open-interpretability next`) and the verdict-stability study re-test a hypothesis with fresh probes. A hypothesis that holds up under that is stable in the paper's sense.
 
 **Rare concepts need more than balanced metrics.** The paper finds AUROC and recall slow for rare concepts. That matches `evaluating-neuron-explanations.md`, from the same group: on ordinary text, where a pole is seldom active, use a metric that handles rare concepts. Our detection windows are balanced, so they avoid the problem.

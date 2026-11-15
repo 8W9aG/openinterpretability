@@ -1,4 +1,7 @@
-"""Spend caps and the stop file of scripts/experiment-loop.sh, and `openinterp costs --usd`."""
+"""Spend caps and the stop file of scripts/experiment-loop.sh.
+
+The tests also cover `open-interpretability costs --usd`.
+"""
 
 import json
 import os

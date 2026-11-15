@@ -1,7 +1,7 @@
-"""Labelled concept sets from annotated Hugging Face datasets (`openinterp concepts`).
+"""Labelled concept sets from annotated Hugging Face datasets (`open-interpretability concepts`).
 
 A concept set is JSON lines ``{"text": ..., "spans": [[start, end], ...]}``. It is the
-labelled text that ``openinterp probe-compare`` reads. The spans are the characters where
+labelled text that ``open-interpretability probe-compare`` reads. The spans are the characters where
 the concept holds, marked by human annotators, never by the model. A concept set feeds
 sparse-probing searches. It also gives reviewers positive holdouts from a source that
 the proposer never saw. A

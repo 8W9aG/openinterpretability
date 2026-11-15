@@ -2,7 +2,7 @@
 
 **Citation.** Xupeng Chen (Dimension Gate). "Scoring Explanations Without Reading Them: Structural Shortcuts in Automated-Interpretability Evaluation Data". arXiv 2610.37676v1, 10 October 2026. [Paper](https://arxiv.org/abs/2610.37676). Preprint, no venue given. Code and preregistrations are promised on publication.
 
-**Status.** Used. `openinterp score --controls` (the null-explanation control, issue #3236) and `scripts/explanation_free_rules.py` both come from this paper.
+**Status.** Used. `open-interpretability score --controls` (the null-explanation control, issue #3236) and `scripts/explanation_free_rules.py` both come from this paper.
 
 **Read.** The abstract and Sections 1–3 in the arXiv HTML, word for word, on 2026-11-13. The rest (Sections 4–9 and the appendices) came to us only as a model-generated summary of the text. So the numbers below are the abstract's and the introduction's. Numbers from the summary are marked as unverified. We did not see the figures.
 

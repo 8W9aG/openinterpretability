@@ -14,8 +14,10 @@ import figures_default_on
 import figures_default_on_decoding
 import figures_depth
 import figures_explorer
+import figures_native_learned
 import figures_spd_input
 import figures_syntax
+import figures_transfer
 import figures_why_rest
 import figures_why_rest_equal
 import figures_why_rest_push
@@ -54,6 +56,8 @@ def build_all() -> dict[str, str]:
             "decoding.svg": figures_default_on_decoding.decoding(poles),
             "ridges.svg": figures_depth.ridges(poles, dip),
         },
+        "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
+        "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
         "syntax-positive-controls": figures_syntax.build(
             _rows("syntax-positive-controls"),

@@ -69,7 +69,9 @@ def _kinds(plan):
 def test_empty_registry_explores(tmp_path):
     plan = plan_next(tmp_path / "wiki", seed=1, epsilon=0.0, now=NOW)
     assert plan.explored and plan.choice.kind == "explore"
-    assert plan.choice.commands[0].startswith("openinterp audit --model Qwen/Qwen2.5-0.5B --random")
+    assert plan.choice.commands[0].startswith(
+        "open-interpretability audit --model Qwen/Qwen2.5-0.5B --random"
+    )
 
 
 def test_candidates_follow_verdicts(tmp_path, record):
@@ -189,7 +191,7 @@ def test_builtin_sample_records_are_rescanned_not_followed_up(
     assert _kinds(plan) == {("rescan", "N7-positive"), ("opposite_pole", "N7-negative")}
     rescan = next(c for c in plan.candidates if c.kind == "rescan")
     assert rescan.weight == BASE_WEIGHTS["rescan"]
-    assert rescan.commands[0].startswith("openinterp audit --model ")
+    assert rescan.commands[0].startswith("open-interpretability audit --model ")
     assert rescan.commands[0].endswith("N7-positive/20261001T120000Z.json")  # --supersedes it
     assert "--supersedes" not in rescan.audit
 
@@ -489,7 +491,9 @@ def test_short_context_models_are_scanned_in_windows(tmp_path, record):
         update={"submission": rec.submission.model_copy(update={"provenance": provenance})}
     )
     plan = plan_next(_registry(tmp_path / "b", rec), seed=1, epsilon=0.0, now=NOW)
-    audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
+    audits = [
+        cmd for c in plan.candidates for cmd in c.commands if "open-interpretability audit" in cmd
+    ]
     assert audits and all("--window-tokens 256" in cmd for cmd in audits)
 
 

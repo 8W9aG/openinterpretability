@@ -10,7 +10,7 @@ random draw chose, so that the scores are not read as covering a hand-picked set
 of each unit's slug puts the unit in the dev split or the test split. The dev split
 publishes the probes and labels that the records hold. Those records are public, so the
 test split uses fresh probes instead. A maintainer measures them
-(``openinterp benchmark measure``) and keeps them out of the repository. The manifest
+(``open-interpretability benchmark measure``) and keeps them out of the repository. The manifest
 publishes only their SHA-256 (:func:`seal`).
 
 This module loads no model. ``openinterp/cli_benchmark.py`` has the commands.
@@ -36,6 +36,9 @@ TEST_FRACTION = 0.2
 MIN_PER_CLASS = 3  # active and inactive probes a unit needs, so that both rates exist
 PROBE_KINDS = ("hard_negative", "positive_holdout")
 CHANCE = 0.5  # the score of a unit that has no explanation
+# A unit whose judge listed this share of its texts or more is flagged (issue #3303). An
+# injection that makes the judge list every text would look like that.
+LISTED_ALL_SHARE = 0.9
 BOOTSTRAP_SAMPLES = 2000
 
 MANIFEST = "manifest.json"
@@ -68,6 +71,27 @@ def split_of(slug: str, version: str, test_fraction: float = TEST_FRACTION) -> s
     """Return ``"test"`` or ``"dev"`` for ``slug``, from a hash salted with ``version``."""
     digest = hashlib.sha256(f"{version}:{slug}".encode()).hexdigest()
     return "test" if int(digest[:8], 16) / 0x1_0000_0000 < test_fraction else "dev"
+
+
+ORDERS = ("slug", "shuffled")  # the orders that `benchmark score --limit` takes units in
+
+
+def ordered(units: Iterable[Unit], order: str, version: str) -> list[Unit]:
+    """``units`` in slug order, or in a shuffled order fixed by ``version`` (issue #3302).
+
+    A shuffled unit's place is a hash of its slug, salted with ``version`` and its split.
+    So the first N units of a split are a random sample of it, the same one on every run.
+    Adding units to a later version doesn't move the others within it.
+    """
+    if order not in ORDERS:
+        raise ValueError(f"unknown order {order!r}; use one of {', '.join(ORDERS)}")
+    if order == "slug":
+        return sorted(units, key=lambda u: u.unit)
+
+    def key(u: Unit) -> str:
+        return hashlib.sha256(f"order:{version}:{u.split}:{u.unit}".encode()).hexdigest()
+
+    return sorted(units, key=key)
 
 
 def probe_labels(record: AuditRecord) -> list[tuple[str, bool, str]]:
@@ -327,7 +351,8 @@ def unit_score(
 ) -> dict[str, float | int | None]:
     """Balanced accuracy of ``predicted`` against the probes' labels.
 
-    Near-duplicate probes count once, as in the review (docs/PROTOCOL.md §4).
+    Near-duplicate probes count once, as in the review (docs/PROTOCOL.md §4). The row also
+    gives ``listed_share``, the share of texts that the judge listed (issue #3303).
     """
 
     def rate(active: bool):
@@ -338,6 +363,7 @@ def unit_score(
     inactive, active = rate(False), rate(True)
     return {
         "balanced_accuracy": round(balanced_accuracy(inactive, active), 6),
+        "listed_share": round(sum(predicted) / len(predicted), 6) if predicted else None,
         "specificity": None if inactive.rate is None else round(inactive.rate, 6),
         "sensitivity": None if active.rate is None else round(active.rate, 6),
         "active_probes": active.raw,
@@ -345,11 +371,18 @@ def unit_score(
     }
 
 
-def summarize(rows: Sequence[dict], units: Sequence[Unit], seed: int = 0) -> dict:
+def summarize(
+    rows: Sequence[dict], units: Sequence[Unit], seed: int = 0, split_units: int | None = None
+) -> dict:
     """The split's score: mean balanced accuracy over every unit, chance where missing.
 
     A unit without an explanation scores :data:`CHANCE`, so leaving hard units out does not
-    raise the mean. The interval is a bootstrap over units.
+    raise the mean. The interval is a bootstrap over units. ``split_units`` is the size of
+    the whole split, when ``units`` are only part of it.
+
+    ``listed_nearly_all`` names the units whose judge listed at least
+    :data:`LISTED_ALL_SHARE` of the texts. An explanation that tells the judge to list
+    every text would look like that. Rows from before ``listed_share`` existed are skipped.
     """
     scored = {r["unit"]: r["balanced_accuracy"] for r in rows}
     values = [scored.get(u.unit, CHANCE) for u in units]
@@ -359,6 +392,10 @@ def summarize(rows: Sequence[dict], units: Sequence[Unit], seed: int = 0) -> dic
         "mean_balanced_accuracy": _mean(values),
         "ci95": _bootstrap(values, seed),
         "per_model": {},
+        "split_units": len(units) if split_units is None else split_units,
+        "listed_nearly_all": sorted(
+            r["unit"] for r in rows if (r.get("listed_share") or 0) >= LISTED_ALL_SHARE
+        ),
     }
     for model in sorted({u.model for u in units}):
         mine = [scored.get(u.unit, CHANCE) for u in units if u.model == model]

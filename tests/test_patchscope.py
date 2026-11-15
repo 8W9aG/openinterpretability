@@ -6,6 +6,7 @@ from openinterp.harness.hooks import NeuronHookRunner
 from openinterp.harness.patchscope import patchscope, write_direction
 from openinterp.harness.units import HeadUnit, NeuronUnit
 from tests.conftest import N_LAYERS, FakeTokenizer
+from tests.site_pages import unit_pages
 
 PROMPTS = {"short": "ab{x}c", "long": "hello {x} means"}
 
@@ -122,5 +123,5 @@ def test_readout_rendered_on_both_pages(tmp_path, record):
 
     compile_site([rec], tmp_path / "site")
     (page,) = (tmp_path / "site" / "models").rglob("N117.html")
-    html = page.read_text()
+    html = unit_pages(page)
     assert "Patchscope" in html and ">crop</td>" in html and ">emotion</td>" in html

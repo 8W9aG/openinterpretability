@@ -73,7 +73,7 @@ Peak token in ⟦ ⟧.
 
 Specificity {{ metrics.specificity | num(2) }} · sensitivity {{ metrics.sensitivity | num(2) }} · balanced accuracy {{ metrics.balanced_accuracy | num(2) }} · counterfactual reproduction {{ metrics.counterfactual_reproduction | num(2) }}
 {% else %}
-This verdict predates protocol v0.2, so it has no per-gate metrics. Run `openinterp reevaluate` to apply the current rule.
+This verdict predates protocol v0.2, so it has no per-gate metrics. Run `open-interpretability reevaluate` to apply the current rule.
 {% endif %}
 {% if verdict.causal_metrics %}
 
@@ -245,7 +245,7 @@ Share of |attribution| by distance from the peak, over converged examples; mean 
 ## Next steps
 
 {% if self_reviewed %}
-**Self-reviewed.** The proposer's model also wrote the probes. That is allowed, but a review by a different model is stronger evidence, so a re-review is the first follow-up (`openinterp next` draws these).
+**Self-reviewed.** The proposer's model also wrote the probes. That is allowed, but a review by a different model is stronger evidence, so a re-review is the first follow-up (`open-interpretability next` draws these).
 
 {% endif %}
 {% if verdict.status == 'VERIFIED' %}

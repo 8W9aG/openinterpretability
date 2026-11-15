@@ -1,6 +1,6 @@
 ---
 name: native-neuron-audit
-description: Methodology for auditing a native MLP neuron pole without misreading it, following Goodfire's "Neural Networks Are Already Clean" (Cammarata, 2026). Use before writing any hypothesis for `openinterp audit`, when a neuron looks polysemantic, noisy or dead, or when choosing scan corpus, context length and activation range.
+description: Methodology for auditing a native MLP neuron pole without misreading it, following Goodfire's "Neural Networks Are Already Clean" (Cammarata, 2026). Use before writing any hypothesis for `open-interpretability audit`, when a neuron looks polysemantic, noisy or dead, or when choosing scan corpus, context length and activation range.
 ---
 
 # Native neuron audit
@@ -54,7 +54,7 @@ The regime is common but rarely on top. On Qwen3.6-35B-A3B, `g-u-` gives 35–36
 
 ## Fit with the protocol
 
-- To check a reading against the whole scan (every occurrence of a token, everything above a strength), use `openinterp activations` with the audit's corpus options. It replays the layer's cached scan instead of running the model again.
-- Scan long documents with `openinterp audit --window-tokens 512` (stride defaults to half a window). Provenance records the window length and stride (`snippet_tokens`, `snippet_stride`). Reviewers will discount short-context scans. The exception is GPT-2 small, scanned in 128-token windows (`[tool.openinterp.window_tokens]`). Its transcoders' latents fit no longer contexts, and this lets its neuron poles compare like for like with them.
+- To check a reading against the whole scan (every occurrence of a token, everything above a strength), use `open-interpretability activations` with the audit's corpus options. It replays the layer's cached scan instead of running the model again.
+- Scan long documents with `open-interpretability audit --window-tokens 512` (stride defaults to half a window). Provenance records the window length and stride (`snippet_tokens`, `snippet_stride`). Reviewers will discount short-context scans. The exception is GPT-2 small, scanned in 128-token windows (`[tool.openinterp.window_tokens]`). Its transcoders' latents fit no longer contexts, and this lets its neuron poles compare like for like with them.
 - Use the "Too little room" and "offshoot" points when arguing that a two-job neuron is really one job. The reviewer's positive holdouts should then include the offshoot.
 - Steering ("what the model writes when the neuron is turned up") is one of the essay's main checks. See the `neuron-steering-tests` skill.

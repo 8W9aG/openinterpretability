@@ -1,17 +1,17 @@
 # Choosing a language detector for unlabelled corpora
 
-`openinterp corpus --detect-lang` labels each document of a corpus whose dataset doesn't say its language (FineWeb, the Pile). So the scan's language confound, the agents' per-example languages and the site's language mix work there too (docs/PROTOCOL.md §4, *Label confounds*). This note is how the detector and its confidence line were chosen. Script: `scripts/language_detection.py`. Rows: `language-detection.jsonl`. Run 2026-11-01.
+`open-interpretability corpus --detect-lang` labels each document of a corpus whose dataset doesn't say its language (FineWeb, the Pile). So the scan's language confound, the agents' per-example languages and the site's language mix work there too (docs/PROTOCOL.md §4, *Label confounds*). This note is how the detector and its confidence line were chosen. Script: `scripts/language_detection.py`. Rows: `language-detection.jsonl`. Run 2026-11-01.
 
 ## Method
 
-Four detectors, each run per document as `openinterp corpus` would run it:
+Four detectors, each run per document as `open-interpretability corpus` would run it:
 
 - **fastText `lid.176.ftz`** (176 languages, the 917 KB compressed model, through `fasttext-predict`, as `openinterp/langid.py` runs it).
 - **lingua** (`lingua-language-detector`, all languages, high-accuracy mode).
 - **langdetect**, seeded (`DetectorFactory.seed = 0`). Unseeded, it gave a different answer on 7 of 200 50-character documents when run twice.
 - **langid.py**, with normalised probabilities.
 
-Test sets, built with `openinterp corpus` so their labels are exact (each document's Wikipedia subset, `--lang-pattern`):
+Test sets, built with `open-interpretability corpus` so their labels are exact (each document's Wikipedia subset, `--lang-pattern`):
 
 - *Distinct*: the `wikipedia-multilingual` preset, 1,000 articles, 100 each in en, de, fr, ru, el, ar, hi, zh, ja and ko (eight scripts).
 - *Close*: 400 articles, 50 each in es, pt, it, ca, nl (Latin) and uk, bg, ru (Cyrillic). These languages share a script with a near neighbour.
@@ -60,5 +60,5 @@ On the registry corpus, the 0.8 line labels 416 documents English and leaves 71 
 
 - **One label per document.** Mixed documents get their majority language at best: fastText picks it 78% of the time. A scan's tokens in a document's minority language are mislabelled. Labelling paragraphs or sentences would need spans and a per-span detector, and short spans are exactly where detection fails (the 50-character columns).
 - **The test languages are Wikipedia's.** Encyclopaedic prose in 16 languages is easier than web text. lid.176 covers 176 languages, but this note measured 16.
-- **Code is left out, not labelled.** `openinterp corpus --detect-code` labels its programming language with Magika (`docs/analyses/code-detection.md`).
+- **Code is left out, not labelled.** `open-interpretability corpus --detect-code` labels its programming language with Magika (`docs/analyses/code-detection.md`).
 - **The registry's own corpus is not relabelled.** Adding `lang` to `corpus.jsonl` would change its bytes and SHA-256, which every record scanned on it pins. A labelled copy would be a new corpus, which is a decision for the registry, not for this tool.

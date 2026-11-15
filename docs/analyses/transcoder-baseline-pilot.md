@@ -4,7 +4,7 @@ The first run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It c
 
 ## Setup
 
-- **Draws.** `openinterp audit --random --seed s` with seeds 1, 2, 3, … in order for each arm (`--dictionary gpt2-small-transcoders` for latents, `--model openai-community/gpt2` for neurons), until each arm had 10 live units. No draw was skipped or repeated.
+- **Draws.** `open-interpretability audit --random --seed s` with seeds 1, 2, 3, … in order for each arm (`--dictionary gpt2-small-transcoders` for latents, `--model openai-community/gpt2` for neurons), until each arm had 10 live units. No draw was skipped or repeated.
 - **Scan.** `corpus.jsonl` (sha256 `ded48cfc…`), the default 200,000-token sample, 128-token windows with stride 64. The transcoders fit no longer context (`harness/dictionaries.py`), and both arms were scanned the same way.
 - **Agents.** Every unit had the same roles: proposer `claude-opus-5-5`, reviewer `claude-sonnet-5-5`, and judges `claude-haiku-5-5`. All reviews are cross-model.
 - **Probe labels.** Before each review, the probe labels were checked against the submitted hypothesis and the 0.25 × max activity line. When a label contradicted the hypothesis, it went back to the same reviewer, which rewrote it (see *Label corrections*).

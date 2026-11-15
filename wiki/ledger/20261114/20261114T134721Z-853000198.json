@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T13:47:21Z","seed":853000198,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L6/N626-positive","record":null,"audit":"--model openai-community/gpt2 --random --seed 3450761356 --window-tokens 128","pole_forced":false,"harness_version":"0.0.19"}

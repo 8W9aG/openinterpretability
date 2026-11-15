@@ -73,7 +73,7 @@ A stronger L2 penalty (10⁻² or 10⁻¹) does not rescue the dropped plants: p
 
 ## With the token check (issue #3592)
 
-The reviews above skipped the probe-token check (`openinterp review --check-probes`), which shows a reviewer its probes as the model's tokens. On 2026-11-14 each of the 7 reviewers got its check prompt by SendMessage. Each then re-checked its own probes, and the probes were measured again on the planted model.
+The reviews above skipped the probe-token check (`open-interpretability review --check-probes`), which shows a reviewer its probes as the model's tokens. On 2026-11-14 each of the 7 reviewers got its check prompt by SendMessage. Each then re-checked its own probes, and the probes were measured again on the planted model.
 
 | Round | Probes changed | What they caught |
 | --- | --- | --- |

@@ -1,4 +1,4 @@
-"""``openinterp crossref`` and ``openinterp aligned-latents``.
+"""``open-interpretability crossref`` and ``open-interpretability aligned-latents``.
 
 They compare neuron poles with published dictionaries. See :mod:`openinterp.crossref`.
 """

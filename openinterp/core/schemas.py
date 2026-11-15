@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
+from openinterp.core import evidence
 from openinterp.core.agent_names import same_agent
 from openinterp.core.attribution import InputAttribution
 from openinterp.core.causal import (  # noqa: F401  (re-exported)
@@ -42,10 +43,19 @@ from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     HeadIdentifier,
     NeuronIdentifier,
     Pole,
+    SuperpositionIdentifier,
 )
+from openinterp.core.manifold import ManifoldCheck
+from openinterp.core.partners import CorrelatedNeuron  # noqa: F401  (re-exported)
 from openinterp.core.patchscope import PatchscopeReadout
 from openinterp.core.prior_art import PriorArtField
-from openinterp.core.profiles import DictionaryProfile, DictionarySite, HeadProfile  # noqa: F401
+from openinterp.core.profiles import (  # noqa: F401  (re-exported)
+    DictionaryProfile,
+    DictionarySite,
+    HeadProfile,
+    SuperpositionProfile,
+    require_unit_profile,
+)
 from openinterp.core.run_environment import RunEnvironment  # noqa: F401  (re-exported)
 from openinterp.core.specificity import WordnetSpecificity, WordStrength  # noqa: F401
 from openinterp.core.steering import SteeringSamples
@@ -56,7 +66,7 @@ VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 
-PROTOCOL_VERSION = "0.8"
+PROTOCOL_VERSION = "0.9"
 # Probes a review asks for (PROTOCOL.md §2, step 5): 20 hard negatives, 10 holdouts.
 MAX_PROBES = 30
 # Share of max activation counted as "active" (PROTOCOL.md §1); ReviewPolicy's default.
@@ -157,30 +167,6 @@ class ExperimentProvenance(StrictModel):
     )
 
 
-class CorrelatedNeuron(StrictModel):
-    """A same-layer neuron *pole* that co-varies with the audited pole over the scan.
-
-    * ``coactivation_lift``: P(partner active | target active) / P(partner active), with
-      add-one smoothing. "Target active" uses the protocol threshold (a fraction of the
-      target's max); "partner active" means above the partner pole's own 99th
-      percentile. This measures the regime where redundancy matters, when the target fires.
-    * ``spearman``: rank correlation of the two pole strengths on a uniform token sample.
-      It is robust to heavy tails and massive activations, and ties (zeros) are averaged.
-    * ``pearson``: linear correlation with the partner's *signed* activation over every
-      token, kept for reference.
-    """
-
-    neuron_idx: int = Field(ge=0)
-    pole: Pole
-    coactivation_lift: float = Field(ge=0.0)
-    # 95% Wilson lower bound on P(partner active | target active), over the base rate.
-    # Few co-active tokens can inflate the point estimate; partners are ranked by this.
-    coactivation_lift_lower: float = Field(ge=0.0)
-    coactive_tokens: int = Field(ge=0)
-    spearman: float = Field(ge=-1.0, le=1.0)
-    pearson: float = Field(ge=-1.0, le=1.0)
-
-
 class VocabularyLens(StrictModel):
     """The pole's output direction read through the logit lens and the Jacobian lens.
 
@@ -226,9 +212,9 @@ class JointAblation(StrictModel):
 
 
 class ScanEvidence(StrictModel):
-    """What ``openinterp audit --evidence-out`` measured, for a proposer working offline.
+    """What ``open-interpretability audit --evidence-out`` measured, for a proposer working offline.
 
-    It holds everything a submission needs except the hypothesis, so ``openinterp audit
+    It holds everything a submission needs except the hypothesis, so ``open-interpretability audit
     --evidence <file> --hypothesis <file>`` can build the submission without rescanning.
     """
 
@@ -244,32 +230,14 @@ class ScanEvidence(StrictModel):
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0)
     dictionary_profile: DictionaryProfile | None = None
+    superposition_profile: SuperpositionProfile | None = None
     opposite_pole: OppositePole | None = None
+    manifold: ManifoldCheck | None = None  # see NeuronAuditSubmission
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
         check_opposite_pole(self)
-        return _require_unit_profile(self)
-
-
-def _require_unit_profile(model):
-    """Require the profile that defines a non-neuron unit's strength.
-
-    A head's strength is undefined without its mean output. A dictionary feature's
-    strength is undefined without its dictionary's weights. A neuron needs neither.
-    """
-    kind = model.identifier.kind
-    for field, owner, unit, why in (
-        ("head_profile", "attn_head", "an attention head", "its mean output"),
-        ("dictionary_profile", "dictionary_feature", "a dictionary feature", "its dictionary"),
-    ):
-        present = getattr(model, field) is not None
-        units = unit.split(" ", 1)[1] + "s"
-        if kind == owner and not present:
-            raise ValueError(f"{unit} needs a {field}: {why} defines strength")
-        if kind != owner and present:
-            raise ValueError(f"{field} is only for {units}")
-    return model
+        return require_unit_profile(self)
 
 
 class NeuronAuditSubmission(StrictModel):
@@ -306,6 +274,7 @@ class NeuronAuditSubmission(StrictModel):
     head_profile: HeadProfile | None = None
     model_n_heads: int | None = Field(default=None, gt=0, description="Heads per layer.")
     dictionary_profile: DictionaryProfile | None = None
+    superposition_profile: SuperpositionProfile | None = None
     patchscope: PatchscopeReadout | None = Field(
         default=None,
         description="The model's own description of the unit's output direction, read after "
@@ -347,11 +316,17 @@ class NeuronAuditSubmission(StrictModel):
         description="A neuron pole's top connections by virtual weight, read after the "
         "proposer answered and shown to neither agent (reported, not gated).",
     )
+    manifold: ManifoldCheck | None = Field(
+        default=None,
+        description="A neuron pole and its partner poles on the activating set and on "
+        "ordered word families, and whether they trace a circle or a line (reported, not "
+        "gated).",
+    )
 
     @model_validator(mode="after")
     def _head_profile(self) -> NeuronAuditSubmission:
         check_opposite_pole(self)
-        return _require_unit_profile(self)
+        return require_unit_profile(self)
 
 
 class AdversarialTestResult(StrictModel):
@@ -461,10 +436,24 @@ class VerificationVerdict(StrictModel):
 
 
 class AuditRecord(StrictModel):
-    """The unit stored in the registry: a submission plus its review verdict."""
+    """The unit stored in the registry: a submission plus its review verdict.
+
+    Loading resolves a slim record's evidence references (:mod:`.evidence`, issue #3254).
+    """
 
     submission: NeuronAuditSubmission
     verdict: VerificationVerdict | None = None
+
+    @classmethod
+    def model_validate_json(cls, json_data, **kwargs) -> AuditRecord:  # noqa: D102
+        return super().model_validate_json(evidence.resolved_text(json_data), **kwargs)
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs) -> AuditRecord:  # noqa: D102
+        text = evidence.resolved_dict_text(obj)
+        if text is None:
+            return super().model_validate(obj, **kwargs)
+        return super().model_validate_json(text, **kwargs)
 
     @property
     def is_verified(self) -> bool:

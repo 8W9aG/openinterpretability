@@ -8,7 +8,7 @@ results of every VERIFIED record from an older protocol, with no model:
   ``not_default_on`` gate needs.
 - a record measured with different settings (activation threshold or counterfactual
   tolerances) has probe results that today's settings would not give. It is counted as
-  needing ``openinterp reevaluate``, which measures again.
+  needing ``open-interpretability reevaluate``, which measures again.
 
     uv run python scripts/protocol_mix.py [--out docs/analyses/protocol-mix.json]
 """

@@ -1,6 +1,6 @@
 ---
 name: explanation-judge
-description: Judge for one `openinterp score` task or one benchmark unit. Give it the path of one judge prompt, written by `openinterp score --emit-task` (score.detection.prompt.md or score.fuzzing.prompt.md), or by `openinterp benchmark score --prompts-dir` (UNIT.prompt.md). It applies the explanation literally to the texts and writes the answer JSON to the path the prompt names. Never give one judge both prompts. Use instead of an API-key judge when scoring explanations from Claude Code.
+description: Judge for one `open-interpretability score` task or one benchmark unit. Give it the path of one judge prompt, written by `open-interpretability score --emit-task` (score.detection.prompt.md or score.fuzzing.prompt.md), or by `open-interpretability benchmark score --prompts-dir` (UNIT.prompt.md). It applies the explanation literally to the texts and writes the answer JSON to the path the prompt names. Never give one judge both prompts. Use instead of an API-key judge when scoring explanations from Claude Code.
 tools: Read, Write
 model: haiku
 ---

@@ -1,11 +1,11 @@
 # Smaller driver models: pilot
 
-Run on 2026-10-31 (TODO "Performance"). Question: `openinterp next --steps` and `openinterp show` (PR #1401) now do the work the driving session used to do from the skills and the JSON. Can a smaller model drive an experiment end to end as reliably as Opus, and what does it save?
+Run on 2026-10-31 (TODO "Performance"). Question: `open-interpretability next --steps` and `open-interpretability show` (PR #1401) now do the work the driving session used to do from the skills and the JSON. Can a smaller model drive an experiment end to end as reliably as Opus, and what does it save?
 
 ## Method
 
 - **Arms.** Two `scripts/experiment-loop.sh` runs of 4 experiments each, one with `--driver claude-sonnet-5-5` and one with `--driver claude-haiku-5-5`. The two runs went in parallel, each in its own worktree, from `origin/main` at b41d6a18.
-- **Everything else fixed.** Both arms used `--proposer external/claude-opus-5-5 --reviewer external/claude-sonnet-5-5`, so the `neuron-proposer` (opus), `neuron-reviewer` (sonnet) and `explanation-judge` (haiku) subagents answered. The subagents pin their own models, so the driver never wrote a hypothesis, a probe or a judgement. Every draw was a real `openinterp next` draw and landed in the registry. Nothing was synthesised for the pilot.
+- **Everything else fixed.** Both arms used `--proposer external/claude-opus-5-5 --reviewer external/claude-sonnet-5-5`, so the `neuron-proposer` (opus), `neuron-reviewer` (sonnet) and `explanation-judge` (haiku) subagents answered. The subagents pin their own models, so the driver never wrote a hypothesis, a probe or a judgement. Every draw was a real `open-interpretability next` draw and landed in the registry. Nothing was synthesised for the pilot.
 - **Baseline.** The 38 Opus single-experiment sessions in this project's Claude Code transcripts from 2026-10-19. They ran `choose-next-experiment` up to an open PR, without `--steps` or `show` and without land-experiment's build, CI wait and merge. So they are a reference point, not a matched arm.
 - **Measures.** Read from each session's transcript, counting the driver's own turns only, not its subagents':
   - *Completion:* a `RESULT` line and a merged PR with no help.
@@ -65,7 +65,7 @@ Run the same day, after the first pilot: one `--driver claude-haiku-5-5` loop of
 - **Cost.** About $0.056 per experiment (median 44 turns, 2.76M input tokens). That is more than the first pilot's $0.04, because Qwen scans meant longer waits and more checks. It is still about 7 times cheaper than Sonnet's first-pilot $0.41, which came from easier draws.
 - **Errors.** Haiku makes more slips than Sonnet did, but it noticed and recovered from each one itself except the draft PR. Fixes from this pilot:
   - `--steps` now says a stopped scan's PR must be landed, not left as a draft. It said "post it", which Haiku read as "comment on it".
-  - `experiment-loop.sh` runs `uv sync` before each session. A fresh worktree's venv build had buried the first `openinterp next` output, and that is why Haiku ran it twice.
+  - `experiment-loop.sh` runs `uv sync` before each session. A fresh worktree's venv build had buried the first `open-interpretability next` output, and that is why Haiku ran it twice.
 - **Still untested:** a `revise` or `new_hypothesis` draw (`--supersedes`), a failing CI check and a merge conflict. None came up in 16 draws.
 
 ## Conclusion

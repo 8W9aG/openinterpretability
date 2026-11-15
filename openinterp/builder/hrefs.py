@@ -13,6 +13,16 @@ def circuits_href(slug: str) -> str:
     return f"models/{slug}/circuits.html"
 
 
+def circuit_href(slug: str, key: str) -> str:
+    """One circuit's page, named after its root unit's key (``builder.circuits.unit_key``)."""
+    return f"models/{slug}/circuits/{key}.html"
+
+
+def hub_href(slug: str, key: str) -> str:
+    """One hub's page, named after the hub unit's key."""
+    return f"models/{slug}/hubs/{key}.html"
+
+
 def layer_href(slug: str, layer: int) -> str:
     """The layer's index page."""
     return f"models/{slug}/L{layer}/index.html"
@@ -31,6 +41,29 @@ def head_href(slug: str, layer: int, idx: int) -> str:
 def feature_href(slug: str, layer: int, dictionary: str, idx: int) -> str:
     """The dictionary feature's page."""
     return f"models/{slug}/L{layer}/{dictionary}/F{idx}.html"
+
+
+def superposition_href(slug: str, layer: int, superposition_id: str) -> str:
+    """The superposition's page."""
+    return f"models/{slug}/L{layer}/S{superposition_id}.html"
+
+
+def unit_href(ident) -> str:
+    """The page of the neuron, head, feature or superposition ``ident`` names."""
+    if ident.kind == "dictionary_feature":
+        return feature_href(ident.model_slug, ident.layer, ident.dictionary, ident.index)
+    if ident.kind == "superposition":
+        return superposition_href(ident.model_slug, ident.layer, ident.superposition_id)
+    href = head_href if ident.kind == "attn_head" else neuron_href
+    return href(ident.model_slug, ident.layer, ident.index)
+
+
+def experiment_href(slug: str, experiment_id: str) -> str:
+    """The experiment's page, at the path of its record under ``wiki/experiments/``.
+
+    ``slug`` is the unit's identifier slug, for a neuron its pole's (``…/L3/N7-positive``).
+    """
+    return f"models/{slug}/{experiment_id}.html"
 
 
 def user_href(handle: str) -> str:

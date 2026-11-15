@@ -12,11 +12,11 @@ description: Feature-first neuron search with sparse probing. Given a labelled c
 
 ## Procedure
 
-1. **Build a labelled set.** Collect token-level or sequence-level examples with and without the concept from **two independent sources** (e.g. GitHub vs StackOverflow for "Python code"). Balance the classes. For concepts with human annotations, `openinterp concepts` writes them as spans, with a sidecar pinning the source:
+1. **Build a labelled set.** Collect token-level or sequence-level examples with and without the concept from **two independent sources** (e.g. GitHub vs StackOverflow for "Python code"). Balance the classes. For concepts with human annotations, `open-interpretability concepts` writes them as spans, with a sidecar pinning the source:
    ```bash
-   uv run openinterp concepts --dataset ud-upos                     # list the labels and counts
-   uv run openinterp concepts --dataset ud-upos --label PROPN --out propn-ud.jsonl
-   uv run openinterp concepts --dataset conll2003-pos --label NNP --out nnp-conll.jsonl  # second source
+   uv run open-interpretability concepts --dataset ud-upos                     # list the labels and counts
+   uv run open-interpretability concepts --dataset ud-upos --label PROPN --out propn-ud.jsonl
+   uv run open-interpretability concepts --dataset conll2003-pos --label NNP --out nnp-conll.jsonl  # second source
    ```
    Presets: `conll2003-ner` (PER, ORG, LOC, MISC), `conll2003-pos` (Penn tags), `ud-upos` and `ud-deprel` (`--subset <treebank>`, e.g. `en_gum`, `fr_gsd`), `language-identification` (20 languages) and `ag_news` (World, Sports, Business, Sci/Tech). Document classes are balanced already. Word tags are not. The files are `probe-compare`'s `--train`/`--test` format. Pairs of sources: UD `en_ewt` vs `en_gum` or CoNLL Penn tags for parts of speech. `language-identification` vs a `wikipedia-multilingual` corpus for language. NER and topic have one preset each, so take their second source from elsewhere.
 2. **Cache activations.**
@@ -34,7 +34,7 @@ description: Feature-first neuron search with sparse probing. Given a labelled c
        return (ranks[labels].sum() - pos * (pos - 1) / 2) / (pos * (~labels).sum())
    ```
 4. **Hold out the second dataset.** Keep only neurons whose AUROC holds within about 0.05 on source B.
-5. **Audit the survivors** with `openinterp audit --layer L --neuron N --pole P`. The probe's concept is a *prior*, not the hypothesis. Run the full scan, because the neuron may encode something narrower or broader.
+5. **Audit the survivors** with `open-interpretability audit --layer L --neuron N --pole P`. The probe's concept is a *prior*, not the hypothesis. Run the full scan, because the neuron may encode something narrower or broader.
 
 ## Fit with the protocol
 

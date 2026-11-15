@@ -48,7 +48,7 @@ def find_transcript(agent: str) -> Path:
 
 
 def usage_from_transcript(path: Path) -> ExternalUsage:
-    """Tokens per API request in a Claude Code transcript, for ``openinterp usage``.
+    """Tokens per API request in a Claude Code transcript, for ``open-interpretability usage``.
 
     Claude Code writes one line per content block, so a request can have many lines. The
     last line of each request holds its final usage.
@@ -119,9 +119,12 @@ def forbidden_reads(path: Path) -> tuple[list[str], list[str]]:
                 hit = forbidden(block["name"], block.get("input") or {}, cwd, cwd)
                 if hit is not None:
                     calls[block.get("id")] = (hit, True)
-            elif block.get("type") == "tool_result" and block.get("tool_use_id") in calls:
-                if block.get("is_error"):
-                    calls[block["tool_use_id"]] = (calls[block["tool_use_id"]][0], False)
+            elif (
+                block.get("type") == "tool_result"
+                and block.get("tool_use_id") in calls
+                and block.get("is_error")
+            ):
+                calls[block["tool_use_id"]] = (calls[block["tool_use_id"]][0], False)
     read = [hit for hit, completed in calls.values() if completed]
     tried = [hit for hit, completed in calls.values() if not completed]
     return list(dict.fromkeys(read)), list(dict.fromkeys(tried))

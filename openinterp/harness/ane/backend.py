@@ -10,7 +10,7 @@ scan runs on torch.
 
 The ANE computes in fp16, so its activations are about 1% from fp32. The scan therefore
 measures its top candidates again on the torch device (``TopExamples.rescore`` in
-``harness/scan.py``). Then the numbers that ``openinterp reproduce`` checks are exact.
+``harness/scan.py``). Then the numbers that ``open-interpretability reproduce`` checks are exact.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Experiment costs: the ledger every command appends to, and `openinterp costs`."""
+"""Experiment costs: the ledger every command appends to, and `open-interpretability costs`."""
 
 import json
 import os

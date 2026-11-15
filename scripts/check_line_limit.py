@@ -30,10 +30,10 @@ EXEMPT = (
     "tests/*",
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows
-    "data/pole-effects/*.json",  # generated tables (openinterp pole-effects)
+    "data/pole-effects/*.json",  # generated tables (open-interpretability pole-effects)
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
-    "benchmark/*.jsonl",  # frozen benchmark data (openinterp benchmark freeze)
+    "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
     "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
     "CHANGELOG.md",  # one file that grows with each release, not code

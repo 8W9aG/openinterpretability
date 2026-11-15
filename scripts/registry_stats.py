@@ -5,7 +5,7 @@ rates for the model's poles, not for the poles that an agent chose. The random d
 the scan stopped on (``wiki/draws/``) are outcomes too. The tables count them next to the
 audited units (``docs/analyses/registry-stats.md``).
 
-    uv run openinterp build --output-dir build/site
+    uv run open-interpretability build --output-dir build/site
     uv run python scripts/registry_stats.py --site-dir build/site \
         --out docs/analyses/registry-stats.jsonl
 """

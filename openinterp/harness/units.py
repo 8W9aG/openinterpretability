@@ -9,6 +9,9 @@ ablation the lookahead profile uses:
   residual stream and its mean write over the scan. z̄ is stored in
   :class:`~openinterp.core.schemas.HeadProfile`. Ablation replaces z with z̄ (mean
   ablation). So strength is exactly how far ablating the head moves the residual.
+* A superposition: the positive part of its unit direction over one layer's neurons. It is
+  scanned and ablated as latent 0 of an in-memory dictionary
+  (:mod:`openinterp.harness.superpositions`).
 * A dictionary feature: its latent's activation ``a_f`` (non-negative). Ablation removes
   its write ``a_f · W_dec[f]`` from the MLP output, or from the residual stream for a
   residual-stream SAE. The dictionary's error and every other latent stay as they were.
@@ -40,6 +43,7 @@ from openinterp.core.schemas import (
     FeatureIdentifier,
     HeadIdentifier,
     NeuronIdentifier,
+    SuperpositionIdentifier,
 )
 from openinterp.harness.dictionaries import Dictionary, load_dictionary
 from openinterp.harness.hooks import Inputs, NeuronHookRunner, ablate_head, ablate_pole
@@ -127,12 +131,22 @@ def head_strength(
 
 
 def unit_of(
-    ident: ComponentIdentifier, head_profile=None, dictionary_profile=None, skip_first=False
+    ident: ComponentIdentifier,
+    head_profile=None,
+    dictionary_profile=None,
+    skip_first=False,
+    superposition_profile=None,
 ) -> Unit:
     """Return the unit that ``ident`` names.
 
-    A head or a feature needs the profile that defines its strength.
+    A head, a feature or a superposition needs the profile that defines its strength.
     """
+    if isinstance(ident, SuperpositionIdentifier):
+        from openinterp.harness.superpositions import SuperpositionUnit
+
+        if superposition_profile is None:
+            raise ValueError(f"{ident} has no superposition profile, so its strength is undefined")
+        return SuperpositionUnit(ident, superposition_profile, skip_first)
     if isinstance(ident, HeadIdentifier):
         if head_profile is None:
             raise ValueError(f"{ident} has no head profile, so its strength is undefined")
@@ -152,7 +166,11 @@ def submission_unit(submission) -> Unit:
     """
     floor = bool(getattr(submission, "first_token_floor", None))
     return unit_of(
-        submission.identifier, submission.head_profile, submission.dictionary_profile, floor
+        submission.identifier,
+        submission.head_profile,
+        submission.dictionary_profile,
+        floor,
+        getattr(submission, "superposition_profile", None),
     )
 
 

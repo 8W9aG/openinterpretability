@@ -1,7 +1,8 @@
 """Identifiers of the units an experiment can audit.
 
 The units are MLP neuron poles, attention heads and the latents of published sparse
-dictionaries (transcoders, SAEs).
+dictionaries (transcoders, SAEs). A superposition is a unit too: a feature spread over
+several of one layer's neurons (issue #3215).
 """
 
 from __future__ import annotations
@@ -138,6 +139,49 @@ class FeatureIdentifier(_Component):
         return f"{self.model_name} {self.label} ({self.dictionary})"
 
 
+class SuperpositionIdentifier(_Component):
+    """Addresses one superposition: a sparse direction over one layer's MLP neurons.
+
+    Its members and weights are in the submission's
+    :class:`~openinterp.core.profiles.SuperpositionProfile`. ``superposition_id`` is a
+    hash of them (:func:`~openinterp.core.profiles.superposition_id`), so one direction
+    always has one id. Strength is the positive part of the direction, so there is no pole.
+    """
+
+    kind: Literal["superposition"] = "superposition"
+    superposition_id: str = Field(pattern=r"^[0-9a-f]{12}$")
+
+    @property
+    def pole(self) -> None:
+        """A superposition has no sign; lets code read ``ident.pole`` for any unit."""
+        return None
+
+    @property
+    def slug(self) -> str:
+        """``Qwen--Qwen2.5-0.5B/L3/S0123456789ab``: the path of its record and page."""
+        return f"{self.model_slug}/L{self.layer}/S{self.superposition_id}"
+
+    @property
+    def index(self) -> int:
+        """The direction's latent in its in-memory dictionary, which is always the first."""
+        return 0
+
+    @property
+    def feature_idx(self) -> int:
+        """The same as :attr:`index`, under the name that the dictionary code reads."""
+        return 0
+
+    noun: ClassVar[str] = "superposition"
+
+    @property
+    def label(self) -> str:
+        """``L3/S0123456789ab``: the unit within its model."""
+        return f"L{self.layer}/S{self.superposition_id}"
+
+    def __str__(self) -> str:
+        return f"{self.model_name} {self.label}"
+
+
 def _component_kind(value) -> str:
     kind = value.get("kind") if isinstance(value, dict) else getattr(value, "kind", None)
     return kind or "mlp_neuron_pole"  # records predating `kind` are neuron poles
@@ -146,8 +190,9 @@ def _component_kind(value) -> str:
 ComponentIdentifier = Annotated[
     Annotated[NeuronIdentifier, Tag("mlp_neuron_pole")]
     | Annotated[HeadIdentifier, Tag("attn_head")]
-    | Annotated[FeatureIdentifier, Tag("dictionary_feature")],
+    | Annotated[FeatureIdentifier, Tag("dictionary_feature")]
+    | Annotated[SuperpositionIdentifier, Tag("superposition")],
     Discriminator(_component_kind),
 ]
-"""Any auditable unit: an MLP neuron pole, an attention head or a dictionary feature, told
-apart by ``kind``."""
+"""Any auditable unit: an MLP neuron pole, an attention head, a dictionary feature or a
+superposition, told apart by ``kind``."""

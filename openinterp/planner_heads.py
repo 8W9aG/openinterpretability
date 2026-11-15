@@ -34,8 +34,8 @@ def head_share(pyproject: Path = Path("pyproject.toml")) -> float:
 
 
 def explore_audit(model: str, seed: int, window: int | None, unit: str | None = None) -> str:
-    """The ``openinterp audit`` command of a random explore draw."""
-    audit = f"openinterp audit --model {model} --random --seed {seed}"
+    """The ``open-interpretability audit`` command of a random explore draw."""
+    audit = f"open-interpretability audit --model {model} --random --seed {seed}"
     if unit:
         audit += f" --unit {unit}"
     if window:

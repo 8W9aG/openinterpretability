@@ -1,6 +1,6 @@
 """Device planning on a machine with CUDA GPUs: the first free GPU, else the CPU.
 
-A GPU is busy when another ``openinterp`` process has a lease on it (``cuda0``,
+A GPU is busy when another ``open-interpretability`` process has a lease on it (``cuda0``,
 ``cuda1``, … in the lease folder of ``harness/devices.py``). It is also busy when its
 utilization is more than the planner's threshold. That is the mean of
 :data:`~openinterp.harness.devices.GPU_SAMPLES` readings of ``nvidia-smi``. If every

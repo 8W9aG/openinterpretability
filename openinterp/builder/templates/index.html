@@ -37,7 +37,17 @@
   </p>
   {% if t.features %}
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-    Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a learned-basis baseline, {{ t.verified_features }} of them verified.
+    Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a>, {{ t.verified_features }} of them verified.
+  </p>
+  {% endif %}
+  {% if t.superpositions %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    Not in the verified units: {{ t.superpositions }} superpositions studied, {{ t.verified_superpositions }} of them verified. A superposition is a sparse direction over the neurons of one layer.
+  </p>
+  {% endif %}
+  {% if t.member_only %}
+  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    {{ t.neurons }} neurons studied, {{ t.member_only }} of them only as part of a superposition.
   </p>
   {% endif %}
   {% if stats.protocol_mix %}
@@ -51,7 +61,7 @@
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
     {{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.
     {% if t.verified %}So were {{ t.verified_self_reviewed }} of the {{ t.verified }} current verified claims.{% endif %}
-    That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">openinterp next</code> draws re-reviews of these.
+    That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">open-interpretability next</code> draws re-reviews of these.
   </p>
   {% endif %}
   {% if agreement.claims %}
@@ -91,41 +101,11 @@
 {% endif %}
 
 {% if stats.baseline %}
-<section class="mb-10" id="learned-baseline">
-  <h2 class="mb-1 text-lg font-semibold">Learned-basis baseline</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-    Are a model's own neurons as explainable as the latents of a sparse dictionary trained on its MLPs?
-    Randomly selected latents and randomly selected neuron poles of the same model and layers, scanned the same way and audited under the same protocol.
-    Each unit counts once, by its first experiment, so follow-ups don't favour either side. Intervals are 95% Wilson intervals;
-    p is a two-sided Fisher exact test of latents against positive poles (and against all poles). In a GELU MLP, such as GPT-2's, the negative pole sits in the activation's dip on most tokens, so no hard negative can pass; there the positive poles are the comparison.
-  </p>
-  {% for b in stats.baseline %}
-  <div class="mb-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <caption class="bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-400">
-        <span class="font-mono">{{ b.model_name }}</span> · <span class="font-mono">{{ b.dictionary }}</span> · layers {{ b.layers | first }}–{{ b.layers | last }} ·
-        {% if b.window_tokens %}{{ b.window_tokens }}-token windows{% else %}whole documents{% endif %} of corpus <span class="font-mono" title="{{ b.corpus_sha256 }}">{{ (b.corpus_sha256 or "?")[:8] }}</span> ·
-        explained variance {{ b.explained_variance | pct }} · mean L0 {{ b.mean_l0 | num(0) }}{% if b.dead_share is not none %} · <span title="Latents inactive on every scanned token: a random draw of one can't be audited, so they are not in the latents' row">dead latents {{ b.dead_share | pct }}</span>{% endif %}{% if b.p_positive is not none %} · p = {{ b.p_positive | pval }} vs positive poles{% endif %}{% if b.p_value is not none %} ({{ b.p_value | pval }} vs all){% endif %}
-      </caption>
-      <thead class="text-xs uppercase tracking-wide text-slate-500">
-        <tr><th class="px-3 py-2">Random units</th><th class="px-3 py-2 text-right">Audited</th><th class="px-3 py-2 text-right">Verified</th><th class="px-3 py-2 text-right">Share (95% CI)</th><th class="px-3 py-2 text-right">Balanced accuracy</th><th class="px-3 py-2 text-right" title="Random draws the scan stopped on, recorded in wiki/draws/: never active (dead), or active on at least half the scan's tokens (default-on)">Not auditable</th></tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200 tabular-nums dark:divide-slate-800">
-        {% for label, arm in [("Dictionary latents", b.features), ("Neuron poles", b.neurons), ("↳ positive poles", b.positive_poles), ("↳ negative poles", b.negative_poles)] %}
-        <tr>
-          <td class="px-3 py-2">{{ label }}</td>
-          <td class="px-3 py-2 text-right font-mono">{{ arm.units }}</td>
-          <td class="px-3 py-2 text-right font-mono">{{ arm.verified }}</td>
-          <td class="px-3 py-2 text-right font-mono">{% if arm.units %}{{ arm.share | pct }} ({{ arm.interval[0] | pct }}–{{ arm.interval[1] | pct }}){% else %}—{% endif %}</td>
-          <td class="px-3 py-2 text-right font-mono">{{ arm.mean_balanced_accuracy | num(2) }}</td>
-          <td class="px-3 py-2 text-right font-mono">{% if arm.dead or arm.default_on %}{% if arm.dead %}{{ arm.dead }} dead{% endif %}{% if arm.dead and arm.default_on %}, {% endif %}{% if arm.default_on %}{{ arm.default_on }} default-on{% endif %}{% else %}—{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endfor %}
-</section>
+<p class="mb-10 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  Are a model's own neurons as explainable as the latents of a sparse dictionary?
+  {% for b in stats.baseline %}On <span class="font-mono">{{ b.model_name }}</span>, {{ b.features.verified }} of {{ b.features.units }} random latents of <span class="font-mono">{{ b.dictionary }}</span> verified, against {{ b.positive_poles.verified }} of {{ b.positive_poles.units }} random positive poles. {% endfor %}
+  The <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a> page has the tables.
+</p>
 {% endif %}
 
 <section class="mb-10">
@@ -137,10 +117,10 @@
     {% set pc = pieces.model_pieces(m) %}
     <a href="{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: openinterp next draws most new neurons from it.">explore focus</span>{% endif %}</span>
+        <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: open-interpretability next draws most new neurons from it.">explore focus</span>{% endif %}</span>
         <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
           {{ m.experiments }} experiments ·
-          {{ m.neurons }}/{{ m.total_neurons | thousands }} neurons studied ({{ m.coverage | pct_fine }}) ·
+          {{ m.neurons_studied }}/{{ m.total_neurons | thousands }} neurons studied{% if m.member_only %}, {{ m.member_only }} of them only as part of a superposition{% endif %} ({{ m.coverage | pct_fine }}) ·
           {% set v = explore.models[m.name] %}{{ v.verified }}/{{ m.total_neurons | thousands }} verified ({{ (v.verified / m.total_neurons if m.total_neurons else none) | pct_fine }}; target {{ '{:g}%'.format(100 * explore.target) }}){% if v.dead %}, {{ v.dead }} of them proven dead{% endif %}
         </span>
       </div>
@@ -279,7 +259,7 @@
           <td class="px-3 py-2">{% if c.standing.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ c.standing.lead.record.submission.natural_language_explanation | truncate(140) }}</td>
           <td class="space-y-1 px-3 py-2 text-xs">
             {% for r in c.standing.readings %}
-            <div class="flex flex-wrap items-center gap-2"><a href="{{ c.unit.href }}#{{ r.anchor }}">{{ status_badge(r.record.verdict.status) }}</a><a class="font-mono text-slate-500 underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a></div>
+            <div class="flex flex-wrap items-center gap-2"><a href="{{ r.href }}">{{ status_badge(r.record.verdict.status) }}</a><a class="font-mono text-slate-500 underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a></div>
             {% endfor %}
           </td>
         </tr>

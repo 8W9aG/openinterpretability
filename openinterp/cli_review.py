@@ -1,4 +1,4 @@
-"""``openinterp review``: adversarially review a submission and post the experiment."""
+"""``open-interpretability review``: adversarially review a submission and post the experiment."""
 
 from __future__ import annotations
 
@@ -61,14 +61,14 @@ from openinterp.core.schemas import MAX_PROBES
     "--dictionary-latents",
     is_flag=True,
     help="Show the reviewer the published dictionary latents aligned with the pole "
-    "(`openinterp crossref`) and their descriptions, fetched from Neuronpedia.",
+    "(`open-interpretability crossref`) and their descriptions, fetched from Neuronpedia.",
 )
 @click.option(
     "--sisters/--no-sisters",
     default=True,
     show_default=True,
     help="Show the reviewer the pole's sister neurons in other models that this registry "
-    "has studied (`openinterp sisters`), with their explanations.",
+    "has studied (`open-interpretability sisters`), with their explanations.",
 )
 @click.option("--out", type=click.Path(path_type=Path), help="Also write the record here.")
 @explanation_scores_option
@@ -105,14 +105,13 @@ def verify(
 ):
     """Adversarially review a submission and post it as a new experiment.
 
-    Every review records explanation scores on held-out text (`openinterp score`). Pass
+    Every review records explanation scores on held-out text (`open-interpretability score`). Pass
     them with --explanation-scores; in one step (no --probes), they are measured here.
     """
     from openinterp.agents.base import DEFAULT_MODEL
     from openinterp.agents.reviewer import ReviewerAgent
     from openinterp.cli import _add_costs, _load_unit_runner, _write_copy, _write_wiki
     from openinterp.cli_score import load_scores, score_submission
-    from openinterp.core.agent_names import same_agent
     from openinterp.core.schemas import AuditRecord
 
     submission = load_submission(audit_file)
@@ -126,15 +125,10 @@ def verify(
     check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus)
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
-    if same_agent(reviewer.model, submission.submitting_agent_model):
-        click.echo(
-            f"warning: {reviewer.model} both proposed and reviewed this, so the review is not "
-            "independent. It will be recorded and badged as self-reviewed; a different "
-            "reviewer model is preferred (docs/PROTOCOL.md §2).",
-            err=True,
-        )
+    warn_self_review(reviewer.model, submission)
     probes = review_probes(reviewer, submission, probes_file, n_probes, full_snippets, latents)
     runner = _load_unit_runner(submission.identifier, device, dtype)
+    warn_unequal_lengths(probes, runner, submission)
     if scores is None:  # one step: score here, on the scan's corpus (checked above)
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
@@ -235,7 +229,8 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
         )
     if scores_file is None and (probes_file is not None or corpus is None):
         raise click.UsageError(
-            "--explanation-scores is required (from `openinterp score`, docs/PROTOCOL.md §4); "
+            "--explanation-scores is required (from `open-interpretability score`, "
+            "docs/PROTOCOL.md §4); "
             "without --probes, --corpus <the scan's corpus> also works."
         )
 
@@ -243,7 +238,7 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
 def refuse_unisolated(probes_file: Path) -> None:
     """Stop if the usage file of ``probes_file`` says that the reviewer read blocked paths.
 
-    ``openinterp usage`` writes that list from the reviewer's transcript
+    ``open-interpretability usage`` writes that list from the reviewer's transcript
     (``openinterp/core/isolation.py``). With no usage file, nothing is checked.
     """
     from openinterp.core.costs import ExternalUsage, usage_path
@@ -256,6 +251,30 @@ def refuse_unisolated(probes_file: Path) -> None:
             f"The reviewer that wrote {probes_file} read blocked paths ({', '.join(read)}). "
             "They can hold probe activations (docs/PROTOCOL.md §2). Ask a new reviewer."
         )
+
+
+def warn_self_review(reviewer_model: str, submission) -> None:
+    """Warn when the reviewer model also proposed the hypothesis."""
+    from openinterp.core.agent_names import same_agent
+
+    if same_agent(reviewer_model, submission.submitting_agent_model):
+        click.echo(
+            f"warning: {reviewer_model} both proposed and reviewed this, so the review is not "
+            "independent. It will be recorded and badged as self-reviewed; a different "
+            "reviewer model is preferred (docs/PROTOCOL.md §2).",
+            err=True,
+        )
+
+
+def warn_unequal_lengths(probes, runner, submission) -> None:
+    """Warn when the probe groups differ in length, as advice and not a gate (issue #3525)."""
+    from openinterp.harness.confounds import length_warning
+
+    if runner.tokenizer is None:
+        return
+    unequal = length_warning(probes, runner.tokenizer, bool(submission.first_token_floor))
+    if unequal:
+        click.echo(f"warning: {unequal}", err=True)
 
 
 def review_probes(

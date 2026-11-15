@@ -1,4 +1,4 @@
-"""``openinterp concepts``: a labelled concept set from an annotated dataset.
+"""``open-interpretability concepts``: a labelled concept set from an annotated dataset.
 
 See :mod:`openinterp.concepts` for the presets and how labels become spans.
 """
@@ -37,7 +37,7 @@ def concepts(preset, label, split, subset, column, documents, seed, max_chars, o
     """Write a concept set from human-annotated labels.
 
     The set is JSON lines of {"text": ..., "spans": [[start, end], ...]}. Use it for
-    `openinterp probe-compare --train/--test`, sparse-probing searches and reviewers'
+    `open-interpretability probe-compare --train/--test`, sparse-probing searches and reviewers'
     positive holdouts.
 
     Word tags (conll2003-*, ud-*) mark each tagged word; document classes

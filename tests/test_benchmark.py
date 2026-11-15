@@ -270,3 +270,45 @@ def test_measure_appends_fresh_test_labels_from_the_model(
     for row in rows:
         strength = toy_runner.max_pole_strength(row["text"], 1, 2, "positive")
         assert row["active"] == (strength >= threshold)
+
+
+def _units(n, split="dev"):
+    return [bench.Unit(unit=f"m/L{i // 10}/N{i}-positive", model="m", model_revision=None,
+                       layer=i // 10, neuron=i, pole="positive", split=split)
+            for i in range(n)]  # fmt: skip
+
+
+def test_a_shuffled_order_is_a_fixed_random_sample_of_the_split():
+    units = _units(200)
+    assert bench.ordered(reversed(units), "slug", "v1") == sorted(units, key=lambda u: u.unit)
+    shuffled = bench.ordered(units, "shuffled", "v1")
+    assert shuffled == bench.ordered(list(reversed(units)), "shuffled", "v1")  # input order
+    assert shuffled != bench.ordered(units, "shuffled", "v2")  # salted by the version
+    first = shuffled[:50]
+    assert len({u.layer for u in first}) >= 15  # spread over the 20 layers, not layers 0-4
+    # One more unit in the split doesn't move the others relative to each other.
+    grown = bench.ordered([*units, *_units(201)[200:]], "shuffled", "v1")
+    assert [u for u in grown if u.neuron < 200] == shuffled
+    with pytest.raises(ValueError, match="unknown order"):
+        bench.ordered(units, "random", "v1")
+
+
+def test_a_partial_run_says_whether_it_is_a_random_sample(tmp_path, record, monkeypatch):
+    import openinterp.cli_benchmark as cli_benchmark
+
+    records = [make_record(record, idx=i, results=balanced(str(i)), text="Fires on fire.")
+               for i in range(1, 5)]  # fmt: skip
+    bench.write(bench.freeze(records, "v1", test_fraction=0.0), tmp_path / "v1")
+    monkeypatch.setattr(
+        cli_benchmark, "_judge", lambda model: lambda u, e, ts: ["fire" in t for t in ts]
+    )
+    args = ["benchmark", "score", "--bench", str(tmp_path / "v1"), "--explanations", "registry",
+            "--judge-model", "openai/judge", "--limit", "2"]  # fmt: skip
+    for order, sample in (("slug", False), ("shuffled", True)):
+        out = tmp_path / f"{order}.jsonl"
+        result = CliRunner().invoke(cli, [*args, "--order", order, "--out", str(out)])
+        assert result.exit_code == 0, result.output
+        assert ("not a random sample" in result.output) is not sample
+        summary = json.loads((tmp_path / f"{order}.summary.json").read_text())
+        assert (summary["order"], summary["random_sample"]) == (order, sample)
+        assert (summary["units"], summary["split_units"]) == (2, 4)

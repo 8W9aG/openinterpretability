@@ -203,7 +203,7 @@ def sync_directory(
     """Sync ``dist_dir`` to ``bucket``; with ``dry_run``, only log what would change."""
     dist_dir = Path(dist_dir)
     if not dist_dir.is_dir():
-        raise SyncError(f"{dist_dir} is not a directory; run `openinterp build` first")
+        raise SyncError(f"{dist_dir} is not a directory; run `open-interpretability build` first")
     if prefix and not prefix.endswith("/"):
         prefix += "/"
 

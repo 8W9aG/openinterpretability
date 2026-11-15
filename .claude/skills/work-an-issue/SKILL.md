@@ -36,12 +36,15 @@ Open work is in GitHub issues, and Linear mirrors them (`docs/development.md`, *
    - anything out of scope, and the issue that holds it (open one if none exists).
 
    If the plan would change the decision rule, say so. That needs a `PROTOCOL_VERSION` bump (`docs/PROTOCOL.md` §6).
-4. **Post every deviation when it happens.** A deviation is any change to the plan's steps, files, scope or definition of done. A bug you find, a result that changes the approach, a step that can't run here, a unit dropped from a sample: each counts. Post one comment that starts with `**Deviation**`. It says what changed, why, and what it means for the result. Don't save deviations for the end, and don't edit the plan comment.
-5. **Open the PR.** Its body starts with `Closes #<number>`. Its changelog entry is a fragment, `changelog.d/<number>.<type>.md` (`changelog.d/README.md`), never an edit to `CHANGELOG.md`. Then:
+
+   **A research question produces a paper.** An issue labelled `area: research questions` is done only when its result is a paper in `papers/<paper>/`, written with the `write-paper` skill. A `docs/analyses/` page can hold the data, but it isn't the deliverable. The maintainer decided this on 2026-11-14. Its plan names the paper and its figures.
+4. **Ask with a `**Question**` comment.** When the work needs the maintainer's decision, post one comment that starts with `**Question**`, with numbered options when there are any. Then stop, and leave the issue in its state. `scripts/next_issue.py` offers the issue again once the maintainer replies (`next-issue`, *Resume an answered issue*). Start every comment you post with a bold marker such as `**Plan**`, `**Deviation**`, `**Question**` or `**Shipped**`, because the script reads any other comment as the maintainer's.
+5. **Post every deviation when it happens.** A deviation is any change to the plan's steps, files, scope or definition of done. A bug you find, a result that changes the approach, a step that can't run here, a unit dropped from a sample: each counts. Post one comment that starts with `**Deviation**`. It says what changed, why, and what it means for the result. Don't save deviations for the end, and don't edit the plan comment.
+6. **Open the PR.** Its body starts with `Closes #<number>`. Its changelog entry is a fragment, `changelog.d/<number>.<type>.md` (`changelog.d/README.md`), never an edit to `CHANGELOG.md`. Then:
    ```bash
    python3 scripts/issue_state.py <number> "In Review"
    ```
-6. **Post what shipped.** One comment starting `**Shipped**`, with the PR link, how the result compares with the plan's definition of done, and what is left. Each item that is left gets a new issue in the same Linear project, linked here.
+7. **Post what shipped.** One comment starting `**Shipped**`, with the PR link, how the result compares with the plan's definition of done, and what is left. Each item that is left gets a new issue in the same Linear project, linked here. For an open-ended issue, such as a research question, the PR still says `Closes #<number>`, and a new follow-up issue carries the question on. The maintainer decided this on 2026-11-14.
 
 ## New work found on the way
 

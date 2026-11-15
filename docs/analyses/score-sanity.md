@@ -1,4 +1,4 @@
-# Sanity checks on the metrics of `openinterp score`
+# Sanity checks on the metrics of `open-interpretability score`
 
 Run on 2026-11-14 for issue #3237, with `scripts/score_sanity.py`. The numbers are in `score-sanity.json`. Reported, not gated.
 
@@ -14,7 +14,7 @@ The issue also asks for a third check: shuffled explanations. The null-explanati
 - **Data.** Every stored score: 2,301 neuron-pole records with explanation scores. Each record stores, for every detection and fuzzing window, the judge's answer and the measured label (active or not).
 - **Mapping.** In the paper, the explanation's concept labels are perturbed and the unit's activations stay fixed. Here the judge's answers play the part of the explanation's labels, and the measured labels stay fixed. So the tests need no new judge calls.
 - **Perturbation.** For *missing labels*, each "active" answer turns to "inactive" with probability p. For *extra labels*, each "inactive" answer turns to "active" with probability p. The rates are p = 0.1, 0.2, 0.3 and 0.5, with 20 seeded draws per score and rate.
-- **Metrics.** Balanced accuracy, which `openinterp score` reports. Recall and precision alone, which the paper expects to fail one test each. And F1.
+- **Metrics.** Balanced accuracy, which `open-interpretability score` reports. Recall and precision alone, which the paper expects to fail one test each. And F1.
 - **Outcome.** For each metric, the mean change over scores, and the share of scores where it falls (a tie is no fall). The shares are split by whether the judge's answers beat chance on that score, meaning that its recall is above its false-positive rate.
 
 ## Result
@@ -48,7 +48,7 @@ The rest of the scores above chance are noise: 20 draws can miss a small fall wh
 
 ## What this means
 
-- **`openinterp score` reports the right metric.** Balanced accuracy passes both of the paper's tests on every stored score where it can, and the shuffled-explanation control already passed. Recall alone would reward an explanation that claims too much, and precision alone one that claims too little.
+- **`open-interpretability score` reports the right metric.** Balanced accuracy passes both of the paper's tests on every stored score where it can, and the shuffled-explanation control already passed. Recall alone would reward an explanation that claims too much, and precision alone one that claims too little.
 - **Don't add F1 to the score.** On balanced samples it rewards extra claims.
 - **A score at chance says nothing about the explanation.** A quarter of the registry's stored scores are there. A single score near 0.5 does not mean that the explanation is wrong. It means that the judge could not use it. That fits `verified-vs-detection.md`, where VERIFIED records score only about 4 points above other records, within judge.
 

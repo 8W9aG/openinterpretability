@@ -36,6 +36,7 @@ from openinterp.harness.units import FeatureUnit
 from openinterp.planner import plan_next
 from openinterp.reproduce import reproduce_record
 from tests.conftest import FakeTokenizer
+from tests.site_pages import unit_pages
 from tests.test_agents import SMALL
 
 FEATURE = FeatureIdentifier(model_name="tiny-gpt2", layer=1, dictionary="tiny-tc", feature_idx=5)
@@ -453,7 +454,7 @@ def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatc
     assert "[wiki home](../../../../../README.md)" in text
 
     report = compile_site([record], tmp_path / "dist")
-    html = (tmp_path / "dist" / "models" / "tiny-gpt2" / "L1" / "tiny-tc" / "F5.html").read_text()
+    html = unit_pages(tmp_path / "dist" / "models" / "tiny-gpt2" / "L1" / "tiny-tc" / "F5.html")
     assert "tiny-tc latent" in html and "Explained variance" in html
     assert 'href="../../../../index.html"' in html  # one directory deeper than a neuron
     assert f'href="{np_page}"' in html  # the latent's page where Neuronpedia hosts it
@@ -470,7 +471,9 @@ def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatc
 
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     assert "opposite_pole" not in {c.kind for c in plan.candidates}
-    audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
+    audits = [
+        cmd for c in plan.candidates for cmd in c.commands if "open-interpretability audit" in cmd
+    ]
     assert audits and all("--dictionary tiny-tc --feature 5" in cmd for cmd in audits)
     assert not any("--pole" in cmd for cmd in audits)
 

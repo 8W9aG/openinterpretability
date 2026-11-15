@@ -1,5 +1,6 @@
-"""``openinterp patchscope-baseline``: the Patchscope readout as a blind proposer baseline.
+"""The Patchscope readout as a blind proposer baseline.
 
+The command is ``open-interpretability patchscope-baseline``.
 See :mod:`openinterp.baseline` for the rule and the comparison.
 """
 
@@ -242,6 +243,7 @@ def _task(record, explanation: str):
         identifier=sub.identifier,
         head_profile=sub.head_profile,
         dictionary_profile=sub.dictionary_profile,
+        superposition_profile=sub.superposition_profile,
         explanation=explanation,
         threshold=scores.threshold,
         window_tokens=scores.window_tokens,

@@ -1,4 +1,7 @@
-"""`openinterp explain` (openinterp/explain.py, issue #3250), on the conftest's toy model."""
+"""`open-interpretability explain` (openinterp/explain.py), on the conftest's toy model.
+
+The issue is #3250.
+"""
 
 import json
 

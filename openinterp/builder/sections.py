@@ -5,6 +5,7 @@ from __future__ import annotations
 from importlib.metadata import metadata
 from pathlib import Path
 
+from openinterp import DISTRIBUTION
 from openinterp.builder.research import copy_assets, load_papers
 from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.schemas import ReviewPolicy
@@ -12,7 +13,7 @@ from openinterp.core.schemas import ReviewPolicy
 
 def render_reference_pages(render, papers_dir: Path | None, report) -> None:
     """Write the About page and the Research section."""
-    license = metadata("openinterp")["License-Expression"]
+    license = metadata(DISTRIBUTION)["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, report)
 

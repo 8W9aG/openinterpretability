@@ -1,0 +1,27 @@
+{
+  "machine": {
+    "platform": "macOS-15.6-arm64-arm-64bit",
+    "processor": "arm",
+    "cpus": 10,
+    "python": "3.12.0",
+    "torch": "2.14.1",
+    "device": "cpu"
+  },
+  "workloads": {
+    "scan": {
+      "wall_s": 56.89,
+      "cpu_s": 130.02,
+      "peak_mb": 1389.94
+    },
+    "reproduce": {
+      "wall_s": 29.76,
+      "cpu_s": 51.55,
+      "peak_mb": 1325.41
+    },
+    "build": {
+      "wall_s": 58.03,
+      "cpu_s": 157.13,
+      "peak_mb": 3979.09
+    }
+  }
+}

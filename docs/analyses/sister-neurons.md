@@ -1,6 +1,6 @@
 # Sister neurons across models
 
-`openinterp sisters` matches each VERIFIED neuron pole with the poles of another model whose activity over the corpus correlates best with it (docs/PROTOCOL.md §4, *Sister neurons*). This note reports the first run. Rows: `sister-neurons.jsonl`. Run 2026-11-01.
+`open-interpretability sisters` matches each VERIFIED neuron pole with the poles of another model whose activity over the corpus correlates best with it (docs/PROTOCOL.md §4, *Sister neurons*). This note reports the first run. Rows: `sister-neurons.jsonl`. Run 2026-11-01.
 
 ## Method
 
@@ -17,6 +17,8 @@ Both models read `corpus.jsonl` (500 pile-10k documents), one document per forwa
 For each source pole, every pole of every layer of the other model is a candidate. That is 501,760 for Qwen2.5-1.5B (28 layers × 8,960 neurons × 2 poles), 73,728 for GPT-2 and 233,472 for Qwen2.5-0.5B. The 5 best by Pearson correlation are kept. A second pass finds each match's best partner among all of the source model's poles, and the rotated reference at the top match's layer.
 
 The 0.5B → 1.5B pair took about 30 minutes for each pass. Each GPT-2 pair took a few minutes.
+
+Since issue #3262, one search covers every pair in four stages (`openinterp/harness/sister_passes.py`). Each stage reads each model once, with one model loaded at a time, so the cost no longer grows with the number of pairs. On the first 40 documents of `corpus.jsonl`, with all six pairs and 1,048 rows, it took 14.3 minutes against 26.0. The peak memory footprint was 18.4 GB against 51.1 GB. The rows were equal to the search per pair's, except one `rotated` value that differs by 0.0001.
 
 ## Results
 
@@ -36,7 +38,7 @@ The 0.5B → 1.5B pair took about 30 minutes for each pass. Each GPT-2 pair took
 
 ## First sister studies
 
-Two sister studies, the strongest sister in each direction between GPT-2 and Qwen2.5-0.5B, run 2026-11-01 through `openinterp audit --sister-of` (proposer claude-opus-5-5, reviewer claude-sonnet-5-5, judges claude-haiku-5-5). Each tests the VERIFIED explanation on its sister unchanged.
+Two sister studies, the strongest sister in each direction between GPT-2 and Qwen2.5-0.5B, run 2026-11-01 through `open-interpretability audit --sister-of` (proposer claude-opus-5-5, reviewer claude-sonnet-5-5, judges claude-haiku-5-5). Each tests the VERIFIED explanation on its sister unchanged.
 
 | Sister | Explanation tested | r | Verdict | Balanced accuracy | Failed |
 | --- | --- | --- | --- | --- | --- |
@@ -47,7 +49,7 @@ Two sister studies, the strongest sister in each direction between GPT-2 and Qwe
 
 **The separator detector carries over only in part.** Every hard negative and counterfactual passed: the GPT-2 pole fires on detached dashes, slashes, pipes and bullets and not on the same glyphs attached. But it ignores ` >` and ` +`, which the Qwen explanation puts in its strongest family, so two holdouts failed. Its line-start weakening didn't hold either (the proposer measured 0.96 of max after a newline). At layer 0 token identity explains it fully (baseline 1.00), so the explanation's conditions add nothing a token list doesn't. It is the same concept, with a narrower set of glyphs.
 
-The source poles' pages now link to these sisters with each study's verdict, and the sisters' pages link back to the experiment they tested. The other 17 GPT-2 ↔ Qwen sisters are open `sister` draws in `openinterp next`. So are their other matches and random poles of the other model, at much lower weight. The random poles are the control for whether matching finds explanations that carry over. Qwen2.5-1.5B has since joined the configured models, so its 53 sisters are open draws too.
+The source poles' pages now link to these sisters with each study's verdict, and the sisters' pages link back to the experiment they tested. The other 17 GPT-2 ↔ Qwen sisters are open `sister` draws in `open-interpretability next`. So are their other matches and random poles of the other model, at much lower weight. The random poles are the control for whether matching finds explanations that carry over. Qwen2.5-1.5B has since joined the configured models, so its 53 sisters are open draws too.
 
 ## Limits
 

@@ -7,7 +7,7 @@ build then records them in the same order as one process does. With one job, or 
 ``fork`` on the platform, the pages render in this process, one by one.
 
 A fork is safe while the build runs no other thread, and the build starts none. If that
-changes, Python warns at the fork, and ``openinterp build --jobs 1`` avoids it.
+changes, Python warns at the fork, and ``open-interpretability build --jobs 1`` avoids it.
 """
 
 from __future__ import annotations
@@ -46,7 +46,8 @@ def render_in_parallel(render, page: Callable[..., None], items: Sequence[tuple]
             shares = list(pool.map(_render_share, range(jobs), [jobs] * jobs))
     finally:
         _WORK.clear()
-    written = sorted(pair for share in shares for pair in share)
+    # Sort by item only. The sort is stable, so one item's pages keep the order it wrote them.
+    written = sorted((pair for share in shares for pair in share), key=lambda pair: pair[0])
     render.report.pages.extend(path for _, path in written)
 
 

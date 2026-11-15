@@ -2,18 +2,18 @@
 
 Records cannot be rewritten. A maintainer who finds a bug that affected some of them
 appends an erratum to ``wiki/errata.jsonl``. Then they sign the file with
-``openinterp sign wiki/errata.jsonl``. Each line is one :class:`Erratum`. It names the
+``open-interpretability sign wiki/errata.jsonl``. Each line is one :class:`Erratum`. It names the
 records it covers (a list of record paths, a :class:`ErratumRule`, or both), the bug, and
 the commit that fixed it. It either lists :class:`Edit` objects for the records, or sets
 the records aside.
 
 The record files never change. The site build applies the edits to a copy of each covered
 record (:func:`apply_errata`). So pages, standings and ``registry.parquet`` read the
-corrected values. ``openinterp reproduce`` checks the corrected record, and skips a record
-that is set aside.
+corrected values. ``open-interpretability reproduce`` checks the corrected record, and skips a
+record that is set aside.
 
-``openinterp check`` verifies the file (:mod:`openinterp.errata_checks`). Errata have no
-page of their own. The site shows each erratum on the experiments it covers, with the old
+``open-interpretability check`` verifies the file (:mod:`openinterp.errata_checks`). Errata have
+no page of their own. The site shows each erratum on the experiments it covers, with the old
 and new value of each edit. The standing rule (:mod:`openinterp.builder.standing`) leaves
 out the records that are set aside.
 """
@@ -217,3 +217,28 @@ def _replace(data: Any, path: str, value: Any) -> Any:
         raise ValueError(f"the record has no field {path}") from None
     node[key] = value
     return before
+
+
+def corrected(record: AuditRecord, errata: Sequence[Erratum]) -> tuple[AuditRecord, bool]:
+    """``record`` with the edits of the errata that cover it, and whether one sets it aside."""
+    found = covering(errata, record)
+    return apply_errata(record, found)[0], any(erratum.set_aside for erratum in found)
+
+
+def standing_records(
+    records: Sequence[AuditRecord], errata: Sequence[Erratum]
+) -> list[AuditRecord]:
+    """The records that count toward a status, with their errata's edits applied.
+
+    This is the standing rule's first step (:mod:`openinterp.builder.standing`), for readers
+    that don't build the site's tree. A record that an erratum sets aside is left out. The
+    exception is a unit whose records are all set aside: then its status rests on them, so
+    they stay. The order of ``records`` is kept.
+    """
+    fixed = [(record, *corrected(record, errata)) for record in records]
+    counted = {r.submission.identifier.slug for r, _, aside in fixed if not aside}
+    return [
+        edited
+        for record, edited, aside in fixed
+        if not aside or record.submission.identifier.slug not in counted
+    ]

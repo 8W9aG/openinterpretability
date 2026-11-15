@@ -1,6 +1,6 @@
 """A document's language, for corpora whose dataset doesn't say it.
 
-Used by ``openinterp corpus --detect-lang``. The detector is fastText's ``lid.176``
+Used by ``open-interpretability corpus --detect-lang``. The detector is fastText's ``lid.176``
 (compressed, 176 languages). We compared it with lingua, langdetect and langid.py on
 labelled Wikipedia (``docs/analyses/language-detection.md``). It was the most accurate
 at every length and the fastest, and it alone is unsure of source code.

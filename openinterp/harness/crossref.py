@@ -90,7 +90,9 @@ def _seed(name: str) -> int:
     the "random" directions would be those weights. (Their cosine is 0.93 with
     Qwen2.5-0.5B's layer-0 transcoder.)
     """
-    return int.from_bytes(hashlib.sha256(f"openinterp crossref {name}".encode()).digest()[:8])
+    return int.from_bytes(
+        hashlib.sha256(f"open-interpretability crossref {name}".encode()).digest()[:8]
+    )
 
 
 def _null(runner: NeuronHookRunner, layer: int, latents: torch.Tensor, name: str) -> float:

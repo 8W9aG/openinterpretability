@@ -53,7 +53,7 @@ Running several loops on one machine is under Pipeline.
 
 [Open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+label%3A%22area%3A%20merge%20verification%22).
 
-CI checks each pull request in two ways. "Experiment records" (`openinterp check`) checks that the PR adds a valid record and its wiki page. "Reproduce records" (`openinterp reproduce --base-ref origin/main`, docs/PROTOCOL.md §5) re-runs every added or changed record on GitHub-hosted CPU runners, with cached weights and a model allow-list. So a record with edited activations or a hand-written verdict fails. Reproductions run one at a time across all pull requests, in a queue. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
+CI checks each pull request in two ways. "Experiment records" (`open-interpretability check`) checks that the PR adds a valid record and its wiki page. "Reproduce records" (`open-interpretability reproduce --base-ref origin/main`, docs/PROTOCOL.md §5) re-runs every added or changed record on GitHub-hosted CPU runners, with cached weights and a model allow-list. So a record with edited activations or a hand-written verdict fails. Reproductions run one at a time across all pull requests, in a queue. That is enough while volume is low. The items below are for when it isn't: larger models, many PRs, or runner minutes adding up.
 
 ## Site
 
@@ -69,13 +69,13 @@ Pages, deployment and charts for the generated site. Each experiment, shown in f
 
 [Open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+label%3A%22area%3A%20datasets%22).
 
-Scan corpora beyond `NeelNanda/pile-10k`. `openinterp corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission. The default, `mixed`, is a versioned blend of the presets. Adding a dataset below is mostly a new preset in `openinterp/corpus.py`, plus a new version of the `mixed` blend that includes it. The other way is an entry in `NOT_BLENDED` in `openinterp/blends.py` saying why not. A test enforces this. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
+Scan corpora beyond `NeelNanda/pile-10k`. `open-interpretability corpus` samples any Hugging Face Parquet dataset and records its ID, commit, seed and licence on every submission. The default, `mixed`, is a versioned blend of the presets. Adding a dataset below is mostly a new preset in `openinterp/corpus.py`, plus a new version of the `mixed` blend that includes it. The other way is an entry in `NOT_BLENDED` in `openinterp/blends.py` saying why not. A test enforces this. A dataset stored as JSON can use the Hub's Parquet conversion, as the `c4` preset does (`revision="refs/convert/parquet"`). Check each licence before redistributing excerpts in the wiki.
 
 ## Models
 
 [Open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+label%3A%22area%3A%20models%22).
 
-The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test. It needs a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means). It also needs a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `openinterp next` starts exploring it.
+The hooks already resolve Llama/Qwen2/Mistral/Gemma/Phi, GPT-2, GPT-J, GPT-NeoX and OPT layouts (`openinterp/harness/hooks.py`). Each new model needs a smoke test. It needs a note on its MLP activation (gated SwiGLU/GeGLU vs plain GELU, which changes what a "negative pole" means). It also needs a check that the final-norm path resolves. Then add it to `[tool.openinterp] models` in `pyproject.toml`, with its terms in `[tool.openinterp.licenses]` (Llama and Gemma terms add conditions), and to `ALLOWED_MODELS` in `.github/workflows/ci.yml`, and `open-interpretability next` starts exploring it.
 
 ## Later stage
 

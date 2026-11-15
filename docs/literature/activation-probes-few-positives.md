@@ -2,7 +2,7 @@
 
 **Citation.** Riya Tyagi (MIT) and Stefan Heimersheim (FAR.AI). "Activation Probes Are Reliable With a Handful of Positive Examples". arXiv 2610.39766v1, 29 October 2026. [Paper](https://arxiv.org/abs/2610.39766). [Code](https://github.com/Centrattic/scarcity-probes). The arXiv comment says "Presented at the Mechanistic Interpretability workshop at NeurIPS 2025". That year does not agree with the arXiv date, and we did not resolve it.
 
-**Status.** Not applicable. `openinterp probe-compare` already trains in the regime that the paper recommends, so nothing changes. The paper also does not address our open problem, which is too few positives in the held-out set.
+**Status.** Not applicable. `open-interpretability probe-compare` already trains in the regime that the paper recommends, so nothing changes. The paper also does not address our open problem, which is too few positives in the held-out set.
 
 **Read.** The abstract page and the v1 HTML full text, on 2026-11-13: Sections 1–4, Appendices A.1–A.8, Tables 1–4 and the figure captions. A model read the text and reported it to us, with quotes. The HTML has no tables of results, and we could not read values from the plots. So every number below is one that the text states.
 
@@ -43,7 +43,7 @@ Generated positives (gpt-4o-mini) at 2× add 0.026 AUC and 0.104 recall. The aut
 
 ## Use in this repo
 
-**Our probes already train this way.** `openinterp probe-compare` (`openinterp/harness/probing.py`) fits a logistic probe and a mass-mean probe on the MLP hidden layer and on the residual stream. It keeps at most 2,000 positive and 8,000 negative tokens (`--max-positive`, `--max-negative`) and weights the loss by class (`fit_logistic`). That is the paper's recommendation: keep all the negatives and balance them in the loss, not by sampling. So the paper adds no reason to change the defaults.
+**Our probes already train this way.** `open-interpretability probe-compare` (`openinterp/harness/probing.py`) fits a logistic probe and a mass-mean probe on the MLP hidden layer and on the residual stream. It keeps at most 2,000 positive and 8,000 negative tokens (`--max-positive`, `--max-negative`) and weights the loss by class (`fit_logistic`). That is the paper's recommendation: keep all the negatives and balance them in the loss, not by sampling. So the paper adds no reason to change the defaults.
 
 **Our thin row is thin at test, not at training.** The GPT-2 L0/N1923+ row in `docs/analyses/probe-comparison.jsonl` trained on 27 positives against 8,000 negatives. The paper suggests that a probe trained like this can work. But the row's held-out set has 15 positives, and `docs/analyses/probe-comparison.md` already calls it too thin to estimate any probe. The paper does not help with this. Its test sets have equal classes, and the text does not give their size. With 15 positives, one miss moves recall by 0.067. A score from that row needs an interval, and no number of training negatives gives one.
 

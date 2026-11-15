@@ -1,9 +1,9 @@
 """Measure peak memory of a scan and a review per model, and compare with the baseline.
 
 The release skill runs it, so a change that makes a scan or a review use more memory is
-caught before a release. For each model it runs a 20,000-token ``openinterp audit`` scan
-of one fixed unit and ``openinterp reproduce`` of one record of that unit. Times are
-printed, not compared: they vary too much with other load.
+caught before a release. For each model it runs a 20,000-token ``open-interpretability audit``
+scan of one fixed unit. Then it runs ``open-interpretability reproduce`` of one record of that
+unit. Times are printed, not compared: they vary too much with other load.
 
 On macOS it compares each command's peak memory footprint (``/usr/bin/time -l``). Peak
 resident memory (RSS) moved by more than 1 GB between runs of the same review, and the
@@ -102,7 +102,7 @@ def window_args(model: str) -> list[str]:
 
 def measure(bench: Benchmark, device: str) -> dict:
     """Peak memory (MB) and time (s) of ``bench``'s scan and review."""
-    cli = [str(Path(sys.executable).parent / "openinterp")]
+    cli = [str(Path(sys.executable).parent / "open-interpretability")]
     with tempfile.TemporaryDirectory() as tmp:
         scan = [
             *cli, "audit", "--model", bench.model, "--layer", str(bench.layer),

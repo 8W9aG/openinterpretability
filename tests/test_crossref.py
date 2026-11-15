@@ -1,4 +1,4 @@
-"""Dictionary latents aligned with neuron poles (`openinterp crossref`).
+"""Dictionary latents aligned with neuron poles (`open-interpretability crossref`).
 
 The models are a random GPT-2 and Qwen2, with planted latents stored locally (no
 download).

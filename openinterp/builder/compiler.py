@@ -27,7 +27,8 @@ from openinterp.builder.agents import (
     legacy_redirects,
 )
 from openinterp.builder.aligned import aligned_latents
-from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
+from openinterp.builder.circuit_pages import render_circuits
+from openinterp.builder.circuits import circuits_and_hubs, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.coverage import model_summary
 from openinterp.builder.dashboard import dashboard
@@ -42,13 +43,13 @@ from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
 from openinterp.builder.sister_graph import sister_graphs
 from openinterp.builder.standing import ROLES, contested_units, reviewer_agreement
-from openinterp.builder.stopped import add_stopped
+from openinterp.builder.stopped import add_stopped, explore_focus
 from openinterp.builder.stops import pageless_stops, stops_by_unit
+from openinterp.builder.superpositions import add_members, count_pageless_neurons
 from openinterp.builder.tree import (
     Experiment,
     build_tree,
     circuits_href,
-    explore_focus,
     false_discovery,
     neuron_href,
 )
@@ -182,6 +183,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 OWNED_PATHS = (
     "index.html",
     "about.html",
+    "learned-baseline.html",
     "models",
     "agents",
     "users",
@@ -204,7 +206,7 @@ def _clean_owned_paths(output_dir: Path) -> None:
 def _experiment_view(
     e: Experiment, studied: set[str], rows: dict | None = None, circuit: str | None = None
 ) -> dict:
-    """Render a unit's page.
+    """What an experiment's page shows.
 
     ``rows`` is backfilled wiring (see :mod:`openinterp.wiring_backfill`). ``circuit`` is
     the link to the unit's circuit, if any.
@@ -321,6 +323,7 @@ def compile_site(
 
     models = build_tree(records, errata, users)
     add_stopped(models, (*draws, *stops))  # neurons that only stopped scans cover
+    add_members(models)  # the neurons of each superposition, linked back to it
     experiments = [
         e for m in models for layer in m.layers for n in layer.units for e in n.experiments
     ]
@@ -337,7 +340,7 @@ def compile_site(
 
     common = _site_context(site_title, corpus_sources, experiments)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
-    studied = {n.href for m in models for layer in m.layers for n in layer.units}
+    studied = {n.href for m in models for layer in m.layers for n in layer.pages}
     by_unit = stops_by_unit(stops)
     for model in models:
         sisters = (sister_rows or {}, sister_tests(experiments))
@@ -345,7 +348,7 @@ def compile_site(
     render_models(render, models, model_facts or {}, _render_model)
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
-    stats["totals"]["neurons"] += sum(len(layer.stopped) for m in models for layer in m.layers)
+    count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
@@ -400,6 +403,8 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         contested=contested_units(models),
         pageless_stops=pageless_stops(by_unit, studied),
     )
+    if stats["baseline"]:  # the home page links to it (#3272)
+        render("learned-baseline.html", "learned-baseline.html", stats=stats)
 
 
 def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
@@ -460,34 +465,31 @@ def _render_model(
     found, found_hubs = circuits_and_hubs(model, rows)
     sister_rows, tests = sisters
     named_by = by_match_slug(sister_rows)
-    anchor_of = unit_anchors(found, found_hubs)
     page = circuits_href(model.slug)
     graphs = sister_graphs(model, sister_rows, studied)
     shown = {"circuits": found, "hubs": found_hubs, "circuits_page": page, "sister_graphs": graphs}
     render(model.href, "model.html", model=model, **shown)
-    if found or found_hubs:
-        n_units = sum(len(c.units) for c in found)
-        view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
-        render(page, "circuits.html", model=model, **view)
+    circuit_of = render_circuits(render, model, found, found_hubs)
     for layer in model.layers:
         render(layer.href, "layer.html", model=model, layer=layer)
 
     def unit_page(layer, neuron) -> None:
-        anchor = anchor_of.get(neuron.href)
-        circuit = f"{page}#{anchor}" if anchor else None
-        views = [_experiment_view(e, studied, rows, circuit) for e in neuron.experiments]
+        circuit = circuit_of.get(neuron.href)
+        for rank, e in enumerate(neuron.experiments, 1):
+            view = _experiment_view(e, studied, rows, circuit)
+            unit = {"model": model, "layer": layer, "neuron": neuron}
+            render(e.href, "experiment.html", **unit, v=view, rank=rank)
         render(
             neuron.href,
             "neuron.html",
             model=model,
             layer=layer,
             neuron=neuron,
-            views=views,
             poles=pole_scans(neuron),
             aligned=aligned_latents(model, neuron, alignment or {}, studied),
             sisters=sister_view(model.slug, neuron, sister_rows, named_by, studied, tests),
             stops=(stops or {}).get(neuron.href, []),
         )
 
-    units = [(layer, neuron) for layer in model.layers for neuron in layer.units]
+    units = [(layer, neuron) for layer in model.layers for neuron in layer.pages]
     render_in_parallel(render, unit_page, units)

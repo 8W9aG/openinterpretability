@@ -1,4 +1,6 @@
-"""The Patchscope readout as a blind proposer baseline (`openinterp patchscope-baseline`).
+"""The Patchscope readout as a blind proposer baseline.
+
+The command is `open-interpretability patchscope-baseline`.
 
 Does the model's own, example-free description of a unit's output direction explain the
 unit as well as the agent's hypothesis? One reading per unit is turned into an
@@ -188,7 +190,7 @@ def report(rows: Sequence[BaselineRow]) -> str:
     return paired_report(
         rows,
         title="Patchscope readout as a blind proposer baseline",
-        generated_by="`openinterp patchscope-baseline`",
+        generated_by="`open-interpretability patchscope-baseline`",
         method="`openinterp/baseline.py` and docs/PROTOCOL.md §4",
         intro=intro,
         after=after,

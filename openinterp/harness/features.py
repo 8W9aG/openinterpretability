@@ -84,6 +84,27 @@ def scan_feature(
     texts: Sequence[str],
     ident: FeatureIdentifier,
     spec: DictionarySpec,
+    **options,
+) -> FeatureScanResult:
+    """Scan one latent: its top examples, strengths, confounds and :class:`DictionaryProfile`.
+
+    ``options`` are :func:`scan_latent`'s.
+    """
+    dictionary = load_spec(spec, ident.layer, runner.device)
+
+    def profile(**measured) -> DictionaryProfile:
+        return spec_profile(spec, ident.layer, n_features=dictionary.n_features, **measured)
+
+    return scan_latent(runner, texts, ident, dictionary, spec.input_site, profile, **options)
+
+
+def scan_latent(
+    runner: NeuronHookRunner,
+    texts: Sequence[str],
+    ident,
+    dictionary: Dictionary,
+    input_site: str,
+    profile,
     *,
     k: int = 20,
     batch_tokens: int = BATCH_TOKENS,
@@ -92,39 +113,32 @@ def scan_feature(
     stride: int | None = None,
     taggers: Sequence[Tagger] = (),
 ) -> FeatureScanResult:
-    """Scan one latent: its top examples, strengths, confounds and :class:`DictionaryProfile`.
+    """Scan latent ``ident.feature_idx`` of ``dictionary``, read at ``input_site``.
 
-    Each of ``taggers`` labels the counted tokens, and its confound joins the profile's.
+    ``profile(density=, tokens=, **fit)`` gives the result's profile from what the scan
+    measured. Each of ``taggers`` labels the counted tokens, and its confound joins the
+    profile's. A superposition scans this way too (:mod:`openinterp.harness.superpositions`).
     """
     if runner.tokenizer is None:
-        raise ValueError("scan_feature requires a tokenizer")
+        raise ValueError("a latent scan requires a tokenizer")
     layer, f = ident.layer, ident.feature_idx
-    dictionary = load_spec(spec, layer, runner.device)
     if f >= dictionary.n_features:
         raise ValueError(f"{ident}: the dictionary has {dictionary.n_features} latents")
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
     labels = LabelPass(runner.tokenizer, texts, taggers)
     confounds, top, fit, values, first = _feature_pass(
-        runner, dictionary, spec, layer, f, pieces, batch_tokens, labels
+        runner, dictionary, input_site, layer, f, pieces, batch_tokens, labels
     )
     if not values:
         raise ValueError("the corpus has no tokens to scan")
 
     def read(inputs):
-        x, _ = dictionary_io(runner, inputs, layer, spec.input_site)
+        x, _ = dictionary_io(runner, inputs, layer, input_site)
         return dictionary.feature(x, f)
 
     density = round(sum(v > 0 for v in values) / len(values), 6)
-    tokens = len(values)
+    tokens = len(values)  # before settle, which can leave out first tokens
     examples, values, floor = settle(runner, read, values, first, top, k, labels.tokens)
-    profile = spec_profile(
-        spec,
-        layer,
-        n_features=dictionary.n_features,
-        density=density,
-        tokens=tokens,
-        **fit.stats(),
-    )
     return FeatureScanResult(
         examples=examples,
         values=values,
@@ -132,12 +146,12 @@ def scan_feature(
         confounds=labels.finalize(confounds.finalize(runner.tokenizer, min_count), values),
         windows=len(pieces),
         first_token_floor=floor,
-        profile=profile,
+        profile=profile(density=density, tokens=tokens, **fit.stats()),
     )
 
 
 def _feature_pass(
-    runner, dictionary, spec, layer: int, f: int, pieces, batch_tokens: int, labels: LabelPass
+    runner, dictionary, input_site: str, layer: int, f: int, pieces, batch_tokens, labels
 ):
     """Make one pass over ``pieces``, and return what it measured.
 
@@ -150,7 +164,7 @@ def _feature_pass(
     values: list[float] = []
     first: list[bool] = []
     for batch in batches(runner, pieces, batch_tokens):
-        x, out = dictionary_io(runner, batch.encoded, layer, spec.input_site)
+        x, out = dictionary_io(runner, batch.encoded, layer, input_site)
         strengths = dictionary.feature(x, f).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])

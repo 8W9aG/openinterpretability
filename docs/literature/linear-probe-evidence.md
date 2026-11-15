@@ -2,7 +2,7 @@
 
 **Citation.** Nadir Kutluozen (Cold Spring Harbor Laboratory), Christian Internò (Bielefeld University) and David Klindt (Cold Spring Harbor Laboratory). "Is a Linear Probe Evidence of a Linear Representation?". arXiv 2610.22655v1, 15 October 2026. [Paper](https://arxiv.org/abs/2610.22655). [Code and data](https://github.com/klindtlab/linear-probe-nullspace). The arXiv comment says "Accepted at NeurIPS 2026", and we did not look at the proceedings. The acknowledgements name a Goodfire research grant, and say that the authors did the work with Silico, Goodfire's research agent.
 
-**Status.** Planned. Issue #3559 adds a random-init arm to `openinterp probe-compare`, which the paper's argument calls for. Our untrained-model null already applies the same control to verdicts.
+**Status.** Planned. Issue #3559 adds a random-init arm to `open-interpretability probe-compare`, which the paper's argument calls for. Our untrained-model null already applies the same control to verdicts.
 
 **Read.** The abstract page and the v1 HTML, on 2026-11-13. A model read the text and reported it to us. Sections 1–6 (theory, simulation, SVG-World, discussion and limitations) came back as the paper's own text. The appendices came back only as the model's summary of them. So every number below is from Sections 4–5. We did not see the figures.
 

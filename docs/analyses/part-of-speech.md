@@ -17,7 +17,7 @@ The question: how much does part of speech explain of a pole's activity? And doe
   | L4/N1889+ | word | "c" as the name of the C language |
   | L3/N3738− | word | "official", as an adjective or adverb |
 
-- **Scan.** `openinterp audit --evidence-out` on `corpus.jsonl`, 200,000 tokens, with no scan cache, so each scan tagged its tokens. The six scans and the tagging of the corpus took 8 minutes in all.
+- **Scan.** `open-interpretability audit --evidence-out` on `corpus.jsonl`, 200,000 tokens, with no scan cache, so each scan tagged its tokens. The six scans and the tagging of the corpus took 8 minutes in all.
 - **Measures.** The label set's R² and mutual information, as for every label set. Then, for the three tags with the most active tokens, the tag's share of active tokens over its share of all tokens. A ratio above 1 means that the pole is active on that tag more often than the tag's frequency predicts.
 
 ## Result
@@ -50,7 +50,7 @@ The question: how much does part of speech explain of a pole's activity? And doe
 ## Reproduce
 
 ```bash
-uv run openinterp audit --model Qwen/Qwen2.5-0.5B --layer 7 --neuron 4292 --pole negative \
+uv run open-interpretability audit --model Qwen/Qwen2.5-0.5B --layer 7 --neuron 4292 --pole negative \
     --corpus corpus.jsonl --max-tokens 200000 --no-scan-cache --wiki-dir '' --evidence-out ev.json
 # the label set is in ev.json under confounds.labels["part of speech"]
 ```

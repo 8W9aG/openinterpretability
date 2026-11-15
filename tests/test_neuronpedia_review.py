@@ -1,4 +1,7 @@
-"""Neuronpedia's explanations through the adversarial review (`openinterp neuronpedia-review`)."""
+"""Neuronpedia's explanations through the adversarial review.
+
+The command is `open-interpretability neuronpedia-review`.
+"""
 
 from openinterp.cli_neuronpedia import baseline_submission
 from openinterp.crossref import Explanation

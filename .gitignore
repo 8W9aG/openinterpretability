@@ -225,7 +225,7 @@ exchange/
 corpus.jsonl
 logs/
 
-# Generated wiki indexes: rebuilt from the records by `openinterp wiki` (and by verify,
+# Generated wiki indexes: rebuilt from the records by `open-interpretability wiki` (and by verify,
 # review and reevaluate). Not committed, so parallel experiment PRs never conflict.
 wiki/README.md
 wiki/experiments/**/README.md
@@ -233,5 +233,5 @@ wiki/experiments/**/README.md
 # Dictionary weights live on the Hugging Face Hub; only their cards and metadata are tracked.
 hf_models/**/*.safetensors
 
-# Private benchmark test labels (openinterp benchmark measure); only their hash is published
+# Private benchmark test labels (open-interpretability benchmark measure); only their hash is published
 *.private.jsonl

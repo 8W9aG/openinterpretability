@@ -2,7 +2,7 @@
 
 ``wiki/draws/`` keeps only the random draws that the scan stopped on. A draw whose run was
 dropped, or crashed, left no file. Rates over random draws then counted only the runs that
-finished. So ``openinterp next --steps`` writes a :class:`DrawEntry` when it makes the
+finished. So ``open-interpretability next --steps`` writes a :class:`DrawEntry` when it makes the
 draw, and the claim commit adds it. A run that stops lands its PR with only that entry.
 
 An entry's outcome is read later, from the registry (:func:`resolve`):
@@ -29,15 +29,15 @@ Outcome = Literal["record", "stopped", "none"]
 
 
 class DrawEntry(StrictModel):
-    """One draw of ``openinterp next``, as it stood before the run."""
+    """One draw of ``open-interpretability next``, as it stood before the run."""
 
     timestamp: AwareDatetime
-    seed: int  # the planner's seed: `openinterp next --seed` draws it again
+    seed: int  # the planner's seed: `open-interpretability next --seed` draws it again
     kind: str  # explore, revise, independent_review, …
     model: str
     slug: str | None = None  # None when the unit is known only once the scan starts
     record: str | None = None  # the record that a follow-up builds on
-    audit: str | None = None  # the `openinterp audit` options of a draw that scans
+    audit: str | None = None  # the `open-interpretability audit` options of a draw that scans
     pole_forced: bool | None = None  # for a random draw: --pole fixed the pole
     harness_version: str = __version__
 

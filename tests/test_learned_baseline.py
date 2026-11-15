@@ -99,10 +99,13 @@ def test_random_latents_against_random_poles_of_the_same_layers(tmp_path, baseli
     assert b.p_positive == pytest.approx(fisher_exact(1, 3, 1, 2))
 
     home = (tmp_path / "index.html").read_text()
-    assert 'id="learned-baseline"' in home and "dead latents 25%" in home
-    assert "33% (6%–79%)" in home  # 1 of 3, Wilson interval
-    assert "128-token windows of corpus" in home
-    assert "p = 1.000 vs positive poles (1.000 vs all)" in home
+    assert 'href="learned-baseline.html"' in home and 'id="learned-baseline"' not in home
+    assert "1 of 3 random latents" in home and "1 of 2 random positive poles" in home
+    page = (tmp_path / "learned-baseline.html").read_text()
+    assert 'id="learned-baseline"' in page and "dead latents 25%" in page
+    assert "33% (6%–79%)" in page  # 1 of 3, Wilson interval
+    assert "128-token windows of corpus" in page
+    assert "p = 1.000 vs positive poles (1.000 vs all)" in page
 
 
 def test_small_p_values_are_not_rounded_to_zero():
@@ -114,7 +117,8 @@ def test_no_baseline_without_random_latents(tmp_path, baseline_records):
     natives = [r for r in baseline_records if r.submission.identifier.kind != "dictionary_feature"]
     report = compile_site(natives, tmp_path)
     assert registry_stats(report.parquet)["baseline"] == []
-    assert 'id="learned-baseline"' not in (tmp_path / "index.html").read_text()
+    assert "learned-baseline" not in (tmp_path / "index.html").read_text()
+    assert not (tmp_path / "learned-baseline.html").exists()
 
 
 def test_wilson_interval_and_fisher_exact_test():
@@ -155,7 +159,7 @@ def test_unauditable_draws_are_counted_with_their_arm(tmp_path, baseline_records
     assert (b.features.dead, b.features.default_on) == (2, 0)
     assert (b.neurons.dead, b.neurons.default_on) == (0, 1)
     assert (b.negative_poles.default_on, b.positive_poles.default_on) == (1, 0)
-    assert "2 dead" in (tmp_path / "index.html").read_text()
+    assert "2 dead" in (tmp_path / "learned-baseline.html").read_text()
     rows = pq.read_table(tmp_path / "data" / "draws.parquet").to_pylist()
     assert [r["outcome"] for r in rows] == ["dead", "dead", "default_on", "dead", "dead"]
     assert rows[2]["pole"] == "negative" and rows[0]["dictionary"] == "tiny-tc"

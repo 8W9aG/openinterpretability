@@ -10,7 +10,7 @@ Two kinds of unit cannot be audited:
 - *default-on* (protocol 0.8): a unit active on at least half its tokens.
 
 The scan stops on both. For a random draw, it writes an :class:`UnauditableDraw` instead
-of evidence, once only, at ``wiki/draws/<slug>/<timestamp>.json`` (``openinterp audit
+of evidence, once only, at ``wiki/draws/<slug>/<timestamp>.json`` (``open-interpretability audit
 --random``).
 
 For a chosen unit, such as a revise, it writes a :class:`ChosenStop` at

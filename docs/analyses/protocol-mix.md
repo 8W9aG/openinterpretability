@@ -34,7 +34,7 @@ On a randomly initialised GPT-2, two units were VERIFIED with "silent on short t
 
 **The main cause is how reviewers write probes.** In those 45 records, positive holdouts are a median of 4.75 times as long as hard negatives. Over all 1,613 records under protocol 0.8, holdouts are a median of 2.16 times as long. In 52% of records they are more than twice as long. With long holdouts and short negatives, probe length alone can separate active from inactive. So the rule finds mostly a habit of the reviewers, and only in a few records a unit that responds to context length.
 
-The rule is not part of the decision rule. Whether to adopt it, and whether to ask reviewers for negatives and holdouts of matched length first, is a decision for the maintainer (#3525).
+The maintainer chose to adopt it together with length-matched probes. Since protocol 0.9 it is part of the confound baseline (`docs/PROTOCOL.md` §4 and §6). The reviewer is asked for hard negatives and holdouts of similar length. `review --check-probes` and `review --probes` warn when the groups' median token lengths differ by more than 1.5×. The 45 records above keep their protocol 0.8 verdicts, and the planner offers them `reevaluate`.
 
 ## Limits
 
@@ -44,5 +44,5 @@ The rule is not part of the decision rule. Whether to adopt it, and whether to a
 ## What this means
 
 - **Standing doesn't need a different rule for older verdicts.** Today's rule keeps almost all of them, and the split is now visible.
-- **Re-evaluate the 5 default-on poles** with `openinterp reevaluate`. It writes new records under protocol 0.8, and their units' standing changes by the usual rule, with no protocol change. A follow-up issue holds this.
+- **Re-evaluate the 5 default-on poles** with `open-interpretability reevaluate`. It writes new records under protocol 0.8, and their units' standing changes by the usual rule, with no protocol change. A follow-up issue holds this.
 - **Run the script after each protocol change.** It shows at once how many older claims the new rule would reject.

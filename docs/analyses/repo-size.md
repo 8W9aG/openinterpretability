@@ -45,12 +45,18 @@ So the per-token evidence makes up most of the size: the top examples and the sc
 
 ## Where records could live
 
-The decision is open (#3254). Each option can keep the records write-once and checkable, at different costs.
+The maintainer chose the second option on 2026-11-14 (#3254). Each option below can keep the records write-once and checkable, at different costs.
 
-- **Stay in this repository.** It needs no change, and `openinterp check` reads the files directly. Every clone and every agent worktree pays the full history, and the cost grows without limit. CI's write-once check needs the history, so CI can't use a shallow clone.
-- **Move the bulky evidence out, and keep the verdicts.** Records keep their verdict, metrics and hashes. The top examples and scored windows go to a content-addressed store by SHA-256, such as a Hugging Face dataset or release assets. About 70% of each record would leave the repository. `openinterp check`, `reproduce` and the site would fetch evidence by its hash.
+- **Stay in this repository.** It needs no change, and `open-interpretability check` reads the files directly. Every clone and every agent worktree pays the full history, and the cost grows without limit. CI's write-once check needs the history, so CI can't use a shallow clone.
+- **Move the bulky evidence out, and keep the verdicts.** Records keep their verdict, metrics and hashes. The top examples and scored windows go to a content-addressed store by SHA-256, such as a Hugging Face dataset or release assets. About 70% of each record would leave the repository. `open-interpretability check`, `reproduce` and the site would fetch evidence by its hash.
 - **A Hugging Face dataset for the records.** Parquet export plus the signed JSON, versioned by the dataset's own history. The repository keeps only pages and code. Records then live outside pull requests, so the write-once check needs a different mechanism.
 - **Git LFS.** It is a small change for contributors. But GitHub's LFS storage and bandwidth are metered, and every CI checkout would use bandwidth.
+
+## The evidence store
+
+Phase 1 shipped the format (`openinterp/core/evidence.py`). In the newest 400 records, `verdict.explanation_scores` is 31% of a record and `submission.top_examples` 28%. A slim record replaces each of the two fields with `{"evidence_sha256": "<hash>"}`. The hash is of a blob that holds the field's exact JSON. Loading a record resolves the references, so every reader sees the whole record. A record's signature covers its hashes, and each hash covers its blob. Blobs live in `~/.cache/openinterp/evidence/` and in the public dataset `sackfield/open-interpretability-evidence`, by path `<sha[:2]>/<sha>.json`. Records are written slim only with `OPENINTERP_OFFLOAD_EVIDENCE=1`. Records already in the repository stay whole, because they are write-once.
+
+Phase 2 carries the blobs to the dataset. The maintainer chose CI uploads. The blobs must not ride on the pull request's own branch, because the squash merge would put them into `main`'s history. So `open-interpretability evidence push` commits them as one commit with no parent, and pushes it to `evidence/<branch>`. CI's *Experiment records* job fetches that branch. It runs `evidence upload`, which uploads the blobs with the `HF_EVIDENCE_TOKEN` secret, a write token kept apart from the read-only `HF_TOKEN`. It creates the dataset if it is missing. Then `evidence verify` checks that every record the pull request adds resolves, with the right hashes. The reproduce job loads the same blobs. A workflow deletes the evidence branch when the pull request closes. Phase 3 turned it on. New records are slim unless `OPENINTERP_OFFLOAD_EVIDENCE=0`, and each draw's post step (`open-interpretability next --steps`) runs `evidence push` before `git push`. The site build caches the blobs it fetches.
 
 ## Limits
 

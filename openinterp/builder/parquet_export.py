@@ -13,6 +13,8 @@ each unit, which is not necessarily one of those.
 - An attention head row has ``head_idx``.
 - A dictionary feature row (the learned-basis baseline) has ``dictionary`` and
   ``feature_idx``.
+- A superposition row has ``superposition_id`` and ``superposition_members``: the indices
+  of its member neurons in the layer, in index order.
 
 Filter on ``kind`` before computing native-neuron statistics. Writes two copies of the
 same table:
@@ -68,6 +70,8 @@ REGISTRY_SCHEMA = pa.schema(
         ("head_idx", pa.int32()),
         ("dictionary", pa.string()),
         ("feature_idx", pa.int32()),
+        ("superposition_id", pa.string()),
+        ("superposition_members", pa.list_(pa.int32())),
         ("model_num_layers", pa.int32()),
         ("model_mlp_width", pa.int32()),
         ("model_n_heads", pa.int32()),
@@ -162,7 +166,7 @@ def record_to_row(record: AuditRecord) -> dict:
     """The registry columns that come from ``record`` alone."""
     sub = record.submission
     return {
-        **_unit_columns(sub.identifier),
+        **_unit_columns(sub.identifier, sub.superposition_profile),
         "model_num_layers": sub.model_num_layers,
         "model_mlp_width": sub.model_mlp_width,
         "model_n_heads": sub.model_n_heads,
@@ -178,7 +182,7 @@ def record_to_row(record: AuditRecord) -> dict:
     }
 
 
-def _unit_columns(ident) -> dict:
+def _unit_columns(ident, superposition) -> dict:
     kind = ident.kind
     return {
         "slug": ident.slug,
@@ -190,6 +194,8 @@ def _unit_columns(ident) -> dict:
         "head_idx": ident.head_idx if kind == "attn_head" else None,
         "dictionary": ident.dictionary if kind == "dictionary_feature" else None,
         "feature_idx": ident.feature_idx if kind == "dictionary_feature" else None,
+        "superposition_id": ident.superposition_id if kind == "superposition" else None,
+        "superposition_members": superposition.neurons if superposition else None,
     }
 
 
@@ -348,6 +354,9 @@ def _balanced(score) -> float | None:
     return score.balanced_accuracy if score else None
 
 
+UNIT_INDEX_COLUMNS = ("neuron_idx", "head_idx", "feature_idx")  # a superposition has none
+
+
 def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources = None) -> pa.Table:
     """The registry table: one row per experiment, in a fixed order.
 
@@ -361,8 +370,8 @@ def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources 
             row["model_name"],
             row["layer"],
             list(SIDES).index(row["kind"]),
-            row["dictionary"] or "",
-            next(row[c] for c in ("neuron_idx", "head_idx", "feature_idx") if row[c] is not None),
+            row["dictionary"] or row["superposition_id"] or "",
+            next((row[c] for c in UNIT_INDEX_COLUMNS if row[c] is not None), 0),
             row["pole"] or "",
             row["experiment_id"],
         ),

@@ -1,4 +1,4 @@
-"""Detecting a document's language (`openinterp/langid.py`) for `openinterp corpus`."""
+"""Detecting a document's language (`openinterp/langid.py`) for `open-interpretability corpus`."""
 
 import hashlib
 import json

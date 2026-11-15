@@ -16,6 +16,7 @@ from openinterp.core.schemas import (
     ReviewMetrics,
     ReviewPolicy,
 )
+from tests.site_pages import unit_pages
 
 
 def _failed_record(record):
@@ -139,7 +140,7 @@ def test_causal_metrics_render_by_protocol(tmp_path, record):
     assert "top-1 logit, protocol < 0.5" in old
 
     compile_site([new], tmp_path / "site")
-    page = next((tmp_path / "site" / "models").rglob("N*.html")).read_text()
+    page = unit_pages(next((tmp_path / "site" / "models").rglob("N*.html")))
     assert "the claimed tokens" in page and "0.0123" in page
 
 

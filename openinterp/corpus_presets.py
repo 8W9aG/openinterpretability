@@ -1,4 +1,7 @@
-"""The datasets that ``openinterp corpus --dataset`` can sample by name, and how to read them."""
+"""The datasets that the corpus command can sample by name, and how to read them.
+
+The command is ``open-interpretability corpus --dataset``.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +10,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Preset:
-    """A dataset that ``openinterp corpus --dataset`` can sample, and how to read it."""
+    """A dataset that ``open-interpretability corpus --dataset`` can sample, and how to read it."""
 
     dataset: str
     files: str  # glob within the dataset repo; comma-separated globs are sampled equally
@@ -20,7 +23,7 @@ class Preset:
     # The dataset column that gives each document's programming language (`code_language`).
     code_language_column: str | None = None
     # A model ID: `text_column` holds conversations, and this model's chat template writes
-    # each as text (unless `openinterp corpus --chat-template` names another model).
+    # each as text (unless `open-interpretability corpus --chat-template` names another model).
     chat_template: str | None = None
 
 
@@ -43,8 +46,8 @@ FINEWEB2_LANGUAGES = {
 }  # fmt: skip
 
 # The values of the github-code preset's `language` column (the dataset card's list).
-# `openinterp corpus --detect-code` (openinterp.codeid) gives only these names too, so one
-# programming language has one label in exact and detected corpora.
+# `open-interpretability corpus --detect-code` (openinterp.codeid) gives only these names too,
+# so one programming language has one label in exact and detected corpora.
 GITHUB_CODE_LANGUAGES = (
     "Assembly", "Batchfile", "C", "C#", "C++", "CMake", "CSS", "Dockerfile", "FORTRAN",
     "GO", "HTML", "Haskell", "Java", "JavaScript", "Julia", "Lua", "Makefile", "Markdown",

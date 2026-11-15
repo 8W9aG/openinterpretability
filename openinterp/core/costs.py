@@ -6,7 +6,7 @@ evidence → submission → record, and score task → scores → record. So a r
 cost of every step of the experiment that produced it.
 
 When ``OPENINTERP_COSTS_LOG`` is set, every command also appends its measurements to
-that JSON-lines ledger. ``openinterp costs`` summarises the ledger.
+that JSON-lines ledger. ``open-interpretability costs`` summarises the ledger.
 """
 
 from __future__ import annotations
@@ -95,7 +95,7 @@ class RequestUsage(StrictModel):
 class ExternalUsage(RequestUsage):
     """Tokens an external answerer used.
 
-    ``openinterp usage`` writes it next to the answer as ``<answer>.usage.json``. It
+    ``open-interpretability usage`` writes it next to the answer as ``<answer>.usage.json``. It
     holds totals, plus each request when known,
     since prices can depend on a request's size and time. ``cost_usd`` is for a provider
     that reports its own cost; otherwise the requests are priced at list price for the

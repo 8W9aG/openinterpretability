@@ -10,11 +10,13 @@ langdetect (seeded) and langid.py. The tests are:
 - Agreement on the registry's corpus.
 
     D=exchange/language-detection
-    uv run openinterp corpus --dataset wikipedia-multilingual --docs 1000 --out $D/wiki.jsonl
-    uv run openinterp corpus --dataset wikimedia/wikipedia --docs 400 --docs-per-row-group 50 \
+    uv run open-interpretability corpus --dataset wikipedia-multilingual --docs 1000 \
+        --out $D/wiki.jsonl
+    uv run open-interpretability corpus --dataset wikimedia/wikipedia --docs 400 \
+        --docs-per-row-group 50 \
         --files "$(for l in es pt it nl uk bg ru ca; do printf "20231101.$l/train-*.parquet,"; \
         done | sed 's/,$//')" --lang-pattern '^\\d+\\.([\\w-]+)/' --out $D/close.jsonl
-    uv run openinterp corpus --dataset github-code --docs 200 --out $D/code.jsonl
+    uv run open-interpretability corpus --dataset github-code --docs 200 --out $D/code.jsonl
     uv run --with lingua-language-detector --with langdetect --with langid \
         python scripts/language_detection.py $D corpus.jsonl \
         --out docs/analyses/language-detection.jsonl

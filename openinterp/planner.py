@@ -8,7 +8,7 @@ Every neuron in the registry generates candidate follow-up experiments:
 - Rescan a record that was scanned on the built-in sample.
 
 A VERIFIED pole also offers its unstudied matches in other configured models
-(``openinterp sisters``), audited with its explanation. Any match can be drawn, and any
+(``open-interpretability sisters``), audited with its explanation. Any match can be drawn, and any
 pole of another model at random. But the pole's sister is drawn far more often than the
 rest.
 
@@ -40,7 +40,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from openinterp.core.agent_names import canonical_agent
 from openinterp.core.licenses import ModelLicense
 from openinterp.core.paths import DEFAULT_WIKI_DIR
 from openinterp.core.schemas import (
@@ -57,6 +56,7 @@ from openinterp.planner_models import (
     focus_model,
     model_coverage,
 )
+from openinterp.planner_states import NeuronState, load_states  # noqa: F401 - re-exported
 
 # Expected information value per experiment kind, before decay.
 # Probability of an explore draw (a random new unit) instead of a follow-up.
@@ -83,6 +83,7 @@ SKILLS = {
     "new_hypothesis": ["native-neuron-audit", "neuron-steering-tests"],
     "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
     "sister": ["native-neuron-audit", "interpretability-illusions-review"],
+    "superposition": ["native-neuron-audit", "interpretability-illusions-review"],
 }
 DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
 
@@ -100,20 +101,7 @@ class Candidate:
     skills: list[str] = field(default_factory=list)
     layer: int | None = None
     record: str | None = None  # the record a follow-up builds on
-    audit: str | None = None  # `openinterp audit` options, for kinds that scan
-
-
-@dataclass
-class NeuronState:
-    """What the registry holds on one unit: its latest record and how much it has been studied."""
-
-    slug: str
-    record: AuditRecord
-    record_path: Path
-    experiments: int = 0
-    reviewers: set[str] = field(default_factory=set)
-    independent_reviews: int = 0  # experiments reviewed by a model other than the proposer's
-    last: datetime | None = None
+    audit: str | None = None  # `open-interpretability audit` options, for kinds that scan
 
 
 def claim_key(slug: str) -> str:
@@ -195,26 +183,6 @@ def others_share(pyproject: Path = Path("pyproject.toml")) -> float:
     return float(_config(pyproject).get("others_share", DEFAULT_OTHERS_SHARE))
 
 
-def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
-    """One state per neuron pole, derived from all of its archived experiments.
-
-    Follow-ups are planned from the most recent experiment; the count, reviewers and
-    recency cover every experiment on the neuron.
-    """
-    from openinterp.builder.wiki import load_archive_paths  # Jinja: keep the CLI start light
-
-    states: dict[str, NeuronState] = {}
-    for path, record in load_archive_paths(Path(wiki_dir)):  # oldest first
-        slug = record.submission.identifier.slug
-        state = states.setdefault(slug, NeuronState(slug, record, path))
-        state.record, state.record_path = record, path
-        state.experiments += 1
-        state.reviewers.add(canonical_agent(record.verdict.reviewer_agent_model))
-        state.independent_reviews += not record.self_reviewed
-        state.last = record.verdict.timestamp
-    return states
-
-
 def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[float, list[str]]:
     factor, notes = 1.0 / math.sqrt(state.experiments), []
     if state.experiments > 1:
@@ -281,10 +249,13 @@ def _default_on(record: AuditRecord) -> bool:
 
 
 def _audit_options(commands: list[str]) -> str | None:
-    """The options of the ``openinterp audit`` among ``commands``, without --supersedes."""
+    """The options of the audit command among ``commands``, without --supersedes.
+
+    The audit command is the one that starts with ``open-interpretability audit``.
+    """
     for command in commands:
-        if command.startswith("openinterp audit "):
-            return command.removeprefix("openinterp audit ").split(" --supersedes ")[0]
+        if command.startswith("open-interpretability audit "):
+            return command.removeprefix("open-interpretability audit ").split(" --supersedes ")[0]
     return None
 
 
@@ -314,11 +285,11 @@ def _commands(state: NeuronState) -> _Commands:
         target += f" --window-tokens {provenance.snippet_tokens}"
     proposer = record.submission.submitting_agent_model
     review = (
-        f"openinterp verify --audit-file {path} --corpus <scan corpus> "
+        f"open-interpretability verify --audit-file {path} --corpus <scan corpus> "
         f"--agent-model <model other than {proposer}>"
     )
     pole = f" --pole {ident.pole}" if ident.pole else ""
-    revise = f"openinterp audit {target}{pole} --supersedes {path}"
+    revise = f"open-interpretability audit {target}{pole} --supersedes {path}"
     return _Commands(path, target, review, revise)
 
 
@@ -330,7 +301,7 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
     record, verdict = state.record, state.record.verdict
     kinds: list[Kind] = []
     if verdict.policy is None or verdict.policy.protocol_version != PROTOCOL_VERSION:
-        reevaluate = [f"openinterp reevaluate --record {c.path}"]
+        reevaluate = [f"open-interpretability reevaluate --record {c.path}"]
         kinds.append(("reevaluate", "verdict predates the current protocol", reevaluate, None))
     # Not the gate: it passes self-reviews unless the policy requires independence.
     if record.self_reviewed:
@@ -339,7 +310,10 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
         )
     gates = verdict.metrics.gates if verdict.metrics else {}
     failed = [g for g, ok in gates.items() if not ok]
-    resubmit = [c.revise, "openinterp verify --audit-file <new submission> --corpus <scan corpus>"]
+    resubmit = [
+        c.revise,
+        "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>",
+    ]
     if verdict.status == "NEEDS_REVISION":
         kinds.append(("revise", f"failed gates: {', '.join(failed) or 'unknown'}", resubmit, None))
     elif verdict.status == "REJECTED":
@@ -361,7 +335,7 @@ def _rescan(c: _Commands) -> list[Kind]:
     Re-evaluating or re-reviewing the record would reuse its scan.
     """
     why = "scanned on the 552-token built-in sample; rescan on the corpus"
-    verify = "openinterp verify --audit-file <new submission> --corpus <scan corpus>"
+    verify = "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>"
     return [("rescan", why, [c.revise, verify], None)]
 
 
@@ -371,7 +345,7 @@ def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Ki
     other_slug = ident.slug.rsplit("-", 1)[0] + f"-{other}"
     if not ident.pole or other_slug in slugs:  # heads and features have no poles
         return []
-    audit = f"openinterp audit {c.target} --pole {other}"
+    audit = f"open-interpretability audit {c.target} --pole {other}"
     return [("opposite_pole", f"the {other} pole is unstudied", [audit], other_slug)]
 
 
@@ -414,12 +388,15 @@ def plan_next(
     slugs = set(states)
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
-    # Imported here: planner_sisters builds its candidates from this module's weights.
+    # Imported here: these modules build their candidates from this module's weights.
     from openinterp.planner_sisters import sister_candidates
+    from openinterp.planner_superpositions import superposition_candidates
 
-    sisters = sister_candidates(states, claims, now, pool, Path(wiki_dir).parent, seed)
+    root = Path(wiki_dir).parent
+    sisters = sister_candidates(states, claims, now, pool, root, seed)
+    extra = [*sisters, *superposition_candidates(states, claims, root)]
     candidates = sorted(
-        [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *sisters],
+        [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *extra],
         key=lambda c: -c.weight,
     )
     records = (s.record for s in states.values())

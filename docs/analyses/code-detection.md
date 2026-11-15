@@ -1,6 +1,6 @@
 # Choosing a programming-language detector for unlabelled corpora
 
-`openinterp corpus --detect-code` labels each document of a corpus whose dataset doesn't say its programming language. pile-10k is an example: it mixes GitHub files and Stack Exchange posts into prose, and no field marks them. With the label, the `programming language` label set and the syntax label sets (`openinterp/syntax.py`) work on such corpora too (docs/PROTOCOL.md §4). This note is how the detector and its confidence line were chosen. It answers the TODO item *Open question: can we detect programming languages in unlabelled corpora?* Script: `scripts/code_detection.py`. Rows: `code-detection.jsonl`. Run 2026-11-12.
+`open-interpretability corpus --detect-code` labels each document of a corpus whose dataset doesn't say its programming language. pile-10k is an example: it mixes GitHub files and Stack Exchange posts into prose, and no field marks them. With the label, the `programming language` label set and the syntax label sets (`openinterp/syntax.py`) work on such corpora too (docs/PROTOCOL.md §4). This note is how the detector and its confidence line were chosen. It answers the TODO item *Open question: can we detect programming languages in unlabelled corpora?* Script: `scripts/code_detection.py`. Rows: `code-detection.jsonl`. Run 2026-11-12.
 
 ## Method
 

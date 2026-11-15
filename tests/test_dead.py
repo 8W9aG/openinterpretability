@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 import pytest
 import torch
 
-from openinterp.builder.tree import build_tree, explore_focus
+from openinterp.builder.stopped import explore_focus
+from openinterp.builder.tree import build_tree
 from openinterp.core.draws import UnauditableDraw, load_draws, write_draw
 from openinterp.core.identifiers import NeuronIdentifier
 from openinterp.core.schemas import AuditRecord, ExperimentProvenance
@@ -143,7 +144,7 @@ def test_proven_dead_poles_count_as_verified(tmp_path, record, monkeypatch):
 
     ident = neuron(1, 3, model="m/a")
     sub = record.submission.model_copy(update={"identifier": ident, "model_mlp_width": 10})
-    tree = build_tree([AuditRecord(submission=sub, verdict=record.verdict)])
+    tree = build_tree([AuditRecord(submission=sub, verdict=record.verdict)], [])
     explore = explore_focus(tree, load_draws(wiki))
     assert record.verdict.status == "VERIFIED"
     assert explore["models"] == {"m/a": {"verified": 3, "dead": 2}}  # L1/N3, and 2 dead

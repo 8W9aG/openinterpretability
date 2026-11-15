@@ -1,7 +1,7 @@
 """The cross-model graph of sister neurons on a model's page.
 
 There is one panel per other model that the sister search compared it with
-(`openinterp sisters`, ``docs/analyses/sister-neurons.jsonl``). Each model is a column.
+(`open-interpretability sisters`, ``docs/analyses/sister-neurons.jsonl``). Each model is a column.
 Its poles are placed by relative depth (layer over the deepest layer). So poles at the
 same depth in two models of different depths sit level.
 

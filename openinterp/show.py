@@ -1,6 +1,6 @@
 """Compact summaries of records, submissions, scan evidence and a unit's history.
 
-``openinterp show`` prints these, so agents need not open a big file to learn a little.
+``open-interpretability show`` prints these, so agents need not open a big file to learn a little.
 A record can be 300 KB, an ``ev.json`` 500 KB and an experiment page 25 KB. An agent
 often needs only a verdict, the failed gates and probes, or what a scan found. The files
 stay the source of truth, and this only reads them.

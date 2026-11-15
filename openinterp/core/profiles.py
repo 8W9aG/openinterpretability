@@ -1,12 +1,14 @@
 """What defines the strength of a unit that is not a neuron pole.
 
 For an attention head it is the head's mean output. For a dictionary feature it is the
-dictionary. Stored in the record, so every later
-measurement of the experiment uses the same definition.
+dictionary. For a superposition it is its members and their weights. Stored in the
+record, so every later measurement of the experiment uses the same definition.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Literal
 
 from pydantic import Field, model_validator
@@ -134,3 +136,86 @@ class DictionaryProfile(StrictModel):
                 f"{output_site_of(self.input_site)}, not {self.output_site}"
             )
         return self
+
+
+class SuperpositionMember(StrictModel):
+    """One neuron of a superposition, and its weight in the direction."""
+
+    neuron_idx: int = Field(ge=0)
+    weight: float
+
+    @model_validator(mode="after")
+    def _nonzero(self) -> SuperpositionMember:
+        if self.weight == 0:
+            raise ValueError("a member's weight must not be zero")
+        return self
+
+
+class SuperpositionProfile(StrictModel):
+    """What defines a superposition (issue #3215, ``docs/PROTOCOL.md`` §1).
+
+    A superposition is the sparse direction w that ``members`` give. It is over one
+    layer's MLP hidden activations a, the down projection's input, where neurons live. Its strength
+    at a token is ``max(0, ŵ · a)``, with ŵ the unit vector of w. So it is the positive
+    part of one direction in ``mlp_hidden``, as a ``basis`` latent is. Its ablation
+    removes that part: ``a ← a − max(0, ŵ · a) ŵ``.
+
+    ``method`` says how the direction was found, for example ``circuit`` or
+    ``sparse-probe``. ``source`` points to where: an analysis, a script or a record.
+    """
+
+    members: list[SuperpositionMember] = Field(min_length=2)
+    method: str = Field(min_length=1, pattern=r"^[a-z0-9-]+$")
+    source: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _sorted_and_distinct(self) -> SuperpositionProfile:
+        indices = [m.neuron_idx for m in self.members]
+        if indices != sorted(set(indices)):
+            raise ValueError("members must be distinct neurons, sorted by neuron_idx")
+        return self
+
+    @property
+    def input_site(self) -> str:
+        """Where the direction reads: the MLP's hidden activations."""
+        return "mlp_hidden"
+
+    @property
+    def neurons(self) -> list[int]:
+        """The member neurons, in order."""
+        return [m.neuron_idx for m in self.members]
+
+
+def superposition_id(members: list[SuperpositionMember]) -> str:
+    """The id of the direction that ``members`` give: 12 hex digits of a SHA-256.
+
+    The members are read in neuron order, and each weight is scaled by the largest
+    magnitude and rounded to 6 digits. So the same direction always gets the same id,
+    whatever the order or scale of its weights.
+    """
+    ordered = sorted(members, key=lambda m: m.neuron_idx)
+    top = max(abs(m.weight) for m in ordered)
+    canon = [[m.neuron_idx, round(m.weight / top, 6)] for m in ordered]
+    return hashlib.sha256(json.dumps(canon).encode()).hexdigest()[:12]
+
+
+def require_unit_profile(model):
+    """Require the profile that defines a non-neuron unit's strength.
+
+    A head's strength is undefined without its mean output. A dictionary feature's is
+    undefined without its dictionary's weights, and a superposition's without its members.
+    A neuron needs none of them.
+    """
+    kind = model.identifier.kind
+    for field, owner, unit, why in (
+        ("head_profile", "attn_head", "an attention head", "its mean output"),
+        ("dictionary_profile", "dictionary_feature", "a dictionary feature", "its dictionary"),
+        ("superposition_profile", "superposition", "a superposition", "its members"),
+    ):
+        present = getattr(model, field) is not None
+        units = unit.split(" ", 1)[1] + "s"
+        if kind == owner and not present:
+            raise ValueError(f"{unit} needs a {field}: {why} defines strength")
+        if kind != owner and present:
+            raise ValueError(f"{field} is only for {units}")
+    return model

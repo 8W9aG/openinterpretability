@@ -24,7 +24,7 @@ description: Read a neuron's input and output weights through the vocabulary (Ja
    print(vl.jacobian_promoted, vl.jacobian_suppressed)  # read these
    print(vl.logit_promoted, vl.overlap, vl.direction_cosine, vl.jacobian_kurtosis)
    ```
-   `openinterp audit` records this as `submission.vocabulary_lens`. On Qwen2.5-0.5B, the two lenses share 0 of their top-10 tokens up to the middle layers. They converge only near the output: overlap 0.5–0.7 at layer 20 and 1.0 at layer 23. Over the same layers, cos(w, J·w) rises from ~0.2 to 1.0. **Don't trust logit-lens tokens before the last few layers.**
+   `open-interpretability audit` records this as `submission.vocabulary_lens`. On Qwen2.5-0.5B, the two lenses share 0 of their top-10 tokens up to the middle layers. They converge only near the output: overlap 0.5–0.7 at layer 20 and 1.0 at layer 23. Over the same layers, cos(w, J·w) rises from ~0.2 to 1.0. **Don't trust logit-lens tokens before the last few layers.**
    - **Kurtosis ≈ 3** (Gaussian) means the pole promotes no specific token set, under either lens. A high Jacobian kurtosis together with coherent tokens is the signature of a prediction or suppression neuron.
    - Also check the **suppressed** list. Voita et al. found that suppressed tokens are often the trigger itself.
 2. **Input side (what it detects).** Project the neuron's input row (`up_proj` and `gate_proj` rows for SwiGLU, `c_fc` column for GPT-2) through the *embedding* matrix. This mostly helps in early layers.

@@ -1,11 +1,11 @@
-"""On-disk cache of the Parquet data that ``openinterp corpus`` reads from the Hub.
+"""On-disk cache of the Parquet data that ``open-interpretability corpus`` reads from the Hub.
 
 A file at a dataset commit never changes, so an entry can't go stale. The cache keeps only
 paths that name a full commit hash, as ``_read_globs`` in :mod:`openinterp.corpus` writes
 them. It stores each file's row-group count, and each row group's columns.
 
 A repeat of a build reads almost nothing from row groups on the Hub, for example
-``openinterp corpus --same-as``. A build with a new seed reads other row groups, so it
+``open-interpretability corpus --same-as``. A build with a new seed reads other row groups, so it
 saves little. A cache failure never fails a build: the code reads the Hub instead. Once
 the cache outgrows its size cap, the least recently used entries go.
 """

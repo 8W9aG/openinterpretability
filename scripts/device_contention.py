@@ -157,8 +157,12 @@ def _collect(jobs, mix, work: Path, stop_at: float) -> list[dict]:
 
 
 def other_jobs() -> set[str]:
-    """``openinterp`` commands that run now, outside this script."""
-    found = subprocess.run(["pgrep", "-fl", "openinterp "], capture_output=True, text=True)
+    """``open-interpretability`` commands that run now, outside this script.
+
+    The old name, ``openinterp``, still matches, for a checkout from before issue #3691.
+    """
+    pattern = "open-interpretability |openinterp "
+    found = subprocess.run(["pgrep", "-fl", pattern], capture_output=True, text=True)
     return {
         " ".join(line.split()[1:4])
         for line in found.stdout.splitlines()

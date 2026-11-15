@@ -4,7 +4,7 @@ The full run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It co
 
 ## Setup
 
-- **Draws.** Latents come from `openinterp audit --random --seed s --dictionary gpt2-small-transcoders`. The pilot drew seeds 1–14 and the full run seeds 15–61, in order, until 40 latents were live. Neuron poles come from `openinterp audit --random --pole positive --seed s --model openai-community/gpt2`, seeds 1–40.
+- **Draws.** Latents come from `open-interpretability audit --random --seed s --dictionary gpt2-small-transcoders`. The pilot drew seeds 1–14 and the full run seeds 15–61, in order, until 40 latents were live. Neuron poles come from `open-interpretability audit --random --pole positive --seed s --model openai-community/gpt2`, seeds 1–40.
 - **Why positive poles only.** The pilot found that GPT-2's negative poles cannot pass the protocol (see the pilot's *What drives the gap*). So the native arm samples positive poles only.
 - **Pilot units carry over.** `--pole positive` draws the layer and neuron the way uniform-pole sampling does. Seeds 1–4 therefore gave the pilot's four positive poles, and their pilot records stand. The six negative poles the pilot drew stay in the registry. The site reports them as their own row and leaves them out of the main comparison.
 - **No draw skipped or repeated.** No seed was skipped and none was audited twice.
@@ -69,6 +69,7 @@ The checks used only the submitted explanation, never the proposer's private not
 - **Same agents, both arms.** One agent of each role did both arms, so a model that writes better hypotheses for sparse units favours latents. That bias is the thing being measured, since an interpretable unit is one that has a short, testable description. But the result is specific to these agents and this protocol.
 - **Judge prompts.** In explanation-scoring judge prompts, curly apostrophes in corpus text render as "��". Explanation scores are reported, not gated, so verdicts are unaffected.
 - **Layers.** Layers were drawn uniformly. The early-layer floor affects the positive poles of layers 1–2 most.
+- **Not neurons in disguise.** Shabalin and Piotrowski (arXiv 2610.24521) find many transcoder features that align with one neuron on both sides. Here, at their 0.7 threshold, 1 of the 40 audited latents is such a neuron feature (`neuron-features.md`). So the comparison is not neurons against neurons.
 
 ## Next
 

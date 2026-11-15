@@ -1,4 +1,7 @@
-"""``openinterp pause``: new experiments wait while a measurement needs a quiet machine."""
+"""``open-interpretability pause``: new experiments wait while a measurement runs.
+
+The measurement needs a quiet machine.
+"""
 
 import os
 import subprocess
@@ -39,7 +42,7 @@ def test_a_file_that_cant_be_read_is_a_pause_that_ends():
 
 def test_the_description_names_the_reason_and_how_to_resume():
     text = pause.start("timing devices", now=NOW).describe()
-    assert "timing devices" in text and "openinterp resume" in text
+    assert "timing devices" in text and "open-interpretability resume" in text
 
 
 def test_next_draws_nothing_while_paused(tmp_path):

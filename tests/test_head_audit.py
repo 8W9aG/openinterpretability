@@ -25,6 +25,7 @@ from openinterp.harness.units import HeadUnit, head_strength, submission_unit
 from openinterp.planner import plan_next
 from openinterp.reproduce import reproduce_record
 from tests.conftest import FakeTokenizer
+from tests.site_pages import unit_pages
 from tests.test_agents import SMALL
 
 HEAD = HeadIdentifier(model_name="tiny-gpt2", layer=1, head_idx=1)
@@ -185,7 +186,7 @@ def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     assert "L1/H1" in (wiki / "README.md").read_text()
 
     report = compile_site([record], tmp_path / "dist")
-    html = (tmp_path / "dist" / "models" / "tiny-gpt2" / "L1" / "H1.html").read_text()
+    html = unit_pages(tmp_path / "dist" / "models" / "tiny-gpt2" / "L1" / "H1.html")
     assert "attention head" in html and "Induction" in html and "Peak attends to" in html
     (row,) = pq.read_table(report.parquet).to_pylist()
     assert (row["kind"], row["head_idx"], row["neuron_idx"], row["pole"]) == (
@@ -202,7 +203,9 @@ def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     kinds = {c.kind for c in plan.candidates}
     assert "opposite_pole" not in kinds
-    audits = [cmd for c in plan.candidates for cmd in c.commands if "openinterp audit" in cmd]
+    audits = [
+        cmd for c in plan.candidates for cmd in c.commands if "open-interpretability audit" in cmd
+    ]
     assert audits and all("--head 1" in cmd and "--pole" not in cmd for cmd in audits)
 
 

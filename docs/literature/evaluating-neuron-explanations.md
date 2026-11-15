@@ -2,7 +2,7 @@
 
 **Citation.** Tuomas Oikarinen, Ge Yan and Tsui-Wei Weng (UC San Diego). "Evaluating Neuron Explanations: A Unified Framework with Sanity Checks". arXiv 2506.05774v1, 6 June 2025. [Paper](https://arxiv.org/abs/2506.05774). [Code and results](https://github.com/Trustworthy-ML-Lab/Neuron_Eval). ICML 2025. Funded in part by the US National Science Foundation, a Hellman Fellowship, an Intel award and the Nvidia Academic Grant Program.
 
-**Status.** Used. `scripts/score_sanity.py` (#3237, `docs/analyses/score-sanity.md`) runs this paper's two sanity tests on every stored score of `openinterp score`.
+**Status.** Used. `scripts/score_sanity.py` (#3237, `docs/analyses/score-sanity.md`) runs this paper's two sanity tests on every stored score of `open-interpretability score`.
 
 **Read.** The abstract page and the v1 HTML, on 2026-11-14. A model read the text and reported it to us, with short quotes. All of it came back as the paper's own text, appendices included. We did not see the figures.
 
@@ -51,10 +51,10 @@ On the GPT-2 settings alone, balanced accuracy falls under extra labels for only
 
 **Our scores already run its tests.** `scripts/score_sanity.py` (#3237) applies both tests to every stored detection and fuzzing score, with the judge's answers as the concept labels. There, balanced accuracy passed both tests wherever the judge beat chance, and recall, precision and F1 each failed one (`docs/analyses/score-sanity.md`).
 
-**The two results agree because our samples are balanced.** The paper finds that balanced accuracy fails the extra-labels test on rare concepts. Our detection windows are half active by construction (`sample_heldout`), so γ is about 0.5. That is the case where the paper's own theory has balanced accuracy pass. For an ideal unit, it falls by p/2 under either of our tests. So `openinterp score` may report balanced accuracy *because* its sample is balanced. A score taken on ordinary text, where a pole is active on a small share of tokens, should use correlation, AUPRC or F1. `docs/analyses/score-sanity.md` now says this.
+**The two results agree because our samples are balanced.** The paper finds that balanced accuracy fails the extra-labels test on rare concepts. Our detection windows are half active by construction (`sample_heldout`), so γ is about 0.5. That is the case where the paper's own theory has balanced accuracy pass. For an ideal unit, it falls by p/2 under either of our tests. So `open-interpretability score` may report balanced accuracy *because* its sample is balanced. A score taken on ordinary text, where a pole is active on a small share of tokens, should use correlation, AUPRC or F1. `docs/analyses/score-sanity.md` now says this.
 
 **F1 behaves the other way on our samples.** The paper's F1 passes both tests, but on our balanced windows F1 rose under extra labels. With half the windows active, a random extra "active" answer hits an active window half the time. So recall gains about as much as precision loses. Both results fit the same arithmetic at different γ.
 
-**Our windows are not top-and-random.** Correlation on top-and-random samples fails both tests here, because oversampling the top makes it "more similar to Recall". `openinterp score` takes its active windows from five bins across the activation range, plus as many random inactive ones. So it avoids the top-heavy sample that the paper warns about.
+**Our windows are not top-and-random.** Correlation on top-and-random samples fails both tests here, because oversampling the top makes it "more similar to Recall". `open-interpretability score` takes its active windows from five bins across the activation range, plus as many random inactive ones. So it avoids the top-heavy sample that the paper warns about.
 
 **The null-explanation control covers the case that the tests don't.** The paper's tests perturb labels at random. Our null-explanation control (`docs/analyses/null-explanation-control.md`) replaces the explanation itself with an empty one or another unit's, which is closer to a real wrong explanation.

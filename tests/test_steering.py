@@ -7,6 +7,7 @@ from openinterp.harness.hooks import NeuronHookRunner, isolate_pole
 from openinterp.harness.steering import steering_interventions, steering_samples
 from openinterp.harness.units import HeadUnit, NeuronUnit
 from tests.conftest import N_LAYERS, FakeTokenizer
+from tests.site_pages import unit_pages
 
 PROMPTS = ("abc", "hello there")
 
@@ -116,7 +117,7 @@ def test_samples_rendered_on_both_pages(tmp_path, record):
 
     compile_site([rec], tmp_path / "site")
     (page,) = (tmp_path / "site" / "models").rglob("N117.html")
-    html = page.read_text()
+    html = unit_pages(page)
     assert "Steering" in html and "quoted “speech”" in html and "Clamped ×4" in html
     assert 'title="Same as the baseline"> sunny.</p>' in html  # ×1 changed nothing
     assert "lg:grid-cols-4" in html

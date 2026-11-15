@@ -6,6 +6,7 @@ from openinterp.core.identifiers import FeatureIdentifier
 from openinterp.core.schemas import NeuronIdentifier
 from openinterp.crossref import AlignmentRow, Explanation
 from openinterp.prior_art import TOP, find_prior_art, format_for_reviewer
+from tests.site_pages import unit_pages
 
 GPT2, TC = "openai-community/gpt2", "gpt2-small-transcoders"
 FOUND = [
@@ -68,5 +69,5 @@ def test_the_reviewer_sees_prior_art_and_the_page_shows_it(record, monkeypatch, 
 
     site = tmp_path / "site"
     compile_site([record.model_copy(update={"submission": sub})], site)
-    page = (site / "models/openai-community--gpt2/L8/gpt2-small-transcoders/F5.html").read_text()
+    page = unit_pages(site / "models/openai-community--gpt2/L8/gpt2-small-transcoders/F5.html")
     assert "Prior art" in page and "closing quotes" in page and art[0].url in page

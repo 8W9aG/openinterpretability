@@ -1,4 +1,7 @@
-"""``openinterp pause`` and ``openinterp resume``: stop new experiments for a while."""
+"""Stop new experiments for a while.
+
+The commands are ``open-interpretability pause`` and ``open-interpretability resume``.
+"""
 
 from __future__ import annotations
 
@@ -26,7 +29,7 @@ from openinterp.core import pause
 def pause_command(reason, minutes, status):
     """Stop new experiments on this machine; the ones that run go on to the end.
 
-    While the pause lasts, `openinterp next` draws nothing and
+    While the pause lasts, `open-interpretability next` draws nothing and
     scripts/experiment-loop.sh waits. See docs/experiments.md.
     """
     if status:
@@ -38,5 +41,5 @@ def pause_command(reason, minutes, status):
 
 @cli.command(name="resume")
 def resume_command():
-    """End a pause that `openinterp pause` started."""
+    """End a pause that `open-interpretability pause` started."""
     click.echo("Resumed new experiments." if pause.stop() else "New experiments were not paused.")

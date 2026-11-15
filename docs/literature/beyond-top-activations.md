@@ -2,7 +2,7 @@
 
 **Citation.** Tuomas Oikarinen, Ge Yan, Akshay Kulkarni and Tsui-Wei Weng (UC San Diego). "Beyond Top Activations: Efficient and Reliable Crowdsourced Evaluation of Automated Interpretability". arXiv 2506.07985, v1 9 June 2025, v2 2 December 2025. [Paper](https://arxiv.org/abs/2506.07985). The paper says its code "will be available" at [Trustworthy-ML-Lab/Efficient-Interpretability-Eval](https://github.com/Trustworthy-ML-Lab/Efficient-Interpretability-Eval). We did not check that the repository exists. Preprint, no venue given. The authors' institution judged the crowd study exempt from IRB review.
 
-**Status.** Planned. Issue #3595 brings the paper's importance sampling to the inactive windows of `openinterp score`.
+**Status.** Planned. Issue #3595 brings the paper's importance sampling to the inactive windows of `open-interpretability score`.
 
 **Read.** The abstract page and the v2 HTML, on 2026-11-14. A model read the text in four passes and reported it to us, with short quotes. Every pass came back as the paper's own text, from the introduction to the end of the appendices. We did not see the figures, so values that are only on plots are not here.
 
@@ -41,7 +41,7 @@ The authors explain why the two LLM-based methods (MAIA, DnD) score low: they lo
 
 ## Use in this repo
 
-**Our detection already scores beyond top activations.** `openinterp score` takes its windows from held-out text (`sample_heldout`, `openinterp/harness/explanation_scores.py`). It sorts the active windows by peak and splits them into five equal bins. Each bin gives 5 windows, so the weakest activations count as much as the top ones. That answers the paper's first point: an evaluation of top activations alone measures only recall.
+**Our detection already scores beyond top activations.** `open-interpretability score` takes its windows from held-out text (`sample_heldout`, `openinterp/harness/explanation_scores.py`). It sorts the active windows by peak and splits them into five equal bins. Each bin gives 5 windows, so the weakest activations count as much as the top ones. That answers the paper's first point: an evaluation of top activations alone measures only recall.
 
 **Our inactive windows are uniform, which is the gap that MG-IS fills.** Detection adds as many inactive windows as active ones, drawn at random from the held-out text. Most of them have nothing to do with the explanation. So the half of detection that tests false positives is easy. It rarely shows the judge a window that the explanation would wrongly call active. MG-IS draws such windows on purpose, and weights keep the estimate unbiased. Issue #3595 tries that, using the confound profile's trigger tokens or a small embedding model as the concept proxy. For verdicts, the reviewer's hard negatives do this job already.
 
@@ -49,4 +49,4 @@ The authors explain why the two LLM-based methods (MAIA, DnD) score low: they lo
 
 **The rater model is about humans.** BRAgg's 23% error rate is for crowd workers. Our judges are single LLM calls, and the null-explanation control already checks them: with an empty explanation or another unit's, a Haiku judge scored 0.50 (`docs/analyses/null-explanation-control.md`). If we use several judges for one score, a Bayesian aggregation like BRAgg would be the way to combine them.
 
-**Related work.** The same group wrote *Evaluating Neuron Explanations*, whose sanity checks issue #3237 applies to the metrics of `openinterp score`.
+**Related work.** The same group wrote *Evaluating Neuron Explanations*, whose sanity checks issue #3237 applies to the metrics of `open-interpretability score`.

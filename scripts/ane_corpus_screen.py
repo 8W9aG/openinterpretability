@@ -13,7 +13,7 @@ layer and for each pole:
   candidates again in fp32 and keeps the best 20.
 
 It reports the share of neurons whose 20 values agree with exact, inside the tolerance
-of ``openinterp reproduce``. It does this for several ways to pick the candidates, and
+of ``open-interpretability reproduce``. It does this for several ways to pick the candidates, and
 also for the ANE's own values. Results go to docs/analyses/ane-feasibility.md.
 
 The ANE needs fixed input shapes. So each document goes in the smallest of

@@ -2,7 +2,7 @@
 
 Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It answers the Performance TODO item "Can we run any of this on Apple's Neural Engine (ANE)?". Raw results are in `ane-feasibility.jsonl`, one line per model. The script is `scripts/ane_benchmark.py`.
 
-**Answer: it can, but it is slower than MPS.** As first converted, the ANE gave Qwen2.5 activations with no relation to fp32. Three changes to the model's code make it as accurate as any other fp16 backend (see "Making the ANE accurate"). Even so, a forward pass takes 1.5–1.6× as long as on MPS. And on Qwen, fp16 on any device is often outside the tolerance of `openinterp reproduce`. A scan can still record exact values. The ANE ranks every document, and fp32 measures at most 120 candidates again. On a real corpus, that gives the exact top 20 for every neuron of all three models (see "On a real corpus").
+**Answer: it can, but it is slower than MPS.** As first converted, the ANE gave Qwen2.5 activations with no relation to fp32. Three changes to the model's code make it as accurate as any other fp16 backend (see "Making the ANE accurate"). Even so, a forward pass takes 1.5–1.6× as long as on MPS. And on Qwen, fp16 on any device is often outside the tolerance of `open-interpretability reproduce`. A scan can still record exact values. The ANE ranks every document, and fp32 measures at most 120 candidates again. On a real corpus, that gives the exact top 20 for every neuron of all three models (see "On a real corpus").
 
 ## Method
 
@@ -12,7 +12,7 @@ Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It answers the Performance
 - **Two changes keep fp16 finite on Qwen2.5,** on every device:
   - The residual stream gets to about 6,600 (1.5B) and 1,700 (0.5B). RMSNorm squares it (6,600² ≈ 4 × 10⁷, but fp16's largest value is 65,504). HF's RMSNorm moves to fp32 for this step, which the ANE can't do. The copy divides each row by its largest value first. That is exact.
   - The k projections have large biases (|k| up to 220), so q·k gets to about 10⁵ before the 1/√d scale. The copy scales q first.
-- **Agreement.** The script compares each result with the fp32 CPU activations. It reports three figures. They are the relative RMS error over all values, the worst Pearson correlation over 64 neurons, and the overlap of neuron 0's top 20 tokens. The 64 neurons are spread across the layer. A separate check uses the tolerance of `openinterp reproduce`: 1e-3 × the neuron's peak + 1e-2 × the value.
+- **Agreement.** The script compares each result with the fp32 CPU activations. It reports three figures. They are the relative RMS error over all values, the worst Pearson correlation over 64 neurons, and the overlap of neuron 0's top 20 tokens. The 64 neurons are spread across the layer. A separate check uses the tolerance of `open-interpretability reproduce`: 1e-3 × the neuron's peak + 1e-2 × the value.
 - **Timing.** The median of 5 runs after a warm-up, with no other jobs on the machine. Timings changed by up to 2× between runs. Read them as rough.
 
 ## Making the ANE accurate
@@ -55,7 +55,7 @@ Milliseconds per 2,048-token batch, with all three changes. *Rel. err* is the re
 
 ### Against the reproduce tolerance
 
-`openinterp reproduce` runs a record again at the dtype it pins (`RunEnvironment.dtype`), on CI's CPU runners. So the fair reference for an fp16 record is PyTorch fp16 on the CPU. `reproduce` compares each top example's per-token strengths. As a stand-in, this check takes each neuron's top 20 tokens in the batch. A neuron *passes* if all 20 are inside the tolerance. Share of neurons that pass:
+`open-interpretability reproduce` runs a record again at the dtype it pins (`RunEnvironment.dtype`), on CI's CPU runners. So the fair reference for an fp16 record is PyTorch fp16 on the CPU. `reproduce` compares each top example's per-token strengths. As a stand-in, this check takes each neuron's top 20 tokens in the batch. A neuron *passes* if all 20 are inside the tolerance. Share of neurons that pass:
 
 | Backend, against | GPT-2 | Qwen 0.5B | Qwen 1.5B |
 | --- | --- | --- | --- |

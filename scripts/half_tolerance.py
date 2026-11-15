@@ -1,6 +1,6 @@
 """How far 16-bit numbers drift from float32 when a record is reproduced (issue #2995).
 
-`openinterp reproduce` compares each number within ``atol × scale + rtol × |recorded|``.
+`open-interpretability reproduce` compares each number within ``atol × scale + rtol × |recorded|``.
 The defaults suit float32 differences between devices. A record made in bfloat16 on one
 device drifts by a few percent on another. This script measures that drift, to set the
 tolerance for 16-bit records (``reproduce.HALF_TOLERANCE``).

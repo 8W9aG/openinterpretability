@@ -1,0 +1,39 @@
+name: Evidence branch cleanup
+
+# A pull request's evidence blobs ride on evidence/<branch> until CI uploads them to the
+# dataset (openinterp/evidence_branch.py, issue #3254). When the pull request closes, the
+# branch has done its job, so this deletes it. Auto-merge closes PRs with the workflow
+# token, and events that token causes start no workflows. So a schedule also deletes
+# every evidence branch whose PR is closed, or that has no PR.
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  delete:
+    name: Delete closed PRs' evidence branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete evidence branches of closed PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPO/git/matching-refs/heads/evidence/" --jq '.[].ref' |
+          while read -r ref; do
+            branch="${ref#refs/heads/evidence/}"
+            open=$(gh pr list --repo "$REPO" --head "$branch" --state open \
+              --json number --jq length)
+            if [ "$open" = "0" ]; then
+              gh api -X DELETE "repos/$REPO/git/${ref#refs/}"
+              echo "Deleted evidence/$branch"
+            fi
+          done

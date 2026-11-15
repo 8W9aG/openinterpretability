@@ -26,7 +26,7 @@ def check(wiki_dir, base_ref):
     except subprocess.CalledProcessError as error:
         raise click.ClickException(
             f"can't diff against {base_ref} ({error.stderr.strip()}). "
-            "Fetch the ref, or run `openinterp check` to check every record."
+            "Fetch the ref, or run `open-interpretability check` to check every record."
         ) from error
     in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
     for problem in report.problems:

@@ -1,4 +1,4 @@
-"""Sister neurons across models (`openinterp sisters`).
+"""Sister neurons across models (`open-interpretability sisters`).
 
 This takes every VERIFIED neuron pole of a model. It finds the poles of another model
 whose activity over the corpus correlates best with it. Each match has its own best
@@ -110,10 +110,11 @@ def sort_rows(path: Path) -> None:
     path.write_text("".join(r.model_dump_json() + "\n" for r in rows))
 
 
-def verified_poles(records: Sequence[AuditRecord], model_name: str):
+def verified_poles(records: Sequence[AuditRecord], errata: Sequence, model_name: str):
     """Return ``{slug: (identifier, revision)}`` for each VERIFIED pole of ``model_name``.
 
-    The revision is the model revision that the pole's records pin most often.
+    Standing uses the site's rule, with ``errata`` applied. The revision is the model
+    revision that the pole's records pin most often.
     """
     from openinterp.builder.tree import build_tree
 
@@ -124,7 +125,7 @@ def verified_poles(records: Sequence[AuditRecord], model_name: str):
             prov = r.submission.provenance
             revisions[ident.slug][prov.model_revision if prov else None] += 1
     out = {}
-    for model in build_tree(records):
+    for model in build_tree(records, errata):
         if model.name != model_name:
             continue
         for layer in model.layers:
@@ -153,53 +154,64 @@ def sisters(
     load_runner: Callable[[str, str | None], object],
     out: Path,
     texts: Sequence[str],
+    todo: Sequence[tuple[str, str]],
     *,
-    model_name: str,
-    other: str,
     corpus: str,
     corpus_sha256: str,
-    other_revision: str | None = None,
+    errata: Sequence,
     k: int = 5,
     echo: Callable[[str], None] = print,
-) -> int:
-    """Append a row to ``out`` for each VERIFIED pole of ``model_name`` without one yet.
+) -> dict[tuple[str, str], int]:
+    """Append a row to ``out`` for each VERIFIED pole without one yet, for each pair.
 
-    The rows are for ``other``. Returns how many rows it wrote.
+    ``todo`` holds (model, other) pairs. The rows of a pair are for ``other``. One search
+    covers every pair (:mod:`openinterp.harness.sister_passes`), and ``load_runner`` is
+    called once per model and stage. ``errata`` decide which poles stand VERIFIED, as on
+    the site. Returns how many rows each pair got.
     """
-    from openinterp.harness.environment import run_environment
-    from openinterp.harness.sisters import find_sisters, tokenize
+    from openinterp.harness.sister_passes import Job, search
 
     done = {(r.slug, r.other) for rows in load_rows(out).values() for r in rows}
-    poles = {s: v for s, v in verified_poles(records, model_name).items() if (s, other) not in done}
-    if not poles:
-        return 0
-    revision = _pinned(sum((revisions for _, revisions in poles.values()), Counter()))
-    source, oth = load_runner(model_name, revision), load_runner(other, other_revision)
-    units = {(i.layer, i.neuron_idx, i.pole): slug for slug, (i, _) in poles.items()}
-    echo(f"{len(units)} VERIFIED poles of {model_name} against {other}")
-    progress = lambda stage, n: echo(f"{stage}: {n} positions")  # noqa: E731
-    found, tokens = find_sisters(
-        source, oth, list(units), texts, other_name=other, k=k, progress=progress
-    )
-    readable = sum(max(len(tokenize(source, t).ids) - 1, 0) for t in texts)
-    common = {
-        "other": other,
-        "model_revision": run_environment(source).model_revision or revision,
-        "other_revision": run_environment(oth).model_revision or other_revision,
+    jobs, slugs = [], {}
+    for model_name, other in todo:
+        verified = verified_poles(records, errata, model_name)
+        poles = {s: v for s, v in verified.items() if (s, other) not in done}
+        if not poles:
+            continue
+        revision = _pinned(sum((revisions for _, revisions in poles.values()), Counter()))
+        units = {(i.layer, i.neuron_idx, i.pole): slug for slug, (i, _) in poles.items()}
+        echo(f"{len(units)} VERIFIED poles of {model_name} against {other}")
+        jobs.append(Job((model_name, revision), (other, None), list(units), other_name=other))
+        slugs[id(jobs[-1])] = units
+    if jobs:
+        search(
+            jobs, load_runner, texts, k=k, progress=lambda stage, n: echo(f"{stage}: {n} positions")
+        )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    wrote = {pair: 0 for pair in todo}
+    with out.open("a") as f:
+        for job in jobs:
+            common = _common(job, corpus, corpus_sha256)
+            prefix = model_slug(job.source[0])
+            for unit, slug in sorted(slugs[id(job)].items(), key=lambda u: u[1]):
+                f.write(_row(slug, prefix, job.found[unit], common).model_dump_json() + "\n")
+            wrote[(job.source[0], job.other[0])] = len(job.units)
+    return wrote
+
+
+def _common(job, corpus: str, corpus_sha256: str) -> dict:
+    """The fields that every row of one pair shares."""
+    return {
+        "other": job.other[0],
+        "model_revision": job.source_revision or job.source[1],
+        "other_revision": job.other_revision or job.other[1],
         "corpus": corpus,
         "corpus_sha256": corpus_sha256,
-        "tokens": tokens,
-        "coverage": round(tokens / max(readable, 1), 4),
-        "layers": source.n_layers,
-        "other_layers": oth.n_layers,
+        "tokens": job.tokens,
+        "coverage": round(job.tokens / max(job.readable, 1), 4),
+        "layers": job.source_layers,
+        "other_layers": job.other_layers,
     }
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("a") as f:
-        for unit, slug in sorted(units.items(), key=lambda u: u[1]):
-            f.write(
-                _row(slug, model_slug(model_name), found[unit], common).model_dump_json() + "\n"
-            )
-    return len(units)
 
 
 def _row(slug: str, prefix: str, found, common: dict) -> SisterRow:
@@ -283,15 +295,16 @@ def sister_view(
     return poles
 
 
-def pole_findings(records: Sequence[AuditRecord]) -> dict[str, tuple[str, str]]:
+def pole_findings(records: Sequence[AuditRecord], errata: Sequence) -> dict[str, tuple[str, str]]:
     """Return ``{slug: (status, explanation)}`` for every studied neuron pole.
 
-    That is its standing, and the explanation of the experiment that the standing rests on.
+    That is its standing, with ``errata`` applied, and the explanation of the experiment
+    that the standing rests on.
     """
     from openinterp.builder.tree import build_tree
 
     out = {}
-    for model in build_tree(records):
+    for model in build_tree(records, errata):
         for layer in model.layers:
             for node in layer.units:
                 if not node.is_neuron:
@@ -330,9 +343,9 @@ def _linked(slug: str, rows: dict, named_by: dict) -> list[tuple[str, float, boo
 
 INTRO = (
     "Neurons in other models whose activity over the corpus correlates with this pole's "
-    "(`openinterp sisters`: r is the Pearson correlation of the two poles' strengths where "
-    "both models have read the same text; a sister is a mutual best match, each the other's "
-    "best partner, above what a random rotation of the layer reaches), "
+    "(`open-interpretability sisters`: r is the Pearson correlation of the two poles' "
+    "strengths where both models have read the same text; a sister is a mutual best match, "
+    "each the other's best partner, above what a random rotation of the layer reaches), "
     "and what this registry's experiments concluded about them. A correlated neuron may "
     "encode a related feature rather than the same one."
 )
@@ -380,7 +393,9 @@ def sister_context(
     if identifier.kind != "mlp_neuron_pole" or not rows or not Path(wiki_dir).exists():
         return ""
     linked = {other for other, _, _ in _linked(identifier.slug, rows, by_match_slug(rows))}
-    findings = pole_findings(_records_of(wiki_dir, linked))
+    from openinterp.core.errata import load_errata
+
+    findings = pole_findings(_records_of(wiki_dir, linked), load_errata(wiki_dir))
     return format_sisters(identifier.slug, rows, findings, role, exclude)
 
 
@@ -426,8 +441,9 @@ def sister_brief(source: AuditRecord) -> str:
     return (
         f"This is a sister-neuron study. The hypothesis under test is fixed: the explanation "
         f"VERIFIED for {ident}, a pole whose activity correlates with "
-        f"this one's (`openinterp sisters`). It is recorded as this submission's explanation "
-        f"word for word, whatever you write, so the review tests whether it carries over:\n\n"
+        f"this one's (`open-interpretability sisters`). It is recorded as this submission's "
+        f"explanation word for word, whatever you write, so the review tests whether it "
+        f"carries over:\n\n"
         f"> {source.submission.natural_language_explanation}\n\n"
         f"Write `explanation` as exactly that text. Choose the activating tokens, mechanism and "
         f"counterfactuals that this explanation predicts for this pole, using the evidence "
@@ -436,9 +452,11 @@ def sister_brief(source: AuditRecord) -> str:
 
 
 def sister_source_href(ref: str) -> str:
-    """The page and anchor of the experiment a ``sister_of`` names."""
+    """The page of the experiment a ``sister_of`` names."""
+    from openinterp.builder.hrefs import experiment_href
+
     slug, experiment = ref.rsplit("/", 1)
-    return f"{pole_href(slug)}#{slug.rsplit('-', 1)[1]}-{experiment}"
+    return experiment_href(slug, experiment)
 
 
 def sister_tests(experiments) -> dict[tuple[str, str], str]:

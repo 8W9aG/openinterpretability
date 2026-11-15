@@ -1,8 +1,9 @@
-"""Keep loaded models across commands that run in one process (``openinterp loop``).
+"""Keep loaded models across commands that run in one process (``open-interpretability loop``).
 
-Each ``openinterp`` command loads its model afresh, which is right for one command per
-process. ``openinterp loop`` runs many commands in one process, so it turns this cache on.
-Then each experiment on a model after the first skips the load. The cache is off by default.
+Each ``open-interpretability`` command loads its model afresh, which is right for one command
+per process. ``open-interpretability loop`` runs many commands in one process, so it turns this
+cache on. Then each experiment on a model after the first skips the load. The cache is off by
+default.
 """
 
 from __future__ import annotations

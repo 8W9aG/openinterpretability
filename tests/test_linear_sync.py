@@ -81,3 +81,29 @@ def test_issue_missing_from_roadmap_is_added():
 def test_no_priority_anywhere_leaves_labels_alone():
     act = linear_sync.plan(_issue(gh_labels=["bug"]), WORKSTREAMS)
     assert act.linear_priority is None and act.add_labels == [] and act.roadmap_priority is None
+
+
+def test_released_early_without_a_published_milestone():
+    published = {"v0.0.19"}
+    assert linear_sync.released_early("v0.0.20", published)
+    assert linear_sync.released_early(None, published)
+    assert not linear_sync.released_early("v0.0.19", published)
+
+
+def test_unrelease_moves_only_issues_whose_release_is_not_published(monkeypatch):
+    issues = [("a", "OPE-1", "u1"), ("b", "OPE-2", "u2"), ("c", "OPE-3", "u3")]
+    monkeypatch.setattr(linear_sync, "released_issues", lambda: issues)
+    monkeypatch.setattr(linear_sync, "published_releases", lambda: {"v0.0.19"})
+    milestones = {"u1": "v0.0.19", "u2": "v0.0.20", "u3": None}
+    monkeypatch.setattr(linear_sync, "github_milestones", lambda: milestones)
+    monkeypatch.setattr(linear_sync.issue_state, "state_id", lambda name: f"id-{name}")
+    calls = []
+    monkeypatch.setattr(linear_sync, "linear", lambda q, v=None: calls.append(v))
+    assert linear_sync.unrelease(dry=False) == 2
+    assert calls == [
+        {"id": "b", "i": {"stateId": "id-Done"}},
+        {"id": "c", "i": {"stateId": "id-Done"}},
+    ]
+    calls.clear()
+    assert linear_sync.unrelease(dry=True) == 2
+    assert calls == []

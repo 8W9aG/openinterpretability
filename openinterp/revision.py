@@ -1,6 +1,6 @@
 """What a revision's proposer sees of the record that it supersedes (issue #3246).
 
-``openinterp audit --supersedes <record>`` revises an earlier hypothesis about the same
+``open-interpretability audit --supersedes <record>`` revises an earlier hypothesis about the same
 unit. Without this, the proposer wrote its new hypothesis from the scan alone and could
 repeat the old mistake. The brief gives the old hypothesis, its verdict, the gates it
 failed and the probes it got wrong. The proposer may see the measurements: only the

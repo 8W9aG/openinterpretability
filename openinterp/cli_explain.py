@@ -1,4 +1,7 @@
-"""``openinterp explain``: attribute one answer of a model to its labelled neuron poles."""
+"""Attribute one answer of a model to its labelled neuron poles.
+
+The command is ``open-interpretability explain``.
+"""
 
 from __future__ import annotations
 

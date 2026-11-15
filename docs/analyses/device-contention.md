@@ -8,7 +8,7 @@ Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It sets the device planner
 - **Mixes.** The jobs of a mix start loading 8 s apart and run their passes at the same time.
 - **Utilization.** During each mix, the script reads the GPU's utilization as the planner does: the mean of 5 `ioreg` readings over about 2 s, again and again.
 - **Same numbers.** Each job measures one fixed batch before and after its passes. A job's two results must be equal, and equal to a job alone on that device.
-- **A quiet machine.** Experiment loops ran on this machine at the same time. So the script recorded every other `openinterp` command that ran during a mix, and ran that mix again. Each result here is from a mix during which no other `openinterp` command ran. Some mixes took three attempts.
+- **A quiet machine.** Experiment loops ran on this machine at the same time. So the script recorded every other `open-interpretability` command that ran during a mix, and ran that mix again. Each result here is from a mix during which no other `openinterp` command ran. Some mixes took three attempts.
 
 ## Results
 
@@ -37,7 +37,7 @@ With no job, the planner's mean reading was 0.6% to 1.2%. Single readings got to
 
 ## A hang when processes start on MPS together
 
-In the first attempt, four MPS jobs started at the same moment. Two of them stopped for more than 35 minutes in their first copy to MPS. Their stacks were in Metal's compiler (`MTLCompilerFSCache::openSync`). That function opens Metal's shared cache of compiled GPU programs on disk. Jobs that start 8 s apart did not stop. Any `openinterp` command that starts on MPS at the same time as another can meet this. A guard against it is a separate change.
+In the first attempt, four MPS jobs started at the same moment. Two of them stopped for more than 35 minutes in their first copy to MPS. Their stacks were in Metal's compiler (`MTLCompilerFSCache::openSync`). That function opens Metal's shared cache of compiled GPU programs on disk. Jobs that start 8 s apart did not stop. Any `open-interpretability` command that starts on MPS at the same time as another can meet this. A guard against it is a separate change.
 
 ## Also found
 
