@@ -59,7 +59,9 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: corpus.jsonl
-          key: corpus-pile-10k-127bfedc-ded48cfc
+          # One corpus: pile-10k at its pinned revision, checked by SHA-256 below. Name a new
+          # cache here if that ever changes.
+          key: scan-corpus-pile-10k-v1
       - name: Build the scan corpus
         # The registry's corpus, rebuilt byte for byte (docs/experiments.md, "The scan corpus").
         if: steps.corpus.outputs.cache-hit != 'true'
