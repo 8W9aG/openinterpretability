@@ -1,0 +1,1 @@
+- **Releases land lingering experiment PRs.** The `release` skill has a new step 3. Before the release branch is cut, it merges each ready experiment PR more than 12 hours old once its checks pass. A PR whose check fails stays open, with a comment that says why. Drafts are left alone.
