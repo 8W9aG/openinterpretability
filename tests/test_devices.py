@@ -149,6 +149,47 @@ def test_main_runs_the_command_again_on_the_cpu(monkeypatch, capsys):
     assert "Running the command again on the CPU" in capsys.readouterr().err
 
 
+def _run_main(monkeypatch, failing):
+    import openinterp.cli as cli_module
+
+    calls = []
+    monkeypatch.setattr(cli_module, "cli", failing)
+    monkeypatch.setattr(
+        os, "execve", lambda *a: calls.append(a) or (_ for _ in ()).throw(SystemExit(0))
+    )
+    with pytest.raises(SystemExit):
+        cli_module.main()
+    return calls[0][2]  # the new process's environment
+
+
+def test_a_cuda_oom_retries_on_the_gpu_with_smaller_batches_then_the_cpu(monkeypatch, capsys):
+    monkeypatch.delenv(devices.BATCH_SCALE_ENV, raising=False)
+
+    def cuda_oom(**_):
+        devices.take_lease("cuda:0")
+        raise RuntimeError("CUDA out of memory. Tried to allocate 280.00 MiB")
+
+    env = _run_main(monkeypatch, cuda_oom)
+    assert env[devices.BATCH_SCALE_ENV] == str(devices.SMALLER_BATCHES)
+    assert devices.FORCE_ENV not in env  # still the GPU
+    assert "on the GPU, with batches 4 times smaller" in capsys.readouterr().err
+    monkeypatch.setenv(devices.BATCH_SCALE_ENV, str(devices.SMALLER_BATCHES))
+    assert devices.batch_scale() == devices.SMALLER_BATCHES
+    devices.forget()
+    env = _run_main(monkeypatch, cuda_oom)  # the second failure goes to the CPU
+    assert env[devices.FORCE_ENV] == "cpu" and devices.BATCH_SCALE_ENV not in env
+    assert "can take hours" in capsys.readouterr().err
+
+
+def test_batch_scale_reads_the_retry_setting(monkeypatch):
+    monkeypatch.delenv(devices.BATCH_SCALE_ENV, raising=False)
+    assert devices.batch_scale() == 1
+    monkeypatch.setenv(devices.BATCH_SCALE_ENV, "nonsense")
+    assert devices.batch_scale() == 1
+    assert devices.out_of_memory(RuntimeError("x")) is False
+    assert devices.out_of_memory(MemoryError())
+
+
 @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="needs Apple's GPU")
 def test_an_mps_scan_reproduces_on_the_cpu(tiny_gpt2):
     cpu = NeuronHookRunner(tiny_gpt2, FakeTokenizer())

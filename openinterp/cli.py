@@ -464,7 +464,8 @@ from openinterp import (  # noqa: E402, F401
 def main() -> None:
     """The console entry point: run the CLI, and turn an ``OpenInterpError`` into a message.
 
-    If the GPU (MPS or CUDA) fails, it runs the command again on the CPU (``harness/devices.py``).
+    If the GPU (MPS or CUDA) fails, it runs the command again (``harness/devices.py``). After
+    a CUDA out-of-memory error that is on the GPU with smaller batches. Else it is on the CPU.
     """
     from openinterp.harness import devices
 
@@ -474,7 +475,7 @@ def main() -> None:
         raise SystemExit(f"error: {exc}") from exc
     except Exception as exc:
         if gpu := devices.gpu_failed(exc):
-            devices.rerun_on_cpu(exc, gpu)
+            devices.retry(exc, gpu)
         raise
 
 

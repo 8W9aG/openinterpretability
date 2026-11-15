@@ -224,13 +224,22 @@ def plan_batches(lengths: Sequence[int], batch_tokens: int) -> list[int]:
 def batches(
     runner: NeuronHookRunner, pieces: Sequence[Piece], batch_tokens: int = BATCH_TOKENS
 ) -> Iterator[Batch]:
-    """``pieces`` in order, in forward passes of at most ``batch_tokens`` padded tokens."""
+    """``pieces`` in order, in forward passes of at most ``batch_tokens`` padded tokens.
+
+    After a GPU ran out of memory, the batches are smaller (:func:`devices.batch_scale`).
+    A pass that runs long prints its progress (:class:`~openinterp.harness.progress.Progress`).
+    """
+    from openinterp.harness.devices import batch_scale
+    from openinterp.harness.progress import Progress
+
     if not pieces:
         return
     every = runner.tokenizer([p.text for p in pieces], return_tensors="pt", padding=True)
     lengths = every.get("attention_mask", torch.ones_like(every["input_ids"])).sum(1).tolist()
     start = 0
-    for size in plan_batches(lengths, batch_tokens):
+    progress = Progress("pieces", len(pieces))
+    for size in plan_batches(lengths, max(1, batch_tokens // batch_scale())):
+        progress.step(size)
         batch = list(pieces[start : start + size])
         start += size
         encoded = runner.encode([p.text for p in batch])
