@@ -88,6 +88,11 @@ path = "openinterp/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["openinterp"]
 
+# The sdist holds the package and its metadata, not the registry, docs or papers. Without
+# this it packed the whole repository, and PyPI refused v0.0.20's sdist as over 100 MB.
+[tool.hatch.build.targets.sdist]
+include = ["/openinterp", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.cff", "/pyproject.toml"]
+
 [tool.openinterp]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
