@@ -81,6 +81,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
         run: |
           open-interpretability build --wiki-dir wiki --output-dir dist
+          python -m openinterp.builder.css --site dist
           python -m pagefind --site dist
       - name: Sync to R2
         env:
