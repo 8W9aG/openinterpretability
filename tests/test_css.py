@@ -47,3 +47,12 @@ def test_no_page_loads_the_tailwind_cdn():
     for page in templates.rglob("*.html"):
         assert "cdn.tailwindcss.com" not in page.read_text(), page
     assert css.STYLESHEET in (templates / "base.html").read_text()
+
+
+def test_search_loads_only_when_used():
+    from pathlib import Path
+
+    base = (Path(css.__file__).parent / "templates" / "base.html").read_text()
+    assert '<script src="{{ root }}pagefind/pagefind-ui.js"' not in base  # not with every page
+    assert 'id="search-stub"' in base and 'js.src = "{{ root }}pagefind/pagefind-ui.js"' in base
+    assert "content-visibility: auto" in base  # long tables and maps are laid out near the screen
