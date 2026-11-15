@@ -61,8 +61,25 @@ def _resolve(path: str | Path, cwd: str | Path) -> Path:
     return Path(os.path.realpath(Path(cwd) / Path(path).expanduser()))
 
 
+def _fold(path: Path) -> Path:
+    """Return ``path`` in lower case, for a comparison that ignores letter case.
+
+    macOS file systems ignore case by default, so ``WIKI/Experiments`` opens
+    ``wiki/experiments``. The checks compare folded paths, so that a change of case
+    cannot get past them. On a file system that keeps case, this can block more, never
+    less.
+    """
+    return Path(str(path).casefold())
+
+
 def _inside(path: Path, parent: Path) -> bool:
+    path, parent = _fold(path), _fold(parent)
     return path == parent or parent in path.parents
+
+
+def _reviewer_file(path: Path) -> bool:
+    """Return True if the name of ``path`` ends as a reviewer's exchange file does."""
+    return path.name.casefold().endswith(tuple(s.casefold() for s in REVIEWER_EXCHANGE_FILES))
 
 
 def blocked_file(path: Path, root: Path) -> bool:
@@ -74,8 +91,8 @@ def blocked_file(path: Path, root: Path) -> bool:
         blocked = _resolve(rel, root)
         if not _inside(path, blocked):
             continue
-        reviewer_file = path.name.endswith(REVIEWER_EXCHANGE_FILES)
-        return not (rel == DEFAULT_EXCHANGE_DIR and path != blocked and reviewer_file)
+        top = _fold(path) == _fold(blocked)
+        return not (rel == DEFAULT_EXCHANGE_DIR and not top and _reviewer_file(path))
     return False
 
 
@@ -86,7 +103,7 @@ def blocked_search(path: Path, root: Path) -> bool:
     contains one. A search of one allowed file is not blocked. That file can be gone,
     e.g. when an old transcript is checked, so its name decides.
     """
-    if path.is_file() or (path.name.endswith(REVIEWER_EXCHANGE_FILES) and not path.is_dir()):
+    if path.is_file() or (_reviewer_file(path) and not path.is_dir()):
         return blocked_file(path, root)
     return any(
         _inside(path, blocked) or _inside(blocked, path)

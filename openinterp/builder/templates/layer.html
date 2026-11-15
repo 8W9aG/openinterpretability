@@ -14,7 +14,7 @@
 {% if lp %}
 <figure class="mt-6" data-pagefind-ignore>
   <div class="overflow-x-auto">
-  <svg viewBox="0 0 {{ lp.width }} {{ lp.height }}" class="w-full min-w-[520px]" role="img" aria-label="Pieces map of layer {{ layer.layer }}: one cell per neuron, {{ lp.rows[0].width // lp.pitch + 1 }} to a row, {{ layer.studied }} of {{ model.mlp_width | thousands }} studied ({% for s, n in lp.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Each studied neuron is in the table below.">
+  <svg viewBox="0 0 {{ lp.width }} {{ lp.height }}" class="w-full min-w-[520px]" role="group" aria-label="Pieces map of layer {{ layer.layer }}: one cell per neuron, {{ lp.rows[0].width // lp.pitch + 1 }} to a row, {{ layer.studied }} of {{ model.mlp_width | thousands }} studied ({% for s, n in lp.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Each studied neuron is in the table below.">
     <defs><pattern id="pieces" width="{{ lp.pitch }}" height="{{ lp.pitch }}" patternUnits="userSpaceOnUse"><rect width="{{ lp.pitch - 1 }}" height="{{ lp.pitch - 1 }}" class="fill-slate-100 dark:fill-slate-800/60"/></pattern></defs>
     {% for r in lp.rows %}
     <rect x="{{ lp.left }}" y="{{ r.y }}" width="{{ r.width + 1 }}" height="{{ lp.pitch }}" fill="url(#pieces)"/>
@@ -49,7 +49,7 @@
       {% for n in layer.units %}
       <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="whitespace-nowrap px-3 py-2 font-mono">
-          <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% if n.dictionary %}<div class="text-xs text-slate-500">{{ n.dictionary }}</div>{% endif +%}
+          <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% if n.dictionary %}<div class="text-xs text-slate-500">{{ n.dictionary }}</div>{% endif +%}
         </td>
         <td class="space-y-1 px-3 py-2">
           {% for pole, s in n.standings | dictsort(reverse=true) %}
