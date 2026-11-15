@@ -204,6 +204,19 @@ def no_toxicity_models(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _fixed_memory_budget(monkeypatch):
+    """Plan for 64 GB free, whatever the machine has free now (tests opt into less).
+
+    Streaming, batch sizes and worker counts follow free memory
+    (``harness/memory.available_bytes``). With the real figure, a test's result depended
+    on what else the machine ran, and some failed only in a full run (#4003).
+    """
+    from openinterp.harness.memory import MEMORY_ENV
+
+    monkeypatch.setenv(MEMORY_ENV, "64")
+
+
+@pytest.fixture(autouse=True)
 def _no_prior_art(monkeypatch):
     """Keep audits in tests off Neuronpedia's API (tests opt back in)."""
     monkeypatch.setenv("OPENINTERP_PRIOR_ART", "0")
