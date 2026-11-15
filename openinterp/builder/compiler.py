@@ -37,7 +37,7 @@ from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
-from openinterp.builder.pii import save_spans, scrub, scrub_record
+from openinterp.builder.pii import save_spans, scrub, scrub_experiments
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
@@ -332,8 +332,7 @@ def compile_site(
     # group readings by explanation. Only what the site publishes is scrubbed. The two
     # exports run in the background while the pages render (builder/parallel.py).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
-    for experiment in experiments:
-        experiment.record = scrub_record(experiment.record)
+    scrub_experiments(experiments)  # what the pages show: the record and its errata notes
     report = BuildReport(output_dir, len(records), len(experiments))
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
     export_draws(draws, output_dir)  # random draws no experiment could audit
