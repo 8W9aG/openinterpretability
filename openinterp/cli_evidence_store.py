@@ -63,6 +63,22 @@ def load(ref: str) -> None:
     click.echo(f"Loaded {len(load_branch(ref))} evidence blobs from {ref}.")
 
 
+@evidence.command(name="load-all")
+@click.option("--remote", default="origin", show_default=True)
+def load_all(remote: str) -> None:
+    """Copy the blobs of every evidence branch of ``--remote`` into the local store.
+
+    CI runs it before ``check``. A record that has just merged refers to blobs that the
+    deploy may not have published yet, and its evidence branch still holds them.
+    """
+    from openinterp.evidence_branch import LOCAL_REFS, _git, fetch_branches, load_branch
+
+    fetch_branches(remote)
+    refs = _git("for-each-ref", "--format=%(refname)", LOCAL_REFS).decode().split()
+    count = sum(len(load_branch(ref)) for ref in refs)
+    click.echo(f"Loaded {count} evidence blobs from {len(refs)} evidence branches.")
+
+
 @evidence.command()
 @wiki_dir_option()
 @click.option("--remote", default="origin", show_default=True)
