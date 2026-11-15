@@ -1,10 +1,10 @@
 """The site's colours for statuses and poles, in one place (issue #3279).
 
-The status colours stay apart with red-green and blue-yellow colour blindness, in light
-and dark mode. ``tests/test_palette.py`` checks it. VERIFIED and CONTESTED are Okabe and
-Ito's bluish green and blue. NEEDS_REVISION and REJECTED are a burnt orange and a dark
-red. They are darker than Okabe and Ito's orange and vermillion, because those two
-collide in dark mode. Under deuteranopia the closest pair is still ΔE 10.9 (OKLab × 100).
+The maintainer has red-green colour blindness (deuteranopia). On 2026-11-15 they chose
+this status palette from candidates. VERIFIED is blue, CONTESTED violet, NEEDS_REVISION
+pale yellow and REJECTED orange. The four differ in lightness as well as hue, so they
+stay apart for that reader. ``tests/test_palette.py`` checks the separation that matters,
+and that badge text stays readable on each fill.
 
 The pole colours are Tailwind's orange-600 and sky-600, already a safe pair.
 
@@ -16,10 +16,10 @@ Templates use them as Tailwind colours (``status-verified``, ``pole-positive``),
 from __future__ import annotations
 
 STATUS_HEX = {
-    "VERIFIED": "#009E73",
-    "CONTESTED": "#0072B2",
-    "NEEDS_REVISION": "#C46E00",
-    "REJECTED": "#B42828",
+    "VERIFIED": "#1D4ED8",
+    "CONTESTED": "#8B5CF6",
+    "NEEDS_REVISION": "#FDE047",
+    "REJECTED": "#F97316",
 }
 POLE_HEX = {"positive": "#EA580C", "negative": "#0284C7"}
 # Light and dark page surfaces (base.html: bg-white, dark:bg-slate-950).
@@ -29,6 +29,18 @@ SURFACES = {"light": "#FFFFFF", "dark": "#020617"}
 def token(status: str) -> str:
     """The Tailwind colour name of ``status``: ``status-needs-revision``."""
     return "status-" + status.lower().replace("_", "-")
+
+
+def luminance(hex_colour: str) -> float:
+    """The WCAG relative luminance of a hex colour."""
+    channels = (int(hex_colour.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
+    r, g, b = (c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def badge_text(hex_colour: str) -> str:
+    """The text colour for a badge filled with ``hex_colour``: near-black or white."""
+    return "#111111" if luminance(hex_colour) > 0.25 else "#FFFFFF"
 
 
 def rgb(hex_colour: str) -> str:

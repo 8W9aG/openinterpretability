@@ -8,15 +8,15 @@ experiment (:class:`openinterp.builder.tree.StoppedNeuron`). It comes last, so a
 in the same cell wins.
 """
 
-from openinterp.builder.palette import STATUS_HEX, token
+from openinterp.builder.palette import STATUS_HEX, badge_text, token
 
 STOPPED = "STOPPED"  # a neuron whose scans all stopped
 
 
 # Status: (map and bar fill, badge). The colours are builder/palette.py's.
 def _badge(status: str) -> str:
-    colour = token(status)
-    return f"bg-{colour}/15 text-slate-900 ring-1 ring-inset ring-{colour} dark:text-slate-100"
+    """A filled badge, with text that stays readable on the fill."""
+    return f"bg-{token(status)} text-[{badge_text(STATUS_HEX[status])}]"
 
 
 _CLASSES = {
@@ -26,9 +26,6 @@ _CLASSES = {
         "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
     ),
 }
-# Statuses whose map and bar cells are hatched as well as coloured, so they don't rely on
-# colour alone (``status_cell`` in ``_macros.html``).
-HATCHED = ("REJECTED",)
 
 # A neuron on the layer map shows its best pole's status, in this order.
 MAP_STATUSES = tuple(_CLASSES)
