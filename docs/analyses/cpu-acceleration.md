@@ -84,8 +84,8 @@ Inductor's gain is mostly the fused elementwise kernels, the same work as the fu
 
 ## For the harness
 
-- **Threads on shared machines.** Loops that share a machine could each cap torch's threads at about the cores divided by the loops. On the Linux machine that would have halved forward-pass time. It needs a rule for how a loop knows the load, so it is a follow-up in #3735, beside the device planner (`openinterp/harness/devices.py`).
-- **The fused GELU.** It's a two-line change at load time, for GPT-2 only, because Qwen's MLP already uses a fused SiLU. It would cut a GPT-2 scan's forward passes by about a tenth to a fifth. It changes results only on AVX2 and MPS, by about 1e-8 of a value. Someone must decide whether records may differ by that much. #3735 asks for it.
+- **Threads on shared machines.** Done in #3735 (`openinterp/harness/cpu_speed.py`). At a 1-minute load above 1.5 times the cores, each run takes `default // ceil(load / default)` threads, and at least 2. On the Linux machine above, that is 4. `$OPENINTERP_CPU_THREADS` sets the count by hand, and each record keeps it (`RunEnvironment.cpu_threads`).
+- **The fused GELU.** Done in #3735: every model load swaps GPT-2's `NewGELUActivation` for `torch.nn.GELU(approximate="tanh")` (`openinterp/harness/prepare.py`). The maintainer accepted the 1e-6 difference on AVX2 and MPS. On the Mac CPU the logits of GPT-2 small stay identical bit for bit.
 - **Compiling.** It saves no more than the fused GELU for the scan, and needs a version of the hooks without the exception. Not worth it yet.
 
 ## Limits
