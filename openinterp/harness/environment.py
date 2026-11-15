@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import platform
 import subprocess
 from contextlib import suppress
@@ -17,6 +18,32 @@ from openinterp.harness.moe import experts_implementation
 
 if TYPE_CHECKING:
     from openinterp.harness.hooks import NeuronHookRunner
+
+
+# A hosted environment, by the environment variable that it sets. The first one set wins.
+HOSTS = (
+    ("COLAB_RELEASE_TAG", "colab"),
+    ("KAGGLE_KERNEL_RUN_TYPE", "kaggle"),
+    ("GITHUB_ACTIONS", "github-actions"),
+    ("CI", "ci"),
+)
+PRODUCT_ENV = "OPENINTERP_AGENT_PRODUCT"
+
+
+def host() -> str | None:
+    """The hosted environment the run is in, or None on a local machine."""
+    return next((name for var, name in HOSTS if os.environ.get(var)), None)
+
+
+def agent_product() -> str | None:
+    """The agent product that drove the run.
+
+    ``$OPENINTERP_AGENT_PRODUCT`` wins when set. Else ``claude-code`` when Claude Code
+    runs the command (it sets ``CLAUDECODE=1``). Else None.
+    """
+    if named := os.environ.get(PRODUCT_ENV, "").strip():
+        return named
+    return "claude-code" if os.environ.get("CLAUDECODE") == "1" else None
 
 
 def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
@@ -44,6 +71,8 @@ def run_environment(runner: NeuronHookRunner) -> RunEnvironment:
         os=platform.platform(terse=True),
         device_choice=devices.choice(),
         cpu_threads=torch.get_num_threads() if runner.device.type == "cpu" else None,
+        host=host(),
+        agent_product=agent_product(),
     )
 
 

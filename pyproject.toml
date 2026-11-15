@@ -100,7 +100,9 @@ include = ["/openinterp", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
 # CI can reproduce every record the planner asks for. A new model also needs the checks
 # under "Models" in TODO.md first.
+# LINT.IfChange
 models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "EleutherAI/pythia-70m"]
+# LINT.ThenChange(.github/workflows/ci.yml)
 # Models that may be audited but that CI can't run: every record must be signed, and
 # reproduction trusts the signature (openinterp.planner.signed_models). Not explored.
 signed_models = ["meta-llama/Llama-3.1-8B-Instruct"]
