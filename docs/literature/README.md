@@ -25,6 +25,7 @@ Status marks how the work relates to this repo:
 | [Faithful and Stable Neuron Explanations](faithful-stable-explanations.md) (Yan, Oikarinen and Weng, 2025) | not applicable | Sampling bounds and a bootstrap for vision-neuron explanations. Our P(useful) already carries the probe-count uncertainty: with 20 hard negatives, the paper's rate gives ±0.30. Replicate reviews test stability. |
 | [Robustness of Model-Graded Evaluations](model-graded-robustness.md) (Lermen and Kvapil, 2023) | not applicable | Injected text sways LLM graders of quality. Our verdicts are measured, our scores are checked against measured activations, and prompts fence untrusted text. |
 | [Causally Grounded Explanations](causally-grounded-explanations.md) (Mahale, 2026) | not applicable | An MSc thesis on six IOI heads in GPT-2 small, with no held-out tests. Its sufficiency is 100% by construction, which shows why our causal scores rank against matched neurons. |
+| [Understanding AI from the Inside](understanding-ai-from-the-inside.md) (Barez, Wu et al., 2026) | planned | A 183-page survey with an evaluation protocol and guardrails for automated interpretability. The registry already has most of both. Its missing guardrail, a blind human audit of a random sample of verdicts, is #4034. |
 
 ## Model architecture
 
