@@ -152,7 +152,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise dead_unit(runner, ident, provenance)
     check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
-    from openinterp.evidence_lenses import read_lenses
+    from openinterp.evidence_lenses import read_lenses, read_manifold
 
     lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
     return ScanEvidence(
@@ -170,6 +170,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
         dictionary_profile=scan.profile if unit == "feature" else None,
         superposition_profile=scan.profile if unit == "superposition" else None,
         opposite_pole=opposite_pole(scan),
+        manifold=read_manifold(runner, ident, scan),
     )
 
 

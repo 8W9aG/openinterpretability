@@ -8,5 +8,6 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - [Where SPD can favour GPT-2's neurons](spd-input-projections/README.md)
 - [A bracket neuron in GPT-2, and the label that hid it](syntax-positive-controls/README.md)
 - [Native neurons against learned dictionaries, at equal effort](native-vs-learned/README.md)
+- [Do explanations carry across models?](explanations-across-models/README.md)
 
 Older write-ups stay in `docs/analyses/`.
