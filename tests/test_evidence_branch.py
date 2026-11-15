@@ -125,3 +125,20 @@ def test_publish_uploads_only_what_records_need_and_the_dataset_lacks(
     uploaded, missing = eb.publish_missing([path], fresh, api=FakeApi())
     assert sorted(sent) == shas[1:] and uploaded == len(shas) - 1 and missing == []
     assert stray not in sent
+
+
+def test_load_all_loads_every_evidence_branch(record, repo, tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from openinterp.cli import cli
+
+    path, _ = _slim_record(record, tmp_path, monkeypatch)
+    shas = eb.record_refs([path])
+    subprocess.run(["git", "update-ref", f"{eb.LOCAL_REFS}a", eb.blob_commit(shas)], check=True)
+    fresh = tmp_path / "fresh-store"
+    monkeypatch.setenv(evidence.DIR_ENV, str(fresh))
+    monkeypatch.setattr(eb, "fetch_branches", lambda remote: None)
+    result = CliRunner().invoke(cli, ["evidence", "load-all"])
+    assert result.exit_code == 0, result.output
+    assert f"Loaded {len(shas)} evidence blobs from 1 evidence branches." in result.output
+    assert eb.unresolved([path]) == []
