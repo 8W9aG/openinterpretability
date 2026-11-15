@@ -81,9 +81,58 @@ def eligibility(number: str) -> tuple[bool, str]:
         return True, "opened by the nightly reproduction"
     if issue["reactions"]["+1"]:
         reactions = gh_api(f"repos/{REPO}/issues/{number}/reactions?per_page=100")
-        if any(r["content"] == "+1" and r["user"]["login"] == MAINTAINER for r in reactions):
+        approved = [
+            r["created_at"]
+            for r in reactions
+            if r["content"] == "+1" and r["user"]["login"] == MAINTAINER
+        ]
+        if approved:
+            later = [
+                who for when, who in edits(number) if when > max(approved) and who != MAINTAINER
+            ]
+            if later:
+                return False, (
+                    f"opened by {author}, edited by {later[-1]} after {MAINTAINER}'s thumbs up:"
+                    " the maintainer must approve it again (remove the thumbs up, then add it)"
+                )
             return True, f"opened by {author}, thumbs up from {MAINTAINER}"
     return False, f"opened by {author}, with no thumbs up from {MAINTAINER}"
+
+
+EDITS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) {
+      userContentEdits(last: 100) { nodes { editedAt editor { login } } }
+      timelineItems(itemTypes: [RENAMED_TITLE_EVENT], last: 100) {
+        nodes { ... on RenamedTitleEvent { createdAt actor { login } } }
+      }
+    }
+  }
+}
+"""
+
+
+def edits(number: str) -> list[tuple[str, str]]:
+    """Each change of the issue's body or title, as ``(ISO time, login)``, oldest first.
+
+    A thumbs up approves the text that the maintainer read. :func:`eligibility` refuses
+    an issue that someone else changed after it. A deleted account has the login "".
+    """
+    owner, name = REPO.split("/")
+    args = ["gh", "api", "graphql", "-f", f"query={EDITS_QUERY}", "-f", f"owner={owner}"]
+    args += ["-f", f"name={name}", "-F", f"number={number}"]
+    out = subprocess.run(args, capture_output=True, text=True, check=True)
+    issue = json.loads(out.stdout)["data"]["repository"]["issue"]
+    found = [
+        (n["editedAt"], (n.get("editor") or {}).get("login", ""))
+        for n in issue["userContentEdits"]["nodes"]
+    ]
+    found += [
+        (n["createdAt"], (n.get("actor") or {}).get("login", ""))
+        for n in issue["timelineItems"]["nodes"]
+    ]
+    return sorted(found)
 
 
 def linear(query: str, variables: dict) -> dict:
