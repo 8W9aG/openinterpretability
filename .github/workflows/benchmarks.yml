@@ -1,0 +1,100 @@
+name: Benchmarks
+
+# The memory and performance benchmarks (scripts/memory_benchmark.py, scripts/perf_bench.py,
+# issue #3808). They run here, not on a laptop, so that no local run needs a quiet machine.
+# Their baselines are this runner's: memory on Linux is the peak resident set.
+#
+# Nightly, and before each release (the release skill starts it and waits for it to pass).
+# A run with `update` writes new baselines and uploads them as an artifact, to commit by
+# hand: a change to the baselines is a reviewed change.
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+    inputs:
+      update:
+        description: "Write new baselines (upload them as an artifact) instead of comparing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks
+  cancel-in-progress: false
+
+jobs:
+  benchmarks:
+    name: Memory and performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}  # read-only, for the models and evidence blobs
+      HF_HUB_DISABLE_PROGRESS_BARS: "1"
+      # Streaming and batch sizes follow free memory. A fixed budget keeps the work the
+      # same from run to run, so that only a code change moves a peak.
+      OPENINTERP_MEMORY_GB: "12"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Restore model weights
+        # The cache that main's model-cache job saves (ci.yml).
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.cache/huggingface/hub
+          key: hf-hub-v2-
+          restore-keys: hf-hub-v2-
+      - name: Evidence of merged records
+        run: open-interpretability evidence load-all
+      - name: Restore the scan corpus
+        id: corpus
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: corpus.jsonl
+          key: corpus-pile-10k-127bfedc-ded48cfc
+      - name: Build the scan corpus
+        # The registry's corpus, rebuilt byte for byte (docs/experiments.md, "The scan corpus").
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: |
+          open-interpretability corpus --dataset pile-10k --first --ascii \
+            --revision 127bfedcd5047750df5ccf3a12979a47bfa0bafa --out corpus.jsonl
+      - name: Check the scan corpus
+        env:
+          SHA: ded48cfc4898c00bd663c4e26dd02baddc48f54f53469988097030686dd2a2ad
+        run: echo "$SHA  corpus.jsonl" | sha256sum --check
+      - name: Memory benchmark
+        env:
+          UPDATE: ${{ inputs.update && '--update' || '' }}
+        run: python scripts/memory_benchmark.py $UPDATE | tee memory.txt
+        shell: bash
+      - name: Performance benchmark
+        env:
+          MODE: ${{ inputs.update && '--write' || '--strict' }}
+        run: python scripts/perf_bench.py $MODE | tee perf.txt
+        shell: bash
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Benchmarks"
+            echo
+            echo '```'
+            cat memory.txt perf.txt 2>/dev/null
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the new baselines
+        if: inputs.update
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: benchmark-baselines
+          path: |
+            scripts/memory_baseline.json
+            docs/analyses/perf-baseline.json
