@@ -19,7 +19,7 @@ from openinterp.audit_options import selection as chosen_selection
 
 def read_corpus(path: Path | None):
     """Return (snippets, description, sha256 of the corpus file, its CorpusSource or None)."""
-    from openinterp.corpus import load_source
+    from openinterp.corpus import jsonl_lines, load_source
 
     if path is None:
         from openinterp.core.schemas import BUILTIN_CORPUS
@@ -28,9 +28,11 @@ def read_corpus(path: Path | None):
         texts = sample_corpus()
         return texts, BUILTIN_CORPUS, sha256("\n".join(texts).encode()), None
     raw = path.read_bytes()
-    lines = [line for line in raw.decode("utf-8").splitlines() if line.strip()]
+    text = raw.decode("utf-8")
     if path.suffix == ".jsonl":
-        lines = [json.loads(line)["text"] for line in lines]
+        lines = [json.loads(line)["text"] for line in jsonl_lines(text)]
+    else:  # a plain-text corpus keeps its old split, so its records reproduce
+        lines = [line for line in text.splitlines() if line.strip()]
     digest = sha256(raw)
     source = load_source(path, digest)
     return lines, str(source) if source else path.name, digest, source
@@ -42,12 +44,11 @@ def read_labels(path: Path | None) -> dict[str, list[str | None]]:
     They are by label set, one per document in :func:`read_corpus` order. Only the sets
     that some document has are included.
     """
-    from openinterp.corpus import DOCUMENT_LABELS
+    from openinterp.corpus import DOCUMENT_LABELS, jsonl_lines
 
     if path is None or path.suffix != ".jsonl":
         return {}
-    lines = path.read_bytes().decode("utf-8").splitlines()  # as read_corpus splits them
-    rows = [json.loads(line) for line in lines if line.strip()]
+    rows = [json.loads(line) for line in jsonl_lines(path.read_bytes().decode("utf-8"))]
     return {
         name: [row.get(field) for row in rows]
         for field, name in DOCUMENT_LABELS.items()
@@ -152,7 +153,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise dead_unit(runner, ident, provenance)
     check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
-    from openinterp.evidence_lenses import read_lenses
+    from openinterp.evidence_lenses import read_lenses, read_manifold
 
     lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
     return ScanEvidence(
@@ -170,6 +171,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
         dictionary_profile=scan.profile if unit == "feature" else None,
         superposition_profile=scan.profile if unit == "superposition" else None,
         opposite_pole=opposite_pole(scan),
+        manifold=read_manifold(runner, ident, scan),
     )
 
 

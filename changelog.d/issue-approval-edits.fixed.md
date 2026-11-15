@@ -1,0 +1,1 @@
+- A thumbs up from the maintainer approves an outside issue only as it was then. If someone else edits its title or body later, `scripts/issue_state.py` calls it not eligible until the maintainer approves it again.

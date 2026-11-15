@@ -216,6 +216,19 @@ def _converged_attribution(
         steps *= 2
 
 
+def _agreement(attrs: list[float], effects: list[float]) -> float | None:
+    """Spearman's rank correlation of attributions and ablation effects, from 3 pairs up."""
+    return spearman(torch.tensor(attrs), torch.tensor(effects)) if len(attrs) >= 3 else None
+
+
+def _settings(steps, max_steps, tolerance, top_k, near, batch_size, skip_first) -> _Settings:
+    """The settings, with smaller batches after a GPU ran out of memory (issue #3971)."""
+    from openinterp.harness.devices import batch_scale
+
+    batch_size = max(1, batch_size // batch_scale())
+    return _Settings(steps, max_steps, tolerance, top_k, near, batch_size, skip_first)
+
+
 def input_attribution(
     runner: NeuronHookRunner,
     examples: Sequence[ActivatingExample],
@@ -240,19 +253,24 @@ def input_attribution(
     example keeps its ``top_k`` most attributed tokens; the ablation check covers those,
     the peak and the ``near`` tokens before it.
     """
+    from openinterp.harness.progress import Progress
+
     if runner.tokenizer is None:
         raise ValueError("input_attribution requires a tokenizer")
     base_id = baseline_token_id(runner.tokenizer)
     baseline = runner.model.get_input_embeddings().weight[base_id].detach()
     args = (layer, neuron_idx, pole)
-    settings = _Settings(steps, max_steps, tolerance, top_k, near, batch_size, skip_first)
+    settings = _settings(steps, max_steps, tolerance, top_k, near, batch_size, skip_first)
     results: list[ContextExample] = []
     band_shares: list[list[float]] = []
     distances: list[float] = []
     checked_attr: list[float] = []
     checked_effect: list[float] = []
-    for n, example in enumerate(examples[:n_examples]):
+    chosen = examples[:n_examples]
+    progress = Progress("examples attributed", len(chosen))
+    for n, example in enumerate(chosen):
         found = _attribute_example(runner, n, example, args, baseline, settings)
+        progress.step()  # a line once a minute at most: a slow run looks alive
         if found is None:
             continue
         result, converged = found
@@ -263,11 +281,7 @@ def input_attribution(
             checked_effect += effects
             band_shares.append(shares)
             distances.append(mean_distance)
-    agreement = (
-        spearman(torch.tensor(checked_attr), torch.tensor(checked_effect))
-        if len(checked_attr) >= 3
-        else None
-    )
+    agreement = _agreement(checked_attr, checked_effect)
     return InputAttribution(
         baseline_token=runner.tokenizer.decode([base_id]),
         tolerance=tolerance,

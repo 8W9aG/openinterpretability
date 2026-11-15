@@ -1,0 +1,1 @@
+- Auto-merge trusts a maintainer's PR only when the maintainer also made the push. A push by any other account to that branch gets the rule for other people's PRs, which allows only new files under `wiki/`.

@@ -88,6 +88,7 @@ What doesn't change:
 
 - **The record files and their signatures.** They still hold the passage, so `open-interpretability reproduce` still works.
 - **Git history.** Earlier commits still hold the passage.
+- **The evidence dataset.** A slim record keeps its top examples and scores in a blob on the public Hugging Face dataset [`sackfield/open-interpretability-evidence`](https://huggingface.co/datasets/sackfield/open-interpretability-evidence). The blob still holds the passage.
 - **What others already have.** Clones, forks, and the Zenodo archives of earlier releases.
 
 ### When the text must leave the repository
@@ -97,9 +98,10 @@ Do this only if the law requires it, for example under a court order or a valid 
 1. Do steps 1–3 above first, so that the site stops showing the passage at once.
 2. In a pull request that a maintainer merges by hand, remove the records and pages that hold the passage, and their signatures. `open-interpretability check` reports the removed records as write-once breaks, so it can't merge by itself. Take the removed records out of every errata rule and list that covers them.
 3. Rewrite history with `git filter-repo`, to remove the files from every commit. Then force-push every branch and tag. Every clone and open pull request must start again from the new history, and commit links from before the rewrite stop working.
-4. Ask GitHub Support to remove cached views and pull-request references that still hold the text.
-5. Ask Zenodo to restrict the release versions that hold the passage. They are archives, so Zenodo decides.
-6. Say in the advisory what can't be recalled: forks and clones that other people have.
+4. Remove the blobs that held the passage from the evidence dataset. Their names are the `evidence_sha256` values in the removed records, at `<first two characters>/<sha>.json`. Then squash the dataset's history (`HfApi.super_squash_history`), so that no earlier commit holds them. Remove any `evidence/<branch>` branch that holds them too.
+5. Ask GitHub Support to remove cached views and pull-request references that still hold the text.
+6. Ask Zenodo to restrict the release versions that hold the passage. They are archives, so Zenodo decides.
+7. Say in the advisory what can't be recalled: forks and clones that other people have.
 
 ## What not to report here
 

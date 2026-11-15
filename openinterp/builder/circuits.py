@@ -9,6 +9,13 @@ A *hub* is a unit wired to a large share of the model's studied units. An exampl
 late neuron that every earlier unit's write moves a little. A hub would join them all
 into one star-shaped circuit. So a hub's edges don't join circuits, and the page lists
 hubs separately.
+
+Each circuit and hub has its own page, named after one unit (:func:`unit_key`). A circuit
+is named after its *root*, its first unit in layout order: the lowest layer, heads
+first, then the lowest index. Circuits merge and split as the registry grows, so a root
+can change. :mod:`openinterp.builder.circuit_pages` therefore writes a redirect at every
+other unit's name. A URL from an earlier build then lands on the unit's current page.
+
 :func:`wiring_view` is one experiment's wiring, with each edge's page linked.
 """
 
@@ -17,6 +24,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+from openinterp.builder.hrefs import circuit_href, hub_href
 from openinterp.builder.tree import ModelNode, UnitNode, head_href, neuron_href
 from openinterp.wiring_backfill import record_wiring
 
@@ -25,6 +33,12 @@ COLUMN, ROW, PAD = 120, 44, 40
 # A hub is wired to at least this share of the model's units with pages, and this many.
 HUB_SHARE, HUB_MIN = 0.05, 10
 HUB_RULE = {"hub_share": HUB_SHARE, "hub_min": HUB_MIN}  # for the page
+
+
+def unit_key(unit: UnitNode) -> str:
+    """The unit's name in circuit and hub URLs, from its page: ``L3-N7``, ``L4-tres-dc-F12``."""
+    within = unit.href.removesuffix(".html").split("/", 2)[2]  # after models/<slug>/
+    return within.replace("/", "-")
 
 
 @dataclass
@@ -67,6 +81,16 @@ class Circuit:
     def layers(self) -> tuple[int, int]:
         """The first and last layer of the circuit."""
         return min(u.layer for u in self.units), max(u.layer for u in self.units)
+
+    @property
+    def root(self) -> UnitNode:
+        """The unit the circuit is named after: its first in layout order."""
+        return self.units[0]
+
+    @property
+    def verified(self) -> int:
+        """How many of the circuit's units stand VERIFIED."""
+        return sum(u.verified for u in self.units)
 
 
 def circuit_edges(model: ModelNode, rows: dict) -> list[CircuitEdge]:
@@ -111,11 +135,6 @@ class Hub:
 
     unit: UnitNode
     edges: list[CircuitEdge]  # every edge touching it, in layer order
-
-    @property
-    def anchor(self) -> str:
-        """The hub's anchor on the circuits page."""
-        return f"hub-L{self.unit.layer}-{self.unit.label}"
 
     @property
     def neighbours(self) -> list[UnitNode]:
@@ -182,7 +201,7 @@ def circuits_and_hubs(model: ModelNode, rows: dict) -> tuple[list[Circuit], list
 def _layout(edges: list[CircuitEdge]) -> Circuit:
     """Columns by layer (heads before neurons, as attention runs first), rows within."""
     units = {u.href: u for e in edges for u in (e.source, e.target)}
-    ordered = sorted(units.values(), key=lambda u: (u.layer, not u.is_head, u.idx))
+    ordered = sorted(units.values(), key=lambda u: (u.layer, not u.is_head, u.idx, u.href))
     columns: dict[int, list[UnitNode]] = defaultdict(list)
     for u in ordered:
         columns[u.layer].append(u)
@@ -195,21 +214,21 @@ def _layout(edges: list[CircuitEdge]) -> Circuit:
     return Circuit(ordered, edges, positions, width, height)
 
 
-def unit_anchors(found: list[Circuit], found_hubs: list[Hub]) -> dict[str, str]:
-    """Return where each unit appears on the circuits page, by href.
+def unit_pages(slug: str, found: list[Circuit], found_hubs: list[Hub]) -> dict[str, str]:
+    """Return the page each unit appears on, by unit href.
 
-    That is its circuit, else the hub that it is, or the first hub that it is wired to.
+    That is its circuit's page, else its own hub page, else the first hub it is wired to.
     """
-    anchors = {}
+    pages = {}
     for hub in found_hubs:
         for u in hub.neighbours:
-            anchors.setdefault(u.href, hub.anchor)
+            pages.setdefault(u.href, hub_href(slug, unit_key(hub.unit)))
     for hub in found_hubs:
-        anchors[hub.unit.href] = hub.anchor
-    for n, c in enumerate(found, 1):
+        pages[hub.unit.href] = hub_href(slug, unit_key(hub.unit))
+    for c in found:
         for u in c.units:
-            anchors[u.href] = f"circuit-{n}"
-    return anchors
+            pages[u.href] = circuit_href(slug, unit_key(c.root))
+    return pages
 
 
 def wiring_view(wiring, slug: str, studied: set[str]) -> dict | None:

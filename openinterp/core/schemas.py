@@ -45,6 +45,8 @@ from openinterp.core.identifiers import (  # noqa: F401  (re-exported)
     Pole,
     SuperpositionIdentifier,
 )
+from openinterp.core.manifold import ManifoldCheck
+from openinterp.core.partners import CorrelatedNeuron  # noqa: F401  (re-exported)
 from openinterp.core.patchscope import PatchscopeReadout
 from openinterp.core.prior_art import PriorArtField
 from openinterp.core.profiles import (  # noqa: F401  (re-exported)
@@ -165,30 +167,6 @@ class ExperimentProvenance(StrictModel):
     )
 
 
-class CorrelatedNeuron(StrictModel):
-    """A same-layer neuron *pole* that co-varies with the audited pole over the scan.
-
-    * ``coactivation_lift``: P(partner active | target active) / P(partner active), with
-      add-one smoothing. "Target active" uses the protocol threshold (a fraction of the
-      target's max); "partner active" means above the partner pole's own 99th
-      percentile. This measures the regime where redundancy matters, when the target fires.
-    * ``spearman``: rank correlation of the two pole strengths on a uniform token sample.
-      It is robust to heavy tails and massive activations, and ties (zeros) are averaged.
-    * ``pearson``: linear correlation with the partner's *signed* activation over every
-      token, kept for reference.
-    """
-
-    neuron_idx: int = Field(ge=0)
-    pole: Pole
-    coactivation_lift: float = Field(ge=0.0)
-    # 95% Wilson lower bound on P(partner active | target active), over the base rate.
-    # Few co-active tokens can inflate the point estimate; partners are ranked by this.
-    coactivation_lift_lower: float = Field(ge=0.0)
-    coactive_tokens: int = Field(ge=0)
-    spearman: float = Field(ge=-1.0, le=1.0)
-    pearson: float = Field(ge=-1.0, le=1.0)
-
-
 class VocabularyLens(StrictModel):
     """The pole's output direction read through the logit lens and the Jacobian lens.
 
@@ -254,6 +232,7 @@ class ScanEvidence(StrictModel):
     dictionary_profile: DictionaryProfile | None = None
     superposition_profile: SuperpositionProfile | None = None
     opposite_pole: OppositePole | None = None
+    manifold: ManifoldCheck | None = None  # see NeuronAuditSubmission
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
@@ -336,6 +315,12 @@ class NeuronAuditSubmission(StrictModel):
         default=None,
         description="A neuron pole's top connections by virtual weight, read after the "
         "proposer answered and shown to neither agent (reported, not gated).",
+    )
+    manifold: ManifoldCheck | None = Field(
+        default=None,
+        description="A neuron pole and its partner poles on the activating set and on "
+        "ordered word families, and whether they trace a circle or a line (reported, not "
+        "gated).",
     )
 
     @model_validator(mode="after")

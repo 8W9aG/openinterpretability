@@ -131,9 +131,17 @@ def settle(
     That is the top example's peak after its first token. It is the scale that the unit
     records if it has the floor. With the floor, first tokens are left out of the
     examples' ranking and of the values. Each example carries its peak token's ``labels``.
+
+    If the unit does not fire after a first token, that scale is 0 and gives no line.
+    Then the floor is judged against the peak with first tokens, which is the scale the
+    record keeps and ``reproduce`` uses. A unit with the floor then has no examples
+    above 0, and the scan stops on it.
     """
     best = top.top(runner.tokenizer, 1, skip_first=True)
     scale = best[0].max_activation if best else 0.0
+    if scale <= 0:  # active only at first tokens: judge against the peak with them
+        best = top.top(runner.tokenizer, 1)
+        scale = best[0].max_activation if best else 0.0
     floor = has_first_token_floor(runner, strengths, scale, ReviewPolicy())
     kept = [v for v, f in zip(values, first, strict=True) if not f] if floor else list(values)
     return top.top(runner.tokenizer, k, skip_first=floor, labels=labels), kept, floor
@@ -216,13 +224,22 @@ def plan_batches(lengths: Sequence[int], batch_tokens: int) -> list[int]:
 def batches(
     runner: NeuronHookRunner, pieces: Sequence[Piece], batch_tokens: int = BATCH_TOKENS
 ) -> Iterator[Batch]:
-    """``pieces`` in order, in forward passes of at most ``batch_tokens`` padded tokens."""
+    """``pieces`` in order, in forward passes of at most ``batch_tokens`` padded tokens.
+
+    After a GPU ran out of memory, the batches are smaller (:func:`devices.batch_scale`).
+    A pass that runs long prints its progress (:class:`~openinterp.harness.progress.Progress`).
+    """
+    from openinterp.harness.devices import batch_scale
+    from openinterp.harness.progress import Progress
+
     if not pieces:
         return
     every = runner.tokenizer([p.text for p in pieces], return_tensors="pt", padding=True)
     lengths = every.get("attention_mask", torch.ones_like(every["input_ids"])).sum(1).tolist()
     start = 0
-    for size in plan_batches(lengths, batch_tokens):
+    progress = Progress("pieces", len(pieces))
+    for size in plan_batches(lengths, max(1, batch_tokens // batch_scale())):
+        progress.step(size)
         batch = list(pieces[start : start + size])
         start += size
         encoded = runner.encode([p.text for p in batch])

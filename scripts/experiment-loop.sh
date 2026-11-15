@@ -88,6 +88,8 @@ STEP_MODELS=""
 [[ $REVIEWER != external/* ]] && STEP_MODELS+=" --reviewer $REVIEWER"
 
 command -v "$CLAUDE_BIN" >/dev/null || { echo "claude not found; set CLAUDE_BIN" >&2; exit 1; }
+# Records name the product that drove them (RunEnvironment.agent_product, issue #3235).
+export OPENINTERP_AGENT_PRODUCT="${OPENINTERP_AGENT_PRODUCT:-claude-code-loop}"
 command -v gh >/dev/null || { echo "gh is required to claim and post experiments" >&2; exit 1; }
 CORPUS_OPTION="--fresh-corpus"
 if [[ -n $CORPUS ]]; then

@@ -88,6 +88,11 @@ path = "openinterp/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["openinterp"]
 
+# The sdist holds the package and its metadata, not the registry, docs or papers. Without
+# this it packed the whole repository, and PyPI refused v0.0.20's sdist as over 100 MB.
+[tool.hatch.build.targets.sdist]
+include = ["/openinterp", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.cff", "/pyproject.toml"]
+
 [tool.openinterp]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
@@ -95,7 +100,12 @@ packages = ["openinterp"]
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
 # CI can reproduce every record the planner asks for. A new model also needs the checks
 # under "Models" in TODO.md first.
-models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2"]
+# LINT.IfChange
+models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "EleutherAI/pythia-70m"]
+# LINT.ThenChange(.github/workflows/ci.yml)
+# Models that may be audited but that CI can't run: every record must be signed, and
+# reproduction trusts the signature (openinterp.planner.signed_models). Not explored.
+signed_models = ["meta-llama/Llama-3.1-8B-Instruct"]
 
 [tool.openinterp.size_budget]
 # scripts/repo_size.py warns in CI past these, and never fails (issue #3254). 1,000 MB is
@@ -131,6 +141,19 @@ url = "https://github.com/openai/gpt-2/blob/master/LICENSE"
 gated = false
 publishing_allowed = true
 conditions = "OpenAI's modified MIT licence asks users to say that content was created with GPT-2."
+
+[tool.openinterp.licenses."meta-llama/Llama-3.1-8B-Instruct"]
+license = "llama3.1"
+url = "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/blob/main/LICENSE"
+gated = true
+publishing_allowed = true
+conditions = "The Llama 3.1 Community License asks that published work show \"Built with Llama\", and that use follow Meta's Acceptable Use Policy."
+
+[tool.openinterp.licenses."EleutherAI/pythia-70m"]
+license = "apache-2.0"
+url = "https://huggingface.co/EleutherAI/pythia-70m"
+gated = false
+publishing_allowed = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

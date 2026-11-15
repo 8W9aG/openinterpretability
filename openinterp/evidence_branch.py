@@ -3,10 +3,13 @@
 A slim record (:mod:`openinterp.core.evidence`) refers to blobs by hash. The pull request
 that adds it must not carry the blobs itself, or the squash merge would put them into
 ``main``'s history. So :func:`push` commits the blobs as one commit with no parent, and
-pushes it to its own branch, ``evidence/<branch>``. CI reads that branch
-(:func:`load_branch`), uploads the blobs to the public dataset (:func:`upload`), and checks
-every record (:func:`unresolved`). A workflow deletes the branch when the pull request
-closes. This uses git plumbing and a separate index, so it never touches the work tree.
+pushes it to its own branch, ``evidence/<branch>``. The pull request's CI reads that branch
+(:func:`load_branch`) and checks every record (:func:`unresolved`). It holds no write token.
+After the merge, the deploy on ``main`` uploads the blobs that ``main``'s records refer to
+and the public dataset lacks (:func:`publish_missing`). So the content of a pull request
+that never merges is never published. A workflow deletes the evidence branch once its PR is
+closed and its blobs are on the dataset. This uses git plumbing and a separate index, so it
+never touches the work tree.
 """
 
 from __future__ import annotations
@@ -65,12 +68,17 @@ def push(branch: str, shas: Iterable[str], remote: str = "origin") -> str:
     return target
 
 
-def load_branch(ref: str, root: Path | None = None) -> list[str]:
-    """Copy every blob of ``ref`` into the local store, checking each hash; return them."""
+def load_branch(ref: str, root: Path | None = None, only: set[str] | None = None) -> list[str]:
+    """Copy the blobs of ``ref`` into the local store, checking each hash; return them.
+
+    With ``only``, it copies only the blobs whose hashes are in it.
+    """
     loaded = []
     for line in _git("ls-tree", "-r", ref).decode().splitlines():
         meta, name = line.split("\t", 1)
         sha = Path(name).stem
+        if only is not None and sha not in only:
+            continue
         data = _git("cat-file", "blob", meta.split()[2])
         if evidence.sha256(data) != sha:
             raise evidence.EvidenceMissing(f"{ref}:{name} has the wrong hash")
@@ -104,6 +112,40 @@ def upload(shas: Sequence[str], root: Path | None = None, api=None) -> int:
             commit_message=f"{len(shas)} evidence blobs (issue #3254)",
         )  # fmt: skip
     return len(shas)
+
+
+LOCAL_REFS = "refs/evidence/"
+"""Where :func:`fetch_branches` puts the remote's evidence branches."""
+
+
+def fetch_branches(remote: str = "origin") -> None:
+    """Fetch every ``evidence/*`` branch of ``remote`` to :data:`LOCAL_REFS`."""
+    _git("fetch", "--quiet", "--force", remote, f"refs/heads/{BRANCH_PREFIX}*:{LOCAL_REFS}*")
+
+
+def publish_missing(paths: Iterable[Path], root: Path | None = None, api=None):
+    """Upload the blobs that the records at ``paths`` refer to and the dataset lacks.
+
+    It reads them from the evidence branches under :data:`LOCAL_REFS`, so only blobs that
+    a merged record names are published. Return ``(uploaded, still missing)``: the number
+    uploaded, and the sorted hashes that no branch holds.
+    """
+    if api is None:
+        from huggingface_hub import HfApi
+
+        api = HfApi()
+    wanted = record_refs(paths)
+    have = set()
+    if api.repo_exists(evidence.EVIDENCE_REPO, repo_type="dataset"):
+        files = api.list_repo_files(evidence.EVIDENCE_REPO, repo_type="dataset")
+        have = {Path(f).stem for f in files}
+    need = wanted - have
+    found: set[str] = set()
+    refs = _git("for-each-ref", "--format=%(refname)", LOCAL_REFS).decode().split()
+    for ref in refs:
+        if need - found:
+            found.update(load_branch(ref, root, only=need - found))
+    return upload(sorted(found), root, api), sorted(need - found)
 
 
 def unresolved(paths: Iterable[Path]) -> list[str]:

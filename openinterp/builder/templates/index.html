@@ -37,7 +37,7 @@
   </p>
   {% if t.features %}
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-    Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a learned-basis baseline, {{ t.verified_features }} of them verified.
+    Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a>, {{ t.verified_features }} of them verified.
   </p>
   {% endif %}
   {% if t.superpositions %}
@@ -101,41 +101,11 @@
 {% endif %}
 
 {% if stats.baseline %}
-<section class="mb-10" id="learned-baseline">
-  <h2 class="mb-1 text-lg font-semibold">Learned-basis baseline</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-    Are a model's own neurons as explainable as the latents of a sparse dictionary trained on its MLPs?
-    Randomly selected latents and randomly selected neuron poles of the same model and layers, scanned the same way and audited under the same protocol.
-    Each unit counts once, by its first experiment, so follow-ups don't favour either side. Intervals are 95% Wilson intervals;
-    p is a two-sided Fisher exact test of latents against positive poles (and against all poles). In a GELU MLP, such as GPT-2's, the negative pole sits in the activation's dip on most tokens, so no hard negative can pass; there the positive poles are the comparison.
-  </p>
-  {% for b in stats.baseline %}
-  <div class="mb-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <caption class="bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-400">
-        <span class="font-mono">{{ b.model_name }}</span> · <span class="font-mono">{{ b.dictionary }}</span> · layers {{ b.layers | first }}–{{ b.layers | last }} ·
-        {% if b.window_tokens %}{{ b.window_tokens }}-token windows{% else %}whole documents{% endif %} of corpus <span class="font-mono" title="{{ b.corpus_sha256 }}">{{ (b.corpus_sha256 or "?")[:8] }}</span> ·
-        explained variance {{ b.explained_variance | pct }} · mean L0 {{ b.mean_l0 | num(0) }}{% if b.dead_share is not none %} · <span title="Latents inactive on every scanned token: a random draw of one can't be audited, so they are not in the latents' row">dead latents {{ b.dead_share | pct }}</span>{% endif %}{% if b.p_positive is not none %} · p = {{ b.p_positive | pval }} vs positive poles{% endif %}{% if b.p_value is not none %} ({{ b.p_value | pval }} vs all){% endif %}
-      </caption>
-      <thead class="text-xs uppercase tracking-wide text-slate-500">
-        <tr><th class="px-3 py-2">Random units</th><th class="px-3 py-2 text-right">Audited</th><th class="px-3 py-2 text-right">Verified</th><th class="px-3 py-2 text-right">Share (95% CI)</th><th class="px-3 py-2 text-right">Balanced accuracy</th><th class="px-3 py-2 text-right" title="Random draws the scan stopped on, recorded in wiki/draws/: never active (dead), or active on at least half the scan's tokens (default-on)">Not auditable</th></tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200 tabular-nums dark:divide-slate-800">
-        {% for label, arm in [("Dictionary latents", b.features), ("Neuron poles", b.neurons), ("↳ positive poles", b.positive_poles), ("↳ negative poles", b.negative_poles)] %}
-        <tr>
-          <td class="px-3 py-2">{{ label }}</td>
-          <td class="px-3 py-2 text-right font-mono">{{ arm.units }}</td>
-          <td class="px-3 py-2 text-right font-mono">{{ arm.verified }}</td>
-          <td class="px-3 py-2 text-right font-mono">{% if arm.units %}{{ arm.share | pct }} ({{ arm.interval[0] | pct }}–{{ arm.interval[1] | pct }}){% else %}—{% endif %}</td>
-          <td class="px-3 py-2 text-right font-mono">{{ arm.mean_balanced_accuracy | num(2) }}</td>
-          <td class="px-3 py-2 text-right font-mono">{% if arm.dead or arm.default_on %}{% if arm.dead %}{{ arm.dead }} dead{% endif %}{% if arm.dead and arm.default_on %}, {% endif %}{% if arm.default_on %}{{ arm.default_on }} default-on{% endif %}{% else %}—{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endfor %}
-</section>
+<p class="mb-10 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  Are a model's own neurons as explainable as the latents of a sparse dictionary?
+  {% for b in stats.baseline %}On <span class="font-mono">{{ b.model_name }}</span>, {{ b.features.verified }} of {{ b.features.units }} random latents of <span class="font-mono">{{ b.dictionary }}</span> verified, against {{ b.positive_poles.verified }} of {{ b.positive_poles.units }} random positive poles. {% endfor %}
+  The <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a> page has the tables.
+</p>
 {% endif %}
 
 <section class="mb-10">
@@ -216,7 +186,7 @@
             <div class="text-slate-500">{{ r.reviewed_time }}</div>
           </td>
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
             <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
           </td>
@@ -249,7 +219,7 @@
         {% for r in stats.conclusive %}
         <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
           </td>
           <td class="px-3 py-2">
@@ -283,7 +253,7 @@
         {% for c in contested %}
         <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ c.unit.href }}">L{{ c.unit.layer }}/{{ c.unit.label }}{% if c.unit.is_neuron %}{{ pole_mark(c.side) }}{% endif %}</a>
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ c.unit.href }}">L{{ c.unit.layer }}/{{ c.unit.label }}{% if c.unit.is_neuron %}{{ pole_mark(c.side) }}{% endif %}</a>
             <div class="text-slate-500">{{ c.model }}</div>
           </td>
           <td class="px-3 py-2">{% if c.standing.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ c.standing.lead.record.submission.natural_language_explanation | truncate(140) }}</td>
@@ -338,7 +308,7 @@
   <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">
     Runs DuckDB-Wasm in your browser against <code class="font-mono">data/registry.parquet</code>, exposed as the view <code class="font-mono">registry</code>.
   </p>
-  <textarea id="sql" rows="3" spellcheck="false"
+  <textarea id="sql" rows="3" spellcheck="false" aria-label="SQL query"
     class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, head_idx, status, round(conclusiveness, 2) AS conclusive, evidence_direction, explanation
 FROM registry ORDER BY conclusiveness DESC LIMIT 20</textarea>
   <div class="mt-2 flex items-center gap-3">

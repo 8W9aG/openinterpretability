@@ -37,7 +37,7 @@ NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
 # private test probes, so it is never published.
 OUTPUTS = {
     "bench", "bench-dev", "bench-redteam", "code-detection", "dreams", "gpt2-spd",
-    "language-detection",
+    "language-detection", "score-backfill",
     "spd-up-neurons.json", ".published",
 }  # fmt: skip
 OUTPUT_FILE = re.compile(r"^(ev|review|score)\.|\.(prompt\.md|response\.json)$")
@@ -73,7 +73,18 @@ def cited() -> set[str]:
     out = subprocess.run(["git", "grep", "-ohE", NAME.pattern, "--", *CITING],
                          capture_output=True, text=True, check=False).stdout  # fmt: skip
     names = {m.group(1).rstrip(".") for m in NAME.finditer(out)}
-    return {n for n in names if n not in OUTPUTS and not OUTPUT_FILE.search(n)}
+    return {n for n in names if _citable(n)}
+
+
+def _citable(name: str) -> bool:
+    """Whether ``name`` can be a cited input under ``exchange/``.
+
+    An empty name or a name that starts with "." comes from prose such as "exchange/."
+    and would stage the whole folder, so it is refused.
+    """
+    if not name or name.startswith("."):
+        return False
+    return name not in OUTPUTS and not OUTPUT_FILE.search(name)
 
 
 def write_manifest(manifest: dict) -> None:
@@ -102,6 +113,14 @@ def read_manifest() -> dict:
 
 
 def _excluded(rel: str) -> bool:
+    """Whether a file under ``exchange/`` must never be staged.
+
+    That is an unpublished input, a file in an output folder (``bench`` holds the
+    benchmark's private test split), or any ``*.private.*`` file.
+    """
+    parts = Path(rel).parts
+    if parts and parts[0] in OUTPUTS or ".private." in Path(rel).name:
+        return True
     return any(Path(rel).match(pattern) for pattern in UNPUBLISHED)
 
 
@@ -120,6 +139,11 @@ def stage(home: str) -> dict:
     files: dict[str, str] = {}
     for name in sorted(cited()):
         source = EXCHANGE / name
+        if (
+            source.resolve() == EXCHANGE.resolve()
+            or EXCHANGE.resolve() not in source.resolve().parents
+        ):
+            raise SystemExit(f"exchange/{name}: not a name inside exchange/")
         paths = [source] if source.is_file() else sorted(source.rglob("*"))
         paths = [path for path in paths if path.is_file()]
         for path in paths:

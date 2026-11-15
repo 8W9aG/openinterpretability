@@ -36,7 +36,7 @@
 {% if lm %}
 <figure class="mt-6" data-pagefind-ignore>
   <div class="overflow-x-auto">
-  <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="img" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">
+  <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="group" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">
     {% for i, y in lm.rows %}
     <rect x="{{ lm.left }}" y="{{ y }}" width="{{ lm.right - lm.left }}" height="{{ lm.row }}" class="fill-slate-100 dark:fill-slate-800/60"/>
     {% if i % lm.label_every == 0 %}<text x="{{ lm.left - 6 }}" y="{{ y + lm.row - 1 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">L{{ i }}</text>{% endif %}
@@ -84,7 +84,7 @@
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for layer in model.layers %}
       <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
-        <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
+        <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons_studied }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.heads | length }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
@@ -103,7 +103,7 @@
   <figure class="mt-6">
     <h3 class="font-mono text-sm font-medium">{{ model.name }} ↔ {{ g.other }}</h3>
     <div class="overflow-x-auto">
-    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-[720px]" role="img" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
+    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-[720px]" role="group" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
       <text x="{{ g.columns[0] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ model.name }}</text>
       <text x="{{ g.columns[1] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ g.other }}</text>
       {% for t in g.ticks %}

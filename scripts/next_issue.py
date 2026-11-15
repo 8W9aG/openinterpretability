@@ -42,6 +42,7 @@ RUNNERS_UP = 4
 # How every agent comment starts. Most start with a bold marker, such as **Plan** or
 # **Question**. The others are the merge line of the next-issue skill, the fallback line of
 # issue_state.py, and the line that the Linear sync posts.
+QUESTION = "**Question**"  # how an agent's question to the maintainer starts
 AGENT_MARKS = ("**", "Merged in #", "Working on this.", "<!-- linear-linkback")
 
 
@@ -161,16 +162,39 @@ def is_agent(body: str) -> bool:
     return body.lstrip().startswith(AGENT_MARKS)
 
 
+def own(comments: list[dict]) -> list[dict]:
+    """The comments the maintainer's login wrote, agents' and the maintainer's own.
+
+    Anyone can comment on a public issue, so no one else's comment can answer a question
+    or hold an issue back. Agents post as the maintainer's login, so both kinds stay.
+    """
+    return [c for c in comments if (c.get("author") or {}).get("login") == issue_state.MAINTAINER]
+
+
 def waiting_answer(comments: list[dict]) -> str | None:
     """The maintainer's reply that an agent hasn't acted on yet, else ``None``.
 
-    That is the newest comment, when it isn't an agent's and an agent's comment is before it.
+    Only the maintainer's login's comments count (:func:`own`). The reply is the newest of
+    them, when it isn't an agent's and an agent's comment is before it.
     """
+    comments = own(comments)
     if not comments or is_agent(comments[-1]["body"]):
         return None
     if not any(is_agent(c["body"]) for c in comments[:-1]):
         return None
     return comments[-1]["body"]
+
+
+def asked(comments: list[dict]) -> bool:
+    """Whether the newest of the maintainer's login's comments is a ``**Question**``."""
+    comments = own(comments)
+    return bool(comments) and comments[-1]["body"].lstrip().startswith(QUESTION)
+
+
+def comments_of(number: str) -> list[dict]:
+    """The issue's comments, oldest first."""
+    view = gh_json("issue", "view", number, "--repo", issue_state.REPO, "--json", "comments")
+    return view["comments"]
 
 
 def answered(states: dict) -> list[dict]:
@@ -198,10 +222,14 @@ def unstarted(issues: list[dict], states: dict) -> list[dict]:
 
 
 def pick(ranked: list[dict]) -> tuple[dict | None, list[dict]]:
-    """The first eligible issue in ``ranked``, and up to RUNNERS_UP eligible ones after it."""
+    """The first eligible issue in ``ranked``, and up to RUNNERS_UP eligible ones after it.
+
+    An issue that waits on the maintainer's answer (:func:`asked`) is skipped.
+    """
     chosen: list[dict] = []
     for issue in ranked:
-        if issue_state.eligibility(str(issue["number"]))[0]:
+        number = str(issue["number"])
+        if issue_state.eligibility(number)[0] and not asked(comments_of(number)):
             chosen.append(issue)
             if len(chosen) > RUNNERS_UP:
                 break

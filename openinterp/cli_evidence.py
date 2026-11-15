@@ -133,6 +133,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
         full_snippets,
         related,
         superposition_profile=evidence.superposition_profile,
+        manifold=evidence.manifold,
     )
     prompt_path.write_text(ProposerAgent.render_prompt(HypothesisDraft, task, answer_path))
     click.echo(f"Unit: {evidence.identifier}")
@@ -489,5 +490,6 @@ def ask_proposer(agent_model, evidence, full_snippets: bool, related: str = ""):
         full_snippets,
         related,
         superposition_profile=evidence.superposition_profile,
+        manifold=evidence.manifold,
     )
     return agent, draft

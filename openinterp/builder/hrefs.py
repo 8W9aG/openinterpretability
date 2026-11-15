@@ -13,6 +13,16 @@ def circuits_href(slug: str) -> str:
     return f"models/{slug}/circuits.html"
 
 
+def circuit_href(slug: str, key: str) -> str:
+    """One circuit's page, named after its root unit's key (``builder.circuits.unit_key``)."""
+    return f"models/{slug}/circuits/{key}.html"
+
+
+def hub_href(slug: str, key: str) -> str:
+    """One hub's page, named after the hub unit's key."""
+    return f"models/{slug}/hubs/{key}.html"
+
+
 def layer_href(slug: str, layer: int) -> str:
     """The layer's index page."""
     return f"models/{slug}/L{layer}/index.html"

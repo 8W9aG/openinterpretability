@@ -36,3 +36,12 @@ class RunEnvironment(StrictModel):
     coremltools_version: str | None = Field(
         default=None, description="Core ML tools, if the scan ran on the ANE."
     )
+    host: str | None = Field(
+        default=None, description="A hosted environment, e.g. colab or github-actions; None: local."
+    )
+    agent_product: str | None = Field(
+        default=None, description="The agent product that drove the run, e.g. claude-code."
+    )
+    cpu_threads: int | None = Field(
+        default=None, gt=0, description="Torch's CPU threads; sums depend on the count."
+    )

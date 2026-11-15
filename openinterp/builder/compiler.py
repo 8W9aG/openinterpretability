@@ -19,7 +19,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder import charts, pieces, statuses
+from openinterp.builder import charts, palette, pieces, statuses
 from openinterp.builder.agents import (
     agent_href,
     agents_view,
@@ -27,7 +27,8 @@ from openinterp.builder.agents import (
     legacy_redirects,
 )
 from openinterp.builder.aligned import aligned_latents
-from openinterp.builder.circuits import HUB_RULE, circuits_and_hubs, unit_anchors, wiring_view
+from openinterp.builder.circuit_pages import render_circuits
+from openinterp.builder.circuits import circuits_and_hubs, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.coverage import model_summary
 from openinterp.builder.dashboard import dashboard
@@ -36,7 +37,7 @@ from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
-from openinterp.builder.pii import save_spans, scrub, scrub_record
+from openinterp.builder.pii import save_spans, scrub, scrub_experiments
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
@@ -104,6 +105,7 @@ def _environment() -> Environment:
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
+    env.globals["palette"] = palette  # the status and pole colours
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands
@@ -182,6 +184,7 @@ def explanation_view(scores, scale: float) -> dict | None:
 OWNED_PATHS = (
     "index.html",
     "about.html",
+    "learned-baseline.html",
     "models",
     "agents",
     "users",
@@ -329,8 +332,7 @@ def compile_site(
     # group readings by explanation. Only what the site publishes is scrubbed. The two
     # exports run in the background while the pages render (builder/parallel.py).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
-    for experiment in experiments:
-        experiment.record = scrub_record(experiment.record)
+    scrub_experiments(experiments)  # what the pages show: the record and its errata notes
     report = BuildReport(output_dir, len(records), len(experiments))
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
     export_draws(draws, output_dir)  # random draws no experiment could audit
@@ -401,6 +403,8 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         contested=contested_units(models),
         pageless_stops=pageless_stops(by_unit, studied),
     )
+    if stats["baseline"]:  # the home page links to it (#3272)
+        render("learned-baseline.html", "learned-baseline.html", stats=stats)
 
 
 def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
@@ -461,21 +465,16 @@ def _render_model(
     found, found_hubs = circuits_and_hubs(model, rows)
     sister_rows, tests = sisters
     named_by = by_match_slug(sister_rows)
-    anchor_of = unit_anchors(found, found_hubs)
     page = circuits_href(model.slug)
     graphs = sister_graphs(model, sister_rows, studied)
     shown = {"circuits": found, "hubs": found_hubs, "circuits_page": page, "sister_graphs": graphs}
     render(model.href, "model.html", model=model, **shown)
-    if found or found_hubs:
-        n_units = sum(len(c.units) for c in found)
-        view = {"found": found, "hubs": found_hubs, "n_units": n_units, **HUB_RULE}
-        render(page, "circuits.html", model=model, **view)
+    circuit_of = render_circuits(render, model, found, found_hubs)
     for layer in model.layers:
         render(layer.href, "layer.html", model=model, layer=layer)
 
     def unit_page(layer, neuron) -> None:
-        anchor = anchor_of.get(neuron.href)
-        circuit = f"{page}#{anchor}" if anchor else None
+        circuit = circuit_of.get(neuron.href)
         for rank, e in enumerate(neuron.experiments, 1):
             view = _experiment_view(e, studied, rows, circuit)
             unit = {"model": model, "layer": layer, "neuron": neuron}

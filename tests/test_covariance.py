@@ -339,6 +339,21 @@ def test_a_first_token_floor_is_judged_over_the_vocabulary(toy_runner):
     assert not floor and kept == values and examples[0].max_activation == 9.0
 
 
+def test_a_unit_active_only_at_first_tokens_has_the_floor(toy_runner):
+    # After the first token it is 0, so the line comes from the peak with first tokens.
+    def constant(level):
+        return lambda inputs: torch.full(inputs["input_ids"].shape, level)
+
+    top = TopExamples()
+    top.add(Piece(0, 0, 1, "abc"), [1, 2, 3], [0.4, 0.0, 0.0])
+    top.add(Piece(1, 0, 1, "de"), [4, 5], [0.3, 0.0])
+    values, first = [0.4, 0.0, 0.0, 0.3, 0.0], [True, False, False, True, False]
+    examples, kept, floor = settle(toy_runner, constant(0.3), values, first, top, 5)
+    assert floor and kept == [0.0, 0.0, 0.0] and examples[0].max_activation == 0.0
+    examples, kept, floor = settle(toy_runner, constant(0.05), values, first, top, 5)
+    assert not floor and kept == values and examples[0].max_activation == 0.4
+
+
 def test_scan_stops_on_a_default_on_unit():
     import click
 

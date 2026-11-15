@@ -319,3 +319,18 @@ def test_reproduce_checks_corrected_records_and_skips_set_aside_ones(record):
     corrected, why = reproducer(fix).corrected(record, notes)
     assert corrected.verdict.status == "REJECTED" and why is None
     assert notes == ["checked with the edits of erratum fix"]
+
+
+def test_a_new_record_cannot_be_set_aside(tmp_path):
+    from openinterp.cli_reproduce import _Reproducer
+
+    path = tmp_path / "r.json"
+    args = {"landed": {}, "tolerance": None, "scan_corpora": {}, "allowed_models": ()}
+    old = _Reproducer(signers="", device="cpu", **args)
+    status, problems, _ = old.set_aside(path, "scale-bug", [])
+    assert status.startswith("SET ASIDE") and problems == []
+    new = _Reproducer(signers="", device="cpu", new={path.resolve()}, **args)
+    status, problems, _ = new.set_aside(path, "scale-bug", [])
+    assert status == "FAILED" and problems == [
+        "a new record can't be set aside (erratum scale-bug)"
+    ]

@@ -32,7 +32,7 @@
 {%- endmacro %}
 
 {% macro pole_mark(pole) -%}
-<span class="{{ 'text-orange-600' if pole == 'positive' else 'text-sky-600' }}">{{ '+' if pole == 'positive' else '−' }}</span>
+<span class="{{ 'text-pole-positive' if pole == 'positive' else 'text-pole-negative' }}">{{ '+' if pole == 'positive' else '−' }}</span>
 {%- endmacro %}
 
 {% macro breadcrumb(root, model=none, layer=none, neuron=none, unit_link=false) -%}

@@ -96,6 +96,6 @@ The first command downloads the layer-0 transcoder to read its width.
 
 ## References
 
-- Bushnaq, L., Braun, D. & Sharkey, L. (2025). *Stochastic Parameter Decomposition*. [arXiv:2506.20790](https://arxiv.org/abs/2506.20790).
-- Dunefsky, J., Chlenski, P. & Nanda, N. (2024). *Transcoders Find Interpretable LLM Feature Circuits*. NeurIPS 2024. [arXiv:2406.11944](https://arxiv.org/abs/2406.11944).
-- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Bushnaq, L., Braun, D., & Sharkey, L. (2025). *Stochastic parameter decomposition*. [arXiv:2506.20790](https://arxiv.org/abs/2506.20790).
+- Dunefsky, J., Chlenski, P., & Nanda, N. (2024). *Transcoders find interpretable LLM feature circuits*. NeurIPS 2024. [arXiv:2406.11944](https://arxiv.org/abs/2406.11944).
+- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., & Sutskever, I. (2019). *Language models are unsupervised multitask learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
