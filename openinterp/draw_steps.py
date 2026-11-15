@@ -213,7 +213,10 @@ def _scan(c, out, corpus, proposer, submission) -> list[Step]:
     ]
 
 
-_SLOW = "about 15 min on CPU: run it in the background"
+_SLOW = (
+    "about 15 min on CPU for a model below 1B parameters, hours above that: run it in the "
+    "background, and it prints progress once a minute"
+)
 _STOPPED_CHOSEN = (
     "If the scan stops because the unit never fires or is default-on, that is a result: "
     "commit the stop record and page it writes under wiki/stops/, note the unit in the PR, "

@@ -364,6 +364,24 @@ def test_a_16_bit_record_is_reproduced_in_float32_with_a_wider_tolerance():
     assert Tolerance(atol=1.0).for_dtype("bfloat16").atol == 1.0  # a wider --atol stays
 
 
+def test_a_head_gets_the_wider_head_tolerance_and_an_edit_still_fails():
+    from openinterp.core.schemas import HeadIdentifier, NeuronIdentifier
+    from openinterp.reproduce import HALF_TOLERANCE, HEAD_TOLERANCE, Tolerance
+
+    base = Tolerance()
+    head = HeadIdentifier(model_name="EleutherAI/pythia-70m", layer=4, head_idx=4)
+    neuron = NeuronIdentifier(model_name="gpt2", layer=1, neuron_idx=2, pole="positive")
+    assert base.for_unit(neuron) is base
+    wide = base.for_unit(head)
+    assert wide == HEAD_TOLERANCE
+    scale = 2.502  # #3956: recorded 0.3348, re-measured 0.328721 on another CPU
+    assert not base.close(0.3348, 0.328721, scale) and wide.close(0.3348, 0.328721, scale)
+    assert wide.close(2.4, 2.4 * 1.02, scale)  # 2% at a peak: rounding
+    assert not wide.close(2.4, 2.4 * 1.10, scale)  # 10% at a peak: an edit
+    both = base.for_dtype("bfloat16").for_unit(head)  # each term keeps the larger value
+    assert both.atol == max(HALF_TOLERANCE.atol, HEAD_TOLERANCE.atol)
+
+
 def test_a_bfloat16_record_reproduces_on_float32_weights_with_a_warning(record, toy_runner):
     report = reproduce_record(_pinned(record, "bfloat16"), toy_runner)
     assert report.ok, report.mismatches
