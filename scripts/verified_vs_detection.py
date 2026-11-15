@@ -68,6 +68,15 @@ def rows(wiki_dir: Path = DEFAULT_WIKI_DIR, backfill: Path = BACKFILL) -> list[d
     return out
 
 
+def _dump(value, depth: int = 0) -> str:
+    """JSON with one line for each object three levels down, so the file stays short."""
+    if depth >= 3 or not isinstance(value, dict):
+        return json.dumps(value)
+    pad = " " * (depth + 1)
+    items = [f"{pad}{json.dumps(k)}: {_dump(v, depth + 1)}" for k, v in value.items()]
+    return "{\n" + ",\n".join(items) + "\n" + " " * depth + "}"
+
+
 def latest_per_unit(data: list[dict]) -> list[dict]:
     """The newest record of each unit, since a unit's records are not independent."""
     best: dict[str, dict] = {}
@@ -176,7 +185,7 @@ def main() -> None:
     ap.add_argument("--wiki-dir", type=Path, default=DEFAULT_WIKI_DIR)
     args = ap.parse_args()
     result = report(rows(args.wiki_dir))
-    args.out.write_text(json.dumps(result, indent=1) + "\n")
+    args.out.write_text(_dump(result) + "\n")
     for kind in KINDS:
         s = result[kind]["all_records"]
         print(f"{kind}: VERIFIED {s['mean_verified']:.3f} (n={s['n_verified']}) vs other "
