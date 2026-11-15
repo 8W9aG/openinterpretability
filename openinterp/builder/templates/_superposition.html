@@ -19,7 +19,7 @@
       <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
         {% for m in neuron.members %}
         <tr>
-          <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ m.href }}">N{{ m.neuron_idx }}</a></td>
+          <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ m.href }}">N{{ m.neuron_idx }}</a></td>
           <td class="px-3 py-2 text-right font-mono tabular-nums" title="weight {{ m.weight }}">{{ '%+.2f' | format(m.relative) }}</td>
         </tr>
         {% endfor %}
@@ -49,7 +49,7 @@
         {% for x in neuron.part_of %}
         {% set sup = x.superposition %}
         <tr class="align-top">
-          <td class="whitespace-nowrap px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ sup.href }}">L{{ sup.layer }}/{{ sup.label }}</a></td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ sup.href }}">L{{ sup.layer }}/{{ sup.label }}</a></td>
           <td class="px-3 py-2">{% if x.standing %}{{ status_badge(x.standing.status) }}{% endif %}</td>
           <td class="px-3 py-2 text-right font-mono tabular-nums">{{ '%+.2f' | format(x.relative) }}</td>
           <td class="px-3 py-2 text-xs">{% if x.standing %}{{ x.standing.lead.record.submission.natural_language_explanation | truncate(160) }}{% endif %}</td>
