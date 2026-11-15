@@ -100,7 +100,7 @@ include = ["/openinterp", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
 # CI can reproduce every record the planner asks for. A new model also needs the checks
 # under "Models" in TODO.md first.
-models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2"]
+models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "EleutherAI/pythia-70m"]
 
 [tool.openinterp.size_budget]
 # scripts/repo_size.py warns in CI past these, and never fails (issue #3254). 1,000 MB is
@@ -136,6 +136,12 @@ url = "https://github.com/openai/gpt-2/blob/master/LICENSE"
 gated = false
 publishing_allowed = true
 conditions = "OpenAI's modified MIT licence asks users to say that content was created with GPT-2."
+
+[tool.openinterp.licenses."EleutherAI/pythia-70m"]
+license = "apache-2.0"
+url = "https://huggingface.co/EleutherAI/pythia-70m"
+gated = false
+publishing_allowed = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
