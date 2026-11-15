@@ -42,14 +42,60 @@ Issue #3225. Arora et al. (arXiv 2601.22594, `docs/literature/neuron-basis-circu
 
 | Circuit | Neurons the registry studied (either pole) | VERIFIED | Explanation mentions number or agreement | Expected studied, by chance |
 | --- | --- | --- | --- | --- |
-| Top 50 | 0 | 0 | 0 | 0.3 |
-| Top 100 | 0 | 0 | 0 | 0.7 |
-| Top 200 | 1 | 0 | 0 | 1.4 |
-| Top 500 | 1 | 0 | 0 | 3.4 |
+| Top 50 | 20 | 7 | 17 | 0.3 |
+| Top 100 | 20 | 7 | 17 | 0.7 |
+| Top 200 | 21 | 7 | 17 | 1.4 |
+| Top 500 | 21 | 7 | 17 | 3.4 |
 
-The registry has studied 793 of Qwen2.5-0.5B's 116,736 neurons (0.68%). So random draws are expected to find fewer than one of the top 100, and they found none. The one studied neuron is L23/N2539, at rank 197. It was REJECTED twice. Its explanation is about a token that its left frame licenses as the start of a unit.
+The table counts the 20 targeted audits of 2026-11-15 (next section). Before them, the counts were 0, 0, 1 and 1 studied, none VERIFIED and none about number. The last column is what random draws alone would give. Before the audits, the registry had studied 793 of Qwen2.5-0.5B's 116,736 neurons (0.68%). So random draws are expected to find fewer than one of the top 100, and they found none. The one neuron they studied is L23/N2539, at rank 197. It was REJECTED twice. Its explanation is about a token that its left frame licenses as the start of a unit.
 
-So the registry can't yet say whether the neurons that carry agreement have clean explanations. Its random draws are not where task circuits are. They are too few to reach a set of 100 neurons out of 116,736. The circuit is a list of units that are known to matter, and it is ready for targeted audits.
+So random draws could not say whether the neurons that carry agreement have clean explanations. Random draws are not where task circuits are. They are too few to reach a set of 100 neurons out of 116,736. The circuit is a list of units that are known to matter, so we audited its top 20 as targeted draws.
+
+## Audits of the top 20 (#3656)
+
+On 2026-11-15 we audited the 20 neurons with the largest attribution, ranks 1–20. Each pole is the one whose sign matches the attribution: 19 positive and one negative (rank 13). The pipeline is the registry's standard one, under protocol 0.9:
+
+- Claude Opus 5.5 wrote each hypothesis from a fresh scan, without being told about the circuit.
+- Claude Sonnet 5.5 wrote 30 probes per unit: 20 hard negatives and 10 held-out positives.
+- The token check repeated until a round changed nothing.
+- Two Claude Haiku 5.5 judges scored detection and fuzzing.
+
+The records carry `selection = "attribution"`, so the random-draw statistics leave them out. The table above now counts them (`--refresh`).
+
+| Rank | Unit | Verdict | Failed gates | Explanation, in short |
+| --- | --- | --- | --- | --- |
+| 1 | L0/N4163+ | VERIFIED | | plural nouns that name groups of people |
+| 2 | L20/N4662+ | NEEDS_REVISION | sensitivity, confound | the subject of a clause, when its head is plural |
+| 3 | L19/N1274+ | NEEDS_REVISION | lookahead | the last token of a third-person singular subject |
+| 4 | L0/N2615+ | NEEDS_REVISION | specificity | a set of verb-derived modifier tokens |
+| 5 | L21/N1653+ | VERIFIED | | the last token of a plural subject before its verb |
+| 6 | L0/N255+ | NEEDS_REVISION | specificity | a list of tokens |
+| 7 | L23/N765+ | NEEDS_REVISION | specificity, counterfactuals | the head of a plural subject |
+| 8 | L22/N4567+ | NEEDS_REVISION | specificity, lookahead, confound | a third-person singular subject before its verb |
+| 9 | L20/N4213+ | NEEDS_REVISION | sensitivity, confound | a finite verb or auxiliary after a plural subject |
+| 10 | L19/N4551+ | NEEDS_REVISION | sensitivity, confound | the token that completes a plural noun |
+| 11 | L21/N4413+ | NEEDS_REVISION | specificity, confound | a modal or auxiliary after a singular subject |
+| 12 | L0/N2235+ | NEEDS_REVISION | specificity | plural-like word-final pieces such as "ands" |
+| 13 | L23/N4102− | NEEDS_REVISION | sensitivity, confound | the last token before a verb that agrees with a plural subject |
+| 14 | L16/N4197+ | VERIFIED | | a function word that continues a plural noun phrase |
+| 15 | L19/N4688+ | NEEDS_REVISION | lookahead | a singular noun between a plural subject and its verb |
+| 16 | L0/N430+ | VERIFIED | | a singular word that names a kind of person, not its plural |
+| 17 | L0/N3528+ | VERIFIED | | a list of tokens |
+| 18 | L0/N561+ | VERIFIED | | regular -s plural tokens |
+| 19 | L0/N3679+ | VERIFIED | | a singular noun that names a person by relationship, not its plural |
+| 20 | L22/N1532+ | NEEDS_REVISION | lookahead | a third-person singular subject before its verb |
+
+- **The explanations are about number.** 17 of the 20 explanations match the number pattern of `scripts/sva_circuit.py` (`NUMBER_WORDS`). The other three are token lists. Proposers found grammatical number from the scan alone, with no hint of the task.
+- **7 of 20 are VERIFIED** (35%, Wilson 95% interval 18–57%). Of random Qwen2.5-0.5B neuron poles, 30.2% are VERIFIED on first reading (27.1–33.5%, `registry-stats.md`). So the circuit's neurons do about as well. A sample of 20 can't show a difference smaller than about 20 points.
+- **The rate depends on the layer.** In layer 0, 5 of 8 verified. In layers 16–23, 2 of 12 verified. The layer-0 units read the noun token itself, and most explanations of them are token detectors. The late units track the subject's number across the clause. That claim is harder to state so that 20 hard negatives and 10 holdouts all agree.
+- **Four late units failed on lookahead.** These are ranks 3, 8, 15 and 20. Each explanation claimed that the unit prepares the verb. The lookahead check measured each one as retrospective: ablating it changed the next-token distribution little (KL 0.0002–0.003). But the tokens that the ablation moved most are agreeing verbs. For the singular units they are " is", " was" and " has". For rank 15 they are " are", " have" and " were". Ranks 3, 15 and 20 failed no other gate. Ranks 15 and 20 passed 8 of 10 holdouts and 19 or 20 of 20 negatives. A retrospective restatement of these four is the obvious next attempt.
+- **Five late units failed sensitivity or the confound baseline.** These are ranks 2, 9, 10, 11 and 13. Four of them passed only 4 of 10 holdouts. For four, probe length alone (a threshold between 8 and 17 tokens) predicted the labels as well as the hypothesis did.
+
+### Limits of the audit
+
+- **The baseline is not matched.** The 30.2% pools all proposers and protocol versions. The same proposer and reviewer verified 47 of 61 random Qwen2.5-0.5B units, under protocols 0.5–0.8. Protocol 0.9 adds the confound and lookahead gates, and only 5 random first readings ran under it. So the right comparison does not exist yet.
+- **One reading per unit.** The verdict stability study (`verdict-stability.md`) shows that repeat reviews agree on VERIFIED or not for 82% of pairs. Some of the 13 NEEDS_REVISION verdicts would change on a second reading.
+- **The proposer saw scans, not the task.** A proposer told about agreement could write sharper hypotheses. We kept it blind, so that the explanations count as independent evidence of what the neurons do.
 
 ## Limits
 
@@ -62,6 +108,7 @@ So the registry can't yet say whether the neurons that carry agreement have clea
 
 ## Follow-ups
 
-- Audit the circuit's top neurons with the registry's protocol, as targeted draws (#3656).
+- Audit the circuit's top neurons with the registry's protocol, as targeted draws (#3656, done above).
+- Restate the four lookahead failures as retrospective, and audit ranks 21–100 (#4058).
 - Use the circuit as the ground truth for grammatical number as a labelled concept (#3224).
 - Repeat with RelP once #3582 has it.
