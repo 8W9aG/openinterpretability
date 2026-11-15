@@ -69,14 +69,14 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
        if r.sister: print(" ", r.slug, "->", r.sister.slug(r.other), round(r.sister.pearson, 2))
    EOF
    ```
-   Write the bullet in a fragment, `changelog.d/sisters-<version>.changed.md` (`changelog.d/README.md`). Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
+   Write the bullet in a fragment, `changelog.d/sisters-<version>.changed.md`, with the version's dots as hyphens (`sisters-0-0-20`) (`changelog.d/README.md`). Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
    Then refresh the registry coverage, which the home page shows. Run it in the background, one model at a time, on an idle machine:
    ```bash
    for m in $(uv run python -c 'from openinterp.planner import configured_models; print(*configured_models())'); do
      uv run open-interpretability coverage --model "$m"
    done
    ```
-   Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md`.
+   Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md` (dots as hyphens).
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
    Then check memory: `uv run python scripts/memory_benchmark.py` (about 7 minutes on CPU). Run it in the background, and keep the machine otherwise idle. It scans and reviews GPT-2 and Qwen2.5-0.5B and compares each peak with `scripts/memory_baseline.json`. If a peak is more than 25% above the baseline, it exits 1. Stop and report the regression, as for a failed test. If it says a peak is lower, run it again with `--update` and commit the new baseline in the release PR. On a platform other than the baseline's it only reports. Don't overwrite the baseline from there.
 6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. Then gather the changelog fragments into the version's section. The script writes it under `## [Unreleased]`, which stays empty, and removes the fragments:
@@ -94,8 +94,10 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
    ```bash
    gh pr create --title "Release <version> (protocol v<PROTOCOL_VERSION>)" --body "..."
    ```
-   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped). A release touches code, so it always waits for a human to merge it (`land-experiment`, step 7).
-9. **Tag the merged commit.** Do this after the human merges the PR, not before. A squash merge makes a new commit on `main`, so a tag on the release branch's commit is not on `main`:
+   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped). Open it ready, not as a draft. The maintainer decided on 2026-11-15 that you merge it yourself, as `next-issue` step 6 merges an issue's PR:
+   1. Merge `origin/main` into the release branch first. Collect any changelog fragments that arrived since step 6 into the version's section, under their types. Then run `make lint test` and push.
+   2. Wait for every check on the head commit. Then merge with `gh pr merge <number> --squash --match-head-commit <sha>`. Never use `--admin`.
+9. **Tag the merged commit.** Do this after the PR merges, not before. A squash merge makes a new commit on `main`, so a tag on the release branch's commit is not on `main`:
    ```bash
    git fetch origin
    git tag -a v<version> "$(gh pr view <number> --json mergeCommit --jq .mergeCommit.oid)" -m "openinterp <version> (protocol v<PROTOCOL_VERSION>)"
@@ -116,3 +118,12 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
     gh api -X PATCH repos/8W9aG/openinterpretability/milestones/<number> -f state=closed
     ```
     Publishing the release also starts the *Linear released* workflow. It moves every closed issue in `v<version>` to Linear's Released state. Check that its run passed: `gh run list --workflow linear-released.yml --limit 1`. If it failed, or the release was published before the workflow existed, run it by hand: `python3 scripts/issue_state.py --release v<version>`.
+12. **Check the release before doing anything else.** The release isn't done, and no issue or other work starts, until each of these holds:
+    ```bash
+    gh pr view <number> --json state --jq .state                       # MERGED
+    git merge-base --is-ancestor v<version> origin/main && echo on-main
+    gh release view v<version> --json tagName,publishedAt,isDraft      # published, not a draft
+    gh run list --workflow publish.yml --limit 1                       # PyPI: passed
+    curl -s https://pypi.org/pypi/open-interpretability/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
+    ```
+    The last line must print `<version>`. Then check Zenodo's record for `v<version>`, as in step 10. If a step fails, fix it or report it to the maintainer, and stay on the release. A release PR left open, or a tag with no GitHub release, means there's no release.
