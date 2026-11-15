@@ -8,7 +8,7 @@
   </p>
   <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
     {% for s in dashboard.statuses %}
-    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/>{{ hatch(s, '1', '1', '10', '10', '2') }}</svg> {{ s | replace('_', ' ') }}</span>
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }}</span>
     {% endfor %}
     <span>Hover a bar for its counts.</span>
   </div>
@@ -29,7 +29,7 @@
       <g>
         <title>{{ c.label }}</title>
         <rect x="{{ c.hover_x }}" y="{{ tl.count_top }}" width="{{ tl.pitch }}" height="{{ tl.share_base - tl.count_top }}" fill="transparent"/>
-        {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{{ hatch(sg.status, sg.x, sg.y, sg.w, sg.h, 0) }}{% endfor %}
+        {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
       </g>
       {% endfor %}
       <path d="{{ tl.line }}" fill="none" class="stroke-emerald-600 dark:stroke-emerald-400" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
@@ -68,7 +68,7 @@
       <g>
         <title>{{ r.label }}</title>
         <text x="{{ mb.left - 8 }}" y="{{ r.y + mb.bar - 4 }}" text-anchor="end" class="fill-slate-700 font-mono dark:fill-slate-300" font-size="11">{{ r.name }}</text>
-        {% for sg in r.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{{ hatch(sg.status, sg.x, sg.y, sg.w, sg.h, 0) }}{% endfor %}
+        {% for sg in r.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
         <text x="{{ r.end_x }}" y="{{ r.y + mb.bar - 4 }}" class="fill-slate-500 font-mono" font-size="10">{{ r.n }}</text>
       </g>
       {% endfor %}
@@ -102,7 +102,7 @@
           <g>
             <title>{{ c.label }}</title>
             <rect x="{{ c.hover_x }}" y="{{ ch.top }}" width="{{ ch.pitch }}" height="{{ ch.base - ch.top }}" fill="transparent"/>
-            {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{{ hatch(sg.status, sg.x, sg.y, sg.w, sg.h, 0) }}{% endfor %}
+            {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
           </g>
           {% endfor %}
           <line x1="{{ ch.left }}" y1="{{ ch.base + 0.5 }}" x2="{{ ch.right }}" y2="{{ ch.base + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>

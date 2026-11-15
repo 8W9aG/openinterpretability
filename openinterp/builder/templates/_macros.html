@@ -1,11 +1,6 @@
 {# Fill per neuron status on the layer map and pieces bars. Defined in builder/statuses.py. #}
 {% set map_fill = statuses.STATUS_FILL %}
 
-{# Hatching over a status cell that must not rely on colour alone (statuses.HATCHED). The pattern is in base.html. #}
-{% macro hatch(status, x, y, w, h, rx=0) -%}
-{%- if status in statuses.HATCHED %}<rect x="{{ x }}" y="{{ y }}" width="{{ w }}" height="{{ h }}" rx="{{ rx }}" fill="url(#status-hatch)" pointer-events="none"/>{% endif -%}
-{%- endmacro %}
-
 {% macro status_badge(status) -%}
 <span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ statuses.STATUS_BADGE[status] }}">{{ status | replace('_', ' ') }}</span>
 {%- endmacro %}
