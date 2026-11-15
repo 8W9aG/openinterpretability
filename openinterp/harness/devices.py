@@ -48,6 +48,10 @@ from openinterp.core.cache_dirs import cache_root
 LEASES_ENV = "OPENINTERP_DEVICE_LEASES"  # lease directory, or "off"
 # Set by the retry after an MPS failure: every model of the command loads on this device.
 FORCE_ENV = "OPENINTERP_DEVICE_FORCE"
+BATCH_SCALE_ENV = "OPENINTERP_BATCH_SCALE"
+"""Divides the scan's and the attribution's batch sizes: set by a retry after a GPU ran
+out of memory (issue #3971)."""
+SMALLER_BATCHES = 4
 GPU_BUSY_ENV = "OPENINTERP_GPU_BUSY_PERCENT"
 # Idle reads 1%, one job 93-97% (docs/analyses/device-contention.md).
 DEFAULT_GPU_BUSY_PERCENT = 50.0
@@ -343,6 +347,47 @@ def gpu_failed(exc: BaseException) -> str | None:
     return None
 
 
+def batch_scale() -> int:
+    """How much smaller batches are in this process: 1, or more after a GPU ran out of memory."""
+    try:
+        return max(1, int(os.environ.get(BATCH_SCALE_ENV, "1")))
+    except ValueError:
+        return 1
+
+
+def out_of_memory(exc: BaseException) -> bool:
+    """True if an exception in ``exc``'s chain says that a device ran out of memory."""
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, MemoryError) or "out of memory" in str(exc).lower():
+            return True
+        exc = exc.__cause__ or exc.__context__
+    return False
+
+
+def retry(exc: BaseException, gpu: str) -> None:
+    """Run this command again after a GPU failure: on the GPU with smaller batches, else on the CPU.
+
+    A CUDA out-of-memory error first gets one more run on the GPU, with batches
+    :data:`SMALLER_BATCHES` times smaller. A large model is far faster there than on the
+    CPU. Any other failure, or a second one, goes to the CPU (:func:`rerun_on_cpu`).
+    """
+    import sys
+
+    if gpu == "CUDA" and out_of_memory(exc) and batch_scale() == 1:
+        print(
+            f"The GPU ({gpu}) ran out of memory. Running the command again on the GPU, "
+            f"with batches {SMALLER_BATCHES} times smaller.",
+            file=sys.stderr,
+        )
+        sys.stderr.flush()
+        sys.stdout.flush()
+        env = {**os.environ, BATCH_SCALE_ENV: str(SMALLER_BATCHES)}
+        os.execve(sys.executable, sys.orig_argv, env)  # noqa: S606
+    rerun_on_cpu(exc, gpu)
+
+
 def rerun_on_cpu(exc: BaseException, gpu: str = "MPS") -> None:
     """Run this command again from the start, in a new process, with every model on the CPU.
 
@@ -353,12 +398,15 @@ def rerun_on_cpu(exc: BaseException, gpu: str = "MPS") -> None:
 
     first = str(exc).strip().splitlines()[0][:200] if str(exc).strip() else type(exc).__name__
     print(
-        f"The GPU ({gpu}) failed ({first}). Running the command again on the CPU.", file=sys.stderr
+        f"The GPU ({gpu}) failed ({first}). Running the command again on the CPU. For a "
+        "model above about 1B parameters that can take hours. Progress lines follow.",
+        file=sys.stderr,
     )
     sys.stderr.flush()
     sys.stdout.flush()
     # The same command line that started this process, so nothing new runs.
-    os.execve(sys.executable, sys.orig_argv, {**os.environ, FORCE_ENV: "cpu"})  # noqa: S606
+    env = {k: v for k, v in os.environ.items() if k != BATCH_SCALE_ENV}
+    os.execve(sys.executable, sys.orig_argv, {**env, FORCE_ENV: "cpu"})  # noqa: S606
 
 
 _start_checked: str | None | bool = False  # False: not checked yet
