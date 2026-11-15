@@ -209,3 +209,29 @@ def test_purge_batches_and_errors(mocker):
             ["https://x.org/a"],
             opener=lambda r, timeout: io.BytesIO(b'{"success": false, "errors": ["bad"]}'),
         )
+
+
+def test_uploads_run_in_parallel_with_every_asset_before_any_page(tmp_path, mocker):
+    import threading
+    import time
+
+    for i in range(6):
+        (tmp_path / f"p{i}.html").write_text(f"page {i}")
+        (tmp_path / f"a{i}.css").write_text(f"css {i}")
+    client = mocker.Mock()
+    client.get_paginator.return_value.paginate.return_value = [{"Contents": []}]
+    order, live, peak, lock = [], [0], [0], threading.Lock()
+
+    def put_object(**kwargs):
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        time.sleep(0.05)
+        with lock:
+            live[0] -= 1
+            order.append(kwargs["Key"])
+
+    client.put_object.side_effect = put_object
+    sync_directory(tmp_path, "bucket", client)
+    assert len(order) == 12 and peak[0] > 1  # more than one request at a time
+    assert all(k.endswith(".css") for k in order[:6]), order  # assets finish first
