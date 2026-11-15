@@ -1,0 +1,1 @@
+- The deploy uploads to R2 with 32 requests in flight, not one at a time (`OPENINTERP_UPLOAD_WORKERS`). Every asset still finishes before the first page starts. A sync took about 8 minutes, and much longer when every page changed.
