@@ -154,24 +154,18 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: Repository size against its budget (warns only)
         run: python3 scripts/repo_size.py
-      - name: Evidence of slim records reaches the dataset
+      - name: Evidence of slim records
         # A slim record's blobs ride on evidence/<branch>, never on the PR branch, so that
-        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). The
-        # upload uses its own write token, HF_EVIDENCE_TOKEN. HF_TOKEN stays read-only, for
-        # downloads. A fork PR gets no secret, so its blobs can't be uploaded, and verify
-        # fails on it.
+        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). This
+        # job only loads and checks them, with no write token: code from the PR runs here.
+        # The deploy on main uploads them after the merge (`evidence publish`).
         if: github.event_name == 'pull_request'
         env:
-          HF_TOKEN: ${{ secrets.HF_EVIDENCE_TOKEN }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           if git fetch --quiet origin "refs/heads/evidence/$HEAD_REF" 2>/dev/null; then
-            if [ -n "$HF_TOKEN" ]; then
-              open-interpretability evidence upload --ref FETCH_HEAD
-            else
-              open-interpretability evidence load --ref FETCH_HEAD
-            fi
+            open-interpretability evidence load --ref FETCH_HEAD
           fi
           open-interpretability evidence verify --base-ref "origin/$BASE_REF"
       - name: Every experiment has a valid record and wiki page

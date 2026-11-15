@@ -97,3 +97,31 @@ def test_a_draw_pushes_its_evidence_before_its_branch():
     assert commands.index("uv run open-interpretability evidence push") < commands.index(
         "git push && gh pr ready"
     )
+
+
+def test_publish_uploads_only_what_records_need_and_the_dataset_lacks(
+    record, repo, tmp_path, monkeypatch
+):
+    path, _ = _slim_record(record, tmp_path, monkeypatch)
+    shas = sorted(eb.record_refs([path]))
+    stray = evidence.put(b'{"not": "referenced"}')  # on the branch, named by no record
+    commit = eb.blob_commit([*shas, stray])
+    subprocess.run(["git", "update-ref", f"{eb.LOCAL_REFS}some-branch", commit], check=True)
+    sent = []
+
+    class FakeApi:
+        def repo_exists(self, repo_id, repo_type):
+            return True
+
+        def list_repo_files(self, repo_id, repo_type):
+            return [evidence.blob_name(shas[0])]  # one blob is already there
+
+        def upload_folder(self, repo_id, folder_path, **kwargs):
+            from pathlib import Path
+
+            sent.extend(Path(p).stem for p in Path(folder_path).rglob("*.json"))
+
+    fresh = tmp_path / "fresh-store"
+    uploaded, missing = eb.publish_missing([path], fresh, api=FakeApi())
+    assert sorted(sent) == shas[1:] and uploaded == len(shas) - 1 and missing == []
+    assert stray not in sent

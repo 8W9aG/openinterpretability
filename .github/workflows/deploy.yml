@@ -53,6 +53,13 @@ jobs:
           path: ~/.cache/openinterp/evidence
           key: evidence-blobs-${{ github.run_id }}
           restore-keys: evidence-blobs-
+      - name: Publish the evidence of merged records
+        # Merged code only: this job checks out main. It uploads the blobs that main's slim
+        # records need and the dataset lacks, from the evidence branches (issue #3254). A
+        # PR's CI holds no write token, so nothing from an unmerged PR is published.
+        env:
+          HF_TOKEN: ${{ secrets.HF_EVIDENCE_TOKEN }}
+        run: open-interpretability evidence publish
       - name: Check registry consistency
         run: open-interpretability check
       # The personal-data matches of each text that earlier builds searched
