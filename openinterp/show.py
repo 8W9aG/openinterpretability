@@ -12,6 +12,7 @@ import json
 import re
 from pathlib import Path
 
+from openinterp.core.fence import fence
 from openinterp.core.schemas import (
     ACTIVATION_THRESHOLD,
     AuditRecord,
@@ -79,10 +80,11 @@ def show_record(record: AuditRecord, path: Path | None = None, full: bool = Fals
     lines += _hypothesis(sub)
     lines += _metrics(verdict)
     lines += _failed_probes(record, full)
+    # Notes and the page's Discussion are text anyone's PR could write: fence them as data.
     if verdict.notes:
-        lines.append(f"Notes: {_clip(verdict.notes, full, 400)}")
+        lines.append(f"Notes:\n{fence(_clip(verdict.notes, full, 400))}")
     if path is not None and (discussion := _discussion(path.with_suffix(".md"))):
-        lines.append(f"Discussion: {_clip(discussion, full, 1200)}")
+        lines.append(f"Discussion:\n{fence(_clip(discussion, full, 1200))}")
     return "\n".join(lines)
 
 
@@ -174,7 +176,7 @@ def _selection(sub) -> str:
 
 def _hypothesis(sub) -> list[str]:
     return [
-        f"Hypothesis: {sub.natural_language_explanation}",
+        f"Hypothesis:\n{fence(sub.natural_language_explanation)}",
         f"Tokens: {_tokens(sub.activating_tokens)} · mechanism "
         + ("lookahead" if sub.lookahead.is_lookahead else "retrospective")
         + (f" · max activation {sub.max_activation:.3f}" if sub.max_activation else ""),

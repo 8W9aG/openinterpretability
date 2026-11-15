@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, map_fill, hatch %}
+{% from "_macros.html" import breadcrumb, map_fill %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -36,13 +36,13 @@
 {% if lm %}
 <figure class="mt-6" data-pagefind-ignore>
   <div class="overflow-x-auto">
-  <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="img" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">
+  <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="group" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">
     {% for i, y in lm.rows %}
     <rect x="{{ lm.left }}" y="{{ y }}" width="{{ lm.right - lm.left }}" height="{{ lm.row }}" class="fill-slate-100 dark:fill-slate-800/60"/>
     {% if i % lm.label_every == 0 %}<text x="{{ lm.left - 6 }}" y="{{ y + lm.row - 1 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">L{{ i }}</text>{% endif %}
     {% endfor %}
     {% for m in lm.marks %}
-    {% if m.href %}<a href="{{ root }}{{ m.href }}">{% endif %}<title>{{ m.label }}</title><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ lm.mark_w }}" height="{{ lm.row }}" class="{{ map_fill[m.status] }}"/>{{ hatch(m.status, m.x, m.y, lm.mark_w, lm.row, 0) }}{% if m.href %}</a>{% endif %}
+    {% if m.href %}<a href="{{ root }}{{ m.href }}">{% endif %}<title>{{ m.label }}</title><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ lm.mark_w }}" height="{{ lm.row }}" class="{{ map_fill[m.status] }}"/>{% if m.href %}</a>{% endif %}
     {% endfor %}
     {% for tx, label in lm.ticks %}
     <line x1="{{ tx }}" y1="{{ lm.axis_y - 2 }}" x2="{{ tx }}" y2="{{ lm.axis_y + 2 }}" class="stroke-slate-400" stroke-width="1"/>
@@ -52,7 +52,7 @@
   </div>
   <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
     {% for s, n in lm.counts.items() %}
-    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/>{{ hatch(s, '1', '1', '10', '10', '2') }}</svg> {{ s | replace('_', ' ') }} {{ n }}</span>
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
     {% endfor %}
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lm.unexplored | thousands }}</span>
     <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment or page. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</span>
@@ -84,7 +84,7 @@
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for layer in model.layers %}
       <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
-        <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
+        <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons_studied }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.heads | length }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
@@ -103,7 +103,7 @@
   <figure class="mt-6">
     <h3 class="font-mono text-sm font-medium">{{ model.name }} ↔ {{ g.other }}</h3>
     <div class="overflow-x-auto">
-    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-[720px]" role="img" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
+    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-[720px]" role="group" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
       <text x="{{ g.columns[0] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ model.name }}</text>
       <text x="{{ g.columns[1] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ g.other }}</text>
       {% for t in g.ticks %}
