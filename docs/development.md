@@ -120,7 +120,7 @@ R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_
 
 ## Releases on PyPI
 
-The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterp`, and the `openinterp` command remains as an alias until every doc, skill and workflow uses the new name. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterp.__version__`. It uploads with the repository secret `PYPI_TOKEN`, a PyPI API token for the project.
+The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterp`, and the `openinterp` command remains as an alias until every doc, skill and workflow uses the new name. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterp.__version__`. It uploads with PyPI's trusted publishing, so no PyPI token is stored in the repository. PyPI trusts the repository `8W9aG/openinterpretability`, the workflow `publish.yml` and the GitHub environment `pypi`. That environment lets only `v*` tags deploy.
 
 After pulling the rename, run `make install` once in each checkout. A plain `uv sync` loses the `openinterp` command with the old distribution.
 

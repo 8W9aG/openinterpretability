@@ -68,11 +68,17 @@ class Tolerance:
 
     def for_dtype(self, dtype: str) -> Tolerance:
         """This tolerance, widened to :data:`HALF_TOLERANCE` for a record in a 16-bit dtype."""
-        if dtype not in HALF:
-            return self
-        return Tolerance(
-            atol=max(self.atol, HALF_TOLERANCE.atol), rtol=max(self.rtol, HALF_TOLERANCE.rtol)
-        )
+        return self.widened(HALF_TOLERANCE) if dtype in HALF else self
+
+    def for_unit(self, ident) -> Tolerance:
+        """This tolerance, widened to :data:`HEAD_TOLERANCE` for an attention head."""
+        from openinterp.core.schemas import HeadIdentifier
+
+        return self.widened(HEAD_TOLERANCE) if isinstance(ident, HeadIdentifier) else self
+
+    def widened(self, other: Tolerance) -> Tolerance:
+        """The larger of this tolerance and ``other``, term by term."""
+        return Tolerance(atol=max(self.atol, other.atol), rtol=max(self.rtol, other.rtol))
 
 
 DEFAULT_TOLERANCE = Tolerance()
@@ -82,6 +88,11 @@ HALF_TOLERANCE = Tolerance(atol=0.05, rtol=0.02)
 # Tokens of one top example that a 16-bit record may have outside HALF_TOLERANCE. Deep
 # layers on unusual text can move a few tokens by up to 22% of the peak; 3 was the most.
 HALF_STRAY_TOKENS = 4
+# A head's strength |W_O (z − z̄)| moves with float32 rounding more than a neuron's does.
+# Over every head record, the largest move was 0.7% of the scale, on Pythia-70m L4/H4
+# (docs/analyses/head-reproduce-tolerance.md). This allows twice that. At a peak it allows
+# 2.5%, so a 10% edit of a peak still fails.
+HEAD_TOLERANCE = Tolerance(atol=0.015, rtol=0.01)
 
 
 @dataclass
@@ -166,7 +177,7 @@ def reproduce_record(
     sub, verdict = record.submission, record.verdict
     unit = submission_unit(sub)
     half = pinned_environment(record)[1] in HALF
-    tolerance = tolerance.for_dtype(pinned_environment(record)[1])
+    tolerance = tolerance.for_dtype(pinned_environment(record)[1]).for_unit(sub.identifier)
     _compare_environment(record, run_environment(runner), report)
 
     scale = sub.max_activation or 0.0

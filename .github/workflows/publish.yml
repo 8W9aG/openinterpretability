@@ -3,7 +3,9 @@ name: Publish to PyPI
 # Publishes `open-interpretability` to PyPI each time a GitHub release is published (issue
 # #3251). The `release` skill publishes one for every version. The job builds the wheel and
 # the sdist, checks that the release's tag is the package's version, and uploads them with
-# the repository secret PYPI_TOKEN (docs/development.md, *Releases on PyPI*).
+# PyPI's trusted publishing: a short-lived token that PyPI gives to this workflow, in the
+# `pypi` environment, and to nothing else. No PyPI secret is stored in the repository
+# (docs/development.md, *Releases on PyPI*).
 
 on:
   release:
@@ -41,11 +43,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The environment's rules let only v* tags deploy. PyPI trusts this repository, this
+    # workflow file and this environment, and no other.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/open-interpretability/
+    permissions:
+      id-token: write  # for the OIDC token that trusted publishing exchanges
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}

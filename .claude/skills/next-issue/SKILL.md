@@ -15,6 +15,8 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    date -u +%Y-%m-%dT%H:%M:%SZ
    ```
    If the last release is more than 24 hours old, run the `release` skill as this iteration's work, in place of an issue. It has its own checks and steps. Its release PR lands as in step 6. **Don't move on from the release** until its PR has merged and `gh release view v<version>` shows it published on GitHub (`release` skill, step 12). A release PR waiting for a merge blocks the loop: finish it first. Then the iteration stops at step 7. Otherwise go on to step 1.
+
+   **Until the release is due, keep working issues.** The maintainer decided this on 2026-11-15. Don't skip or postpone an issue because the release might come due while you work on it. If the 24 hours pass during an issue, finish that issue, its PR and its merge first. The next iteration then does the release.
 1. **Give every open issue a priority.** The ranking is only as good as the priorities, so first list the issues that have none:
    ```bash
    python3 scripts/next_issue.py --unprioritised

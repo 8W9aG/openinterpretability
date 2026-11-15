@@ -250,8 +250,9 @@ def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
 
 def read_jsonl(path: Path) -> list[dict]:
     """Read the JSON objects in ``path``, one per line."""
-    lines = Path(path).read_text(encoding="utf-8").splitlines()
-    return [json.loads(line) for line in lines if line.strip()]
+    from openinterp.corpus import jsonl_lines
+
+    return [json.loads(line) for line in jsonl_lines(Path(path).read_text(encoding="utf-8"))]
 
 
 def write(frozen: Frozen, out_dir: Path) -> None:

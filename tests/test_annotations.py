@@ -233,3 +233,18 @@ def test_reviewer_is_asked_for_role_changes_only_on_syntax_labels(record):
     assert SYNTAX_PROBES in ReviewerAgent.probe_prompt(coded)
     assert "`return` as a keyword" in SYNTAX_PROBES
     assert SYNTAX_PROBES not in ReviewerAgent.probe_prompt(sub)
+
+
+def test_a_document_with_unicode_line_breaks_reads_back_whole(tmp_path):
+    # jsonl_bytes writes these characters raw; str.splitlines would cut the line at each.
+    texts = ["one\u0085two", "a b c", "form\x0cfeed\x0bvt", "plain"]
+    out = tmp_path / "c.jsonl"
+    out.write_bytes(jsonl_bytes(texts, labels={"lang": ["en", "fr", "en", "fr"]}))
+    assert read_corpus(out)[0] == texts
+    assert read_labels(out) == {"language": ["en", "fr", "en", "fr"]}
+
+
+def test_a_plain_text_corpus_keeps_its_line_split(tmp_path):
+    out = tmp_path / "c.txt"
+    out.write_text("one\u0085two\nthree\n", encoding="utf-8")
+    assert read_corpus(out)[0] == ["one", "two", "three"]  # as records scanned it
