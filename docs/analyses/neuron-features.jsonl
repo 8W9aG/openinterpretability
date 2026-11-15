@@ -1,0 +1,52 @@
+{"kind": "layer", "layer": 0, "latents": 24576, "chance_99": 0.1084, "median_score": 0.1796, "share_0.6": 0.0179, "share_0.7": 0.0083, "share_0.9": 0.0017, "unsigned_share_0.6": 0.0179, "unsigned_share_0.7": 0.0083, "unsigned_share_0.9": 0.0017}
+{"kind": "latent", "unit": "L0/F3001", "verdict": "NEEDS_REVISION", "score": 0.1698, "unsigned": 0.1698, "neuron": 204, "pole": "negative"}
+{"kind": "latent", "unit": "L0/F15387", "verdict": "NEEDS_REVISION", "score": 0.1706, "unsigned": 0.1706, "neuron": 31, "pole": "positive"}
+{"kind": "latent", "unit": "L0/F9374", "verdict": "VERIFIED", "score": 0.2155, "unsigned": 0.2155, "neuron": 3030, "pole": "positive"}
+{"kind": "latent", "unit": "L0/F12050", "verdict": "VERIFIED", "score": 0.1898, "unsigned": 0.1898, "neuron": 1632, "pole": "positive"}
+{"kind": "layer", "layer": 1, "latents": 24576, "chance_99": 0.1077, "median_score": 0.1893, "share_0.6": 0.0207, "share_0.7": 0.0089, "share_0.9": 0.0001, "unsigned_share_0.6": 0.0207, "unsigned_share_0.7": 0.0089, "unsigned_share_0.9": 0.0001}
+{"kind": "latent", "unit": "L1/F20181", "verdict": "VERIFIED", "score": 0.2264, "unsigned": 0.2264, "neuron": 1415, "pole": "positive"}
+{"kind": "latent", "unit": "L1/F13107", "verdict": "VERIFIED", "score": 0.2583, "unsigned": 0.2583, "neuron": 2023, "pole": "positive"}
+{"kind": "latent", "unit": "L1/F11283", "verdict": "VERIFIED", "score": 0.2375, "unsigned": 0.2375, "neuron": 2978, "pole": "positive"}
+{"kind": "layer", "layer": 2, "latents": 24576, "chance_99": 0.1087, "median_score": 0.154, "share_0.6": 0.044, "share_0.7": 0.0391, "share_0.9": 0.0104, "unsigned_share_0.6": 0.044, "unsigned_share_0.7": 0.0391, "unsigned_share_0.9": 0.0104}
+{"kind": "layer", "layer": 3, "latents": 24576, "chance_99": 0.1085, "median_score": 0.2224, "share_0.6": 0.0855, "share_0.7": 0.0692, "share_0.9": 0.0124, "unsigned_share_0.6": 0.0855, "unsigned_share_0.7": 0.0692, "unsigned_share_0.9": 0.0124}
+{"kind": "latent", "unit": "L3/F9938", "verdict": "VERIFIED", "score": 0.2265, "unsigned": 0.2265, "neuron": 2819, "pole": "positive"}
+{"kind": "latent", "unit": "L3/F12137", "verdict": "VERIFIED", "score": 0.1936, "unsigned": 0.1936, "neuron": 2432, "pole": "positive"}
+{"kind": "latent", "unit": "L3/F2772", "verdict": "VERIFIED", "score": 0.181, "unsigned": 0.1915, "neuron": 1686, "pole": "negative"}
+{"kind": "layer", "layer": 4, "latents": 24576, "chance_99": 0.1077, "median_score": 0.1886, "share_0.6": 0.0751, "share_0.7": 0.069, "share_0.9": 0.0361, "unsigned_share_0.6": 0.0751, "unsigned_share_0.7": 0.069, "unsigned_share_0.9": 0.0361}
+{"kind": "latent", "unit": "L4/F2737", "verdict": "VERIFIED", "score": 0.2023, "unsigned": 0.2023, "neuron": 2199, "pole": "positive"}
+{"kind": "latent", "unit": "L4/F13686", "verdict": "VERIFIED", "score": 0.1864, "unsigned": 0.1864, "neuron": 1437, "pole": "positive"}
+{"kind": "latent", "unit": "L4/F1786", "verdict": "VERIFIED", "score": 0.1806, "unsigned": 0.1806, "neuron": 682, "pole": "positive"}
+{"kind": "latent", "unit": "L4/F9287", "verdict": "VERIFIED", "score": 0.2442, "unsigned": 0.2442, "neuron": 2096, "pole": "positive"}
+{"kind": "layer", "layer": 5, "latents": 24576, "chance_99": 0.1085, "median_score": 0.2, "share_0.6": 0.0928, "share_0.7": 0.0868, "share_0.9": 0.0498, "unsigned_share_0.6": 0.0928, "unsigned_share_0.7": 0.0868, "unsigned_share_0.9": 0.0498}
+{"kind": "latent", "unit": "L5/F4943", "verdict": "VERIFIED", "score": 0.1817, "unsigned": 0.1817, "neuron": 2968, "pole": "positive"}
+{"kind": "latent", "unit": "L5/F15375", "verdict": "VERIFIED", "score": 0.1525, "unsigned": 0.1525, "neuron": 1409, "pole": "positive"}
+{"kind": "layer", "layer": 6, "latents": 24576, "chance_99": 0.1081, "median_score": 0.2037, "share_0.6": 0.0937, "share_0.7": 0.0884, "share_0.9": 0.0579, "unsigned_share_0.6": 0.0937, "unsigned_share_0.7": 0.0884, "unsigned_share_0.9": 0.0579}
+{"kind": "latent", "unit": "L6/F502", "verdict": "VERIFIED", "score": 0.1938, "unsigned": 0.1938, "neuron": 652, "pole": "positive"}
+{"kind": "layer", "layer": 7, "latents": 24576, "chance_99": 0.1086, "median_score": 0.2124, "share_0.6": 0.0991, "share_0.7": 0.0951, "share_0.9": 0.0732, "unsigned_share_0.6": 0.0991, "unsigned_share_0.7": 0.0951, "unsigned_share_0.9": 0.0732}
+{"kind": "latent", "unit": "L7/F20093", "verdict": "VERIFIED", "score": 0.1803, "unsigned": 0.1803, "neuron": 843, "pole": "positive"}
+{"kind": "latent", "unit": "L7/F18342", "verdict": "VERIFIED", "score": 0.204, "unsigned": 0.204, "neuron": 1836, "pole": "positive"}
+{"kind": "latent", "unit": "L7/F8814", "verdict": "VERIFIED", "score": 0.2093, "unsigned": 0.2093, "neuron": 914, "pole": "positive"}
+{"kind": "latent", "unit": "L7/F18988", "verdict": "VERIFIED", "score": 0.1556, "unsigned": 0.1556, "neuron": 1132, "pole": "positive"}
+{"kind": "latent", "unit": "L7/F8721", "verdict": "VERIFIED", "score": 0.1734, "unsigned": 0.1734, "neuron": 2376, "pole": "positive"}
+{"kind": "latent", "unit": "L7/F5954", "verdict": "VERIFIED", "score": 0.3012, "unsigned": 0.3012, "neuron": 2597, "pole": "positive"}
+{"kind": "layer", "layer": 8, "latents": 24576, "chance_99": 0.1094, "median_score": 0.2136, "share_0.6": 0.1028, "share_0.7": 0.0986, "share_0.9": 0.0795, "unsigned_share_0.6": 0.1028, "unsigned_share_0.7": 0.0986, "unsigned_share_0.9": 0.0795}
+{"kind": "latent", "unit": "L8/F13571", "verdict": "VERIFIED", "score": 0.2117, "unsigned": 0.2117, "neuron": 1424, "pole": "positive"}
+{"kind": "latent", "unit": "L8/F2494", "verdict": "VERIFIED", "score": 0.2599, "unsigned": 0.2599, "neuron": 1466, "pole": "positive"}
+{"kind": "latent", "unit": "L8/F9476", "verdict": "VERIFIED", "score": 0.2067, "unsigned": 0.2067, "neuron": 541, "pole": "positive"}
+{"kind": "latent", "unit": "L8/F11700", "verdict": "VERIFIED", "score": 0.1815, "unsigned": 0.1815, "neuron": 332, "pole": "positive"}
+{"kind": "latent", "unit": "L8/F10989", "verdict": "VERIFIED", "score": 0.1663, "unsigned": 0.1663, "neuron": 1216, "pole": "positive"}
+{"kind": "latent", "unit": "L8/F10336", "verdict": "VERIFIED", "score": 0.2332, "unsigned": 0.2332, "neuron": 2381, "pole": "positive"}
+{"kind": "latent", "unit": "L8/F376", "verdict": "VERIFIED", "score": 0.2792, "unsigned": 0.2792, "neuron": 403, "pole": "positive"}
+{"kind": "layer", "layer": 9, "latents": 24576, "chance_99": 0.1083, "median_score": 0.2151, "share_0.6": 0.1062, "share_0.7": 0.0999, "share_0.9": 0.0782, "unsigned_share_0.6": 0.1062, "unsigned_share_0.7": 0.0999, "unsigned_share_0.9": 0.0782}
+{"kind": "latent", "unit": "L9/F8370", "verdict": "VERIFIED", "score": 0.2208, "unsigned": 0.2208, "neuron": 1920, "pole": "positive"}
+{"kind": "latent", "unit": "L9/F1067", "verdict": "VERIFIED", "score": 0.2741, "unsigned": 0.2741, "neuron": 521, "pole": "positive"}
+{"kind": "latent", "unit": "L9/F5480", "verdict": "VERIFIED", "score": 0.2271, "unsigned": 0.2271, "neuron": 1287, "pole": "positive"}
+{"kind": "latent", "unit": "L9/F6460", "verdict": "NEEDS_REVISION", "score": 0.9375, "unsigned": 0.9375, "neuron": 486, "pole": "positive"}
+{"kind": "layer", "layer": 10, "latents": 24576, "chance_99": 0.1087, "median_score": 0.1869, "share_0.6": 0.0871, "share_0.7": 0.0809, "share_0.9": 0.0481, "unsigned_share_0.6": 0.0871, "unsigned_share_0.7": 0.0809, "unsigned_share_0.9": 0.0481}
+{"kind": "latent", "unit": "L10/F1417", "verdict": "VERIFIED", "score": 0.5316, "unsigned": 0.5316, "neuron": 622, "pole": "positive"}
+{"kind": "latent", "unit": "L10/F19914", "verdict": "VERIFIED", "score": 0.1778, "unsigned": 0.1778, "neuron": 370, "pole": "positive"}
+{"kind": "latent", "unit": "L10/F3648", "verdict": "VERIFIED", "score": 0.2443, "unsigned": 0.2443, "neuron": 1208, "pole": "positive"}
+{"kind": "layer", "layer": 11, "latents": 24576, "chance_99": 0.1085, "median_score": 0.1771, "share_0.6": 0.0572, "share_0.7": 0.0427, "share_0.9": 0.0137, "unsigned_share_0.6": 0.0572, "unsigned_share_0.7": 0.0427, "unsigned_share_0.9": 0.0137}
+{"kind": "latent", "unit": "L11/F22487", "verdict": "VERIFIED", "score": 0.291, "unsigned": 0.291, "neuron": 2629, "pole": "positive"}
+{"kind": "latent", "unit": "L11/F12545", "verdict": "VERIFIED", "score": 0.1467, "unsigned": 0.2057, "neuron": 2123, "pole": "negative"}
+{"kind": "latent", "unit": "L11/F6643", "verdict": "VERIFIED", "score": 0.6183, "unsigned": 0.6183, "neuron": 2188, "pole": "positive"}

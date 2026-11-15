@@ -69,6 +69,7 @@ The checks used only the submitted explanation, never the proposer's private not
 - **Same agents, both arms.** One agent of each role did both arms, so a model that writes better hypotheses for sparse units favours latents. That bias is the thing being measured, since an interpretable unit is one that has a short, testable description. But the result is specific to these agents and this protocol.
 - **Judge prompts.** In explanation-scoring judge prompts, curly apostrophes in corpus text render as "��". Explanation scores are reported, not gated, so verdicts are unaffected.
 - **Layers.** Layers were drawn uniformly. The early-layer floor affects the positive poles of layers 1–2 most.
+- **Not neurons in disguise.** Shabalin and Piotrowski (arXiv 2610.24521) find many transcoder features that align with one neuron on both sides. Here, at their 0.7 threshold, 1 of the 40 audited latents is such a neuron feature (`neuron-features.md`). So the comparison is not neurons against neurons.
 
 ## Next
 

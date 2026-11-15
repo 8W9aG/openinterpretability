@@ -2,7 +2,7 @@
 
 **Citation.** Stepan Shabalin (Anthropic Fellows and Georgia Institute of Technology) and Mateusz Piotrowski (Anthropic), equal contribution. "Comparing Sparsified MLPs and Transcoders: Many Transcoder Features Are Neurons in Disguise". arXiv 2610.24521v1, 17 October 2026. [Paper](https://arxiv.org/abs/2610.24521). NeurIPS 2026 workshop *Interpretability as a Science*. The paper says that its TopK transcoders are released under the MIT licence, but it gives no link. Funding: the Anthropic Fellows Program, a BlueDot rapid grant and compute from White Circle. The authors say that they used Claude Code to help write, code and review, and that they checked its output.
 
-**Status.** Planned. Issue #3608 counts how many of the transcoder latents in our learned-basis baseline are neurons in disguise.
+**Status.** Done in issue #3608 (`docs/analyses/neuron-features.md`). At 0.7, 1 of the 40 audited GPT-2 latents is a neuron feature, and 6.6% of the whole dictionary is.
 
 **Read.** The abstract page and the v1 HTML, on 2026-11-14. A model read the text in seven passes and reported it to us, with short quotes. All of it came back as the paper's own text, except two gaps of about 40 characters at the joins. One gap cuts a row of Table 4, so that row is not here. We did not see the figures.
 
@@ -54,7 +54,7 @@
 
 **It reads the registry's unit.** The paper splits each gated neuron by the sign of its activation and treats the two signs as different units. That is the protocol's pole (`docs/PROTOCOL.md` §1), and the paper finds the two signs' encoders "approximately orthogonal". So it supports reading a neuron's two poles apart, as `neurons-as-an-interpretable-basis.md` does too.
 
-**It changes how to read our learned-basis baseline.** On GPT-2 small, 37 of 40 random transcoder latents were VERIFIED, against 20 of 40 random positive neuron poles (`docs/analyses/transcoder-baseline.md`). The paper's result suggests that part of that comparison may be neurons against neurons: a share of the latents may be neuron features. We don't know that share for GPT-2. The paper's models are all gated, and GPT-2's MLP is GELU. Issue #3608 measures it, and splits the VERIFIED rate between neuron features and other latents.
+**It changes how to read our learned-basis baseline.** On GPT-2 small, 37 of 40 random transcoder latents were VERIFIED, against 20 of 40 random positive neuron poles (`docs/analyses/transcoder-baseline.md`). The paper's result suggests that part of that comparison may be neurons against neurons: a share of the latents may be neuron features. The paper's models are all gated, and GPT-2's MLP is GELU. Issue #3608 measured the share (`docs/analyses/neuron-features.md`). At 0.7, 1 of the 40 audited latents is a neuron feature, so the comparison is not neurons against neurons.
 
 **It matches the circuits result.** The paper starts from Arora et al.'s finding that circuits are sparse in the neuron basis (`neuron-basis-circuits.md`). It adds that transcoder features which don't align with a neuron are less stable across training runs. That supports the registry's choice to audit native neurons first, with dictionaries as a baseline.
 
