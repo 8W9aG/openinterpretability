@@ -17,11 +17,13 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from openinterp.core.explanation import ExplanationScores
 from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
 from openinterp.harness.explanation_scores import auroc
 
 KINDS = ("detection", "fuzzing")
+BACKFILL = Path("docs/analyses/explanation-scores-backfill.jsonl")
 MIN_PER_ARM = 10  # a judge needs this many records in each arm to enter the pooled number
 BOOTSTRAP = 2000
 
@@ -32,13 +34,27 @@ def normalise(model: str | None) -> str:
     return name.removesuffix("-contributor").replace("1-3", "1.3")
 
 
-def rows(wiki_dir: Path = DEFAULT_WIKI_DIR) -> list[dict]:
-    """One row per scored neuron-pole record."""
+def backfilled(path: Path = BACKFILL) -> dict[str, ExplanationScores]:
+    """Backfilled scores by record path (``scripts/score_backfill.py``, issue #3499)."""
+    if not path.exists():
+        return {}
+    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    return {r["record"]: ExplanationScores.model_validate(r["scores"]) for r in rows}
+
+
+def rows(wiki_dir: Path = DEFAULT_WIKI_DIR, backfill: Path = BACKFILL) -> list[dict]:
+    """One row per scored neuron-pole record.
+
+    A record with no scores of its own takes its backfilled scores, if any.
+    """
+    extra = backfilled(backfill)
     out = []
     for path in sorted(experiments_dir(wiki_dir).rglob("*.json")):
         record = AuditRecord.model_validate_json(path.read_text())
         verdict, ident = record.verdict, record.submission.identifier
         scores = verdict.explanation_scores if verdict else None
+        if scores is None or scores.detection is None:
+            scores = extra.get(str(path), scores)
         if ident.kind != "mlp_neuron_pole" or scores is None or scores.detection is None:
             continue
         out.append({

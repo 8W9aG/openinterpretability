@@ -54,3 +54,23 @@ def test_bootstrap_interval_contains_the_estimate():
     data += [_row("REJECTED", "A", 0.6 + i / 100) for i in range(20)]
     low, high = vvd.bootstrap(data, lambda d: vvd.within_judge(d, "detection"))
     assert low <= 0.1 <= high
+
+
+def test_a_record_with_no_scores_takes_its_backfilled_ones(tmp_path, record, monkeypatch):
+    from types import SimpleNamespace
+
+    unscored = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"explanation_scores": None})}
+    )
+    path = tmp_path / "experiments" / "m" / "L0" / "N1-positive" / "20261101T000000Z.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(unscored.model_dump_json())
+    assert vvd.rows(tmp_path, tmp_path / "none.jsonl") == []
+    scores = SimpleNamespace(
+        judge_model="external/claude-haiku-5-5",
+        detection=SimpleNamespace(balanced_accuracy=0.8),
+        fuzzing=None,
+    )
+    monkeypatch.setattr(vvd, "backfilled", lambda _path: {str(path): scores})
+    (row,) = vvd.rows(tmp_path)
+    assert row["detection"] == 0.8 and row["judge"] == "claude-haiku-5-5"
