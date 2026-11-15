@@ -16,7 +16,9 @@ env:
   # Space-separated; add a model before records use it. Kept in sync with
   # [tool.openinterp] models in pyproject.toml, but not read from it: a fork PR could
   # then make CI download any model.
+  # LINT.IfChange
   ALLOWED_MODELS: Qwen/Qwen2.5-0.5B Qwen/Qwen2.5-1.5B openai-community/gpt2 EleutherAI/pythia-70m
+  # LINT.ThenChange(pyproject.toml)
 
 jobs:
   code-changes:
@@ -58,6 +60,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the IFTTT lint diffs against the PR's base branch
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
@@ -66,6 +70,9 @@ jobs:
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Copies kept in sync (IFTTT lint)
+        if: github.event_name == 'pull_request'
+        run: python scripts/ifttt_lint.py --base "origin/${{ github.base_ref }}"
       - name: Lint
         run: |
           ruff check .
