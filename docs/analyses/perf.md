@@ -1,6 +1,6 @@
 # Performance baseline
 
-Issue #3265 asks for performance tests on memory, compute and wall time. `scripts/perf_bench.py` measures fixed workloads and compares them with `perf-baseline.json`. Run it with `make perf`, which takes about 90 seconds. Reported, not gated.
+Issue #3265 asks for performance tests on memory, compute and wall time. `scripts/perf_bench.py` measures fixed workloads and compares them with `perf-baseline.json`. It runs on CI, in the *Benchmarks* workflow (`benchmarks.yml`), nightly and before each release (#3808). There each run is compared with the median of the last 7 runs on the same runner. Then it is added to `benchmark-ledger.jsonl` through a pull request that merges by itself (`scripts/benchmark_ledger.py`, #4011). So the ledger is a record of the library's performance through time, and no local run needs a quiet machine. `make perf` still runs it locally, in about 90 seconds, against a baseline from that machine.
 
 ## What it measures
 
@@ -9,7 +9,7 @@ Each workload is one `open-interpretability` command on GPT-2 small, with no LLM
 | Workload | Command | What it stands for |
 | --- | --- | --- |
 | scan | `audit --evidence-out` on L5/N1019 positive, over a 20,000-token sample of `corpus.jsonl`, in 512-token windows | The scan of an explore draw, at a tenth of its default 200,000 tokens |
-| reproduce | `reproduce --include-signed` of one fixed L5/N1019 record | A review's measurements: scan evidence, counterfactuals and probes, as CI's reproduction runs them |
+| review | `reevaluate` of one fixed L5/N1019 record: its stored probes under the current policy | A review's measurements. `reproduce` would refuse the record once the protocol moves past its own, so `reevaluate` keeps working after a protocol bump (#3808) |
 | build (`--build` only) | `build` of the whole site | The site build that CI and a release run |
 
 Each command runs in a child process under `/usr/bin/time`, so the measurement doesn't change the code that it measures. Three measures come back:
@@ -22,7 +22,7 @@ The workloads run on the CPU by default, because the GPU's speed depends on what
 
 ## Baseline
 
-Written on 2026-11-14 on an Apple-silicon Mac with 10 cores, macOS 15.6, Python 3.12 and torch 2.14.1, on the CPU:
+Written on 2026-11-14 on an Apple-silicon Mac with 10 cores, macOS 15.6, Python 3.12 and torch 2.14.1, on the CPU. On CI the ledger replaces this baseline (#4011). The review row was measured as `reproduce` then:
 
 | Workload | Wall time | CPU time | Peak memory |
 | --- | --- | --- | --- |
@@ -40,7 +40,7 @@ The build's time is with its on-disk memo warm (`openinterp/builder/disk_memo.py
 - **A new baseline:** `uv run python scripts/perf_bench.py --write --build`, on a machine with nothing else running. A baseline from another machine or device gets a warning only, because its timings aren't comparable.
 - **In a script:** `--strict` exits 1 on a regression.
 
-`make perf` takes the heavy lock (`openinterp/core/heavy_lock.py`) when it is turned on, so another heavy job can't overlap the timings. It doesn't run in CI. Runner timings vary between runs, and CI has no `corpus.jsonl`.
+`make perf` takes the heavy lock (`openinterp/core/heavy_lock.py`) when it is turned on, so another heavy job can't overlap the timings. On CI the workflow builds `corpus.jsonl` from its pinned source and checks its SHA-256. Runner timings vary between runs, so a time regression needs to show in more than one run before it counts.
 
 ## Limits
 

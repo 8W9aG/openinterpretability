@@ -117,3 +117,39 @@ def test_a_definition_whose_scan_stopped_is_not_drawn_again(tmp_path):
     path.parent.mkdir(parents=True)
     path.write_text(stop.model_dump_json())
     assert superposition_candidates({}, [], root) == []  # dead: no audit can follow
+
+
+def _superposition_record(record):
+    """The neuron fixture's record, retargeted at the superposition PROFILE."""
+    from openinterp.core.schemas import AuditRecord, SuperpositionIdentifier
+
+    ident = SuperpositionIdentifier(model_name="o/m", layer=1, superposition_id=SID)
+    submission = record.submission.model_copy(
+        update={"identifier": ident, "superposition_profile": PROFILE}
+    )
+    verdict = record.verdict.model_copy(update={"status": "NEEDS_REVISION"})
+    return AuditRecord(submission=submission, verdict=verdict)
+
+
+def test_a_superposition_record_offers_follow_ups(tmp_path, record):
+    """It crashes the planner no more (#4008), and its rescan writes the definition first."""
+    from openinterp.builder.wiki import write_experiment_page
+
+    write_experiment_page(_superposition_record(record), tmp_path / "wiki")
+    plan = plan_next(tmp_path / "wiki", seed=1, epsilon=0.0)
+
+    revise = next(c for c in plan.candidates if c.kind == "revise")
+    definition = f"exchange/{KEY}/superposition.json"
+    assert revise.commands[0] == (
+        f"open-interpretability superpositions show {SID} --model o/m --out {definition}"
+    )
+    assert revise.commands[1] == (
+        f"open-interpretability audit --superposition {definition} --supersedes {revise.record}"
+    )
+    assert revise.audit == f"--superposition {definition}"
+    assert not any("--neuron" in command for command in revise.commands)
+
+    text = render(steps(plan, corpus="c.jsonl"))
+    assert f"uv run {revise.commands[0]}" in text
+    assert f"audit --superposition {definition} --corpus c.jsonl" in text
+    assert f"--supersedes {revise.record}" in text

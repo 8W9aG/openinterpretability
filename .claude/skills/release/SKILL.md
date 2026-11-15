@@ -105,7 +105,12 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    ```
    Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md` (dots as hyphens).
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
-   Then check memory: `uv run python scripts/memory_benchmark.py` (about 7 minutes on CPU). Run it in the background, and keep the machine otherwise idle. It scans and reviews GPT-2 and Qwen2.5-0.5B and compares each peak with `scripts/memory_baseline.json`. If a peak is more than 25% above the baseline, it exits 1. Stop and report the regression, as for a failed test. If it says a peak is lower, run it again with `--update` and commit the new baseline in the release PR. On a platform other than the baseline's it only reports. Don't overwrite the baseline from there.
+   Then run the benchmarks on CI. They no longer run on a local machine (#3808):
+   ```bash
+   gh workflow run benchmarks.yml --ref main
+   gh run watch "$(gh run list --workflow benchmarks.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
+   ```
+   The workflow measures the peak memory of a scan and a review on GPT-2 and Qwen2.5-0.5B, and the time and memory of fixed GPT-2 workloads. It compares them with the median of the recent runs in `docs/analyses/benchmark-ledger.jsonl`. Then it adds the run to that ledger through a PR that merges by itself (#4011). If it fails, stop and report the regression, as for a failed test. The ledger PR still merges, so the regression stays on record.
 6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. Then gather the changelog fragments into the version's section. The script writes it under `## [Unreleased]`, which stays empty, and removes the fragments:
    ```bash
    python3 scripts/changelog.py collect <version> <YYYY-MM-DD> "Ships with protocol version **<PROTOCOL_VERSION>**."
