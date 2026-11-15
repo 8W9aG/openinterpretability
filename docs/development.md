@@ -100,6 +100,7 @@ dist/
 ├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
 ├── data/manifest.json
 ├── data/neuronpedia/v1/<model>/<source>/explanations/batch-0.jsonl.gz  # VERIFIED units, Neuronpedia's format
+├── assets/site.css                  # written by `python -m openinterp.builder.css --site dist` (make css)
 └── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)
 ```
 
