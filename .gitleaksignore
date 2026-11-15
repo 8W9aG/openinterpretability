@@ -1,0 +1,3 @@
+# Findings that gitleaks reports and that aren't secrets, by fingerprint (commit:file:rule:line).
+# A cache key name in the benchmarks workflow (#3808), replaced in the next commit.
+06fad793f0e7eaa5d78aa3b3520f269929155dbf:.github/workflows/benchmarks.yml:generic-api-key:62
