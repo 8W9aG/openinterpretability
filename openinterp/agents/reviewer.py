@@ -15,6 +15,16 @@ from pydantic import BaseModel, Field
 
 from openinterp import prior_art, wordnet
 from openinterp.agents.base import LLMAgent
+from openinterp.agents.probe_hints import (  # noqa: F401  (re-exported)
+    LANGUAGE_PROBES,
+    POS_CHECK,
+    POS_PROBES,
+    SYNTAX_PROBES,
+    has_language_labels,
+    has_pos_labels,
+    has_syntax_labels,
+    pos_line,
+)
 from openinterp.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
     format_input_attribution,
@@ -31,7 +41,6 @@ from openinterp.agents.review_measurements import (  # noqa: F401  (_delta_agree
 )
 from openinterp.core import costs
 from openinterp.core.agent_names import same_agent
-from openinterp.core.confounds import LANGUAGE, SYNTAX_NODE
 from openinterp.core.fence import FENCE_RULE, fence
 from openinterp.core.schemas import (
     MAX_PROBES,
@@ -97,34 +106,6 @@ HEAD_ACTIVITY = (
     "tokens, while '. My' later in the text repeats '. My' earlier, however short or "
     "common. Label each probe by the repeats its tokens make, not by the words you read.\n"
 )
-
-LANGUAGE_PROBES = (
-    "The scan corpus is labelled by language, and each example above gives its language. "
-    "If the hypothesis claims the feature whatever the language, include positive holdouts "
-    "that express it in other languages, translated. If it names or implies one language, "
-    "include hard negatives in another language written in the same script (e.g. Spanish "
-    "against Portuguese, Russian against Ukrainian) that keep the examples' words and "
-    "topic as far as that language allows.\n"
-)
-
-
-SYNTAX_PROBES = (
-    "The scan corpus is labelled by syntax, and each code example above gives its peak "
-    "token's syntax node, bracket depths, indent depth and syntax construct. Include hard "
-    "negatives that keep the token and change its syntactic role: `return` as a keyword, "
-    "inside a string and inside a comment. If the hypothesis claims a feature whatever the "
-    "programming language, include positive holdouts in another programming language.\n"
-)
-
-
-def has_syntax_labels(submission: NeuronAuditSubmission) -> bool:
-    """Does a top example say what syntax its peak token has?"""
-    return any(SYNTAX_NODE in (e.peak_labels or {}) for e in submission.top_examples)
-
-
-def has_language_labels(submission: NeuronAuditSubmission) -> bool:
-    """Do the submission's top examples say which language each is in?"""
-    return any(LANGUAGE in (e.peak_labels or {}) for e in submission.top_examples)
 
 
 class ReviewerAgent(LLMAgent):
@@ -197,6 +178,7 @@ class ReviewerAgent(LLMAgent):
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
             + (SYNTAX_PROBES if has_syntax_labels(submission) else "")
+            + (POS_PROBES if has_pos_labels(submission) else "")
             + wordnet.format_for_reviewer(submission.top_examples, wordnet.lexicon())
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
@@ -216,6 +198,7 @@ class ReviewerAgent(LLMAgent):
         runs that repeat an earlier one.
         """
         is_head = submission.identifier.kind == "attn_head"
+        tagged = has_pos_labels(submission)
         blocks = []
         for n, probe in enumerate(probes):
             ids = tokenizer.encode(probe.text)
@@ -228,6 +211,8 @@ class ReviewerAgent(LLMAgent):
             if is_head:
                 runs = [f"{''.join(tokens[a:b])!r} ({b - a})" for a, b in repeated_runs(ids)]
                 lines.append(f"   repeated token runs: {', '.join(runs) or 'none'}")
+            if tagged:
+                lines.append(pos_line(probe.text))
             blocks.append("\n".join(lines))
         repeats = (
             "Each 'repeated token runs' entry is a longest run of tokens that also occurs "
@@ -241,6 +226,7 @@ class ReviewerAgent(LLMAgent):
             ReviewerAgent.probe_prompt(submission, len(probes))
             + "\n\nYou wrote the probes below. Here they are as the model's tokens. "
             + repeats
+            + (POS_CHECK if tagged else "")
             + rebalance
             + "Check each label against what the hypothesis predicts for these tokens, not "
             "for the words. Where a label is wrong, rewrite the probe so it tests what you "
