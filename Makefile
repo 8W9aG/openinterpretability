@@ -67,7 +67,7 @@ STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \
 	.github/pull_request_template.md)
 STE_LOG_PATHS ?= CHANGELOG.md $(wildcard changelog.d/*.md)
 ste:
-	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
+	python3 scripts/ste_prose.py $(STE_PATHS)
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py --disable synonym-rotation $(STE_LOG_PATHS)
 
 # What a pull request's check runs: only the branch's changes, unless it changes code.

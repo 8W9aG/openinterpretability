@@ -143,8 +143,8 @@ The checkpoints and subcomponents are in the owner's Google Drive, and are not p
 
 ## References
 
-- Braun, D., Bushnaq, L., Heimersheim, S., Mendel, J. & Sharkey, L. (2025). *Interpretability in Parameter Space: Minimizing Mechanistic Description Length with Attribution-based Parameter Decomposition*. [arXiv:2501.14926](https://arxiv.org/abs/2501.14926).
-- Bushnaq, L., Braun, D. & Sharkey, L. (2025). *Stochastic Parameter Decomposition*. [arXiv:2506.20790](https://arxiv.org/abs/2506.20790).
-- Gao, L., et al. (2020). *The Pile: An 800GB Dataset of Diverse Text for Language Modeling*. [arXiv:2101.00027](https://arxiv.org/abs/2101.00027).
-- Hendrycks, D. & Gimpel, K. (2016). *Gaussian Error Linear Units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
-- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. & Sutskever, I. (2019). *Language Models are Unsupervised Multitask Learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
+- Braun, D., Bushnaq, L., Heimersheim, S., Mendel, J., & Sharkey, L. (2025). *Interpretability in parameter space: Minimizing mechanistic description length with attribution-based parameter decomposition*. [arXiv:2501.14926](https://arxiv.org/abs/2501.14926).
+- Bushnaq, L., Braun, D., & Sharkey, L. (2025). *Stochastic parameter decomposition*. [arXiv:2506.20790](https://arxiv.org/abs/2506.20790).
+- Gao, L., Biderman, S., Black, S., Golding, L., Hoppe, T., Foster, C., Phang, J., He, H., Thite, A., Nabeshima, N., Presser, S., & Leahy, C. (2020). *The Pile: An 800GB dataset of diverse text for language modeling*. [arXiv:2101.00027](https://arxiv.org/abs/2101.00027).
+- Hendrycks, D., & Gimpel, K. (2016). *Gaussian error linear units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
+- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., & Sutskever, I. (2019). *Language models are unsupervised multitask learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).

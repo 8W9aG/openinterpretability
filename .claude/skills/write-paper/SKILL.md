@@ -26,6 +26,10 @@ List the paper in `papers/README.md`. That order is the order of the site's Rese
 4. **Caveats**, **Reproduce** (the commands, with the seeds) and **Next**.
 5. **References**.
 
+## Academic language
+
+Write in a formal, academic register. Use the third person or "we", not "I" or "you". Use no contractions, slang or casual phrases. Make each claim as strong as its evidence, and no stronger: say "suggests" for a hint, and "shows" only for a measured result. The STE limits of `make ste` still hold, so keep sentences short and plain.
+
 ## Citations
 
 Cite each outside idea, method, model and dataset where the paper uses it. Do this before the paper is finished, not after it.
@@ -37,13 +41,18 @@ Cite each outside idea, method, model and dataset where the paper uses it. Do th
 5. **Cite data with its version and licence.** Give the dataset, the commit that was used, and what its card says about the licence. If the card names no citation or no licence, say so.
 6. **Point to work in this repo with a link.** For notes or earlier studies that have since moved, link to a commit, so that the text stays readable. Don't describe an earlier study without saying where its numbers are.
 
-Use author and year in the text: `(Hendrycks & Gimpel, 2016)` or `Sun et al. (2024)`. Each reference has this form:
+Citations and references follow APA 7th edition.
+
+- **In the text,** give author and year: `(Hendrycks & Gimpel, 2016)` in parentheses, and "Hendrycks and Gimpel (2016)" in a sentence. With three or more authors, write "Sun et al. (2024)".
+- **In the list,** name every author, up to 20, with a comma before the final "&". With 21 or more, give the first 19, then `. . .` and the last.
+- **The title** is in italics and in sentence case. Keep capitals only for the first word, the first word after a colon, proper nouns and acronyms.
+- **After the title,** give the venue, then the link.
 
 ```markdown
-- Hendrycks, D. & Gimpel, K. (2016). *Gaussian Error Linear Units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
+- Hendrycks, D., & Gimpel, K. (2016). *Gaussian error linear units (GELUs)*. [arXiv:1606.08415](https://arxiv.org/abs/1606.08415).
 ```
 
-`tests/test_papers.py` fails if a citation has no reference, or a reference has no citation or no link. It can't tell if a source supports a claim, so step 1 remains your work.
+`tests/test_papers.py` fails if a citation has no reference, or a reference has no citation or no link. It also fails on a reference that isn't in this form. It can't tell if a source supports a claim, so step 1 remains your work.
 
 ## Figures and animations
 
