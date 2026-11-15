@@ -42,6 +42,7 @@ RUNNERS_UP = 4
 # How every agent comment starts. Most start with a bold marker, such as **Plan** or
 # **Question**. The others are the merge line of the next-issue skill, the fallback line of
 # issue_state.py, and the line that the Linear sync posts.
+QUESTION = "**Question**"  # how an agent's question to the maintainer starts
 AGENT_MARKS = ("**", "Merged in #", "Working on this.", "<!-- linear-linkback")
 
 
@@ -173,6 +174,17 @@ def waiting_answer(comments: list[dict]) -> str | None:
     return comments[-1]["body"]
 
 
+def asked(comments: list[dict]) -> bool:
+    """Whether the newest comment is an agent's ``**Question**``, so the issue waits."""
+    return bool(comments) and comments[-1]["body"].lstrip().startswith(QUESTION)
+
+
+def comments_of(number: str) -> list[dict]:
+    """The issue's comments, oldest first."""
+    view = gh_json("issue", "view", number, "--repo", issue_state.REPO, "--json", "comments")
+    return view["comments"]
+
+
 def answered(states: dict) -> list[dict]:
     """Started open issues with a reply that no agent has acted on, each with ``answer``."""
     out = []
@@ -198,10 +210,14 @@ def unstarted(issues: list[dict], states: dict) -> list[dict]:
 
 
 def pick(ranked: list[dict]) -> tuple[dict | None, list[dict]]:
-    """The first eligible issue in ``ranked``, and up to RUNNERS_UP eligible ones after it."""
+    """The first eligible issue in ``ranked``, and up to RUNNERS_UP eligible ones after it.
+
+    An issue that waits on the maintainer's answer (:func:`asked`) is skipped.
+    """
     chosen: list[dict] = []
     for issue in ranked:
-        if issue_state.eligibility(str(issue["number"]))[0]:
+        number = str(issue["number"])
+        if issue_state.eligibility(number)[0] and not asked(comments_of(number)):
             chosen.append(issue)
             if len(chosen) > RUNNERS_UP:
                 break

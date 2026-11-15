@@ -5,11 +5,19 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 SCRIPTS = Path(__file__).parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 _SPEC = importlib.util.spec_from_file_location("next_issue", SCRIPTS / "next_issue.py")
 next_issue = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(next_issue)
+
+
+@pytest.fixture(autouse=True)
+def no_comments(monkeypatch):
+    """No test reads an issue's comments from GitHub: every issue has none."""
+    monkeypatch.setattr(next_issue, "comments_of", lambda number: [])
 
 
 def _issue(number, area, prio=None, created="2026-11-01", extra=()):
@@ -100,3 +108,32 @@ def test_a_comment_with_no_agent_comment_before_it_is_not_an_answer():
     assert next_issue.waiting_answer([]) is None
     merged = _comments("**Shipped** in #1.", "Merged in #1 as abc.")
     assert next_issue.waiting_answer(merged) is None
+
+
+def test_an_issue_whose_newest_comment_is_a_question_waits():
+    question = {"body": "**Question**\n\nWhich way?"}
+    assert next_issue.asked([{"body": "**Plan**"}, question])
+    assert not next_issue.asked([question, {"body": "2"}])  # answered
+    assert not next_issue.asked([])
+
+
+def test_pick_skips_an_issue_that_waits_on_an_answer(monkeypatch):
+    waiting = {"1": [{"body": "**Question** which?"}]}
+    monkeypatch.setattr(next_issue, "comments_of", lambda n: waiting.get(n, []))
+    monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
+    best, others = next_issue.pick([_issue(1, "a"), _issue(2, "a")])
+    assert best["number"] == 2 and others == []
+
+
+def test_a_release_of_waiting_issues_falls_through_to_the_backlog(monkeypatch):
+    release, backlog = [_issue(5, "pipe", "high")], [_issue(8, "site", "medium")]
+    monkeypatch.setattr(next_issue, "next_milestone", lambda: "v9.9.9")
+    monkeypatch.setattr(next_issue, "linear_states", dict)
+    monkeypatch.setattr(next_issue, "open_issues", lambda m: release if m else backlog)
+    monkeypatch.setattr(next_issue, "gh_json", lambda *a: [])
+    monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
+    monkeypatch.setattr(
+        next_issue, "comments_of", lambda n: [{"body": "**Question**"}] if n == "5" else []
+    )
+    result = next_issue.choose()
+    assert result["pulled"] and result["pick"]["number"] == 8
