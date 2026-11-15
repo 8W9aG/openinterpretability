@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from openinterp import wordnet
 from openinterp.agents.base import LLMAgent
+from openinterp.agents.probe_hints import pos_flag
 from openinterp.agents.proposer_profiles import (  # noqa: F401  (re-exported)
     format_dictionary_profile,
     format_head_profile,
@@ -320,7 +321,7 @@ class ProposerAgent(LLMAgent):
         if lens is not None:
             prompt += format_lens(lens, identifier)
         if confounds is not None:
-            prompt += format_confounds(confounds)
+            prompt += format_confounds(confounds) + pos_flag(confounds)
         prompt += wordnet.format_for_proposer(examples, wordnet.lexicon())
         if correlated:
             prompt += format_correlated(correlated)
