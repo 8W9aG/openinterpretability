@@ -19,7 +19,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from openinterp import __version__
-from openinterp.builder import charts, pieces, statuses
+from openinterp.builder import charts, palette, pieces, statuses
 from openinterp.builder.agents import (
     agent_href,
     agents_view,
@@ -105,6 +105,7 @@ def _environment() -> Environment:
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
+    env.globals["palette"] = palette  # the status and pole colours
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
     env.globals["evidence_strength"] = evidence_strength  # strong / moderate / weak bands

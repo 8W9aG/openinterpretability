@@ -193,7 +193,7 @@
   {% include "_wiring.html" %}
 
   {% if examples %}
-  <section class="mb-10" style="--heat-rgb: {{ '234 88 12' if positive else '2 132 199' }}">
+  <section class="mb-10" style="--heat-rgb: {{ palette.POLE_RGB['positive' if positive else 'negative'] }}">
     <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <h3 class="text-base font-semibold">Top-activating examples</h3>
       <div class="flex items-center gap-2 text-xs text-slate-500" aria-hidden="true">
@@ -342,7 +342,7 @@
 
   {% if v.scores %}
   {% set xs = v.scores %}{% set es = xs.s %}
-  <section class="mt-10" data-pagefind-ignore style="--heat-rgb: {{ '234 88 12' if positive else '2 132 199' }}">
+  <section class="mt-10" data-pagefind-ignore style="--heat-rgb: {{ palette.POLE_RGB['positive' if positive else 'negative'] }}">
     <h3 class="mb-1 text-base font-semibold">Explanation scores on held-out text</h3>
     <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
       A judge given only the hypothesis reads {{ es.window_tokens }}-token windows of corpus text the proposer never saw: it picks the windows that activate the pole (detection), and checks whether marked tokens are the active ones (fuzzing). Recorded, not gated; 0.5 is chance.
