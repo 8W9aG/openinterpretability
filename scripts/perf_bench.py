@@ -152,6 +152,7 @@ def main() -> int:
     parser.add_argument("--write", action="store_true", help=f"Replace {BASELINE}.")
     parser.add_argument("--strict", action="store_true", help="Exit 1 on a regression.")
     parser.add_argument("--baseline", type=Path, default=BASELINE)
+    parser.add_argument("--json-out", type=Path, help="Also write the results as JSON.")
     opts = parser.parse_args()
     with tempfile.TemporaryDirectory() as tmp:
         jobs = workloads(Path(tmp), opts.device, opts.build)
@@ -159,6 +160,8 @@ def main() -> int:
         for name, args in jobs.items():
             results["workloads"][name] = measure(args)
             print(f"{name}: {results['workloads'][name]}")
+    if opts.json_out:
+        opts.json_out.write_text(json.dumps(results) + "\n")
     if opts.write:
         opts.baseline.write_text(json.dumps(results, indent=2) + "\n")
         print(f"wrote {opts.baseline}")

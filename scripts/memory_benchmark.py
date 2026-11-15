@@ -151,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--tolerance", type=float, default=0.25)
     parser.add_argument("--baseline", type=Path, default=BASELINE)
+    parser.add_argument("--json-out", type=Path, help="also write the measures as JSON")
     args = parser.parse_args(argv)
 
     now = {}
@@ -159,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
         m = now[bench.model]
         print(f"{bench.model}: scan {m['scan_mb']} MB, {m['scan_s']} s · "
               f"review {m['review_mb']} MB, {m['review_s']} s")  # fmt: skip
+    if args.json_out:
+        args.json_out.write_text(json.dumps({"metric": metric(), "models": now}) + "\n")
     if args.update:
         data = {
             "platform": platform_name(),

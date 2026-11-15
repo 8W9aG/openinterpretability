@@ -2,23 +2,24 @@ name: Benchmarks
 
 # The memory and performance benchmarks (scripts/memory_benchmark.py, scripts/perf_bench.py,
 # issue #3808). They run here, not on a laptop, so that no local run needs a quiet machine.
-# Their baselines are this runner's: memory on Linux is the peak resident set.
 #
-# Nightly, and before each release (the release skill starts it and waits for it to pass).
-# A run with `update` writes new baselines and uploads them as an artifact, to commit by
-# hand: a change to the baselines is a reviewed change.
+# Each run is checked against the median of the recent runs on the same runner, then added
+# to docs/analyses/benchmark-ledger.jsonl (scripts/benchmark_ledger.py, issue #4011). The
+# job commits the row on a branch, opens a pull request and turns on auto-merge. A PR made
+# with the workflow token starts no CI, so the job also starts ci.yml on that branch. That
+# run posts the required checks on the PR's head commit, and auto-merge merges it.
+#
+# Nightly, and before each release (the release skill starts it and waits for it). Never
+# on a push or a PR.
 on:
   schedule:
     - cron: "23 3 * * *"
   workflow_dispatch:
-    inputs:
-      update:
-        description: "Write new baselines (upload them as an artifact) instead of comparing"
-        type: boolean
-        default: false
 
 permissions:
-  contents: read
+  contents: write  # the ledger branch
+  pull-requests: write  # the ledger PR and its auto-merge
+  actions: write  # ci.yml on the ledger branch
 
 concurrency:
   group: benchmarks
@@ -71,14 +72,17 @@ jobs:
           SHA: ded48cfc4898c00bd663c4e26dd02baddc48f54f53469988097030686dd2a2ad
         run: echo "$SHA  corpus.jsonl" | sha256sum --check
       - name: Memory benchmark
-        env:
-          UPDATE: ${{ inputs.update && '--update' || '' }}
-        run: python scripts/memory_benchmark.py $UPDATE | tee memory.txt
+        run: python scripts/memory_benchmark.py --json-out memory.json | tee memory.txt
         shell: bash
       - name: Performance benchmark
-        env:
-          MODE: ${{ inputs.update && '--write' || '--strict' }}
-        run: python scripts/perf_bench.py $MODE | tee perf.txt
+        run: python scripts/perf_bench.py --json-out perf.json | tee perf.txt
+        shell: bash
+      - name: Compare with the ledger
+        id: check
+        continue-on-error: true  # the row goes into the ledger either way; the job fails last
+        run: |
+          python scripts/benchmark_ledger.py check --memory memory.json --perf perf.json \
+            | tee check.txt
         shell: bash
       - name: Summary
         if: always()
@@ -87,14 +91,30 @@ jobs:
             echo "### Benchmarks"
             echo
             echo '```'
-            cat memory.txt perf.txt 2>/dev/null
+            cat memory.txt perf.txt check.txt 2>/dev/null
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload the new baselines
-        if: inputs.update
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: benchmark-baselines
-          path: |
-            scripts/memory_baseline.json
-            docs/analyses/perf-baseline.json
+      - name: Add the run to the ledger through an auto-merged PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.run_id }}
+        run: |
+          branch="benchmarks/$(date -u +%Y%m%d)-$RUN"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          python scripts/benchmark_ledger.py append --memory memory.json --perf perf.json \
+            --commit "$GITHUB_SHA" --run "$RUN"
+          git add docs/analyses/benchmark-ledger.jsonl
+          git commit -m "Benchmark ledger: run $RUN"
+          git push origin "$branch"
+          body="One row from the Benchmarks workflow, run $RUN, on $GITHUB_SHA (issue #4011)."
+          gh pr create --base main --head "$branch" --title "Benchmark ledger: run $RUN" \
+            --body "$body It merges by itself once CI passes."
+          gh pr merge "$branch" --auto --squash
+          gh workflow run ci.yml --ref "$branch"
+      - name: Fail on a regression
+        if: steps.check.outcome == 'failure'
+        run: |
+          echo "A measure grew past its tolerance: see check.txt in the summary."
+          exit 1

@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The Benchmarks workflow starts it on its ledger branch: a PR made with the workflow
+  # token starts no CI, so this run posts the required checks for it (issue #4011).
+  workflow_dispatch:
 
 permissions:
   contents: read

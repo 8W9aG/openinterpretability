@@ -110,7 +110,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    gh workflow run benchmarks.yml --ref main
    gh run watch "$(gh run list --workflow benchmarks.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
    ```
-   The workflow measures the peak memory of a scan and a review on GPT-2 and Qwen2.5-0.5B, and the time and memory of fixed GPT-2 workloads. It compares them with `scripts/memory_baseline.json` and `docs/analyses/perf-baseline.json`, which hold the CI runner's figures. If it fails, stop and report the regression, as for a failed test. If it says a figure is lower, start it with `-f update=true`. Then commit the baselines from its `benchmark-baselines` artifact in the release PR.
+   The workflow measures the peak memory of a scan and a review on GPT-2 and Qwen2.5-0.5B, and the time and memory of fixed GPT-2 workloads. It compares them with the median of the recent runs in `docs/analyses/benchmark-ledger.jsonl`. Then it adds the run to that ledger through a PR that merges by itself (#4011). If it fails, stop and report the regression, as for a failed test. The ledger PR still merges, so the regression stays on record.
 6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. Then gather the changelog fragments into the version's section. The script writes it under `## [Unreleased]`, which stays empty, and removes the fragments:
    ```bash
    python3 scripts/changelog.py collect <version> <YYYY-MM-DD> "Ships with protocol version **<PROTOCOL_VERSION>**."
