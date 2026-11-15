@@ -17,7 +17,7 @@
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
       {% if e.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}
-      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-500' }}" title="How this experiment counts toward the {{ what }}'s status">{{ roles[e.role] }}</span>
+      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-600 dark:text-slate-400' }}" title="How this experiment counts toward the {{ what }}'s status">{{ roles[e.role] }}</span>
       {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
     </div>
@@ -193,12 +193,12 @@
   {% include "_wiring.html" %}
 
   {% if examples %}
-  <section class="mb-10" style="--heat-rgb: {{ '234 88 12' if positive else '2 132 199' }}">
+  <section class="mb-10" style="--heat-rgb: {{ palette.POLE_RGB['positive' if positive else 'negative'] }}">
     <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <h3 class="text-base font-semibold">Top-activating examples</h3>
       <div class="flex items-center gap-2 text-xs text-slate-500" aria-hidden="true">
         <span>0</span><span class="heat-scale h-2 w-24 rounded-sm"></span><span class="font-mono">{{ (sub.max_activation or 0) | num(2) }}</span>
-        <span class="ml-2"><span class="tok heat peak" style="--a: 1">peak</span> token</span>
+        <span class="ml-2"><span class="tok heat peak text-slate-900 dark:text-slate-100" style="--a: 1">peak</span> token</span>
       </div>
     </div>
     <p class="mb-3 text-xs text-slate-500">Each token is shaded by {{ strength }} as a fraction of the {{ peer if is_head or is_feature else ("superposition" if is_sup else "neuron") }}'s max activation;{% if is_head %} the tokens the peak attends to most are listed under each example;{% endif %} hover a token for its value. Up to 30 tokens before and 10 after each peak are shown.</p>
@@ -207,7 +207,7 @@
       <li class="rounded-lg border border-slate-200 p-3 text-sm leading-7 dark:border-slate-800">
         <span class="mr-2 font-mono text-xs text-slate-500" title="peak strength">{{ ex.max_activation | num(2) }}</span>
         {% call spoiler(ex.offensive) %}
-        {%- if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}
+        {%- if ex.clipped_start %}<span class="text-slate-500">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-500"> …</span>{% endif %}
         {% if ex.attended %}
         <div class="text-xs text-slate-500">Peak attends to {% for a in ex.attended %}<code class="tok rounded bg-slate-100 px-1 dark:bg-slate-800" title="{{ a.offset }} tokens from the peak">{{ a.text }}</code> {{ a.weight | num(2) }}{{ ", " if not loop.last }}{% endfor %}</div>
         {% endif %}
@@ -322,7 +322,7 @@
             {% if t.measured %}
             <td class="px-3 py-2 font-mono {{ 'text-emerald-600' if t.passed else 'text-rose-600' }}" aria-label="{{ 'passed' if t.passed else 'failed' }}">{{ '✓' if t.passed else '✗' }}</td>
             {% else %}
-            <td class="px-3 py-2 font-mono text-slate-400" aria-label="unmeasured: one token" title="One token: the first token is never measured, so this counts in no metric">—</td>
+            <td class="px-3 py-2 font-mono text-slate-500" aria-label="unmeasured: one token" title="One token: the first token is never measured, so this counts in no metric">—</td>
             {% endif %}
             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ t.kind | replace('_', ' ') }}</td>
             <td class="px-3 py-2">{{ t.prompt }}{% if t.detail %}<div class="text-xs text-slate-500">{{ t.detail }}</div>{% endif %}</td>
@@ -342,7 +342,7 @@
 
   {% if v.scores %}
   {% set xs = v.scores %}{% set es = xs.s %}
-  <section class="mt-10" data-pagefind-ignore style="--heat-rgb: {{ '234 88 12' if positive else '2 132 199' }}">
+  <section class="mt-10" data-pagefind-ignore style="--heat-rgb: {{ palette.POLE_RGB['positive' if positive else 'negative'] }}">
     <h3 class="mb-1 text-base font-semibold">Explanation scores on held-out text</h3>
     <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
       A judge given only the hypothesis reads {{ es.window_tokens }}-token windows of corpus text the proposer never saw: it picks the windows that activate the pole (detection), and checks whether marked tokens are the active ones (fuzzing). Recorded, not gated; 0.5 is chance.

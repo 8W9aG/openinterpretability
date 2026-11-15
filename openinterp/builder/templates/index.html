@@ -186,7 +186,7 @@
             <div class="text-slate-500">{{ r.reviewed_time }}</div>
           </td>
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
             <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
           </td>
@@ -219,7 +219,7 @@
         {% for r in stats.conclusive %}
         <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500">{{ r.model_name }}</div>
           </td>
           <td class="px-3 py-2">
@@ -253,7 +253,7 @@
         {% for c in contested %}
         <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ c.unit.href }}">L{{ c.unit.layer }}/{{ c.unit.label }}{% if c.unit.is_neuron %}{{ pole_mark(c.side) }}{% endif %}</a>
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ c.unit.href }}">L{{ c.unit.layer }}/{{ c.unit.label }}{% if c.unit.is_neuron %}{{ pole_mark(c.side) }}{% endif %}</a>
             <div class="text-slate-500">{{ c.model }}</div>
           </td>
           <td class="px-3 py-2">{% if c.standing.self_reviewed %}<div class="mb-1">{{ self_review_badge() }}</div>{% endif %}{{ c.standing.lead.record.submission.natural_language_explanation | truncate(140) }}</td>
@@ -308,7 +308,7 @@
   <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">
     Runs DuckDB-Wasm in your browser against <code class="font-mono">data/registry.parquet</code>, exposed as the view <code class="font-mono">registry</code>.
   </p>
-  <textarea id="sql" rows="3" spellcheck="false"
+  <textarea id="sql" rows="3" spellcheck="false" aria-label="SQL query"
     class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, head_idx, status, round(conclusiveness, 2) AS conclusive, evidence_direction, explanation
 FROM registry ORDER BY conclusiveness DESC LIMIT 20</textarea>
   <div class="mt-2 flex items-center gap-3">

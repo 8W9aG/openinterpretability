@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import math
 import random
+import re
 import shutil
 import subprocess
 import tomllib
@@ -109,8 +110,18 @@ def claim_key(slug: str) -> str:
     return slug.replace("/", "-")
 
 
+FORK_CLAIM = re.compile(r"^experiment/[A-Za-z0-9._-]+$")
+"""The branch name by which a PR from a fork claims one unit."""
+
+
 def open_pr_claims() -> list[str]:
-    """Titles and branch names of open PRs (empty if `gh` is unavailable)."""
+    """What open PRs claim: text that names the units they work on.
+
+    A PR from this repository claims by its title and its branch name. A PR from a fork
+    claims only by a branch named ``experiment/<key>``, so it claims at most one unit.
+    Anyone can open a fork PR, and free text could name many units and so bias the draw.
+    The list is empty if `gh` is unavailable.
+    """
     if not shutil.which("gh"):
         return []
     try:
@@ -124,7 +135,7 @@ def open_pr_claims() -> list[str]:
                 "--limit",
                 "200",
                 "--json",
-                "title,headRefName",
+                "title,headRefName,isCrossRepository",
             ],
             check=True,
             capture_output=True,
@@ -133,7 +144,13 @@ def open_pr_claims() -> list[str]:
         ).stdout
     except (subprocess.SubprocessError, OSError):
         return []
-    return [f"{pr['title']} {pr['headRefName']}" for pr in json.loads(out)]
+    claims = []
+    for pr in json.loads(out):
+        if not pr.get("isCrossRepository", True):
+            claims.append(f"{pr['title']} {pr['headRefName']}")
+        elif FORK_CLAIM.match(pr["headRefName"]):
+            claims.append(pr["headRefName"])
+    return claims
 
 
 def _config(pyproject: Path) -> dict:
@@ -147,6 +164,15 @@ def _config(pyproject: Path) -> dict:
 def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:
     """Models the planner explores: ``[tool.openinterp] models`` (empty if unset)."""
     return tuple(_config(pyproject).get("models", ()))
+
+
+def signed_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:
+    """Models whose records must be signed: ``[tool.openinterp] signed_models``.
+
+    CI never runs them (too large for its runners), so a record of one counts only with a
+    signature that verifies. The planner doesn't explore them.
+    """
+    return tuple(_config(pyproject).get("signed_models", ()))
 
 
 def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, int]:

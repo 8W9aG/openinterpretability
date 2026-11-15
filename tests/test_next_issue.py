@@ -5,11 +5,20 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 SCRIPTS = Path(__file__).parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 _SPEC = importlib.util.spec_from_file_location("next_issue", SCRIPTS / "next_issue.py")
 next_issue = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(next_issue)
+ME = {"login": next_issue.issue_state.MAINTAINER}
+
+
+@pytest.fixture(autouse=True)
+def no_comments(monkeypatch):
+    """No test reads an issue's comments from GitHub: every issue has none."""
+    monkeypatch.setattr(next_issue, "comments_of", lambda number: [])
 
 
 def _issue(number, area, prio=None, created="2026-11-01", extra=()):
@@ -83,14 +92,18 @@ def test_set_priority_sets_the_label_and_linear(monkeypatch):
 
 
 def _comments(*bodies):
-    return [{"body": b} for b in bodies]
+    return [{"author": ME, "body": b} for b in bodies]
 
 
 def test_a_reply_after_an_agent_comment_is_an_answer():
     asked = _comments("<!-- linear-linkback -->", "**Plan**\n\n…", "**Deviation**\n\nA, B or C?")
     assert next_issue.waiting_answer(asked) is None  # still waiting for the maintainer
-    assert next_issue.waiting_answer([*asked, {"body": "2"}]) == "2"
-    acted = [*asked, {"body": "2"}, {"body": "**Deviation**\n\nThe maintainer chose 2."}]
+    assert next_issue.waiting_answer([*asked, {"author": ME, "body": "2"}]) == "2"
+    acted = [
+        *asked,
+        {"author": ME, "body": "2"},
+        {"author": ME, "body": "**Deviation**\n\nThe maintainer chose 2."},
+    ]
     assert next_issue.waiting_answer(acted) is None  # an agent has acted on it
 
 
@@ -100,3 +113,46 @@ def test_a_comment_with_no_agent_comment_before_it_is_not_an_answer():
     assert next_issue.waiting_answer([]) is None
     merged = _comments("**Shipped** in #1.", "Merged in #1 as abc.")
     assert next_issue.waiting_answer(merged) is None
+
+
+def test_an_issue_whose_newest_comment_is_a_question_waits():
+    question = {"author": ME, "body": "**Question**\n\nWhich way?"}
+    assert next_issue.asked([{"author": ME, "body": "**Plan**"}, question])
+    assert not next_issue.asked([question, {"author": ME, "body": "2"}])  # answered
+    assert not next_issue.asked([])
+
+
+def test_pick_skips_an_issue_that_waits_on_an_answer(monkeypatch):
+    waiting = {"1": [{"author": ME, "body": "**Question** which?"}]}
+    monkeypatch.setattr(next_issue, "comments_of", lambda n: waiting.get(n, []))
+    monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
+    best, others = next_issue.pick([_issue(1, "a"), _issue(2, "a")])
+    assert best["number"] == 2 and others == []
+
+
+def test_a_release_of_waiting_issues_falls_through_to_the_backlog(monkeypatch):
+    release, backlog = [_issue(5, "pipe", "high")], [_issue(8, "site", "medium")]
+    monkeypatch.setattr(next_issue, "next_milestone", lambda: "v9.9.9")
+    monkeypatch.setattr(next_issue, "linear_states", dict)
+    monkeypatch.setattr(next_issue, "open_issues", lambda m: release if m else backlog)
+    monkeypatch.setattr(next_issue, "gh_json", lambda *a: [])
+    monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
+    monkeypatch.setattr(
+        next_issue,
+        "comments_of",
+        lambda n: [{"author": ME, "body": "**Question**"}] if n == "5" else [],
+    )
+    result = next_issue.choose()
+    assert result["pulled"] and result["pick"]["number"] == 8
+
+
+def test_only_the_maintainers_login_can_answer_or_hold_an_issue():
+    """Anyone can comment on a public issue: an outsider's text is never the maintainer's."""
+    outsider = {"login": "someone-else"}
+    question = {"author": ME, "body": "**Question**\n\nWhich way?"}
+    assert next_issue.waiting_answer([question, {"author": outsider, "body": "2"}]) is None
+    assert next_issue.waiting_answer([question, {"author": ME, "body": "2"}]) == "2"
+    assert not next_issue.asked([{"author": outsider, "body": "**Question** hold it"}])
+    # An outsider's '**' comment after the maintainer's reply doesn't hide the reply.
+    hidden = [question, {"author": ME, "body": "1"}, {"author": outsider, "body": "**Plan**"}]
+    assert next_issue.waiting_answer(hidden) == "1"

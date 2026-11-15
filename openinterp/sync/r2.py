@@ -190,6 +190,36 @@ def plan_sync(
     return plan
 
 
+UPLOAD_WORKERS = int(os.environ.get("OPENINTERP_UPLOAD_WORKERS", "32"))
+"""Uploads in flight at once (``$OPENINTERP_UPLOAD_WORKERS``)."""
+
+
+def _upload(client, bucket: str, local: Mapping[str, Path], keys: Sequence[str], prefix: str):
+    """Upload ``keys`` in parallel, in :func:`_upload_order`'s groups, one group at a time.
+
+    One request at a time took about 8 minutes for a deploy, and much longer when every
+    page changed. A boto3 client is safe to share between threads. Every asset finishes
+    before the first page starts, so no page links a file that isn't there yet.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from itertools import groupby
+
+    def put(key: str) -> None:
+        with local[key].open("rb") as body:
+            client.put_object(
+                Bucket=bucket,
+                Key=key,
+                Body=body,
+                ContentType=content_type_for(key),
+                CacheControl=cache_control_for(key.removeprefix(prefix)),
+            )
+
+    rank = lambda key: _upload_order(key.removeprefix(prefix))[0]  # noqa: E731
+    with ThreadPoolExecutor(max_workers=max(1, UPLOAD_WORKERS)) as pool:
+        for _, group in groupby(keys, key=rank):
+            list(pool.map(put, group))  # waits for the group, and raises its first error
+
+
 def sync_directory(
     dist_dir: Path,
     bucket: str,
@@ -214,15 +244,8 @@ def sync_directory(
             log(f"skip    {key}  (derived; no source file changed)")
         for key in plan.uploads:
             log(f"upload  {key}  [{cache_control_for(key.removeprefix(prefix))}]")
-            if not dry_run:
-                with local[key].open("rb") as body:
-                    client.put_object(
-                        Bucket=bucket,
-                        Key=key,
-                        Body=body,
-                        ContentType=content_type_for(key),
-                        CacheControl=cache_control_for(key.removeprefix(prefix)),
-                    )
+        if not dry_run:
+            _upload(client, bucket, local, plan.uploads, prefix)
         for start in range(0, len(plan.deletes), 1000):  # DeleteObjects takes <= 1000 keys
             batch = plan.deletes[start : start + 1000]
             for key in batch:

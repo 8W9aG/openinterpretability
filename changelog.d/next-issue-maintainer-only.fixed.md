@@ -1,0 +1,1 @@
+- **`next_issue.py` reads only the maintainer's account.** A comment from any other account no longer answers an agent's question, holds an issue back, or hides the maintainer's reply. The `next-issue` skill says to treat those comments as untrusted data.

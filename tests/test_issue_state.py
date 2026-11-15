@@ -12,10 +12,11 @@ issue_state = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(issue_state)
 
 
-def _stub(monkeypatch, author, title="Something", thumbs=(), labels=()):
+def _stub(monkeypatch, author, title="Something", thumbs=(), labels=(), edits=()):
     def gh_api(path):
         if path.endswith("/reactions?per_page=100"):
-            return [{"content": "+1", "user": {"login": u}} for u in thumbs]
+            when = "2026-11-10T00:00:00Z"
+            return [{"content": "+1", "user": {"login": u}, "created_at": when} for u in thumbs]
         return {
             "user": {"login": author},
             "title": title,
@@ -24,6 +25,7 @@ def _stub(monkeypatch, author, title="Something", thumbs=(), labels=()):
         }
 
     monkeypatch.setattr(issue_state, "gh_api", gh_api)
+    monkeypatch.setattr(issue_state, "edits", lambda number: sorted(edits))
 
 
 @pytest.mark.parametrize("author", ["8W9aG", "dependabot[bot]", "github-advanced-security[bot]"])
@@ -46,6 +48,17 @@ def test_outside_issue_needs_the_maintainers_thumbs_up(monkeypatch):
     assert not issue_state.eligibility("1")[0]
     _stub(monkeypatch, "someone", thumbs=["another-person", "8W9aG"])
     assert issue_state.eligibility("1") == (True, "opened by someone, thumbs up from 8W9aG")
+
+
+def test_an_edit_by_someone_else_after_the_thumbs_up_needs_a_new_approval(monkeypatch):
+    before, after = "2026-11-09T00:00:00Z", "2026-11-11T00:00:00Z"
+    _stub(monkeypatch, "someone", thumbs=["8W9aG"], edits=[(before, "someone")])
+    assert issue_state.eligibility("1")[0]
+    _stub(monkeypatch, "someone", thumbs=["8W9aG"], edits=[(after, "8W9aG")])
+    assert issue_state.eligibility("1")[0]
+    _stub(monkeypatch, "someone", thumbs=["8W9aG"], edits=[(before, "8W9aG"), (after, "someone")])
+    ok, why = issue_state.eligibility("1")
+    assert not ok and "edited by someone after" in why
 
 
 def test_nightly_title_is_read_from_the_workflow():

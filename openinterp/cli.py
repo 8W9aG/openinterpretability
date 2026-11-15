@@ -34,6 +34,10 @@ def _load_runner(
 
     hold_for_process()  # with OPENINTERP_HEAVY_LOCK=1, wait for any other heavy job first
     device = resolve_device(device)
+    from openinterp.harness.cpu_speed import apply_cpu_threads
+
+    if device == "cpu" and (threads := apply_cpu_threads()):
+        click.echo(f"The CPU is oversubscribed, so torch uses {threads} threads.", err=True)
     torch_dtype = {
         "auto": "auto",
         "float32": torch.float32,
@@ -125,33 +129,17 @@ def _load(model_name, device, torch_dtype, revision, attn_implementation):
 
     from openinterp.harness.hooks import NeuronHookRunner
     from openinterp.harness.memory import load_causal_lm
+    from openinterp.harness.prepare import prepare_model
 
     commit = _resolve_revision(model_name, revision)
     tokenizer = AutoTokenizer.from_pretrained(model_name, revision=commit)
     extra = {"attn_implementation": attn_implementation} if attn_implementation else {}
     model = load_causal_lm(model_name, device, torch_dtype, commit, **extra)
-    # Nothing here trains the model. Gradients are only taken for inputs and
-    # activations. A weight that requires a gradient makes autograd keep more. On a
-    # streamed Qwen2.5-1.5B, integrated gradients then peaked at 3.7 GB, not 1.8 GB.
-    model.eval().requires_grad_(False)
-    _align_parameters(model)
+    prepare_model(model)
     runner = NeuronHookRunner(model, tokenizer)
     runner.model_name = model_name
     runner.model_revision = commit
     return runner
-
-
-def _align_parameters(model, alignment: int = 64) -> None:
-    """Copy parameters that sit at a misaligned address into fresh memory.
-
-    Weights memory-mapped from a safetensors file start where the file puts them.
-    GPT-2's weights are not even 4-byte aligned. A matrix-vector product on them (as the
-    vocabulary lens does) dies with SIGBUS in Apple's BLAS. Shared (tied) parameters are
-    one object, so they stay tied.
-    """
-    for param in model.parameters():
-        if param.data_ptr() % alignment:
-            param.data = param.data.clone()
 
 
 def _resolve_revision(model_name: str, revision: str | None) -> str | None:
@@ -476,7 +464,8 @@ from openinterp import (  # noqa: E402, F401
 def main() -> None:
     """The console entry point: run the CLI, and turn an ``OpenInterpError`` into a message.
 
-    If the GPU (MPS or CUDA) fails, it runs the command again on the CPU (``harness/devices.py``).
+    If the GPU (MPS or CUDA) fails, it runs the command again (``harness/devices.py``). After
+    a CUDA out-of-memory error that is on the GPU with smaller batches. Else it is on the CPU.
     """
     from openinterp.harness import devices
 
@@ -486,7 +475,7 @@ def main() -> None:
         raise SystemExit(f"error: {exc}") from exc
     except Exception as exc:
         if gpu := devices.gpu_failed(exc):
-            devices.rerun_on_cpu(exc, gpu)
+            devices.retry(exc, gpu)
         raise
 
 

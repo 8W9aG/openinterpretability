@@ -57,3 +57,30 @@ def test_staging_changes_no_byte_but_the_home_folder(tmp_path, monkeypatch):
     exchange.stage("/home/me")
     staged = (tmp_path / exchange.STAGING / "spd-logs" / "A.log").read_bytes()
     assert staged == raw.replace(b"/home/me", b"~")
+
+
+def test_prose_like_exchange_dot_cites_nothing(tmp_path, monkeypatch):
+    _repo(tmp_path, monkeypatch, "Outputs go to exchange/. and exchange/... and exchange/.hidden.")
+    assert exchange.cited() == set()
+
+
+def test_staging_never_takes_private_or_output_files(tmp_path, monkeypatch):
+    _repo(tmp_path, monkeypatch, "Read exchange/basis.")
+    (tmp_path / "exchange" / "basis").mkdir(parents=True)
+    (tmp_path / "exchange" / "basis" / "s.json").write_text("{}")
+    (tmp_path / "exchange" / "basis" / "t.labels.private.jsonl").write_text("{}")
+    manifest = exchange.stage("/home/me")
+    assert set(manifest["files"]) == {"basis/s.json"}
+    assert exchange._excluded("bench/test.probes.json")
+
+
+def test_staging_refuses_a_name_outside_exchange(tmp_path, monkeypatch):
+    _repo(tmp_path, monkeypatch, "")
+    (tmp_path / "exchange").mkdir()
+    monkeypatch.setattr(exchange, "cited", lambda: {"../docs"})
+    try:
+        exchange.stage("/home/me")
+    except SystemExit as e:
+        assert "not a name inside exchange/" in str(e)
+    else:
+        raise AssertionError("a name outside exchange/ was staged")

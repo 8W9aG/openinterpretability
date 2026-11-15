@@ -1,1 +1,0 @@
-- The `work-an-issue` skill requires a paper (`papers/<paper>/`, the `write-paper` skill) for every research-question issue. A PR on an open-ended issue closes it, and a follow-up issue carries the question on.

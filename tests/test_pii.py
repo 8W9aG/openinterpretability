@@ -289,3 +289,43 @@ def test_no_cache_when_turned_off(tmp_path, monkeypatch):
     pii._cache_file.cache_clear()
     assert pii._cache_file() is None
     pii._cache_file.cache_clear()
+
+
+def test_errata_notes_are_scrubbed_like_the_record():
+    import datetime
+
+    from openinterp.builder.pii import scrub_errata
+    from openinterp.core.errata import AppliedEdit, Erratum
+
+    erratum = Erratum(
+        id="e1",
+        date=datetime.date(2026, 11, 1),
+        title="Bad example from jane.doe@somemail.org",
+        bug="It kept jane.doe@somemail.org in an example.",
+        fixed_in="abcdef1",
+        records=["m/L1/N2-positive/20261019T000000Z.json"],
+        set_aside=True,
+    )
+    edit = AppliedEdit("e1", "submission.top_examples.0.text", "mail jane.doe@somemail.org", "x")
+    notes, changes = scrub_errata([erratum], [edit])
+    assert "@" not in notes[0].title + notes[0].bug
+    assert changes[0].before == f"mail {REMOVED_TEXT}" and changes[0].after == "x"
+    assert erratum.title == "Bad example from jane.doe@somemail.org"  # the original is unchanged
+
+
+def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path):
+    from openinterp.builder.research import Paper, copy_assets
+
+    folder = tmp_path / "papers" / "p"
+    folder.mkdir(parents=True)
+    (folder / "index.html").write_text("<p>Write to jane.doe@somemail.org</p>")
+    (folder / "data.js").write_text("const v = [0.12773621082305908, 4.09394097328186];")
+    (folder / "lib.min.js").write_text("// jane.doe@somemail.org")
+    (folder / "pic.png").write_bytes(b"\x89PNG jane.doe@somemail.org")
+    paper = Paper("p", "T", "S", "", None, interactive=True)
+    copy_assets(tmp_path / "papers", paper, tmp_path / "out")
+    out = tmp_path / "out" / "research" / "p"
+    assert (out / "index.html").read_text() == f"<p>Write to {REMOVED_TEXT}</p>"
+    assert (out / "data.js").read_text() == (folder / "data.js").read_text()
+    assert (out / "lib.min.js").read_text() == "// jane.doe@somemail.org"  # a vendored library
+    assert (out / "pic.png").read_bytes() == (folder / "pic.png").read_bytes()

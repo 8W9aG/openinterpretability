@@ -1,4 +1,4 @@
-.PHONY: install test perf lint markdown shell vale ste format check check-all stats build search-index sample-run serve loop clean
+.PHONY: install test perf lint markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -26,6 +26,7 @@ lint:
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
+	python3 scripts/ifttt_lint.py
 	uv run interrogate openinterp
 	$(MAKE) markdown
 	$(MAKE) shell
@@ -67,7 +68,7 @@ STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \
 	.github/pull_request_template.md)
 STE_LOG_PATHS ?= CHANGELOG.md $(wildcard changelog.d/*.md)
 ste:
-	python3 .claude/skills/asd-ste100/scripts/ste-lint.py $(STE_PATHS)
+	python3 scripts/ste_prose.py $(STE_PATHS)
 	python3 .claude/skills/asd-ste100/scripts/ste-lint.py --disable synonym-rotation $(STE_LOG_PATHS)
 
 # What a pull request's check runs: only the branch's changes, unless it changes code.
@@ -89,7 +90,12 @@ format:
 
 build:
 	uv run open-interpretability build --wiki-dir $(WIKI_DIR) --output-dir $(DIST_DIR)
+	@$(MAKE) --no-print-directory css
 	@$(MAKE) --no-print-directory search-index
+
+# The stylesheet, from the classes the pages use (Tailwind's standalone CLI, no Node).
+css:
+	uv run python -m openinterp.builder.css --site $(DIST_DIR)
 
 # Pagefind (a locked dev dependency, so no Node is needed) indexes dist/ for search.
 search-index:

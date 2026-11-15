@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-14T22:24:46Z","seed":1837557217,"kind":"revise","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L20/N3061-negative","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L20/N3061-negative/20261113T165528Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 20 --neuron 3061 --pole negative","pole_forced":null,"harness_version":"0.0.19"}

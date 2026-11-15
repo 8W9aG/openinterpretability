@@ -1,10 +1,11 @@
 name: Evidence branch cleanup
 
-# A pull request's evidence blobs ride on evidence/<branch> until CI uploads them to the
-# dataset (openinterp/evidence_branch.py, issue #3254). When the pull request closes, the
-# branch has done its job, so this deletes it. Auto-merge closes PRs with the workflow
-# token, and events that token causes start no workflows. So a schedule also deletes
-# every evidence branch whose PR is closed, or that has no PR.
+# A pull request's evidence blobs ride on evidence/<branch> until the deploy on main uploads
+# them to the dataset after the merge (openinterp/evidence_branch.py, issue #3254). This
+# deletes the branch once its PR is closed: at once if the PR did not merge, and only when
+# every blob is on the dataset if it did. Auto-merge closes PRs with the workflow token,
+# and events that token causes start no workflows. So a schedule also deletes every
+# evidence branch whose PR is closed, or that has no PR.
 
 on:
   pull_request:
@@ -22,18 +23,38 @@ jobs:
     name: Delete closed PRs' evidence branches
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
       - name: Delete evidence branches of closed PRs
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          # LINT.IfChange
+          DATASET: https://huggingface.co/datasets/sackfield/open-interpretability-evidence/resolve/main
+          # LINT.ThenChange(openinterp/core/evidence.py)
         run: |
           gh api --paginate "repos/$REPO/git/matching-refs/heads/evidence/" --jq '.[].ref' |
           while read -r ref; do
             branch="${ref#refs/heads/evidence/}"
             open=$(gh pr list --repo "$REPO" --head "$branch" --state open \
               --json number --jq length)
-            if [ "$open" = "0" ]; then
-              gh api -X DELETE "repos/$REPO/git/${ref#refs/}"
-              echo "Deleted evidence/$branch"
+            [ "$open" = "0" ] || continue
+            merged=$(gh pr list --repo "$REPO" --head "$branch" --state merged \
+              --json number --jq length)
+            if [ "$merged" != "0" ]; then
+              # Keep it until the deploy has published every blob it holds.
+              git fetch --quiet "https://github.com/$REPO" "$ref"
+              waiting=0
+              for name in $(git ls-tree -r --name-only FETCH_HEAD); do
+                curl -sfIL -o /dev/null "$DATASET/$name" || waiting=1
+              done
+              if [ "$waiting" = "1" ]; then
+                echo "Kept evidence/$branch: not every blob is on the dataset yet"
+                continue
+              fi
             fi
+            gh api -X DELETE "repos/$REPO/git/${ref#refs/}"
+            echo "Deleted evidence/$branch"
           done

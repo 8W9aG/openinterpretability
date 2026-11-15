@@ -1,0 +1,1 @@
+- The next-issue skill has zero tolerance for flaky tests. An agent that finds one opens a high-priority issue and fixes the root cause before its next issue. A rerun that passes is never the fix.
