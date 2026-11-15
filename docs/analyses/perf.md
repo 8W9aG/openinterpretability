@@ -1,6 +1,6 @@
 # Performance baseline
 
-Issue #3265 asks for performance tests on memory, compute and wall time. `scripts/perf_bench.py` measures fixed workloads and compares them with `perf-baseline.json`. It runs on CI, in the *Benchmarks* workflow (`benchmarks.yml`), nightly and before each release (#3808). There the baseline is the runner's, so no local run needs a quiet machine. `make perf` still runs it locally, in about 90 seconds, against a baseline from that machine.
+Issue #3265 asks for performance tests on memory, compute and wall time. `scripts/perf_bench.py` measures fixed workloads and compares them with `perf-baseline.json`. It runs on CI, in the *Benchmarks* workflow (`benchmarks.yml`), nightly and before each release (#3808). There each run is compared with the median of the last 7 runs on the same runner. Then it is added to `benchmark-ledger.jsonl` through a pull request that merges by itself (`scripts/benchmark_ledger.py`, #4011). So the ledger is a record of the library's performance through time, and no local run needs a quiet machine. `make perf` still runs it locally, in about 90 seconds, against a baseline from that machine.
 
 ## What it measures
 
@@ -22,7 +22,7 @@ The workloads run on the CPU by default, because the GPU's speed depends on what
 
 ## Baseline
 
-Written on 2026-11-14 on an Apple-silicon Mac with 10 cores, macOS 15.6, Python 3.12 and torch 2.14.1, on the CPU. The CI runner's baseline replaces it after the workflow's first run with `update` (#3808). The review row was measured as `reproduce` then:
+Written on 2026-11-14 on an Apple-silicon Mac with 10 cores, macOS 15.6, Python 3.12 and torch 2.14.1, on the CPU. On CI the ledger replaces this baseline (#4011). The review row was measured as `reproduce` then:
 
 | Workload | Wall time | CPU time | Peak memory |
 | --- | --- | --- | --- |
