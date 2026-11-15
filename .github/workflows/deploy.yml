@@ -4,33 +4,71 @@ name: Deploy registry
 # build is deterministic, so when no experiment changed the sync uploads, deletes and
 # purges nothing.
 #
-# Deploying on push is what keeps the site current: GitHub runs scheduled workflows on a
-# best-effort basis, and the hourly cron this used to rely on fired once in 7 hours on
-# 2026-10-19. The schedule stays as a backstop (e.g. after a failed sync).
+# A push deploys at once. A merge by the auto-merge bot uses the workflow token, which
+# starts no workflow, so it gets no push run (issue #3989). The schedule catches those:
+# every 30 minutes it deploys if main moved since the last successful deploy, and else
+# skips. GitHub runs schedules on a best-effort basis, so a tick can be late.
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "17 */6 * * *"  # every 6 hours, off the top of the hour when Actions is busiest
+    - cron: "7,37 * * * *"  # every 30 minutes, off the top of the hour when Actions is busiest
   workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: read  # the build reads each record's PR author (openinterp/builder/users.py)
+  actions: read  # the schedule reads the last successful deploy
 
 concurrency:
   group: deploy-registry
   cancel-in-progress: false  # never interrupt a sync halfway
 
 jobs:
+  changed:
+    name: Main changed since the last deploy
+    # A push or a dispatch always deploys. A scheduled tick deploys only if main's head
+    # differs from the head of the last successful deploy. A failed deploy doesn't
+    # count, so the next tick tries again.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          HEAD: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" != schedule ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last=$(gh api "repos/$REPO/actions/workflows/deploy.yml/runs?status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""')
+          if [ "$last" = "$HEAD" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "main is at ${HEAD:0:8}, already deployed: skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
     name: Build and sync to R2
+    needs: changed
     # Skipped (not failed) until the deploy is configured; see docs/development.md "Deploy".
-    if: ${{ vars.R2_BUCKET != '' }}
+    if: ${{ vars.R2_BUCKET != '' && needs.changed.outputs.deploy == 'true' }}
     runs-on: ubuntu-latest
     # A hung build or sync fails here, not at GitHub's 6-hour limit.
     timeout-minutes: 60
     environment: production
+    env:
+      # Read-only, for the evidence blobs that `check` and the build download. Without a
+      # token the downloads are anonymous and get a lower rate limit. The publish step
+      # sets its own write token.
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
