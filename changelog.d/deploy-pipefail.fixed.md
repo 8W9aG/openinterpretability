@@ -1,0 +1,1 @@
+- A failed deploy, such as a refused Cloudflare cache purge, now fails the deploy workflow. The output went through `tee` without `pipefail`, so the run stayed green. The job summary still shows the last lines.
