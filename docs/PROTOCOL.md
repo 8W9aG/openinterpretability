@@ -126,6 +126,16 @@ If the probe set is adequate (both count gates pass) and balanced accuracy is be
   - The *redundancy ratio* is (KL together − KL partners) / KL alone. It exceeds 1 when partners mask the pole's effect, and is near 0 when the pole's effect overlaps with theirs.
 
   This is reported, not gated.
+- **Multi-dimensional features.** Engels et al. (2024) found days of the week, months and years on circles in GPT-2's layer 7. They found them in clusters of sparse autoencoder features. Each scan of a neuron pole asks the same question of the pole and its top 5 partner poles (`openinterp/harness/manifold.py`). Using one neuron and its partners is this registry's step.
+  - *Scale.* Each pole is divided by its peak over every token of the top examples. Unit variance would blow a silent partner's jitter up into a full axis.
+  - *The activating set.* The poles are read at the pole's peak in each top example. The record gives the PCA's explained variance and its participation ratio, the effective number of dimensions.
+  - *Families.* The weekdays, the months and the number words one to twelve go into the WordNet check's carrier sentences.
+  - *Circles.* A circle's score is the mean resultant length of each member's angle minus its place in the cycle, in PC plane 1–2 or 2–3. Engels et al. note that the first component is often an intensity direction.
+  - *Lines.* A line's score is the best Spearman |ρ| between PC1, PC2 or PC3 and the value.
+  - *The p-value.* It comes from 999 shuffled orders, which repeat the choice of components.
+  - *The pole's share* is how much of the pole's axis lies in those components. Near 0, the shape belongs to the partners.
+
+  The proposer sees a family when p < 0.05 and the pole is active on at least two members. It may then call the pole one coordinate of a multi-dimensional feature. The explanation must still predict this pole's strength on each text. It is reported, not gated.
 - **Vocabulary lens.** Each submission records the pole's output direction read through the logit lens and the **Jacobian lens** (Gurnee et al., 2026). The Jacobian lens transports the direction with the context-averaged Jacobian E[∂h_final,t′/∂h_ℓ,t] over t′ ≥ t, estimated from one perturbed forward pass per prompt and sign. The record includes:
   - both top-10 lists, with each token's z-score over the whole vocabulary.
   - their overlap and cos(w, J·w).

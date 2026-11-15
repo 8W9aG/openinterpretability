@@ -125,6 +125,8 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     assert sub.identifier == evidence.identifier and sub.top_examples == evidence.top_examples
     assert all(cf.observed_delta is not None for cf in sub.counterfactuals)  # measured
     assert sub.input_attribution == evidence.input_attribution
+    assert sub.manifold == evidence.manifold and evidence.manifold is not None
+    assert evidence.manifold.poles[0].neuron_idx == sub.identifier.neuron_idx
     # The scan read the other pole too, for the neuron page.
     assert sub.opposite_pole == evidence.opposite_pole and sub.opposite_pole.pole == "negative"
     # The Patchscope reads the direction only after the proposer answered.
@@ -184,10 +186,10 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
     costs = record.submission.provenance.costs
     stages = [s.stage for s in costs.stages]
     judged = ["judge", "judge"] if task.fuzzing else ["judge"]
-    assert stages == ["scan", "lenses", "input_attribution", "proposer", "counterfactuals",
-                      "patchscope", "steering", "wiring", "heldout_windows", *judged,
-                      "remeasure", "reviewer", "probe_measurement", "gates", "causal_metrics",
-                      "wiring"]  # fmt: skip
+    assert stages == ["scan", "lenses", "input_attribution", "manifold", "proposer",
+                      "counterfactuals", "patchscope", "steering", "wiring", "heldout_windows",
+                      *judged, "remeasure", "reviewer", "probe_measurement", "gates",
+                      "causal_metrics", "wiring"]  # fmt: skip
     assert [c.agent for c in costs.llm_calls] == ["proposer", *judged, "reviewer"]
     assert all(c.external and c.prompt_chars for c in costs.llm_calls)
     assert scores.costs is None  # moved into the provenance
