@@ -1,9 +1,9 @@
 """``open-interpretability evidence``: move slim records' blobs to the dataset (issue #3254).
 
 ``push`` runs where the experiment ran. It pushes the blobs of the records that the branch
-adds to ``evidence/<branch>``. CI runs ``upload`` (with ``HF_EVIDENCE_TOKEN``) or ``load``
-(without it), then ``verify``. :mod:`openinterp.evidence_branch` explains why the blobs
-ride on their own branch.
+adds to ``evidence/<branch>``. A pull request's CI runs ``load``, then ``verify``. After the
+merge, the deploy on ``main`` runs ``publish`` with ``HF_EVIDENCE_TOKEN``.
+:mod:`openinterp.evidence_branch` explains why the blobs ride on their own branch.
 """
 
 from __future__ import annotations
@@ -64,15 +64,24 @@ def load(ref: str) -> None:
 
 
 @evidence.command()
-@ref_option
-def upload(ref: str) -> None:
-    """Load an evidence branch's blobs, then upload them to the dataset (needs a write token)."""
-    from openinterp.core.evidence import EVIDENCE_REPO
-    from openinterp.evidence_branch import load_branch
-    from openinterp.evidence_branch import upload as upload_blobs
+@wiki_dir_option()
+@click.option("--remote", default="origin", show_default=True)
+def publish(wiki_dir: Path, remote: str) -> None:
+    """Upload the blobs that this checkout's records need and the dataset lacks.
 
-    shas = load_branch(ref)
-    click.echo(f"Uploaded {upload_blobs(shas)} evidence blobs to {EVIDENCE_REPO}.")
+    Run it on ``main`` after a merge (the deploy does), with a write token. It reads the
+    blobs from the remote's evidence branches. It fails if a record's blob is on none.
+    """
+    from openinterp.core.evidence import EVIDENCE_REPO
+    from openinterp.core.paths import experiments_dir
+    from openinterp.evidence_branch import fetch_branches, publish_missing
+
+    fetch_branches(remote)
+    records = sorted(experiments_dir(wiki_dir).rglob("*.json"))
+    uploaded, missing = publish_missing(records)
+    click.echo(f"Uploaded {uploaded} evidence blobs to {EVIDENCE_REPO}.")
+    if missing:
+        raise click.ClickException(f"{len(missing)} blobs are on no evidence branch: {missing}")
 
 
 @evidence.command()
