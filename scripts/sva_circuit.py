@@ -21,6 +21,10 @@ It reads the site's parquet (``open-interpretability build``) for step 4 and wri
 
     uv run python scripts/sva_circuit.py --site-dir build/site \\
         --out docs/analyses/sva-circuit.jsonl
+
+With ``--refresh``, it does only step 4. It reads the curve rows and the neuron ranking
+from ``--out``, recomputes the registry columns from the parquet and rewrites ``--out``.
+It does not load the model. Use it after new audits of the circuit's neurons (#3656).
 """
 
 from __future__ import annotations
@@ -195,8 +199,19 @@ def registry_rows(site_dir: Path, model: str) -> dict[tuple[int, int], list[dict
 @click.option("--held-out", default=40, show_default=True, help="Held-out pairs per template.")
 @click.option("--steps", default=10, show_default=True, help="Integrated-gradient steps.")
 @click.option("--seed", default=0, show_default=True)
-def main(model, device, site_dir, out, train, held_out, steps, seed):
+@click.option("--refresh", is_flag=True, help="Recompute only the registry columns of --out.")
+def main(model, device, site_dir, out, train, held_out, steps, seed, refresh):
     """Trace the circuit, score it against random neurons and compare it with the registry."""
+    if refresh:
+        rows = [json.loads(line) for line in out.read_text().splitlines() if line]
+        curve = [r for r in rows if r["table"] == "curve"]
+        ranked = [(r["attribution"], r["layer"], r["neuron_idx"])
+                  for r in sorted((r for r in rows if r["table"] == "neuron"),
+                                  key=lambda r: r["rank"])]  # fmt: skip
+        neurons = neuron_rows(registry_rows(site_dir, model), ranked)
+        out.write_text("".join(json.dumps(r) + "\n" for r in [*curve, *neurons]))
+        click.echo(f"refreshed {len(neurons)} neurons → {out}")
+        return
     from openinterp.cli import _load_runner
 
     runner = _load_runner(model, device, "float32", None)
