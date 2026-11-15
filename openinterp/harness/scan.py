@@ -131,9 +131,17 @@ def settle(
     That is the top example's peak after its first token. It is the scale that the unit
     records if it has the floor. With the floor, first tokens are left out of the
     examples' ranking and of the values. Each example carries its peak token's ``labels``.
+
+    If the unit does not fire after a first token, that scale is 0 and gives no line.
+    Then the floor is judged against the peak with first tokens, which is the scale the
+    record keeps and ``reproduce`` uses. A unit with the floor then has no examples
+    above 0, and the scan stops on it.
     """
     best = top.top(runner.tokenizer, 1, skip_first=True)
     scale = best[0].max_activation if best else 0.0
+    if scale <= 0:  # active only at first tokens: judge against the peak with them
+        best = top.top(runner.tokenizer, 1)
+        scale = best[0].max_activation if best else 0.0
     floor = has_first_token_floor(runner, strengths, scale, ReviewPolicy())
     kept = [v for v, f in zip(values, first, strict=True) if not f] if floor else list(values)
     return top.top(runner.tokenizer, k, skip_first=floor, labels=labels), kept, floor
