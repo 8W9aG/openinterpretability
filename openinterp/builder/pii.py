@@ -15,6 +15,7 @@ import hashlib
 import json
 import sqlite3
 from collections.abc import Sequence
+from dataclasses import replace as dc_replace
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -199,6 +200,31 @@ def _scrub_attribution(submission):
     return submission.model_copy(
         update={"input_attribution": attribution.model_copy(update={"examples": examples})}
     )
+
+
+def scrub_errata(errata: Sequence[Any], edits: Sequence[Any]) -> tuple[list, list]:
+    """Return what a page shows of its errata, with personal data and taken-down text removed.
+
+    ``errata`` are :class:`openinterp.core.errata.Erratum`: their title and bug text are
+    redacted. ``edits`` are :class:`openinterp.core.errata.AppliedEdit`. An edit can change
+    a text field of a record, so its values before and after are scrubbed.
+    """
+    notes = [
+        e.model_copy(update={"title": redact_text(e.title), "bug": redact_text(e.bug)})
+        for e in errata
+    ]
+    changes = [dc_replace(d, before=scrub(d.before), after=scrub(d.after)) for d in edits]
+    return notes, changes
+
+
+def scrub_experiments(experiments: Sequence[Any]) -> None:
+    """Scrub, in place, what each experiment's page shows: its record and its errata notes.
+
+    ``experiments`` are :class:`openinterp.builder.tree.Experiment`.
+    """
+    for e in experiments:
+        e.record = scrub_record(e.record)
+        e.errata, e.edits = scrub_errata(e.errata, e.edits)
 
 
 def scrub_record(record: AuditRecord) -> AuditRecord:

@@ -2,7 +2,8 @@
 
 ``papers/README.md`` lists the papers, and its order is the order of the section's index. A
 paper is a folder with a ``README.md``. The site renders that Markdown and copies ``media/``.
-A folder that has an ``index.html`` is an interactive page, and the site copies it as it is.
+A folder that has an ``index.html`` is an interactive page, and the site copies its files.
+Copied text files lose personal data and taken-down passages, as every page does.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from openinterp.builder.pii import redact_text
+from openinterp.builder.pii import REMOVED_TEXT, find_spans, redact_text
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 _MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
@@ -95,15 +96,62 @@ def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
     return [_read_paper(Path(papers_dir) / slug, repo_url) for slug in slugs]
 
 
+TEXT_SUFFIXES = {".html", ".svg", ".json", ".jsonl", ".js", ".csv", ".txt", ".md"}
+"""The paper files that the site redacts as it copies them. Other files are copied as is."""
+
+
+def _in_number(text: str, start: int, end: int) -> bool:
+    """Return True if ``text[start:end]`` is part of a longer number, e.g. ``0.1277362108``.
+
+    Data and code files hold many long numbers, and the phone and card searches match
+    their digits. A match inside a number is not personal data.
+    """
+    before = text[start - 1] if start else ""
+    after = text[end : end + 2]
+    return (
+        before in set(".0123456789")
+        or after[:1].isdigit()
+        or (after[:1] == "." and after[1:2].isdigit())
+    )
+
+
+def redact_asset(text: str) -> str:
+    """Return a paper's data or code file with personal data and taken-down text removed.
+
+    It is :func:`redact_text` (:mod:`openinterp.builder.pii`) without the matches inside
+    numbers, which would break the file and hold no personal data.
+    """
+    spans = [s for s in find_spans(text) if not _in_number(text, *s)]
+    for start, end in reversed(spans):
+        text = text[:start] + REMOVED_TEXT + text[end:]
+    return text
+
+
+def _copy(path: Path, target: Path) -> None:
+    """Copy one file, redacted if it is text. A vendored library (``*.min.js``) is copied as is."""
+    if path.suffix in TEXT_SUFFIXES and not path.name.endswith(".min.js"):
+        target.write_text(redact_asset(path.read_text(encoding="utf-8")), encoding="utf-8")
+    else:
+        shutil.copy(path, target)
+
+
 def copy_assets(papers_dir: Path, paper: Paper, output_dir: Path) -> list[Path]:
-    """Copy a paper's published files under ``research/``, and return the copied pages."""
+    """Copy a paper's published files under ``research/``, and return the copied pages.
+
+    Text files pass through :func:`redact_asset`, so that a takedown or the search for
+    personal data covers them as it covers every other page.
+    """
     source = Path(papers_dir) / paper.slug
     target = output_dir / "research" / paper.slug
     target.mkdir(parents=True, exist_ok=True)
     if not paper.interactive:
-        shutil.copytree(source / "media", target / "media", dirs_exist_ok=True)
+        for path in sorted((source / "media").rglob("*")):
+            if path.is_file():
+                out = target / "media" / path.relative_to(source / "media")
+                out.parent.mkdir(parents=True, exist_ok=True)
+                _copy(path, out)
         return []
     for path in sorted(source.iterdir()):
-        if path.name != "README.md":
-            shutil.copy(path, target / path.name)
+        if path.name != "README.md" and path.is_file():
+            _copy(path, target / path.name)
     return [target / "index.html"]

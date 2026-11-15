@@ -1,0 +1,1 @@
+- The site removes personal data and taken-down passages from two more places. One is the erratum notes on experiment pages: the title, the bug and the values an edit changed. The other is the text files that a paper publishes (media, and the files of an interactive page). Numbers in data files stay as they are, and a vendored library (`*.min.js`) is copied unchanged.
