@@ -22,7 +22,7 @@ If less than 24 hours have passed, stop and say when the next release may go out
 
 ## Before the release
 
-Do these four steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
+Do these five steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
 
 1. **Resolve every open Dependabot alert.**
    ```bash
@@ -35,8 +35,19 @@ Do these four steps first, in order. Each fix goes in its own PR, which merges b
    gh api "repos/8W9aG/openinterpretability/code-scanning/alerts?state=open" --jq '.[] | "\(.number) \(.rule.severity) \(.rule.id) \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"'
    ```
    Fix each one in the code, with a test where the fix changes behaviour. GitHub closes an alert when the next scan of `main` no longer finds it. A false positive is listed in the release PR with the reason, for the maintainer to dismiss.
-3. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label and a priority label, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the label `area: literature`. List them all in the release PR.
-4. **Release the version**, with the procedure below.
+3. **Land lingering experiment PRs.** The maintainer asked on 2026-11-15 that a release try to merge the experiment PRs that were left behind. Take the open ones that are ready (not drafts) and more than 12 hours old:
+   ```bash
+   cutoff=$(date -u -v-12H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '12 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+   gh pr list --state open --limit 200 --json number,headRefName,createdAt,isDraft \
+     --jq ".[] | select(.headRefName | startswith(\"experiment/\")) | select(.isDraft | not) | select(.createdAt < \"$cutoff\") | .number"
+   ```
+   Leave drafts alone. A draft is a run that hasn't finished, and it may still be going. For each ready one:
+   - **Merge it when its checks pass.** Bring it up to date with `gh pr update-branch <number>`, and wait for every check on the new head. Then run `gh pr merge <number> --squash --match-head-commit <sha>`. Remove the branch only once the PR is MERGED.
+   - **When a check fails, leave it open.** Don't change the record, because records are write-once. Read the log. Comment what failed, with a bold marker, unless an earlier comment already says so.
+
+   Never use `--admin`. List the merged and the failing PRs in the release PR.
+4. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label and a priority label, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the label `area: literature`. List them all in the release PR.
+5. **Release the version**, with the procedure below.
 
 ## Procedure
 
