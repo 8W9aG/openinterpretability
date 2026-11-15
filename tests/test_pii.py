@@ -310,7 +310,7 @@ def test_errata_notes_are_scrubbed_like_the_record():
     notes, changes = scrub_errata([erratum], [edit])
     assert "@" not in notes[0].title + notes[0].bug
     assert changes[0].before == f"mail {REMOVED_TEXT}" and changes[0].after == "x"
-    assert erratum.title.endswith("somemail.org")  # the original is unchanged
+    assert erratum.title == "Bad example from jane.doe@somemail.org"  # the original is unchanged
 
 
 def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path):

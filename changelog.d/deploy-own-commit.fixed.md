@@ -1,0 +1,1 @@
+- The deploy checks out the commit that started it, not the newest `main`. A run started by an older push had built newer pages with its older steps. On 2026-11-15 it published pages that linked a stylesheet it never built.

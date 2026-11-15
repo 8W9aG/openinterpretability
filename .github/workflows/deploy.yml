@@ -34,7 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          ref: main
+          # The commit that started this run, whose copy of this file is running. With
+          # `ref: main`, a run started by an older push built newer code with older steps:
+          # on 2026-11-15 it uploaded pages that link assets/site.css without building it.
+          # A push, a dispatch on main and the schedule all give a commit on main.
+          ref: ${{ github.sha }}
           # `open-interpretability check` checks the errata file's signature at the time it landed,
           # which needs main's history (openinterp/signing.py landing_times).
           fetch-depth: 0
