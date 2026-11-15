@@ -62,11 +62,14 @@ def test_another_machine_is_named():
     before = {"wall_s": 10.0, "cpu_s": 20.0, "peak_mb": 1000.0}
     (line,) = perf_bench.compare(_run("mps", scan=before), _run("cpu", scan=before))
     assert line == "machine differs from the baseline's (device)"
+    slower = {"wall_s": 99.0, "cpu_s": 99.0, "peak_mb": 9999.0}  # not comparable: not listed
+    (line,) = perf_bench.compare(_run("mps", scan=slower), _run("cpu", scan=before))
+    assert line.startswith("machine differs")
 
 
 def test_workloads_write_only_under_the_output_dir(tmp_path):
     jobs = perf_bench.workloads(tmp_path, "cpu", build=True)
     assert set(jobs) == {"scan", "review", "build"}
     written = [a for args in jobs.values() for a in args if a.startswith(str(tmp_path))]
-    assert len(written) == 2  # the evidence file and the site
+    assert len(written) == 3  # the evidence file, the review and the site
     assert Path(perf_bench.RECORD).exists()

@@ -119,13 +119,16 @@ def machine(device: str) -> dict[str, str | int]:
 
 
 def compare(results: dict, baseline: dict, tolerance: dict = TOLERANCE) -> list[str]:
-    """One line per measure past its ``tolerance`` times its baseline, or per changed machine."""
+    """One line per measure past its ``tolerance`` times its baseline, or per changed machine.
+
+    Measures from another machine aren't comparable, so then only the machine is named.
+    """
     problems = []
     if results["machine"] != baseline["machine"]:
         changed = sorted(
             k for k in results["machine"] if results["machine"][k] != baseline["machine"].get(k)
         )
-        problems.append(f"machine differs from the baseline's ({', '.join(changed)})")
+        return [f"machine differs from the baseline's ({', '.join(changed)})"]
     for name, now in results["workloads"].items():
         before = baseline["workloads"].get(name)
         if before is None:
