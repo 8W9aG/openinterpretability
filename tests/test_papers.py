@@ -8,7 +8,8 @@ import pytest
 PAPERS = Path(__file__).parents[1] / "papers"
 WRITTEN = sorted(path.parent.name for path in PAPERS.glob("*/results.jsonl"))
 CITATION = re.compile(
-    r"((?:[A-Z][\w-]+ )*[A-Z][\w-]+)(?: et al\.| & [A-Z][\w ]*?[a-z])?(?:, | \()((?:19|20)\d{2})\b"
+    r"((?:[A-Z][\w-]+ )*[A-Z][\w-]+)"
+    r"(?: et al\.| (?:&|and) [A-Z][\w ]*?[a-z])?(?:, | \()((?:19|20)\d{2})\b"
 )
 REFERENCE = re.compile(r"^- ([^,]+), .*?\(((?:19|20)\d{2})\)\.(.*)$", re.M)
 
@@ -42,3 +43,23 @@ def test_each_reference_is_cited(paper):
     cited = CITATION.findall(body)
     for name, year, _ in REFERENCE.findall(references):
         assert any(c.endswith(name) and y == year for c, y in cited), f"{name}, {year}"
+
+
+# APA 7, as the write-paper skill sets it. List every author, or the first 19, an
+# ellipsis and the last. Put a comma before the final "&". Then "(Year).", and the title
+# in italics.
+AUTHOR = r"[^,()]+, (?:[A-Z]\.(?:[ -][A-Z]\.)*|[A-Z][\w.]*\.?)"
+APA = re.compile(
+    rf"^- {AUTHOR}(?:, {AUTHOR})*(?:,? (?:& |\. \. \. ){AUTHOR})? \((?:19|20)\d{{2}}\)\. \*[^*]+\*"
+)
+
+
+@pytest.mark.parametrize("paper", WRITTEN)
+def test_references_follow_apa(paper):
+    _, references = _sections(paper)
+    entries = [line for line in references.splitlines() if REFERENCE.match(line)]
+    for line in entries:
+        assert "et al." not in line, line
+        authors = line.split(" (", 1)[0]
+        assert " & " not in authors or ", & " in authors, line
+        assert APA.match(line), line
