@@ -8,25 +8,27 @@ experiment (:class:`openinterp.builder.tree.StoppedNeuron`). It comes last, so a
 in the same cell wins.
 """
 
+from openinterp.builder.palette import STATUS_HEX, token
+
 STOPPED = "STOPPED"  # a neuron whose scans all stopped
 
-# Status: (map and bar fill, badge).
+
+# Status: (map and bar fill, badge). The colours are builder/palette.py's.
+def _badge(status: str) -> str:
+    colour = token(status)
+    return f"bg-{colour}/15 text-slate-900 ring-1 ring-inset ring-{colour} dark:text-slate-100"
+
+
 _CLASSES = {
-    "VERIFIED": (
-        "fill-emerald-500",
-        "bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100",
-    ),
-    "CONTESTED": ("fill-sky-500", "bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100"),
-    "NEEDS_REVISION": (
-        "fill-amber-500",
-        "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
-    ),
-    "REJECTED": ("fill-rose-500", "bg-rose-100 text-rose-900 dark:bg-rose-900 dark:text-rose-100"),
+    **{s: (f"fill-{token(s)}", _badge(s)) for s in STATUS_HEX},
     STOPPED: (
         "fill-slate-400 dark:fill-slate-500",
         "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
     ),
 }
+# Statuses whose map and bar cells are hatched as well as coloured, so they don't rely on
+# colour alone (``status_cell`` in ``_macros.html``).
+HATCHED = ("REJECTED",)
 
 # A neuron on the layer map shows its best pole's status, in this order.
 MAP_STATUSES = tuple(_CLASSES)

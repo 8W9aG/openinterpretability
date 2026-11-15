@@ -11,6 +11,7 @@
     tailwind.config = {
       theme: {
         extend: {
+          colors: {{ palette.tailwind_colors() | tojson }},
           fontFamily: {
             sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
             mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
@@ -62,6 +63,8 @@
   {% block head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+  {# Status hatching, referenced as url(#status-hatch) by the hatch macro (_macros.html). #}
+  <svg width="0" height="0" class="absolute" aria-hidden="true" focusable="false"><defs><pattern id="status-hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.2" height="3" fill="white" fill-opacity="0.75"/></pattern></defs></svg>
   <header class="border-b border-slate-200 dark:border-slate-800">
     <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
       <a href="{{ root }}index.html" class="font-semibold tracking-tight">

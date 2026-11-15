@@ -149,6 +149,15 @@ def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ..
     return tuple(_config(pyproject).get("models", ()))
 
 
+def signed_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:
+    """Models whose records must be signed: ``[tool.openinterp] signed_models``.
+
+    CI never runs them (too large for its runners), so a record of one counts only with a
+    signature that verifies. The planner doesn't explore them.
+    """
+    return tuple(_config(pyproject).get("signed_models", ()))
+
+
 def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, int]:
     """Return ``[tool.openinterp.window_tokens]``, the scan window of some models.
 
