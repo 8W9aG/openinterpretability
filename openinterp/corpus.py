@@ -183,6 +183,16 @@ def jsonl_bytes(
     return "".join(json.dumps(row, ensure_ascii=ascii) + "\n" for row in rows).encode()
 
 
+def jsonl_lines(text: str) -> list[str]:
+    """The non-blank lines of a JSONL file, split only at ``\\n``.
+
+    :func:`jsonl_bytes` ends each object with ``\\n`` and writes other characters raw.
+    ``str.splitlines`` also splits at U+0085, U+2028, U+2029, form feed and others, so it
+    would cut a document that holds one.
+    """
+    return [line for line in text.split("\n") if line.strip()]
+
+
 def sample_tokens(
     tokenizer, texts: Sequence[str], max_tokens: int, seed: int
 ) -> tuple[list[str], CorpusSample]:
