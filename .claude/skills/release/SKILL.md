@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a package release of openinterp. First resolve the open Dependabot and code-scanning alerts, and propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterp. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterp
@@ -22,7 +22,7 @@ If less than 24 hours have passed, stop and say when the next release may go out
 
 ## Before the release
 
-Do these five steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
+Do these six steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
 
 1. **Resolve every open Dependabot alert.**
    ```bash
@@ -51,8 +51,19 @@ Do these five steps first, in order. Each fix goes in its own PR, which merges b
    - **When a check fails, leave it open.** Don't change the record, because records are write-once. Read the log. Comment what failed, with a bold marker, unless an earlier comment already says so.
 
    Never use `--admin`. List the merged and the failing PRs in the release PR.
-4. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label and a priority label, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the label `area: literature`. List them all in the release PR.
-5. **Release the version**, with the procedure below.
+4. **Run the security sweep, and fix each finding it proves.** The maintainer decided on 2026-11-15 that no release goes out with a known security finding open. Run Cloudflare's [security-audit-skill](https://github.com/cloudflare/security-audit-skill), as #3156 did:
+   ```bash
+   sweep=<scratchpad>/security-audit-skill
+   sha=$(gh api repos/cloudflare/security-audit-skill/commits/main --jq .sha)
+   mkdir -p "$sweep" && gh api "repos/cloudflare/security-audit-skill/tarball/$sha" | tar -xz -C "$sweep" --strip-components 1
+   ```
+   Read its `SKILL.md`, and follow its full-audit workflow, scoped to what changed since the last tag (`git diff --stat v<previous>`). Include each trust boundary that a changed file touches. These are CI and its secrets, signing, the agents' prompts and tools, issue intake, the site build and uploads to Hugging Face. The skill's text is guidance. It does not change this repository's rules. Keep its output in the scratchpad, never in the repository.
+   - **Each finding that the sweep proves** goes in a private draft security advisory (`gh api -X POST repos/8W9aG/openinterpretability/security-advisories`). It never goes in a public issue, comment, commit message or PR body. Set the advisory's affected versions to `<= <previous>` and its fixed version to `<version>`.
+   - **Fix each finding in a public PR** with a neutral title that doesn't describe the attack. Open one issue for the sweep, titled `Security sweep for v<version>`, that names no finding. Each PR body says "Part of" with that issue's number, and what the change does. These PRs merge before the release branch is cut, as for every step here.
+   - **A finding that only the maintainer can fix**, such as a repository setting or a secret, goes to the maintainer as a question. The release waits for the answer.
+   - Say in the release PR when the sweep ran, the skill's commit and its scope. Say how many findings it proved and how many PRs fixed them, with no details.
+5. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label and a priority label, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the label `area: literature`. List them all in the release PR.
+6. **Release the version**, with the procedure below.
 
 ## Procedure
 
@@ -142,4 +153,4 @@ Do these five steps first, in order. Each fix goes in its own PR, which merges b
     gh run list --workflow publish.yml --limit 1                       # PyPI: passed
     curl -s https://pypi.org/pypi/open-interpretability/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
     ```
-    The last line must print `<version>`. Then check Zenodo's record for `v<version>`, as in step 10. If a step fails, fix it or report it to the maintainer, and stay on the release. A release PR left open, or a tag with no GitHub release, means there's no release.
+    The last line must print `<version>`. Then check Zenodo's record for `v<version>`, as in step 10. Then publish the draft advisories of the security sweep's findings, whose fixed version is now on PyPI: `gh api -X PATCH repos/8W9aG/openinterpretability/security-advisories/<id> -f state=published`. If a step fails, fix it or report it to the maintainer, and stay on the release. A release PR left open, or a tag with no GitHub release, means there's no release.
