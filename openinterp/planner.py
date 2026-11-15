@@ -292,30 +292,37 @@ class _Commands:
     path: str
     target: str  # --model, --layer and the unit, as the record was scanned
     review: str
-    revise: str
+    revise: list[str]  # the new scan, then the submit that supersedes the record
 
 
 def _commands(state: NeuronState) -> _Commands:
-    record = state.record
+    record, path = state.record, state.record_path.as_posix()
     ident = record.submission.identifier
-    path = state.record_path.as_posix()
+    setup: list[str] = []  # what the rescan needs written before its audit
+    where = f"--model {ident.model_name} --layer {ident.layer}"
     if ident.kind == "attn_head":
-        unit = f"--head {ident.head_idx}"
+        target = f"{where} --head {ident.head_idx}"
     elif ident.kind == "dictionary_feature":
-        unit = f"--dictionary {ident.dictionary} --feature {ident.feature_idx}"
+        target = f"{where} --dictionary {ident.dictionary} --feature {ident.feature_idx}"
+    elif ident.kind == "superposition":
+        from openinterp.planner_superpositions import SHOW_COMMAND, definition_file
+
+        definition = definition_file(ident.slug)
+        setup = [
+            f"{SHOW_COMMAND} {ident.superposition_id} --model {ident.model_name} --out {definition}"
+        ]
+        target = f"--superposition {definition}"  # implies the model and the layer
     else:
-        unit = f"--neuron {ident.neuron_idx}"
-    target = f"--model {ident.model_name} --layer {ident.layer} {unit}"
+        target = f"{where} --neuron {ident.neuron_idx}"
     provenance = record.submission.provenance
     if provenance and provenance.snippet_tokens:  # rescan as the record was scanned
         target += f" --window-tokens {provenance.snippet_tokens}"
-    proposer = record.submission.submitting_agent_model
     review = (
         f"open-interpretability verify --audit-file {path} --corpus <scan corpus> "
-        f"--agent-model <model other than {proposer}>"
+        f"--agent-model <model other than {record.submission.submitting_agent_model}>"
     )
     pole = f" --pole {ident.pole}" if ident.pole else ""
-    revise = f"open-interpretability audit {target}{pole} --supersedes {path}"
+    revise = [*setup, f"open-interpretability audit {target}{pole} --supersedes {path}"]
     return _Commands(path, target, review, revise)
 
 
@@ -337,7 +344,7 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
     gates = verdict.metrics.gates if verdict.metrics else {}
     failed = [g for g, ok in gates.items() if not ok]
     resubmit = [
-        c.revise,
+        *c.revise,
         "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>",
     ]
     if verdict.status == "NEEDS_REVISION":
@@ -362,7 +369,7 @@ def _rescan(c: _Commands) -> list[Kind]:
     """
     why = "scanned on the 552-token built-in sample; rescan on the corpus"
     verify = "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>"
-    return [("rescan", why, [c.revise, verify], None)]
+    return [("rescan", why, [*c.revise, verify], None)]
 
 
 def _opposite_pole(state: NeuronState, slugs: set[str], c: _Commands) -> list[Kind]:
