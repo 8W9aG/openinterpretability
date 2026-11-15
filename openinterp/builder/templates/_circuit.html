@@ -1,0 +1,8 @@
+{# The circuit pages' shared parts. #}
+{% macro unit_name(u) %}L{{ u.layer }}/{{ u.label }}{% if u.dictionary %} ({{ u.dictionary }}){% endif %}{% endmacro %}
+
+{% macro nav(root, model, here) -%}
+<nav class="mb-4 text-xs text-slate-500">
+  <a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ model.href }}">{{ model.name }}</a> / <a class="underline" href="{{ root }}models/{{ model.slug }}/circuits.html">Circuits</a> / {{ here }}
+</nav>
+{%- endmacro %}

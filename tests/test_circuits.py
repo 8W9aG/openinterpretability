@@ -62,16 +62,43 @@ def test_circuits_chain_edges_between_studied_units(tmp_path, record):
     assert (second.source.idx, second.target.idx, second.methods) == (117, 2, ["weights"])
 
     compile_site(records, tmp_path)
-    page = (tmp_path / "models" / MODEL / "circuits.html").read_text()
-    assert "Circuit 1" in page and "3 units, layers 1–6" in page and "L9/N9" not in page
-    assert "weights +0.4" in page and "activations +0.7" in page
-    assert 'href="../../models/' + MODEL + "/L1/N5-positive/" in page  # the experiment's page
-    model_page = (tmp_path / "models" / MODEL / "index.html").read_text()
+    site = tmp_path / "models" / MODEL
+    index = (site / "circuits.html").read_text()
+    assert 'href="../../models/' + MODEL + '/circuits/L1-N5.html">L1/N5</a>' in index
+    page = (site / "circuits" / "L1-N5.html").read_text()  # named after its root
+    assert "Circuit from L1/N5" in page and "3 units of" in page and "layers 1–6" in page
+    assert "L9/N9" not in page and "weights +0.4" in page and "activations +0.7" in page
+    assert 'href="../../../models/' + MODEL + "/L1/N5-positive/" in page  # the experiment's page
+    model_page = (site / "index.html").read_text()
     assert "1 circuit</a>" in model_page
-    unit_page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "circuits.html#circuit-1" in unit_page
-    lone = unit_pages(tmp_path / "models" / MODEL / "L12" / "N1.html")
-    assert "circuits.html" not in lone
+    unit_page = unit_pages(site / "L3" / "N117.html")
+    assert "circuits/L1-N5.html" in unit_page and "See its circuit" in unit_page
+    lone = unit_pages(site / "L12" / "N1.html")
+    assert "circuits/" not in lone
+
+    # Every other unit's name redirects to the page it is on now, or to its own page.
+    assert (
+        "url=../../../models/" + MODEL + '/circuits/L1-N5.html"'
+        in (site / "circuits" / "L3-N117.html").read_text()
+    )
+    assert "circuits/L1-N5.html" in (site / "hubs" / "L6-N2.html").read_text()
+    assert (
+        "url=../../../models/" + MODEL + '/L12/N1.html"'
+        in (site / "circuits" / "L12-N1.html").read_text()
+    )
+
+
+def test_a_circuit_keeps_its_old_url_when_a_lower_unit_joins(tmp_path, record):
+    chain = [
+        at(record, 3, 117, weights=wiring("weights", down=[("mlp_neuron", 6, 2, 0.4)])),
+        at(record, 6, 2),
+    ]
+    compile_site(chain, tmp_path / "before")
+    assert (tmp_path / "before" / "models" / MODEL / "circuits" / "L3-N117.html").exists()
+    lower = at(record, 1, 5, weights=wiring("weights", down=[("mlp_neuron", 3, 117, 0.2)]))
+    compile_site([*chain, lower], tmp_path / "after")
+    old = (tmp_path / "after" / "models" / MODEL / "circuits" / "L3-N117.html").read_text()
+    assert 'http-equiv="refresh"' in old and "circuits/L1-N5.html" in old
 
 
 def test_hubs_dont_join_circuits(tmp_path, record):
@@ -89,13 +116,16 @@ def test_hubs_dont_join_circuits(tmp_path, record):
     assert (hub.unit.layer, hub.unit.idx, len(hub.neighbours)) == (12, 1, 10)
 
     compile_site(records, tmp_path)
-    page = (tmp_path / "models" / MODEL / "circuits.html").read_text()
-    assert 'id="hub-L12-N1"' in page and "wired to 10 studied units (10 edges in, 0 out)" in page
-    assert "1 circuit, 1 hub</a>" in (tmp_path / "models" / MODEL / "index.html").read_text()
-    spoke_page = unit_pages(tmp_path / "models" / MODEL / "L2" / "N4.html")
-    assert "circuits.html#hub-L12-N1" in spoke_page
-    unit_page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "circuits.html#circuit-1" in unit_page
+    site = tmp_path / "models" / MODEL
+    index = (site / "circuits.html").read_text()
+    assert "hubs/L12-N1.html" in index and "10 studied units" in index
+    page = (site / "hubs" / "L12-N1.html").read_text()
+    assert "Hub" in page and "Wired to 10 studied units" in page and "(10 edges in, 0 out)" in page
+    assert "1 circuit, 1 hub</a>" in (site / "index.html").read_text()
+    assert "hubs/L12-N1.html" in unit_pages(site / "L2" / "N4.html")
+    assert "circuits/L1-N5.html" in unit_pages(site / "L3" / "N117.html")
+    # The hub's name under circuits/ redirects to its hub page.
+    assert "hubs/L12-N1.html" in (site / "circuits" / "L12-N1.html").read_text()
 
 
 def test_no_circuits_no_page(tmp_path, record):
