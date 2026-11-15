@@ -35,13 +35,18 @@ Do these five steps first, in order. Each fix goes in its own PR, which merges b
    gh api "repos/8W9aG/openinterpretability/code-scanning/alerts?state=open" --jq '.[] | "\(.number) \(.rule.severity) \(.rule.id) \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"'
    ```
    Fix each one in the code, with a test where the fix changes behaviour. GitHub closes an alert when the next scan of `main` no longer finds it. A false positive is listed in the release PR with the reason, for the maintainer to dismiss.
-3. **Land lingering experiment PRs.** The maintainer asked on 2026-11-15 that a release try to merge the experiment PRs that were left behind. Take the open ones that are ready (not drafts) and more than 12 hours old:
+3. **Land lingering experiment PRs.** The maintainer asked on 2026-11-15 that a release try to merge the experiment PRs that were left behind. Take the open ones that are ready (not drafts) and more than 12 hours old. Each must come from a branch of this repository, opened by the maintainer's account (`8W9aG`, which the experiment loops use):
    ```bash
    cutoff=$(date -u -v-12H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '12 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-   gh pr list --state open --limit 200 --json number,headRefName,createdAt,isDraft \
-     --jq ".[] | select(.headRefName | startswith(\"experiment/\")) | select(.isDraft | not) | select(.createdAt < \"$cutoff\") | .number"
+   gh pr list --state open --limit 200 --json number,headRefName,createdAt,isDraft,isCrossRepository,author \
+     --jq ".[] | select(.headRefName | startswith(\"experiment/\")) | select(.isDraft | not) | select(.isCrossRepository | not) | select(.author.login == \"8W9aG\") | select(.createdAt < \"$cutoff\") | .number"
    ```
-   Leave drafts alone. A draft is a run that hasn't finished, and it may still be going. For each ready one:
+   A branch name proves nothing, since anyone can name a fork's branch `experiment/…`. So leave every other PR for a person. Then check each one's files. Merge it only when every changed path, renames included, is under `wiki/`. That is the rule `auto-merge.yml` uses:
+   ```bash
+   gh api "repos/8W9aG/openinterpretability/pulls/<number>/files" --paginate \
+     --jq '.[] | .filename, (.previous_filename // empty)' | grep -v '^wiki/'   # must print nothing
+   ```
+   Leave drafts alone. A draft is a run that hasn't finished, and it may still be going. For each ready one that passes both checks:
    - **Merge it when its checks pass.** Bring it up to date with `gh pr update-branch <number>`, and wait for every check on the new head. Then run `gh pr merge <number> --squash --match-head-commit <sha>`. Remove the branch only once the PR is MERGED.
    - **When a check fails, leave it open.** Don't change the record, because records are write-once. Read the log. Comment what failed, with a bold marker, unless an earlier comment already says so.
 
