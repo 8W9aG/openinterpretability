@@ -48,7 +48,13 @@ from openinterp.core.agent_names import spelling_problem
 from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
 from openinterp.errata_checks import check_errata
-from openinterp.signing import ALLOWED_SIGNERS
+from openinterp.signing import (
+    ALLOWED_SIGNERS,
+    SignatureError,
+    SignatureOutsideWindow,
+    allowed_signers_text,
+    verify_record,
+)
 from openinterp.takedown_checks import check_takedowns, page_redaction_ok
 from openinterp.verdict_regression import verdict_drift
 
@@ -117,6 +123,7 @@ def check_registry(
     check_takedowns(wiki_dir, report, base_ref, changes, allowed_signers)
     if base_ref:
         _check_write_once(wiki_dir, base_ref, changes, report)
+        _check_new_signatures(changes, allowed_signers_text(allowed_signers, base_ref), report)
         root = experiments_dir(wiki_dir)
         changed = [
             path
@@ -396,6 +403,9 @@ def _check_write_once(
         if path.suffix == ".json" and status in {"D", "M"}:
             report.add(path, "archived experiment records are write-once")
             continue
+        if path.name.endswith(".json.sig") and status in {"D", "M"}:
+            report.add(path, "record signatures are write-once")
+            continue
         if path.name == "README.md":
             if status == "A":
                 report.add(path, "generated wiki indexes are not committed; `git rm --cached` it")
@@ -413,6 +423,29 @@ def _check_write_once(
                     path,
                     "experiment pages are write-once; only the Discussion section may be edited",
                 )
+
+
+def _check_new_signatures(
+    changes: list[tuple[str, Path]], allowed_signers: str, report: CheckReport
+) -> None:
+    """Fail each added ``.json.sig`` that no signer of the base branch made over its record.
+
+    A signature outside its key's validity window is not a failure here: ``reproduce``
+    then runs the record, as for an unsigned one.
+    """
+    for status, path in changes:
+        if (
+            status != "A"
+            or not path.name.endswith(".json.sig")
+            or not path.with_suffix("").exists()
+        ):
+            continue
+        try:
+            verify_record(path.with_suffix(""), allowed_signers)
+        except SignatureOutsideWindow:
+            continue
+        except SignatureError as exc:
+            report.add(path, str(exc))
 
 
 def changed_records(wiki_dir: Path, base_ref: str) -> list[Path]:
