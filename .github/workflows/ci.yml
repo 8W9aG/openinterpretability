@@ -154,6 +154,10 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: Repository size against its budget (warns only)
         run: python3 scripts/repo_size.py
+      - name: Evidence of records that merged before the deploy published it
+        # The deploy on main publishes a merged record's blobs (`evidence publish`). Until
+        # then, its evidence branch holds them, so a check that reads that record works.
+        run: open-interpretability evidence load-all
       - name: Evidence of slim records
         # A slim record's blobs ride on evidence/<branch>, never on the PR branch, so that
         # main's history never holds them (openinterp/evidence_branch.py, issue #3254). This
