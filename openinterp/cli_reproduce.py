@@ -261,8 +261,9 @@ class _Reproducer:
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
+        from openinterp.model_revisions import unapproved_revision
         from openinterp.planner import signed_models
-        from openinterp.reproduce import check_protocol
+        from openinterp.reproduce import check_protocol, pinned_environment
 
         model, allowed = record.submission.identifier.model_name, self.allowed_models
         reason = None if self.measurements_only else check_protocol(record)
@@ -275,6 +276,8 @@ class _Reproducer:
             reason = f"model {model} is not on the allow-list ({', '.join(allowed)})"
         elif allowed and not _preset_dictionary(record):
             reason = "its dictionary is not a preset's (openinterp/harness/dictionaries.py)"
+        elif allowed and (why := unapproved_revision(model, pinned_environment(record)[0])):
+            reason = why  # a record can't pick, say, a Hub pull request's weights
         return reason
 
     def runner(self, record):

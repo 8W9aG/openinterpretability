@@ -4,6 +4,7 @@ from click.testing import CliRunner
 
 from openinterp.builder.wiki import archive_path, write_experiment_page
 from openinterp.cli import cli, quiet_libraries
+from openinterp.core.fence import fence
 from openinterp.core.schemas import AdversarialTestResult, ScanEvidence
 
 
@@ -31,11 +32,12 @@ def test_show_record_lists_failed_probes_and_discussion(tmp_path, record):
 
     text = _show(path)
     assert "VERIFIED 0.86" in text
-    assert "Hypothesis: Fires on the closing quote of reported speech." in text
+    # Text a PR could write is fenced as data for the agents that read this.
+    assert fence("Fires on the closing quote of reported speech.") in text
     assert "Failed probes: 1 of 2" in text
     assert "✗ hard negative: 1.500, expected inactive: He said nothing" in text
     assert "…" in text and "He said nothing at all, " * 20 not in text  # cut
-    assert "Discussion: The quote mark is the trigger." in text
+    assert "Discussion:\n" + fence("The quote mark is the trigger.") in text
     assert "Free-form notes" not in text  # the template comment is dropped
     assert ("He said nothing at all, " * 19) in _show(path, "--full")
 
