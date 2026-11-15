@@ -51,8 +51,13 @@ jobs:
           # A rename lists its old path too, so moving a file into wiki/ isn't wiki-only.
           gh api --paginate "repos/$REPO/pulls/$PR/files" \
             --jq '.[] | .filename, (.previous_filename // empty)' > files.txt
+          # Someone else's PR may only add files. An edit to an existing page (its
+          # Discussion, say) waits for a person, since agents later read those pages.
+          gh api --paginate "repos/$REPO/pulls/$PR/files" \
+            --jq '.[] | select(.status != "added") | .filename' > changed.txt
           : > outside.txt
-          if [ -s files.txt ] && ! grep -v '^wiki/' files.txt > outside.txt; then
+          if [ -s files.txt ] && [ ! -s changed.txt ] \
+            && ! grep -v '^wiki/' files.txt > outside.txt; then
             # --match-head-commit: never auto-merge a commit whose files weren't listed.
             gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
             echo "Auto-merge on: every change is under wiki/." >> "$GITHUB_STEP_SUMMARY"
@@ -62,9 +67,9 @@ jobs:
               gh pr merge "$PR" --repo "$REPO" --disable-auto
             fi
             {
-              echo "Left for review: changes outside wiki/."
+              echo "Left for review: changes outside wiki/, or edits to existing files."
               echo
-              sed 's/^/- `/; s/$/`/' outside.txt
+              cat outside.txt changed.txt | sed 's/^/- `/; s/$/`/'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
