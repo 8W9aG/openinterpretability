@@ -26,8 +26,10 @@ from typing import Any
 FIELDS = (("submission", "top_examples"), ("verdict", "explanation_scores"))
 """The record fields that :func:`split` moves to the store: (parent key, field)."""
 REF_KEY = "evidence_sha256"
+# LINT.IfChange
 EVIDENCE_REPO = "sackfield/open-interpretability-evidence"
 """The public Hugging Face dataset that holds the blobs, by path ``<sha[:2]>/<sha>.json``."""
+# LINT.ThenChange(.github/workflows/evidence-cleanup.yml)
 DIR_ENV = "OPENINTERP_EVIDENCE_DIR"
 OFFLOAD_ENV = "OPENINTERP_OFFLOAD_EVIDENCE"  # "0" makes archive_record write whole records
 
@@ -39,7 +41,8 @@ class EvidenceMissing(ValueError):
 def offload_enabled() -> bool:
     """Whether new archived records are written slim: yes, unless the variable is ``0``.
 
-    Phase 3 of issue #3254 turned this on. CI uploads the blobs from ``evidence/<branch>``.
+    Phase 3 of issue #3254 turned this on. After the merge, the deploy uploads the blobs from
+    ``evidence/<branch>``.
     """
     return os.environ.get(OFFLOAD_ENV, "1") != "0"
 

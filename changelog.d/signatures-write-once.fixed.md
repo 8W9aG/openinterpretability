@@ -1,0 +1,1 @@
+- `open-interpretability check --base-ref` treats record signatures as write-once: a branch can't change or delete a `.json.sig`. A signature that a branch adds must verify against the base branch's allowed signers.
