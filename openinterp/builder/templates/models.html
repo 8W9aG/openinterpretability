@@ -29,7 +29,7 @@
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for r in rows %}
       <tr>
-        <td class="whitespace-nowrap px-3 py-2 font-mono">{% if r.href %}<a class="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400" href="{{ root }}{{ r.href }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
+        <td class="whitespace-nowrap px-3 py-2 font-mono">{% if r.href %}<a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ r.href }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
         <td class="px-3 py-2 text-right tabular-nums"{% if r.parameters %} title="{{ r.parameters | thousands }} parameters"{% endif %}>{{ r.size }}</td>
         <td class="px-3 py-2 text-right tabular-nums">{{ r.layers if r.layers else "—" }}</td>
         <td class="px-3 py-2 text-right tabular-nums">{{ r.mlp_width | thousands if r.mlp_width else "—" }}</td>

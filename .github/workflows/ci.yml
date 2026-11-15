@@ -105,6 +105,38 @@ jobs:
       - name: Tests
         run: pytest
 
+  accessibility:
+    name: Accessibility (axe-core)
+    # axe-core over five pages of the sample site, in light and dark (scripts/a11y_check.py,
+    # issue #3280). It fails on a serious or critical violation. Skipped like "Lint and
+    # tests" for a wiki-only PR, which builds the same templates as main.
+    needs: code-changes
+    if: ${{ !cancelled() && needs.code-changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_VERSION: 1.65.2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Build the sample site
+        env:
+          UV_NO_SYNC: "1"  # keep the CPU-only torch that ci-install.sh put in .venv
+        run: make sample-run
+      - name: Install Playwright and Chromium
+        run: |
+          uv pip install --python .venv/bin/python "playwright==$PLAYWRIGHT_VERSION"
+          playwright install --with-deps chromium
+      - name: Check accessibility
+        run: python scripts/a11y_check.py --site dist
+
   experiments:
     name: Experiment records
     runs-on: ubuntu-latest

@@ -56,7 +56,7 @@
           {% if p.examples %}
           <ol class="mt-2 space-y-2">
             {% for ex in p.examples %}
-            <li class="break-words text-sm leading-7">{% call spoiler(ex.offensive) %}{% if ex.clipped_start %}<span class="text-slate-400">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-400"> …</span>{% endif %}{% endcall %}</li>
+            <li class="break-words text-sm leading-7">{% call spoiler(ex.offensive) %}{% if ex.clipped_start %}<span class="text-slate-500">… </span>{% endif %}{{ heat_tokens(ex.window) }}{% if ex.clipped_end %}<span class="text-slate-500"> …</span>{% endif %}{% endcall %}</li>
             {% endfor %}
           </ol>
           {% if not poles.shared and p.source %}<p class="mt-2 text-xs text-slate-500">From <a class="underline-offset-2 hover:underline" href="{{ root }}{{ p.source.href }}">experiment {{ p.source.id }}</a>.</p>{% endif %}
@@ -87,7 +87,7 @@
               <table class="w-full font-mono text-xs">
                 <tbody>
                   {% for x in s.matches %}
-                  <tr class="{{ '' if x.above else 'text-slate-400' }}"{% if x.m.channel %} title="{{ x.m.channel }}"{% endif %}>
+                  <tr class="{{ '' if x.above else 'text-slate-500' }}"{% if x.m.channel %} title="{{ x.m.channel }}"{% endif %}>
                     <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">F{{ x.m.feature_idx }}</a>{% elif x.neuronpedia %}<a class="underline-offset-2 hover:underline" href="{{ x.neuronpedia }}" rel="noopener">F{{ x.m.feature_idx }}</a>{% else %}F{{ x.m.feature_idx }}{% endif %}</td>
                     <td class="text-right tabular-nums">{{ '%+.2f' | format(x.m.cosine) }}</td>
                   </tr>
@@ -119,7 +119,7 @@
           <table class="mt-1 w-full font-mono text-xs">
             <tbody>
               {% for x in v.matches %}
-              <tr class="{{ '' if x.m.pearson > v.row.rotated else 'text-slate-400' }}" title="best partner back: {{ x.m.back_slug }}">
+              <tr class="{{ '' if x.m.pearson > v.row.rotated else 'text-slate-500' }}" title="best partner back: {{ x.m.back_slug }}">
                 <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">L{{ x.m.layer }}/N{{ x.m.neuron_idx }}</a>{% else %}L{{ x.m.layer }}/N{{ x.m.neuron_idx }}{% endif %} {{ pole_mark(x.m.pole) }}</td>
                 <td class="text-right tabular-nums">r {{ '%+.2f' | format(x.m.pearson) }}</td>
                 <td class="text-right tabular-nums">back {{ '%+.2f' | format(x.m.back_pearson) }}{{ ' ✓' if x.mutual else '' }}</td>
@@ -210,7 +210,7 @@
                 <a href="{{ root }}{{ e.href }}">{{ status_badge(verdict.status) }}</a>
                 {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
                 {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
-                <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-500' }}" title="How this experiment counts toward the status">{{ roles[e.role] }}</span>
+                <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-600 dark:text-slate-400' }}" title="How this experiment counts toward the status">{{ roles[e.role] }}</span>
               </div>
             </td>
             {% if neuron.is_neuron %}<td class="whitespace-nowrap px-3 py-2">{{ e.side | capitalize }} {{ pole_mark(e.side) }}</td>{% endif %}
