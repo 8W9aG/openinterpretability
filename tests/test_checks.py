@@ -396,3 +396,29 @@ def test_cli_names_the_scope_and_explains_a_missing_ref(repo):
     result = CliRunner().invoke(cli, ["check", "--base-ref", "origin/nope"])
     assert result.exit_code != 0 and "can't diff against origin/nope" in result.output
     assert "Traceback" not in result.output
+
+
+def _commit_all(message):
+    git = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "add", "-A"], check=True)
+    subprocess.run([*git, "commit", "-qm", message], check=True)
+
+
+def test_a_new_signature_must_verify_against_the_base_signers(repo):
+    sig = page_of(repo).with_suffix(".json.sig")
+    sig.write_text("-----BEGIN SSH SIGNATURE-----\nbogus\n-----END SSH SIGNATURE-----\n")
+    _commit_all("sign")
+    assert "not a valid signature" in messages(check_registry(base_ref="main~1"))
+
+
+@pytest.mark.parametrize("change", ["modify", "delete"])
+def test_record_signatures_are_write_once(repo, change):
+    sig = page_of(repo).with_suffix(".json.sig")
+    sig.write_text("one\n")
+    _commit_all("sign")
+    if change == "modify":
+        sig.write_text("two\n")
+    else:
+        sig.unlink()
+    _commit_all(change)
+    assert "record signatures are write-once" in messages(check_registry(base_ref="main~1"))
