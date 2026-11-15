@@ -81,9 +81,9 @@ jobs:
 
   deploy:
     name: Deploy after auto-merge
-    # A merge made with the workflow token doesn't trigger push workflows, so the
-    # deploy wouldn't run until its 6-hourly schedule. A workflow_dispatch from the
-    # same token is allowed to start it.
+    # Meant to deploy after a merge made with the workflow token, which starts no push
+    # workflow. But that merge starts no "closed" event either, so this job doesn't run
+    # for it (issue #3989). Deploy's 30-minute schedule catches those merges instead.
     if: >-
       github.event.action == 'closed' && github.event.pull_request.merged &&
       github.event.pull_request.merged_by.login == 'github-actions[bot]'
