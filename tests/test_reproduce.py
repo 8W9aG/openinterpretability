@@ -514,3 +514,20 @@ def test_reproduce_picks_each_records_scan_corpus_by_sha(record, tmp_path, monke
     quiet = _Reproducer(scan_corpora=corpora, **args)
     assert quiet.scan_corpus(scanned("f" * 64), Path("r.json"), notes := []) is None
     assert notes == []
+
+
+def test_an_unsigned_record_of_a_signed_only_model_fails_ci(record):
+    from openinterp.cli_reproduce import _Reproducer
+    from openinterp.planner import signed_models
+
+    (model,) = signed_models()
+    ident = record.submission.identifier.model_copy(update={"model_name": model})
+    llama = record.model_copy(
+        update={"submission": record.submission.model_copy(update={"identifier": ident})}
+    )
+    ci = _Reproducer(signers="", landed={}, tolerance=None, scan_corpora={},
+                     allowed_models=("Qwen/Qwen2.5-0.5B",), device="cpu")  # fmt: skip
+    assert "must be signed" in ci.refusal(llama)
+    local = _Reproducer(signers="", landed={}, tolerance=None, scan_corpora={},
+                        allowed_models=(), device="cpu")  # fmt: skip
+    assert local.refusal(llama) is None or "signed" not in local.refusal(llama)

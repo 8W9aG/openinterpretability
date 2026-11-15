@@ -261,11 +261,17 @@ class _Reproducer:
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
+        from openinterp.planner import signed_models
         from openinterp.reproduce import check_protocol
 
         model, allowed = record.submission.identifier.model_name, self.allowed_models
         reason = None if self.measurements_only else check_protocol(record)
-        if allowed and model not in allowed:
+        if allowed and model in signed_models():
+            reason = (
+                f"records of {model} must be signed (open-interpretability sign), "
+                "because CI doesn't run it ([tool.openinterp] signed_models)"
+            )
+        elif allowed and model not in allowed:
             reason = f"model {model} is not on the allow-list ({', '.join(allowed)})"
         elif allowed and not _preset_dictionary(record):
             reason = "its dictionary is not a preset's (openinterp/harness/dictionaries.py)"
