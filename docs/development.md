@@ -100,6 +100,7 @@ dist/
 ├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
 ├── data/manifest.json
 ├── data/neuronpedia/v1/<model>/<source>/explanations/batch-0.jsonl.gz  # VERIFIED units, Neuronpedia's format
+├── assets/site.css                  # written by `python -m openinterp.builder.css --site dist` (make css)
 └── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)
 ```
 
@@ -126,7 +127,7 @@ After pulling the rename, run `make install` once in each checkout. A plain `uv 
 
 ## Deploy
 
-[deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main` (plus every 6 hours as a backstop, and on manual dispatch), runs `open-interpretability check`, and runs `open-interpretability deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
+[deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main`, on manual dispatch, and every 30 minutes when `main` has moved since the last successful deploy. The schedule catches merges by the auto-merge bot, whose token starts no push workflow (issue #3989). Each deploy runs `open-interpretability check`, then `open-interpretability deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
 
 - **Deterministic build.** There are no build timestamps. The footer date and `manifest.json`'s `updated_at` come from the latest verdict, and every ordering is total. Unchanged records rebuild byte-for-byte, which a test enforces.
 - **Content comparison.** Only files whose MD5 differs from the remote ETag are uploaded.

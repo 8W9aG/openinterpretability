@@ -2,8 +2,11 @@
 
 The release skill runs it, so a change that makes a scan or a review use more memory is
 caught before a release. For each model it runs a 20,000-token ``open-interpretability audit``
-scan of one fixed unit. Then it runs ``open-interpretability reproduce`` of one record of that
-unit. Times are printed, not compared: they vary too much with other load.
+scan of one fixed unit. Then it reviews one fixed record of that unit again with
+``open-interpretability reevaluate``: the record's stored probes, under the current
+review policy. ``reproduce`` would refuse a record from an older protocol, so after a
+protocol bump the benchmark would fail (#3808). Times are printed, not compared: they
+vary too much with other load.
 
 On macOS it compares each command's peak memory footprint (``/usr/bin/time -l``). Peak
 resident memory (RSS) moved by more than 1 GB between runs of the same review, and the
@@ -111,9 +114,12 @@ def measure(bench: Benchmark, device: str) -> dict:
             "--evidence-out", str(Path(tmp) / "ev.json"), *window_args(bench.model),
         ]  # fmt: skip
         scan_mb, scan_s = run_peak(scan)
-    record = ROOT / "wiki" / "experiments" / bench.record
-    review = [*cli, "reproduce", "--include-signed", "--device", device, str(record)]
-    review_mb, review_s = run_peak(review)
+        record = ROOT / "wiki" / "experiments" / bench.record
+        review = [
+            *cli, "reevaluate", "--record", str(record), "--wiki-dir", "",
+            "--out", str(Path(tmp) / "review.json"), "--device", device,
+        ]  # fmt: skip
+        review_mb, review_s = run_peak(review)
     return {"scan_mb": scan_mb, "scan_s": scan_s, "review_mb": review_mb, "review_s": review_s}
 
 
@@ -145,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--tolerance", type=float, default=0.25)
     parser.add_argument("--baseline", type=Path, default=BASELINE)
+    parser.add_argument("--json-out", type=Path, help="also write the measures as JSON")
     args = parser.parse_args(argv)
 
     now = {}
@@ -153,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
         m = now[bench.model]
         print(f"{bench.model}: scan {m['scan_mb']} MB, {m['scan_s']} s · "
               f"review {m['review_mb']} MB, {m['review_s']} s")  # fmt: skip
+    if args.json_out:
+        args.json_out.write_text(json.dumps({"metric": metric(), "models": now}) + "\n")
     if args.update:
         data = {
             "platform": platform_name(),

@@ -1,4 +1,4 @@
-.PHONY: install test perf lint markdown shell vale ste format check check-all stats build search-index sample-run serve loop clean
+.PHONY: install test perf lint markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -90,7 +90,12 @@ format:
 
 build:
 	uv run open-interpretability build --wiki-dir $(WIKI_DIR) --output-dir $(DIST_DIR)
+	@$(MAKE) --no-print-directory css
 	@$(MAKE) --no-print-directory search-index
+
+# The stylesheet, from the classes the pages use (Tailwind's standalone CLI, no Node).
+css:
+	uv run python -m openinterp.builder.css --site $(DIST_DIR)
 
 # Pagefind (a locked dev dependency, so no Node is needed) indexes dist/ for search.
 search-index:

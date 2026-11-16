@@ -34,6 +34,8 @@ BASELINE = Path("docs/analyses/perf-baseline.json")
 TOLERANCE = {"wall_s": 1.5, "cpu_s": 1.5, "peak_mb": 1.2}
 MEASURES = ("wall_s", "cpu_s", "peak_mb")
 # One fixed pole and one fixed record of GPT-2 small, so that every run does the same work.
+# The record is reviewed again with ``reevaluate``, under the current policy. ``reproduce``
+# would refuse it once the protocol moves past the record's (#3808).
 SCAN_POLE = ("openai-community/gpt2", 5, 1019, "positive")
 RECORD = "wiki/experiments/openai-community--gpt2/L5/N1019-positive/20261106T190528Z.json"
 SCAN_TOKENS = 20_000
@@ -51,7 +53,18 @@ def workloads(out: Path, device: str, build: bool) -> dict[str, list[str]]:
             *("--window-tokens", "512"),  # GPT-2 reads at most 1,024 tokens
             *("--device", device, "--evidence-out", str(out / "ev.json")),
         ],
-        "reproduce": ["reproduce", "--include-signed", "--device", device, RECORD],
+        "review": [
+            *(
+                "reevaluate",
+                "--record",
+                RECORD,
+                "--wiki-dir",
+                "",
+                "--out",
+                str(out / "review.json"),
+            ),
+            *("--device", device),
+        ],
     }
     if build:
         jobs["build"] = ["build", "--output-dir", str(out / "site")]
@@ -106,13 +119,16 @@ def machine(device: str) -> dict[str, str | int]:
 
 
 def compare(results: dict, baseline: dict, tolerance: dict = TOLERANCE) -> list[str]:
-    """One line per measure past its ``tolerance`` times its baseline, or per changed machine."""
+    """One line per measure past its ``tolerance`` times its baseline, or per changed machine.
+
+    Measures from another machine aren't comparable, so then only the machine is named.
+    """
     problems = []
     if results["machine"] != baseline["machine"]:
         changed = sorted(
             k for k in results["machine"] if results["machine"][k] != baseline["machine"].get(k)
         )
-        problems.append(f"machine differs from the baseline's ({', '.join(changed)})")
+        return [f"machine differs from the baseline's ({', '.join(changed)})"]
     for name, now in results["workloads"].items():
         before = baseline["workloads"].get(name)
         if before is None:
@@ -136,6 +152,7 @@ def main() -> int:
     parser.add_argument("--write", action="store_true", help=f"Replace {BASELINE}.")
     parser.add_argument("--strict", action="store_true", help="Exit 1 on a regression.")
     parser.add_argument("--baseline", type=Path, default=BASELINE)
+    parser.add_argument("--json-out", type=Path, help="Also write the results as JSON.")
     opts = parser.parse_args()
     with tempfile.TemporaryDirectory() as tmp:
         jobs = workloads(Path(tmp), opts.device, opts.build)
@@ -143,6 +160,8 @@ def main() -> int:
         for name, args in jobs.items():
             results["workloads"][name] = measure(args)
             print(f"{name}: {results['workloads'][name]}")
+    if opts.json_out:
+        opts.json_out.write_text(json.dumps(results) + "\n")
     if opts.write:
         opts.baseline.write_text(json.dumps(results, indent=2) + "\n")
         print(f"wrote {opts.baseline}")

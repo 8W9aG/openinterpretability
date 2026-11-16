@@ -6,23 +6,9 @@
   <title>{% block title %}{{ site_title }}{% endblock %}</title>
   <meta name="generator" content="openinterp {{ version }}">
   {% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
-  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {{ palette.tailwind_colors() | tojson }},
-          fontFamily: {
-            sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-            mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
-          },
-        },
-      },
-    };
-  </script>
-  {# Pagefind assets exist after `npx pagefind --site dist`; the page works without them. #}
-  <link href="{{ root }}pagefind/pagefind-ui.css" rel="stylesheet">
-  <script src="{{ root }}pagefind/pagefind-ui.js" defer></script>
+  {# Built once with the site (openinterp/builder/css.py, `make build`), not in the browser. #}
+  <link href="{{ root }}assets/site.css" rel="stylesheet">
+  {# Pagefind's UI (`make search-index`) loads on the first use of the search box, at the end of the body. #}
   <style>
     :root { --pagefind-ui-scale: 0.8; --pagefind-ui-border-radius: 6px; }
     @media (prefers-color-scheme: dark) {
@@ -36,6 +22,29 @@
        dark colour. One rule here fixes every template (issue #3280). */
     @media (prefers-color-scheme: dark) {
       .text-slate-500:not([class*="dark:text-"]) { color: #94a3b8; }
+    }
+    /* Long tables and maps sit in scroll containers. The browser lays one out only when it
+       nears the screen. A scroll container already clips, so nothing visible changes. */
+    main .overflow-x-auto { content-visibility: auto; contain-intrinsic-size: auto 400px; }
+    /* The search box before Pagefind's UI loads: the same size and colours as Pagefind's
+       input (its defaults, times --pagefind-ui-scale), so the header doesn't move. */
+    #search-stub {
+      box-sizing: border-box; width: 100%; height: calc(64px * var(--pagefind-ui-scale));
+      padding: 0 calc(70px * var(--pagefind-ui-scale)) 0 calc(54px * var(--pagefind-ui-scale));
+      border: 2px solid var(--pagefind-ui-border, #eeeeee); border-radius: var(--pagefind-ui-border-radius);
+      background: var(--pagefind-ui-background, #ffffff); color: var(--pagefind-ui-text, #393939);
+      font: 700 calc(21px * var(--pagefind-ui-scale)) system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    #search-stub::placeholder { color: var(--pagefind-ui-text, #393939); opacity: .2; }
+    /* Pagefind's magnifier, at its place, until its UI replaces the box. */
+    #search:has(#search-stub) { position: relative; }
+    #search:has(#search-stub)::before {
+      content: ""; position: absolute; display: block; pointer-events: none; opacity: .7;
+      top: calc(23px * var(--pagefind-ui-scale)); left: calc(20px * var(--pagefind-ui-scale));
+      width: calc(18px * var(--pagefind-ui-scale)); height: calc(18px * var(--pagefind-ui-scale));
+      background-color: var(--pagefind-ui-text, #393939); mask-size: 100%; -webkit-mask-size: 100%;
+      mask-image: var(--search-icon); -webkit-mask-image: var(--search-icon);
+      --search-icon: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 18 18' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.7549 11.255H11.9649L11.6849 10.985C12.6649 9.845 13.2549 8.365 13.2549 6.755C13.2549 3.165 10.3449 0.255005 6.75488 0.255005C3.16488 0.255005 0.254883 3.165 0.254883 6.755C0.254883 10.345 3.16488 13.255 6.75488 13.255C8.36488 13.255 9.84488 12.665 10.9849 11.685L11.2549 11.965V12.755L16.2549 17.745L17.7449 16.255L12.7549 11.255ZM6.75488 11.255C4.26488 11.255 2.25488 9.245 2.25488 6.755C2.25488 4.26501 4.26488 2.255 6.75488 2.255C9.24488 2.255 11.2549 4.26501 11.2549 6.755C11.2549 9.245 9.24488 11.255 6.75488 11.255Z'/%3E%3C/svg%3E");
     }
     .spoiler { position: relative; min-height: 3rem; }
     .spoiler-body { filter: blur(0.5em); user-select: none; pointer-events: none; }
@@ -80,7 +89,9 @@
       <a href="{{ root }}users/index.html" class="text-sm text-slate-600 underline-offset-2 hover:underline dark:text-slate-400">Users</a>
       <a href="{{ root }}research/index.html" class="text-sm text-slate-600 underline-offset-2 hover:underline dark:text-slate-400">Research</a>
       <a href="{{ root }}about.html" class="text-sm text-slate-600 underline-offset-2 hover:underline dark:text-slate-400">About</a>
-      <div id="search" class="ml-auto w-full sm:w-80"></div>
+      <div id="search" class="ml-auto w-full sm:w-80">
+        <input id="search-stub" type="search" placeholder="Search" aria-label="Search the registry" autocomplete="off">
+      </div>
     </div>
   </header>
 
@@ -99,11 +110,44 @@
   </footer>
 
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      if (window.PagefindUI) {
-        new PagefindUI({ element: "#search", showSubResults: false, showImages: false });
-      }
-    });
+    // Pagefind's UI is 120 KB, so it loads on the first use of the search box, not with
+    // every page. Text typed before it loads moves into its input.
+    (() => {
+      const stub = document.getElementById("search-stub");
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        const css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = "{{ root }}pagefind/pagefind-ui.css";
+        document.head.appendChild(css);
+        const js = document.createElement("script");
+        js.src = "{{ root }}pagefind/pagefind-ui.js";
+        js.onload = () => {
+          const typed = stub.value;
+          stub.remove();
+          new PagefindUI({ element: "#search", showSubResults: false, showImages: false });
+          const input = document.querySelector("#search input");
+          if (input) {
+            input.focus();
+            if (typed) {
+              input.value = typed;
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+          }
+        };
+        document.head.appendChild(js);
+      };
+      stub.addEventListener("focus", start);
+      stub.addEventListener("pointerdown", start);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "/" && !started && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+          e.preventDefault();
+          stub.focus();
+        }
+      });
+    })();
   </script>
   {% block scripts %}{% endblock %}
 </body>
