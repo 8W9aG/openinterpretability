@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-16T09:44:41Z","seed":1565833848,"kind":"rescan","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L6/N1010-positive","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L6/N1010-positive/20261027T142548Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 6 --neuron 1010 --pole positive","pole_forced":null,"harness_version":"0.0.21"}
