@@ -42,9 +42,27 @@ Against the null, on word completion, random five-neuron sets have a median nece
 
 These proposals go to #4284. The pilot measured one circuit, on one task hypothesis, with neurons only.
 
+## Grown by attribution
+
+Issue #4284 (part B) added `openinterp/harness/circuit_measures.py`, which ablates heads as well as neurons and ranks every unit by attribution patching. `scripts/circuit_grown.py` uses it on the same task. It measures C1 whole, with its two heads, and then C1 grown to larger sizes by attribution. The null is 32 random sets with the same layers and kinds, so its 95th percentile is coarse.
+
+| Members | Heads among them | Necessity | Null, 95th percentile | Faithfulness | Beats the null |
+| --- | --- | --- | --- | --- | --- |
+| 7 (C1 as clustered) | 2 | 0.0001 | 0.0033 | −0.00 | no |
+| 25 | 7 | 0.075 | 0.019 | 0.056 | yes |
+| 50 | 10 | 0.153 | 0.024 | 0.060 | yes |
+| 100 | 16 | 0.198 | 0.033 | 0.072 | yes |
+| 200 | 21 | 0.281 | 0.042 | 0.103 | yes |
+
+- **C1 with its heads still carries nothing.** Ablating the heads too changes nothing.
+- **Grown by attribution, the circuit carries the task.** From 25 members, its necessity is 4 to 7 times the null's 95th percentile. It adds heads as it grows.
+- **Word completion is spread out.** At 200 members the circuit alone keeps only 10% of the metric. Subject–verb agreement, by contrast, needs only about 100 neurons to keep all of it.
+- **The proposed gates work.** The circuit's necessity must beat the null's 95th percentile, with a floor of 0.02. The bare cluster fails, and each grown circuit passes.
+
 ## Reproduce
 
 ```bash
 uv run python scripts/circuit_identity.py --out docs/analyses/circuit-identity.jsonl
 uv run python scripts/circuit_study.py --device auto --out docs/analyses/circuit-pilot.jsonl
+uv run python scripts/circuit_grown.py --out docs/analyses/circuit-grown.jsonl
 ```
