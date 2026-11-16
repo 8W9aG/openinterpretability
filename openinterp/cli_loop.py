@@ -27,12 +27,22 @@ def _api_model(_ctx, param, value: str) -> str:
 
 
 @cli.command(name="loop")
-@click.option("--proposer", required=True, callback=_api_model, help="LiteLLM proposer model.")
+@click.option(
+    "--proposer", default="", callback=_api_model,
+    help="LiteLLM proposer model. Default: the --provider profile's model.",
+)  # fmt: skip
 @click.option(
     "--reviewer",
-    required=True,
+    default="",
     callback=_api_model,
-    help="LiteLLM reviewer model. A review draw of this model's own record is drawn again.",
+    help="LiteLLM reviewer model. A review draw of this model's own record is drawn again. "
+    "Default: the --provider profile's model.",
+)
+@click.option(
+    "--provider",
+    default="",
+    help="A profile in openinterp/data/providers.toml (docs/providers.md): its LiteLLM model "
+    "and its API key, read from the environment or the keychain.",
 )
 @click.option(
     "--max",
@@ -72,7 +82,15 @@ def _api_model(_ctx, param, value: str) -> str:
     help="Stop after this many failed experiments in a row.",
 )
 def loop_command(
-    proposer, reviewer, max_experiments, epsilon, corpus, worktree, one_heavy_job, max_failures
+    proposer,
+    reviewer,
+    provider,
+    max_experiments,
+    epsilon,
+    corpus,
+    worktree,
+    one_heavy_job,
+    max_failures,
 ):
     """Run experiments back to back: draw, claim, audit, review, post and land each one.
 
@@ -86,6 +104,7 @@ def loop_command(
     from openinterp.experiment_loop import Loop, Options
     from openinterp.planner import open_pr_claims, plan_next
 
+    proposer, reviewer = _models(proposer, reviewer, provider)
     repo = Path(_git("rev-parse", "--show-toplevel"))
     worktree = (worktree or repo.parent / f"{repo.name}-loop").resolve()
     corpus = corpus and str(corpus.resolve())
@@ -115,6 +134,26 @@ def loop_command(
         time.sleep,
     )
     raise SystemExit(loop.run())
+
+
+def _models(proposer: str, reviewer: str, provider: str) -> tuple[str, str]:
+    """The proposer and reviewer, filled from the provider's profile, whose key it exports."""
+    if provider:
+        from openinterp import providers
+
+        try:
+            profile = providers.load(provider)
+        except ValueError as error:
+            raise click.UsageError(str(error)) from None
+        if not profile.litellm_model and not (proposer and reviewer):
+            raise click.UsageError(
+                f"{provider} has no LiteLLM model; give --proposer and --reviewer"
+            )
+        proposer, reviewer = proposer or profile.litellm_model, reviewer or profile.litellm_model
+        os.environ.update(providers.litellm_env(profile))
+    if not (proposer and reviewer):
+        raise click.UsageError("give --proposer and --reviewer, or a --provider")
+    return proposer, reviewer
 
 
 def _git(*args: str) -> str:
