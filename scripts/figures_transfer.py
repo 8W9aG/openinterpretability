@@ -1,11 +1,23 @@
 """The figure of papers/explanations-across-models/README.md, from its results.jsonl."""
 
+from figure_motion import reveal
 from figure_svg import Figure, Panel, columns
 
 # One colour per class through the paper: sisters, other matches, random poles.
 CLASSES = (("sister", "c1", "sisters"), ("match", "c3", "other top matches"),
            ("random", "c2", "random poles"))  # fmt: skip
 SLOT_WIDTH = 0.6  # of a class's column, over which its studies spread
+CYCLE = "8s"  # the classes appear one after another, each median after its dots
+# When each class's dots and then its median appear, in percent of the cycle.
+DOTS_AT = {"sister": 8, "match": 30, "random": 52}
+MEDIAN_AFTER = 12
+
+
+def _shown(fig: Figure, name: str) -> tuple[str, str]:
+    """The reveal classes of a class's dots and of its median, with their keyframes."""
+    fig.motion += reveal(f"{name}dots", DOTS_AT[name], CYCLE)
+    fig.motion += reveal(f"{name}mid", DOTS_AT[name] + MEDIAN_AFTER, CYCLE)
+    return f"{name}dots", f"{name}mid"
 
 
 def _strip(fig: Figure, panel: Panel, studies: list[dict]) -> None:
@@ -13,14 +25,15 @@ def _strip(fig: Figure, panel: Panel, studies: list[dict]) -> None:
     panel.grid_y([0, 0.25, 0.5, 0.75, 1], 2)
     panel.horizontal(0.5, "axis")
     for slot, (name, colour, label) in enumerate(CLASSES):
+        dots, median = _shown(fig, name)
         values = sorted(s["balanced_accuracy"] for s in studies if s["class"] == name)
         for i, value in enumerate(values):
             x = slot + 0.5 + SLOT_WIDTH * ((i % 7) / 6 - 0.5)  # a fixed spread, not random
-            fig.dot(panel.x(x), panel.y(value), 3.5, f"f{colour}")
+            fig.dot(panel.x(x), panel.y(value), 3.5, f"f{colour} {dots}")
         mid = values[len(values) // 2] if len(values) % 2 else sum(values[len(values) // 2 - 1:
               len(values) // 2 + 1]) / 2  # fmt: skip
         fig.line(panel.x(slot + 0.15), panel.y(mid), panel.x(slot + 0.85), panel.y(mid),
-                 f"line s{colour}")  # fmt: skip
+                 f"line s{colour} {median}")  # fmt: skip
         fig.text(panel.x(slot + 0.5), panel.top + panel.height + 15, label, "small", "middle")
 
 
@@ -33,7 +46,8 @@ def _scatter(fig: Figure, panel: Panel, studies: list[dict]) -> None:
     for name, colour, _ in CLASSES[:2]:
         for s in studies:
             if s["class"] == name and s["pearson"] is not None:
-                fig.dot(panel.x(s["pearson"]), panel.y(s["balanced_accuracy"]), 4, f"f{colour}")
+                fig.dot(panel.x(s["pearson"]), panel.y(s["balanced_accuracy"]), 4,
+                        f"f{colour} {name}dots")  # fmt: skip
 
 
 def transfer(rows: list[dict]) -> Figure:
