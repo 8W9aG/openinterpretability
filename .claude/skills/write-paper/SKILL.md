@@ -20,16 +20,46 @@ List the paper in `papers/README.md`. That order is the order of the site's Rese
 
 ## Structure
 
-1. A level 1 title, then one paragraph that can stand alone. The Research index shows this paragraph, so don't start it with a citation or a path.
-   Then one paragraph that starts **Why we wrote it.**, and says what problem made the paper necessary. In the same paragraph, **The question.** states the question that the paper answers, and links it to its research question in `docs/research-questions.md`. `tests/test_papers.py` checks it.
-2. **Results**: numbered findings, each with its limit. End with what the results do not show.
-3. **Method**, then a section for each finding. Tables hold the exact numbers.
-4. **Caveats**, **Reproduce** (the commands, with the seeds) and **Next**.
-5. **References**.
+A paper has the arc of the papers we review, in this order. `tests/test_papers.py` checks the fixed sections and their order.
 
-## Academic language
+1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the key numbers and what they imply. The Research index shows it, so don't start it with a citation or a path, and give it no heading.
+2. **Introduction.** Motivate the question for the field, not for the registry. Say what earlier work leaves open. Then give a bulleted list of the paper's contributions, and link the question to `docs/research-questions.md`.
+3. **Related work.** At least one paragraph that places the paper among the outside work it cites. Say where it agrees and where it differs. The reviews in `docs/literature/` are the first place to look.
+4. **Method.** Define each term and the notation once, then the setup: model, units, data and measures.
+5. **One section per experiment**, titled by what it asks. Each one gives the question, the setup, the result with its table or figure, and how to read it.
+6. **Discussion.** What the results mean together, the other explanations, and the links to the literature.
+7. **Limitations**, then **Conclusion**: a short paragraph that answers the question.
+8. **References**, then **Appendices**: Reproduce (the commands, with the seeds), per-unit tables and long derivations.
 
-Write in a formal, academic register. Use the third person or "we", not "I" or "you". Use no contractions, slang or casual phrases. Make each claim as strong as its evidence, and no stronger: say "suggests" for a hint, and "shows" only for a measured result. The STE limits of `make ste` still hold, so keep sentences short and plain.
+Keep the main body, up to References, to about 3,000–6,000 words. Long material goes in the Appendices.
+
+## Prose
+
+Write in a formal, academic register. Use the third person or "we", not "I" or "you". Use no contractions, slang or casual phrases. Make each claim as strong as its evidence, and no stronger: say "suggests" for a hint, and "shows" only for a measured result.
+
+- **Argue in paragraphs.** Each paragraph opens with a topic sentence, gives the evidence, and ends with what the evidence implies. Use bullets only for real lists: contributions, setups and limitations. Results, Discussion and Conclusion are prose.
+- **Relate the claims.** A sentence may relate two claims with "because", "whereas", "although" or "which suggests". Papers get their own STE profile (`scripts/ste_prose.py`): a sentence may have up to 40 words, and a paper's mean must stay at 25 or fewer. Every other STE rule still holds.
+- **Define the repo's terms.** Explain each term the first time it appears, in plain words: a pole, VERIFIED, the review's gates, the activation line at 0.25 of the maximum. Then use it as defined. Keep code names and file paths out of the argument. They belong in the Method's setup and the Appendices.
+- **Number the figures and tables.** Give each one a caption that starts **Figure 1.** or **Table 1.**, and that a reader can follow alone. Refer to each one in the text by its number.
+- **Read the models.** Shabalin & Piotrowski's *Many Transcoder Features Are Neurons in Disguise* (`docs/literature/neurons-in-disguise.md`) and Oikarinen et al.'s *Evaluating Neuron Explanations* (`docs/literature/evaluating-neuron-explanations.md`) show the arc and the register.
+
+**Before and after.** The old form read like a list:
+
+```text
+At step 16,000, the median correlation of a pole's activations with its final
+activations is 0.48, with a range of 0.29 to 0.74. It is 0.72 at step 64,000 and 0.93
+at step 128,000.
+```
+
+The new form argues:
+
+```text
+Although the loss is within 1% of its final value by step 16,000, the poles are far
+from their final form at that step: their activations correlate with their final
+activations at a median of only 0.48 (Table 1). The correlation keeps rising, to 0.72
+at step 64,000 and 0.93 at step 128,000, which suggests that the poles keep changing
+long after the loss settles.
+```
 
 ## Citations
 
@@ -71,6 +101,7 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 ## Before you finish
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
+- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
 - Build the site with `make build`, and open the Research index and the paper.
