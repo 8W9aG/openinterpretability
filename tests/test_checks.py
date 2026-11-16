@@ -1,6 +1,7 @@
 import json
 import subprocess
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
@@ -422,3 +423,39 @@ def test_record_signatures_are_write_once(repo, change):
         sig.unlink()
     _commit_all(change)
     assert "record signatures are write-once" in messages(check_registry(base_ref="main~1"))
+
+
+def _swap_for_link(path, repo):
+    """Replace ``path`` with a symbolic link to a changed copy in ``wiki/notes``."""
+    copy = repo / "wiki" / "notes" / (path.name + ".txt")
+    copy.parent.mkdir(exist_ok=True)
+    copy.write_text("changed\n" + path.read_text())
+    path.unlink()
+    path.symlink_to(copy.resolve())
+
+
+@pytest.mark.parametrize("suffix", [".json", ".md"])
+def test_a_type_change_to_an_archived_file_is_an_edit(repo, suffix):
+    _swap_for_link(page_of(repo).with_suffix(suffix), repo)
+    _commit_all("swap")
+    status = subprocess.run(
+        ["git", "diff", "--name-status", "main~1"], check=True, capture_output=True, text=True
+    ).stdout
+    assert "T\twiki/" in status
+    found = messages(check_registry(base_ref="main~1"))
+    assert "not symbolic links" in found
+    assert "write-once" in found
+
+
+def test_the_full_check_rejects_symbolic_links(repo):
+    _swap_for_link(page_of(repo).with_suffix(".json"), repo)
+    assert "not symbolic links" in messages(check_registry())
+
+
+def test_changed_records_include_type_changes(repo):
+    from openinterp.checks import changed_records
+
+    record = page_of(repo).with_suffix(".json")
+    _swap_for_link(record, repo)
+    _commit_all("swap")
+    assert changed_records(Path("wiki"), "main~1") == [record.relative_to(repo)]
