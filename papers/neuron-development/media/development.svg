@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 498" width="760" height="498" role="img">
+<title>Nine lines of correlation with the final checkpoint that rise slowly to 1 by step 143,000, beside a loss curve that is flat from about step 16,000.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="498" rx="10"/>
+<text x="20.0" y="30.0" class="title">Training loss settles by step 16,000, but the VERIFIED poles keep changing</text>
+<text x="20.0" y="50.0" class="sub">Left: each of 9 Pythia-70m poles&#x27; correlation with its final activations, by step.</text>
+<text x="20.0" y="68.0" class="sub">A filled dot is a step where the pole&#x27;s recorded probes pass its review&#x27;s gates.</text>
+<text x="20.0" y="86.0" class="sub">Right: next-token loss on the same 300 windows.</text>
+<text x="64.0" y="130.0" class="head">Correlation with the final form</text>
+<path class="grid" d="M87.3 138.0L87.3 398.0"/>
+<text x="87.3" y="413.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M144.5 138.0L144.5 398.0"/>
+<text x="144.5" y="413.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M218.9 138.0L218.9 398.0"/>
+<text x="218.9" y="413.0" class="small" text-anchor="middle">100</text>
+<path class="grid" d="M295.9 138.0L295.9 398.0"/>
+<text x="295.9" y="413.0" class="small" text-anchor="middle">1k</text>
+<path class="grid" d="M373.1 138.0L373.1 398.0"/>
+<text x="373.1" y="413.0" class="small" text-anchor="middle">10k</text>
+<path class="grid" d="M450.4 138.0L450.4 398.0"/>
+<text x="450.4" y="413.0" class="small" text-anchor="middle">100k</text>
+<text x="264.0" y="429.0" class="small" text-anchor="middle">training step (log scale)</text>
+<text x="520.0" y="130.0" class="head">Loss (nats)</text>
+<path class="grid" d="M532.6 138.0L532.6 398.0"/>
+<text x="532.6" y="413.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M563.5 138.0L563.5 398.0"/>
+<text x="563.5" y="413.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M603.6 138.0L603.6 398.0"/>
+<text x="603.6" y="413.0" class="small" text-anchor="middle">100</text>
+<path class="grid" d="M645.2 138.0L645.2 398.0"/>
+<text x="645.2" y="413.0" class="small" text-anchor="middle">1k</text>
+<path class="grid" d="M686.9 138.0L686.9 398.0"/>
+<text x="686.9" y="413.0" class="small" text-anchor="middle">10k</text>
+<path class="grid" d="M728.7 138.0L728.7 398.0"/>
+<text x="728.7" y="413.0" class="small" text-anchor="middle">100k</text>
+<text x="628.0" y="429.0" class="small" text-anchor="middle">training step (log scale)</text>
+<path class="grid" d="M64.0 354.7L464.0 354.7"/>
+<text x="57.0" y="358.7" class="small" text-anchor="end">0.0</text>
+<path class="grid" d="M64.0 246.3L464.0 246.3"/>
+<text x="57.0" y="250.3" class="small" text-anchor="end">0.5</text>
+<path class="grid" d="M64.0 138.0L464.0 138.0"/>
+<text x="57.0" y="142.0" class="small" text-anchor="end">1.0</text>
+<path class="grid" d="M520.0 367.4L736.0 367.4"/>
+<text x="513.0" y="371.4" class="small" text-anchor="end">4</text>
+<path class="grid" d="M520.0 306.2L736.0 306.2"/>
+<text x="513.0" y="310.2" class="small" text-anchor="end">6</text>
+<path class="grid" d="M520.0 245.1L736.0 245.1"/>
+<text x="513.0" y="249.1" class="small" text-anchor="end">8</text>
+<path class="grid" d="M520.0 183.9L736.0 183.9"/>
+<text x="513.0" y="187.9" class="small" text-anchor="end">10</text>
+<path class="dip" d="M388.9 138.0L388.9 398.0"/>
+<path class="dip" d="M695.4 138.0L695.4 398.0"/>
+<text x="689.4" y="159.4" class="small" text-anchor="end">step 16k: loss</text>
+<text x="689.4" y="173.4" class="small" text-anchor="end">within 1% of final</text>
+<path class="line sneutral" d="M64.0 346.3L87.3 346.3L100.9 346.3L118.0 346.3L137.7 346.3L159.1 346.3L181.3 346.7L204.1 348.2L227.1 351.8L250.2 349.1L273.4 341.8L295.9 327.5L319.1 318.9L342.4 281.7L365.6 266.5L388.9 256.2L412.2 224.8L435.4 198.9L458.7 152.5L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="346.3" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="346.3" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="346.3" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="346.3" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="346.3" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="346.3" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="346.7" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="348.2" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="351.8" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="349.1" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="341.8" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="327.5" r="4"/>
+<circle class="fc1 ring" cx="319.1" cy="318.9" r="5"/>
+<circle class="open sneutral" cx="342.4" cy="281.7" r="4"/>
+<circle class="open sneutral" cx="365.6" cy="266.5" r="4"/>
+<circle class="fc1 ring" cx="388.9" cy="256.2" r="5"/>
+<circle class="fc1 ring" cx="412.2" cy="224.8" r="5"/>
+<circle class="fc1 ring" cx="435.4" cy="198.9" r="5"/>
+<circle class="fc1 ring" cx="458.7" cy="152.5" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 337.0L87.3 337.0L100.9 337.0L118.0 337.0L137.7 336.9L159.1 336.2L181.3 330.7L204.1 321.9L227.1 317.3L250.2 298.6L273.4 329.0L295.9 300.5L319.1 301.5L342.4 290.6L365.6 258.6L388.9 251.5L412.2 256.7L435.4 212.6L458.7 166.4L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="337.0" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="337.0" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="337.0" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="337.0" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="336.9" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="336.2" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="330.7" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="321.9" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="317.3" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="298.6" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="329.0" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="300.5" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="301.5" r="4"/>
+<circle class="open sneutral" cx="342.4" cy="290.6" r="4"/>
+<circle class="fc1 ring" cx="365.6" cy="258.6" r="5"/>
+<circle class="fc1 ring" cx="388.9" cy="251.5" r="5"/>
+<circle class="fc1 ring" cx="412.2" cy="256.7" r="5"/>
+<circle class="open sneutral" cx="435.4" cy="212.6" r="4"/>
+<circle class="fc1 ring" cx="458.7" cy="166.4" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 359.6L87.3 359.6L100.9 359.6L118.0 359.5L137.7 357.5L159.1 351.2L181.3 324.1L204.1 297.3L227.1 274.2L250.2 272.3L273.4 253.9L295.9 253.2L319.1 254.1L342.4 212.9L365.6 190.6L388.9 193.4L412.2 187.7L435.4 163.7L458.7 145.6L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="359.6" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="359.6" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="359.6" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="359.5" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="357.5" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="351.2" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="324.1" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="297.3" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="274.2" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="272.3" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="253.9" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="253.2" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="254.1" r="4"/>
+<circle class="open sneutral" cx="342.4" cy="212.9" r="4"/>
+<circle class="fc1 ring" cx="365.6" cy="190.6" r="5"/>
+<circle class="fc1 ring" cx="388.9" cy="193.4" r="5"/>
+<circle class="open sneutral" cx="412.2" cy="187.7" r="4"/>
+<circle class="open sneutral" cx="435.4" cy="163.7" r="4"/>
+<circle class="open sneutral" cx="458.7" cy="145.6" r="4"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 327.5L87.3 327.5L100.9 327.5L118.0 327.5L137.7 328.3L159.1 331.5L181.3 331.6L204.1 263.1L227.1 321.2L250.2 295.8L273.4 275.7L295.9 260.2L319.1 283.0L342.4 219.2L365.6 200.9L388.9 195.4L412.2 198.0L435.4 184.9L458.7 152.5L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="327.5" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="327.5" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="327.5" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="327.5" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="328.3" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="331.5" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="331.6" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="263.1" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="321.2" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="295.8" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="275.7" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="260.2" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="283.0" r="4"/>
+<circle class="fc1 ring" cx="342.4" cy="219.2" r="5"/>
+<circle class="open sneutral" cx="365.6" cy="200.9" r="4"/>
+<circle class="open sneutral" cx="388.9" cy="195.4" r="4"/>
+<circle class="open sneutral" cx="412.2" cy="198.0" r="4"/>
+<circle class="fc1 ring" cx="435.4" cy="184.9" r="5"/>
+<circle class="fc1 ring" cx="458.7" cy="152.5" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 363.1L87.3 363.1L100.9 363.1L118.0 363.2L137.7 363.4L159.1 364.7L181.3 365.5L204.1 352.6L227.1 322.6L250.2 321.3L273.4 276.2L295.9 300.3L319.1 303.4L342.4 291.5L365.6 280.9L388.9 292.6L412.2 267.5L435.4 228.5L458.7 158.5L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="363.1" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="363.1" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="363.1" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="363.2" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="363.4" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="364.7" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="365.5" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="352.6" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="322.6" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="321.3" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="276.2" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="300.3" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="303.4" r="4"/>
+<circle class="open sneutral" cx="342.4" cy="291.5" r="4"/>
+<circle class="open sneutral" cx="365.6" cy="280.9" r="4"/>
+<circle class="open sneutral" cx="388.9" cy="292.6" r="4"/>
+<circle class="open sneutral" cx="412.2" cy="267.5" r="4"/>
+<circle class="open sneutral" cx="435.4" cy="228.5" r="4"/>
+<circle class="fc1 ring" cx="458.7" cy="158.5" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 334.3L87.3 334.3L100.9 334.3L118.0 334.1L137.7 331.9L159.1 326.4L181.3 325.4L204.1 296.4L227.1 257.7L250.2 262.5L273.4 252.5L295.9 227.7L319.1 212.3L342.4 212.9L365.6 206.1L388.9 195.5L412.2 196.3L435.4 171.9L458.7 149.7L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="334.3" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="334.3" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="334.3" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="334.1" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="331.9" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="326.4" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="325.4" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="296.4" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="257.7" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="262.5" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="252.5" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="227.7" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="212.3" r="4"/>
+<circle class="open sneutral" cx="342.4" cy="212.9" r="4"/>
+<circle class="open sneutral" cx="365.6" cy="206.1" r="4"/>
+<circle class="open sneutral" cx="388.9" cy="195.5" r="4"/>
+<circle class="open sneutral" cx="412.2" cy="196.3" r="4"/>
+<circle class="open sneutral" cx="435.4" cy="171.9" r="4"/>
+<circle class="open sneutral" cx="458.7" cy="149.7" r="4"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 351.5L87.3 351.5L100.9 351.5L118.0 351.4L137.7 350.9L159.1 347.7L181.3 333.2L204.1 346.4L227.1 340.4L250.2 335.4L273.4 293.0L295.9 282.6L319.1 282.0L342.4 264.1L365.6 234.2L388.9 217.2L412.2 189.3L435.4 182.7L458.7 149.6L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="351.5" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="351.5" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="351.5" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="351.4" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="350.9" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="347.7" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="333.2" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="346.4" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="340.4" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="335.4" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="293.0" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="282.6" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="282.0" r="4"/>
+<circle class="open sneutral" cx="342.4" cy="264.1" r="4"/>
+<circle class="open sneutral" cx="365.6" cy="234.2" r="4"/>
+<circle class="fc1 ring" cx="388.9" cy="217.2" r="5"/>
+<circle class="fc1 ring" cx="412.2" cy="189.3" r="5"/>
+<circle class="fc1 ring" cx="435.4" cy="182.7" r="5"/>
+<circle class="fc1 ring" cx="458.7" cy="149.6" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 361.7L87.3 361.7L100.9 361.7L118.0 361.7L137.7 360.5L159.1 354.9L181.3 357.8L204.1 374.3L227.1 386.3L250.2 383.6L273.4 354.3L295.9 354.3L319.1 348.7L342.4 304.4L365.6 290.1L388.9 272.0L412.2 218.0L435.4 199.2L458.7 157.8L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="361.7" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="361.7" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="361.7" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="361.7" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="360.5" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="354.9" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="357.8" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="374.3" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="386.3" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="383.6" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="354.3" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="354.3" r="4"/>
+<circle class="fc1 ring" cx="319.1" cy="348.7" r="5"/>
+<circle class="fc1 ring" cx="342.4" cy="304.4" r="5"/>
+<circle class="fc1 ring" cx="365.6" cy="290.1" r="5"/>
+<circle class="fc1 ring" cx="388.9" cy="272.0" r="5"/>
+<circle class="fc1 ring" cx="412.2" cy="218.0" r="5"/>
+<circle class="fc1 ring" cx="435.4" cy="199.2" r="5"/>
+<circle class="fc1 ring" cx="458.7" cy="157.8" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="line sneutral" d="M64.0 346.1L87.3 346.1L100.9 346.1L118.0 346.2L137.7 346.5L159.1 349.0L181.3 348.8L204.1 351.5L227.1 344.7L250.2 340.6L273.4 331.7L295.9 349.3L319.1 326.2L342.4 317.6L365.6 298.8L388.9 274.1L412.2 233.7L435.4 204.1L458.7 160.0L462.4 138.0"/>
+<circle class="open sneutral" cx="64.0" cy="346.1" r="4"/>
+<circle class="open sneutral" cx="87.3" cy="346.1" r="4"/>
+<circle class="open sneutral" cx="100.9" cy="346.1" r="4"/>
+<circle class="open sneutral" cx="118.0" cy="346.2" r="4"/>
+<circle class="open sneutral" cx="137.7" cy="346.5" r="4"/>
+<circle class="open sneutral" cx="159.1" cy="349.0" r="4"/>
+<circle class="open sneutral" cx="181.3" cy="348.8" r="4"/>
+<circle class="open sneutral" cx="204.1" cy="351.5" r="4"/>
+<circle class="open sneutral" cx="227.1" cy="344.7" r="4"/>
+<circle class="open sneutral" cx="250.2" cy="340.6" r="4"/>
+<circle class="open sneutral" cx="273.4" cy="331.7" r="4"/>
+<circle class="open sneutral" cx="295.9" cy="349.3" r="4"/>
+<circle class="open sneutral" cx="319.1" cy="326.2" r="4"/>
+<circle class="open sneutral" cx="342.4" cy="317.6" r="4"/>
+<circle class="fc1 ring" cx="365.6" cy="298.8" r="5"/>
+<circle class="fc1 ring" cx="388.9" cy="274.1" r="5"/>
+<circle class="fc1 ring" cx="412.2" cy="233.7" r="5"/>
+<circle class="fc1 ring" cx="435.4" cy="204.1" r="5"/>
+<circle class="fc1 ring" cx="458.7" cy="160.0" r="5"/>
+<circle class="fc1 ring" cx="462.4" cy="138.0" r="5"/>
+<path class="curve" d="M520.0 150.4L532.6 150.4L539.9 150.4L549.2 150.8L559.8 154.9L571.3 168.2L583.4 189.9L595.7 215.4L608.1 266.5L620.6 303.6L633.1 332.5L645.2 354.1L657.8 367.9L670.3 373.9L682.9 377.5L695.4 379.1L708.0 380.4L720.6 380.6L733.1 380.5L735.1 380.0"/>
+<circle class="fc1" cx="25.0" cy="444.0" r="5"/>
+<text x="35.0" y="448.0">probes pass</text>
+<circle class="open sneutral" cx="123.6" cy="444.0" r="5"/>
+<text x="133.6" y="448.0">fail</text>
+</svg>
