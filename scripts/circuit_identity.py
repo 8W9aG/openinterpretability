@@ -18,54 +18,14 @@ from datetime import timedelta
 from pathlib import Path
 
 import click
-import networkx as nx
 
-MIN_SIZE = 3  # units in a circuit
-MATCH = 0.5  # Jaccard overlap at which a circuit keeps its id
-TOUCH = 0.2  # overlap at which a split or merge is counted
-SEED = 0
-
-
-def jaccard(a: frozenset, b: frozenset) -> float:
-    """|A ∩ B| / |A ∪ B|: 1 minus the set edit distance scaled by the union."""
-    return len(a & b) / len(a | b) if a | b else 1.0
-
-
-def clusters(model, rows: dict) -> list[frozenset]:
-    """The model's circuits: Leiden communities of its non-hub wiring edges, of 3+ units."""
-    from openinterp.builder.circuits import circuit_edges, hubs
-
-    edges = circuit_edges(model, rows)
-    hub_units = {h.unit.href for h in hubs(model, edges)}
-    graph = nx.Graph()
-    for e in edges:
-        a, b = e.source.href, e.target.href
-        if a in hub_units or b in hub_units:
-            continue
-        weight = sum(abs(r.weight or 0.0) for r in e.readings) / len(e.readings) or 1e-6
-        old = graph.get_edge_data(a, b, {"weight": 0.0})["weight"]
-        graph.add_edge(a, b, weight=old + weight)
-    if graph.number_of_edges() == 0:
-        return []
-    found = nx.community.leiden_communities(graph, weight="weight", seed=SEED)
-    return sorted((frozenset(c) for c in found if len(c) >= MIN_SIZE), key=lambda c: sorted(c))
+from openinterp.circuit_ids import MATCH, MIN_SIZE, TOUCH, clusters, jaccard  # noqa: E402,F401
+from openinterp.circuit_ids import match as match_ids  # noqa: E402
 
 
 def match(old: dict[str, frozenset], new: list[frozenset]) -> dict[int, tuple[str, float]]:
-    """Pair each new circuit with the old one it overlaps most, by maximum-weight matching.
-
-    Returns ``{index of new circuit: (old id, overlap)}`` for pairs at :data:`MATCH` or more.
-    """
-    graph = nx.Graph()
-    for i, members in enumerate(new):
-        for cid, before in old.items():
-            if (overlap := jaccard(members, before)) >= MATCH:
-                graph.add_edge(("new", i), ("old", cid), weight=overlap)
-    pairs = {}
-    for a, b in nx.max_weight_matching(graph):
-        n, o = (a, b) if a[0] == "new" else (b, a)
-        pairs[n[1]] = (o[1], graph[a][b]["weight"])
-    return pairs
+    """``{index of new circuit: (old id, overlap)}``, by the shared matching."""
+    return {i: (cid, jaccard(new[i], old[cid])) for i, cid in match_ids(old, new).items()}
 
 
 def step(
