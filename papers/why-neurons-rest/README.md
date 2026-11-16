@@ -20,7 +20,7 @@
 14. **The push survives at depth only if the slope does.** Held at −1, ReLU keeps a ninth of its push at 0, and at −2 none. Softplus keeps three quarters of its push even at −4, because every token still has a slope. So softplus keeps sinking long after ReLU slows, and rests about twice as deep as its mean push predicts. Leaky ReLU at slope 0.1 is pushed back up at −1, where its mean output turns negative. So it settles between 0 and −1.
 15. **The pull on the mean output goes through the final LayerNorm and dropout.** With dropout at 0, the pull stays, but it is weaker: ReLU's cosine falls from +0.072 to +0.043, on two seeds. When the final LayerNorm can't see a constant and nothing drops out, the pull stops. The block LayerNorms alone don't make it. With both routes closed, the push on ReLU's rest keeps its pace, so the pull is not needed for the rest.
 16. **At its trained weights, GPT-2 small has no steady push and no pull.** The slope term points up and the spread term down, as for the small GELU models, but they cancel. Half of its neurons are pushed down, and the cosine of the mean output with its gradient is negative in all 12 layers.
-17. **Pythia-70m's checkpoints don't show the push clearly.** Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model. So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. Pythia's warm-up and AdamW settings don't weaken the push in a small model.
+17. **Pythia-70m's checkpoints don't show the push clearly.** Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model. So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. No part of Pythia's training setup weakens the push in a small model, alone or together. Its batch was tested only at 4 times ours.
 18. **The final LayerNorm's pull comes from the unigram prior.** An offset along the MLPs' mean output costs loss through the final LayerNorm only by moving its input. That move adds a fixed logit vector that follows token frequency (r = +0.75 to +0.91). The larger divisor flattens the logits and lowers the loss. The later blocks' LayerNorms use the same offset, and it lowers their loss. So they don't make the pull.
 19. **The spread term comes from tokens with a low slope, not from the steepest tokens.** For GELU and SiLU, the output's push points up mostly on tokens below the rest. Their slope is below the mean, so they make the spread term point down. In GELU's dip their slope is negative, so they push h down directly. The steepest tokens, from 0.75 to 1.5, make the spread term point up. Two seeds agree to 0.13 (10⁻⁶) in each bin.
 
@@ -449,18 +449,24 @@ Pythia differs from the small models in its schedule, its optimizer, its paralle
 
 - `pythia_warmup` uses Pythia's learning rate of 1e-3. It grows the rate linearly over the first 715 steps. Pythia warms up over 1,430 of the 4,000 steps that the test reads, and 715 keeps that share.
 - `pythia_adam` uses Pythia's AdamW betas of (0.9, 0.95) and weight decay of 0.01.
+- `pythia_parallel` lets the attention and the MLP read the same input, as in GPT-NeoX, Pythia's architecture.
+- `pythia_lr` uses Pythia's learning rate of 1e-3 with no warm-up.
+- `pythia_batch` uses 4 times our batch. Pythia's batch is 500 times ours, and 4 times fits the time we have.
+- `pythia_all` adds all of these parts at once.
 
-| Test, L1–L3 | No dropout, seed 0 | No dropout, seed 1 | Warm-up at 1e-3 | Pythia's AdamW | Pythia-70m |
-| --- | --- | --- | --- | --- | --- |
-| Checkpoints and layers with the push down | 24 of 27 | 18 of 27 | 22 of 27 | 19 of 27 | 13 of 30 |
-| Push against the next move, median | +0.16 | +0.14 | +0.12 | +0.10 | +0.07 |
-| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 22 of 24 | 22 of 24 | 27 of 30 |
-| Neurons whose push has the sign of their move, median | 58% | 55% | 59% | 56% | 51% |
-| Intervals of 250 steps with the push down in training | 23 of 24 | 21 of 24 | 21 of 24 | 24 of 24 | |
+| Test, L1–L3 | No dropout, seed 0 | No dropout, seed 1 | Warm-up at 1e-3 | Pythia's AdamW | Parallel attention | Rate 1e-3, no warm-up | 4× batch | All of Pythia's parts | Pythia-70m |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down | 24 of 27 | 18 of 27 | 22 of 27 | 19 of 27 | 24 of 27 | 22 of 27 | 21 of 27 | 21 of 27 | 13 of 30 |
+| Push against the next move, median | +0.16 | +0.14 | +0.12 | +0.10 | +0.15 | +0.13 | +0.13 | +0.12 | +0.07 |
+| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 22 of 24 | 22 of 24 | 23 of 24 | 20 of 24 | 23 of 24 | 22 of 24 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 58% | 55% | 59% | 56% | 56% | 55% | 55% | 55% | 51% |
+| Intervals of 250 steps with the push down in training | 23 of 24 | 21 of 24 | 21 of 24 | 24 of 24 | 22 of 24 | 22 of 24 | 24 of 24 | 21 of 24 | |
 
-- **Neither the warm-up nor Pythia's AdamW makes the push look like Pythia's.** Each stays inside or near the range of the two no-dropout seeds. Pythia's AdamW lowers the correlation with the next move to +0.10, the closest to Pythia's +0.07. Its push in training points down in all 24 intervals.
+- **No part of Pythia's setup makes the push look like Pythia's, and neither do all of them together.** Each condition stays inside or near the range of the two no-dropout seeds. The push points down in 19 to 24 of 27 checkpoints and layers, against 13 of 30 in Pythia-70m. Its correlation with the next move is +0.10 to +0.15, against +0.07. Pythia's AdamW comes closest on that correlation. With all the parts, the push in training still points down in 21 of 24 intervals.
+- **So the setup, at the sizes tested here, does not explain Pythia's weak push.** What is left is Pythia's scale: its size, its batch of 500 times ours, and its far-apart checkpoints. These runs cannot tell those apart.
 - **The warm-up deepens the rest, as a higher rate does.** At step 2,000, L1 rests at −1.48, against −0.66 for the no-dropout run at 3e-4 (*Optimizer and learning rate*).
-- **Four conditions are not run yet.** `pythia_parallel`, `pythia_lr`, `pythia_batch` (4 times our batch) and `pythia_all` are in `scripts/train_resting.py`. The batch is the largest difference from Pythia, and its runs take about 2 hours each.
+- **Pythia's rate without the warm-up deepens the rest further.** At step 2,000, L1 rests at −2.63, against −1.48 with the warm-up. With all of Pythia's parts, it rests at −0.93.
+- **Each condition has one seed.** The two no-dropout seeds differ by 6 of 27 in the first row, so a difference that size between conditions is noise.
 
 ## Why this matters for reading negative poles
 
@@ -567,7 +573,7 @@ for C in gelu relu; do
 done
 uv run python scripts/train_resting.py train --seed 1 --condition gelu --steps 4000 --eval-every 1000 \
     --cache tokens.pt --part training_ln_offset --save-every 1000 --save-dir ckpt --out $OUT
-for C in pythia_warmup pythia_adam; do
+for C in pythia_warmup pythia_adam pythia_parallel pythia_lr pythia_batch pythia_all; do
   uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
       --part training_pythia --push-part push_pythia --save-every 250 --save-dir ckpt $T
   uv run python scripts/pretrained_push.py small --condition $C --save-dir ckpt --out $OUT
@@ -591,7 +597,7 @@ The 12,000-step runs of GELU and the fast control were labelled `training_long` 
 
 ## Next
 
-[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Why neurons rest* ([open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+%22papers%2Fwhy-neurons-rest%22)). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. Pythia's warm-up and AdamW settings don't weaken the push in a small model. Its parallel attention and its larger batch are not tested yet.
+[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Why neurons rest* ([open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+%22papers%2Fwhy-neurons-rest%22)). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. No part of Pythia's training setup weakens the push in a small model, alone or together. Its batch was tested only at 4 times ours. So Pythia's scale, its full batch or its gaps between checkpoints remain as causes.
 
 ## References
 

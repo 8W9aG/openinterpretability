@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-16T00:36:24Z","seed":8360784,"kind":"revise","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L22/N1436-negative","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L22/N1436-negative/20261023T043445Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 22 --neuron 1436 --pole negative","pole_forced":null,"harness_version":"0.0.20"}
