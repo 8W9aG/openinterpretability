@@ -1,4 +1,4 @@
-"""The references of the papers in papers/."""
+"""The references and the structure of the papers in papers/."""
 
 import re
 from pathlib import Path
@@ -65,7 +65,52 @@ def test_references_follow_apa(paper):
         assert APA.match(line), line
 
 
-@pytest.mark.parametrize("paper", WRITTEN)
+# The sections of a paper, in order (write-paper skill, #4202). An experiment section may
+# have any title, so only these fixed sections are checked. Others may stand between them.
+SECTIONS = ("Introduction", "Related work", "Method", "Discussion", "Limitations",
+            "Conclusion", "References", "Appendices")  # fmt: skip
+# Papers written before #4202, each with the issue that rewrites it. Only shrink this list.
+OLD_FORM = {
+    "default-on-poles": 4245, "explanations-across-models": 4246, "native-vs-learned": 4247,
+    "spd-input-projections": 4248, "syntax-positive-controls": 4249, "why-neurons-rest": 4250,
+}  # fmt: skip
+NEW_FORM = [paper for paper in WRITTEN if paper not in OLD_FORM]
+
+
+def _headings(paper: str) -> list[str]:
+    text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
+    return [line[3:].strip() for line in text.splitlines() if line.startswith("## ")]
+
+
+@pytest.mark.parametrize("paper", NEW_FORM)
+def test_paper_has_the_sections_in_order(paper):
+    headings = _headings(paper)
+    found = [h for h in headings if h in SECTIONS]
+    assert found == list(SECTIONS), f"{paper}: sections {found}, want {list(SECTIONS)}"
+    text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
+    intro = text.split("\n## Introduction\n", 1)[1].split("\n## ", 1)[0]
+    assert "research-questions.md" in intro, f"{paper}: link the research question"
+    assert "contribut" in intro.lower(), f"{paper}: list the contributions"
+
+
+@pytest.mark.parametrize("paper", sorted(OLD_FORM))
+def test_an_old_form_paper_is_still_in_the_old_form(paper):
+    """A rewritten paper leaves OLD_FORM, so its new form is checked (#4202)."""
+    assert (PAPERS / paper / "results.jsonl").exists(), f"{paper}: not a paper"
+    assert "Related work" not in _headings(paper), f"{paper}: rewritten, remove from OLD_FORM"
+
+
+@pytest.mark.parametrize("paper", NEW_FORM)
+def test_figures_and_tables_are_numbered_and_cited(paper):
+    text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
+    body = text.split("\n## References\n", 1)[0]
+    for kind, count in (("Figure", body.count("![")), ("Table", body.count("\n| --- "))):
+        for n in range(1, count + 1):
+            assert f"**{kind} {n}.**" in body, f"{paper}: caption {kind} {n}"
+            assert body.count(f"{kind} {n}") >= 2, f"{paper}: cite {kind} {n} in the text"
+
+
+@pytest.mark.parametrize("paper", sorted(OLD_FORM))
 def test_paper_says_why_it_was_written_and_its_question(paper):
     """Below its opening paragraph, a paper says why it was written and what it asks (#3138)."""
     text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
