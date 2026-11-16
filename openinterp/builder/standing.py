@@ -1,7 +1,8 @@
 """A unit's standing: what all of its experiments say now (``docs/PROTOCOL.md`` §3 step 9).
 
 The newest hypothesis counts, one reading per probe set, independent reviews outweigh
-self-reviews, and the unit is CONTESTED when those readings disagree on VERIFIED. An erratum
+self-reviews, and a majority of those readings decides. The unit is CONTESTED only when
+they split evenly between VERIFIED and not (issue #3212). An erratum
 can set experiments aside (:mod:`openinterp.core.errata`). Also the
 registry-wide reviewer agreement those readings give. Derived, never stored.
 """
@@ -31,8 +32,8 @@ ROLES = {
 class Standing:
     """What a pole's experiments say now. Derived, never stored (``pole_standing``)."""
 
-    status: str  # VERIFIED, NEEDS_REVISION, REJECTED, or CONTESTED when readings disagree
-    readings: list[Experiment]  # the experiments it rests on, newest first
+    status: str  # VERIFIED, NEEDS_REVISION, REJECTED, or CONTESTED on an even split
+    readings: list[Experiment]  # the experiments it rests on: those that agree first, newest first
 
     @property
     def lead(self) -> Experiment:
@@ -46,8 +47,19 @@ class Standing:
 
     @property
     def contested(self) -> bool:
-        """True when the readings disagree."""
+        """True when the readings split evenly between VERIFIED and not."""
         return self.status == "CONTESTED"
+
+    @property
+    def agreeing(self) -> list[Experiment]:
+        """The readings whose verdict is on the side of the standing: VERIFIED or not."""
+        verified = self.status == "VERIFIED"
+        return [e for e in self.readings if (e.record.verdict.status == "VERIFIED") == verified]
+
+    @property
+    def dissent(self) -> int:
+        """How many readings the majority outvoted; 0 when all agree or the unit is contested."""
+        return 0 if self.contested else len(self.readings) - len(self.agreeing)
 
     @property
     def self_reviewed(self) -> bool:
@@ -79,6 +91,16 @@ def _readings(experiments: Sequence[Experiment]) -> list[Experiment]:
     return out
 
 
+def _majority(readings: list[Experiment]) -> Standing:
+    """The standing that a majority of ``readings`` (newest first) gives, VERIFIED or not."""
+    verified = [e for e in readings if e.record.verdict.status == "VERIFIED"]
+    others = [e for e in readings if e.record.verdict.status != "VERIFIED"]
+    if len(verified) == len(others):
+        return Standing("CONTESTED", readings)
+    winners, losers = (verified, others) if len(verified) > len(others) else (others, verified)
+    return Standing(winners[0].record.verdict.status, winners + losers)
+
+
 def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     """Derive one pole's standing from all of its experiments, and set each one's ``role``.
 
@@ -86,8 +108,10 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
        verdicts were about a different claim.
     2. Each probe set counts once, read by its newest experiment.
     3. If any reading is an independent review, self-reviews are outweighed.
-    4. The readings left agree, or the pole is CONTESTED. Only VERIFIED against anything
-       else is a disagreement; if none is VERIFIED, the newest reading's status stands.
+    4. A majority of the readings left decides, VERIFIED or not. When most are VERIFIED,
+       the pole is VERIFIED. When most are not, the newest of those readings gives the
+       status: NEEDS_REVISION against REJECTED is no disagreement about whether the claim
+       holds. An even split between VERIFIED and not leaves the pole CONTESTED (#3212).
 
     Before step 1, experiments that an erratum sets aside are left out, unless that leaves
     none. Then the standing rests on them, and :attr:`Standing.errata` names the errata.
@@ -111,9 +135,7 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
             e.role = "outweighed"
         else:
             e.role = "remeasured"
-    statuses = {e.record.verdict.status for e in readings}
-    contested = "VERIFIED" in statuses and len(statuses) > 1
-    standing = Standing("CONTESTED" if contested else readings[0].record.verdict.status, readings)
+    standing = _majority(readings)
     for e in experiments:
         e.standing = standing
     return standing

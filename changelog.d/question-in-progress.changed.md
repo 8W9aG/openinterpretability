@@ -1,0 +1,1 @@
+- The `next-issue` skill sets an issue In Progress when it asks the maintainer a question there, so the maintainer sees what waits on them.

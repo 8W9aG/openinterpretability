@@ -25,6 +25,7 @@ class NeuronState:
     reviewers: set[str] = field(default_factory=set)
     independent_reviews: int = 0  # experiments reviewed by a model other than the proposer's
     last: datetime | None = None
+    contested: bool = False  # its readings split evenly between VERIFIED and not (#3212)
 
 
 def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
@@ -41,9 +42,11 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
 
     errata = load_errata(wiki_dir)
     states: dict[str, NeuronState] = {}
+    records = []
     counted: set[str] = set()  # poles with an experiment that isn't set aside
     for path, raw in load_archive_paths(Path(wiki_dir)):  # oldest first
         record, aside = corrected(raw, errata)
+        records.append(raw)
         slug = record.submission.identifier.slug
         state = states.setdefault(slug, NeuronState(slug, record, path))
         if not aside or slug not in counted:
@@ -54,4 +57,18 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
         state.reviewers.add(canonical_agent(record.verdict.reviewer_agent_model))
         state.independent_reviews += not record.self_reviewed
         state.last = record.verdict.timestamp
+    for slug in contested_slugs(records, errata):
+        if slug in states:
+            states[slug].contested = True
     return states
+
+
+def contested_slugs(records, errata) -> set[str]:
+    """The slugs of the poles whose standing is CONTESTED (``builder.standing``, #3212)."""
+    from openinterp.builder.standing import contested_units
+    from openinterp.builder.tree import build_tree
+
+    found = set()
+    for row in contested_units(build_tree(records, errata)):
+        found.add(row["standing"].lead.record.submission.identifier.slug)
+    return found

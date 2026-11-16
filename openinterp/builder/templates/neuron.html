@@ -26,7 +26,7 @@
         </div>
         <p class="mt-2 text-xs">{{ s.lead.record.submission.natural_language_explanation | truncate(120) }}</p>
         {% if s.readings | length > 1 %}
-        <p class="mt-2 text-xs text-slate-500">{% if s.contested %}Reviews of this hypothesis disagree:{% else %}Every review of this hypothesis agrees:{% endif %}
+        <p class="mt-2 text-xs text-slate-500">{% if s.contested %}Reviews of this hypothesis split evenly, so one more independent review would settle it:{% elif s.dissent %}Most reviews of this hypothesis agree ({{ s.readings | length - s.dissent }} of {{ s.readings | length }}):{% else %}Every review of this hypothesis agrees:{% endif %}
           {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="{{ root }}{{ r.href }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <a class="font-mono underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a>{{ "; " if not loop.last }}{% endfor %}.
         </p>
         {% endif %}
