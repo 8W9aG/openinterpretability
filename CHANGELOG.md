@@ -7,6 +7,8 @@ The project has two version numbers:
 - **Package version** (`openinterp.__version__`): the code. Bump it in `openinterp/__init__.py`, which `pyproject.toml` reads.
 - **Protocol version** (`openinterp.core.schemas.PROTOCOL_VERSION`): the review decision rule. It is stored in every verdict and documented in `docs/PROTOCOL.md` §6. A protocol change always needs a package release too, but not the other way round.
 
+Each release bumps the package version by Semantic Versioning. A breaking change is one to the record schema, the CLI, the Python API or the protocol. While the version is 0.x, a breaking change bumps the minor number and any other change the patch. From 1.0, a breaking change bumps the major number and a new feature the minor. `python3 scripts/changelog.py next` proposes the version.
+
 Changes waiting for the next release are files in [changelog.d/](changelog.d/README.md). Each release gathers them into its own section below, so `[Unreleased]` stays empty.
 
 ## [Unreleased]
