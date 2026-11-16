@@ -1,1 +1,0 @@
-- **Treat a type change as an edit** (`openinterp/checks.py`, `openinterp/signing.py`, `.github/workflows/ci.yml`). The write-once check now fails any status other than an add on an archived file. The check also fails each symbolic link in the wiki. Record reproduction and signature landing times now include type changes (#4113).

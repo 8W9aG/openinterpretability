@@ -1,1 +1,0 @@
-- `scripts/exchange.py` stages only real names under `exchange/`. Prose such as "exchange/." no longer counts as a cited input, and staging never takes an output folder or a `*.private.*` file.
