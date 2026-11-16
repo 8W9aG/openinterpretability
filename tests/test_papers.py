@@ -63,3 +63,15 @@ def test_references_follow_apa(paper):
         authors = line.split(" (", 1)[0]
         assert " & " not in authors or ", & " in authors, line
         assert APA.match(line), line
+
+
+@pytest.mark.parametrize("paper", WRITTEN)
+def test_paper_says_why_it_was_written_and_its_question(paper):
+    """Below its opening paragraph, a paper says why it was written and what it asks (#3138)."""
+    text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
+    top = text.split("\n## ", 1)[0]
+    paragraphs = [p for p in top.split("\n\n") if p.strip()]
+    why = [p for p in paragraphs if p.startswith("**Why we wrote it.**")]
+    assert why, f"{paper}: no '**Why we wrote it.**' paragraph before the first section"
+    assert "**The question.**" in why[0], f"{paper}: the why paragraph names no question"
+    assert paragraphs.index(why[0]) == 2, f"{paper}: put it right after the opening paragraph"

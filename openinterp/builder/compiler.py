@@ -32,6 +32,7 @@ from openinterp.builder.circuits import circuits_and_hubs, wiring_view
 from openinterp.builder.corpora import corpora_view, language_mix
 from openinterp.builder.coverage import model_summary
 from openinterp.builder.dashboard import dashboard
+from openinterp.builder.feeds import write_feeds
 from openinterp.builder.heat import HeatToken, heat_html, token_heat, values_rows
 from openinterp.builder.model_facts import ModelFacts, render_models
 from openinterp.builder.neuronpedia_export import export_neuronpedia
@@ -353,6 +354,7 @@ def compile_site(
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report)
+    write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     _save_memos()
     return report
 

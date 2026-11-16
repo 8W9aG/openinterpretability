@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Literal
+from typing import Literal, Protocol, TypeVar
 
 from pydantic import Field, model_validator
 
@@ -199,7 +199,24 @@ def superposition_id(members: list[SuperpositionMember]) -> str:
     return hashlib.sha256(json.dumps(canon).encode()).hexdigest()[:12]
 
 
-def require_unit_profile(model):
+class _KindOf(Protocol):
+    """An identifier, which names the kind of its unit."""
+
+    @property
+    def kind(self) -> str: ...
+
+
+class _Identified(Protocol):
+    """A model with an identifier. Its profile fields are read by name."""
+
+    @property
+    def identifier(self) -> _KindOf: ...
+
+
+_Model = TypeVar("_Model", bound=_Identified)
+
+
+def require_unit_profile(model: _Model) -> _Model:
     """Require the profile that defines a non-neuron unit's strength.
 
     A head's strength is undefined without its mean output. A dictionary feature's is

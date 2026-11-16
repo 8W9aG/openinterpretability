@@ -64,6 +64,7 @@ site = ["pagefind[bin]>=1.3.0"]
 [dependency-groups]
 dev = [
     "interrogate>=1.7.0",
+    "mypy>=1.13",
     "pagefind[bin]>=1.3.0",
     "pymarkdownlnt>=0.9.41",
     "pytest>=8.0.0",
@@ -162,6 +163,24 @@ addopts = "-ra"
 # "thread" because the hangs block in C (a semaphore wait), where SIGALRM never fires.
 timeout = 60
 timeout_method = "thread"
+
+[tool.mypy]
+# Type checks, ratcheted in package by package (#3162). Only the paths in `files` are
+# checked, and strictly. Add a package here once its strict errors are fixed.
+files = ["openinterp/core"]
+plugins = ["pydantic.mypy"]
+strict = true
+python_version = "3.12"
+# Imported modules outside `files` are read for their types but not reported.
+follow_imports = "silent"
+# torch, transformers and other libraries ship no stubs for some modules.
+ignore_missing_imports = true
+
+# schemas.py re-exports the models that the record schema is built from. Other modules
+# import them from there, so its imports count as exports.
+[[tool.mypy.overrides]]
+module = "openinterp.core.schemas"
+implicit_reexport = true
 
 [tool.ruff]
 line-length = 100

@@ -2,6 +2,8 @@
 
 Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent ([position zero](../../docs/analyses/position-zero.md)). This analysis asks what those poles do together. It starts from an earlier study of GPT-2 L9/N1046−, whose scripts were not kept. Its numbers survive in [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md). It rebuilds them, measures every layer, and adds the nulls the first study lacked.
 
+**Why we wrote it.** Protocol 0.8 stops the audit of every default-on pole, so the registry says nothing about a large share of negative poles. Before we accept that gap, we need to know whether those poles do anything worth explaining. **The question.** What do default-on negative poles do as a population, and is it safe to stop auditing them one by one? It bears on research question 1, *Are native MLP neurons clean?*, and on question 5 ([research questions](../../docs/research-questions.md)).
+
 ![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
 
 **Results.**
