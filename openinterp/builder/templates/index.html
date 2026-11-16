@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
+{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome, pending_table %}
 {% set t = stats.totals %}
 
 {% block content %}
@@ -209,6 +209,7 @@
     </table>
   </div>
 </section>
+{% if pending %}{{ pending_table(pending, root) }}{% endif %}
 
 <section class="mb-10">
   <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>

@@ -301,6 +301,7 @@ def compile_site(
     users: dict[str, str] | None = None,
     coverage_rows: dict | None = None,
     paper_pdfs: bool = False,
+    pending: Sequence = (),
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -308,12 +309,11 @@ def compile_site(
     :func:`openinterp.wiring_backfill.load_rows` and :func:`openinterp.corpus.load_sources`.
     ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
-    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`). With
-    ``paper_pdfs``, each paper also gets a PDF (:mod:`openinterp.builder.paper_pdf`).
+    ``papers_dir`` holds the Research section. ``paper_pdfs`` adds each paper's PDF, and
+    ``pending`` (:mod:`openinterp.builder.pending`) lists open experiment PRs on the pages.
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
-    Models page, which lists every model in ``[tool.openinterp] models``.
-    ``jobs`` is the number of worker processes that render the unit pages.
+    Models page, of every configured model. ``jobs`` is the unit pages' worker processes.
     ``errata`` (:func:`openinterp.core.errata.load_errata`) alter the experiments they cover:
     each shows the erratum, and one set aside counts toward no standing.
     ``users`` (:func:`openinterp.builder.users.load_users`) name who made the records that
@@ -342,7 +342,7 @@ def compile_site(
     export_draws(draws, output_dir)  # random draws no experiment could audit
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
-    common = _site_context(site_title, corpus_sources, experiments)
+    common = _site_context(site_title, corpus_sources, experiments, pending)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in layer.pages}
     by_unit = stops_by_unit(stops)
@@ -412,7 +412,7 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         render("learned-baseline.html", "learned-baseline.html", stats=stats)
 
 
-def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> dict:
+def _site_context(site_title: str, corpus_sources: dict | None, experiments, pending=()) -> dict:
     """What every page's template gets."""
     return {
         **project_links(),
@@ -420,8 +420,8 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments) -> 
         "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
         "model_licenses": configured_licenses(),
         "version": __version__,
-        # Derived from the data, never the clock: an unchanged registry must rebuild
-        # byte-for-byte so the deploy uploads (and purges) nothing.
+        "pending": list(pending),  # open experiment PRs, for the home and model pages
+        # From the data, not the clock, so an unchanged registry rebuilds byte for byte.
         "updated_at": max((e.record.verdict.timestamp for e in experiments), default=None),
     }
 
