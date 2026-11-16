@@ -1,1 +1,0 @@
-- The reviewer's isolation hook ignores letter case when it compares paths. On macOS a path such as `WIKI/Experiments` opens the same files as `wiki/experiments`, so the hook and the transcript check now block it too.

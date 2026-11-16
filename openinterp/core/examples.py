@@ -6,6 +6,8 @@ neuron, it shows the same for the other pole.
 
 from __future__ import annotations
 
+from typing import Protocol
+
 from pydantic import Field, model_validator
 
 from openinterp.core.identifiers import Pole
@@ -79,7 +81,24 @@ class OppositePole(StrictModel):
     activation_histogram: Histogram | None = None
 
 
-def check_opposite_pole(model) -> None:
+class _PoleOf(Protocol):
+    """An identifier: ``pole`` is ``None`` for a unit with no sign."""
+
+    @property
+    def pole(self) -> Pole | None: ...
+
+
+class _WithOppositePole(Protocol):
+    """A model with an identifier and an optional opposite pole."""
+
+    @property
+    def identifier(self) -> _PoleOf: ...
+
+    @property
+    def opposite_pole(self) -> OppositePole | None: ...
+
+
+def check_opposite_pole(model: _WithOppositePole) -> None:
     """Reject an ``opposite_pole`` that the unit cannot have.
 
     Only a neuron pole has an opposite pole, and it must not be the audited pole.

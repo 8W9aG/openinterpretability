@@ -1,1 +1,0 @@
-- CI pins every GitHub Action to a full commit SHA. A test now fails on an action that is pinned only by a tag.

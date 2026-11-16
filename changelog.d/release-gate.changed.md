@@ -1,1 +1,0 @@
-- **Releases.** The `release` skill now merges its own release PR on green CI. A new step 12 then checks that the release went out. The PR must be merged and the tag on `main`. The GitHub release must be published, PyPI must have the version, and Zenodo its record. `next-issue` doesn't move on from a release until that holds.
