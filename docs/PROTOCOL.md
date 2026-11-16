@@ -4,7 +4,7 @@ This document defines what one Open Interpretability experiment is, who does wha
 
 ## 1. Unit of analysis
 
-One experiment tests **one hypothesis about one unit** in one model revision. A unit is a neuron pole or, since protocol 0.6, an attention head. A latent of a published sparse dictionary (a transcoder or SAE) on an MLP layer can be audited too. It is the learned-basis baseline for the native-neuron premise. Its experiments run under the same rule but are never counted with native units. A superposition, a sparse direction over one layer's neurons, can be audited too (issue #3215). It runs under the same rule, and it counts on its own. Circuits and hubs are planned as units with experiments of their own (`docs/circuits-and-hubs.md`, issue #3213). Until their steps land, they are reported, not gated.
+One experiment tests **one hypothesis about one unit** in one model revision. A unit is a neuron pole or, since protocol 0.6, an attention head. A latent of a published sparse dictionary (a transcoder or SAE) on an MLP layer can be audited too. It is the learned-basis baseline for the native-neuron premise. Its experiments run under the same rule but are never counted with native units. A superposition, a sparse direction over one layer's neurons, can be audited too (issue #3215). It runs under the same rule, and it counts on its own. Circuits are planned as units with experiments of their own, and hubs as entities whose standing is their center's (`docs/circuits-and-hubs.md`, issue #3213). Until their steps land, both are reported, not gated.
 
 | Term | Definition |
 | --- | --- |
