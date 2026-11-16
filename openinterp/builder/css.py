@@ -59,8 +59,8 @@ FONTS = {
 }
 
 
-# Any case and any spacing before the closing ">": a missed script would miss its classes.
-CLASSES = re.compile(r'class="([^"]*)"|<script\b[^>]*>(.*?)</script\s*>', re.S | re.I)
+# Any case, and anything between "</script" and ">": a missed script would miss its classes.
+CLASSES = re.compile(r'class="([^"]*)"|<script\b[^>]*>(.*?)</script\b[^>]*>', re.S | re.I)
 WORD = re.compile(r"[^\s\"'`<>=]+")
 
 
