@@ -1,4 +1,4 @@
-.PHONY: install test perf lint markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
+.PHONY: install test perf lint typecheck markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -19,6 +19,10 @@ test:
 perf:
 	uv run python -m openinterp.core.heavy_lock python scripts/perf_bench.py
 
+# mypy, strict, on the packages in [tool.mypy] files (pyproject.toml).
+typecheck:
+	uv run mypy
+
 lint:
 	uv run ruff check .
 	uv run ruff format --check .
@@ -28,6 +32,7 @@ lint:
 	python3 scripts/changelog.py check
 	python3 scripts/ifttt_lint.py
 	uv run interrogate openinterp
+	$(MAKE) typecheck
 	$(MAKE) markdown
 	$(MAKE) shell
 	$(MAKE) vale

@@ -23,14 +23,16 @@ import fcntl
 import os
 import subprocess
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import TextIO
 
 ENABLE_ENV = "OPENINTERP_HEAVY_LOCK"  # "1" turns the lock on
 FILE_ENV = "OPENINTERP_HEAVY_LOCK_FILE"
 HELD_ENV = "OPENINTERP_HEAVY_LOCK_HELD"  # set by a holder for its child processes
 
-_held = None  # this process's open lock file, while it holds the lock
+_held: TextIO | None = None  # this process's open lock file, while it holds the lock
 
 
 def enabled() -> bool:
@@ -51,7 +53,7 @@ def _needed() -> bool:
     return enabled() and _held is None and not os.environ.get(HELD_ENV)
 
 
-def _acquire():
+def _acquire() -> TextIO:
     """Open the lock file and lock it, waiting if another process holds it."""
     path = lock_file()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -71,7 +73,7 @@ def _acquire():
     return handle
 
 
-def _release(handle) -> None:
+def _release(handle: TextIO) -> None:
     os.environ.pop(HELD_ENV, None)
     handle.close()  # closing the file releases the flock
 
@@ -87,7 +89,7 @@ def hold_for_process() -> None:
 
 
 @contextmanager
-def heavy_job():
+def heavy_job() -> Iterator[None]:
     """Hold the lock for a block, if it is on and not yet held."""
     global _held
     if not _needed():

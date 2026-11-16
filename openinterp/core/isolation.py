@@ -21,6 +21,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from openinterp.core.paths import (
     DEFAULT_EXCHANGE_DIR,
@@ -111,7 +112,9 @@ def blocked_search(path: Path, root: Path) -> bool:
     )
 
 
-def forbidden(tool: str, tool_input: dict, cwd: str | Path, root: str | Path) -> str | None:
+def forbidden(
+    tool: str, tool_input: dict[str, Any], cwd: str | Path, root: str | Path
+) -> str | None:
     """Return the blocked path that a tool call reads or searches, or None.
 
     ``tool_input`` is the call's input as Claude Code gives it. Relative paths are

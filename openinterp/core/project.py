@@ -12,7 +12,7 @@ from importlib.metadata import metadata
 from openinterp import DISTRIBUTION
 
 
-def project_links() -> dict:
+def project_links() -> dict[str, str]:
     """The site and repo URLs and the contact email."""
     meta = metadata(DISTRIBUTION)
     urls = dict(u.split(", ", 1) for u in meta.get_all("Project-URL") or [])
