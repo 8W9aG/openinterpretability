@@ -9,11 +9,12 @@ checks enforce that:
 2. Every record has its page, and every page has its record. The page's front matter
    matches the record. A record that ``supersedes`` another names an earlier experiment
    on the same unit.
-3. The retired ``audits/`` directory holds no records. Import them with
-   ``open-interpretability wiki --import-dir audits``.
+3. No file in the wiki is a symbolic link. The retired ``audits/`` directory holds no
+   records. Import them with ``open-interpretability wiki --import-dir audits``.
 4. With ``base_ref``: existing experiment pages were not deleted, or edited outside
    their Discussion section, except to remove what a takedown covers. Archived records
-   were not touched (write-once). No generated index (``README.md``) was committed.
+   were not touched (write-once). A type change, such as a file that becomes a symbolic
+   link, counts as an edit. No generated index (``README.md``) was committed.
    Records added since then name their agents in canonical spelling
    (``openinterp.core.agent_names``) and have one shape of model fields
    (``_check_model_fields``).
@@ -114,6 +115,7 @@ def check_registry(
     changes = _branch_changes(wiki_dir, base_ref) if base_ref else []
     scope = _scope(changes, wiki_dir) if base_ref else None
     report.changed_only = scope is not None
+    _check_no_links(wiki_dir, report, scope)
     _check_records(wiki_dir, report, scope)
     _check_pages(wiki_dir, report, scope)
     _check_draws(wiki_dir, report, scope)
@@ -170,6 +172,18 @@ def _scope(changes: list[tuple[str, Path]], wiki_dir: Path) -> set[Path] | None:
 def _chosen(paths: Iterable[Path], scope: set[Path] | None) -> Iterator[Path]:
     """Yield the ``paths`` in ``scope``, or every path if ``scope`` is ``None``."""
     return (path for path in paths if scope is None or path in scope)
+
+
+def _check_no_links(wiki_dir: Path, report: CheckReport, scope: set[Path] | None) -> None:
+    """Fail each symbolic link in ``wiki_dir``.
+
+    The checks and the site builder read a link's target. A link can then change what an
+    archived file says, and git does not show the change as an edit of the file.
+    """
+    if wiki_dir.is_dir():
+        for path in _chosen(sorted(wiki_dir.rglob("*")), scope):
+            if path.is_symlink():
+                report.add(path, "wiki files must be regular files, not symbolic links")
 
 
 def _check_legacy(audits_dir: Path, report: CheckReport) -> None:
@@ -400,6 +414,8 @@ def _check_write_once(
     for status, path in changes:
         if not path.is_relative_to(wiki_dir):
             continue
+        if status not in {"A", "D"}:
+            status = "M"  # a type change (T) or any other status also edits the file
         if path.suffix == ".json" and status in {"D", "M"}:
             report.add(path, "archived experiment records are write-once")
             continue
@@ -449,12 +465,12 @@ def _check_new_signatures(
 
 
 def changed_records(wiki_dir: Path, base_ref: str) -> list[Path]:
-    """Experiment records added or modified since ``base_ref``."""
+    """Experiment records added, modified or changed in type since ``base_ref``."""
     diff = _git(
         "diff",
         "--name-only",
         "--no-renames",
-        "--diff-filter=AM",
+        "--diff-filter=AMT",
         f"{base_ref}...HEAD",
         "--",
         str(experiments_dir(wiki_dir)),

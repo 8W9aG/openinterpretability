@@ -14,6 +14,7 @@ from pathlib import Path
 
 from openinterp.core.paths import DEFAULT_EXCHANGE_DIR, DEFAULT_WIKI_DIR
 from openinterp.planner import BASE_WEIGHTS, SKILLS, Candidate, claim_key, configured_windows
+from openinterp.planner_claims import claimed
 
 DEFINITIONS_DIR = Path("data/superpositions")
 SHOW_COMMAND = "open-interpretability superpositions show"
@@ -72,7 +73,7 @@ def superposition_candidates(states, claims: Sequence[str], root: Path) -> list[
             ident = definition_identifier(definition)
             if ident.slug in states or ident.slug in stopped:
                 continue
-            if any(claim_key(ident.slug) in c for c in claims):
+            if claimed(claim_key(ident.slug), claims):
                 continue
             source = path.relative_to(root)
             out.append(_candidate(ident, definition, source, windows.get(ident.model_name)))

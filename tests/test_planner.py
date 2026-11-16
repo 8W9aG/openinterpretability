@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from openinterp import planner, planner_models
+from openinterp import planner, planner_claims, planner_models
 from openinterp.builder.wiki import write_experiment_page
 from openinterp.core.licenses import ModelLicense
 from openinterp.core.schemas import (
@@ -524,13 +524,44 @@ def test_fork_prs_claim_only_by_an_experiment_branch(monkeypatch):
             "isCrossRepository": True,
         },
     ]
-    monkeypatch.setattr(planner.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(planner_claims.shutil, "which", lambda name: "/usr/bin/gh")
     monkeypatch.setattr(
-        planner.subprocess,
+        planner_claims.subprocess,
         "run",
         lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=json.dumps(prs)),
     )
     assert planner.open_pr_claims() == [
         "Mine: L1/N2 experiment/m-L1-N2-positive",
-        "experiment/m-L9-N9-positive",
+        "m-L9-N9-positive",
     ]
+
+
+def _fork_prs(monkeypatch, *branches):
+    prs = [{"title": "x", "headRefName": b, "isCrossRepository": True} for b in branches]
+    monkeypatch.setattr(planner_claims.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(
+        planner_claims.subprocess,
+        "run",
+        lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=json.dumps(prs)),
+    )
+    return planner.open_pr_claims()
+
+
+def test_a_fork_branch_that_joins_several_keys_claims_none(monkeypatch):
+    joined = "experiment/" + "-".join(f"a--x-L{i}-N{i}-positive" for i in (1, 2, 3))
+    claims = _fork_prs(monkeypatch, joined)
+    assert claims == []
+    coverage = planner_models.model_coverage(["a/x"], [], claims, dead=[], stopped=[])
+    assert coverage["a/x"].covered == 0
+
+
+def test_a_fork_claim_matches_only_an_equal_key(monkeypatch):
+    claims = _fork_prs(
+        monkeypatch, "experiment/Qwen--Qwen2.5-0.5B-L3-H12", "experiment/m-L1-N2-positive-rescan"
+    )
+    assert claims == ["Qwen--Qwen2.5-0.5B-L3-H12", "m-L1-N2-positive"]
+    assert planner.claimed("Qwen--Qwen2.5-0.5B-L3-H12", claims)
+    assert not planner.claimed("Qwen--Qwen2.5-0.5B-L3-H1", claims)
+    assert planner.claimed("m-L1-N2-positive", claims)
+    # A PR from this repository still claims each key that its text contains.
+    assert planner.claimed("m-L3-H1", ["Study m-L3-H12 and m-L3-H1"])

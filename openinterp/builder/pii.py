@@ -151,7 +151,7 @@ def scrub(value: Any) -> Any:
         new = [scrub(item) for item in value]
         return new if any(a is not b for a, b in zip(new, value, strict=True)) else value
     if isinstance(value, dict):
-        new = {key: scrub(item) for key, item in value.items()}
+        new = {key: _scrub_field(key, item) for key, item in value.items()}
         return new if any(new[key] is not value[key] for key in value) else value
     if isinstance(value, BaseModel):
         updates = {}
@@ -166,6 +166,17 @@ def scrub(value: Any) -> Any:
 
 def _is_tokens(field: Any) -> bool:
     return isinstance(field, list) and all(isinstance(token, str) for token in field)
+
+
+def _scrub_field(name: str, value: Any) -> Any:
+    """Scrub the field ``name`` of a dict, or ``value`` itself if none of it changes.
+
+    A list of strings named ``tokens`` is a token list, so the search reads it joined.
+    """
+    if name == "tokens" and _is_tokens(value):
+        new = redact_tokens(value)
+        return new if new != value else value
+    return scrub(value)
 
 
 def _scrub_attribution(submission):
@@ -207,13 +218,21 @@ def scrub_errata(errata: Sequence[Any], edits: Sequence[Any]) -> tuple[list, lis
 
     ``errata`` are :class:`openinterp.core.errata.Erratum`: their title and bug text are
     redacted. ``edits`` are :class:`openinterp.core.errata.AppliedEdit`. An edit can change
-    a text field of a record, so its values before and after are scrubbed.
+    a text field of a record, so its values before and after are scrubbed. An edit to a
+    token list (a path that ends in ``.tokens``) gets the joined search of :func:`redact_tokens`.
     """
     notes = [
         e.model_copy(update={"title": redact_text(e.title), "bug": redact_text(e.bug)})
         for e in errata
     ]
-    changes = [dc_replace(d, before=scrub(d.before), after=scrub(d.after)) for d in edits]
+    changes = [
+        dc_replace(
+            d,
+            before=_scrub_field(d.path.rpartition(".")[2], d.before),
+            after=_scrub_field(d.path.rpartition(".")[2], d.after),
+        )
+        for d in edits
+    ]
     return notes, changes
 
 

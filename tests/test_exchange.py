@@ -84,3 +84,11 @@ def test_staging_refuses_a_name_outside_exchange(tmp_path, monkeypatch):
         assert "not a name inside exchange/" in str(e)
     else:
         raise AssertionError("a name outside exchange/ was staged")
+
+
+def test_a_case_variant_of_an_output_folder_cites_nothing(tmp_path, monkeypatch):
+    _repo(tmp_path, monkeypatch, "Probes go to exchange/BENCH and exchange/Bench/u.probes.json.")
+    assert exchange.cited() == set()
+    assert exchange._excluded("BENCH/u.probes.json")
+    assert exchange._excluded("basis/t.labels.PRIVATE.jsonl")
+    assert not exchange._citable("REVIEW.prompt.md")
