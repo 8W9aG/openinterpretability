@@ -35,6 +35,7 @@ class Paper:
     body: str  # rendered HTML without the title, or empty for an interactive page
     hero: str | None  # the first figure, relative to the paper's folder
     interactive: bool
+    sections: tuple[tuple[str, str], ...] = ()  # (id, title) of each `##` heading, in order
 
     @property
     def href(self) -> str:
@@ -62,6 +63,28 @@ def _rewrite_links(tokens: list[Token], slug: str, repo_url: str) -> None:
                 child.attrSet("href", f"{repo_url}/blob/main/{path}")
 
 
+def _anchor(title: str, taken: set[str]) -> str:
+    """A stable id for a section, from its title: lower case, hyphens, and unique on the page."""
+    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "section"
+    anchor, n = base, 2
+    while anchor in taken:
+        anchor, n = f"{base}-{n}", n + 1
+    taken.add(anchor)
+    return anchor
+
+
+def _mark_sections(tokens: list[Token]) -> tuple[tuple[str, str], ...]:
+    """Give each `##` heading an id, and return the (id, title) of each one, in order."""
+    sections, taken = [], set()
+    for i, token in enumerate(tokens):
+        if token.type == "heading_open" and token.tag == "h2":
+            title = _plain(tokens[i + 1])
+            anchor = _anchor(title, taken)
+            token.attrSet("id", anchor)
+            sections.append((anchor, title))
+    return tuple(sections)
+
+
 def _first_image(tokens: list[Token]) -> str | None:
     """Return the source of the first image, if there is one."""
     for token in tokens:
@@ -79,6 +102,7 @@ def _read_paper(folder: Path, repo_url: str) -> Paper:
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
     _rewrite_links(tokens, folder.name, repo_url)
     interactive = (folder / "index.html").exists()
+    sections = () if interactive else _mark_sections(tokens)
     return Paper(
         slug=folder.name,
         title=_plain(tokens[1]),
@@ -86,6 +110,7 @@ def _read_paper(folder: Path, repo_url: str) -> Paper:
         body="" if interactive else _MARKDOWN.renderer.render(tokens[3:], _MARKDOWN.options, {}),
         hero=_first_image(tokens),
         interactive=interactive,
+        sections=sections,
     )
 
 
