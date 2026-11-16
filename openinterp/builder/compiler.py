@@ -39,6 +39,7 @@ from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import save_spans, scrub, scrub_experiments
+from openinterp.builder.recent import recent_experiments
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
@@ -472,7 +473,7 @@ def _render_model(
     page = circuits_href(model.slug)
     graphs = sister_graphs(model, sister_rows, studied)
     shown = {"circuits": found, "hubs": found_hubs, "circuits_page": page, "sister_graphs": graphs}
-    render(model.href, "model.html", model=model, **shown)
+    render(model.href, "model.html", model=model, recent=recent_experiments(model), **shown)
     circuit_of = render_circuits(render, model, found, found_hubs)
     for layer in model.layers:
         render(layer.href, "layer.html", model=model, layer=layer)
