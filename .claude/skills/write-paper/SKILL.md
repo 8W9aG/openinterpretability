@@ -21,6 +21,7 @@ List the paper in `papers/README.md`. That order is the order of the site's Rese
 ## Structure
 
 1. A level 1 title, then one paragraph that can stand alone. The Research index shows this paragraph, so don't start it with a citation or a path.
+   Then one paragraph that starts **Why we wrote it.**, and says what problem made the paper necessary. In the same paragraph, **The question.** states the question that the paper answers, and links it to its research question in `docs/research-questions.md`. `tests/test_papers.py` checks it.
 2. **Results**: numbered findings, each with its limit. End with what the results do not show.
 3. **Method**, then a section for each finding. Tables hold the exact numbers.
 4. **Caveats**, **Reproduce** (the commands, with the seeds) and **Next**.

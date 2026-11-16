@@ -1,1 +1,0 @@
-- **Auto-merge covers Dependabot and refuses very long PRs** (#4113). A Dependabot update that Dependabot pushed, from a branch of this repository, now merges by itself when its checks pass. A PR with more than 3,000 files never counts as wiki-only, because the files API lists no more than that. `tests/test_auto_merge.py` runs the workflow's script against each rule.

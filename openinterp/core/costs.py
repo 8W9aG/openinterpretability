@@ -19,6 +19,7 @@ from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 
@@ -114,13 +115,13 @@ class ExternalUsage(RequestUsage):
     )
 
     @classmethod
-    def of(cls, requests: list[RequestUsage], **kw) -> ExternalUsage:
+    def of(cls, requests: list[RequestUsage], **kw: Any) -> ExternalUsage:
         """Totals over ``requests``, keeping each one."""
         keys = [k for k in RequestUsage.model_fields if k != "at"]
         totals = {k: sum(getattr(r, k) for r in requests) for k in keys}
         return cls(requests=len(requests), per_request=requests, **totals, **kw)
 
-    def call_fields(self, model: str) -> dict:
+    def call_fields(self, model: str) -> dict[str, Any]:
         """Token, cost and price-table fields of an :class:`LLMCall` answered by ``model``."""
         writes = self.cache_write_5m_tokens + self.cache_write_1h_tokens
         fields = {
@@ -193,12 +194,12 @@ class ExperimentCosts(StrictModel):
 
 def merge(*parts: ExperimentCosts | None) -> ExperimentCosts | None:
     """Join the costs of several commands of one experiment, or ``None`` when all are ``None``."""
-    parts = tuple(p for p in parts if p is not None)
-    if not parts:
+    present = [p for p in parts if p is not None]
+    if not present:
         return None
     return ExperimentCosts(
-        stages=[s for p in parts for s in p.stages],
-        llm_calls=[c for p in parts for c in p.llm_calls],
+        stages=[s for p in present for s in p.stages],
+        llm_calls=[c for p in present for c in p.llm_calls],
     )
 
 
@@ -245,7 +246,8 @@ def _cuda_peak_mb() -> int | None:
     torch = sys.modules.get("torch")  # never import torch just to ask
     if torch is None or not torch.cuda.is_available() or not torch.cuda.is_initialized():
         return None
-    return round(torch.cuda.max_memory_allocated() / 2**20)
+    peak: int = torch.cuda.max_memory_allocated()
+    return round(peak / 2**20)
 
 
 def _release_mps_cache() -> None:
@@ -318,7 +320,7 @@ def add_external(agent: str, model: str, prompt: Path, answer: Path) -> None:
     if prompt.exists() and answer.exists():
         add_stage(agent, answer.stat().st_mtime - prompt.stat().st_mtime)
     chars = len(prompt.read_text()) if prompt.exists() else None
-    fields = {}
+    fields: dict[str, Any] = {}
     if (usage_file := usage_path(answer)).exists():
         usage = ExternalUsage.model_validate_json(usage_file.read_text())
         _check_model(usage, model, usage_file)
@@ -347,9 +349,9 @@ def _check_model(usage: ExternalUsage, model: str, usage_file: Path) -> None:
         )
 
 
-def usage_of(responses: Iterable[object]) -> dict:
+def usage_of(responses: Iterable[object]) -> dict[str, int | float]:
     """Token counts and cost summed over raw LiteLLM responses (one per attempt)."""
-    totals: dict = {"attempts": 0}
+    totals: dict[str, int | float] = {"attempts": 0}
     for response in responses:
         totals["attempts"] += 1
         usage = getattr(response, "usage", None)
@@ -396,7 +398,7 @@ ROLE_ORDER = ("proposer", "reviewer", "judge")
 def by_agent(
     experiments: Iterable[tuple[str | None, ExperimentCosts | None]],
     name: Callable[[str], str] = str,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """LLM cost per experiment for each (role, model), from (verdict status, costs) pairs.
 
     An experiment counts as priced for a role and model when every one of its calls there
@@ -404,7 +406,7 @@ def by_agent(
     divides their total by how many of them were VERIFIED. ``name`` maps a call's model to
     the name it is grouped under (e.g. ``openinterp.core.agent_names.canonical_agent``).
     """
-    groups: dict[tuple[str, str], dict] = {}
+    groups: dict[tuple[str, str], dict[str, float]] = {}
     for status, run in experiments:
         calls: dict[tuple[str, str], list[LLMCall]] = {}
         for call in run.llm_calls if run else ():
@@ -412,9 +414,10 @@ def by_agent(
         for key, cs in calls.items():
             g = groups.setdefault(key, {"experiments": 0, "priced": 0, "usd": 0.0, "verified": 0})
             g["experiments"] += 1
-            if all(c.cost_usd is not None for c in cs):
+            priced = [c.cost_usd for c in cs if c.cost_usd is not None]
+            if len(priced) == len(cs):
                 g["priced"] += 1
-                g["usd"] += sum(c.cost_usd for c in cs)
+                g["usd"] += sum(priced)
                 g["verified"] += status == "VERIFIED"
     rows = [
         {

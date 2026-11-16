@@ -19,7 +19,7 @@ import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from openinterp.core.agent_names import ALIASES
 
@@ -39,12 +39,23 @@ ANTHROPIC_WRITE_1H = 2.0
 class Tokens(Protocol):
     """One request's tokens; ``input_tokens`` excludes cache reads and writes."""
 
-    at: datetime | None
-    input_tokens: int
-    cache_read_tokens: int
-    cache_write_5m_tokens: int
-    cache_write_1h_tokens: int
-    output_tokens: int
+    @property
+    def at(self) -> datetime | None: ...  # noqa: D102
+
+    @property
+    def input_tokens(self) -> int: ...  # noqa: D102
+
+    @property
+    def cache_read_tokens(self) -> int: ...  # noqa: D102
+
+    @property
+    def cache_write_5m_tokens(self) -> int: ...  # noqa: D102
+
+    @property
+    def cache_write_1h_tokens(self) -> int: ...  # noqa: D102
+
+    @property
+    def output_tokens(self) -> int: ...  # noqa: D102
 
 
 def deepseek_peak(at: datetime) -> bool:
@@ -86,7 +97,7 @@ class Price:
         return usd / 1e6
 
 
-def anthropic(input: float, output: float, cache_read: float, **kw) -> Price:
+def anthropic(input: float, output: float, cache_read: float, **kw: Any) -> Price:
     """An Anthropic price, with the cache-write prices derived from ``input`` as Anthropic does."""
     return Price(
         input,
