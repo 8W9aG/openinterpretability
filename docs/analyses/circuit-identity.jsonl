@@ -1,0 +1,75 @@
+{"table": "day", "day": "2026-10-19", "model": "Qwen--Qwen2.5-0.5B", "records": 35, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-20", "model": "Qwen--Qwen2.5-0.5B", "records": 77, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-21", "model": "Qwen--Qwen2.5-0.5B", "records": 116, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-22", "model": "Qwen--Qwen2.5-0.5B", "records": 163, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-23", "model": "Qwen--Qwen2.5-0.5B", "records": 239, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-24", "model": "Qwen--Qwen2.5-0.5B", "records": 372, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-24", "model": "openai-community--gpt2", "records": 372, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-25", "model": "Qwen--Qwen2.5-0.5B", "records": 482, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-25", "model": "openai-community--gpt2", "records": 482, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-26", "model": "Qwen--Qwen2.5-0.5B", "records": 634, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-26", "model": "openai-community--gpt2", "records": 634, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-27", "model": "Qwen--Qwen2.5-0.5B", "records": 797, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-27", "model": "openai-community--gpt2", "records": 797, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-28", "model": "Qwen--Qwen2.5-0.5B", "records": 985, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-28", "model": "openai-community--gpt2", "records": 985, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-29", "model": "Qwen--Qwen2.5-0.5B", "records": 1174, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-29", "model": "openai-community--gpt2", "records": 1174, "circuits": 1, "new": 1, "gone": 0}
+{"table": "day", "day": "2026-10-30", "model": "Qwen--Qwen2.5-0.5B", "records": 1313, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-30", "model": "openai-community--gpt2", "records": 1313, "circuits": 1, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-10-31", "model": "Qwen--Qwen2.5-0.5B", "records": 1435, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-10-31", "model": "openai-community--gpt2", "records": 1435, "circuits": 1, "continue": 1, "gone": 0}
+{"table": "day", "day": "2026-11-01", "model": "Qwen--Qwen2.5-0.5B", "records": 1522, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-01", "model": "openai-community--gpt2", "records": 1522, "circuits": 1, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-11-02", "model": "Qwen--Qwen2.5-0.5B", "records": 1587, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-02", "model": "Qwen--Qwen2.5-1.5B", "records": 1587, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-02", "model": "openai-community--gpt2", "records": 1587, "circuits": 1, "continue": 1, "gone": 0}
+{"table": "day", "day": "2026-11-03", "model": "Qwen--Qwen2.5-0.5B", "records": 1661, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-03", "model": "Qwen--Qwen2.5-1.5B", "records": 1661, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-03", "model": "openai-community--gpt2", "records": 1661, "circuits": 1, "continue": 1, "gone": 0}
+{"table": "day", "day": "2026-11-04", "model": "Qwen--Qwen2.5-0.5B", "records": 1774, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-04", "model": "Qwen--Qwen2.5-1.5B", "records": 1774, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-04", "model": "openai-community--gpt2", "records": 1774, "circuits": 1, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-11-05", "model": "Qwen--Qwen2.5-0.5B", "records": 1866, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-05", "model": "Qwen--Qwen2.5-1.5B", "records": 1866, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-05", "model": "openai-community--gpt2", "records": 1866, "circuits": 1, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-11-06", "model": "Qwen--Qwen2.5-0.5B", "records": 1980, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-06", "model": "Qwen--Qwen2.5-1.5B", "records": 1980, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-06", "model": "openai-community--gpt2", "records": 1980, "circuits": 1, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-11-07", "model": "Qwen--Qwen2.5-0.5B", "records": 2076, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-07", "model": "Qwen--Qwen2.5-1.5B", "records": 2076, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-07", "model": "openai-community--gpt2", "records": 2076, "circuits": 1, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-11-08", "model": "Qwen--Qwen2.5-0.5B", "records": 2142, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-08", "model": "Qwen--Qwen2.5-1.5B", "records": 2142, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-08", "model": "openai-community--gpt2", "records": 2142, "circuits": 1, "continue": 1, "gone": 0}
+{"table": "day", "day": "2026-11-09", "model": "Qwen--Qwen2.5-0.5B", "records": 2209, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-09", "model": "Qwen--Qwen2.5-1.5B", "records": 2209, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-09", "model": "openai-community--gpt2", "records": 2209, "circuits": 3, "new": 2, "continue": 1, "gone": 0}
+{"table": "day", "day": "2026-11-10", "model": "Qwen--Qwen2.5-0.5B", "records": 2289, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-10", "model": "Qwen--Qwen2.5-1.5B", "records": 2289, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-10", "model": "openai-community--gpt2", "records": 2289, "circuits": 3, "continue": 3, "gone": 0}
+{"table": "day", "day": "2026-11-11", "model": "Qwen--Qwen2.5-0.5B", "records": 2395, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-11", "model": "Qwen--Qwen2.5-1.5B", "records": 2395, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-11", "model": "openai-community--gpt2", "records": 2395, "circuits": 3, "continue": 3, "gone": 0}
+{"table": "day", "day": "2026-11-12", "model": "Qwen--Qwen2.5-0.5B", "records": 2491, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-12", "model": "Qwen--Qwen2.5-1.5B", "records": 2491, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-12", "model": "openai-community--gpt2", "records": 2491, "circuits": 4, "new": 1, "continue": 3, "gone": 0}
+{"table": "day", "day": "2026-11-13", "model": "Qwen--Qwen2.5-0.5B", "records": 2584, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-13", "model": "Qwen--Qwen2.5-1.5B", "records": 2584, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-13", "model": "openai-community--gpt2", "records": 2584, "circuits": 4, "continue": 4, "gone": 0}
+{"table": "day", "day": "2026-11-14", "model": "Qwen--Qwen2.5-0.5B", "records": 2687, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-14", "model": "Qwen--Qwen2.5-1.5B", "records": 2687, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-14", "model": "openai-community--gpt2", "records": 2687, "circuits": 4, "continue": 3, "grow_or_shrink": 1, "gone": 0}
+{"table": "day", "day": "2026-11-15", "model": "EleutherAI--pythia-70m", "records": 2819, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-15", "model": "Qwen--Qwen2.5-0.5B", "records": 2819, "circuits": 1, "new": 1, "gone": 0}
+{"table": "day", "day": "2026-11-15", "model": "Qwen--Qwen2.5-1.5B", "records": 2819, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-15", "model": "openai-community--gpt2", "records": 2819, "circuits": 4, "continue": 4, "gone": 0}
+{"table": "day", "day": "2026-11-16", "model": "EleutherAI--pythia-70m", "records": 2924, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-16", "model": "Qwen--Qwen2.5-0.5B", "records": 2924, "circuits": 1, "continue": 1, "gone": 0}
+{"table": "day", "day": "2026-11-16", "model": "Qwen--Qwen2.5-1.5B", "records": 2924, "circuits": 0, "gone": 0}
+{"table": "day", "day": "2026-11-16", "model": "openai-community--gpt2", "records": 2924, "circuits": 4, "continue": 4, "gone": 0}
+{"table": "circuit", "model": "Qwen--Qwen2.5-0.5B", "id": "C5", "members": ["models/Qwen--Qwen2.5-0.5B/L20/N4662.html", "models/Qwen--Qwen2.5-0.5B/L21/N1653.html", "models/Qwen--Qwen2.5-0.5B/L23/N4102.html", "models/Qwen--Qwen2.5-0.5B/L23/N765.html"]}
+{"table": "circuit", "model": "openai-community--gpt2", "id": "C1", "members": ["models/openai-community--gpt2/L4/N2999.html", "models/openai-community--gpt2/L5/N1208.html", "models/openai-community--gpt2/L5/N2567.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L6/N37.html", "models/openai-community--gpt2/L7/H10.html", "models/openai-community--gpt2/L7/H2.html"]}
+{"table": "circuit", "model": "openai-community--gpt2", "id": "C2", "members": ["models/openai-community--gpt2/L11/N2610.html", "models/openai-community--gpt2/L2/N1676.html", "models/openai-community--gpt2/L6/N2096.html"]}
+{"table": "circuit", "model": "openai-community--gpt2", "id": "C3", "members": ["models/openai-community--gpt2/L2/N676.html", "models/openai-community--gpt2/L8/N689.html", "models/openai-community--gpt2/L9/N340.html"]}
+{"table": "circuit", "model": "openai-community--gpt2", "id": "C4", "members": ["models/openai-community--gpt2/L10/N657.html", "models/openai-community--gpt2/L11/N438.html", "models/openai-community--gpt2/L8/N2065.html"]}
