@@ -117,7 +117,10 @@ def _session(sessions: list[dict]) -> str:
     costs = [s["total_cost_usd"] for s in sessions if s.get("total_cost_usd") is not None]
     cost = f", ${sum(costs):.2f}" if costs else ""
     n = len(sessions)
-    return f"{n} session{'s' * (n != 1)}, {minutes:.1f} min, {turns} turns, {tokens}{cost}"
+    # A session driven by another provider names it (openinterp/providers.py, #3245).
+    drivers = sorted({f"{d['provider']}/{d['model']}" for s in sessions if (d := s.get("driver"))})
+    by = f", driven by {', '.join(drivers)}" if drivers else ""
+    return f"{n} session{'s' * (n != 1)}, {minutes:.1f} min, {turns} turns, {tokens}{cost}{by}"
 
 
 def registry_costs(wiki_dir: Path) -> str:
