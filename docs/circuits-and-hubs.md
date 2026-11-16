@@ -21,7 +21,7 @@ Each build clusters a model's studied units by their direct-effect wiring edges,
 
 ### Identity across builds
 
-The registry grows, so the clusters change from one build to the next. Each build matches its clusters to the previous build's circuits by member overlap. The overlap is the Jaccard index |A ∩ B| / |A ∪ B|. It is 1 minus the set edit distance between the two member sets, scaled by their union. An optimal assignment then pairs old and new so that the total overlap is greatest. A new cluster takes the id of the circuit that it is paired with, if the two overlap by at least 0.5. Otherwise it gets a new id. The registry keeps every build's match, so each circuit has a lineage:
+The registry grows, so the clusters change from one build to the next. Each build matches its clusters to the previous build's circuits by member overlap. The overlap is the Jaccard index |A ∩ B| / |A ∪ B|. It is 1 minus the set edit distance between the two member sets, scaled by their union. An optimal assignment then pairs old and new so that the total overlap is greatest. A new cluster takes the id of the circuit that it is paired with, if the two overlap by at least 0.5. Otherwise it gets a new id. `open-interpretability circuits identify` does this, and the release runs it. It keeps each model's lineage in `data/circuits/<model>.jsonl`, an append-only file with one event per line (`openinterp/circuit_ids.py`). So each circuit has a lineage:
 
 | Event | When | What it means |
 | --- | --- | --- |

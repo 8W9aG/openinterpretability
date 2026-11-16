@@ -104,6 +104,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    done
    ```
    Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md` (dots as hyphens).
+   Then update the circuit ids: `uv run open-interpretability circuits identify`. It appends each model's new, grown, split, merged and gone circuits to `data/circuits/<model>.jsonl` (`docs/circuits-and-hubs.md`). Commit those files in the release PR too.
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
    Then run the benchmarks on CI. They no longer run on a local machine (#3808):
    ```bash
@@ -118,7 +119,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    If the protocol version changed since the last tag (`git diff v<previous> -- openinterp/core/schemas.py | grep PROTOCOL_VERSION`), say so in that line: "Ships with protocol version **0.9** (was 0.8)." The section's entries explain why.
 7. **Commit and push.** Check the branch first (`git branch --show-current` prints `release/<version>`):
    ```bash
-   git add CHANGELOG.md changelog.d openinterp/__init__.py docs/analyses/sister-neurons.jsonl docs/analyses/registry-coverage.jsonl
+   git add CHANGELOG.md changelog.d openinterp/__init__.py docs/analyses/sister-neurons.jsonl docs/analyses/registry-coverage.jsonl data/circuits
    git commit -m "Release <version> (protocol v<PROTOCOL_VERSION>)"
    git push -u origin release/<version>
    ```

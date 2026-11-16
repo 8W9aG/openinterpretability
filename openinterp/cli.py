@@ -436,6 +436,7 @@ from openinterp import (  # noqa: E402, F401
     cli_benchmark,
     cli_build,
     cli_check,
+    cli_circuits,
     cli_concepts,
     cli_corpus,
     cli_costs,
