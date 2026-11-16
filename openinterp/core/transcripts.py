@@ -13,11 +13,12 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from openinterp.core.costs import ExternalUsage, RequestUsage
 
 
-def _time(value) -> datetime | None:
+def _time(value: Any) -> datetime | None:
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (AttributeError, ValueError):
@@ -53,7 +54,8 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
     Claude Code writes one line per content block, so a request can have many lines. The
     last line of each request holds its final usage.
     """
-    last: dict[str, tuple] = {}  # API response id → (time, its last line's message)
+    # API response id → (time, its last line's message)
+    last: dict[str, tuple[datetime | None, dict[str, Any]]] = {}
     for line in path.read_text().splitlines():
         try:
             entry = json.loads(line)
@@ -67,7 +69,8 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
         at = _time(entry.get("timestamp"))
         last[message.get("id") or entry.get("uuid")] = (at, message)
 
-    requests, models = [], {}
+    requests: list[RequestUsage] = []
+    models: dict[str, int] = {}
     for at, message in last.values():
         u = message["usage"]
         write_1h = (u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens") or 0
@@ -102,7 +105,7 @@ def forbidden_reads(path: Path) -> tuple[list[str], list[str]]:
     """
     from openinterp.core.isolation import TOOLS, forbidden
 
-    calls: dict[str, tuple[str, bool]] = {}  # tool_use id → (blocked path, completed)
+    calls: dict[str | None, tuple[str, bool]] = {}  # tool_use id → (blocked path, completed)
     for line in path.read_text().splitlines():
         try:
             entry = json.loads(line)

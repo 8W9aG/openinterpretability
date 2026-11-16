@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AwareDatetime
 
@@ -104,7 +104,7 @@ def resolve(entry: DrawEntry, records: list[Row], stopped: list[Row]) -> tuple[O
     return "none", None
 
 
-def summary(resolved: list[tuple[DrawEntry, Outcome, str | None]]) -> dict:
+def summary(resolved: list[tuple[DrawEntry, Outcome, str | None]]) -> dict[str, Any]:
     """Counts by outcome, and the VERIFIED share of explore draws: of all, and of finished ones.
 
     The first share counts a draw with no outcome as not VERIFIED. The second leaves it

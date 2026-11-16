@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +85,10 @@ def put(data: bytes, root: Path | None = None) -> str:
     return sha
 
 
+# Gets a blob by its hash, or gives None when it cannot.
+Fetch = Callable[[str], bytes | None]
+
+
 def _fetch(sha: str) -> bytes | None:
     """The blob from the public dataset, or ``None`` if it can't be had."""
     try:
@@ -95,7 +100,7 @@ def _fetch(sha: str) -> bytes | None:
     return Path(local).read_bytes()
 
 
-def get(sha: str, root: Path | None = None, fetch=None) -> bytes:
+def get(sha: str, root: Path | None = None, fetch: Fetch | None = None) -> bytes:
     """The blob with hash ``sha``: from the local store, else fetched and stored.
 
     ``fetch`` defaults to the read-only fetch from :data:`EVIDENCE_REPO`. Raises
@@ -114,12 +119,12 @@ def get(sha: str, root: Path | None = None, fetch=None) -> bytes:
     return data
 
 
-def split(data: dict, root: Path | None = None) -> dict:
+def split(data: dict[str, Any], root: Path | None = None) -> dict[str, Any]:
     """A copy of a record's JSON with each field in :data:`FIELDS` moved to the store.
 
     A field that is missing, ``None`` or already a reference stays as it is.
     """
-    out = json.loads(json.dumps(data))
+    out: dict[str, Any] = json.loads(json.dumps(data))
     for parent, field in FIELDS:
         node = out.get(parent)
         if not isinstance(node, dict) or node.get(field) is None or is_ref(node[field]):
@@ -128,7 +133,7 @@ def split(data: dict, root: Path | None = None) -> dict:
     return out
 
 
-def resolve(data: Any, root: Path | None = None, fetch=None) -> Any:
+def resolve(data: Any, root: Path | None = None, fetch: Fetch | None = None) -> Any:
     """``data`` with each reference in :data:`FIELDS` replaced by its blob's value.
 
     Data with no reference comes back as it is, so whole records cost nothing.

@@ -8,7 +8,7 @@ several of one layer's neurons (issue #3215).
 from __future__ import annotations
 
 import re
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
 from pydantic import Discriminator, Field, Tag
 
@@ -182,7 +182,7 @@ class SuperpositionIdentifier(_Component):
         return f"{self.model_name} {self.label}"
 
 
-def _component_kind(value) -> str:
+def _component_kind(value: Any) -> str:
     kind = value.get("kind") if isinstance(value, dict) else getattr(value, "kind", None)
     return kind or "mlp_neuron_pole"  # records predating `kind` are neuron poles
 

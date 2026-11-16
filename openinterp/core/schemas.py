@@ -8,7 +8,7 @@ ISO-8601 strings for datetimes.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
@@ -445,11 +445,13 @@ class AuditRecord(StrictModel):
     verdict: VerificationVerdict | None = None
 
     @classmethod
-    def model_validate_json(cls, json_data, **kwargs) -> AuditRecord:  # noqa: D102
+    def model_validate_json(  # noqa: D102
+        cls, json_data: str | bytes | bytearray, **kwargs: Any
+    ) -> AuditRecord:
         return super().model_validate_json(evidence.resolved_text(json_data), **kwargs)
 
     @classmethod
-    def model_validate(cls, obj, **kwargs) -> AuditRecord:  # noqa: D102
+    def model_validate(cls, obj: Any, **kwargs: Any) -> AuditRecord:  # noqa: D102
         text = evidence.resolved_dict_text(obj)
         if text is None:
             return super().model_validate(obj, **kwargs)

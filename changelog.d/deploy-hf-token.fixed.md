@@ -1,1 +1,0 @@
-- The deploy downloads evidence blobs with the read-only `HF_TOKEN`, not anonymously, so the Hub's higher rate limit applies.
