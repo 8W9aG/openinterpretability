@@ -2,6 +2,7 @@
 
 import math
 
+from figure_motion import animate, translate
 from figure_svg import (
     Figure,
     Panel,
@@ -65,20 +66,13 @@ def _run(rows: list[dict], condition: str, seed: int = 0, step: int = STEP, part
 def _moving_dots(fig: Figure, panel: Panel, rows: list[dict], condition: str, shape) -> None:
     """Add a dot for each of L1–L3 that follows the measured rest over the training steps."""
     for layer in (1, 2, 3):
-        frames = []
+        stops = []
         for step in EVAL_STEPS:
             depth = _rest(_run(rows, condition, step=step)["layers"][layer])
-            share = 70 * step / STEP
-            frames.append(
-                f"{share:.1f}%{{transform:translate({panel.x(depth):.1f}px,"
-                f"{panel.y(shape(depth)):.1f}px)}}"
-            )
-        name = f"{condition}{layer}"
-        last = frames[-1].split("{", 1)[1].rstrip("}")
-        fig.motion += (
-            f"@keyframes {name}{{{''.join(frames)}100%{{{last}}}}}"
-            f".{name}{{animation:{name} {CYCLE} linear infinite;{last}}}"
-        )
+            place = translate(panel.x(depth), panel.y(shape(depth)))
+            stops.append((f"{70 * step / STEP:.1f}%", place))
+        name, last = f"{condition}{layer}", stops[-1][1]
+        fig.motion += animate(name, stops, CYCLE, hold=last, rest=last)
         fig.dot(0, 0, 5, f"fc1 ring {name}")
 
 
@@ -87,11 +81,9 @@ def _progress(fig: Figure, y: float) -> None:
     fig.text(44, y + 4, "step 0", "small")
     fig.line(90, y, 660, y, "axis")
     fig.text(668, y + 4, f"{STEP:,}", "small")
-    fig.motion += (
-        f"@keyframes progress{{0%{{transform:translateX(90px)}}70%{{transform:translateX(660px)}}"
-        f"100%{{transform:translateX(660px)}}}}"
-        f".progress{{animation:progress {CYCLE} linear infinite;transform:translateX(660px)}}"
-    )
+    end = "transform:translateX(660px)"
+    stops = [("0%", "transform:translateX(90px)"), ("70%", end)]
+    fig.motion += animate("progress", stops, CYCLE, hold=end, rest=end)
     fig.marks.append(f'<circle class="fc1 progress" cx="0" cy="{y:.1f}" r="4"/>')
 
 

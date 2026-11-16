@@ -22,6 +22,9 @@ Usage: scripts/experiment-loop.sh [options]
                        (default: same as the proposer; records are then not independent)
   --driver MODEL       Claude model that drives each session (default: claude-haiku-5-5;
                        '' for claude's own; see docs/analyses/driver-model-pilot.md)
+  --provider NAME      Drive each session with another provider's model: deepseek, zai,
+                       muse, gemini, grok or anthropic (`open-interpretability provider list`;
+                       docs/providers.md). The driver defaults to the profile's model.
   --corpus PATH        Scan corpus (default: each new scan builds a fresh `mixed` corpus)
   --max N              Stop after N experiments; 0 = until claude fails (default: 0)
   --epsilon P          Exploration probability passed to `open-interpretability next` (default: 0.7)
@@ -63,12 +66,15 @@ MAX_TURNS=200
 BUDGET=""
 DAILY_BUDGET=""
 CLAUDE_BIN=${CLAUDE_BIN:-claude}
+PROVIDER=""
+DRIVER_GIVEN=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --proposer) PROPOSER=$2; shift 2 ;;
     --reviewer) REVIEWER=$2; shift 2 ;;
-    --driver) DRIVER=$2; shift 2 ;;
+    --driver) DRIVER=$2; DRIVER_GIVEN=1; shift 2 ;;
+    --provider) PROVIDER=$2; shift 2 ;;
     --corpus) CORPUS=$2; shift 2 ;;
     --max) MAX=$2; shift 2 ;;
     --epsilon) EPSILON=$2; shift 2 ;;
@@ -88,6 +94,12 @@ STEP_MODELS=""
 [[ $REVIEWER != external/* ]] && STEP_MODELS+=" --reviewer $REVIEWER"
 
 command -v "$CLAUDE_BIN" >/dev/null || { echo "claude not found; set CLAUDE_BIN" >&2; exit 1; }
+# A provider's profile sets the environment and the model, so `--model` is passed once.
+LAUNCH=("$CLAUDE_BIN")
+if [[ -n $PROVIDER ]]; then
+  [[ -z $DRIVER_GIVEN ]] && DRIVER=$(uv run --quiet open-interpretability provider model "$PROVIDER")
+  LAUNCH=(uv run --quiet open-interpretability provider exec "$PROVIDER" -- "$CLAUDE_BIN")
+fi
 # Records name the product that drove them (RunEnvironment.agent_product, issue #3235).
 export OPENINTERP_AGENT_PRODUCT="${OPENINTERP_AGENT_PRODUCT:-claude-code-loop}"
 command -v gh >/dev/null || { echo "gh is required to claim and post experiments" >&2; exit 1; }
@@ -261,8 +273,13 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   check_limits "$i"
 
   status=0
-  (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "$CLAUDE_BIN" "${claude_args[@]}") \
+  (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "${LAUNCH[@]}" "${claude_args[@]}") \
     >"$session" 2>"$log" || status=$?
+  # Record the model that really drove the session, not the name Claude Code saw.
+  echo "driver: provider=${PROVIDER:-anthropic} model=${DRIVER:-claude default}" >>"$log"
+  if [[ -n $PROVIDER ]]; then
+    (cd "$WORKTREE" && uv run --quiet open-interpretability provider annotate "$PROVIDER" "$session") || true
+  fi
   session_result "$session" >>"$log"
   report "$i" "$ledger" "$session"
   if [[ $status -ne 0 ]]; then
