@@ -1,10 +1,14 @@
 name: Auto-merge
 
-# Turns on GitHub's auto-merge (squash) for two kinds of pull request:
+# Turns on GitHub's auto-merge (squash) for three kinds of pull request:
 # - one that changes only files under wiki/: experiment records, their .sig files and pages.
+#   A PR with more files than the files API lists (3,000) is never wiki-only.
 # - one that the maintainer opened from a branch of this repository, whatever it changes,
 #   when the maintainer also made the event: the push (synchronize) or the reopen.
 #   Someone else's push to that branch gets the wiki-only rule.
+# - one that Dependabot opened and pushed, from a branch of this repository.
+# The repository's own automatic PRs (the benchmark ledger) turn on auto-merge themselves:
+# a PR that the workflow token opens starts no workflow, so this file never sees them.
 # GitHub then merges once the required checks ("Lint and tests", "Experiment records",
 # "Reproduce records") pass on the head commit. Any other PR that changes files outside
 # wiki/ (code, workflows, .github/allowed_signers) is left for a human, and auto-merge is
@@ -42,6 +46,9 @@ jobs:
       HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
       # Agents that run under the maintainer's GitHub login open PRs as the maintainer too.
       MAINTAINER: 8W9aG
+      DEPENDABOT: dependabot[bot]
+      # The files API lists at most this many files of a PR.
+      MAX_LISTED: 3000
     steps:
       - name: Auto-merge if the maintainer opened it, or every change is under wiki/
         run: |
@@ -54,6 +61,13 @@ jobs:
             echo "Auto-merge on: opened by $MAINTAINER." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          # Dependabot's updates, when Dependabot also pushed the head.
+          if [ "$AUTHOR" = "$DEPENDABOT" ] && [ "$SENDER" = "$DEPENDABOT" ] \
+            && [ "$HEAD_REPO" = "$REPO" ]; then
+            gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
+            echo "Auto-merge on: a Dependabot update." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           # A rename lists its old path too, so moving a file into wiki/ isn't wiki-only.
           gh api --paginate "repos/$REPO/pulls/$PR/files" \
             --jq '.[] | .filename, (.previous_filename // empty)' > files.txt
@@ -61,8 +75,13 @@ jobs:
           # Discussion, say) waits for a person, since agents later read those pages.
           gh api --paginate "repos/$REPO/pulls/$PR/files" \
             --jq '.[] | select(.status != "added") | .filename' > changed.txt
+          # A PR with more files than the API lists could hide a change past the list's end.
+          total=$(gh pr view "$PR" --repo "$REPO" --json changedFiles -q .changedFiles)
           : > outside.txt
-          if [ -s files.txt ] && [ ! -s changed.txt ] \
+          if [ "$total" -gt "$MAX_LISTED" ]; then
+            echo "more than $MAX_LISTED files" > outside.txt
+          fi
+          if [ -s files.txt ] && [ ! -s changed.txt ] && [ ! -s outside.txt ] \
             && ! grep -v '^wiki/' files.txt > outside.txt; then
             # --match-head-commit: never auto-merge a commit whose files weren't listed.
             gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"

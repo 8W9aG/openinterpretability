@@ -22,11 +22,13 @@ def test_candidates_come_from_class_attributes_and_scripts(tmp_path):
         '<p class="text-sm dark:text-slate-400">Body words stay out</p>'
         "<script>row.className = 'bg-status-verified px-2';</script>"
         "<SCRIPT type=module>x.className = 'mt-3'</SCRIPT >"
+        "<script>y.className = 'mb-4'</script\t\n bar>"
     )
     (tmp_path / "app.js").write_text('el.classList.add("underline")')
     found = css.candidates(tmp_path)
     assert {"text-sm", "dark:text-slate-400", "bg-status-verified", "px-2", "underline"} <= found
     assert "mt-3" in found  # a script in upper case, with a space before ">"
+    assert "mb-4" in found  # an end tag with whitespace and text before ">"
     assert "Body" not in found  # page text is not a class
 
 

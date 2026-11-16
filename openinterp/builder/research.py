@@ -8,6 +8,8 @@ Copied text files lose personal data and taken-down passages, as every page does
 
 from __future__ import annotations
 
+import hashlib
+import json
 import posixpath
 import re
 import shutil
@@ -17,7 +19,7 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from openinterp.builder.pii import REMOVED_TEXT, find_spans, redact_text
+from openinterp.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 _MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
@@ -96,8 +98,16 @@ def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
     return [_read_paper(Path(papers_dir) / slug, repo_url) for slug in slugs]
 
 
-TEXT_SUFFIXES = {".html", ".svg", ".json", ".jsonl", ".js", ".csv", ".txt", ".md"}
-"""The paper files that the site redacts as it copies them. Other files are copied as is."""
+VENDORED = {
+    "three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
+}
+"""The vendored libraries that the site copies as is, by file name and SHA-256.
+
+The site redacts every other paper file that is UTF-8 text. A changed library needs a new hash.
+"""
+
+_WEB_SUFFIXES = {".html", ".htm", ".xhtml", ".svg", ".js", ".mjs", ".css"}
+_STRING_ARRAY = re.compile(r'\[\s*"(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")*\s*\]')
 
 
 def _in_number(text: str, start: int, end: int) -> bool:
@@ -119,20 +129,45 @@ def redact_asset(text: str) -> str:
     """Return a paper's data or code file with personal data and taken-down text removed.
 
     It is :func:`redact_text` (:mod:`openinterp.builder.pii`) without the matches inside
-    numbers, which would break the file and hold no personal data.
+    numbers, which would break the file and hold no personal data. Before that, it reads each
+    JSON array of strings as a token list (:func:`redact_tokens`), because a match can span
+    several tokens.
     """
+    text = _STRING_ARRAY.sub(_redact_array, text)
     spans = [s for s in find_spans(text) if not _in_number(text, *s)]
     for start, end in reversed(spans):
         text = text[:start] + REMOVED_TEXT + text[end:]
     return text
 
 
+def _redact_array(match: re.Match[str]) -> str:
+    """Return a JSON array of strings with :func:`redact_tokens` applied to it."""
+    try:
+        tokens = json.loads(match.group())
+    except ValueError:
+        return match.group()
+    redacted = redact_tokens(tokens)
+    return match.group() if redacted == tokens else json.dumps(redacted, ensure_ascii=False)
+
+
 def _copy(path: Path, target: Path) -> None:
-    """Copy one file, redacted if it is text. A vendored library (``*.min.js``) is copied as is."""
-    if path.suffix in TEXT_SUFFIXES and not path.name.endswith(".min.js"):
-        target.write_text(redact_asset(path.read_text(encoding="utf-8")), encoding="utf-8")
-    else:
+    """Copy one file, redacted if it is UTF-8 text.
+
+    A library in :data:`VENDORED` with the pinned hash is copied as is. A file that is not
+    UTF-8 is copied as is, except a web page or script, which stops the build.
+    """
+    data = path.read_bytes()
+    if VENDORED.get(path.name) == hashlib.sha256(data).hexdigest():
         shutil.copy(path, target)
+        return
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        if path.suffix.lower() in _WEB_SUFFIXES:
+            raise ValueError(f"{path}: a web page or script must be UTF-8 text") from None
+        shutil.copy(path, target)
+        return
+    target.write_text(redact_asset(text), encoding="utf-8")
 
 
 def copy_assets(papers_dir: Path, paper: Paper, output_dir: Path) -> list[Path]:

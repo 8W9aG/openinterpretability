@@ -202,7 +202,7 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          git diff --name-only --no-renames --diff-filter=AM "origin/$BASE_REF...HEAD" \
+          git diff --name-only --no-renames --diff-filter=AMT "origin/$BASE_REF...HEAD" \
             -- wiki/experiments | grep '\.json$' | tee records.txt || true
           echo "records=$([ -s records.txt ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 

@@ -18,6 +18,7 @@ from openinterp.planner import (
     claim_key,
     configured_windows,
 )
+from openinterp.planner_claims import claimed
 
 # A match of a VERIFIED pole that isn't its sister can be drawn too. Its weight is this
 # share of a sister's weight, times its correlation. Any link can be tested. But the
@@ -99,7 +100,7 @@ def _sister(state, row, m, window: int | None, claims, now) -> Candidate:
     """The draw that audits ``m`` with ``state``'s explanation."""
     target = m.slug(row.other)
     factor, notes = _decay(state, claims, now)
-    if any(claim_key(target) in c for c in claims):
+    if claimed(claim_key(target), claims):
         factor, notes = factor * 0.05, [*notes, "an open PR already claims the match"]
     audit = f"--model {row.other} --layer {m.layer} --neuron {m.neuron_idx} --pole {m.pole}"
     if window:
