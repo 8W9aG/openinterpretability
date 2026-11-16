@@ -6,6 +6,7 @@ from pathlib import Path
 
 import click
 
+from openinterp.builder.pending import open_experiments
 from openinterp.cli import cli, wiki_dir_option
 from openinterp.core.schemas import COMMITTED_SOURCES
 from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
@@ -130,6 +131,7 @@ def build(  # noqa: PLR0913 (one option per input file)
         users=load_users(project_links()["repo_url"], wiki_dir),
         coverage_rows=load_coverage(coverage_path),
         paper_pdfs=paper_pdfs,
+        pending=open_experiments(),
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "

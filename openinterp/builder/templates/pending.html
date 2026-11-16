@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pole_mark %}
+
+{% block title %}Pending experiments · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Pending experiments</nav>
+<h1 class="text-2xl font-semibold">Pending experiments</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The experiments that an open pull request is running or landing, newest first, as of this build. A draft is still running. A ready one waits for its checks. Each is a claim: the planner gives its unit less weight until it lands.</p>
+{% if pending %}
+<div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Draw</th><th class="px-3 py-2">State</th><th class="hidden px-3 py-2 sm:table-cell">Opened</th><th class="px-3 py-2">PR</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for p in pending %}
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ p.unit_href }}">L{{ p.layer }}/{{ p.unit }}{% if p.pole %}{{ pole_mark(p.pole) }}{% endif %}</a><div class="text-slate-500">{{ p.model_slug.replace('--', '/') }}</div></td>
+        <td class="px-3 py-2">{{ p.kind.replace('_', ' ') }}</td>
+        <td class="px-3 py-2">{% if p.draft %}running (draft){% else %}waiting for checks{% endif %}</td>
+        <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ p.opened }}">{{ p.opened }}</time></td>
+        <td class="px-3 py-2"><a class="underline underline-offset-2" href="{{ p.url }}">#{{ p.number }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="mt-6 text-sm text-slate-600 dark:text-slate-400">No open experiment pull requests, or this build did not look them up.</p>
+{% endif %}
+{% endblock %}

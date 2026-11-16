@@ -11,11 +11,14 @@ from openinterp.core.licenses import DATA_TERMS
 from openinterp.core.schemas import ReviewPolicy
 
 
-def render_reference_pages(render, papers_dir: Path | None, report, *, pdfs: bool = False) -> None:
-    """Write the About page and the Research section, with a PDF of each paper if ``pdfs``."""
+def render_reference_pages(
+    render, papers_dir: Path | None, report, *, pdfs: bool = False, pending=()
+) -> None:
+    """Write About, the Research section (with PDFs if ``pdfs``) and the Pending page."""
     license = metadata(DISTRIBUTION)["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
     _render_research(render, papers_dir, report, pdfs)
+    render("pending.html", "pending.html", pending=list(pending))
 
 
 def _render_research(render, papers_dir: Path | None, report, pdfs: bool) -> None:

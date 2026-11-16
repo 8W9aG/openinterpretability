@@ -301,6 +301,7 @@ def compile_site(
     users: dict[str, str] | None = None,
     coverage_rows: dict | None = None,
     paper_pdfs: bool = False,
+    pending: Sequence = (),
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -308,12 +309,11 @@ def compile_site(
     :func:`openinterp.wiring_backfill.load_rows` and :func:`openinterp.corpus.load_sources`.
     ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
-    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`). With
-    ``paper_pdfs``, each paper also gets a PDF (:mod:`openinterp.builder.paper_pdf`).
+    ``papers_dir`` holds the Research section. ``paper_pdfs`` adds each paper's PDF, and
+    ``pending`` (:mod:`openinterp.builder.pending`) fills the Pending experiments page.
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
-    Models page, which lists every model in ``[tool.openinterp] models``.
-    ``jobs`` is the number of worker processes that render the unit pages.
+    Models page, of every configured model. ``jobs`` is the unit pages' worker processes.
     ``errata`` (:func:`openinterp.core.errata.load_errata`) alter the experiments they cover:
     each shows the erratum, and one set aside counts toward no standing.
     ``users`` (:func:`openinterp.builder.users.load_users`) name who made the records that
@@ -356,7 +356,7 @@ def compile_site(
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs)
+    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, pending=pending)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     _save_memos()
     return report
