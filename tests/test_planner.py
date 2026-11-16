@@ -565,3 +565,23 @@ def test_a_fork_claim_matches_only_an_equal_key(monkeypatch):
     assert planner.claimed("m-L1-N2-positive", claims)
     # A PR from this repository still claims each key that its text contains.
     assert planner.claimed("m-L3-H1", ["Study m-L3-H12 and m-L3-H1"])
+
+
+def _probes_of_its_own(rec, tag, status):
+    """``rec`` with a status and a probe set of its own, so it is not a re-measurement."""
+    tests = [t.model_copy(update={"prompt": f"{t.prompt} {tag}"})
+             for t in rec.verdict.adversarial_test_results]  # fmt: skip
+    verdict = rec.verdict.model_copy(update={"status": status, "adversarial_test_results": tests})
+    return rec.model_copy(update={"verdict": verdict})
+
+
+def test_an_even_split_draws_a_resolving_review(tmp_path, record):
+    """One VERIFIED and one NEEDS_REVISION independent reading: CONTESTED, so `resolve` (#3212)."""
+    rec = _record(record, status="VERIFIED", idx=1, gates={})
+    split = [
+        _probes_of_its_own(_reviewed_by(rec, "x/a"), "a", "VERIFIED"),
+        _probes_of_its_own(_reviewed_by(rec, "x/b", hours=1), "b", "NEEDS_REVISION"),
+    ]
+    plan = plan_next(_registry(tmp_path, *split), seed=1, now=NOW)
+    assert ("resolve", "N1-positive") in _kinds(plan)
+    assert ("revise", "N1-positive") not in _kinds(plan)

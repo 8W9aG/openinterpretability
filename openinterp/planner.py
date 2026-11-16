@@ -65,6 +65,7 @@ BASE_WEIGHTS = {
     "independent_review": 2.5,  # proposer reviewed its own hypothesis
     "revise": 2.0,  # NEEDS_REVISION: failed gates say exactly what to fix
     "rescan": 2.0,  # scanned on the built-in sample: its max activation means little
+    "resolve": 2.2,  # CONTESTED: one more independent review breaks the even split (#3212)
     "replicate": 1.2,  # VERIFIED by one reviewer model, or never by an independent one
     "opposite_pole": 1.0,  # the other half of a studied neuron
     "new_hypothesis": 0.8,  # REJECTED: the null result stands; try another idea
@@ -78,6 +79,7 @@ SKILLS = {
     "revise": ["native-neuron-audit", "explanation-simulation-scoring"],
     "rescan": ["native-neuron-audit", "neuron-family-triage"],
     "replicate": ["interpretability-illusions-review"],
+    "resolve": ["interpretability-illusions-review"],
     "opposite_pole": ["native-neuron-audit", "vocab-projection-lookahead"],
     "new_hypothesis": ["native-neuron-audit", "neuron-steering-tests"],
     "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
@@ -302,7 +304,10 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
         *c.revise,
         "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>",
     ]
-    if verdict.status == "NEEDS_REVISION":
+    if state.contested:
+        why = "its reviews split evenly between VERIFIED and not; one more settles it"
+        kinds.append(("resolve", why, [c.review], None))
+    elif verdict.status == "NEEDS_REVISION":
         kinds.append(("revise", f"failed gates: {', '.join(failed) or 'unknown'}", resubmit, None))
     elif verdict.status == "REJECTED":
         why = "rejected; the null result stands, so try another idea"
