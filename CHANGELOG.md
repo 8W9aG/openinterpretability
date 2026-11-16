@@ -111,7 +111,6 @@ Ships with protocol version **0.9**.
 - CI pins every GitHub Action to a full commit SHA. A test now fails on an action that is pinned only by a tag.
 - **Treat a type change as an edit** (`openinterp/checks.py`, `openinterp/signing.py`, `.github/workflows/ci.yml`). The write-once check now fails any status other than an add on an archived file. The check also fails each symbolic link in the wiki. Record reproduction and signature landing times now include type changes (#4113).
 
-
 ## [0.0.20] - 2026-11-15
 
 Ships with protocol version **0.9** (was 0.8).
