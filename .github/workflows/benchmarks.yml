@@ -98,7 +98,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Add the run to the ledger through an auto-merged PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          # A PR that github.token opens starts no CI without approval, so its required
+          # checks never pass (#4215). LEDGER_TOKEN, a fine-grained token for this
+          # repository with Contents, Pull requests and Actions write, opens it as a person
+          # would, so CI runs. Without the secret, the step falls back to github.token.
+          GH_TOKEN: ${{ secrets.LEDGER_TOKEN || github.token }}
           RUN: ${{ github.run_id }}
         run: |
           branch="benchmarks/$(date -u +%Y%m%d)-$RUN"
