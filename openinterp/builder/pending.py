@@ -1,4 +1,4 @@
-"""Pending experiments: the open experiment PRs, for the site's Pending page (issue #3283).
+"""Pending experiments: the open experiment PRs, for the home and model pages (issue #3283).
 
 An experiment PR's branch names its unit (``experiment/<model>-L<layer>-<unit>[-pole][-kind]``,
 ``choose-next-experiment``). :func:`open_experiments` lists the open ones with ``gh``.

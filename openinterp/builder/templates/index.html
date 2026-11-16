@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
+{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome, pending_table %}
 {% set t = stats.totals %}
 
 {% block content %}
@@ -172,7 +172,7 @@
 
 <section class="mb-10">
   <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ stats.recent | length }} experiments, whatever their verdict, newest first. Experiments still in an open pull request are on <a class="underline underline-offset-2" href="{{ root }}pending.html">Pending experiments</a>.</p>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ stats.recent | length }} experiments, whatever their verdict, newest first.</p>
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
@@ -209,6 +209,7 @@
     </table>
   </div>
 </section>
+{% if pending %}{{ pending_table(pending, root) }}{% endif %}
 
 <section class="mb-10">
   <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark %}
+{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -126,6 +126,8 @@
   </div>
 </section>
 {% endif %}
+{% set own_pending = pending | selectattr("model_slug", "equalto", model.slug) | list %}
+{% if own_pending %}{{ pending_table(own_pending, root, show_model=false) }}{% endif %}
 
 {% if sister_graphs %}
 <section class="mt-10" data-pagefind-ignore>

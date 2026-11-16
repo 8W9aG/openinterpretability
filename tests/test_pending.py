@@ -1,4 +1,4 @@
-"""The Pending experiments page (openinterp/builder/pending.py, #3283)."""
+"""Pending experiments on the home and model pages (openinterp/builder/pending.py, #3283)."""
 
 from openinterp.builder import pending
 from openinterp.builder.compiler import compile_site
@@ -25,16 +25,22 @@ def test_forks_and_other_branches_are_not_listed():
     assert pending.parse(_pr("site/pending-3283")) is None
 
 
-def test_the_page_lists_what_it_is_given_and_says_so_when_empty(tmp_path, record):
+def test_the_home_and_model_pages_list_the_pending_experiments(tmp_path, record):
     from tests.test_compiler import experiment
 
     records = [experiment(record, idx=1, status="VERIFIED", counts=(10, 0, 5, 0))]
-    shown = [pending.parse(_pr("experiment/Qwen--Qwen2.5-0.5B-L3-N1-positive-revise", draft=True))]
-    compile_site(records, tmp_path / "a", pending=shown)
-    page = (tmp_path / "a" / "pending.html").read_text(encoding="utf-8")
-    assert "L3/N1" in page and "revise" in page and "running (draft)" in page and "#7" in page
+    slug = record.submission.identifier.model_name.replace("/", "--")
+    own = pending.parse(_pr(f"experiment/{slug}-L3-N1-positive-revise", draft=True))
+    other = pending.parse(_pr("experiment/other--model-L2-H4", number=9))
+    compile_site(records, tmp_path / "a", pending=[own, other])
+    home = (tmp_path / "a" / "index.html").read_text(encoding="utf-8")
+    assert "Pending experiments" in home and "running (draft)" in home
+    assert "pull/7" in home and "pull/9" in home and "revise" in home
+    model = (tmp_path / "a" / "models" / slug / "index.html").read_text(encoding="utf-8")
+    assert "Pending experiments" in model and "pull/7" in model and "pull/9" not in model
+    assert not (tmp_path / "a" / "pending.html").exists()
     compile_site(records, tmp_path / "b")
-    assert "did not look them up" in (tmp_path / "b" / "pending.html").read_text(encoding="utf-8")
+    assert "Pending experiments" not in (tmp_path / "b" / "index.html").read_text(encoding="utf-8")
 
 
 def test_without_gh_nothing_is_fetched(monkeypatch):
