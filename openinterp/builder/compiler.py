@@ -299,6 +299,7 @@ def compile_site(
     errata: Sequence[Erratum] = (),
     users: dict[str, str] | None = None,
     coverage_rows: dict | None = None,
+    paper_pdfs: bool = False,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -306,7 +307,8 @@ def compile_site(
     :func:`openinterp.wiring_backfill.load_rows` and :func:`openinterp.corpus.load_sources`.
     ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
-    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`).
+    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`). With
+    ``paper_pdfs``, each paper also gets a PDF (:mod:`openinterp.builder.paper_pdf`).
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
     Models page, which lists every model in ``[tool.openinterp] models``.
@@ -353,7 +355,7 @@ def compile_site(
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report)
+    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     _save_memos()
     return report

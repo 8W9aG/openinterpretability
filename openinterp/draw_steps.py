@@ -26,7 +26,7 @@ SCAN_KINDS = (
 )
 NEW_UNIT_KINDS = ("explore", "opposite_pole", "superposition")  # no history to read
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
-REVIEW_KINDS = ("independent_review", "replicate", "challenge")
+REVIEW_KINDS = ("independent_review", "replicate", "resolve", "challenge")
 
 
 @dataclass(frozen=True)
@@ -344,6 +344,7 @@ VERBS = {
     "new_hypothesis": "New hypothesis for",
     "rescan": "Rescan",
     "replicate": "Replicate",
+    "resolve": "Resolve",
     "challenge": "Challenge",
     "opposite_pole": "Explore",
     "sister": "Sister study of",

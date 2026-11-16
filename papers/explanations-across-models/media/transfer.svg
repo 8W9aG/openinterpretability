@@ -27,7 +27,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
 .sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
-</style>
+@keyframes sisterdots{0%{opacity:0}8.0%{opacity:1}100%{opacity:1}}.sisterdots{animation:sisterdots 8s step-end infinite;opacity:1}@keyframes sistermid{0%{opacity:0}20.0%{opacity:1}100%{opacity:1}}.sistermid{animation:sistermid 8s step-end infinite;opacity:1}@keyframes matchdots{0%{opacity:0}30.0%{opacity:1}100%{opacity:1}}.matchdots{animation:matchdots 8s step-end infinite;opacity:1}@keyframes matchmid{0%{opacity:0}42.0%{opacity:1}100%{opacity:1}}.matchmid{animation:matchmid 8s step-end infinite;opacity:1}@keyframes randomdots{0%{opacity:0}52.0%{opacity:1}100%{opacity:1}}.randomdots{animation:randomdots 8s step-end infinite;opacity:1}@keyframes randommid{0%{opacity:0}64.0%{opacity:1}100%{opacity:1}}.randommid{animation:randommid 8s step-end infinite;opacity:1}</style>
 <rect class="bg" width="760" height="447" rx="10"/>
 <text x="20.0" y="30.0" class="title">A pole&#x27;s explanation carries better to its sister</text>
 <text x="20.0" y="53.0" class="title">than to another match or a random pole</text>
@@ -45,91 +45,91 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="grid" d="M60.0 131.0L380.0 131.0"/>
 <text x="53.0" y="135.0" class="small" text-anchor="end">1.00</text>
 <path class="axis" d="M60.0 241.0L380.0 241.0"/>
-<circle class="fc1" cx="81.3" cy="257.9" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="256.7" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="255.4" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="249.5" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="249.5" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="243.4" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="242.2" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="241.0" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="241.0" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="236.0" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="233.7" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="225.3" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="219.0" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="218.0" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="212.2" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="212.0" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="209.6" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="209.6" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="209.6" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="203.5" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="203.5" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="203.5" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="186.6" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="186.0" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="179.4" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="178.1" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="178.1" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="178.1" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="178.1" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="175.5" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="175.5" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="172.1" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="170.3" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="167.7" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="165.0" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="163.6" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="163.6" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="162.4" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="162.4" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="162.4" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="162.4" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="156.4" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="155.2" r="3.5"/>
-<circle class="fc1" cx="92.0" cy="155.2" r="3.5"/>
-<circle class="fc1" cx="102.7" cy="147.9" r="3.5"/>
-<circle class="fc1" cx="113.3" cy="147.9" r="3.5"/>
-<circle class="fc1" cx="124.0" cy="147.9" r="3.5"/>
-<circle class="fc1" cx="134.7" cy="146.7" r="3.5"/>
-<circle class="fc1" cx="145.3" cy="146.7" r="3.5"/>
-<circle class="fc1" cx="81.3" cy="131.0" r="3.5"/>
-<path class="line sc1" d="M76.0 178.7L150.7 178.7"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="257.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="256.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="255.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="249.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="249.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="243.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="242.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="241.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="241.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="236.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="233.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="225.3" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="219.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="218.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="212.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="212.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="209.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="209.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="209.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="203.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="203.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="203.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="186.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="186.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="179.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="178.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="178.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="178.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="178.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="175.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="175.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="172.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="170.3" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="167.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="165.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="163.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="163.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="162.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="162.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="162.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="162.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="156.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="155.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="155.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="147.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="147.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="147.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="146.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="146.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="131.0" r="3.5"/>
+<path class="line sc1 sistermid" d="M76.0 178.7L150.7 178.7"/>
 <text x="113.3" y="366.0" class="small" text-anchor="middle">sisters</text>
-<circle class="fc3" cx="188.0" cy="257.9" r="3.5"/>
-<circle class="fc3" cx="198.7" cy="252.0" r="3.5"/>
-<circle class="fc3" cx="209.3" cy="250.7" r="3.5"/>
-<circle class="fc3" cx="220.0" cy="250.7" r="3.5"/>
-<circle class="fc3" cx="230.7" cy="249.5" r="3.5"/>
-<circle class="fc3" cx="241.3" cy="249.5" r="3.5"/>
-<circle class="fc3" cx="252.0" cy="246.5" r="3.5"/>
-<circle class="fc3" cx="188.0" cy="241.0" r="3.5"/>
-<circle class="fc3" cx="198.7" cy="241.0" r="3.5"/>
-<circle class="fc3" cx="209.3" cy="241.0" r="3.5"/>
-<circle class="fc3" cx="220.0" cy="241.0" r="3.5"/>
-<circle class="fc3" cx="230.7" cy="233.7" r="3.5"/>
-<circle class="fc3" cx="241.3" cy="232.5" r="3.5"/>
-<circle class="fc3" cx="252.0" cy="225.3" r="3.5"/>
-<circle class="fc3" cx="188.0" cy="210.8" r="3.5"/>
-<circle class="fc3" cx="198.7" cy="210.8" r="3.5"/>
-<circle class="fc3" cx="209.3" cy="209.6" r="3.5"/>
-<circle class="fc3" cx="220.0" cy="208.0" r="3.5"/>
-<circle class="fc3" cx="230.7" cy="202.5" r="3.5"/>
-<circle class="fc3" cx="241.3" cy="193.9" r="3.5"/>
-<circle class="fc3" cx="252.0" cy="186.6" r="3.5"/>
-<circle class="fc3" cx="188.0" cy="180.6" r="3.5"/>
-<circle class="fc3" cx="198.7" cy="179.4" r="3.5"/>
-<circle class="fc3" cx="209.3" cy="170.9" r="3.5"/>
-<circle class="fc3" cx="220.0" cy="162.4" r="3.5"/>
-<circle class="fc3" cx="230.7" cy="146.7" r="3.5"/>
-<path class="line sc3" d="M182.7 228.9L257.3 228.9"/>
+<circle class="fc3 matchdots" cx="188.0" cy="257.9" r="3.5"/>
+<circle class="fc3 matchdots" cx="198.7" cy="252.0" r="3.5"/>
+<circle class="fc3 matchdots" cx="209.3" cy="250.7" r="3.5"/>
+<circle class="fc3 matchdots" cx="220.0" cy="250.7" r="3.5"/>
+<circle class="fc3 matchdots" cx="230.7" cy="249.5" r="3.5"/>
+<circle class="fc3 matchdots" cx="241.3" cy="249.5" r="3.5"/>
+<circle class="fc3 matchdots" cx="252.0" cy="246.5" r="3.5"/>
+<circle class="fc3 matchdots" cx="188.0" cy="241.0" r="3.5"/>
+<circle class="fc3 matchdots" cx="198.7" cy="241.0" r="3.5"/>
+<circle class="fc3 matchdots" cx="209.3" cy="241.0" r="3.5"/>
+<circle class="fc3 matchdots" cx="220.0" cy="241.0" r="3.5"/>
+<circle class="fc3 matchdots" cx="230.7" cy="233.7" r="3.5"/>
+<circle class="fc3 matchdots" cx="241.3" cy="232.5" r="3.5"/>
+<circle class="fc3 matchdots" cx="252.0" cy="225.3" r="3.5"/>
+<circle class="fc3 matchdots" cx="188.0" cy="210.8" r="3.5"/>
+<circle class="fc3 matchdots" cx="198.7" cy="210.8" r="3.5"/>
+<circle class="fc3 matchdots" cx="209.3" cy="209.6" r="3.5"/>
+<circle class="fc3 matchdots" cx="220.0" cy="208.0" r="3.5"/>
+<circle class="fc3 matchdots" cx="230.7" cy="202.5" r="3.5"/>
+<circle class="fc3 matchdots" cx="241.3" cy="193.9" r="3.5"/>
+<circle class="fc3 matchdots" cx="252.0" cy="186.6" r="3.5"/>
+<circle class="fc3 matchdots" cx="188.0" cy="180.6" r="3.5"/>
+<circle class="fc3 matchdots" cx="198.7" cy="179.4" r="3.5"/>
+<circle class="fc3 matchdots" cx="209.3" cy="170.9" r="3.5"/>
+<circle class="fc3 matchdots" cx="220.0" cy="162.4" r="3.5"/>
+<circle class="fc3 matchdots" cx="230.7" cy="146.7" r="3.5"/>
+<path class="line sc3 matchmid" d="M182.7 228.9L257.3 228.9"/>
 <text x="220.0" y="366.0" class="small" text-anchor="middle">other top matches</text>
-<circle class="fc2" cx="294.7" cy="296.0" r="3.5"/>
-<circle class="fc2" cx="305.3" cy="254.1" r="3.5"/>
-<circle class="fc2" cx="316.0" cy="249.5" r="3.5"/>
-<circle class="fc2" cx="326.7" cy="249.5" r="3.5"/>
-<path class="line sc2" d="M289.3 251.8L364.0 251.8"/>
+<circle class="fc2 randomdots" cx="294.7" cy="296.0" r="3.5"/>
+<circle class="fc2 randomdots" cx="305.3" cy="254.1" r="3.5"/>
+<circle class="fc2 randomdots" cx="316.0" cy="249.5" r="3.5"/>
+<circle class="fc2 randomdots" cx="326.7" cy="249.5" r="3.5"/>
+<path class="line sc2 randommid" d="M289.3 251.8L364.0 251.8"/>
 <text x="326.7" y="366.0" class="small" text-anchor="middle">random poles</text>
 <path class="grid" d="M416.0 131.0L416.0 351.0"/>
 <text x="416.0" y="366.0" class="small" text-anchor="middle">0.00</text>
@@ -148,82 +148,82 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="grid" d="M416.0 131.0L736.0 131.0"/>
 <path class="axis" d="M416.0 241.0L736.0 241.0"/>
 <text x="576.0" y="382.0" class="small" text-anchor="middle">correlation r with the source pole</text>
-<circle class="fc1" cx="661.7" cy="162.4" r="4"/>
-<circle class="fc1" cx="648.3" cy="155.2" r="4"/>
-<circle class="fc1" cx="502.0" cy="256.7" r="4"/>
-<circle class="fc1" cx="662.6" cy="165.0" r="4"/>
-<circle class="fc1" cx="542.6" cy="249.5" r="4"/>
-<circle class="fc1" cx="550.4" cy="257.9" r="4"/>
-<circle class="fc1" cx="595.9" cy="156.4" r="4"/>
-<circle class="fc1" cx="658.6" cy="170.3" r="4"/>
-<circle class="fc1" cx="504.2" cy="242.2" r="4"/>
-<circle class="fc1" cx="582.8" cy="147.9" r="4"/>
-<circle class="fc1" cx="590.9" cy="175.5" r="4"/>
-<circle class="fc1" cx="516.2" cy="218.0" r="4"/>
-<circle class="fc1" cx="552.7" cy="225.3" r="4"/>
-<circle class="fc1" cx="505.0" cy="147.9" r="4"/>
-<circle class="fc1" cx="529.9" cy="162.4" r="4"/>
-<circle class="fc1" cx="575.7" cy="241.0" r="4"/>
-<circle class="fc1" cx="529.6" cy="255.4" r="4"/>
-<circle class="fc1" cx="533.0" cy="209.6" r="4"/>
-<circle class="fc1" cx="502.1" cy="146.7" r="4"/>
-<circle class="fc1" cx="498.9" cy="241.0" r="4"/>
-<circle class="fc1" cx="565.6" cy="162.4" r="4"/>
-<circle class="fc1" cx="522.9" cy="131.0" r="4"/>
-<circle class="fc1" cx="478.4" cy="212.2" r="4"/>
-<circle class="fc1" cx="607.7" cy="249.5" r="4"/>
-<circle class="fc1" cx="561.5" cy="178.1" r="4"/>
-<circle class="fc1" cx="521.5" cy="167.7" r="4"/>
-<circle class="fc1" cx="540.4" cy="209.6" r="4"/>
-<circle class="fc1" cx="523.4" cy="203.5" r="4"/>
-<circle class="fc1" cx="654.7" cy="162.4" r="4"/>
-<circle class="fc1" cx="551.6" cy="178.1" r="4"/>
-<circle class="fc1" cx="531.5" cy="219.0" r="4"/>
-<circle class="fc1" cx="572.3" cy="155.2" r="4"/>
-<circle class="fc1" cx="661.0" cy="203.5" r="4"/>
-<circle class="fc1" cx="529.9" cy="146.7" r="4"/>
-<circle class="fc1" cx="572.5" cy="233.7" r="4"/>
-<circle class="fc1" cx="489.0" cy="212.0" r="4"/>
-<circle class="fc1" cx="506.5" cy="179.4" r="4"/>
-<circle class="fc1" cx="571.4" cy="175.5" r="4"/>
-<circle class="fc1" cx="500.9" cy="209.6" r="4"/>
-<circle class="fc1" cx="605.3" cy="178.1" r="4"/>
-<circle class="fc1" cx="478.9" cy="186.6" r="4"/>
-<circle class="fc1" cx="541.1" cy="186.0" r="4"/>
-<circle class="fc1" cx="607.4" cy="163.6" r="4"/>
-<circle class="fc1" cx="533.8" cy="147.9" r="4"/>
-<circle class="fc1" cx="669.2" cy="178.1" r="4"/>
-<circle class="fc1" cx="565.7" cy="236.0" r="4"/>
-<circle class="fc1" cx="602.4" cy="243.4" r="4"/>
-<circle class="fc1" cx="587.2" cy="163.6" r="4"/>
-<circle class="fc1" cx="474.2" cy="203.5" r="4"/>
-<circle class="fc1" cx="614.5" cy="172.1" r="4"/>
-<circle class="fc3" cx="551.5" cy="241.0" r="4"/>
-<circle class="fc3" cx="582.9" cy="209.6" r="4"/>
-<circle class="fc3" cx="600.1" cy="179.4" r="4"/>
-<circle class="fc3" cx="555.1" cy="225.3" r="4"/>
-<circle class="fc3" cx="537.8" cy="241.0" r="4"/>
-<circle class="fc3" cx="553.5" cy="170.9" r="4"/>
-<circle class="fc3" cx="473.2" cy="232.5" r="4"/>
-<circle class="fc3" cx="516.8" cy="210.8" r="4"/>
-<circle class="fc3" cx="553.2" cy="241.0" r="4"/>
-<circle class="fc3" cx="461.5" cy="186.6" r="4"/>
-<circle class="fc3" cx="500.4" cy="249.5" r="4"/>
-<circle class="fc3" cx="508.4" cy="162.4" r="4"/>
-<circle class="fc3" cx="607.5" cy="241.0" r="4"/>
-<circle class="fc3" cx="506.6" cy="233.7" r="4"/>
-<circle class="fc3" cx="458.8" cy="250.7" r="4"/>
-<circle class="fc3" cx="580.6" cy="210.8" r="4"/>
-<circle class="fc3" cx="491.8" cy="146.7" r="4"/>
-<circle class="fc3" cx="566.8" cy="249.5" r="4"/>
-<circle class="fc3" cx="557.2" cy="250.7" r="4"/>
-<circle class="fc3" cx="508.8" cy="257.9" r="4"/>
-<circle class="fc3" cx="485.6" cy="193.9" r="4"/>
-<circle class="fc3" cx="508.6" cy="180.6" r="4"/>
-<circle class="fc3" cx="492.2" cy="202.5" r="4"/>
-<circle class="fc3" cx="460.4" cy="246.5" r="4"/>
-<circle class="fc3" cx="501.3" cy="208.0" r="4"/>
-<circle class="fc3" cx="479.0" cy="252.0" r="4"/>
+<circle class="fc1 sisterdots" cx="661.7" cy="162.4" r="4"/>
+<circle class="fc1 sisterdots" cx="648.3" cy="155.2" r="4"/>
+<circle class="fc1 sisterdots" cx="502.0" cy="256.7" r="4"/>
+<circle class="fc1 sisterdots" cx="662.6" cy="165.0" r="4"/>
+<circle class="fc1 sisterdots" cx="542.6" cy="249.5" r="4"/>
+<circle class="fc1 sisterdots" cx="550.4" cy="257.9" r="4"/>
+<circle class="fc1 sisterdots" cx="595.9" cy="156.4" r="4"/>
+<circle class="fc1 sisterdots" cx="658.6" cy="170.3" r="4"/>
+<circle class="fc1 sisterdots" cx="504.2" cy="242.2" r="4"/>
+<circle class="fc1 sisterdots" cx="582.8" cy="147.9" r="4"/>
+<circle class="fc1 sisterdots" cx="590.9" cy="175.5" r="4"/>
+<circle class="fc1 sisterdots" cx="516.2" cy="218.0" r="4"/>
+<circle class="fc1 sisterdots" cx="552.7" cy="225.3" r="4"/>
+<circle class="fc1 sisterdots" cx="505.0" cy="147.9" r="4"/>
+<circle class="fc1 sisterdots" cx="529.9" cy="162.4" r="4"/>
+<circle class="fc1 sisterdots" cx="575.7" cy="241.0" r="4"/>
+<circle class="fc1 sisterdots" cx="529.6" cy="255.4" r="4"/>
+<circle class="fc1 sisterdots" cx="533.0" cy="209.6" r="4"/>
+<circle class="fc1 sisterdots" cx="502.1" cy="146.7" r="4"/>
+<circle class="fc1 sisterdots" cx="498.9" cy="241.0" r="4"/>
+<circle class="fc1 sisterdots" cx="565.6" cy="162.4" r="4"/>
+<circle class="fc1 sisterdots" cx="522.9" cy="131.0" r="4"/>
+<circle class="fc1 sisterdots" cx="478.4" cy="212.2" r="4"/>
+<circle class="fc1 sisterdots" cx="607.7" cy="249.5" r="4"/>
+<circle class="fc1 sisterdots" cx="561.5" cy="178.1" r="4"/>
+<circle class="fc1 sisterdots" cx="521.5" cy="167.7" r="4"/>
+<circle class="fc1 sisterdots" cx="540.4" cy="209.6" r="4"/>
+<circle class="fc1 sisterdots" cx="523.4" cy="203.5" r="4"/>
+<circle class="fc1 sisterdots" cx="654.7" cy="162.4" r="4"/>
+<circle class="fc1 sisterdots" cx="551.6" cy="178.1" r="4"/>
+<circle class="fc1 sisterdots" cx="531.5" cy="219.0" r="4"/>
+<circle class="fc1 sisterdots" cx="572.3" cy="155.2" r="4"/>
+<circle class="fc1 sisterdots" cx="661.0" cy="203.5" r="4"/>
+<circle class="fc1 sisterdots" cx="529.9" cy="146.7" r="4"/>
+<circle class="fc1 sisterdots" cx="572.5" cy="233.7" r="4"/>
+<circle class="fc1 sisterdots" cx="489.0" cy="212.0" r="4"/>
+<circle class="fc1 sisterdots" cx="506.5" cy="179.4" r="4"/>
+<circle class="fc1 sisterdots" cx="571.4" cy="175.5" r="4"/>
+<circle class="fc1 sisterdots" cx="500.9" cy="209.6" r="4"/>
+<circle class="fc1 sisterdots" cx="605.3" cy="178.1" r="4"/>
+<circle class="fc1 sisterdots" cx="478.9" cy="186.6" r="4"/>
+<circle class="fc1 sisterdots" cx="541.1" cy="186.0" r="4"/>
+<circle class="fc1 sisterdots" cx="607.4" cy="163.6" r="4"/>
+<circle class="fc1 sisterdots" cx="533.8" cy="147.9" r="4"/>
+<circle class="fc1 sisterdots" cx="669.2" cy="178.1" r="4"/>
+<circle class="fc1 sisterdots" cx="565.7" cy="236.0" r="4"/>
+<circle class="fc1 sisterdots" cx="602.4" cy="243.4" r="4"/>
+<circle class="fc1 sisterdots" cx="587.2" cy="163.6" r="4"/>
+<circle class="fc1 sisterdots" cx="474.2" cy="203.5" r="4"/>
+<circle class="fc1 sisterdots" cx="614.5" cy="172.1" r="4"/>
+<circle class="fc3 matchdots" cx="551.5" cy="241.0" r="4"/>
+<circle class="fc3 matchdots" cx="582.9" cy="209.6" r="4"/>
+<circle class="fc3 matchdots" cx="600.1" cy="179.4" r="4"/>
+<circle class="fc3 matchdots" cx="555.1" cy="225.3" r="4"/>
+<circle class="fc3 matchdots" cx="537.8" cy="241.0" r="4"/>
+<circle class="fc3 matchdots" cx="553.5" cy="170.9" r="4"/>
+<circle class="fc3 matchdots" cx="473.2" cy="232.5" r="4"/>
+<circle class="fc3 matchdots" cx="516.8" cy="210.8" r="4"/>
+<circle class="fc3 matchdots" cx="553.2" cy="241.0" r="4"/>
+<circle class="fc3 matchdots" cx="461.5" cy="186.6" r="4"/>
+<circle class="fc3 matchdots" cx="500.4" cy="249.5" r="4"/>
+<circle class="fc3 matchdots" cx="508.4" cy="162.4" r="4"/>
+<circle class="fc3 matchdots" cx="607.5" cy="241.0" r="4"/>
+<circle class="fc3 matchdots" cx="506.6" cy="233.7" r="4"/>
+<circle class="fc3 matchdots" cx="458.8" cy="250.7" r="4"/>
+<circle class="fc3 matchdots" cx="580.6" cy="210.8" r="4"/>
+<circle class="fc3 matchdots" cx="491.8" cy="146.7" r="4"/>
+<circle class="fc3 matchdots" cx="566.8" cy="249.5" r="4"/>
+<circle class="fc3 matchdots" cx="557.2" cy="250.7" r="4"/>
+<circle class="fc3 matchdots" cx="508.8" cy="257.9" r="4"/>
+<circle class="fc3 matchdots" cx="485.6" cy="193.9" r="4"/>
+<circle class="fc3 matchdots" cx="508.6" cy="180.6" r="4"/>
+<circle class="fc3 matchdots" cx="492.2" cy="202.5" r="4"/>
+<circle class="fc3 matchdots" cx="460.4" cy="246.5" r="4"/>
+<circle class="fc3 matchdots" cx="501.3" cy="208.0" r="4"/>
+<circle class="fc3 matchdots" cx="479.0" cy="252.0" r="4"/>
 <circle class="fc1" cx="25.0" cy="395.0" r="5"/>
 <text x="35.0" y="399.0">sisters</text>
 <circle class="fc3" cx="97.2" cy="395.0" r="5"/>

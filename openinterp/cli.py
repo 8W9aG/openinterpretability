@@ -450,6 +450,7 @@ from openinterp import (  # noqa: E402, F401
     cli_pause,
     cli_pole_effects,
     cli_probing,
+    cli_provider,
     cli_registry,
     cli_reproduce,
     cli_review,

@@ -33,7 +33,8 @@
 <h1 class="max-w-3xl text-2xl font-semibold">{{ paper.title }}</h1>
 <p class="mt-2 text-xs text-slate-500">
   <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/results.jsonl">Results</a> ·
-  <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/README.md">Source</a>
+  <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/README.md">Source</a>{% if pdf %} ·
+  <a class="underline" href="paper.pdf">PDF</a>{% endif %}
 </p>
 {% if paper.sections %}
 <nav class="paper mt-6" aria-label="Contents">

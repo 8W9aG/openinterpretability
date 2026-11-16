@@ -68,7 +68,7 @@
   <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" title="Each probe set is read by its newest experiment, so re-measurements don't count twice">
     Reviewer agreement: {{ agreement.unanimous }} of the {{ agreement.claims }} hypotheses reviewed with more than one probe set got the same verdict, VERIFIED or not, from every review.
     Pairs of reviews agree {{ agreement.pair_agreement | pct }} of the time{% if agreement.cross_model_pairs %} ({{ agreement.cross_model_agreement | pct }} of {{ agreement.cross_model_pairs }} pairs from different reviewer models){% endif %}.
-    {% if contested %}<a class="underline" href="#contested">{{ contested | length }} unit{{ 's are' if contested | length != 1 else ' is' }} contested</a>: a VERIFIED review and another review of its current hypothesis disagree, so it is not counted as verified.{% endif %}
+    {% if contested %}<a class="underline" href="#contested">{{ contested | length }} unit{{ 's are' if contested | length != 1 else ' is' }} contested</a>: the reviews of its current hypothesis split evenly between VERIFIED and not, so it is not counted as verified.{% endif %}
   </p>
   {% endif %}
 </section>

@@ -91,7 +91,7 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 
 - **Draw from the data.** Add figures through `scripts/figure_svg.py`, and register them in `scripts/paper_figures.py`. A test fails if a figure differs from the results. Run that script after each change to the results.
 - **Put the finding in the title** of each figure. The subtitle says what the marks are.
-- **Animate to make a point.** Use a short loop inside a figure when change is the argument, for example neurons that move as training runs. Don't make a full video unless asked. Under reduced motion, a figure shows its final frame.
+- **Animate at least one figure.** Each paper needs at least one animated figure. Make it with the `paper-animation` skill, which gives the forms, the shared helper and the checks. A paper with no change, order or cause to show says why in its Method, in one sentence. Don't make a full video unless asked.
 - **Use depth for a third dimension.** A surface over layers and steps earns its depth. A 3D bar chart doesn't.
 - **Use an interactive page for what a reader must explore**, because Markdown can't run it.
 - **Be honest about the marks.** Say when a figure is an illustration with made-up values, or a sketch from summary statistics. Say when only the two ends of an animation are measured.
@@ -101,8 +101,9 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 ## Before you finish
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
+- At least one figure moves (`paper-animation`), or the Method says why none does. Render a middle frame and the last frame, in light and dark, and look at them.
 - Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
-- Build the site with `make build`, and open the Research index and the paper.
+- Build the site with `make build`, and open the Research index, the paper and its PDF (`dist/research/<slug>/paper.pdf`, printed by headless Chrome).
 - Open the PR ready for review, not as a draft. Merge it when CI passes, as for every other PR. Do not wait for a person to read the paper first.
