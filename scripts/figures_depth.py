@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from statistics import mean
 
+from figure_motion import animate
 from figure_svg import Figure, normal, number, sample
 from figures_default_on import _rest_rows
 from figures_why_rest import LONG_STEPS, _rest, _run
@@ -34,9 +35,9 @@ def _ridge(fig: Figure, layer: int, start: Point, end: Point, geometry: Point) -
     units = sample(-3.4, 3.4, count=61)
     curve = [(u * SCALE, -PEAK * normal(u, 0, 1)) for u in units]
     name = f"ridge{layer}"
-    fig.motion += (
-        f"@keyframes {name}{{0%,25%{{{frame(start)}}}75%,100%{{{frame(end)}}}}}"
-        f".{name}{{animation:{name} {RIDGE_CYCLE} ease-in-out infinite alternate;{frame(end)}}}"
+    stops = [("0%,25%", frame(start)), ("75%,100%", frame(end))]
+    fig.motion += animate(
+        name, stops, RIDGE_CYCLE, timing="ease-in-out", rest=frame(end), alternate=True
     )
     fig.marks.append(f'<g class="ridge {name}">')
     fig.path(curve, "bg2", close=True)

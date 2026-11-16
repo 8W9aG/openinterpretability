@@ -2,9 +2,12 @@
 
 import math
 
+from figure_motion import animate, counter, even_stops, translate
 from figure_svg import Figure, Panel
 
 TICKS = (1, 10, 100, 1000, 10_000, 100_000)
+CYCLE = "9s"
+HOLD_FROM = 80  # percent of the cycle after which every moving dot rests on the last step
 
 
 def _x(step: int) -> float:
@@ -48,6 +51,7 @@ def development(rows: list[dict]) -> Figure:
             "Left: each of 9 Pythia-70m poles' correlation with its final activations, by step.",
             "A filled dot is a step where the pole's recorded probes pass its review's gates.",
             "Right: next-token loss on the same 300 windows.",
+            "In each panel, a moving dot steps through the checkpoints.",
         ],
         "Nine lines of correlation with the final checkpoint that rise slowly to 1 by step "
         "143,000, beside a loss curve that is flat from about step 16,000.",
@@ -62,9 +66,34 @@ def development(rows: list[dict]) -> Figure:
             fig.dot(left.x(_x(r["step"])), left.y(r["r_final"]), radius, cls)
     loss = sorted(loss, key=lambda r: r["step"])
     right.curve([_x(r["step"]) for r in loss], [r["loss"] for r in loss], "curve")
+    _animate(fig, left, right, poles, loss)
     fig.legend(left.top + left.height + 50, [("fc1", "probes pass"), ("open sneutral", "fail")])
     fig.bottom = left.top + left.height + 52
     return fig
+
+
+def _animate(fig: Figure, left: Panel, right: Panel, poles: list[dict], loss: list[dict]) -> None:
+    """Dots that walk each pole's correlation and the loss through the measured steps.
+
+    Each frame is a measured checkpoint, spread evenly over the cycle, with a counter that
+    names the step. The dots jump between checkpoints, so they show no value that was not
+    measured. With motion off, every dot rests on the last step.
+    """
+    steps = sorted({r["step"] for r in loss})
+    tracks = [(right, "lossdot", [(r["step"], r["loss"]) for r in loss])]
+    for i, slug in enumerate(sorted({r["slug"] for r in poles})):
+        own = sorted((r for r in poles if r["slug"] == slug), key=lambda r: r["step"])
+        tracks.append((left, f"pole{i}", [(r["step"], r["r_final"]) for r in own]))
+    for panel, name, points in tracks:
+        stops = even_stops([translate(panel.x(_x(st)), panel.y(v)) for st, v in points], HOLD_FROM)
+        # step-end: each dot jumps from checkpoint to checkpoint, never between them.
+        last = stops[-1][1]
+        fig.motion += animate(name, stops, CYCLE, timing="step-end", hold=last, rest=last)
+        fig.dot(0, 0, 4, f"ink ring {name}")
+    starts = [float(at[:-1]) for at, _ in even_stops([""] * len(steps), HOLD_FROM)]
+    for (cls, css), step in zip(counter("stepnow", starts, CYCLE), steps, strict=True):
+        fig.motion += css
+        fig.text(left.x(_x(steps[-1])), left.top - 8, f"step {step:,}", f"small {cls}", "end")
 
 
 def build(rows: list[dict]) -> dict[str, Figure]:

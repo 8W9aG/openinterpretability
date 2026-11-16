@@ -71,6 +71,13 @@ from openinterp.sisters import DEFAULT_PATH as SISTERS_PATH
     help="The papers of the Research section; the section is empty if missing.",
 )
 @click.option(
+    "--paper-pdfs/--no-paper-pdfs",
+    default=True,
+    show_default=True,
+    help="Print a PDF of each paper with headless Chrome ($OPENINTERP_CHROME, else the usual "
+    "paths). Skipped, with a note, when no Chrome is found.",
+)
+@click.option(
     "--jobs",
     type=click.IntRange(min=1),
     default=None,
@@ -86,6 +93,7 @@ def build(  # noqa: PLR0913 (one option per input file)
     sisters_path,
     coverage_path,
     papers_dir,
+    paper_pdfs,
     jobs,
 ):
     """Compile every archived experiment into static pages and data/registry.parquet."""
@@ -121,6 +129,7 @@ def build(  # noqa: PLR0913 (one option per input file)
         errata=load_errata(wiki_dir),
         users=load_users(project_links()["repo_url"], wiki_dir),
         coverage_rows=load_coverage(coverage_path),
+        paper_pdfs=paper_pdfs,
     )
     click.echo(
         f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
