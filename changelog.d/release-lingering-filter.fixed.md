@@ -1,1 +1,0 @@
-- **The release skill lands only the maintainer's own lingering experiment PRs.** Step 3 now requires each PR to come from a branch of this repository and the maintainer's account. Every changed path must be under `wiki/`. A branch named `experiment/…` alone no longer counts.

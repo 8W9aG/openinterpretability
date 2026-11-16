@@ -11,6 +11,107 @@ Changes waiting for the next release are files in [changelog.d/](changelog.d/REA
 
 ## [Unreleased]
 
+## [0.0.21] - 2026-11-16
+
+Ships with protocol version **0.9**.
+
+### Added
+
+- `docs/analyses/security-audit.md` gives the scope and outcome of the November 2026 security audit (#3156): 17 findings, each fixed in a public PR. Details stay in private advisories until 0.0.21 is on PyPI.
+- **IFTTT lint** (`scripts/ifttt_lint.py`, #3161). A block marked `LINT.IfChange` … `LINT.ThenChange(<path>)` may change only when the named file changes too. `make lint` runs it against `origin/main`, and CI runs it against a pull request's base. The first pair is CI's `ALLOWED_MODELS` and `[tool.openinterp] models`.
+- **The rest of Pythia's training setup, tested one part at a time** (#3194). The `why-neurons-rest` paper now covers four more conditions on seed 0. They are parallel attention, Pythia's rate with no warm-up, a 4× batch, and all of Pythia's parts together. None of them, alone or together, makes the push at the checkpoints look like Pythia-70m's. The push points down in 19 to 24 of 27 checkpoints and layers, against 13 of 30 in Pythia. So Pythia's scale, its full batch or its gaps between checkpoints remain as causes.
+- **Each record names the product and host that made it** (#3235). `RunEnvironment` gains `agent_product` and `host`. The product is `$OPENINTERP_AGENT_PRODUCT`, else `claude-code` when Claude Code runs the command. The host is Colab, Kaggle, GitHub Actions or another CI, and stays empty on a local machine. `make loop` records `claude-code-loop`. The Parquet export has both columns.
+- CI checks the site's accessibility. A new job builds the sample site and runs axe-core on five pages, in light and dark. The pages are home, a model, a layer, a neuron and an experiment. The job fails on any serious or critical violation of the WCAG 2.0 A/AA or 2.1 AA rules (`scripts/a11y_check.py`, #3280).
+- The site passes that check. Secondary grey text is now 7.5:1 in dark mode (was 4.2:1), and faded rows are 4.8:1 in light mode (was 2.6:1). Text links always show an underline. The query box has a label. Maps with links are groups, not images, so screen readers reach their links.
+- **Llama-3.1-8B-Instruct can be audited, signed only** (#3304). `[tool.openinterp] signed_models` lists models that CI can't run. Their records must be signed: CI skips a signed record and fails an unsigned one with a plain reason. The planner doesn't explore them. Llama-3.1-8B-Instruct is the first, with its licence terms ("Built with Llama"). Transluce described all 458,752 of its MLP neurons.
+- **Pythia-70M is a registry model** (`EleutherAI/pythia-70m`, Apache-2.0, #3309). It's the standard model for following a neuron through training, which #3376 needs. With 12,288 MLP neurons it is the smallest model, so it becomes the planner's focus and gets most explore draws.
+  - **Parallel blocks.** GPT-NeoX blocks use a parallel residual, so a layer's MLP doesn't read its own heads. The wiring now leaves those heads out, for GPT-J and Phi too.
+  - **Head reads.** The wiring now reads GPT-NeoX's fused `query_key_value`, which interleaves q, k and v by head.
+- **Literature: *What Survives Distillation?*** (Faumi and Sumanathilaka, 2026, `docs/literature/what-survives-distillation.md`, #3397). DistilGPT-2 keeps GPT-2's early circuits and loses its late ones. The paper measures heads, layer CKA and SAE features, and no single neurons. Its numbers support pairing layers by relative depth, which the sister search already does. Follow-up #3853 adds DistilGPT-2 as GPT-2's sibling in that search.
+- A literature page reviews "Understanding AI from the Inside" (Barez, Wu et al., 2026, arXiv 2611.08438). It checks the registry against the survey's evaluation protocol and its guardrails for automated interpretability. It opens #4034 for the one guardrail the registry lacks (#3426).
+- The explanation-score backfill (#3499) scores 197 older records that had none, with a Claude Haiku judge run from Claude Code. `docs/analyses/verified-vs-detection.md` is rerun on 2,623 records. VERIFIED explanations still score higher on held-out detection, by +0.033 within judge (was +0.040). On the backfilled records alone, the gap reverses.
+- **Part of speech in review and triage** (#3631). Scans already tag their corpus by part of speech (#3223), and the review and triage now use the tags.
+  - **The reviewer.** Its probe prompt now asks for hard negatives that keep a trigger word in another role ("run" as a verb and as a noun). Its token check tags each probe's words, as `word/TAG`.
+  - **The proposer.** A flag shows when part of speech alone explains most of a pole: R² ≥ 0.2, and at least half of token identity's. Of 69 tagged records, it flags 2.
+  - **The skill.** `neuron-family-triage` lists the same prior.
+- **Audits of the agreement circuit's top 20 neurons** (#3656). The 20 neurons of Qwen2.5-0.5B's subject–verb agreement circuit with the largest attribution now have records (`docs/analyses/sva-circuit.md`). 7 of 20 are VERIFIED (35%, Wilson 95% interval 18–57%), and 17 of the 20 explanations are about grammatical number. In layer 0, 5 of 8 verified. In layers 16–23, 2 of 12 verified, and four of them failed the lookahead gate. `scripts/sva_circuit.py --refresh` recomputes the registry columns without loading the model.
+- `docs/analyses/base-instruct.md` adds Qwen2.5-0.5B and its instruct model: 252 of 311 VERIFIED poles keep their hypothesis (81%, 95% CI 76–85%). With probes inside the instruct model's chat template, the keep share falls to 72% on 0.5B and 70% on 1.5B. The template lowers sensitivity, not specificity. `scripts/base_instruct.py` takes `--base` and `--chat` (#3762).
+- The Benchmarks workflow keeps a ledger of the library's performance, `docs/analyses/benchmark-ledger.jsonl`. It compares each run with the median of the recent runs on the same runner. Then it commits the run through a pull request that merges by itself. A regression still fails the run, and it stays on record (`scripts/benchmark_ledger.py`, #4011).
+
+### Changed
+
+- **Papers use academic language and APA 7 references** (#3137). The `write-paper` skill sets a formal register, and the APA 7 form for citations and references. The 42 references of the six papers now follow it: full author lists, a comma before "&", and titles in sentence case. `tests/test_papers.py` checks the form.
+- **Colour-blind-safe status colours** (#3279). One palette, `openinterp/builder/palette.py`, now sets the status and pole colours. It feeds the Tailwind config, the maps, the bars, the badges and the token heatmaps.
+  - VERIFIED is bluish green, CONTESTED blue, NEEDS_REVISION burnt orange and REJECTED dark red. Every pair stays at least ΔE 8 apart under simulated protanopia, deuteranopia and tritanopia, in light and dark. Emerald against rose was 5.6 apart under deuteranopia.
+  - REJECTED cells on the maps and bars are also hatched, so they don't rely on colour alone.
+  - `tests/test_palette.py` checks the separation and the contrast with both page surfaces.
+- The site no longer loads Tailwind's Play CDN, 451 KB of JavaScript on every page that built the CSS in the browser. `make build` and the deploy now build one stylesheet, `assets/site.css`, of about 21 KB, with Tailwind's standalone CLI at the same version (`openinterp/builder/css.py`). Pages look the same (#3282).
+- **Faster CPU passes** (#3735, `docs/analyses/cpu-acceleration.md`).
+  - **Thread cap.** On an oversubscribed machine, where the load is above 1.5 times the cores, a CPU run now takes a share of torch's threads. `$OPENINTERP_CPU_THREADS` sets the count, and each record keeps it in `environment.cpu_threads`.
+  - **Fused GELU.** Every model load swaps GPT-2's Python `NewGELUActivation` for torch's fused tanh GELU. On the Mac CPU, GPT-2's logits are identical bit for bit. On AVX2 and MPS they can differ by up to 1e-6, far inside `reproduce`'s tolerance.
+- Pages load Pagefind's search UI (120 KB) only when the search box is first used, not with every page. Text typed before it loads moves into it.
+- Long tables and maps are laid out only when they scroll near the screen (`content-visibility: auto`). Screen by screen, pages look the same (#3987).
+- **Auto-merge covers Dependabot and refuses very long PRs** (#4113). A Dependabot update that Dependabot pushed, from a branch of this repository, now merges by itself when its checks pass. A PR with more than 3,000 files never counts as wiki-only, because the files API lists no more than that. `tests/test_auto_merge.py` runs the workflow's script against each rule.
+- **Registry coverage refreshed for 0.0.21** (`docs/analyses/registry-coverage.jsonl`, 2026-11-16). This is the loss-weighted share of each model's MLP effect that its VERIFIED poles keep:
+  - GPT-2 small: 184 poles, 2.7%, against 2.6% with 183 poles. As many random poles keep 0.1%.
+  - Qwen2.5-0.5B: 321 poles, 0.39%, against 0.42% with 310 poles. Random poles keep 0.30%.
+  - Qwen2.5-1.5B: 43 poles, 0.006%. Random poles keep 0.002%.
+  - Pythia-70m, measured for the first time: 7 poles, 0.011%. Random poles keep 0.017%, so its few poles keep no more than random ones.
+- Evidence blobs reach the public dataset only after a merge. A pull request's CI now only loads and checks them, with no write token. The deploy on `main` runs the new `open-interpretability evidence publish`, which uploads the blobs that `main`'s records need. The evidence branch of a merged PR is deleted only once its blobs are on the dataset. `SECURITY.md` adds the dataset to its removal steps.
+- **Status colours chosen by a colour-blind reader.** The maintainer has red-green colour blindness. They found #3279's palette worse, and picked this one from candidates: blue VERIFIED, violet CONTESTED, pale yellow NEEDS_REVISION and orange REJECTED. The hatch stripes on REJECTED are gone, and the badges are filled again. `tests/test_palette.py` now holds deuteranopia to the strict floor, and it checks badge text on each fill.
+- The deploy uploads to R2 with 32 requests in flight, not one at a time (`OPENINTERP_UPLOAD_WORKERS`). Every asset still finishes before the first page starts. A sync took about 8 minutes, and much longer when every page changed.
+- PyPI uploads use trusted publishing from the `pypi` environment, which lets only `v*` tags deploy. The repository no longer needs a PyPI token.
+- **Releases.** The `release` skill now merges its own release PR on green CI. A new step 12 then checks that the release went out. The PR must be merged and the tag on `main`. The GitHub release must be published, PyPI must have the version, and Zenodo its record. `next-issue` doesn't move on from a release until that holds.
+- The next-issue and release skills keep working issues until the release is due. An agent doesn't skip an issue because the release might come due during it. It finishes that issue first, then releases.
+- **Releases land lingering experiment PRs.** The `release` skill has a new step 3. Before the release branch is cut, it merges each ready experiment PR more than 12 hours old once its checks pass. A PR whose check fails stays open, with a comment that says why. Drafts are left alone.
+- The release skill runs a security sweep before each release. It runs Cloudflare's security-audit-skill on what changed since the last tag. Confirmed findings go to private advisories, and the release waits until each one is fixed. The advisories are published once the fixed version is on PyPI.
+- **Sister rows refreshed for 0.0.21** (`docs/analyses/sister-neurons.jsonl`). Pythia-70m is now a configured model, so every VERIFIED pole of the other models was searched against it. The search wrote 605 new rows with 33 new sisters. By pair:
+  - GPT-2 → Pythia-70m: 184 rows, 18 sisters
+  - Qwen2.5-0.5B → Pythia-70m: 321 rows, 6 sisters
+  - Qwen2.5-0.5B → Qwen2.5-1.5B: 12 rows, 5 sisters
+  - Qwen2.5-0.5B → GPT-2: 12 rows, 2 sisters
+  - Qwen2.5-1.5B → Pythia-70m: 43 rows, 1 sister
+  - Qwen2.5-1.5B → Qwen2.5-0.5B: 1 row, 1 sister
+  - Pythia-70m → each other model, GPT-2 → each Qwen model, and Qwen2.5-1.5B → GPT-2: 32 rows, no sisters
+  - The strongest are GPT-2 L0/N504+ → Pythia-70m L0/N1433+ (r 1.00) and GPT-2 L9/N2409+ → Pythia-70m L3/N1204+ (0.90). The agreement circuit's top neuron, Qwen2.5-0.5B L0/N4163+, has a GPT-2 sister at L0/N253+ (0.78).
+- The next-issue skill has zero tolerance for flaky tests. An agent that finds one opens a high-priority issue and fixes the root cause before its next issue. A rerun that passes is never the fix.
+
+### Fixed
+
+- The memory and performance benchmarks run on CI, in a new *Benchmarks* workflow, nightly and before each release. The release no longer needs a quiet local machine. Their review step uses `reevaluate`, so a protocol bump no longer breaks them. The performance script compares measures only against a baseline from the same machine (#3808).
+- **`next_issue.py` skips issues that wait on the maintainer** (#3843). An issue whose newest comment is an agent's `**Question**` isn't picked until the maintainer replies. When the whole release waits, the script pulls from the backlog.
+- A JSONL corpus whose text holds a raw U+0085 (NEL), U+2028, U+2029 or form feed now loads. `read_corpus`, `read_labels` and the benchmark reader split JSONL files only at `\n`, as the writer does. A plain-text corpus keeps its old split, so its records reproduce (#3954).
+- `reproduce` compares attention-head records within a wider tolerance, `HEAD_TOLERANCE` (`atol 0.015 × scale`). Float32 rounding moves some Pythia-70m heads' strengths by up to 0.7% of their scale, while GPT-2's heads move by 0.001%. A 10% edit of a peak still fails (`docs/analyses/head-reproduce-tolerance.md`, #3956).
+- After a CUDA out-of-memory error, a command runs again once on the GPU, with batches 4 times smaller. Only a second failure falls back to the CPU. The CPU fallback warns that a model above about 1B parameters can take hours.
+- Scans and input attribution print their progress, the rate and the time left, at most once a minute. A slow CPU run no longer looks the same as a stopped one. The planner's step text gives the CPU time by model size (#3971).
+- The deploy runs every 30 minutes, not every 6 hours, and skips the run when `main` hasn't moved since the last successful deploy. A merge by the auto-merge bot starts no push workflow. Before this, it reached the site only with the next person's merge or the 6-hourly run (#3989).
+- Tests plan for a fixed 64 GB of free memory (an autouse fixture). Streaming, batch sizes and worker counts follow free memory, so some tests had failed only when the machine was busy (#4003).
+- **`next` no longer crashes on a superposition record.** The planner writes the follow-up rescan for a `superposition` unit: it writes the definition with `superpositions show`, then audits it with `--superposition … --supersedes …` (`openinterp/planner.py`, `tests/test_planner_superpositions.py`, #4008).
+- Auto-merge trusts a maintainer's PR only when the maintainer also made the push. A push by any other account to that branch gets the rule for other people's PRs, which allows only new files under `wiki/`.
+- CI loads the blobs of every evidence branch before it checks records (`open-interpretability evidence load-all`). A record that has just merged no longer fails the check on `main` while the deploy is still publishing its evidence.
+- **The stylesheet build reads every script on a page** (code-scanning alert 5). It now also finds a script whose end tag has other text before its ">", as in `</script bar>`, so the stylesheet keeps that script's classes.
+- The deploy downloads evidence blobs with the read-only `HF_TOKEN`, not anonymously, so the Hub's higher rate limit applies.
+- The deploy checks out the commit that started it, not the newest `main`. A run started by an older push had built newer pages with its older steps. On 2026-11-15 it published pages that linked a stylesheet it never built.
+- A failed deploy, such as a refused Cloudflare cache purge, now fails the deploy workflow. The output went through `tee` without `pipefail`, so the run stayed green. The job summary still shows the last lines.
+- `scripts/exchange.py` stages only real names under `exchange/`. Prose such as "exchange/." no longer counts as a cited input, and staging never takes an output folder or a `*.private.*` file.
+- **Agents read wiki text as data.** `open-interpretability show` now fences a record's hypothesis, notes and page Discussion, so agents treat them as data, not instructions. A pull request from anyone but the maintainer now auto-merges only when it adds files under `wiki/`. An edit to an existing page waits for a person.
+- **A unit that fires only at first tokens now has its first-token floor** (`openinterp/harness/scan.py`, PR #3635). The scan judged the floor against the peak after first tokens. For such a unit that peak is 0, and a scale of 0 always gave no floor. `reproduce` judges it against the recorded peak, so it found the floor and failed the record. Now the scan uses the peak with first tokens when the other is 0. It then stops on the unit, because the unit never fires at the tokens that the scan counts.
+- **Check claim keys, output folder names and corpus hashes exactly** (`openinterp/planner_claims.py`, `scripts/exchange.py`, `scripts/score_backfill.py`). A fork branch now claims one unit key, matched by equality. `exchange.py` compares output folder names without case. `score_backfill.py` uses a corpus hash as a file name only when it is 64 hex digits and matches the file (#4113).
+- The reviewer's isolation hook ignores letter case when it compares paths. On macOS a path such as `WIKI/Experiments` opens the same files as `wiki/experiments`, so the hook and the transcript check now block it too.
+- A thumbs up from the maintainer approves an outside issue only as it was then. If someone else edits its title or body later, `scripts/issue_state.py` calls it not eligible until the maintainer approves it again.
+- **`next_issue.py` reads only the maintainer's account.** A comment from any other account no longer answers an agent's question, holds an issue back, or hides the maintainer's reply. The `next-issue` skill says to treat those comments as untrusted data.
+- The planner counts a PR from a fork as a claim only by a branch named `experiment/<key>`, so it claims at most one unit. Before, anyone's PR title could name many units and lower their chance of being drawn.
+- **The release skill lands only the maintainer's own lingering experiment PRs.** Step 3 now requires each PR to come from a branch of this repository and the maintainer's account. Every changed path must be under `wiki/`. A branch named `experiment/…` alone no longer counts.
+- **CI reproduces only a model's own commits.** When `reproduce` runs with an allow-list, as CI does, it refuses a record whose model revision isn't a full commit SHA on the model's `main` branch (`openinterp/model_revisions.py`). A record can no longer pick a revision like a Hub pull request's. Every existing record passes.
+- `reproduce --base-ref` fails a new record that an erratum would set aside. An erratum describes records that landed before it, so a new record that matches one could otherwise skip the protocol and allow-list checks.
+- The site removes personal data and taken-down passages from two more places. One is the erratum notes on experiment pages: the title, the bug and the values an edit changed. The other is the text files that a paper publishes (media, and the files of an interactive page). Numbers in data files stay as they are, and a vendored library (`*.min.js`) is copied unchanged.
+- **The source distribution** now holds only the package and its metadata. It used to pack the whole repository, and PyPI refused v0.0.20's sdist as over 100 MB. That release is on PyPI as a wheel only.
+- `open-interpretability check --base-ref` treats record signatures as write-once: a branch can't change or delete a `.json.sig`. A signature that a branch adds must verify against the base branch's allowed signers.
+- **Redact every text file of a paper** (`openinterp/builder/research.py`, `openinterp/builder/pii.py`). The site now redacts each UTF-8 paper file, whatever its suffix, except a vendored library pinned by name and SHA-256. It reads JSON string arrays in paper files, and token lists in erratum values, as joined text (#4113).
+- CI pins every GitHub Action to a full commit SHA. A test now fails on an action that is pinned only by a tag.
+- **Treat a type change as an edit** (`openinterp/checks.py`, `openinterp/signing.py`, `.github/workflows/ci.yml`). The write-once check now fails any status other than an add on an archived file. The check also fails each symbolic link in the wiki. Record reproduction and signature landing times now include type changes (#4113).
+
+
 ## [0.0.20] - 2026-11-15
 
 Ships with protocol version **0.9** (was 0.8).

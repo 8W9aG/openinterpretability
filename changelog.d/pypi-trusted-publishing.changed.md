@@ -1,1 +1,0 @@
-- PyPI uploads use trusted publishing from the `pypi` environment, which lets only `v*` tags deploy. The repository no longer needs a PyPI token.

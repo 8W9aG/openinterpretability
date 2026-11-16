@@ -1,1 +1,0 @@
-- `reproduce --base-ref` fails a new record that an erratum would set aside. An erratum describes records that landed before it, so a new record that matches one could otherwise skip the protocol and allow-list checks.
