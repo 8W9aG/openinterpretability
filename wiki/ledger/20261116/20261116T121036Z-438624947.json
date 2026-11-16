@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-16T12:10:36Z","seed":438624947,"kind":"explore","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L3/N2341-negative","record":null,"audit":"--model Qwen/Qwen2.5-0.5B --layer 3 --neuron 2341 --pole negative --selection attribution","pole_forced":null,"harness_version":"0.0.21"}
