@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, map_fill %}
+{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -94,6 +94,38 @@
     </tbody>
   </table>
 </div>
+
+{% if recent %}
+<section class="mt-10">
+  <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ recent | length }} experiments on {{ model.name }}, whatever their verdict, newest first.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Result</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for r in recent %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ r.reviewed_iso }}">{{ r.reviewed_date }}</time></td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
+          </td>
+          <td class="px-3 py-2">
+            <div class="mb-1 flex flex-wrap gap-1">{{ status_badge(r.status) }} {{ evidence_badge(r.conclusiveness, r.evidence_direction) }}
+              {% if r.self_reviewed %}{{ self_review_badge() }}{% endif %}
+              {% if r.remeasurement %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400" title="Re-measures an earlier experiment's probes; not independent evidence">re-measurement</span>{% endif %}
+            </div>
+            {{ r.explanation | truncate(140) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 
 {% if sister_graphs %}
 <section class="mt-10" data-pagefind-ignore>
