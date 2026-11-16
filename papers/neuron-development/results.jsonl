@@ -1,0 +1,209 @@
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 0, "max": 1.91263, "r_final": 0.0396, "specificity": 0.55, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 1, "max": 1.91263, "r_final": 0.0396, "specificity": 0.55, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 2, "max": 1.91256, "r_final": 0.0396, "specificity": 0.55, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 4, "max": 1.91084, "r_final": 0.0393, "specificity": 0.55, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 8, "max": 1.88155, "r_final": 0.0377, "specificity": 0.55, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 16, "max": 1.73074, "r_final": 0.0262, "specificity": 0.65, "sensitivity": 0.4, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 32, "max": 1.1261, "r_final": 0.0269, "specificity": 0.7, "sensitivity": 0.2, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 64, "max": 0.89047, "r_final": 0.0147, "specificity": 0.75, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 128, "max": 2.12235, "r_final": 0.046, "specificity": 0.7, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 256, "max": 2.1617, "r_final": 0.0651, "specificity": 0.65, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 512, "max": 2.05938, "r_final": 0.1061, "specificity": 0.3, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 1000, "max": 2.24093, "r_final": 0.0249, "specificity": 0.65, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 2000, "max": 2.71253, "r_final": 0.1316, "specificity": 0.9, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 4000, "max": 3.18791, "r_final": 0.1711, "specificity": 0.9, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 8000, "max": 3.26809, "r_final": 0.258, "specificity": 0.85, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 16000, "max": 3.23399, "r_final": 0.3717, "specificity": 0.85, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 32000, "max": 2.72453, "r_final": 0.5585, "specificity": 0.85, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 64000, "max": 2.64865, "r_final": 0.6947, "specificity": 0.8, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 128000, "max": 2.62712, "r_final": 0.8986, "specificity": 0.85, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 143000, "max": 2.5598, "r_final": 1.0, "specificity": 0.85, "sensitivity": 0.8, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L5/N674-positive", "step": 128000, "explanation": "The pole reacts retrospectively to the onset token of a predicative or naming unit at a fresh word/clause boundary: singular/light predicate heads (makes over make/takes, Is over Are, Was over Were, clause-initial Does, predicate negation not/n't) and 1-4 character word-initial fragments that open a multi-token word (V-, r-, n-, t-, cr-, resp-). Non-initial continuation pieces (ags, ass, elle, oir, oid, oy, on), plural/bare verb forms, and longer or whole-word onsets stay near zero, and clause-initial peaks require a preceding completed clause."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 0, "max": 1.50882, "r_final": -0.0325, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 1, "max": 1.50882, "r_final": -0.0325, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 2, "max": 1.50903, "r_final": -0.0325, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 4, "max": 1.51271, "r_final": -0.0323, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 8, "max": 1.54191, "r_final": -0.0267, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 16, "max": 1.43371, "r_final": -0.0011, "specificity": 0.55, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 32, "max": 1.1814, "r_final": -0.0145, "specificity": 0.1, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 64, "max": 1.38897, "r_final": -0.0906, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 128, "max": 1.3089, "r_final": -0.1461, "specificity": 0.25, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 256, "max": 2.00442, "r_final": -0.1334, "specificity": 0.05, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 512, "max": 2.27, "r_final": 0.0016, "specificity": 0.6, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 1000, "max": 2.12041, "r_final": 0.0017, "specificity": 0.7, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 2000, "max": 2.83852, "r_final": 0.0277, "specificity": 0.8, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 4000, "max": 2.71807, "r_final": 0.2322, "specificity": 0.9, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 8000, "max": 3.79202, "r_final": 0.2981, "specificity": 0.9, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 16000, "max": 2.87946, "r_final": 0.3815, "specificity": 0.85, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 32000, "max": 3.37613, "r_final": 0.6308, "specificity": 0.9, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 64000, "max": 3.46662, "r_final": 0.7176, "specificity": 0.95, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 128000, "max": 2.60648, "r_final": 0.9084, "specificity": 0.85, "sensitivity": 0.9, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 143000, "max": 2.66488, "r_final": 1.0, "specificity": 1.0, "sensitivity": 0.9, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L5/N655-positive", "step": 128000, "explanation": "Retrospective detector that fires on the first subword of a surname, year, page/identifier number, or structural marker (-, %, ', of, heading-initial capital) that continues a formal citation, reference-list, catalog front-matter, or biographical/statistical enumeration, when the preceding context establishes that scaffolding (et al. with years, semicolons/parens, 'no.', 'in <year>', 'author:', DOI/ISBN/URI stems, hyphenated name stems, or blank-line headings)."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 0, "max": 1.92371, "r_final": 0.1255, "specificity": 0.15, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 1, "max": 1.92371, "r_final": 0.1255, "specificity": 0.15, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 2, "max": 1.92359, "r_final": 0.1255, "specificity": 0.15, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 4, "max": 1.92137, "r_final": 0.1253, "specificity": 0.15, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 8, "max": 1.88233, "r_final": 0.1216, "specificity": 0.15, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 16, "max": 1.65674, "r_final": 0.1071, "specificity": 0.25, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 32, "max": 0.57943, "r_final": 0.1065, "specificity": 0.75, "sensitivity": 0.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 64, "max": 0.79665, "r_final": 0.4225, "specificity": 0.55, "sensitivity": 0.4, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 128, "max": 1.94441, "r_final": 0.1543, "specificity": 0.2, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 256, "max": 1.93494, "r_final": 0.2716, "specificity": 0.05, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 512, "max": 2.07654, "r_final": 0.3645, "specificity": 0.15, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 1000, "max": 2.26482, "r_final": 0.4361, "specificity": 0.45, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 2000, "max": 2.57429, "r_final": 0.3306, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 4000, "max": 3.46729, "r_final": 0.6252, "specificity": 0.8, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 8000, "max": 3.46492, "r_final": 0.7098, "specificity": 0.95, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 16000, "max": 3.11232, "r_final": 0.735, "specificity": 0.95, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 32000, "max": 3.90634, "r_final": 0.7229, "specificity": 0.9, "sensitivity": 0.4, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 64000, "max": 3.77264, "r_final": 0.7834, "specificity": 0.9, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 128000, "max": 2.98614, "r_final": 0.9329, "specificity": 0.9, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 143000, "max": 2.95004, "r_final": 1.0, "specificity": 0.85, "sensitivity": 0.6, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L4/N566-positive", "step": 128000, "explanation": "The pole fires on the joining tokens of a clause's subject phrase when that subject is coordinated or carries a restrictive relative clause: a coordinator ('and', 'or') between two coordinates of the subject, or a relative pronoun ('who', 'that', 'which', 'whose') attaching the relative clause, with the peak on that joining token and the activity spreading over the relative clause's own subject and first verb (e.g. 'the politicians who had', 'the roads along which the A1 route travels', 'the committee and the board'). It stays below its activity line when the same words belong to a non-subject nominal (a coordinated object after a verb or preposition, a relative clause on an object, a post-verbal 'there were X and Y', a cleft), and also on interrogative 'who', complementizer 'that', non-restrictive relatives set off by commas, and plain one-word subjects even with an adjective or prepositional modifier."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 0, "max": 2.33376, "r_final": 0.0146, "specificity": 0.2, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 1, "max": 2.33376, "r_final": 0.0146, "specificity": 0.2, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 2, "max": 2.33375, "r_final": 0.0146, "specificity": 0.2, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 4, "max": 2.33346, "r_final": 0.0149, "specificity": 0.2, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 8, "max": 2.31094, "r_final": 0.0173, "specificity": 0.2, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 16, "max": 2.04575, "r_final": 0.032, "specificity": 0.2, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 32, "max": 1.32139, "r_final": 0.0993, "specificity": 0.25, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 64, "max": 0.90687, "r_final": 0.038, "specificity": 0.6, "sensitivity": 0.4, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 128, "max": 1.53622, "r_final": 0.0658, "specificity": 0.85, "sensitivity": 0.1, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 256, "max": 2.11398, "r_final": 0.0888, "specificity": 0.55, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 512, "max": 2.61014, "r_final": 0.2848, "specificity": 0.75, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 1000, "max": 2.49359, "r_final": 0.3324, "specificity": 0.55, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 2000, "max": 2.78894, "r_final": 0.3354, "specificity": 0.6, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 4000, "max": 3.12362, "r_final": 0.4182, "specificity": 0.5, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 8000, "max": 3.13592, "r_final": 0.5562, "specificity": 0.75, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 16000, "max": 3.4042, "r_final": 0.6346, "specificity": 0.8, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 32000, "max": 3.59205, "r_final": 0.7634, "specificity": 0.95, "sensitivity": 0.8, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 64000, "max": 2.79514, "r_final": 0.7935, "specificity": 0.9, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 128000, "max": 2.64793, "r_final": 0.9465, "specificity": 0.9, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 143000, "max": 2.47032, "r_final": 1.0, "specificity": 0.9, "sensitivity": 0.7, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L5/N1256-positive", "step": 128000, "explanation": "Fires retrospectively on tokens that continue or elaborate a plural/group noun phrase in descriptive passages: the conjunction or comma joining noun conjuncts (cows and goats; villains, heroes, or less famous fighters), and stacked descriptors characterizing a plural head (young potential candidates; smaller black holes; highly skilled men). It stays near-silent on the same conjunction joining clauses (ran and walked) or adjectives (red and blue cars), on lone unmodified nouns, and on a single isolated attributive adjective without enumeration context."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 0, "max": 2.25587, "r_final": -0.0391, "specificity": 0.2, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 1, "max": 2.25587, "r_final": -0.0391, "specificity": 0.2, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 2, "max": 2.25535, "r_final": -0.0391, "specificity": 0.2, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 4, "max": 2.24571, "r_final": -0.0392, "specificity": 0.2, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 8, "max": 2.11825, "r_final": -0.0404, "specificity": 0.2, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 16, "max": 1.63511, "r_final": -0.0462, "specificity": 0.45, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 32, "max": 0.87199, "r_final": -0.05, "specificity": 0.85, "sensitivity": 0.1, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 64, "max": 0.82534, "r_final": 0.0095, "specificity": 0.25, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 128, "max": 2.17554, "r_final": 0.148, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 256, "max": 1.98149, "r_final": 0.1539, "specificity": 0.4, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 512, "max": 2.50789, "r_final": 0.3623, "specificity": 0.3, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 1000, "max": 2.50765, "r_final": 0.2507, "specificity": 0.3, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 2000, "max": 2.91184, "r_final": 0.2365, "specificity": 0.05, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 4000, "max": 2.71799, "r_final": 0.2916, "specificity": 0.35, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 8000, "max": 2.85404, "r_final": 0.3406, "specificity": 0.7, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 16000, "max": 3.03874, "r_final": 0.2863, "specificity": 0.65, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 32000, "max": 2.98214, "r_final": 0.4025, "specificity": 0.55, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 64000, "max": 3.3552, "r_final": 0.5823, "specificity": 0.75, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 128000, "max": 2.68578, "r_final": 0.9054, "specificity": 0.8, "sensitivity": 0.9, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 143000, "max": 3.1801, "r_final": 1.0, "specificity": 0.8, "sensitivity": 0.9, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L4/N751-positive", "step": 128000, "explanation": "The pole fires retrospectively on tokens that carry no referential content for the model - material that frames or manages the discourse rather than naming something. Concretely that is English clause-level adverbial conjuncts and disjuncts (however, therefore, thus, hence, moreover, furthermore, nevertheless, consequently, meanwhile, instead, alternatively, also, otherwise, namely, respectively, the -ly sentence adverbs), English discourse particles and interjections (well, yes, no, thanks, please, sorry, okay, hey), and the Latin abbreviations i.e., e.g. and vs. - and, far more broadly, most whole function words and word-final pieces anywhere in a passage in a language the model does not read as English (Spanish, Italian, French, Portuguese, Polish, Russian, Ukrainian, Turkish, Greek, Chinese, Japanese, Korean, Hindi, Arabic, even romanised Russian): it stays near zero on ordinary English prose and on English content words, determiners and the plain closed class (the, and, but, because, although, while, unless, if, whether), on rare or invented English words however they are tokenised (glorp, zymurgy, uncharacteristically), on German and Dutch, and on source code."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 0, "max": 2.44019, "r_final": 0.0815, "specificity": 0.65, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 1, "max": 2.44019, "r_final": 0.0815, "specificity": 0.65, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 2, "max": 2.44009, "r_final": 0.0815, "specificity": 0.65, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 4, "max": 2.43812, "r_final": 0.0815, "specificity": 0.65, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 8, "max": 2.41449, "r_final": 0.0818, "specificity": 0.7, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 16, "max": 2.27832, "r_final": 0.0852, "specificity": 0.85, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 32, "max": 1.54108, "r_final": 0.1104, "specificity": 0.9, "sensitivity": 0.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 64, "max": 1.32324, "r_final": 0.1514, "specificity": 0.95, "sensitivity": 0.1, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 128, "max": 1.57588, "r_final": 0.1726, "specificity": 0.8, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 256, "max": 1.3718, "r_final": 0.2587, "specificity": 0.9, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 512, "max": 1.48847, "r_final": 0.1184, "specificity": 0.75, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 1000, "max": 2.13594, "r_final": 0.2499, "specificity": 0.8, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 2000, "max": 2.77189, "r_final": 0.2455, "specificity": 0.75, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 4000, "max": 2.2516, "r_final": 0.2955, "specificity": 0.85, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 8000, "max": 1.99733, "r_final": 0.4436, "specificity": 0.8, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 16000, "max": 2.50162, "r_final": 0.4762, "specificity": 0.8, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 32000, "max": 2.56372, "r_final": 0.452, "specificity": 0.85, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 64000, "max": 2.71385, "r_final": 0.6559, "specificity": 0.75, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 128000, "max": 1.68525, "r_final": 0.869, "specificity": 0.8, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 143000, "max": 1.78939, "r_final": 1.0, "specificity": 0.8, "sensitivity": 0.6, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L2/N1181-positive", "step": 128000, "explanation": "Retrospective detector of a licensed continuation: the pole fires on the token that finishes a unit begun by the immediately preceding word or stem - the closing subword piece of a split word ('Rams|ar', 'Rams|ay', 'oficin|as', 'links|af', Devanagari fragments) or the particle/preposition that a specific content word takes ('take| up', 'taken| up', 'member| of'). The left partner, not the current token, carries the trigger: nonce completions of the same stem ('Rams|or' 0.28, 'Zimb|ars' 0.10 against 'Rams|ar' 2.26), the same particle after an unlicensed verb ('give up' 0.29 against 'taken up' 0.91) and ' of' after non-licensing nouns ('theory of' -0.01 against 'member of' 1.18) all stay below the activity line, and predictability does not account for the pole (token surprisal correlates only +0.03 with it over the 230k-token scan)."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 0, "max": 1.92707, "r_final": 0.0941, "specificity": 0.45, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 1, "max": 1.92707, "r_final": 0.0941, "specificity": 0.45, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 2, "max": 1.92711, "r_final": 0.0942, "specificity": 0.45, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 4, "max": 1.92792, "r_final": 0.0949, "specificity": 0.45, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 8, "max": 1.92514, "r_final": 0.1049, "specificity": 0.45, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 16, "max": 1.84816, "r_final": 0.1303, "specificity": 0.15, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 32, "max": 1.33881, "r_final": 0.1353, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 64, "max": 1.50487, "r_final": 0.2689, "specificity": 0.05, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 128, "max": 2.12261, "r_final": 0.4477, "specificity": 0.1, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 256, "max": 2.34024, "r_final": 0.4255, "specificity": 0.45, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 512, "max": 3.10376, "r_final": 0.4714, "specificity": 0.7, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 1000, "max": 2.45047, "r_final": 0.586, "specificity": 0.55, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 2000, "max": 2.71279, "r_final": 0.657, "specificity": 0.5, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 4000, "max": 3.13342, "r_final": 0.6545, "specificity": 0.55, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 8000, "max": 3.28491, "r_final": 0.6859, "specificity": 0.55, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 16000, "max": 3.93387, "r_final": 0.7346, "specificity": 0.5, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 32000, "max": 3.31478, "r_final": 0.7309, "specificity": 0.35, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 64000, "max": 3.51745, "r_final": 0.8435, "specificity": 0.75, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 128000, "max": 3.0502, "r_final": 0.9459, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 143000, "max": 3.51404, "r_final": 1.0, "specificity": 0.9, "sensitivity": 1.0, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L4/N812-positive", "step": 143000, "explanation": "The pole fires retrospectively on the English word that carries a predicate's forward-pointing relation to a complement it has not yet named, rather than on the complement itself or on referring expressions: a transitive predicate of provision, inclusion, requirement, change or description (provide, offer, serve, contain, include, involve, produce, create, generate, develop, add, contribute, introduce, achieve, obtain, gain, receive, reach, become, need, want, try, ensure, maintain, avoid, learn, discover, explain, describe, demonstrate, measure, get), a goal/purpose/result/topic relator (the prospective 'to' of lead to, path to, need/want/try/able/likely to, how to; and 'for', 'into', 'about', 'on'), or the copula/auxiliary of a presentational, existential or modal-state clause (there is/are, here are, these are, can/may/could/might/will be). It stays at its floor on the clause's referring expressions (determiners, possessives, nouns, proper names, adjectives, numerals, punctuation), on the static/structural relators of, in, with, from, by, at and than, on retrospective or source 'to' (due to, according to, compared to, thanks to, back to, used to), on a plain definite-subject copula with a simple predicate such as 'the room is clean', on the modal 'should', and on narrative, physical-action, speech and thought verbs such as come, go, make, put, set, tell, think, know, believe and allow."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 0, "max": 2.69378, "r_final": -0.0228, "specificity": 0.0, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 1, "max": 2.69378, "r_final": -0.0228, "specificity": 0.0, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 2, "max": 2.69425, "r_final": -0.0227, "specificity": 0.0, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 4, "max": 2.70264, "r_final": -0.0222, "specificity": 0.0, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 8, "max": 2.79646, "r_final": -0.013, "specificity": 0.0, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 16, "max": 2.951, "r_final": 0.0161, "specificity": 0.0, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 32, "max": 2.34457, "r_final": 0.1413, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 64, "max": 2.28851, "r_final": 0.2649, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 128, "max": 2.53325, "r_final": 0.3716, "specificity": 0.0, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 256, "max": 2.00789, "r_final": 0.3802, "specificity": 0.6, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 512, "max": 2.18252, "r_final": 0.4653, "specificity": 0.65, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 1000, "max": 2.25196, "r_final": 0.4685, "specificity": 0.6, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 2000, "max": 2.89508, "r_final": 0.4643, "specificity": 0.45, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 4000, "max": 3.03271, "r_final": 0.6543, "specificity": 0.6, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 8000, "max": 3.19747, "r_final": 0.7572, "specificity": 0.85, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 16000, "max": 3.22793, "r_final": 0.7442, "specificity": 0.8, "sensitivity": 1.0, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 32000, "max": 2.60536, "r_final": 0.7705, "specificity": 0.05, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 64000, "max": 3.18594, "r_final": 0.8812, "specificity": 0.05, "sensitivity": 1.0, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 128000, "max": 2.9586, "r_final": 0.9647, "specificity": 0.75, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 143000, "max": 3.09568, "r_final": 1.0, "specificity": 0.8, "sensitivity": 0.9, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L4/N216-positive", "step": 143000, "explanation": "This pole fires retrospectively when the current token realizes a complement, argument, or possessive slot projected by an earlier head: a licensed preposition after verbs/nouns (from after varied/quantified, at after rate, From after a heading), for after an induction statement P(n), a possessive (his/'s) or the noun it determines (point) inside an in/his phrase, the '(' opening a def function's parameter list, or a LaTeX/code completion (_{ after lim, Deg completing minDeg, cos/sim completing backslash commands). It stays quiet on the same surface token when the licensing head is absent (and tearDown() or told...from) or when the slot holds an unlicensed alternative (when/near/With/wild)."}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 0, "max": 2.45894, "r_final": 0.0387, "specificity": 0.25, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 1, "max": 2.45894, "r_final": 0.0387, "specificity": 0.25, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 2, "max": 2.4589, "r_final": 0.0387, "specificity": 0.25, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 4, "max": 2.45823, "r_final": 0.0387, "specificity": 0.25, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 8, "max": 2.44812, "r_final": 0.0386, "specificity": 0.25, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 16, "max": 2.39178, "r_final": 0.0384, "specificity": 0.25, "sensitivity": 0.7, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 32, "max": 2.10977, "r_final": 0.0369, "specificity": 0.45, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 64, "max": 2.06942, "r_final": 0.0297, "specificity": 0.45, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 128, "max": 2.16358, "r_final": 0.0132, "specificity": 0.4, "sensitivity": 0.6, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 256, "max": 2.09496, "r_final": 0.0259, "specificity": 0.1, "sensitivity": 0.9, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 512, "max": 2.03492, "r_final": 0.0594, "specificity": 0.55, "sensitivity": 0.8, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 1000, "max": 2.23341, "r_final": 0.1256, "specificity": 0.4, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 2000, "max": 2.44206, "r_final": 0.1653, "specificity": 0.9, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 4000, "max": 2.83443, "r_final": 0.3366, "specificity": 1.0, "sensitivity": 0.3, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 8000, "max": 2.54796, "r_final": 0.4069, "specificity": 0.95, "sensitivity": 0.5, "holds": false}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 16000, "max": 2.50345, "r_final": 0.4543, "specificity": 0.85, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 32000, "max": 3.38479, "r_final": 0.5992, "specificity": 0.9, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 64000, "max": 3.036, "r_final": 0.7191, "specificity": 0.95, "sensitivity": 0.7, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 128000, "max": 2.17206, "r_final": 0.933, "specificity": 0.85, "sensitivity": 0.6, "holds": true}
+{"table": "pole", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 143000, "max": 2.04236, "r_final": 1.0, "specificity": 0.85, "sensitivity": 0.6, "holds": true}
+{"table": "born", "slug": "EleutherAI--pythia-70m/L1/N535-positive", "step": 128000, "explanation": "Fires on the second token of a two-token window when that token continues a unit the previous token opened without closing it: a word-internal BPE piece with no leading space that extends a word begun by the preceding piece, hardest after a bare one- or two-character onset ('M'|'ig' in Migomo, 'T'|'rent' in Stoke-on-Trent, ' M'|'ory' in Morya, ' ge'|'reed', '\u03bf\u03cd\u03bb'|'\u03c1\u03b9', Devanagari vowel signs and Tamil byte fragments), and, graded by the previous word, the second word of a two-word unit whose first word does not by itself deliver it ('rather than' 1.84 vs 'better than' 0.29, 'If not' 1.71 vs 'could not' -0.02, 'work out' 1.41 vs 'find out' -0.16, 'sat down' 1.64 vs 'shut down' -0.14). The same letters as a word-initial token (' rent' after a space, or ' rent' after the letter 'B') and as a single-token whole word (' Trent', ' rent') are predicted inactive, and the pole prepares no particular upcoming token."}
+{"table": "loss", "step": 0, "loss": 11.09357}
+{"table": "loss", "step": 1, "loss": 11.09357}
+{"table": "loss", "step": 2, "loss": 11.09301}
+{"table": "loss", "step": 4, "loss": 11.08278}
+{"table": "loss", "step": 8, "loss": 10.94853}
+{"table": "loss", "step": 16, "loss": 10.51373}
+{"table": "loss", "step": 32, "loss": 9.80407}
+{"table": "loss", "step": 64, "loss": 8.97063}
+{"table": "loss", "step": 128, "loss": 7.29768}
+{"table": "loss", "step": 256, "loss": 6.08608}
+{"table": "loss", "step": 512, "loss": 5.14098}
+{"table": "loss", "step": 1000, "loss": 4.43644}
+{"table": "loss", "step": 2000, "loss": 3.9835}
+{"table": "loss", "step": 4000, "loss": 3.78658}
+{"table": "loss", "step": 8000, "loss": 3.67149}
+{"table": "loss", "step": 16000, "loss": 3.61907}
+{"table": "loss", "step": 32000, "loss": 3.57701}
+{"table": "loss", "step": 64000, "loss": 3.56948}
+{"table": "loss", "step": 128000, "loss": 3.57265}
+{"table": "loss", "step": 143000, "loss": 3.58841}
