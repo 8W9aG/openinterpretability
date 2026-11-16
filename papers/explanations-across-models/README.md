@@ -2,6 +2,8 @@
 
 When a neuron pole in one model has a VERIFIED explanation, does the same explanation describe a matched pole in another model? The registry has 80 sister studies that test this. Each audits a pole of one model with another model's VERIFIED explanation, unchanged. The explanation verifies on 8 of 50 sisters (16%), 1 of 26 other close matches and 0 of 4 random poles. Most sisters fail only in part: their median balanced accuracy is 0.78, against 0.56 for other matches and 0.45 for random poles. The explanation is near chance (REJECTED) on 24% of sisters and 54% of other matches. So matching finds poles where an explanation largely carries over, but it seldom carries over whole. Sisters across tokenizers, GPT-2 to Qwen, carry about as well as sisters within the Qwen family.
 
+**Why we wrote it.** If a VERIFIED explanation carried over to a matched pole in another model, the registry could explain new models without auditing every pole again. The registry has 80 sister studies that test this, and they had not yet been read together. **The question.** Does a VERIFIED explanation describe a matched pole in another model? It is research question 4, *Do explanations carry across models?* ([research questions](../../docs/research-questions.md)).
+
 ![A pole's explanation carries better to its sister than to another match or a random pole](media/transfer.svg)
 
 ## Results
