@@ -86,6 +86,8 @@ jobs:
           python scripts/changelog.py check
           interrogate openinterp
           python scripts/check_markdown.py
+      - name: Types (mypy, strict, on [tool.mypy] files)
+        run: mypy
       - name: Shell scripts (ShellCheck)
         run: make shell SHELLCHECK=shellcheck
       - name: Install Vale
