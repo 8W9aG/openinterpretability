@@ -67,7 +67,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
 
 ## Procedure
 
-1. **Start from a fresh `origin/main` on a release branch.** Work in the main checkout, not a worktree. Pick the next version: bump the patch (`0.0.11` → `0.0.12`) unless the user names one.
+1. **Start from a fresh `origin/main` on a release branch.** Work in the main checkout, not a worktree. Pick the next version with the `semantic-versioning` skill, unless the user names one. It reads the fragments and the changes since the last tag, and finds the breaking changes. It gives the version with its reasons, which go in the release PR.
    ```bash
    git fetch origin --tags && git switch -c release/<version> origin/main
    ```
