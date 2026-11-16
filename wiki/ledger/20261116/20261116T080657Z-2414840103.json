@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-16T08:06:57Z","seed":2414840103,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L10/N698-positive","record":null,"audit":"--model openai-community/gpt2 --layer 10 --neuron 698 --pole positive --selection attribution --window-tokens 128","pole_forced":null,"harness_version":"0.0.21"}
