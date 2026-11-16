@@ -46,7 +46,7 @@ The first question is whether the poles have taken their final form by the time 
 
 ![Training loss settles by step 16,000, but the VERIFIED poles keep changing](media/development.svg)
 
-**Figure 1.** Left: the correlation of each of the 9 poles' activations with their final activations, by training step on a log scale. A filled dot marks a step at which the pole's recorded probes pass the review's gates, and an open dot a step at which they fail. Right: the mean next-token loss on the same 300 windows. The vertical line marks step 16,000, by which the loss is within 1% of its final value.
+**Figure 1.** Left: the correlation of each of the 9 poles' activations with their final activations, by training step on a log scale. A filled dot marks a step at which the pole's recorded probes pass the review's gates, and an open dot a step at which they fail. Right: the mean next-token loss on the same 300 windows. In each panel a moving dot steps through the 20 checkpoints, and a counter names the step, so the poles can be seen still moving after the loss has stopped. The vertical line marks step 16,000, by which the loss is within 1% of its final value.
 
 The loss therefore settles long before the poles do. A part of the late rise comes from the measure itself, because the correlation with the final checkpoint must reach 1 at the end (*Limitations*). Even so, the poles are far from their final form at the step where the loss stops improving.
 

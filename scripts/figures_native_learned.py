@@ -1,5 +1,6 @@
 """The figures of papers/native-vs-learned/README.md, from its results.jsonl."""
 
+from figure_motion import reveal
 from figure_svg import WIDTH, Figure, Panel, columns, number
 
 # One colour per basis through the paper: learned latents, native neurons, rotated units.
@@ -18,6 +19,7 @@ LABELS = {
     "rotated directions": "The same layers, rotated at random",
 }
 ROW = 34  # pixels per arm
+CYCLE = "8s"  # the arms appear one after another, then the figure holds
 LABEL_ROOM = 280
 
 
@@ -45,7 +47,9 @@ def shares(rows: list[dict]) -> Figure:
     panel.grid_x([0, 0.25, 0.5, 0.75, 1], 2)
     panel.x_title("share VERIFIED")
     model, slot = None, 0
-    for arm in arms:
+    for i, arm in enumerate(arms):
+        shown = f"arm{i}"
+        fig.motion += reveal(shown, 10 + 14 * i, CYCLE)
         if arm["model"] != model:
             model = arm["model"]
             fig.text(20, panel.y(slot + 0.62), model, "head")
@@ -53,10 +57,10 @@ def shares(rows: list[dict]) -> Figure:
         y = panel.y(slot + 0.5)
         colour = COLOURS[arm["arm"]]
         lo, hi = arm["ci95"]
-        fig.line(panel.x(lo), y, panel.x(hi), y, f"line s{colour}")
-        fig.dot(panel.x(arm["share"]), y, 6, f"f{colour} ring")
+        fig.line(panel.x(lo), y, panel.x(hi), y, f"line s{colour} {shown}")
+        fig.dot(panel.x(arm["share"]), y, 6, f"f{colour} ring {shown}")
         fig.text(32, y + 4, LABELS[arm["arm"]])
-        fig.text(panel.x(hi) + 8, y + 4, f"{arm['verified']} of {arm['units']}", "small")
+        fig.text(panel.x(hi) + 8, y + 4, f"{arm['verified']} of {arm['units']}", f"small {shown}")
         slot += 1
     return fig
 

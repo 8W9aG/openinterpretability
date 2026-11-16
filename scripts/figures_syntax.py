@@ -1,5 +1,6 @@
 """The figures of papers/syntax-positive-controls/README.md, from its results.jsonl."""
 
+from figure_motion import animate, translate
 from figure_svg import Figure, Panel, columns
 from figures_syntax_followups import close_later
 from figures_syntax_models import models
@@ -65,15 +66,10 @@ def _moment(index: int, count: int) -> float:
 def _moving_dot(fig: Figure, panel: Panel, values: list[float]) -> None:
     """Add a dot that follows ``values``, token by token, and rests on the last."""
     count = len(values)
-    frames = "".join(
-        f"{_moment(i, count):.1f}%{{transform:translate({panel.x(i):.1f}px,{panel.y(v):.1f}px)}}"
-        for i, v in enumerate(values)
-    )
-    last = f"transform:translate({panel.x(count - 1):.1f}px,{panel.y(values[-1]):.1f}px)"
-    fig.motion += (
-        f"@keyframes reader{{{frames}100%{{{last}}}}}"
-        f".reader{{animation:reader {CYCLE} linear infinite;{last}}}"
-    )
+    stops = [(f"{_moment(i, count):.1f}%", translate(panel.x(i), panel.y(v)))
+             for i, v in enumerate(values)]  # fmt: skip
+    last = stops[-1][1]
+    fig.motion += animate("reader", stops, CYCLE, hold=last, rest=last)
     fig.dot(0, 0, 5, "fc1 ring reader")
 
 
