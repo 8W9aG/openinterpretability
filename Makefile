@@ -65,7 +65,9 @@ vale:
 # words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
 # only the standard library. Passive voice and compound tenses are advisory and never fail.
 # A ratchet: add a path here once it passes. The vendored skill's examples break the rules
-# on purpose. CHANGELOG.md and its fragments (changelog.d/) are logs, so STE_LOG_PATHS skips synonym rotation
+# on purpose. Papers (papers/<slug>/README.md) get a looser profile, set in
+# scripts/ste_prose.py: academic prose relates its claims in longer sentences, so the cap is
+# 40 words with a mean of at most 25 (#4202). Every other path keeps the 25-word cap. CHANGELOG.md and its fragments (changelog.d/) are logs, so STE_LOG_PATHS skips synonym rotation
 # there: Keep a Changelog requires a "Fixed" heading, and entries quote command names such
 # as `verify` and `check`.
 STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \

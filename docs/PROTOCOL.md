@@ -4,7 +4,7 @@ This document defines what one Open Interpretability experiment is, who does wha
 
 ## 1. Unit of analysis
 
-One experiment tests **one hypothesis about one unit** in one model revision. A unit is a neuron pole or, since protocol 0.6, an attention head. A latent of a published sparse dictionary (a transcoder or SAE) on an MLP layer can be audited too. It is the learned-basis baseline for the native-neuron premise. Its experiments run under the same rule but are never counted with native units. A superposition, a sparse direction over one layer's neurons, can be audited too (issue #3215). It runs under the same rule, and it counts on its own.
+One experiment tests **one hypothesis about one unit** in one model revision. A unit is a neuron pole or, since protocol 0.6, an attention head. A latent of a published sparse dictionary (a transcoder or SAE) on an MLP layer can be audited too. It is the learned-basis baseline for the native-neuron premise. Its experiments run under the same rule but are never counted with native units. A superposition, a sparse direction over one layer's neurons, can be audited too (issue #3215). It runs under the same rule, and it counts on its own. Circuits are planned as units with experiments of their own, and hubs as entities whose standing is their center's (`docs/circuits-and-hubs.md`, issue #3213). Until their steps land, both are reported, not gated.
 
 | Term | Definition |
 | --- | --- |
@@ -74,7 +74,7 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    1. *Newest hypothesis.* Only experiments on the unit's newest submission count. A new submission replaces older ones (a revision names them in `supersedes`), and their verdicts were about a different claim. Re-reviews of one submission share everything but provenance.
    2. *One reading per probe set.* A re-measurement of a probe set (e.g. `reevaluate` under a newer protocol) replaces that set's earlier reading.
    3. *Independent over self-review.* If any reading came from a reviewer model other than the proposer's, self-reviews are outweighed.
-   4. *Agreement.* If the readings left agree, that is the status. If one is VERIFIED and another is not, the status is **CONTESTED**, and the unit is not counted as verified. If none is VERIFIED, the newest reading's status stands: NEEDS_REVISION against REJECTED is not a disagreement about whether the claim holds.
+   4. *Majority.* The readings left vote, VERIFIED or not, and the majority decides. When most are VERIFIED, the status is VERIFIED. When most are not, the newest of those readings gives the status: NEEDS_REVISION against REJECTED is not a disagreement about whether the claim holds. Only an even split between VERIFIED and not makes the status **CONTESTED**, and then the unit is not counted as verified. One more independent review settles it. Until 2026-11-16, any disagreement made a unit CONTESTED, so more reviews could never settle one (#3212).
 
    Unit pages show which reviews the status rests on. They mark every other experiment as re-measured, outweighed, an earlier hypothesis or set aside by an erratum (§5). The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
 

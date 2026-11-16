@@ -1,5 +1,6 @@
 """The figures of papers/spd-input-projections/README.md, from its results.jsonl."""
 
+from figure_motion import animate, even_stops, translate
 from figure_svg import Figure, Panel, columns
 
 LAYERS = list(range(12))
@@ -122,15 +123,9 @@ def _moving_site(fig: Figure, panel: Panel, name: str, points: list, cls: str, s
     """Add a site's faint path and a dot that follows it and rests on its last point."""
     panel.curve([p[0] for p in points], [p[1] for p in points], f"line {stroke} soft")
     where = [(panel.x(x), panel.y(y)) for x, y in points]
-    last = f"transform:translate({where[-1][0]:.1f}px,{where[-1][1]:.1f}px)"
-    stops = "".join(
-        f"{HOLD_FROM * i / (len(where) - 1):.1f}%{{transform:translate({x:.1f}px,{y:.1f}px)}}"
-        for i, (x, y) in enumerate(where)
-    )
-    fig.motion += (
-        f"@keyframes {name}{{{stops}100%{{{last}}}}}"
-        f".{name}{{animation:{name} {CYCLE} linear infinite;{last}}}"
-    )
+    stops = even_stops([translate(x, y) for x, y in where], HOLD_FROM)
+    last = stops[-1][1]
+    fig.motion += animate(name, stops, CYCLE, hold=last, rest=last)
     fig.dot(0, 0, 4, f"{cls} ring {name}")
 
 

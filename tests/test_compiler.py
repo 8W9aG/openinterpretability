@@ -842,10 +842,44 @@ def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
     assert (stats["totals"]["verified"], stats["totals"]["contested"]) == (0, 1)
     assert "verified" not in stats  # the home page lists no verified units (#3273)
     neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "CONTESTED" in neuron and "Reviews of this hypothesis disagree" in neuron
+    assert "CONTESTED" in neuron and "Reviews of this hypothesis split evenly" in neuron
     home = (tmp_path / "index.html").read_text()
     assert 'id="contested"' in home and "1 unit is contested" in home
     assert "0 of the 1 hypotheses reviewed with more than one probe set" in home
+
+
+def test_a_majority_of_verified_readings_settles_a_contest(tmp_path, records):
+    """Two independent VERIFIED readings outvote one NEEDS_REVISION (#3212)."""
+    verified = records[1]
+    records.append(
+        _reviewed_by(
+            verified, "deepseek/flash", status="NEEDS_REVISION", hours=3, counts=(5, 5, 1, 4)
+        )
+    )
+    records.append(_reviewed_by(verified, "muse/spark", status="VERIFIED", hours=5))
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and not standing.contested and unit.verified
+    assert standing.lead.record.verdict.status == "VERIFIED" and standing.dissent == 1
+    assert [e.record.verdict.status for e in standing.readings] == [
+        "VERIFIED", "VERIFIED", "NEEDS_REVISION",
+    ]  # fmt: skip
+    compile_site(records, tmp_path)
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
+    assert "Most reviews of this hypothesis agree (2 of 3)" in neuron
+
+
+def test_a_majority_against_verified_takes_the_newest_of_its_statuses(records):
+    verified = records[1]
+    records.append(
+        _reviewed_by(
+            verified, "deepseek/flash", status="NEEDS_REVISION", hours=3, counts=(5, 5, 1, 4)
+        )
+    )
+    records.append(
+        _reviewed_by(verified, "muse/spark", status="REJECTED", hours=5, counts=(2, 8, 0, 5))
+    )
+    standing, unit = _standing(records)
+    assert standing.status == "REJECTED" and not unit.verified and standing.dissent == 1
 
 
 def test_independent_review_outweighs_self_review(records):

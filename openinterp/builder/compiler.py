@@ -39,6 +39,7 @@ from openinterp.builder.neuronpedia_export import export_neuronpedia
 from openinterp.builder.parallel import in_background, render_in_parallel
 from openinterp.builder.parquet_export import export_draws, export_registry
 from openinterp.builder.pii import save_spans, scrub, scrub_experiments
+from openinterp.builder.recent import recent_experiments
 from openinterp.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterp.builder.sections import render_reference_pages
 from openinterp.builder.significance import P_USEFUL, evidence_strength
@@ -299,6 +300,7 @@ def compile_site(
     errata: Sequence[Erratum] = (),
     users: dict[str, str] | None = None,
     coverage_rows: dict | None = None,
+    paper_pdfs: bool = False,
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -306,7 +308,8 @@ def compile_site(
     :func:`openinterp.wiring_backfill.load_rows` and :func:`openinterp.corpus.load_sources`.
     ``alignment_rows`` (:func:`openinterp.crossref.load_rows`) are each pole's aligned
     latents. ``sister_rows`` (:func:`openinterp.sisters.load_rows`) are its matches.
-    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`).
+    ``papers_dir`` holds the Research section (:mod:`openinterp.builder.research`). With
+    ``paper_pdfs``, each paper also gets a PDF (:mod:`openinterp.builder.paper_pdf`).
     ``stops`` (:func:`openinterp.core.draws.load_stops`) go on their unit's page, or the home's.
     ``model_facts`` (:func:`openinterp.builder.model_facts.load_model_facts`) fill the
     Models page, which lists every model in ``[tool.openinterp] models``.
@@ -353,7 +356,7 @@ def compile_site(
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report)
+    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     _save_memos()
     return report
@@ -470,7 +473,7 @@ def _render_model(
     page = circuits_href(model.slug)
     graphs = sister_graphs(model, sister_rows, studied)
     shown = {"circuits": found, "hubs": found_hubs, "circuits_page": page, "sister_graphs": graphs}
-    render(model.href, "model.html", model=model, **shown)
+    render(model.href, "model.html", model=model, recent=recent_experiments(model), **shown)
     circuit_of = render_circuits(render, model, found, found_hubs)
     for layer in model.layers:
         render(layer.href, "layer.html", model=model, layer=layer)
