@@ -42,4 +42,4 @@ The rules:
 
 - `uv run python scripts/paper_figures.py`, then `uv run pytest tests/test_paper_figures.py`. The tests check each animated SVG for the reduced-motion rule, a cycle of 4 to 15 seconds, a resting state and at most 200 KB.
 - Render a mid-cycle frame and the final frame, in light mode and in dark mode, and look at them. Headless Chrome can do it. Put the SVG in an HTML page with `*{animation-play-state:paused!important;animation-delay:-<seconds>s!important}`, and add `--force-dark-mode` for dark mode. Attach the frames to the PR.
-- The maintainer is colour blind. Show new animations to the maintainer before the PR merges.
+- The maintainer is colour blind, so no point may rest on colour alone. They trust the author's judgement on graphics: check the frames yourself, then merge on green CI as for any PR.
