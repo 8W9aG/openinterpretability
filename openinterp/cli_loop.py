@@ -162,3 +162,31 @@ def _git(*args: str) -> str:
     if done.returncode != 0:
         raise click.ClickException(f"git {args[0]} failed: {done.stderr.strip()}")
     return done.stdout.strip()
+
+
+@cli.command(name="loop-bug")
+@click.option("--title", required=True, help="One line: what failed.")
+@click.option("--command", "command_", required=True, help="The command that failed.")
+@click.option(
+    "--error",
+    type=click.File("r"),
+    default="-",
+    show_default=True,
+    help="A file with the error output; '-' reads stdin.",
+)
+@click.option("--branch", default="", help="The branch the loop was on.")
+@click.option("--record", default="", help="The record or slug the experiment was about.")
+@click.option("--dry-run", is_flag=True, help="Print what would be posted, and post nothing.")
+def loop_bug_command(title, command_, error, branch, record, dry_run):
+    """File a bug that the loop can't solve, or comment on the open issue of the same bug.
+
+    It removes secrets, email addresses and home-directory paths first. See the
+    land-experiment skill for when to use it (openinterp/loop_bugs.py, issue #3261).
+    """
+    from openinterp.loop_bugs import Report, file
+
+    report = Report(title, command_, error.read(), branch, record)
+    try:
+        click.echo(file(report, dry_run=dry_run))
+    except subprocess.CalledProcessError as failed:
+        raise click.ClickException(f"gh failed: {(failed.stderr or '').strip()[-300:]}") from None
