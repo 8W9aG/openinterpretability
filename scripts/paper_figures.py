@@ -13,6 +13,7 @@ from pathlib import Path
 import figures_default_on
 import figures_default_on_decoding
 import figures_depth
+import figures_development
 import figures_explorer
 import figures_native_learned
 import figures_spd_input
@@ -56,6 +57,7 @@ def build_all() -> dict[str, str]:
             "decoding.svg": figures_default_on_decoding.decoding(poles),
             "ridges.svg": figures_depth.ridges(poles, dip),
         },
+        "neuron-development": figures_development.build(_rows("neuron-development")),
         "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
         "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),

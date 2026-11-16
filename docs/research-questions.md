@@ -51,3 +51,9 @@ Every registry-wide claim inherits the noise of single verdicts.
 - **What would answer it.** For VERIFIED poles, whether the explanation holds on other corpora, measured with held-out scores on each.
 - **So far.** Not measured. Each new scan reads its own seeded `mixed` corpus, and the Cosmopedia control isn't run.
 - **Bears on it.** New corpus presets (`area: datasets`), held-out scoring on another corpus.
+
+## 7. When do neurons form during training? (#3376)
+
+- **What would answer it.** Take the VERIFIED poles of a model whose training run is public. For each, the step from which its explanation holds, and whether that step lines up with the loss or with other training signals.
+- **So far.** On 2026-11-16, `papers/neuron-development/` followed Pythia-70m's 9 VERIFIED poles through 20 checkpoints. The loss settles within 1% of its final value by step 16,000. But the poles keep changing, and their median correlation with their final form is 0.48 there. Four explanations hold without a break from step 16,000 or earlier, and five only from step 64,000 or later.
+- **Bears on it.** Adjacent-checkpoint correlations, OLMo's checkpoints, and the local learning coefficient (#4156).
