@@ -37,7 +37,7 @@ NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
 # private test probes, so it is never published.
 OUTPUTS = {
     "bench", "bench-dev", "bench-redteam", "code-detection", "dreams", "gpt2-spd",
-    "language-detection", "score-backfill",
+    "language-detection", "rescore-pilot", "score-backfill",
     "spd-up-neurons.json", ".published",
 }  # fmt: skip
 # A case-insensitive file system, such as macOS's, opens `exchange/BENCH` as `exchange/bench`.
