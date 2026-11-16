@@ -140,6 +140,8 @@ def measures(runner, task: PairTask, means, members) -> dict:
     full = ablated(runner, task, means)
     empty = ablated(runner, task, means, keep=True)
     span = full - empty
+    if abs(span) < 1e-9:
+        raise ValueError("the task's metric doesn't change when every unit is ablated")
     alone = ablated(runner, task, means, members, keep=True)
     without = ablated(runner, task, means, members)
     return {"faithfulness": (alone - empty) / span, "necessity": 1 - (without - empty) / span,

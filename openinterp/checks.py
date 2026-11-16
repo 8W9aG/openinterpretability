@@ -45,6 +45,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from openinterp.builder.wiki import _read_front_matter, archive_path
+from openinterp.circuit_checks import check_circuits
 from openinterp.core.agent_names import spelling_problem
 from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterp.core.schemas import AuditRecord
@@ -121,6 +122,7 @@ def check_registry(
     _check_draws(wiki_dir, report, scope)
     _check_stops(wiki_dir, report, scope)
     _check_ledger(wiki_dir, report, scope)
+    check_circuits(wiki_dir, report, scope)
     check_errata(wiki_dir, report, base_ref, changes, allowed_signers)
     check_takedowns(wiki_dir, report, base_ref, changes, allowed_signers)
     if base_ref:

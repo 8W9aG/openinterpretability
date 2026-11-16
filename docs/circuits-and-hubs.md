@@ -51,15 +51,7 @@ A circuit experiment reuses the lifecycle of `docs/PROTOCOL.md` §3: propose, re
 
 The proposer gives a task: a set of clean and corrupted prompt pairs and a metric, as the subject–verb agreement analysis does (`docs/analyses/sva-circuit.md`). It gives each member's role in words. The reviewer writes its own pairs: holdouts of the task and hard negatives, which are other tasks that the circuit should not carry. The review measures each set with path patching (Wang et al., 2022). Every unit that is not a member is resample-ablated with activations from the corrupted prompts, so only the members carry the clean signal.
 
-| Measure | Definition | Gate (provisional) |
-| --- | --- | --- |
-| Faithfulness | (m(circuit only) − m(none)) / (m(all) − m(none)) on the holdout pairs | ≥ 0.6 |
-| Necessity | 1 − (m(circuit ablated) − m(none)) / (m(all) − m(none)) on the holdouts | ≥ 0.5 |
-| Specificity | The share of hard-negative tasks on which ablating the circuit moves the metric by less than 20% of its range | ≥ 0.8 |
-| Minimality | The share of members whose own ablation lowers faithfulness by at least 0.02 | reported, not gated |
-| Null | Faithfulness of 64 random member sets of the same size and layers, seeded by the id | the circuit must beat the 95th percentile |
-
-The gates are provisional. The subject–verb agreement pilot sets them before any protocol change (*Plan*, step 1). A decided gate goes into `docs/PROTOCOL.md` §4 with a `PROTOCOL_VERSION` bump.
+The decided gates are in `docs/PROTOCOL.md` §4 (*Circuits*). Necessity must be at least 0.02, and above the 95th percentile of random member sets. Specificity on other tasks must be at least 0.80. The pilot set them (`docs/analyses/circuit-pilot.md`). The first plan here had absolute gates, such as faithfulness ≥ 0.6, and every wiring cluster failed them. Faithfulness and each member's necessity are still recorded, but not gated.
 
 ### Sub-circuits
 
@@ -82,7 +74,7 @@ A hub can be an artefact. A unit with a large output norm, or one that is on mos
 Each step is its own issue, and each issue says what it needs from the one before it.
 
 1. **Pilot** (#4283). Cluster today's wiring, and replay the registry's history week by week to measure how often circuit ids survive the matching. Run the circuit measures by hand on the subject–verb agreement circuit (`sva-circuit.md`) and on random sets, to set the gates. No schema change.
-2. **The circuit unit** (#4284). Add the clustering, the matching and the lineage to the build. Add `CircuitIdentifier`, the task hypothesis and the tested members on each record, and the review measures to the schema and harness. Add `open-interpretability audit --circuit` and `review` support. Then add the §1 row, the §4 gates and the `PROTOCOL_VERSION` bump.
+2. **The circuit unit** (#4284). Done: circuit ids and lineage (`circuits identify`), the measures for neurons and heads (`openinterp/harness/circuit_measures.py`), and the unit (`circuits propose` and `circuits review`). The gates are in `docs/PROTOCOL.md` §4, under their own rule version, `CIRCUIT_PROTOCOL_VERSION`. `PROTOCOL_VERSION` stays unchanged, so no other record needs re-evaluating.
 3. **The hub entity** (#4285). Add `HubIdentifier`, the hub's derived standing and the reported artefact facts. No experiments and no protocol change.
 4. **Planner draws** (#4286). A `circuit` draw for a stale experiment, weighted by how many members changed, and for a circuit with no task hypothesis yet.
 5. **Site pages** (#4287). Circuit pages show members, lineage and stability, each task's experiments and standing, stale experiments and sub-circuits. Hub pages show their center's standing and the artefact facts.
