@@ -1,6 +1,6 @@
 # A single-judge rescore pilot
 
-Run on 2026-11-16 for issue #4102, with `scripts/rescore_pilot.py`. The rows are in `rescore-pilot.jsonl` and the numbers in `rescore-pilot.json`.
+Run on 2026-11-16 for issue #4102, with `scripts/rescore_pilot.py`. The sample is in `rescore-pilot-sample.jsonl`, the rows in `rescore-pilot.jsonl` and the numbers in `rescore-pilot.json`.
 
 The registry's detection and fuzzing scores separate VERIFIED records from the rest poorly, with an AUROC of 0.57 (`verified-vs-detection.md`). Two kinds of noise could hide a stronger link. The scores mix judges that differ by 5 to 8 points, and each uses about 50 windows from one seed. This pilot removes both from 200 records. If the AUROC then rose a lot, a full single-judge rescore would be worth its cost, and a score might become a gate (#3209).
 

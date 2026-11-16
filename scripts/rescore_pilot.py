@@ -12,7 +12,8 @@ twice the windows, and measures how much of the spread is window noise.
 * One ``explanation-judge`` subagent answers each prompt (a workflow, outside this script).
 * ``collect`` scores the answered tasks (``score --task``) and writes one row per record
   and seed to ``docs/analyses/rescore-pilot.jsonl``.
-* ``report`` writes ``docs/analyses/rescore-pilot.json``.
+* ``report`` writes ``docs/analyses/rescore-pilot.json``. It reads only files in git: the
+  sample and the rows.
 
     uv run python scripts/rescore_pilot.py sample
     uv run python scripts/rescore_pilot.py emit
@@ -38,7 +39,7 @@ from score_backfill import CLI, CORPUS, corpus_for, seed_of, sha256  # noqa: E40
 from verified_vs_detection import BACKFILL, backfilled, normalise  # noqa: E402
 
 WORK = Path("exchange/rescore-pilot")
-SAMPLE = WORK / "sample.json"
+SAMPLE = Path("docs/analyses/rescore-pilot-sample.jsonl")  # in git, so `report` reruns from it
 ROWS = Path("docs/analyses/rescore-pilot.jsonl")
 REPORT = Path("docs/analyses/rescore-pilot.json")
 PER_ARM = 100
@@ -119,6 +120,11 @@ def replace(chosen: list[dict], rows: list[dict], bad: set[str], seed: int = 1) 
     return out
 
 
+def read_sample() -> list[dict]:
+    """The sampled records, one per line of :data:`SAMPLE`."""
+    return [json.loads(line) for line in SAMPLE.read_text().splitlines() if line.strip()]
+
+
 def task_dir(record: str, seed: int) -> Path:
     """``exchange/rescore-pilot/<pole slug>/<experiment id>/seed<k>/``."""
     path = Path(record)
@@ -143,7 +149,7 @@ def sample() -> None:
     builtin = hashlib.sha256("\n".join(sample_corpus()).encode()).hexdigest()
     chosen = replace(draw(rows), rows, {builtin})
     SAMPLE.parent.mkdir(parents=True, exist_ok=True)
-    SAMPLE.write_text(json.dumps(chosen, indent=1))
+    SAMPLE.write_text("".join(json.dumps(r) + "\n" for r in chosen))
     click.echo(f"{len(chosen)} records: {Counter((r['status'], r['model']) for r in chosen)}")
 
 
@@ -153,7 +159,7 @@ def sample() -> None:
 def emit(shard: str, reverse: bool) -> None:
     """Write each sampled record's tasks, one per seed, skipping those already written."""
     i, n_shards = map(int, shard.split("/"))
-    chosen = json.loads(SAMPLE.read_text())[i::n_shards]
+    chosen = read_sample()[i::n_shards]
     chosen = chosen[::-1] if reverse else chosen
     known: dict[str, Path | None] = {sha256(CORPUS): CORPUS} if CORPUS.exists() else {}
     for n, row in enumerate(chosen, 1):
@@ -180,7 +186,7 @@ def emit(shard: str, reverse: bool) -> None:
 def collect(judge: str) -> None:
     """Score every answered task, and write one row per record and seed."""
     rows = []
-    for row in json.loads(SAMPLE.read_text()):
+    for row in read_sample():
         for k in range(SEEDS):
             out = task_dir(row["record"], k)
             task = out / "score.task.json"
@@ -295,7 +301,7 @@ def kind_report(rows: list[dict], sample: dict[str, dict], kind: str) -> dict:
 @main.command()
 def report() -> None:
     """Compare the new scores with the old ones on the same records, and write the JSON."""
-    sample = {r["record"]: r for r in json.loads(SAMPLE.read_text())}
+    sample = {r["record"]: r for r in read_sample()}
     rows = [json.loads(line) for line in ROWS.read_text().splitlines() if line.strip()]
     low = [r for r in sample.values() if all(v is None for v in r["old"].values())]
     active = {r["record"]: r["active_windows"] for r in rows if r["seed"] == 0}
