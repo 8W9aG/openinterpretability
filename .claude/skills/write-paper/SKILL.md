@@ -101,6 +101,7 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 ## Before you finish
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
+- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
 - Build the site with `make build`, and open the Research index and the paper.

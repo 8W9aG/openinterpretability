@@ -14,6 +14,11 @@ CITATION = re.compile(
 REFERENCE = re.compile(r"^- ([^,]+), .*?\(((?:19|20)\d{2})\)\.(.*)$", re.M)
 
 
+def _same(cited: str, listed: str) -> bool:
+    """True when a citation's name and a reference's name are the same surname."""
+    return cited.endswith(listed) or listed.endswith(cited)
+
+
 def _sections(paper: str) -> tuple[str, str]:
     """Return a paper's body and its reference list."""
     text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
@@ -34,7 +39,8 @@ def test_each_citation_has_a_reference(paper):
     body, references = _sections(paper)
     listed = [(name, year) for name, year, _ in REFERENCE.findall(references)]
     for name, year in CITATION.findall(body):
-        assert any(name.endswith(n) and year == y for n, y in listed), f"{name}, {year}"
+        # Either side may hold a particle that the other lacks: "van der Wal" and "Wal".
+        assert any(_same(name, n) and year == y for n, y in listed), f"{name}, {year}"
 
 
 @pytest.mark.parametrize("paper", WRITTEN)
@@ -42,7 +48,7 @@ def test_each_reference_is_cited(paper):
     body, references = _sections(paper)
     cited = CITATION.findall(body)
     for name, year, _ in REFERENCE.findall(references):
-        assert any(c.endswith(name) and y == year for c, y in cited), f"{name}, {year}"
+        assert any(_same(c, name) and y == year for c, y in cited), f"{name}, {year}"
 
 
 # APA 7, as the write-paper skill sets it. List every author, or the first 19, an
