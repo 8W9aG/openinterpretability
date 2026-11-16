@@ -174,7 +174,7 @@ def landing_times(ref: str = "HEAD") -> dict[Path, datetime]:
     if not root or git("rev-parse", "--is-shallow-repository") != "false":
         return {}
     log = git(
-        "-C", root, "log", "--first-parent", "--diff-filter=AM", "--name-only",
+        "-C", root, "log", "--first-parent", "--diff-filter=AMT", "--name-only",
         "--format=@%ct", ref, "--", "wiki",
     )  # fmt: skip
     times: dict[Path, datetime] = {}
