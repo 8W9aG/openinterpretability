@@ -32,9 +32,6 @@ from __future__ import annotations
 import json
 import math
 import random
-import re
-import shutil
-import subprocess
 import tomllib
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
@@ -49,6 +46,7 @@ from openinterp.core.schemas import (
     ReviewPolicy,
     scan_active_share,
 )
+from openinterp.planner_claims import ForkClaim, claimed, open_pr_claims  # noqa: F401 - re-exported
 from openinterp.planner_models import (
     DEFAULT_COVERAGE_TARGET,
     DEFAULT_OTHERS_SHARE,
@@ -108,49 +106,6 @@ class Candidate:
 def claim_key(slug: str) -> str:
     """Branch-safe form of a neuron slug; PR branches and titles should contain it."""
     return slug.replace("/", "-")
-
-
-FORK_CLAIM = re.compile(r"^experiment/[A-Za-z0-9._-]+$")
-"""The branch name by which a PR from a fork claims one unit."""
-
-
-def open_pr_claims() -> list[str]:
-    """What open PRs claim: text that names the units they work on.
-
-    A PR from this repository claims by its title and its branch name. A PR from a fork
-    claims only by a branch named ``experiment/<key>``, so it claims at most one unit.
-    Anyone can open a fork PR, and free text could name many units and so bias the draw.
-    The list is empty if `gh` is unavailable.
-    """
-    if not shutil.which("gh"):
-        return []
-    try:
-        out = subprocess.run(
-            [
-                "gh",
-                "pr",
-                "list",
-                "--state",
-                "open",
-                "--limit",
-                "200",
-                "--json",
-                "title,headRefName,isCrossRepository",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        ).stdout
-    except (subprocess.SubprocessError, OSError):
-        return []
-    claims = []
-    for pr in json.loads(out):
-        if not pr.get("isCrossRepository", True):
-            claims.append(f"{pr['title']} {pr['headRefName']}")
-        elif FORK_CLAIM.match(pr["headRefName"]):
-            claims.append(pr["headRefName"])
-    return claims
 
 
 def _config(pyproject: Path) -> dict:
@@ -221,7 +176,7 @@ def _decay(state: NeuronState, claims: Sequence[str], now: datetime) -> tuple[fl
         factor *= 0.5
         notes.append("studied in the last 24h")
     key = claim_key(state.slug)
-    if any(key in c or state.slug in c for c in claims):
+    if claimed(key, claims) or claimed(state.slug, claims):
         factor *= 0.05
         notes.append("an open PR already claims it")
     return factor, notes
