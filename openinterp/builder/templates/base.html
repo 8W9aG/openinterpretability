@@ -6,6 +6,7 @@
   <title>{% block title %}{{ site_title }}{% endblock %}</title>
   <meta name="generator" content="openinterp {{ version }}">
   {% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+  <link rel="alternate" type="application/atom+xml" title="New VERIFIED units" href="{{ root }}feed.xml">
   {# Built once with the site (openinterp/builder/css.py, `make build`), not in the browser. #}
   <link href="{{ root }}assets/site.css" rel="stylesheet">
   {# Pagefind's UI (`make search-index`) loads on the first use of the search box, at the end of the body. #}
