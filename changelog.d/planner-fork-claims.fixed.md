@@ -1,1 +1,0 @@
-- The planner counts a PR from a fork as a claim only by a branch named `experiment/<key>`, so it claims at most one unit. Before, anyone's PR title could name many units and lower their chance of being drawn.

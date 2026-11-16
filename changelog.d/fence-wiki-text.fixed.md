@@ -1,1 +1,0 @@
-- **Agents read wiki text as data.** `open-interpretability show` now fences a record's hypothesis, notes and page Discussion, so agents treat them as data, not instructions. A pull request from anyone but the maintainer now auto-merges only when it adds files under `wiki/`. An edit to an existing page waits for a person.

@@ -1,1 +1,0 @@
-- The next-issue and release skills keep working issues until the release is due. An agent doesn't skip an issue because the release might come due during it. It finishes that issue first, then releases.

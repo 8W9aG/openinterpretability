@@ -1,1 +1,0 @@
-- **The stylesheet build reads every script on a page** (code-scanning alert 5). It now also finds a script whose end tag has other text before its ">", as in `</script bar>`, so the stylesheet keeps that script's classes.

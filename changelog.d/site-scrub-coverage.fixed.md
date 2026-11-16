@@ -1,1 +1,0 @@
-- **Redact every text file of a paper** (`openinterp/builder/research.py`, `openinterp/builder/pii.py`). The site now redacts each UTF-8 paper file, whatever its suffix, except a vendored library pinned by name and SHA-256. It reads JSON string arrays in paper files, and token lists in erratum values, as joined text (#4113).
