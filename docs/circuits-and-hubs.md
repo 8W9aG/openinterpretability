@@ -8,10 +8,10 @@ A neuron pole, a head or a latent is one coordinate that an experiment measures.
 
 | Unit | Identity | Its hypothesis says |
 | --- | --- | --- |
-| **Circuit** | `CircuitIdentifier`, `kind = "circuit"`, `L<first>-L<last>/C<id>`. The members are a sorted list of unit slugs (neuron poles, heads, latents or superpositions) in one model revision. The id is 12 hex digits of a SHA-256 of that list, as for a superposition. | What the group computes as a whole on a task: the behaviour, how it is measured, and each member's role. |
+| **Circuit** | `CircuitIdentifier`, `kind = "circuit"`, `C<id>`, in one model revision. A circuit is defined by its task: the behaviour, the clean and corrupted prompt template and the metric. The id is 12 hex digits of a SHA-256 of that task definition, so one task always has one id. | Which units carry the task (its members: neuron poles, heads, latents or superpositions), each member's role, and what the group computes as a whole. |
 | **Hub** | `HubIdentifier`, `kind = "hub"`, `<unit>/HUB`. Its center is one unit slug. The record pins the center's record and the upstream and downstream member sets that it was tested with. | What the center integrates or passes on: which upstream units write through it, and which downstream units it changes. |
 
-**Membership changes as the registry grows.** A circuit that gains or loses a member is a new circuit with a new id. Its record keeps the old one in `supersedes`, as a revision does. A hub keeps its id, because the center defines it. A hub record tested with other member sets is a new experiment on the same unit, as a re-review is for a pole. Each record pins the member records that it used, so a later change to a member's standing never changes an old circuit record.
+**Membership changes as the registry grows, and the unit stays.** A circuit's members are part of its hypothesis, not its identity. Adding or removing a member is a revision: a new experiment on the same circuit, whose record names the one it revises in `supersedes`. The standing rule (§3 step 9) counts only the newest hypothesis. So the circuit's standing follows its current members, and its whole history stays on one page. Only a different task makes a different circuit. A hub works the same way. Its center defines it, and a record tested with other member sets is a new experiment on the same unit. Each record pins the member records that it used, so a later change to a member's standing never changes an old record.
 
 ## How an experiment tests it
 
