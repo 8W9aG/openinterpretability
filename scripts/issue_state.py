@@ -50,15 +50,22 @@ TRUSTED_BOTS = ("dependabot[bot]", "github-advanced-security[bot]")
 NIGHTLY_BOT = "github-actions[bot]"
 # The maintainer holds an issue back with this label.
 PROPOSED = "proposed"
-NIGHTLY_WORKFLOW = Path(__file__).parents[1] / ".github/workflows/reproduce-nightly.yml"
+WORKFLOWS = Path(__file__).parents[1] / ".github/workflows"
+# Workflows that open an issue when they fail, each under the fixed title in its TITLE env.
+AUTOMATIC_WORKFLOWS = (WORKFLOWS / "reproduce-nightly.yml", WORKFLOWS / "deploy.yml")
 
 
-def nightly_title() -> str:
-    """The title of the issues that the nightly reproduction opens (its TITLE env)."""
-    match = re.search(r"^\s*TITLE:\s*(.+?)\s*$", NIGHTLY_WORKFLOW.read_text(), re.M)
+def workflow_title(workflow: Path) -> str:
+    """The title of the issues that ``workflow`` opens (its first TITLE env)."""
+    match = re.search(r"^\s*TITLE:\s*(.+?)\s*$", workflow.read_text(), re.M)
     if match is None:
-        raise RuntimeError(f"no TITLE in {NIGHTLY_WORKFLOW}")
+        raise RuntimeError(f"no TITLE in {workflow}")
     return match.group(1).strip("\"'")
+
+
+def automatic_titles() -> set[str]:
+    """The titles of the issues that this repository's workflows open when they fail."""
+    return {workflow_title(w) for w in AUTOMATIC_WORKFLOWS}
 
 
 def gh_api(path: str):
@@ -77,8 +84,8 @@ def eligibility(number: str) -> tuple[bool, str]:
         return True, f"opened by {MAINTAINER}"
     if author in TRUSTED_BOTS:
         return True, f"opened by {author}"
-    if author == NIGHTLY_BOT and issue["title"] == nightly_title():
-        return True, "opened by the nightly reproduction"
+    if author == NIGHTLY_BOT and issue["title"] in automatic_titles():
+        return True, f"opened by a workflow ({issue['title']})"
     if issue["reactions"]["+1"]:
         reactions = gh_api(f"repos/{REPO}/issues/{number}/reactions?per_page=100")
         approved = [
