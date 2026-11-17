@@ -214,8 +214,10 @@ class LLMAgent:
                         time.sleep(self.poll_interval)
                         continue
                     seen = None
-                    _write_whole(error_path, str(exc))
+                    # Remove the bad answer before the error appears. An answerer that sees
+                    # the error and writes again at once would else lose its answer (#4376).
                     response_path.unlink()
+                    _write_whole(error_path, str(exc))
                     print(f"Invalid response, see {error_path}", file=sys.stderr)
                 else:
                     error_path.unlink(missing_ok=True)

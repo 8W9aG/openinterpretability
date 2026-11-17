@@ -53,7 +53,7 @@ def test_a_new_prompt_is_drawn_once_and_an_explained_one_is_not(tmp_path):
     found = explanation_candidates({}, [], root, [MODEL], seed=1)
     (new,) = [c for c in found if c.kind == "explanation"]
     assert new.slug == explanation_slug(MODEL, "Another prompt")
-    assert new.commands == [f"open-interpretability explain 'Another prompt' --model {MODEL}"]
+    assert new.commands == [f"open-interpretability explain --model {MODEL} -- 'Another prompt'"]
 
 
 def test_explained_units_that_are_unstudied_get_attribution_audits(tmp_path):
@@ -120,3 +120,18 @@ def test_the_loop_posts_an_explanation_draw_as_explained(monkeypatch):
         assert "no explanation" in str(exc)
     else:
         raise AssertionError("an explanation draw that wrote nothing must fail")
+
+
+def test_commands_quote_every_value_and_keep_the_prompt_last(tmp_path):
+    import shlex
+
+    root = _root(tmp_path, prompts=("-x 'quoted' $(stuff)",))
+    (choice,) = [
+        c for c in explanation_candidates({}, [], root, [MODEL], 1) if c.kind == "explanation"
+    ]
+    words = shlex.split(choice.commands[0])
+    assert words[-2:] == ["--", "-x 'quoted' $(stuff)"]  # one argument, after the options
+    steps = draw_steps.steps(Plan(7, choice, False, [choice]), proposer="anthropic/p")
+    explain = next(c for s in steps for c in s.commands if " explain " in c)
+    assert shlex.split(explain)[-2:] == ["--", "-x 'quoted' $(stuff)"]
+    assert "--record --" in explain  # the draw's options come before the prompt

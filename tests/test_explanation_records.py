@@ -77,3 +77,40 @@ def test_the_site_has_a_page_for_each_explanation(tmp_path, record):
     assert "explanations/index.html" in research
     compile_site([record], tmp_path / "bare")
     assert not (tmp_path / "bare" / "explanations").exists()  # none recorded: no pages
+
+
+def test_records_only_hold_strict_names_and_slugs():
+    import pytest
+    from pydantic import ValidationError
+
+    good = _record(datetime(2026, 11, 17, tzinfo=UTC))
+    for bad in ("gpt2; x", "a b", "-m", "org/name/extra"):
+        with pytest.raises(ValidationError):
+            ExplanationRecord.model_validate(good.model_dump() | {"model_name": bad})
+    for bad in ("m/L1/N1-positive;x", "m/L1/N1", "m/L1/H2 x", "../L1/H2"):
+        with pytest.raises(ValidationError):
+            ExplainedUnit(unit="u", slug=bad, kind="pole", share=0, attribution=0, status="x")
+    assert unit_href("m/L1/N1-positive;x") is None  # matched in full
+
+
+def test_an_invalid_record_is_skipped_and_the_check_rejects_it(tmp_path, monkeypatch, capsys):
+    from openinterpretability import planner
+    from openinterpretability.checks import CheckReport
+    from openinterpretability.core.explanation_records import check_explanations
+
+    wiki = tmp_path / "wiki"
+    good = _write(wiki, _record(datetime(2026, 11, 17, tzinfo=UTC)))
+    bad = wiki / "explanations" / "x" / "y" / "z.json"
+    bad.parent.mkdir(parents=True)
+    bad.write_text("{}")
+    assert [p for p, _ in load_latest(wiki)] == [good]  # the bad one doesn't stop the rest
+    assert "skipping an invalid explanation record" in capsys.readouterr().err
+    monkeypatch.setattr(planner, "configured_models", lambda: ("openai-community/gpt2",))
+    monkeypatch.setattr(planner, "signed_models", lambda: ())
+    report = CheckReport()
+    check_explanations(wiki, report)
+    assert [(p.path, "valid" in p.message) for p in report.problems] == [(bad, True)]
+    monkeypatch.setattr(planner, "configured_models", lambda: ("other/model",))
+    report = CheckReport()
+    check_explanations(wiki, report)
+    assert any("not a configured model" in p.message for p in report.problems)
