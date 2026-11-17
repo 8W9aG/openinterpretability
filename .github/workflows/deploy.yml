@@ -14,11 +14,6 @@ on:
   schedule:
     - cron: "7,37 * * * *"  # every 30 minutes, off the top of the hour when Actions is busiest
   workflow_dispatch:
-    inputs:
-      force_fail:
-        description: "Test only: fail the first job, to test the failure issue (#4625)"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -47,12 +42,7 @@ jobs:
           REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
           HEAD: ${{ github.sha }}
-          FORCE_FAIL: ${{ inputs.force_fail }}
         run: |
-          if [ "$FORCE_FAIL" = true ]; then
-            echo "::error::Failed on purpose (force_fail), to test the failure issue."
-            exit 1
-          fi
           if [ "$EVENT" != schedule ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
             exit 0
