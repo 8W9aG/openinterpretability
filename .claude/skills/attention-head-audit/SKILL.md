@@ -1,6 +1,6 @@
 ---
 name: attention-head-audit
-description: Plan and run the extension of openinterp from MLP neuron poles to attention heads (and later transcoder features), using the circuits literature. Use when the user wants to expand the registry's scope beyond MLP neurons, audit an attention head, or compare native neurons against SAE/transcoder baselines.
+description: Plan and run the extension of openinterpretability from MLP neuron poles to attention heads (and later transcoder features), using the circuits literature. Use when the user wants to expand the registry's scope beyond MLP neurons, audit an attention head, or compare native neurons against SAE/transcoder baselines.
 ---
 
 # Extending the registry to attention heads and learned bases

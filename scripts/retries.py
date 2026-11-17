@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from null_calibration import wilson  # noqa: E402
 from verified_vs_detection import bootstrap, mean, normalise  # noqa: E402
 
-from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir  # noqa: E402
+from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir  # noqa: E402
 
 
 def units(wiki_dir: Path = DEFAULT_WIKI_DIR) -> list[tuple[list, object]]:
@@ -33,10 +33,10 @@ def units(wiki_dir: Path = DEFAULT_WIKI_DIR) -> list[tuple[list, object]]:
 
     Each comes with the pole's standing, which the site's false-discovery number reads.
     """
-    from openinterp.builder.compiler import load_records
-    from openinterp.builder.standing import native_standings
-    from openinterp.builder.tree import build_tree
-    from openinterp.core.errata import load_errata
+    from openinterpretability.builder.compiler import load_records
+    from openinterpretability.builder.standing import native_standings
+    from openinterpretability.builder.tree import build_tree
+    from openinterpretability.core.errata import load_errata
 
     models = build_tree(load_records(experiments_dir(wiki_dir)), load_errata(wiki_dir))
     out = []

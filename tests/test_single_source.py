@@ -12,18 +12,18 @@ from typing import get_args
 
 import pytest
 
-from openinterp.agents.reviewer import ProbeSet
-from openinterp.builder.statuses import MAP_STATUSES, STATUS_BADGE, STATUS_FILL, STOPPED
-from openinterp.core.schemas import (
+from openinterpretability.agents.reviewer import ProbeSet
+from openinterpretability.builder.statuses import MAP_STATUSES, STATUS_BADGE, STATUS_FILL, STOPPED
+from openinterpretability.core.schemas import (
     ACTIVATION_THRESHOLD,
     PROTOCOL_VERSION,
     ReviewPolicy,
     VerdictStatus,
 )
-from openinterp.corpus import DEFAULT_SAMPLE_TOKENS
-from openinterp.harness.layer_cache import DEFAULT_GB
-from openinterp.planner import BASE_WEIGHTS, DEFAULT_EPSILON, configured_windows
-from openinterp.reproduce import Tolerance
+from openinterpretability.corpus import DEFAULT_SAMPLE_TOKENS
+from openinterpretability.harness.layer_cache import DEFAULT_GB
+from openinterpretability.planner import BASE_WEIGHTS, DEFAULT_EPSILON, configured_windows
+from openinterpretability.reproduce import Tolerance
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = (ROOT / "docs/PROTOCOL.md").read_text()
@@ -86,12 +86,12 @@ def test_registry_paths_come_from_core_paths():
     retyped = re.compile(r'Path\("wiki"\)|default="wiki"|/ "experiments"|/ "draws"')
     hits = [
         f"{path.relative_to(ROOT)}:{n}"
-        for path in sorted((ROOT / "openinterp").rglob("*.py"))
+        for path in sorted((ROOT / "openinterpretability").rglob("*.py"))
         if path.name != "paths.py"
         for n, line in enumerate(path.read_text().splitlines(), 1)
         if retyped.search(line)
     ]
-    assert not hits, f"use openinterp.core.paths instead: {hits}"
+    assert not hits, f"use openinterpretability.core.paths instead: {hits}"
 
 
 def _probe_bounds() -> tuple[int, int]:
@@ -111,7 +111,10 @@ def _quotes() -> list[tuple[str, str]]:
         ("docs/development.md", f"a {check_line_limit.MAX_LINES}-line limit"),
         ("README.md", f"writes {lo}–{hi} adversarial probes"),
         ("docs/experiments.md", f"fit only the first {gpt2} positions"),
-        ("docs/experiments.md", f"{gpt2}-token windows (`[tool.openinterp.window_tokens]`)"),
+        (
+            "docs/experiments.md",
+            f"{gpt2}-token windows (`[tool.openinterpretability.window_tokens]`)",
+        ),
         ("docs/PROTOCOL.md", f"writes {lo}–{hi} probes"),
         (".claude/agents/neuron-reviewer.md", f"writes {lo}–{hi} probes"),
         (".claude/agents/neuron-reviewer.md", f"the prompt asks for ({lo}–{hi})"),

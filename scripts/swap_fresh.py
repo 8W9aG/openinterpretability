@@ -35,14 +35,14 @@ def prepare(swaps, n, seed, corpus):
     """Sample reviewed swaps, rescan each null neuron and write the reviewer's prompt."""
     from null_calibration import _NoPartners, null_submission, scan_request, scan_texts
 
-    import openinterp.harness.scan
-    from openinterp.cli import _load_runner
-    from openinterp.cli_evidence import open_scan_cache
-    from openinterp.cli_review import write_review_prompt
-    from openinterp.core.schemas import AuditRecord
-    from openinterp.evidence import read_corpus, run_scan
+    import openinterpretability.harness.scan
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.cli_evidence import open_scan_cache
+    from openinterpretability.cli_review import write_review_prompt
+    from openinterpretability.core.schemas import AuditRecord
+    from openinterpretability.evidence import read_corpus, run_scan
 
-    openinterp.harness.scan.PartnerSearch = _NoPartners
+    openinterpretability.harness.scan.PartnerSearch = _NoPartners
     rows = [json.loads(line) for line in swaps.open()]
     rows = random.Random(seed).sample([r for r in rows if "gates" in r], n)
     builtin = read_corpus(None)[2]
@@ -74,9 +74,9 @@ def measure(agent_model):
     """Measure every answered probe set on its null neuron (result.json)."""
     from null_calibration import review_probes
 
-    from openinterp.agents.reviewer import ProbeSet
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import NeuronAuditSubmission
+    from openinterpretability.agents.reviewer import ProbeSet
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import NeuronAuditSubmission
 
     runners: dict[str, object] = {}
     for out in sorted(WORK.glob("s*/review.probes.json")):

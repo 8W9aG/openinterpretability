@@ -6,12 +6,12 @@ from datetime import timedelta
 
 import pytest
 
-from openinterp.builder import users
-from openinterp.builder.agents import contributors_view
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.tree import build_tree
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.core.errata import record_ref
+from openinterpretability.builder import users
+from openinterpretability.builder.agents import contributors_view
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.tree import build_tree
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.core.errata import record_ref
 
 
 def later(record, hours, **submission):

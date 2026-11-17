@@ -84,8 +84,8 @@ Inductor's gain is mostly the fused elementwise kernels, the same work as the fu
 
 ## For the harness
 
-- **Threads on shared machines.** Done in #3735 (`openinterp/harness/cpu_speed.py`). At a 1-minute load above 1.5 times the cores, each run takes `default // ceil(load / default)` threads, and at least 2. On the Linux machine above, that is 4. `$OPENINTERP_CPU_THREADS` sets the count by hand, and each record keeps it (`RunEnvironment.cpu_threads`).
-- **The fused GELU.** Done in #3735: every model load swaps GPT-2's `NewGELUActivation` for `torch.nn.GELU(approximate="tanh")` (`openinterp/harness/prepare.py`). The maintainer accepted the 1e-6 difference on AVX2 and MPS. On the Mac CPU the logits of GPT-2 small stay identical bit for bit.
+- **Threads on shared machines.** Done in #3735 (`openinterpretability/harness/cpu_speed.py`). At a 1-minute load above 1.5 times the cores, each run takes `default // ceil(load / default)` threads, and at least 2. On the Linux machine above, that is 4. `$OPENINTERPRETABILITY_CPU_THREADS` sets the count by hand, and each record keeps it (`RunEnvironment.cpu_threads`).
+- **The fused GELU.** Done in #3735: every model load swaps GPT-2's `NewGELUActivation` for `torch.nn.GELU(approximate="tanh")` (`openinterpretability/harness/prepare.py`). The maintainer accepted the 1e-6 difference on AVX2 and MPS. On the Mac CPU the logits of GPT-2 small stay identical bit for bit.
 - **Compiling.** It saves no more than the fused GELU for the scan, and needs a version of the hooks without the exception. Not worth it yet.
 
 ## Limits

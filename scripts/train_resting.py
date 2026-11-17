@@ -35,9 +35,9 @@ from figure_svg import LEAKY_SLOPE
 from resting_modules import Activation, CentredNorm, parallel_forward, warmup
 from resting_push import PushRecorder
 
-from openinterp.cli import _load, resolve_device
-from openinterp.cli_evidence import read_corpus
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.cli_evidence import read_corpus
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 
 PILE_GLOB = "datasets--NeelNanda--pile-10k/snapshots/*/data/*.parquet"
 TOKENIZER = "openai-community/gpt2"

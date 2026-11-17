@@ -21,9 +21,9 @@ from pathlib import Path
 import click
 import duckdb
 
-from openinterp.builder.learned_baseline import wilson
-from openinterp.core.agent_names import canonical_agent
-from openinterp.core.schemas import BUILTIN_CORPUS
+from openinterpretability.builder.learned_baseline import wilson
+from openinterpretability.core.agent_names import canonical_agent
+from openinterpretability.core.schemas import BUILTIN_CORPUS
 
 STATUSES = ("VERIFIED", "NEEDS_REVISION", "REJECTED")
 DEPTH_BANDS = 4  # bands of relative depth, to compare models with different layer counts

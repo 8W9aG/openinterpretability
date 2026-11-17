@@ -1,6 +1,6 @@
-"""Circuit ids and their lineage (openinterp/circuit_ids.py, #4284)."""
+"""Circuit ids and their lineage (openinterpretability/circuit_ids.py, #4284)."""
 
-from openinterp import circuit_ids as ci
+from openinterpretability import circuit_ids as ci
 
 DAY = "2026-11-16"
 

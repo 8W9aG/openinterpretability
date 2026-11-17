@@ -2,15 +2,15 @@
 
 from click.testing import CliRunner
 
-from openinterp.builder.circuits import circuits, circuits_and_hubs
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.tree import build_tree
-from openinterp.builder.wiki import archive_record
-from openinterp.cli import cli
-from openinterp.core.schemas import AdversarialTestResult
-from openinterp.core.wiring import Wiring, WiringEdge
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.wiring_backfill import backfill, load_rows, record_wiring, review_prompts
+from openinterpretability.builder.circuits import circuits, circuits_and_hubs
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.tree import build_tree
+from openinterpretability.builder.wiki import archive_record
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import AdversarialTestResult
+from openinterpretability.core.wiring import Wiring, WiringEdge
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.wiring_backfill import backfill, load_rows, record_wiring, review_prompts
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 

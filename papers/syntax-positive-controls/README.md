@@ -30,7 +30,7 @@ These results do not show that L2 N676+ is the only bracket signal in GPT-2. The
 
 ## Method
 
-The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py`, `scripts/syntax_close_paths.py`, `scripts/syntax_close_states.py`, `scripts/syntax_close_readers.py`, `scripts/syntax_close_match.py` and `scripts/figures_syntax.py`. The tagger is `openinterp/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
+The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py`, `scripts/syntax_close_paths.py`, `scripts/syntax_close_states.py`, `scripts/syntax_close_readers.py`, `scripts/syntax_close_match.py` and `scripts/figures_syntax.py`. The tagger is `openinterpretability/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
 
 - **Model.** GPT-2 small (Radford et al., 2019), at 128-token windows, as the registry scans it. Each neuron has 2 poles, so each layer has 6,144. The sweeps ran on Apple's MPS backend, in float32.
 - **Data.** 500 documents of [`codeparrot/github-code-clean`](https://huggingface.co/datasets/codeparrot/github-code-clean) at commit `c48d40f9`, seed 0, each cut to 3,000 characters. The card gives the licence as Apache-2.0 and names no citation. Its `license` column shows that each file keeps its repository's licence. Of these, 396 documents have a grammar, and the seeded 200,000-token sample holds 266 of them.

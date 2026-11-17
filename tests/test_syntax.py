@@ -3,18 +3,18 @@ import random
 import pytest
 import torch
 
-from openinterp import syntax
-from openinterp.core.confounds import (
+from openinterpretability import syntax
+from openinterpretability.core.confounds import (
     BRACKET_DEPTH,
     INDENT_DEPTH,
     ROUND_DEPTH,
     SYNTAX_CONSTRUCT,
     SYNTAX_NODE,
 )
-from openinterp.evidence import _Texts
-from openinterp.harness.annotations import UNLABELLED, Span, TokenLabels, align
-from openinterp.harness.scan import Piece
-from openinterp.syntax import (
+from openinterpretability.evidence import _Texts
+from openinterpretability.harness.annotations import UNLABELLED, Span, TokenLabels, align
+from openinterpretability.harness.scan import Piece
+from openinterpretability.syntax import (
     BRACKET,
     COMMENT,
     GRAMMARS,
@@ -89,7 +89,7 @@ def test_round_depth_counts_only_round_brackets():
 def test_the_proposer_sees_syntax_labels():
     from types import SimpleNamespace
 
-    from openinterp.agents.proposer import label_note
+    from openinterpretability.agents.proposer import label_note
 
     labels = {SYNTAX_NODE: NUMBER, ROUND_DEPTH: "2"}
     assert label_note(SimpleNamespace(peak_labels=labels)) == "syntax node number, round depth 2"
@@ -225,7 +225,7 @@ def _texts(labels):
 
 
 def test_only_a_corpus_with_programming_languages_gets_syntax_taggers():
-    from openinterp.core.confounds import LANGUAGE, PROGRAMMING_LANGUAGE
+    from openinterpretability.core.confounds import LANGUAGE, PROGRAMMING_LANGUAGE
 
     plain = {t.name for t in _texts({LANGUAGE: ["en"]}).taggers()}
     assert not plain & {SYNTAX_NODE, BRACKET_DEPTH, INDENT_DEPTH, SYNTAX_CONSTRUCT}

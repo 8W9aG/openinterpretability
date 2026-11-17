@@ -3,7 +3,8 @@
 Every experiment adds a record of about 175 KB to ``wiki/``, so the repository grows with
 the registry. That slows every clone, CI checkout and agent worktree. This script reports
 the tracked size and file count, in total and per top-level directory, and the packed size
-of ``.git``. It compares them with ``[tool.openinterp.size_budget]`` in ``pyproject.toml``.
+of ``.git``. It compares them with ``[tool.openinterpretability.size_budget]`` in
+``pyproject.toml``.
 
 Over budget, it prints a GitHub Actions warning. It never fails, because where records
 live in the long term is still open (#3254). In CI it also writes a line to the job
@@ -22,7 +23,10 @@ import tomllib
 from collections import defaultdict
 from pathlib import Path
 
-DEFAULT_BUDGET = {"tracked_mb": 1000, "files": 20000}  # [tool.openinterp.size_budget] overrides
+DEFAULT_BUDGET = {
+    "tracked_mb": 1000,
+    "files": 20000,
+}  # [tool.openinterpretability.size_budget] overrides
 MB = 1024 * 1024
 
 
@@ -47,10 +51,10 @@ def packed_bytes(count_objects: str) -> int:
 
 
 def budget(pyproject: Path = Path("pyproject.toml")) -> dict[str, int]:
-    """``[tool.openinterp.size_budget]``, over the defaults."""
+    """``[tool.openinterpretability.size_budget]``, over the defaults."""
     try:
         with pyproject.open("rb") as f:
-            config = tomllib.load(f).get("tool", {}).get("openinterp", {})
+            config = tomllib.load(f).get("tool", {}).get("openinterpretability", {})
     except (OSError, tomllib.TOMLDecodeError):
         config = {}
     return DEFAULT_BUDGET | config.get("size_budget", {})

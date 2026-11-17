@@ -28,8 +28,8 @@ from default_on_targets import (  # noqa: E402
     token_lookup,
 )
 
-from openinterp.harness.annotations import Span  # noqa: E402
-from openinterp.harness.hooks import NeuronHookRunner  # noqa: E402
+from openinterpretability.harness.annotations import Span  # noqa: E402
+from openinterpretability.harness.hooks import NeuronHookRunner  # noqa: E402
 from tests.conftest import VOCAB, FakeTokenizer  # noqa: E402
 
 

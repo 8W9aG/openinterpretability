@@ -1,6 +1,6 @@
 # Which models may scan on the ANE
 
-Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. Scans run on Apple's Neural Engine (ANE) only for a model in `openinterp/harness/ane/qualified.py`. A model is listed after `scripts/ane_qualify.py` passes it on a real corpus. Raw results are in `ane-qualification.jsonl`, one line per model and layer, failed runs included.
+Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. Scans run on Apple's Neural Engine (ANE) only for a model in `openinterpretability/harness/ane/qualified.py`. A model is listed after `scripts/ane_qualify.py` passes it on a real corpus. Raw results are in `ane-qualification.jsonl`, one line per model and layer, failed runs included.
 
 ## Method
 
@@ -53,11 +53,11 @@ The error did not come from depth. Its source was the size of the whole Core ML 
 
 - **The same pass to layer 20 as two models**, layers 0–9 and then 10–20, had 1.18% on the ANE. The residual stream went from one to the next in fp16.
 
-So the ANE handles a Core ML model of more than about 2 GB of fp16 weights less precisely, all through. Now a pass is a chain of chunks of at most 1.6 GB each (`openinterp/harness/ane/chunks.py`). The same chunks let a model that streams scan on the ANE: a conversion reads one chunk's weights from the checkpoint at a time.
+So the ANE handles a Core ML model of more than about 2 GB of fp16 weights less precisely, all through. Now a pass is a chain of chunks of at most 1.6 GB each (`openinterpretability/harness/ane/chunks.py`). The same chunks let a model that streams scan on the ANE: a conversion reads one chunk's weights from the checkpoint at a time.
 
 ## Also found
 
-A first compile for the ANE can take minutes for each input shape. So a scan now waits at most 20 minutes (`$OPENINTERP_ANE_PREPARE_MINUTES`) for its models. After that it runs on torch, and the ANE is not used again in that process.
+A first compile for the ANE can take minutes for each input shape. So a scan now waits at most 20 minutes (`$OPENINTERPRETABILITY_ANE_PREPARE_MINUTES`) for its models. After that it runs on torch, and the ANE is not used again in that process.
 
 ## One weight file for every shape
 

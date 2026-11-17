@@ -1,4 +1,4 @@
-"""The opt-in machine-wide lock for heavy jobs (openinterp/core/heavy_lock.py, issue #3247)."""
+"""The opt-in machine-wide lock for heavy jobs (core/heavy_lock.py, issue #3247)."""
 
 import fcntl
 import os
@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from openinterp.core import heavy_lock
+from openinterpretability.core import heavy_lock
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def test_a_child_of_the_holder_skips_it(lock, monkeypatch):
 def test_a_second_process_waits_until_the_first_exits(lock):
     env = {**os.environ, heavy_lock.ENABLE_ENV: "1", heavy_lock.FILE_ENV: str(lock)}
     env.pop(heavy_lock.HELD_ENV, None)
-    run = [sys.executable, "-m", "openinterp.core.heavy_lock"]
+    run = [sys.executable, "-m", "openinterpretability.core.heavy_lock"]
     first = subprocess.Popen([*run, sys.executable, "-c", "import time; time.sleep(1.5)"], env=env)
     deadline = time.monotonic() + 10
     while not lock.exists() or not lock.read_text():

@@ -51,7 +51,7 @@ FORGED_AFTER = (
 @click.option("--out", "out_dir", required=True, type=click.Path(path_type=Path))
 def main(bench_dir: Path, out_dir: Path) -> None:
     """Write one explanations file per attack, and two that add one to a real explanation."""
-    from openinterp import benchmark as bench
+    from openinterpretability import benchmark as bench
 
     version = bench.read_manifest(bench_dir)["version"]
     units = [u for u in bench.read_units(bench_dir).values() if u.split == "dev"]

@@ -1,6 +1,6 @@
-"""Progress lines for long steps (openinterp/harness/progress.py, issue #3971)."""
+"""Progress lines for long steps (openinterpretability/harness/progress.py, issue #3971)."""
 
-from openinterp.harness.progress import Progress
+from openinterpretability.harness.progress import Progress
 
 
 class Clock:

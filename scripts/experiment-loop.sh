@@ -17,7 +17,7 @@ usage() {
 Usage: scripts/experiment-loop.sh [options]
 
   --proposer MODEL     LiteLLM model or external/<name> for `open-interpretability audit`
-                       (default: $OPENINTERP_AGENT_MODEL, else anthropic/claude-opus-5-5)
+                       (default: $OPENINTERPRETABILITY_AGENT_MODEL, else anthropic/claude-opus-5-5)
   --reviewer MODEL     LiteLLM model or external/<name> for `open-interpretability verify`
                        (default: same as the proposer; records are then not independent)
   --driver MODEL       Claude model that drives each session (default: claude-haiku-5-5;
@@ -35,7 +35,7 @@ Usage: scripts/experiment-loop.sh [options]
                        going by the logs in <repo>/logs/loop/ (default: no cap)
   --one-heavy-job      Queue model loads and `make test` behind a machine-wide lock, so
                        loops in other checkouts don't run them at the same time (opt-in;
-                       openinterp/core/heavy_lock.py)
+                       openinterpretability/core/heavy_lock.py)
   -h, --help           Show this help
 
 Budgets count the dollars that `open-interpretability costs --usd` reports: priced LLM calls and
@@ -44,18 +44,18 @@ the experiment that crosses a cap still finishes and posts. Calls with no price 
 counted, and the loop warns when there are some.
 
 To stop every loop on this machine after its current experiment, create the stop file:
-  touch "${XDG_CACHE_HOME:-$HOME/.cache}/openinterp/stop"   (or $OPENINTERP_STOP_FILE)
+  touch "${XDG_CACHE_HOME:-$HOME/.cache}/openinterpretability/stop"   (or $OPENINTERPRETABILITY_STOP_FILE)
 Remove it before you start a loop again.
 
 Logs go to <repo>/logs/loop/: per experiment, the session's stderr and result (.log),
-its `claude --output-format json` result (.json), and the costs ledger every openinterp
+its `claude --output-format json` result (.json), and the costs ledger every openinterpretability
 command appends to (.costs.jsonl). After each experiment the loop prints what it cost
 and a running total (`open-interpretability costs`). Set CLAUDE_BIN if `claude` is not on PATH.
 EOF
 }
 
 REPO=$(git rev-parse --show-toplevel)
-PROPOSER=${OPENINTERP_AGENT_MODEL:-anthropic/claude-opus-5-5}
+PROPOSER=${OPENINTERPRETABILITY_AGENT_MODEL:-anthropic/claude-opus-5-5}
 REVIEWER=""
 DRIVER=claude-haiku-5-5 # lands as reliably as larger drivers at a fraction of the cost
 CORPUS=""
@@ -82,7 +82,7 @@ while [[ $# -gt 0 ]]; do
     --max-turns) MAX_TURNS=$2; shift 2 ;;
     --budget) BUDGET=$2; shift 2 ;;
     --daily-budget) DAILY_BUDGET=$2; shift 2 ;;
-    --one-heavy-job) export OPENINTERP_HEAVY_LOCK=1; shift ;;
+    --one-heavy-job) export OPENINTERPRETABILITY_HEAVY_LOCK=1; shift ;;
     -h | --help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -101,7 +101,7 @@ if [[ -n $PROVIDER ]]; then
   LAUNCH=(uv run --quiet open-interpretability provider exec "$PROVIDER" -- "$CLAUDE_BIN")
 fi
 # Records name the product that drove them (RunEnvironment.agent_product, issue #3235).
-export OPENINTERP_AGENT_PRODUCT="${OPENINTERP_AGENT_PRODUCT:-claude-code-loop}"
+export OPENINTERPRETABILITY_AGENT_PRODUCT="${OPENINTERPRETABILITY_AGENT_PRODUCT:-claude-code-loop}"
 command -v gh >/dev/null || { echo "gh is required to claim and post experiments" >&2; exit 1; }
 CORPUS_OPTION="--fresh-corpus"
 if [[ -n $CORPUS ]]; then
@@ -179,7 +179,10 @@ wait_while_paused() {
 }
 
 # The kill switch: while this file exists, no loop on the machine starts an experiment.
-stop_file() { echo "${OPENINTERP_STOP_FILE:-${XDG_CACHE_HOME:-$HOME/.cache}/openinterp/stop}"; }
+# The stop file's folder may still have the old name (openinterpretability/core/legacy_names.py).
+stop_file() {
+  echo "${OPENINTERPRETABILITY_STOP_FILE:-$(uv run --quiet python -c 'from openinterpretability.experiment_loop import stop_file; print(stop_file())')}"
+}
 stop_requested() { [[ -e $(stop_file) ]]; }
 
 # True when the cap $2 is set and the dollars spent, $1, reach it.
@@ -273,7 +276,7 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   check_limits "$i"
 
   status=0
-  (cd "$WORKTREE" && prompt | OPENINTERP_COSTS_LOG="$ledger" "${LAUNCH[@]}" "${claude_args[@]}") \
+  (cd "$WORKTREE" && prompt | OPENINTERPRETABILITY_COSTS_LOG="$ledger" "${LAUNCH[@]}" "${claude_args[@]}") \
     >"$session" 2>"$log" || status=$?
   # Record the model that really drove the session, not the name Claude Code saw.
   echo "driver: provider=${PROVIDER:-anthropic} model=${DRIVER:-claude default}" >>"$log"

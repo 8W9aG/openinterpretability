@@ -3,17 +3,17 @@ from types import SimpleNamespace
 
 import pytest
 
-from openinterp import draw_steps
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.core.schemas import (
+from openinterpretability import draw_steps
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.core.schemas import (
     BUILTIN_CORPUS,
     ExperimentProvenance,
     ReviewMetrics,
     ReviewPolicy,
 )
-from openinterp.draw_steps import random_neuron, render, steps
-from openinterp.evidence import ScanRequest, pick_unit
-from openinterp.planner import plan_next
+from openinterpretability.draw_steps import random_neuron, render, steps
+from openinterpretability.evidence import ScanRequest, pick_unit
+from openinterpretability.planner import plan_next
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
 
@@ -166,7 +166,7 @@ def test_a_fresh_corpus_is_built_from_the_draws_seed_before_the_scan(tmp_path, m
 def test_cli_next_refuses_two_corpora(tmp_path):
     from click.testing import CliRunner
 
-    from openinterp.cli import cli
+    from openinterpretability.cli import cli
 
     args = ["next", "--wiki-dir", str(tmp_path), "--no-claims", "--steps"]
     both = CliRunner().invoke(cli, [*args, "--fresh-corpus", "--corpus", "c.jsonl"])
@@ -180,7 +180,7 @@ def test_cli_next_refuses_two_corpora(tmp_path):
 def test_cli_next_steps(tmp_path, record):
     from click.testing import CliRunner
 
-    from openinterp.cli import cli
+    from openinterpretability.cli import cli
 
     wiki = _registry(tmp_path, record, "NEEDS_REVISION")
     args = ["next", "--wiki-dir", str(wiki), "--no-claims", "--epsilon", "0", "--steps"]

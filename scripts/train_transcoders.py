@@ -12,7 +12,7 @@ needs (``Dictionary.feature``).
 The data is ``NeelNanda/pile-10k`` without the scan corpus's documents, so no scanned
 text was trained on. One forward pass feeds every layer's transcoder. Each layer's
 weights go to ``<out>/layer_<layer>.safetensors`` in the layout
-``openinterp.harness.dictionaries`` reads, with training statistics in
+``openinterpretability.harness.dictionaries`` reads, with training statistics in
 ``<out>/layer_<layer>.json``.
 
     uv run python scripts/train_transcoders.py --layers 2,12,21 --tokens 3000000 \\
@@ -230,7 +230,7 @@ class TopKTranscoder(nn.Module):
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(**options):
     """Train the transcoders and write each layer's weights and statistics."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     cfg = Settings(**options)
     torch.manual_seed(cfg.seed)

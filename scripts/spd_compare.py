@@ -132,7 +132,7 @@ def initial_parts(runner, sites: list, s: dict) -> dict[tuple, LayerDecompositio
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(checkpoint, settings_json, rows, device, scan_corpus, out):
     """Write the comparison of each decomposed layer with its neurons to ``--out``."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     state = torch.load(checkpoint, map_location="cpu")
     s = state.get("settings") or json.loads(settings_json)

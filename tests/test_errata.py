@@ -9,11 +9,11 @@ import pyarrow.parquet as pq
 import pytest
 from pydantic import ValidationError
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.tree import build_tree
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.checks import check_registry
-from openinterp.core.errata import (
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.tree import build_tree
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.checks import check_registry
+from openinterpretability.core.errata import (
     Edit,
     Erratum,
     ErratumRule,
@@ -22,8 +22,8 @@ from openinterp.core.errata import (
     parse_errata,
     record_ref,
 )
-from openinterp.core.schemas import AuditRecord
-from openinterp.signing import sign_record
+from openinterpretability.core.schemas import AuditRecord
+from openinterpretability.signing import sign_record
 from tests.site_pages import unit_pages
 
 GIT = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
@@ -301,7 +301,7 @@ def test_a_revoked_key_still_vouches_for_errata_that_landed_before(repo, monkeyp
 
 
 def test_reproduce_checks_corrected_records_and_skips_set_aside_ones(record):
-    from openinterp.cli_reproduce import _Reproducer
+    from openinterpretability.cli_reproduce import _Reproducer
 
     def reproducer(*errata):
         args = {"landed": {}, "tolerance": None, "scan_corpora": {}, "allowed_models": ()}
@@ -322,7 +322,7 @@ def test_reproduce_checks_corrected_records_and_skips_set_aside_ones(record):
 
 
 def test_a_new_record_cannot_be_set_aside(tmp_path):
-    from openinterp.cli_reproduce import _Reproducer
+    from openinterpretability.cli_reproduce import _Reproducer
 
     path = tmp_path / "r.json"
     args = {"landed": {}, "tolerance": None, "scan_corpora": {}, "allowed_models": ()}

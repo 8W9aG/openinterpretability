@@ -48,7 +48,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from default_on_poles import GPT2, load_split, write_row  # noqa: E402
 
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS  # noqa: E402
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS  # noqa: E402
 
 SIZES = (0.0, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0)
 KINDS = ("full", "shrink", "shift")

@@ -19,9 +19,9 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.cli import _load, resolve_device
-from openinterp.harness.hooks import ablate_pole, pole_strength
-from openinterp.syntax import bracket_depths, indent_depths, parse_labels
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.harness.hooks import ablate_pole, pole_strength
+from openinterpretability.syntax import bracket_depths, indent_depths, parse_labels
 
 MODEL = "openai-community/gpt2"
 # (layer, neuron, pole): each is a sweep winner that a depth or construct label set picked.
