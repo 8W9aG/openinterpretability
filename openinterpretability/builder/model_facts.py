@@ -143,14 +143,15 @@ def render_models(render, models, facts: dict, render_model, draws=()) -> None:
     render("models/index.html", "models.html", rows=rows, models=models, explore=explore)
 
 
-def model_page_extras(coverage_rows: dict, explanations) -> dict:
+def model_page_extras(coverage_rows: dict, explanations, circuits: dict | None = None) -> dict:
     """What the model pages show besides the tree, for the site context.
 
     ``coverage`` is each model's registry coverage (#3837). ``explanations_by_model`` is
-    each model's explanations (#4206). Both are keyed by model name.
+    each model's explanations (#4206). Both are keyed by model name. ``circuit_data`` is
+    each model's registry circuits and hub norms (#4287), keyed by model slug.
     """
     from openinterpretability.builder.coverage import coverage_view
     from openinterpretability.builder.explanation_pages import by_model
 
     shown = {"coverage": coverage_view(coverage_rows)}
-    return shown | {"explanations_by_model": by_model(explanations)}
+    return shown | {"explanations_by_model": by_model(explanations), "circuit_data": circuits or {}}

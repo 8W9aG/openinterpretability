@@ -19,6 +19,8 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, TypeVar
 
+from openinterpretability.harness.progress import Progress
+
 T = TypeVar("T")
 
 _WORK: dict[str, Any] = {}  # set just before the workers fork, so that they inherit it
@@ -36,8 +38,10 @@ def render_in_parallel(render, page: Callable[..., None], items: Sequence[tuple]
     """
     jobs = min(render.jobs, len(items))
     if jobs <= 1 or "fork" not in multiprocessing.get_all_start_methods():
+        progress = Progress("unit pages", len(items))
         for item in items:
             page(*item)
+            progress.step()
         return
     _WORK.update(render=render, page=page, items=items)
     try:
@@ -54,11 +58,14 @@ def render_in_parallel(render, page: Callable[..., None], items: Sequence[tuple]
 def _render_share(share: int, jobs: int) -> list[tuple[int, Path]]:
     """Render every ``jobs``-th item, from ``share``, and return each page that it wrote."""
     render, page, items = _WORK["render"], _WORK["page"], _WORK["items"]
+    mine = range(share, len(items), jobs)
+    progress = Progress(f"unit pages of worker {share + 1} of {jobs}", len(mine))
     written = []
-    for i in range(share, len(items), jobs):
+    for i in mine:
         before = len(render.report.pages)
         page(*items[i])
         written += [(i, path) for path in render.report.pages[before:]]
+        progress.step()
     return written
 
 

@@ -22,6 +22,10 @@ test:
 perf:
 	uv run python -m openinterpretability.core.heavy_lock python scripts/perf_bench.py
 
+# Unused code: a name vulture finds, and vulture_whitelist.py doesn't keep, fails (#3164).
+vulture:
+	uv run vulture openinterpretability scripts vulture_whitelist.py --min-confidence 60
+
 # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml).
 typecheck:
 	uv run mypy
@@ -36,6 +40,7 @@ lint:
 	python3 scripts/ifttt_lint.py
 	python3 scripts/check_old_name.py
 	uv run interrogate openinterpretability
+	$(MAKE) vulture
 	$(MAKE) typecheck
 	$(MAKE) markdown
 	$(MAKE) shell

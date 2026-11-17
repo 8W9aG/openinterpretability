@@ -276,3 +276,14 @@ def test_is_rate_limit():
     assert el.is_rate_limit(RuntimeError("Error code: 429"))
     assert not el.is_rate_limit(RuntimeError("bad JSON"))
     assert json.dumps(el.BACKOFF_MINUTES) == "[1, 5, 15]"
+
+
+def test_an_iteration_says_each_stage_in_order(repo, fakes, capsys):
+    # A slow iteration must not look like a stuck one (#3142).
+    assert _loop(max_experiments=1).run() == 0
+    out = capsys.readouterr().out
+    stages = ["loop: drew explore", f"loop: claimed: {URL}", "loop: step 1/",
+              "loop: posting the result", f"loop: waiting for the checks on {URL}",
+              "loop: merging", f"RESULT: {SLUG} VERIFIED {URL} merged"]  # fmt: skip
+    found = [out.index(stage) for stage in stages]
+    assert found == sorted(found)

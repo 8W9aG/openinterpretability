@@ -66,7 +66,7 @@ def test_circuits_chain_edges_between_studied_units(tmp_path, record):
     index = (site / "circuits.html").read_text()
     assert 'href="../../models/' + MODEL + '/circuits/L1-N5.html">L1/N5</a>' in index
     page = (site / "circuits" / "L1-N5.html").read_text()  # named after its root
-    assert "Circuit from L1/N5" in page and "3 units of" in page and "layers 1–6" in page
+    assert "Wiring group from L1/N5" in page and "3 units of" in page and "layers 1–6" in page
     assert "L9/N9" not in page and "weights +0.4" in page and "activations +0.7" in page
     assert 'href="../../../models/' + MODEL + "/L1/N5-positive/" in page  # the experiment's page
     model_page = (site / "index.html").read_text()

@@ -32,7 +32,6 @@ MODEL = "openai-community/gpt2"
 CIRCUIT = [(4, 2999), (5, 1208), (5, 2567), (5, 616), (6, 37)]  # C1's neurons
 CIRCUIT_HEADS = ["L7/H10", "L7/H2"]  # members that the neuron tools can't ablate
 NULL_SETS = 64
-SPECIFIC = 0.2  # a negative task passes when the circuit's loss there is below this
 WORDS_FILE = Path("/usr/share/dict/words")  # the word list; the words drawn are recorded
 WORD_COUNT = 400  # words drawn from the list, before keeping those GPT-2 splits in two
 CONTEXT = "Yesterday I read a long article about"
