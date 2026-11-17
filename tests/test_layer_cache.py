@@ -7,10 +7,10 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.layer_cache import LayerCache, default_root
-from openinterp.harness.scan import cut_pieces, scan_neuron
+from openinterpretability.cli import cli
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.layer_cache import LayerCache, default_root
+from openinterpretability.harness.scan import cut_pieces, scan_neuron
 from tests.conftest import FakeTokenizer, ToyModel
 from tests.test_agents import TEXTS
 
@@ -106,7 +106,7 @@ def test_an_unnamed_model_is_not_cached(toy_runner, cache):
 
 
 def test_an_unfinished_scan_leaves_nothing(named, cache):
-    from openinterp.harness.scan import layer_chunks
+    from openinterpretability.harness.scan import layer_chunks
 
     pieces = list(cut_pieces(named.tokenizer, TEXTS, None, None))
     chunks = cache.through(named, 1, pieces, 16, layer_chunks(named, pieces, 1, 16))
@@ -126,17 +126,17 @@ def test_least_recently_used_scans_are_evicted(named, cache):
 
 
 def test_the_default_root_follows_the_environment(monkeypatch, tmp_path):
-    monkeypatch.setenv("OPENINTERP_SCAN_CACHE", "off")
+    monkeypatch.setenv("OPENINTERPRETABILITY_SCAN_CACHE", "off")
     assert default_root() is None and LayerCache.default() is None
-    monkeypatch.delenv("OPENINTERP_SCAN_CACHE")
+    monkeypatch.delenv("OPENINTERPRETABILITY_SCAN_CACHE")
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-    assert default_root() == tmp_path / "openinterp" / "scans"
+    assert default_root() == tmp_path / "openinterpretability" / "scans"
 
 
 @pytest.fixture
 def cli_runner(tmp_path, monkeypatch, named):
     named.model.config = SimpleNamespace()
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *_a, **_k: named)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *_a, **_k: named)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     return named

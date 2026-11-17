@@ -7,7 +7,7 @@ Issue #3303. Outside labs send their own explanations to the benchmark (`docs/be
 ## Why an injection can't win
 
 - **The judge never sees the labels.** A unit's score is the balanced accuracy of the judge's list. A judge that lists every text scores 0.5 exactly, a rate of 1 on active probes and 0 on inactive ones. A judge that lists none scores 0.5 too. So the most an injection can do is pull a unit down to chance, not raise it.
-- **The fences hash their text.** The judge's prompt fences the explanation and the texts (`openinterp/core/fence.py`). Each fence's ID is the start of the SHA-256 of its text. The texts' ID comes from the probe texts, which a submitter never sees, so the submitter can't write the line that closes that fence. A forged closing line for the explanation's fence changes the explanation, and so the fence's real ID. `tests/test_judge_injection.py` checks both properties.
+- **The fences hash their text.** The judge's prompt fences the explanation and the texts (`openinterpretability/core/fence.py`). Each fence's ID is the start of the SHA-256 of its text. The texts' ID comes from the probe texts, which a submitter never sees, so the submitter can't write the line that closes that fence. A forged closing line for the explanation's fence changes the explanation, and so the fence's real ID. `tests/test_judge_injection.py` checks both properties.
 
 ## Method
 
@@ -37,7 +37,7 @@ Issue #3303. Outside labs send their own explanations to the benchmark (`docs/be
 
 ## The flag
 
-Each scored row now holds `listed_share`. The summary lists `listed_nearly_all`: the units where the judge listed at least 90% of texts (`LISTED_ALL_SHARE` in `openinterp/benchmark.py`). `benchmark score` prints a warning that names them. An injection that worked would look like this. So would an honest explanation that is too broad, as the decoy shows. The flag doesn't change a score. The registry baseline's rows were scored before `listed_share` existed, so they have no flags.
+Each scored row now holds `listed_share`. The summary lists `listed_nearly_all`: the units where the judge listed at least 90% of texts (`LISTED_ALL_SHARE` in `openinterpretability/benchmark.py`). `benchmark score` prints a warning that names them. An injection that worked would look like this. So would an honest explanation that is too broad, as the decoy shows. The flag doesn't change a score. The registry baseline's rows were scored before `listed_share` existed, so they have no flags.
 
 ## Limits
 

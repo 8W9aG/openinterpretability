@@ -8,8 +8,8 @@ On GPT-2, VERIFIED poles bring back no more of a layer's loss than random poles 
 
 ## Method
 
-- **The ablation.** Mean-ablating one pole replaces its part of the activation (the positive part, or the negative part) with that part's mean over the fit windows. `openinterp/coverage.py` applies the same ablation to every pole at once.
-- **The estimate.** To first order, the change in mean loss is the sum over tokens of ∂L/∂h × (mean − part). One backward pass per batch gives it for every pole of every layer (`openinterp/pole_effects.py`).
+- **The ablation.** Mean-ablating one pole replaces its part of the activation (the positive part, or the negative part) with that part's mean over the fit windows. `openinterpretability/coverage.py` applies the same ablation to every pole at once.
+- **The estimate.** To first order, the change in mean loss is the sum over tokens of ∂L/∂h × (mean − part). One backward pass per batch gives it for every pole of every layer (`openinterpretability/pole_effects.py`).
 - **The data.** 64 windows of 128 tokens from the registry corpus fit the pole means, and 64 more measure the loss (seed 0).
 - **The check.** 60 poles are measured exactly, with one forward pass each. Half are drawn from the estimate's top 1%, and half uniformly.
 
@@ -26,7 +26,7 @@ On GPT-2, VERIFIED poles bring back no more of a layer's loss than random poles 
 
 ## Use
 
-`open-interpretability next` now draws a share of explore units in proportion to effect: `[tool.openinterp] effect_share`, default 0.3, from the model's table. Such a draw names its pole (`audit --layer --neuron --pole`) and records `selection: attribution`. The registry statistics count only `random` draws, so they stay unbiased. A model with no table, such as Qwen2.5-1.5B for now, always draws uniformly.
+`open-interpretability next` now draws a share of explore units in proportion to effect: `[tool.openinterpretability] effect_share`, default 0.3, from the model's table. Such a draw names its pole (`audit --layer --neuron --pole`) and records `selection: attribution`. The registry statistics count only `random` draws, so they stay unbiased. A model with no table, such as Qwen2.5-1.5B for now, always draws uniformly.
 
 ## Limits
 

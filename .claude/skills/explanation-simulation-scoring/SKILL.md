@@ -11,9 +11,9 @@ description: Score a neuron explanation by how well it predicts per-token activa
 - Huang, Geiger, D'Oosterlinck, Wu & Potts, 2023, *Rigorously Assessing Natural Language Explanations of Neurons*, arXiv:2309.10312. They split evaluation into **observational** (does the neuron fire on exactly the inputs the explanation covers? report precision and recall) and **interventional** (does the neuron causally mediate the concept?). GPT-4's most confident GPT-2 XL explanations scored precision 0.64 and recall 0.50, with no causal effect found.
 - Caveat from Goodfire's *Already Clean* essay (2026): simulation metrics "reward explanations that look good over ones that are right". Use simulation as a diagnostic, never as the only gate.
 
-## How it maps onto openinterp
+## How it maps onto openinterpretability
 
-| Concept | openinterp equivalent |
+| Concept | openinterpretability equivalent |
 | --- | --- |
 | Observational precision | Specificity on hard negatives (reviewer probes) |
 | Observational recall | Sensitivity on positive holdouts |

@@ -3,9 +3,9 @@
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.compiler import _environment, compile_site, registry_stats
-from openinterp.builder.learned_baseline import fisher_exact, wilson
-from openinterp.core.schemas import (
+from openinterpretability.builder.compiler import _environment, compile_site, registry_stats
+from openinterpretability.builder.learned_baseline import fisher_exact, wilson
+from openinterpretability.core.schemas import (
     AuditRecord,
     DictionaryProfile,
     ExperimentProvenance,
@@ -133,7 +133,7 @@ def test_wilson_interval_and_fisher_exact_test():
 def _draw(record, ident, outcome, window=128):
     from datetime import UTC, datetime
 
-    from openinterp.core.draws import UnauditableDraw
+    from openinterpretability.core.draws import UnauditableDraw
 
     return UnauditableDraw(
         identifier=ident,

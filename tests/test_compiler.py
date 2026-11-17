@@ -7,14 +7,23 @@ import duckdb
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.charts import causal_chart, histogram_bars, probe_chart, vocab_chart
-from openinterp.builder.compiler import compile_site, load_records
-from openinterp.builder.model_facts import ModelFacts, facts_from_config, format_parameters
-from openinterp.builder.parquet_export import REGISTRY_SCHEMA
-from openinterp.core.exceptions import RegistryError
-from openinterp.core.licenses import DATA_LICENSE, DATA_LICENSE_URL
-from openinterp.core.project import site_url
-from openinterp.core.schemas import (
+from openinterpretability.builder.charts import (
+    causal_chart,
+    histogram_bars,
+    probe_chart,
+    vocab_chart,
+)
+from openinterpretability.builder.compiler import compile_site, load_records
+from openinterpretability.builder.model_facts import (
+    ModelFacts,
+    facts_from_config,
+    format_parameters,
+)
+from openinterpretability.builder.parquet_export import REGISTRY_SCHEMA
+from openinterpretability.core.exceptions import RegistryError
+from openinterpretability.core.licenses import DATA_LICENSE, DATA_LICENSE_URL
+from openinterpretability.core.project import site_url
+from openinterpretability.core.schemas import (
     PROTOCOL_VERSION,
     ActivatingExample,
     AdversarialTestResult,
@@ -122,7 +131,9 @@ def test_every_experiment_published_in_hierarchy(tmp_path, records):
 
 def test_model_page_shows_the_model_license(tmp_path, records, monkeypatch):
     terms = 'license = "x-1"\nurl = "https://u"\ngated = true\npublishing_allowed = false\n'
-    pyproject = f'[tool.openinterp.licenses."Qwen/Qwen2.5-0.5B"]\n{terms}conditions = "Say so."\n'
+    pyproject = (
+        f'[tool.openinterpretability.licenses."Qwen/Qwen2.5-0.5B"]\n{terms}conditions = "Say so."\n'
+    )
     (tmp_path / "pyproject.toml").write_text(pyproject)
     monkeypatch.chdir(tmp_path)
     compile_site(records, tmp_path / "site")
@@ -168,8 +179,8 @@ def test_old_records_get_a_width_in_the_build_only(tmp_path, records):
 
 
 def test_layer_map(tmp_path, records):
-    from openinterp.builder.charts import layer_map
-    from openinterp.builder.tree import ModelNode, build_tree
+    from openinterpretability.builder.charts import layer_map
+    from openinterpretability.builder.tree import ModelNode, build_tree
 
     (model,) = build_tree(records, [])
     chart = layer_map(model)
@@ -201,8 +212,8 @@ def test_layer_map(tmp_path, records):
 
 
 def test_pieces_bars(tmp_path, record, records):
-    from openinterp.builder.pieces import layer_pieces, model_pieces
-    from openinterp.builder.tree import ModelNode, build_tree
+    from openinterpretability.builder.pieces import layer_pieces, model_pieces
+    from openinterpretability.builder.tree import ModelNode, build_tree
 
     # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
     records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
@@ -239,7 +250,7 @@ def test_pieces_bars(tmp_path, record, records):
 
 
 def test_pct_fine():
-    from openinterp.builder.compiler import _pct_fine
+    from openinterpretability.builder.compiler import _pct_fine
 
     assert _pct_fine(None) == "—"
     assert _pct_fine(0) == "0%"
@@ -491,9 +502,9 @@ def test_causal_chart_rendered(tmp_path, record):
 def test_cli_build_from_wiki_archive(tmp_path, records, monkeypatch):
     from click.testing import CliRunner
 
-    from openinterp.builder import model_facts
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.cli import cli
+    from openinterpretability.builder import model_facts
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.cli import cli
 
     monkeypatch.setattr(model_facts, "model_config", lambda model, download=True: None)
     for rec in records:
@@ -539,7 +550,7 @@ def test_rebuild_removes_stale_pages(tmp_path, records):
 
 
 def _lens(**scores):
-    from openinterp.core.schemas import VocabularyLens
+    from openinterpretability.core.schemas import VocabularyLens
 
     return VocabularyLens(
         logit_promoted=["oor", "x"],
@@ -587,7 +598,7 @@ def test_vocab_chart():
 
 
 def test_vocabulary_lens_rendered(tmp_path, record):
-    from openinterp.builder.wiki import write_experiment_page
+    from openinterpretability.builder.wiki import write_experiment_page
 
     def with_lens(lens):
         sub = record.submission.model_copy(update={"vocabulary_lens": lens})
@@ -612,14 +623,14 @@ def test_vocabulary_lens_rendered(tmp_path, record):
 
 
 def test_input_attribution_rendered(tmp_path, record):
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.core.attribution import (
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.core.attribution import (
         AttributedToken,
         ContextExample,
         DistanceShare,
         InputAttribution,
     )
-    from openinterp.harness.input_attribution import DISTANCE_BANDS
+    from openinterpretability.harness.input_attribution import DISTANCE_BANDS
 
     shares = [0.5, 0.1, 0.1, 0.1, 0.2, 0.0]
     attribution = InputAttribution(
@@ -660,8 +671,8 @@ def test_input_attribution_rendered(tmp_path, record):
 
 
 def test_token_heat_windows_long_snippets_around_the_peak():
-    from openinterp.builder.compiler import token_heat
-    from openinterp.core.schemas import ActivatingExample
+    from openinterpretability.builder.compiler import token_heat
+    from openinterpretability.core.schemas import ActivatingExample
 
     acts = [0.0] * 100
     acts[60] = 2.0
@@ -699,7 +710,7 @@ def test_heatmap_renders_exact_values_and_peak(tmp_path, record):
 
 
 def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
-    from openinterp.builder.compiler import registry_stats
+    from openinterpretability.builder.compiler import registry_stats
 
     report = compile_site(records, tmp_path)
     recent = registry_stats(report.parquet)["recent"]
@@ -717,8 +728,8 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
 
 
 def test_explanation_scores_rendered_mistakes_first(tmp_path, record):
-    from openinterp.core.explanation import ExplanationScores, ScoredWindow
-    from openinterp.harness.explanation_scores import finalize_scores
+    from openinterpretability.core.explanation import ExplanationScores, ScoredWindow
+    from openinterpretability.harness.explanation_scores import finalize_scores
 
     def window(text, acts, label, judged, marks=()):
         return ScoredWindow(text=text, tokens=list(text), activations=acts, label=label,
@@ -755,7 +766,7 @@ def _self_reviewed(rec):
 
 
 def test_self_reviews_badged_and_counted(tmp_path, records):
-    from openinterp.builder.compiler import registry_stats
+    from openinterpretability.builder.compiler import registry_stats
 
     records[1] = _self_reviewed(records[1])  # N117+'s latest, VERIFIED
     report = compile_site(records, tmp_path)
@@ -774,7 +785,7 @@ def test_self_reviews_badged_and_counted(tmp_path, records):
 
 
 def test_builtin_sample_scans_badged(tmp_path, records):
-    from openinterp.core.schemas import BUILTIN_CORPUS, ExperimentProvenance
+    from openinterpretability.core.schemas import BUILTIN_CORPUS, ExperimentProvenance
 
     rec = records[1]  # N117+'s latest
     provenance = ExperimentProvenance(
@@ -812,7 +823,7 @@ def _reviewed_by(rec, reviewer, *, status, hours, counts=(10, 0, 5, 0)):
 
 
 def _standing(records, idx=117, pole="positive"):
-    from openinterp.builder.tree import build_tree
+    from openinterpretability.builder.tree import build_tree
 
     (model,) = build_tree(records, [])
     (unit,) = [n for layer in model.layers for n in layer.units if n.idx == idx]
@@ -824,7 +835,7 @@ def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
 
     The pole is CONTESTED, not NEEDS_REVISION, and not counted as verified.
     """
-    from openinterp.builder.compiler import registry_stats
+    from openinterpretability.builder.compiler import registry_stats
 
     verified = records[1]
     records.append(
@@ -954,8 +965,8 @@ def test_revision_replaces_contested_hypothesis(records):
 
 
 def test_reviewer_agreement(records):
-    from openinterp.builder.standing import reviewer_agreement
-    from openinterp.builder.tree import build_tree
+    from openinterpretability.builder.standing import reviewer_agreement
+    from openinterpretability.builder.tree import build_tree
 
     verified = records[1]
     records.append(_reviewed_by(verified, "deepseek/flash", status="VERIFIED", hours=3))
@@ -1000,8 +1011,8 @@ def test_neuron_page_shows_both_poles(tmp_path, records):
 
 
 def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.core.wiring import Wiring, WiringEdge
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.core.wiring import Wiring, WiringEdge
 
     def edge(layer, index, weight, kind="mlp_neuron", **channels):
         return WiringEdge(kind=kind, layer=layer, index=index, weight=weight, channels=channels)
@@ -1044,7 +1055,7 @@ def test_wiring_rendered_with_links_to_studied_units(tmp_path, record):
 
 
 def scan_provenance(sample=None):
-    from openinterp.core.schemas import ExperimentProvenance
+    from openinterpretability.core.schemas import ExperimentProvenance
 
     return ExperimentProvenance(
         dtype="float32", corpus="wiki.jsonl", corpus_sha256="ab" * 32, n_snippets=4,
@@ -1053,8 +1064,8 @@ def scan_provenance(sample=None):
 
 
 def test_label_confounds_rendered(tmp_path, record):
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.core.schemas import ConfoundProfile, LabelConfound, LabelStat
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.core.schemas import ConfoundProfile, LabelConfound, LabelStat
 
     language = LabelConfound(
         r2=0.07, mutual_information_bits=0.313, labelled_tokens=327, unlabelled_tokens=0,
@@ -1077,9 +1088,9 @@ def test_label_confounds_rendered(tmp_path, record):
 
 
 def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
-    from openinterp.builder.agents import agent_slug
-    from openinterp.core.costs import ExperimentCosts, LLMCall
-    from openinterp.core.schemas import ExperimentProvenance
+    from openinterpretability.builder.agents import agent_slug
+    from openinterpretability.core.costs import ExperimentCosts, LLMCall
+    from openinterpretability.core.schemas import ExperimentProvenance
 
     records[1] = _self_reviewed(records[1])  # N117+'s VERIFIED review, by the proposer's model
     costs = ExperimentCosts(
@@ -1122,8 +1133,8 @@ def test_agents_page_rates_exclude_self_reviews(tmp_path, records):
 
 
 def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
-    from openinterp.core.costs import ExperimentCosts, LLMCall
-    from openinterp.core.schemas import ExperimentProvenance
+    from openinterpretability.core.costs import ExperimentCosts, LLMCall
+    from openinterpretability.core.schemas import ExperimentProvenance
 
     def spelled(rec, proposer, reviewer):
         sub = rec.submission.model_copy(update={"submitting_agent_model": proposer})
@@ -1163,8 +1174,13 @@ def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
 def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
     from types import SimpleNamespace
 
-    from openinterp.builder.corpora import corpora_view, language_mix
-    from openinterp.core.schemas import ConfoundProfile, CorpusSample, LabelConfound, LabelStat
+    from openinterpretability.builder.corpora import corpora_view, language_mix
+    from openinterpretability.core.schemas import (
+        ConfoundProfile,
+        CorpusSample,
+        LabelConfound,
+        LabelStat,
+    )
 
     def experiment(tokens, sample=None, labelled=True):
         levels = [LabelStat(label="en", count=tokens, mean_strength=0.0, active=0)]
@@ -1193,8 +1209,8 @@ def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
 
 
 def test_agents_page_credits_contributors(tmp_path, records):
-    from openinterp.builder.agents import contributors_view
-    from openinterp.builder.tree import build_tree
+    from openinterpretability.builder.agents import contributors_view
+    from openinterpretability.builder.tree import build_tree
 
     def credited(rec, proposer=None, reviewer=None):
         sub = rec.submission.model_copy(update={"contributor": proposer})
@@ -1301,9 +1317,9 @@ def test_repo_papers_are_all_listed_on_the_index():
 def _stop(*, layer=3, idx=117, pole="negative", outcome="default_on", share=0.55):
     from datetime import UTC, datetime
 
-    from openinterp.core.draws import ChosenStop
-    from openinterp.core.identifiers import NeuronIdentifier
-    from openinterp.core.schemas import ExperimentProvenance
+    from openinterpretability.core.draws import ChosenStop
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from openinterpretability.core.schemas import ExperimentProvenance
 
     return ChosenStop(
         identifier=NeuronIdentifier(model_name=MODEL, layer=layer, neuron_idx=idx, pole=pole),
@@ -1399,7 +1415,7 @@ def test_a_stop_on_a_neuron_with_an_experiment_is_not_counted_twice(tmp_path, re
 
 
 def test_a_random_draw_on_a_dead_neuron_counts_as_studied(tmp_path, record):
-    from openinterp.core.draws import UnauditableDraw
+    from openinterpretability.core.draws import UnauditableDraw
 
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     stop = _stop_on_model(studied, idx=40, layer=5, pole="positive", outcome="dead", share=None)
@@ -1410,10 +1426,10 @@ def test_a_random_draw_on_a_dead_neuron_counts_as_studied(tmp_path, record):
     assert (tmp_path / "models" / MODEL / "L5" / "index.html").exists()
 
 
-MODELS_PYPROJECT = """[tool.openinterp]
+MODELS_PYPROJECT = """[tool.openinterpretability]
 models = ["Qwen/Qwen2.5-0.5B", "org/unstudied", "org/unreadable"]
 
-[tool.openinterp.licenses."Qwen/Qwen2.5-0.5B"]
+[tool.openinterpretability.licenses."Qwen/Qwen2.5-0.5B"]
 license = "apache-2.0"
 url = "https://u"
 gated = false
@@ -1486,13 +1502,13 @@ def test_format_parameters():
 
 
 def test_the_page_says_where_each_step_ran_and_whether_it_streamed(tmp_path, record):
-    from openinterp.core.schemas import RunEnvironment
+    from openinterpretability.core.schemas import RunEnvironment
 
     def env(device, streamed=None):
         versions = {"openinterp_version": "0", "torch_version": "0"}
         return RunEnvironment(device=device, dtype="float32", streamed=streamed, **versions)
 
-    from openinterp.core.schemas import ExperimentProvenance
+    from openinterpretability.core.schemas import ExperimentProvenance
 
     sub = record.submission
     provenance = ExperimentProvenance(
@@ -1533,7 +1549,7 @@ def test_parallel_render_writes_the_same_site_as_one_process(tmp_path, records):
 
 
 def test_heat_html_is_short_and_escaped():
-    from openinterp.builder.heat import HeatToken, heat_html
+    from openinterpretability.builder.heat import HeatToken, heat_html
 
     tokens = [
         HeatToken('<a & "b">', 0.5, 1.23456, peak=False),
@@ -1556,7 +1572,7 @@ def test_heat_html_is_short_and_escaped():
 
 
 def test_values_rows_are_short_and_mark_the_peak():
-    from openinterp.builder.heat import PEAK_ROW, HeatToken, values_rows
+    from openinterpretability.builder.heat import PEAK_ROW, HeatToken, values_rows
 
     tokens = [HeatToken("<x>", 0.2, 0.25, peak=False), HeatToken("y", 1.0, 1.0, peak=True)]
     assert str(values_rows(tokens)) == (
@@ -1573,8 +1589,8 @@ def test_home_page_shows_dashboard(tmp_path, records):
 
 
 def test_protocol_mix_of_verified_units_is_reported(tmp_path, records):
-    from openinterp.builder.compiler import registry_stats
-    from openinterp.core.schemas import PROTOCOL_VERSION, ReviewPolicy
+    from openinterpretability.builder.compiler import registry_stats
+    from openinterpretability.core.schemas import PROTOCOL_VERSION, ReviewPolicy
 
     old = ReviewPolicy(protocol_version="0.7")
     records[1] = records[1].model_copy(

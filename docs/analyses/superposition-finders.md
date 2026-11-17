@@ -1,6 +1,6 @@
 # Two ways to find superpositions in Qwen2.5-0.5B
 
-Issue #3686. A superposition is a sparse direction over one layer's MLP neurons (`docs/PROTOCOL.md` §1). This note compares two ways to find one, on the subject–verb agreement task of `sva-circuit.md`. The definitions are in `data/superpositions/Qwen--Qwen2.5-0.5B.jsonl`. The code is `openinterp/superposition_finders.py`. Run on 2026-11-14 on the CPU. Reported, not gated.
+Issue #3686. A superposition is a sparse direction over one layer's MLP neurons (`docs/PROTOCOL.md` §1). This note compares two ways to find one, on the subject–verb agreement task of `sva-circuit.md`. The definitions are in `data/superpositions/Qwen--Qwen2.5-0.5B.jsonl`. The code is `openinterpretability/superposition_finders.py`. Run on 2026-11-14 on the CPU. Reported, not gated.
 
 ## Method
 
@@ -41,4 +41,4 @@ uv run open-interpretability superpositions grammatical-number --model Qwen/Qwen
 cat circuit.jsonl probe.jsonl > data/superpositions/Qwen--Qwen2.5-0.5B.jsonl
 ```
 
-The probe run takes about 15 seconds. `compare` in `openinterp/superposition_finders.py` gives the shared neurons and the cosine of two definitions.
+The probe run takes about 15 seconds. `compare` in `openinterpretability/superposition_finders.py` gives the shared neurons and the cosine of two definitions.

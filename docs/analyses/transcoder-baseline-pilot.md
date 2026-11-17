@@ -1,6 +1,6 @@
 # Transcoder baseline: pilot on GPT-2 small
 
-The first run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It compares 10 random latents of Dunefsky et al.'s GPT-2 small transcoders (`gpt2-small-transcoders`) against 10 random GPT-2 small neuron poles, audited under protocol 0.7. The home page's *Learned-basis baseline* table is computed from the same records (`openinterp/builder/learned_baseline.py`). Every draw, live or dead, is in `transcoder-baseline-pilot.jsonl`.
+The first run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It compares 10 random latents of Dunefsky et al.'s GPT-2 small transcoders (`gpt2-small-transcoders`) against 10 random GPT-2 small neuron poles, audited under protocol 0.7. The home page's *Learned-basis baseline* table is computed from the same records (`openinterpretability/builder/learned_baseline.py`). Every draw, live or dead, is in `transcoder-baseline-pilot.jsonl`.
 
 ## Setup
 

@@ -31,7 +31,7 @@ The table has the 24 float32 records and 2 of the bfloat16 records, whose number
 
 ## The rules
 
-A record in a 16-bit dtype is reproduced in float32 (`openinterp/half_precision.py`):
+A record in a 16-bit dtype is reproduced in float32 (`openinterpretability/half_precision.py`):
 
 - Numbers must agree within `0.05 × scale + 0.02 × |recorded|` (`reproduce.HALF_TOLERANCE`). A 10% edit of a peak still fails.
 - Up to 4 tokens of each top example may differ by more, as a warning (`HALF_STRAY_TOKENS`). The peaks may not.

@@ -1,6 +1,6 @@
 """Which language detector labels unlabelled corpora (``docs/analyses/language-detection.md``).
 
-Scores four detectors: fastText's lid.176 (as ``openinterp.langid`` runs it), lingua,
+Scores four detectors: fastText's lid.176 (as ``openinterpretability.langid`` runs it), lingua,
 langdetect (seeded) and langid.py. The tests are:
 
 - Wikipedia documents whose language is exact (their subset), cut to 50 and 200
@@ -32,7 +32,7 @@ from pathlib import Path
 
 import click
 
-from openinterp import langid
+from openinterpretability import langid
 
 CUTS = (50, 200, None)  # characters; None: the whole document (at most 3,000)
 LINES = (0.5, 0.6, 0.7, 0.8, 0.9)  # confidence lines for abstaining

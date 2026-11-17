@@ -94,7 +94,7 @@ After the check, **all 7 plants are VERIFIED**, at balanced accuracy 0.97–1.00
 ## Reproduce
 
 ```bash
-uv run python scripts/ground_truth.py plant       # fit, install and gate; plan in ~/.cache/openinterp/p3201/
+uv run python scripts/ground_truth.py plant       # fit, install and gate; plan in ~/.cache/openinterpretability/p3201/
 uv run python scripts/ground_truth.py scan
 # a neuron-proposer answers each exchange/p3201/uXX/ev.prompt.md, measuring with scripts/measure_unit.py
 uv run python scripts/ground_truth.py submit --agent-model claude-opus-5-5

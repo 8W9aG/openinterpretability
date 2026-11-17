@@ -1,10 +1,10 @@
 # Explanation scores across the activation range
 
-Issue #3238. Oikarinen et al. (arXiv 2506.07985, `docs/literature/beyond-top-activations.md`) show that a judge that sees only a unit's strongest inputs overrates its explanation. This analysis asks which part of a pole's activation range `openinterp score` reads, and whether the judge's recall depends on it. Run on 2026-11-16 with `scripts/score_by_range.py`, over every record whose scores keep recall by bin. The rows are in `score-by-range.jsonl`. Reported, not gated.
+Issue #3238. Oikarinen et al. (arXiv 2506.07985, `docs/literature/beyond-top-activations.md`) show that a judge that sees only a unit's strongest inputs overrates its explanation. This analysis asks which part of a pole's activation range `openinterpretability score` reads, and whether the judge's recall depends on it. Run on 2026-11-16 with `scripts/score_by_range.py`, over every record whose scores keep recall by bin. The rows are in `score-by-range.jsonl`. Reported, not gated.
 
 ## Method
 
-- **The windows.** `sample_heldout` (`openinterp/harness/explanation_scores.py`) cuts held-out text into 32-token windows. A window is active when it peaks at or above the pole's 0.25×max line, the reviewer's threshold. Active windows are sorted by peak and cut into 5 bins of equal count. Detection and fuzzing each draw 5 windows from each bin. Each record keeps the 4 bin edges and the judge's recall in each bin.
+- **The windows.** `sample_heldout` (`openinterpretability/harness/explanation_scores.py`) cuts held-out text into 32-token windows. A window is active when it peaks at or above the pole's 0.25×max line, the reviewer's threshold. Active windows are sorted by peak and cut into 5 bins of equal count. Detection and fuzzing each draw 5 windows from each bin. Each record keeps the 4 bin edges and the judge's recall in each bin.
 - **Coverage.** The bin edges, as a share of the pole's maximum activation in its scan.
 - **Recall by bin.** The mean recall in each bin over records, pooled and for each judge with at least 20 records. Intervals are 95% bootstrap intervals over records. A bin with no labelled window is left out of that bin.
 - **Top-only bias.** For each record with all 5 bins, the top bin's detection recall minus the mean over all 5 bins. A score drawn only from the strongest windows would read the top bin.

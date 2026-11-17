@@ -5,9 +5,9 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from openinterp.agents.proposer import format_confounds, label_note
-from openinterp.builder.pii import redact_text
-from openinterp.core.confounds import (
+from openinterpretability.agents.proposer import format_confounds, label_note
+from openinterpretability.builder.pii import redact_text
+from openinterpretability.core.confounds import (
     HATE_SPEECH,
     MATCH_LABEL_SETS,
     NAMES,
@@ -16,14 +16,14 @@ from openinterp.core.confounds import (
     PERSONAL_DATA,
     POSTAL_ADDRESSES,
 )
-from openinterp.core.schemas import ConfoundProfile, LabelConfound, LabelStat
-from openinterp.evidence import _Texts
-from openinterp.harness.annotations import LabelAccumulator, MatchTagger, TokenLabels
-from openinterp.harness.scan import Piece
-from openinterp.names import MODEL_SHA256, PERSON, _download
-from openinterp.names import person_matches as real_person_matches
-from openinterp.names import pos_matches as real_pos_matches
-from openinterp.sensitive import address_matches, detector, pii_matches
+from openinterpretability.core.schemas import ConfoundProfile, LabelConfound, LabelStat
+from openinterpretability.evidence import _Texts
+from openinterpretability.harness.annotations import LabelAccumulator, MatchTagger, TokenLabels
+from openinterpretability.harness.scan import Piece
+from openinterpretability.names import MODEL_SHA256, PERSON, _download
+from openinterpretability.names import person_matches as real_person_matches
+from openinterpretability.names import pos_matches as real_pos_matches
+from openinterpretability.sensitive import address_matches, detector, pii_matches
 from tests.test_annotations import CharTokenizer
 
 TEXT = "Mail jane@somemail.org or call (415) 555-2671 now"
@@ -147,7 +147,7 @@ def test_the_detector_string_survives_the_sites_scrub():
 
 
 def test_the_export_gives_each_match_set_its_measures():
-    from openinterp.builder.parquet_export import _match_columns
+    from openinterpretability.builder.parquet_export import _match_columns
 
     confounds = SimpleNamespace(
         labels={PERSONAL_DATA: _confound((NO_MATCH, 100, 5), ("email", 4, 3))}
@@ -181,7 +181,7 @@ def _fake_model(monkeypatch, calls):
             [word(0, "Ada", "PROPN"), word(3, " ", "SPACE", True), word(4, "Bytes", "PROPN")]
         )
 
-    monkeypatch.setattr("openinterp.names._model", lambda: fake)
+    monkeypatch.setattr("openinterpretability.names._model", lambda: fake)
 
 
 def test_names_keep_people_only_and_later_scans_read_the_disk(tmp_path, monkeypatch):
@@ -214,7 +214,7 @@ def test_a_model_that_fails_its_checksum_is_not_kept(tmp_path, monkeypatch):
 
 
 def test_the_registry_schema_has_every_match_column():
-    from openinterp.builder.parquet_export import REGISTRY_SCHEMA, _match_columns
+    from openinterpretability.builder.parquet_export import REGISTRY_SCHEMA, _match_columns
 
     assert set(_match_columns(None)) <= set(REGISTRY_SCHEMA.names)
 

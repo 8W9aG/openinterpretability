@@ -51,8 +51,8 @@ def arms_option(default: tuple[str, ...]):
 @arms_option(NEW)
 def prepare(n_probes, arms):
     """Write a reviewer prompt that asks for ``--probes`` probes into each new arm."""
-    from openinterp.cli_review import write_review_prompt
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.cli_review import write_review_prompt
+    from openinterpretability.core.schemas import AuditRecord
 
     for unit, arm in itertools.product(sorted(WORK.glob("c*")), arms):
         if not (unit / arm / "review.prompt.md").exists():
@@ -69,9 +69,9 @@ def measure(agent_model, arms):
     """Measure each answered repeat probe set on its unit (<arm>/result.json)."""
     from null_calibration import review_probes
 
-    from openinterp.agents.reviewer import ProbeSet
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.agents.reviewer import ProbeSet
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import AuditRecord
 
     runners: dict[str, object] = {}
     for unit, arm in itertools.product(sorted(WORK.glob("c*")), arms):

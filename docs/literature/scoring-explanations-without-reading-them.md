@@ -34,7 +34,7 @@ The summary adds per-scorer and Gemma-2-2B numbers, which we could not check aga
 
 ## Use in this repo
 
-**Our windows are consecutive pieces of text, not crops around the peak.** `sample_heldout` (`openinterp/harness/explanation_scores.py`) splits each held-out text into consecutive 32-token pieces. So the paper's strongest cue, a peak on the centre token, can't arise. The scan's top examples, which are centred, are left out of scoring.
+**Our windows are consecutive pieces of text, not crops around the peak.** `sample_heldout` (`openinterpretability/harness/explanation_scores.py`) splits each held-out text into consecutive 32-token pieces. So the paper's strongest cue, a peak on the centre token, can't arise. The scan's top examples, which are centred, are left out of scoring.
 
 **Our judges don't score without the explanation.** With a Haiku judge, an empty explanation and another unit's explanation both scored exactly 0.50 on 7 VERIFIED poles (`docs/analyses/null-explanation-control.md`). The paper's shuffled-explanation result points the same way.
 

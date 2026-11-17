@@ -8,9 +8,9 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from openinterp.audit_options import read_superposition
-from openinterp.cli import cli
-from openinterp.superposition_finders import (
+from openinterpretability.audit_options import read_superposition
+from openinterpretability.cli import cli
+from openinterpretability.superposition_finders import (
     NUMBER_SOURCE,
     agreement_examples,
     compare,
