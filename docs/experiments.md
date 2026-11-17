@@ -165,6 +165,11 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
   - The output warns about any cited unit that the evidence doesn't hold. `--json` keeps the evidence, the narrative, the narrator model and its costs, so a reader can check each sentence.
   - `--narrator-model` takes a LiteLLM model, or `external/<name>` for an answer through `exchange/`. The `explanation-narrator` subagent answers that prompt from Claude Code.
 
+- **Run the plan.** `--run N` runs the top N unit experiments of the plan, by coverage gain, until each unit is VERIFIED (`openinterpretability/explanation_targets.py`). They go through the experiment loop, as `open-interpretability loop` runs draws. Each run is a normal experiment: claimed, audited, reviewed, verified, opened as a PR and landed.
+  - Each draw reloads the registry. An unstudied unit gets its attribution audit. A unit that ends NEEDS_REVISION or REJECTED gets the planner's next follow-up on a later draw. That is a revision, a new hypothesis or an independent review, so one unit can take several runs.
+  - A unit leaves the list when it is VERIFIED, when a scan stops on it, or after `--max-attempts` runs (default 5). A unit that an open PR claims waits.
+  - `--proposer`, `--reviewer` and `--provider` work as for `loop`, and an `external/` model is refused. The run ends with each unit's outcome.
+
 `--json` prints the result as JSON, with every edge, the prompt coverage and the next planned experiments.
 
 ## Letting an agent run it (Claude Code)

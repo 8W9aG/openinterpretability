@@ -45,12 +45,25 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
     show_default=True, help="mechanism: the evidence. long and paragraph: an LLM narrates it.",
 )  # fmt: skip
 @click.option("--narrator-model", default=None, help="The narrator's model (agents' default).")
+@click.option(
+    "--run", "run", default=0, show_default=True, type=click.IntRange(0),
+    help="Run the top N planned unit experiments through the experiment loop, until each "
+    "unit is VERIFIED (#3744). 0: only list them.",
+)  # fmt: skip
+@click.option("--proposer", default="", help="--run: the LiteLLM proposer model.")
+@click.option("--reviewer", default="", help="--run: the LiteLLM reviewer model.")
+@click.option("--provider", default="", help="--run: a provider profile (docs/providers.md).")
+@click.option(
+    "--max-attempts", default=5, show_default=True, type=click.IntRange(1),
+    help="--run: runs per unit before giving up on it.",
+)  # fmt: skip
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
 def explain_command(
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
-    narrator_model, as_json, wiki_dir, device, dtype,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, as_json, wiki_dir, device,
+    dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
 
@@ -94,6 +107,8 @@ def explain_command(
         _print_coverage(coverage)
         _print_plan(planned, show)
     _print_narrative(told, level)
+    if run:
+        _run(planned.experiments[:run], model_name, (proposer, reviewer, provider), max_attempts)
 
 
 def _answer(runner, token: str | None) -> int | None:
@@ -283,3 +298,19 @@ def _print_narrative(told: dict, level: str) -> None:
     if told["citations_not_in_evidence"]:
         missing = ", ".join(told["citations_not_in_evidence"])
         click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")
+
+
+def _run(experiments, model: str, agents: tuple[str, str, str], max_attempts: int) -> None:
+    """Run ``experiments`` through the experiment loop until each unit is VERIFIED (#3744)."""
+    from openinterpretability.cli_loop import _api_model, _models, run_loop
+    from openinterpretability.explanation_targets import TargetedDraws, targets
+
+    for model_name in agents[:2]:
+        if model_name:
+            _api_model(None, None, model_name)  # an external model has nobody to answer it
+    proposer, reviewer = _models(*agents)
+    found = targets(experiments, model)
+    click.echo(f"Running {len(found)} unit experiments until each is VERIFIED: "
+               + ", ".join(t.label for t in found))  # fmt: skip
+    draws = TargetedDraws(found, reviewer, max_attempts)
+    raise SystemExit(run_loop(proposer, reviewer, draws))

@@ -98,16 +98,31 @@ def loop_command(
     whole loop. Logs go to logs/loop/, one per experiment, and each prints a RESULT line.
     The loop honours `open-interpretability pause` and the stop file of scripts/experiment-loop.sh.
     """
+    from openinterpretability.planner import plan_next
+
+    proposer, reviewer = _models(proposer, reviewer, provider)
+    options = (max_experiments, epsilon, corpus, worktree, one_heavy_job, max_failures)
+    raise SystemExit(run_loop(proposer, reviewer, plan_next, *options))
+
+
+def run_loop(
+    proposer, reviewer, plan_next, max_experiments=0, epsilon=0.7, corpus=None, worktree=None,
+    one_heavy_job=False, max_failures=3,
+) -> int:  # fmt: skip
+    """Set up the loop's worktree, lock and runner cache, run it with ``plan_next``, and return.
+
+    ``loop`` passes the planner's draw, and ``explain --run`` its targeted draws (#3744).
+    The return value is the loop's exit code.
+    """
     import time
 
     from openinterpretability import runner_cache
     from openinterpretability.experiment_loop import Loop, Options
-    from openinterpretability.planner import open_pr_claims, plan_next
+    from openinterpretability.planner import open_pr_claims
 
-    proposer, reviewer = _models(proposer, reviewer, provider)
     repo = Path(_git("rev-parse", "--show-toplevel"))
     worktree = (worktree or repo.parent / f"{repo.name}-loop").resolve()
-    corpus = corpus and str(corpus.resolve())
+    corpus = corpus and str(Path(corpus).resolve())
     if not worktree.exists():
         _git("fetch", "--quiet", "origin", "main")
         _git("worktree", "add", "--detach", str(worktree), "origin/main")
@@ -124,16 +139,9 @@ def loop_command(
     runner_cache.keep()
     os.chdir(worktree)
     options = Options(proposer, reviewer, epsilon, corpus)
-    loop = Loop(
-        options,
-        repo / "logs" / "loop",
-        max_experiments,
-        max_failures,
-        plan_next,
-        open_pr_claims,
-        time.sleep,
-    )
-    raise SystemExit(loop.run())
+    loop = Loop(options, repo / "logs" / "loop", max_experiments, max_failures, plan_next,
+                open_pr_claims, time.sleep)  # fmt: skip
+    return loop.run()
 
 
 def _models(proposer: str, reviewer: str, provider: str) -> tuple[str, str]:

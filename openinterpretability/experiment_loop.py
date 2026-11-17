@@ -29,6 +29,10 @@ class LoopError(Exception):
     """One iteration failed. Its message is the reason that the loop gives."""
 
 
+class Finished(Exception):
+    """The draws have nothing left to run: the loop ends cleanly. The message says why."""
+
+
 @dataclass(frozen=True)
 class Options:
     """What every iteration of a loop shares."""
@@ -325,6 +329,9 @@ class Loop:
                 contextlib.redirect_stderr(out),
             ):
                 result = iteration(self.options, self.plan_next, self.claims)
+        except Finished as exc:  # a targeted run (explain --run) has no target left
+            print(f"RESULT: none finished: {exc}", flush=True)
+            return 0
         except Exception as exc:  # any failure of one experiment; the loop decides what next
             return self._failed(exc, log)
         self.done, self.failures, self.backoffs = self.done + 1, 0, 0
