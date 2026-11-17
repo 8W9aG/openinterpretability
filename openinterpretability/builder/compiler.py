@@ -347,7 +347,7 @@ def compile_site(
     for model in models:
         sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
-    render_models(render, models, model_facts or {}, _render_model)
+    render_models(render, models, model_facts or {}, _render_model, (*draws, *stops))
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members

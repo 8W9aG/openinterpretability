@@ -1479,6 +1479,22 @@ def test_models_page_counts_experiments_and_verified(tmp_path, records, monkeypa
     assert qwen[-2:] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
 
 
+def test_models_page_shows_each_models_pieces_bars_as_the_home_page_does(tmp_path, records):
+    import re
+
+    compile_site(records, tmp_path / "site")
+    models = (tmp_path / "site" / "models" / "index.html").read_text()
+    home = (tmp_path / "site" / "index.html").read_text()
+
+    def card(page):  # the card's statistics and its bars, without the page-relative link
+        found = re.search(r'aria-label="Pieces bars for [^"]+"', page)
+        stats = re.search(r"\d+ experiments ·[^<]+", page)
+        return found and found.group(0), stats and " ".join(stats.group(0).split())
+
+    assert card(models) == card(home) and card(models)[0]  # the same card on both pages
+    assert 'href="../models/' in models  # its link is relative to the Models page
+
+
 def test_facts_from_config_counts_parameters_not_buffers():
     from transformers import GPT2Config, GPT2LMHeadModel
 
