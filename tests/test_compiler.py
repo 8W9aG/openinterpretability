@@ -212,6 +212,15 @@ def test_layer_map(tmp_path, records):
     assert "Studied neurons per layer" not in page  # the map replaces the histogram
 
 
+def test_a_cell_fills_by_its_share_of_poles():
+    from openinterpretability.builder.pieces import fill, studied_poles
+    from openinterpretability.builder.stopped import StoppedNeuron
+
+    assert [fill(s, 4) for s in (0, 0.01, 0.5, 1.0)] == [0, 1, 2, 4]  # any pole shows
+    both = StoppedNeuron(1, 2, ["negative default-on", "positive dead"])
+    assert studied_poles(both) == 2 and studied_poles(StoppedNeuron(1, 2, ["negative dead"])) == 1
+
+
 def test_pieces_bars(tmp_path, record, records):
     from openinterpretability.builder.pieces import layer_pieces, model_pieces
     from openinterpretability.builder.tree import ModelNode, build_tree
@@ -225,8 +234,10 @@ def test_pieces_bars(tmp_path, record, records):
     n9, n117 = bars["rows"][3]["cells"]
     assert (n9["x"], n9["status"]) == (0, "REJECTED")
     assert (n117["x"], n117["status"]) == (3 * 5, "VERIFIED")
-    assert n117["label"].startswith("L3 N114–151: N117 positive VERIFIED")
+    assert n117["label"].startswith("L3 N114–151, 3 of 76 poles studied: N117 positive VERIFIED")
     assert "N120 positive REJECTED" in n117["label"]
+    # Three of 76 poles fill 1 px of 3, from the bottom: a thin line, but visible (#3288).
+    assert (n117["height"], n117["y"]) == (1, 2) and bars["bar"] == 3
 
     grid = layer_pieces(model, model.layers[0])
     assert len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
@@ -238,7 +249,8 @@ def test_pieces_bars(tmp_path, record, records):
         "STOPPED": 0,
     }
     cell = next(c for c in grid["cells"] if c["href"].endswith("/N120.html"))
-    assert (cell["x"], cell["y"]) == (grid["left"] + 120 * 5, 0)
+    # One of its two poles is studied: the cell fills the lower half of its 4 px.
+    assert (cell["x"], cell["y"], cell["height"]) == (grid["left"] + 120 * 5, 2, 2)
     assert model_pieces(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no bars
 
     compile_site(records, tmp_path)
@@ -1477,6 +1489,22 @@ def test_models_page_counts_experiments_and_verified(tmp_path, records, monkeypa
     compile_site(records, tmp_path / "site", model_facts=MODEL_FACTS)
     qwen = _rows((tmp_path / "site" / "models" / "index.html").read_text())[0]
     assert qwen[-2:] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
+
+
+def test_models_page_shows_each_models_pieces_bars_as_the_home_page_does(tmp_path, records):
+    import re
+
+    compile_site(records, tmp_path / "site")
+    models = (tmp_path / "site" / "models" / "index.html").read_text()
+    home = (tmp_path / "site" / "index.html").read_text()
+
+    def card(page):  # the card's statistics and its bars, without the page-relative link
+        found = re.search(r'aria-label="Pieces bars for [^"]+"', page)
+        stats = re.search(r"\d+ experiments ·[^<]+", page)
+        return found and found.group(0), stats and " ".join(stats.group(0).split())
+
+    assert card(models) == card(home) and card(models)[0]  # the same card on both pages
+    assert 'href="../models/' in models  # its link is relative to the Models page
 
 
 def test_facts_from_config_counts_parameters_not_buffers():

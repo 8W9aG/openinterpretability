@@ -6,6 +6,7 @@ The command is ``open-interpretability explain``.
 from __future__ import annotations
 
 import json
+import textwrap
 from dataclasses import asdict
 from pathlib import Path
 
@@ -32,46 +33,91 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
     show_default=True,
     help="Tokens of the corpus for each neuron's mean, the attribution's baseline (cached).",
 )
+@click.option(
+    "--target", default=None, type=click.FloatRange(0, 1),
+    help="The explained share to plan experiments for. Default: 1, a complete explanation.",
+)  # fmt: skip
+@click.option(
+    "--experiments", "show", default=10, show_default=True, help="Planned experiments to list."
+)
+@click.option(
+    "--level", type=click.Choice(["mechanism", "long", "paragraph"]), default="mechanism",
+    show_default=True, help="mechanism: the evidence. long and paragraph: an LLM narrates it.",
+)  # fmt: skip
+@click.option("--narrator-model", default=None, help="The narrator's model (agents' default).")
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
 def explain_command(
-    prompt, model_name, token, position, top, edges, corpus, mean_tokens, as_json, wiki_dir, device,
-    dtype,
+    prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
+    narrator_model, as_json, wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
 
     It attributes the answer's logit to every MLP neuron pole and attention head, against
     each unit's mean on the corpus. It labels the top units from the registry. It reports
     the share of the attribution that VERIFIED units hold, and checks it by mean-ablating
-    them. It lists the superpositions and circuits that carry the most attribution. Then
-    it traces the paths between the top units.
+    them. It lists the superpositions and circuits that carry the most attribution, and
+    traces the paths between the top units. Then it lists the experiments that would
+    explain the rest: for each pole, head, superposition and circuit that isn't VERIFIED.
     """
-    from openinterpretability import explain_groups
+    from openinterpretability import explain_groups, explain_plan
     from openinterpretability.evidence import read_corpus
     from openinterpretability.explain import explain, registry_labels, unit_means
+    from openinterpretability.explain_coverage import POOL, add_gains, prompt_coverage
+    from openinterpretability.planner import configured_windows, load_states
 
     runner = _load_runner(model_name, device, dtype)
     means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
-    labels = registry_labels(Path(wiki_dir), model_name)
+    states = load_states(Path(wiki_dir))  # read once: labels and the plan both use it
+    labels = registry_labels(Path(wiki_dir), model_name, states)
     groups = explain_groups.superpositions(model_name) + explain_groups.circuits(model_name)
     group_labels = explain_groups.circuit_labels(Path(wiki_dir), model_name)
-    target = None
-    if token is not None:
-        ids = runner.tokenizer.encode(token, add_special_tokens=False)
-        if len(ids) != 1:
-            raise click.BadParameter(
-                f"{token!r} is {len(ids)} tokens, not one", param_hint="--token"
-            )
-        target = ids[0]
     result = explain(
-        runner, model_name, prompt, means, labels, token=target, position=position, top=top,
-        edges=edges, groups=groups, group_labels=group_labels,
+        runner, model_name, prompt, means, labels, token=_answer(runner, token),
+        position=position, top=top, edges=edges, groups=groups, group_labels=group_labels,
     )  # fmt: skip
+    planned = explain_plan.plan(
+        result, states, model_name, target=explain_plan.TARGET if target is None else target,
+        window=configured_windows().get(model_name), groups=groups,
+    )  # fmt: skip
+    args = (runner, prompt, means, result.token_id, position, result.order)
+    coverage = prompt_coverage(*args)
+    add_gains(*args, planned, pool=max(POOL, show))  # rank the experiments by coverage gained
+    told = _narrate(result, coverage, planned, narrator_model) if level != "mechanism" else {}
     if as_json:
-        click.echo(json.dumps(asdict(result) | {"verified_share": result.verified_share}, indent=1))
+        out = _as_json(result, planned, show) | {"coverage": coverage}
+        click.echo(json.dumps(out | told, indent=1, default=str))
         return
-    _print(result)
+    if level != "paragraph":
+        _print(result)
+        _print_coverage(coverage)
+        _print_plan(planned, show)
+    _print_narrative(told, level)
+
+
+def _answer(runner, token: str | None) -> int | None:
+    """The answer token's id, or None for the model's top token."""
+    if token is None:
+        return None
+    ids = runner.tokenizer.encode(token, add_special_tokens=False)
+    if len(ids) != 1:
+        raise click.BadParameter(f"{token!r} is {len(ids)} tokens, not one", param_hint="--token")
+    return ids[0]
+
+
+def _as_json(result, planned, show: int) -> dict:
+    """The result, without the full ranking, and the next ``show`` planned experiments."""
+    out = asdict(result) | {"verified_share": result.verified_share}
+    out.pop("order")
+    return out | {
+        "target": planned.target, "planned_share": planned.planned_share,
+        "blocked": planned.blocked, "reaches": planned.reaches,
+        "planned": len(planned.experiments), "milestones": dict(_milestones(planned)),
+        "experiments": [asdict(e) for e in planned.experiments[:show]],
+        "group_experiments": [asdict(e) for e in planned.groups],
+        "blocked_units": planned.blocked_units,
+    }  # fmt: skip
 
 
 def _print(result) -> None:
@@ -119,7 +165,7 @@ def _print_groups(result) -> None:
     if not result.groups:
         return
     click.echo("Superpositions and circuits (they overlap with the units above):")
-    for g in result.groups:
+    for g in result.groups[:10]:
         ablated = f"{g.ablation_change:+.2f}" if g.ablation_change is not None else ""
         name = f"{g.name} ({g.kind}, {g.members} members)"
         click.echo(f"  {name:<46} {g.attribution:>+9.3f} {ablated:>9}  {g.status}")
@@ -140,3 +186,100 @@ def _print_paths(result, per_target: int = 3) -> None:
         if edges:
             sources = ", ".join(f"{e['source']} {e['weight']:+.3f}" for e in edges)
             click.echo(f"  {unit.label:<12} ← {sources}")
+
+
+def _print_plan(planned, show: int) -> None:
+    """The planned experiments: how far they reach, the first ``show``, and what is blocked."""
+    from openinterpretability.explain_plan import CAVEAT
+
+    n, reach = len(planned.experiments), planned.reaches
+    goal = "reach" if reach >= planned.target - 1e-9 else f"reach only {reach:.1%}, short of"
+    click.echo(
+        f"Plan: {n} unit experiment{'s' if n != 1 else ''} {goal} the {planned.target:.0%} target "
+        f"(explained now: {planned.explained:.1%}), and {len(planned.groups)} for "
+        "superpositions and circuits."
+    )
+    if marks := _milestones(planned):
+        click.echo("  " + "; ".join(f"{k} experiments reach {m:.0%}" for m, k in marks) + ".")
+    for e in planned.experiments[:show] + planned.groups[:show]:
+        held = f"; in {', '.join(e.covered_by)}" if e.covered_by else ""
+        gain = f"{e.gain:+.1%} coverage" if e.gain is not None else "gain not measured"
+        click.echo(
+            f"  {e.target:<20} {gain:<18} {e.share:>6.1%} attr.  {e.status:<14} {e.draw}{held}"
+        )
+        for line in textwrap.wrap(e.rationale, 96):
+            click.echo(f"      {line}")
+        for command in e.commands:
+            click.echo(f"    $ {command}")
+    if n > show:
+        click.echo(f"  … and {n - show} more unit experiments (--experiments, or --json).")
+    if planned.blocked:
+        click.echo(
+            f"Blocked: {planned.blocked:.1%} of the attribution, on "
+            f"{len(planned.blocked_units)} units that no experiment can raise "
+            "(stopped, or no follow-up)."
+        )
+    click.echo(CAVEAT)
+
+
+def _milestones(planned, marks=(0.5, 0.8, 0.9, 0.99)) -> list[tuple[float, int]]:
+    """How many unit experiments, in rank order, reach each explained share below the target."""
+    out, reached, k = [], planned.explained, 0
+    for mark in (m for m in marks if planned.explained < m < planned.target):
+        while reached < mark and k < len(planned.experiments):
+            reached += planned.experiments[k].share
+            k += 1
+        if reached >= mark:
+            out.append((mark, k))
+    return out
+
+
+def _print_coverage(coverage: dict) -> None:
+    """Prompt coverage (explain_coverage.py): what the explained units bring back, causally."""
+    share, base = coverage["coverage"], coverage["random"]
+    if share is None:
+        click.echo("Prompt coverage: ablating every unit doesn't change the answer.")
+        return
+    against = (
+        f"; {coverage['units']} random units bring back {base:.1%}" if base is not None else ""
+    )
+    click.echo(
+        f"Prompt coverage: keeping only the {coverage['units']} explained units, and mean-ablating "
+        f"the rest, brings back {share:.1%} of the answer's log-probability{against}."
+    )
+
+
+def _narrate(result, coverage, planned, model: str | None) -> dict:
+    """The narrator's long form and paragraph, the evidence it read, and its checks (#3743)."""
+    from openinterpretability.agents.base import DEFAULT_MODEL
+    from openinterpretability.agents.narrator import Narrator
+    from openinterpretability.core import costs
+    from openinterpretability.explain_narrate import check_citations, evidence
+
+    ev = evidence(result, coverage, planned)
+    narrator = Narrator(model or DEFAULT_MODEL)
+    costs.reset()  # so that the costs below are the narrator's alone
+    narrative = narrator.narrate(ev)
+    return {
+        "evidence": ev, "narrative": narrative.model_dump(), "narrator_model": narrator.model,
+        "citations_not_in_evidence": check_citations(narrative, ev),
+        "narrator_costs": costs.measured().model_dump(mode="json"),
+    }  # fmt: skip
+
+
+def _print_narrative(told: dict, level: str) -> None:
+    """The long form and the paragraph, or the paragraph alone, with any unsupported citation."""
+    if not told:
+        return
+    narrative = told["narrative"]
+    if level == "long":
+        click.echo("")
+        for section in narrative["sections"]:
+            click.echo(f"## {section['title']}\n")
+            click.echo(textwrap.fill(section["text"], 100) + "\n")
+        click.echo("## In one paragraph\n")
+    click.echo(textwrap.fill(narrative["paragraph"], 100))
+    click.echo(f"\n(narrated by {told['narrator_model']} from the evidence only)")
+    if told["citations_not_in_evidence"]:
+        missing = ", ".join(told["citations_not_in_evidence"])
+        click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")

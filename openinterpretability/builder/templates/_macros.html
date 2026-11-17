@@ -106,3 +106,33 @@
   </div>
 </section>
 {%- endmacro %}
+
+
+{# A model's card: its statistics and its pieces bars (builder/pieces.py), on the home and
+   Models pages (#3287). `idx` keeps each card's SVG pattern id unique on the page. #}
+{% macro model_card(m, explore, root, idx) -%}
+{% set pc = pieces.model_pieces(m) %}
+<a href="{{ root }}{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: open-interpretability next draws most new neurons from it.">explore focus</span>{% endif %}</span>
+    <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
+      {{ m.experiments }} experiments ·
+      {{ m.neurons_studied }}/{{ m.total_neurons | thousands }} neurons studied{% if m.member_only %}, {{ m.member_only }} of them only as part of a superposition{% endif %} ({{ m.coverage | pct_fine }}) ·
+      {% set v = explore.models[m.name] %}{{ v.verified }}/{{ m.total_neurons | thousands }} verified ({{ (v.verified / m.total_neurons if m.total_neurons else none) | pct_fine }}; target {{ '{:g}%'.format(100 * explore.target) }}){% if v.dead %}, {{ v.dead }} of them proven dead{% endif %}
+    </span>
+  </div>
+  {% if pc %}
+  <svg viewBox="0 0 {{ pc.width }} {{ 4 * pc.rows | length - 1 }}" class="mt-3 w-full" role="img" data-pagefind-ignore
+       aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons; {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron. A cell's colour is the best status in it, and how far it fills is the share of its poles studied.">
+    <defs><pattern id="pieces-{{ idx }}" width="{{ pc.pitch }}" height="4" patternUnits="userSpaceOnUse"><rect width="{{ pc.pitch - 1 }}" height="3" class="fill-slate-200 dark:fill-slate-800"/></pattern></defs>
+    <rect width="{{ pc.width + 1 }}" height="{{ 4 * pc.rows | length }}" fill="url(#pieces-{{ idx }})"/>
+    {% for row in pc.rows %}
+    {% for c in row.cells %}
+    <rect x="{{ c.x }}" y="{{ 4 * row.layer + c.y }}" width="{{ pc.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
+    {% endfor %}
+    {% endfor %}
+  </svg>
+  <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top. Each cell is {{ pc.block }} neurons, coloured by the best status among them. It fills from the bottom with the share of their poles that are studied, so one studied pole shows as a thin line.</p>
+  {% endif %}
+</a>
+{%- endmacro %}
