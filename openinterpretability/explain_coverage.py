@@ -109,6 +109,7 @@ def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAW
         "units": len(keep), "clean": clean, "ablated": ablated, "kept": kept,
         "coverage": _share(clean, ablated, kept),
         "random": sum(baseline) / len(baseline) if baseline else None,
+        "random_draws": baseline,  # each draw's coverage, for the page's figure (#4479)
     }  # fmt: skip
 
 

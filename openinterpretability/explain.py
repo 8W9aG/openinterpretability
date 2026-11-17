@@ -91,6 +91,7 @@ class Explanation:
     groups: list[GroupAttribution] = field(default_factory=list)  # all of them, by |attribution|
     order: list = field(default_factory=list, repr=False)  # every unit, ranked (_ranked)
     token_id: int = -1  # the answer token's id
+    net: float = 0.0  # the signed attribution of every unit, summed (the page's waterfall)
 
     @property
     def verified_share(self) -> float:
@@ -471,7 +472,8 @@ def explain(
     joint = _check(runner, prompt, means, units, base, token, position, confirm)
     _check_groups(runner, prompt, means, found_groups, groups, base, token, position, confirm)
     decoded = runner.tokenizer.decode([token])
+    net = sum(score for score, _ in scores.values())
     return Explanation(
         prompt, position, decoded, logit, units, total, verified, joint, found, found_groups, order,
-        token,
+        token, net,
     )  # fmt: skip

@@ -122,7 +122,10 @@ def explain_command(  # long-function: one argument per option, then one line pe
     if not as_json:
         _print_narrative(told, level)
     if write_record:
-        record = _record(model_name, result, coverage, planned, told, ran)
+        from openinterpretability.explain_figure_data import figure_data
+
+        figures = figure_data(runner, means, result, coverage, planned, found.groups)
+        record = _record(model_name, result, coverage, planned, told, ran, figures)
         _keep(record, home, land)
     if not as_json:
         click.echo(reached(result.verified_share, planned.target, coverage, ran))
@@ -414,7 +417,7 @@ def _keep(record, home: Path, land: bool) -> None:
     click.echo(f"Explanation → {url} ({'merged' if merged else 'left open'})")
 
 
-def _record(model: str, result, coverage: dict, planned, told: dict, run=None):
+def _record(model: str, result, coverage: dict, planned, told: dict, run=None, figures=None):
     """The explanation record (core/explanation_records.py), as the registry stands."""
     from datetime import UTC, datetime
 
@@ -435,7 +438,7 @@ def _record(model: str, result, coverage: dict, planned, told: dict, run=None):
         explained_share=result.verified_share, blocked_share=planned.blocked,
         prompt_coverage=coverage.get("coverage"), random_coverage=coverage.get("random"),
         units=units, narration=narration, planned_experiments=len(planned.experiments),
-        package_version=__version__, written=datetime.now(UTC), run=run,
+        package_version=__version__, written=datetime.now(UTC), run=run, figures=figures,
     )  # fmt: skip
     return record
 

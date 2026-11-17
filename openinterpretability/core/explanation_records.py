@@ -71,6 +71,33 @@ class Narration(StrictModel):
     citations_not_in_evidence: list[str] = Field(default_factory=list)
 
 
+class FigureUnit(StrictModel):
+    """One top unit, as the explanation page's figures draw it (#4479)."""
+
+    label: str  # L3/N7+ or L5/H1
+    layer: int
+    kind: str  # pole or head
+    attribution: float  # signed
+    status: str
+    explained: bool  # VERIFIED, or in a VERIFIED superposition or circuit
+    blocked: bool = False  # no experiment can raise it
+
+
+class ExplanationFigures(StrictModel):
+    """The measured data of the explanation page's figures, so the build needs no model (#4479)."""
+
+    tokens: list[str]  # the prompt's tokens
+    logit: float  # the answer's logit, where the waterfall ends
+    units: list[FigureUnit]  # the top units, by |attribution|
+    net: float  # the signed attribution of every unit, summed
+    edges: list[dict[str, Any]] = Field(default_factory=list)  # {source, target, weight}, by label
+    coverage: float | None = None  # what the explained units bring back
+    random_draws: list[float] = Field(default_factory=list)  # random units of the same count
+    reading: dict[str, list[float]] = Field(default_factory=dict)  # label → strength per token
+    ablation: list[dict[str, Any]] = Field(default_factory=list)  # {token, before, after}
+    groups: list[dict[str, Any]] = Field(default_factory=list)  # {name, kind, status, members}
+
+
 class ExplainRun(StrictModel):
     """What ``explain --run`` did before this explanation was written (#4474)."""
 
@@ -79,6 +106,7 @@ class ExplainRun(StrictModel):
     landed: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
     left_open: list[str] = Field(default_factory=list, description="PRs that didn't merge")
     stopped: str  # why the run stopped
+    shares: list[float] = Field(default_factory=list)  # the share before each draw (#4479)
 
 
 class ExplanationRecord(StrictModel):
@@ -96,6 +124,7 @@ class ExplanationRecord(StrictModel):
     narration: Narration | None = None
     planned_experiments: int = 0  # unit experiments that a complete explanation needs
     run: ExplainRun | None = None  # the experiments that --run landed first (#4474)
+    figures: ExplanationFigures | None = None  # the page's figures' data (#4479)
     package_version: str
     written: datetime
 
