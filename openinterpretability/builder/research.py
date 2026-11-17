@@ -22,6 +22,8 @@ from markdown_it.token import Token
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
+# An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
+_ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
 _MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
 
 
@@ -36,6 +38,7 @@ class Paper:
     hero: str | None  # the first figure, relative to the paper's folder
     interactive: bool
     sections: tuple[tuple[str, str], ...] = ()  # (id, title) of each `##` heading, in order
+    published: str | None = None  # the date before its entry in papers/README.md
 
     @property
     def href(self) -> str:
@@ -115,12 +118,22 @@ def _read_paper(folder: Path, repo_url: str) -> Paper:
 
 
 def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
-    """Return the listed papers in the listed order. Return none if there is no such folder."""
+    """Return the listed papers, newest first. Return none if there is no such folder.
+
+    Each entry's date comes before it in papers/README.md (#3292). Papers of one date keep
+    their order in the list, and an entry with no date goes last.
+    """
+    from dataclasses import replace
+
     index = Path(papers_dir) / "README.md" if papers_dir else None
     if index is None or not index.exists():
         return []
-    slugs = _LISTED.findall(index.read_text(encoding="utf-8"))
-    return [_read_paper(Path(papers_dir) / slug, repo_url) for slug in slugs]
+    entries = _ENTRY.findall(index.read_text(encoding="utf-8"))
+    papers = [
+        replace(_read_paper(Path(papers_dir) / slug, repo_url), published=date or None)
+        for date, slug in entries
+    ]
+    return sorted(papers, key=lambda p: p.published or "", reverse=True)
 
 
 VENDORED = {

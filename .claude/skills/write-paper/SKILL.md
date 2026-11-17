@@ -16,7 +16,7 @@ papers/<slug>/
 └── media/          figures, written by scripts/paper_figures.py
 ```
 
-List the paper in `papers/README.md`. That order is the order of the site's Research index ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
+List the paper in `papers/README.md`, with the date it is published before it: `- 2026-11-16: [Title](slug/README.md)`. The site's Research index shows the papers newest first by that date, and keeps the list's order for one date ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
 
 ## Structure
 
