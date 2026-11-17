@@ -122,3 +122,25 @@ def prove_dead(runner: NeuronHookRunner, ident: NeuronIdentifier) -> DeadProof:
             return DeadProof(True, 0.0, "a read of the gated MLP is zero")
         return DeadProof(False, None, "a gated MLP's pole is proven dead only by a zero read")
     return DeadProof(False, None, "MLP input projection not found")
+
+
+# The tolerance above an activation's floor that a scan may read, as a share of it.
+# A bfloat16 scan can round GELU's floor of 0.17004 up to 0.1709, which is 0.5% more.
+FLOOR_TOLERANCE = 0.01
+
+
+def negative_pole_ceiling(runner: NeuronHookRunner, layer: int) -> float | None:
+    """The largest strength that a negative pole of ``layer`` can have, or None.
+
+    In an ungated MLP the negative pole is ``−f(h)``, so it can't exceed ``−min f``.
+    For GELU that is about 0.170, and for ReLU it is 0. A gated MLP multiplies two
+    reads, so its poles have no such ceiling (#4581).
+    """
+    from transformers.activations import ACT2FN
+
+    act = _activation(runner)
+    if set(_reads(runner, layer)) != {"in"} or act not in SIGN_PRESERVING | {RELU}:
+        return None
+    with torch.no_grad():
+        floor = float(ACT2FN[act](torch.linspace(-20, 0, 200_001, dtype=torch.float64)).min())
+    return -floor * (1 + FLOOR_TOLERANCE)
