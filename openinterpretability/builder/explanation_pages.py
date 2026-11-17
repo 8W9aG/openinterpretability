@@ -74,6 +74,14 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[ExplanationVi
     return sorted(views, key=lambda v: v.record.written, reverse=True)
 
 
+def by_model(views) -> dict[str, list[ExplanationView]]:
+    """The views of each model, keyed by model name, in the order given (#4206)."""
+    out: dict[str, list[ExplanationView]] = {}
+    for view in views:
+        out.setdefault(view.record.model_name, []).append(view)
+    return out
+
+
 def render_explanations(render, views: list[ExplanationView]) -> None:
     """Write the index and one page per explanation (none when there is none)."""
     if not views:

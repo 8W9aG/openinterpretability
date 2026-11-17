@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import explanation_rows %}
 
 {% block title %}Explanations · {{ site_title }}{% endblock %}
 
@@ -12,15 +13,7 @@
       <tr><th class="px-3 py-2">Written</th><th class="px-3 py-2">Model</th><th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explained</th><th class="px-3 py-2">State</th></tr>
     </thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-      {% for v in views %}
-      <tr class="align-top">
-        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.record.written.isoformat() }}">{{ v.record.written.strftime("%Y-%m-%d") }}</time></td>
-        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ v.record.model_name }}</td>
-        <td class="px-3 py-2"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ v.href }}">{{ v.record.prompt | truncate(90) }} → <span class="font-mono">{{ v.record.answer }}</span></a></td>
-        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.record.explained_share | pct_fine }}</td>
-        <td class="px-3 py-2 text-xs">{% if v.stale %}stale: {{ v.changed | length }} unit{{ 's' if v.changed | length != 1 }} changed{% else %}current{% endif %}</td>
-      </tr>
-      {% endfor %}
+      {{ explanation_rows(views, root) }}
     </tbody>
   </table>
 </div>
