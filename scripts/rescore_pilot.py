@@ -52,7 +52,7 @@ BOOTSTRAP = 2000
 
 def latest_records(wiki_dir: Path = Path("wiki")) -> list[dict]:
     """The newest neuron-pole record of each unit, with its status, model and old scores."""
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     extra = backfilled(BACKFILL)
     best: dict[str, dict] = {}
@@ -143,7 +143,7 @@ def sample() -> None:
     A record scanned on the built-in corpus is replaced: that corpus has 40 short texts,
     too few to draw held-out windows from.
     """
-    from openinterp.data import sample_corpus
+    from openinterpretability.data import sample_corpus
 
     rows = [r for r in latest_records() if r["corpus_sha256"]]
     builtin = hashlib.sha256("\n".join(sample_corpus()).encode()).hexdigest()
@@ -244,7 +244,7 @@ def spearman_brown(r: float, k: float) -> float:
 
 def separation(pairs: list[tuple[float, bool]], seed: int = 0) -> dict:
     """AUROC and VERIFIED-minus-other difference, each with a 95% bootstrap interval."""
-    from openinterp.harness.explanation_scores import auroc
+    from openinterpretability.harness.explanation_scores import auroc
 
     def stats(sample: list[tuple[float, bool]]) -> tuple[float | None, float | None]:
         ok = [s for s, y in sample if y]

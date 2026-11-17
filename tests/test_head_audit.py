@@ -7,23 +7,23 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
-from openinterp.agents.reviewer import (
+from openinterpretability.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
+from openinterpretability.agents.reviewer import (
     AdversarialProbe,
     ProbeSet,
     ReviewerAgent,
     evaluate_submission,
     repeated_runs,
 )
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.cli import cli
-from openinterp.core.schemas import AuditRecord, HeadIdentifier, ScanEvidence
-from openinterp.harness.heads import pattern_scores, scan_head
-from openinterp.harness.hooks import NeuronHookRunner, activation_histogram
-from openinterp.harness.units import HeadUnit, head_strength, submission_unit
-from openinterp.planner import plan_next
-from openinterp.reproduce import reproduce_record
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import AuditRecord, HeadIdentifier, ScanEvidence
+from openinterpretability.harness.heads import pattern_scores, scan_head
+from openinterpretability.harness.hooks import NeuronHookRunner, activation_histogram
+from openinterpretability.harness.units import HeadUnit, head_strength, submission_unit
+from openinterpretability.planner import plan_next
+from openinterpretability.reproduce import reproduce_record
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 from tests.test_agents import SMALL
@@ -57,6 +57,30 @@ def test_scan_measures_strength_from_the_mean_output(runner, scan):
         torch.testing.assert_close(measured, torch.tensor(ex.activations), atol=1e-4, rtol=0)
         assert ex.attends_to and max(ex.attends_to) <= ex.max_token_index
         assert all(0 < w <= 1 for w in ex.attention_weights)
+
+
+def test_strength_is_measured_above_the_median_floor(runner, scan):
+    # Protocol 0.10 (#4523): the floor is the median raw norm, and strength is clamped above it.
+    mean = scan.profile.mean_output
+    raw = torch.cat([head_strength(runner, HEAD, runner.head_outputs(t, 1)[0, :, 1], mean)
+                     for t in TEXTS])  # fmt: skip
+    floor = scan.profile.strength_floor
+    assert floor == pytest.approx(float(raw.median()), abs=1e-5)
+    assert min(scan.values) == 0.0  # at or below the floor
+    skip = int(scan.first_token_floor)  # the values leave first tokens out with that floor
+    counted = torch.cat([head_strength(runner, HEAD, runner.head_outputs(t, 1)[0, skip:, 1], mean)
+                         for t in TEXTS])  # fmt: skip
+    assert max(scan.values) == pytest.approx(float(counted.max()) - floor, abs=1e-4)
+    old = HeadUnit(HEAD, tuple(mean))  # a profile without a floor: the plain norm
+    new = HeadUnit(HEAD, tuple(mean), floor=floor)
+    plain, shifted = old.strengths(runner, TEXTS[0])[0], new.strengths(runner, TEXTS[0])[0]
+    torch.testing.assert_close(shifted, (plain - floor).clamp(min=0), atol=1e-6, rtol=0)
+
+
+def test_protocol_version_is_0_10():
+    from openinterpretability.core.schemas import PROTOCOL_VERSION
+
+    assert PROTOCOL_VERSION == "0.10"
 
 
 def test_mean_ablation_zeroes_the_head_and_nothing_else(runner, scan):
@@ -163,7 +187,9 @@ def test_review_check_probes_shows_tokens_and_repeats(runner, scan, tmp_path, mo
     monkeypatch.setattr(
         "transformers.AutoTokenizer.from_pretrained", lambda *a, **k: FakeTokenizer()
     )
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a: pytest.fail("loaded a model"))
+    monkeypatch.setattr(
+        "openinterpretability.cli._load_runner", lambda *a: pytest.fail("loaded a model")
+    )
     args = ["review", "--audit-file", str(tmp_path / "sub.json"),
             "--check-probes", str(tmp_path / "review.probes.json")]  # fmt: skip
     result = CliRunner().invoke(cli, args)
@@ -199,7 +225,7 @@ def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     assert "Heads studied" in (tmp_path / "dist" / "index.html").read_text()
 
     # The toy head is default-on, and the planner offers no new audit of such a unit.
-    monkeypatch.setattr("openinterp.planner._default_on", lambda record: False)
+    monkeypatch.setattr("openinterpretability.planner._default_on", lambda record: False)
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     kinds = {c.kind for c in plan.candidates}
     assert "opposite_pole" not in kinds
@@ -216,9 +242,9 @@ def test_cli_samples_a_random_head_with_eager_attention(runner, tmp_path, monkey
         loads.append(attn)
         return runner
 
-    monkeypatch.setattr("openinterp.cli._load_runner", load)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", load)
     # A randomly initialised head writes far from its mean on most tokens: default-on.
-    monkeypatch.setattr("openinterp.evidence.check_default_on", lambda *a: None)
+    monkeypatch.setattr("openinterpretability.evidence.check_default_on", lambda *a: None)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     args = ["audit", "--model", "tiny-gpt2", "--unit", "head", "--random", "--seed", "3",
@@ -238,7 +264,7 @@ def test_cli_samples_a_random_head_with_eager_attention(runner, tmp_path, monkey
 
 
 def test_head_scans_take_label_sets(runner):
-    from openinterp.harness.annotations import DocumentLabels
+    from openinterpretability.harness.annotations import DocumentLabels
 
     langs = ["en", "fr"] * 3
     tagged = scan_head(

@@ -19,8 +19,8 @@ from pathlib import Path
 
 import click
 
-from openinterp.circuit_ids import MATCH, MIN_SIZE, TOUCH, clusters, jaccard  # noqa: E402,F401
-from openinterp.circuit_ids import match as match_ids  # noqa: E402
+from openinterpretability.circuit_ids import MATCH, MIN_SIZE, TOUCH, clusters, jaccard  # noqa: E402,F401
+from openinterpretability.circuit_ids import match as match_ids  # noqa: E402
 
 
 def match(old: dict[str, frozenset], new: list[frozenset]) -> dict[int, tuple[str, float]]:
@@ -56,10 +56,10 @@ def step(
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
 def main(wiki_dir: Path, out: Path) -> None:
     """Replay the registry day by day and record how circuit ids change."""
-    from openinterp.builder.tree import build_tree
-    from openinterp.builder.wiki import load_archive
-    from openinterp.core.errata import load_errata
-    from openinterp.wiring_backfill import load_rows
+    from openinterpretability.builder.tree import build_tree
+    from openinterpretability.builder.wiki import load_archive
+    from openinterpretability.core.errata import load_errata
+    from openinterpretability.wiring_backfill import load_rows
 
     records, errata, rows = load_archive(wiki_dir), load_errata(wiki_dir), load_rows()
     times = sorted(r.verdict.timestamp for r in records)

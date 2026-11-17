@@ -41,7 +41,7 @@ def cli() -> None:
 
 def _first_readings(wiki: Path) -> list[Path]:
     """First experiments of random native neuron poles, protocol 0.8, on the default corpus."""
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     first: dict[str, tuple[str, Path]] = {}
     for path in sorted((wiki / "experiments").rglob("*.json")):
@@ -73,7 +73,7 @@ def _first_readings(wiki: Path) -> list[Path]:
 @click.option("--seed", default=0, show_default=True)
 def select(wiki_dir: Path, out: Path, seed: int) -> None:
     """Write the sample: PER_CELL records per model, VERIFIED and not, at random."""
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     cells: dict[tuple[str, bool], list[str]] = {}
     for path in _first_readings(wiki_dir):
@@ -99,7 +99,7 @@ def _scan_path(scans: Path, record_path: str) -> Path:
 @click.option("--device", default="auto", show_default=True)
 def rescan(sample: Path, corpus: Path, scans: Path, device: str) -> None:
     """Scan each record's pole on ``corpus``, as the record's scan was set up."""
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     scans.mkdir(parents=True, exist_ok=True)
     for record_path in json.loads(sample.read_text()):
@@ -115,7 +115,7 @@ def rescan(sample: Path, corpus: Path, scans: Path, device: str) -> None:
         if prov.snippet_tokens:
             args += ["--window-tokens", str(prov.snippet_tokens)]
             args += ["--stride", str(prov.snippet_stride or prov.snippet_tokens // 2)]
-        command = [sys.executable, "-c", "from openinterp.cli import main; main()", *args]
+        command = [sys.executable, "-c", "from openinterpretability.cli import main; main()", *args]
         done = subprocess.run(
             [*command, "--evidence-out", str(out)], capture_output=True, text=True
         )
@@ -125,9 +125,9 @@ def rescan(sample: Path, corpus: Path, scans: Path, device: str) -> None:
 
 def judge_with(record, scale: float, histogram, confounds, tokenizer) -> dict:
     """The verdict that ``record``'s stored results get with a scan's scale and statistics."""
-    from openinterp.agents.review_measurements import _delta_agrees
-    from openinterp.agents.reviewer import AdversarialProbe, best_baseline, decide, review_metrics
-    from openinterp.harness.confounds import baseline_predictions
+    import openinterpretability.agents.reviewer as rv
+    from openinterpretability.agents.review_measurements import _delta_agrees
+    from openinterpretability.harness.confounds import baseline_predictions
 
     verdict, sub = record.verdict, record.submission
     policy, stored = verdict.policy, verdict.metrics
@@ -139,7 +139,7 @@ def judge_with(record, scale: float, histogram, confounds, tokenizer) -> dict:
             active = scale > 0 and r.activation >= threshold
             r = r.model_copy(update={"passed": active == r.expected_active})
             probes.append(
-                AdversarialProbe(text=r.prompt, expected_active=r.expected_active, rationale="")
+                rv.AdversarialProbe(text=r.prompt, expected_active=r.expected_active, rationale="")
             )
             actual.append(active)
         elif r.kind == "counterfactual" and r.measured and r.observed_delta is not None:
@@ -152,14 +152,14 @@ def judge_with(record, scale: float, histogram, confounds, tokenizer) -> dict:
         texts = [p.text for p in probes]
         candidates = baseline_predictions(confounds, tokenizer, texts, threshold, skip)
         candidates["never active"] = [False] * len(probes)
-        baseline = best_baseline(candidates, probes, actual, policy)
+        baseline = rv.best_baseline(candidates, probes, actual, policy)
     share = histogram.share_at_least(threshold) if histogram is not None else None
-    metrics = review_metrics(
+    metrics = rv.review_metrics(
         results, policy, independent=stored.independent_review, baseline=baseline,
         active_share=share, first_token_floor=stored.first_token_floor,
     )  # fmt: skip
     failed = sorted(g for g, ok in metrics.gates.items() if not ok)
-    return {"status": decide(metrics, policy), "failed_gates": failed,
+    return {"status": rv.decide(metrics, policy), "failed_gates": failed,
             "balanced_accuracy": round(metrics.balanced_accuracy, 4)}  # fmt: skip
 
 
@@ -172,9 +172,9 @@ def judge(sample: Path, scans: Path, corpus: Path, out: Path) -> None:
     """Judge each record with its own scan (the control) and with the other corpus's scan."""
     from transformers import AutoTokenizer
 
-    from openinterp.core.examples import Histogram
-    from openinterp.core.schemas import AuditRecord, ConfoundProfile
-    from openinterp.evidence import read_corpus
+    from openinterpretability.core.examples import Histogram
+    from openinterpretability.core.schemas import AuditRecord, ConfoundProfile
+    from openinterpretability.evidence import read_corpus
 
     other_sha = read_corpus(corpus)[2]
     tokenizers, rows = {}, []

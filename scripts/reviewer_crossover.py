@@ -47,7 +47,7 @@ def cli() -> None:
 @click.option("--probes", "n_probes", default=20, show_default=True)
 def prepare(wiki_dir, per_proposer, seed, n_probes):
     """Sample submissions and write one reviewer prompt per arm."""
-    from openinterp.cli_review import write_review_prompt
+    from openinterpretability.cli_review import write_review_prompt
 
     picked = sample_records(wiki_dir, per_proposer, seed)
     for i, (path, record) in enumerate(picked):
@@ -90,9 +90,9 @@ def measure(arm, agent_model):
     """Measure every answered probe set of one arm on its unit (<arm>/result.json)."""
     from null_calibration import review_probes
 
-    from openinterp.agents.reviewer import ProbeSet, probes_from_verdict
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.agents.reviewer import ProbeSet, probes_from_verdict
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import AuditRecord
 
     if arm != ORIGINAL and not agent_model:
         raise click.UsageError("--agent-model is required for a reviewer arm.")
@@ -144,7 +144,7 @@ def load_rows():
     """Submissions whose every arm is measured, with the record's own verdict."""
     from null_calibration import outcome_row
 
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     for unit in sorted(WORK.glob("c*")):
         arms = {a: unit / a / "result.json" for a in ARMS + (ORIGINAL,)}

@@ -2,13 +2,13 @@ import re
 
 import pytest
 
-from openinterp.agents.judge import ExplanationJudge, TaskWindow
-from openinterp.agents.proposer import ProposerAgent
-from openinterp.agents.reviewer import AdversarialProbe, ReviewerAgent
-from openinterp.core.fence import FENCE_RULE, FENCE_TAG, fence, fence_id
-from openinterp.core.prior_art import PriorArt
-from openinterp.core.schemas import ActivatingExample
-from openinterp.prior_art import format_for_reviewer
+from openinterpretability.agents.judge import ExplanationJudge, TaskWindow
+from openinterpretability.agents.proposer import ProposerAgent
+from openinterpretability.agents.reviewer import AdversarialProbe, ReviewerAgent
+from openinterpretability.core.fence import FENCE_RULE, FENCE_TAG, fence, fence_id
+from openinterpretability.core.prior_art import PriorArt
+from openinterpretability.core.schemas import ActivatingExample
+from openinterpretability.prior_art import format_for_reviewer
 from tests.conftest import FakeTokenizer
 
 # A crafted corpus document: it tries to close the fence early with a guessed ID, then

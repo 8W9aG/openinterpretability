@@ -1,14 +1,14 @@
 from datetime import timedelta
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.wiki import (
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.wiki import (
     _read_front_matter,
     backfill,
     experiment_id,
     load_entries,
     write_experiment_page,
 )
-from openinterp.core.schemas import (
+from openinterpretability.core.schemas import (
     AuditRecord,
     CausalMetrics,
     CausalPairEffect,
@@ -157,7 +157,7 @@ def test_self_review_marked(tmp_path, record):
 
 
 def test_unmeasured_probes_are_shown_but_not_failed(tmp_path, record):
-    from openinterp.core.schemas import AdversarialTestResult
+    from openinterpretability.core.schemas import AdversarialTestResult
 
     one_token = AdversarialTestResult(
         kind="hard_negative", prompt="Love", passed=False, expected_active=False, measured=False

@@ -1,6 +1,6 @@
 # Circuits and hubs
 
-The maintainer decided on 2026-11-16 that circuits become units with experiments of their own (issue #3213). Hubs become entities whose standing comes from their center's experiments. Today they are reported, not gated. The site joins studied units by their direct-effect wiring edges (`openinterp/builder/circuits.py`). It lists as a hub any unit wired to at least 5% of a model's studied units, and to at least 10 of them. This page is the design. Each part lands in its own issue (*Plan* below). The protocol (`docs/PROTOCOL.md`) and `PROTOCOL_VERSION` change only when the code that enforces each rule lands, so the protocol never describes a rule that the review doesn't run.
+The maintainer decided on 2026-11-16 that circuits become units with experiments of their own (issue #3213). Hubs become entities whose standing comes from their center's experiments. Today they are reported, not gated. The site joins studied units by their direct-effect wiring edges (`openinterpretability/builder/circuits.py`). It lists as a hub any unit wired to at least 5% of a model's studied units, and to at least 10 of them. This page is the design. Each part lands in its own issue (*Plan* below). The protocol (`docs/PROTOCOL.md`) and `PROTOCOL_VERSION` change only when the code that enforces each rule lands, so the protocol never describes a rule that the review doesn't run.
 
 ## What each one is
 
@@ -17,11 +17,11 @@ A neuron pole, a head or a latent is one coordinate that an experiment measures.
 
 A circuit is defined by where it sits in the network, not by what someone thinks it does. Defining it by a task would split one group of units into several circuits when it carries several behaviours. And a circuit, like a neuron, can be somewhat polysemantic. So the identity comes from the wiring, and each task is a hypothesis about the circuit.
 
-Each build clusters a model's studied units by their direct-effect wiring edges, weighted by edge strength. It uses community detection such as the Leiden algorithm (Traag et al., 2019). Hub edges are left out, as they are today (`openinterp/builder/circuits.py`), so that one hub doesn't join everything into one star. A cluster of at least 3 units is a circuit. Its members and its center of mass (its mean relative depth and its mean member position) locate it in the network.
+Each build clusters a model's studied units by their direct-effect wiring edges, weighted by edge strength. It uses community detection such as the Leiden algorithm (Traag et al., 2019). Hub edges are left out, as they are today (`openinterpretability/builder/circuits.py`), so that one hub doesn't join everything into one star. A cluster of at least 3 units is a circuit. Its members and its center of mass (its mean relative depth and its mean member position) locate it in the network.
 
 ### Identity across builds
 
-The registry grows, so the clusters change from one build to the next. Each build matches its clusters to the previous build's circuits by member overlap. The overlap is the Jaccard index |A ∩ B| / |A ∪ B|. It is 1 minus the set edit distance between the two member sets, scaled by their union. An optimal assignment then pairs old and new so that the total overlap is greatest. A new cluster takes the id of the circuit that it is paired with, if the two overlap by at least 0.5. Otherwise it gets a new id. `open-interpretability circuits identify` does this, and the release runs it. It keeps each model's lineage in `data/circuits/<model>.jsonl`, an append-only file with one event per line (`openinterp/circuit_ids.py`). So each circuit has a lineage:
+The registry grows, so the clusters change from one build to the next. Each build matches its clusters to the previous build's circuits by member overlap. The overlap is the Jaccard index |A ∩ B| / |A ∪ B|. It is 1 minus the set edit distance between the two member sets, scaled by their union. An optimal assignment then pairs old and new so that the total overlap is greatest. A new cluster takes the id of the circuit that it is paired with, if the two overlap by at least 0.5. Otherwise it gets a new id. `open-interpretability circuits identify` does this, and the release runs it. It keeps each model's lineage in `data/circuits/<model>.jsonl`, an append-only file with one event per line (`openinterpretability/circuit_ids.py`). So each circuit has a lineage:
 
 | Event | When | What it means |
 | --- | --- | --- |
@@ -51,15 +51,7 @@ A circuit experiment reuses the lifecycle of `docs/PROTOCOL.md` §3: propose, re
 
 The proposer gives a task: a set of clean and corrupted prompt pairs and a metric, as the subject–verb agreement analysis does (`docs/analyses/sva-circuit.md`). It gives each member's role in words. The reviewer writes its own pairs: holdouts of the task and hard negatives, which are other tasks that the circuit should not carry. The review measures each set with path patching (Wang et al., 2022). Every unit that is not a member is resample-ablated with activations from the corrupted prompts, so only the members carry the clean signal.
 
-| Measure | Definition | Gate (provisional) |
-| --- | --- | --- |
-| Faithfulness | (m(circuit only) − m(none)) / (m(all) − m(none)) on the holdout pairs | ≥ 0.6 |
-| Necessity | 1 − (m(circuit ablated) − m(none)) / (m(all) − m(none)) on the holdouts | ≥ 0.5 |
-| Specificity | The share of hard-negative tasks on which ablating the circuit moves the metric by less than 20% of its range | ≥ 0.8 |
-| Minimality | The share of members whose own ablation lowers faithfulness by at least 0.02 | reported, not gated |
-| Null | Faithfulness of 64 random member sets of the same size and layers, seeded by the id | the circuit must beat the 95th percentile |
-
-The gates are provisional. The subject–verb agreement pilot sets them before any protocol change (*Plan*, step 1). A decided gate goes into `docs/PROTOCOL.md` §4 with a `PROTOCOL_VERSION` bump.
+The decided gates are in `docs/PROTOCOL.md` §4 (*Circuits*). Necessity must be at least 0.02, and above the 95th percentile of random member sets. Specificity on other tasks must be at least 0.80. The pilot set them (`docs/analyses/circuit-pilot.md`). The first plan here had absolute gates, such as faithfulness ≥ 0.6, and every wiring cluster failed them. Faithfulness and each member's necessity are still recorded, but not gated.
 
 ### Sub-circuits
 
@@ -67,9 +59,11 @@ A merge makes the old circuits sub-circuits of the new one, so a larger circuit 
 
 ## Hubs
 
-A hub needs no experiment of its own, because what it does is what its center does. Its center's experiments test that, and the hub inherits their standing. What a hub adds is identity and context: a stable name and page, the units wired to it, and the circuits it joins. The site already finds hubs: a unit wired to at least 5% of a model's studied units, and to at least 10 of them (`openinterp/builder/circuits.py`).
+A hub needs no experiment of its own, because what it does is what its center does. Its center's experiments test that, and the hub inherits their standing. What a hub adds is identity and context: a stable name and page, the units wired to it, and the circuits it joins. The site already finds hubs: a unit wired to at least 5% of a model's studied units, and to at least 10 of them (`openinterpretability/builder/circuits.py`).
 
 A hub can be an artefact. A unit with a large output norm, or one that is on most of the time (default-on, §1), touches many units without carrying anything particular. So the hub's page reports whether its center is default-on, and its output norm against its layer (`neuron-family-triage`). These are reported, not gated, so hubs need no protocol change.
+
+A hub is an entity with its own identifier, `HubIdentifier` (`<model>/L<layer>/N<idx>/HUB`, or `H<idx>` for a head), in `openinterpretability/hubs.py`. Its standing is its center's, derived each build and never stored. Its default-on share comes from its center's lead experiment. Its output norm comes from weights, so `open-interpretability circuits hubs` records it in `data/hubs/<model>.jsonl`, with the layer's median and the center's percentile. The build reads the newest row per hub, and loads no model.
 
 ## How it shows
 
@@ -82,7 +76,7 @@ A hub can be an artefact. A unit with a large output norm, or one that is on mos
 Each step is its own issue, and each issue says what it needs from the one before it.
 
 1. **Pilot** (#4283). Cluster today's wiring, and replay the registry's history week by week to measure how often circuit ids survive the matching. Run the circuit measures by hand on the subject–verb agreement circuit (`sva-circuit.md`) and on random sets, to set the gates. No schema change.
-2. **The circuit unit** (#4284). Add the clustering, the matching and the lineage to the build. Add `CircuitIdentifier`, the task hypothesis and the tested members on each record, and the review measures to the schema and harness. Add `open-interpretability audit --circuit` and `review` support. Then add the §1 row, the §4 gates and the `PROTOCOL_VERSION` bump.
+2. **The circuit unit** (#4284). Done: circuit ids and lineage (`circuits identify`), the measures for neurons and heads (`openinterpretability/harness/circuit_measures.py`), and the unit (`circuits propose` and `circuits review`). The gates are in `docs/PROTOCOL.md` §4, under their own rule version, `CIRCUIT_PROTOCOL_VERSION`. `PROTOCOL_VERSION` stays unchanged, so no other record needs re-evaluating.
 3. **The hub entity** (#4285). Add `HubIdentifier`, the hub's derived standing and the reported artefact facts. No experiments and no protocol change.
 4. **Planner draws** (#4286). A `circuit` draw for a stale experiment, weighted by how many members changed, and for a circuit with no task hypothesis yet.
 5. **Site pages** (#4287). Circuit pages show members, lineage and stability, each task's experiments and standing, stale experiments and sub-circuits. Hub pages show their center's standing and the artefact facts.

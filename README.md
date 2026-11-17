@@ -1,9 +1,11 @@
+![Open Interpretability](openinterpretability/builder/brand/logo.svg)
+
 # Open Interpretability
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
 [![PyPI](https://img.shields.io/pypi/v/open-interpretability.svg)](https://pypi.org/project/open-interpretability/)
 
-`openinterp` is an open, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
+`openinterpretability` is an open, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
 
 The registry is published at **[open-interpretability.com](https://open-interpretability.com/)**: every experiment, unit, model and paper, with search and the Parquet export.
 
@@ -38,7 +40,7 @@ claude "/loop /land-experiment"
 
 That is all. The loop runs one experiment after another until you stop it. Each one draws a neuron with `open-interpretability next` and claims it with a draft PR. It then scans the neuron, has one subagent propose a hypothesis and another review it, and posts the result. `uv run` installs the dependencies on first use. Each scan builds its own corpus. A scan takes about 10–15 minutes on CPU.
 
-`land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. To be credited, set `export OPENINTERP_CONTRIBUTOR=<your GitHub username>` (never an email) before you start Claude Code. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result."
+`land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. To be credited, set `export OPENINTERPRETABILITY_CONTRIBUTOR=<your GitHub username>` (never an email) before you start Claude Code. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result."
 
 ### Or run it yourself
 
@@ -68,7 +70,7 @@ Claim the neuron with a draft PR before the scan, so others don't draw it too (`
 
 ### Install the package
 
-To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability` (`openinterp` still works for now):
+To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability`. Some commands need a clone of the registry: [docs/development.md](docs/development.md#running-outside-a-clone) lists which.
 
 ```bash
 pip install open-interpretability          # add [site] to build the site's search index
@@ -89,7 +91,7 @@ Every claim is empirical and falsifiable:
    - lookahead consistency (the claimed mechanism compared with KL(clean ‖ pole-ablated) on next-token distributions)
    - covariance: the most correlated same-layer neurons, and joint ablation with them to expose redundancy (recorded, not gated)
    - causal sufficiency (clean → corrupted patching) and necessity (corrupted → clean resample ablation), recorded but not yet gated. Downstream MLP outputs are frozen to mitigate self-repair (the hydra effect). Each score is ranked against same-layer neurons that change as much between the pair
-3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterp/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) at [open-interpretability.com](https://open-interpretability.com/) and searched client-side with Pagefind and DuckDB-Wasm.
+3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterpretability/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) at [open-interpretability.com](https://open-interpretability.com/) and searched client-side with Pagefind and DuckDB-Wasm.
 
 The full experimental protocol (roles, lifecycle, decision rule and reproducibility requirements) is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 

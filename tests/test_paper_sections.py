@@ -1,6 +1,7 @@
-"""Section ids and the contents list of a paper page (openinterp/builder/research.py, #3139)."""
+"""Section ids and the contents list of a paper page (builder/research.py, #3139)."""
 
-from openinterp.builder.research import _anchor, _read_paper
+from openinterpretability.builder.contents import anchor as _anchor
+from openinterpretability.builder.research import _read_paper
 
 PAPER = """# A title
 
@@ -21,6 +22,10 @@ One.
 ## Results
 
 Two.
+
+## Next
+
+Three.
 """
 
 
@@ -40,6 +45,7 @@ def test_each_section_gets_a_stable_unique_id(tmp_path):
         ("does-it-hold", "Does it hold?"),
         ("results", "Results"),
         ("results-2", "Results"),
+        ("next", "Next"),
     )
     for anchor, _ in paper.sections:
         assert f'<h2 id="{anchor}">' in paper.body
@@ -55,7 +61,7 @@ def test_an_interactive_paper_has_no_sections(tmp_path):
 
 
 def test_the_built_page_links_every_section(tmp_path):
-    from openinterp.builder import compiler
+    from openinterpretability.builder import compiler
 
     papers = tmp_path / "papers"
     (papers / "p").mkdir(parents=True)

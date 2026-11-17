@@ -26,8 +26,8 @@ from pathlib import Path
 import click
 import duckdb
 
-from openinterp.builder.learned_baseline import fisher_exact, wilson
-from openinterp.sisters import SisterRow
+from openinterpretability.builder.learned_baseline import fisher_exact, wilson
+from openinterpretability.sisters import SisterRow
 
 ROWS = Path("docs/analyses/sister-neurons.jsonl")
 KINDS = ("sister", "match", "random")

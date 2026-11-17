@@ -1,11 +1,11 @@
 """Qualify a model for scans on Apple's Neural Engine (ANE), on a real corpus.
 
 The device planner sends scans to the ANE only for a model in
-``openinterp/harness/ane/qualified.py``. This script decides if a model can go there.
+``openinterpretability/harness/ane/qualified.py``. This script decides if a model can go there.
 It runs a whole-document scan of ``--corpus`` for each of ``--layers``, in two ways, on
 the same batches:
 
-- on the ANE, through :class:`~openinterp.harness.ane.backend.AneScan`;
+- on the ANE, through :class:`~openinterpretability.harness.ane.backend.AneScan`;
 - in fp32 on Apple's GPU, which is the reference.
 
 A model passes if every layer passes all five checks (:data:`CHECKS`):
@@ -34,12 +34,12 @@ from collections import Counter
 
 import torch
 
-from openinterp.cli import _load_runner
-from openinterp.harness import scan_backend
-from openinterp.harness.ane import cache
-from openinterp.harness.ane.backend import AneScan
-from openinterp.harness.scan import BATCH_TOKENS, batches, cut_pieces
-from openinterp.reproduce import DEFAULT_TOLERANCE
+from openinterpretability.cli import _load_runner
+from openinterpretability.harness import scan_backend
+from openinterpretability.harness.ane import cache
+from openinterpretability.harness.ane.backend import AneScan
+from openinterpretability.harness.scan import BATCH_TOKENS, batches, cut_pieces
+from openinterpretability.reproduce import DEFAULT_TOLERANCE
 
 CHECKS = {
     "top20": 1.0,

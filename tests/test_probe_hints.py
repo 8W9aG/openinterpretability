@@ -1,8 +1,13 @@
 """Part of speech in the review and in triage (issue #3631)."""
 
-from openinterp.agents import probe_hints
-from openinterp.agents.reviewer import ReviewerAgent
-from openinterp.core.confounds import PART_OF_SPEECH, ConfoundProfile, LabelConfound, LabelStat
+from openinterpretability.agents import probe_hints
+from openinterpretability.agents.reviewer import ReviewerAgent
+from openinterpretability.core.confounds import (
+    PART_OF_SPEECH,
+    ConfoundProfile,
+    LabelConfound,
+    LabelStat,
+)
 from tests.conftest import FakeTokenizer
 
 
@@ -30,12 +35,12 @@ def test_the_probe_prompt_asks_for_another_role_only_when_tagged(submission):
 
 
 def test_the_token_check_tags_each_probes_words(submission, monkeypatch):
-    from openinterp.agents.reviewer import AdversarialProbe
+    from openinterpretability.agents.reviewer import AdversarialProbe
 
     def stub(text):
         return ((0, 3, "VERB"), (4, 7, "DET")) if text.startswith("run") else ()
 
-    monkeypatch.setattr("openinterp.names.pos_matches", stub)
+    monkeypatch.setattr("openinterpretability.names.pos_matches", stub)
     probes = [AdversarialProbe(text="run the race", expected_active=False, rationale="")]
     prompt = ReviewerAgent.token_check_prompt(tagged(submission), probes, FakeTokenizer())
     assert "parts of speech: run/VERB the/DET" in prompt and probe_hints.POS_CHECK in prompt

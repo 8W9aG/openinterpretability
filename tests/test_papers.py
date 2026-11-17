@@ -121,7 +121,8 @@ def test_paper_says_why_it_was_written_and_its_question(paper):
     """Below its opening paragraph, a paper says why it was written and what it asks (#3138)."""
     text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
     top = text.split("\n## ", 1)[0]
-    paragraphs = [p for p in top.split("\n\n") if p.strip()]
+    # The status line under the abstract (#3150) doesn't count as a paragraph here.
+    paragraphs = [p for p in top.split("\n\n") if p.strip() and not p.startswith("**Status:**")]
     why = [p for p in paragraphs if p.startswith("**Why we wrote it.**")]
     assert why, f"{paper}: no '**Why we wrote it.**' paragraph before the first section"
     assert "**The question.**" in why[0], f"{paper}: the why paragraph names no question"

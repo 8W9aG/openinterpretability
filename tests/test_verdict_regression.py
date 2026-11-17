@@ -1,12 +1,12 @@
-"""Tests for the model-free verdict recomputation in openinterp/verdict_regression.py."""
+"""Tests for the model-free verdict recomputation in openinterpretability/verdict_regression.py."""
 
 import pytest
 
-from openinterp.agents.reviewer import decide, review_metrics
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.checks import check_registry
-from openinterp.core.schemas import AdversarialTestResult, AuditRecord, ReviewPolicy
-from openinterp.verdict_regression import verdict_drift
+from openinterpretability.agents.reviewer import decide, review_metrics
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.checks import check_registry
+from openinterpretability.core.schemas import AdversarialTestResult, AuditRecord, ReviewPolicy
+from openinterpretability.verdict_regression import verdict_drift
 
 
 def _results():

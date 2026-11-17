@@ -34,8 +34,8 @@ from train_resting import (
     checkpoint_path,
 )
 
-from openinterp.cli import resolve_device
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
+from openinterpretability.cli import resolve_device
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 
 PYTHIA = "EleutherAI/pythia-70m"
 # Pythia keeps a checkpoint at step 0, at powers of 2 up to 512, and every 1,000 steps.

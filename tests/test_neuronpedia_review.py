@@ -3,9 +3,9 @@
 The command is `open-interpretability neuronpedia-review`.
 """
 
-from openinterp.cli_neuronpedia import baseline_submission
-from openinterp.crossref import Explanation
-from openinterp.neuronpedia_review import NOT_PROBE_GATES, ReviewRow, probe_gates, report
+from openinterpretability.cli_neuronpedia import baseline_submission
+from openinterpretability.crossref import Explanation
+from openinterpretability.neuronpedia_review import NOT_PROBE_GATES, ReviewRow, probe_gates, report
 
 THEIRS = Explanation(description="references to the number 39", explainer="gpt-4o-mini")
 

@@ -4,10 +4,10 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.core.probing import ProbeComparison
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.probing import (
+from openinterpretability.cli import cli
+from openinterpretability.core.probing import ProbeComparison
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.probing import (
     Window,
     auroc,
     balanced_accuracy,
@@ -94,10 +94,10 @@ def test_collect_reads_hidden_and_residual_at_kept_positions(toy_model):
 
 
 def test_probe_compare_writes_a_report(tmp_path, monkeypatch, toy_model, submission):
-    from openinterp.core.schemas import AuditRecord, NeuronIdentifier
+    from openinterpretability.core.schemas import AuditRecord, NeuronIdentifier
 
     runner = NeuronHookRunner(toy_model, OffsetTokenizer())
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *_a, **_k: runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *_a, **_k: runner)
     ident = NeuronIdentifier(model_name="toy", layer=N_LAYERS - 1, neuron_idx=3, pole="positive")
     record = tmp_path / "record.json"
     sub = submission.model_copy(update={"identifier": ident})

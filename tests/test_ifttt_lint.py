@@ -64,3 +64,13 @@ def test_a_target_that_does_not_exist_fails(tmp_path):
     repo(tmp_path)
     (tmp_path / "a.txt").write_text(BLOCK.replace("b.txt", "gone.txt").replace("z\n", "zz\n"))
     assert any("doesn't exist" in p for p in check(tmp_path))
+
+
+def test_a_binary_file_in_the_diff_is_named_from_its_header():
+    # A binary file's diff has no "+++" line: its path comes from the diff header (#3289).
+    diff = (
+        "diff --git a/img/og.png b/img/og.png\nnew file mode 100644\nindex 0000000..1111111\n"
+        "Binary files /dev/null and b/img/og.png differ\n"
+        "diff --git a/x.py b/x.py\n--- a/x.py\n+++ b/x.py\n@@ -1 +1 @@\n-a\n+b\n"
+    )
+    assert ifttt.changed_lines(diff) == {"img/og.png": set(), "x.py": {1}}

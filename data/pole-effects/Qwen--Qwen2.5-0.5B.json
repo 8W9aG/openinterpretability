@@ -6,7 +6,7 @@
  "window_tokens": 128,
  "seed": 0,
  "dtype": "float32",
- "openinterp": "0.0.19",
+ "openinterpretability": "0.0.19",
  "date": "2026-11-14",
  "method": "attribution patching of single-pole mean ablation",
  "poles_total": 233472,

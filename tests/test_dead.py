@@ -3,14 +3,14 @@ from datetime import UTC, datetime
 import pytest
 import torch
 
-from openinterp.builder.stopped import explore_focus
-from openinterp.builder.tree import build_tree
-from openinterp.core.draws import UnauditableDraw, load_draws, write_draw
-from openinterp.core.identifiers import NeuronIdentifier
-from openinterp.core.schemas import AuditRecord, ExperimentProvenance
-from openinterp.evidence import dead_unit
-from openinterp.harness.dead import prove_dead
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterpretability.builder.stopped import explore_focus
+from openinterpretability.builder.tree import build_tree
+from openinterpretability.core.draws import UnauditableDraw, load_draws, write_draw
+from openinterpretability.core.identifiers import NeuronIdentifier
+from openinterpretability.core.schemas import AuditRecord, ExperimentProvenance
+from openinterpretability.evidence import dead_unit
+from openinterpretability.harness.dead import prove_dead
+from openinterpretability.harness.hooks import NeuronHookRunner
 from tests.conftest import FakeTokenizer
 
 PROVENANCE = ExperimentProvenance(
@@ -124,11 +124,13 @@ def test_dead_stop_records_the_proof(gpt2_runner, tiny_gpt2, record):
 
 def test_proven_dead_poles_count_as_verified(tmp_path, record, monkeypatch):
     """The planner and the site count a proven-dead pole's neuron as verified."""
-    from openinterp import planner_models
-    from openinterp.planner import plan_next
+    from openinterpretability import planner_models
+    from openinterpretability.planner import plan_next
 
     monkeypatch.setattr(planner_models, "model_dims", lambda model, download=True: (2, 10))
-    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["m/a", "m/b"]\n')
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterpretability]\nmodels = ["m/a", "m/b"]\n'
+    )
     wiki = tmp_path / "wiki"
     for i, proven in enumerate([True, True, False]):
         draw = UnauditableDraw(
@@ -152,12 +154,12 @@ def test_proven_dead_poles_count_as_verified(tmp_path, record, monkeypatch):
 
 def test_proven_dead_chosen_stops_count_as_verified(tmp_path, monkeypatch):
     """A chosen unit's proven-dead stop counts as verified, but stays out of the draws."""
-    from openinterp import planner_models
-    from openinterp.core.draws import ChosenStop, load_stops, stop_path
-    from openinterp.planner import plan_next
+    from openinterpretability import planner_models
+    from openinterpretability.core.draws import ChosenStop, load_stops, stop_path
+    from openinterpretability.planner import plan_next
 
     monkeypatch.setattr(planner_models, "model_dims", lambda model, download=True: (2, 10))
-    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["m/a"]\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.openinterpretability]\nmodels = ["m/a"]\n')
     wiki = tmp_path / "wiki"
     manual = PROVENANCE.model_copy(update={"selection": "manual", "seed": None})
     for i, proven in enumerate([True, False]):
@@ -183,8 +185,8 @@ def test_proven_dead_chosen_stops_count_as_verified(tmp_path, monkeypatch):
     [(True, "the weights prove that no input"), (False, "the weights don't prove it dead")],
 )
 def test_a_stop_page_on_a_dead_unit_with_no_records(tmp_path, proven, says):
-    from openinterp.builder.wiki import write_stop_page
-    from openinterp.checks import check_registry
+    from openinterpretability.builder.wiki import write_stop_page
+    from openinterpretability.checks import check_registry
 
     stop = UnauditableDraw(
         identifier=NeuronIdentifier(model_name="toy", layer=1, neuron_idx=7, pole="positive"),
@@ -206,7 +208,7 @@ def test_a_stop_page_on_a_dead_unit_with_no_records(tmp_path, proven, says):
 
 
 def test_the_wiki_home_links_a_stop_only_on_a_unit_with_no_index(tmp_path, record):
-    from openinterp.builder.wiki import write_experiment_page, write_stop_page
+    from openinterpretability.builder.wiki import write_experiment_page, write_stop_page
 
     studied = record.model_copy(
         update={"submission": record.submission.model_copy(update={"identifier": neuron(1, 7)})}

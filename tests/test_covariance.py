@@ -2,8 +2,8 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from openinterp.core.schemas import ReviewPolicy
-from openinterp.core.stats import (
+from openinterpretability.core.schemas import ReviewPolicy
+from openinterpretability.core.stats import (
     EffectiveCounts,
     balanced_accuracy,
     cluster_texts,
@@ -14,10 +14,14 @@ from openinterp.core.stats import (
     spearman,
     spearman_columns,
 )
-from openinterp.harness.confounds import ConfoundAccumulator, baseline_predictions
-from openinterp.harness.covariance import CovarianceAccumulator, PartnerSearch, joint_ablation
-from openinterp.harness.hooks import pole_strength
-from openinterp.harness.scan import (
+from openinterpretability.harness.confounds import ConfoundAccumulator, baseline_predictions
+from openinterpretability.harness.covariance import (
+    CovarianceAccumulator,
+    PartnerSearch,
+    joint_ablation,
+)
+from openinterpretability.harness.hooks import pole_strength
+from openinterpretability.harness.scan import (
     Piece,
     TopExamples,
     cut_pieces,
@@ -254,7 +258,7 @@ def test_joint_ablation_one_prompt_at_a_time_matches_a_padded_batch(toy_runner):
     """Running prompts alone gives the KL of one padded batch over its real tokens."""
     import torch.nn.functional as F
 
-    from openinterp.harness.hooks import isolate_pole
+    from openinterpretability.harness.hooks import isolate_pole
 
     prompts, layer, idx, partners = TEXTS[:4], 1, 2, [0, 5]  # lengths 5 to 13
     encoded = toy_runner.encode(prompts)
@@ -285,7 +289,7 @@ def test_joint_ablation_one_prompt_at_a_time_matches_a_padded_batch(toy_runner):
 
 
 def test_reused_probes_are_not_independent(record):
-    from openinterp.builder.tree import build_tree, false_discovery
+    from openinterpretability.builder.tree import build_tree, false_discovery
     from tests.test_compiler import experiment
 
     original = experiment(record, idx=1, status="VERIFIED", counts=(10, 0, 5, 0))
@@ -299,7 +303,7 @@ def test_reused_probes_are_not_independent(record):
     (model,) = build_tree([original, remeasured], [])
     (neuron,) = model.layers[0].neurons
     reuse = [e for e in neuron.experiments if not e.independent]
-    from openinterp.builder.wiki import experiment_id
+    from openinterpretability.builder.wiki import experiment_id
 
     assert len(reuse) == 1
     assert reuse[0].id == experiment_id(remeasured)
@@ -357,7 +361,7 @@ def test_a_unit_active_only_at_first_tokens_has_the_floor(toy_runner):
 def test_scan_stops_on_a_default_on_unit():
     import click
 
-    from openinterp.evidence import check_default_on
+    from openinterpretability.evidence import check_default_on
 
     check_default_on("u", [1.0] * 4 + [0.0] * 6, 1.0)  # active on 40%: auditable
     with pytest.raises(click.ClickException, match="default-on: it is active on 60%"):
@@ -365,7 +369,7 @@ def test_scan_stops_on_a_default_on_unit():
 
 
 def test_blocked_log_probs_and_kl_match_the_whole_computation():
-    from openinterp.harness.covariance import _KL_BLOCK, _kl_sum, _log_probs
+    from openinterpretability.harness.covariance import _KL_BLOCK, _kl_sum, _log_probs
 
     torch.manual_seed(0)
     a, b = torch.randn(1, 2 * _KL_BLOCK + 5, 50), torch.randn(1, 2 * _KL_BLOCK + 5, 50)

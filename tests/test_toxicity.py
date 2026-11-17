@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from openinterp import toxicity
-from openinterp.toxicity import _HATE, _TOXICITY, _label, _matches, sentences
+from openinterpretability import toxicity
+from openinterpretability.toxicity import _HATE, _TOXICITY, _label, _matches, sentences
 
 
 def _scores(**found):
@@ -64,7 +64,7 @@ def test_matches_label_whole_sentences_and_stay_on_disk(scored, tmp_path):
     assert scored == ["You are bad.", "Fine then."]
     assert _matches(_TOXICITY, text) == expected
     assert len(scored) == 2, "the second call reads the disk"
-    (path,) = (tmp_path / "openinterp" / "toxicity").rglob("*.json")
+    (path,) = (tmp_path / "openinterpretability" / "toxicity").rglob("*.json")
     assert json.loads(path.read_text()) == [[0, 12, "insult"], [13, 23, "toxicity"]]
 
 

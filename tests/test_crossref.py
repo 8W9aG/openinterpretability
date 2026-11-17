@@ -14,9 +14,9 @@ import pytest
 import torch
 from safetensors.torch import save_file
 
-from openinterp.builder.compiler import compile_site
-from openinterp.core.schemas import NeuronIdentifier
-from openinterp.crossref import (
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.core.schemas import NeuronIdentifier
+from openinterpretability.crossref import (
     MAX_WAIT,
     AlignmentRow,
     crossref,
@@ -27,11 +27,11 @@ from openinterp.crossref import (
     neuronpedia_explanations,
     neuronpedia_url,
 )
-from openinterp.harness import dictionaries
-from openinterp.harness.crossref import align_layer
-from openinterp.harness.dictionaries import DictionarySpec
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.wiring import _matrix
+from openinterpretability.harness import dictionaries
+from openinterpretability.harness.crossref import align_layer
+from openinterpretability.harness.dictionaries import DictionarySpec
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.wiring import _matrix
 from tests.conftest import FakeTokenizer
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
 
@@ -252,7 +252,7 @@ def _busy(url, wait=None):
 
 
 def test_neuronpedia_is_asked_once_per_latent_and_credited(planted, tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENINTERP_NEURONPEDIA_CACHE", str(tmp_path / "np"))
+    monkeypatch.setenv("OPENINTERPRETABILITY_NEURONPEDIA_CACHE", str(tmp_path / "np"))
     body = {
         "explanations": [
             {"description": " quotes ", "typeName": "human", "authorId": "someone"},
@@ -277,7 +277,7 @@ def test_neuronpedia_is_asked_once_per_latent_and_credited(planted, tmp_path, mo
     assert "someone" not in next((tmp_path / "np").rglob("*.json")).read_text()
     ua = requests[0].get_header("User-agent")
     name, _, repo = ua.partition(" (+")
-    assert name.startswith("openinterp/")
+    assert name.startswith("openinterpretability/")
     assert urllib.parse.urlparse(repo.rstrip(")")).hostname == "github.com"
     assert neuronpedia_description(row, 2, opener=opener) == found
     assert len(requests) == 1  # the second answer came from the cache
@@ -289,7 +289,7 @@ def test_neuronpedia_is_asked_once_per_latent_and_credited(planted, tmp_path, mo
 
 
 def test_neuronpedia_is_given_time_when_busy(planted, tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENINTERP_NEURONPEDIA_CACHE", "off")
+    monkeypatch.setenv("OPENINTERPRETABILITY_NEURONPEDIA_CACHE", "off")
     waits, calls = [], []
 
     def opener(request, timeout):

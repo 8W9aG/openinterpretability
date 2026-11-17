@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}{{ prompt.record.prompt | truncate(50) }} · {{ prompt.record.model_name }} · {{ site_title }}{% endblock %}
+
+{% block head %}
+{% include "_prose.html" %}
+{% endblock %}
+
+{% block content %}
+{% set r = prompt.record %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a></nav>
+<h1 class="max-w-3xl text-2xl font-semibold">Why <span class="font-mono">{{ r.model_name }}</span> answers <span class="font-mono">{{ r.answer }}</span></h1>
+<p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ r.prompt }}</p>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">This prompt is a sub-unit of <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a>. Each explanation of it is an experiment, with its own page. A later one builds on an earlier one. An explanation that reaches the coverage asked for is reused, not run again.</p>
+
+{% if r.narration %}
+<div class="paper mt-6">
+  <h2>In one paragraph</h2>
+  <p>{{ r.narration.paragraph }}</p>
+  <p class="text-xs text-slate-500">From the <a href="{{ root }}{{ prompt.newest.href }}">newest explanation</a>.</p>
+</div>
+{% endif %}
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">Explanations</h2>
+<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Newest first. Coverage is causal: the share of the answer's log-probability that the explained units bring back, with the rest mean-ablated, against random units of the same count. It is capped at 100%: an overshoot means the kept units push the answer above the clean model. The share is of first-order |attribution|.</p>
+<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Written</th><th class="px-3 py-2 text-right">Target</th><th class="px-3 py-2 text-right">Coverage</th><th class="px-3 py-2 text-right">Random</th><th class="px-3 py-2 text-right">Share</th><th class="px-3 py-2 text-right">Landed</th><th class="px-3 py-2">Level</th><th class="px-3 py-2">Builds on</th><th class="px-3 py-2">State</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for v in prompt.explanations %}
+      {% set e = v.record %}
+      <tr class="align-top">
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ v.href }}"><time datetime="{{ e.written.isoformat() }}">{{ e.written.strftime("%Y-%m-%d %H:%M") }}</time></a></td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.target | pct_fine if e.target is not none else "—" }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.prompt_coverage | pct_fine if e.prompt_coverage is not none else "—" }}{% if e.overshoot %}<div class="text-xs">overshoot: raw {{ e.raw_coverage | pct_fine }}</div>{% endif %}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.random_coverage | pct_fine if e.random_coverage is not none else "—" }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.explained_share | pct_fine }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.landed }}</td>
+        <td class="px-3 py-2 text-xs">{{ e.level }}{% if e.reused %} (reused, no experiments){% endif %}</td>
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{% if v.previous %}<a class="underline" href="{{ root }}{{ v.previous.href }}">{{ v.previous.record.written.strftime("%Y-%m-%d %H:%M") }}</a>{% elif e.previous %}{{ e.previous }}{% else %}—{% endif %}</td>
+        <td class="px-3 py-2 text-xs">{% if v.stale %}stale: {{ v.changed | length }} unit{{ 's' if v.changed | length != 1 }} changed{% else %}current{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

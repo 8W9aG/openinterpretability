@@ -3,10 +3,10 @@
 import torch
 from transformers import GPTNeoXConfig, GPTNeoXForCausalLM
 
-from openinterp.core.schemas import NeuronIdentifier
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.units import unit_of
-from openinterp.harness.wiring import (
+from openinterpretability.core.schemas import NeuronIdentifier
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.units import unit_of
+from openinterpretability.harness.wiring import (
     _downstream_layers,
     _upstream_layers,
     attention_reads,

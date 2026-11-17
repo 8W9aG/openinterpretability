@@ -1,0 +1,2256 @@
+{
+ "hypothesis": {
+  "model_name": "openai-community/gpt2",
+  "model_revision": null,
+  "circuit_id": "C4",
+  "task": {
+   "name": "repeated-name-completion",
+   "description": "Copy the continuation of a made-up two-token surname seen earlier in the context. Each prompt introduces a person whose surname GPT-2 splits into a first piece and a continuation piece (e.g. ' Kal'+'ovich'), then mentions the person again and stops after the first piece. The clean and corrupted prompts differ only in the continuation piece of the first mention, so the next token must be copied from that earlier occurrence. good is the clean continuation, bad is the corrupted one.",
+   "pairs": [
+    {
+     "clean": "Detective Goras arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Gor",
+     "corrupted": "Detective Gorato arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Gor",
+     "good": "as",
+     "bad": "ato"
+    },
+    {
+     "clean": "My neighbour, Mr. Borstein, owns a bakery. Each morning I buy bread from Mr. Bor",
+     "corrupted": "My neighbour, Mr. Borik, owns a bakery. Each morning I buy bread from Mr. Bor",
+     "good": "stein",
+     "bad": "ik"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Corak, who spoke first. Afterwards, reporters asked Dr. Cor",
+     "corrupted": "The committee was chaired by Dr. Corian, who spoke first. Afterwards, reporters asked Dr. Cor",
+     "good": "ak",
+     "bad": "ian"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Darik, who spoke first. Afterwards, reporters asked Dr. Dar",
+     "corrupted": "The committee was chaired by Dr. Daros, who spoke first. Afterwards, reporters asked Dr. Dar",
+     "good": "ik",
+     "bad": "os"
+    },
+    {
+     "clean": "Last year the company hired Bramson as its chief engineer. Since then, the whole board has trusted Bram",
+     "corrupted": "Last year the company hired Bramian as its chief engineer. Since then, the whole board has trusted Bram",
+     "good": "son",
+     "bad": "ian"
+    },
+    {
+     "clean": "The new striker, Gorik, scored twice in the final. After the match, the coach praised Gor",
+     "corrupted": "The new striker, Goroni, scored twice in the final. After the match, the coach praised Gor",
+     "good": "ik",
+     "bad": "oni"
+    },
+    {
+     "clean": "Last year the company hired Kelenko as its chief engineer. Since then, the whole board has trusted Kel",
+     "corrupted": "Last year the company hired Kelman as its chief engineer. Since then, the whole board has trusted Kel",
+     "good": "enko",
+     "bad": "man"
+    },
+    {
+     "clean": "A long letter signed by Professor Haletti arrived on Monday. Everyone in the office then read what Professor Hal",
+     "corrupted": "A long letter signed by Professor Halero arrived on Monday. Everyone in the office then read what Professor Hal",
+     "good": "etti",
+     "bad": "ero"
+    },
+    {
+     "clean": "My neighbour, Mr. Velak, owns a bakery. Each morning I buy bread from Mr. Vel",
+     "corrupted": "My neighbour, Mr. Velman, owns a bakery. Each morning I buy bread from Mr. Vel",
+     "good": "ak",
+     "bad": "man"
+    },
+    {
+     "clean": "A long letter signed by Professor Pelova arrived on Monday. Everyone in the office then read what Professor Pel",
+     "corrupted": "A long letter signed by Professor Pelstein arrived on Monday. Everyone in the office then read what Professor Pel",
+     "good": "ova",
+     "bad": "stein"
+    },
+    {
+     "clean": "The new striker, Talato, scored twice in the final. After the match, the coach praised Tal",
+     "corrupted": "The new striker, Taluk, scored twice in the final. After the match, the coach praised Tal",
+     "good": "ato",
+     "bad": "uk"
+    },
+    {
+     "clean": "A long letter signed by Professor Borura arrived on Monday. Everyone in the office then read what Professor Bor",
+     "corrupted": "A long letter signed by Professor Borstein arrived on Monday. Everyone in the office then read what Professor Bor",
+     "good": "ura",
+     "bad": "stein"
+    },
+    {
+     "clean": "Detective Dorura arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Dor",
+     "corrupted": "Detective Dorik arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Dor",
+     "good": "ura",
+     "bad": "ik"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Malenko, who spoke first. Afterwards, reporters asked Dr. Mal",
+     "corrupted": "The committee was chaired by Dr. Malton, who spoke first. Afterwards, reporters asked Dr. Mal",
+     "good": "enko",
+     "bad": "ton"
+    },
+    {
+     "clean": "My neighbour, Mr. Sorik, owns a bakery. Each morning I buy bread from Mr. Sor",
+     "corrupted": "My neighbour, Mr. Sorova, owns a bakery. Each morning I buy bread from Mr. Sor",
+     "good": "ik",
+     "bad": "ova"
+    },
+    {
+     "clean": "Last year the company hired Maluk as its chief engineer. Since then, the whole board has trusted Mal",
+     "corrupted": "Last year the company hired Maletti as its chief engineer. Since then, the whole board has trusted Mal",
+     "good": "uk",
+     "bad": "etti"
+    },
+    {
+     "clean": "Detective Sorian arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Sor",
+     "corrupted": "Detective Sorberg arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Sor",
+     "good": "ian",
+     "bad": "berg"
+    },
+    {
+     "clean": "Last year the company hired Morova as its chief engineer. Since then, the whole board has trusted Mor",
+     "corrupted": "Last year the company hired Morato as its chief engineer. Since then, the whole board has trusted Mor",
+     "good": "ova",
+     "bad": "ato"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Torini, who spoke first. Afterwards, reporters asked Dr. Tor",
+     "corrupted": "The committee was chaired by Dr. Toras, who spoke first. Afterwards, reporters asked Dr. Tor",
+     "good": "ini",
+     "bad": "as"
+    },
+    {
+     "clean": "Last year the company hired Verstein as its chief engineer. Since then, the whole board has trusted Ver",
+     "corrupted": "Last year the company hired Verura as its chief engineer. Since then, the whole board has trusted Ver",
+     "good": "stein",
+     "bad": "ura"
+    },
+    {
+     "clean": "A long letter signed by Professor Verini arrived on Monday. Everyone in the office then read what Professor Ver",
+     "corrupted": "A long letter signed by Professor Verian arrived on Monday. Everyone in the office then read what Professor Ver",
+     "good": "ini",
+     "bad": "ian"
+    },
+    {
+     "clean": "My neighbour, Mr. Taluk, owns a bakery. Each morning I buy bread from Mr. Tal",
+     "corrupted": "My neighbour, Mr. Talstein, owns a bakery. Each morning I buy bread from Mr. Tal",
+     "good": "uk",
+     "bad": "stein"
+    },
+    {
+     "clean": "The new striker, Kelova, scored twice in the final. After the match, the coach praised Kel",
+     "corrupted": "The new striker, Kelato, scored twice in the final. After the match, the coach praised Kel",
+     "good": "ova",
+     "bad": "ato"
+    },
+    {
+     "clean": "The new striker, Varley, scored twice in the final. After the match, the coach praised Var",
+     "corrupted": "The new striker, Varos, scored twice in the final. After the match, the coach praised Var",
+     "good": "ley",
+     "bad": "os"
+    },
+    {
+     "clean": "My neighbour, Mr. Kalardo, owns a bakery. Each morning I buy bread from Mr. Kal",
+     "corrupted": "My neighbour, Mr. Kaluk, owns a bakery. Each morning I buy bread from Mr. Kal",
+     "good": "ardo",
+     "bad": "uk"
+    },
+    {
+     "clean": "The new striker, Doroni, scored twice in the final. After the match, the coach praised Dor",
+     "corrupted": "The new striker, Dorura, scored twice in the final. After the match, the coach praised Dor",
+     "good": "oni",
+     "bad": "ura"
+    },
+    {
+     "clean": "A long letter signed by Professor Dorura arrived on Monday. Everyone in the office then read what Professor Dor",
+     "corrupted": "A long letter signed by Professor Dorak arrived on Monday. Everyone in the office then read what Professor Dor",
+     "good": "ura",
+     "bad": "ak"
+    },
+    {
+     "clean": "Detective Kalelli arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Kal",
+     "corrupted": "Detective Kalos arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Kal",
+     "good": "elli",
+     "bad": "os"
+    },
+    {
+     "clean": "Detective Torova arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Tor",
+     "corrupted": "Detective Torstein arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Tor",
+     "good": "ova",
+     "bad": "stein"
+    },
+    {
+     "clean": "Detective Belak arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Bel",
+     "corrupted": "Detective Belini arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Bel",
+     "good": "ak",
+     "bad": "ini"
+    },
+    {
+     "clean": "The new striker, Velovic, scored twice in the final. After the match, the coach praised Vel",
+     "corrupted": "The new striker, Velton, scored twice in the final. After the match, the coach praised Vel",
+     "good": "ovic",
+     "bad": "ton"
+    },
+    {
+     "clean": "My neighbour, Mr. Toroni, owns a bakery. Each morning I buy bread from Mr. Tor",
+     "corrupted": "My neighbour, Mr. Toros, owns a bakery. Each morning I buy bread from Mr. Tor",
+     "good": "oni",
+     "bad": "os"
+    },
+    {
+     "clean": "A long letter signed by Professor Gorura arrived on Monday. Everyone in the office then read what Professor Gor",
+     "corrupted": "A long letter signed by Professor Gorik arrived on Monday. Everyone in the office then read what Professor Gor",
+     "good": "ura",
+     "bad": "ik"
+    },
+    {
+     "clean": "Detective Keloni arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Kel",
+     "corrupted": "Detective Kelberg arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Kel",
+     "good": "oni",
+     "bad": "berg"
+    },
+    {
+     "clean": "My neighbour, Mr. Galero, owns a bakery. Each morning I buy bread from Mr. Gal",
+     "corrupted": "My neighbour, Mr. Galian, owns a bakery. Each morning I buy bread from Mr. Gal",
+     "good": "ero",
+     "bad": "ian"
+    },
+    {
+     "clean": "Last year the company hired Borini as its chief engineer. Since then, the whole board has trusted Bor",
+     "corrupted": "Last year the company hired Borak as its chief engineer. Since then, the whole board has trusted Bor",
+     "good": "ini",
+     "bad": "ak"
+    },
+    {
+     "clean": "Detective Bramberg arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Bram",
+     "corrupted": "Detective Bramoni arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Bram",
+     "good": "berg",
+     "bad": "oni"
+    },
+    {
+     "clean": "A long letter signed by Professor Sorura arrived on Monday. Everyone in the office then read what Professor Sor",
+     "corrupted": "A long letter signed by Professor Sorak arrived on Monday. Everyone in the office then read what Professor Sor",
+     "good": "ura",
+     "bad": "ak"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Koroni, who spoke first. Afterwards, reporters asked Dr. Kor",
+     "corrupted": "The committee was chaired by Dr. Korik, who spoke first. Afterwards, reporters asked Dr. Kor",
+     "good": "oni",
+     "bad": "ik"
+    },
+    {
+     "clean": "Detective Norstein arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Nor",
+     "corrupted": "Detective Norardo arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Nor",
+     "good": "stein",
+     "bad": "ardo"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Kelovich, who spoke first. Afterwards, reporters asked Dr. Kel",
+     "corrupted": "The committee was chaired by Dr. Kelini, who spoke first. Afterwards, reporters asked Dr. Kel",
+     "good": "ovich",
+     "bad": "ini"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Borstein, who spoke first. Afterwards, reporters asked Dr. Bor",
+     "corrupted": "The committee was chaired by Dr. Borardo, who spoke first. Afterwards, reporters asked Dr. Bor",
+     "good": "stein",
+     "bad": "ardo"
+    },
+    {
+     "clean": "My neighbour, Mr. Coros, owns a bakery. Each morning I buy bread from Mr. Cor",
+     "corrupted": "My neighbour, Mr. Corberg, owns a bakery. Each morning I buy bread from Mr. Cor",
+     "good": "os",
+     "bad": "berg"
+    },
+    {
+     "clean": "The new striker, Norura, scored twice in the final. After the match, the coach praised Nor",
+     "corrupted": "The new striker, Norberg, scored twice in the final. After the match, the coach praised Nor",
+     "good": "ura",
+     "bad": "berg"
+    },
+    {
+     "clean": "Detective Marardo arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Mar",
+     "corrupted": "Detective Maruk arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Mar",
+     "good": "ardo",
+     "bad": "uk"
+    },
+    {
+     "clean": "The new striker, Malato, scored twice in the final. After the match, the coach praised Mal",
+     "corrupted": "The new striker, Malak, scored twice in the final. After the match, the coach praised Mal",
+     "good": "ato",
+     "bad": "ak"
+    },
+    {
+     "clean": "A long letter signed by Professor Darini arrived on Monday. Everyone in the office then read what Professor Dar",
+     "corrupted": "A long letter signed by Professor Darik arrived on Monday. Everyone in the office then read what Professor Dar",
+     "good": "ini",
+     "bad": "ik"
+    },
+    {
+     "clean": "Last year the company hired Goras as its chief engineer. Since then, the whole board has trusted Gor",
+     "corrupted": "Last year the company hired Gorinski as its chief engineer. Since then, the whole board has trusted Gor",
+     "good": "as",
+     "bad": "inski"
+    },
+    {
+     "clean": "The new striker, Marley, scored twice in the final. After the match, the coach praised Mar",
+     "corrupted": "The new striker, Maruk, scored twice in the final. After the match, the coach praised Mar",
+     "good": "ley",
+     "bad": "uk"
+    },
+    {
+     "clean": "My neighbour, Mr. Bramos, owns a bakery. Each morning I buy bread from Mr. Bram",
+     "corrupted": "My neighbour, Mr. Bramak, owns a bakery. Each morning I buy bread from Mr. Bram",
+     "good": "os",
+     "bad": "ak"
+    },
+    {
+     "clean": "The new striker, Darman, scored twice in the final. After the match, the coach praised Dar",
+     "corrupted": "The new striker, Darovic, scored twice in the final. After the match, the coach praised Dar",
+     "good": "man",
+     "bad": "ovic"
+    },
+    {
+     "clean": "A long letter signed by Professor Malak arrived on Monday. Everyone in the office then read what Professor Mal",
+     "corrupted": "A long letter signed by Professor Malura arrived on Monday. Everyone in the office then read what Professor Mal",
+     "good": "ak",
+     "bad": "ura"
+    },
+    {
+     "clean": "Last year the company hired Varardo as its chief engineer. Since then, the whole board has trusted Var",
+     "corrupted": "Last year the company hired Varas as its chief engineer. Since then, the whole board has trusted Var",
+     "good": "ardo",
+     "bad": "as"
+    },
+    {
+     "clean": "My neighbour, Mr. Pelak, owns a bakery. Each morning I buy bread from Mr. Pel",
+     "corrupted": "My neighbour, Mr. Peloni, owns a bakery. Each morning I buy bread from Mr. Pel",
+     "good": "ak",
+     "bad": "oni"
+    },
+    {
+     "clean": "My neighbour, Mr. Malovich, owns a bakery. Each morning I buy bread from Mr. Mal",
+     "corrupted": "My neighbour, Mr. Malero, owns a bakery. Each morning I buy bread from Mr. Mal",
+     "good": "ovich",
+     "bad": "ero"
+    },
+    {
+     "clean": "A long letter signed by Professor Varman arrived on Monday. Everyone in the office then read what Professor Var",
+     "corrupted": "A long letter signed by Professor Varini arrived on Monday. Everyone in the office then read what Professor Var",
+     "good": "man",
+     "bad": "ini"
+    },
+    {
+     "clean": "Last year the company hired Galik as its chief engineer. Since then, the whole board has trusted Gal",
+     "corrupted": "Last year the company hired Galelli as its chief engineer. Since then, the whole board has trusted Gal",
+     "good": "ik",
+     "bad": "elli"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Marak, who spoke first. Afterwards, reporters asked Dr. Mar",
+     "corrupted": "The committee was chaired by Dr. Marova, who spoke first. Afterwards, reporters asked Dr. Mar",
+     "good": "ak",
+     "bad": "ova"
+    },
+    {
+     "clean": "My neighbour, Mr. Marovich, owns a bakery. Each morning I buy bread from Mr. Mar",
+     "corrupted": "My neighbour, Mr. Marato, owns a bakery. Each morning I buy bread from Mr. Mar",
+     "good": "ovich",
+     "bad": "ato"
+    },
+    {
+     "clean": "Last year the company hired Daras as its chief engineer. Since then, the whole board has trusted Dar",
+     "corrupted": "Last year the company hired Darovic as its chief engineer. Since then, the whole board has trusted Dar",
+     "good": "as",
+     "bad": "ovic"
+    },
+    {
+     "clean": "The new striker, Salstein, scored twice in the final. After the match, the coach praised Sal",
+     "corrupted": "The new striker, Salero, scored twice in the final. After the match, the coach praised Sal",
+     "good": "stein",
+     "bad": "ero"
+    },
+    {
+     "clean": "Detective Koros arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Kor",
+     "corrupted": "Detective Korini arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Kor",
+     "good": "os",
+     "bad": "ini"
+    },
+    {
+     "clean": "Detective Malian arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Mal",
+     "corrupted": "Detective Maletti arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Mal",
+     "good": "ian",
+     "bad": "etti"
+    },
+    {
+     "clean": "A long letter signed by Professor Kalik arrived on Monday. Everyone in the office then read what Professor Kal",
+     "corrupted": "A long letter signed by Professor Kalenko arrived on Monday. Everyone in the office then read what Professor Kal",
+     "good": "ik",
+     "bad": "enko"
+    },
+    {
+     "clean": "Detective Walani arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Wal",
+     "corrupted": "Detective Walstein arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Wal",
+     "good": "ani",
+     "bad": "stein"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Bramian, who spoke first. Afterwards, reporters asked Dr. Bram",
+     "corrupted": "The committee was chaired by Dr. Bramenko, who spoke first. Afterwards, reporters asked Dr. Bram",
+     "good": "ian",
+     "bad": "enko"
+    },
+    {
+     "clean": "Last year the company hired Norley as its chief engineer. Since then, the whole board has trusted Nor",
+     "corrupted": "Last year the company hired Norardo as its chief engineer. Since then, the whole board has trusted Nor",
+     "good": "ley",
+     "bad": "ardo"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Varardo, who spoke first. Afterwards, reporters asked Dr. Var",
+     "corrupted": "The committee was chaired by Dr. Varovic, who spoke first. Afterwards, reporters asked Dr. Var",
+     "good": "ardo",
+     "bad": "ovic"
+    },
+    {
+     "clean": "Detective Velura arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Vel",
+     "corrupted": "Detective Velato arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Vel",
+     "good": "ura",
+     "bad": "ato"
+    },
+    {
+     "clean": "My neighbour, Mr. Belini, owns a bakery. Each morning I buy bread from Mr. Bel",
+     "corrupted": "My neighbour, Mr. Belero, owns a bakery. Each morning I buy bread from Mr. Bel",
+     "good": "ini",
+     "bad": "ero"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Fenas, who spoke first. Afterwards, reporters asked Dr. Fen",
+     "corrupted": "The committee was chaired by Dr. Fenardo, who spoke first. Afterwards, reporters asked Dr. Fen",
+     "good": "as",
+     "bad": "ardo"
+    },
+    {
+     "clean": "A long letter signed by Professor Moras arrived on Monday. Everyone in the office then read what Professor Mor",
+     "corrupted": "A long letter signed by Professor Morinski arrived on Monday. Everyone in the office then read what Professor Mor",
+     "good": "as",
+     "bad": "inski"
+    },
+    {
+     "clean": "My neighbour, Mr. Fenardo, owns a bakery. Each morning I buy bread from Mr. Fen",
+     "corrupted": "My neighbour, Mr. Fenenko, owns a bakery. Each morning I buy bread from Mr. Fen",
+     "good": "ardo",
+     "bad": "enko"
+    },
+    {
+     "clean": "Detective Salek arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Sal",
+     "corrupted": "Detective Salberg arrived at the crime scene just before midnight. All the witnesses spoke only to Detective Sal",
+     "good": "ek",
+     "bad": "berg"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Velero, who spoke first. Afterwards, reporters asked Dr. Vel",
+     "corrupted": "The committee was chaired by Dr. Velley, who spoke first. Afterwards, reporters asked Dr. Vel",
+     "good": "ero",
+     "bad": "ley"
+    },
+    {
+     "clean": "The new striker, Walero, scored twice in the final. After the match, the coach praised Wal",
+     "corrupted": "The new striker, Walak, scored twice in the final. After the match, the coach praised Wal",
+     "good": "ero",
+     "bad": "ak"
+    },
+    {
+     "clean": "The new striker, Morato, scored twice in the final. After the match, the coach praised Mor",
+     "corrupted": "The new striker, Morik, scored twice in the final. After the match, the coach praised Mor",
+     "good": "ato",
+     "bad": "ik"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Halas, who spoke first. Afterwards, reporters asked Dr. Hal",
+     "corrupted": "The committee was chaired by Dr. Haloni, who spoke first. Afterwards, reporters asked Dr. Hal",
+     "good": "as",
+     "bad": "oni"
+    },
+    {
+     "clean": "Last year the company hired Sorato as its chief engineer. Since then, the whole board has trusted Sor",
+     "corrupted": "Last year the company hired Soruk as its chief engineer. Since then, the whole board has trusted Sor",
+     "good": "ato",
+     "bad": "uk"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Belas, who spoke first. Afterwards, reporters asked Dr. Bel",
+     "corrupted": "The committee was chaired by Dr. Belani, who spoke first. Afterwards, reporters asked Dr. Bel",
+     "good": "as",
+     "bad": "ani"
+    },
+    {
+     "clean": "A long letter signed by Professor Corovich arrived on Monday. Everyone in the office then read what Professor Cor",
+     "corrupted": "A long letter signed by Professor Coruk arrived on Monday. Everyone in the office then read what Professor Cor",
+     "good": "ovich",
+     "bad": "uk"
+    },
+    {
+     "clean": "The new striker, Kalton, scored twice in the final. After the match, the coach praised Kal",
+     "corrupted": "The new striker, Kalani, scored twice in the final. After the match, the coach praised Kal",
+     "good": "ton",
+     "bad": "ani"
+    },
+    {
+     "clean": "Last year the company hired Kalero as its chief engineer. Since then, the whole board has trusted Kal",
+     "corrupted": "Last year the company hired Kalman as its chief engineer. Since then, the whole board has trusted Kal",
+     "good": "ero",
+     "bad": "man"
+    },
+    {
+     "clean": "The new striker, Torik, scored twice in the final. After the match, the coach praised Tor",
+     "corrupted": "The new striker, Torani, scored twice in the final. After the match, the coach praised Tor",
+     "good": "ik",
+     "bad": "ani"
+    },
+    {
+     "clean": "Last year the company hired Marovic as its chief engineer. Since then, the whole board has trusted Mar",
+     "corrupted": "Last year the company hired Marley as its chief engineer. Since then, the whole board has trusted Mar",
+     "good": "ovic",
+     "bad": "ley"
+    },
+    {
+     "clean": "A long letter signed by Professor Korovic arrived on Monday. Everyone in the office then read what Professor Kor",
+     "corrupted": "A long letter signed by Professor Korley arrived on Monday. Everyone in the office then read what Professor Kor",
+     "good": "ovic",
+     "bad": "ley"
+    },
+    {
+     "clean": "My neighbour, Mr. Kelton, owns a bakery. Each morning I buy bread from Mr. Kel",
+     "corrupted": "My neighbour, Mr. Kelovic, owns a bakery. Each morning I buy bread from Mr. Kel",
+     "good": "ton",
+     "bad": "ovic"
+    },
+    {
+     "clean": "The committee was chaired by Dr. Galero, who spoke first. Afterwards, reporters asked Dr. Gal",
+     "corrupted": "The committee was chaired by Dr. Galian, who spoke first. Afterwards, reporters asked Dr. Gal",
+     "good": "ero",
+     "bad": "ian"
+    },
+    {
+     "clean": "Last year the company hired Dorura as its chief engineer. Since then, the whole board has trusted Dor",
+     "corrupted": "Last year the company hired Doroni as its chief engineer. Since then, the whole board has trusted Dor",
+     "good": "ura",
+     "bad": "oni"
+    },
+    {
+     "clean": "A long letter signed by Professor Norley arrived on Monday. Everyone in the office then read what Professor Nor",
+     "corrupted": "A long letter signed by Professor Norato arrived on Monday. Everyone in the office then read what Professor Nor",
+     "good": "ley",
+     "bad": "ato"
+    }
+   ]
+  },
+  "members": [
+   "L4/N2999",
+   "L5/N1208",
+   "L5/N2567",
+   "L5/N616",
+   "L6/N37",
+   "L7/H10",
+   "L7/H2",
+   "L9/H9",
+   "L10/H0",
+   "L10/H1",
+   "L11/H6",
+   "L6/H9",
+   "L10/H10",
+   "L11/H2",
+   "L10/H7",
+   "L11/H9",
+   "L5/H1",
+   "L9/H6",
+   "L11/H8",
+   "L10/H6",
+   "L11/H10",
+   "L8/H1",
+   "L11/N1679",
+   "L5/H5",
+   "L8/H11",
+   "L11/N2389",
+   "L11/N1933",
+   "L11/N2184",
+   "L11/N3033",
+   "L10/N706",
+   "L9/H8",
+   "L10/N76",
+   "L10/N429",
+   "L10/N144",
+   "L10/N535",
+   "L11/N737",
+   "L11/N2770",
+   "L10/N398",
+   "L10/N2812",
+   "L11/N606",
+   "L10/N323",
+   "L10/N2175",
+   "L10/N59",
+   "L10/N491",
+   "L11/N2377",
+   "L11/N813",
+   "L10/N693",
+   "L11/N1578",
+   "L10/N1937",
+   "L11/N546",
+   "L10/N849",
+   "L8/N2305",
+   "L11/N2704",
+   "L11/N809",
+   "L10/N1398",
+   "L10/N2520",
+   "L9/N2300",
+   "L10/N2012",
+   "L9/N1632",
+   "L10/N2332",
+   "L11/N2824",
+   "L10/N517",
+   "L10/H8",
+   "L9/N256",
+   "L11/N34",
+   "L11/N483",
+   "L9/N1836",
+   "L10/N2476",
+   "L9/N1532",
+   "L10/N2937",
+   "L11/N2648",
+   "L10/N567",
+   "L11/H3",
+   "L10/N606",
+   "L11/N558",
+   "L11/N490",
+   "L10/N2679",
+   "L11/N3046",
+   "L9/N30",
+   "L10/N95",
+   "L7/N1995",
+   "L11/N1942",
+   "L8/N862",
+   "L11/N775",
+   "L10/N645",
+   "L9/N83",
+   "L7/H1",
+   "L10/N1686",
+   "L11/N1683",
+   "L9/N2873",
+   "L9/N1434",
+   "L8/H10",
+   "L10/N2931",
+   "L11/N836",
+   "L10/N13",
+   "L10/N1943",
+   "L11/N1603",
+   "L11/N2888",
+   "L8/N1415",
+   "L11/N1255"
+  ],
+  "cluster_members": [
+   "models/openai-community--gpt2/L4/N2999.html",
+   "models/openai-community--gpt2/L5/N1208.html",
+   "models/openai-community--gpt2/L5/N2567.html",
+   "models/openai-community--gpt2/L5/N616.html",
+   "models/openai-community--gpt2/L6/N37.html",
+   "models/openai-community--gpt2/L7/H10.html",
+   "models/openai-community--gpt2/L7/H2.html"
+  ],
+  "roles": {
+   "L4/N2999": "marks word-internal pieces of rare, long or technical-looking words, which makes the earlier surname pieces readable as one rare word.",
+   "L5/N1208": "detects that the continuation piece extends a character-level run begun by the previous token, mostly from the previous token's identity; provides the previous-token feature at the earlier continuation piece that the induction key reads.",
+   "L5/N2567": "fires on the token that completes a locally predictable 2-3 token unit; marks the earlier continuation piece as the completion of the surname.",
+   "L5/N616": "fires on a non-initial subword that finishes a split word begun in the preceding 1-2 tokens; adds to the same word-completion signal at the earlier continuation piece.",
+   "L6/N37": "fires on the token that completes a conventional chunk cued by the preceding tokens; carries the completion signal into layer 7 where the heads read it.",
+   "L7/H10": "induction head; at the second mention's first piece it attends to the earlier continuation piece and writes it, strongest when the copied token is a piece of a word split into 2+ tokens, as here.",
+   "L7/H2": "induction head; matches the repeated span (title plus first piece) to its earlier copy and attends to and writes the token that followed it, adding to H10's copy of the continuation piece."
+  },
+  "explanation": "The circuit completes a rare multi-token word by copying it from its earlier occurrence in the context. At the first mention of a made-up surname, the L4-L6 neurons mark the continuation piece as the inside of a split word: L4/N2999 and L5/N1208 respond to the word-internal piece of an unusual word, and L5/N2567, L5/N616 and L6/N37 respond to the token that completes a multi-token unit started by the previous token. These signals give the continuation token a \"previous token was the first piece of this word\" representation that the induction heads can key on. At the second mention, which stops after the first piece, the L7 induction heads H10 and H2 match the current first piece to its earlier copy, attend to the continuation piece that followed it, and write that piece's identity toward the output. This raises the logit of the clean continuation (good) over the corrupted one (bad). The corrupted prompt changes only the earlier continuation piece, so the metric measures how much of the copied piece the circuit carries. L4/N2999: marks word-internal pieces of rare, long or technical-looking words, which makes the earlier surname pieces readable as one rare word. L5/N1208: detects that the continuation piece extends a character-level run begun by the previous token, mostly from the previous token's identity; provides the previous-token feature at the earlier continuation piece that the induction key reads. L5/N2567: fires on the token that completes a locally predictable 2-3 token unit; marks the earlier continuation piece as the completion of the surname. L5/N616: fires on a non-initial subword that finishes a split word begun in the preceding 1-2 tokens; adds to the same word-completion signal at the earlier continuation piece. L6/N37: fires on the token that completes a conventional chunk cued by the preceding tokens; carries the completion signal into layer 7 where the heads read it. L7/H10: induction head; at the second mention's first piece it attends to the earlier continuation piece and writes it, strongest when the copied token is a piece of a word split into 2+ tokens, as here. L7/H2: induction head; matches the repeated span (title plus first piece) to its earlier copy and attends to and writes the token that followed it, adding to H10's copy of the continuation piece.",
+  "submitting_agent_model": "external/claude-opus-5-5",
+  "supersedes": null
+ },
+ "probes": {
+  "holdouts": [
+   {
+    "clean": "The flight attendant, Ms. Zanwell, greeted every passenger at the door. A dog barked nearby. The sun was low. Later the pilot thanked Ms. Zan",
+    "corrupted": "The flight attendant, Ms. Zanman, greeted every passenger at the door. A dog barked nearby. The sun was low. Later the pilot thanked Ms. Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "In chapter two, Captain Zanwell sails into the harbour at dawn. A dog barked nearby. Wind shook the windows. By chapter nine the whole crew follows Captain Zan",
+    "corrupted": "In chapter two, Captain Zanman sails into the harbour at dawn. A dog barked nearby. Wind shook the windows. By chapter nine the whole crew follows Captain Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "Our new teacher is Mr. Zanwell. The air felt cold. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Zan",
+    "corrupted": "Our new teacher is Mr. Zanman. The air felt cold. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "The painting was bought by Lord Zanwell for a large sum. Rain fell all day. The room was quiet. Nobody said a word. Critics later wrote that Lord Zan",
+    "corrupted": "The painting was bought by Lord Zanman for a large sum. Rain fell all day. The room was quiet. Nobody said a word. Critics later wrote that Lord Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Zanwell. The sun was low. Nobody said a word. It was late. Ten minutes later the doctor called out to Nurse Zan",
+    "corrupted": "\"Please wait here,\" said Nurse Zanman. The sun was low. Nobody said a word. It was late. Ten minutes later the doctor called out to Nurse Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Zanwell lives alone on the hill, far from town. The air felt cold. Nobody in the village had ever visited Mr. Zan",
+    "corrupted": "My grandfather's old friend Mr. Zanman lives alone on the hill, far from town. The air felt cold. Nobody in the village had ever visited Mr. Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "Agent Zanwell stepped out of the car. Rain fell all day. It was late. Nobody said a word. Nothing else happened. The street was empty. Agent Zan",
+    "corrupted": "Agent Zanman stepped out of the car. Rain fell all day. It was late. Nobody said a word. Nothing else happened. The street was empty. Agent Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "The famous author Mrs. Zanwell signed books all afternoon. Everyone was tired. Coffee was served. It was late. Nothing else happened. The queue outside Mrs. Zan",
+    "corrupted": "The famous author Mrs. Zanman signed books all afternoon. Everyone was tired. Coffee was served. It was late. Nothing else happened. The queue outside Mrs. Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "Yesterday I met a woman called Zanwell at the bus stop. Everyone was tired. Nothing else happened. Today I met her sister, and I asked whether she knew Zan",
+    "corrupted": "Yesterday I met a woman called Zanman at the bus stop. Everyone was tired. Nothing else happened. Today I met her sister, and I asked whether she knew Zan",
+    "good": "well",
+    "bad": "man"
+   },
+   {
+    "clean": "The flight attendant, Ms. Volton, greeted every passenger at the door. A dog barked nearby. Nobody said a word. Later the pilot thanked Ms. Vol",
+    "corrupted": "The flight attendant, Ms. Volani, greeted every passenger at the door. A dog barked nearby. Nobody said a word. Later the pilot thanked Ms. Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "In chapter two, Captain Volton sails into the harbour at dawn. A dog barked nearby. The room was quiet. By chapter nine the whole crew follows Captain Vol",
+    "corrupted": "In chapter two, Captain Volani sails into the harbour at dawn. A dog barked nearby. The room was quiet. By chapter nine the whole crew follows Captain Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "Our new teacher is Mr. Volton. Nobody said a word. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Vol",
+    "corrupted": "Our new teacher is Mr. Volani. Nobody said a word. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "The painting was bought by Lord Volton for a large sum. The air felt cold. The street was empty. Nobody said a word. Critics later wrote that Lord Vol",
+    "corrupted": "The painting was bought by Lord Volani for a large sum. The air felt cold. The street was empty. Nobody said a word. Critics later wrote that Lord Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Volton. The sun was low. The air felt cold. Everyone was tired. Ten minutes later the doctor called out to Nurse Vol",
+    "corrupted": "\"Please wait here,\" said Nurse Volani. The sun was low. The air felt cold. Everyone was tired. Ten minutes later the doctor called out to Nurse Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Volton lives alone on the hill, far from town. Rain fell all day. Nobody in the village had ever visited Mr. Vol",
+    "corrupted": "My grandfather's old friend Mr. Volani lives alone on the hill, far from town. Rain fell all day. Nobody in the village had ever visited Mr. Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "Agent Volton stepped out of the car. Rain fell all day. The sun was low. Nothing else happened. The street was empty. It was late. Agent Vol",
+    "corrupted": "Agent Volani stepped out of the car. Rain fell all day. The sun was low. Nothing else happened. The street was empty. It was late. Agent Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "The famous author Mrs. Volton signed books all afternoon. A dog barked nearby. Nobody said a word. The air felt cold. The queue outside Mrs. Vol",
+    "corrupted": "The famous author Mrs. Volani signed books all afternoon. A dog barked nearby. Nobody said a word. The air felt cold. The queue outside Mrs. Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "Yesterday I met a woman called Volton at the bus stop. Nothing else happened. Coffee was served. Today I met her sister, and I asked whether she knew Vol",
+    "corrupted": "Yesterday I met a woman called Volani at the bus stop. Nothing else happened. Coffee was served. Today I met her sister, and I asked whether she knew Vol",
+    "good": "ton",
+    "bad": "ani"
+   },
+   {
+    "clean": "The flight attendant, Ms. Tremello, greeted every passenger at the door. A dog barked nearby. The room was quiet. Later the pilot thanked Ms. Trem",
+    "corrupted": "The flight attendant, Ms. Tremster, greeted every passenger at the door. A dog barked nearby. The room was quiet. Later the pilot thanked Ms. Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "In chapter two, Captain Tremello sails into the harbour at dawn. A dog barked nearby. The air felt cold. By chapter nine the whole crew follows Captain Trem",
+    "corrupted": "In chapter two, Captain Tremster sails into the harbour at dawn. A dog barked nearby. The air felt cold. By chapter nine the whole crew follows Captain Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "Our new teacher is Mr. Tremello. A dog barked nearby. The sun was low. On the first day, every child stood up and welcomed Mr. Trem",
+    "corrupted": "Our new teacher is Mr. Tremster. A dog barked nearby. The sun was low. On the first day, every child stood up and welcomed Mr. Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "The painting was bought by Lord Tremello for a large sum. It was late. A dog barked nearby. The street was empty. Critics later wrote that Lord Trem",
+    "corrupted": "The painting was bought by Lord Tremster for a large sum. It was late. A dog barked nearby. The street was empty. Critics later wrote that Lord Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Tremello. Wind shook the windows. It was late. The air felt cold. Ten minutes later the doctor called out to Nurse Trem",
+    "corrupted": "\"Please wait here,\" said Nurse Tremster. Wind shook the windows. It was late. The air felt cold. Ten minutes later the doctor called out to Nurse Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Tremello lives alone on the hill, far from town. The room was quiet. Nobody in the village had ever visited Mr. Trem",
+    "corrupted": "My grandfather's old friend Mr. Tremster lives alone on the hill, far from town. The room was quiet. Nobody in the village had ever visited Mr. Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "Agent Tremello stepped out of the car. It was late. Everyone was tired. The sun was low. The room was quiet. Rain fell all day. Agent Trem",
+    "corrupted": "Agent Tremster stepped out of the car. It was late. Everyone was tired. The sun was low. The room was quiet. Rain fell all day. Agent Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "The famous author Mrs. Tremello signed books all afternoon. It was late. Coffee was served. Nothing else happened. Everyone was tired. The queue outside Mrs. Trem",
+    "corrupted": "The famous author Mrs. Tremster signed books all afternoon. It was late. Coffee was served. Nothing else happened. Everyone was tired. The queue outside Mrs. Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "Yesterday I met a woman called Tremello at the bus stop. Everyone was tired. Coffee was served. Today I met her sister, and I asked whether she knew Trem",
+    "corrupted": "Yesterday I met a woman called Tremster at the bus stop. Everyone was tired. Coffee was served. Today I met her sister, and I asked whether she knew Trem",
+    "good": "ello",
+    "bad": "ster"
+   },
+   {
+    "clean": "The flight attendant, Ms. Wendman, greeted every passenger at the door. The room was quiet. A dog barked nearby. Later the pilot thanked Ms. Wend",
+    "corrupted": "The flight attendant, Ms. Wendaldi, greeted every passenger at the door. The room was quiet. A dog barked nearby. Later the pilot thanked Ms. Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "In chapter two, Captain Wendman sails into the harbour at dawn. A dog barked nearby. The street was empty. By chapter nine the whole crew follows Captain Wend",
+    "corrupted": "In chapter two, Captain Wendaldi sails into the harbour at dawn. A dog barked nearby. The street was empty. By chapter nine the whole crew follows Captain Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "Our new teacher is Mr. Wendman. Rain fell all day. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Wend",
+    "corrupted": "Our new teacher is Mr. Wendaldi. Rain fell all day. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "The painting was bought by Lord Wendman for a large sum. The sun was low. Wind shook the windows. Rain fell all day. Critics later wrote that Lord Wend",
+    "corrupted": "The painting was bought by Lord Wendaldi for a large sum. The sun was low. Wind shook the windows. Rain fell all day. Critics later wrote that Lord Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Wendman. The room was quiet. Wind shook the windows. It was late. Ten minutes later the doctor called out to Nurse Wend",
+    "corrupted": "\"Please wait here,\" said Nurse Wendaldi. The room was quiet. Wind shook the windows. It was late. Ten minutes later the doctor called out to Nurse Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Wendman lives alone on the hill, far from town. The room was quiet. Nobody in the village had ever visited Mr. Wend",
+    "corrupted": "My grandfather's old friend Mr. Wendaldi lives alone on the hill, far from town. The room was quiet. Nobody in the village had ever visited Mr. Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "Agent Wendman stepped out of the car. The air felt cold. Everyone was tired. Rain fell all day. The sun was low. Coffee was served. Agent Wend",
+    "corrupted": "Agent Wendaldi stepped out of the car. The air felt cold. Everyone was tired. Rain fell all day. The sun was low. Coffee was served. Agent Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "The famous author Mrs. Wendman signed books all afternoon. Nobody said a word. A dog barked nearby. The air felt cold. The queue outside Mrs. Wend",
+    "corrupted": "The famous author Mrs. Wendaldi signed books all afternoon. Nobody said a word. A dog barked nearby. The air felt cold. The queue outside Mrs. Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "Yesterday I met a woman called Wendman at the bus stop. Coffee was served. It was late. Today I met her sister, and I asked whether she knew Wend",
+    "corrupted": "Yesterday I met a woman called Wendaldi at the bus stop. Coffee was served. It was late. Today I met her sister, and I asked whether she knew Wend",
+    "good": "man",
+    "bad": "aldi"
+   },
+   {
+    "clean": "The flight attendant, Ms. Pellard, greeted every passenger at the door. The street was empty. A dog barked nearby. Later the pilot thanked Ms. Pell",
+    "corrupted": "The flight attendant, Ms. Pellani, greeted every passenger at the door. The street was empty. A dog barked nearby. Later the pilot thanked Ms. Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "In chapter two, Captain Pellard sails into the harbour at dawn. The room was quiet. A dog barked nearby. By chapter nine the whole crew follows Captain Pell",
+    "corrupted": "In chapter two, Captain Pellani sails into the harbour at dawn. The room was quiet. A dog barked nearby. By chapter nine the whole crew follows Captain Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "Our new teacher is Mr. Pellard. The air felt cold. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Pell",
+    "corrupted": "Our new teacher is Mr. Pellani. The air felt cold. A dog barked nearby. On the first day, every child stood up and welcomed Mr. Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "The painting was bought by Lord Pellard for a large sum. The street was empty. Nobody said a word. The sun was low. Critics later wrote that Lord Pell",
+    "corrupted": "The painting was bought by Lord Pellani for a large sum. The street was empty. Nobody said a word. The sun was low. Critics later wrote that Lord Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Pellard. Everyone was tired. The street was empty. The sun was low. Ten minutes later the doctor called out to Nurse Pell",
+    "corrupted": "\"Please wait here,\" said Nurse Pellani. Everyone was tired. The street was empty. The sun was low. Ten minutes later the doctor called out to Nurse Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Pellard lives alone on the hill, far from town. The sun was low. Nobody in the village had ever visited Mr. Pell",
+    "corrupted": "My grandfather's old friend Mr. Pellani lives alone on the hill, far from town. The sun was low. Nobody in the village had ever visited Mr. Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "Agent Pellard stepped out of the car. Coffee was served. The air felt cold. The room was quiet. Everyone was tired. The sun was low. Agent Pell",
+    "corrupted": "Agent Pellani stepped out of the car. Coffee was served. The air felt cold. The room was quiet. Everyone was tired. The sun was low. Agent Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "The famous author Mrs. Pellard signed books all afternoon. The sun was low. Nobody said a word. A dog barked nearby. The queue outside Mrs. Pell",
+    "corrupted": "The famous author Mrs. Pellani signed books all afternoon. The sun was low. Nobody said a word. A dog barked nearby. The queue outside Mrs. Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "Yesterday I met a woman called Pellard at the bus stop. Nothing else happened. It was late. Today I met her sister, and I asked whether she knew Pell",
+    "corrupted": "Yesterday I met a woman called Pellani at the bus stop. Nothing else happened. It was late. Today I met her sister, and I asked whether she knew Pell",
+    "good": "ard",
+    "bad": "ani"
+   },
+   {
+    "clean": "The flight attendant, Ms. Yarani, greeted every passenger at the door. The air felt cold. A dog barked nearby. Later the pilot thanked Ms. Yar",
+    "corrupted": "The flight attendant, Ms. Yarik, greeted every passenger at the door. The air felt cold. A dog barked nearby. Later the pilot thanked Ms. Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "In chapter two, Captain Yarani sails into the harbour at dawn. A dog barked nearby. The street was empty. By chapter nine the whole crew follows Captain Yar",
+    "corrupted": "In chapter two, Captain Yarik sails into the harbour at dawn. A dog barked nearby. The street was empty. By chapter nine the whole crew follows Captain Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "Our new teacher is Mr. Yarani. A dog barked nearby. The air felt cold. On the first day, every child stood up and welcomed Mr. Yar",
+    "corrupted": "Our new teacher is Mr. Yarik. A dog barked nearby. The air felt cold. On the first day, every child stood up and welcomed Mr. Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "The painting was bought by Lord Yarani for a large sum. A dog barked nearby. Rain fell all day. It was late. Critics later wrote that Lord Yar",
+    "corrupted": "The painting was bought by Lord Yarik for a large sum. A dog barked nearby. Rain fell all day. It was late. Critics later wrote that Lord Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Yarani. Nothing else happened. The street was empty. The room was quiet. Ten minutes later the doctor called out to Nurse Yar",
+    "corrupted": "\"Please wait here,\" said Nurse Yarik. Nothing else happened. The street was empty. The room was quiet. Ten minutes later the doctor called out to Nurse Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Yarani lives alone on the hill, far from town. The street was empty. Nobody in the village had ever visited Mr. Yar",
+    "corrupted": "My grandfather's old friend Mr. Yarik lives alone on the hill, far from town. The street was empty. Nobody in the village had ever visited Mr. Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "Agent Yarani stepped out of the car. The sun was low. The street was empty. Everyone was tired. Coffee was served. The room was quiet. Agent Yar",
+    "corrupted": "Agent Yarik stepped out of the car. The sun was low. The street was empty. Everyone was tired. Coffee was served. The room was quiet. Agent Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "The famous author Mrs. Yarani signed books all afternoon. The air felt cold. The room was quiet. A dog barked nearby. The queue outside Mrs. Yar",
+    "corrupted": "The famous author Mrs. Yarik signed books all afternoon. The air felt cold. The room was quiet. A dog barked nearby. The queue outside Mrs. Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "Yesterday I met a woman called Yarani at the bus stop. Coffee was served. Nothing else happened. Today I met her sister, and I asked whether she knew Yar",
+    "corrupted": "Yesterday I met a woman called Yarik at the bus stop. Coffee was served. Nothing else happened. Today I met her sister, and I asked whether she knew Yar",
+    "good": "ani",
+    "bad": "ik"
+   },
+   {
+    "clean": "The flight attendant, Ms. Lundovic, greeted every passenger at the door. A dog barked nearby. The air felt cold. Later the pilot thanked Ms. Lund",
+    "corrupted": "The flight attendant, Ms. Lundard, greeted every passenger at the door. A dog barked nearby. The air felt cold. Later the pilot thanked Ms. Lund",
+    "good": "ovic",
+    "bad": "ard"
+   },
+   {
+    "clean": "In chapter two, Captain Lundovic sails into the harbour at dawn. A dog barked nearby. The street was empty. By chapter nine the whole crew follows Captain Lund",
+    "corrupted": "In chapter two, Captain Lundard sails into the harbour at dawn. A dog barked nearby. The street was empty. By chapter nine the whole crew follows Captain Lund",
+    "good": "ovic",
+    "bad": "ard"
+   },
+   {
+    "clean": "Our new teacher is Mr. Lundovic. A dog barked nearby. The room was quiet. On the first day, every child stood up and welcomed Mr. Lund",
+    "corrupted": "Our new teacher is Mr. Lundard. A dog barked nearby. The room was quiet. On the first day, every child stood up and welcomed Mr. Lund",
+    "good": "ovic",
+    "bad": "ard"
+   },
+   {
+    "clean": "The painting was bought by Lord Lundovic for a large sum. Nobody said a word. Nothing else happened. A dog barked nearby. Critics later wrote that Lord Lund",
+    "corrupted": "The painting was bought by Lord Lundard for a large sum. Nobody said a word. Nothing else happened. A dog barked nearby. Critics later wrote that Lord Lund",
+    "good": "ovic",
+    "bad": "ard"
+   },
+   {
+    "clean": "\"Please wait here,\" said Nurse Lundovic. A dog barked nearby. It was late. Everyone was tired. Ten minutes later the doctor called out to Nurse Lund",
+    "corrupted": "\"Please wait here,\" said Nurse Lundard. A dog barked nearby. It was late. Everyone was tired. Ten minutes later the doctor called out to Nurse Lund",
+    "good": "ovic",
+    "bad": "ard"
+   },
+   {
+    "clean": "My grandfather's old friend Mr. Lundovic lives alone on the hill, far from town. Rain fell all day. Nobody in the village had ever visited Mr. Lund",
+    "corrupted": "My grandfather's old friend Mr. Lundard lives alone on the hill, far from town. Rain fell all day. Nobody in the village had ever visited Mr. Lund",
+    "good": "ovic",
+    "bad": "ard"
+   }
+  ],
+  "negative_tasks": [
+   {
+    "name": "repeated-single-token-name",
+    "description": "Copy a repeated SINGLE-token surname after a title; the first mention differs between clean and corrupted, so the answer is a whole-token copy (induction without a multi-token word).",
+    "pairs": [
+     {
+      "clean": "The flight attendant, Ms. Smith, greeted every passenger at the door. The room was quiet. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Turner, greeted every passenger at the door. The room was quiet. Later the pilot thanked Ms.",
+      "good": " Smith",
+      "bad": " Turner"
+     },
+     {
+      "clean": "Our new teacher is Mr. Smith. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Turner. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "good": " Smith",
+      "bad": " Turner"
+     },
+     {
+      "clean": "The painting was bought by Lord Smith for a large sum. The room was quiet. Nothing else happened. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord Turner for a large sum. The room was quiet. Nothing else happened. Critics later wrote that Lord",
+      "good": " Smith",
+      "bad": " Turner"
+     },
+     {
+      "clean": "Agent Smith stepped out of the car. Nothing else happened. Everyone was tired. The air felt cold. It was late. Agent",
+      "corrupted": "Agent Turner stepped out of the car. Nothing else happened. Everyone was tired. The air felt cold. It was late. Agent",
+      "good": " Smith",
+      "bad": " Turner"
+     },
+     {
+      "clean": "The flight attendant, Ms. Wright, greeted every passenger at the door. The air felt cold. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Baker, greeted every passenger at the door. The air felt cold. Later the pilot thanked Ms.",
+      "good": " Wright",
+      "bad": " Baker"
+     },
+     {
+      "clean": "Our new teacher is Mr. Wright. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Baker. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "good": " Wright",
+      "bad": " Baker"
+     },
+     {
+      "clean": "The painting was bought by Lord Wright for a large sum. Nobody said a word. Coffee was served. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord Baker for a large sum. Nobody said a word. Coffee was served. Critics later wrote that Lord",
+      "good": " Wright",
+      "bad": " Baker"
+     },
+     {
+      "clean": "Agent Wright stepped out of the car. Everyone was tired. It was late. The street was empty. Coffee was served. Agent",
+      "corrupted": "Agent Baker stepped out of the car. Everyone was tired. It was late. The street was empty. Coffee was served. Agent",
+      "good": " Wright",
+      "bad": " Baker"
+     },
+     {
+      "clean": "The flight attendant, Ms. King, greeted every passenger at the door. The sun was low. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Green, greeted every passenger at the door. The sun was low. Later the pilot thanked Ms.",
+      "good": " King",
+      "bad": " Green"
+     },
+     {
+      "clean": "Our new teacher is Mr. King. The room was quiet. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Green. The room was quiet. On the first day, every child stood up and welcomed Mr.",
+      "good": " King",
+      "bad": " Green"
+     },
+     {
+      "clean": "The painting was bought by Lord King for a large sum. Nobody said a word. It was late. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord Green for a large sum. Nobody said a word. It was late. Critics later wrote that Lord",
+      "good": " King",
+      "bad": " Green"
+     },
+     {
+      "clean": "Agent King stepped out of the car. The air felt cold. Nothing else happened. It was late. Everyone was tired. Agent",
+      "corrupted": "Agent Green stepped out of the car. The air felt cold. Nothing else happened. It was late. Everyone was tired. Agent",
+      "good": " King",
+      "bad": " Green"
+     },
+     {
+      "clean": "The flight attendant, Ms. Scott, greeted every passenger at the door. Rain fell all day. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Young, greeted every passenger at the door. Rain fell all day. Later the pilot thanked Ms.",
+      "good": " Scott",
+      "bad": " Young"
+     },
+     {
+      "clean": "Our new teacher is Mr. Scott. The street was empty. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Young. The street was empty. On the first day, every child stood up and welcomed Mr.",
+      "good": " Scott",
+      "bad": " Young"
+     },
+     {
+      "clean": "The painting was bought by Lord Scott for a large sum. Coffee was served. The sun was low. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord Young for a large sum. Coffee was served. The sun was low. Critics later wrote that Lord",
+      "good": " Scott",
+      "bad": " Young"
+     },
+     {
+      "clean": "Agent Scott stepped out of the car. Rain fell all day. Coffee was served. Everyone was tired. It was late. Agent",
+      "corrupted": "Agent Young stepped out of the car. Rain fell all day. Coffee was served. Everyone was tired. It was late. Agent",
+      "good": " Scott",
+      "bad": " Young"
+     },
+     {
+      "clean": "The flight attendant, Ms. Green, greeted every passenger at the door. Nobody said a word. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Clark, greeted every passenger at the door. Nobody said a word. Later the pilot thanked Ms.",
+      "good": " Green",
+      "bad": " Clark"
+     },
+     {
+      "clean": "Our new teacher is Mr. Green. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Clark. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "good": " Green",
+      "bad": " Clark"
+     },
+     {
+      "clean": "The painting was bought by Lord Green for a large sum. Nobody said a word. It was late. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord Clark for a large sum. Nobody said a word. It was late. Critics later wrote that Lord",
+      "good": " Green",
+      "bad": " Clark"
+     },
+     {
+      "clean": "Agent Green stepped out of the car. It was late. Coffee was served. Everyone was tired. The room was quiet. Agent",
+      "corrupted": "Agent Clark stepped out of the car. It was late. Coffee was served. Everyone was tired. The room was quiet. Agent",
+      "good": " Green",
+      "bad": " Clark"
+     },
+     {
+      "clean": "The flight attendant, Ms. Wright, greeted every passenger at the door. The air felt cold. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. King, greeted every passenger at the door. The air felt cold. Later the pilot thanked Ms.",
+      "good": " Wright",
+      "bad": " King"
+     },
+     {
+      "clean": "Our new teacher is Mr. Wright. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. King. The sun was low. On the first day, every child stood up and welcomed Mr.",
+      "good": " Wright",
+      "bad": " King"
+     },
+     {
+      "clean": "The painting was bought by Lord Wright for a large sum. Nobody said a word. Coffee was served. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord King for a large sum. Nobody said a word. Coffee was served. Critics later wrote that Lord",
+      "good": " Wright",
+      "bad": " King"
+     },
+     {
+      "clean": "Agent Wright stepped out of the car. Everyone was tired. It was late. The street was empty. Coffee was served. Agent",
+      "corrupted": "Agent King stepped out of the car. Everyone was tired. It was late. The street was empty. Coffee was served. Agent",
+      "good": " Wright",
+      "bad": " King"
+     },
+     {
+      "clean": "The flight attendant, Ms. Hill, greeted every passenger at the door. The room was quiet. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Brown, greeted every passenger at the door. The room was quiet. Later the pilot thanked Ms.",
+      "good": " Hill",
+      "bad": " Brown"
+     },
+     {
+      "clean": "Our new teacher is Mr. Hill. Wind shook the windows. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Brown. Wind shook the windows. On the first day, every child stood up and welcomed Mr.",
+      "good": " Hill",
+      "bad": " Brown"
+     },
+     {
+      "clean": "The painting was bought by Lord Hill for a large sum. The street was empty. Everyone was tired. Critics later wrote that Lord",
+      "corrupted": "The painting was bought by Lord Brown for a large sum. The street was empty. Everyone was tired. Critics later wrote that Lord",
+      "good": " Hill",
+      "bad": " Brown"
+     },
+     {
+      "clean": "Agent Hill stepped out of the car. Nothing else happened. Wind shook the windows. Coffee was served. It was late. Agent",
+      "corrupted": "Agent Brown stepped out of the car. Nothing else happened. Wind shook the windows. Coffee was served. It was late. Agent",
+      "good": " Hill",
+      "bad": " Brown"
+     },
+     {
+      "clean": "The flight attendant, Ms. Baker, greeted every passenger at the door. Nobody said a word. Later the pilot thanked Ms.",
+      "corrupted": "The flight attendant, Ms. Taylor, greeted every passenger at the door. Nobody said a word. Later the pilot thanked Ms.",
+      "good": " Baker",
+      "bad": " Taylor"
+     },
+     {
+      "clean": "Our new teacher is Mr. Baker. Rain fell all day. On the first day, every child stood up and welcomed Mr.",
+      "corrupted": "Our new teacher is Mr. Taylor. Rain fell all day. On the first day, every child stood up and welcomed Mr.",
+      "good": " Baker",
+      "bad": " Taylor"
+     }
+    ]
+   },
+   {
+    "name": "subject-verb-agreement",
+    "description": "Pick is vs are after a singular or plural head noun followed by a distractor prepositional phrase; no repeated word to copy.",
+    "pairs": [
+     {
+      "clean": "The always really rather quite also rather really key near the cabinet",
+      "corrupted": "The always really rather quite also rather really keys near the cabinet",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The probably usually truly already key behind the cabinet outside the town",
+      "corrupted": "The probably usually truly already keys behind the cabinet outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the rather simply often already usually just key by the cabinet",
+      "corrupted": "Yesterday the rather simply often already usually just keys by the cabinet",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The probably usually really always probably already usually key near the road",
+      "corrupted": "The probably usually really always probably already usually keys near the road",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The rather always often rather key behind the house outside the town",
+      "corrupted": "The rather always often rather keys behind the house outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the rather usually really often still very key by the road",
+      "corrupted": "Yesterday the rather usually really often still very keys by the road",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The just truly already simply truly quite just key near the house",
+      "corrupted": "The just truly already simply truly quite just keys near the house",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The very usually often usually key behind the garden outside the town",
+      "corrupted": "The very usually often usually keys behind the garden outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the always truly very always simply usually key by the house",
+      "corrupted": "Yesterday the always truly very always simply usually keys by the house",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The just also probably usually still often already key near the garden",
+      "corrupted": "The just also probably usually still often already keys near the garden",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The also very already often key behind the river outside the town",
+      "corrupted": "The also very already often keys behind the river outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the also already rather really very already key by the river",
+      "corrupted": "Yesterday the also already rather really very already keys by the river",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The also always often quite also really truly key near the school",
+      "corrupted": "The also always often quite also really truly keys near the school",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The usually very truly really key behind the school outside the town",
+      "corrupted": "The usually very truly really keys behind the school outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the still quite very just still really key by the school",
+      "corrupted": "Yesterday the still quite very just still really keys by the school",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The quite already always very simply truly already dog near the cabinet",
+      "corrupted": "The quite already always very simply truly already dogs near the cabinet",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The quite just often very dog behind the cabinet outside the town",
+      "corrupted": "The quite just often very dogs behind the cabinet outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the very really usually truly just very dog by the cabinet",
+      "corrupted": "Yesterday the very really usually truly just very dogs by the cabinet",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The often rather already very quite very rather dog near the road",
+      "corrupted": "The often rather already very quite very rather dogs near the road",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The simply often already quite dog behind the road outside the town",
+      "corrupted": "The simply often already quite dogs behind the road outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the also very also truly also usually dog by the house",
+      "corrupted": "Yesterday the also very also truly also usually dogs by the house",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The always probably also quite also usually quite dog near the house",
+      "corrupted": "The always probably also quite also usually quite dogs near the house",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The just usually rather also dog behind the house outside the town",
+      "corrupted": "The just usually rather also dogs behind the house outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the usually often usually quite always really dog by the garden",
+      "corrupted": "Yesterday the usually often usually quite always really dogs by the garden",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The quite still really rather already still quite dog near the garden",
+      "corrupted": "The quite still really rather already still quite dogs near the garden",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The usually rather also probably dog behind the garden outside the town",
+      "corrupted": "The usually rather also probably dogs behind the garden outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the also still also quite rather often dog by the school",
+      "corrupted": "Yesterday the also still also quite rather often dogs by the school",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The just already usually rather really usually always dog near the river",
+      "corrupted": "The just already usually rather really usually always dogs near the river",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "The probably also usually truly dog behind the river outside the town",
+      "corrupted": "The probably also usually truly dogs behind the river outside the town",
+      "good": " is",
+      "bad": " are"
+     },
+     {
+      "clean": "Yesterday the simply rather quite usually already also book by the cabinet",
+      "corrupted": "Yesterday the simply rather quite usually already also books by the cabinet",
+      "good": " is",
+      "bad": " are"
+     }
+    ]
+   },
+   {
+    "name": "indirect-object-name",
+    "description": "Indirect-object name choice (When A and B went..., B gave a drink to -> A); a name-selection task that also uses earlier mentions but by exclusion, not copying a word continuation.",
+    "pairs": [
+     {
+      "clean": "When Emma and Sarah went to the store, probably often probably already probably just Sarah gave a drink to",
+      "corrupted": "When Emma and Sarah went to the store, probably often probably already probably just Emma gave a drink to",
+      "good": " Emma",
+      "bad": " Sarah"
+     },
+     {
+      "clean": "After lunch, Emma and Sarah walked to the park, truly really quite and Sarah handed a book to",
+      "corrupted": "After lunch, Emma and Sarah walked to the park, truly really quite and Emma handed a book to",
+      "good": " Emma",
+      "bad": " Sarah"
+     },
+     {
+      "clean": "Then, Emma and Sarah had a lot of fun at the school. always Sarah gave a ball to",
+      "corrupted": "Then, Emma and Sarah had a lot of fun at the school. always Emma gave a ball to",
+      "good": " Emma",
+      "bad": " Sarah"
+     },
+     {
+      "clean": "When Mary and Tom went to the store, usually also probably simply rather still Tom gave a drink to",
+      "corrupted": "When Mary and Tom went to the store, usually also probably simply rather still Mary gave a drink to",
+      "good": " Mary",
+      "bad": " Tom"
+     },
+     {
+      "clean": "After lunch, Mary and Tom walked to the park, often always still and Tom handed a book to",
+      "corrupted": "After lunch, Mary and Tom walked to the park, often always still and Mary handed a book to",
+      "good": " Mary",
+      "bad": " Tom"
+     },
+     {
+      "clean": "Then, Mary and Tom had a lot of fun at the school. simply Tom gave a ball to",
+      "corrupted": "Then, Mary and Tom had a lot of fun at the school. simply Mary gave a ball to",
+      "good": " Mary",
+      "bad": " Tom"
+     },
+     {
+      "clean": "When David and Anna went to the store, simply still already probably always usually Anna gave a drink to",
+      "corrupted": "When David and Anna went to the store, simply still already probably always usually David gave a drink to",
+      "good": " David",
+      "bad": " Anna"
+     },
+     {
+      "clean": "After lunch, David and Anna walked to the park, rather also very and Anna handed a book to",
+      "corrupted": "After lunch, David and Anna walked to the park, rather also very and David handed a book to",
+      "good": " David",
+      "bad": " Anna"
+     },
+     {
+      "clean": "Then, David and Anna had a lot of fun at the school. already Anna gave a ball to",
+      "corrupted": "Then, David and Anna had a lot of fun at the school. already David gave a ball to",
+      "good": " David",
+      "bad": " Anna"
+     },
+     {
+      "clean": "When Mark and Emma went to the store, truly very simply often simply very Emma gave a drink to",
+      "corrupted": "When Mark and Emma went to the store, truly very simply often simply very Mark gave a drink to",
+      "good": " Mark",
+      "bad": " Emma"
+     },
+     {
+      "clean": "After lunch, David and Tom walked to the park, already truly often and Tom handed a book to",
+      "corrupted": "After lunch, David and Tom walked to the park, already truly often and David handed a book to",
+      "good": " David",
+      "bad": " Tom"
+     },
+     {
+      "clean": "Then, David and Tom had a lot of fun at the school. truly Tom gave a ball to",
+      "corrupted": "Then, David and Tom had a lot of fun at the school. truly David gave a ball to",
+      "good": " David",
+      "bad": " Tom"
+     },
+     {
+      "clean": "When Kate and Sarah went to the store, simply quite simply usually just still Sarah gave a drink to",
+      "corrupted": "When Kate and Sarah went to the store, simply quite simply usually just still Kate gave a drink to",
+      "good": " Kate",
+      "bad": " Sarah"
+     },
+     {
+      "clean": "After lunch, Mark and Emma walked to the park, always really quite and Emma handed a book to",
+      "corrupted": "After lunch, Mark and Emma walked to the park, always really quite and Mark handed a book to",
+      "good": " Mark",
+      "bad": " Emma"
+     },
+     {
+      "clean": "Then, Mark and Emma had a lot of fun at the school. just Emma gave a ball to",
+      "corrupted": "Then, Mark and Emma had a lot of fun at the school. just Mark gave a ball to",
+      "good": " Mark",
+      "bad": " Emma"
+     },
+     {
+      "clean": "When John and Anna went to the store, quite really very usually still often Anna gave a drink to",
+      "corrupted": "When John and Anna went to the store, quite really very usually still often John gave a drink to",
+      "good": " John",
+      "bad": " Anna"
+     },
+     {
+      "clean": "After lunch, Kate and Sarah walked to the park, always already often and Sarah handed a book to",
+      "corrupted": "After lunch, Kate and Sarah walked to the park, always already often and Kate handed a book to",
+      "good": " Kate",
+      "bad": " Sarah"
+     },
+     {
+      "clean": "Then, Kate and Sarah had a lot of fun at the school. still Sarah gave a ball to",
+      "corrupted": "Then, Kate and Sarah had a lot of fun at the school. still Kate gave a ball to",
+      "good": " Kate",
+      "bad": " Sarah"
+     },
+     {
+      "clean": "When Mark and Anna went to the store, just always still really truly probably Anna gave a drink to",
+      "corrupted": "When Mark and Anna went to the store, just always still really truly probably Mark gave a drink to",
+      "good": " Mark",
+      "bad": " Anna"
+     },
+     {
+      "clean": "After lunch, John and Anna walked to the park, rather truly quite and Anna handed a book to",
+      "corrupted": "After lunch, John and Anna walked to the park, rather truly quite and John handed a book to",
+      "good": " John",
+      "bad": " Anna"
+     },
+     {
+      "clean": "Then, John and Anna had a lot of fun at the school. also Anna gave a ball to",
+      "corrupted": "Then, John and Anna had a lot of fun at the school. also John gave a ball to",
+      "good": " John",
+      "bad": " Anna"
+     },
+     {
+      "clean": "When Tom and Mark went to the store, quite rather still rather probably still Mark gave a drink to",
+      "corrupted": "When Tom and Mark went to the store, quite rather still rather probably still Tom gave a drink to",
+      "good": " Tom",
+      "bad": " Mark"
+     },
+     {
+      "clean": "After lunch, John and Mark walked to the park, rather probably already and Mark handed a book to",
+      "corrupted": "After lunch, John and Mark walked to the park, rather probably already and John handed a book to",
+      "good": " John",
+      "bad": " Mark"
+     },
+     {
+      "clean": "Then, John and Mark had a lot of fun at the school. probably Mark gave a ball to",
+      "corrupted": "Then, John and Mark had a lot of fun at the school. probably John gave a ball to",
+      "good": " John",
+      "bad": " Mark"
+     },
+     {
+      "clean": "When Anna and Mary went to the store, truly simply very simply always still Mary gave a drink to",
+      "corrupted": "When Anna and Mary went to the store, truly simply very simply always still Anna gave a drink to",
+      "good": " Anna",
+      "bad": " Mary"
+     },
+     {
+      "clean": "After lunch, Mark and Anna walked to the park, truly always also and Anna handed a book to",
+      "corrupted": "After lunch, Mark and Anna walked to the park, truly always also and Mark handed a book to",
+      "good": " Mark",
+      "bad": " Anna"
+     },
+     {
+      "clean": "Then, Mark and Anna had a lot of fun at the school. just Anna gave a ball to",
+      "corrupted": "Then, Mark and Anna had a lot of fun at the school. just Mark gave a ball to",
+      "good": " Mark",
+      "bad": " Anna"
+     },
+     {
+      "clean": "When Mark and David went to the store, really always truly quite already just David gave a drink to",
+      "corrupted": "When Mark and David went to the store, really always truly quite already just Mark gave a drink to",
+      "good": " Mark",
+      "bad": " David"
+     },
+     {
+      "clean": "After lunch, Tom and Mark walked to the park, still truly also and Mark handed a book to",
+      "corrupted": "After lunch, Tom and Mark walked to the park, still truly also and Tom handed a book to",
+      "good": " Tom",
+      "bad": " Mark"
+     },
+     {
+      "clean": "Then, Tom and Mark had a lot of fun at the school. also Mark gave a ball to",
+      "corrupted": "Then, Tom and Mark had a lot of fun at the school. also Tom gave a ball to",
+      "good": " Tom",
+      "bad": " Mark"
+     }
+    ]
+   },
+   {
+    "name": "capital-factual-recall",
+    "description": "Factual recall of a capital city from a country name; no earlier mention to copy.",
+    "pairs": [
+     {
+      "clean": "The just always also very quite just also truly capital city of Egypt is",
+      "corrupted": "The just always also very quite just also truly capital city of Austria is",
+      "good": " Cairo",
+      "bad": " Vienna"
+     },
+     {
+      "clean": "If you simply usually often visit Egypt, you should see its capital,",
+      "corrupted": "If you simply usually often visit Austria, you should see its capital,",
+      "good": " Cairo",
+      "bad": " Vienna"
+     },
+     {
+      "clean": "The rather very always really quite really usually probably capital city of Austria is",
+      "corrupted": "The rather very always really quite really usually probably capital city of Portugal is",
+      "good": " Vienna",
+      "bad": " Lisbon"
+     },
+     {
+      "clean": "If you really often always visit Austria, you should see its capital,",
+      "corrupted": "If you really often always visit Portugal, you should see its capital,",
+      "good": " Vienna",
+      "bad": " Lisbon"
+     },
+     {
+      "clean": "The rather often just always probably just probably just capital city of Peru is",
+      "corrupted": "The rather often just always probably just probably just capital city of Greece is",
+      "good": " Lima",
+      "bad": " Athens"
+     },
+     {
+      "clean": "If you just rather still visit Peru, you should see its capital,",
+      "corrupted": "If you just rather still visit Greece, you should see its capital,",
+      "good": " Lima",
+      "bad": " Athens"
+     },
+     {
+      "clean": "The often already also already just very also probably capital city of Spain is",
+      "corrupted": "The often already also already just very also probably capital city of Peru is",
+      "good": " Madrid",
+      "bad": " Lima"
+     },
+     {
+      "clean": "If you still quite rather visit Spain, you should see its capital,",
+      "corrupted": "If you still quite rather visit Peru, you should see its capital,",
+      "good": " Madrid",
+      "bad": " Lima"
+     },
+     {
+      "clean": "The probably often usually already simply really quite simply capital city of Germany is",
+      "corrupted": "The probably often usually already simply really quite simply capital city of Ireland is",
+      "good": " Berlin",
+      "bad": " Dublin"
+     },
+     {
+      "clean": "If you truly just often visit Germany, you should see its capital,",
+      "corrupted": "If you truly just often visit Ireland, you should see its capital,",
+      "good": " Berlin",
+      "bad": " Dublin"
+     },
+     {
+      "clean": "The rather probably simply always very just really truly capital city of Russia is",
+      "corrupted": "The rather probably simply always very just really truly capital city of China is",
+      "good": " Moscow",
+      "bad": " Beijing"
+     },
+     {
+      "clean": "If you often still very visit Russia, you should see its capital,",
+      "corrupted": "If you often still very visit China, you should see its capital,",
+      "good": " Moscow",
+      "bad": " Beijing"
+     },
+     {
+      "clean": "The rather often just always probably just probably just capital city of Peru is",
+      "corrupted": "The rather often just always probably just probably just capital city of Ireland is",
+      "good": " Lima",
+      "bad": " Dublin"
+     },
+     {
+      "clean": "If you just rather still visit Peru, you should see its capital,",
+      "corrupted": "If you just rather still visit Ireland, you should see its capital,",
+      "good": " Lima",
+      "bad": " Dublin"
+     },
+     {
+      "clean": "The always quite probably just very still already often capital city of Italy is",
+      "corrupted": "The always quite probably just very still already often capital city of Greece is",
+      "good": " Rome",
+      "bad": " Athens"
+     },
+     {
+      "clean": "If you simply rather probably visit Italy, you should see its capital,",
+      "corrupted": "If you simply rather probably visit Greece, you should see its capital,",
+      "good": " Rome",
+      "bad": " Athens"
+     },
+     {
+      "clean": "The simply truly quite truly often truly quite very capital city of Japan is",
+      "corrupted": "The simply truly quite truly often truly quite very capital city of Germany is",
+      "good": " Tokyo",
+      "bad": " Berlin"
+     },
+     {
+      "clean": "If you also probably just visit Japan, you should see its capital,",
+      "corrupted": "If you also probably just visit Germany, you should see its capital,",
+      "good": " Tokyo",
+      "bad": " Berlin"
+     },
+     {
+      "clean": "The just always also very quite just also truly capital city of Egypt is",
+      "corrupted": "The just always also very quite just also truly capital city of Russia is",
+      "good": " Cairo",
+      "bad": " Moscow"
+     },
+     {
+      "clean": "If you simply usually often visit Egypt, you should see its capital,",
+      "corrupted": "If you simply usually often visit Russia, you should see its capital,",
+      "good": " Cairo",
+      "bad": " Moscow"
+     },
+     {
+      "clean": "The simply truly quite truly often truly quite very capital city of Japan is",
+      "corrupted": "The simply truly quite truly often truly quite very capital city of Ireland is",
+      "good": " Tokyo",
+      "bad": " Dublin"
+     },
+     {
+      "clean": "If you also probably just visit Japan, you should see its capital,",
+      "corrupted": "If you also probably just visit Ireland, you should see its capital,",
+      "good": " Tokyo",
+      "bad": " Dublin"
+     },
+     {
+      "clean": "The usually simply often probably simply really probably simply capital city of Greece is",
+      "corrupted": "The usually simply often probably simply really probably simply capital city of Portugal is",
+      "good": " Athens",
+      "bad": " Lisbon"
+     },
+     {
+      "clean": "If you already also simply visit Greece, you should see its capital,",
+      "corrupted": "If you already also simply visit Portugal, you should see its capital,",
+      "good": " Athens",
+      "bad": " Lisbon"
+     },
+     {
+      "clean": "The rather probably simply always very just really truly capital city of Russia is",
+      "corrupted": "The rather probably simply always very just really truly capital city of Japan is",
+      "good": " Moscow",
+      "bad": " Tokyo"
+     },
+     {
+      "clean": "If you often still very visit Russia, you should see its capital,",
+      "corrupted": "If you often still very visit Japan, you should see its capital,",
+      "good": " Moscow",
+      "bad": " Tokyo"
+     },
+     {
+      "clean": "The probably often usually already simply really quite simply capital city of Germany is",
+      "corrupted": "The probably often usually already simply really quite simply capital city of England is",
+      "good": " Berlin",
+      "bad": " London"
+     },
+     {
+      "clean": "If you truly just often visit Germany, you should see its capital,",
+      "corrupted": "If you truly just often visit England, you should see its capital,",
+      "good": " Berlin",
+      "bad": " London"
+     },
+     {
+      "clean": "The always quite probably just very still already often capital city of Italy is",
+      "corrupted": "The always quite probably just very still already often capital city of Japan is",
+      "good": " Rome",
+      "bad": " Tokyo"
+     },
+     {
+      "clean": "If you simply rather probably visit Italy, you should see its capital,",
+      "corrupted": "If you simply rather probably visit Japan, you should see its capital,",
+      "good": " Rome",
+      "bad": " Tokyo"
+     }
+    ]
+   },
+   {
+    "name": "common-multitoken-word",
+    "description": "Complete a common (non-repeated, memorised) two-token place name from its first piece; the continuation comes from stored knowledge, not from copying an earlier mention.",
+    "pairs": [
+     {
+      "clean": "I have always already simply always probably always wanted to visit Zamb",
+      "corrupted": "I have always already simply always probably always wanted to visit Mold",
+      "good": "ia",
+      "bad": "ova"
+     },
+     {
+      "clean": "She was rather usually quite very always often rather born in Zamb",
+      "corrupted": "She was rather usually quite very always often rather born in Mold",
+      "good": "ia",
+      "bad": "ova"
+     },
+     {
+      "clean": "He also quite always truly often spent the summer travelling through Zamb",
+      "corrupted": "He also quite always truly often spent the summer travelling through Mold",
+      "good": "ia",
+      "bad": "ova"
+     },
+     {
+      "clean": "The story also rather simply always quite very takes place in Zamb",
+      "corrupted": "The story also rather simply always quite very takes place in Mold",
+      "good": "ia",
+      "bad": "ova"
+     },
+     {
+      "clean": "I have always truly just still truly always wanted to visit Mold",
+      "corrupted": "I have always truly just still truly always wanted to visit Nam",
+      "good": "ova",
+      "bad": "ibia"
+     },
+     {
+      "clean": "She was still always already truly still very probably born in Mold",
+      "corrupted": "She was still always already truly still very probably born in Nam",
+      "good": "ova",
+      "bad": "ibia"
+     },
+     {
+      "clean": "He rather also quite rather usually spent the summer travelling through Mold",
+      "corrupted": "He rather also quite rather usually spent the summer travelling through Nam",
+      "good": "ova",
+      "bad": "ibia"
+     },
+     {
+      "clean": "The story simply really usually just always often takes place in Mold",
+      "corrupted": "The story simply really usually just always often takes place in Nam",
+      "good": "ova",
+      "bad": "ibia"
+     },
+     {
+      "clean": "I have always simply truly very rather always wanted to visit Bh",
+      "corrupted": "I have always simply truly very rather always wanted to visit crocod",
+      "good": "utan",
+      "bad": "ile"
+     },
+     {
+      "clean": "She was always simply really usually simply very usually born in Bh",
+      "corrupted": "She was always simply really usually simply very usually born in crocod",
+      "good": "utan",
+      "bad": "ile"
+     },
+     {
+      "clean": "He simply also probably really rather spent the summer travelling through Bh",
+      "corrupted": "He simply also probably really rather spent the summer travelling through crocod",
+      "good": "utan",
+      "bad": "ile"
+     },
+     {
+      "clean": "The story rather already often simply very also takes place in Bh",
+      "corrupted": "The story rather already often simply very also takes place in crocod",
+      "good": "utan",
+      "bad": "ile"
+     },
+     {
+      "clean": "I have still simply still often usually always wanted to visit Nam",
+      "corrupted": "I have still simply still often usually always wanted to visit Bh",
+      "good": "ibia",
+      "bad": "utan"
+     },
+     {
+      "clean": "She was just probably always already still also rather born in Nam",
+      "corrupted": "She was just probably always already still also rather born in Bh",
+      "good": "ibia",
+      "bad": "utan"
+     },
+     {
+      "clean": "He truly usually already quite truly spent the summer travelling through Nam",
+      "corrupted": "He truly usually already quite truly spent the summer travelling through Bh",
+      "good": "ibia",
+      "bad": "utan"
+     },
+     {
+      "clean": "The story quite probably quite rather often always takes place in Nam",
+      "corrupted": "The story quite probably quite rather often always takes place in Bh",
+      "good": "ibia",
+      "bad": "utan"
+     },
+     {
+      "clean": "I have always truly just still truly always wanted to visit Mold",
+      "corrupted": "I have always truly just still truly always wanted to visit Maurit",
+      "good": "ova",
+      "bad": "ius"
+     },
+     {
+      "clean": "She was still always already truly still very probably born in Mold",
+      "corrupted": "She was still always already truly still very probably born in Maurit",
+      "good": "ova",
+      "bad": "ius"
+     },
+     {
+      "clean": "He rather also quite rather usually spent the summer travelling through Mold",
+      "corrupted": "He rather also quite rather usually spent the summer travelling through Maurit",
+      "good": "ova",
+      "bad": "ius"
+     },
+     {
+      "clean": "The story simply really usually just always often takes place in Mold",
+      "corrupted": "The story simply really usually just always often takes place in Maurit",
+      "good": "ova",
+      "bad": "ius"
+     },
+     {
+      "clean": "I have also really quite still usually always wanted to visit Maurit",
+      "corrupted": "I have also really quite still usually always wanted to visit crocod",
+      "good": "ius",
+      "bad": "ile"
+     },
+     {
+      "clean": "She was just already still just also truly often born in Maurit",
+      "corrupted": "She was just already still just also truly often born in crocod",
+      "good": "ius",
+      "bad": "ile"
+     },
+     {
+      "clean": "He probably truly probably truly still spent the summer travelling through Maurit",
+      "corrupted": "He probably truly probably truly still spent the summer travelling through crocod",
+      "good": "ius",
+      "bad": "ile"
+     },
+     {
+      "clean": "The story often still really often simply quite takes place in Maurit",
+      "corrupted": "The story often still really often simply quite takes place in crocod",
+      "good": "ius",
+      "bad": "ile"
+     },
+     {
+      "clean": "I have also really quite still usually always wanted to visit Maurit",
+      "corrupted": "I have also really quite still usually always wanted to visit Bh",
+      "good": "ius",
+      "bad": "utan"
+     },
+     {
+      "clean": "She was just already still just also truly often born in Maurit",
+      "corrupted": "She was just already still just also truly often born in Bh",
+      "good": "ius",
+      "bad": "utan"
+     },
+     {
+      "clean": "He probably truly probably truly still spent the summer travelling through Maurit",
+      "corrupted": "He probably truly probably truly still spent the summer travelling through Bh",
+      "good": "ius",
+      "bad": "utan"
+     },
+     {
+      "clean": "The story often still really often simply quite takes place in Maurit",
+      "corrupted": "The story often still really often simply quite takes place in Bh",
+      "good": "ius",
+      "bad": "utan"
+     },
+     {
+      "clean": "I have still simply still often usually always wanted to visit Nam",
+      "corrupted": "I have still simply still often usually always wanted to visit pharm",
+      "good": "ibia",
+      "bad": "acist"
+     },
+     {
+      "clean": "She was just probably always already still also rather born in Nam",
+      "corrupted": "She was just probably always already still also rather born in pharm",
+      "good": "ibia",
+      "bad": "acist"
+     }
+    ]
+   },
+   {
+    "name": "generic-token-induction",
+    "description": "Plain induction over common single-token words in a list (A B ... A -> B); tests whether the circuit is specific to made-up multi-token words or is just generic copying.",
+    "pairs": [
+     {
+      "clean": "My list was: red, river bridge, door, music, then usually also really river",
+      "corrupted": "My list was: red, river mountain, door, music, then usually also really river",
+      "good": " bridge",
+      "bad": " mountain"
+     },
+     {
+      "clean": "Write down: river bridge, tree, cloud, stone, just often usually just simply river",
+      "corrupted": "Write down: river mountain, tree, cloud, stone, just often usually just simply river",
+      "good": " bridge",
+      "bad": " mountain"
+     },
+     {
+      "clean": "My list was: red, lemon window, door, music, then often also truly lemon",
+      "corrupted": "My list was: red, lemon river, door, music, then often also truly lemon",
+      "good": " window",
+      "bad": " river"
+     },
+     {
+      "clean": "Write down: lemon window, tree, cloud, stone, often already quite usually already lemon",
+      "corrupted": "Write down: lemon river, tree, cloud, stone, often already quite usually already lemon",
+      "good": " window",
+      "bad": " river"
+     },
+     {
+      "clean": "My list was: red, basket river, door, music, then probably truly also basket",
+      "corrupted": "My list was: red, basket apple, door, music, then probably truly also basket",
+      "good": " river",
+      "bad": " apple"
+     },
+     {
+      "clean": "Write down: basket river, tree, cloud, stone, just always often truly quite basket",
+      "corrupted": "Write down: basket apple, tree, cloud, stone, just always often truly quite basket",
+      "good": " river",
+      "bad": " apple"
+     },
+     {
+      "clean": "My list was: red, mountain chair, door, music, then just always truly mountain",
+      "corrupted": "My list was: red, mountain candle, door, music, then just always truly mountain",
+      "good": " chair",
+      "bad": " candle"
+     },
+     {
+      "clean": "Write down: mountain chair, tree, cloud, stone, also already also simply really mountain",
+      "corrupted": "Write down: mountain candle, tree, cloud, stone, also already also simply really mountain",
+      "good": " chair",
+      "bad": " candle"
+     },
+     {
+      "clean": "My list was: red, window bridge, door, music, then still often still window",
+      "corrupted": "My list was: red, window mountain, door, music, then still often still window",
+      "good": " bridge",
+      "bad": " mountain"
+     },
+     {
+      "clean": "Write down: window bridge, tree, cloud, stone, quite always simply also still window",
+      "corrupted": "Write down: window mountain, tree, cloud, stone, quite always simply also still window",
+      "good": " bridge",
+      "bad": " mountain"
+     },
+     {
+      "clean": "My list was: red, window basket, door, music, then usually probably rather window",
+      "corrupted": "My list was: red, window apple, door, music, then usually probably rather window",
+      "good": " basket",
+      "bad": " apple"
+     },
+     {
+      "clean": "Write down: window basket, tree, cloud, stone, really probably truly probably often window",
+      "corrupted": "Write down: window apple, tree, cloud, stone, really probably truly probably often window",
+      "good": " basket",
+      "bad": " apple"
+     },
+     {
+      "clean": "My list was: red, basket mountain, door, music, then already quite truly basket",
+      "corrupted": "My list was: red, basket silver, door, music, then already quite truly basket",
+      "good": " mountain",
+      "bad": " silver"
+     },
+     {
+      "clean": "Write down: basket mountain, tree, cloud, stone, quite rather still probably also basket",
+      "corrupted": "Write down: basket silver, tree, cloud, stone, quite rather still probably also basket",
+      "good": " mountain",
+      "bad": " silver"
+     },
+     {
+      "clean": "My list was: red, candle garden, door, music, then rather also always candle",
+      "corrupted": "My list was: red, candle lemon, door, music, then rather also always candle",
+      "good": " garden",
+      "bad": " lemon"
+     },
+     {
+      "clean": "Write down: candle garden, tree, cloud, stone, just also very always simply candle",
+      "corrupted": "Write down: candle lemon, tree, cloud, stone, just also very always simply candle",
+      "good": " garden",
+      "bad": " lemon"
+     },
+     {
+      "clean": "My list was: red, chair ticket, door, music, then truly simply often chair",
+      "corrupted": "My list was: red, chair basket, door, music, then truly simply often chair",
+      "good": " ticket",
+      "bad": " basket"
+     },
+     {
+      "clean": "Write down: chair ticket, tree, cloud, stone, still just very still very chair",
+      "corrupted": "Write down: chair basket, tree, cloud, stone, still just very still very chair",
+      "good": " ticket",
+      "bad": " basket"
+     },
+     {
+      "clean": "My list was: red, garden ticket, door, music, then just rather probably garden",
+      "corrupted": "My list was: red, garden lemon, door, music, then just rather probably garden",
+      "good": " ticket",
+      "bad": " lemon"
+     },
+     {
+      "clean": "Write down: garden ticket, tree, cloud, stone, simply always already quite simply garden",
+      "corrupted": "Write down: garden lemon, tree, cloud, stone, simply always already quite simply garden",
+      "good": " ticket",
+      "bad": " lemon"
+     },
+     {
+      "clean": "My list was: red, river candle, door, music, then already usually simply river",
+      "corrupted": "My list was: red, river silver, door, music, then already usually simply river",
+      "good": " candle",
+      "bad": " silver"
+     },
+     {
+      "clean": "Write down: river candle, tree, cloud, stone, still probably really still usually river",
+      "corrupted": "Write down: river silver, tree, cloud, stone, still probably really still usually river",
+      "good": " candle",
+      "bad": " silver"
+     },
+     {
+      "clean": "My list was: red, garden ticket, door, music, then just rather probably garden",
+      "corrupted": "My list was: red, garden basket, door, music, then just rather probably garden",
+      "good": " ticket",
+      "bad": " basket"
+     },
+     {
+      "clean": "Write down: garden ticket, tree, cloud, stone, simply always already quite simply garden",
+      "corrupted": "Write down: garden basket, tree, cloud, stone, simply always already quite simply garden",
+      "good": " ticket",
+      "bad": " basket"
+     },
+     {
+      "clean": "My list was: red, lemon bridge, door, music, then quite just rather lemon",
+      "corrupted": "My list was: red, lemon apple, door, music, then quite just rather lemon",
+      "good": " bridge",
+      "bad": " apple"
+     },
+     {
+      "clean": "Write down: lemon bridge, tree, cloud, stone, usually simply probably always really lemon",
+      "corrupted": "Write down: lemon apple, tree, cloud, stone, usually simply probably always really lemon",
+      "good": " bridge",
+      "bad": " apple"
+     },
+     {
+      "clean": "My list was: red, window river, door, music, then always truly very window",
+      "corrupted": "My list was: red, window mountain, door, music, then always truly very window",
+      "good": " river",
+      "bad": " mountain"
+     },
+     {
+      "clean": "Write down: window river, tree, cloud, stone, simply probably still really just window",
+      "corrupted": "Write down: window mountain, tree, cloud, stone, simply probably still really just window",
+      "good": " river",
+      "bad": " mountain"
+     },
+     {
+      "clean": "My list was: red, candle pencil, door, music, then also always still candle",
+      "corrupted": "My list was: red, candle river, door, music, then also always still candle",
+      "good": " pencil",
+      "bad": " river"
+     },
+     {
+      "clean": "Write down: candle pencil, tree, cloud, stone, simply often simply really usually candle",
+      "corrupted": "Write down: candle river, tree, cloud, stone, simply often simply really usually candle",
+      "good": " pencil",
+      "bad": " river"
+     }
+    ]
+   }
+  ],
+  "reviewer_agent_model": "external/claude-sonnet-5-5"
+ },
+ "verdict": {
+  "status": "NEEDS_REVISION",
+  "gates": {
+   "necessity_floor": true,
+   "beats_null": true,
+   "specificity": false
+  },
+  "policy": {
+   "min_necessity": 0.02,
+   "null_quantile": 0.95,
+   "null_sets": 64,
+   "max_negative_necessity": 0.2,
+   "min_specificity": 0.8,
+   "protocol_version": "1.0"
+  },
+  "measures": {
+   "holdout_faithfulness": -0.0017378603985595594,
+   "holdout_necessity": 0.927281156682169,
+   "null_necessities": [
+    0.0009563260645761851,
+    0.011314909021870267,
+    0.03616851814836364,
+    0.03646569847082637,
+    0.0449372023636474,
+    0.056527021830822144,
+    0.057526502442044936,
+    0.06457966023508055,
+    0.0704754237424976,
+    0.07133521148790878,
+    0.0747212983603438,
+    0.0749683980978092,
+    0.07538566526982926,
+    0.07631886902175788,
+    0.07758324396128558,
+    0.08491983655451874,
+    0.08860033333407613,
+    0.09077319139634232,
+    0.09944054234283373,
+    0.10064791065901346,
+    0.10262875762731116,
+    0.10520588322038538,
+    0.10633994208448394,
+    0.10857225752212984,
+    0.11444047670779833,
+    0.12184260027927274,
+    0.12584515784213723,
+    0.1258554936224452,
+    0.1273794884456877,
+    0.12887157021529894,
+    0.12896315375318235,
+    0.1296001361725736,
+    0.12964297105591172,
+    0.13371372345792154,
+    0.13620693743251622,
+    0.13647550788886886,
+    0.1406422125606448,
+    0.1452497862120512,
+    0.1455867113392033,
+    0.1653830870936761,
+    0.16666925241539943,
+    0.17888348087849804,
+    0.18532224579260925,
+    0.1965123262925128,
+    0.20072341088695123,
+    0.20100865711256355,
+    0.20824338366482353,
+    0.22453294637068688,
+    0.22512501609523483,
+    0.23214295764711812,
+    0.23570928134832536,
+    0.2445818561388695,
+    0.2495037120997431,
+    0.2507645174656594,
+    0.25511497526260096,
+    0.2667397445848376,
+    0.3211612507570495,
+    0.3292658344489382,
+    0.34500637542246404,
+    0.3675013488272385,
+    0.373315811299862,
+    0.40627032799019636,
+    0.41617109981250977,
+    0.416477017598738
+   ],
+   "negative_necessities": {
+    "repeated-single-token-name": 0.7568455393155221,
+    "subject-verb-agreement": 0.08333284326105772,
+    "indirect-object-name": 0.4932973180893355,
+    "capital-factual-recall": 0.9512990424164981,
+    "common-multitoken-word": 0.027841939784576386,
+    "generic-token-induction": 0.77141180857548
+   },
+   "member_necessities": {}
+  },
+  "reviewer_agent_model": "external/claude-sonnet-5-5",
+  "timestamp": "2026-11-16T23:25:32.394004Z"
+ }
+}

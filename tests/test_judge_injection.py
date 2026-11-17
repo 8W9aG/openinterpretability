@@ -9,9 +9,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from openinterp import benchmark as bench
-from openinterp.agents.judge import ExplanationJudge, TaskWindow
-from openinterp.core.fence import FENCE_TAG, fence_id
+from openinterpretability import benchmark as bench
+from openinterpretability.agents.judge import ExplanationJudge, TaskWindow
+from openinterpretability.core.fence import FENCE_TAG, fence_id
 
 PROBES = [{"text": f"active text {n}", "active": True} for n in range(4)] + [
     {"text": f"quiet text {n}", "active": False} for n in range(6)

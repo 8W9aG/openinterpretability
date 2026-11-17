@@ -1,4 +1,4 @@
-from openinterp.builder.significance import significance
+from openinterpretability.builder.significance import significance
 from tests.test_compiler import experiment
 
 

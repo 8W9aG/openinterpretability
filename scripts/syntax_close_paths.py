@@ -34,8 +34,8 @@ import torch
 from syntax_followups import closer_chain, counts_for
 from syntax_probes import ROUND_DEPTH_POLES, TARGETS, _rounded, ablate_poles, calls
 
-from openinterp.cli import _load, resolve_device
-from openinterp.harness.hooks import pole_strength
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.harness.hooks import pole_strength
 
 MODEL = "openai-community/gpt2"
 POLE = ROUND_DEPTH_POLES[0]  # L2 N676+
