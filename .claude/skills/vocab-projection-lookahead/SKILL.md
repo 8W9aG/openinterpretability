@@ -18,7 +18,7 @@ description: Read a neuron's input and output weights through the vocabulary (Ja
 
 1. **Output side (what it promotes): use the Jacobian lens.**
    ```python
-   from openinterp.harness.jlens import vocabulary_lens
+   from openinterpretability.harness.jlens import vocabulary_lens
 
    vl = vocabulary_lens(runner, corpus_snippets[:100], layer, idx, pole)
    print(vl.jacobian_promoted, vl.jacobian_suppressed)  # read these

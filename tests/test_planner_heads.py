@@ -1,20 +1,20 @@
-"""Explore draws of attention heads (openinterp/planner_heads.py, issue #3248)."""
+"""Explore draws of attention heads (openinterpretability/planner_heads.py, issue #3248)."""
 
 import random
 from types import SimpleNamespace
 
 import pytest
 
-from openinterp import planner, planner_heads
-from openinterp.draw_steps import draw_slug, random_head
-from openinterp.evidence import ScanRequest, pick_unit
+from openinterpretability import planner, planner_heads
+from openinterpretability.draw_steps import draw_slug, random_head
+from openinterpretability.evidence import ScanRequest, pick_unit
 
 MODEL = "Qwen/Qwen2.5-0.5B"
 
 
 def config(tmp_path, body: str):
     path = tmp_path / "pyproject.toml"
-    path.write_text(f"[tool.openinterp]\n{body}\n")
+    path.write_text(f"[tool.openinterpretability]\n{body}\n")
     return path
 
 
@@ -33,7 +33,7 @@ def test_a_head_draw_audits_a_random_head_and_skips_the_effect_draw(tmp_path, mo
     def no_effect_draw(*args, **kwargs):
         raise AssertionError("a head draw must not reach the effect draw")
 
-    monkeypatch.setattr("openinterp.planner_effects.effect_draw", no_effect_draw)
+    monkeypatch.setattr("openinterpretability.planner_effects.effect_draw", no_effect_draw)
     pyproject = config(tmp_path, "head_share = 1.0")
     rng = random.Random(0)
     got = planner._explore(rng, [MODEL], {MODEL: 1.0}, pyproject, MODEL)
@@ -56,7 +56,7 @@ def test_random_head_matches_the_audits_draw(seed):
 
 
 def test_the_claim_names_the_head_before_the_scan(monkeypatch):
-    monkeypatch.setattr("openinterp.draw_steps.model_heads", lambda model: (24, 14))
+    monkeypatch.setattr("openinterpretability.draw_steps.model_heads", lambda model: (24, 14))
     audit = f"--model {MODEL} --random --seed 7 --unit head"
     choice = SimpleNamespace(slug=None, audit=audit, model=MODEL)
     assert draw_slug(choice) == random_head(MODEL, 7, (24, 14))

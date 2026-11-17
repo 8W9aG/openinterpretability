@@ -53,10 +53,10 @@ def permutation_p(a: torch.Tensor, b: torch.Tensor, draws: int = 10_000) -> floa
 
 def studied_poles(model_name: str) -> list[tuple[int, int, str, str]]:
     """``(layer, neuron, side, status)`` for every studied neuron pole of the model."""
-    from openinterp.builder.compiler import load_records
-    from openinterp.builder.standing import native_standings
-    from openinterp.builder.tree import build_tree
-    from openinterp.core.errata import load_errata
+    from openinterpretability.builder.compiler import load_records
+    from openinterpretability.builder.standing import native_standings
+    from openinterpretability.builder.tree import build_tree
+    from openinterpretability.core.errata import load_errata
 
     models = build_tree(load_records(Path("wiki/experiments")), load_errata(Path("wiki")))
     return [(n.layer, n.idx, side, st.status) for n, side, st in native_standings(models)
@@ -147,7 +147,7 @@ def compare(raw: dict, poles: list) -> dict:
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(checkpoint, rows, chunk, device, scan_corpus, out):
     """Write each measure's VERIFIED-against-other comparison to ``--out``."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     state = torch.load(checkpoint, map_location="cpu")
     s = state["settings"]

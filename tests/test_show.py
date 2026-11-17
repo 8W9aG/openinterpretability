@@ -2,10 +2,10 @@ import os
 
 from click.testing import CliRunner
 
-from openinterp.builder.wiki import archive_path, write_experiment_page
-from openinterp.cli import cli, quiet_libraries
-from openinterp.core.fence import fence
-from openinterp.core.schemas import AdversarialTestResult, ScanEvidence
+from openinterpretability.builder.wiki import archive_path, write_experiment_page
+from openinterpretability.cli import cli, quiet_libraries
+from openinterpretability.core.fence import fence
+from openinterpretability.core.schemas import AdversarialTestResult, ScanEvidence
 
 
 def _show(*args):

@@ -13,8 +13,8 @@ Linters check the form. This skill is for what they cannot judge. To rewrite a s
 | --- | --- | --- |
 | Missing or malformed docstrings | ruff `D` rules, Google convention (`pyproject.toml`) | everything (`tests/` needs no docstrings, `D1`) |
 | Commented-out code | ruff `ERA` | everything |
-| Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`, never lowered) | `openinterp/` |
-| Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile`: `openinterp`, `scripts`, `tests` |
+| Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`, never lowered) | `openinterpretability/` |
+| Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile`: `openinterpretability`, `scripts`, `tests` |
 | Semicolons, sentence length, synonym rotation in Markdown | `make ste` (the `asd-ste100` skill's linter) | `STE_PATHS` and `STE_LOG_PATHS` in the `Makefile`: the skills, `docs/`, `papers/`, the top-level Markdown and the PR template |
 
 ## When to comment
@@ -91,7 +91,7 @@ def find_transcript(agent: str) -> Path:
     """
 ```
 
-A docstring that says what, but not why (`openinterp/core/strict.py`):
+A docstring that says what, but not why (`openinterpretability/core/strict.py`):
 
 ```python
 # Before: no docstring
@@ -108,14 +108,14 @@ class StrictModel(BaseModel):
     """
 ```
 
-A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russian (Cyrillic), Greek, …` in `openinterp/corpus.py`). Restructure the sentence. Do not add `# noqa`.
+A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russian (Cyrillic), Greek, …` in `openinterpretability/corpus.py`). Restructure the sentence. Do not add `# noqa`.
 
 ## Citing a source
 
 - **The protocol:** the file and section, as in `(docs/PROTOCOL.md §4)`, or `§4` when the file is clear.
 - **A paper:** author and year, as in `(Paulo et al., 2025)`. Put the full reference in the skill or doc that uses it.
 - **A protocol version:** `v0.8:` at the start of the comment, for a field or rule that a version added.
-- **Another place in the code:** the qualified name, as in ``:func:`openinterp.core.costs.stage` `` or `openinterp.harness.confounds`.
+- **Another place in the code:** the qualified name, as in ``:func:`openinterpretability.core.costs.stage` `` or `openinterpretability.harness.confounds`.
 
 ## Reviewing a diff
 
@@ -131,4 +131,4 @@ Flag:
 
 `.vale/styles/STE/SentenceLength.yml` splits each comment or docstring into sentences itself, because Vale does not do this for source code. A sentence ends at `.`, `!` or `?` before a space. A closing quote or bracket may come between. A sentence also ends at a colon that ends a line, and where a list item (`-` or `*`) starts. So `0.5` and `e.g.` do not end a sentence. End each list item with a full stop.
 
-Some lines do not count, because they are not prose. These are lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block). Indented command examples (`openinterp …`, `uv …`, `make …`, `git …`, `python …`) do not count either. Vale's `vale off` comments do not work in Python files, so restructure the text instead.
+Some lines do not count, because they are not prose. These are lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block). Indented command examples (`openinterpretability …`, `uv …`, `make …`, `git …`, `python …`) do not count either. Vale's `vale off` comments do not work in Python files, so restructure the text instead.

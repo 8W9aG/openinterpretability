@@ -20,4 +20,4 @@ PY="$VENV_DIR/bin/python"
 uv pip install --quiet --python "$PY" "$TORCH" --index-url https://download.pytorch.org/whl/cpu
 uv pip install --quiet --python "$PY" -r "$REQS"
 uv pip install --quiet --python "$PY" --no-deps -e .
-"$PY" -c "import torch, openinterp; print(f'torch {torch.__version__}, openinterp {openinterp.__version__}')"
+"$PY" -c "import torch, openinterpretability; print(f'torch {torch.__version__}, openinterpretability {openinterpretability.__version__}')"

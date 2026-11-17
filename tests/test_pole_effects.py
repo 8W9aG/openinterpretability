@@ -7,10 +7,10 @@ import random
 
 import torch
 
-from openinterp.audit_options import selection
-from openinterp.coverage import mean_loss
-from openinterp.planner_effects import effect_draw, table_path, weighted_pole
-from openinterp.pole_effects import estimate, exact_effect, top_poles
+from openinterpretability.audit_options import selection
+from openinterpretability.coverage import mean_loss
+from openinterpretability.planner_effects import effect_draw, table_path, weighted_pole
+from openinterpretability.pole_effects import estimate, exact_effect, top_poles
 from tests.conftest import N_LAYERS, VOCAB
 
 
@@ -47,7 +47,7 @@ def _table(tmp_path, poles):
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps({"poles": poles}))
     pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text("[tool.openinterp]\neffect_share = 1.0\n")
+    pyproject.write_text("[tool.openinterpretability]\neffect_share = 1.0\n")
     return model, pyproject
 
 
@@ -74,12 +74,12 @@ def test_taken_and_harmless_poles_are_never_drawn(tmp_path):
 
 def test_no_table_or_a_zero_share_draws_uniformly(tmp_path):
     pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text("[tool.openinterp]\neffect_share = 1.0\n")
+    pyproject.write_text("[tool.openinterpretability]\neffect_share = 1.0\n")
     assert effect_draw(random.Random(0), "no/table", pyproject, set(), None) is None
     model, pyproject = _table(
         tmp_path, [{"layer": 0, "neuron": 0, "pole": "positive", "effect": 1}]
     )
-    pyproject.write_text("[tool.openinterp]\neffect_share = 0.0\n")
+    pyproject.write_text("[tool.openinterpretability]\neffect_share = 0.0\n")
     assert effect_draw(random.Random(0), model, pyproject, set(), None) is None
 
 

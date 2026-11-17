@@ -10,7 +10,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from openinterp.cli import cli
+from openinterpretability.cli import cli
 
 SCRIPT = (Path(__file__).parents[1] / "scripts" / "experiment-loop.sh").read_text()
 FUNCTIONS = ("stop_file", "stop_requested", "over_budget", "spent", "todays_logs", "check_limits")
@@ -38,7 +38,7 @@ def run(tmp_path, body: str, spend: str = "0", **env) -> subprocess.CompletedPro
         f"WORKTREE={tmp_path}\nLOG_DIR={tmp_path}/logs\n"
         'LEDGERS=() SESSIONS=() BUDGET="" DAILY_BUDGET=""\nset -euo pipefail\n'
     )
-    environ = {**os.environ, "OPENINTERP_STOP_FILE": str(tmp_path / "stop"), **env}
+    environ = {**os.environ, "OPENINTERPRETABILITY_STOP_FILE": str(tmp_path / "stop"), **env}
     return subprocess.run(
         ["/bin/bash", "-c", stub + _functions() + "\n" + body],
         capture_output=True,

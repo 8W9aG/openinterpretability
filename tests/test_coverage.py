@@ -1,9 +1,16 @@
-"""Registry coverage: mean-ablating the poles that aren't VERIFIED (openinterp/coverage.py)."""
+"""Registry coverage: mean-ablating the poles that aren't VERIFIED (coverage.py)."""
 
 import pytest
 import torch
 
-from openinterp.coverage import keep_poles, layer_row, mean_loss, random_poles, recovered, windows
+from openinterpretability.coverage import (
+    keep_poles,
+    layer_row,
+    mean_loss,
+    random_poles,
+    recovered,
+    windows,
+)
 
 TEXTS = ["abcdefghijklmnopqrstuvwxyz" * 2 + str(i) for i in range(12)]
 

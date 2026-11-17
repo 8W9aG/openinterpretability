@@ -27,7 +27,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.reproduce import Tolerance, reproduce_record
+from openinterpretability.reproduce import Tolerance, reproduce_record
 
 NUMERIC = ("activations differ", "max_activation", "observed_delta", ": activation", ": Δ")
 
@@ -52,7 +52,7 @@ class Recording(Tolerance):
 
 def labelled(name: str, label: str):
     """Wrap ``reproduce.<name>`` so that the numbers it compares carry ``label``."""
-    import openinterp.reproduce as module
+    import openinterpretability.reproduce as module
 
     inner = getattr(module, name)
 
@@ -94,10 +94,10 @@ def summary(seen: list[tuple]) -> dict:
 @click.argument("records", nargs=-1, type=click.Path(exists=True, path_type=Path))
 def main(dtype, device, out, records):
     """Reproduce each record in ``--dtype`` and write how far its numbers drift."""
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import AuditRecord
-    from openinterp.harness.units import attn_implementation
-    from openinterp.reproduce import pinned_environment
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import AuditRecord
+    from openinterpretability.harness.units import attn_implementation
+    from openinterpretability.reproduce import pinned_environment
 
     runners: dict[tuple, object] = {}
     for path in records:

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from openinterp.builder.wiki import write_experiment_page, write_stop_page
-from openinterp.core.draws import UnauditableDraw
-from openinterp.core.schemas import AuditRecord, ExperimentProvenance
+from openinterpretability.builder.wiki import write_experiment_page, write_stop_page
+from openinterpretability.core.draws import UnauditableDraw
+from openinterpretability.core.schemas import AuditRecord, ExperimentProvenance
 
 _SPEC = importlib.util.spec_from_file_location(
     "check_markdown", Path(__file__).parents[1] / "scripts" / "check_markdown.py"
@@ -93,7 +93,9 @@ def test_main_returns_one_on_a_problem(tmp_path, monkeypatch, capsys):
 def test_markdown_files_skips_generated_and_vendored():
     names = {p.relative_to(check_markdown.REPO).as_posix() for p in check_markdown.markdown_files()}
     assert {"README.md", "docs/PROTOCOL.md", ".claude/skills/release/SKILL.md"} <= names
-    assert not any(n.startswith(("wiki/", "openinterp/builder/templates/")) for n in names)
+    assert not any(
+        n.startswith(("wiki/", "openinterpretability/builder/templates/")) for n in names
+    )
     assert not any(n.startswith(".claude/skills/asd-ste100/") for n in names)
 
 

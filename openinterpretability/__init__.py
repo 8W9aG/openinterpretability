@@ -1,0 +1,10 @@
+"""Open Interpretability: an agent-audited registry of native neurons in open-weight models."""
+
+from openinterpretability.core.legacy_names import adopt_legacy_env
+
+__version__ = "0.0.21"
+# The name on PyPI, and of the installed distribution (issue #3251). The import name is
+# `openinterpretability` (issue #4089).
+DISTRIBUTION = "open-interpretability"
+
+adopt_legacy_env()  # the old environment variables, for one release (core/legacy_names.py)

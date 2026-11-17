@@ -2,7 +2,7 @@
 
 import torch
 
-from openinterp.harness import sisters
+from openinterpretability.harness import sisters
 
 
 def test_a_cached_rotation_is_the_fresh_one_bit_for_bit(tmp_path, monkeypatch):

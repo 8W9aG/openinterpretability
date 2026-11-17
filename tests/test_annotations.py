@@ -7,11 +7,11 @@ from types import SimpleNamespace
 import fsspec
 import torch
 
-from openinterp.agents.proposer import format_confounds
-from openinterp.core.confounds import SYNTAX_NODE
-from openinterp.corpus import build_from_hub, jsonl_bytes, sample_indices, sample_tokens
-from openinterp.evidence import read_corpus, read_labels
-from openinterp.harness.annotations import (
+from openinterpretability.agents.proposer import format_confounds
+from openinterpretability.core.confounds import SYNTAX_NODE
+from openinterpretability.corpus import build_from_hub, jsonl_bytes, sample_indices, sample_tokens
+from openinterpretability.evidence import read_corpus, read_labels
+from openinterpretability.harness.annotations import (
     UNLABELLED,
     DocumentLabels,
     LabelAccumulator,
@@ -21,7 +21,7 @@ from openinterp.harness.annotations import (
     align,
     mutual_information,
 )
-from openinterp.harness.scan import Piece, cut_pieces, scan_neuron
+from openinterpretability.harness.scan import Piece, cut_pieces, scan_neuron
 from tests.conftest import FakeTokenizer
 from tests.test_corpus import shards  # noqa: F401  (fixture)
 
@@ -155,8 +155,8 @@ def test_token_labels_at_a_token():
 
 
 def test_the_agents_see_each_examples_language(toy_runner, submission):
-    from openinterp.agents.proposer import format_examples, format_review_examples
-    from openinterp.agents.reviewer import LANGUAGE_PROBES, ReviewerAgent
+    from openinterpretability.agents.proposer import format_examples, format_review_examples
+    from openinterpretability.agents.reviewer import LANGUAGE_PROBES, ReviewerAgent
 
     scan = scan_neuron(
         toy_runner, TEXTS, 1, 2, "positive",
@@ -225,7 +225,7 @@ def test_build_from_hub_records_each_globs_language(tmp_path, shards, monkeypatc
 
 
 def test_reviewer_is_asked_for_role_changes_only_on_syntax_labels(record):
-    from openinterp.agents.reviewer import SYNTAX_PROBES, ReviewerAgent
+    from openinterpretability.agents.reviewer import SYNTAX_PROBES, ReviewerAgent
 
     sub = record.submission
     first = sub.top_examples[0].model_copy(update={"peak_labels": {SYNTAX_NODE: "keyword"}})

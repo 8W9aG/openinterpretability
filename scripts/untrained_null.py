@@ -28,7 +28,8 @@ from pathlib import Path
 
 import click
 
-import openinterp.cli  # noqa: F401  (first: the CLI modules import each other in its order)
+import openinterpretability.cli  # noqa: F401  (first: the CLI modules import each other in its order)
+from openinterpretability.core.legacy_names import cache_base  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -40,7 +41,7 @@ CORPUS = Path("corpus.jsonl")
 MAX_TOKENS = 200_000  # the scan sample of protocol 0.7 and later
 N_PROBES = 30
 # Outside the repo, so a proposer's prompt need not name the file that holds the arms.
-DEFAULT_PLAN = Path.home() / ".cache" / "openinterp" / "p3202" / "plan.json"
+DEFAULT_PLAN = cache_base() / "p3202" / "plan.json"
 
 
 @functools.cache
@@ -48,7 +49,7 @@ def runner(arm: str, device: str = "auto"):
     """The model runner of ``arm``: GPT-2's trained weights, or fresh ones from INIT_SEED."""
     from default_on_poles import random_init_runner
 
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     trained = _load_runner(MODEL, device, "float32")
     if arm == "trained":
@@ -58,7 +59,7 @@ def runner(arm: str, device: str = "auto"):
 
 def window() -> int | None:
     """The scan window that pyproject.toml configures for GPT-2, as the registry's audits use."""
-    from openinterp.planner import configured_windows
+    from openinterpretability.planner import configured_windows
 
     return configured_windows().get(MODEL)
 
@@ -103,8 +104,8 @@ def plan(pairs, seed, work_dir, out):
 @click.option("--unit", "names", multiple=True, help="Default: every unit not yet done.")
 def scan(plan_file, names):
     """Scan units and write their proposer prompts (ev.prompt.md), or outcome.json on a stop."""
-    from openinterp.cli_evidence import write_evidence
-    from openinterp.evidence import ScanRequest, Unauditable, scan_evidence
+    from openinterpretability.cli_evidence import write_evidence
+    from openinterpretability.evidence import ScanRequest, Unauditable, scan_evidence
 
     for unit in pending(load_plan(plan_file), names, "", ("ev.json", "outcome.json")):
         out = Path(unit["dir"])
@@ -156,8 +157,8 @@ def print_strengths(unit_dir: Path, texts, run) -> None:
     The scale is the unit's own, from its ev.json, so the numbers do not say which model
     or arm the unit is in.
     """
-    from openinterp.core.schemas import ScanEvidence
-    from openinterp.harness.units import unit_of
+    from openinterpretability.core.schemas import ScanEvidence
+    from openinterpretability.harness.units import unit_of
 
     evidence = ScanEvidence.model_validate_json((unit_dir / "ev.json").read_text())
     skip = bool(evidence.first_token_floor)
@@ -185,10 +186,10 @@ def submit(plan_file, names, agent_model):
 
 def build_and_write(out: Path, run, agent_model: str) -> None:
     """Build the submission in ``out`` from its draft on ``run``, and write the review prompt."""
-    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
-    from openinterp.cli_review import write_review_prompt
-    from openinterp.cli_submission import build_submission
-    from openinterp.core.schemas import ScanEvidence
+    from openinterpretability.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterpretability.cli_review import write_review_prompt
+    from openinterpretability.cli_submission import build_submission
+    from openinterpretability.core.schemas import ScanEvidence
 
     evidence = ScanEvidence.model_validate_json((out / "ev.json").read_text())
     draft = HypothesisDraft.model_validate_json((out / "ev.hypothesis.json").read_text())
@@ -215,8 +216,8 @@ def measure_unit_dir(out: Path, run, agent_model: str) -> str:
     """
     from null_calibration import review_probes
 
-    from openinterp.agents.reviewer import ProbeSet
-    from openinterp.core.schemas import NeuronAuditSubmission
+    from openinterpretability.agents.reviewer import ProbeSet
+    from openinterpretability.core.schemas import NeuronAuditSubmission
 
     sub = NeuronAuditSubmission.model_validate_json((out / "submission.json").read_text())
     try:

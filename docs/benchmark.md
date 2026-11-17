@@ -1,6 +1,6 @@
 # Explainer benchmark
 
-A frozen, versioned benchmark for tools that explain neurons. Other labs can score their own explainers on it. The data is in [`benchmark/`](../benchmark/), and `open-interpretability benchmark` freezes and scores it ([openinterp/benchmark.py](../openinterp/benchmark.py), [openinterp/cli_benchmark.py](../openinterp/cli_benchmark.py)).
+A frozen, versioned benchmark for tools that explain neurons. Other labs can score their own explainers on it. The data is in [`benchmark/`](../benchmark/), and `open-interpretability benchmark` freezes and scores it ([openinterpretability/benchmark.py](../openinterpretability/benchmark.py), [openinterpretability/cli_benchmark.py](../openinterpretability/cli_benchmark.py)).
 
 ## What it measures
 
@@ -22,7 +22,7 @@ Read the scores as scores on these units, not on whole models.
 
 ## Splits
 
-A hash of each unit's slug puts 20% of the units in the test split and the rest in the dev split (`openinterp.benchmark.split_of`). The version name salts the hash.
+A hash of each unit's slug puts 20% of the units in the test split and the rest in the dev split (`openinterpretability.benchmark.split_of`). The version name salts the hash.
 
 - **Dev.** `dev/probes.jsonl` publishes the probes and labels from the records. Use it to develop and tune your explainer.
 - **Test.** The records of test units are public too, so their record probes can't be held out. The test split uses fresh probes instead. A maintainer writes and measures them, and keeps them out of the repository. `manifest.json` publishes only the SHA-256 of the labels file (`test_labels_sha256`), so a reported test score can be checked against the file later. To have a test score, send your explanations file to a maintainer.
@@ -65,7 +65,7 @@ The judge model changes the scores. Always report the judge with a score, and co
 
 ## Robustness
 
-Your explanation goes into the judge's prompt, fenced as data (`openinterp/core/fence.py`). An explanation that gives the judge an order can't raise its score. The judge never sees the labels, and a judge that lists every text, or none, scores 0.5, which is chance. A red-team run with Claude Haiku 5.5 judges tried five attacks on 12 dev units. They were orders in English, French and Chinese, a forged closing fence, and an order after a real explanation. No attack scored above chance or above the explanation alone, and no judge obeyed (`docs/analyses/judge-injection.md`).
+Your explanation goes into the judge's prompt, fenced as data (`openinterpretability/core/fence.py`). An explanation that gives the judge an order can't raise its score. The judge never sees the labels, and a judge that lists every text, or none, scores 0.5, which is chance. A red-team run with Claude Haiku 5.5 judges tried five attacks on 12 dev units. They were orders in English, French and Chinese, a forged closing fence, and an order after a real explanation. No attack scored above chance or above the explanation alone, and no judge obeyed (`docs/analyses/judge-injection.md`).
 
 Each scored row records `listed_share`, the share of texts that the judge listed. The summary names the units where the judge listed at least 90% of texts, in `listed_nearly_all`, and the scorer prints a warning. A working injection would look like that, and so would an honest explanation that is too broad. The flag marks units for a person to read. It doesn't change a score.
 

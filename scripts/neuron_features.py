@@ -3,7 +3,7 @@
 Shabalin and Piotrowski (arXiv 2610.24521) call a transcoder feature a *neuron feature*
 when its encoder and its decoder both align with one MLP neuron. This script measures that
 for Dunefsky et al.'s GPT-2 small transcoders. The vectors are those of
-:mod:`openinterp.harness.crossref`:
+:mod:`openinterpretability.harness.crossref`:
 
 * a latent reads with its encoder (``latent_reads``, ``ln_2`` folded in, centred) and
   writes with its decoder (``latent_writes``).
@@ -25,9 +25,9 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.harness.crossref import _unit, latent_reads, latent_writes
-from openinterp.harness.dictionaries import DICTIONARIES, load_spec
-from openinterp.harness.wiring import _matrix, mlp_reads
+from openinterpretability.harness.crossref import _unit, latent_reads, latent_writes
+from openinterpretability.harness.dictionaries import DICTIONARIES, load_spec
+from openinterpretability.harness.wiring import _matrix, mlp_reads
 
 AUDITS = Path("docs/analyses/transcoder-baseline.jsonl")
 DICTIONARY = "gpt2-small-transcoders"
@@ -82,7 +82,7 @@ def main(out: Path) -> None:
     """Score the audited latents and every latent of each layer, and write the rows."""
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
 
     name = DICTIONARIES[DICTIONARY].model_name
     model = AutoModelForCausalLM.from_pretrained(name).eval()

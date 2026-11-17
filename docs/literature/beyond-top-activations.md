@@ -41,7 +41,7 @@ The authors explain why the two LLM-based methods (MAIA, DnD) score low: they lo
 
 ## Use in this repo
 
-**Our detection already scores beyond top activations.** `open-interpretability score` takes its windows from held-out text (`sample_heldout`, `openinterp/harness/explanation_scores.py`). It sorts the active windows by peak and splits them into five equal bins. Each bin gives 5 windows, so the weakest activations count as much as the top ones. That answers the paper's first point: an evaluation of top activations alone measures only recall.
+**Our detection already scores beyond top activations.** `open-interpretability score` takes its windows from held-out text (`sample_heldout`, `openinterpretability/harness/explanation_scores.py`). It sorts the active windows by peak and splits them into five equal bins. Each bin gives 5 windows, so the weakest activations count as much as the top ones. That answers the paper's first point: an evaluation of top activations alone measures only recall.
 
 **Measured across the registry, the scores lean low, not high** (`docs/analyses/score-by-range.md`, #3238). Four fifths of the scored active windows peak below 0.44×max. Detection recall rises from 0.38 in the weakest bin to 0.51 in the strongest. So a score from the top bin alone would read 8.5 points higher.
 

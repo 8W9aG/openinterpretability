@@ -7,10 +7,10 @@ import pytest
 import torch
 from safetensors.torch import save_file
 
-from openinterp.agents.proposer import format_dictionary_profile
-from openinterp.core.schemas import DictionaryProfile, FeatureIdentifier, NeuronIdentifier
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.units import FeatureUnit, NeuronUnit
+from openinterpretability.agents.proposer import format_dictionary_profile
+from openinterpretability.core.schemas import DictionaryProfile, FeatureIdentifier, NeuronIdentifier
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.units import FeatureUnit, NeuronUnit
 from tests.conftest import FakeTokenizer
 
 LAYER, INDEX, TEXT = 1, 7, "hello hello quoted 'text'"

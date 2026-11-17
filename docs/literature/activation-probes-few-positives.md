@@ -43,7 +43,7 @@ Generated positives (gpt-4o-mini) at 2× add 0.026 AUC and 0.104 recall. The aut
 
 ## Use in this repo
 
-**Our probes already train this way.** `open-interpretability probe-compare` (`openinterp/harness/probing.py`) fits a logistic probe and a mass-mean probe on the MLP hidden layer and on the residual stream. It keeps at most 2,000 positive and 8,000 negative tokens (`--max-positive`, `--max-negative`) and weights the loss by class (`fit_logistic`). That is the paper's recommendation: keep all the negatives and balance them in the loss, not by sampling. So the paper adds no reason to change the defaults.
+**Our probes already train this way.** `open-interpretability probe-compare` (`openinterpretability/harness/probing.py`) fits a logistic probe and a mass-mean probe on the MLP hidden layer and on the residual stream. It keeps at most 2,000 positive and 8,000 negative tokens (`--max-positive`, `--max-negative`) and weights the loss by class (`fit_logistic`). That is the paper's recommendation: keep all the negatives and balance them in the loss, not by sampling. So the paper adds no reason to change the defaults.
 
 **Our thin row is thin at test, not at training.** The GPT-2 L0/N1923+ row in `docs/analyses/probe-comparison.jsonl` trained on 27 positives against 8,000 negatives. The paper suggests that a probe trained like this can work. But the row's held-out set has 15 positives, and `docs/analyses/probe-comparison.md` already calls it too thin to estimate any probe. The paper does not help with this. Its test sets have equal classes, and the text does not give their size. With 15 positives, one miss moves recall by 0.067. A score from that row needs an interval, and no number of training negatives gives one.
 

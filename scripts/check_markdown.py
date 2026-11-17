@@ -21,7 +21,7 @@ REPO = Path(__file__).resolve().parents[1]
 
 EXEMPT = (
     "wiki/*",  # generated pages
-    "openinterp/builder/templates/*",  # Jinja, not Markdown, until rendered
+    "openinterpretability/builder/templates/*",  # Jinja, not Markdown, until rendered
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
 )
 

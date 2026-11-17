@@ -5,7 +5,7 @@ a high kurtosis of the vocabulary projection of their weights, ``z = wU``. This 
 computes that kurtosis from the weights alone, with no forward pass:
 
 * the output kurtosis: ``w_out`` through the final norm and ``U``. This is the
-  ``logit_kurtosis`` of :func:`openinterp.harness.jlens._decode`.
+  ``logit_kurtosis`` of :func:`openinterpretability.harness.jlens._decode`.
 * the input kurtosis: the read vector of ``wiring.mlp_reads``, through ``U``. The read
   vector is ``gate`` for a gated MLP and ``in`` for GPT-2, with the pre-MLP norm folded in.
 
@@ -60,7 +60,7 @@ def moments(rows: torch.Tensor, unembed: torch.Tensor) -> tuple[torch.Tensor, to
 
 def write_rows(runner, layer: int) -> torch.Tensor:
     """``[width, d_model]``: each neuron's ``w_out`` through the final norm (see ``jlens``)."""
-    from openinterp.harness import wiring
+    from openinterpretability.harness import wiring
 
     w = wiring._matrix(runner.down_proj(layer)).T  # [width, d_model]
     norm = runner.final_norm()
@@ -72,7 +72,7 @@ def write_rows(runner, layer: int) -> torch.Tensor:
 
 def read_rows(runner, layer: int) -> torch.Tensor:
     """``[width, d_model]``: each neuron's read vector, ``gate`` when the MLP has one."""
-    from openinterp.harness import wiring
+    from openinterpretability.harness import wiring
 
     reads = wiring.mlp_reads(runner, layer)
     return reads.get("gate", reads.get("in", next(iter(reads.values()))))
@@ -80,7 +80,7 @@ def read_rows(runner, layer: int) -> torch.Tensor:
 
 def model_kurtoses(model: str, device: str) -> dict[int, dict[str, torch.Tensor]]:
     """``{layer: {"kurtosis_out", "kurtosis_in", "skew_out": [width]}}`` for ``model``."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     runner = _load_runner(model, device, "float32", None)
     unembed = runner.model.get_output_embeddings().weight.detach().float().to(device)

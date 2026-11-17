@@ -4,11 +4,11 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from openinterp.core.exceptions import ShapeMismatchError
-from openinterp.harness.attribution import attribution_patching, top_attributed_neurons
-from openinterp.harness.hooks import NeuronHookRunner, replace_pole
-from openinterp.harness.lookahead import measure_lookahead, output_token_projection
-from openinterp.harness.patcher import (
+from openinterpretability.core.exceptions import ShapeMismatchError
+from openinterpretability.harness.attribution import attribution_patching, top_attributed_neurons
+from openinterpretability.harness.hooks import NeuronHookRunner, replace_pole
+from openinterpretability.harness.lookahead import measure_lookahead, output_token_projection
+from openinterpretability.harness.patcher import (
     ActivationPatcher,
     logit_direction_metric,
     metric_change,

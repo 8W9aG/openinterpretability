@@ -12,7 +12,7 @@ _SPEC.loader.exec_module(rules)
 
 
 def test_balanced_accuracy_and_contiguity():
-    from openinterp.harness.explanation_scores import _balanced, _contiguous
+    from openinterpretability.harness.explanation_scores import _balanced, _contiguous
 
     assert _balanced([(True, True), (False, False), (True, False), (True, True)]) == 0.75
     assert _balanced([(True, True)]) is None

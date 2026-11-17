@@ -4,11 +4,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from openinterp.checks import CheckReport
-from openinterp.circuit_checks import check_circuits
-from openinterp.circuit_review import review
-from openinterp.core import circuit_records as cr
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterpretability.checks import CheckReport
+from openinterpretability.circuit_checks import check_circuits
+from openinterpretability.circuit_review import review
+from openinterpretability.core import circuit_records as cr
+from openinterpretability.harness.hooks import NeuronHookRunner
 from tests.conftest import FakeTokenizer
 
 
@@ -98,7 +98,7 @@ def test_a_review_measures_and_decides(tiny_gpt2):
 
 
 def test_prompts_of_different_lengths_are_refused(tiny_gpt2):
-    from openinterp.circuit_review import pair_task
+    from openinterpretability.circuit_review import pair_task
 
     runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
     with pytest.raises(ValueError, match="same token count"):

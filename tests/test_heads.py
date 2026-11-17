@@ -4,14 +4,14 @@ import pytest
 import torch
 from pydantic import TypeAdapter, ValidationError
 
-from openinterp.core.schemas import (
+from openinterpretability.core.schemas import (
     ComponentIdentifier,
     HeadIdentifier,
     HeadProfile,
     NeuronAuditSubmission,
     NeuronIdentifier,
 )
-from openinterp.harness.hooks import NeuronHookRunner, ablate_head
+from openinterpretability.harness.hooks import NeuronHookRunner, ablate_head
 
 IDS = torch.tensor([[1, 5, 7, 2, 9, 3]])
 PROFILE = HeadProfile(
