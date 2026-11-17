@@ -17,6 +17,12 @@ draws. Explained units that bring back no more than random ones explain no more 
 answer than any units would. The measure is causal, not first-order, so the long tail of
 small attributions doesn't inflate it. It is reported, not gated.
 
+The credited coverage is capped at 1 (#4507). On some prompts, mean-ablating the other
+units raises the answer above the clean model, because they held it down. Then *kept*
+exceeds *clean* and the raw ratio exceeds 1: 536% on one Pythia-70m prompt. The units still
+bring the whole answer back, so they get full credit, and no more. The raw value is kept
+and reported as an overshoot, so that a reader sees it.
+
 :func:`add_gains` measures how much coverage each planned experiment would add, if its
 units were explained too. That ranks the experiments by what they would explain of this
 answer, not by first-order attribution. Each gain costs one forward pass, so it is measured
@@ -83,10 +89,16 @@ def _log_prob(runner, prompt: str, token: int, position: int, hooks=None) -> flo
     return float(torch.log_softmax(logits, -1)[token])
 
 
-def _share(clean: float, ablated: float, kept: float) -> float | None:
+def _raw(clean: float, ablated: float, kept: float) -> float | None:
     """(kept − ablated) / (clean − ablated), or None when ablating changes nothing."""
     span = clean - ablated
     return (kept - ablated) / span if abs(span) > 1e-9 else None
+
+
+def _share(clean: float, ablated: float, kept: float) -> float | None:
+    """The credited coverage: :func:`_raw`, at most 1 (module docstring)."""
+    raw = _raw(clean, ablated, kept)
+    return None if raw is None else min(raw, 1.0)
 
 
 def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAWS, seed=0):
@@ -105,9 +117,11 @@ def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAW
         value = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, drawn))
         randoms.append(_share(clean, ablated, value))
     baseline = [r for r in randoms if r is not None]
+    raw = _raw(clean, ablated, kept)
     return {
         "units": len(keep), "clean": clean, "ablated": ablated, "kept": kept,
-        "coverage": _share(clean, ablated, kept),
+        "coverage": _share(clean, ablated, kept), "raw": raw,
+        "overshoot": raw is not None and raw > 1.0,  # the kept units push past the clean run
         "random": sum(baseline) / len(baseline) if baseline else None,
         "random_draws": baseline,  # each draw's coverage, for the page's figure (#4479)
     }  # fmt: skip
@@ -144,3 +158,38 @@ def add_gains(runner, prompt, means, token, position, order, planned, *, pool=PO
 
     planned.experiments.sort(key=by_gain)  # stable: unmeasured ones keep attribution order
     planned.groups.sort(key=by_gain)
+
+
+def coverage_plan(runner, prompt, means, token, position, order, planned, target: float) -> dict:
+    """How many planned unit experiments bring the coverage to ``target`` (#4476).
+
+    The target is causal coverage, not a share of |attribution|. The units of the first k
+    planned experiments are kept with the explained ones, and the rest mean-ablated. A
+    binary search finds the smallest k that reaches ``target``. Coverage need not rise with
+    every unit, so k is an estimate. ``reach`` is the coverage with every planned unit kept.
+    """
+    explained = [unit for unit, _, _, done in order if done]
+    clean = _log_prob(runner, prompt, token, position)
+    ablated = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, []))
+
+    def raw(k: int) -> float:
+        keep = explained + [u for e in planned.experiments[:k] for u in e.units]
+        kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, keep))
+        found = _raw(clean, ablated, kept)
+        return -1.0 if found is None else found
+
+    def coverage(k: int) -> float:
+        return min(raw(k), 1.0)  # credited coverage (module docstring)
+
+    n = len(planned.experiments)
+    now, full = coverage(0), raw(n)
+    out = {"target": target, "now": now, "reach": min(full, 1.0), "overshoot": full > 1.0}
+    if now >= target:  # reached already, whatever larger sets do
+        return out | {"experiments": 0}
+    if out["reach"] < target:
+        return out | {"experiments": None}
+    low, high = 0, n
+    while low < high:
+        mid = (low + high) // 2
+        low, high = (low, mid) if coverage(mid) >= target else (mid + 1, high)
+    return out | {"experiments": low}

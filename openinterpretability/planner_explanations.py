@@ -49,17 +49,10 @@ def load_prompts(root: Path) -> list[dict]:
 
 def explanation_slug(model: str, prompt: str, position: int = -1) -> str:
     """``<model slug>/explanations/<prompt id>``: what an explanation draw claims."""
-    from datetime import UTC, datetime
-
-    from openinterpretability.core.explanation_records import ExplanationRecord
+    from openinterpretability.core.explanation_records import prompt_id
     from openinterpretability.core.identifiers import model_slug
 
-    probe = ExplanationRecord(
-        model_name=model, prompt=prompt, position=position, answer="", explained_share=0,
-        blocked_share=0, prompt_coverage=None, random_coverage=None, units=[],
-        package_version="", written=datetime.now(UTC),
-    )  # fmt: skip
-    return f"{model_slug(model)}/explanations/{probe.prompt_id}"
+    return f"{model_slug(model)}/explanations/{prompt_id(model, position, prompt)}"
 
 
 def _explain(model: str, prompt: str, why: str) -> Candidate:

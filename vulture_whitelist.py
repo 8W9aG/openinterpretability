@@ -85,6 +85,8 @@ _.dissent  # unused property (openinterpretability/builder/standing.py:59)
 _.neurons_studied  # unused property (openinterpretability/builder/tree.py:183)
 _.neurons_studied  # unused property (openinterpretability/builder/tree.py:265)
 _.layer_counts  # unused method (openinterpretability/builder/tree.py:295)
+_.best_coverage  # unused property (openinterpretability/builder/explanation_pages.py:105)
+_.overshoot  # unused property (openinterpretability/core/explanation_records.py:150)
 
 # Dataclass and Pydantic fields, read from JSON, by templates or by keyword; and settings that libraries read.
 _.share_before  # unused variable (openinterpretability/core/explanation_records.py:77)

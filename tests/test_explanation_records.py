@@ -9,7 +9,7 @@ from openinterpretability.core.explanation_records import (
     ExplainedUnit,
     ExplanationRecord,
     Narration,
-    load_latest,
+    load_all,
     record_path,
 )
 
@@ -37,13 +37,13 @@ def _write(wiki, record):
     return path
 
 
-def test_a_prompt_keeps_its_history_and_the_newest_counts(tmp_path):
+def test_a_prompt_keeps_its_history(tmp_path):
     old = _write(tmp_path, _record(datetime(2026, 11, 16, tzinfo=UTC)))
     new = _write(tmp_path, _record(datetime(2026, 11, 17, tzinfo=UTC)))
     assert old.parent == new.parent and old != new  # one folder per prompt, a file per time
-    ((path, latest),) = load_latest(tmp_path)
-    assert path == new and latest.written.day == 17
-    assert load_latest(tmp_path / "missing") == []
+    (found,) = load_all(tmp_path).values()
+    assert [p for p, _ in found] == [old, new]  # oldest first
+    assert load_all(tmp_path / "missing") == {}
 
 
 def test_an_explanation_is_stale_when_a_cited_units_status_changed(tmp_path):
@@ -56,9 +56,7 @@ def test_an_explanation_is_stale_when_a_cited_units_status_changed(tmp_path):
     }
     (view,) = load_views(wiki, states=verified)
     assert view.changed == [{"unit": "L10/N2931-", "then": "unstudied", "now": "VERIFIED"}]
-    assert view.href.startswith("explanations/openai-community--gpt2/") and view.href.endswith(
-        ".html"
-    )
+    assert view.href == f"models/openai-community--gpt2/explanations/{view.record.prompt_id}.html"
     assert unit_href(SLUG) == "models/openai-community--gpt2/L10/N2931.html"
     assert unit_href(None) is None
 
@@ -70,9 +68,9 @@ def test_the_site_has_a_page_for_each_explanation(tmp_path, record):
     compile_site([record], tmp_path / "site", explanations=views)
     index = (tmp_path / "site" / "explanations" / "index.html").read_text()
     assert "John gave a drink to" in index and "current" in index
-    page = (tmp_path / "site" / views[0].href).read_text()
+    page = (tmp_path / "site" / views[0].newest.href).read_text()
     assert "Mostly not known yet." in page and "L10/N2931-" in page and "C4" in page
-    assert 'href="../../models/openai-community--gpt2/L10/N2931.html"' in page
+    assert 'href="../../../../models/openai-community--gpt2/L10/N2931.html"' in page
     research = (tmp_path / "site" / "research" / "index.html").read_text()
     assert "explanations/index.html" in research
     compile_site([record], tmp_path / "bare")
@@ -103,7 +101,8 @@ def test_an_invalid_record_is_skipped_and_the_check_rejects_it(tmp_path, monkeyp
     bad = wiki / "explanations" / "x" / "y" / "z.json"
     bad.parent.mkdir(parents=True)
     bad.write_text("{}")
-    assert [p for p, _ in load_latest(wiki)] == [good]  # the bad one doesn't stop the rest
+    kept = [p for found in load_all(wiki).values() for p, _ in found]
+    assert kept == [good]  # the bad one doesn't stop the rest
     assert "skipping an invalid explanation record" in capsys.readouterr().err
     monkeypatch.setattr(planner, "configured_models", lambda: ("openai-community/gpt2",))
     monkeypatch.setattr(planner, "signed_models", lambda: ())
@@ -128,10 +127,67 @@ def test_each_model_page_lists_its_explanations(tmp_path, record):
     slug = record.submission.identifier.model_slug
     page = (tmp_path / "site" / "models" / slug / "index.html").read_text()
     section = page[page.index('id="explanations"') :]
-    assert f'href="../../explanations/{slug}/{mine.prompt_id}.html"' in section
+    assert f'href="../../models/{slug}/explanations/{mine.prompt_id}.html"' in section
     assert "John gave a drink to" in section and "openai-community/gpt2" not in section
     index = (tmp_path / "site" / "explanations" / "index.html").read_text()
     assert index.count("John gave a drink to") == 2  # the index lists both models'
     compile_site([record], tmp_path / "bare")
     bare = (tmp_path / "bare" / "models" / slug / "index.html").read_text()
     assert 'id="explanations"' not in bare
+
+
+def _built(tmp_path, record, *records):
+    wiki = tmp_path / "wiki"
+    for r in records:
+        _write(wiki, r)
+    views = load_views(wiki, states={})
+    compile_site([record], tmp_path / "site", explanations=views)
+    return views
+
+
+def test_a_prompt_page_lists_each_explanation_and_the_later_one_builds_on_the_earlier(
+    tmp_path, record
+):
+    # The done-when of #4503: a 10% and a 20% explanation of one prompt.
+    first = _record(datetime(2026, 11, 16, tzinfo=UTC)).model_copy(
+        update={"target": 0.1, "prompt_coverage": 0.12}
+    )
+    second = _record(datetime(2026, 11, 17, tzinfo=UTC)).model_copy(
+        update={"target": 0.2, "prompt_coverage": 0.21, "previous": first.id})  # fmt: skip
+    (prompt,) = _built(tmp_path, record, first, second)
+    assert [v.record.id for v in prompt.explanations] == [second.id, first.id]
+    assert prompt.newest.previous.record.id == first.id and prompt.best_coverage == 0.21
+    site = tmp_path / "site"
+    page = (site / prompt.href).read_text()
+    for view in prompt.explanations:  # the table links both, from the prompt's folder
+        assert f'href="../../../{view.href}"' in page
+        assert (site / view.href).exists()
+    later = (site / prompt.newest.href).read_text()
+    assert f'href="../../../../{prompt.explanations[1].href}"' in later  # names the 10% one
+    assert "which reached 12%; this one reaches 21%" in later
+    old = site / "explanations" / "openai-community--gpt2" / f"{first.prompt_id}.html"
+    assert f"../../{prompt.href}" in old.read_text()  # the old page redirects
+
+
+def test_the_index_groups_prompts_by_model_with_a_count_and_the_best_coverage(tmp_path, record):
+    a = _record(datetime(2026, 11, 16, tzinfo=UTC)).model_copy(update={"prompt_coverage": 0.3})
+    b = _record(datetime(2026, 11, 17, tzinfo=UTC)).model_copy(update={"prompt_coverage": 0.1})
+    _built(tmp_path, record, a, b)
+    index = (tmp_path / "site" / "explanations" / "index.html").read_text()
+    assert index.count("John gave a drink to") == 1 and "openai-community/gpt2</span>" in index
+    assert ">30%<" in index  # the best coverage, not the newest
+
+
+def test_levels_ids_and_the_best_explanation():
+    from openinterpretability.core.explanation_records import best
+
+    when = datetime(2026, 11, 17, 5, 6, 7, tzinfo=UTC)
+    rec = _record(when)
+    assert rec.id == "20261117T050607Z" and rec.level == "long"
+    short = rec.model_copy(update={"narration": rec.narration.model_copy(update={"sections": []})})
+    assert short.level == "paragraph" and rec.model_copy(update={"narration": None}).level == (
+        "mechanism")  # fmt: skip
+    low = rec.model_copy(update={"prompt_coverage": 0.1})
+    tie = rec.model_copy(update={"prompt_coverage": 0.1, "written": when.replace(hour=6)})
+    assert best([low, tie]) is tie and best([]) is None
+    assert best([rec.model_copy(update={"prompt_coverage": None})]) is None
