@@ -107,12 +107,13 @@ def loop_command(
 
 def run_loop(
     proposer, reviewer, plan_next, max_experiments=0, epsilon=0.7, corpus=None, worktree=None,
-    one_heavy_job=False, max_failures=3,
+    one_heavy_job=False, max_failures=3, out=None,
 ) -> int:  # fmt: skip
     """Set up the loop's worktree, lock and runner cache, run it with ``plan_next``, and return.
 
     ``loop`` passes the planner's draw, and ``explain --run`` its targeted draws (#3744).
-    The return value is the loop's exit code.
+    The return value is the loop's exit code. ``out``, a dict, gets the loop as ``"loop"``,
+    for its results and the reason it finished (#4474).
     """
     import time
 
@@ -141,6 +142,8 @@ def run_loop(
     options = Options(proposer, reviewer, epsilon, corpus)
     loop = Loop(options, repo / "logs" / "loop", max_experiments, max_failures, plan_next,
                 open_pr_claims, time.sleep)  # fmt: skip
+    if out is not None:
+        out["loop"] = loop
     return loop.run()
 
 
