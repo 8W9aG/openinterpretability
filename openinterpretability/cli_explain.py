@@ -94,6 +94,7 @@ def explain_command(
         runner, model_name, prompt, means, labels, token=_answer(runner, token),
         position=position, top=top, edges=edges, groups=groups, group_labels=group_labels,
     )  # fmt: skip
+    mark_hubs(result, model_name, states)  # a top unit that is a hub's center, and its facts
     planned = explain_plan.plan(
         result, states, model_name, target=explain_plan.TARGET if target is None else target,
         window=configured_windows().get(model_name), groups=groups,
@@ -116,6 +117,33 @@ def explain_command(
         click.echo(f"Explanation → {path}")
     if run:
         _run(planned.experiments[:run], model_name, (proposer, reviewer, provider), max_attempts)
+
+
+def mark_hubs(result, model: str, states: dict) -> None:
+    """Set ``hub`` on each top unit that is a hub's center (#4472)."""
+    from openinterpretability.explain import _slug
+    from openinterpretability.hubs import explain_notes
+
+    notes = explain_notes(model, states)
+    for unit in result.poles:
+        note = notes.get(_slug(model, unit.key))
+        unit.hub = note.model_dump() if note is not None else None
+
+
+def hub_line(hub: dict) -> str:
+    """One line on a unit that is a hub's center: its id, page and artefact facts."""
+    facts = []
+    if hub.get("active_share") is not None:
+        on = "default-on" if hub.get("default_on") else "not default-on"
+        facts.append(f"{on}, active on {hub['active_share']:.0%} of its scan")
+    if hub.get("norm") is not None:
+        facts.append(f"output norm {hub['norm']:.3g} against its layer's median "
+                     f"{hub['layer_median']:.3g} (p{100 * hub['percentile']:.0f})")  # fmt: skip
+    from openinterpretability.core.project import project_links
+
+    told = "; ".join(facts) or "no facts recorded"
+    url = project_links()["site_url"] + hub["href"]
+    return f"hub {hub['hub']} ({url}): {told}. A hub can be an artefact."
 
 
 def _answer(runner, token: str | None) -> int | None:
@@ -155,6 +183,8 @@ def _print(result) -> None:
         click.echo(f"{row}  {p.status}")
         if p.explanation:
             click.echo(f"{'':<14} {p.explanation[:110]}")
+        if p.hub:
+            click.echo(f"{'':<14} {hub_line(p.hub)}")
     click.echo(
         f"Explained units (VERIFIED, or in a VERIFIED superposition or circuit) hold "
         f"{result.verified_share:.1%} of the total |attribution|; "
@@ -364,7 +394,7 @@ def _explained_units(model: str, result) -> list:
         kind = "head" if u.pole == HEAD else "pole"
         units.append(ExplainedUnit(
             unit=u.label, slug=_slug(model, u.key), kind=kind, share=abs(u.attribution) / total,
-            attribution=u.attribution, status=u.status, explanation=u.explanation,
+            attribution=u.attribution, status=u.status, explanation=u.explanation, hub=u.hub,
         ))  # fmt: skip
     for g in result.groups[:10]:
         units.append(ExplainedUnit(

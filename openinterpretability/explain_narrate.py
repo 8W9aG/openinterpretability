@@ -37,6 +37,8 @@ def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
     for u in result.poles:
         row = _row(u.label, u.attribution, total, u.status, u.explanation)
         row["ablation_change"] = None if u.ablation_change is None else round(u.ablation_change, 4)
+        if getattr(u, "hub", None):
+            row["hub"] = u.hub  # the unit is a hub's center (#4472)
         units.append(row)
     groups = []
     for g in result.groups[:10]:
@@ -58,7 +60,8 @@ def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
         "paths": result.edges[:20],
         "next_experiments": nxt,
         "notes": "Shares are of first-order |attribution| on this prompt. A unit's role is "
-        "known only when its status is VERIFIED.",
+        "known only when its status is VERIFIED. A unit with a hub is a hub's center: wired to "
+        "many studied units, it can be an artefact, so say so with its facts.",
     }
 
 
