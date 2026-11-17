@@ -302,6 +302,7 @@ def compile_site(
     coverage_rows: dict | None = None,
     paper_pdfs: bool = False,
     pending: Sequence = (),
+    explanations: Sequence = (),  # builder/explanation_pages.load_views
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -314,10 +315,9 @@ def compile_site(
     page, or the home's. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the
     Models page, of every configured model. ``jobs`` is the unit pages' worker processes.
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
-    erratum, and one set aside counts toward no standing. ``users``
-    (``builder.users.load_users``) name who made the records that record no contributor.
-    Each person gets a page under ``users/``. ``coverage_rows`` (``builder.coverage.load_rows``)
-    give the home page each model's registry coverage.
+    erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
+    who made records that name no contributor, each with a page under ``users/``.
+    ``coverage_rows`` (``builder.coverage.load_rows``) give each model's registry coverage.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -354,7 +354,7 @@ def compile_site(
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs)
+    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     _save_memos()
     return report
