@@ -303,6 +303,7 @@ def compile_site(
     pending: Sequence = (),
     explanations: Sequence = (),  # builder/explanation_pages.load_views
     circuits: dict | None = None,  # builder/circuit_units.load_circuit_data
+    concept_maps: dict | None = None,  # builder/concept_map_view.load_maps
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -341,7 +342,7 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
-    common |= model_page_extras(coverage_rows or {}, explanations, circuits or {})
+    common |= model_page_extras(coverage_rows or {}, explanations, circuits or {}, concept_maps)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))

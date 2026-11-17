@@ -6,8 +6,9 @@ The mark is ``openinterpretability/builder/brand/mark.svg``. This script writes,
 - ``og.png``: the 1,200 × 630 image that a shared link shows (Open Graph and Twitter cards).
   It is also GitHub's social preview, which the maintainer uploads in the repository's settings.
 
-The PNGs are committed, so the site build needs no browser. Run this again after a change
-to the mark or the project's description::
+It first writes ``mark.svg`` and ``logo.svg`` from the palette (``brand.write_svgs``). The
+PNGs are committed, so the site build needs no browser. Run this again after a change to
+the palette's mark colours or the project's description::
 
     uv run python scripts/brand_images.py
 """
@@ -63,6 +64,9 @@ def shoot(browser: str, page: str, out: Path, size: tuple[int, int]) -> None:
 
 def main() -> None:
     """Write every PNG in :data:`SIZES` from the mark."""
+    from openinterpretability.builder.brand import write_svgs
+
+    write_svgs()  # the SVGs first, from palette.py (#4465)
     browser = chrome()
     if browser is None:
         raise SystemExit("No Chrome found: set $OPENINTERPRETABILITY_CHROME.")

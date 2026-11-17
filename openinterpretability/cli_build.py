@@ -15,7 +15,9 @@ from openinterpretability.sisters import DEFAULT_PATH as SISTERS_PATH
 def _wiki_inputs(wiki_dir) -> dict:
     """What the build reads from the wiki besides the experiments, by compile_site argument."""
     from openinterpretability.builder.circuit_units import load_circuit_data
+    from openinterpretability.builder.concept_map_view import load_maps
     from openinterpretability.builder.explanation_pages import load_views
+    from openinterpretability.concept_map import MAPS_DIR
     from openinterpretability.core.draws import load_draws, load_stops
     from openinterpretability.core.errata import load_errata
 
@@ -25,6 +27,7 @@ def _wiki_inputs(wiki_dir) -> dict:
         "errata": load_errata(wiki_dir),
         "explanations": load_views(wiki_dir),  # each prompt's newest explanation, and if stale
         "circuits": load_circuit_data(wiki_dir),  # registry circuits, their records, hub norms
+        "concept_maps": load_maps(MAPS_DIR),  # each model's concept map (#4422)
     }
 
 
