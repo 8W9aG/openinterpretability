@@ -123,16 +123,16 @@
   </div>
   {% if pc %}
   <svg viewBox="0 0 {{ pc.width }} {{ 4 * pc.rows | length - 1 }}" class="mt-3 w-full" role="img" data-pagefind-ignore
-       aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons; {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron.">
+       aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons; {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron. A cell's colour is the best status in it, and how far it fills is the share of its poles studied.">
     <defs><pattern id="pieces-{{ idx }}" width="{{ pc.pitch }}" height="4" patternUnits="userSpaceOnUse"><rect width="{{ pc.pitch - 1 }}" height="3" class="fill-slate-200 dark:fill-slate-800"/></pattern></defs>
     <rect width="{{ pc.width + 1 }}" height="{{ 4 * pc.rows | length }}" fill="url(#pieces-{{ idx }})"/>
     {% for row in pc.rows %}
     {% for c in row.cells %}
-    <rect x="{{ c.x }}" y="{{ 4 * row.layer }}" width="{{ pc.pitch - 1 }}" height="3" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
+    <rect x="{{ c.x }}" y="{{ 4 * row.layer + c.y }}" width="{{ pc.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
     {% endfor %}
     {% endfor %}
   </svg>
-  <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top; each cell is {{ pc.block }} neurons, lit when any is studied and coloured by the best status among them.</p>
+  <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top. Each cell is {{ pc.block }} neurons, coloured by the best status among them. It fills from the bottom with the share of their poles that are studied, so one studied pole shows as a thin line.</p>
   {% endif %}
 </a>
 {%- endmacro %}
