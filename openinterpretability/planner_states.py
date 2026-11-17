@@ -41,13 +41,25 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
     from openinterpretability.builder.wiki import (
         load_archive_paths,  # Jinja: keep the CLI start light
     )
-    from openinterpretability.core.errata import corrected, load_errata
+    from openinterpretability.core.errata import load_errata
 
-    errata = load_errata(wiki_dir)
+    pairs = load_archive_paths(Path(wiki_dir), skip_missing=True)  # oldest first
+    return states_of(pairs, load_errata(wiki_dir))
+
+
+def states_of(pairs, errata) -> dict[str, NeuronState]:
+    """The states of :func:`load_states`, from records that are already loaded.
+
+    ``pairs`` are ``(path, record)`` tuples, oldest first, as ``load_archive_paths`` returns
+    them. The site build uses this function, so that it does not load the archive again. A
+    second copy of every record made the deploy runner run out of memory.
+    """
+    from openinterpretability.core.errata import corrected
+
     states: dict[str, NeuronState] = {}
     records = []
     counted: set[str] = set()  # poles with an experiment that isn't set aside
-    for path, raw in load_archive_paths(Path(wiki_dir), skip_missing=True):  # oldest first
+    for path, raw in pairs:
         record, aside = corrected(raw, errata)
         records.append(raw)
         slug = record.submission.identifier.slug
