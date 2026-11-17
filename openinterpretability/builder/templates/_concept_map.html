@@ -1,0 +1,35 @@
+{# The model's concept map (builder/concept_map_view.py, #4422). Each status has its own shape, so none rests on colour alone. #}
+{% set cm = concept_map(model) if concept_map is defined else none %}
+{% if cm %}
+{% set w, h = cm.size %}
+<section class="mt-10" id="concept-map" data-pagefind-ignore>
+  <h2 class="mb-1 text-lg font-semibold">Concept map</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    Each studied pole, placed by the meaning of the text it fires on: its top examples, embedded with <code class="font-mono">{{ cm.found.embedder.split("/")[-1] }}</code> and centred on the mean of all poles.
+    A line joins the two poles of one neuron. Each cluster is named by the words that set its VERIFIED members' explanations apart from the others', and only from them.
+    Close points fire on similar text. Distances between clusters mean little: another layout keeps only about half of each point's neighbours
+    (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/concept-map-feasibility.md">the study</a>).
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <svg viewBox="0 0 {{ w }} {{ h }}" class="w-full min-w-[560px]" role="group" aria-label="Concept map of {{ cm.points | length }} studied poles of {{ model.name }} in {{ cm.labels | length }} clusters. Each point links to its unit page.">
+      <rect width="{{ w }}" height="{{ h }}" class="fill-slate-50 dark:fill-slate-900"/>
+      {% for a, b in cm.lines %}<line x1="{{ a.x | round(1) }}" y1="{{ a.y | round(1) }}" x2="{{ b.x | round(1) }}" y2="{{ b.y | round(1) }}" stroke-width="0.6" class="stroke-slate-300 dark:stroke-slate-600"/>{% endfor %}
+      {% for p in cm.points %}{% set x, y = p.x | round(1), p.y | round(1) %}{% set fill = statuses.STATUS_FILL.get(p.status, "fill-slate-400 dark:fill-slate-500") %}
+      <a href="{{ root }}{{ p.href }}"><title>{{ p.label }} · {{ p.status | replace('_', ' ') | lower }}</title>
+        {% if p.shape == "circle" %}<circle cx="{{ x }}" cy="{{ y }}" r="3.2" class="{{ fill }}"/>
+        {% elif p.shape == "triangle" %}<path d="M{{ x }} {{ y - 3.6 }} L{{ x + 3.4 }} {{ y + 2.6 }} L{{ x - 3.4 }} {{ y + 2.6 }} Z" class="{{ fill }}"/>
+        {% elif p.shape == "square" %}<rect x="{{ x - 2.6 }}" y="{{ y - 2.6 }}" width="5.2" height="5.2" fill="none" stroke-width="1.3" class="{{ fill | replace('fill-', 'stroke-') }}"/>
+        {% elif p.shape == "diamond" %}<path d="M{{ x }} {{ y - 3.6 }} L{{ x + 3.6 }} {{ y }} L{{ x }} {{ y + 3.6 }} L{{ x - 3.6 }} {{ y }} Z" class="{{ fill }}"/>
+        {% else %}<circle cx="{{ x }}" cy="{{ y }}" r="1.6" class="fill-slate-400 dark:fill-slate-500"/>{% endif %}
+      </a>{% endfor %}
+      {% for l in cm.labels %}
+      <text x="{{ l.x | round(1) }}" y="{{ l.y | round(1) }}" text-anchor="middle" font-size="11" paint-order="stroke" stroke-width="3" class="fill-slate-800 stroke-slate-50 dark:fill-slate-100 dark:stroke-slate-900{{ '' if l.verified else ' italic' }}">{{ l.name }}</text>
+      {% endfor %}
+    </svg>
+  </div>
+  <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+    <span>● VERIFIED</span><span>▲ NEEDS REVISION</span><span>□ REJECTED</span><span>◆ CONTESTED</span><span>· other</span>
+    <span>Built {{ cm.found.date }} from {{ cm.found.poles }} poles by <code class="font-mono">open-interpretability map</code>. A name in italics has no VERIFIED member, so it is not a name.</span>
+  </p>
+</section>
+{% endif %}

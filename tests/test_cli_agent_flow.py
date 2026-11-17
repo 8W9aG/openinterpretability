@@ -6,14 +6,14 @@ from types import SimpleNamespace
 import pytest
 from click.testing import CliRunner
 
-from openinterp.agents.judge import ScoringTask
-from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft
-from openinterp.agents.reviewer import AdversarialProbe, ProbeSet
-from openinterp.cli import cli
-from openinterp.cli_costs import read_ledger
-from openinterp.core.contributors import CONTRIBUTOR_ENV
-from openinterp.core.costs import LEDGER_ENV
-from openinterp.core.schemas import AuditRecord, NeuronAuditSubmission, ScanEvidence
+from openinterpretability.agents.judge import ScoringTask
+from openinterpretability.agents.proposer import CounterfactualDraft, HypothesisDraft
+from openinterpretability.agents.reviewer import AdversarialProbe, ProbeSet
+from openinterpretability.cli import cli
+from openinterpretability.cli_costs import read_ledger
+from openinterpretability.core.contributors import CONTRIBUTOR_ENV
+from openinterpretability.core.costs import LEDGER_ENV
+from openinterpretability.core.schemas import AuditRecord, NeuronAuditSubmission, ScanEvidence
 from tests.test_agents import TEXTS
 
 
@@ -26,7 +26,7 @@ def flow(tmp_path, monkeypatch, toy_runner):
         loads.append(model_name)
         return toy_runner
 
-    monkeypatch.setattr("openinterp.cli._load_runner", load)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", load)
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv(CONTRIBUTOR_ENV, raising=False)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
@@ -51,7 +51,7 @@ def run(*args):
 
 
 def test_audit_warns_about_a_corpus_without_a_matching_sidecar(flow):
-    from openinterp.corpus import write_corpus
+    from openinterpretability.corpus import write_corpus
 
     args = ["audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--evidence-out", "ev.json"]
     assert "has no corpus.source.json" in run(*args, "--corpus", "corpus.txt").output
@@ -210,7 +210,7 @@ def test_proposer_and_reviewer_answer_files(flow, monkeypatch):
 
 
 def test_rereviewing_a_record_keeps_only_the_new_review_costs(flow, toy_runner):
-    from openinterp.agents.reviewer import evaluate_submission
+    from openinterpretability.agents.reviewer import evaluate_submission
 
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip
@@ -262,7 +262,7 @@ def test_contributor_is_optional_and_never_an_email(flow, monkeypatch):
 
 def test_model_aliases_rename_the_recorded_answerer(flow, monkeypatch):
     # e.g. Claude Code proxied to Grok: the subagent reports the Claude model it was asked for.
-    monkeypatch.setenv("OPENINTERP_MODEL_ALIASES", "claude-opus-5-5=grok-4")
+    monkeypatch.setenv("OPENINTERPRETABILITY_MODEL_ALIASES", "claude-opus-5-5=grok-4")
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip
     (flow.path / "ev.hypothesis.json").write_text(flow.draft.model_dump_json())
@@ -271,18 +271,18 @@ def test_model_aliases_rename_the_recorded_answerer(flow, monkeypatch):
     sub = NeuronAuditSubmission.model_validate_json((flow.path / "sub.json").read_text())
     assert sub.submitting_agent_model == "external/grok-4"
 
-    monkeypatch.setenv("OPENINTERP_MODEL_ALIASES", "claude-opus-5-5")
+    monkeypatch.setenv("OPENINTERPRETABILITY_MODEL_ALIASES", "claude-opus-5-5")
     result = CliRunner().invoke(cli, ["review", "--audit-file", "sub.json", "--agent-model",
                                       "external/r", "--emit-prompt", "x.md"])  # fmt: skip
     assert result.exit_code == 0  # a bare name is a default, not malformed
-    monkeypatch.setenv("OPENINTERP_MODEL_ALIASES", "=grok-4")
+    monkeypatch.setenv("OPENINTERPRETABILITY_MODEL_ALIASES", "=grok-4")
     result = CliRunner().invoke(cli, ["review", "--audit-file", "sub.json", "--agent-model",
                                       "external/r", "--emit-prompt", "x.md"])  # fmt: skip
     assert result.exit_code != 0 and "malformed entry" in result.output
 
 
 def test_audit_records_the_experiment_it_supersedes(flow, record):
-    from openinterp.builder.wiki import archive_record
+    from openinterpretability.builder.wiki import archive_record
 
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip
@@ -340,8 +340,8 @@ def test_answer_files_need_a_recorded_model(flow, args, message):
 
 
 def test_a_random_draw_the_scan_stops_on_is_recorded(flow):
-    from openinterp.checks import check_registry
-    from openinterp.core.draws import load_draws
+    from openinterpretability.checks import check_registry
+    from openinterpretability.core.draws import load_draws
 
     # The toy pole is active on most tokens: default-on.
     args = ["audit", "--model", "toy", "--layer", "1", "--neuron", "7", "--pole", "positive",
@@ -364,10 +364,10 @@ def test_a_random_draw_the_scan_stops_on_is_recorded(flow):
 
 
 def test_a_chosen_unit_the_scan_stops_on_gets_a_stop_record_and_page(flow, record):
-    from openinterp.builder.wiki import experiment_id, write_experiment_page
-    from openinterp.checks import check_registry
-    from openinterp.core.draws import load_draws, load_stops
-    from openinterp.core.identifiers import NeuronIdentifier
+    from openinterpretability.builder.wiki import experiment_id, write_experiment_page
+    from openinterpretability.checks import check_registry
+    from openinterpretability.core.draws import load_draws, load_stops
+    from openinterpretability.core.identifiers import NeuronIdentifier
 
     wiki = flow.path / "wiki"
     unit = NeuronIdentifier(model_name="toy", layer=1, neuron_idx=7, pole="positive")
@@ -408,7 +408,7 @@ def test_a_stop_on_a_chosen_unit_is_skipped_without_a_wiki(flow):
 
 
 def test_a_sister_study_tests_the_verified_explanation_unchanged(flow, record):
-    from openinterp.builder.wiki import archive_record
+    from openinterpretability.builder.wiki import archive_record
 
     source = archive_record(record, flow.path / "wiki")  # Qwen, VERIFIED
     scan = ["audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",

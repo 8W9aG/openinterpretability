@@ -15,7 +15,7 @@ import math
 
 import pytest
 
-from openinterp.builder import palette
+from openinterpretability.builder import palette
 
 CVD = {
     "protanopia": ((0.152286, 1.052583, -0.204868), (0.114503, 0.786281, 0.099216),

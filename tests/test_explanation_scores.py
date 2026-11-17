@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from click.testing import CliRunner
 
-from openinterp.agents.judge import (
+from openinterpretability.agents.judge import (
     DetectionAnswer,
     ExplanationJudge,
     FuzzingAnswer,
@@ -15,10 +15,10 @@ from openinterp.agents.judge import (
     TaskWindow,
     answered,
 )
-from openinterp.cli import cli
-from openinterp.core.explanation import ExplanationScores, ScoredWindow
-from openinterp.core.schemas import AuditRecord, NeuronIdentifier
-from openinterp.harness.explanation_scores import (
+from openinterpretability.cli import cli
+from openinterpretability.core.explanation import ExplanationScores, ScoredWindow
+from openinterpretability.core.schemas import AuditRecord, NeuronIdentifier
+from openinterpretability.harness.explanation_scores import (
     Window,
     auroc,
     explanation_free_baseline,
@@ -29,8 +29,8 @@ from openinterp.harness.explanation_scores import (
     remeasure,
     sample_heldout,
 )
-from openinterp.harness.units import NeuronUnit
-from openinterp.reproduce import reproduce_record
+from openinterpretability.harness.units import NeuronUnit
+from openinterpretability.reproduce import reproduce_record
 from tests.test_agents import SMALL, _probes, _submission
 from tests.test_reproduce import draft  # noqa: F401  (fixture)
 
@@ -41,7 +41,7 @@ CORPUS = ["".join(random.Random(i).choices("abcdefghijklmnop qrstuvwxyz", k=40))
 
 @pytest.fixture
 def toy_record(toy_runner, draft):  # noqa: F811
-    from openinterp.agents.reviewer import evaluate_submission
+    from openinterpretability.agents.reviewer import evaluate_submission
 
     sub = _submission(IDENT, toy_runner, draft, honest=True)
     probes = _probes(toy_runner, IDENT, sub, honest=True)
@@ -117,8 +117,10 @@ def test_sample_heldout_draws_evenly_from_each_quantile(toy_runner, monkeypatch)
     def measure(runner, texts, ident):
         return [Window(t, ["x", "y"], [int(t) / 100, 0.0]) for t in texts]
 
-    monkeypatch.setattr("openinterp.harness.explanation_scores.cut_windows", lambda r, t, n: t)
-    monkeypatch.setattr("openinterp.harness.explanation_scores.measure_windows", measure)
+    monkeypatch.setattr(
+        "openinterpretability.harness.explanation_scores.cut_windows", lambda r, t, n: t
+    )
+    monkeypatch.setattr("openinterpretability.harness.explanation_scores.measure_windows", measure)
     texts = [str(i) for i in range(100)]
     sample = sample_heldout(toy_runner, texts, UNIT, 0.4, seed=1, quantiles=3, per_quantile=2)
     assert (sample.active_windows, sample.quantile_edges) == (60, [0.6, 0.8])
@@ -155,9 +157,9 @@ def test_judge_prompts_hide_activations_and_mark_tokens(mocker):
 @pytest.fixture
 def flow(tmp_path, monkeypatch, toy_runner, toy_record):
     toy_runner.model.config = SimpleNamespace()
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: toy_runner)
     monkeypatch.setattr(
-        "openinterp.harness.explanation_scores.embedding_similarities",
+        "openinterpretability.harness.explanation_scores.embedding_similarities",
         lambda model, query, texts: [float(len(t) % 7) for t in texts],
     )
     monkeypatch.chdir(tmp_path)
@@ -277,11 +279,11 @@ def test_task_without_active_windows_needs_no_fuzzing_judge(flow):
 
 
 def test_one_step_review_scores_the_explanation_itself(flow, monkeypatch):
-    from openinterp.agents.reviewer import AdversarialProbe, ProbeSet
+    from openinterpretability.agents.reviewer import AdversarialProbe, ProbeSet
 
     probes = ProbeSet(probes=[AdversarialProbe(text=t, expected_active=i < 4, rationale="r")
                               for i, t in enumerate(CORPUS[:10])])  # fmt: skip
-    monkeypatch.setattr("openinterp.agents.reviewer.ReviewerAgent.generate_probes",
+    monkeypatch.setattr("openinterpretability.agents.reviewer.ReviewerAgent.generate_probes",
                         lambda self, sub, n, **_: probes)  # fmt: skip
     judged = []
 
@@ -317,7 +319,7 @@ def test_a_floor_units_task_scores_without_the_first_token(flow):
     for w in scores.detection_windows:
         assert w.label == any(a >= threshold for a in w.activations[1:])
     # Scoring re-measures with the unit the task names, so the task must keep the floor.
-    from openinterp.harness.units import submission_unit
+    from openinterpretability.harness.units import submission_unit
 
     assert submission_unit(task).skip_first
 
@@ -344,8 +346,10 @@ def test_decoys_leave_explanation_free_rules_at_chance(toy_runner, monkeypatch):
             out.append(Window(t, ["x"] * 12, acts))
         return out
 
-    monkeypatch.setattr("openinterp.harness.explanation_scores.cut_windows", lambda r, t, n: t)
-    monkeypatch.setattr("openinterp.harness.explanation_scores.measure_windows", measure)
+    monkeypatch.setattr(
+        "openinterpretability.harness.explanation_scores.cut_windows", lambda r, t, n: t
+    )
+    monkeypatch.setattr("openinterpretability.harness.explanation_scores.measure_windows", measure)
     texts = [str(i) for i in range(400)]
     sample = sample_heldout(toy_runner, texts, UNIT, 0.5, seed=3, quantiles=1, per_quantile=40)
     fuzzing = label_windows(sample.fuzzing, 0.5, sample.quantile_edges, fuzzing=True)

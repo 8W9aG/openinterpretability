@@ -14,27 +14,31 @@ import torch
 from click.testing import CliRunner
 from safetensors.torch import save_file
 
-from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
-from openinterp.agents.reviewer import AdversarialProbe, ReviewerAgent, evaluate_submission
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.cli import cli
-from openinterp.core.schemas import (
+from openinterpretability.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
+from openinterpretability.agents.reviewer import (
+    AdversarialProbe,
+    ReviewerAgent,
+    evaluate_submission,
+)
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import (
     AuditRecord,
     DictionaryProfile,
     FeatureIdentifier,
     ScanEvidence,
 )
-from openinterp.harness import dictionaries
-from openinterp.harness.dictionaries import DictionarySpec, load_spec
-from openinterp.harness.features import patch_features, scan_feature
-from openinterp.harness.hooks import NeuronHookRunner, activation_histogram
-from openinterp.harness.patchscope import write_direction
-from openinterp.harness.sites import dictionary_io
-from openinterp.harness.steering import steering_interventions
-from openinterp.harness.units import FeatureUnit
-from openinterp.planner import plan_next
-from openinterp.reproduce import reproduce_record
+from openinterpretability.harness import dictionaries
+from openinterpretability.harness.dictionaries import DictionarySpec, load_spec
+from openinterpretability.harness.features import patch_features, scan_feature
+from openinterpretability.harness.hooks import NeuronHookRunner, activation_histogram
+from openinterpretability.harness.patchscope import write_direction
+from openinterpretability.harness.sites import dictionary_io
+from openinterpretability.harness.steering import steering_interventions
+from openinterpretability.harness.units import FeatureUnit
+from openinterpretability.planner import plan_next
+from openinterpretability.reproduce import reproduce_record
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 from tests.test_agents import SMALL
@@ -445,7 +449,9 @@ def test_a_feature_is_audited_reviewed_and_reproduced(runner, scan):
 def test_feature_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     record = _record(runner, scan)
     np_page = "https://www.neuronpedia.org/tiny/1-tc/5"
-    monkeypatch.setattr("openinterp.crossref.latent_url", lambda d, layer, i, api=False: np_page)
+    monkeypatch.setattr(
+        "openinterpretability.crossref.latent_url", lambda d, layer, i, api=False: np_page
+    )
     wiki = tmp_path / "wiki"
     page = write_experiment_page(record, wiki)
     assert page.parent == wiki / "experiments" / "tiny-gpt2" / "L1" / "tiny-tc" / "F5"
@@ -485,7 +491,7 @@ def test_cli_samples_a_random_latent_of_the_dictionary(runner, spec, tmp_path, m
         loads.append((model_name, attn))
         return runner
 
-    monkeypatch.setattr("openinterp.cli._load_runner", load)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", load)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     args = ["audit", "--dictionary", "tiny-tc", "--random", "--seed", "8",
@@ -520,7 +526,7 @@ def test_ci_reproduces_only_preset_dictionaries(runner, scan, tmp_path, monkeypa
 
     A feature record must pin its preset's weights.
     """
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: runner)
     record = _record(runner, scan)
     elsewhere = scan.profile.model_copy(update={"repo": "someone/else"})
     moved = record.model_copy(
@@ -538,7 +544,7 @@ def test_ci_reproduces_only_preset_dictionaries(runner, scan, tmp_path, monkeypa
 
 
 def test_feature_scans_take_label_sets(runner, spec):
-    from openinterp.harness.annotations import DocumentLabels
+    from openinterpretability.harness.annotations import DocumentLabels
 
     langs = ["en", "fr"] * 3
     tagged = scan_feature(

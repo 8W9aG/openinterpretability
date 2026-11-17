@@ -7,7 +7,7 @@ vocabulary at the first position. For each pole:
 * *scale*: its maximum over every counted token, and over counted tokens after each
   piece's first;
 * *first-token floor*: active (≥ 0.25 × the second scale) at the first position on at
-  least half the vocabulary. ``openinterp.harness.scan.settle`` judges it the same way.
+  least half the vocabulary. ``openinterpretability.harness.scan.settle`` judges it the same way.
 * *active share*: the share of the tokens it keeps at or above 0.25 × its scale. It keeps
   all tokens, or all but first tokens with a floor. Default-on is half or more.
 
@@ -25,10 +25,10 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.cli import _load
-from openinterp.cli_evidence import read_corpus
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS, sample_tokens
-from openinterp.harness.scan import BATCH_TOKENS, batches, cut_pieces
+from openinterpretability.cli import _load
+from openinterpretability.cli_evidence import read_corpus
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS, sample_tokens
+from openinterpretability.harness.scan import BATCH_TOKENS, batches, cut_pieces
 
 POLES = ("positive", "negative")
 

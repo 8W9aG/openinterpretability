@@ -1,6 +1,6 @@
 # Transcoder baseline: GPT-2 small, 40 per arm
 
-The full run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It compares 40 random latents of Dunefsky et al.'s GPT-2 small transcoders (`gpt2-small-transcoders`) with 40 random GPT-2 small positive neuron poles. Both arms were audited under protocol 0.7. The home page's *Learned-basis baseline* table is computed from the same records (`openinterp/builder/learned_baseline.py`). Every draw, live or dead, is in `transcoder-baseline.jsonl` with its verdict and record. The 10-per-arm pilot it extends is in `transcoder-baseline-pilot.md`.
+The full run of the learned-basis baseline (`TODO.md`, *Scope expansion*). It compares 40 random latents of Dunefsky et al.'s GPT-2 small transcoders (`gpt2-small-transcoders`) with 40 random GPT-2 small positive neuron poles. Both arms were audited under protocol 0.7. The home page's *Learned-basis baseline* table is computed from the same records (`openinterpretability/builder/learned_baseline.py`). Every draw, live or dead, is in `transcoder-baseline.jsonl` with its verdict and record. The 10-per-arm pilot it extends is in `transcoder-baseline-pilot.md`.
 
 ## Setup
 

@@ -17,7 +17,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read  # the build reads each record's PR author (openinterp/builder/users.py)
+  pull-requests: read  # the build reads each record's PR author (builder/users.py)
   actions: read  # the schedule reads the last successful deploy
 
 concurrency:
@@ -78,7 +78,7 @@ jobs:
           # A push, a dispatch on main and the schedule all give a commit on main.
           ref: ${{ github.sha }}
           # `open-interpretability check` checks the errata file's signature at the time it landed,
-          # which needs main's history (openinterp/signing.py landing_times).
+          # which needs main's history (openinterpretability/signing.py landing_times).
           fetch-depth: 0
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
@@ -88,11 +88,11 @@ jobs:
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-      # The evidence blobs of slim records (openinterp/core/evidence.py, issue #3254), so
+      # The evidence blobs of slim records (openinterpretability/core/evidence.py, issue #3254), so
       # this build fetches only the blobs of new records from the dataset.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
-          path: ~/.cache/openinterp/evidence
+          path: ~/.cache/openinterpretability/evidence
           key: evidence-blobs-${{ github.run_id }}
           restore-keys: evidence-blobs-
       - name: Publish the evidence of merged records
@@ -105,17 +105,17 @@ jobs:
       - name: Check registry consistency
         run: open-interpretability check
       # The personal-data matches of each text that earlier builds searched
-      # (openinterp/builder/pii.py), so this build searches only new text.
+      # (openinterpretability/builder/pii.py), so this build searches only new text.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
-          path: ~/.cache/openinterp/pii
+          path: ~/.cache/openinterpretability/pii
           key: pii-spans-${{ github.run_id }}
           restore-keys: pii-spans-
       # The author of the PR that merged each record without a contributor
-      # (openinterp/builder/users.py), so this build asks GitHub only for new PRs.
+      # (openinterpretability/builder/users.py), so this build asks GitHub only for new PRs.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
-          path: ~/.cache/openinterp/pr-authors
+          path: ~/.cache/openinterpretability/pr-authors
           key: pr-authors-${{ github.run_id }}
           restore-keys: pr-authors-
       - name: Build site
@@ -123,7 +123,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
         run: |
           open-interpretability build --wiki-dir wiki --output-dir dist
-          python -m openinterp.builder.css --site dist
+          python -m openinterpretability.builder.css --site dist
           python -m pagefind --site dist
       - name: Sync to R2
         env:
@@ -134,7 +134,7 @@ jobs:
           # Optional: purge changed URLs from the Cloudflare cache (custom domain only).
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          OPENINTERP_SITE_URL: ${{ vars.OPENINTERP_SITE_URL }}
+          OPENINTERPRETABILITY_SITE_URL: ${{ vars.OPENINTERPRETABILITY_SITE_URL }}
         # `shell: bash` sets pipefail. With the default shell, `| tee` hid a failed deploy:
         # on 2026-11-15 a refused cache purge (HTTP 401) left the run green.
         shell: bash

@@ -1,4 +1,4 @@
-"""The openinterp experts forward (harness/moe.py): the same as eager, and streamed slices."""
+"""Our experts forward (harness/moe.py): the same as eager, and streamed slices."""
 
 import importlib.util
 import sys
@@ -7,13 +7,13 @@ from pathlib import Path
 import pytest
 import torch
 
-from openinterp.harness import memory
-from openinterp.harness.moe import (
+from openinterpretability.harness import memory
+from openinterpretability.harness.moe import (
     EXPERTS_IMPLEMENTATION,
     expert_hook,
     experts_implementation,
     experts_modules,
-    use_openinterp_experts,
+    use_openinterpretability_experts,
 )
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -43,7 +43,7 @@ def test_the_forward_matches_eager_and_its_hook_edits_one_neuron(name):
     with torch.no_grad():
         model.set_experts_implementation("eager")
         eager = model(ids).logits
-        assert use_openinterp_experts(model)
+        assert use_openinterpretability_experts(model)
         ours = model(ids).logits
         seen: dict = {}
         with expert_hook(experts_modules(model)[0], _zero(3, 1, seen)):
@@ -75,7 +75,9 @@ def _load(path, mode, monkeypatch, tmp_path):
 def test_a_streamed_moe_reads_only_its_routed_experts(saved_mixtral, monkeypatch, tmp_path):
     whole = _load(saved_mixtral, "normal", monkeypatch, tmp_path)
     streamed = _load(saved_mixtral, "stream", monkeypatch, tmp_path)
-    assert experts_implementation(whole) == experts_implementation(streamed) == "openinterp"
+    assert (
+        experts_implementation(whole) == experts_implementation(streamed) == "openinterpretability"
+    )
     stacks, slices = [], []
     get, cut = memory.OpenCheckpoint.__getitem__, memory.OpenCheckpoint.slice
 

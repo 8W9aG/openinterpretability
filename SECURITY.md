@@ -25,7 +25,7 @@ A record signed by a key in `.github/allowed_signers` skips CI reproduction ([do
 - you find a listed private key in public, for example in a commit, a log or a paste
 - you lose a key that is listed with your name, or you think someone else has it.
 
-If the key is yours, also stop using it: set `OPENINTERP_AUTO_SIGN=0`, or move `~/.ssh/openinterp_signing` away.
+If the key is yours, also stop using it: set `OPENINTERPRETABILITY_AUTO_SIGN=0`, or move `~/.ssh/openinterpretability_signing` away.
 
 What the maintainer does:
 
@@ -77,11 +77,11 @@ What the maintainer does:
 2. Sign the file: `open-interpretability sign wiki/takedowns.jsonl`. Open a pull request with the file, its signature and the pages. Don't name the requester or quote the passage in the pull request.
 3. After it merges, build and deploy the site. Reply in the advisory.
 
-The takedown file holds no text. It names a passage by a hash of each run of 8 words, lowercased (`openinterp/core/takedowns.py`). So it finds the passage in every record and field, even where punctuation or case differs. A passage needs at least 8 words.
+The takedown file holds no text. It names a passage by a hash of each run of 8 words, lowercased (`openinterpretability/core/takedowns.py`). So it finds the passage in every record and field, even where punctuation or case differs. A passage needs at least 8 words.
 
 What changes:
 
-- **The site and `registry.parquet`.** Each build replaces the passage with `[removed]` in text, and with `█` in each token that it covers, as it does for personal data (`openinterp/builder/pii.py`). The same applies to the Neuronpedia export.
+- **The site and `registry.parquet`.** Each build replaces the passage with `[removed]` in text, and with `█` in each token that it covers, as it does for personal data (`openinterpretability/builder/pii.py`). The same applies to the Neuronpedia export.
 - **The experiment pages in `wiki/`.** `open-interpretability check` lets a page change outside its Discussion section only by this removal, and only when an allowed key signed the takedown file. A branch can't add a takedown of its own.
 
 What doesn't change:

@@ -4,10 +4,10 @@ import copy
 
 import torch
 
-from openinterp.harness import cpu_speed
-from openinterp.harness.environment import run_environment
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.prepare import prepare_model
+from openinterpretability.harness import cpu_speed
+from openinterpretability.harness.environment import run_environment
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.prepare import prepare_model
 from tests.conftest import VOCAB, FakeTokenizer
 
 

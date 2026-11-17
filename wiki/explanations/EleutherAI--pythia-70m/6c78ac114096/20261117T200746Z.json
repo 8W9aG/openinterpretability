@@ -1,0 +1,846 @@
+{
+ "model_name": "EleutherAI/pythia-70m",
+ "prompt": "The sun rises in the",
+ "position": -1,
+ "answer": " sky",
+ "explained_share": 0.036332654909515,
+ "blocked_share": 0.008040841441792936,
+ "prompt_coverage": 0.5191168963340064,
+ "raw_coverage": 0.5191168963340064,
+ "random_coverage": 0.0019967424167367607,
+ "units": [
+  {
+   "unit": "L3/H4",
+   "slug": "EleutherAI--pythia-70m/L3/H4",
+   "kind": "head",
+   "share": 0.012536872376252554,
+   "attribution": -3.183544158935547,
+   "status": "VERIFIED",
+   "explanation": "Broad, mostly previous-token head: predict ordinary prose active-weak (most sentences of a dozen or more tokens have one or two tokens just over the line, roughly 10% of tokens, peaks near 0.3-0.45 of max), and it is strong (above ~0.6 of max) on a content word, or a later sub-word piece of a name or term, whose attention falls almost wholly (weight ~0.9) on the specifier opening its phrase: 'which' ('regardless of which system'), numerals ('the two Kivu'), 'every', 'any', possessives 'its'/'their', 'a' after a preposition ('At a global'), 'of' in 'some of / one of' before a name, 'are' in 'There are further', or the head noun before a name ('regional capital Białystok'); it is weak after 'the', 'this', 'that'. Comma lists of plain numbers and strings of one-word exclamations ('Stop. Yes! Okay?') are inactive.",
+   "hub": null
+  },
+  {
+   "unit": "L0/H6",
+   "slug": "EleutherAI--pythia-70m/L0/H6",
+   "kind": "head",
+   "share": 0.007685413094971036,
+   "attribution": 1.9515913724899292,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/H7",
+   "slug": "EleutherAI--pythia-70m/L0/H7",
+   "kind": "head",
+   "share": 0.004763014618617285,
+   "attribution": -1.209493637084961,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L5/N1296+",
+   "slug": "EleutherAI--pythia-70m/L5/N1296-positive",
+   "kind": "pole",
+   "share": 0.0036947883288231385,
+   "attribution": -0.9382341504096985,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L3/H3",
+   "slug": "EleutherAI--pythia-70m/L3/H3",
+   "kind": "head",
+   "share": 0.0036026913528722036,
+   "attribution": -0.9148475527763367,
+   "status": "VERIFIED",
+   "explanation": "Induction-style head: active on the second (or later) occurrence of a rare word, name or identifier that splits into several tokens, typically on its first or middle pieces ('k' of a repeated 'xkcd', 'organic' of a repeated 'Inorganic', 'ull' of a repeated 'Skullpocket'), where it attends to the token that followed the earlier copy. A first mention of the same word is inactive. Ordinary prose with no repeated rare word is inactive; repeated common words (the, of, and), list commas and parallel list items ('Monday ..., Tuesday ..., Wednesday') rarely and only weakly cross the line (about 0.25-0.35 of max).",
+   "hub": null
+  },
+  {
+   "unit": "L2/H4",
+   "slug": "EleutherAI--pythia-70m/L2/H4",
+   "kind": "head",
+   "share": 0.0034383543898594744,
+   "attribution": -0.8731167316436768,
+   "status": "stopped",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/H4",
+   "slug": "EleutherAI--pythia-70m/L0/H4",
+   "kind": "head",
+   "share": 0.0033156845472251976,
+   "attribution": 0.8419666290283203,
+   "status": "VERIFIED",
+   "explanation": "Broad previous-token head: predict ordinary prose, code and number lists active-weak (about 0.25-0.55 of max), but predict inactive a two-token text made of one lowercase common word that is a single token followed only by '.', '!' or '?' (e.g. 'cat.', 'road!', 'tree?'; capitalised words like 'Okay.' and words split into pieces like 'gar|den.' do not count). It is strong (above about 0.6 of max) on the second piece of a word split into sub-word tokens after a short, usually capitalised or all-caps, word-start fragment it attends to (GRE|ATER, PR|OT, PL|URAL, Cle|aring, Hod|ges, De Kal|b, CM|ake, url|pattern), and on fixed pairs such as Highway + route number, UPDATE ... SET and 'Story highlights'.",
+   "hub": null
+  },
+  {
+   "unit": "L1/H1",
+   "slug": "EleutherAI--pythia-70m/L1/H1",
+   "kind": "head",
+   "share": 0.0032700489396527703,
+   "attribution": -0.8303781747817993,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L1/H7",
+   "slug": "EleutherAI--pythia-70m/L1/H7",
+   "kind": "head",
+   "share": 0.0030525518056336957,
+   "attribution": -0.7751481533050537,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/H1",
+   "slug": "EleutherAI--pythia-70m/L0/H1",
+   "kind": "head",
+   "share": 0.00297608889001528,
+   "attribution": 0.7557315826416016,
+   "status": "VERIFIED",
+   "explanation": "Active (above 0.25 of max) on (1) every '\\n' token that has another newline token among the previous 4 tokens (blank lines, short lines such as headings, 'A:', menu items; peak 0.5-0.9 of max), or that ends a line whose last token is '.', '?', ':', '{' or ').' (0.27-0.4), while a lone '\\n' after a word, number, comma, quote or closing bracket stays inactive; and (2) in running prose, only on the word right after ' is', ' was', ' are', ' has', ' in', ' at' or sentence-initial 'In' when that word is a determiner, possessive or quantifier (the, a, an, my, her, this, one, what, all) or 'In addition/fact/order/terms' (0.26-0.44), plus, about 40% of the time, the curly apostrophe after a pronoun in contractions like 'I’m'. Every other prose token, including determiners after ' to', ' on', ' with', ' by', ' from', ' and', ' that', a comma or a noun, is predicted inactive; ' of the' and ' for the' are borderline (about 0.22-0.25, mostly inactive).",
+   "hub": null
+  },
+  {
+   "unit": "L5/H0",
+   "slug": "EleutherAI--pythia-70m/L5/H0",
+   "kind": "head",
+   "share": 0.0028447837675928,
+   "attribution": -0.7223886847496033,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L2/H5",
+   "slug": "EleutherAI--pythia-70m/L2/H5",
+   "kind": "head",
+   "share": 0.0028040358283731343,
+   "attribution": -0.7120413780212402,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L1/H0",
+   "slug": "EleutherAI--pythia-70m/L1/H0",
+   "kind": "head",
+   "share": 0.0027548629225211067,
+   "attribution": 0.6995546817779541,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L1/H5",
+   "slug": "EleutherAI--pythia-70m/L1/H5",
+   "kind": "head",
+   "share": 0.0026703515383752047,
+   "attribution": 0.6780943274497986,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L4/H1",
+   "slug": "EleutherAI--pythia-70m/L4/H1",
+   "kind": "head",
+   "share": 0.0025586506065507493,
+   "attribution": -0.6497296094894409,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L2/H3",
+   "slug": "EleutherAI--pythia-70m/L2/H3",
+   "kind": "head",
+   "share": 0.0024707023862130814,
+   "attribution": -0.6273965239524841,
+   "status": "VERIFIED",
+   "explanation": "Most-recent-noun copier: from each token the head attends back to the nearest noun or pronoun that came after the text's first token and writes it, so it crosses the line on such a noun and the 1-3 tokens after it. It is reliably above the line when a common noun brought in by a determiner, adjective or comma (the weather, further studies, the results, 'eggs, flour,') is followed by its verb or auxiliary (peak 0.9-2.6 on was/are/is/have/did and the next word), and on the random letters of a URL ID after '/' (t.co/aB3dE5); it reliably stays below when no noun or pronoun follows the first word: one- or two-word texts, a single clause opened by a pronoun or name followed only by verbs, adverbs and adjectives ('He never came back again after all.', 'John is always early and never late.'), a subject noun that is itself the first word ('Rain then stopped.'), and runs of single letters, plain numbers, one repeated word or one repeated symbol; later personal pronouns (I, you, he, she, we, they, him, them) as the only subjects give 0.3-0.8 and cross about half the time, 'it'/'this' subjects usually cross, object nouns late in a clause and short code usually stay below, and almost any natural prose of 12+ tokens containing 'the + noun + verb' crosses.",
+   "hub": null
+  },
+  {
+   "unit": "L0/N354+",
+   "slug": "EleutherAI--pythia-70m/L0/N354-positive",
+   "kind": "pole",
+   "share": 0.002371200556325414,
+   "attribution": -0.6021295785903931,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L1/H6",
+   "slug": "EleutherAI--pythia-70m/L1/H6",
+   "kind": "head",
+   "share": 0.002322127173663204,
+   "attribution": -0.5896681547164917,
+   "status": "VERIFIED",
+   "explanation": "L1/H6 is a broad copy head: each token attends to one earlier word, usually 1-7 back, and copies that word's value. Almost any text of 8+ tokens that contains ordinary words crosses the line (measured 24/30 plain prose sentences at 0.85-1.4, usually on the noun or verb after the subject). It is strong (1.5-2.6, about 0.5-0.75 of max) on the noun after a demonstrative 'that' ('paid that bill', 'that's', 'that is') and on 'is' or the adjective after a subject 'it' ('it is possible/likely/clear'). The narrow class that reliably stays below the line is text with no letters at all: comma-separated lists of plain numbers (integers or decimals, optionally negative, with no '$', '=', '*' or words), which peak at 0.0-0.6 because commas and digits copy almost nothing.",
+   "hub": {
+    "hub": "EleutherAI--pythia-70m/L1/H6/HUB",
+    "href": "models/EleutherAI--pythia-70m/hubs/L1-H6.html",
+    "norm": 4.056534,
+    "layer_median": 4.104708,
+    "percentile": 0.25,
+    "active_share": 0.099612,
+    "default_on": false
+   }
+  },
+  {
+   "unit": "L1/H2",
+   "slug": "EleutherAI--pythia-70m/L1/H2",
+   "kind": "head",
+   "share": 0.002262964862357743,
+   "attribution": 0.5746448040008545,
+   "status": "VERIFIED",
+   "explanation": "Dense previous-token head that crosses the line on almost any text longer than a few tokens: strongest on the second piece of a word or name the tokenizer splits (Mac|mill, Mc|Av, bark|ed, cheer|ed), the token after ' there' ('s, is, be), an abbreviation's period, whitespace runs, list numbers, URLs and code, and it also crosses on the 2nd-4th tokens of any text that does not open with 'The' (A dog ate..., He kicked..., Mary won...) and on the token after ' and', ' on', ' over', ' near', ' all' or ' first'. It stays below the line only on (a) one single-token word followed by '.' ('Water.', 'Sorry.', 'True.') and (b) texts made only of 'The'-opened simple clauses of single-token everyday words, 'The N.', 'The N V.' or 'The N V the N.', one or several in a row, with no split word, adjective, preposition, 'and', comma, number, pronoun or name (known exceptions that still fire: ' door', ' way', ' other', ' same', ' time' after 'the').",
+   "hub": null
+  },
+  {
+   "unit": "L2/H6",
+   "slug": "EleutherAI--pythia-70m/L2/H6",
+   "kind": "head",
+   "share": 0.002192736229573182,
+   "attribution": 0.5568113327026367,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  }
+ ],
+ "narration": null,
+ "planned_experiments": 17076,
+ "run": null,
+ "figures": {
+  "tokens": [
+   "The",
+   " sun",
+   " rises",
+   " in",
+   " the"
+  ],
+  "logit": 1074.7772,
+  "units": [
+   {
+    "label": "L3/H4",
+    "layer": 3,
+    "kind": "head",
+    "attribution": -3.1835,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L0/H6",
+    "layer": 0,
+    "kind": "head",
+    "attribution": 1.9516,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L0/H7",
+    "layer": 0,
+    "kind": "head",
+    "attribution": -1.2095,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L5/N1296+",
+    "layer": 5,
+    "kind": "pole",
+    "attribution": -0.9382,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L3/H3",
+    "layer": 3,
+    "kind": "head",
+    "attribution": -0.9148,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L2/H4",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -0.8731,
+    "status": "stopped",
+    "explained": false,
+    "blocked": true
+   },
+   {
+    "label": "L0/H4",
+    "layer": 0,
+    "kind": "head",
+    "attribution": 0.842,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L1/H1",
+    "layer": 1,
+    "kind": "head",
+    "attribution": -0.8304,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L1/H7",
+    "layer": 1,
+    "kind": "head",
+    "attribution": -0.7751,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L0/H1",
+    "layer": 0,
+    "kind": "head",
+    "attribution": 0.7557,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L5/H0",
+    "layer": 5,
+    "kind": "head",
+    "attribution": -0.7224,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L2/H5",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -0.712,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L1/H0",
+    "layer": 1,
+    "kind": "head",
+    "attribution": 0.6996,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L1/H5",
+    "layer": 1,
+    "kind": "head",
+    "attribution": 0.6781,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L4/H1",
+    "layer": 4,
+    "kind": "head",
+    "attribution": -0.6497,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L2/H3",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -0.6274,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L0/N354+",
+    "layer": 0,
+    "kind": "pole",
+    "attribution": -0.6021,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L1/H6",
+    "layer": 1,
+    "kind": "head",
+    "attribution": -0.5897,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L1/H2",
+    "layer": 1,
+    "kind": "head",
+    "attribution": 0.5746,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L2/H6",
+    "layer": 2,
+    "kind": "head",
+    "attribution": 0.5568,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   }
+  ],
+  "net": -13.7628,
+  "edges": [
+   {
+    "source": "L2/H4",
+    "target": "L3/H4",
+    "weight": -0.5895
+   },
+   {
+    "source": "L3/H3",
+    "target": "L5/N1296+",
+    "weight": -0.2902
+   },
+   {
+    "source": "L2/H3",
+    "target": "L5/N1296+",
+    "weight": -0.2684
+   },
+   {
+    "source": "L2/H3",
+    "target": "L3/H4",
+    "weight": -0.2552
+   },
+   {
+    "source": "L1/H7",
+    "target": "L3/H4",
+    "weight": -0.2551
+   },
+   {
+    "source": "L0/H6",
+    "target": "L3/H3",
+    "weight": 0.2382
+   },
+   {
+    "source": "L3/H4",
+    "target": "L5/N1296+",
+    "weight": -0.2376
+   },
+   {
+    "source": "L1/H6",
+    "target": "L5/N1296+",
+    "weight": -0.2255
+   },
+   {
+    "source": "L1/H7",
+    "target": "L2/H4",
+    "weight": -0.2163
+   },
+   {
+    "source": "L2/H3",
+    "target": "L3/H3",
+    "weight": 0.2004
+   },
+   {
+    "source": "L1/H6",
+    "target": "L3/H4",
+    "weight": -0.1941
+   },
+   {
+    "source": "L0/H7",
+    "target": "L3/H4",
+    "weight": -0.1919
+   },
+   {
+    "source": "L0/N354+",
+    "target": "L2/H4",
+    "weight": -0.1901
+   },
+   {
+    "source": "L0/H4",
+    "target": "L2/H4",
+    "weight": 0.1859
+   },
+   {
+    "source": "L2/H4",
+    "target": "L5/N1296+",
+    "weight": -0.1817
+   },
+   {
+    "source": "L0/H4",
+    "target": "L3/H3",
+    "weight": 0.1782
+   },
+   {
+    "source": "L0/H6",
+    "target": "L1/H1",
+    "weight": 0.1756
+   },
+   {
+    "source": "L0/H6",
+    "target": "L2/H4",
+    "weight": 0.169
+   },
+   {
+    "source": "L0/H4",
+    "target": "L1/H1",
+    "weight": -0.1644
+   },
+   {
+    "source": "L0/H6",
+    "target": "L5/N1296+",
+    "weight": 0.1548
+   },
+   {
+    "source": "L2/H6",
+    "target": "L3/H4",
+    "weight": 0.1525
+   },
+   {
+    "source": "L0/H4",
+    "target": "L5/N1296+",
+    "weight": 0.1513
+   },
+   {
+    "source": "L1/H5",
+    "target": "L2/H4",
+    "weight": 0.1395
+   },
+   {
+    "source": "L1/H0",
+    "target": "L5/N1296+",
+    "weight": 0.1379
+   },
+   {
+    "source": "L0/H7",
+    "target": "L3/H3",
+    "weight": -0.137
+   },
+   {
+    "source": "L0/H1",
+    "target": "L1/H1",
+    "weight": -0.1358
+   },
+   {
+    "source": "L2/H4",
+    "target": "L3/H3",
+    "weight": 0.1349
+   },
+   {
+    "source": "L1/H0",
+    "target": "L2/H4",
+    "weight": 0.1309
+   },
+   {
+    "source": "L1/H5",
+    "target": "L3/H4",
+    "weight": 0.1302
+   },
+   {
+    "source": "L0/H1",
+    "target": "L5/N1296+",
+    "weight": -0.1228
+   },
+   {
+    "source": "L0/H6",
+    "target": "L3/H4",
+    "weight": 0.1214
+   },
+   {
+    "source": "L1/H2",
+    "target": "L2/H4",
+    "weight": 0.1196
+   },
+   {
+    "source": "L0/N354+",
+    "target": "L1/H1",
+    "weight": -0.1175
+   },
+   {
+    "source": "L0/H4",
+    "target": "L3/H4",
+    "weight": 0.1056
+   },
+   {
+    "source": "L1/H0",
+    "target": "L3/H4",
+    "weight": -0.0997
+   },
+   {
+    "source": "L1/H1",
+    "target": "L2/H4",
+    "weight": -0.0987
+   },
+   {
+    "source": "L0/H1",
+    "target": "L2/H4",
+    "weight": -0.0961
+   },
+   {
+    "source": "L2/H6",
+    "target": "L3/H3",
+    "weight": 0.0942
+   },
+   {
+    "source": "L1/H7",
+    "target": "L3/H3",
+    "weight": -0.0904
+   },
+   {
+    "source": "L1/H7",
+    "target": "L5/N1296+",
+    "weight": -0.0807
+   },
+   {
+    "source": "L1/H0",
+    "target": "L3/H3",
+    "weight": 0.0694
+   },
+   {
+    "source": "L2/H5",
+    "target": "L5/N1296+",
+    "weight": -0.0669
+   },
+   {
+    "source": "L2/H5",
+    "target": "L3/H3",
+    "weight": 0.0627
+   },
+   {
+    "source": "L1/H2",
+    "target": "L3/H4",
+    "weight": 0.061
+   },
+   {
+    "source": "L1/H1",
+    "target": "L5/N1296+",
+    "weight": -0.0606
+   },
+   {
+    "source": "L1/H1",
+    "target": "L3/H3",
+    "weight": -0.0573
+   },
+   {
+    "source": "L0/H1",
+    "target": "L3/H3",
+    "weight": 0.0567
+   },
+   {
+    "source": "L2/H6",
+    "target": "L5/N1296+",
+    "weight": 0.0551
+   },
+   {
+    "source": "L0/N354+",
+    "target": "L5/N1296+",
+    "weight": -0.0507
+   },
+   {
+    "source": "L1/H1",
+    "target": "L3/H4",
+    "weight": 0.0485
+   },
+   {
+    "source": "L1/H6",
+    "target": "L3/H3",
+    "weight": 0.0459
+   },
+   {
+    "source": "L4/H1",
+    "target": "L5/N1296+",
+    "weight": 0.042
+   },
+   {
+    "source": "L0/H7",
+    "target": "L2/H4",
+    "weight": 0.0376
+   },
+   {
+    "source": "L0/N354+",
+    "target": "L3/H4",
+    "weight": 0.0294
+   },
+   {
+    "source": "L1/H2",
+    "target": "L3/H3",
+    "weight": 0.022
+   },
+   {
+    "source": "L0/H7",
+    "target": "L5/N1296+",
+    "weight": 0.0149
+   },
+   {
+    "source": "L0/H7",
+    "target": "L1/H1",
+    "weight": -0.0131
+   },
+   {
+    "source": "L2/H5",
+    "target": "L3/H4",
+    "weight": -0.0106
+   },
+   {
+    "source": "L0/H1",
+    "target": "L3/H4",
+    "weight": 0.0104
+   },
+   {
+    "source": "L1/H5",
+    "target": "L5/N1296+",
+    "weight": -0.0082
+   },
+   {
+    "source": "L1/H5",
+    "target": "L3/H3",
+    "weight": 0.0079
+   },
+   {
+    "source": "L1/H6",
+    "target": "L2/H4",
+    "weight": 0.0078
+   },
+   {
+    "source": "L1/H2",
+    "target": "L5/N1296+",
+    "weight": 0.0063
+   },
+   {
+    "source": "L0/N354+",
+    "target": "L3/H3",
+    "weight": -0.0011
+   }
+  ],
+  "coverage": 0.5191168963340064,
+  "random_draws": [
+   0.0033,
+   0.0004,
+   0.0061,
+   -0.0019
+  ],
+  "reading": {
+   "L3/H4": [
+    1.6281,
+    2.5998,
+    2.5831,
+    3.5463,
+    3.5622
+   ],
+   "L0/H6": [
+    4.0263,
+    3.4104,
+    2.5133,
+    2.1847,
+    2.6138
+   ],
+   "L0/H7": [
+    1.0352,
+    1.0287,
+    4.8524,
+    2.5105,
+    0.7274
+   ],
+   "L5/N1296+": [
+    0.0,
+    0.7322,
+    0.1671,
+    1.7279,
+    1.9777
+   ],
+   "L3/H3": [
+    0.6634,
+    0.677,
+    0.7711,
+    0.6986,
+    0.8021
+   ],
+   "L2/H4": [
+    2.2869,
+    2.2687,
+    2.9941,
+    2.8447,
+    4.0171
+   ],
+   "L0/H4": [
+    3.3301,
+    3.1724,
+    2.1947,
+    1.2029,
+    2.0054
+   ],
+   "L1/H1": [
+    4.0754,
+    3.1049,
+    3.0883,
+    2.4981,
+    3.0977
+   ]
+  },
+  "ablation": [
+   {
+    "token": " sky",
+    "before": 0.0606,
+    "after": 0.0013
+   },
+   {
+    "token": " middle",
+    "before": 0.0366,
+    "after": 0.007
+   },
+   {
+    "token": " morning",
+    "before": 0.0319,
+    "after": 0.0023
+   },
+   {
+    "token": " distance",
+    "before": 0.0159,
+    "after": 0.0002
+   },
+   {
+    "token": " north",
+    "before": 0.0145,
+    "after": 0.0005
+   }
+  ],
+  "groups": [
+   {
+    "name": "EleutherAI--pythia-70m/L1/H6/HUB",
+    "kind": "hub",
+    "status": "VERIFIED",
+    "members": [
+     "L1/H6"
+    ]
+   }
+  ]
+ },
+ "target": 0.5,
+ "previous": "20261117T191922Z",
+ "reused": false,
+ "package_version": "0.1.0",
+ "written": "2026-11-17T20:07:46.143224Z"
+}

@@ -6,7 +6,7 @@
 # failed". So `license` names the code's licence, and the abstract names the data's.
 cff-version: 1.2.0
 message: >-
-  If you use the Open Interpretability registry or the openinterp package, please cite
+  If you use the Open Interpretability registry or the openinterpretability package, please cite
   it as below. To name an exact version, cite the Zenodo DOI of that release.
 title: "Open Interpretability: an agent-audited registry of native neurons in open-weight models"
 type: software
@@ -17,7 +17,7 @@ authors:
 repository-code: "https://github.com/8W9aG/openinterpretability"
 url: "https://open-interpretability.com/"
 abstract: >-
-  openinterp is an open, agent-audited mechanistic interpretability registry and
+  openinterpretability is an open, agent-audited mechanistic interpretability registry and
   testing protocol for open-weight foundation models. Each entry is one pole of one MLP
   neuron (or one attention head or dictionary latent). A proposer agent writes a
   falsifiable hypothesis from the unit's top-activating examples, a reviewer agent writes

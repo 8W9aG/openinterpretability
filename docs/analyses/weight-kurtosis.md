@@ -7,7 +7,7 @@ Issue #3226. ROTATE (Avrahamy, Gur-Arieh and Geva, 2026, [arXiv 2604.06005](http
 ## Method
 
 - **The signal.** For each neuron of every layer of the three configured models, two numbers come from the weights alone:
-  - the *output kurtosis*: the neuron's `w_out` through the final norm's gain, then the unembedding `U`. This is the `logit_kurtosis` that each experiment's vocabulary lens records (`openinterp/harness/jlens.py`).
+  - the *output kurtosis*: the neuron's `w_out` through the final norm's gain, then the unembedding `U`. This is the `logit_kurtosis` that each experiment's vocabulary lens records (`openinterpretability/harness/jlens.py`).
   - the *input kurtosis*: the neuron's read vector through `U`. The read vector is `gate` for Qwen and `in` for GPT-2, with the pre-MLP norm folded in (`wiring.mlp_reads`). ROTATE also uses `w_gate` for a gated MLP.
 
   The kurtosis is the mean of z⁴ over the vocabulary, where z standardises the neuron's scores for all tokens. A Gaussian scores 3. ROTATE subtracts 3, which changes no ranking. The kurtosis is the same for both poles of a neuron.

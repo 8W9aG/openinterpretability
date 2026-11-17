@@ -1,13 +1,13 @@
 ---
 name: release
-description: Cut a package release of openinterp. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run. Bump `openinterp.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterpretability. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run. Bump `openinterpretability.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
-# Releasing openinterp
+# Releasing openinterpretability
 
 A release does two jobs. It refreshes the analyses that are too slow to run per experiment, which today is the sister search. Then it versions what's on `main`. Do them in that order, so that the release ships the refreshed rows.
 
-The CHANGELOG's header explains the two version numbers. The **package version** (`openinterp/__init__.py`) changes every release. The **protocol version** (`PROTOCOL_VERSION` in `openinterp/core/schemas.py`) changes only in the PR that changes the decision rule, never here. A release only reports it.
+The CHANGELOG's header explains the two version numbers. The **package version** (`openinterpretability/__init__.py`) changes every release. The **protocol version** (`PROTOCOL_VERSION` in `openinterpretability/core/schemas.py`) changes only in the PR that changes the decision rule, never here. A release only reports it.
 
 ## When to release
 
@@ -67,7 +67,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
 
 ## Procedure
 
-1. **Start from a fresh `origin/main` on a release branch.** Work in the main checkout, not a worktree. Pick the next version: bump the patch (`0.0.11` → `0.0.12`) unless the user names one.
+1. **Start from a fresh `origin/main` on a release branch.** Work in the main checkout, not a worktree. Pick the next version with the `semantic-versioning` skill, unless the user names one. It reads the fragments and the changes since the last tag, and finds the breaking changes. It gives the version with its reasons, which go in the release PR.
    ```bash
    git fetch origin --tags && git switch -c release/<version> origin/main
    ```
@@ -81,12 +81,12 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    ```bash
    uv run open-interpretability sisters --device auto
    ```
-   It searches every ordered pair of the configured models (`[tool.openinterp] models`) plus `SIBLINGS`. It skips every pole that already has a row for that model. So it only searches the poles VERIFIED since the last run, and any pair that a newly configured model adds. Each pair prints `N VERIFIED poles of A against B`. Then one search covers every pair, in four stages (`source:`, `forward:`, `matches:` and `backward:` positions). Each stage reads each model once, with one model loaded at a time. A pair with nothing new prints nothing. If no accelerator is available, skip this step and say so in the PR body. The next release picks the poles up.
+   It searches every ordered pair of the configured models (`[tool.openinterpretability] models`) plus `SIBLINGS`. It skips every pole that already has a row for that model. So it only searches the poles VERIFIED since the last run, and any pair that a newly configured model adds. Each pair prints `N VERIFIED poles of A against B`. Then one search covers every pair, in four stages (`source:`, `forward:`, `matches:` and `backward:` positions). Each stage reads each model once, with one model loaded at a time. A pair with nothing new prints nothing. If no accelerator is available, skip this step and say so in the PR body. The next release picks the poles up.
 4. **Record what changed.** If the run wrote rows (`git diff --stat docs/analyses/sister-neurons.jsonl`), count them:
    ```bash
    uv run python - <<'EOF'
    import subprocess
-   from openinterp.sisters import SisterRow
+   from openinterpretability.sisters import SisterRow
    old = subprocess.run(["git", "show", "HEAD:docs/analyses/sister-neurons.jsonl"], capture_output=True, text=True).stdout
    seen = {(r.slug, r.other) for r in map(SisterRow.model_validate_json, old.splitlines())}
    rows = [SisterRow.model_validate_json(l) for l in open("docs/analyses/sister-neurons.jsonl")]
@@ -99,11 +99,12 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    Write the bullet in a fragment, `changelog.d/sisters-<version>.changed.md`, with the version's dots as hyphens (`sisters-0-0-20`) (`changelog.d/README.md`). Give the count of new rows and new sisters, by pair. Name the strongest few, since each is now a `sister` draw. Don't rewrite `docs/analyses/sister-neurons.md`: it reports the first run, and a dated note of later runs belongs in the CHANGELOG.
    Then refresh the registry coverage, which the home page shows. Run it in the background, one model at a time, on an idle machine:
    ```bash
-   for m in $(uv run python -c 'from openinterp.planner import configured_models; print(*configured_models())'); do
+   for m in $(uv run python -c 'from openinterpretability.planner import configured_models; print(*configured_models())'); do
      uv run open-interpretability coverage --model "$m"
    done
    ```
    Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md` (dots as hyphens).
+   Then update the circuit ids: `uv run open-interpretability circuits identify`. It appends each model's new, grown, split, merged and gone circuits to `data/circuits/<model>.jsonl` (`docs/circuits-and-hubs.md`). Commit those files in the release PR too.
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
    Then run the benchmarks on CI. They no longer run on a local machine (#3808):
    ```bash
@@ -111,14 +112,14 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    gh run watch "$(gh run list --workflow benchmarks.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
    ```
    The workflow measures the peak memory of a scan and a review on GPT-2 and Qwen2.5-0.5B, and the time and memory of fixed GPT-2 workloads. It compares them with the median of the recent runs in `docs/analyses/benchmark-ledger.jsonl`. Then it adds the run to that ledger through a PR that merges by itself (#4011). If it fails, stop and report the regression, as for a failed test. The ledger PR still merges, so the regression stays on record.
-6. **Bump and date.** In `openinterp/__init__.py`, set `__version__ = "<version>"`. Then gather the changelog fragments into the version's section. The script writes it under `## [Unreleased]`, which stays empty, and removes the fragments:
+6. **Bump and date.** In `openinterpretability/__init__.py`, set `__version__ = "<version>"`. Then gather the changelog fragments into the version's section. The script writes it under `## [Unreleased]`, which stays empty, and removes the fragments:
    ```bash
    python3 scripts/changelog.py collect <version> <YYYY-MM-DD> "Ships with protocol version **<PROTOCOL_VERSION>**."
    ```
-   If the protocol version changed since the last tag (`git diff v<previous> -- openinterp/core/schemas.py | grep PROTOCOL_VERSION`), say so in that line: "Ships with protocol version **0.9** (was 0.8)." The section's entries explain why.
+   If the protocol version changed since the last tag (`git diff v<previous> -- openinterpretability/core/schemas.py | grep PROTOCOL_VERSION`), say so in that line: "Ships with protocol version **0.9** (was 0.8)." The section's entries explain why.
 7. **Commit and push.** Check the branch first (`git branch --show-current` prints `release/<version>`):
    ```bash
-   git add CHANGELOG.md changelog.d openinterp/__init__.py docs/analyses/sister-neurons.jsonl docs/analyses/registry-coverage.jsonl
+   git add CHANGELOG.md changelog.d openinterpretability/__init__.py docs/analyses/sister-neurons.jsonl docs/analyses/registry-coverage.jsonl data/circuits
    git commit -m "Release <version> (protocol v<PROTOCOL_VERSION>)"
    git push -u origin release/<version>
    ```
@@ -132,7 +133,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
 9. **Tag the merged commit.** Do this after the PR merges, not before. A squash merge makes a new commit on `main`, so a tag on the release branch's commit is not on `main`:
    ```bash
    git fetch origin
-   git tag -a v<version> "$(gh pr view <number> --json mergeCommit --jq .mergeCommit.oid)" -m "openinterp <version> (protocol v<PROTOCOL_VERSION>)"
+   git tag -a v<version> "$(gh pr view <number> --json mergeCommit --jq .mergeCommit.oid)" -m "openinterpretability <version> (protocol v<PROTOCOL_VERSION>)"
    git push origin v<version>
    git merge-base --is-ancestor v<version> origin/main && echo on-main
    ```
@@ -140,9 +141,9 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
     ```bash
     notes=$(mktemp)
     awk '/^## \[<version>\]/{f=1; next} /^## \[/{f=0} f' CHANGELOG.md > "$notes"
-    gh release create v<version> --verify-tag --title "openinterp <version> (protocol v<PROTOCOL_VERSION>)" --notes-file "$notes"
+    gh release create v<version> --verify-tag --title "openinterpretability <version> (protocol v<PROTOCOL_VERSION>)" --notes-file "$notes"
     ```
-    Publishing the release also starts `.github/workflows/publish.yml`, which uploads the package to PyPI as `open-interpretability`. Check that its run passed (`gh run list --workflow publish.yml --limit 1`). If it failed on the version check, the tag doesn't match `openinterp.__version__`. If it failed on upload, check the trusted publisher on PyPI and the `pypi` environment's tag rule (`docs/development.md`, *Releases on PyPI*). Tell the user either way.
+    Publishing the release also starts `.github/workflows/publish.yml`, which uploads the package to PyPI as `open-interpretability`. Check that its run passed (`gh run list --workflow publish.yml --limit 1`). If it failed on the version check, the tag doesn't match `openinterpretability.__version__`. If it failed on upload, check the trusted publisher on PyPI and the `pypi` environment's tag rule (`docs/development.md`, *Releases on PyPI*). Tell the user either way.
     Then check that Zenodo made the DOI: the release's Zenodo record appears under the repository's concept DOI after a few minutes. If it doesn't, the Zenodo GitHub integration is off. Tell the user, since only the repository owner can turn it on at zenodo.org.
 11. **Close the milestone.** Move any open issues in `v<version>` to the next milestone, then close it:
     ```bash

@@ -18,8 +18,7 @@ on:
 
 permissions:
   contents: write  # the ledger branch
-  pull-requests: write  # the ledger PR and its auto-merge
-  actions: write  # ci.yml on the ledger branch
+  pull-requests: write  # the ledger PR, when LEDGER_TOKEN is unset
 
 concurrency:
   group: benchmarks
@@ -35,7 +34,7 @@ jobs:
       HF_HUB_DISABLE_PROGRESS_BARS: "1"
       # Streaming and batch sizes follow free memory. A fixed budget keeps the work the
       # same from run to run, so that only a code change moves a peak.
-      OPENINTERP_MEMORY_GB: "12"
+      OPENINTERPRETABILITY_MEMORY_GB: "12"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
@@ -98,7 +97,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Add the run to the ledger through an auto-merged PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          # A PR that github.token opens starts no CI without approval, so its required
+          # checks never pass (#4215). LEDGER_TOKEN, a fine-grained token for this
+          # repository with Contents, Pull requests and Actions write, opens it as a person
+          # would, so CI runs. Without the secret, the step falls back to github.token.
+          GH_TOKEN: ${{ secrets.LEDGER_TOKEN || github.token }}
           RUN: ${{ github.run_id }}
         run: |
           branch="benchmarks/$(date -u +%Y%m%d)-$RUN"
@@ -113,8 +116,9 @@ jobs:
           body="One row from the Benchmarks workflow, run $RUN, on $GITHUB_SHA (issue #4011)."
           gh pr create --base main --head "$branch" --title "Benchmark ledger: run $RUN" \
             --body "$body It merges by itself once CI passes."
-          gh pr merge "$branch" --auto --squash
-          gh workflow run ci.yml --ref "$branch"
+          # Opened with LEDGER_TOKEN, the PR is the maintainer's, so auto-merge.yml turns on
+          # its auto-merge and its own CI runs. A fine-grained token can't enable auto-merge
+          # itself, so the step no longer tries (#4215).
       - name: Fail on a regression
         if: steps.check.outcome == 'failure'
         run: |

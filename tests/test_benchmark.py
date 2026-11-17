@@ -6,9 +6,13 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from openinterp import benchmark as bench
-from openinterp.cli import cli
-from openinterp.core.schemas import AdversarialTestResult, AuditRecord, ExperimentProvenance
+from openinterpretability import benchmark as bench
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import (
+    AdversarialTestResult,
+    AuditRecord,
+    ExperimentProvenance,
+)
 
 
 def probe(text, *, active, predicted=None, kind=None, measured=True):
@@ -164,7 +168,7 @@ def test_sealed_test_labels_must_match_their_hash(tmp_path, record):
 
 
 def test_the_score_command_writes_rows_and_a_summary(tmp_path, record, monkeypatch):
-    import openinterp.cli_benchmark as cli_benchmark
+    import openinterpretability.cli_benchmark as cli_benchmark
 
     records = [make_record(record, idx=1, results=balanced("one"), text="Fires on fire.")]
     bench.write(bench.freeze(records, "v1", test_fraction=0.0), tmp_path / "v1")
@@ -235,9 +239,9 @@ def test_measure_appends_fresh_test_labels_from_the_model(
 ):
     import json
 
-    import openinterp.cli as cli_module
-    from openinterp.core.identifiers import NeuronIdentifier
-    from openinterp.core.paths import experiments_dir
+    import openinterpretability.cli as cli_module
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from openinterpretability.core.paths import experiments_dir
 
     ident = NeuronIdentifier(model_name="toy", layer=1, neuron_idx=2, pole="positive")
     sub = record.submission.model_copy(update={"identifier": ident, "first_token_floor": False})
@@ -294,7 +298,7 @@ def test_a_shuffled_order_is_a_fixed_random_sample_of_the_split():
 
 
 def test_a_partial_run_says_whether_it_is_a_random_sample(tmp_path, record, monkeypatch):
-    import openinterp.cli_benchmark as cli_benchmark
+    import openinterpretability.cli_benchmark as cli_benchmark
 
     records = [make_record(record, idx=i, results=balanced(str(i)), text="Fires on fire.")
                for i in range(1, 5)]  # fmt: skip

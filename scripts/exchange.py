@@ -30,14 +30,14 @@ EXCHANGE = Path("exchange")
 STAGING = Path("exchange/.published")
 REPO = "sackfield/open-interpretability-exchange"
 # The files that cite inputs: papers, analyses, scripts and the package.
-CITING = ("papers", "docs", "scripts", "openinterp", ".claude")
+CITING = ("papers", "docs", "scripts", "openinterpretability", ".claude")
 NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
 # Names under exchange/ that are only outputs or working folders, never cited inputs. A
 # command writes them, and no analysis reads them. `bench` also holds the benchmark's
 # private test probes, so it is never published.
 OUTPUTS = {
     "bench", "bench-dev", "bench-redteam", "code-detection", "dreams", "gpt2-spd",
-    "language-detection", "score-backfill",
+    "language-detection", "rescore-pilot", "score-backfill",
     "spd-up-neurons.json", ".published",
 }  # fmt: skip
 # A case-insensitive file system, such as macOS's, opens `exchange/BENCH` as `exchange/bench`.

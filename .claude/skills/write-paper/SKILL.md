@@ -16,20 +16,50 @@ papers/<slug>/
 └── media/          figures, written by scripts/paper_figures.py
 ```
 
-List the paper in `papers/README.md`. That order is the order of the site's Research index ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
+List the paper in `papers/README.md`, with the date it is published before it: `- 2026-11-16: [Title](slug/README.md)`. The site's Research index shows the papers newest first by that date, and keeps the list's order for one date ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
 
 ## Structure
 
-1. A level 1 title, then one paragraph that can stand alone. The Research index shows this paragraph, so don't start it with a citation or a path.
-   Then one paragraph that starts **Why we wrote it.**, and says what problem made the paper necessary. In the same paragraph, **The question.** states the question that the paper answers, and links it to its research question in `docs/research-questions.md`. `tests/test_papers.py` checks it.
-2. **Results**: numbered findings, each with its limit. End with what the results do not show.
-3. **Method**, then a section for each finding. Tables hold the exact numbers.
-4. **Caveats**, **Reproduce** (the commands, with the seeds) and **Next**.
-5. **References**.
+A paper has the arc of the papers we review, in this order. `tests/test_papers.py` checks the fixed sections and their order.
 
-## Academic language
+1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the key numbers and what they imply. The Research index shows it, so don't start it with a citation or a path, and give it no heading.
+2. **Introduction.** Motivate the question for the field, not for the registry. Say what earlier work leaves open. Then give a bulleted list of the paper's contributions, and link the question to `docs/research-questions.md`.
+3. **Related work.** At least one paragraph that places the paper among the outside work it cites. Say where it agrees and where it differs. The reviews in `docs/literature/` are the first place to look.
+4. **Method.** Define each term and the notation once, then the setup: model, units, data and measures.
+5. **One section per experiment**, titled by what it asks. Each one gives the question, the setup, the result with its table or figure, and how to read it.
+6. **Discussion.** What the results mean together, the other explanations, and the links to the literature.
+7. **Limitations**, then **Conclusion**: a short paragraph that answers the question.
+8. **References**, then **Appendices**: Reproduce (the commands, with the seeds), per-unit tables and long derivations.
 
-Write in a formal, academic register. Use the third person or "we", not "I" or "you". Use no contractions, slang or casual phrases. Make each claim as strong as its evidence, and no stronger: say "suggests" for a hint, and "shows" only for a measured result. The STE limits of `make ste` still hold, so keep sentences short and plain.
+Keep the main body, up to References, to about 3,000–6,000 words. Long material goes in the Appendices.
+
+## Prose
+
+Write in a formal, academic register. Use the third person or "we", not "I" or "you". Use no contractions, slang or casual phrases. Make each claim as strong as its evidence, and no stronger: say "suggests" for a hint, and "shows" only for a measured result.
+
+- **Argue in paragraphs.** Each paragraph opens with a topic sentence, gives the evidence, and ends with what the evidence implies. Use bullets only for real lists: contributions, setups and limitations. Results, Discussion and Conclusion are prose.
+- **Relate the claims.** A sentence may relate two claims with "because", "whereas", "although" or "which suggests". Papers get their own STE profile (`scripts/ste_prose.py`): a sentence may have up to 40 words, and a paper's mean must stay at 25 or fewer. Every other STE rule still holds.
+- **Define the repo's terms.** Explain each term the first time it appears, in plain words: a pole, VERIFIED, the review's gates, the activation line at 0.25 of the maximum. Then use it as defined. Keep code names and file paths out of the argument. They belong in the Method's setup and the Appendices.
+- **Number the figures and tables.** Give each one a caption that starts **Figure 1.** or **Table 1.**, and that a reader can follow alone. Refer to each one in the text by its number.
+- **Read the models.** Shabalin & Piotrowski's *Many Transcoder Features Are Neurons in Disguise* (`docs/literature/neurons-in-disguise.md`) and Oikarinen et al.'s *Evaluating Neuron Explanations* (`docs/literature/evaluating-neuron-explanations.md`) show the arc and the register.
+
+**Before and after.** The old form read like a list:
+
+```text
+At step 16,000, the median correlation of a pole's activations with its final
+activations is 0.48, with a range of 0.29 to 0.74. It is 0.72 at step 64,000 and 0.93
+at step 128,000.
+```
+
+The new form argues:
+
+```text
+Although the loss is within 1% of its final value by step 16,000, the poles are far
+from their final form at that step: their activations correlate with their final
+activations at a median of only 0.48 (Table 1). The correlation keeps rising, to 0.72
+at step 64,000 and 0.93 at step 128,000, which suggests that the poles keep changing
+long after the loss settles.
+```
 
 ## Citations
 
@@ -61,17 +91,36 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 
 - **Draw from the data.** Add figures through `scripts/figure_svg.py`, and register them in `scripts/paper_figures.py`. A test fails if a figure differs from the results. Run that script after each change to the results.
 - **Put the finding in the title** of each figure. The subtitle says what the marks are.
-- **Animate to make a point.** Use a short loop inside a figure when change is the argument, for example neurons that move as training runs. Don't make a full video unless asked. Under reduced motion, a figure shows its final frame.
+- **Animate at least one figure.** Each paper needs at least one animated figure. Make it with the `paper-animation` skill, which gives the forms, the shared helper and the checks. A paper with no change, order or cause to show says why in its Method, in one sentence. Don't make a full video unless asked.
 - **Use depth for a third dimension.** A surface over layers and steps earns its depth. A 3D bar chart doesn't.
 - **Use an interactive page for what a reader must explore**, because Markdown can't run it.
 - **Be honest about the marks.** Say when a figure is an illustration with made-up values, or a sketch from summary statistics. Say when only the two ends of an animation are measured.
 - **Keep colours consistent.** One side or route has one colour through the paper. Check new colours with the `dataviz` skill.
 - **Look at each figure** in light and dark, and mid-animation, before you call it done.
 
+## Status: preprint or published
+
+The maintainer decided on 2026-11-17 that every paper is either a **preprint** or **published**, and that the reader must see which (#3150). The status line under the abstract says it, and the site shows it beside the title.
+
+- **A preprint** has work left. Its line names the open issues that would change it: `**Status:** Preprint. Work left: #N (what), #M (what).` A new paper starts as one:
+  ```bash
+  uv run python scripts/papers.py new <slug> --work "#N (what is left)."
+  ```
+  This also writes its `CITATION.cff`. When an issue on the paper closes, take it off the line, and name any follow-up issue that changes the paper.
+- **Publish it when no work on it is left**, in the PR that closes its last issue:
+  ```bash
+  uv run python scripts/papers.py publish <slug>
+  ```
+  The line then gives the date, and `CITATION.cff` holds the SHA-256 of the text and the results files.
+- **A published paper doesn't change.** A later correction goes in a `## Addenda` section at the end, one dated `### YYYY-MM-DD` entry each. New work becomes a new paper that cites it. `make lint` (`scripts/papers.py check`) fails if the text above the addenda, or a results file, changes.
+
 ## Before you finish
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
+- At least one figure moves (`paper-animation`), or the Method says why none does. Render a middle frame and the last frame, in light and dark, and look at them.
+- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
+- The status line names the work left, or the paper is published (*Status* above), and `uv run python scripts/papers.py check` passes.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
-- Build the site with `make build`, and open the Research index and the paper.
+- Build the site with `make build`, and open the Research index, the paper and its PDF (`dist/research/<slug>/paper.pdf`, printed by headless Chrome).
 - Open the PR ready for review, not as a draft. Merge it when CI passes, as for every other PR. Do not wait for a person to read the paper first.

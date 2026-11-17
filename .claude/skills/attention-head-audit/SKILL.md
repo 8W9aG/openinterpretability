@@ -1,6 +1,6 @@
 ---
 name: attention-head-audit
-description: Plan and run the extension of openinterp from MLP neuron poles to attention heads (and later transcoder features), using the circuits literature. Use when the user wants to expand the registry's scope beyond MLP neurons, audit an attention head, or compare native neurons against SAE/transcoder baselines.
+description: Plan and run the extension of openinterpretability from MLP neuron poles to attention heads (and later transcoder features), using the circuits literature. Use when the user wants to expand the registry's scope beyond MLP neurons, audit an attention head, or compare native neurons against SAE/transcoder baselines.
 ---
 
 # Extending the registry to attention heads and learned bases
@@ -33,6 +33,18 @@ How the harness handles heads (protocol 0.6, `harness/units.py` and `harness/hea
 3. **Strength.** `|W_O (z_t − z̄)|`, with z̄ the head's mean output over the scan, stored in `head_profile.mean_output`. The raw write norm `|W_O z|` doesn't work, because most heads write a sizeable resting vector. On GPT-2 small L5H1, the median token sits at a quarter of the maximum, so half of all text would count as "active". Against z̄, the five known GPT-2 small induction heads (L5H1, L5H5, L6H9, L7H2, L7H10) are active on every second-half token of repeated random tokens. They are active on almost none of the first half. The previous-token head L4H11 is active nearly everywhere. Ablation is mean ablation (z → z̄), so strength is exactly how far ablating the head moves the residual stream.
 4. **Evidence.** The scan records the tokens each top example's peak attends to, and previous-token, duplicate-token and induction scores on random repeated sequences. There is no vocabulary lens or partner search for heads.
 5. **Probe semantics.** Hard negatives for an induction head are repeated sequences with the copy broken. Holdouts are repeated random-token sequences (Olsson et al.). Probes are measured on their own, so the earlier copy must be inside the probe.
+
+## Broad early heads
+
+Many heads in the first layers of a small model are generic. Examples are previous-token heads, copy heads and nearest-noun heads. Since protocol 0.10, a head's strength is measured above its floor, the median of its norm (#4523). Even so, a generic head stays above the active line on most text. On Pythia-70m, L1/H2, L1/H6 and L2/H3 were active on 75–100% of held-out windows. A broad head is a legitimate finding, not a failed audit.
+
+- **Measure as the review does.** Use `HeadUnit(ident, mean_output, floor=strength_floor)` from the scan's `head_profile`, skip the first token, and load the runner with eager attention (`openinterpretability.cli._load_runner`). The active line is 0.25 × the scan's max.
+- **Measure prose per token.** Plain sentences such as "The house is near the park." often cross the line weakly. Check 20 or more varied sentences before you call prose inactive.
+- **Say plainly that the head is broad.** If most text crosses, the explanation must say so: "predict ordinary prose active-weak". Then name what makes it strong.
+- **Name only inactive classes that hold.** Measure each class below the line on at least 15 varied examples. A class that fails once in five is not an inactive class. Narrow classes are fine, for example comma lists of plain numbers, one-word sentences, or "The N V." clauses.
+- **Expect the held-out scores to be low.** A broad explanation marks almost every window active, so detection sits near 0.5. The probes and counterfactuals carry the verdict. #4545 asks whether such records need a mark on the site.
+
+On Pythia-70m, each of the three heads above needed two or three rounds. Each was VERIFIED once its hypothesis followed these rules.
 
 ## Learned-basis baselines
 

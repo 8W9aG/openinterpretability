@@ -4,12 +4,14 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from openinterp.core.exceptions import ShapeMismatchError
-from openinterp.harness.attribution import attribution_patching, top_attributed_neurons
-from openinterp.harness.hooks import NeuronHookRunner, replace_pole
-from openinterp.harness.lookahead import measure_lookahead, output_token_projection
-from openinterp.harness.patcher import (
+from openinterpretability.core.exceptions import ShapeMismatchError
+from openinterpretability.harness.attribution import attribution_patching, top_attributed_neurons
+from openinterpretability.harness.hooks import NeuronHookRunner, replace_pole
+from openinterpretability.harness.lookahead import measure_lookahead, output_token_projection
+from openinterpretability.harness.patcher import (
+    AblationResult,
     ActivationPatcher,
+    PatchResult,
     logit_direction_metric,
     metric_change,
     next_token_kl,
@@ -132,6 +134,16 @@ def test_resample_ablation_averages(runner):
     assert result.mean_metric_delta == pytest.approx(
         sum(r.metric_delta for r in result.per_source) / 2
     )
+
+
+def test_mean_recovery_skips_sources_with_no_gap():
+    # Recovery is NaN when a source's metric equals the baseline's (#3164).
+    def result(baseline, reference, patched):
+        return PatchResult(baseline, reference, patched, torch.zeros(1))
+
+    mixed = AblationResult([result(0.0, 1.0, 0.5), result(0.0, 0.0, 0.3), result(0.0, 2.0, 2.0)])
+    assert mixed.mean_recovery == pytest.approx((0.5 + 1.0) / 2)
+    assert math.isnan(AblationResult([result(1.0, 1.0, 1.0)]).mean_recovery)
 
 
 def test_attribution_matches_exact_patching_on_last_layer(runner):

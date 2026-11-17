@@ -6,7 +6,7 @@
 
 Four detectors, each run per document as `open-interpretability corpus` would run it:
 
-- **fastText `lid.176.ftz`** (176 languages, the 917 KB compressed model, through `fasttext-predict`, as `openinterp/langid.py` runs it).
+- **fastText `lid.176.ftz`** (176 languages, the 917 KB compressed model, through `fasttext-predict`, as `openinterpretability/langid.py` runs it).
 - **lingua** (`lingua-language-detector`, all languages, high-accuracy mode).
 - **langdetect**, seeded (`DetectorFactory.seed = 0`). Unseeded, it gave a different answer on 7 of 200 50-character documents when run twice.
 - **langid.py**, with normalised probabilities.
@@ -48,7 +48,7 @@ On the registry corpus the four detectors agree on 96–98% of documents. All ca
 
 ## Decision
 
-**fastText `lid.176.ftz`, labelling a document only at confidence ≥ 0.8** (`openinterp/langid.py`: `MIN_CONFIDENCE`, with the model's URL and SHA-256 pinned).
+**fastText `lid.176.ftz`, labelling a document only at confidence ≥ 0.8** (`openinterpretability/langid.py`: `MIN_CONFIDENCE`, with the model's URL and SHA-256 pinned).
 
 - It is the most accurate on every set at every length, and 10–15 times faster.
 - Only its confidence separates prose from code. The other three are as sure of a C header's "language" as of a Wikipedia article's, so no line can make them abstain on code. At 0.8, fastText labels 9% of code files and keeps 98.5% of articles. It loses no accuracy on those it keeps. Three of its four errors on the articles (two Chinese articles and one Catalan, at confidence 0.14–0.46) fall below the line. The fourth, a Hindi article labelled English at 0.97, stays.

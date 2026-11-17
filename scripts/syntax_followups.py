@@ -38,8 +38,8 @@ from syntax_probes import (
     extra_contexts,
 )
 
-from openinterp.cli import _load, resolve_device
-from openinterp.harness.hooks import pole_strength
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.harness.hooks import pole_strength
 
 GPT2 = "openai-community/gpt2"
 # The best `round depth` pole of each Qwen2.5 model, in its sweep over whole documents.

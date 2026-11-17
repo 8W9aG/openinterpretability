@@ -68,3 +68,36 @@ def test_collect_groups_orders_dates_and_deletes(tmp_path):
     assert [p.name for p in folder.iterdir()] == ["README.md"]
     assert changelog.problems(log, folder) == []  # Unreleased is empty again
     assert OLD in text
+
+
+def test_semver_bumps_while_the_version_is_0x():
+    assert changelog.bump("0.0.21", ["added", "fixed"], False)[0] == "0.0.22"
+    assert changelog.bump("0.0.21", ["changed"], True)[0] == "0.1.0"
+    assert changelog.bump("0.0.21", ["removed"], False)[0] == "0.1.0"
+    assert changelog.bump("0.3.4", ["fixed"], False)[0] == "0.3.5"
+
+
+def test_semver_bumps_from_1_0():
+    assert changelog.bump("1.2.3", ["fixed"], False)[0] == "1.2.4"
+    assert changelog.bump("1.2.3", ["added", "fixed"], False)[0] == "1.3.0"
+    assert changelog.bump("1.2.3", ["added"], True)[0] == "2.0.0"
+
+
+def test_a_fragment_marked_breaking_bumps_the_minor(tmp_path, monkeypatch):
+    folder = tmp_path / "changelog.d"
+    folder.mkdir()
+    (folder / "1.added.md").write_text("- **New.** A thing (#1).\n")
+    monkeypatch.setattr(changelog, "protocol_changed", lambda since: False)
+    assert changelog.propose("0.0.21", "v0.0.21", folder)[0] == "0.0.22"
+    (folder / "2.changed.md").write_text(f"- {changelog.BREAKING} The CLI drops `--x` (#2).\n")
+    version, reasons = changelog.propose("0.0.21", "v0.0.21", folder)
+    assert version == "0.1.0" and any("2.changed.md" in r for r in reasons)
+
+
+def test_a_protocol_change_bumps_the_minor(tmp_path, monkeypatch):
+    folder = tmp_path / "changelog.d"
+    folder.mkdir()
+    (folder / "1.fixed.md").write_text("- **Fix.** A fix (#1).\n")
+    monkeypatch.setattr(changelog, "protocol_changed", lambda since: True)
+    version, reasons = changelog.propose("0.0.21", "v0.0.21", folder)
+    assert version == "0.1.0" and any("PROTOCOL_VERSION" in r for r in reasons)

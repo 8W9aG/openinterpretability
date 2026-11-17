@@ -30,7 +30,7 @@ MODEL, SEQ_LEN, BATCH_ROWS, ROWS, SEED = "openai-community/gpt2", 128, 8, 64, 0
 @click.option("--out", type=click.Path(path_type=Path), required=True)
 def main(device, scan_corpus, compares, out):
     """Write each input projection's neuron curve to ``--out``."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     runner = _load_runner(MODEL, device, "float32", None)
     cfg = SimpleNamespace(scan_corpus=scan_corpus, seq_len=SEQ_LEN, seed=SEED)

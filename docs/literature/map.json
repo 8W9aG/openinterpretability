@@ -1,0 +1,125 @@
+{
+ "model": "sentence-transformers/all-MiniLM-L6-v2",
+ "reviews": [
+  {
+   "name": "activation-probes-few-positives",
+   "x": 0.2086,
+   "y": 0.6102,
+   "sha256": "dfcfa7e01bc82dcabd87f0763226287001ef3d815bca49b29e9b07197efe0cc6"
+  },
+  {
+   "name": "beyond-top-activations",
+   "x": 0.074,
+   "y": 0.5401,
+   "sha256": "e74f4f0caeda073dafe42fb5ba55c7a1a0a19e74b22f600bdcb783a9c4264b74"
+  },
+  {
+   "name": "calibrated-concept-profiles",
+   "x": 0.3364,
+   "y": 0.2969,
+   "sha256": "9bbb476a34f8af158497542c05d9397931585bd3485ef98282544e2fffd78d0e"
+  },
+  {
+   "name": "causally-grounded-explanations",
+   "x": 0.642,
+   "y": 0.476,
+   "sha256": "16b67268840dcdaad5ed219641ed8f29fd0176ef5ef8cfd7c08d22764c394d61"
+  },
+  {
+   "name": "conditional-memory-via-scalable-lookup",
+   "x": 0.4534,
+   "y": 0.2015,
+   "sha256": "3de6f45a403aaa950a57dfb37c4618908804856b6bfb8af91a5d5cfd0063c9b8"
+  },
+  {
+   "name": "context-language-models",
+   "x": 0.9919,
+   "y": 0.1292,
+   "sha256": "91ea400b6e7171e8084b412ed921b5b23ee05789c4d80b3254c6daa3c093c17b"
+  },
+  {
+   "name": "evaluating-neuron-explanations",
+   "x": 0.1058,
+   "y": 0.7641,
+   "sha256": "eef9707c7e61d267a3cd4198360298742497528955c4ea7f9180e4c479d3745f"
+  },
+  {
+   "name": "faithful-stable-explanations",
+   "x": 0.0,
+   "y": 0.4312,
+   "sha256": "6a5d2e2ef703fec08bc92eafabd1b23164dcb1ecf2c7937874c04aa6710b332f"
+  },
+  {
+   "name": "levins-ingressing-minds-from-platonic-space",
+   "x": 0.4528,
+   "y": 0.3689,
+   "sha256": "5286377b450b074e27ca75abf58e23b762472552751ad3f48716c0cb858b8af5"
+  },
+  {
+   "name": "linear-probe-evidence",
+   "x": 0.2065,
+   "y": 0.4821,
+   "sha256": "610ba4f50ad6b66a8133cd7ec936e573ef7fdb34862f44d5c23b404e11e45527"
+  },
+  {
+   "name": "model-graded-robustness",
+   "x": 0.6016,
+   "y": 1.0,
+   "sha256": "b09e1ff11eb5801ab7b5a20a189fe752050f300a8fd4dd92ddc37e3d1c26c3e4"
+  },
+  {
+   "name": "neuron-basis-circuits",
+   "x": 0.2293,
+   "y": 0.0,
+   "sha256": "9808cdc71dfeb6118071e7891e2811dffadf6b0b4a03198cf7c0907856cb9c24"
+  },
+  {
+   "name": "neurons-as-an-interpretable-basis",
+   "x": 0.0826,
+   "y": 0.0196,
+   "sha256": "b2dc4ab8f9046bb410468cc6821004e7d425f4ea52c5fea773780b73ebdeffd5"
+  },
+  {
+   "name": "neurons-in-disguise",
+   "x": 0.1159,
+   "y": 0.0356,
+   "sha256": "ca9d05785e151b140d336d1c2fd51547e52d163884b804d030d8adbd288009e7"
+  },
+  {
+   "name": "neurons-speak-in-ranges",
+   "x": 0.0785,
+   "y": 0.3248,
+   "sha256": "37d6ecfdce9d0e33684e3e128e37f46be278c12bd7ccf8a85ab503cd0eda0518"
+  },
+  {
+   "name": "recursive-language-models",
+   "x": 1.0,
+   "y": 0.2165,
+   "sha256": "6d8df5fb3d182dc8d48af064f7f7a3885e7fec0a8ee279c949e707d63bf891cd"
+  },
+  {
+   "name": "scoring-explanations-without-reading-them",
+   "x": 0.4507,
+   "y": 0.8838,
+   "sha256": "748f58a8d4fbc55e392d615768cd6c545f0bf4b5807070b6c8ad85adb0ea62f4"
+  },
+  {
+   "name": "training-llms-to-predict-world-events",
+   "x": 0.7542,
+   "y": 0.4326,
+   "sha256": "ca5bf11e16ac3dc44e3655adfe06eaab457eea38102e23b36e849ef6835e670d"
+  },
+  {
+   "name": "understanding-ai-from-the-inside",
+   "x": 0.4249,
+   "y": 0.6835,
+   "sha256": "9013538e3e25610d4823d0f22e9c7dd23e471aeba794c993e9f8b420b685fe69"
+  },
+  {
+   "name": "what-survives-distillation",
+   "x": 0.5534,
+   "y": 0.3683,
+   "sha256": "a05704050208ff41e24b6cf627ef54a5127c59351378273865b9bc6fe9bcc1af"
+  }
+ ]
+}

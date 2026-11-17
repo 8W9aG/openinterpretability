@@ -17,10 +17,10 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from openinterp.core.explanation import ExplanationScores
-from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
-from openinterp.core.schemas import AuditRecord
-from openinterp.harness.explanation_scores import auroc
+from openinterpretability.core.explanation import ExplanationScores
+from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
+from openinterpretability.core.schemas import AuditRecord
+from openinterpretability.harness.explanation_scores import auroc
 
 KINDS = ("detection", "fuzzing")
 BACKFILL = Path("docs/analyses/explanation-scores-backfill.jsonl")

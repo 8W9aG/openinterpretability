@@ -4,9 +4,9 @@ import json
 
 import pytest
 
-from openinterp.builder.wiki import archive_record
-from openinterp.core import evidence
-from openinterp.core.schemas import AuditRecord
+from openinterpretability.builder.wiki import archive_record
+from openinterpretability.core import evidence
+from openinterpretability.core.schemas import AuditRecord
 
 
 @pytest.fixture
@@ -64,3 +64,19 @@ def test_archive_record_writes_slim_unless_turned_off(record, store, tmp_path, m
     assert evidence.REF_KEY in slim_path.read_text()
     loaded = AuditRecord.model_validate_json(slim_path.read_text())
     assert loaded.model_dump_json() == record.model_dump_json()
+
+
+def test_the_planner_skips_a_record_whose_evidence_is_missing(record, store, tmp_path, capsys):
+    # A record whose evidence isn't on the dataset yet must not stop the planner (#4530).
+    # The site build and the checks still fail on it.
+    from openinterpretability.builder.wiki import load_archive_paths
+    from openinterpretability.planner import load_states
+
+    wiki = tmp_path / "wiki"
+    path = archive_record(record, wiki)
+    slim = evidence.split(json.loads(path.read_text()), root=tmp_path / "elsewhere")
+    path.write_text(json.dumps(slim))
+    with pytest.raises(evidence.EvidenceMissing):
+        load_archive_paths(wiki)
+    assert load_archive_paths(wiki, skip_missing=True) == []
+    assert load_states(wiki) == {} and "skipping" in capsys.readouterr().err

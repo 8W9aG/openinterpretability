@@ -37,7 +37,7 @@ HEX64 = re.compile(r"[0-9a-f]{64}")
 
 def unscored(wiki_dir: Path = Path("wiki")) -> list[dict]:
     """The neuron-pole records with no detection and no fuzzing score, VERIFIED first."""
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     found = []
     for path in sorted((wiki_dir / "experiments").rglob("*.json")):

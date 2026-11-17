@@ -1,13 +1,12 @@
 """What the site removes and masks: personal data and offensive examples (offline)."""
 
 import json
-from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.pii import (
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.pii import (
     REMOVED_TEXT,
     REMOVED_TOKEN,
     _scrub_attribution,
@@ -15,8 +14,8 @@ from openinterp.builder.pii import (
     redact_tokens,
     scrub_record,
 )
-from openinterp.core.schemas import AuditRecord
-from openinterp.sensitive import is_offensive
+from openinterpretability.core.schemas import AuditRecord
+from openinterpretability.sensitive import is_offensive
 
 EMAIL = "jane.doe@somemail.org"
 
@@ -83,7 +82,7 @@ def test_an_address_cut_by_the_end_of_a_window_is_removed(cut):
 
 
 def test_the_search_opens_no_network_connection(monkeypatch):
-    from openinterp import sensitive
+    from openinterpretability import sensitive
 
     def no_network(*args, **kwargs):
         raise AssertionError("the search opened a network connection")
@@ -97,11 +96,13 @@ def test_the_search_opens_no_network_connection(monkeypatch):
 
 
 def test_email_domains_use_our_suffix_list_not_the_installed_one():
-    from openinterp import sensitive
+    from openinterpretability import sensitive
 
     assert sensitive._domains()("someone.co.uk").suffix == "co.uk"
     extractor = sensitive._domains()
-    assert extractor.suffix_list_urls[0].endswith("openinterp/data/public_suffix_list.dat")
+    assert extractor.suffix_list_urls[0].endswith(
+        "openinterpretability/data/public_suffix_list.dat"
+    )
     assert extractor.fallback_to_snapshot is False
 
 
@@ -159,7 +160,11 @@ def test_scrubbing_a_clean_record_changes_nothing(record):
 
 
 def test_attribution_tokens_of_a_match_are_removed(record):
-    from openinterp.core.attribution import AttributedToken, ContextExample, InputAttribution
+    from openinterpretability.core.attribution import (
+        AttributedToken,
+        ContextExample,
+        InputAttribution,
+    )
 
     planted = _planted(record)
     context = ContextExample.model_construct(
@@ -199,7 +204,7 @@ def test_the_built_site_holds_no_personal_data_but_the_record_file_does(tmp_path
 
 
 def test_the_evidence_numbers_come_from_the_true_probe_text(tmp_path, record, monkeypatch):
-    from openinterp.builder import compiler
+    from openinterpretability.builder import compiler
 
     seen = []
     real = compiler.build_tree
@@ -259,13 +264,13 @@ def test_offensive_examples_are_masked_and_kept_out_of_search(tmp_path, record):
 
 
 def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
-    from openinterp.builder import pii
+    from openinterpretability.builder import pii
 
     def fresh():
         for f in (pii._cache_file, pii._stored, pii.find_spans):
             f.cache_clear()
 
-    monkeypatch.setenv("OPENINTERP_PII_CACHE", str(tmp_path))
+    monkeypatch.setenv("OPENINTERPRETABILITY_PII_CACHE", str(tmp_path))
     fresh()
     text = "Call me on +44 20 7946 0958 after six."
     spans = pii.find_spans(text)
@@ -284,9 +289,9 @@ def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
 
 
 def test_no_cache_when_turned_off(tmp_path, monkeypatch):
-    from openinterp.builder import pii
+    from openinterpretability.builder import pii
 
-    monkeypatch.setenv("OPENINTERP_PII_CACHE", "off")
+    monkeypatch.setenv("OPENINTERPRETABILITY_PII_CACHE", "off")
     pii._cache_file.cache_clear()
     assert pii._cache_file() is None
     pii._cache_file.cache_clear()
@@ -295,8 +300,8 @@ def test_no_cache_when_turned_off(tmp_path, monkeypatch):
 def test_errata_notes_are_scrubbed_like_the_record():
     import datetime
 
-    from openinterp.builder.pii import scrub_errata
-    from openinterp.core.errata import AppliedEdit, Erratum
+    from openinterpretability.builder.pii import scrub_errata
+    from openinterpretability.core.errata import AppliedEdit, Erratum
 
     erratum = Erratum(
         id="e1",
@@ -314,17 +319,21 @@ def test_errata_notes_are_scrubbed_like_the_record():
     assert erratum.title == "Bad example from jane.doe@somemail.org"  # the original is unchanged
 
 
-def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path):
-    from openinterp.builder.research import Paper, copy_assets
+def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path, monkeypatch):
+    import hashlib
+
+    from openinterpretability.builder import research
+    from openinterpretability.builder.research import Paper, copy_assets
+
+    library = b"/* a vendored library */ var a = 'jane.doe@somemail.org';"
+    monkeypatch.setitem(research.VENDORED, "three.min.js", hashlib.sha256(library).hexdigest())
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
     (folder / "index.html").write_text("<p>Write to jane.doe@somemail.org</p>")
     (folder / "data.js").write_text("const v = [0.12773621082305908, 4.09394097328186];")
     (folder / "lib.min.js").write_text("// jane.doe@somemail.org")
-    (folder / "three.min.js").write_bytes(
-        (Path(__file__).parents[1] / "papers/below-the-dip/three.min.js").read_bytes()
-    )
+    (folder / "three.min.js").write_bytes(library)
     (folder / "pic.png").write_bytes(b"\x89PNG jane.doe@somemail.org")
     paper = Paper("p", "T", "S", "", None, interactive=True)
     copy_assets(tmp_path / "papers", paper, tmp_path / "out")
@@ -338,7 +347,7 @@ def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path):
 
 @pytest.mark.parametrize("name", ["page.HTML", "page.htm", "lib.mjs", "vendor.min.js"])
 def test_paper_files_are_redacted_whatever_their_suffix(tmp_path, name):
-    from openinterp.builder.research import Paper, copy_assets
+    from openinterpretability.builder.research import Paper, copy_assets
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
@@ -349,7 +358,7 @@ def test_paper_files_are_redacted_whatever_their_suffix(tmp_path, name):
 
 
 def test_a_token_list_in_a_paper_file_is_searched_joined(tmp_path):
-    from openinterp.builder.research import Paper, copy_assets
+    from openinterpretability.builder.research import Paper, copy_assets
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
@@ -364,7 +373,7 @@ def test_a_token_list_in_a_paper_file_is_searched_joined(tmp_path):
 
 
 def test_a_web_page_that_is_not_utf8_stops_the_build(tmp_path):
-    from openinterp.builder.research import Paper, copy_assets
+    from openinterpretability.builder.research import Paper, copy_assets
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
@@ -384,8 +393,8 @@ def test_a_web_page_that_is_not_utf8_stops_the_build(tmp_path):
     ],
 )
 def test_erratum_edits_to_token_lists_are_searched_joined(path, before):
-    from openinterp.builder.pii import scrub_errata
-    from openinterp.core.errata import AppliedEdit
+    from openinterpretability.builder.pii import scrub_errata
+    from openinterpretability.core.errata import AppliedEdit
 
     _, changes = scrub_errata([], [AppliedEdit("e1", path, before, before)])
     shown = json.dumps([changes[0].before, changes[0].after])
