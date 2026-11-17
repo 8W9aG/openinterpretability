@@ -128,10 +128,15 @@ def add_gains(runner, prompt, means, token, position, order, planned, *, pool=PO
                                            keep_hooks(runner, means, keep)))  # fmt: skip
     if now is None:
         return
-    for e in [*planned.experiments[:pool], *planned.groups]:
+    from openinterpretability.harness.progress import Progress
+
+    measured = [*planned.experiments[:pool], *planned.groups]
+    progress = Progress("experiments measured for their gain", len(measured))
+    for e in measured:
         hooks = keep_hooks(runner, means, [*keep, *e.units])
         after = _share(clean, ablated, _log_prob(runner, prompt, token, position, hooks))
         e.gain = None if after is None else after - now
+        progress.step()
 
     def by_gain(e):
         return (e.gain is None, -(e.gain or 0.0))

@@ -36,6 +36,7 @@ import torch
 from openinterpretability.core.cache_dirs import cache_root
 from openinterpretability.explain_groups import HEAD, GroupAttribution, GroupDef
 from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.progress import Progress
 
 MEANS_ENV = "OPENINTERPRETABILITY_MEANS"  # the cache of per-neuron means, or "off"
 WINDOW = 128  # tokens per window of the mean's corpus sample
@@ -149,11 +150,13 @@ def unit_means(runner: NeuronHookRunner, model: str, texts: Sequence[str], token
     windows = [ids[i : i + WINDOW] for i in range(0, len(ids) - WINDOW + 1, WINDOW)]
     heads = has_heads(runner)
     sums: list[dict[int, torch.Tensor]] = [{}, {}]
+    progress = Progress("windows read for the mean activations", len(windows))
     for window in windows:
         encoded = runner.encode(torch.tensor([window]))
         for store, acts in zip(sums, _captured(runner, encoded, heads)[1:], strict=True):
             for la, act in acts.items():  # a window's first token is an attention sink
                 store[la] = store.get(la, 0) + act[0, 1:].float().sum(0).cpu()
+        progress.step()
     count = max(sum(len(w) - 1 for w in windows), 1)
     means = Means(*({la: s / count for la, s in store.items()} for store in sums))
     if path is not None:
