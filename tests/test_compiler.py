@@ -547,7 +547,10 @@ def test_build_is_deterministic(tmp_path, records):
 
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     if today not in ("2026-10-01", "2026-10-02"):  # the fixtures' own review dates
-        assert not any(today.encode() in content for content in a.values())
+        # The Changelog page shows each release's date from CHANGELOG.md, not the clock:
+        # on a release day that date is today.
+        clocked = {path: content for path, content in a.items() if path != "changelog.html"}
+        assert not any(today.encode() in content for content in clocked.values())
 
 
 def test_rebuild_removes_stale_pages(tmp_path, records):
