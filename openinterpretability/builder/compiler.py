@@ -59,6 +59,7 @@ from openinterpretability.core.agent_names import canonical_agent
 from openinterpretability.core.draws import ChosenStop
 from openinterpretability.core.errata import Erratum
 from openinterpretability.core.exceptions import RegistryError
+from openinterpretability.core.explanation import is_broad
 from openinterpretability.core.project import project_links
 from openinterpretability.core.schemas import ActivatingExample, AuditRecord
 from openinterpretability.planner import configured_licenses
@@ -106,6 +107,7 @@ def _environment() -> Environment:
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
+    env.globals["is_broad"] = is_broad  # a VERIFIED unit active on most held-out text (#4545)
     env.globals["palette"] = palette  # the status and pole colours
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
