@@ -83,9 +83,30 @@ def by_model(views) -> dict[str, list[ExplanationView]]:
 
 
 def render_explanations(render, views: list[ExplanationView]) -> None:
-    """Write the index and one page per explanation (none when there is none)."""
+    """Write the index and one page per explanation (none when there is none).
+
+    A record with figure data (#4479) gets its figures as SVG files in a folder beside its page.
+    """
     if not views:
         return
     render(f"{EXPLANATIONS_WIKI}/index.html", "explanations.html", views=views)
     for view in views:
-        render(view.href, "explanation.html", view=view, unit_href=unit_href)
+        drawn = write_figures(render, view)
+        render(view.href, "explanation.html", view=view, unit_href=unit_href, figures=drawn)
+
+
+def write_figures(render, view: ExplanationView) -> list:
+    """Draw ``view``'s figures into ``<page>/fig-<name>.svg``, and return them for the page."""
+    from openinterpretability.builder.explanation_figures import with_run
+
+    data = getattr(view.record, "figures", None)
+    if data is None:
+        return []
+    folder = render.output_dir / view.href.removesuffix(".html")
+    folder.mkdir(parents=True, exist_ok=True)
+    drawn = with_run(data, getattr(view.record, "run", None), view.record.answer)
+    for d in drawn:
+        (folder / f"fig-{d.name}.svg").write_text(d.svg, encoding="utf-8")
+        if d.static:
+            (folder / f"fig-{d.name}-static.svg").write_text(d.static, encoding="utf-8")
+    return drawn

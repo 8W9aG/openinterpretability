@@ -143,6 +143,7 @@ class TargetedDraws:
     limit: int = 0  # experiments to start at most; 0 for no limit
     window: int | None = None  # the model's scan window, for a superposition's draw
     started: int = 0
+    shares: list = field(default_factory=list)  # each measured share, for the page (#4479)
 
     def __call__(self, wiki_dir: Path, *, epsilon: float = 0.0, claims=()):
         """The next experiment for the first target that needs one, as a planner ``Plan``."""
@@ -179,6 +180,7 @@ class TargetedDraws:
 
         if self.meter is not None:
             share = self.meter()
+            self.shares.append(round(share, 4))
             say(f"explained share now {share:.1%} (target {self.target:.0%})")
             if share >= self.target:
                 raise Finished(f"the explained share {share:.1%} reached the target "
