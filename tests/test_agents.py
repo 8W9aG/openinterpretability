@@ -719,3 +719,25 @@ def test_a_planted_instruction_does_not_change_the_verdict(ident, toy_runner, dr
     attacked = evaluate_submission(planted, toy_runner, probes, "anthropic/reviewer", SMALL)
     assert attacked.status == clean.status
     assert attacked.metrics == clean.metrics
+
+
+def test_an_answer_written_as_soon_as_the_error_appears_is_kept(tmp_path, monkeypatch):
+    # The bad answer is removed before the error appears. An answerer that wrote again the
+    # moment it saw the error used to lose that answer. The agent then waited out its whole
+    # timeout (#4376). Here it answers inside the error write, with no gap at all.
+    from openinterpretability.agents import base
+
+    real = base._write_whole
+
+    def write_then_answer(path, text):
+        real(path, text)
+        response = tmp_path / "ProposerAgent.response.json"
+        if path.name.endswith(".prompt.md"):  # a first answer that fails validation
+            response.write_text('{"explanation": 1}')
+        if path.name.endswith(".error.txt"):  # the fixed answer, written at once
+            response.write_text(json.dumps(EXTERNAL_ANSWER))
+
+    monkeypatch.setattr(base, "_write_whole", write_then_answer)
+    agent = ProposerAgent("external/test-llm", exchange_dir=tmp_path, poll_interval=0.01, timeout=5)
+    draft = agent.structured(HypothesisDraft, "describe the neuron")
+    assert draft.explanation == "fires on x"

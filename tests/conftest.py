@@ -204,6 +204,18 @@ def no_toxicity_models(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_real_browser(monkeypatch):
+    """No test starts the real Chrome: `build` prints each paper's PDF with it by default.
+
+    Under load, printing every paper in papers/ took over the 60 s timeout and hung a full
+    run (#4376). The PDF tests set their own fake browser in the same variable.
+    """
+    from openinterpretability.builder.paper_pdf import CHROME_ENV
+
+    monkeypatch.setenv(CHROME_ENV, "/nonexistent/chrome-for-tests")
+
+
+@pytest.fixture(autouse=True)
 def _fixed_memory_budget(monkeypatch):
     """Plan for 64 GB free, whatever the machine has free now (tests opt into less).
 
