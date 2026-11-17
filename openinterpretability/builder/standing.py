@@ -46,6 +46,13 @@ class Standing:
         return self.status == "VERIFIED"
 
     @property
+    def broad(self) -> bool:
+        """True when the standing is VERIFIED and its unit is broad (#4545)."""
+        from openinterpretability.core.explanation import is_broad
+
+        return self.verified and is_broad(self.lead.record.verdict)
+
+    @property
     def contested(self) -> bool:
         """True when the readings split evenly between VERIFIED and not."""
         return self.status == "CONTESTED"
