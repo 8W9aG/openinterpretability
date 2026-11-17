@@ -44,7 +44,8 @@ float32 records keep the float32 tolerance and exact checks. Records signed by a
 
 A record can pin a bfloat16 scan (`provenance.dtype`) and a float32 review (`verdict.environment.dtype`). This happens when a model does not fit a GPU in float32 for the scan. Each stage is reproduced at the precision it was measured in (#3801):
 
-- **The scan evidence** (top examples, scale, first-token floor and corpus sample) is measured in the scan's dtype. A bfloat16 scan is measured in bfloat16, and compared with the 16-bit rules above.
+- **The scan evidence** (top examples and corpus sample) is measured in the scan's dtype. A bfloat16 scan is measured in bfloat16, and compared with the 16-bit rules above.
+- **The first-token floor** is measured by the review's runner. It reads every token of the vocabulary, about 151,000 for Qwen2.5. In bfloat16 on a CPU, that took more than an hour, and CI stopped the job (#3801). The floor is a share of the vocabulary, so a few tokens that round differently do not change it.
 - **The review** keeps its own pin. A float32 review keeps the float32 tolerance and exact checks.
 
 Before this change, the review's pin was used for the whole record. On #3801, a bfloat16 scan made on CUDA was compared with a float32 CPU run within the float32 tolerance. Every top example failed, at its first different token, by 0.1% to 1.4% of the scale.
