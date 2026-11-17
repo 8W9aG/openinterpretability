@@ -69,12 +69,18 @@ from openinterpretability.explain_run import run_plan
     help="--record: land the record as its own PR, merged on green (#4475). --no-land "
     "writes it to --wiki-dir only.",
 )  # fmt: skip
+@click.option(
+    "--complete", is_flag=True,
+    help="From the prompt to a published explanation in one command (#4476): --run to "
+    "--target, --level long and --record, landed as a PR.",
+)  # fmt: skip
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
 def explain_command(  # long-function: one argument per option, then one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
-    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, as_json,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, complete,
+    as_json,
     wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
@@ -89,6 +95,8 @@ def explain_command(  # long-function: one argument per option, then one line pe
     from openinterpretability.evidence import read_corpus
     from openinterpretability.explain import unit_means
 
+    if complete:  # run to the target, narrate in full, and land the record (#4476)
+        run, level, write_record, land = 0 if run is None else run, "long", True, True
     runner = _load_runner(model_name, device, dtype)
     means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
@@ -116,6 +124,8 @@ def explain_command(  # long-function: one argument per option, then one line pe
     if write_record:
         record = _record(model_name, result, coverage, planned, told, ran)
         _keep(record, home, land)
+    if not as_json:
+        click.echo(reached(result.verified_share, planned.target, coverage, ran))
     if code:
         raise SystemExit(code)
 
@@ -329,6 +339,17 @@ def _milestones(planned, marks=(0.5, 0.8, 0.9, 0.99)) -> list[tuple[float, int]]
         if reached >= mark:
             out.append((mark, k))
     return out
+
+
+def reached(share: float, target: float, coverage: dict, ran=None) -> str:
+    """The last line: the explained share and the prompt coverage that were reached (#4476)."""
+    start = f" (from {ran.share_before:.1%} before the run)" if ran is not None else ""
+    text = f"Reached: explained share {share:.1%}{start}, target {target:.0%}"
+    if coverage.get("coverage") is not None:
+        random = coverage.get("random")
+        against = f" against {random:.1%} for random units" if random is not None else ""
+        text += f"; prompt coverage {coverage['coverage']:.1%}{against}"
+    return text + "."
 
 
 def _print_coverage(coverage: dict) -> None:
