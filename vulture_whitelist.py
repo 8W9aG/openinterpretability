@@ -20,6 +20,7 @@ _.resample_ablation  # unused method (openinterpretability/harness/patcher.py:29
 find_sisters  # unused function (openinterpretability/harness/sisters.py:268)
 
 # Click commands and groups: the decorator registers them.
+map_command  # unused function (openinterpretability/cli_map.py:16)
 deploy  # unused function (openinterpretability/cli.py:380)
 patchscope_baseline  # unused function (openinterpretability/cli_baseline.py:16)
 neuronpedia_baseline  # unused function (openinterpretability/cli_baseline.py:262)
