@@ -154,6 +154,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     provenance = scan_provenance(runner, request, seed, corpus, len(scan.values))
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise dead_unit(runner, ident, provenance)
+    check_ceiling(runner, ident, scan.examples[0].max_activation)
     check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
     from openinterpretability.evidence_lenses import read_lenses, read_manifold
 
@@ -380,6 +381,10 @@ class Unauditable(click.ClickException):
         self.draw = draw
 
 
+class ScanCorrupt(click.ClickException):
+    """The scan read values that its unit can't produce, so nothing is recorded."""
+
+
 def draw(ident, outcome, share, provenance):
     """An unauditable draw of ``ident``, stamped now."""
     from datetime import UTC, datetime
@@ -413,6 +418,27 @@ def dead_unit(runner, ident, provenance) -> Unauditable:
         f"({proof.reason}); try a larger --corpus.",
         stop,
     )
+
+
+def check_ceiling(runner, ident, peak: float) -> None:
+    """Stop if the scan read a strength that the unit's activation can't produce.
+
+    A GELU neuron's negative pole is never above about 0.170. A scan that reads more
+    has measured something else, as the corrupt scan in #4581 did. So the evidence
+    must not be stored.
+    """
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from openinterpretability.harness.dead import negative_pole_ceiling
+
+    if not isinstance(ident, NeuronIdentifier) or ident.pole != "negative":
+        return
+    ceiling = negative_pole_ceiling(runner, ident.layer)
+    if ceiling is not None and peak > ceiling:
+        raise ScanCorrupt(
+            f"The scan read {peak:.4g} on {ident}, but this pole can't exceed "
+            f"{ceiling:.4g}. The measurement is wrong. Run the scan again, on CPU if "
+            "it ran on a GPU."
+        )
 
 
 def check_default_on(ident, values, scale: float, provenance=None) -> None:
