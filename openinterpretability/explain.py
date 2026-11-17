@@ -86,7 +86,9 @@ class Explanation:
     verified: float  # the same sum over VERIFIED poles only
     joint: dict = field(default_factory=dict)  # the VERIFIED units ablated together
     edges: list[dict] = field(default_factory=list)  # {source, target, weight} between top units
-    groups: list[GroupAttribution] = field(default_factory=list)  # superpositions and circuits
+    groups: list[GroupAttribution] = field(default_factory=list)  # all of them, by |attribution|
+    order: list = field(default_factory=list, repr=False)  # every unit, ranked (_ranked)
+    token_id: int = -1  # the answer token's id
 
     @property
     def verified_share(self) -> float:
@@ -326,11 +328,12 @@ def logits_with(runner: NeuronHookRunner, prompt: str, interventions, position: 
         return runner.forward(runner.encode(prompt))[0, position].float().cpu()
 
 
-def registry_labels(wiki_dir: Path, model: str) -> dict[str, tuple[str, str | None, float | None]]:
+def registry_labels(wiki_dir: Path, model: str, states: dict | None = None) -> dict:
     """``{unit slug: (status, explanation, max_activation)}`` for ``model``'s poles and heads.
 
     The status is the newest record's verdict. A pole that a scan stopped on, with no
-    record, is ``stopped``.
+    record, is ``stopped``. ``states`` are ``load_states(wiki_dir)``, when the caller has
+    them already: each call reads the whole archive.
     """
     from openinterpretability.planner import load_states, stopped
 
@@ -338,7 +341,7 @@ def registry_labels(wiki_dir: Path, model: str) -> dict[str, tuple[str, str | No
     for ident in stopped(wiki_dir):
         if ident.model_name == model:
             out[ident.slug] = ("stopped", None, None)
-    for slug, state in load_states(wiki_dir).items():
+    for slug, state in (load_states(wiki_dir) if states is None else states).items():
         sub = state.record.submission
         if sub.identifier.model_name == model:
             out[slug] = (
@@ -362,18 +365,22 @@ def _ranked(model: str, scores: dict, labels: dict, top: int, covered=frozenset(
     """The top units, labelled, and the total and explained sums of |attribution|.
 
     A unit is explained when it is VERIFIED, or in ``covered``: a VERIFIED group has it.
+    The last item is every unit in rank order, as ``(unit, |attribution|, status,
+    explained)``, for the experiment plan (:mod:`openinterpretability.explain_plan`).
     """
     ranked = sorted(scores.items(), key=lambda kv: abs(kv[1][0]), reverse=True)
     total = verified = 0.0
-    units = []
+    units, order = [], []
     for rank, (unit, (score, strength)) in enumerate(ranked):
         status, text, max_act = labels.get(_slug(model, unit), ("unstudied", None, None))
+        explained = status == "VERIFIED" or unit in covered
         total += abs(score)
-        verified += abs(score) if status == "VERIFIED" or unit in covered else 0.0
+        verified += abs(score) if explained else 0.0
+        order.append((unit, abs(score), status, explained))
         if rank < top:
             shown = text if status == "VERIFIED" else None  # only a VERIFIED one is shown
             units.append(PoleAttribution(*unit, score, strength, status, shown, max_act))
-    return units, total, verified
+    return units, total, verified, order
 
 
 def _check(runner, prompt, means: Means, units, base, token, position, confirm) -> dict:
@@ -453,7 +460,7 @@ def explain(
     found_groups = _groups(graph, scores, groups, labels, group_labels or {})
     verified_groups = {(a.kind, a.name) for a in found_groups if a.status == "VERIFIED"}
     covered = {u for g in groups if (g.kind, g.name) in verified_groups for u in g.units}
-    units, total, verified = _ranked(model, scores, labels, top, frozenset(covered))
+    units, total, verified, order = _ranked(model, scores, labels, top, frozenset(covered))
     found = paths(graph, [u.key for u in units], edges) if edges else []
     logit = float(graph.logit.detach())
     del graph  # the kept graph is the largest thing here
@@ -461,5 +468,6 @@ def explain(
     _check_groups(runner, prompt, means, found_groups, groups, base, token, position, confirm)
     decoded = runner.tokenizer.decode([token])
     return Explanation(
-        prompt, position, decoded, logit, units, total, verified, joint, found, found_groups[:top]
-    )
+        prompt, position, decoded, logit, units, total, verified, joint, found, found_groups, order,
+        token,
+    )  # fmt: skip
