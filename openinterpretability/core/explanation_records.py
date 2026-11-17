@@ -71,6 +71,16 @@ class Narration(StrictModel):
     citations_not_in_evidence: list[str] = Field(default_factory=list)
 
 
+class ExplainRun(StrictModel):
+    """What ``explain --run`` did before this explanation was written (#4474)."""
+
+    share_before: float  # the explained share when the run started
+    share_after: float  # and when it stopped
+    landed: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
+    left_open: list[str] = Field(default_factory=list, description="PRs that didn't merge")
+    stopped: str  # why the run stopped
+
+
 class ExplanationRecord(StrictModel):
     """One explanation of one answer, as the registry stood (module docstring)."""
 
@@ -85,6 +95,7 @@ class ExplanationRecord(StrictModel):
     units: list[ExplainedUnit]
     narration: Narration | None = None
     planned_experiments: int = 0  # unit experiments that a complete explanation needs
+    run: ExplainRun | None = None  # the experiments that --run landed first (#4474)
     package_version: str
     written: datetime
 
