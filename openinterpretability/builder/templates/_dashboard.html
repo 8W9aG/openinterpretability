@@ -32,8 +32,8 @@
         {% for sg in c.segments %}<rect x="{{ sg.x }}" y="{{ sg.y }}" width="{{ sg.w }}" height="{{ sg.h }}" class="{{ map_fill[sg.status] }}"/>{% endfor %}
       </g>
       {% endfor %}
-      <path d="{{ tl.line }}" fill="none" class="stroke-emerald-600 dark:stroke-emerald-400" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
-      {% if tl.last_point %}<circle cx="{{ tl.last_point[0] }}" cy="{{ tl.last_point[1] }}" r="3" class="fill-emerald-600 dark:fill-emerald-400" pointer-events="none"/>{% endif %}
+      <path d="{{ tl.line }}" fill="none" class="stroke-brand-600 dark:stroke-brand-400" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>
+      {% if tl.last_point %}<circle cx="{{ tl.last_point[0] }}" cy="{{ tl.last_point[1] }}" r="3" class="fill-brand-600 dark:fill-brand-400" pointer-events="none"/>{% endif %}
       <line x1="{{ tl.left }}" y1="{{ tl.count_base + 0.5 }}" x2="{{ tl.right }}" y2="{{ tl.count_base + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
       <line x1="{{ tl.left }}" y1="{{ tl.share_base + 0.5 }}" x2="{{ tl.right }}" y2="{{ tl.share_base + 0.5 }}" class="stroke-slate-400" stroke-width="1"/>
       {% for x, label in tl.x_labels %}

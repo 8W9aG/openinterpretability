@@ -10,7 +10,7 @@
   {{ c.units | length }} units of {{ model.name }}, layers {{ c.layers[0] }}–{{ c.layers[1] }}, {{ c.verified }} VERIFIED, joined edge to edge by their wiring. The circuit is named after its lowest-layer unit; when circuits merge or split as the registry grows, the old names redirect here. See <a class="underline" href="{{ root }}models/{{ model.slug }}/circuits.html">all circuits</a> for how edges are found. Reported, not gated.
 </p>
 <p class="mt-2 text-xs text-slate-500">
-  <span class="text-emerald-600 dark:text-emerald-400">━</span> found by both readings ·
+  <span class="text-brand-600 dark:text-brand-400">━</span> found by both readings ·
   <span class="text-sky-600 dark:text-sky-400">━</span> activations only ·
   <span class="text-slate-500">━</span> weights only
 </p>
@@ -25,7 +25,7 @@
       {% for e in c.edges %}
       {% set x1, y1 = c.positions[e.source.href] %}{% set x2, y2 = c.positions[e.target.href] %}
       {% set both = e.methods | length == 2 %}
-      {% set cls = "stroke-emerald-500" if both else ("stroke-sky-500" if e.methods[0] == "activations" else "stroke-slate-400") %}
+      {% set cls = "stroke-brand-500" if both else ("stroke-sky-500" if e.methods[0] == "activations" else "stroke-slate-400") %}
       {% if x1 == x2 %}
       <path d="M{{ x1 + 40 }},{{ y1 }} Q{{ x1 + 80 }},{{ (y1 + y2) / 2 }} {{ x2 + 40 }},{{ y2 }}" fill="none" class="{{ cls }}" stroke-width="1.5" marker-end="url(#arrow)"><title>{{ unit_name(e.source) }} → {{ unit_name(e.target) }}</title></path>
       {% else %}
@@ -35,7 +35,7 @@
       {% for u in c.units %}
       {% set x, y = c.positions[u.href] %}
       <a href="{{ root }}{{ u.href }}">
-        <rect x="{{ x - 40 }}" y="{{ y - 13 }}" width="80" height="26" rx="5" class="{{ 'fill-emerald-50 stroke-emerald-600 dark:fill-emerald-950' if u.verified else 'fill-white stroke-slate-400 dark:fill-slate-950' }}" stroke-width="1"/>
+        <rect x="{{ x - 40 }}" y="{{ y - 13 }}" width="80" height="26" rx="5" class="{{ 'fill-brand-50 stroke-brand-600 dark:fill-brand-950' if u.verified else 'fill-white stroke-slate-400 dark:fill-slate-950' }}" stroke-width="1"/>
         <text x="{{ x }}" y="{{ y + 4 }}" text-anchor="middle" font-size="11" class="fill-slate-800 font-mono dark:fill-slate-200">L{{ u.layer }}/{{ u.label }}</text>
         <title>{{ unit_name(u) }}{{ " · verified" if u.verified }}</title>
       </a>

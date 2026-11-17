@@ -13,7 +13,7 @@
 {% macro evidence_badge(conclusiveness, direction) -%}
 {% set strength = evidence_strength(conclusiveness) %}
 {% set supports = direction == 'supports' %}
-<span class="whitespace-nowrap rounded border px-2 py-0.5 text-xs {{ 'border-emerald-300 text-emerald-800 dark:border-emerald-800 dark:text-emerald-300' if supports else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}"
+<span class="whitespace-nowrap rounded border px-2 py-0.5 text-xs {{ 'border-brand-300 text-brand-800 dark:border-brand-800 dark:text-brand-300' if supports else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}"
       title="Conclusiveness {{ conclusiveness | num(2) }}: how settled the probe evidence is, in either direction">
   {{ strength }} evidence {{ 'for' if supports else 'against' }} · {{ conclusiveness | num(2) }}
 </span>
@@ -95,7 +95,7 @@
         {% for p in pending %}
         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ p.opened }}">{{ p.opened }}</time></td>
-          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ p.unit_href }}">L{{ p.layer }}/{{ p.unit }}{% if p.pole %}{{ pole_mark(p.pole) }}{% endif %}</a>{% if show_model %}<div class="text-slate-500">{{ p.model_slug.replace('--', '/') }}</div>{% endif %}</td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ p.unit_href }}">L{{ p.layer }}/{{ p.unit }}{% if p.pole %}{{ pole_mark(p.pole) }}{% endif %}</a>{% if show_model %}<div class="text-slate-500">{{ p.model_slug.replace('--', '/') }}</div>{% endif %}</td>
           <td class="px-3 py-2">{{ p.kind.replace('_', ' ') }}</td>
           <td class="px-3 py-2">{% if p.draft %}running (draft){% else %}waiting for checks{% endif %}</td>
           <td class="px-3 py-2"><a class="underline underline-offset-2" href="{{ p.url }}">#{{ p.number }}</a></td>
@@ -112,9 +112,9 @@
    Models pages (#3287). `idx` keeps each card's SVG pattern id unique on the page. #}
 {% macro model_card(m, explore, root, idx) -%}
 {% set pc = pieces.model_pieces(m) %}
-<a href="{{ root }}{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-emerald-500 dark:border-slate-800">
+<a href="{{ root }}{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-brand-500 dark:border-slate-800">
   <div class="flex flex-wrap items-baseline justify-between gap-2">
-    <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-normal text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" title="The smallest model below the verified target: open-interpretability next draws most new neurons from it.">explore focus</span>{% endif %}</span>
+    <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-brand-100 px-1.5 py-0.5 font-sans text-xs font-normal text-brand-800 dark:bg-brand-900/40 dark:text-brand-300" title="The smallest model below the verified target: open-interpretability next draws most new neurons from it.">explore focus</span>{% endif %}</span>
     <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
       {{ m.experiments }} experiments ·
       {{ m.neurons_studied }}/{{ m.total_neurons | thousands }} neurons studied{% if m.member_only %}, {{ m.member_only }} of them only as part of a superposition{% endif %} ({{ m.coverage | pct_fine }}) ·

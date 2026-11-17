@@ -45,12 +45,29 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
     show_default=True, help="mechanism: the evidence. long and paragraph: an LLM narrates it.",
 )  # fmt: skip
 @click.option("--narrator-model", default=None, help="The narrator's model (agents' default).")
+@click.option(
+    "--run", "run", default=0, show_default=True, type=click.IntRange(0),
+    help="Run the top N planned unit experiments through the experiment loop, until each "
+    "unit is VERIFIED (#3744). 0: only list them.",
+)  # fmt: skip
+@click.option("--proposer", default="", help="--run: the LiteLLM proposer model.")
+@click.option("--reviewer", default="", help="--run: the LiteLLM reviewer model.")
+@click.option("--provider", default="", help="--run: a provider profile (docs/providers.md).")
+@click.option(
+    "--max-attempts", default=5, show_default=True, type=click.IntRange(1),
+    help="--run: runs per unit before giving up on it.",
+)  # fmt: skip
+@click.option(
+    "--record", "write_record", is_flag=True,
+    help="Write the explanation to wiki/explanations/, for its page on the site (#3744).",
+)  # fmt: skip
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
 def explain_command(
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
-    narrator_model, as_json, wiki_dir, device, dtype,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, as_json,
+    wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
 
@@ -94,6 +111,11 @@ def explain_command(
         _print_coverage(coverage)
         _print_plan(planned, show)
     _print_narrative(told, level)
+    if write_record:
+        path = _record(model_name, result, coverage, planned, told, Path(wiki_dir))
+        click.echo(f"Explanation → {path}")
+    if run:
+        _run(planned.experiments[:run], model_name, (proposer, reviewer, provider), max_attempts)
 
 
 def _answer(runner, token: str | None) -> int | None:
@@ -283,3 +305,70 @@ def _print_narrative(told: dict, level: str) -> None:
     if told["citations_not_in_evidence"]:
         missing = ", ".join(told["citations_not_in_evidence"])
         click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")
+
+
+def _run(experiments, model: str, agents: tuple[str, str, str], max_attempts: int) -> None:
+    """Run ``experiments`` through the experiment loop until each unit is VERIFIED (#3744)."""
+    from openinterpretability.cli_loop import _api_model, _models, run_loop
+    from openinterpretability.explanation_targets import TargetedDraws, targets
+
+    for model_name in agents[:2]:
+        if model_name:
+            _api_model(None, None, model_name)  # an external model has nobody to answer it
+    proposer, reviewer = _models(*agents)
+    found = targets(experiments, model)
+    click.echo(f"Running {len(found)} unit experiments until each is VERIFIED: "
+               + ", ".join(t.label for t in found))  # fmt: skip
+    draws = TargetedDraws(found, reviewer, max_attempts)
+    raise SystemExit(run_loop(proposer, reviewer, draws))
+
+
+def _record(model: str, result, coverage: dict, planned, told: dict, wiki_dir: Path) -> Path:
+    """Write the explanation record (core/explanation_records.py) and return its path."""
+    from datetime import UTC, datetime
+
+    from openinterpretability import __version__
+    from openinterpretability.core.explanation_records import ExplanationRecord, Narration
+    from openinterpretability.core.explanation_records import record_path as path_of
+
+    units = _explained_units(model, result)
+    narration = None
+    if told:
+        n = told["narrative"]
+        narration = Narration(
+            sections=n["sections"], paragraph=n["paragraph"],
+            narrator_model=told["narrator_model"],
+            citations_not_in_evidence=told["citations_not_in_evidence"],
+        )  # fmt: skip
+    record = ExplanationRecord(
+        model_name=model, prompt=result.prompt, position=result.position, answer=result.token,
+        explained_share=result.verified_share, blocked_share=planned.blocked,
+        prompt_coverage=coverage.get("coverage"), random_coverage=coverage.get("random"),
+        units=units, narration=narration, planned_experiments=len(planned.experiments),
+        package_version=__version__, written=datetime.now(UTC),
+    )  # fmt: skip
+    path = path_of(wiki_dir, record)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(record.model_dump_json(indent=1) + "\n", encoding="utf-8")
+    return path
+
+
+def _explained_units(model: str, result) -> list:
+    """The record's mechanism: the top units, then the top superpositions and circuits."""
+    from openinterpretability.core.explanation_records import ExplainedUnit
+    from openinterpretability.explain import HEAD, _slug
+
+    total = result.total or 1.0
+    units = []
+    for u in result.poles:
+        kind = "head" if u.pole == HEAD else "pole"
+        units.append(ExplainedUnit(
+            unit=u.label, slug=_slug(model, u.key), kind=kind, share=abs(u.attribution) / total,
+            attribution=u.attribution, status=u.status, explanation=u.explanation,
+        ))  # fmt: skip
+    for g in result.groups[:10]:
+        units.append(ExplainedUnit(
+            unit=g.name, kind=g.kind, share=abs(g.attribution) / total,
+            attribution=g.attribution, status=g.status, explanation=g.explanation,
+        ))  # fmt: skip
+    return units

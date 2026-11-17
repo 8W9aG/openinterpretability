@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Why {{ view.record.answer | trim }} · {{ site_title }}{% endblock %}
+
+{% block head %}
+{% include "_prose.html" %}
+{% endblock %}
+
+{% block content %}
+{% set r = view.record %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a></nav>
+<h1 class="max-w-3xl text-2xl font-semibold">Why <span class="font-mono">{{ r.model_name }}</span> answers <span class="font-mono">{{ r.answer }}</span></h1>
+<p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ r.prompt }}</p>
+<p class="mt-2 text-xs text-slate-500">
+  Written <time datetime="{{ r.written.isoformat() }}">{{ r.written.strftime("%Y-%m-%d %H:%M") }}</time> UTC with openinterpretability {{ r.package_version }}{% if r.narration %}, narrated by <span class="font-mono">{{ r.narration.narrator_model }}</span>{% endif %} ·
+  <a class="underline" href="{{ repo_url }}/blob/main/{{ view.source }}">Source</a>
+</p>
+
+{% if view.stale %}
+<div class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700">
+  <strong>Stale.</strong> These units have a different status now than when this was written, so a new explanation would say more:
+  {% for c in view.changed %}<span class="font-mono">{{ c.unit }}</span> ({{ c.then }} → {{ c.now }}){{ ', ' if not loop.last }}{% endfor %}.
+</div>
+{% endif %}
+
+<dl class="mt-6 grid max-w-3xl grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Explained</dt><dd class="font-mono text-lg">{{ r.explained_share | pct_fine }}</dd></div>
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Prompt coverage</dt><dd class="font-mono text-lg">{{ r.prompt_coverage | pct_fine if r.prompt_coverage is not none else "—" }}</dd></div>
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Random units</dt><dd class="font-mono text-lg">{{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }}</dd></div>
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Experiments needed</dt><dd class="font-mono text-lg">{{ r.planned_experiments | thousands }}</dd></div>
+</dl>
+
+{% if r.narration %}
+<div class="paper mt-6">
+  <h2>In one paragraph</h2>
+  <p>{{ r.narration.paragraph }}</p>
+  {% for s in r.narration.sections %}
+  <h2>{{ s.title }}</h2>
+  {% for para in s.text.split("\n\n") %}<p>{{ para }}</p>{% endfor %}
+  {% endfor %}
+  {% if r.narration.citations_not_in_evidence %}<p class="text-xs text-slate-500">The text cites units that its evidence didn't hold: {{ r.narration.citations_not_in_evidence | join(", ") }}.</p>{% endif %}
+</div>
+{% endif %}
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">Mechanism</h2>
+<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units and groups that carry the answer, as they stood. Shares are of first-order attribution on this prompt. Only a VERIFIED unit's explanation is shown.</p>
+<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Kind</th><th class="px-3 py-2 text-right">Share</th><th class="px-3 py-2 text-right">Attribution</th><th class="px-3 py-2">Status then</th><th class="px-3 py-2">Explanation</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for u in r.units %}
+      {% set href = unit_href(u.slug) %}
+      <tr class="align-top">
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{% if href %}<a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ href }}">{{ u.unit }}</a>{% else %}{{ u.unit }}{% endif %}</td>
+        <td class="px-3 py-2 text-xs">{{ u.kind }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ u.share | pct_fine }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ '%+.3f' % u.attribution }}</td>
+        <td class="px-3 py-2 text-xs">{{ u.status }}</td>
+        <td class="px-3 py-2 text-xs">{{ u.explanation or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

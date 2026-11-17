@@ -62,7 +62,7 @@
       {% else %}
       <div class="mt-1 font-mono text-2xl tabular-nums">{{ value | num(2) }}</div>
       <div class="mt-2 h-1.5 rounded bg-slate-200 dark:bg-slate-800">
-        <div class="h-1.5 rounded bg-emerald-500" style="width: {{ ((value or 0) * 100) | round(1) }}%"></div>
+        <div class="h-1.5 rounded bg-brand-500" style="width: {{ ((value or 0) * 100) | round(1) }}%"></div>
       </div>
       {% endif %}
     </div>
@@ -263,7 +263,7 @@
     {% set m = verdict.metrics %}
     <div class="mb-4 flex flex-wrap gap-2 text-xs">
       {% for gate, ok in m.gates.items() %}
-      <span class="rounded border px-2 py-0.5 font-mono {{ 'border-emerald-300 text-emerald-800 dark:border-emerald-800 dark:text-emerald-300' if ok else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}">{{ '✓' if ok else '✗' }} {{ gate | replace('_', ' ') }}</span>
+      <span class="rounded border px-2 py-0.5 font-mono {{ 'border-brand-300 text-brand-800 dark:border-brand-800 dark:text-brand-300' if ok else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}">{{ '✓' if ok else '✗' }} {{ gate | replace('_', ' ') }}</span>
       {% endfor %}
     </div>
     <p class="mb-4 font-mono text-xs text-slate-500">
@@ -290,7 +290,7 @@
           <title>{{ d.label }}</title>
           <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="10" fill="transparent"/>
           {% if d.passed %}
-          <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="{{ pc.r }}" class="fill-emerald-500 stroke-white dark:stroke-slate-950" stroke-width="2"/>
+          <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="{{ pc.r }}" class="fill-brand-500 stroke-white dark:stroke-slate-950" stroke-width="2"/>
           {% else %}
           <path d="M{{ d.cx - 4 }} {{ d.cy - 4 }}L{{ d.cx + 4 }} {{ d.cy + 4 }}M{{ d.cx + 4 }} {{ d.cy - 4 }}L{{ d.cx - 4 }} {{ d.cy + 4 }}" class="stroke-white dark:stroke-slate-950" stroke-width="5" stroke-linecap="round"/>
           <path d="M{{ d.cx - 4 }} {{ d.cy - 4 }}L{{ d.cx + 4 }} {{ d.cy + 4 }}M{{ d.cx + 4 }} {{ d.cy - 4 }}L{{ d.cx - 4 }} {{ d.cy + 4 }}" class="stroke-rose-600 dark:stroke-rose-400" stroke-width="2.5" stroke-linecap="round"/>
@@ -305,7 +305,7 @@
       </svg>
       </div>
       <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-        <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="fill-emerald-500"/></svg> passed</span>
+        <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="fill-brand-500"/></svg> passed</span>
         <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><path d="M2 2L10 10M10 2L2 10" class="stroke-rose-600 dark:stroke-rose-400" stroke-width="2.5" stroke-linecap="round"/></svg> failed</span>
         <span>Peak {{ strength }} of each probe; the shaded side of the line counts as active. Hover a dot for its prompt.</span>
       </figcaption>
@@ -320,7 +320,7 @@
           {% for t in verdict.adversarial_test_results %}
           <tr>
             {% if t.measured %}
-            <td class="px-3 py-2 font-mono {{ 'text-emerald-600' if t.passed else 'text-rose-600' }}" aria-label="{{ 'passed' if t.passed else 'failed' }}">{{ '✓' if t.passed else '✗' }}</td>
+            <td class="px-3 py-2 font-mono {{ 'text-brand-600' if t.passed else 'text-rose-600' }}" aria-label="{{ 'passed' if t.passed else 'failed' }}">{{ '✓' if t.passed else '✗' }}</td>
             {% else %}
             <td class="px-3 py-2 font-mono text-slate-500" aria-label="unmeasured: one token" title="One token: the first token is never measured, so this counts in no metric">—</td>
             {% endif %}
@@ -357,7 +357,7 @@
         <div class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</div>
         <div class="mt-1 font-mono text-2xl tabular-nums">{{ value | num(2) }}</div>
         <div class="relative mt-2 h-1.5 rounded bg-slate-200 dark:bg-slate-800">
-          <div class="h-1.5 rounded {{ 'bg-emerald-500' if (value or 0) >= 0.7 else 'bg-amber-500' if (value or 0) > 0.55 else 'bg-slate-400' }}" style="width: {{ ((value or 0) * 100) | round(1) }}%"></div>
+          <div class="h-1.5 rounded {{ 'bg-brand-500' if (value or 0) >= 0.7 else 'bg-amber-500' if (value or 0) > 0.55 else 'bg-slate-400' }}" style="width: {{ ((value or 0) * 100) | round(1) }}%"></div>
           <div class="absolute -top-0.5 left-1/2 h-2.5 w-px bg-slate-500" title="chance"></div>
         </div>
       </div>
@@ -370,7 +370,7 @@
         <div class="flex items-end gap-2">
           {% for r in es.detection.recall_by_quantile %}
           <div class="flex-1 text-center">
-            <div class="flex h-16 items-end rounded bg-slate-100 dark:bg-slate-900"><div class="w-full rounded bg-emerald-500" style="height: {{ ((r or 0) * 100) | round(1) }}%"></div></div>
+            <div class="flex h-16 items-end rounded bg-slate-100 dark:bg-slate-900"><div class="w-full rounded bg-brand-500" style="height: {{ ((r or 0) * 100) | round(1) }}%"></div></div>
             <div class="mt-1 font-mono text-xs tabular-nums">{{ r | num(2) }}</div>
           </div>
           {% endfor %}
@@ -462,7 +462,7 @@
             {% for row in v.correlated %}
             {% set c = row.c %}
             <tr>
-              <td>{% if row.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ row.href }}">N{{ c.neuron_idx }}</a>{% else %}N{{ c.neuron_idx }}{% endif %}{{ pole_mark(c.pole) }}</td>
+              <td>{% if row.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ row.href }}">N{{ c.neuron_idx }}</a>{% else %}N{{ c.neuron_idx }}{% endif %}{{ pole_mark(c.pole) }}</td>
               <td class="text-right {{ 'font-semibold' if c.coactivation_lift_lower >= 2 }}" title="point estimate {{ '%.1f' | format(c.coactivation_lift) }}">{{ "%.1f" | format(c.coactivation_lift_lower) }}</td>
               <td class="text-right text-slate-500">{{ c.coactive_tokens }}</td>
               <td class="text-right">{{ "%+.2f" | format(c.spearman) }}</td>
