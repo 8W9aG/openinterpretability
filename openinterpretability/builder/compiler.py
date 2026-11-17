@@ -1,9 +1,8 @@
 """Compile every archived experiment into a static site under ``dist/``.
 
 Pages follow the registry hierarchy: the index, then a page per model, layer and unit.
-A neuron's page is ``models/<model>/L<layer>/N<idx>.html``, and a head's is
-``H<idx>.html``. Each unit page lists all of its experiments, most conclusive first. Null
-results are published alongside positive ones.
+A neuron's page is ``models/<model>/L<layer>/N<idx>.html``, and a head's ``H<idx>.html``.
+Each unit page lists all of its experiments, null results too, most conclusive first.
 """
 
 from __future__ import annotations
@@ -30,12 +29,12 @@ from openinterpretability.builder.agents import (
 from openinterpretability.builder.aligned import aligned_latents
 from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
+from openinterpretability.builder.contents import add_contents
 from openinterpretability.builder.corpora import corpora_view, language_mix
-from openinterpretability.builder.coverage import model_summary
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
-from openinterpretability.builder.model_facts import ModelFacts, render_models
+from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
 from openinterpretability.builder.parallel import in_background, render_in_parallel
 from openinterpretability.builder.parquet_export import export_draws, export_registry
@@ -317,7 +316,7 @@ def compile_site(
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
     erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
     who made records that name no contributor, each with a page under ``users/``.
-    ``coverage_rows`` (``builder.coverage.load_rows``) give each model's registry coverage.
+    ``coverage_rows`` (``builder.coverage.load_rows``) give each model page its coverage.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -341,6 +340,7 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
+    common |= model_page_extras(coverage_rows or {}, explanations)  # coverage, explanations
     render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
@@ -351,7 +351,6 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
-    stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops))
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
@@ -367,10 +366,7 @@ def _save_memos() -> None:
 
 
 def _true_text_stats(experiments, draws, corpus_sources) -> dict:
-    """Return the home page's totals and leaderboards, read from the records' true text.
-
-    Only the leaderboards' text is scrubbed, because they show explanations.
-    """
+    """The home page's totals and leaderboards, from true text. Leaderboards are scrubbed."""
     with TemporaryDirectory() as unpublished:
         true_text = export_registry(experiments, Path(unpublished), corpus_sources)
         return scrub(registry_stats(true_text, draws))
@@ -450,7 +446,8 @@ class _Renderer:
         out.parent.mkdir(parents=True, exist_ok=True)
         page = self.env.get_template(template)
         url = self.common["site_url"] + rel
-        out.write_text(page.render(**self.common, root=_root_for(rel), canonical=url, **context))
+        html = page.render(**self.common, root=_root_for(rel), canonical=url, **context)
+        out.write_text(add_contents(html))  # ids on headings, and contents on a long page
         self.report.pages.append(out)
 
 

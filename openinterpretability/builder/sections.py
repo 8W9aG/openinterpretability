@@ -11,6 +11,7 @@ from openinterpretability.builder.changelog_page import load_versions
 from openinterpretability.builder.explanation_pages import render_explanations
 from openinterpretability.builder.literature_pages import load_reviews, render_reviews
 from openinterpretability.builder.research import copy_assets, load_papers
+from openinterpretability.builder.taxonomy_view import taxonomy_rows
 from openinterpretability.core.licenses import DATA_TERMS
 from openinterpretability.core.schemas import ReviewPolicy
 
@@ -24,7 +25,9 @@ def render_reference_pages(
     :class:`~openinterpretability.builder.explanation_pages.ExplanationView`.
     """
     license = metadata(DISTRIBUTION)["License-Expression"]
-    render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
+    taxonomy = taxonomy_rows(render.common["repo_url"])
+    render("about.html", "about.html", policy=ReviewPolicy(), license=license, taxonomy=taxonomy,
+           **DATA_TERMS)  # fmt: skip
     report.pages.extend(write_brand(render.output_dir))  # the mark, favicon and social image
     versions = load_versions(render.common["repo_url"])
     if versions:  # an install has no CHANGELOG.md
