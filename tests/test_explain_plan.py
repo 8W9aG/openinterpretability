@@ -127,7 +127,7 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
     monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next):
+    def run_loop(proposer, reviewer, plan_next, out=None):
         seen.update(proposer=proposer, reviewer=reviewer, draws=plan_next)
         return 0
 
@@ -146,7 +146,8 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
         "anthropic/r",
         3,
     )
-    assert len(draws.targets) == 2 and "Running 2 unit experiments" in out.output
+    assert draws.limit == 2 and len(draws.targets) >= 2  # --run 2 stops after 2 (#4473)
+    assert "experiments, by coverage gain, until the explained share reaches" in out.output
     assert all("--selection attribution" in t.audit for t in draws.targets)
     external = CliRunner().invoke(
         cli, [*args[:-4], "--proposer", "external/x", "--reviewer", "anthropic/r"]
@@ -165,7 +166,7 @@ def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     wiki = tmp_path / "wiki"
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(wiki), "--edges", "0", "--record"]  # fmt: skip
+            "--wiki-dir", str(wiki), "--edges", "0", "--record", "--no-land"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
     ((path, record),) = load_latest(wiki)
@@ -177,3 +178,42 @@ def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
 def test_an_audit_command_takes_only_a_known_pole():
     with pytest.raises(ValueError):
         ep.audit_command("m/x", (1, 2, "positive;x"), None)
+
+
+@pytest.mark.parametrize("code", [0, 1])
+def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code):
+    # The record is written after the loop, from the registry as the run left it (#4474).
+    from openinterpretability import cli_explain, experiment_loop
+    from openinterpretability.cli import cli
+    from openinterpretability.core.explanation_records import load_latest
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    runner = lambda *a, **k: toy_runner  # noqa: E731
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", runner)
+    monkeypatch.setattr(experiment_loop, "reset", lambda: None)
+    analyses = []
+    real = cli_explain._analyse
+    monkeypatch.setattr(cli_explain, "_analyse", lambda *a: analyses.append(1) or real(*a))
+    landed = experiment_loop.Result("toy/L1/N2-positive", "VERIFIED", "https://x/pull/1", True)
+
+    def run_loop(proposer, reviewer, plan_next, out=None):
+        out["loop"] = SimpleNamespace(results=[landed], finished=None if code else "reached")
+        return code
+
+    monkeypatch.setattr("openinterpretability.cli_loop.run_loop", run_loop)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    wiki = tmp_path / "wiki"
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(wiki), "--edges", "0", "--run", "--record", "--no-land",
+            "--level", "mechanism", "--proposer", "anthropic/p",
+            "--reviewer", "anthropic/r"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == code, out.output
+    assert len(analyses) == 2  # before the run, to plan it, and after it
+    ((_, record),) = load_latest(wiki)
+    assert record.run.landed == ["toy/L1/N2-positive VERIFIED https://x/pull/1"]
+    assert record.run.share_after == record.explained_share
+    failed = "the loop stopped with exit code 1: failures or a rate limit"
+    assert record.run.stopped == (failed if code else "reached")

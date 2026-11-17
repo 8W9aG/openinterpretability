@@ -107,12 +107,13 @@ def loop_command(
 
 def run_loop(
     proposer, reviewer, plan_next, max_experiments=0, epsilon=0.7, corpus=None, worktree=None,
-    one_heavy_job=False, max_failures=3,
+    one_heavy_job=False, max_failures=3, out=None,
 ) -> int:  # fmt: skip
     """Set up the loop's worktree, lock and runner cache, run it with ``plan_next``, and return.
 
     ``loop`` passes the planner's draw, and ``explain --run`` its targeted draws (#3744).
-    The return value is the loop's exit code.
+    The return value is the loop's exit code. ``out``, a dict, gets the loop as ``"loop"``,
+    for its results and the reason it finished (#4474).
     """
     import time
 
@@ -120,12 +121,8 @@ def run_loop(
     from openinterpretability.experiment_loop import Loop, Options
     from openinterpretability.planner import open_pr_claims
 
-    repo = Path(_git("rev-parse", "--show-toplevel"))
-    worktree = (worktree or repo.parent / f"{repo.name}-loop").resolve()
+    repo, worktree = loop_worktree(worktree)
     corpus = corpus and str(Path(corpus).resolve())
-    if not worktree.exists():
-        _git("fetch", "--quiet", "origin", "main")
-        _git("worktree", "add", "--detach", str(worktree), "origin/main")
     if reviewer == proposer:
         click.echo(
             f"warning: {proposer} both proposes and reviews, so reviews are "
@@ -141,6 +138,8 @@ def run_loop(
     options = Options(proposer, reviewer, epsilon, corpus)
     loop = Loop(options, repo / "logs" / "loop", max_experiments, max_failures, plan_next,
                 open_pr_claims, time.sleep)  # fmt: skip
+    if out is not None:
+        out["loop"] = loop
     return loop.run()
 
 
@@ -162,6 +161,21 @@ def _models(proposer: str, reviewer: str, provider: str) -> tuple[str, str]:
     if not (proposer and reviewer):
         raise click.UsageError("give --proposer and --reviewer, or a --provider")
     return proposer, reviewer
+
+
+def loop_worktree(worktree: Path | None = None) -> tuple[Path, Path]:
+    """The main repository, and the loop's worktree beside it, made if missing.
+
+    The repository is found from git's common directory, so the answer is the same from
+    inside the worktree, as after ``explain --run`` (#4475).
+    """
+    common = Path(_git("rev-parse", "--path-format=absolute", "--git-common-dir"))
+    repo = common.parent
+    worktree = (worktree or repo.parent / f"{repo.name}-loop").resolve()
+    if not worktree.exists():
+        _git("fetch", "--quiet", "origin", "main")
+        _git("worktree", "add", "--detach", str(worktree), "origin/main")
+    return repo, worktree
 
 
 def _git(*args: str) -> str:

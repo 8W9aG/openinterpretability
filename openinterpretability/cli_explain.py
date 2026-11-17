@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import json
 import textwrap
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 import click
 
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
+from openinterpretability.explain_run import run_plan
 
 
 @cli.command(name="explain")
@@ -46,9 +48,10 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
 )  # fmt: skip
 @click.option("--narrator-model", default=None, help="The narrator's model (agents' default).")
 @click.option(
-    "--run", "run", default=0, show_default=True, type=click.IntRange(0),
-    help="Run the top N planned unit experiments through the experiment loop, until each "
-    "unit is VERIFIED (#3744). 0: only list them.",
+    "--run", "run", default=None, type=click.IntRange(0), is_flag=False, flag_value=0,
+    help="Run the planned unit and superposition experiments through the experiment loop, by "
+    "coverage gain, until the explained share reaches --target or no work is left (#4473). "
+    "--run N stops after N experiments too. Without it, only list them.",
 )  # fmt: skip
 @click.option("--proposer", default="", help="--run: the LiteLLM proposer model.")
 @click.option("--reviewer", default="", help="--run: the LiteLLM reviewer model.")
@@ -61,12 +64,17 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
     "--record", "write_record", is_flag=True,
     help="Write the explanation to wiki/explanations/, for its page on the site (#3744).",
 )  # fmt: skip
+@click.option(
+    "--land/--no-land", "land", default=True, show_default=True,
+    help="--record: land the record as its own PR, merged on green (#4475). --no-land "
+    "writes it to --wiki-dir only.",
+)  # fmt: skip
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
-def explain_command(
+def explain_command(  # long-function: one argument per option, then one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
-    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, as_json,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, as_json,
     wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
@@ -78,45 +86,82 @@ def explain_command(
     traces the paths between the top units. Then it lists the experiments that would
     explain the rest: for each pole, head, superposition and circuit that isn't VERIFIED.
     """
-    from openinterpretability import explain_groups, explain_plan
     from openinterpretability.evidence import read_corpus
-    from openinterpretability.explain import explain, registry_labels, unit_means
-    from openinterpretability.explain_coverage import POOL, add_gains, prompt_coverage
-    from openinterpretability.planner import configured_windows, load_states
+    from openinterpretability.explain import unit_means
 
     runner = _load_runner(model_name, device, dtype)
     means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
-    states = load_states(Path(wiki_dir))  # read once: labels and the plan both use it
-    labels = registry_labels(Path(wiki_dir), model_name, states)
-    groups = explain_groups.superpositions(model_name) + explain_groups.circuits(model_name)
-    group_labels = explain_groups.circuit_labels(Path(wiki_dir), model_name)
-    result = explain(
-        runner, model_name, prompt, means, labels, token=_answer(runner, token),
-        position=position, top=top, edges=edges, groups=groups, group_labels=group_labels,
-    )  # fmt: skip
-    mark_hubs(result, model_name, states)  # a top unit that is a hub's center, and its facts
-    planned = explain_plan.plan(
-        result, states, model_name, target=explain_plan.TARGET if target is None else target,
-        window=configured_windows().get(model_name), groups=groups,
-    )  # fmt: skip
-    args = (runner, prompt, means, result.token_id, position, result.order)
-    coverage = prompt_coverage(*args)
-    add_gains(*args, planned, pool=max(POOL, show))  # rank the experiments by coverage gained
+    ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
+    found = _analyse(runner, means, ask, Path(wiki_dir))
+    home = Path(wiki_dir).resolve()  # the record goes here, though --run moves to its worktree
+    ran, code = None, 0
+    if run is not None:  # run, then explain the answer as the registry stands after it (#4474)
+        agents = (proposer, reviewer, provider)
+        ran, code = run_plan(found, ask, agents, max_attempts, run, Path(wiki_dir))
+        found = _analyse(runner, means, ask, Path(wiki_dir))
+        ran = ran.model_copy(update={"share_after": found.result.verified_share})
+    result, planned, coverage = found.result, found.planned, found.coverage
     told = _narrate(result, coverage, planned, narrator_model) if level != "mechanism" else {}
     if as_json:
         out = _as_json(result, planned, show) | {"coverage": coverage}
-        click.echo(json.dumps(out | told, indent=1, default=str))
-        return
-    if level != "paragraph":
+        click.echo(
+            json.dumps(out | told | {"run": ran and ran.model_dump()}, indent=1, default=str)
+        )
+    elif level != "paragraph":
         _print(result)
         _print_coverage(coverage)
         _print_plan(planned, show)
-    _print_narrative(told, level)
+    if not as_json:
+        _print_narrative(told, level)
     if write_record:
-        path = _record(model_name, result, coverage, planned, told, Path(wiki_dir))
-        click.echo(f"Explanation → {path}")
-    if run:
-        _run(planned.experiments[:run], model_name, (proposer, reviewer, provider), max_attempts)
+        record = _record(model_name, result, coverage, planned, told, ran)
+        _keep(record, home, land)
+    if code:
+        raise SystemExit(code)
+
+
+@dataclass(frozen=True)
+class Ask:
+    """What to explain: the model, the prompt and its answer, and how much to show."""
+
+    model: str
+    prompt: str
+    token: int | None  # the answer's token id, or None for the model's top token
+    position: int
+    top: int
+    edges: int
+    target: float | None
+    show: int
+
+
+def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
+    """Attribute, label, mark hubs, measure the coverage and plan, from the registry now.
+
+    ``explain --run`` calls it twice: to plan the run, and after it (#4474).
+    """
+    from openinterpretability import explain_groups, explain_plan
+    from openinterpretability.explain import explain, registry_labels
+    from openinterpretability.explain_coverage import POOL, add_gains, prompt_coverage
+    from openinterpretability.planner import configured_windows, load_states
+
+    model = ask.model
+    states = load_states(wiki_dir)  # read once: labels and the plan both use it
+    labels = registry_labels(wiki_dir, model, states)
+    groups = explain_groups.superpositions(model) + explain_groups.circuits(model)
+    result = explain(
+        runner, model, ask.prompt, means, labels, token=ask.token, position=ask.position,
+        top=ask.top, edges=ask.edges, groups=groups,
+        group_labels=explain_groups.circuit_labels(wiki_dir, model),
+    )  # fmt: skip
+    mark_hubs(result, model, states)  # a top unit that is a hub's center, and its facts
+    planned = explain_plan.plan(
+        result, states, model, target=explain_plan.TARGET if ask.target is None else ask.target,
+        window=configured_windows().get(model), groups=groups,
+    )  # fmt: skip
+    args = (runner, ask.prompt, means, result.token_id, ask.position, result.order)
+    coverage = prompt_coverage(*args)
+    add_gains(*args, planned, pool=max(POOL, ask.show))  # rank the experiments by coverage gained
+    return SimpleNamespace(result=result, planned=planned, coverage=coverage, groups=groups)
 
 
 def mark_hubs(result, model: str, states: dict) -> None:
@@ -337,29 +382,23 @@ def _print_narrative(told: dict, level: str) -> None:
         click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")
 
 
-def _run(experiments, model: str, agents: tuple[str, str, str], max_attempts: int) -> None:
-    """Run ``experiments`` through the experiment loop until each unit is VERIFIED (#3744)."""
-    from openinterpretability.cli_loop import _api_model, _models, run_loop
-    from openinterpretability.explanation_targets import TargetedDraws, targets
+def _keep(record, home: Path, land: bool) -> None:
+    """Land ``record`` as its own PR, or with ``--no-land`` write it under ``home`` (#4475)."""
+    from openinterpretability.explain_land import land_record, write_local
 
-    for model_name in agents[:2]:
-        if model_name:
-            _api_model(None, None, model_name)  # an external model has nobody to answer it
-    proposer, reviewer = _models(*agents)
-    found = targets(experiments, model)
-    click.echo(f"Running {len(found)} unit experiments until each is VERIFIED: "
-               + ", ".join(t.label for t in found))  # fmt: skip
-    draws = TargetedDraws(found, reviewer, max_attempts)
-    raise SystemExit(run_loop(proposer, reviewer, draws))
+    if not land:
+        click.echo(f"Explanation → {write_local(record, home)}")
+        return
+    url, merged = land_record(record)
+    click.echo(f"Explanation → {url} ({'merged' if merged else 'left open'})")
 
 
-def _record(model: str, result, coverage: dict, planned, told: dict, wiki_dir: Path) -> Path:
-    """Write the explanation record (core/explanation_records.py) and return its path."""
+def _record(model: str, result, coverage: dict, planned, told: dict, run=None):
+    """The explanation record (core/explanation_records.py), as the registry stands."""
     from datetime import UTC, datetime
 
     from openinterpretability import __version__
     from openinterpretability.core.explanation_records import ExplanationRecord, Narration
-    from openinterpretability.core.explanation_records import record_path as path_of
 
     units = _explained_units(model, result)
     narration = None
@@ -375,12 +414,9 @@ def _record(model: str, result, coverage: dict, planned, told: dict, wiki_dir: P
         explained_share=result.verified_share, blocked_share=planned.blocked,
         prompt_coverage=coverage.get("coverage"), random_coverage=coverage.get("random"),
         units=units, narration=narration, planned_experiments=len(planned.experiments),
-        package_version=__version__, written=datetime.now(UTC),
+        package_version=__version__, written=datetime.now(UTC), run=run,
     )  # fmt: skip
-    path = path_of(wiki_dir, record)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(record.model_dump_json(indent=1) + "\n", encoding="utf-8")
-    return path
+    return record
 
 
 def _explained_units(model: str, result) -> list:

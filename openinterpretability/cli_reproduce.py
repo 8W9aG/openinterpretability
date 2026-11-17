@@ -225,14 +225,14 @@ class _Reproducer:
         reason = self.refusal(record)
         if reason:
             return "FAILED", [reason], notes
-        runner = self.runner(record)
         report = reproduce_record(
             record,
-            runner,
+            self.runner(record),
             self.tolerance,
             path,
             self.scan_corpus(record, path, notes),
             measurements_only=self.measurements_only,
+            scan_runner=self.runner(record, scan=True),
         )
         status = "FAILED" if report.mismatches else "REPRODUCED"
         return status, report.mismatches, notes + report.warnings
@@ -299,15 +299,22 @@ class _Reproducer:
             reason = why  # a record can't pick, say, a Hub pull request's weights
         return reason
 
-    def runner(self, record):
+    def runner(self, record, *, scan: bool = False):
+        """The model to reproduce ``record``'s review with, or with ``scan``, its scan evidence.
+
+        The scan evidence is reproduced in the dtype the scan pins (#3801). A 16-bit review
+        is reproduced in float32 (``half_precision.reproduction_dtype``).
+        """
         from openinterpretability.cli import _load_runner
         from openinterpretability.half_precision import reproduction_dtype
         from openinterpretability.harness.units import attn_implementation
-        from openinterpretability.reproduce import pinned_environment
+        from openinterpretability.reproduce import pinned_environment, scan_dtype
 
         model = record.submission.identifier.model_name
         revision, pinned = pinned_environment(record)
-        dtype = reproduction_dtype(pinned)
+        dtype = scan_dtype(record) if scan else reproduction_dtype(pinned)
+        if dtype == "auto":
+            dtype = reproduction_dtype(pinned)
         attn = attn_implementation(record.submission.identifier)
         key = (model, revision, dtype, attn)
         if key not in self.runners:
