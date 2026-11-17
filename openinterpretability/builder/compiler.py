@@ -31,11 +31,10 @@ from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
 from openinterpretability.builder.contents import add_contents
 from openinterpretability.builder.corpora import corpora_view, language_mix
-from openinterpretability.builder.coverage import coverage_view
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
-from openinterpretability.builder.model_facts import ModelFacts, render_models
+from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
 from openinterpretability.builder.parallel import in_background, render_in_parallel
 from openinterpretability.builder.parquet_export import export_draws, export_registry
@@ -341,7 +340,7 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
-    common["coverage"] = coverage_view(coverage_rows or {})  # on the model pages (#3837)
+    common |= model_page_extras(coverage_rows or {}, explanations)  # coverage, explanations
     render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))

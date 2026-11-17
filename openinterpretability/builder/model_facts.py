@@ -141,3 +141,16 @@ def render_models(render, models, facts: dict, render_model, draws=()) -> None:
 
     explore = explore_focus(models, draws)  # proven dead counts as verified, as on the home page
     render("models/index.html", "models.html", rows=rows, models=models, explore=explore)
+
+
+def model_page_extras(coverage_rows: dict, explanations) -> dict:
+    """What the model pages show besides the tree, for the site context.
+
+    ``coverage`` is each model's registry coverage (#3837). ``explanations_by_model`` is
+    each model's explanations (#4206). Both are keyed by model name.
+    """
+    from openinterpretability.builder.coverage import coverage_view
+    from openinterpretability.builder.explanation_pages import by_model
+
+    shown = {"coverage": coverage_view(coverage_rows)}
+    return shown | {"explanations_by_model": by_model(explanations)}

@@ -136,3 +136,16 @@
   {% endif %}
 </a>
 {%- endmacro %}
+
+{# The rows of an explanations table: on the Explanations index and on each model page (#4206). #}
+{% macro explanation_rows(views, root, show_model=true) -%}
+{% for v in views %}
+<tr class="align-top">
+  <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.record.written.isoformat() }}">{{ v.record.written.strftime("%Y-%m-%d") }}</time></td>
+  {% if show_model %}<td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ v.record.model_name }}</td>{% endif %}
+  <td class="px-3 py-2"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ v.href }}">{{ v.record.prompt | truncate(90) }} → <span class="font-mono">{{ v.record.answer }}</span></a></td>
+  <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.record.explained_share | pct_fine }}</td>
+  <td class="px-3 py-2 text-xs">{% if v.stale %}stale: {{ v.changed | length }} unit{{ 's' if v.changed | length != 1 }} changed{% else %}current{% endif %}</td>
+</tr>
+{% endfor %}
+{%- endmacro %}

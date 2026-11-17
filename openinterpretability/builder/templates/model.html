@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table %}
+{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -123,6 +123,24 @@
     </table>
   </div>
   <p class="mt-1 text-xs text-slate-500">Measured {{ cov.summary.date }}{% if cov.corpus %} on {{ cov.corpus }}{% endif %}{% if cov.version %}, openinterpretability {{ cov.version }}{% endif %}. Loss rise in nats per token. A share below zero means that keeping only those poles gave a higher loss than ablating the whole layer. On a layer with a small rise, a share is noisy. <a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">Method</a>.</p>
+</section>
+{% endif %}
+
+{% set own_explanations = explanations_by_model.get(model.name, []) %}
+{% if own_explanations %}
+<section class="mt-10" id="explanations">
+  <h2 class="mb-1 text-lg font-semibold">Explanations</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why this model gives one answer to one prompt, as far as the registry explains it, newest first. Each links to its explanation. All models' explanations are on the <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> page.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Written</th><th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explained</th><th class="px-3 py-2">State</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {{ explanation_rows(own_explanations, root, show_model=false) }}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endif %}
 
