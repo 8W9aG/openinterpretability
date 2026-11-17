@@ -19,6 +19,7 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
+from openinterpretability.builder.contents import anchor as section_anchor
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
@@ -66,23 +67,13 @@ def _rewrite_links(tokens: list[Token], slug: str, repo_url: str) -> None:
                 child.attrSet("href", f"{repo_url}/blob/main/{path}")
 
 
-def _anchor(title: str, taken: set[str]) -> str:
-    """A stable id for a section, from its title: lower case, hyphens, and unique on the page."""
-    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "section"
-    anchor, n = base, 2
-    while anchor in taken:
-        anchor, n = f"{base}-{n}", n + 1
-    taken.add(anchor)
-    return anchor
-
-
 def _mark_sections(tokens: list[Token]) -> tuple[tuple[str, str], ...]:
     """Give each `##` heading an id, and return the (id, title) of each one, in order."""
     sections, taken = [], set()
     for i, token in enumerate(tokens):
         if token.type == "heading_open" and token.tag == "h2":
             title = _plain(tokens[i + 1])
-            anchor = _anchor(title, taken)
+            anchor = section_anchor(title, taken)
             token.attrSet("id", anchor)
             sections.append((anchor, title))
     return tuple(sections)

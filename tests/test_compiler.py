@@ -737,7 +737,7 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
         f"/N117-positive/{recent[0]['experiment_id']}.html"
     )
     home = (tmp_path / "index.html").read_text()
-    section = home.split("Most recent experiments")[1].split("Most conclusive results")[0]
+    section = home.split("Most recent experiments</h2>")[1].split("Most conclusive results</h2>")[0]
     assert section.index("Fires on commas.") < section.index("Fires on dates.")  # +1 h before +0 h
     assert '<time datetime="2026-10-01T14:00:00Z">2026-10-01</time>' in section
 
