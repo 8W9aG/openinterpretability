@@ -40,7 +40,8 @@ jobs:
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
     steps:
-      - id: check
+      - name: Decide whether to deploy
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -202,7 +203,10 @@ jobs:
               echo "**$name** failed at: ${steps:-a step}"
               echo
               echo '```text'
-              gh run view --job "$id" --log-failed 2>/dev/null | tail -n 60 | cut -c1-400 || true
+              # The run is still going, so `gh run view --log-failed` has no log yet. The
+              # job's own log is ready once the job ends.
+              gh api "repos/$GH_REPO/actions/jobs/$id/logs" 2>/dev/null \
+                | tail -n 60 | cut -c1-400 || true
               echo '```'
             done <<< "$jobs"
           } > issue.md
