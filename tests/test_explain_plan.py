@@ -166,7 +166,7 @@ def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     wiki = tmp_path / "wiki"
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(wiki), "--edges", "0", "--record"]  # fmt: skip
+            "--wiki-dir", str(wiki), "--edges", "0", "--record", "--no-land"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
     ((path, record),) = load_latest(wiki)
@@ -206,8 +206,9 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     wiki = tmp_path / "wiki"
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(wiki), "--edges", "0", "--run", "--record", "--level", "mechanism",
-            "--proposer", "anthropic/p", "--reviewer", "anthropic/r"]  # fmt: skip
+            "--wiki-dir", str(wiki), "--edges", "0", "--run", "--record", "--no-land",
+            "--level", "mechanism", "--proposer", "anthropic/p",
+            "--reviewer", "anthropic/r"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == code, out.output
     assert len(analyses) == 2  # before the run, to plan it, and after it
