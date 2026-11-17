@@ -264,8 +264,12 @@ def _run_workers(scheduler: LayerScheduler, fn: Callable, items: list, n_workers
             scheduler.finish()
 
     threads = [threading.Thread(target=work) for _ in range(n_workers)]
-    for thread in threads:
+    # Count every worker before any starts. A worker counted only as it starts can reach a
+    # layer while the others are still uncounted. The scheduler then loads that layer for
+    # it alone, and the others need sweeps of their own (#4335).
+    for _ in threads:
         scheduler.start()
+    for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
