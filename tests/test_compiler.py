@@ -269,6 +269,7 @@ def test_pct_fine():
     assert _pct_fine(0.5) == "50%"
     assert _pct_fine(0.021) == "2.1%"
     assert _pct_fine(1 / 116_736) == "0.00086%"
+    assert _pct_fine(-0.0009418028191878567) == "-0.094%"  # a random baseline below zero
 
 
 def test_experiments_ordered_by_conclusiveness(tmp_path, records):
@@ -340,7 +341,7 @@ def test_parquet_has_every_experiment(tmp_path, records):
     manifest = json.loads((tmp_path / "data" / "manifest.json").read_text())
     snapshot = tmp_path / manifest["snapshot"]
     assert snapshot.read_bytes() == (tmp_path / "data" / "registry.parquet").read_bytes()
-    nulls = duckdb.sql(f"SELECT count(*) FROM '{snapshot}' WHERE status = 'REJECTED'").fetchone()
+    nulls = duckdb.sql(f"SELECT count(*) FROM '{snapshot}' WHERE status = 'REJECTED'").fetchall()[0]
     assert nulls == (2,)
 
 

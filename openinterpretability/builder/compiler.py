@@ -119,12 +119,12 @@ def _environment() -> Environment:
 
 
 def _pct_fine(v: float | None) -> str:
-    """A percentage with two significant figures, so 1 neuron in 100k isn't shown as 0%."""
+    """A signed percentage with two significant figures, so 1 in 100k isn't shown as 0%."""
     if v is None:
         return "—"
     if v == 0:
         return "0%"
-    decimals = max(0, 1 - math.floor(math.log10(100 * v)))
+    decimals = max(0, 1 - math.floor(math.log10(100 * abs(v))))
     return f"{100 * v:.{decimals}f}%"
 
 
