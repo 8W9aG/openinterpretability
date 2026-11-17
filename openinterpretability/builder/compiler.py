@@ -30,7 +30,7 @@ from openinterpretability.builder.aligned import aligned_latents
 from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
 from openinterpretability.builder.contents import add_contents
-from openinterpretability.builder.corpora import corpora_view, language_mix
+from openinterpretability.builder.corpora import language_mix
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
@@ -399,7 +399,6 @@ def _render_index(render, models, experiments, agents, stats, draws) -> None:
         agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
-        corpora=corpora_view(experiments),
         contested=contested_units(models),
     )
     if stats["baseline"]:  # the home page links to it (#3272)
