@@ -114,3 +114,24 @@ def test_an_invalid_record_is_skipped_and_the_check_rejects_it(tmp_path, monkeyp
     report = CheckReport()
     check_explanations(wiki, report)
     assert any("not a configured model" in p.message for p in report.problems)
+
+
+def test_each_model_page_lists_its_explanations(tmp_path, record):
+    # The per-model Explanations table (#4206), with rows from the shared macro.
+    model = record.submission.identifier.model_name
+    wiki = tmp_path / "wiki"
+    mine = _record(datetime(2026, 11, 17, tzinfo=UTC)).model_copy(update={"model_name": model})
+    _write(wiki, mine)
+    _write(wiki, _record(datetime(2026, 11, 16, tzinfo=UTC)))  # another model's
+    views = load_views(wiki, states={})
+    compile_site([record], tmp_path / "site", explanations=views)
+    slug = record.submission.identifier.model_slug
+    page = (tmp_path / "site" / "models" / slug / "index.html").read_text()
+    section = page[page.index('id="explanations"') :]
+    assert f'href="../../explanations/{slug}/{mine.prompt_id}.html"' in section
+    assert "John gave a drink to" in section and "openai-community/gpt2" not in section
+    index = (tmp_path / "site" / "explanations" / "index.html").read_text()
+    assert index.count("John gave a drink to") == 2  # the index lists both models'
+    compile_site([record], tmp_path / "bare")
+    bare = (tmp_path / "bare" / "models" / slug / "index.html").read_text()
+    assert 'id="explanations"' not in bare

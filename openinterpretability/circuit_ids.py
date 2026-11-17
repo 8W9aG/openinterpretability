@@ -122,19 +122,20 @@ def path_for(model_slug: str, folder: Path = CIRCUITS_DIR) -> Path:
 
 def load(path: Path) -> tuple[dict[str, frozenset], set[str]]:
     """The circuits as the file leaves them, and every id it has used."""
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    events = [json.loads(line) for line in lines if line.strip()]
+    return load_events(events), {event["id"] for event in events}
+
+
+def load_events(events: list[dict]) -> dict[str, frozenset]:
+    """The circuits that ``events``, in file order, leave: each id's newest members."""
     circuits: dict[str, frozenset] = {}
-    ever: set[str] = set()
-    if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            event = json.loads(line)
-            ever.add(event["id"])
-            if event["event"] == "gone":
-                circuits.pop(event["id"], None)
-            elif "members" in event:
-                circuits[event["id"]] = frozenset(event["members"])
-    return circuits, ever
+    for event in events:
+        if event["event"] == "gone":
+            circuits.pop(event["id"], None)
+        elif "members" in event:
+            circuits[event["id"]] = frozenset(event["members"])
+    return circuits
 
 
 def append(path: Path, events: list[dict]) -> None:

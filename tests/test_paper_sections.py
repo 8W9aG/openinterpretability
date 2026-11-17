@@ -1,6 +1,7 @@
 """Section ids and the contents list of a paper page (builder/research.py, #3139)."""
 
-from openinterpretability.builder.research import _anchor, _read_paper
+from openinterpretability.builder.contents import anchor as _anchor
+from openinterpretability.builder.research import _read_paper
 
 PAPER = """# A title
 
@@ -21,6 +22,10 @@ One.
 ## Results
 
 Two.
+
+## Next
+
+Three.
 """
 
 
@@ -40,6 +45,7 @@ def test_each_section_gets_a_stable_unique_id(tmp_path):
         ("does-it-hold", "Does it hold?"),
         ("results", "Results"),
         ("results-2", "Results"),
+        ("next", "Next"),
     )
     for anchor, _ in paper.sections:
         assert f'<h2 id="{anchor}">' in paper.body

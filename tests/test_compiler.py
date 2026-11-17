@@ -737,7 +737,7 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
         f"/N117-positive/{recent[0]['experiment_id']}.html"
     )
     home = (tmp_path / "index.html").read_text()
-    section = home.split("Most recent experiments")[1].split("Most conclusive results")[0]
+    section = home.split("Most recent experiments</h2>")[1].split("Most conclusive results</h2>")[0]
     assert section.index("Fires on commas.") < section.index("Fires on dates.")  # +1 h before +0 h
     assert '<time datetime="2026-10-01T14:00:00Z">2026-10-01</time>' in section
 
@@ -1483,8 +1483,8 @@ def test_models_page_lists_every_configured_model(tmp_path, records, monkeypatch
     qwen, unstudied, unreadable = rows
     assert qwen[1:6] == ["494M", "24", "4,864", "silu", "apache-2.0"]
     assert unstudied[1:7] == ["124M", "12", "3,072", "gelu_new", "not", "recorded"]
-    assert unstudied[-2:] == ["0", "0"]
-    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0"]
+    assert unstudied[-3:] == ["0", "0", "—"]  # no coverage run
+    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0", "—"]
 
     # A model with no record still gets a page when its config gives its layers.
     assert 'href="../models/Qwen--Qwen2.5-0.5B/index.html"' in page
@@ -1500,7 +1500,7 @@ def test_models_page_counts_experiments_and_verified(tmp_path, records, monkeypa
     monkeypatch.chdir(tmp_path)
     compile_site(records, tmp_path / "site", model_facts=MODEL_FACTS)
     qwen = _rows((tmp_path / "site" / "models" / "index.html").read_text())[0]
-    assert qwen[-2:] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
+    assert qwen[-3:-1] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
 
 
 def test_models_page_shows_each_models_pieces_bars_as_the_home_page_does(tmp_path, records):
