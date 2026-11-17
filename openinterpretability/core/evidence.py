@@ -104,14 +104,50 @@ def _fetch(sha: str) -> bytes | None:
     return Path(local).read_bytes()
 
 
+_BRANCHES: dict[str, bool] = {}  # whether this process fetched the remote's evidence branches
+BRANCHES_ENV = "OPENINTERPRETABILITY_EVIDENCE_BRANCHES"  # "0" turns the fallback off (tests)
+
+
+def _from_branches(sha: str, root: Path | None) -> bytes | None:
+    """The blob from the remote's evidence branches, or ``None`` (#4530).
+
+    A record that has just merged can refer to blobs that the deploy hasn't published yet.
+    Its evidence branch still holds them. The branches are fetched once per process. Any
+    git error means "not found". Then a machine without git gets :class:`EvidenceMissing`.
+    """
+    if os.environ.get(BRANCHES_ENV, "1") == "0":
+        return None
+    try:
+        from openinterpretability.evidence_branch import (
+            LOCAL_REFS,
+            _git,
+            fetch_branches,
+            load_branch,
+        )
+
+        if not _BRANCHES.get("fetched"):
+            _BRANCHES["fetched"] = True
+            fetch_branches()
+        refs = _git("for-each-ref", "--format=%(refname)", LOCAL_REFS).decode().split()
+        for ref in refs:
+            if load_branch(ref, root, only={sha}):
+                return ((root or store_dir()) / blob_name(sha)).read_bytes()
+    except Exception:  # noqa: BLE001 - no git, no remote, or a bad branch: not found
+        return None
+    return None
+
+
 def get(sha: str, root: Path | None = None, fetch: Fetch | None = None) -> bytes:
     """The blob with hash ``sha``: from the local store, else fetched and stored.
 
-    ``fetch`` defaults to the read-only fetch from :data:`EVIDENCE_REPO`. Raises
-    :class:`EvidenceMissing` when the blob can't be had or its hash is wrong.
+    ``fetch`` defaults to the read-only fetch from :data:`EVIDENCE_REPO`, then the
+    remote's evidence branches (:func:`_from_branches`). Raises :class:`EvidenceMissing`
+    when the blob can't be had or its hash is wrong.
     """
     path = (root or store_dir()) / blob_name(sha)
     data = path.read_bytes() if path.exists() else (fetch or _fetch)(sha)
+    if data is None and fetch is None:
+        data = _from_branches(sha, root)
     if data is None:
         raise EvidenceMissing(
             f"evidence blob {sha} is not in {root or store_dir()} or {EVIDENCE_REPO}"
