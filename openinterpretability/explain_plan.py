@@ -21,6 +21,7 @@ unit on the scan corpus, so it may not cover this prompt.
 
 from __future__ import annotations
 
+import shlex
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -70,9 +71,11 @@ class Plan:
 def audit_command(model: str, unit: tuple[int, int, str], window: int | None) -> str:
     """The audit of an unstudied pole or head, chosen by attribution."""
     layer, index, pole = unit
-    which = f"--head {index}" if pole == HEAD else f"--neuron {index} --pole {pole}"
+    which = f"--head {int(index)}" if pole == HEAD else f"--neuron {int(index)} --pole {pole}"
+    if pole not in (HEAD, "positive", "negative"):
+        raise ValueError(f"not a pole: {pole!r}")
     command = (
-        f"open-interpretability audit --model {model} --layer {layer} {which} "
+        f"open-interpretability audit --model {shlex.quote(model)} --layer {int(layer)} {which} "
         "--selection attribution"
     )
     return command + (f" --window-tokens {window}" if window else "")
