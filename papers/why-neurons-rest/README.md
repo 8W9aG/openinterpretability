@@ -2,6 +2,8 @@
 
 [The paper on default-on negative poles](../default-on-poles/README.md) found that training moves most of GPT-2's neurons to a median pre-activation h of about −1. That is below GELU's minimum at −0.75. It also found that the input weights do this. It did not find why. This analysis trains small GPT-2s and changes one thing at a time.
 
+**Status:** Preprint. Work left: #4250 (rewrite in the paper form of #4202), #3193, #3192 and #4093 (the causes of the push that are still open).
+
 **Why we wrote it.** Most of GPT-2's neurons rest below GELU's dip, and that resting level is most of what a default-on pole costs. A protocol that ignores the rest must first know where it comes from. **The question.** What in training sets the level where a neuron rests? It is research question 5, *What makes a neuron rest, stay dead or stay on?* ([research questions](../../docs/research-questions.md)).
 
 **Results.** All are on small models, except the first's GPT-2 figures. Each number is from one or two seeds.

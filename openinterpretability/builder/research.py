@@ -24,6 +24,40 @@ from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_te
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 # An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
+# A paper's status line, under its abstract (#3150). A preprint names the issues still
+# open on it. A published paper gives the day it was published.
+STATUS = re.compile(
+    r"^\*\*Status:\*\* (?:(Preprint)\. Work left: (.+)|Published (\d{4}-\d{2}-\d{2})\. (.+))$",
+    re.M,
+)
+ADDENDA = "## Addenda"  # a published paper changes only below this heading
+
+
+@dataclass(frozen=True)
+class PaperStatus:
+    """A paper's status: a preprint with work left, or published on a day."""
+
+    published: str | None  # the day it was published, or None for a preprint
+    note: str  # a preprint's work left, or what a published paper says about changes
+    issues: tuple[int, ...] = ()  # the issues named in the note
+
+    @property
+    def preprint(self) -> bool:
+        """True while work on the paper is left."""
+        return self.published is None
+
+
+def paper_status(text: str) -> PaperStatus | None:
+    """The status line of a paper's Markdown, or None when it has none."""
+    found = STATUS.search(text)
+    if found is None:
+        return None
+    note = found.group(2) or found.group(4)
+    outside = re.sub(r"\([^)]*\)", "", note)  # "(rewrite in the form of #4202)" names no work
+    issues = tuple(int(n) for n in re.findall(r"#(\d+)", outside))
+    return PaperStatus(found.group(3), note, issues)
+
+
 _ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
 _MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
 
@@ -40,6 +74,7 @@ class Paper:
     interactive: bool
     sections: tuple[tuple[str, str], ...] = ()  # (id, title) of each `##` heading, in order
     published: str | None = None  # the date before its entry in papers/README.md
+    status: PaperStatus | None = None  # preprint or published (#3150)
 
     @property
     def href(self) -> str:
@@ -90,7 +125,8 @@ def _first_image(tokens: list[Token]) -> str | None:
 
 def _read_paper(folder: Path, repo_url: str) -> Paper:
     """Render one paper. Its text passes the same search for personal data as all the site."""
-    tokens = _MARKDOWN.parse(redact_text((folder / "README.md").read_text(encoding="utf-8")))
+    text = redact_text((folder / "README.md").read_text(encoding="utf-8"))
+    tokens = _MARKDOWN.parse(text)
     if tokens[0].type != "heading_open" or tokens[0].tag != "h1":
         raise ValueError(f"{folder / 'README.md'} must start with a level 1 heading")
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
@@ -105,6 +141,7 @@ def _read_paper(folder: Path, repo_url: str) -> Paper:
         hero=_first_image(tokens),
         interactive=interactive,
         sections=sections,
+        status=paper_status(text),
     )
 
 

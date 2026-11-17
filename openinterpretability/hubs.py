@@ -58,10 +58,14 @@ def identifier(unit) -> HubIdentifier:
 
 def _facts(standing) -> tuple[float | None, bool]:
     """The active share and the default-on flag from a standing's lead experiment."""
+    return record_facts(standing.lead.record)
+
+
+def record_facts(record) -> tuple[float | None, bool]:
+    """The active share and the default-on flag that one experiment shows."""
     from openinterpretability.core.schemas import ReviewPolicy, scan_active_share
     from openinterpretability.planner import _default_on
 
-    record = standing.lead.record
     metrics = record.verdict.metrics
     share = metrics.active_share if metrics and metrics.active_share is not None else None
     if share is None:
@@ -123,3 +127,31 @@ def norm_row(runner, ident: HubIdentifier, date: str) -> NormRow:
         hub=ident.slug, date=date, norm=round(own, 6), layer_median=round(float(norms.median()), 6),
         percentile=round(float((norms < own).float().mean()), 6),
     )  # fmt: skip
+
+
+def explain_notes(model: str, states: dict, folder: Path = HUBS_DIR) -> dict:
+    """A :class:`~openinterpretability.core.explanation_records.HubNote` per hub center.
+
+    It is keyed by the center's slug (``<model>/L5/H1``, or ``<model>/L3/N7`` for both
+    poles). The hubs are those in ``data/hubs/<model>.jsonl``, which ``open-interpretability
+    circuits hubs`` writes. ``states`` (:func:`openinterpretability.planner.load_states`)
+    give each pole's or head's newest experiment, for its active share (#4472).
+    """
+    from openinterpretability.builder.hrefs import hub_href
+    from openinterpretability.core.explanation_records import HubNote
+
+    notes = {}
+    for slug, row in load_norms(path_for(model, folder)).items():
+        center = slug.removesuffix("/HUB")
+        key = center.split("/", 1)[1].replace("/", "-")  # L5-H1, as the site names it
+        note = HubNote(hub=slug, href=hub_href(model_slug(model), key), norm=row.norm,
+                       layer_median=row.layer_median, percentile=row.percentile)  # fmt: skip
+        for unit in (center, f"{center}-positive", f"{center}-negative"):
+            state = states.get(unit)
+            if state is not None:
+                share, default_on = record_facts(state.record)
+                facts = {"active_share": share, "default_on": default_on}
+                notes[unit] = note.model_copy(update=facts)
+            elif unit == center:
+                notes[unit] = note
+    return notes

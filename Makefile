@@ -37,6 +37,7 @@ lint:
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
+	uv run python scripts/papers.py check
 	python3 scripts/ifttt_lint.py
 	python3 scripts/check_old_name.py
 	uv run interrogate openinterpretability

@@ -1,7 +1,7 @@
 """Reproducing records made in a 16-bit dtype (bfloat16 or float16), issue #2995.
 
 16-bit rounding moves a number by a few percent from one device to another. So a 16-bit
-record is reproduced in float32, and compared within ``reproduce.HALF_TOLERANCE``
+review is reproduced in float32, and compared within ``reproduce.HALF_TOLERANCE``
 (``docs/analyses/half-precision-reproduce.md``). A pass/fail can then flip where rounding
 moves a number across its threshold. These helpers check that the record's own results
 follow from its own numbers, and its decision from its results.
@@ -16,6 +16,21 @@ ROUNDING = 1e-6  # records round activations and deltas to 6 decimals
 def reproduction_dtype(dtype: str) -> str:
     """The dtype to reproduce a record in: float32 for a 16-bit record, else its own."""
     return "float32" if dtype in HALF else dtype
+
+
+def compare_dtype(stage: str, pinned: str, loaded: str, report) -> None:
+    """Fail when ``loaded`` is not a dtype that ``stage`` (the record or its scan) may use.
+
+    A 16-bit pin may be reproduced in float32, with a warning that its numbers are compared
+    within the 16-bit tolerance.
+    """
+    if pinned not in {"auto", loaded} and reproduction_dtype(pinned) != loaded:
+        report.fail(f"loaded {loaded} weights; the {stage} pins {pinned}")
+    elif pinned in HALF and loaded != pinned:
+        report.warnings.append(
+            f"reproduced in {loaded}; the {stage} pins {pinned}, so its numbers are compared "
+            "within the 16-bit tolerance"
+        )
 
 
 def recorded_pass(result, policy, scale: float) -> bool | None:

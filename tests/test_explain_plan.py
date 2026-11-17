@@ -146,7 +146,8 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
         "anthropic/r",
         3,
     )
-    assert len(draws.targets) == 2 and "Running 2 unit experiments" in out.output
+    assert draws.limit == 2 and len(draws.targets) >= 2  # --run 2 stops after 2 (#4473)
+    assert "experiments, by coverage gain, until the explained share reaches" in out.output
     assert all("--selection attribution" in t.audit for t in draws.targets)
     external = CliRunner().invoke(
         cli, [*args[:-4], "--proposer", "external/x", "--reviewer", "anthropic/r"]
