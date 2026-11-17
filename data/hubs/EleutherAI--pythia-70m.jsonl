@@ -1,0 +1,5 @@
+{"hub":"EleutherAI--pythia-70m/L5/H6/HUB","date":"2026-11-17","norm":2.558949,"layer_median":2.823818,"percentile":0.125}
+{"hub":"EleutherAI--pythia-70m/L1/H6/HUB","date":"2026-11-17","norm":4.056534,"layer_median":4.104708,"percentile":0.25}
+{"hub":"EleutherAI--pythia-70m/L5/H1/HUB","date":"2026-11-17","norm":2.379275,"layer_median":2.823818,"percentile":0.0}
+{"hub":"EleutherAI--pythia-70m/L4/H4/HUB","date":"2026-11-17","norm":2.728456,"layer_median":2.728456,"percentile":0.375}
+{"hub":"EleutherAI--pythia-70m/L3/H1/HUB","date":"2026-11-17","norm":6.057219,"layer_median":5.392306,"percentile":0.625}
