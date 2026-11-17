@@ -148,8 +148,13 @@ def verdict_of(kind: str, key: str) -> tuple[str, str]:
     A scan that stopped on its unit writes a draw or stop record and no experiment, so
     its verdict is STOPPED.
     """
+    from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
     from openinterpretability.core.schemas import AuditRecord
 
+    if kind == "explanation":  # an explanation draw writes an explanation record, no verdict
+        if not new_files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
+            raise LoopError("the draw's steps wrote no explanation")
+        return "EXPLAINED", f"{VERBS[kind]} {key}"
     records = [p for p in new_files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
     if not records:
         if new_files(draws_dir(DEFAULT_WIKI_DIR)) or new_files(stops_dir(DEFAULT_WIKI_DIR)):
