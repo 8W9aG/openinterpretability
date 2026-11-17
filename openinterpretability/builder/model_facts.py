@@ -123,10 +123,12 @@ def models_view(configured: Iterable[str], nodes: Iterable, facts: dict, license
     return rows
 
 
-def render_models(render, models, facts: dict, render_model) -> None:
+def render_models(render, models, facts: dict, render_model, draws=()) -> None:
     """Write the Models page, and a page for each configured model with no record yet.
 
     ``render`` is the compiler's renderer and ``render_model`` writes one model's pages.
+    ``draws`` are the random draws and stops. From them ``explore_focus`` gives each model's
+    verified count for its card, which shows its pieces bars as the home page does (#3287).
     """
     from openinterpretability.planner import configured_models
 
@@ -135,4 +137,7 @@ def render_models(render, models, facts: dict, render_model) -> None:
     for model in empty:
         render_model(render, model, {}, set())
     rows = models_view(configured, [*models, *empty], facts, render.common["model_licenses"])
-    render("models/index.html", "models.html", rows=rows)
+    from openinterpretability.builder.stopped import explore_focus
+
+    explore = explore_focus(models, draws)  # proven dead counts as verified, as on the home page
+    render("models/index.html", "models.html", rows=rows, models=models, explore=explore)
