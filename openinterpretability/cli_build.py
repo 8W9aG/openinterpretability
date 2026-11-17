@@ -12,6 +12,22 @@ from openinterpretability.core.schemas import COMMITTED_SOURCES
 from openinterpretability.sisters import DEFAULT_PATH as SISTERS_PATH
 
 
+def _wiki_inputs(wiki_dir) -> dict:
+    """What the build reads from the wiki besides the experiments, by compile_site argument."""
+    from openinterpretability.builder.circuit_units import load_circuit_data
+    from openinterpretability.builder.explanation_pages import load_views
+    from openinterpretability.core.draws import load_draws, load_stops
+    from openinterpretability.core.errata import load_errata
+
+    return {
+        "draws": load_draws(wiki_dir),  # random draws no experiment could audit
+        "stops": load_stops(wiki_dir),
+        "errata": load_errata(wiki_dir),
+        "explanations": load_views(wiki_dir),  # each prompt's newest explanation, and if stale
+        "circuits": load_circuit_data(wiki_dir),  # registry circuits, their records, hub norms
+    }
+
+
 @cli.command()
 @wiki_dir_option("Experiment archive (wiki/experiments/**/<id>.json).", exists=True)
 @click.option(
@@ -100,13 +116,10 @@ def build(  # noqa: PLR0913 (one option per input file)
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterpretability.builder.compiler import compile_site
     from openinterpretability.builder.coverage import load_rows as load_coverage
-    from openinterpretability.builder.explanation_pages import load_views
     from openinterpretability.builder.model_facts import load_model_facts
     from openinterpretability.builder.parallel import default_jobs
     from openinterpretability.builder.users import load_users
     from openinterpretability.builder.wiki import load_archive
-    from openinterpretability.core.draws import load_draws, load_stops
-    from openinterpretability.core.errata import load_errata
     from openinterpretability.core.project import project_links
     from openinterpretability.core.takedowns import activate, load_takedowns
     from openinterpretability.corpus import load_sources
@@ -120,20 +133,17 @@ def build(  # noqa: PLR0913 (one option per input file)
         load_archive(wiki_dir),
         output_dir,
         wiring_rows=load_rows(wiring_path),
-        draws=load_draws(wiki_dir),
         corpus_sources=load_sources(source_paths),
         alignment_rows=load_alignment(alignment_path),
         sister_rows=load_sisters(sisters_path),
         papers_dir=papers_dir,
-        stops=load_stops(wiki_dir),
         model_facts=load_model_facts(configured_models()),  # config.json only, no weights
         jobs=jobs or default_jobs(),
-        errata=load_errata(wiki_dir),
         users=load_users(project_links()["repo_url"], wiki_dir),
         coverage_rows=load_coverage(coverage_path),
         paper_pdfs=paper_pdfs,
         pending=open_experiments(),
-        explanations=load_views(wiki_dir),  # each prompt's newest explanation, and if stale
+        **_wiki_inputs(wiki_dir),
     )
     click.echo(f"Published {report.experiments_published} experiments: {len(report.pages)} "
                f"pages, {report.parquet} → {output_dir}")  # fmt: skip

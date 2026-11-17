@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import breadcrumb %}
 {% from "_circuit.html" import unit_name %}
+{% from "_macros.html" import status_badge %}
 
 {% block title %}Circuits · {{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -9,16 +10,41 @@
 {{ breadcrumb(root, model) }}
 <h1 class="font-mono text-2xl font-semibold">Circuits in {{ model.name }}</h1>
 <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-  Units in the registry joined by their wiring: each experiment records its unit's strongest direct connections, from the weights and from activations on its review's prompts, and an edge is kept when the unit at its other end has a page too. Units joined edge to edge form one circuit, laid out by layer (attention heads above neurons in a layer, since attention runs first). A hub, a unit wired to at least {{ (hub_share * 100) | round | int }}% of the model's studied units (and at least {{ hub_min }}), would join them all into one star, so its edges don't join circuits; hubs are listed after the circuits. Each circuit has its own page, named after its lowest-layer unit; when circuits merge or split, the old names redirect. Edges are direct effects only, and a unit's wiring lists only its top connections, so a missing edge is not evidence of no connection. Reported, not gated.
+  Units in the registry joined by their wiring: each experiment records its unit's strongest direct connections, from the weights and from activations on its review's prompts, and an edge is kept when the unit at its other end has a page too. A hub, a unit wired to at least {{ (hub_share * 100) | round | int }}% of the model's studied units (and at least {{ hub_min }}), would join them all into one star, so its edges don't join circuits; hubs are listed last. The registry's <strong>circuits</strong> are clusters of the wiring graph (Leiden communities of at least 3 units), with ids that survive as the registry grows. Each is audited by task hypotheses. Units joined edge to edge form a <strong>wiring group</strong>, laid out by layer (attention heads above neurons in a layer, since attention runs first), named after its lowest-layer unit. Edges are direct effects only, and a unit's wiring lists only its top connections, so a missing edge is not evidence of no connection. Reported, not gated.
 </p>
 <p class="mt-2 text-xs text-slate-500">
-  {{ found | length }} circuit{{ "" if found | length == 1 else "s" }} over {{ n_units }} units{% if hubs %} · <a class="underline" href="#hubs">{{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}</a>{% endif %}
+  {% if registry %}{{ registry | length }} circuit{{ "" if registry | length == 1 else "s" }} · {% endif %}{{ found | length }} wiring group{{ "" if found | length == 1 else "s" }} over {{ n_units }} units{% if hubs %} · <a class="underline" href="#hubs">{{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}</a>{% endif %}
 </p>
 
+{% if registry %}
+<section class="mt-6" data-pagefind-ignore>
+  <h2 class="text-base font-semibold">Circuits</h2>
+  <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Circuit</th><th class="px-3 py-2 text-right">Members</th><th class="px-3 py-2">Layers</th><th class="px-3 py-2">Tasks</th><th class="px-3 py-2 text-right">Stale experiments</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for rc in registry %}
+        <tr class="align-top">
+          <td class="px-3 py-2 font-mono"><a class="underline" href="{{ root }}{{ rc.href }}">{{ rc.id }}</a></td>
+          <td class="px-3 py-2 text-right tabular-nums">{{ rc.members | length }}</td>
+          <td class="px-3 py-2 font-mono text-xs">{% if rc.layers %}L{{ rc.layers[0] }}–L{{ rc.layers[1] }}{% endif %}</td>
+          <td class="px-3 py-2">{% for t in rc.tasks %}<div class="flex flex-wrap items-center gap-1.5"><span>{{ t.name }}</span>{% if t.standing %}{{ status_badge(t.standing) }}{% endif %}</div>{% else %}<span class="text-xs text-slate-500">no task hypothesis yet</span>{% endfor %}</td>
+          <td class="px-3 py-2 text-right tabular-nums">{{ rc.stale }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 {% if found %}
-<table class="mt-6 w-full text-sm" data-pagefind-ignore>
+<h2 class="mt-10 text-base font-semibold">Wiring groups</h2>
+<table class="mt-3 w-full text-sm" data-pagefind-ignore>
   <thead class="text-xs text-slate-500">
-    <tr><th class="pb-1 text-left font-normal">Circuit</th><th class="pb-1 text-right font-normal">Units</th><th class="pb-1 text-right font-normal">Verified</th><th class="pb-1 text-right font-normal">Layers</th></tr>
+    <tr><th class="pb-1 text-left font-normal">Group</th><th class="pb-1 text-right font-normal">Units</th><th class="pb-1 text-right font-normal">Verified</th><th class="pb-1 text-right font-normal">Layers</th></tr>
   </thead>
   <tbody>
     {% for c, href in found %}

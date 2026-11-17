@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_circuit.html" import unit_name, nav %}
+{% from "_macros.html" import status_badge, pole_mark %}
 
 {% block title %}Hub {{ unit_name(hub.unit) }} · {{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -10,7 +11,34 @@
 <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
   Wired to {{ hub.neighbours | length }} studied units of {{ model.name }} ({{ inbound | length }} edges in, {{ hub.edges | length - inbound | length }} out). A hub would join them all into one star, so its edges don't join circuits. See <a class="underline" href="{{ root }}models/{{ model.slug }}/circuits.html">all circuits</a>. Reported, not gated.
 </p>
-<p class="mt-4 font-mono text-xs leading-relaxed" data-pagefind-ignore>
+<section class="mt-6" aria-labelledby="hub-standing">
+  <h2 id="hub-standing" class="text-base font-semibold">Standing and artefact checks</h2>
+  <p class="mt-1 max-w-3xl text-xs text-slate-500">A hub has no experiments of its own, so its standing is its center's. A hub can be an artefact: a unit that is on most of the time, or that writes with a large norm, touches many units without carrying anything particular. These facts are reported, not gated.</p>
+  <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900"><tr><th class="px-3 py-2">{{ "Head" if hub.unit.is_head else "Pole" }}</th><th class="px-3 py-2">Standing</th><th class="px-3 py-2 text-right">Active share</th><th class="px-3 py-2">Default-on</th></tr></thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for side, st in entity.standings.items() %}
+        <tr>
+          <td class="px-3 py-2">{% if side in ("positive", "negative") %}{{ side | capitalize }} {{ pole_mark(side) }}{% else %}{{ side }}{% endif %}</td>
+          <td class="px-3 py-2">{{ status_badge(st.status) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ entity.active_share.get(side) | pct }}</td>
+          <td class="px-3 py-2">{{ "yes: it can't be audited as a detector" if entity.default_on.get(side) else "no" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="px-3 py-2 text-slate-500">The center has no standing yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-2 text-sm">{% if entity.norm %}Output norm {{ "%.3f" | format(entity.norm.norm) }}, against a median of {{ "%.3f" | format(entity.norm.layer_median) }} in its layer: larger than {{ "{:.0%}".format(entity.norm.percentile) }} of the layer's {{ "heads" if hub.unit.is_head else "neurons" }} (measured {{ entity.norm.date }}).{% else %}Output norm not measured yet (<code>open-interpretability circuits hubs</code>).{% endif %}</p>
+  <p class="mt-1 font-mono text-xs text-slate-500">{{ entity.identifier.slug }}</p>
+</section>
+{% if joins %}
+<p class="mt-4 text-sm">Its neighbours belong to {% for rc in joins %}<a class="font-mono underline" href="{{ root }}{{ rc.href }}">{{ rc.id }}</a>{{ ", " if not loop.last }}{% endfor %}.</p>
+{% endif %}
+<h2 class="mt-6 text-base font-semibold">Units wired to it</h2>
+<p class="mt-2 font-mono text-xs leading-relaxed" data-pagefind-ignore>
   {% for u in hub.neighbours %}<a class="underline" href="{{ root }}{{ u.href }}">L{{ u.layer }}/{{ u.label }}</a>{{ " · " if not loop.last }}{% endfor %}
 </p>
 {% endblock %}
