@@ -49,7 +49,7 @@
       {% for n in layer.units %}
       <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="whitespace-nowrap px-3 py-2 font-mono">
-          <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% if n.dictionary %}<div class="text-xs text-slate-500">{{ n.dictionary }}</div>{% endif +%}
+          <a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% if n.dictionary %}<div class="text-xs text-slate-500">{{ n.dictionary }}</div>{% endif +%}
         </td>
         <td class="space-y-1 px-3 py-2">
           {% for pole, s in n.standings | dictsort(reverse=true) %}

@@ -6,6 +6,7 @@ from importlib.metadata import metadata
 from pathlib import Path
 
 from openinterpretability import DISTRIBUTION
+from openinterpretability.builder.brand import write_brand
 from openinterpretability.builder.changelog_page import load_versions
 from openinterpretability.builder.research import copy_assets, load_papers
 from openinterpretability.core.licenses import DATA_TERMS
@@ -16,6 +17,7 @@ def render_reference_pages(render, papers_dir: Path | None, report, *, pdfs: boo
     """Write the About and Changelog pages and the Research section (``pdfs``: each paper's PDF)."""
     license = metadata(DISTRIBUTION)["License-Expression"]
     render("about.html", "about.html", policy=ReviewPolicy(), license=license, **DATA_TERMS)
+    report.pages.extend(write_brand(render.output_dir))  # the mark, favicon and social image
     versions = load_versions(render.common["repo_url"])
     if versions:  # an install has no CHANGELOG.md
         render("changelog.html", "changelog.html", versions=versions)

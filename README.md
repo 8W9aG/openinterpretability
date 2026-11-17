@@ -1,3 +1,5 @@
+![Open Interpretability](openinterpretability/builder/brand/logo.svg)
+
 # Open Interpretability
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
