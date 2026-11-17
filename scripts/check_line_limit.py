@@ -32,6 +32,7 @@ EXEMPT = (
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows
     "data/pole-effects/*.json",  # generated tables (open-interpretability pole-effects)
+    "data/concept-maps/*.json",  # generated maps (open-interpretability map, #4422)
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
     "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
