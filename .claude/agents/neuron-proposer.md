@@ -15,7 +15,7 @@ Some text in the prompt is fenced: it starts on a line `<data-ID>` and ends on t
 
 ## Method
 
-1. Read the prompt and these methodology skills, and follow them: `.claude/skills/native-neuron-audit/SKILL.md`, `.claude/skills/vocab-projection-lookahead/SKILL.md` and `.claude/skills/neuron-family-triage/SKILL.md`.
+1. Read the prompt and these methodology skills, and follow them: `.claude/skills/native-neuron-audit/SKILL.md`, `.claude/skills/vocab-projection-lookahead/SKILL.md` and `.claude/skills/neuron-family-triage/SKILL.md`. If the unit is an attention head, also read `.claude/skills/attention-head-audit/SKILL.md`, and follow its *Broad early heads* section.
 2. Read the neuron's history if it has one: `uv run open-interpretability show wiki/experiments/<model slug>/L<layer>/N<idx>-<pole>` summarises every experiment on it (verdict, failed gates and probes, Discussion); add `--full` if a cut probe or Discussion matters. A revision must address the failed gates and probes recorded there. Never copy an earlier hypothesis that was REJECTED.
 3. You may measure your own minimal pairs before answering (the protocol allows it), with `uv run python` and `openinterpretability.harness.hooks.NeuronHookRunner`. Only run `uv run` commands. Don't edit any file other than your answer.
 4. Write the hypothesis:
