@@ -152,7 +152,9 @@ jobs:
 
   # A failed deploy leaves the site stale, and nobody sees it unless they look at Actions
   # (#4625). So a failure opens an issue, or comments on the one already open. The fixed
-  # title keeps a cron that fails every 30 minutes to one issue. scripts/issue_state.py
+  # title keeps a cron that fails every 30 minutes to one issue. A later good deploy
+  # doesn't close it: a failure that went away by itself is a flaky deploy, and the
+  # issue stays open until its cause is fixed. scripts/issue_state.py
   # reads TITLE from this file, so the issue is eligible for agents.
   report:
     name: Open an issue on failure
@@ -209,28 +211,4 @@ jobs:
           else
             gh issue create --title "$TITLE" --body-file issue.md \
               --label bug --label "priority: high" --label "area: site"
-          fi
-
-  # The next good deploy closes that issue.
-  recovered:
-    name: Close the failure issue
-    needs: deploy
-    if: ${{ needs.deploy.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      issues: write
-      contents: read
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      TITLE: Deploy registry failed on main
-      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-    steps:
-      - name: Close the open failure issue
-        run: |
-          number=$(gh issue list --state open --search "\"$TITLE\" in:title" \
-            --json number,title --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
-          if [ -n "$number" ]; then
-            gh issue close "$number" --comment "Deploy succeeded at ${GITHUB_SHA:0:8}: $RUN"
           fi
