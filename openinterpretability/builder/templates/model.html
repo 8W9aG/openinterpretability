@@ -95,6 +95,37 @@
   </table>
 </div>
 
+{% set cov = coverage.get(model.name) %}
+{% if cov %}
+<section class="mt-10" id="coverage">
+  <h2 class="mb-1 text-lg font-semibold">How much of this model is explained</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    Mean-ablating every neuron of an MLP layer raises the next-token loss. The share of that rise that comes back when only the VERIFIED poles keep their real activations is the registry's coverage. Over all {{ cov.summary.layers }} layers, weighted by each layer's rise,
+    the {{ cov.summary.verified_poles | thousands }} VERIFIED poles of {{ cov.summary.poles | thousands }} keep <strong>{{ "—" if cov.summary.recovered is none else "{:.2%}".format(cov.summary.recovered) }}</strong>
+    of the loss effect{% if cov.summary.recovered_random is not none %}, and the same number of random poles keep {{ "{:.2%}".format(cov.summary.recovered_random) }}{% endif %}.
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Layer</th><th class="px-3 py-2 text-right">VERIFIED poles</th><th class="px-3 py-2 text-right">Loss rise from ablation</th><th class="px-3 py-2 text-right">Share kept</th><th class="px-3 py-2 text-right">Random poles, same count</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for r in cov.layers %}
+        <tr>
+          <td class="px-3 py-2 font-mono text-xs">L{{ r.layer }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ r.verified_poles | thousands }} of {{ (2 * r.width) | thousands }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "%.3f" | format(r.rise) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "—" if r.recovered is none else "{:.2%}".format(r.recovered) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "—" if r.recovered_random is none else "{:.2%}".format(r.recovered_random) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-1 text-xs text-slate-500">Measured {{ cov.summary.date }}{% if cov.corpus %} on {{ cov.corpus }}{% endif %}{% if cov.version %}, openinterpretability {{ cov.version }}{% endif %}. Loss rise in nats per token. A share below zero means that keeping only those poles gave a higher loss than ablating the whole layer. On a layer with a small rise, a share is noisy. <a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">Method</a>.</p>
+</section>
+{% endif %}
+
 {% if recent %}
 <section class="mt-10">
   <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>

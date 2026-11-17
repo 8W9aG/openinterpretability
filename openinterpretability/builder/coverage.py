@@ -36,6 +36,7 @@ def model_summary(rows: list[dict]) -> dict:
         (r.get("recovered_random") or 0.0) * (r["loss_ablated"] - r["loss_clean"]) for r in rows
     )
     return {
+        "rise": rise,
         "model": rows[0]["model"],
         "date": rows[0]["date"],
         "layers": len(rows),
@@ -44,3 +45,24 @@ def model_summary(rows: list[dict]) -> dict:
         "recovered": kept / rise if rise > 0 else None,
         "recovered_random": rand / rise if rise > 0 else None,
     }
+
+
+def coverage_view(rows_by_model: dict[str, list[dict]]) -> dict[str, dict]:
+    """Each model's coverage for its pages, keyed by model name (#3837).
+
+    A view has the ``summary`` (:func:`model_summary`), and the run's ``corpus`` and ``version``.
+    It also has the ``layers``: each row merged with its own :func:`model_summary`. So a
+    layer's ``rise``, ``recovered`` and ``recovered_random`` follow the model's rule.
+    """
+    out = {}
+    for model, rows in rows_by_model.items():
+        if not rows:
+            continue
+        layers = [r | model_summary([r]) | {"layer": r["layer"]} for r in rows]
+        out[model] = {
+            "summary": model_summary(rows),
+            "corpus": rows[0].get("corpus"),
+            "version": rows[0].get("openinterpretability"),
+            "layers": layers,
+        }
+    return out

@@ -31,7 +31,7 @@ from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
 from openinterpretability.builder.contents import add_contents
 from openinterpretability.builder.corpora import corpora_view, language_mix
-from openinterpretability.builder.coverage import model_summary
+from openinterpretability.builder.coverage import coverage_view
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
@@ -317,7 +317,7 @@ def compile_site(
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
     erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
     who made records that name no contributor, each with a page under ``users/``.
-    ``coverage_rows`` (``builder.coverage.load_rows``) give each model's registry coverage.
+    ``coverage_rows`` (``builder.coverage.load_rows``) give each model page its coverage.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -341,6 +341,7 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
+    common["coverage"] = coverage_view(coverage_rows or {})  # on the model pages (#3837)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
@@ -351,7 +352,6 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
-    stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
     _render_index(render, models, experiments, agents, stats, (*draws, *stops))
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)

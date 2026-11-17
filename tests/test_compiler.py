@@ -1483,8 +1483,8 @@ def test_models_page_lists_every_configured_model(tmp_path, records, monkeypatch
     qwen, unstudied, unreadable = rows
     assert qwen[1:6] == ["494M", "24", "4,864", "silu", "apache-2.0"]
     assert unstudied[1:7] == ["124M", "12", "3,072", "gelu_new", "not", "recorded"]
-    assert unstudied[-2:] == ["0", "0"]
-    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0"]
+    assert unstudied[-3:] == ["0", "0", "—"]  # no coverage run
+    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0", "—"]
 
     # A model with no record still gets a page when its config gives its layers.
     assert 'href="../models/Qwen--Qwen2.5-0.5B/index.html"' in page
@@ -1500,7 +1500,7 @@ def test_models_page_counts_experiments_and_verified(tmp_path, records, monkeypa
     monkeypatch.chdir(tmp_path)
     compile_site(records, tmp_path / "site", model_facts=MODEL_FACTS)
     qwen = _rows((tmp_path / "site" / "models" / "index.html").read_text())[0]
-    assert qwen[-2:] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
+    assert qwen[-3:-1] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
 
 
 def test_models_page_shows_each_models_pieces_bars_as_the_home_page_does(tmp_path, records):
