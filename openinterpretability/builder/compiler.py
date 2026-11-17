@@ -119,11 +119,7 @@ def _environment() -> Environment:
 
 
 def _pct_fine(v: float | None) -> str:
-    """A percentage with two significant figures, so 1 neuron in 100k isn't shown as 0%.
-
-    A value can be below zero, for example a random baseline's coverage. The figures
-    are counted from the magnitude, and the sign stays.
-    """
+    """A signed percentage with two significant figures, so 1 in 100k isn't shown as 0%."""
     if v is None:
         return "—"
     if v == 0:
