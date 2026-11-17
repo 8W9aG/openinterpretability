@@ -1,1 +1,0 @@
-- The Benchmarks run no longer fails after opening its ledger PR (#4215). A fine-grained token can't enable auto-merge, and the repository's auto-merge workflow already does it for the PR.
