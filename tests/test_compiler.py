@@ -139,8 +139,7 @@ def test_model_page_shows_the_model_license(tmp_path, records, monkeypatch):
     compile_site(records, tmp_path / "site")
     page = (tmp_path / "site" / "models" / MODEL / "index.html").read_text()
     assert (
-        '<a class="text-emerald-700 underline dark:text-emerald-400" href="https://u">x-1</a>'
-        in page
+        '<a class="text-brand-700 underline dark:text-brand-400" href="https://u">x-1</a>' in page
     )
     assert "gated" in page and "not gated" not in page
     assert "generated text may not be published" in page

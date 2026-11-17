@@ -88,7 +88,7 @@
                 <tbody>
                   {% for x in s.matches %}
                   <tr class="{{ '' if x.above else 'text-slate-500' }}"{% if x.m.channel %} title="{{ x.m.channel }}"{% endif %}>
-                    <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">F{{ x.m.feature_idx }}</a>{% elif x.neuronpedia %}<a class="underline-offset-2 hover:underline" href="{{ x.neuronpedia }}" rel="noopener">F{{ x.m.feature_idx }}</a>{% else %}F{{ x.m.feature_idx }}{% endif %}</td>
+                    <td>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">F{{ x.m.feature_idx }}</a>{% elif x.neuronpedia %}<a class="underline-offset-2 hover:underline" href="{{ x.neuronpedia }}" rel="noopener">F{{ x.m.feature_idx }}</a>{% else %}F{{ x.m.feature_idx }}{% endif %}</td>
                     <td class="text-right tabular-nums">{{ '%+.2f' | format(x.m.cosine) }}</td>
                   </tr>
                   {% endfor %}
@@ -114,13 +114,13 @@
         <div class="min-w-0 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
           <div class="text-slate-500">{{ p.pole | capitalize }} pole {{ pole_mark(p.pole) }}</div>
           {% for v in p.rows %}
-          <div class="mt-2 text-xs font-medium">{{ v.row.other }}{% if v.sister %} · <span class="text-emerald-700 dark:text-emerald-400">sister</span>{% endif %}</div>
+          <div class="mt-2 text-xs font-medium">{{ v.row.other }}{% if v.sister %} · <span class="text-brand-700 dark:text-brand-400">sister</span>{% endif %}</div>
           <div class="text-xs text-slate-500">rotated {{ v.row.rotated | num(2) }} · {{ '{:,}'.format(v.row.tokens) }} positions ({{ (100 * v.row.coverage) | round | int }}% coverage)</div>
           <table class="mt-1 w-full font-mono text-xs">
             <tbody>
               {% for x in v.matches %}
               <tr class="{{ '' if x.m.pearson > v.row.rotated else 'text-slate-500' }}" title="best partner back: {{ x.m.back_slug }}">
-                <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">L{{ x.m.layer }}/N{{ x.m.neuron_idx }}</a>{% else %}L{{ x.m.layer }}/N{{ x.m.neuron_idx }}{% endif %} {{ pole_mark(x.m.pole) }}</td>
+                <td>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">L{{ x.m.layer }}/N{{ x.m.neuron_idx }}</a>{% else %}L{{ x.m.layer }}/N{{ x.m.neuron_idx }}{% endif %} {{ pole_mark(x.m.pole) }}</td>
                 <td class="text-right tabular-nums">r {{ '%+.2f' | format(x.m.pearson) }}</td>
                 <td class="text-right tabular-nums">back {{ '%+.2f' | format(x.m.back_pearson) }}{{ ' ✓' if x.mutual else '' }}</td>
                 <td class="text-right">{% if x.tested %}{{ status_badge(x.tested) }}{% endif %}</td>
@@ -133,7 +133,7 @@
           <div class="mt-2 text-xs font-medium">Matched from</div>
           <ul class="mt-1 font-mono text-xs">
             {% for x in p.named_by %}
-            <li>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
+            <li>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
             {% endfor %}
           </ul>
           {% endif %}
