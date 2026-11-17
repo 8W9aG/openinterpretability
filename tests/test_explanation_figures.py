@@ -79,16 +79,16 @@ def test_the_built_page_has_the_figures_section(tmp_path, record):
     import datetime
 
     from openinterpretability.builder.compiler import compile_site
-    from openinterpretability.builder.explanation_pages import ExplanationView
+    from openinterpretability.builder.explanation_pages import ExplanationView, PromptView
     from tests.test_explanation_records import _record
 
     rec = _record(datetime.datetime(2026, 11, 17, tzinfo=datetime.UTC))
     view = ExplanationView(rec.model_copy(update={"figures": _data()}),
                            f"wiki/explanations/m/{rec.prompt_id}/x.json")  # fmt: skip
-    compile_site([record], tmp_path / "site", explanations=[view])
+    compile_site([record], tmp_path / "site", explanations=[PromptView([view])])
     page = (tmp_path / "site" / view.href).read_text()
     assert 'id="figures"' in page and 'media="(prefers-reduced-motion: reduce)"' in page
-    assert "data-pause" in page and f"{rec.prompt_id}/fig-graph-static.svg" in page
+    assert "data-pause" in page and f'"{rec.id}/fig-graph-static.svg"' in page
     plain = ExplanationView(rec, f"wiki/explanations/m/{rec.prompt_id}/x.json")
-    compile_site([record], tmp_path / "bare", explanations=[plain])
+    compile_site([record], tmp_path / "bare", explanations=[PromptView([plain])])
     assert 'id="figures"' not in (tmp_path / "bare" / plain.href).read_text()
