@@ -306,3 +306,39 @@ def test_the_coverage_meter_counts_only_coverage_above_random(monkeypatch):
                                               [("u", 1.0, "", False)], [], None)  # fmt: skip
     assert meter() == 0.3 and "best random set 20.0%" in meter.note
     assert meter() == 0.0  # a random set did as well, so the coverage isn't credited
+
+
+def _fake_plan(monkeypatch, coverage_of):
+    """A plan of three unit experiments on a fake model whose coverage is ``coverage_of(units)``."""
+    from types import SimpleNamespace
+
+    from openinterpretability import explain_coverage as ec
+
+    monkeypatch.setattr(ec, "keep_hooks", lambda runner, unit_means, units: list(units))
+    # clean −1, all ablated −5: coverage c means a log-probability of −5 + 4c
+    monkeypatch.setattr(ec, "_log_prob", lambda r, p, t, pos, hooks=None: (
+        -1.0 if hooks is None else -5.0 + 4.0 * coverage_of(set(hooks))))  # fmt: skip
+    experiments = [ep.PlannedExperiment(target=name, entity="pole", share=0.1, status="unstudied",
+                                        draw="explore", rationale="", commands=[], units=[name])
+                   for name in ("a", "b", "c")]  # fmt: skip
+    return ec, SimpleNamespace(experiments=experiments, groups=[])
+
+
+def test_the_greedy_plan_picks_by_joint_coverage_not_attribution_order(monkeypatch):
+    # "a" (first by attribution) adds little alone; "c" adds most; "b" only helps with "c" (#4558).
+    table = {frozenset(): 0.0, frozenset("a"): 0.05, frozenset("b"): 0.0, frozenset("c"): 0.3,
+             frozenset("bc"): 0.6, frozenset("ac"): 0.32, frozenset("ab"): 0.05,
+             frozenset("abc"): 0.4}  # fmt: skip
+    ec, planned = _fake_plan(monkeypatch, lambda units: table[frozenset(units)])
+    found = ec.coverage_plan(None, "p", None, 0, -1, [], planned, 0.5)
+    assert found["chosen"] == ["c", "b"] and found["experiments"] == 2
+    assert [e.target for e in planned.experiments] == ["c", "b", "a"]  # the picks first
+    assert planned.experiments[1].gain == pytest.approx(0.3)  # b's marginal gain, with c
+    assert found["reach"] == pytest.approx(0.6) and found["now"] == 0.0
+
+
+def test_the_greedy_plan_stops_when_nothing_helps(monkeypatch):
+    ec, planned = _fake_plan(monkeypatch, lambda units: 0.2 if units == {"a"} else 0.0)
+    found = ec.coverage_plan(None, "p", None, 0, -1, [], planned, 0.5)
+    assert found["chosen"] == ["a"] and found["experiments"] is None  # out of reach
+    assert ec.coverage_plan(None, "p", None, 0, -1, [], planned, 0.0)["experiments"] == 0

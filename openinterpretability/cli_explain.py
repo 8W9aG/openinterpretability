@@ -333,6 +333,8 @@ def _print_plan(planned, show: int, reach: dict) -> None:
     click.echo(f"Plan: {goal} (coverage now {reach['now']:.1%}). There are "
                f"{len(planned.experiments)} unit experiments in all, and "
                f"{len(planned.groups)} for superpositions and circuits.")  # fmt: skip
+    if reach.get("chosen"):
+        click.echo("  Greedy picks, by joint coverage: " + ", ".join(reach["chosen"][:20]))
     if marks := _milestones(planned):
         click.echo(
             "  Of the |attribution|: "
