@@ -1,0 +1,51 @@
+"""explain --record lands the record as its own PR (explain_land.py, #4475)."""
+
+import subprocess
+from datetime import UTC, datetime
+
+from openinterpretability import experiment_loop as el
+from openinterpretability.core.explanation_records import ExplainRun
+from openinterpretability.explain_land import branch_name, land_record, pr_body, write_local
+from tests.test_experiment_loop import URL, repo  # noqa: F401  (a fixture)
+from tests.test_explanation_records import _record
+
+WHEN = datetime(2026, 11, 17, tzinfo=UTC)
+
+
+def _landed():
+    run = ExplainRun(share_before=0.1, share_after=0.4, stopped="the target was reached",
+                     landed=["m/L1/N2-positive VERIFIED https://x/pull/1"])  # fmt: skip
+    return _record(WHEN).model_copy(update={"run": run})
+
+
+def test_the_pr_body_gives_the_shares_and_the_landed_experiments():
+    body = pr_body(_landed())
+    assert "**Explained share:** 0.3%" in body and "against 0.0% for random units" in body
+    assert "from 10.0% to 40.0%" in body
+    assert "landed: m/L1/N2-positive VERIFIED https://x/pull/1" in body
+    name = branch_name(_landed(), WHEN)
+    assert name.startswith("explanation/openai-community--gpt2-")
+    assert name.endswith("20261117T000000Z")
+
+
+def test_the_record_lands_on_its_own_branch_and_merges(repo, monkeypatch):  # noqa: F811
+    checked = []
+    monkeypatch.setattr(el, "openinterpretability", lambda args: checked.append(args))
+    url, merged = land_record(_landed())
+    assert (url, merged) == (URL, True) and checked == [["check", "--base-ref", "origin/main"]]
+    gh = repo.gh_log.read_text()
+    assert "pr create --title Explanation: openai-community/gpt2" in gh
+    assert f"pr merge {URL} --squash" in gh
+    files = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], capture_output=True,
+                           text=True, check=True).stdout  # fmt: skip
+    assert files.strip().startswith("wiki/explanations/openai-community--gpt2/")
+
+
+def test_no_land_writes_locally_and_a_second_run_updates_one_page(tmp_path):
+    from openinterpretability.builder.explanation_pages import load_views
+
+    first = write_local(_record(WHEN), tmp_path / "wiki")
+    second = write_local(_record(WHEN.replace(hour=5)), tmp_path / "wiki")
+    assert first.parent == second.parent and first != second
+    (view,) = load_views(tmp_path / "wiki", states={})  # one page, from the newer record
+    assert view.record.written.hour == 5

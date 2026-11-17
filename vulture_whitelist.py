@@ -86,6 +86,9 @@ _.neurons_studied  # unused property (openinterpretability/builder/tree.py:265)
 _.layer_counts  # unused method (openinterpretability/builder/tree.py:295)
 
 # Dataclass and Pydantic fields, read from JSON, by templates or by keyword; and settings that libraries read.
+_.share_before  # unused variable (openinterpretability/core/explanation_records.py:77)
+_.share_after  # unused variable (openinterpretability/core/explanation_records.py:78)
+_.left_open  # unused variable (openinterpretability/core/explanation_records.py:80)
 agent_explanation  # unused variable (openinterpretability/baseline.py:129)
 detection_answer  # unused variable (openinterpretability/baseline.py:133)
 fuzzing_answer  # unused variable (openinterpretability/baseline.py:134)

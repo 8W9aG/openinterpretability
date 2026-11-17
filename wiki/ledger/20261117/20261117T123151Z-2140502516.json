@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-17T12:31:51Z","seed":2140502516,"kind":"revise","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L19/N4147-positive","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L19/N4147-positive/20261026T075148Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 19 --neuron 4147 --window-tokens 512 --pole positive","pole_forced":null,"harness_version":"0.1.0"}

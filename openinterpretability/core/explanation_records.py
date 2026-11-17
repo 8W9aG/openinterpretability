@@ -30,6 +30,23 @@ MODEL_NAME = r"^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)?$"
 UNIT_SLUG = r"^[A-Za-z0-9][A-Za-z0-9._-]*/L\d+/(N\d+-(positive|negative)|H\d+)$"
 
 
+class HubNote(StrictModel):
+    """A top unit that is a hub's center, and the facts that say whether it is an artefact.
+
+    A hub is wired to many studied units, and it can be an artefact. A unit that is on most
+    of the time, or that writes with a large norm, touches many units anyway. These facts
+    show which, and they are reported, not gated (``docs/circuits-and-hubs.md``, #4472).
+    """
+
+    hub: str = Field(description="The hub's id: <model>/L5/H1/HUB.")
+    href: str = Field(description="Its page on the site.")
+    norm: float | None = None  # the center's output-weight norm
+    layer_median: float | None = None  # its layer's median norm
+    percentile: float | None = None  # the share of its layer with a smaller norm
+    active_share: float | None = None  # of the scan's tokens, from its newest experiment
+    default_on: bool | None = None  # whether that experiment shows it default-on
+
+
 class ExplainedUnit(StrictModel):
     """One unit or group of the mechanism, as it stood when the explanation was written."""
 
@@ -42,6 +59,7 @@ class ExplainedUnit(StrictModel):
     attribution: float
     status: str
     explanation: str | None = None  # only when VERIFIED
+    hub: HubNote | None = None  # when the unit is a hub's center (#4472)
 
 
 class Narration(StrictModel):
@@ -51,6 +69,16 @@ class Narration(StrictModel):
     paragraph: str
     narrator_model: str
     citations_not_in_evidence: list[str] = Field(default_factory=list)
+
+
+class ExplainRun(StrictModel):
+    """What ``explain --run`` did before this explanation was written (#4474)."""
+
+    share_before: float  # the explained share when the run started
+    share_after: float  # and when it stopped
+    landed: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
+    left_open: list[str] = Field(default_factory=list, description="PRs that didn't merge")
+    stopped: str  # why the run stopped
 
 
 class ExplanationRecord(StrictModel):
@@ -67,6 +95,7 @@ class ExplanationRecord(StrictModel):
     units: list[ExplainedUnit]
     narration: Narration | None = None
     planned_experiments: int = 0  # unit experiments that a complete explanation needs
+    run: ExplainRun | None = None  # the experiments that --run landed first (#4474)
     package_version: str
     written: datetime
 

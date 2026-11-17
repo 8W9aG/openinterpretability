@@ -1,16 +1,15 @@
-"""The corpora the registry's experiments were scanned on, and each one's language mix.
+"""The language mix of an experiment's scan, which its page shows beside its corpus.
 
 A scan of a corpus whose documents carry ``lang`` counts its tokens per language
 (``ConfoundProfile.labels``). So a record knows the language mix of what it scanned.
-Registry statistics over ``selection = "random"`` draws depend on that mix, so the site
-shows it for each corpus. Tokens are the model's, so the mix is per model. One corpus
-splits into more tokens of some languages under one tokenizer than under another.
+Each experiment scans its own seeded sample, so its page shows its own mix (#3298).
+Tokens are the model's: one corpus splits into more tokens of some languages under one
+tokenizer than under another.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from openinterpretability.core.confounds import LANGUAGE
 
@@ -59,40 +58,3 @@ def language_mix(submission) -> LanguageMix | None:
     shares = [LanguageShare(s.label, s.count, s.count / total) for s in found.levels]
     sampled = submission.provenance is not None and submission.provenance.corpus_sample is not None
     return LanguageMix(submission.identifier.model_name, total, sampled, shares)
-
-
-@dataclass
-class CorpusView:
-    """One scan corpus on the index: its experiments and language mixes."""
-
-    sha256: str | None
-    name: str  # the provenance's description of the corpus
-    experiments: int = 0
-    mixes: list[LanguageMix] = field(default_factory=list)  # one per model, by name
-
-
-def corpora_view(experiments: Sequence) -> list[CorpusView]:
-    """Return every corpus that some experiment's provenance names, most used first.
-
-    Each has its language mix under each model that scanned it with labels. Each mix is
-    from the scan with the most labelled tokens, preferring whole-corpus scans to samples.
-    """
-    corpora: dict[str | None, CorpusView] = {}
-    best: dict[tuple[str | None, str], LanguageMix] = {}
-    for e in experiments:
-        sub = e.record.submission
-        p = sub.provenance
-        if p is None:
-            continue
-        view = corpora.setdefault(p.corpus_sha256, CorpusView(p.corpus_sha256, p.corpus))
-        view.experiments += 1
-        mix = language_mix(sub)
-        if mix is None:
-            continue
-        key = (p.corpus_sha256, mix.model_name)
-        old = best.get(key)
-        if old is None or (not mix.sampled, mix.tokens) > (not old.sampled, old.tokens):
-            best[key] = mix
-    for (sha, _), mix in sorted(best.items(), key=lambda kv: kv[0][1]):
-        corpora[sha].mixes.append(mix)
-    return sorted(corpora.values(), key=lambda c: (-c.experiments, c.name))
