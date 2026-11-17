@@ -160,36 +160,48 @@ def add_gains(runner, prompt, means, token, position, order, planned, *, pool=PO
     planned.groups.sort(key=by_gain)
 
 
-def coverage_plan(runner, prompt, means, token, position, order, planned, target: float) -> dict:
-    """How many planned unit experiments bring the coverage to ``target`` (#4476).
+GREEDY_POOL = 120  # candidate unit experiments for the greedy plan, in attribution order
+GREEDY_STEPS = 60  # the most experiments the greedy plan picks
 
-    The target is causal coverage, not a share of |attribution|. The units of the first k
-    planned experiments are kept with the explained ones, and the rest mean-ablated. A
-    binary search finds the smallest k that reaches ``target``. Coverage need not rise with
-    every unit, so k is an estimate. ``reach`` is the coverage with every planned unit kept.
+
+def coverage_plan(runner, prompt, means, token, position, order, planned, target: float,
+                  *, pool: int = GREEDY_POOL, steps: int = GREEDY_STEPS) -> dict:  # fmt: skip
+    """The fewest planned unit experiments that bring the coverage to ``target`` (#4476, #4558).
+
+    The target is causal coverage, not a share of |attribution|. Coverage doesn't add up:
+    units push the answer both ways, so a big set can bring back less than a small one.
+    So the plan is greedy. Each step keeps the explained units and the picks so far. It tries
+    each of the first ``pool`` candidates, and adds the one that raises coverage most. Its
+    ``gain`` becomes that marginal gain. It stops at the target, when no
+    candidate helps, or after ``steps`` picks. ``planned.experiments`` is reordered with the
+    picks first, in pick order. ``reach`` is the best coverage found: the picks', or with
+    every planned unit kept, whichever is higher.
     """
     explained = [unit for unit, _, _, done in order if done]
     clean = _log_prob(runner, prompt, token, position)
     ablated = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, []))
 
-    def raw(k: int) -> float:
-        keep = explained + [u for e in planned.experiments[:k] for u in e.units]
-        kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, keep))
+    def raw(units: list) -> float:
+        kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, units))
         found = _raw(clean, ablated, kept)
         return -1.0 if found is None else found
 
-    def coverage(k: int) -> float:
-        return min(raw(k), 1.0)  # credited coverage (module docstring)
-
-    n = len(planned.experiments)
-    now, full = coverage(0), raw(n)
-    out = {"target": target, "now": now, "reach": min(full, 1.0), "overshoot": full > 1.0}
-    if now >= target:  # reached already, whatever larger sets do
-        return out | {"experiments": 0}
-    if out["reach"] < target:
-        return out | {"experiments": None}
-    low, high = 0, n
-    while low < high:
-        mid = (low + high) // 2
-        low, high = (low, mid) if coverage(mid) >= target else (mid + 1, high)
-    return out | {"experiments": low}
+    every = raw(explained + [u for e in planned.experiments for u in e.units])
+    now = min(raw(explained), 1.0)
+    chosen, units, cur = [], list(explained), now
+    candidates = list(planned.experiments[:pool])
+    while cur < target and candidates and len(chosen) < steps:
+        scored = [(min(raw(units + e.units), 1.0), e) for e in candidates]
+        best, pick = max(scored, key=lambda s: s[0])
+        if best <= cur:
+            break  # no candidate raises coverage
+        pick.gain, cur = best - cur, best
+        chosen.append(pick)
+        candidates.remove(pick)
+        units += pick.units
+    rest = [e for e in planned.experiments if e not in chosen]
+    planned.experiments[:] = chosen + rest
+    reach = max(cur, min(every, 1.0))
+    out = {"target": target, "now": now, "reach": reach, "overshoot": every > 1.0,
+           "chosen": [e.target for e in chosen]}  # fmt: skip
+    return out | {"experiments": len(chosen) if cur >= target else None}

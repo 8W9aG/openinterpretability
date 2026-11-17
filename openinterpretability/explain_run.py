@@ -39,7 +39,7 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
             _api_model(None, None, model_name)  # an external model has nobody to answer it
     proposer, reviewer = _models(*agents)
     result, planned, model = found.result, found.planned, ask.model
-    ordered = by_gain([*planned.experiments, *planned.groups])
+    ordered = [*planned.experiments, *by_gain(planned.groups)]  # units in greedy order (#4558)
     chosen = targets(ordered, model, found.groups)
     target = _reachable(found.reach, planned, circuit_notes(ordered))
     click.echo(f"Running {len(chosen)} experiments, by coverage gain, until the coverage "
