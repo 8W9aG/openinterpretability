@@ -46,7 +46,7 @@ dependencies = [
     "tree-sitter-scala>=0.26.11",
     "tree-sitter-lua>=0.5.0",
     "tree-sitter-haskell>=0.24.1",
-    # Scans on Apple's Neural Engine (openinterp/harness/ane/, docs/experiments.md, Devices).
+    # Scans on Apple's Neural Engine (openinterpretability/harness/ane/, docs/experiments.md, Devices).
     "coremltools>=9.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
 ]
 
@@ -55,7 +55,7 @@ Homepage = "https://open-interpretability.com/"  # the site; builder and deploy 
 Repository = "https://github.com/8W9aG/openinterpretability"
 
 [project.scripts]
-open-interpretability = "openinterp.cli:main"
+open-interpretability = "openinterpretability.cli:main"
 
 [project.optional-dependencies]
 # `open-interpretability build` makes the site's search index with Pagefind.
@@ -80,24 +80,24 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-# The version is read from openinterp/__init__.py; reinstall when it changes.
-cache-keys = [{ file = "pyproject.toml" }, { file = "openinterp/__init__.py" }]
+# The version is read from openinterpretability/__init__.py; reinstall when it changes.
+cache-keys = [{ file = "pyproject.toml" }, { file = "openinterpretability/__init__.py" }]
 
 [tool.hatch.version]
-path = "openinterp/__init__.py"
+path = "openinterpretability/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["openinterp"]
+packages = ["openinterpretability"]
 
 # The sdist holds the package and its metadata, not the registry, docs or papers. Without
 # this it packed the whole repository, and PyPI refused v0.0.20's sdist as over 100 MB.
 [tool.hatch.build.targets.sdist]
-include = ["/openinterp", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.cff", "/pyproject.toml"]
+include = ["/openinterpretability", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.cff", "/pyproject.toml"]
 
-[tool.openinterp]
+[tool.openinterpretability]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
-# openinterp/planner_models.py). Keep in
+# openinterpretability/planner_models.py). Keep in
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
 # CI can reproduce every record the planner asks for. A new model also needs the checks
 # under "Models" in TODO.md first.
@@ -105,52 +105,52 @@ include = ["/openinterp", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.
 models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "EleutherAI/pythia-70m"]
 # LINT.ThenChange(.github/workflows/ci.yml)
 # Models that may be audited but that CI can't run: every record must be signed, and
-# reproduction trusts the signature (openinterp.planner.signed_models). Not explored.
+# reproduction trusts the signature (openinterpretability.planner.signed_models). Not explored.
 signed_models = ["meta-llama/Llama-3.1-8B-Instruct"]
 
-[tool.openinterp.size_budget]
+[tool.openinterpretability.size_budget]
 # scripts/repo_size.py warns in CI past these, and never fails (issue #3254). 1,000 MB is
 # GitHub's recommended largest repository. Where records live in the long term is open.
 tracked_mb = 1000
 files = 20000
 
-[tool.openinterp.window_tokens]
+[tool.openinterpretability.window_tokens]
 # Scan window for models that read fewer positions than the corpus's longest documents.
 # GPT-2 reads 1,024, but its transcoders fit only 128 (harness/dictionaries.py), and the
 # learned-basis baseline compares latents with neuron poles scanned the same way.
 "openai-community/gpt2" = 128
 
-# The terms of each model in `models` (openinterp.core.licenses.ModelLicense), which each
+# The terms of each model in `models` (openinterpretability.core.licenses.ModelLicense), which each
 # model's site page shows. `license` and `gated` come from the model's Hub page, and
 # `publishing_allowed` is our reading of the licence text. Checked on 2026-11-05.
 # tests/test_planner.py checks that every configured model has an entry.
-[tool.openinterp.licenses."Qwen/Qwen2.5-0.5B"]
+[tool.openinterpretability.licenses."Qwen/Qwen2.5-0.5B"]
 license = "apache-2.0"
 url = "https://huggingface.co/Qwen/Qwen2.5-0.5B/blob/main/LICENSE"
 gated = false
 publishing_allowed = true
 
-[tool.openinterp.licenses."Qwen/Qwen2.5-1.5B"]
+[tool.openinterpretability.licenses."Qwen/Qwen2.5-1.5B"]
 license = "apache-2.0"
 url = "https://huggingface.co/Qwen/Qwen2.5-1.5B/blob/main/LICENSE"
 gated = false
 publishing_allowed = true
 
-[tool.openinterp.licenses."openai-community/gpt2"]
+[tool.openinterpretability.licenses."openai-community/gpt2"]
 license = "mit"
 url = "https://github.com/openai/gpt-2/blob/master/LICENSE"
 gated = false
 publishing_allowed = true
 conditions = "OpenAI's modified MIT licence asks users to say that content was created with GPT-2."
 
-[tool.openinterp.licenses."meta-llama/Llama-3.1-8B-Instruct"]
+[tool.openinterpretability.licenses."meta-llama/Llama-3.1-8B-Instruct"]
 license = "llama3.1"
 url = "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/blob/main/LICENSE"
 gated = true
 publishing_allowed = true
 conditions = "The Llama 3.1 Community License asks that published work show \"Built with Llama\", and that use follow Meta's Acceptable Use Policy."
 
-[tool.openinterp.licenses."EleutherAI/pythia-70m"]
+[tool.openinterpretability.licenses."EleutherAI/pythia-70m"]
 license = "apache-2.0"
 url = "https://huggingface.co/EleutherAI/pythia-70m"
 gated = false
@@ -167,7 +167,7 @@ timeout_method = "thread"
 [tool.mypy]
 # Type checks, ratcheted in package by package (#3162). Only the paths in `files` are
 # checked, and strictly. Add a package here once its strict errors are fixed.
-files = ["openinterp/core"]
+files = ["openinterpretability/core"]
 plugins = ["pydantic.mypy"]
 strict = true
 python_version = "3.12"
@@ -179,7 +179,7 @@ ignore_missing_imports = true
 # schemas.py re-exports the models that the record schema is built from. Other modules
 # import them from there, so its imports count as exports.
 [[tool.mypy.overrides]]
-module = "openinterp.core.schemas"
+module = "openinterpretability.core.schemas"
 implicit_reexport = true
 
 [tool.ruff]
@@ -213,7 +213,7 @@ convention = "google"
 "*.ipynb" = ["S101"]
 
 [tool.interrogate]
-# Docstring coverage of openinterp/: raise fail-under when coverage rises, never lower it.
+# Docstring coverage of openinterpretability/: raise fail-under when coverage rises, never lower it.
 # Skips what the D rules skip.
 fail-under = 94
 ignore-magic = true

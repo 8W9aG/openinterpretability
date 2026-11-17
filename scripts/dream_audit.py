@@ -1,7 +1,7 @@
 """Check VERIFIED explanations against fluent dreams of their pole (issue #3228).
 
 ``prepare`` takes a seeded sample of VERIFIED GPT-2 small positive poles. It runs EPO on
-each (:mod:`openinterp.harness.dreaming`), and keeps each distinct dream that clears the
+each (:mod:`openinterpretability.harness.dreaming`), and keeps each distinct dream that clears the
 record's threshold. It adds as many windows of ``corpus.jsonl`` where the pole is silent.
 Then it writes one detection prompt per pole, built the way ``score`` builds one, from the
 record's own explanation, with the texts shuffled. An ``explanation-judge`` agent answers
@@ -31,9 +31,9 @@ CONTROL_TOKENS = 24
 
 def sample_poles(wiki_dir: Path, n: int, seed: int) -> list:
     """A seeded sample of the standing records of VERIFIED positive poles of :data:`MODEL`."""
-    from openinterp.builder.tree import build_tree
-    from openinterp.builder.wiki import load_archive
-    from openinterp.core.errata import load_errata
+    from openinterpretability.builder.tree import build_tree
+    from openinterpretability.builder.wiki import load_archive
+    from openinterpretability.core.errata import load_errata
 
     found = []
     for node in build_tree(load_archive(wiki_dir), load_errata(wiki_dir)):
@@ -79,10 +79,10 @@ def cli() -> None:
 @click.option("--device", default="cpu", show_default=True)
 def prepare(wiki_dir: Path, out_dir: Path, device: str) -> None:
     """Run EPO on each pole and write one detection prompt per pole."""
-    from openinterp.agents.judge import DetectionAnswer, ExplanationJudge, TaskWindow
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import ReviewPolicy
-    from openinterp.harness.dreaming import dream
+    from openinterpretability.agents.judge import DetectionAnswer, ExplanationJudge, TaskWindow
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import ReviewPolicy
+    from openinterpretability.harness.dreaming import dream
 
     runner = _load_runner(MODEL, device, "float32", None)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -134,7 +134,7 @@ def wilson(k: int, n: int) -> list[float]:
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
 def report(out_dir: Path, out: Path) -> None:
     """Read each judge's answer, and write one row per pole and a summary."""
-    from openinterp.agents.judge import DetectionAnswer
+    from openinterpretability.agents.judge import DetectionAnswer
 
     rows = []
     for key_path in sorted(out_dir.glob("*.key.json")):

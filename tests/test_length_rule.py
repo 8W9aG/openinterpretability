@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 from types import SimpleNamespace  # noqa: E402
 
-from openinterp.agents.reviewer import (  # noqa: E402
+from openinterpretability.agents.reviewer import (  # noqa: E402
     LENGTH_MATCHED,
     LENGTH_RATIO_WARN,
     AdversarialProbe,
@@ -17,8 +17,8 @@ from openinterp.agents.reviewer import (  # noqa: E402
     length_ratio,
     length_warning,
 )
-from openinterp.core.schemas import ReviewPolicy  # noqa: E402
-from openinterp.harness.confounds import length_predictions  # noqa: E402
+from openinterpretability.core.schemas import ReviewPolicy  # noqa: E402
+from openinterpretability.harness.confounds import length_predictions  # noqa: E402
 
 
 class Words:

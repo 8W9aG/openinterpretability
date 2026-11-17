@@ -1,9 +1,9 @@
-"""A model's page lists its most recent experiments (openinterp/builder/recent.py, #3276)."""
+"""A model's page lists its most recent experiments (builder/recent.py, #3276)."""
 
 import re
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.recent import RECENT_ON_MODEL
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.recent import RECENT_ON_MODEL
 from tests.test_compiler import MODEL, experiment
 
 

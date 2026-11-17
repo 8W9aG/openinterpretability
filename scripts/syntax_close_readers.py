@@ -27,8 +27,8 @@ import torch
 from syntax_close_paths import MODEL, chain_items, log_odds
 from syntax_probes import TARGETS, _rounded, calls
 
-from openinterp.cli import _load, resolve_device
-from openinterp.harness.hooks import pole_strength
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.harness.hooks import pole_strength
 
 DEPTHS = (2, 3, 4, 5)
 LAST_LAYER = 8  # L8 N689+ reads the heads of this layer and the ones before it

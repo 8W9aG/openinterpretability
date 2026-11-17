@@ -1,9 +1,9 @@
-"""Circuit measures on neurons and heads (openinterp/harness/circuit_measures.py, #4284)."""
+"""Circuit measures on neurons and heads (harness/circuit_measures.py, #4284)."""
 
 import pytest
 
-from openinterp.harness import circuit_measures as cm
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterpretability.harness import circuit_measures as cm
+from openinterpretability.harness.hooks import NeuronHookRunner
 from tests.conftest import VOCAB, FakeTokenizer
 
 

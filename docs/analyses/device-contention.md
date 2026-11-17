@@ -1,6 +1,6 @@
 # Jobs that share Apple's GPU, the ANE and the CPU
 
-Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It sets the device planner's GPU threshold (`openinterp/harness/devices.py`). It also tests the planner's order: MPS, then Apple's Neural Engine (ANE), then the CPU. Raw results are in `device-contention.jsonl`, one line per mix of jobs. The script is `scripts/device_contention.py`.
+Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It sets the device planner's GPU threshold (`openinterpretability/harness/devices.py`). It also tests the planner's order: MPS, then Apple's Neural Engine (ANE), then the CPU. Raw results are in `device-contention.jsonl`, one line per mix of jobs. The script is `scripts/device_contention.py`.
 
 ## Method
 
@@ -8,7 +8,7 @@ Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It sets the device planner
 - **Mixes.** The jobs of a mix start loading 8 s apart and run their passes at the same time.
 - **Utilization.** During each mix, the script reads the GPU's utilization as the planner does: the mean of 5 `ioreg` readings over about 2 s, again and again.
 - **Same numbers.** Each job measures one fixed batch before and after its passes. A job's two results must be equal, and equal to a job alone on that device.
-- **A quiet machine.** Experiment loops ran on this machine at the same time. So the script recorded every other `open-interpretability` command that ran during a mix, and ran that mix again. Each result here is from a mix during which no other `openinterp` command ran. Some mixes took three attempts.
+- **A quiet machine.** Experiment loops ran on this machine at the same time. So the script recorded every other `open-interpretability` command that ran during a mix, and ran that mix again. Each result here is from a mix during which no other `openinterpretability` command ran. Some mixes took three attempts.
 
 ## Results
 
@@ -41,4 +41,4 @@ In the first attempt, four MPS jobs started at the same moment. Two of them stop
 
 ## Also found
 
-The first `ane` jobs stopped with a segmentation fault. When a Core ML model is idle for about 0.5 s, Core ML resets its execution stream on a background thread. Then coremltools 9.0 frees the last input without the interpreter's lock. `openinterp/harness/ane/convert.py` now keeps each input array until the process stops. `tests/test_ane.py` has a test that fails with exit code −11 without that change.
+The first `ane` jobs stopped with a segmentation fault. When a Core ML model is idle for about 0.5 s, Core ML resets its execution stream on a background thread. Then coremltools 9.0 frees the last input without the interpreter's lock. `openinterpretability/harness/ane/convert.py` now keeps each input array until the process stops. `tests/test_ane.py` has a test that fails with exit code −11 without that change.

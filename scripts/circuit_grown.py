@@ -2,7 +2,7 @@
 
 The pilot (#4283, ``docs/analyses/circuit-pilot.md``) measured C1's five neurons alone,
 and they carried no measurable share of two-token word completion. This uses
-``openinterp/harness/circuit_measures.py`` to measure the whole cluster, heads included.
+``openinterpretability/harness/circuit_measures.py`` to measure the whole cluster, heads included.
 Then it grows the cluster by attribution patching on the task, to each size in
 :data:`SIZES`. It measures each size against a null of random sets like it::
 
@@ -17,7 +17,7 @@ from pathlib import Path
 import click
 from circuit_study import MODEL, predictable, two_token_words, word_task
 
-from openinterp.harness import circuit_measures as cm
+from openinterpretability.harness import circuit_measures as cm
 
 CLUSTER = ["L4/N2999", "L5/N1208", "L5/N2567", "L5/N616", "L6/N37", "L7/H10", "L7/H2"]
 SIZES = (7, 25, 50, 100, 200)
@@ -31,7 +31,7 @@ NULL_SETS = 32
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
 def main(device: str, pairs: int, seed: int, out: Path) -> None:
     """Measure C1 with its heads, then grown by attribution, against a random null."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     runner = _load_runner(MODEL, device, "float32", None)
     words = predictable(runner, two_token_words(runner.tokenizer, seed))

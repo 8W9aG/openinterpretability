@@ -1,4 +1,4 @@
-"""Bugs that an experiment loop files (openinterp/loop_bugs.py, #3261), with a fake gh."""
+"""Bugs that an experiment loop files (openinterpretability/loop_bugs.py, #3261), with a fake gh."""
 
 import json
 import subprocess
@@ -6,8 +6,8 @@ import subprocess
 import pytest
 from click.testing import CliRunner
 
-from openinterp import loop_bugs
-from openinterp.cli import cli
+from openinterpretability import loop_bugs
+from openinterpretability.cli import cli
 
 ERROR = 'Traceback:\n  File "/Users/alice/dev/x.py", line 3\nRuntimeError: verify failed at 42\n'
 

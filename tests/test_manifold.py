@@ -4,14 +4,14 @@ import math
 
 import torch
 
-from openinterp.core.manifold import (
+from openinterpretability.core.manifold import (
     FamilyManifold,
     ManifoldCheck,
     ManifoldPole,
     format_for_proposer,
 )
-from openinterp.core.schemas import ActivatingExample
-from openinterp.harness import manifold
+from openinterpretability.core.schemas import ActivatingExample
+from openinterpretability.harness import manifold
 
 
 def circle_rows(n: int, phase: float = 0.0) -> torch.Tensor:
@@ -124,8 +124,8 @@ def test_the_check_runs_on_a_model_and_round_trips(toy_runner):
 
 
 def test_the_proposer_prompt_carries_the_check():
-    from openinterp.agents.proposer import ProposerAgent
-    from openinterp.core.schemas import NeuronIdentifier
+    from openinterpretability.agents.proposer import ProposerAgent
+    from openinterpretability.core.schemas import NeuronIdentifier
 
     ident = NeuronIdentifier(model_name="m", layer=0, neuron_idx=3, pole="positive")
     prompt = ProposerAgent.proposal_prompt(ident, [], manifold=check(family()))

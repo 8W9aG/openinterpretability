@@ -1,4 +1,4 @@
-"""Provider profiles that drive an experiment loop (openinterp/providers.py, #3245)."""
+"""Provider profiles that drive an experiment loop (openinterpretability/providers.py, #3245)."""
 
 import json
 import subprocess
@@ -9,9 +9,9 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from openinterp import cli_loop, providers
-from openinterp.cli import cli
-from openinterp.cli_costs import _session
+from openinterpretability import cli_loop, providers
+from openinterpretability.cli import cli
+from openinterpretability.cli_costs import _session
 
 SECRET = "sk-test-not-a-real-key"
 
@@ -33,7 +33,7 @@ def test_deepseek_gets_its_url_model_fixes_and_key(monkeypatch):
     assert env["ANTHROPIC_AUTH_TOKEN"] == SECRET
     assert env["ENABLE_TOOL_SEARCH"] == "false"
     assert int(env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"]) < 1_000_000
-    assert env["OPENINTERP_DRIVER_MODEL"] == "deepseek-flash[1m]"
+    assert env["OPENINTERPRETABILITY_DRIVER_MODEL"] == "deepseek-flash[1m]"
 
 
 def test_a_missing_key_names_where_to_put_it_and_never_a_value(monkeypatch):
@@ -56,7 +56,7 @@ def test_a_proxy_provider_gives_claude_a_local_token_and_the_proxy_the_key(monke
     env = providers.claude_env(provider, base={})
     assert env["ANTHROPIC_AUTH_TOKEN"] != SECRET and env["XAI_API_KEY"] == SECRET
     assert env["ANTHROPIC_BASE_URL"] == f"http://127.0.0.1:{provider.proxy_port}"
-    assert env["OPENINTERP_DRIVER_MODEL"].startswith("xai/")
+    assert env["OPENINTERPRETABILITY_DRIVER_MODEL"].startswith("xai/")
 
 
 def test_the_key_comes_from_the_keychain_when_the_variable_is_unset(monkeypatch):

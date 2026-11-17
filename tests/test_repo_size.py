@@ -33,6 +33,6 @@ def test_over_budget_is_named_and_under_is_not(tmp_path):
 
 def test_budget_reads_pyproject_over_the_defaults(tmp_path):
     path = tmp_path / "pyproject.toml"
-    path.write_text("[tool.openinterp.size_budget]\ntracked_mb = 5\n")
+    path.write_text("[tool.openinterpretability.size_budget]\ntracked_mb = 5\n")
     assert budget(path) == {"tracked_mb": 5, "files": 20000}
     assert budget(tmp_path / "missing.toml")["tracked_mb"] == 1000

@@ -1,7 +1,7 @@
-"""Pending experiments on the home and model pages (openinterp/builder/pending.py, #3283)."""
+"""Pending experiments on the home and model pages (builder/pending.py, #3283)."""
 
-from openinterp.builder import pending
-from openinterp.builder.compiler import compile_site
+from openinterpretability.builder import pending
+from openinterpretability.builder.compiler import compile_site
 
 
 def _pr(branch, number=7, fork=False, draft=False):

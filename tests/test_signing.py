@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.signing import (
+from openinterpretability.cli import cli
+from openinterpretability.signing import (
     SignatureError,
     SignatureOutsideWindow,
     landing_times,
@@ -84,7 +84,9 @@ def test_without_windows_keeps_every_other_option():
 
 def test_reproduce_skips_signed_records_without_loading(tmp_path, monkeypatch, keys):
     maintainer, _ = keys
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: pytest.fail("loaded"))
+    monkeypatch.setattr(
+        "openinterpretability.cli._load_runner", lambda *a, **k: pytest.fail("loaded")
+    )
     signers = tmp_path / "allowed_signers"
     signers.write_text(signer_line("will", maintainer))
     record = tmp_path / "r.json"
@@ -102,7 +104,9 @@ def test_branch_cannot_trust_its_own_key(tmp_path, monkeypatch, keys):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: pytest.fail("loaded"))
+    monkeypatch.setattr(
+        "openinterpretability.cli._load_runner", lambda *a, **k: pytest.fail("loaded")
+    )
     git("init", "-q", "-b", "main")
     git("config", "user.email", "t@example.com")
     git("config", "user.name", "t")
@@ -194,8 +198,8 @@ def test_sign_command_explains_how_to_trust_a_new_key(tmp_path, keys):
 @pytest.fixture
 def auto_signing(tmp_path, monkeypatch, keys):
     maintainer, _ = keys
-    monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "1")
-    monkeypatch.setenv("OPENINTERP_SIGNING_KEY", str(maintainer))
+    monkeypatch.setenv("OPENINTERPRETABILITY_AUTO_SIGN", "1")
+    monkeypatch.setenv("OPENINTERPRETABILITY_SIGNING_KEY", str(maintainer))
     monkeypatch.chdir(tmp_path)
     signers = Path(".github/allowed_signers")
     signers.parent.mkdir()
@@ -204,8 +208,8 @@ def auto_signing(tmp_path, monkeypatch, keys):
 
 
 def test_new_experiments_are_signed_when_the_key_is_trusted(auto_signing, record, monkeypatch):
-    from openinterp.builder.wiki import archive_path
-    from openinterp.cli import _write_wiki
+    from openinterpretability.builder.wiki import archive_path
+    from openinterpretability.cli import _write_wiki
 
     _write_wiki(record, Path("wiki"), kind="review")
     archived = archive_path(Path("wiki"), record)
@@ -213,15 +217,15 @@ def test_new_experiments_are_signed_when_the_key_is_trusted(auto_signing, record
 
 
 def test_backfilled_records_are_never_signed(auto_signing, record):
-    from openinterp.builder.wiki import archive_path
-    from openinterp.cli import _write_wiki
+    from openinterpretability.builder.wiki import archive_path
+    from openinterpretability.cli import _write_wiki
 
     _write_wiki(record, Path("wiki"), kind="backfill")
     assert not signature_path(archive_path(Path("wiki"), record)).exists()
 
 
 def test_an_expired_key_signs_nothing(auto_signing, keys, tmp_path):
-    from openinterp.signing import auto_sign
+    from openinterpretability.signing import auto_sign
 
     auto_signing.write_text(signer_line("will", keys[0], 'valid-before="20200101Z"'))
     record = tmp_path / "r.json"
@@ -233,15 +237,15 @@ def test_an_expired_key_signs_nothing(auto_signing, keys, tmp_path):
 
 @pytest.mark.parametrize("setting", ["untrusted", "disabled", "no key"])
 def test_auto_sign_does_nothing_otherwise(auto_signing, keys, monkeypatch, setting, tmp_path):
-    from openinterp.signing import auto_sign
+    from openinterpretability.signing import auto_sign
 
     record = tmp_path / "r.json"
     record.write_text("{}")
     if setting == "untrusted":
-        monkeypatch.setenv("OPENINTERP_SIGNING_KEY", str(keys[1]))
+        monkeypatch.setenv("OPENINTERPRETABILITY_SIGNING_KEY", str(keys[1]))
     elif setting == "disabled":
-        monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
+        monkeypatch.setenv("OPENINTERPRETABILITY_AUTO_SIGN", "0")
     else:
-        monkeypatch.setenv("OPENINTERP_SIGNING_KEY", str(tmp_path / "missing"))
+        monkeypatch.setenv("OPENINTERPRETABILITY_SIGNING_KEY", str(tmp_path / "missing"))
     assert auto_sign(record) is None
     assert not signature_path(record).exists()

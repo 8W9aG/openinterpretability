@@ -1,12 +1,12 @@
-"""Evidence blobs ride on their own branch to the dataset (openinterp/evidence_branch.py, #3254)."""
+"""Evidence blobs ride on their own branch to the dataset (evidence_branch.py, #3254)."""
 
 import json
 import subprocess
 
 import pytest
 
-from openinterp import evidence_branch as eb
-from openinterp.core import evidence
+from openinterpretability import evidence_branch as eb
+from openinterpretability.core import evidence
 
 GIT = ["git", "-c", "user.email=t@t", "-c", "user.name=t"]
 
@@ -91,7 +91,7 @@ def test_upload_creates_the_public_dataset_and_sends_each_blob(record, repo, tmp
 
 
 def test_a_draw_pushes_its_evidence_before_its_branch():
-    from openinterp.draw_steps import _post
+    from openinterpretability.draw_steps import _post
 
     commands = _post("k", "explore").commands
     assert commands.index("uv run open-interpretability evidence push") < commands.index(
@@ -130,7 +130,7 @@ def test_publish_uploads_only_what_records_need_and_the_dataset_lacks(
 def test_load_all_loads_every_evidence_branch(record, repo, tmp_path, monkeypatch):
     from click.testing import CliRunner
 
-    from openinterp.cli import cli
+    from openinterpretability.cli import cli
 
     path, _ = _slim_record(record, tmp_path, monkeypatch)
     shas = eb.record_refs([path])

@@ -3,8 +3,13 @@
 import pytest
 import torch
 
-from openinterp.harness import memory
-from openinterp.harness.memory import MemoryPlan, plan, stream_batch_tokens, stream_device_map
+from openinterpretability.harness import memory
+from openinterpretability.harness.memory import (
+    MemoryPlan,
+    plan,
+    stream_batch_tokens,
+    stream_device_map,
+)
 
 GB = 2**30
 
@@ -53,7 +58,7 @@ def saved_gpt2(tiny_gpt2, tmp_path):
 
 
 def _runner(path, mode, monkeypatch, tmp_path):
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
     from tests.conftest import FakeTokenizer
 
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
@@ -66,11 +71,11 @@ def _runner(path, mode, monkeypatch, tmp_path):
 
 
 def test_a_streamed_model_measures_what_a_loaded_one_does(saved_gpt2, monkeypatch, tmp_path):
-    from openinterp.core.identifiers import NeuronIdentifier
-    from openinterp.harness.dead import prove_dead
-    from openinterp.harness.environment import run_environment
-    from openinterp.harness.scan import scan_neuron
-    from openinterp.harness.wiring import _matrix
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from openinterpretability.harness.dead import prove_dead
+    from openinterpretability.harness.environment import run_environment
+    from openinterpretability.harness.scan import scan_neuron
+    from openinterpretability.harness.wiring import _matrix
 
     whole = _runner(saved_gpt2, "normal", monkeypatch, tmp_path)
     streamed = _runner(saved_gpt2, "stream", monkeypatch, tmp_path)
@@ -132,8 +137,8 @@ def test_a_memory_budget_overrides_what_is_free(monkeypatch):
 
 def test_streamed_attribution_recomputes_layers_and_matches(saved_gpt2, monkeypatch, tmp_path):
     """Integrated gradients through streamed layers: the same, without keeping their weights."""
-    from openinterp.harness.input_attribution import input_attribution
-    from openinterp.harness.scan import scan_neuron
+    from openinterpretability.harness.input_attribution import input_attribution
+    from openinterpretability.harness.scan import scan_neuron
 
     whole = _runner(saved_gpt2, "normal", monkeypatch, tmp_path)
     streamed = _runner(saved_gpt2, "stream", monkeypatch, tmp_path)
@@ -184,10 +189,10 @@ def test_streamed_passes_run_more_rows_and_measure_the_same(saved_gpt2, monkeypa
 
     Rows are independent, so only float rounding changes, and there are fewer passes.
     """
-    from openinterp.harness.covariance import joint_ablation
-    from openinterp.harness.hooks import NeuronHookRunner
-    from openinterp.harness.jlens import transported_direction
-    from openinterp.harness.patcher import ActivationPatcher, metric_change
+    from openinterpretability.harness.covariance import joint_ablation
+    from openinterpretability.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.jlens import transported_direction
+    from openinterpretability.harness.patcher import ActivationPatcher, metric_change
 
     whole = _runner(saved_gpt2, "normal", monkeypatch, tmp_path)
     streamed = _runner(saved_gpt2, "stream", monkeypatch, tmp_path)

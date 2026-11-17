@@ -38,9 +38,9 @@ import numpy as np
 import torch
 from torch.func import grad
 
-from openinterp.cli import _load_runner
-from openinterp.harness.ane import chunks
-from openinterp.harness.ane.forward import ToLayer
+from openinterpretability.cli import _load_runner
+from openinterpretability.harness.ane import chunks
+from openinterpretability.harness.ane.forward import ToLayer
 
 MODEL = "openai-community/gpt2"
 SCALE = 256.0  # the loss scale: fp16 gradients of one neuron are small
@@ -166,7 +166,7 @@ def measure(module: FromEmbeddings, half: FromEmbeddings, neuron: int, emb: torc
         "cpu_fp32_ms": (time.perf_counter() - start) / TIMED * 1000,
         "cpu_fp16": compare(ref, gradient_fn(half, neuron)(emb.half()).float()),
     }
-    work = Path(tempfile.mkdtemp(prefix="openinterp-backward-"))
+    work = Path(tempfile.mkdtemp(prefix="openinterpretability-backward-"))
     try:
         row["convert_s"] = convert(fn, emb, work / "grad.mlpackage")
     except Exception as exc:  # report every conversion failure, then go on

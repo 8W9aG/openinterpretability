@@ -83,8 +83,8 @@ below.
 
 ```sh
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
-export OPENINTERP_AGENT_PRODUCT=muse-spark  # recorded in each record's environment
-.venv/bin/openinterp audit \
+export OPENINTERPRETABILITY_AGENT_PRODUCT=muse-spark  # recorded in each record's environment
+.venv/bin/openinterpretability audit \
   --model openai-community/gpt2 \
   --random --seed <audit-seed> \
   --window-tokens 128 \
@@ -116,7 +116,7 @@ Write a hypothesis file with these fields:
 Then build the submission:
 
 ```sh
-.venv/bin/openinterp audit \
+.venv/bin/openinterpretability audit \
   --evidence pilot/exchange/ev.json \
   --hypothesis pilot/exchange/ev.hypothesis.json \
   --agent-model external/muse-spark \
@@ -128,7 +128,7 @@ Then build the submission:
 ## Explanation scores
 
 ```sh
-.venv/bin/openinterp score \
+.venv/bin/openinterpretability score \
   --audit-file pilot/submissions/ev.json \
   --corpus pilot/pilot-corpus.jsonl \
   --emit-task pilot/exchange/score.task.json \
@@ -143,7 +143,7 @@ copy answers from an earlier experiment, because the held-out windows
 change with the seed.
 
 ```sh
-.venv/bin/openinterp score \
+.venv/bin/openinterpretability score \
   --task pilot/exchange/score.task.json \
   --judge-model external/muse-spark \
   --dtype float32 --device cpu
@@ -163,7 +163,7 @@ labels and texts unchanged unless a tokenisation check shows a label
 is wrong. Then run:
 
 ```sh
-.venv/bin/openinterp review \
+.venv/bin/openinterpretability review \
   --audit-file pilot/submissions/ev.json \
   --probes pilot/exchange/review.probes.json \
   --agent-model external/muse-spark \
@@ -183,8 +183,8 @@ the protocol, section 2.
 Before pushing anything, run both checks locally:
 
 ```sh
-.venv/bin/openinterp check
-.venv/bin/openinterp reproduce \
+.venv/bin/openinterpretability check
+.venv/bin/openinterpretability reproduce \
   pilot/wiki/experiments/<model>/<layer>/<neuron>-<pole>/<record>.json \
   --corpus pilot/pilot-corpus.jsonl --device cpu
 ```

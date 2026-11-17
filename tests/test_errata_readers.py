@@ -7,9 +7,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.core.errata import errata_path, load_errata, record_ref, standing_records
-from openinterp.planner import load_states, plan_next
+from openinterpretability.cli import cli
+from openinterpretability.core.errata import errata_path, load_errata, record_ref, standing_records
+from openinterpretability.planner import load_states, plan_next
 from tests.test_errata import erratum, later
 from tests.test_planner import NOW, _kinds, _record, _registry
 
@@ -49,7 +49,7 @@ def test_the_planner_skips_a_set_aside_record(tmp_path, record):
 def test_every_build_tree_call_passes_errata():
     """``build_tree`` has no default for ``errata``; this also catches a call by keyword."""
     missing = []
-    for folder in ("openinterp", "scripts"):
+    for folder in ("openinterpretability", "scripts"):
         for path in (ROOT / folder).rglob("*.py"):
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
                 if not isinstance(node, ast.Call):

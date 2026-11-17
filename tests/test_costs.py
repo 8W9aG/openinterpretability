@@ -6,9 +6,9 @@ from datetime import datetime
 
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.cli_costs import read_ledger
-from openinterp.core import costs
+from openinterpretability.cli import cli
+from openinterpretability.cli_costs import read_ledger
+from openinterpretability.core import costs
 
 
 def test_merge_skips_missing_parts_and_keeps_order():
@@ -31,7 +31,7 @@ def test_stages_record_the_peak_memory_so_far():
     # A fresh process: this one's high-water mark may already be above anything below.
     script = """
 import json
-from openinterp.core import costs
+from openinterpretability.core import costs
 with costs.stage("small"):
     pass
 # Past the high-water mark so far, which imports can leave well above what is in use.
@@ -112,7 +112,7 @@ def _req(at=None, **tokens):
 
 
 def test_pricing_normalises_names_and_skips_unknown_models():
-    from openinterp.core import pricing
+    from openinterpretability.core import pricing
 
     assert pricing.price_key("external/anthropic/claude-opus-5-5[1m]") == "claude-opus-5-5"
     # 1M each of input ($4), output, cache reads ($0.20), 5-minute (1.25×) and 1-hour (2×) writes
@@ -136,7 +136,7 @@ def test_pricing_normalises_names_and_skips_unknown_models():
 
 
 def test_pricing_tiers_peaks_and_dates():
-    from openinterp.core import pricing
+    from openinterpretability.core import pricing
 
     k = 1000
     short, long = _req(input_tokens=100 * k), _req(input_tokens=100 * k + 1)
@@ -190,7 +190,7 @@ def _transcript(path, model="claude-sonnet-5-5"):
 
 
 def test_usage_from_transcript_counts_each_response_once(tmp_path):
-    from openinterp.core.transcripts import usage_from_transcript
+    from openinterpretability.core.transcripts import usage_from_transcript
 
     u = usage_from_transcript(_transcript(tmp_path / "agent-abc.jsonl"))
     assert (u.model, u.requests, u.input_tokens, u.cache_read_tokens) == (
@@ -206,7 +206,7 @@ def test_usage_from_transcript_counts_each_response_once(tmp_path):
 
 
 def test_external_answer_with_usage_file_is_priced(tmp_path):
-    from openinterp.core import pricing
+    from openinterpretability.core import pricing
 
     prompt, answer = tmp_path / "review.prompt.md", tmp_path / "review.probes.json"
     prompt.write_text("x")

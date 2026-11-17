@@ -7,8 +7,8 @@ import pyarrow.parquet as pq
 import pytest
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.concepts import (
+from openinterpretability.cli import cli
+from openinterpretability.concepts import (
     Sentence,
     build_concept,
     group_sentences,
@@ -16,9 +16,9 @@ from openinterp.concepts import (
     locate_words,
     sample_concept,
 )
-from openinterp.core.probing import ConceptSource
-from openinterp.harness.annotations import Span
-from openinterp.harness.probing import read_labels
+from openinterpretability.core.probing import ConceptSource
+from openinterpretability.harness.annotations import Span
+from openinterpretability.harness.probing import read_labels
 
 NER = ["O", "B-PER", "I-PER", "B-ORG", "I-ORG"]
 

@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from openinterp.builder import pii
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.checks import check_registry
-from openinterp.core import takedowns as td
-from openinterp.signing import sign_record
-from openinterp.takedown_checks import page_redaction_ok
+from openinterpretability.builder import pii
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.checks import check_registry
+from openinterpretability.core import takedowns as td
+from openinterpretability.signing import sign_record
+from openinterpretability.takedown_checks import page_redaction_ok
 from tests.test_errata import git, repo  # noqa: F401  (fixture)
 
 PASSAGE = "Fires on the closing quote of reported speech."  # the fixture's hypothesis

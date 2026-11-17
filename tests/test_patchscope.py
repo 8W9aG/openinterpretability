@@ -1,10 +1,10 @@
 import pytest
 import torch
 
-from openinterp.core.schemas import HeadIdentifier, NeuronIdentifier
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.patchscope import patchscope, write_direction
-from openinterp.harness.units import HeadUnit, NeuronUnit
+from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.patchscope import patchscope, write_direction
+from openinterpretability.harness.units import HeadUnit, NeuronUnit
 from tests.conftest import N_LAYERS, FakeTokenizer
 from tests.site_pages import unit_pages
 
@@ -98,9 +98,9 @@ def test_the_placeholder_must_be_one_token(toy_runner):
 
 
 def test_readout_rendered_on_both_pages(tmp_path, record):
-    from openinterp.builder.compiler import compile_site
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.core.patchscope import PatchscopeReading, PatchscopeReadout
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.core.patchscope import PatchscopeReading, PatchscopeReadout
 
     readout = PatchscopeReadout(
         prompts={"category": "banana: fruit\n{x}:"},

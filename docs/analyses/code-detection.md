@@ -1,12 +1,12 @@
 # Choosing a programming-language detector for unlabelled corpora
 
-`open-interpretability corpus --detect-code` labels each document of a corpus whose dataset doesn't say its programming language. pile-10k is an example: it mixes GitHub files and Stack Exchange posts into prose, and no field marks them. With the label, the `programming language` label set and the syntax label sets (`openinterp/syntax.py`) work on such corpora too (docs/PROTOCOL.md §4). This note is how the detector and its confidence line were chosen. It answers the TODO item *Open question: can we detect programming languages in unlabelled corpora?* Script: `scripts/code_detection.py`. Rows: `code-detection.jsonl`. Run 2026-11-12.
+`open-interpretability corpus --detect-code` labels each document of a corpus whose dataset doesn't say its programming language. pile-10k is an example: it mixes GitHub files and Stack Exchange posts into prose, and no field marks them. With the label, the `programming language` label set and the syntax label sets (`openinterpretability/syntax.py`) work on such corpora too (docs/PROTOCOL.md §4). This note is how the detector and its confidence line were chosen. It answers the TODO item *Open question: can we detect programming languages in unlabelled corpora?* Script: `scripts/code_detection.py`. Rows: `code-detection.jsonl`. Run 2026-11-12.
 
 ## Method
 
 Four detectors, each given only the document's text. A corpus has no file names, so no detector can use an extension.
 
-- **Magika** (`magika` 1.0.3, model `standard_v3_3`), Google's file-type model. It is scored three ways: its top label with a confidence line, its own per-type thresholds, and as `openinterp/codeid.py` runs it.
+- **Magika** (`magika` 1.0.3, model `standard_v3_3`), Google's file-type model. It is scored three ways: its top label with a confidence line, its own per-type thresholds, and as `openinterpretability/codeid.py` runs it.
 - **go-enry** 2.9.1, the Go port of GitHub Linguist (`scripts/code_detection_enry`). It applies Linguist's shebang and modeline rules, then its Bayesian classifier over every language it knows. It gives no confidence.
 - **CodeBERTa language-ID** (`philomath-1209/programming-language-identification`), a transformer classifier of 26 languages, with its softmax score.
 - **Pygments** `guess_lexer`, the usual cheap baseline, with the lexer's `analyse_text` score.
@@ -67,7 +67,7 @@ On the registry corpus, at confidence 0.8 where the detector has one:
 | Detector | Documents labelled | GitHub (of 37) | Stack Exchange (of 76) | Other subsets (of 387) |
 | --- | --- | --- | --- | --- |
 | Magika | 53 | 29 | 13 | 11 |
-| Magika, as `openinterp.codeid` runs it | 37 | 17 | 10 | 10 |
+| Magika, as `openinterpretability.codeid` runs it | 37 | 17 | 10 | 10 |
 | go-enry | 494 | 37 | 75 | 382 |
 | CodeBERTa language-ID | 144 | 19 | 27 | 98 |
 | Pygments | 37 | 10 | 6 | 21 |
@@ -82,7 +82,7 @@ Eight GitHub files fall below 0.8. Four are ambiguous: a test fixture of letters
 
 ## Decision
 
-**Magika, labelling a document only at confidence ≥ 0.8 and only with a github-code language** (`openinterp/codeid.py`: `MIN_CONFIDENCE`, `MAGIKA_LABELS`).
+**Magika, labelling a document only at confidence ≥ 0.8 and only with a github-code language** (`openinterpretability/codeid.py`: `MIN_CONFIDENCE`, `MAGIKA_LABELS`).
 
 - It is the most accurate on code at every length.
 - It is the only detector that labels no prose. Linguist needs a file name to narrow its candidates. Without one, it gives every document some language. CodeBERTa has no class for "not code". Magika has a `txt` class, and it uses it.

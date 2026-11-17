@@ -222,7 +222,7 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 
 **A lead doesn't show that training built the negative side for this.** Both sides read the same h. Weights learned for the positive side would also help the negative side beat random weights. This test can't separate the two, and a readout shows only what is present. The clamps above, which add 0.19 nats, are the test of use.
 
-**Human labels.** The labels come from `openinterp/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup baseline reads the current token's rate of the label.
+**Human labels.** The labels come from `openinterpretability/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup baseline reads the current token's rate of the label.
 
 | Dataset | Labels | Lookup | − at L6 | + at L6 | Best null at L6 | − minus best null: L0 | L3 | L6 | L9 | L11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -301,7 +301,7 @@ The first study's scripts were not kept, so we can't say what caused each differ
 - **Fixed constants at every layer.** All-layer clamps use constants fit on the clean model, although earlier clamps change later layers' inputs.
 - **Shuffling is a strong null.** It breaks the correlation between neurons on one token as well as the link to the token. So the clamp over null ratio doesn't separate these two.
 - **Controls are few.** The 10 controls show the range. The population figures rest on L9 alone.
-- **MPS.** The runs used float32 on Apple's GPU. Activations there match the CPU's to about 1×10⁻⁴ of a neuron's peak (`openinterp/cli.py`).
+- **MPS.** The runs used float32 on Apple's GPU. Activations there match the CPU's to about 1×10⁻⁴ of a neuron's peak (`openinterpretability/cli.py`).
 
 ## Effect on the protocol
 

@@ -49,10 +49,10 @@ It keeps the model's weights and is left out of every loss.
 starts with one subcomponent per neuron.
 
 The data is pile-10k without the scan corpus's documents (``train_transcoders.py``).
-Each layer goes to ``<out>/layer_<layer>.safetensors``. ``openinterp.harness.dictionaries``
-reads it with ``activation="causal_importance"``. Only subcomponents alive on held-out
-text are kept. Each becomes two latents, the positive and negative parts of
-``g·(h·V[:, c])``. They write ``+U[c]`` and ``-U[c]``. Statistics go to
+Each layer goes to ``<out>/layer_<layer>.safetensors``.
+``openinterpretability.harness.dictionaries`` reads it with ``activation="causal_importance"``. Only
+subcomponents alive on held-out text are kept. Each becomes two latents, the positive and negative
+parts of ``g·(h·V[:, c])``. They write ``+U[c]`` and ``-U[c]``. Statistics go to
 ``<out>/layer_<layer>.json``.
 
     uv run python scripts/train_spd.py --model openai-community/gpt2 --layers all \\
@@ -388,7 +388,7 @@ def pieces(tokenizer, cfg: Settings) -> tuple[list, list, int]:
               help="A checkpoint.pt to continue from, with a new optimizer.")  # fmt: skip
 def main(**options):
     """Decompose the MLP projections and write each site's latents and statistics."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     cfg = Settings(**options)
     torch.manual_seed(cfg.seed)

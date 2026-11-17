@@ -1,10 +1,10 @@
-"""Registry coverage on the site (openinterp/builder/coverage.py)."""
+"""Registry coverage on the site (openinterpretability/builder/coverage.py)."""
 
 import json
 
 import pytest
 
-from openinterp.builder.coverage import load_rows, model_summary
+from openinterpretability.builder.coverage import load_rows, model_summary
 
 
 def _row(model, date, layer, clean=2.0, ablated=3.0, kept=2.5, rand=0.1, poles=4, width=8):
@@ -39,7 +39,7 @@ def test_model_summary_weights_layers_by_their_loss_rise():
 
 
 def test_home_page_shows_coverage(tmp_path, record):
-    from openinterp.builder.compiler import compile_site
+    from openinterpretability.builder.compiler import compile_site
 
     rows = {"toy": [_row("toy", "2026-11-13", 0)]}
     compile_site([record], tmp_path, coverage_rows=rows)
