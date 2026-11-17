@@ -117,3 +117,58 @@ def test_prompt_coverage_is_what_the_explained_units_bring_back(toy_runner, mean
     some = [(u, s, st, i < 5) for i, (u, s, st, _) in enumerate(result.order)]
     top5 = prompt_coverage(toy_runner, PROMPT, means, token, -1, some, draws=3)
     assert top5["units"] == 5 and top5["random"] is not None
+
+
+def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, monkeypatch):
+    from openinterpretability.cli import cli
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    seen = {}
+
+    def run_loop(proposer, reviewer, plan_next):
+        seen.update(proposer=proposer, reviewer=reviewer, draws=plan_next)
+        return 0
+
+    monkeypatch.setattr("openinterpretability.cli_loop.run_loop", run_loop)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--run", "2",
+            "--proposer", "anthropic/p", "--reviewer", "anthropic/r",
+            "--max-attempts", "3"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    draws = seen["draws"]
+    assert (seen["proposer"], seen["reviewer"], draws.max_attempts) == (
+        "anthropic/p",
+        "anthropic/r",
+        3,
+    )
+    assert len(draws.targets) == 2 and "Running 2 unit experiments" in out.output
+    assert all("--selection attribution" in t.audit for t in draws.targets)
+    external = CliRunner().invoke(
+        cli, [*args[:-4], "--proposer", "external/x", "--reviewer", "anthropic/r"]
+    )
+    assert external.exit_code != 0  # nobody would answer an external model's prompt files
+
+
+def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
+    from openinterpretability.cli import cli
+    from openinterpretability.core.explanation_records import load_latest
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    wiki = tmp_path / "wiki"
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(wiki), "--edges", "0", "--record"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    ((path, record),) = load_latest(wiki)
+    assert f"Explanation → {path}" in out.output
+    assert record.model_name == "toy" and record.prompt == PROMPT and record.narration is None
+    assert record.units and record.planned_experiments > 0

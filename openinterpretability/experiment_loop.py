@@ -29,6 +29,10 @@ class LoopError(Exception):
     """One iteration failed. Its message is the reason that the loop gives."""
 
 
+class Finished(Exception):
+    """The draws have nothing left to run: the loop ends cleanly. The message says why."""
+
+
 @dataclass(frozen=True)
 class Options:
     """What every iteration of a loop shares."""
@@ -144,8 +148,13 @@ def verdict_of(kind: str, key: str) -> tuple[str, str]:
     A scan that stopped on its unit writes a draw or stop record and no experiment, so
     its verdict is STOPPED.
     """
+    from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
     from openinterpretability.core.schemas import AuditRecord
 
+    if kind == "explanation":  # an explanation draw writes an explanation record, no verdict
+        if not new_files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
+            raise LoopError("the draw's steps wrote no explanation")
+        return "EXPLAINED", f"{VERBS[kind]} {key}"
     records = [p for p in new_files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
     if not records:
         if new_files(draws_dir(DEFAULT_WIKI_DIR)) or new_files(stops_dir(DEFAULT_WIKI_DIR)):
@@ -325,6 +334,9 @@ class Loop:
                 contextlib.redirect_stderr(out),
             ):
                 result = iteration(self.options, self.plan_next, self.claims)
+        except Finished as exc:  # a targeted run (explain --run) has no target left
+            print(f"RESULT: none finished: {exc}", flush=True)
+            return 0
         except Exception as exc:  # any failure of one experiment; the loop decides what next
             return self._failed(exc, log)
         self.done, self.failures, self.backoffs = self.done + 1, 0, 0

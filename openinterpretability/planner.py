@@ -85,6 +85,7 @@ SKILLS = {
     "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
     "sister": ["native-neuron-audit", "interpretability-illusions-review"],
     "superposition": ["native-neuron-audit", "interpretability-illusions-review"],
+    "explanation": [],  # explain, narrate and record one answer (planner_explanations.py)
 }
 DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
 
@@ -405,12 +406,14 @@ def plan_next(
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
     # Imported here: these modules build their candidates from this module's weights.
+    from openinterpretability.planner_explanations import explanation_candidates
     from openinterpretability.planner_sisters import sister_candidates
     from openinterpretability.planner_superpositions import superposition_candidates
 
     root = Path(wiki_dir).parent
     sisters = sister_candidates(states, claims, now, pool, root, seed)
     extra = [*sisters, *superposition_candidates(states, claims, root)]
+    extra += explanation_candidates(states, claims, root, pool, seed)  # issue #3744
     candidates = sorted(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *extra],
         key=lambda c: -c.weight,

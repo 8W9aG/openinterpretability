@@ -23,8 +23,9 @@ SCAN_KINDS = (
     "rescan",
     "sister",
     "superposition",
+    "explanation",  # its attribution reads the corpus too
 )
-NEW_UNIT_KINDS = ("explore", "opposite_pole", "superposition")  # no history to read
+NEW_UNIT_KINDS = ("explore", "opposite_pole", "superposition", "explanation")  # no history
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
 REVIEW_KINDS = ("independent_review", "replicate", "resolve", "challenge")
 
@@ -173,6 +174,8 @@ def _history(c: Candidate) -> Step:
 
 
 def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
+    if c.kind == "explanation":
+        return [_explain(c, corpus, proposer)]
     if c.kind == "reevaluate":
         command = f"uv run open-interpretability reevaluate --record {c.record}"
         return [Step("Re-evaluate (no LLM calls)", [command])]
@@ -181,6 +184,20 @@ def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
     submission = f"submissions/{key}.json"
     scan = _scan(c, out, corpus, proposer, submission)
     return [*_definition(c), *scan, *_review(submission, out, corpus, reviewer, independent=False)]
+
+
+def _explain(c, corpus: str, proposer: str | None) -> Step:
+    """An explanation draw: explain the answer, narrate it and record it (issue #3744)."""
+    narrator = proposer or "external/<your model ID>"
+    options = f"--corpus {corpus} --level long --narrator-model {narrator} --record"
+    command = f"uv run {c.commands[0]} {options}"
+    note = (
+        ""
+        if proposer
+        else "The narrator is a Claude Code subagent: when the command waits, give "
+        "exchange/Narrator.prompt.md to the explanation-narrator agent."
+    )
+    return Step("Explain the answer, narrate it and record it", [command], note)
 
 
 def _definition(c) -> list[Step]:
@@ -349,6 +366,7 @@ VERBS = {
     "opposite_pole": "Explore",
     "sister": "Sister study of",
     "superposition": "Explore",
+    "explanation": "Explain",
 }
 
 
