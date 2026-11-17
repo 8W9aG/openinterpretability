@@ -5,6 +5,11 @@
 <span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ statuses.STATUS_BADGE[status] }}">{{ status | replace('_', ' ') }}</span>
 {%- endmacro %}
 
+{# A broad unit (#4545): VERIFIED, but active on at least half its held-out windows. Text, not colour. #}
+{% macro broad_badge() -%}
+<span class="whitespace-nowrap rounded border border-slate-400 px-1.5 py-0.5 text-xs text-slate-700 dark:border-slate-500 dark:text-slate-300" title="Broad: active on at least half of its held-out text, so its explanation says little about any one text">broad</span>
+{%- endmacro %}
+
 {# Why a scan stopped on a chosen unit, in words. #}
 {% macro stop_outcome(stop) -%}
 {{ stop.outcome | replace('_', '-') }}{% if stop.proven_dead %} (proven by the weights){% endif %}

@@ -37,6 +37,7 @@ class ExplanationView:
     source: str  # its path in the repository, for the source link
     changed: list[dict] = field(default_factory=list)  # {unit, then, now}
     previous: ExplanationView | None = None  # the explanation it builds on (#4503)
+    broad: set[str] = field(default_factory=set)  # cited unit slugs that are broad now (#4545)
 
     @property
     def prompt_href(self) -> str:
@@ -158,7 +159,9 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
 
 def _view(path: Path, record, states: dict, wiki_dir: Path) -> ExplanationView:
     """The explanation at ``path``, with the cited units whose status has changed since."""
-    changed = []
+    from openinterpretability.core.explanation import is_broad
+
+    changed, broad = [], set()
     for u in record.units:
         if u.slug is None:
             continue  # a group: its status isn't in the unit states
@@ -166,8 +169,10 @@ def _view(path: Path, record, states: dict, wiki_dir: Path) -> ExplanationView:
         now = state.record.verdict.status if state is not None else "unstudied"
         if now != u.status and u.status != "stopped":
             changed.append({"unit": u.unit, "then": u.status, "now": now})
+        if state is not None and is_broad(state.record.verdict):
+            broad.add(u.slug)
     source = path.relative_to(wiki_dir.parent).as_posix() if wiki_dir.parent else str(path)
-    return ExplanationView(record, source, changed)
+    return ExplanationView(record, source, changed, broad=broad)
 
 
 def by_model(views) -> dict[str, list]:

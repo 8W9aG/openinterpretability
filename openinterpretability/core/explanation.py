@@ -11,6 +11,8 @@ The scores are reported, not gated (docs/PROTOCOL.md §4).
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import Field
 
 from openinterpretability.core.costs import ExperimentCosts
@@ -128,3 +130,24 @@ class ExplanationScores(StrictModel):
         default=None,
         description="What scoring cost; a review moves it into the record's provenance.",
     )
+
+
+# A broad unit (#4545): VERIFIED, and active on at least this share of its held-out windows.
+# Its explanation is accurate but predicts most text active, so it says less about any
+# one text. Generic early attention heads are the usual case (attention-head-audit skill).
+BROAD_SHARE = 0.5
+
+
+def held_out_active_share(scores: ExplanationScores | None) -> float | None:
+    """The share of the held-out windows on which the unit reaches the active line."""
+    if scores is None or not scores.candidate_windows:
+        return None
+    return scores.active_windows / scores.candidate_windows
+
+
+def is_broad(verdict: Any) -> bool:
+    """True for a VERIFIED verdict whose unit is active on most held-out windows (#4545)."""
+    if verdict is None or verdict.status != "VERIFIED":
+        return False
+    share = held_out_active_share(getattr(verdict, "explanation_scores", None))
+    return share is not None and share >= BROAD_SHARE

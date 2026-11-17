@@ -1,5 +1,5 @@
 {# One experiment, on its own page (experiment.html). Expects `v` from compiler._experiment_view and `rank`. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_notes %}
+{% from "_macros.html" import status_badge, broad_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_notes %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}
@@ -13,7 +13,7 @@
   <header class="p-5">
     <div class="flex flex-wrap items-center gap-2">
       <span class="font-mono text-sm font-semibold">#{{ rank }} · {% if is_head %}attention head{% elif is_feature %}{{ ident.dictionary }} latent{% elif is_sup %}superposition{% else %}{{ ident.pole }} pole {{ pole_mark(ident.pole) }}{% endif %}</span>
-      {{ status_badge(verdict.status) }}
+      {{ status_badge(verdict.status) }}{% if is_broad(verdict) %} {{ broad_badge() }}{% endif %}
       {{ evidence_badge(e.sig.conclusiveness, e.sig.direction) }}
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
       {% if e.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}
