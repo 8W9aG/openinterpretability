@@ -180,7 +180,9 @@ def _superposition(g, status, states, model, window, slugs, now):
 
 
 def _circuit(g, status, states, model, window, slugs, now):
-    files = f"exchange/circuit-{g.name}"
+    from openinterpretability.core.paths import DEFAULT_EXCHANGE_DIR
+
+    files = f"{DEFAULT_EXCHANGE_DIR}/circuit-{g.name}"  # a working folder, not a cited input
     why = (
         f"{status}: a task hypothesis on this prompt. One prompt has no corrupted twin, so "
         f"write {files}/task.json first: this prompt as a clean prompt, with a corrupted "
