@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <title>{{ paper.title }}</title>
 {# The print layout of a paper (builder/paper_pdf.py, #3140): a 5.5 by 9 inch text block
-   on US Letter, a serif face at 10 pt, numbered sections and page numbers, after the
+   on US Letter, Computer Modern (CMU) at 10 pt, numbered sections and page numbers, after the
    NeurIPS style. Only Chrome reads this page, to print the paper's PDF. #}
 <style>
+  {{ font_faces | safe }}
   @page {
     size: letter;
     margin: 1in 1.5in;
-    @bottom-center { content: counter(page); font: 9pt "Times New Roman", "Liberation Serif", "Nimbus Roman", Times, serif; }
+    @bottom-center { content: counter(page); font: 9pt "CMU Serif", "Latin Modern Math", serif; }
   }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; color: #000; background: #fff; font: 10pt/1.32 "Times New Roman", "Liberation Serif", "Nimbus Roman", Times, serif; text-align: justify; hyphens: auto; counter-reset: section; }
+  body { margin: 0; color: #000; background: #fff; font: 10pt/1.32 "CMU Serif", "Latin Modern Math", serif; text-align: justify; hyphens: auto; counter-reset: section; }
   h1 { margin: 0 0 0.5em; font-size: 17pt; line-height: 1.2; font-weight: bold; text-align: center; }
   .byline { margin: 0 0 2em; font-size: 10pt; text-align: center; }
   .byline a { color: inherit; text-decoration: none; }
@@ -28,7 +29,7 @@
   ul, ol { margin: 0 0 0.6em; padding-left: 1.6em; }
   li { margin: 0.15em 0; }
   a { color: #00008b; text-decoration: none; }
-  code { font: 8.5pt "Courier New", "Liberation Mono", monospace; }
+  code { font: 8.5pt "CMU Typewriter Text", "Latin Modern Math", monospace; }
   pre { margin: 0 0 0.8em; padding: 0.5em 0.7em; font-size: 8.5pt; white-space: pre-wrap; border: 0.5pt solid #999; break-inside: avoid; }
   img { display: block; max-width: 100%; height: auto; margin: 0.8em auto; break-inside: avoid; }
   table { width: 100%; margin: 0.6em 0 1em; border-collapse: collapse; font-size: 8.5pt; font-variant-numeric: tabular-nums; text-align: left; break-inside: avoid; border-top: 1pt solid #000; border-bottom: 1pt solid #000; }
@@ -41,6 +42,6 @@
 <body>
 <h1>{{ paper.title }}</h1>
 <p class="byline">Open Interpretability · <a href="{{ site_url }}research/{{ paper.href }}">{{ site_url }}research/{{ paper.slug }}</a></p>
-<div class="paper">{{ paper.body | safe }}</div>
+<div class="paper">{{ body | safe }}</div>
 </body>
 </html>
