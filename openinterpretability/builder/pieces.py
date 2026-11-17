@@ -113,7 +113,7 @@ def _layer_cells(layer, left: int, top: int) -> list[dict]:
         for n in layer.neurons
     ]
     stopped = [
-        place(n) | {"status": STOPPED, "href": None, "label": stopped_label(n)}
+        place(n) | {"status": STOPPED, "href": n.href, "label": stopped_label(n)}
         for n in layer.stopped
     ]
     return studied + stopped

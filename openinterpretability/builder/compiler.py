@@ -46,8 +46,8 @@ from openinterpretability.builder.sections import render_reference_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
 from openinterpretability.builder.sister_graph import sister_graphs
 from openinterpretability.builder.standing import ROLES, contested_units, reviewer_agreement
-from openinterpretability.builder.stopped import add_stopped, explore_focus
-from openinterpretability.builder.stops import pageless_stops, stops_by_unit
+from openinterpretability.builder.stopped import add_stopped, explore_focus, stopped_unit
+from openinterpretability.builder.stops import stops_by_unit
 from openinterpretability.builder.superpositions import add_members, count_pageless_neurons
 from openinterpretability.builder.tree import (
     Experiment,
@@ -311,9 +311,9 @@ def compile_site(
     (``crossref.load_rows``) are each pole's aligned latents. ``sister_rows``
     (``sisters.load_rows``) are its matches. ``papers_dir`` holds the Research section.
     ``paper_pdfs`` adds each paper's PDF, and ``pending`` (``builder/pending.py``) lists open
-    experiment PRs on the pages. ``stops`` (``core.draws.load_stops``) go on their unit's
-    page, or the home's. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the
-    Models page, of every configured model. ``jobs`` is the unit pages' worker processes.
+    experiment PRs on the pages. ``stops`` and ``draws`` (``core.draws``) go on their unit's
+    page. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the Models page.
+    ``jobs`` is the unit pages' worker processes.
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
     erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
     who made records that name no contributor, each with a page under ``users/``.
@@ -342,8 +342,8 @@ def compile_site(
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
-    studied = {n.href for m in models for layer in m.layers for n in layer.pages}
-    by_unit = stops_by_unit(stops)
+    studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
+    by_unit = stops_by_unit((*draws, *stops))
     for model in models:
         sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
@@ -352,7 +352,7 @@ def compile_site(
     stats = stats_result()
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
-    _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
+    _render_index(render, models, experiments, agents, stats, (*draws, *stops))
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
@@ -391,7 +391,7 @@ def _render_agents(render, experiments, output_dir, report) -> list:
     return agents
 
 
-def _render_index(render, models, experiments, agents, stats, draws, by_unit, studied) -> None:
+def _render_index(render, models, experiments, agents, stats, draws) -> None:
     render(
         "index.html",
         "index.html",
@@ -404,7 +404,6 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         agreement=reviewer_agreement(models),
         corpora=corpora_view(experiments),
         contested=contested_units(models),
-        pageless_stops=pageless_stops(by_unit, studied),
     )
     if stats["baseline"]:  # the home page links to it (#3272)
         render("learned-baseline.html", "learned-baseline.html", stats=stats)
@@ -497,4 +496,5 @@ def _render_model(
         )
 
     units = [(layer, neuron) for layer in model.layers for neuron in layer.pages]
+    units += [(layer, stopped_unit(model, n)) for layer in model.layers for n in layer.stopped]
     render_in_parallel(render, unit_page, units)
