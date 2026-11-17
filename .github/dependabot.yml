@@ -16,3 +16,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # names.py loads the pinned model en_core_web_trf-3.8.0. That model needs spaCy 3.8
+      # and spacy-curated-transformers below 1. Version 2 needs spaCy 4, and its update
+      # (#4403) locked a spaCy 4 pre-release that broke thinc on numpy. Move to spaCy 4
+      # only together with a spaCy 4 model.
+      - dependency-name: spacy-curated-transformers
+        update-types: ["version-update:semver-major"]
