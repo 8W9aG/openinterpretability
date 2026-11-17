@@ -204,8 +204,10 @@ jobs:
               echo
               echo '```text'
               # The run is still going, so `gh run view --log-failed` has no log yet. The
-              # job's own log is ready once the job ends.
-              gh api "repos/$GH_REPO/actions/jobs/$id/logs" 2>/dev/null \
+              # job's own log is ready once the job ends. The sed strips terminal colours,
+              # and the cut drops each line's timestamp.
+              gh api --allow-escape-sequences "repos/$GH_REPO/actions/jobs/$id/logs" \
+                | sed $'s/\x1b\\[[0-9;]*[A-Za-z]//g' | cut -d' ' -f2- \
                 | tail -n 60 | cut -c1-400 || true
               echo '```'
             done <<< "$jobs"
