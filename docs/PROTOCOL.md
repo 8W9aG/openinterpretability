@@ -21,6 +21,26 @@ One experiment tests **one hypothesis about one unit** in one model revision. A 
 | Default-on | A unit active on at least `max_active_share` (default 0.5) of its scan's tokens, read from the scan's histogram. At that density a probe of a few words almost always has one active token. So no hard negative can stay inactive, and the unit can't be audited as a detector. The scan stops on such a unit, as it does on one that never fires, and a review fails the `not_default_on` gate. The scan keeps the stop: in `wiki/draws/` for a random draw, and in `wiki/stops/` with a page for a chosen unit, which random-draw statistics don't read. A stop tested no hypothesis. So it has no verdict, it counts toward no standing, and it isn't counted as an experiment. Its neuron counts as studied, and a pole that the weights prove dead counts as verified for coverage. On the site, the unit's page lists each stop after its experiments, with the outcome in place of a verdict. A neuron whose scans all stopped still has a page. In GPT-2 small most negative poles are default-on, because GELU's dip holds them near its minimum on most tokens (`docs/analyses/position-zero.md`). |
 | Δ (counterfactual) | `(peak strength on base − peak strength on counterfactual) / scale`. |
 
+### Taxonomy
+
+The registry's concepts, and how they nest. `openinterpretability/core/taxonomy.py` defines them, and the site's About page shows them with figures. The table above gives the precise definitions of the audited units. *Audited* means that the concept has its own experiments, verdicts and page. A *sister* is the same concept in another model.
+
+<!-- taxonomy:start -->
+| Term | Definition | Part of | Audited | Identifier | Sister |
+| --- | --- | --- | --- | --- | --- |
+| Model | An open-weight language model at a pinned revision. | — | no | `openai-community/gpt2` | Planned: models correspond through their layers, by relative depth (#4441). |
+| Layer | One transformer block: an attention sublayer, then an MLP sublayer. | a model | no | `L3` | Planned: the layer at the same relative depth in another model (#4441). |
+| Neuron | One coordinate of a layer's MLP hidden activation. Its page shows both of its poles. | a layer | through its poles | `L3/N7` | Through its poles. |
+| Pole | The positive or the negative half of a neuron's activation. Most experiments audit one neuron pole. | a neuron | yes | `L3/N7+` | In the registry: a mutual best match by activation over a shared corpus (`open-interpretability sisters`). |
+| Head | One attention head of a layer. A head has no sign, so it has no poles. | a layer | yes | `L5/H1` | Planned: a head in another model whose behaviour matches (#4438). |
+| Superposition | A feature that one layer spreads over several of its neurons. It is a direction within one layer, never across layers. | a layer | yes | `L2/S0123456789ab` | Planned: a superposition, or a pole, in another model with the same feature (#4439). |
+| Dictionary feature | A latent of a published sparse dictionary (an SAE or a transcoder) on one layer. It is a learned direction, the baseline for native neurons, and never counted with them. | a layer | yes | `L4/F12` | None planned: it is a baseline. |
+| Circuit | Units in several layers that work together: a cluster of the wiring graph between studied units. A task circuit traced by attribution is an analysis, not a registry circuit. | a model | yes | `C3` | Planned: a circuit in another model that does the same task (#4440). |
+| Hub | A neuron or head that the wiring joins to many studied units. Circuits leave hubs out, and a hub has no experiments of its own. | a model | no | `L3/N7/HUB` | Through its center. |
+| Experiment | One test of one hypothesis about one audited unit, with a verdict. | an audited unit | no | `20261019T050928Z` | A sister study tests a pole's explanation on its sister. |
+| Record | The signed, write-once file of one experiment, in the wiki. | an experiment | no | `wiki/experiments/<unit>/<time>.json` | — |
+<!-- taxonomy:end -->
+
 ## 2. Roles
 
 | Role | Does | Must not |
