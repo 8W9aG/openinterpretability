@@ -35,7 +35,8 @@ jobs:
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
     steps:
-      - id: check
+      - name: Decide whether to deploy
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -148,3 +149,66 @@ jobs:
             tail -n 2 deploy.log
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+
+  # A failed deploy leaves the site stale, and nobody sees it unless they look at Actions
+  # (#4625). So a failure opens an issue, or comments on the one already open. The fixed
+  # title keeps a cron that fails every 30 minutes to one issue. A later good deploy
+  # doesn't close it: a failure that went away by itself is a flaky deploy, and the
+  # issue stays open until its cause is fixed. scripts/issue_state.py
+  # reads TITLE from this file, so the issue is eligible for agents.
+  report:
+    name: Open an issue on failure
+    needs: [changed, deploy]
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: Deploy registry failed on main
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      HEAD: ${{ github.sha }}
+      # Each failed job as a line: id, name, and its failed steps.
+      FAILED_JOBS: >-
+        .jobs[] | select(.conclusion == "failure")
+        | [.id, .name, ([.steps[] | select(.conclusion == "failure") | .name] | join(", "))]
+        | @tsv
+    steps:
+      - name: Open an issue, or comment on the open one
+        shell: bash
+        run: |
+          subject=$(gh api "repos/$GH_REPO/commits/$HEAD" \
+            --jq '.commit.message | split("\n")[0]' || true)
+          jobs=$(gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/jobs" --jq "$FAILED_JOBS")
+          {
+            echo "Run: $RUN"
+            echo "Commit: $HEAD ($subject)"
+            echo
+            echo "The site keeps its last good build until a deploy succeeds."
+            while IFS=$'\t' read -r id name steps; do
+              [ -n "$id" ] || continue
+              echo
+              echo "**$name** failed at: ${steps:-a step}"
+              echo
+              echo '```text'
+              # The run is still going, so `gh run view --log-failed` has no log yet. The
+              # job's own log is ready once the job ends. The sed strips terminal colours,
+              # and the cut drops each line's timestamp.
+              gh api --allow-escape-sequences "repos/$GH_REPO/actions/jobs/$id/logs" \
+                | sed $'s/\x1b\\[[0-9;]*[A-Za-z]//g' | cut -d' ' -f2- \
+                | tail -n 60 | cut -c1-400 || true
+              echo '```'
+            done <<< "$jobs"
+          } > issue.md
+          number=$(gh issue list --state open --search "\"$TITLE\" in:title" \
+            --json number,title --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file issue.md
+          else
+            gh issue create --title "$TITLE" --body-file issue.md \
+              --label bug --label "priority: high" --label "area: site"
+          fi
