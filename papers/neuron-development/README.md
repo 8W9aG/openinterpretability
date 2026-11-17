@@ -2,6 +2,8 @@
 
 Explanations of single neurons are usually written for a finished model, but it is not known whether they describe the model for most of its training. We followed 9 neurons of Pythia-70m, whose explanations had passed an adversarial review, back through 20 public training checkpoints. The training loss reaches within 1% of its final value by step 16,000, yet at that step the neurons' activations correlate with their final form at a median of only 0.48, and they keep changing until the end of training. Four explanations hold without a break from step 16,000 or earlier, whereas the other five hold only from step 64,000 or later. A neuron's explanation is therefore a description of one checkpoint, and the loss curve does not show when it becomes true.
 
+**Status:** Preprint. Work left: #4156 (adjacent-checkpoint correlations, to tell drift from formation).
+
 ## Introduction
 
 Interpretability research often explains a trained network one unit at a time (Bau et al., 2017). An explanation of this kind is written for the final weights. However, a network is not fixed during training, and whether a unit's function forms early and then stays, or keeps changing, decides how far an explanation of the final model reaches back into training. If units settle early, one explanation describes most of the run. If they keep changing, an explanation is true only of the checkpoint that it was written for.

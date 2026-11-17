@@ -1097,7 +1097,8 @@ def test_label_confounds_rendered(tmp_path, record):
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
     assert "fr 19% · other 81%" in page  # 63 of 327 labelled tokens
     index = (tmp_path / "site" / "index.html").read_text()
-    assert 'id="corpora"' in index and "fr 19% · other 81%" in index
+    assert 'id="corpora"' not in index  # the experiment shows its own corpus (#3298)
+    assert "Corpus</dt>" in page and "wiki.jsonl" in page
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki
 
@@ -1186,10 +1187,11 @@ def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
     assert ">deepseek-flash</a>" in home and ">external/deepseek-flash[1m]</a>" not in home
 
 
-def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
+def test_language_mix_of_one_scan(record):
+    # Each experiment shows its own scan's mix; the home page's corpora table is gone (#3298).
     from types import SimpleNamespace
 
-    from openinterpretability.builder.corpora import corpora_view, language_mix
+    from openinterpretability.builder.corpora import language_mix
     from openinterpretability.core.schemas import (
         ConfoundProfile,
         CorpusSample,
@@ -1215,11 +1217,10 @@ def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
     sample = CorpusSample(
         seed=0, max_tokens=10, documents=1, corpus_documents=2, tokens=9, sha256="x"
     )
-    (corpus,) = corpora_view(
-        [experiment(50), experiment(90, sample), experiment(70), experiment(5, labelled=False)]
-    )
-    assert corpus.experiments == 4 and len(corpus.mixes) == 1
-    assert (corpus.mixes[0].tokens, corpus.mixes[0].sampled) == (70, False)
+    whole = language_mix(experiment(70).record.submission)
+    sampled = language_mix(experiment(90, sample).record.submission)
+    assert (whole.tokens, whole.sampled, whole.shown[0].label) == (70, False, "en")
+    assert (sampled.tokens, sampled.sampled) == (90, True)
     assert language_mix(experiment(5, labelled=False).record.submission) is None
 
 

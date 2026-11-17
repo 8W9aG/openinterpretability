@@ -30,6 +30,23 @@ MODEL_NAME = r"^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)?$"
 UNIT_SLUG = r"^[A-Za-z0-9][A-Za-z0-9._-]*/L\d+/(N\d+-(positive|negative)|H\d+)$"
 
 
+class HubNote(StrictModel):
+    """A top unit that is a hub's center, and the facts that say whether it is an artefact.
+
+    A hub is wired to many studied units, and it can be an artefact. A unit that is on most
+    of the time, or that writes with a large norm, touches many units anyway. These facts
+    show which, and they are reported, not gated (``docs/circuits-and-hubs.md``, #4472).
+    """
+
+    hub: str = Field(description="The hub's id: <model>/L5/H1/HUB.")
+    href: str = Field(description="Its page on the site.")
+    norm: float | None = None  # the center's output-weight norm
+    layer_median: float | None = None  # its layer's median norm
+    percentile: float | None = None  # the share of its layer with a smaller norm
+    active_share: float | None = None  # of the scan's tokens, from its newest experiment
+    default_on: bool | None = None  # whether that experiment shows it default-on
+
+
 class ExplainedUnit(StrictModel):
     """One unit or group of the mechanism, as it stood when the explanation was written."""
 
@@ -42,6 +59,7 @@ class ExplainedUnit(StrictModel):
     attribution: float
     status: str
     explanation: str | None = None  # only when VERIFIED
+    hub: HubNote | None = None  # when the unit is a hub's center (#4472)
 
 
 class Narration(StrictModel):
