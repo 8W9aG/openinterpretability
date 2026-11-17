@@ -141,12 +141,14 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
 
 `open-interpretability explain "<prompt>"` explains the model's answer to one prompt as fully as the registry allows (`openinterp/explain.py`). It takes the logit of the answer, the model's top token unless you pass `--token`, at the last position unless you pass `--position`.
 
-- **Attribute.** Each neuron's contribution at each position is (a − mean) · ∂logit/∂a. The mean is the neuron's mean activation over the first `--mean-tokens` tokens of `--corpus`, cached in `~/.cache/openinterp/means/` (`$OPENINTERP_MEANS`). A contribution goes to the pole that the sign of `a` names. The first token is left out, because it is an attention sink.
-- **Explain.** The top `--top` poles are listed with their share of the total |attribution|, their peak on the prompt against their record's `max_activation`, and their registry status. Only a VERIFIED pole's explanation is shown. Other poles show their status (*unstudied*, *stopped*, or the newest verdict) and no label.
-- **Gaps.** It reports the share of the total |attribution| that VERIFIED poles hold. The rest is unexplained. On Qwen2.5-0.5B in November 2026 that share is about 0.1%.
-- **Check.** It mean-ablates each of the top 10 poles alone, and reports the change in the answer's logit. That should be about minus the attribution. It then mean-ablates the VERIFIED poles among the top together, and says whether the answer changes.
+- **Attribute.** Each neuron's contribution at each position is (a − mean) · ∂logit/∂a. A contribution goes to the pole that the sign of `a` names. Each attention head's contribution is (z − mean) · ∂logit/∂z, summed over its slice of the attention output's input. A head has no pole. The means are over the first `--mean-tokens` tokens of `--corpus`, cached in `~/.cache/openinterp/means/` (`$OPENINTERP_MEANS`). The first token is left out, because it is an attention sink.
+- **Explain.** The top `--top` units, poles and heads together, are listed with their share of the total |attribution|. Each also shows its peak on the prompt against its record's `max_activation`, and its registry status. Only a VERIFIED unit's explanation is shown. Other units show their status (*unstudied*, *stopped*, or the newest verdict) and no label.
+- **Superpositions and circuits.** It lists the model's superpositions (`data/superpositions/`) and circuits (`data/circuits/`) with the most |attribution|, with their status and a check. A superposition's attribution is the neuron offset along its direction, times the gradient along it, where the direction is positive. A circuit's attribution is the sum over its members, with both poles of each neuron. The check removes the direction, or mean-ablates every member. These overlap with the units, so they don't add to the total. Hubs are not listed.
+- **Gaps.** It reports the share of the total |attribution| that explained units hold. A unit is explained when it is VERIFIED, or when a VERIFIED superposition or circuit has it. The rest is unexplained. On Qwen2.5-0.5B in November 2026 that share is about 0.1%.
+- **Check.** It mean-ablates each of the top 10 units alone, and reports the change in the answer's logit. That should be about minus the attribution. It then mean-ablates the VERIFIED units among the top together, and says whether the answer changes.
+- **Paths.** For each of the top `--edges` units, it holds ∂logit/∂unit constant and attributes the unit's contribution to the other top units, by the same rule. These are first-order edges between the native units, as in attribution graphs (Ameisen et al., 2025), but with no replacement model. The output lists the three strongest edges into each unit.
 
-MLP neuron poles only, so far. `--json` prints the result as JSON.
+`--json` prints the result as JSON, with every edge.
 
 ## Letting an agent run it (Claude Code)
 
