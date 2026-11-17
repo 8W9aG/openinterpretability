@@ -64,12 +64,17 @@ from openinterpretability.explain_run import run_plan
     "--record", "write_record", is_flag=True,
     help="Write the explanation to wiki/explanations/, for its page on the site (#3744).",
 )  # fmt: skip
+@click.option(
+    "--land/--no-land", "land", default=True, show_default=True,
+    help="--record: land the record as its own PR, merged on green (#4475). --no-land "
+    "writes it to --wiki-dir only.",
+)  # fmt: skip
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
 def explain_command(  # long-function: one argument per option, then one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
-    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, as_json,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, as_json,
     wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
@@ -109,8 +114,8 @@ def explain_command(  # long-function: one argument per option, then one line pe
     if not as_json:
         _print_narrative(told, level)
     if write_record:
-        path = _record(model_name, result, coverage, planned, told, home, ran)
-        click.echo(f"Explanation → {path}")
+        record = _record(model_name, result, coverage, planned, told, ran)
+        _keep(record, home, land)
     if code:
         raise SystemExit(code)
 
@@ -377,14 +382,23 @@ def _print_narrative(told: dict, level: str) -> None:
         click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")
 
 
-def _record(model: str, result, coverage: dict, planned, told: dict, wiki_dir: Path,
-            run=None) -> Path:  # fmt: skip
-    """Write the explanation record (core/explanation_records.py) and return its path."""
+def _keep(record, home: Path, land: bool) -> None:
+    """Land ``record`` as its own PR, or with ``--no-land`` write it under ``home`` (#4475)."""
+    from openinterpretability.explain_land import land_record, write_local
+
+    if not land:
+        click.echo(f"Explanation → {write_local(record, home)}")
+        return
+    url, merged = land_record(record)
+    click.echo(f"Explanation → {url} ({'merged' if merged else 'left open'})")
+
+
+def _record(model: str, result, coverage: dict, planned, told: dict, run=None):
+    """The explanation record (core/explanation_records.py), as the registry stands."""
     from datetime import UTC, datetime
 
     from openinterpretability import __version__
     from openinterpretability.core.explanation_records import ExplanationRecord, Narration
-    from openinterpretability.core.explanation_records import record_path as path_of
 
     units = _explained_units(model, result)
     narration = None
@@ -402,10 +416,7 @@ def _record(model: str, result, coverage: dict, planned, told: dict, wiki_dir: P
         units=units, narration=narration, planned_experiments=len(planned.experiments),
         package_version=__version__, written=datetime.now(UTC), run=run,
     )  # fmt: skip
-    path = path_of(wiki_dir, record)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(record.model_dump_json(indent=1) + "\n", encoding="utf-8")
-    return path
+    return record
 
 
 def _explained_units(model: str, result) -> list:
