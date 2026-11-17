@@ -1,5 +1,5 @@
-from openinterp.cli_registry import registry_stats
-from openinterp.core.schemas import ReviewPolicy
+from openinterpretability.cli_registry import registry_stats
+from openinterpretability.core.schemas import ReviewPolicy
 
 
 def test_registry_stats(record):

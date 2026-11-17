@@ -16,7 +16,7 @@ script: |
   text := import("text")
   matches := []
   for s in text.re_find(`(?s).*?(?:[.!?]["')\]]*(?:\s|$)|:\n|\n\s*[-*]\s|$)`, scope, -1) {
-    literal := `(?m)^(?: {4,}\S| {2,}(?:openinterp|uv|make|git|python) )[^\n]*`
+    literal := `(?m)^(?: {4,}\S| {2,}(?:openinterpretability|uv|make|git|python) )[^\n]*`
     prose := text.re_replace(literal, s[0].text, "")
     words := text.re_find(`\w+`, prose, -1)
     if words != undefined && len(words) > 25 {

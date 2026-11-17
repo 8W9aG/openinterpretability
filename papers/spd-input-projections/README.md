@@ -2,6 +2,10 @@
 
 A parameter decomposition keeps whichever basis it starts in on GPT-2 small's down projections, so it says little about neurons there. The input projection is a sharper test, because GELU acts on each neuron separately. We decomposed both MLP projections for 50,000 steps from each of two starts. At about the same total of active subcomponents, the start from the neurons ends with a KL of 0.093 against 0.158. A random start does not turn towards the neurons: its closest-neuron cosine stays at 0.07–0.10, near a random direction's 0.07. So the losses favour the neurons, and training does not find them.
 
+**Status:** Preprint. Work left: #4248 (rewrite in the paper form of #4202), #4104 (one count per site, more seeds and a constant-rate continuation).
+
+**Why we wrote it.** If a decomposition that starts from no basis found the neurons on its own, that would show that the neuron basis is special. On the down projections a decomposition keeps whichever basis it starts in, so that test says nothing there. **The question.** Do a parameter decomposition's losses favour GPT-2's neurons, and does training find them from a random start? It bears on research question 3, *Do native neurons explain a model as well as learned dictionaries do?* ([research questions](../../docs/research-questions.md)).
+
 ![Input projections move through training from each start. From the neurons they fit far better and keep more subcomponents active](media/training.svg)
 
 **Results.**
@@ -120,7 +124,7 @@ Run D's cosine with its start equals its closest-neuron cosine, so the table giv
 
 ## Reproduce
 
-Open `scripts/train_spd_colab.ipynb` on a Colab A100, with `corpus.jsonl` in `MyDrive/openinterp/`. Run it with `MATRICES = "both"` and `STEPS = 50_000`, once per start, with the default seed of 0. Each run writes `compare.json` and `train.log` to its Drive folder. Copy each run's `compare.json` into `docs/analyses/`, and each `train.log` to `exchange/spd-logs/` as `A.log` to `D.log`. The four logs of this paper's runs are published: `uv run python scripts/exchange.py fetch spd-logs` downloads them. Then:
+Open `scripts/train_spd_colab.ipynb` on a Colab A100, with `corpus.jsonl` in `MyDrive/openinterpretability/`. Run it with `MATRICES = "both"` and `STEPS = 50_000`, once per start, with the default seed of 0. Each run writes `compare.json` and `train.log` to its Drive folder. Copy each run's `compare.json` into `docs/analyses/`, and each `train.log` to `exchange/spd-logs/` as `A.log` to `D.log`. The four logs of this paper's runs are published: `uv run python scripts/exchange.py fetch spd-logs` downloads them. Then:
 
 ```bash
 uv run python scripts/spd_up_neurons.py --device cpu \

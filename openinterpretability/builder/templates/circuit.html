@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_circuit.html" import unit_name, nav, wiring_svg %}
+
+{% block title %}Wiring group from {{ unit_name(c.root) }} · {{ model.name }} · {{ site_title }}{% endblock %}
+
+{% block content %}
+{{ nav(root, model, "Wiring group from " ~ unit_name(c.root)) }}
+<h1 class="font-mono text-2xl font-semibold">Wiring group from {{ unit_name(c.root) }}</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  {{ c.units | length }} units of {{ model.name }}, layers {{ c.layers[0] }}–{{ c.layers[1] }}, {{ c.verified }} VERIFIED, joined edge to edge by their wiring. A wiring group is all the units that edges join; the registry's circuits are clusters within the groups. The group is named after its lowest-layer unit; when groups merge or split as the registry grows, the old names redirect here. See <a class="underline" href="{{ root }}models/{{ model.slug }}/circuits.html">all circuits</a> for how edges are found. Reported, not gated.
+</p>
+<p class="mt-2 text-xs text-slate-500">
+  <span class="text-brand-600 dark:text-brand-400">━</span> found by both readings ·
+  <span class="text-sky-600 dark:text-sky-400">━</span> activations only ·
+  <span class="text-slate-500">━</span> weights only
+</p>
+<section class="mt-6" data-pagefind-ignore>
+  {{ wiring_svg(c, root) }}
+  <table class="mt-3 w-full font-mono text-xs">
+    <thead class="text-slate-500">
+      <tr><th class="pb-1 text-left font-normal">Edge</th><th class="pb-1 text-left font-normal">Found by</th></tr>
+    </thead>
+    <tbody>
+      {% for e in c.edges %}
+      <tr class="align-top">
+        <td class="py-0.5 pr-4"><a class="underline" href="{{ root }}{{ e.source.href }}">{{ unit_name(e.source) }}</a> → <a class="underline" href="{{ root }}{{ e.target.href }}">{{ unit_name(e.target) }}</a></td>
+        <td class="py-0.5">
+          {% for r in e.readings %}
+          <a class="underline" href="{{ root }}{{ r.experiment.href }}" title="{% for ch, x in r.channels.items() %}{{ ch }} {{ '%+.3g' | format(x) }}{{ ' · ' if not loop.last }}{% endfor %}">{{ r.experiment.id }}</a>
+          {{ r.method }} {{ '%+.3g' | format(r.weight) }}{{ " (backfilled)" if r.backfilled }}{{ "; " if not loop.last }}
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import explanation_rows %}
+
+{% block title %}Explanations · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Explanations</nav>
+<h1 class="text-2xl font-semibold">Explanations</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why a model gives one answer to one prompt, as far as the registry explains it. Each is written from the registry's evidence by <code class="font-mono">open-interpretability explain</code>, and only VERIFIED units count as explained. A stale one cites a unit whose status has changed since it was written.</p>
+<div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Written</th><th class="px-3 py-2">Model</th><th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explained</th><th class="px-3 py-2">State</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {{ explanation_rows(views, root) }}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

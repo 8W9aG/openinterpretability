@@ -1,13 +1,13 @@
 # Papers
 
-Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its recorded output, and `media/` holds its figures. `scripts/paper_figures.py` draws the figures from the results, and a test fails if they differ. The site's Research section publishes the papers listed here, in this order. The `write-paper` skill describes how to write one.
+Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its recorded output, and `media/` holds its figures. `scripts/paper_figures.py` draws the figures from the results, and a test fails if they differ. The site's Research section publishes the papers listed here, newest first, by the date before each one: the day it was first published. The `write-paper` skill describes how to write one.
 
-- [What default-on negative poles do as a population](default-on-poles/README.md)
-- [Why training rests neurons below GELU's dip](why-neurons-rest/README.md)
-- [Below the Dip](below-the-dip/README.md), an interactive page for these two papers
-- [Where SPD can favour GPT-2's neurons](spd-input-projections/README.md)
-- [A bracket neuron in GPT-2, and the label that hid it](syntax-positive-controls/README.md)
-- [Native neurons against learned dictionaries, at equal effort](native-vs-learned/README.md)
-- [Do explanations carry across models?](explanations-across-models/README.md)
+- 2026-11-16: [When Pythia-70m's VERIFIED neurons form](neuron-development/README.md)
+- 2026-11-15: [Do explanations carry across models?](explanations-across-models/README.md)
+- 2026-11-14: [Native neurons against learned dictionaries, at equal effort](native-vs-learned/README.md)
+- 2026-11-07: [Where SPD can favour GPT-2's neurons](spd-input-projections/README.md)
+- 2026-11-06: [What default-on negative poles do as a population](default-on-poles/README.md)
+- 2026-11-06: [Why training rests neurons below GELU's dip](why-neurons-rest/README.md)
+- 2026-11-06: [A bracket neuron in GPT-2, and the label that hid it](syntax-positive-controls/README.md)
 
 Older write-ups stay in `docs/analyses/`.

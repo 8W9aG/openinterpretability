@@ -1,23 +1,34 @@
-.PHONY: install test perf lint markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
+.PHONY: install test perf lint typecheck markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
 
 # Reinstalls the package itself: when the distribution was renamed to open-interpretability
-# (issue #3251), a plain sync removed the `openinterp` command with the old distribution.
+# (issue #3251), a plain sync removed the `openinterpretability` command with the old distribution.
 install:
 	uv sync --reinstall-package open-interpretability
 
 # Single-threaded: the tests use tiny models, and thread pools contending with other
 # jobs on the machine have hung the suite.
+# The whole output goes to logs/test-last.log too, so a hang's stack dump (pytest-timeout)
+# is kept even when only the exit code was read (#4376). pipefail keeps pytest's exit code.
 test:
-	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterp.core.heavy_lock pytest
+	@mkdir -p logs
+	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest 2>&1 | tee logs/test-last.log'
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.
 # The heavy lock keeps another heavy job from overlapping the timings.
 perf:
-	uv run python -m openinterp.core.heavy_lock python scripts/perf_bench.py
+	uv run python -m openinterpretability.core.heavy_lock python scripts/perf_bench.py
+
+# Unused code: a name vulture finds, and vulture_whitelist.py doesn't keep, fails (#3164).
+vulture:
+	uv run vulture openinterpretability scripts vulture_whitelist.py --min-confidence 60
+
+# mypy, strict, on the packages in [tool.mypy] files (pyproject.toml).
+typecheck:
+	uv run mypy
 
 lint:
 	uv run ruff check .
@@ -26,8 +37,12 @@ lint:
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
+	uv run python scripts/papers.py check
 	python3 scripts/ifttt_lint.py
-	uv run interrogate openinterp
+	python3 scripts/check_old_name.py
+	uv run interrogate openinterpretability
+	$(MAKE) vulture
+	$(MAKE) typecheck
 	$(MAKE) markdown
 	$(MAKE) shell
 	$(MAKE) vale
@@ -51,7 +66,7 @@ shell:
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
-VALE_PATHS ?= openinterp scripts tests
+VALE_PATHS ?= openinterpretability scripts tests
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
 	vale $(VALE_PATHS)
@@ -60,7 +75,9 @@ vale:
 # words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
 # only the standard library. Passive voice and compound tenses are advisory and never fail.
 # A ratchet: add a path here once it passes. The vendored skill's examples break the rules
-# on purpose. CHANGELOG.md and its fragments (changelog.d/) are logs, so STE_LOG_PATHS skips synonym rotation
+# on purpose. Papers (papers/<slug>/README.md) get a looser profile, set in
+# scripts/ste_prose.py: academic prose relates its claims in longer sentences, so the cap is
+# 40 words with a mean of at most 25 (#4202). Every other path keeps the 25-word cap. CHANGELOG.md and its fragments (changelog.d/) are logs, so STE_LOG_PATHS skips synonym rotation
 # there: Keep a Changelog requires a "Fixed" heading, and entries quote command names such
 # as `verify` and `check`.
 STE_PATHS ?= $(shell git ls-files -co --exclude-standard '.claude/skills/*.md' \
@@ -95,7 +112,7 @@ build:
 
 # The stylesheet, from the classes the pages use (Tailwind's standalone CLI, no Node).
 css:
-	uv run python -m openinterp.builder.css --site $(DIST_DIR)
+	uv run python -m openinterpretability.builder.css --site $(DIST_DIR)
 
 # Pagefind (a locked dev dependency, so no Node is needed) indexes dist/ for search.
 search-index:

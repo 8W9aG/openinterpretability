@@ -11,7 +11,7 @@ import pyarrow.parquet as pq
 import pytest
 from click.testing import CliRunner
 
-from openinterp.blends import (
+from openinterpretability.blends import (
     BLEND_ALIASES,
     BLENDS,
     NO_CODE_LANGUAGE,
@@ -20,11 +20,11 @@ from openinterp.blends import (
     blend_shares,
     build_blend,
 )
-from openinterp.cli import cli
-from openinterp.cli_evidence import read_corpus
-from openinterp.core.confounds import PROGRAMMING_LANGUAGE
-from openinterp.core.corpora import CorpusSource
-from openinterp.corpus import (
+from openinterpretability.cli import cli
+from openinterpretability.cli_evidence import read_corpus
+from openinterpretability.core.confounds import PROGRAMMING_LANGUAGE
+from openinterpretability.core.corpora import CorpusSource
+from openinterpretability.corpus import (
     FINEWEB2_LANGUAGES,
     PRESETS,
     WIKIPEDIA_LANGUAGES,
@@ -42,9 +42,9 @@ from openinterp.corpus import (
     wikitext_articles,
     write_corpus,
 )
-from openinterp.corpus_layouts import BOOK_BACK, BOOK_FRONT, PASSAGE_CHARS, book_passages
-from openinterp.corpus_rebuild import rebuild, scanned_source
-from openinterp.evidence import read_labels
+from openinterpretability.corpus_layouts import BOOK_BACK, BOOK_FRONT, PASSAGE_CHARS, book_passages
+from openinterpretability.corpus_rebuild import rebuild, scanned_source
+from openinterpretability.evidence import read_labels
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 
@@ -293,7 +293,7 @@ def test_cli_uses_the_presets_settings(
             documents=kw["documents"], license="odc-by", lang_detector=None, code_detector=None
         )
 
-    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    monkeypatch.setattr("openinterpretability.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", preset, "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     assert CliRunner().invoke(cli, args).exit_code == 0
     assert calls["dataset"] == dataset and calls["revision"] == revision
@@ -313,7 +313,7 @@ def test_cli_detect_lang_replaces_a_presets_exact_languages(monkeypatch, tmp_pat
         calls.update(kw)
         return SimpleNamespace(documents=3, license=None, lang_detector="d", code_detector=None)
 
-    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    monkeypatch.setattr("openinterpretability.corpus.build_from_hub", fake_build)
     out = ["--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     args = ["corpus", "--dataset", "wikipedia-multilingual", *out, "--detect-lang"]
     assert CliRunner().invoke(cli, args).exit_code == 0
@@ -329,7 +329,7 @@ def test_cli_detect_code_reaches_the_builder_but_not_for_exact_languages(monkeyp
         calls.update(kw)
         return SimpleNamespace(documents=3, license=None, lang_detector=None, code_detector="d")
 
-    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    monkeypatch.setattr("openinterpretability.corpus.build_from_hub", fake_build)
     out = ["--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     result = CliRunner().invoke(cli, ["corpus", "--dataset", "pile-10k", *out, "--detect-code"])
     assert result.exit_code == 0 and calls["detect_code"] is True
@@ -434,7 +434,7 @@ def test_a_blend_concatenates_its_presets_samples_and_labels_their_source(
         Preset("org/wiki", "1.en/*.parquet,1.de/*.parquet", lang_pattern=r"^1\.(\w+)/"),
     )
     monkeypatch.setitem(BLENDS, "test-v1", {"web": 2, "wiki": 1})
-    monkeypatch.setattr("openinterp.blends.NO_DETECTION", {"test-v1"})
+    monkeypatch.setattr("openinterpretability.blends.NO_DETECTION", {"test-v1"})
 
     out = tmp_path / "mixed.jsonl"
     source = build_blend("test-v1", out, documents=9, seed=3, max_chars=99)
@@ -483,7 +483,7 @@ def _fake_build(monkeypatch, name, sha="s" * 64):
         source_path(out).write_text("{}")
         return SimpleNamespace(sha256=sha)
 
-    monkeypatch.setattr(f"openinterp.corpus_rebuild.{name}", build)
+    monkeypatch.setattr(f"openinterpretability.corpus_rebuild.{name}", build)
     return calls
 
 
@@ -524,7 +524,7 @@ def test_a_blends_revisions_override_its_presets(monkeypatch, tmp_path):
         source = dict(dataset=dataset, revision=revision, files="f", seed=0, max_chars=9)
         return ["text"] * documents, None, source
 
-    monkeypatch.setattr("openinterp.blends._sample_hub", sample)
+    monkeypatch.setattr("openinterpretability.blends._sample_hub", sample)
     monkeypatch.setitem(PRESETS, "a", Preset("org/a", "*.parquet", revision="branch"))
     monkeypatch.setitem(PRESETS, "b", Preset("org/b", "*.parquet"))
     monkeypatch.setitem(BLENDS, "test-v1", {"a": 1, "b": 1})
@@ -540,7 +540,7 @@ def test_a_blend_writes_chat_with_its_presets_template_at_the_pinned_commit(monk
         source = dict(dataset=dataset, revision=revision, files="f", seed=0, max_chars=9)
         return ["text"] * documents, None, source
 
-    monkeypatch.setattr("openinterp.blends._sample_hub", sample)
+    monkeypatch.setattr("openinterpretability.blends._sample_hub", sample)
     monkeypatch.setitem(PRESETS, "a", Preset("org/a", "*.parquet"))
     monkeypatch.setitem(PRESETS, "chat", Preset("org/chat", "*.parquet", chat_template="org/m"))
     monkeypatch.setitem(BLENDS, "test-v1", {"a": 1, "chat": 1})
@@ -587,7 +587,7 @@ def test_cli_builds_the_mixed_blend_by_default(monkeypatch, tmp_path):
                                code_detector=None,
                                components=[])  # fmt: skip
 
-    monkeypatch.setattr("openinterp.blends.build_blend", fake_blend)
+    monkeypatch.setattr("openinterpretability.blends.build_blend", fake_blend)
     args = ["corpus", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     assert CliRunner().invoke(cli, args).exit_code == 0
     assert calls == {"name": "mixed", "documents": 3, "seed": 0, "max_chars": 3000,
@@ -635,9 +635,9 @@ def test_full_sample_of_a_built_corpus_hashes_like_the_file(tmp_path):
 
 
 def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
-    from openinterp.builder.compiler import compile_site
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.core.schemas import AuditRecord, CorpusSource, ExperimentProvenance
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.core.schemas import AuditRecord, CorpusSource, ExperimentProvenance
 
     source = CorpusSource(
         dataset="HuggingFaceFW/fineweb-edu", revision="87f09149", files="sample/10BT/*.parquet",
@@ -662,8 +662,8 @@ def test_experiment_pages_show_the_corpus_licence(tmp_path, record):
 
 
 def test_build_infers_the_source_of_records_that_predate_their_corpus_sidecar(tmp_path, record):
-    from openinterp.builder.compiler import compile_site
-    from openinterp.core.schemas import AuditRecord, ExperimentProvenance
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.core.schemas import AuditRecord, ExperimentProvenance
 
     out = tmp_path / "corpus.jsonl"
     source = write_corpus(DOCS, out, first=True, ascii=True, dataset="NeelNanda/pile-10k",
@@ -751,8 +751,8 @@ def code_blend(monkeypatch, code_shards):
     monkeypatch.setitem(PRESETS, "prose", Preset("org/prose", "*.parquet"))
     for name in ("test-v1", "test-v2"):
         monkeypatch.setitem(BLENDS, name, {"code": 1, "prose": 1})
-    monkeypatch.setattr("openinterp.blends.NO_CODE_LANGUAGE", {"test-v1"})
-    monkeypatch.setattr("openinterp.blends.NO_DETECTION", {"test-v1", "test-v2"})
+    monkeypatch.setattr("openinterpretability.blends.NO_CODE_LANGUAGE", {"test-v1"})
+    monkeypatch.setattr("openinterpretability.blends.NO_DETECTION", {"test-v1", "test-v2"})
 
 
 def test_a_blend_records_code_languages_and_its_older_version_stays_without(code_blend, tmp_path):
@@ -774,7 +774,7 @@ def test_a_blend_records_code_languages_and_its_older_version_stays_without(code
 
 
 def test_a_blend_detects_only_the_labels_a_part_lacks(code_blend, tmp_path, monkeypatch):
-    from openinterp import codeid, langid
+    from openinterpretability import codeid, langid
 
     monkeypatch.setattr(langid, "detect", lambda texts: ["en"] * len(texts))
     monkeypatch.setattr(langid, "DETECTOR", "fake lid")
@@ -849,7 +849,7 @@ def test_build_from_hub_pins_the_chat_templates_model(tmp_path, monkeypatch):
     )
     asked = []
     monkeypatch.setattr(
-        "openinterp.corpus.chat_formatter",
+        "openinterpretability.corpus.chat_formatter",
         lambda model, revision: asked.append((model, revision)) or (_chat, "m1"),
     )
     out = tmp_path / "c.jsonl"
@@ -879,7 +879,7 @@ def test_cli_chat_presets_take_their_template_unless_told_another(monkeypatch, t
             documents=kw["documents"], license="mit", lang_detector=None, code_detector=None
         )
 
-    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    monkeypatch.setattr("openinterpretability.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", "ultrachat", "--docs", "3", "--out", str(tmp_path / "c.jsonl")]
     assert CliRunner().invoke(cli, args).exit_code == 0
     assert (calls["dataset"], calls["text_column"]) == ("HuggingFaceH4/ultrachat_200k", "messages")
@@ -899,7 +899,7 @@ def test_cli_reports_a_model_without_a_chat_template(monkeypatch, tmp_path):
     def fake_build(dataset, out, **kw):
         raise ValueError("openai-community/gpt2's tokenizer has no chat template")
 
-    monkeypatch.setattr("openinterp.corpus.build_from_hub", fake_build)
+    monkeypatch.setattr("openinterpretability.corpus.build_from_hub", fake_build)
     args = ["corpus", "--dataset", "ultrachat", "--chat-template", "openai-community/gpt2"]
     result = CliRunner().invoke(cli, [*args, "--out", str(tmp_path / "c.jsonl")])
     assert result.exit_code == 1 and "has no chat template" in result.output
@@ -916,7 +916,7 @@ def test_scanned_source_reads_the_committed_table_of_sources(tmp_path, monkeypat
 
 def test_committed_table_names_corpora_not_covered_elsewhere():
     """Each table entry is a valid source, and none repeats the default corpus's sidecar."""
-    from openinterp.core.schemas import COMMITTED_SOURCES
+    from openinterpretability.core.schemas import COMMITTED_SOURCES
 
     root = Path(__file__).resolve().parents[1]
     sidecar, table = (root / name for name in COMMITTED_SOURCES)

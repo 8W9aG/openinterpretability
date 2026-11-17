@@ -10,8 +10,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.core import pause
+from openinterpretability.cli import cli
+from openinterpretability.core import pause
 
 NOW = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
 
@@ -79,4 +79,4 @@ def test_the_loop_script_waits_only_for_exit_75():
 
     assert "slept" in run(75)  # paused: it waits
     assert run(0).strip().endswith("returned")  # not paused
-    assert run(2).strip().endswith("returned")  # an older openinterp without `pause`
+    assert run(2).strip().endswith("returned")  # an older openinterpretability without `pause`

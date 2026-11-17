@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from openinterp import planner, planner_models
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.core.licenses import ModelLicense
-from openinterp.core.schemas import (
+from openinterpretability import planner, planner_claims, planner_models
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.core.licenses import ModelLicense
+from openinterpretability.core.schemas import (
     BUILTIN_CORPUS,
     AuditRecord,
     ExperimentProvenance,
@@ -19,7 +19,7 @@ from openinterp.core.schemas import (
     ReviewMetrics,
     ReviewPolicy,
 )
-from openinterp.planner import (
+from openinterpretability.planner import (
     BASE_WEIGHTS,
     claim_key,
     configured_licenses,
@@ -266,7 +266,7 @@ def test_cli_next(tmp_path, record):
 
     from click.testing import CliRunner
 
-    from openinterp.cli import cli
+    from openinterpretability.cli import cli
 
     wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", gates={}))
     args = ["next", "--wiki-dir", str(wiki), "--no-claims"]
@@ -346,7 +346,7 @@ def test_explores_configured_models_by_coverage(tmp_path, record):
     """With no model size known, a model with no records gets most explore draws."""
     wiki = _registry(tmp_path, *(_record(record, status="VERIFIED", idx=i) for i in range(8)))
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
+        '[tool.openinterpretability]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
     )
     picks = _explored_models(wiki)
     # Weights 1/√9 and 1/√1, so the new model gets 75% of explore draws.
@@ -377,7 +377,7 @@ def test_smallest_model_below_target_is_the_focus(tmp_path, record, monkeypatch)
     for d in (tmp_path, tmp_path / "a", tmp_path / "b"):
         d.mkdir(exist_ok=True)
         (d / "pyproject.toml").write_text(
-            '[tool.openinterp]\nmodels = ["big/m", "mid/m", "small/m"]\n'
+            '[tool.openinterpretability]\nmodels = ["big/m", "mid/m", "small/m"]\n'
         )
     plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW, claims=_claims("mid--m", 3))
     assert plan.focus == "small/m"
@@ -409,7 +409,9 @@ def test_smallest_model_below_target_is_the_focus(tmp_path, record, monkeypatch)
 
 
 def test_open_claims_count_as_coverage(tmp_path):
-    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["a/x", "b/y"]\n')
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterpretability]\nmodels = ["a/x", "b/y"]\n'
+    )
     claims = [
         f"experiment: a--x-L{i}-N1-positive experiment/a--x-L{i}-N1-positive" for i in range(3)
     ]
@@ -419,12 +421,12 @@ def test_open_claims_count_as_coverage(tmp_path):
 
 
 def test_coverage_target_and_share_are_configurable(tmp_path, record):
-    """Records give the size; ``[tool.openinterp]`` can move the target and the share."""
+    """Records give the size; ``[tool.openinterpretability]`` can move the target and the share."""
     sub = record.submission.model_copy(update={"model_num_layers": 2, "model_mlp_width": 10})
     rec = record.model_copy(update={"submission": sub})
     wiki = _registry(tmp_path, *(_record(rec, status="VERIFIED", idx=i) for i in range(3)))
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
+        '[tool.openinterpretability]\nmodels = ["Qwen/Qwen2.5-0.5B", "new/model"]\n'
         "coverage_target = 0.5\nothers_share = 0.1\n"
     )
     plan = plan_next(wiki, seed=1, epsilon=1.0, now=NOW)
@@ -434,7 +436,7 @@ def test_coverage_target_and_share_are_configurable(tmp_path, record):
 
 
 def test_model_option_overrides_config(tmp_path):
-    (tmp_path / "pyproject.toml").write_text('[tool.openinterp]\nmodels = ["a/x"]\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.openinterpretability]\nmodels = ["a/x"]\n')
     assert set(_explored_models(tmp_path / "wiki", n=20, models=["b/y"])) == {"b/y"}
     assert set(_explored_models(tmp_path / "wiki", n=20)) == {"a/x"}
 
@@ -458,11 +460,11 @@ def test_configured_licenses_parse_and_reject_typos(tmp_path):
     pyproject = tmp_path / "pyproject.toml"
     assert configured_licenses(pyproject) == {}
     terms = 'license = "x"\nurl = "https://u"\ngated = true\npublishing_allowed = false\n'
-    pyproject.write_text(f'[tool.openinterp.licenses."a/x"]\n{terms}')
+    pyproject.write_text(f'[tool.openinterpretability.licenses."a/x"]\n{terms}')
     assert configured_licenses(pyproject)["a/x"] == ModelLicense(
         license="x", url="https://u", gated=True, publishing_allowed=False
     )
-    pyproject.write_text(f'[tool.openinterp.licenses."a/x"]\n{terms}publishable = true\n')
+    pyproject.write_text(f'[tool.openinterpretability.licenses."a/x"]\n{terms}publishable = true\n')
     with pytest.raises(ValidationError):
         configured_licenses(pyproject)
 
@@ -474,7 +476,8 @@ def test_short_context_models_are_scanned_in_windows(tmp_path, record):
     window length.
     """
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.openinterp]\nmodels = ["a/x"]\n[tool.openinterp.window_tokens]\n"a/x" = 128\n'
+        '[tool.openinterpretability]\nmodels = ["a/x"]\n'
+        '[tool.openinterpretability.window_tokens]\n"a/x" = 128\n'
     )
     plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW)
     assert plan.choice.commands[0].endswith("--window-tokens 128")
@@ -500,8 +503,8 @@ def test_short_context_models_are_scanned_in_windows(tmp_path, record):
 
 
 def test_stopped_scans_count_as_covered_and_only_proofs_as_verified():
-    from openinterp.core.identifiers import NeuronIdentifier
-    from openinterp.planner_models import model_coverage
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from openinterpretability.planner_models import model_coverage
 
     stopped = [
         NeuronIdentifier(model_name="a/x", layer=0, neuron_idx=i, pole="positive") for i in range(3)
@@ -524,13 +527,64 @@ def test_fork_prs_claim_only_by_an_experiment_branch(monkeypatch):
             "isCrossRepository": True,
         },
     ]
-    monkeypatch.setattr(planner.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(planner_claims.shutil, "which", lambda name: "/usr/bin/gh")
     monkeypatch.setattr(
-        planner.subprocess,
+        planner_claims.subprocess,
         "run",
         lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=json.dumps(prs)),
     )
     assert planner.open_pr_claims() == [
         "Mine: L1/N2 experiment/m-L1-N2-positive",
-        "experiment/m-L9-N9-positive",
+        "m-L9-N9-positive",
     ]
+
+
+def _fork_prs(monkeypatch, *branches):
+    prs = [{"title": "x", "headRefName": b, "isCrossRepository": True} for b in branches]
+    monkeypatch.setattr(planner_claims.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(
+        planner_claims.subprocess,
+        "run",
+        lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout=json.dumps(prs)),
+    )
+    return planner.open_pr_claims()
+
+
+def test_a_fork_branch_that_joins_several_keys_claims_none(monkeypatch):
+    joined = "experiment/" + "-".join(f"a--x-L{i}-N{i}-positive" for i in (1, 2, 3))
+    claims = _fork_prs(monkeypatch, joined)
+    assert claims == []
+    coverage = planner_models.model_coverage(["a/x"], [], claims, dead=[], stopped=[])
+    assert coverage["a/x"].covered == 0
+
+
+def test_a_fork_claim_matches_only_an_equal_key(monkeypatch):
+    claims = _fork_prs(
+        monkeypatch, "experiment/Qwen--Qwen2.5-0.5B-L3-H12", "experiment/m-L1-N2-positive-rescan"
+    )
+    assert claims == ["Qwen--Qwen2.5-0.5B-L3-H12", "m-L1-N2-positive"]
+    assert planner.claimed("Qwen--Qwen2.5-0.5B-L3-H12", claims)
+    assert not planner.claimed("Qwen--Qwen2.5-0.5B-L3-H1", claims)
+    assert planner.claimed("m-L1-N2-positive", claims)
+    # A PR from this repository still claims each key that its text contains.
+    assert planner.claimed("m-L3-H1", ["Study m-L3-H12 and m-L3-H1"])
+
+
+def _probes_of_its_own(rec, tag, status):
+    """``rec`` with a status and a probe set of its own, so it is not a re-measurement."""
+    tests = [t.model_copy(update={"prompt": f"{t.prompt} {tag}"})
+             for t in rec.verdict.adversarial_test_results]  # fmt: skip
+    verdict = rec.verdict.model_copy(update={"status": status, "adversarial_test_results": tests})
+    return rec.model_copy(update={"verdict": verdict})
+
+
+def test_an_even_split_draws_a_resolving_review(tmp_path, record):
+    """One VERIFIED and one NEEDS_REVISION independent reading: CONTESTED, so `resolve` (#3212)."""
+    rec = _record(record, status="VERIFIED", idx=1, gates={})
+    split = [
+        _probes_of_its_own(_reviewed_by(rec, "x/a"), "a", "VERIFIED"),
+        _probes_of_its_own(_reviewed_by(rec, "x/b", hours=1), "b", "NEEDS_REVISION"),
+    ]
+    plan = plan_next(_registry(tmp_path, *split), seed=1, now=NOW)
+    assert ("resolve", "N1-positive") in _kinds(plan)
+    assert ("revise", "N1-positive") not in _kinds(plan)

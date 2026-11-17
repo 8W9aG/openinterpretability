@@ -2,6 +2,10 @@
 
 [The paper on default-on negative poles](../default-on-poles/README.md) found that training moves most of GPT-2's neurons to a median pre-activation h of about −1. That is below GELU's minimum at −0.75. It also found that the input weights do this. It did not find why. This analysis trains small GPT-2s and changes one thing at a time.
 
+**Status:** Preprint. Work left: #4250 (rewrite in the paper form of #4202), #3193, #3192 and #4093 (the causes of the push that are still open).
+
+**Why we wrote it.** Most of GPT-2's neurons rest below GELU's dip, and that resting level is most of what a default-on pole costs. A protocol that ignores the rest must first know where it comes from. **The question.** What in training sets the level where a neuron rests? It is research question 5, *What makes a neuron rest, stay dead or stay on?* ([research questions](../../docs/research-questions.md)).
+
 **Results.** All are on small models, except the first's GPT-2 figures. Each number is from one or two seeds.
 
 1. **The small models show GPT-2's pattern.** Their rest comes from weights set against the MLP's mean input, and not from the bias or from a skewed tail. So a small model is a fair place to test causes, with the limits under *Caveats*.
@@ -597,7 +601,7 @@ The 12,000-step runs of GELU and the fast control were labelled `training_long` 
 
 ## Next
 
-[Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Why neurons rest* ([open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+%22papers%2Fwhy-neurons-rest%22)). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. No part of Pythia's training setup weakens the push in a small model, alone or together. Its batch was tested only at 4 times ours. So Pythia's scale, its full batch or its gaps between checkpoints remain as causes.
+Open questions are issues in the Linear project *Why neurons rest* ([open issues](https://github.com/8W9aG/openinterpretability/issues?q=is%3Aopen+%22papers%2Fwhy-neurons-rest%22)). One cause stays open: why the output's push of GELU and SiLU points up most on tokens below the rest. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. No part of Pythia's training setup weakens the push in a small model, alone or together. Its batch was tested only at 4 times ours. So Pythia's scale, its full batch or its gaps between checkpoints remain as causes.
 
 ## References
 

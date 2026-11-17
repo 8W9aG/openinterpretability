@@ -23,7 +23,7 @@ The working hypothesis from Goodfire's *Neural Networks Are Already Clean*: most
 Every registry-wide claim inherits the noise of single verdicts.
 
 - **What would answer it.** How often a rerun, another reviewer or another corpus changes a verdict, and a review rule whose verdict is stable.
-- **So far.** A second reading of a hypothesis agrees with the first on status 56% of the time (`registry-stats.md`). The reviewer explains 6–8% of the variance in verdicts (`docs/analyses/reviewer-crossover.md`). No swapped hypothesis was VERIFIED in 255 tries (`null-calibration.md`). Today's rule still verifies 326 of 331 older VERIFIED records (`docs/analyses/protocol-mix.md`). VERIFIED explanations score only 0.04 higher on held-out detection than others, within judge (`docs/analyses/verified-vs-detection.md`).
+- **So far.** A second reading of a hypothesis agrees with the first on status 56% of the time (`registry-stats.md`). The reviewer explains 6–8% of the variance in verdicts (`docs/analyses/reviewer-crossover.md`). No swapped hypothesis was VERIFIED in 255 tries (`null-calibration.md`). Today's rule still verifies 326 of 331 older VERIFIED records (`docs/analyses/protocol-mix.md`). VERIFIED explanations score only 0.04 higher on held-out detection than others, within judge (`docs/analyses/verified-vs-detection.md`). With one judge, twice the windows and two seeds, a score still separates VERIFIED records poorly (AUROC 0.54 for detection). So it should not become a gate (`docs/analyses/rescore-pilot.md`, 2026-11-16).
 - **Update (2026-11-13).** With the same reviewer and prompt, VERIFIED-or-not flips between two reviews 18% of the time. That noise is 21% of balanced accuracy's variance, twice the reviewer model's share (`docs/analyses/verdict-stability.md`). The `specificity` gate causes most flips (#3509).
 - **Update (2026-11-14).** The hypothesis and probes stayed fixed, and the unit was scanned on fineweb-edu instead of pile-10k. That changed VERIFIED-or-not for 7 of 40 records, about 17% when weighted to the registry. That is as large as the rerun noise. Every change is at a gate's edge, through the scan's scale (`docs/analyses/corpus-stability.md`).
 - **Bears on it.** Rival hypotheses, reviewer drift, the human baseline, ground-truth models, held-out scoring (#3499, #3505).
@@ -51,3 +51,9 @@ Every registry-wide claim inherits the noise of single verdicts.
 - **What would answer it.** For VERIFIED poles, whether the explanation holds on other corpora, measured with held-out scores on each.
 - **So far.** Not measured. Each new scan reads its own seeded `mixed` corpus, and the Cosmopedia control isn't run.
 - **Bears on it.** New corpus presets (`area: datasets`), held-out scoring on another corpus.
+
+## 7. When do neurons form during training? (#3376)
+
+- **What would answer it.** Take the VERIFIED poles of a model whose training run is public. For each, the step from which its explanation holds, and whether that step lines up with the loss or with other training signals.
+- **So far.** On 2026-11-16, `papers/neuron-development/` followed Pythia-70m's 9 VERIFIED poles through 20 checkpoints. The loss settles within 1% of its final value by step 16,000. But the poles keep changing, and their median correlation with their final form is 0.48 there. Four explanations hold without a break from step 16,000 or earlier, and five only from step 64,000 or later.
+- **Bears on it.** Adjacent-checkpoint correlations, OLMo's checkpoints, and the local learning coefficient (#4156).

@@ -1,1 +1,0 @@
-- **The source distribution** now holds only the package and its metadata. It used to pack the whole repository, and PyPI refused v0.0.20's sdist as over 100 MB. That release is on PyPI as a wheel only.

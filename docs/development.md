@@ -6,8 +6,9 @@ How to change the code, what CI checks on a pull request, where the code lives, 
 
 ```bash
 make install        # uv sync
-make test           # pytest (CPU only, no downloads); waits for other heavy jobs with OPENINTERP_HEAVY_LOCK=1
-make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, Markdown, Vale, STE
+make test           # pytest (CPU only, no downloads); waits for other heavy jobs with OPENINTERPRETABILITY_HEAVY_LOCK=1
+make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, types, Markdown, Vale, STE
+make typecheck      # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml)
 make vale           # comment and docstring prose against our STE rules (needs Vale)
 make perf           # wall time, CPU time and peak memory of fixed workloads, against docs/analyses/perf-baseline.json
 make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)
@@ -17,7 +18,9 @@ make build          # build dist/ from the wiki archive, plus the Pagefind index
 open-interpretability deploy --dist-dir dist --bucket my-r2-bucket [--delete] [--dry-run]
 ```
 
-`open-interpretability build` renders the unit pages in one worker process per CPU (`--jobs`, where the platform can fork). `--jobs 1` renders them in one process. The build keeps the personal-data matches of each text on disk, in `~/.cache/openinterp/pii`. So a build searches only new text. `OPENINTERP_PII_CACHE` moves the cache, and `off` turns it off. The deploy keeps this cache between runs. The significance of each record is kept the same way, in `~/.cache/openinterp/build` (`OPENINTERP_BUILD_CACHE`). The two Parquet exports run in forked processes while the pages render. The build gives the same files on every run, whatever the hash seed.
+`open-interpretability build` renders the unit pages in one worker process per CPU (`--jobs`, where the platform can fork). `--jobs 1` renders them in one process. The build keeps the personal-data matches of each text on disk, in `~/.cache/openinterpretability/pii`. So a build searches only new text. `OPENINTERPRETABILITY_PII_CACHE` moves the cache, and `off` turns it off. The deploy keeps this cache between runs. The significance of each record is kept the same way, in `~/.cache/openinterpretability/build` (`OPENINTERPRETABILITY_BUILD_CACHE`). The two Parquet exports run in forked processes while the pages render. The build gives the same files on every run, whatever the hash seed.
+
+**Types.** `make typecheck` runs mypy in strict mode, with the pydantic plugin. It checks only the paths in `[tool.mypy] files`, which today is `openinterpretability/core/`, the schemas that every record depends on. To widen the check, add the next package to `files`, fix its strict errors, and land both in one PR. Use `# type: ignore[<code>]` only with a comment that says why.
 
 `make lint` and `make vale` need [Vale](https://vale.sh), which is not a Python package: `brew install vale` on macOS, or a release binary from vale.sh. `dist/index.html` opens directly from disk. Search and the SQL console need HTTP (`make serve`). No step needs Node.js: Pagefind is a locked Python dev dependency.
 
@@ -47,14 +50,14 @@ A pull request that does an issue says `Closes #<number>`. Its changelog entry i
 
 [CI](../.github/workflows/ci.yml) runs three required jobs on every PR:
 
-- **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration, papers and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`). Lint also checks the JSON, JSONL and YAML files (`scripts/check_data_files.py`, with yamllint). On a pull request, the IFTTT lint (`scripts/ifttt_lint.py`) checks copies that must stay in sync. A block between `LINT.IfChange` and `LINT.ThenChange(<path>)` comments may change only when the named file changes too. `ALLOWED_MODELS` in `ci.yml` and `[tool.openinterp] models` are the first pair. A pull request that changes only `wiki/` (an experiment) runs the same code as `main`, so it skips this job (a skipped job counts as passing).
-- **Experiment records:** `open-interpretability check`. On a pull request that changes only `wiki/`, the record and page rules read only the files it adds or changes (`--base-ref`). If it changes anything else, and on `main`, they read every file. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must match the schema, have a verdict and sit at the path its neuron and id dictate. It must name only an earlier experiment on the same unit in `supersedes`, and have a page whose front matter matches it. Every page must have a record. New records must have `model_num_layers` and `model_mlp_width`, and `model_n_heads` on head records only. Generated indexes (`README.md`) must not be committed, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty. Today's code recomputes the status, gates and balanced accuracy of each record from its stored results, with no model (`openinterp/verdict_regression.py`). For records judged under the current protocol, they must match. So a change to the gates that would change a verdict fails here. A change made on purpose bumps `PROTOCOL_VERSION`.
+- **Lint and tests:** ruff, a 500-line limit on source and documentation files (tests, configuration, papers and generated data are exempt), and pytest, with CPU-only torch (`scripts/ci-install.sh`). Lint also checks the JSON, JSONL and YAML files (`scripts/check_data_files.py`, with yamllint). On a pull request, the IFTTT lint (`scripts/ifttt_lint.py`) checks copies that must stay in sync. A block between `LINT.IfChange` and `LINT.ThenChange(<path>)` comments may change only when the named file changes too. `ALLOWED_MODELS` in `ci.yml` and `[tool.openinterpretability] models` are the first pair. A pull request that changes only `wiki/` (an experiment) runs the same code as `main`, so it skips this job (a skipped job counts as passing).
+- **Experiment records:** `open-interpretability check`. On a pull request that changes only `wiki/`, the record and page rules read only the files it adds or changes (`--base-ref`). If it changes anything else, and on `main`, they read every file. Every experiment record (`wiki/experiments/<slug>/<id>.json`) must match the schema, have a verdict and sit at the path its neuron and id dictate. It must name only an earlier experiment on the same unit in `supersedes`, and have a page whose front matter matches it. Every page must have a record. New records must have `model_num_layers` and `model_mlp_width`, and `model_n_heads` on head records only. Generated indexes (`README.md`) must not be committed, existing records are write-once, and existing pages may only change in their Discussion section. The retired `audits/` directory must be empty. Today's code recomputes the status, gates and balanced accuracy of each record from its stored results, with no model (`openinterpretability/verdict_regression.py`). For records judged under the current protocol, they must match. So a change to the gates that would change a verdict fails here. A change made on purpose bumps `PROTOCOL_VERSION`.
 - **Nightly reproduction:** `open-interpretability reproduce --sample 20`, on `main`. It re-runs a rotating sample of all records, signed ones too, so a library upgrade that shifts activations is noticed. It starts no record after 140 minutes (`--time-budget`), and the records it didn't reach don't fail it. A failure opens an issue (docs/PROTOCOL.md §5).
-- **Reproduce records:** `open-interpretability reproduce --base-ref origin/main`, on pull requests only. It re-runs every record the pull request adds or changes against the model commit it pins, on CPU. It fails if any activation, result, gate or status differs from the record (docs/PROTOCOL.md §5). Pull requests without record changes skip it (a skipped job counts as passing). Reproductions run one at a time across all pull requests, queued in order, and a newer push to a pull request cancels its older run. Only models in the job's `ALLOWED_MODELS` are downloaded, and the weights are cached between runs. Expect a few minutes per record for Qwen2.5-0.5B. A record in bfloat16 or float16 is reproduced in float32, under wider rules (docs/PROTOCOL.md §5). Records signed by a maintainer are skipped: run `open-interpretability sign wiki/experiments/<slug>/<id>.json` and commit the `.sig` file next to the record. The default key is `~/.ssh/openinterp_signing` (or `$OPENINTERP_SIGNING_KEY`, or `--key`): a key used only for signing, so it can be revoked without touching your logins. `verify`, `review` and `reevaluate` sign each new experiment automatically when that key exists and is listed in `.github/allowed_signers`. So your own runs (including `make loop`) skip CI reproduction. Set `OPENINTERP_AUTO_SIGN=0` to turn this off. Only keys in `.github/allowed_signers` on `main` count. Add yours there first, in its own commit to `main`:
+- **Reproduce records:** `open-interpretability reproduce --base-ref origin/main`, on pull requests only. It re-runs every record the pull request adds or changes against the model commit it pins, on CPU. It fails if any activation, result, gate or status differs from the record (docs/PROTOCOL.md §5). Pull requests without record changes skip it (a skipped job counts as passing). Reproductions run one at a time across all pull requests, queued in order, and a newer push to a pull request cancels its older run. Only models in the job's `ALLOWED_MODELS` are downloaded, and the weights are cached between runs. Expect a few minutes per record for Qwen2.5-0.5B. A record in bfloat16 or float16 is reproduced in float32, under wider rules (docs/PROTOCOL.md §5). Records signed by a maintainer are skipped: run `open-interpretability sign wiki/experiments/<slug>/<id>.json` and commit the `.sig` file next to the record. The default key is `~/.ssh/openinterpretability_signing` (or `$OPENINTERPRETABILITY_SIGNING_KEY`, or `--key`): a key used only for signing, so it can be revoked without touching your logins. `verify`, `review` and `reevaluate` sign each new experiment automatically when that key exists and is listed in `.github/allowed_signers`. So your own runs (including `make loop`) skip CI reproduction. Set `OPENINTERPRETABILITY_AUTO_SIGN=0` to turn this off. Only keys in `.github/allowed_signers` on `main` count. Add yours there first, in its own commit to `main`:
 
   ```bash
-  ssh-keygen -t ed25519 -N "" -C "openinterp record signing" -f ~/.ssh/openinterp_signing
-  echo "<github-user> valid-after=\"$(date -u +%Y%m%d)Z\",namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterp_signing.pub)" >> .github/allowed_signers
+  ssh-keygen -t ed25519 -N "" -C "openinterpretability record signing" -f ~/.ssh/openinterpretability_signing
+  echo "<github-user> valid-after=\"$(date -u +%Y%m%d)Z\",namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterpretability_signing.pub)" >> .github/allowed_signers
   ```
 
 A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. So is a PR that the maintainer opened from a branch of this repository, whatever it changes. Agents that use the maintainer's GitHub login open PRs as the maintainer, so their PRs merge this way too. Any other PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
@@ -63,28 +66,48 @@ Two more checks run on every pull request but aren't required. *Secret scan* run
 
 Run `make check` locally before pushing. The [PR template](../.github/pull_request_template.md) has a checklist for posting experiments.
 
+## Dead code
+
+`make lint` runs vulture (`make vulture`), so an unused function, method, property or variable fails (#3164). Vulture can't see everything that uses a name. It misses Click commands and Pydantic validators, which decorators register. It also misses fields read from JSON, and names that only templates read. Those are kept in `vulture_whitelist.py`, under the reason for each.
+
+When vulture flags a name, check these before you delete it:
+
+- **Templates, skills, scripts and workflows.** Search the whole repository for the name, not only the package.
+- **Public API.** Code that only tests use can still be API that a skill tells agents to call, such as `ActivationPatcher.resample_ablation`. Keep it, test it, and add it to the whitelist's API section.
+- **Records and docs.** A CLI option or a schema field can still be in old records or in the docs. Delete it only after checking them.
+
+Otherwise delete it. Don't add a name to the whitelist to keep code that nothing uses.
+
+## Progress on long steps
+
+A step that can run for minutes reports its progress, so a slow run doesn't look like a stuck one (#3142).
+
+- **A loop over many items** counts them with `Progress` (`openinterpretability/harness/progress.py`). It prints one line to stderr at most once a minute, with the count, the time so far and the time left. A step that ends within a minute prints nothing new. `OPENINTERPRETABILITY_PROGRESS_SECONDS` changes the interval.
+- **The experiment loop** prints a `loop:` line at each stage of an iteration. The stages are the draw, the claim, each step, posting, the wait for checks and the merge. Each line goes to the console and to the iteration's log in `logs/`. The `RESULT` line that ends an iteration keeps its form.
+- **A command that already prints a line per item**, such as `coverage`, needs nothing more.
+
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
-| `openinterp/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` / `FeatureIdentifier` (in `core/identifiers.py`), `HeadProfile` / `DictionaryProfile` (in `core/profiles.py`), `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
-| `openinterp/harness/hooks.py` | `NeuronHookRunner`: forward hooks on the MLP down-projection input (the neuron basis) for Llama/Qwen/Mistral/GPT-2/NeoX/OPT/Phi, pole isolation and corpus scanning |
-| `openinterp/harness/scan.py` | The audit's corpus scan: windows, top examples, partners and confounds in one pass, over chunks of whole-layer activations |
-| `openinterp/harness/layer_cache.py` | On-disk cache of those chunks per model, layer and corpus sample, which later scans and `open-interpretability activations` replay |
-| `openinterp/harness/units.py` | What strength and ablation mean for each unit: a neuron pole, an attention head measured from its mean output, or a dictionary latent |
-| `openinterp/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
-| `openinterp/harness/dictionaries.py` | Published transcoders/SAEs (presets, pinned weights, how each is read) |
-| `openinterp/harness/sites.py` | Where a dictionary reads its input and writes its output: the hooks behind `dictionary_interventions` |
-| `openinterp/harness/environment.py` | The device, dtype, model revision and library versions recorded with each run |
-| `openinterp/harness/features.py` | Dictionary-latent scan (with the dictionary's fit) and latent patching |
-| `openinterp/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
-| `openinterp/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
-| `openinterp/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
-| `openinterp/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files), and deterministic `evaluate_submission` |
+| `openinterpretability/core/schemas.py` | Strict Pydantic v2 models: `NeuronIdentifier` / `HeadIdentifier` / `FeatureIdentifier` (in `core/identifiers.py`), `HeadProfile` / `DictionaryProfile` (in `core/profiles.py`), `CounterfactualPair`, `LookaheadProfile`, `CausalMetrics`, `NeuronAuditSubmission`, `VerificationVerdict`, `AuditRecord` |
+| `openinterpretability/harness/hooks.py` | `NeuronHookRunner`: forward hooks on the MLP down-projection input (the neuron basis) for Llama/Qwen/Mistral/GPT-2/NeoX/OPT/Phi, pole isolation and corpus scanning |
+| `openinterpretability/harness/scan.py` | The audit's corpus scan: windows, top examples, partners and confounds in one pass, over chunks of whole-layer activations |
+| `openinterpretability/harness/layer_cache.py` | On-disk cache of those chunks per model, layer and corpus sample, which later scans and `open-interpretability activations` replay |
+| `openinterpretability/harness/units.py` | What strength and ablation mean for each unit: a neuron pole, an attention head measured from its mean output, or a dictionary latent |
+| `openinterpretability/harness/heads.py` | Head scan (mean output, top examples with peak attention, pattern scores) and head patching |
+| `openinterpretability/harness/dictionaries.py` | Published transcoders/SAEs (presets, pinned weights, how each is read) |
+| `openinterpretability/harness/sites.py` | Where a dictionary reads its input and writes its output: the hooks behind `dictionary_interventions` |
+| `openinterpretability/harness/environment.py` | The device, dtype, model revision and library versions recorded with each run |
+| `openinterpretability/harness/features.py` | Dictionary-latent scan (with the dictionary's fit) and latent patching |
+| `openinterpretability/harness/patcher.py` | Denoising/noising activation patching and resample ablation per neuron pole, optionally freezing downstream MLPs |
+| `openinterpretability/harness/attribution.py` | Attribution patching (Δactivation × gradient) for whole layers in one backward pass |
+| `openinterpretability/harness/lookahead.py` | Pole-ablation KL profile and unembedding projection of the neuron's output direction |
+| `openinterpretability/agents/` | `ProposerAgent` and `ReviewerAgent` (structured outputs from LiteLLM or any external LLM via prompt files), and deterministic `evaluate_submission` |
 | `papers/` | Papers, one folder each: the write-up as `README.md`, its results and its media. The site publishes them as its Research section |
-| `openinterp/benchmark.py`, `benchmark/` | The explainer benchmark ([benchmark.md](benchmark.md)): freezing, sealing and scoring, and its frozen versions |
-| `openinterp/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
-| `openinterp/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
+| `openinterpretability/benchmark.py`, `benchmark/` | The explainer benchmark ([benchmark.md](benchmark.md)): freezing, sealing and scoring, and its frozen versions |
+| `openinterpretability/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
+| `openinterpretability/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 
 ## Static site and data
 
@@ -100,11 +123,11 @@ dist/
 ├── data/snapshots/registry-<sha>.parquet         # content-addressed, immutable
 ├── data/manifest.json
 ├── data/neuronpedia/v1/<model>/<source>/explanations/batch-0.jsonl.gz  # VERIFIED units, Neuronpedia's format
-├── assets/site.css                  # written by `python -m openinterp.builder.css --site dist` (make css)
+├── assets/site.css                  # written by `python -m openinterpretability.builder.css --site dist` (make css)
 └── pagefind/                        # written by `python -m pagefind --site dist` (make search-index)
 ```
 
-`data/neuronpedia/` holds the lead experiment of each VERIFIED unit in Neuronpedia's export layout, so a self-hosted Neuronpedia can import it (`openinterp/builder/neuronpedia_export.py`). A dictionary latent goes to the source Neuronpedia hosts it under, with the same index. A native neuron goes to `<layer>-openinterp-neurons`, with its pole. Only models that Neuronpedia knows are exported, today GPT-2 small. Each row links to its signed record and carries the data licence. Nothing is sent to Neuronpedia.
+`data/neuronpedia/` holds the lead experiment of each VERIFIED unit in Neuronpedia's export layout, so a self-hosted Neuronpedia can import it (`openinterpretability/builder/neuronpedia_export.py`). A dictionary latent goes to the source Neuronpedia hosts it under, with the same index. A native neuron goes to `<layer>-openinterpretability-neurons`, with its pole. Only models that Neuronpedia knows are exported, today GPT-2 small. Each row links to its signed record and carries the data licence. Nothing is sent to Neuronpedia.
 
 Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
 
@@ -119,11 +142,25 @@ R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_
 - `scripts/exchange.py check` runs in `make lint` and CI. It fails when a tracked file cites an `exchange/` folder that the manifest doesn't pin.
 - Output-only names are left out of the check, as are working folders such as `bench/`, which holds the benchmark's private test probes (`OUTPUTS` in the script). Inputs kept back on purpose are listed in `UNPUBLISHED` with the reason. For example, pile-10k excerpts stay back because the Pile corpus is not published.
 
+## Running outside a clone
+
+An install (`pip install open-interpretability`) reads the project's settings, `[tool.openinterpretability]` in `pyproject.toml`, from the copy that the wheel holds. A clone run from another directory reads the clone's. A `pyproject.toml` in the working directory counts only when it has that table (`planner._config`, #3693). So the models, scan windows and licences are the same everywhere.
+
+The commands fall into three groups:
+
+| Group | Commands |
+| --- | --- |
+| **Work anywhere.** They read no repository file. | `activations`, `benchmark score`, `benchmark seal`, `concepts`, `corpus`, `corpus-cache`, `costs`, `evidence load`, `evidence load-all`, `pause`, `probe-compare`, `provider …`, `resume`, `scan-cache`, `score`, `show`, `superpositions …`, `usage` |
+| **Work anywhere once you name their files.** Their defaults are repository paths. A record goes to `--wiki-dir`, `wiki/` by default, so the directory where they run becomes a small registry of its own. | `audit`, `review`, `verify`, `reevaluate` and `explain` (`--wiki-dir`, `--corpus`). `pole-effects` (`--corpus`). `sign` and `signatures` (`--allowed-signers`, `--wiki-dir`). |
+| **Need a clone.** They read or change the shared registry, its analyses, its site, or its git history. | `build`, `check`, `next`, `reproduce`, `wiki`, `stats`, `ledger`, `deploy`, `loop`, `loop-bug`, `evidence publish`, `evidence push`, `evidence verify`, `erratum draft`, `circuits …`, `crossref`, `aligned-latents`, `sisters`, `coverage`, `wiring-backfill`, `benchmark freeze`, `benchmark measure`, `neuronpedia-baseline`, `neuronpedia-review`, `patchscope-baseline` |
+
+`tests/test_install_anywhere.py` checks the settings from another directory, and a smoke test runs commands of the first group there.
+
 ## Releases on PyPI
 
-The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterp`, and the `openinterp` command remains as an alias until every doc, skill and workflow uses the new name. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterp.__version__`. It uploads with PyPI's trusted publishing, so no PyPI token is stored in the repository. PyPI trusts the repository `8W9aG/openinterpretability`, the workflow `publish.yml` and the GitHub environment `pypi`. That environment lets only `v*` tags deploy.
+The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is `openinterpretability`. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterpretability.__version__`. It uploads with PyPI's trusted publishing, so no PyPI token is stored in the repository. PyPI trusts the repository `8W9aG/openinterpretability`, the workflow `publish.yml` and the GitHub environment `pypi`. That environment lets only `v*` tags deploy.
 
-After pulling the rename, run `make install` once in each checkout. A plain `uv sync` loses the `openinterp` command with the old distribution.
+After pulling the rename, run `make install` once in each checkout. A plain `uv sync` loses the `openinterpretability` command with the old distribution.
 
 ## Deploy
 
@@ -141,4 +178,4 @@ Configure the workflow in the repo's GitHub settings:
 | `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | secrets | R2 S3 API access |
 | `R2_BUCKET` | variable | Bucket name |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
-| `OPENINTERP_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs. Without it, `open-interpretability deploy` uses `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too |
+| `OPENINTERPRETABILITY_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs. Without it, `open-interpretability deploy` uses `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too |

@@ -1,8 +1,8 @@
-"""EPO dreaming of a neuron pole (openinterp/harness/dreaming.py, issue #3228)."""
+"""EPO dreaming of a neuron pole (openinterpretability/harness/dreaming.py, issue #3228)."""
 
 import torch
 
-from openinterp.harness.dreaming import _score, dream
+from openinterpretability.harness.dreaming import _score, dream
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
 
 

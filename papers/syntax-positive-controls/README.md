@@ -2,6 +2,10 @@
 
 Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. A claim of round and square brackets, with curly ones weak, is VERIFIED. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. All four are VERIFIED through the same review, L9 N340+ on its second claim. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Without L2 N676+, the model also stops closing brackets that stay open. Later layers read the pole through the head L3H5 and then L8 N689+, another round-depth pole. Qwen2.5-0.5B and 1.5B have no round-depth pole as strong: their best have R² 0.160 and 0.175, and 0.168 and 0.161 at GPT-2's windows. Their best poles do not count depth.
 
+**Status:** Preprint. Work left: #4249 (rewrite in the paper form of #4202).
+
+**Why we wrote it.** The registry finds neurons for a concept by sweeping labelled text. If that search cannot find the code neurons that the literature leads us to expect, its silence about other concepts means little. **The question.** Do parser labels on source code find a bracket-depth neuron in GPT-2 small, and does it pass the registry's review? It is a positive control for research question 1, *Are native MLP neurons clean?* ([research questions](../../docs/research-questions.md)).
+
 ![A function with its tokens lit by the pole's strength, read token by token](media/trace.svg)
 
 **Results.**
@@ -28,7 +32,7 @@ These results do not show that L2 N676+ is the only bracket signal in GPT-2. The
 
 ## Method
 
-The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py`, `scripts/syntax_close_paths.py`, `scripts/syntax_close_states.py`, `scripts/syntax_close_readers.py`, `scripts/syntax_close_match.py` and `scripts/figures_syntax.py`. The tagger is `openinterp/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
+The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scripts/syntax_followups.py`, `scripts/syntax_close_paths.py`, `scripts/syntax_close_states.py`, `scripts/syntax_close_readers.py`, `scripts/syntax_close_match.py` and `scripts/figures_syntax.py`. The tagger is `openinterpretability/syntax.py`. The output is in `results.jsonl`, which keeps no text from the corpus, because each file keeps its repository's licence.
 
 - **Model.** GPT-2 small (Radford et al., 2019), at 128-token windows, as the registry scans it. Each neuron has 2 poles, so each layer has 6,144. The sweeps ran on Apple's MPS backend, in float32.
 - **Data.** 500 documents of [`codeparrot/github-code-clean`](https://huggingface.co/datasets/codeparrot/github-code-clean) at commit `c48d40f9`, seed 0, each cut to 3,000 characters. The card gives the licence as Apache-2.0 and names no citation. Its `license` column shows that each file keeps its repository's licence. Of these, 396 documents have a grammar, and the seeded 200,000-token sample holds 266 of them.

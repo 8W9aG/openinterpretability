@@ -1,11 +1,11 @@
 """Prior art: published explanations found after the proposer answers."""
 
-from openinterp.agents.reviewer import ReviewerAgent
-from openinterp.builder.compiler import compile_site
-from openinterp.core.identifiers import FeatureIdentifier
-from openinterp.core.schemas import NeuronIdentifier
-from openinterp.crossref import AlignmentRow, Explanation
-from openinterp.prior_art import TOP, find_prior_art, format_for_reviewer
+from openinterpretability.agents.reviewer import ReviewerAgent
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.core.identifiers import FeatureIdentifier
+from openinterpretability.core.schemas import NeuronIdentifier
+from openinterpretability.crossref import AlignmentRow, Explanation
+from openinterpretability.prior_art import TOP, find_prior_art, format_for_reviewer
 from tests.site_pages import unit_pages
 
 GPT2, TC = "openai-community/gpt2", "gpt2-small-transcoders"
@@ -28,7 +28,7 @@ def _fetch(asked):
 
 
 def test_a_latent_gets_its_own_machine_written_explanation(record, monkeypatch):
-    monkeypatch.setenv("OPENINTERP_PRIOR_ART", "1")
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
     sub = _sub(record, FeatureIdentifier(model_name=GPT2, layer=8, dictionary=TC, feature_idx=5))
     (art,) = find_prior_art(sub, runner=None, fetch=_fetch([]))
     assert (art.relation, art.cosine, art.description) == ("self", None, "closing quotes")
@@ -36,7 +36,7 @@ def test_a_latent_gets_its_own_machine_written_explanation(record, monkeypatch):
 
 
 def test_a_pole_gets_the_aligned_latents_above_chance(record, monkeypatch):
-    monkeypatch.setenv("OPENINTERP_PRIOR_ART", "1")
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
     ident = NeuronIdentifier(model_name=GPT2, layer=8, neuron_idx=7, pole="positive")
     matches = [{"feature_idx": i, "cosine": c} for i, c in [(1, 0.9), (2, -0.5), (3, 0.1),
                                                               (4, 0.4), (5, 0.35)]]  # fmt: skip
@@ -53,13 +53,13 @@ def test_a_pole_gets_the_aligned_latents_above_chance(record, monkeypatch):
 
 
 def test_prior_art_is_off_without_the_switch(record):
-    # tests/conftest.py sets OPENINTERP_PRIOR_ART=0, as an offline user can.
+    # tests/conftest.py sets OPENINTERPRETABILITY_PRIOR_ART=0, as an offline user can.
     sub = _sub(record, FeatureIdentifier(model_name=GPT2, layer=8, dictionary=TC, feature_idx=5))
     assert find_prior_art(sub, runner=None, fetch=_fetch([])) is None
 
 
 def test_the_reviewer_sees_prior_art_and_the_page_shows_it(record, monkeypatch, tmp_path):
-    monkeypatch.setenv("OPENINTERP_PRIOR_ART", "1")
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
     sub = _sub(record, FeatureIdentifier(model_name=GPT2, layer=8, dictionary=TC, feature_idx=5))
     art = find_prior_art(sub, runner=None, fetch=_fetch([]))
     sub = sub.model_copy(update={"prior_art": art})

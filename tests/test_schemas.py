@@ -4,7 +4,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from openinterp.core.schemas import (
+from openinterpretability.core.schemas import (
     ActivatingExample,
     AuditRecord,
     CausalMetrics,
@@ -113,7 +113,7 @@ def test_opposite_pole_is_the_other_pole_of_a_neuron(submission):
 
 
 def test_histogram_share_counts_bins_wholly_above_the_line():
-    from openinterp.core.examples import Histogram
+    from openinterpretability.core.examples import Histogram
 
     h = Histogram(bin_edges=[0.0, 1.0, 2.0, 3.0, 4.0], counts=[5, 1, 2, 2])
     assert h.share_at_least(2.0) == pytest.approx(0.4)

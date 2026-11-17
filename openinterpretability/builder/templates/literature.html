@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{{ review.title }} · {{ site_title }}{% endblock %}
+
+{% block head %}
+{% include "_prose.html" %}
+{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}research/index.html">Research</a>{% if review.name != "README" %} / <a class="underline" href="index.html">Literature review</a>{% else %} / Literature review{% endif %}</nav>
+<h1 class="max-w-3xl text-2xl font-semibold">{{ review.title }}</h1>
+<p class="mt-2 text-xs text-slate-500"><a class="underline" href="{{ repo_url }}/blob/main/docs/literature/{{ review.name }}.md">Source</a></p>
+{% if points is defined and points %}
+<figure class="mt-6" data-pagefind-ignore>
+  <svg viewBox="0 0 {{ map_size[0] }} {{ map_size[1] }}" class="w-full max-w-4xl" role="group" aria-label="A map of the {{ points | length }} reviewed papers: close points are papers about similar things. The axes have no meaning. Shape and colour give each review's status.">
+    <rect width="{{ map_size[0] }}" height="{{ map_size[1] }}" rx="8" class="fill-slate-50 dark:fill-slate-900"/>
+    {% for p in points %}
+    {% set cx, cy = p.cx, p.cy %}
+    <a href="{{ p.name }}.html"><title>{{ p.title }} ({{ p.status }})</title>
+      {% if p.moved %}<line x1="{{ cx }}" y1="{{ cy }}" x2="{{ p.tx }}" y2="{{ p.ty - 4 }}" stroke-width="1" class="stroke-slate-400 dark:stroke-slate-600"/>{% endif %}
+      {% if p.status == "used" %}<circle cx="{{ cx }}" cy="{{ cy }}" r="6" class="fill-brand-700 dark:fill-brand-400"/>
+      {% elif p.status == "planned" %}<path d="M{{ cx }} {{ cy - 7 }} L{{ cx + 7 }} {{ cy + 5 }} L{{ cx - 7 }} {{ cy + 5 }} Z" class="fill-status-contested"/>
+      {% else %}<rect x="{{ cx - 5 }}" y="{{ cy - 5 }}" width="10" height="10" fill="none" stroke-width="2" class="stroke-slate-500"/>{% endif %}
+      <text x="{{ p.tx }}" y="{{ p.ty }}" text-anchor="{{ p.anchor }}" font-size="11" class="fill-slate-700 dark:fill-slate-300">{{ p.label }}</text>
+    </a>
+    {% endfor %}
+  </svg>
+  <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="fill-brand-700 dark:fill-brand-400"/></svg> used</span>
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><path d="M6 1 L11 10 L1 10 Z" class="fill-status-contested"/></svg> planned</span>
+    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" fill="none" stroke-width="2" class="stroke-slate-500"/></svg> not applicable</span>
+    <span>Each point is a review, placed by what its paper is about (scripts/literature_map.py). Close points are papers about similar things. The axes have no meaning.{% if missing %} Not placed yet: {% for m in missing %}<a class="underline" href="{{ m.name }}.html">{{ m.title }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</span>
+  </figcaption>
+</figure>
+{% endif %}
+<div class="paper mt-6">
+{{ review.body | safe }}
+</div>
+{% endblock %}

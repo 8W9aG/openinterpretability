@@ -9,12 +9,24 @@ import random
 import pytest
 import torch
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.sister_graph import sister_graphs
-from openinterp.core.schemas import NeuronIdentifier
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.sisters import Correlations, find_sisters, paired_rows, shared_boundaries
-from openinterp.sisters import SIBLINGS, SisterRow, format_sisters, load_rows, pairs, sisters
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.sister_graph import sister_graphs
+from openinterpretability.core.schemas import NeuronIdentifier
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.sisters import (
+    Correlations,
+    find_sisters,
+    paired_rows,
+    shared_boundaries,
+)
+from openinterpretability.sisters import (
+    SIBLINGS,
+    SisterRow,
+    format_sisters,
+    load_rows,
+    pairs,
+    sisters,
+)
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
@@ -235,7 +247,7 @@ def test_agents_see_studied_sisters_in_both_directions():
 
 
 def test_the_proposer_prompt_ends_with_related_research(record):
-    from openinterp.agents.proposer import ProposerAgent
+    from openinterpretability.agents.proposer import ProposerAgent
 
     sub = record.submission
     prompt = ProposerAgent.proposal_prompt(sub.identifier, sub.top_examples, related="SISTERS\n")
@@ -249,12 +261,12 @@ def _sister_registry(tmp_path, record, other="o/m"):
     The pole has a sister L2/N9- in ``other``. It also has a weaker match L4/N1+ that
     isn't its sister.
     """
-    from openinterp.builder.wiki import write_experiment_page
+    from openinterpretability.builder.wiki import write_experiment_page
 
     write_experiment_page(record, tmp_path / "wiki")
     (tmp_path / "pyproject.toml").write_text(
-        f'[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B", "{other}"]\n'
-        f'[tool.openinterp.window_tokens]\n"{other}" = 64\n'
+        f'[tool.openinterpretability]\nmodels = ["Qwen/Qwen2.5-0.5B", "{other}"]\n'
+        f'[tool.openinterpretability.window_tokens]\n"{other}" = 64\n'
     )
     slug = record.submission.identifier.slug
     matches = [(2, 9, "negative", 0.7, slug, 0.7), (4, 1, "positive", 0.4, "x/L0/N0-positive", 0.6)]
@@ -267,9 +279,9 @@ def _sister_registry(tmp_path, record, other="o/m"):
 def test_any_pole_of_another_model_is_drawable_but_sisters_most(tmp_path, record):
     from datetime import UTC, datetime
 
-    from openinterp.draw_steps import render, steps
-    from openinterp.planner import plan_next
-    from openinterp.planner_sisters import LINK_WEIGHT, UNMATCHED_WEIGHT
+    from openinterpretability.draw_steps import render, steps
+    from openinterpretability.planner import plan_next
+    from openinterpretability.planner_sisters import LINK_WEIGHT, UNMATCHED_WEIGHT
 
     now = datetime(2026, 10, 20, 12, tzinfo=UTC)
     wiki = _sister_registry(tmp_path, record)
@@ -298,14 +310,14 @@ def test_any_pole_of_another_model_is_drawable_but_sisters_most(tmp_path, record
 
     other = _sister_registry(tmp_path / "x", record, other="not/configured")
     (tmp_path / "x/pyproject.toml").write_text(
-        '[tool.openinterp]\nmodels = ["Qwen/Qwen2.5-0.5B"]\n'
+        '[tool.openinterpretability]\nmodels = ["Qwen/Qwen2.5-0.5B"]\n'
     )
     plan = plan_next(other, seed=1, epsilon=0.0, now=now)
     assert not any(c.kind == "sister" for c in plan.candidates)  # CI couldn't reproduce it
 
 
 def test_pages_link_a_sister_study_to_its_source(tmp_path, record):
-    from openinterp.builder.wiki import experiment_id
+    from openinterpretability.builder.wiki import experiment_id
 
     source = record  # VERIFIED, Qwen L3/N117+
     ref = f"{source.submission.identifier.slug}/{experiment_id(source)}"
@@ -361,7 +373,7 @@ def test_the_sister_graph_joins_both_searches_by_relative_depth():
 
 
 def test_the_sister_graph_layout_does_not_depend_on_set_order():
-    from openinterp.builder.sister_graph import _nodes
+    from openinterpretability.builder.sister_graph import _nodes
 
     poles = ["m/L1/N4-positive", "m/L1/N4-negative", "m/L1/N2-positive"]
     a = _nodes(set(poles), 100.0, 4, set())
@@ -388,7 +400,7 @@ def test_the_staged_search_over_many_pairs_equals_the_search_per_pair(
     texts,
     budget,
 ):
-    from openinterp.harness.sister_passes import Job, search
+    from openinterpretability.harness.sister_passes import Job, search
 
     runners = {
         "q": qwen_runner,

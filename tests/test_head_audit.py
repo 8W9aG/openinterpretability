@@ -7,23 +7,23 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
-from openinterp.agents.reviewer import (
+from openinterpretability.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
+from openinterpretability.agents.reviewer import (
     AdversarialProbe,
     ProbeSet,
     ReviewerAgent,
     evaluate_submission,
     repeated_runs,
 )
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.wiki import write_experiment_page
-from openinterp.cli import cli
-from openinterp.core.schemas import AuditRecord, HeadIdentifier, ScanEvidence
-from openinterp.harness.heads import pattern_scores, scan_head
-from openinterp.harness.hooks import NeuronHookRunner, activation_histogram
-from openinterp.harness.units import HeadUnit, head_strength, submission_unit
-from openinterp.planner import plan_next
-from openinterp.reproduce import reproduce_record
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.wiki import write_experiment_page
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import AuditRecord, HeadIdentifier, ScanEvidence
+from openinterpretability.harness.heads import pattern_scores, scan_head
+from openinterpretability.harness.hooks import NeuronHookRunner, activation_histogram
+from openinterpretability.harness.units import HeadUnit, head_strength, submission_unit
+from openinterpretability.planner import plan_next
+from openinterpretability.reproduce import reproduce_record
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 from tests.test_agents import SMALL
@@ -163,7 +163,9 @@ def test_review_check_probes_shows_tokens_and_repeats(runner, scan, tmp_path, mo
     monkeypatch.setattr(
         "transformers.AutoTokenizer.from_pretrained", lambda *a, **k: FakeTokenizer()
     )
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a: pytest.fail("loaded a model"))
+    monkeypatch.setattr(
+        "openinterpretability.cli._load_runner", lambda *a: pytest.fail("loaded a model")
+    )
     args = ["review", "--audit-file", str(tmp_path / "sub.json"),
             "--check-probes", str(tmp_path / "review.probes.json")]  # fmt: skip
     result = CliRunner().invoke(cli, args)
@@ -199,7 +201,7 @@ def test_head_pages_parquet_and_follow_ups(runner, scan, tmp_path, monkeypatch):
     assert "Heads studied" in (tmp_path / "dist" / "index.html").read_text()
 
     # The toy head is default-on, and the planner offers no new audit of such a unit.
-    monkeypatch.setattr("openinterp.planner._default_on", lambda record: False)
+    monkeypatch.setattr("openinterpretability.planner._default_on", lambda record: False)
     plan = plan_next(wiki, epsilon=0.0, seed=0)
     kinds = {c.kind for c in plan.candidates}
     assert "opposite_pole" not in kinds
@@ -216,9 +218,9 @@ def test_cli_samples_a_random_head_with_eager_attention(runner, tmp_path, monkey
         loads.append(attn)
         return runner
 
-    monkeypatch.setattr("openinterp.cli._load_runner", load)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", load)
     # A randomly initialised head writes far from its mean on most tokens: default-on.
-    monkeypatch.setattr("openinterp.evidence.check_default_on", lambda *a: None)
+    monkeypatch.setattr("openinterpretability.evidence.check_default_on", lambda *a: None)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     args = ["audit", "--model", "tiny-gpt2", "--unit", "head", "--random", "--seed", "3",
@@ -238,7 +240,7 @@ def test_cli_samples_a_random_head_with_eager_attention(runner, tmp_path, monkey
 
 
 def test_head_scans_take_label_sets(runner):
-    from openinterp.harness.annotations import DocumentLabels
+    from openinterpretability.harness.annotations import DocumentLabels
 
     langs = ["en", "fr"] * 3
     tagged = scan_head(

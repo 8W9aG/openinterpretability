@@ -17,7 +17,7 @@ concurrency:
 
 env:
   # Space-separated; add a model before records use it. Kept in sync with
-  # [tool.openinterp] models in pyproject.toml, but not read from it: a fork PR could
+  # [tool.openinterpretability] models in pyproject.toml, but not read from it: a fork PR could
   # then make CI download any model.
   # LINT.IfChange
   ALLOWED_MODELS: Qwen/Qwen2.5-0.5B Qwen/Qwen2.5-1.5B openai-community/gpt2 EleutherAI/pythia-70m
@@ -84,8 +84,10 @@ jobs:
           python scripts/check_data_files.py
           python scripts/exchange.py check
           python scripts/changelog.py check
-          interrogate openinterp
+          interrogate openinterpretability
           python scripts/check_markdown.py
+      - name: Types (mypy, strict, on [tool.mypy] files)
+        run: mypy
       - name: Shell scripts (ShellCheck)
         run: make shell SHELLCHECK=shellcheck
       - name: Install Vale
@@ -163,7 +165,7 @@ jobs:
         run: open-interpretability evidence load-all
       - name: Evidence of slim records
         # A slim record's blobs ride on evidence/<branch>, never on the PR branch, so that
-        # main's history never holds them (openinterp/evidence_branch.py, issue #3254). This
+        # main's history never holds them (evidence_branch.py, issue #3254). This
         # job only loads and checks them, with no write token: code from the PR runs here.
         # The deploy on main uploads them after the merge (`evidence publish`).
         if: github.event_name == 'pull_request'
@@ -188,7 +190,7 @@ jobs:
   record-changes:
     name: Record changes
     # Whether a pull request adds or changes a record, by the same rule as
-    # `open-interpretability reproduce --base-ref` (openinterp/checks.py changed_records), so PRs
+    # `open-interpretability reproduce --base-ref` (checks.py, changed_records), so PRs
     # without record changes never wait in the reproduce queue.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -202,7 +204,7 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          git diff --name-only --no-renames --diff-filter=AM "origin/$BASE_REF...HEAD" \
+          git diff --name-only --no-renames --diff-filter=AMT "origin/$BASE_REF...HEAD" \
             -- wiki/experiments | grep '\.json$' | tee records.txt || true
           echo "records=$([ -s records.txt ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 

@@ -5,12 +5,15 @@ import shlex
 
 from click.testing import CliRunner
 
-from openinterp.audit_options import read_superposition
-from openinterp.cli import cli
-from openinterp.core.profiles import SuperpositionProfile, superposition_id
-from openinterp.draw_steps import render, steps
-from openinterp.planner import Plan, plan_next
-from openinterp.planner_superpositions import SUPERPOSITION_WEIGHT, superposition_candidates
+from openinterpretability.audit_options import read_superposition
+from openinterpretability.cli import cli
+from openinterpretability.core.profiles import SuperpositionProfile, superposition_id
+from openinterpretability.draw_steps import render, steps
+from openinterpretability.planner import Plan, plan_next
+from openinterpretability.planner_superpositions import (
+    SUPERPOSITION_WEIGHT,
+    superposition_candidates,
+)
 from tests.test_superpositions import TEXTS
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
 
@@ -77,9 +80,9 @@ def test_the_steps_show_then_audit_the_superposition(tmp_path):
 
 def test_a_superposition_draw_records_a_manual_selection(qwen_runner, tmp_path, monkeypatch):  # noqa: F811
     """The draw's own commands scan a chosen unit, so random-unit statistics never count it."""
-    from openinterp.core.schemas import ScanEvidence
+    from openinterpretability.core.schemas import ScanEvidence
 
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: qwen_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: qwen_runner)
     plan = _plan(tmp_path)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
@@ -101,8 +104,8 @@ def test_plan_next_draws_a_superposition(tmp_path):
 def test_a_definition_whose_scan_stopped_is_not_drawn_again(tmp_path):
     from datetime import UTC, datetime
 
-    from openinterp.core.draws import ChosenStop, stop_path
-    from openinterp.core.schemas import ExperimentProvenance, SuperpositionIdentifier
+    from openinterpretability.core.draws import ChosenStop, stop_path
+    from openinterpretability.core.schemas import ExperimentProvenance, SuperpositionIdentifier
 
     root = _root(tmp_path)
     assert len(superposition_candidates({}, [], root)) == 1
@@ -121,7 +124,7 @@ def test_a_definition_whose_scan_stopped_is_not_drawn_again(tmp_path):
 
 def _superposition_record(record):
     """The neuron fixture's record, retargeted at the superposition PROFILE."""
-    from openinterp.core.schemas import AuditRecord, SuperpositionIdentifier
+    from openinterpretability.core.schemas import AuditRecord, SuperpositionIdentifier
 
     ident = SuperpositionIdentifier(model_name="o/m", layer=1, superposition_id=SID)
     submission = record.submission.model_copy(
@@ -133,7 +136,7 @@ def _superposition_record(record):
 
 def test_a_superposition_record_offers_follow_ups(tmp_path, record):
     """It crashes the planner no more (#4008), and its rescan writes the definition first."""
-    from openinterp.builder.wiki import write_experiment_page
+    from openinterpretability.builder.wiki import write_experiment_page
 
     write_experiment_page(_superposition_record(record), tmp_path / "wiki")
     plan = plan_next(tmp_path / "wiki", seed=1, epsilon=0.0)

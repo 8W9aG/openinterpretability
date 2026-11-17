@@ -1,6 +1,6 @@
 # Dictionary presets and the Qwen2.5-0.5B transcoders
 
-This explains what the sparse dictionaries in `openinterp/harness/dictionaries.py` are for, what the new presets add, and why Qwen2.5-0.5B needed one trained here. How a latent is audited is in docs/PROTOCOL.md §1–2. The baseline comparison is computed in `openinterp/builder/learned_baseline.py`.
+This explains what the sparse dictionaries in `openinterpretability/harness/dictionaries.py` are for, what the new presets add, and why Qwen2.5-0.5B needed one trained here. How a latent is audited is in docs/PROTOCOL.md §1–2. The baseline comparison is computed in `openinterpretability/builder/learned_baseline.py`.
 
 ## Why dictionaries
 

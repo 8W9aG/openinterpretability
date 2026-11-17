@@ -17,10 +17,10 @@ from pathlib import Path
 
 import torch
 
-from openinterp.cli import _load_unit_runner
-from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
-from openinterp.core.schemas import AuditRecord, HeadIdentifier
-from openinterp.harness.units import unit_of
+from openinterpretability.cli import _load_unit_runner
+from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
+from openinterpretability.core.schemas import AuditRecord, HeadIdentifier
+from openinterpretability.harness.units import unit_of
 
 
 def head_records(wiki_dir: Path = DEFAULT_WIKI_DIR) -> list[Path]:

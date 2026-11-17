@@ -1,0 +1,8 @@
+{"prompt": "When Mary and John went to the store, John gave a drink to", "task": "indirect object identification (Wang et al., 2022)"}
+{"prompt": "The keys to the cabinet", "task": "subject-verb agreement across a distractor"}
+{"prompt": "The war lasted from the year 1732 to the year 17", "task": "greater-than (Hanna et al., 2023)"}
+{"prompt": "The Eiffel Tower is in the city of", "task": "factual recall"}
+{"prompt": "Mr and Mrs Dursley, of number four, Privet Drive, were proud to say that they were perfectly normal. Mr and Mrs D", "task": "induction: copying a repeated name"}
+{"prompt": "def add(a, b):\n    return a", "task": "code: a function's first operand"}
+{"prompt": "One, two, three, four,", "task": "counting"}
+{"prompt": "The capital of France is Paris. The capital of Germany is", "task": "in-context factual pattern"}

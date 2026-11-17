@@ -1,1 +1,0 @@
-- The release skill runs a security sweep before each release. It runs Cloudflare's security-audit-skill on what changed since the last tag. Confirmed findings go to private advisories, and the release waits until each one is fixed. The advisories are published once the fixed version is on PyPI.

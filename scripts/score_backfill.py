@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -31,11 +32,12 @@ OUT = Path("docs/analyses/explanation-scores-backfill.jsonl")
 CORPUS = Path("corpus.jsonl")
 ORDER = {"VERIFIED": 0, "NEEDS_REVISION": 1, "REJECTED": 2}
 CLI = [str(Path(sys.executable).parent / "open-interpretability")]
+HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
 def unscored(wiki_dir: Path = Path("wiki")) -> list[dict]:
     """The neuron-pole records with no detection and no fuzzing score, VERIFIED first."""
-    from openinterp.core.schemas import AuditRecord
+    from openinterpretability.core.schemas import AuditRecord
 
     found = []
     for path in sorted((wiki_dir / "experiments").rglob("*.json")):
@@ -67,12 +69,18 @@ def sha256(path: Path) -> str:
 
 
 def corpus_for(row: dict, known: dict[str, Path | None]) -> Path | None:
-    """The record's scan corpus on disk, rebuilt once per SHA-256; None if it can't be."""
+    """The record's scan corpus on disk, rebuilt once per SHA-256; None if it can't be.
+
+    A hash that is not 64 lowercase hex digits gives None, because the hash names the file.
+    A file on disk whose SHA-256 is not the hash is deleted and rebuilt.
+    """
     sha = row["corpus_sha256"]
-    if sha is None:
+    if sha is None or not HEX64.fullmatch(sha):
         return None
     if sha not in known:
         out = WORK / "corpora" / f"{sha}.jsonl"
+        if out.exists() and sha256(out) != sha:
+            out.unlink()
         if not out.exists():
             out.parent.mkdir(parents=True, exist_ok=True)
             done = subprocess.run([*CLI, "corpus", "--same-as", row["record"], "--out", str(out)])

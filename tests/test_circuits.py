@@ -2,15 +2,15 @@
 
 from click.testing import CliRunner
 
-from openinterp.builder.circuits import circuits, circuits_and_hubs
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.tree import build_tree
-from openinterp.builder.wiki import archive_record
-from openinterp.cli import cli
-from openinterp.core.schemas import AdversarialTestResult
-from openinterp.core.wiring import Wiring, WiringEdge
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.wiring_backfill import backfill, load_rows, record_wiring, review_prompts
+from openinterpretability.builder.circuits import circuits, circuits_and_hubs
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.tree import build_tree
+from openinterpretability.builder.wiki import archive_record
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import AdversarialTestResult
+from openinterpretability.core.wiring import Wiring, WiringEdge
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.wiring_backfill import backfill, load_rows, record_wiring, review_prompts
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
 
@@ -66,7 +66,7 @@ def test_circuits_chain_edges_between_studied_units(tmp_path, record):
     index = (site / "circuits.html").read_text()
     assert 'href="../../models/' + MODEL + '/circuits/L1-N5.html">L1/N5</a>' in index
     page = (site / "circuits" / "L1-N5.html").read_text()  # named after its root
-    assert "Circuit from L1/N5" in page and "3 units of" in page and "layers 1–6" in page
+    assert "Wiring group from L1/N5" in page and "3 units of" in page and "layers 1–6" in page
     assert "L9/N9" not in page and "weights +0.4" in page and "activations +0.7" in page
     assert 'href="../../../models/' + MODEL + "/L1/N5-positive/" in page  # the experiment's page
     model_page = (site / "index.html").read_text()

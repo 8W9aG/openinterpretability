@@ -35,8 +35,8 @@ from syntax_close_paths import (
 from syntax_followups import closer_chain
 from syntax_probes import TARGETS, _rounded, calls
 
-from openinterp.cli import _load, resolve_device
-from openinterp.harness.hooks import pole_strength
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.harness.hooks import pole_strength
 
 STATE_DEPTHS = (2, 3, 4, 5)
 WRITES = ("close_ways", "close_states")

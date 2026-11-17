@@ -1,6 +1,6 @@
 # Mixture-of-experts models
 
-This page records how openinterp will audit neurons in mixture-of-experts (MoE) models. It is the decision that the Models section of `TODO.md` asked for. The experts forward of section 4 and the streaming of section 8 are built. The expert neuron as a unit is not. The implementation steps are in `TODO.md`, Models, and adding the unit kind changes the protocol (`docs/PROTOCOL.md` §6).
+This page records how openinterpretability will audit neurons in mixture-of-experts (MoE) models. It is the decision that the Models section of `TODO.md` asked for. The experts forward of section 4 and the streaming of section 8 are built. The expert neuron as a unit is not. The implementation steps are in `TODO.md`, Models, and adding the unit kind changes the protocol (`docs/PROTOCOL.md` §6).
 
 ## How an MoE layer computes
 
@@ -21,7 +21,7 @@ In an MoE layer the MLP is replaced by many smaller MLPs, the experts, and a rou
 - **A shared expert's neurons use the same kind, with `expert = "shared"`.** The slug is `…/L<layer>/Eshared/N<idx>-<pole>`. Where a model fuses several shared experts into one MLP (Mistral 4), the index runs over the fused MLP.
 - **A dense layer in an MoE model keeps `NeuronIdentifier`.** Its neurons are ordinary MLP neurons.
 
-We don't add an optional `expert` field to `NeuronIdentifier`. 48 places in `openinterp/` branch on a unit's kind. With an optional field, each one that ignores the field would measure neuron `neuron_idx` of a dense MLP that isn't there, or of the wrong expert. With a new kind, each place either supports expert neurons or refuses them, as places that don't support heads do today.
+We don't add an optional `expert` field to `NeuronIdentifier`. 48 places in `openinterpretability/` branch on a unit's kind. With an optional field, each one that ignores the field would measure neuron `neuron_idx` of a dense MLP that isn't there, or of the wrong expert. With a new kind, each place either supports expert neurons or refuses them, as places that don't support heads do today.
 
 ### 2. Strength
 
@@ -46,7 +46,7 @@ Edits are made inside the expert, not as a change to the layer's output. An edit
 
 ### 4. Where the harness reads and edits expert neurons
 
-transformers 5 runs the experts of about 60 MoE architectures through one registry, `ExpertsInterface`. Each experts class decorated with `use_experts_implementation` looks its forward up by name (`eager`, `grouped_mm`, `batched_mm`, …). openinterp registers its own forward, `openinterp` (`openinterp/harness/moe.py`), and selects it when it loads an MoE model.
+transformers 5 runs the experts of about 60 MoE architectures through one registry, `ExpertsInterface`. Each experts class decorated with `use_experts_implementation` looks its forward up by name (`eager`, `grouped_mm`, `batched_mm`, …). openinterpretability registers its own forward, `openinterpretability` (`openinterpretability/harness/moe.py`), and selects it when it loads an MoE model.
 
 That forward loops over the experts the router chose. It computes each one's hidden activation with the model's own gating function (`_apply_gate`). It then passes the activation, the expert's index, its tokens and their routing weights to the harness's hooks, before the down projection. So one function covers each weight layout that the decorator describes. Gate and up can be concatenated or interleaved, the weights transposed, with biases, and with a norm after each expert.
 
@@ -91,8 +91,8 @@ Routed expert neurons, shared-expert neurons and dense neurons are three arms, n
 2. **OLMoE-1B-7B** (`allenai/OLMoE-1B-7B-0924`, Apache-2.0). Its training data is open, which the training-data links issue ([issue #3377](https://github.com/8W9aG/openinterpretability/issues/3377)) needs. It is 28 GB in float32, so it needs bfloat16 or streaming (`--memory stream`).
 3. **Qwen1.5-MoE-A2.7B**, for a gated shared expert. It is under the Tongyi Qianwen licence, which must be checked first.
 4. **GPT-OSS**, after its own issue ([issue #3362](https://github.com/8W9aG/openinterpretability/issues/3362)). Its gating function (`_apply_gate`) is a clamped SwiGLU, which the forward already calls.
-5. **Mistral Large 4**, last. Its weights are stored in FP8, and the experts of one layer take about 14.5 GB. So it needs the streaming below. transformers 5.20.1, which openinterp uses today, has no `mistral_large4` model type, so it also needs a newer transformers. Check then that its experts use the registry.
+5. **Mistral Large 4**, last. Its weights are stored in FP8, and the experts of one layer take about 14.5 GB. So it needs the streaming below. transformers 5.20.1, which openinterpretability uses today, has no `mistral_large4` model type, so it also needs a newer transformers. Check then that its experts use the registry.
 
 ### 8. Streaming only the routed experts
 
-The registered forward owns the loop over experts, so in streaming mode it can read only the experts that the router chose. safetensors reads one expert's slice of a stored tensor (`get_slice`), through the open files of `OpenCheckpoint` (`openinterp/harness/memory.py`). `accelerate` must then leave the experts' tensors on the meta device, not load them whole before each pass. In Mistral Large 4 one expert is about 113 MB in FP8, against 14.5 GB for all 128. A pass then reads only the experts its tokens route to, and FP8 is converted per slice. This is built (`openinterp/harness/moe.py`, `OpenCheckpoint.slice`). On Granite 3.0 1B-A400M a streamed one-token pass read 1.41 GB, against 4.78 GB with whole layers. A checkpoint that stores each expert apart is stacked by transformers as it loads, and streaming writes the stacks to the offload folder. Its slices are read from there.
+The registered forward owns the loop over experts, so in streaming mode it can read only the experts that the router chose. safetensors reads one expert's slice of a stored tensor (`get_slice`), through the open files of `OpenCheckpoint` (`openinterpretability/harness/memory.py`). `accelerate` must then leave the experts' tensors on the meta device, not load them whole before each pass. In Mistral Large 4 one expert is about 113 MB in FP8, against 14.5 GB for all 128. A pass then reads only the experts its tokens route to, and FP8 is converted per slice. This is built (`openinterpretability/harness/moe.py`, `OpenCheckpoint.slice`). On Granite 3.0 1B-A400M a streamed one-token pass read 1.41 GB, against 4.78 GB with whole layers. A checkpoint that stores each expert apart is stacked by transformers as it loads, and streaming writes the stacks to the offload folder. Its slices are read from there.

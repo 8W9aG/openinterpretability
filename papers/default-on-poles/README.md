@@ -2,6 +2,10 @@
 
 Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent ([position zero](../../docs/analyses/position-zero.md)). This analysis asks what those poles do together. It starts from an earlier study of GPT-2 L9/N1046−, whose scripts were not kept. Its numbers survive in [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md). It rebuilds them, measures every layer, and adds the nulls the first study lacked.
 
+**Status:** Preprint. Work left: #4245 (rewrite in the paper form of #4202), #3195 (the negative side's lead on the next-token distribution).
+
+**Why we wrote it.** Protocol 0.8 stops the audit of every default-on pole, so the registry says nothing about a large share of negative poles. Before we accept that gap, we need to know whether those poles do anything worth explaining. **The question.** What do default-on negative poles do as a population, and is it safe to stop auditing them one by one? It bears on research question 1, *Are native MLP neurons clean?*, and on question 5 ([research questions](../../docs/research-questions.md)).
+
 ![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
 
 **Results.**
@@ -220,7 +224,7 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 
 **A lead doesn't show that training built the negative side for this.** Both sides read the same h. Weights learned for the positive side would also help the negative side beat random weights. This test can't separate the two, and a readout shows only what is present. The clamps above, which add 0.19 nats, are the test of use.
 
-**Human labels.** The labels come from `openinterp/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup baseline reads the current token's rate of the label.
+**Human labels.** The labels come from `openinterpretability/concepts.py`: Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and `papluca/language-identification`. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup baseline reads the current token's rate of the label.
 
 | Dataset | Labels | Lookup | − at L6 | + at L6 | Best null at L6 | − minus best null: L0 | L3 | L6 | L9 | L11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -299,7 +303,7 @@ The first study's scripts were not kept, so we can't say what caused each differ
 - **Fixed constants at every layer.** All-layer clamps use constants fit on the clean model, although earlier clamps change later layers' inputs.
 - **Shuffling is a strong null.** It breaks the correlation between neurons on one token as well as the link to the token. So the clamp over null ratio doesn't separate these two.
 - **Controls are few.** The 10 controls show the range. The population figures rest on L9 alone.
-- **MPS.** The runs used float32 on Apple's GPU. Activations there match the CPU's to about 1×10⁻⁴ of a neuron's peak (`openinterp/cli.py`).
+- **MPS.** The runs used float32 on Apple's GPU. Activations there match the CPU's to about 1×10⁻⁴ of a neuron's peak (`openinterpretability/cli.py`).
 
 ## Effect on the protocol
 
@@ -325,7 +329,7 @@ uv run python scripts/paper_figures.py
 
 ## Next
 
-[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Default-on poles*, and the research questions are in [docs/research-questions.md](../../docs/research-questions.md).
+[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. Open questions are issues in the Linear project *Default-on poles*, and the research questions are in [docs/research-questions.md](../../docs/research-questions.md).
 
 ## References
 

@@ -1,11 +1,11 @@
 import pytest
 import torch
 
-from openinterp.core.schemas import HeadIdentifier, NeuronIdentifier
-from openinterp.core.steering import SteeringSample, SteeringSamples
-from openinterp.harness.hooks import NeuronHookRunner, isolate_pole
-from openinterp.harness.steering import steering_interventions, steering_samples
-from openinterp.harness.units import HeadUnit, NeuronUnit
+from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+from openinterpretability.core.steering import SteeringSample, SteeringSamples
+from openinterpretability.harness.hooks import NeuronHookRunner, isolate_pole
+from openinterpretability.harness.steering import steering_interventions, steering_samples
+from openinterpretability.harness.units import HeadUnit, NeuronUnit
 from tests.conftest import N_LAYERS, FakeTokenizer
 from tests.site_pages import unit_pages
 
@@ -91,8 +91,8 @@ def test_one_clamped_text_per_multiple():
 
 
 def test_samples_rendered_on_both_pages(tmp_path, record):
-    from openinterp.builder.compiler import compile_site
-    from openinterp.builder.wiki import write_experiment_page
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.builder.wiki import write_experiment_page
 
     steering = SteeringSamples(
         clamp_unit=2.5,

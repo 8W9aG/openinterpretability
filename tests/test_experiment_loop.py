@@ -14,10 +14,10 @@ from types import SimpleNamespace
 import pytest
 from click.testing import CliRunner
 
-from openinterp import draw_steps, runner_cache
-from openinterp import experiment_loop as el
-from openinterp.planner import Candidate, Plan
-from openinterp.revision import previous_attempt
+from openinterpretability import draw_steps, runner_cache
+from openinterpretability import experiment_loop as el
+from openinterpretability.planner import Candidate, Plan
+from openinterpretability.revision import previous_attempt
 
 SLUG = "toy/model/L0/N1-positive"
 URL = "https://github.com/o/r/pull/7"
@@ -63,7 +63,7 @@ def repo(tmp_path, monkeypatch):
     gh.chmod(0o755)
     monkeypatch.setenv("PATH", f"{bin_dir}:{Path('/usr/bin')}:{Path('/bin')}")
     monkeypatch.setenv("GH_LOG", str(tmp_path / "gh.log"))
-    monkeypatch.setenv("OPENINTERP_STOP_FILE", str(tmp_path / "stop"))
+    monkeypatch.setenv("OPENINTERPRETABILITY_STOP_FILE", str(tmp_path / "stop"))
     monkeypatch.chdir(work)
     return SimpleNamespace(origin=origin, work=work, gh_log=tmp_path / "gh.log", tmp=tmp_path)
 
@@ -87,7 +87,7 @@ def fakes(monkeypatch):
     """Replace the in-process commands: ``verify`` writes a record file, the rest log."""
     ran: list[list[str]] = []
 
-    def openinterp(args):
+    def openinterpretability(args):
         ran.append(args)
         if args[0] in ("verify", "reevaluate"):
             out = Path("wiki/experiments") / SLUG.replace("/", "--", 1) / "rec.json"
@@ -96,7 +96,7 @@ def fakes(monkeypatch):
         if args[0] == "verify" and "--boom" in args:
             raise el.LoopError("verify failed")
 
-    monkeypatch.setattr(el, "openinterp", openinterp)
+    monkeypatch.setattr(el, "openinterpretability", openinterpretability)
     monkeypatch.setattr(el, "draw_slug", lambda choice: SLUG)
     monkeypatch.setattr(draw_steps, "draw_slug", lambda choice: SLUG)
     monkeypatch.setattr(el, "verdict_of", lambda kind, key: ("VERIFIED", f"Explore {key}"))
@@ -139,7 +139,7 @@ def test_one_iteration_claims_runs_posts_and_lands(repo, fakes, capsys):
 @pytest.mark.parametrize(
     ("env", "reason"),
     [
-        ({"GH_FILES": '["wiki/x.json", "openinterp/cli.py"]'}, "outside wiki/"),
+        ({"GH_FILES": '["wiki/x.json", "openinterpretability/cli.py"]'}, "outside wiki/"),
         ({"GH_PERMISSION": "READ"}, "permission is READ"),
         ({"GH_CHECKS_EXIT": "1"}, "checks didn't pass"),
     ],
@@ -180,8 +180,15 @@ def test_a_review_of_the_reviewers_own_record_is_drawn_again(monkeypatch):
     options = el.Options("api/proposer", "api/reviewer")
     plan = el.draw(options, lambda *a, **k: next(plans), lambda: [])
     assert plan.choice.record == "other.json"
-    with pytest.raises(el.LoopError, match="twice"):
+    with pytest.raises(el.LoopError, match="no draw that api/reviewer can run"):
         el.draw(options, lambda *a, **k: _plan("replicate", "own.json"), lambda: [])
+
+
+def test_a_circuit_draw_is_drawn_again(monkeypatch):
+    # Its task is written by an agent, which the API loop doesn't have (#4286).
+    plans = iter([_plan("circuit", None), _plan("explore", None)])
+    plan = el.draw(el.Options("api/p", "api/r"), lambda *a, **k: next(plans), lambda: [])
+    assert plan.choice.kind == "explore"
 
 
 def test_rate_limits_back_off_then_stop(repo, monkeypatch, capsys):
@@ -213,7 +220,7 @@ def test_merge_blockers():
 
 
 def test_external_models_are_refused():
-    from openinterp.cli import cli
+    from openinterpretability.cli import cli
 
     result = CliRunner().invoke(cli, ["loop", "--proposer", "external/x", "--reviewer", "a/b"])
     assert result.exit_code == 2 and "external/x" in result.output
@@ -269,3 +276,14 @@ def test_is_rate_limit():
     assert el.is_rate_limit(RuntimeError("Error code: 429"))
     assert not el.is_rate_limit(RuntimeError("bad JSON"))
     assert json.dumps(el.BACKOFF_MINUTES) == "[1, 5, 15]"
+
+
+def test_an_iteration_says_each_stage_in_order(repo, fakes, capsys):
+    # A slow iteration must not look like a stuck one (#3142).
+    assert _loop(max_experiments=1).run() == 0
+    out = capsys.readouterr().out
+    stages = ["loop: drew explore", f"loop: claimed: {URL}", "loop: step 1/",
+              "loop: posting the result", f"loop: waiting for the checks on {URL}",
+              "loop: merging", f"RESULT: {SLUG} VERIFIED {URL} merged"]  # fmt: skip
+    found = [out.index(stage) for stage in stages]
+    assert found == sorted(found)

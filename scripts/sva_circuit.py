@@ -37,7 +37,7 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.agreement import TEMPLATES, pairs
+from openinterpretability.agreement import TEMPLATES, pairs
 
 SIZES = (10, 20, 50, 100, 200, 500, 1000, 2000, 5000)
 # Words that would mark an explanation as being about grammatical number or agreement.
@@ -212,7 +212,7 @@ def main(model, device, site_dir, out, train, held_out, steps, seed, refresh):
         out.write_text("".join(json.dumps(r) + "\n" for r in [*curve, *neurons]))
         click.echo(f"refreshed {len(neurons)} neurons → {out}")
         return
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     runner = _load_runner(model, device, "float32", None)
     rng = random.Random(seed)

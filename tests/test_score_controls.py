@@ -1,14 +1,14 @@
 """Control explanations for `open-interpretability score --controls`.
 
-The code is in openinterp/score_controls.py.
+The code is in openinterpretability/score_controls.py.
 """
 
 import json
 
-from openinterp.agents.judge import DetectionAnswer, FuzzingAnswer, ScoringTask
-from openinterp.core.explanation import ControlScore, ExplanationScores, ScoredWindow
-from openinterp.harness.explanation_scores import finalize_scores
-from openinterp.score_controls import gap_summary, other_unit_explanation
+from openinterpretability.agents.judge import DetectionAnswer, FuzzingAnswer, ScoringTask
+from openinterpretability.core.explanation import ControlScore, ExplanationScores, ScoredWindow
+from openinterpretability.harness.explanation_scores import finalize_scores
+from openinterpretability.score_controls import gap_summary, other_unit_explanation
 from tests.test_explanation_scores import flow, run, toy_record  # noqa: F401, F811  (fixtures)
 from tests.test_reproduce import draft  # noqa: F401  (fixture)
 

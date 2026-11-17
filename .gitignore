@@ -219,7 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# openinterp working files
+# openinterpretability working files
 submissions/
 exchange/
 corpus.jsonl

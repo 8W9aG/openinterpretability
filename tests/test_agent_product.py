@@ -2,7 +2,7 @@
 
 import pytest
 
-from openinterp.harness import environment
+from openinterpretability.harness import environment
 
 
 @pytest.fixture(autouse=True)
@@ -28,7 +28,7 @@ def test_a_hosted_environment_is_named_and_local_is_none(monkeypatch):
 
 
 def test_a_run_records_them(tiny_gpt2, monkeypatch):
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
     from tests.conftest import FakeTokenizer
 
     monkeypatch.setenv("CLAUDECODE", "1")
@@ -38,8 +38,8 @@ def test_a_run_records_them(tiny_gpt2, monkeypatch):
 
 
 def test_the_parquet_export_reads_the_verdicts_environment(record):
-    from openinterp.builder.parquet_export import _product
-    from openinterp.core.run_environment import RunEnvironment
+    from openinterpretability.builder.parquet_export import _product
+    from openinterpretability.core.run_environment import RunEnvironment
 
     env = RunEnvironment(device="cpu", dtype="float32", openinterp_version="t",
                          torch_version="t", agent_product="claude-code", host="colab")  # fmt: skip

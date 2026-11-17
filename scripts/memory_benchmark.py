@@ -95,9 +95,9 @@ def run_peak(command: list[str]) -> tuple[int, float]:
 
 
 def window_args(model: str) -> list[str]:
-    """``--window-tokens`` for a model that ``[tool.openinterp.window_tokens]`` sets."""
+    """``--window-tokens`` for a model that ``[tool.openinterpretability.window_tokens]`` sets."""
     sys.path.insert(0, str(ROOT))
-    from openinterp.planner import configured_windows
+    from openinterpretability.planner import configured_windows
 
     window = configured_windows(ROOT / "pyproject.toml").get(model)
     return ["--window-tokens", str(window)] if window else []

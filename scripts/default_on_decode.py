@@ -29,8 +29,8 @@ from default_on_poles import (
     write_row,
 )
 
-from openinterp.cli import _load, resolve_device
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 
 DECODE_CLASSES = 200
 RIDGE_PENALTIES = (1e-3, 1e-2, 1e-1, 1.0)

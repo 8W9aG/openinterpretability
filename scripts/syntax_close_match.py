@@ -42,7 +42,7 @@ from syntax_close_readers import count_items, head_attention, measure
 from syntax_followups import closer_chain
 from syntax_probes import CALLEES, TARGETS, _rounded, calls
 
-from openinterp.cli import _load, resolve_device
+from openinterpretability.cli import _load, resolve_device
 
 LAYER, NEURON = 8, 689  # L8 N689+
 DEPTHS = (3, 4, 5)

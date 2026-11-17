@@ -104,7 +104,7 @@ def latents_per_layer() -> int:
     from huggingface_hub import hf_hub_download
     from safetensors import safe_open
 
-    from openinterp.harness.dictionaries import DICTIONARIES
+    from openinterpretability.harness.dictionaries import DICTIONARIES
 
     spec = DICTIONARIES["gpt2-small-transcoders"]
     path = hf_hub_download(spec.repo, spec.path.format(layer=0), revision=spec.revision)

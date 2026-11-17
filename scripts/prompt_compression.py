@@ -27,8 +27,8 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.agents import ProposerAgent, ReviewerAgent
-from openinterp.agents.judge import ExplanationJudge
+from openinterpretability.agents import ProposerAgent, ReviewerAgent
+from openinterpretability.agents.judge import ExplanationJudge
 
 MODEL = "microsoft/llmlingua-2-xlm-roberta-large-meetingbank"
 RATES = (0.7, 0.5, 0.33)

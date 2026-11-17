@@ -4,9 +4,9 @@ import json
 
 import pytest
 
-from openinterp.builder.wiki import archive_record
-from openinterp.core import evidence
-from openinterp.core.schemas import AuditRecord
+from openinterpretability.builder.wiki import archive_record
+from openinterpretability.core import evidence
+from openinterpretability.core.schemas import AuditRecord
 
 
 @pytest.fixture

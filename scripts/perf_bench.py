@@ -39,12 +39,12 @@ MEASURES = ("wall_s", "cpu_s", "peak_mb")
 SCAN_POLE = ("openai-community/gpt2", 5, 1019, "positive")
 RECORD = "wiki/experiments/openai-community--gpt2/L5/N1019-positive/20261106T190528Z.json"
 SCAN_TOKENS = 20_000
-CLI = "from openinterp.cli import main; main()"
+CLI = "from openinterpretability.cli import main; main()"
 MB = 1024 * 1024
 
 
 def workloads(out: Path, device: str, build: bool) -> dict[str, list[str]]:
-    """``{name: openinterp arguments}`` for each workload, writing only under ``out``."""
+    """``{name: openinterpretability arguments}`` for each workload, writing only under ``out``."""
     model, layer, neuron, pole = SCAN_POLE
     jobs = {
         "scan": [
@@ -95,12 +95,12 @@ def parse_time(stderr: str) -> dict[str, float]:
 
 
 def measure(args: list[str]) -> dict[str, float]:
-    """Run ``openinterp <args>`` under ``/usr/bin/time`` and return its measures."""
+    """Run ``openinterpretability <args>`` under ``/usr/bin/time`` and return its measures."""
     flag = "-l" if sys.platform == "darwin" else "-v"
     command = ["/usr/bin/time", flag, sys.executable, "-c", CLI, *args]
     done = subprocess.run(command, capture_output=True, text=True, check=False)
     if done.returncode != 0:
-        raise RuntimeError(f"openinterp {args[0]} failed:\n{done.stderr[-2000:]}")
+        raise RuntimeError(f"openinterpretability {args[0]} failed:\n{done.stderr[-2000:]}")
     return {k: round(v, 2) for k, v in parse_time(done.stderr).items()}
 
 

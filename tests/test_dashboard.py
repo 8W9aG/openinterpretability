@@ -1,5 +1,11 @@
-from openinterp.builder.dashboard import DAILY_BINS, VERDICTS, dashboard, layer_columns, timeline
-from openinterp.builder.tree import ModelNode
+from openinterpretability.builder.dashboard import (
+    DAILY_BINS,
+    VERDICTS,
+    dashboard,
+    layer_columns,
+    timeline,
+)
+from openinterpretability.builder.tree import ModelNode
 
 MODELS = [ModelNode("a", "a", 4, "a/index.html"), ModelNode("b", "b", 2, "b/index.html")]
 

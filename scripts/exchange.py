@@ -30,17 +30,20 @@ EXCHANGE = Path("exchange")
 STAGING = Path("exchange/.published")
 REPO = "sackfield/open-interpretability-exchange"
 # The files that cite inputs: papers, analyses, scripts and the package.
-CITING = ("papers", "docs", "scripts", "openinterp", ".claude")
+CITING = ("papers", "docs", "scripts", "openinterpretability", ".claude")
 NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
 # Names under exchange/ that are only outputs or working folders, never cited inputs. A
 # command writes them, and no analysis reads them. `bench` also holds the benchmark's
 # private test probes, so it is never published.
 OUTPUTS = {
     "bench", "bench-dev", "bench-redteam", "code-detection", "dreams", "gpt2-spd",
-    "language-detection", "score-backfill",
+    "language-detection", "rescore-pilot", "score-backfill",
     "spd-up-neurons.json", ".published",
 }  # fmt: skip
-OUTPUT_FILE = re.compile(r"^(ev|review|score)\.|\.(prompt\.md|response\.json)$")
+# A case-insensitive file system, such as macOS's, opens `exchange/BENCH` as `exchange/bench`.
+# So the names compare without case.
+OUTPUTS_FOLDED = {name.casefold() for name in OUTPUTS}
+OUTPUT_FILE = re.compile(r"^(ev|review|score)\.|\.(prompt\.md|response\.json)$", re.IGNORECASE)
 # Inputs that stay unpublished, each with why, and how to make them again.
 UNPUBLISHED = {
     "probe-comparison/*.pile.jsonl": "pile-10k excerpts: the Pile corpus is not published "
@@ -84,7 +87,7 @@ def _citable(name: str) -> bool:
     """
     if not name or name.startswith("."):
         return False
-    return name not in OUTPUTS and not OUTPUT_FILE.search(name)
+    return name.casefold() not in OUTPUTS_FOLDED and not OUTPUT_FILE.search(name)
 
 
 def write_manifest(manifest: dict) -> None:
@@ -119,7 +122,7 @@ def _excluded(rel: str) -> bool:
     benchmark's private test split), or any ``*.private.*`` file.
     """
     parts = Path(rel).parts
-    if parts and parts[0] in OUTPUTS or ".private." in Path(rel).name:
+    if parts and parts[0].casefold() in OUTPUTS_FOLDED or ".private." in Path(rel).name.casefold():
         return True
     return any(Path(rel).match(pattern) for pattern in UNPUBLISHED)
 

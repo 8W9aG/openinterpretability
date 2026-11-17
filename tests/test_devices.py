@@ -8,11 +8,11 @@ import sys
 import pytest
 import torch
 
-from openinterp.cli import resolve_device
-from openinterp.harness import devices
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.scan import scan_neuron
-from openinterp.reproduce import DEFAULT_TOLERANCE
+from openinterpretability.cli import resolve_device
+from openinterpretability.harness import devices
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.scan import scan_neuron
+from openinterpretability.reproduce import DEFAULT_TOLERANCE
 from tests.conftest import FakeTokenizer
 from tests.test_agents import TEXTS
 
@@ -36,7 +36,7 @@ def test_the_planner_uses_a_free_gpu():
     assert (plan.device, plan.fallback) == ("mps", False)
 
 
-def test_another_openinterp_job_on_the_gpu_sends_this_one_to_the_cpu():
+def test_another_openinterpretability_job_on_the_gpu_sends_this_one_to_the_cpu():
     plan = devices.choose(devices.Load({"mps": [41, 42]}, None), True, 50.0)
     assert (plan.device, plan.fallback) == ("cpu", True)
     assert "41, 42" in plan.reason
@@ -92,7 +92,10 @@ def test_auto_falls_back_once_with_a_note(monkeypatch, capsys):
     monkeypatch.setattr(devices, "holders", lambda device: [7])
     assert resolve_device("auto") == "cpu"
     assert resolve_device("auto") == "cpu"
-    assert capsys.readouterr().err.count("Using the CPU, because another openinterp job") == 1
+    assert (
+        capsys.readouterr().err.count("Using the CPU, because another openinterpretability job")
+        == 1
+    )
 
 
 def test_leases_can_be_turned_off(monkeypatch):
@@ -131,7 +134,7 @@ def test_a_retry_forces_every_model_onto_the_cpu(monkeypatch):
 
 
 def test_main_runs_the_command_again_on_the_cpu(monkeypatch, capsys):
-    import openinterp.cli as cli_module
+    import openinterpretability.cli as cli_module
 
     def failing(**_):
         devices.take_lease("mps")
@@ -150,7 +153,7 @@ def test_main_runs_the_command_again_on_the_cpu(monkeypatch, capsys):
 
 
 def _run_main(monkeypatch, failing):
-    import openinterp.cli as cli_module
+    import openinterpretability.cli as cli_module
 
     calls = []
     monkeypatch.setattr(cli_module, "cli", failing)
@@ -236,8 +239,8 @@ def test_a_working_gpu_starts_in_time():
 
 
 def _environment(tiny_gpt2):
-    from openinterp.harness.environment import run_environment
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.environment import run_environment
+    from openinterpretability.harness.hooks import NeuronHookRunner
 
     return run_environment(NeuronHookRunner(tiny_gpt2, FakeTokenizer()))
 
@@ -252,7 +255,11 @@ def test_the_record_names_the_hardware_and_the_os(tiny_gpt2):
     ("asked", "holders", "choice"),
     [
         ("auto", [], "auto: mps, because the GPU is free"),
-        ("auto", [41], "auto: cpu, because another openinterp job uses the GPU (process 41)"),
+        (
+            "auto",
+            [41],
+            "auto: cpu, because another openinterpretability job uses the GPU (process 41)",
+        ),
         ("cpu", [], "--device cpu"),
         ("ane", [], "ane: scans on the ane, the rest on mps, because the GPU is free"),
     ],
@@ -298,14 +305,14 @@ def test_device_ane_keeps_a_streamed_scan_on_the_ane(monkeypatch):
 
 
 def test_nvidia_smi_output_gives_each_gpus_utilization():
-    from openinterp.harness.cuda_devices import parse_nvidia_smi
+    from openinterpretability.harness.cuda_devices import parse_nvidia_smi
 
     assert parse_nvidia_smi("0, 3\n1, 97\n") == {0: 3.0, 1: 97.0}
     assert parse_nvidia_smi("No devices were found") == {}
 
 
 def test_the_first_free_cuda_gpu_is_chosen():
-    from openinterp.harness.cuda_devices import choose_cuda
+    from openinterpretability.harness.cuda_devices import choose_cuda
 
     plan = choose_cuda(3, {0: [11]}, {1: 95.0, 2: 4.0}, 50.0)
     assert (plan.device, plan.fallback) == ("cuda:2", False)
@@ -313,7 +320,7 @@ def test_the_first_free_cuda_gpu_is_chosen():
 
 
 def test_every_busy_cuda_gpu_sends_the_job_to_the_cpu_with_a_cuda_hint():
-    from openinterp.harness.cuda_devices import choose_cuda
+    from openinterpretability.harness.cuda_devices import choose_cuda
 
     plan = choose_cuda(2, {0: [11]}, {1: 99.0}, 50.0)
     assert (plan.device, plan.fallback, plan.hint) == ("cpu", True, "cuda")
@@ -321,7 +328,7 @@ def test_every_busy_cuda_gpu_sends_the_job_to_the_cpu_with_a_cuda_hint():
 
 
 def test_auto_on_cuda_skips_a_gpu_another_job_holds(monkeypatch, capsys):
-    from openinterp.harness import cuda_devices
+    from openinterpretability.harness import cuda_devices
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)

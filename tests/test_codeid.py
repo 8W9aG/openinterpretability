@@ -1,4 +1,4 @@
-"""Detecting a document's programming language (`openinterp/codeid.py`).
+"""Detecting a document's programming language (`openinterpretability/codeid.py`).
 
 The detector serves `open-interpretability corpus`.
 """
@@ -9,9 +9,9 @@ from types import SimpleNamespace
 import fsspec
 import pytest
 
-from openinterp import codeid
-from openinterp.corpus import build_from_hub
-from openinterp.corpus_presets import GITHUB_CODE_LANGUAGES
+from openinterpretability import codeid
+from openinterpretability.corpus import build_from_hub
+from openinterpretability.corpus_presets import GITHUB_CODE_LANGUAGES
 from tests.test_corpus import shards  # noqa: F401  (fixture)
 
 
