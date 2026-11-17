@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import model_card %}
 
 {% block title %}Models · {{ site_title }}{% endblock %}
 
@@ -44,4 +45,16 @@
     </tbody>
   </table>
 </div>
+
+{% if models %}
+<section class="mt-10">
+  <h2 class="mb-1 text-lg font-semibold">Pieces</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">How much of each model is studied, layer by layer. New neurons are drawn mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified.</p>
+  <div class="space-y-4">
+    {% for m in models %}
+    {{ model_card(m, explore, root, loop.index) }}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 {% endblock %}
