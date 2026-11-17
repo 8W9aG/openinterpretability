@@ -217,3 +217,58 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     assert record.run.share_after == record.explained_share
     failed = "the loop stopped with exit code 1: failures or a rate limit"
     assert record.run.stopped == (failed if code else "reached")
+
+
+def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, monkeypatch):
+    # --complete is --run to the target, --level long and --record, landed (#4476).
+    from openinterpretability import cli_explain, experiment_loop, explain_land
+    from openinterpretability.cli import cli
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    runner = lambda *a, **k: toy_runner  # noqa: E731
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", runner)
+    monkeypatch.setattr(experiment_loop, "reset", lambda: None)
+    seen = {}
+
+    def run_loop(proposer, reviewer, plan_next, out=None):
+        seen["limit"] = plan_next.limit
+        out["loop"] = SimpleNamespace(results=[], finished="no target left")
+        return 0
+
+    narrative = {"sections": [{"title": "Step", "text": "Mostly unknown."}],
+                 "paragraph": "Mostly unknown."}  # fmt: skip
+    told = {"narrative": narrative, "narrator_model": "external/x",
+            "citations_not_in_evidence": []}  # fmt: skip
+    monkeypatch.setattr("openinterpretability.cli_loop.run_loop", run_loop)
+    monkeypatch.setattr(cli_explain, "_narrate", lambda *a: told)
+    landed = []
+
+    def land_record(record):
+        landed.append(record)
+        return "https://x/pull/9", True
+
+    monkeypatch.setattr(explain_land, "land_record", land_record)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--complete", "--target", "0.8",
+            "--proposer", "anthropic/p", "--reviewer", "anthropic/r"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    assert seen["limit"] == 0  # to the target, with no cap
+    (record,) = landed
+    assert record.narration.paragraph == "Mostly unknown."
+    assert record.run.stopped == "no target left"
+    assert "Explanation → https://x/pull/9 (merged)" in out.output
+    assert out.output.strip().splitlines()[-1].startswith("Reached: explained share ")
+
+
+def test_the_reached_line():
+    from openinterpretability.cli_explain import reached
+
+    ran = SimpleNamespace(share_before=0.1)
+    line = reached(0.42, 0.8, {"coverage": 0.3, "random": 0.05}, ran)
+    assert line == ("Reached: explained share 42.0% (from 10.0% before the run), target 80%; "
+                    "prompt coverage 30.0% against 5.0% for random units.")  # fmt: skip
+    assert reached(0.0, 1.0, {"coverage": None}) == "Reached: explained share 0.0%, target 100%."
