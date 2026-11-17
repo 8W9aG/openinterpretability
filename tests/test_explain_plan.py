@@ -99,7 +99,9 @@ def test_cli_lists_the_plan(toy_runner, tmp_path, monkeypatch):
         and "more unit experiments" in out.output
     )
     as_json = json.loads(CliRunner().invoke(cli, [*args, "--json", "--target", "0.5"]).output)
-    assert as_json["target"] == 0.5 and as_json["reaches"] >= 0.5 and "order" not in as_json
+    plan = as_json["coverage_plan"]  # --target is causal coverage (#4476)
+    assert plan["target"] == 0.5 and plan["reach"] >= plan["now"] and "order" not in as_json
+    assert plan["experiments"] is None or 0 <= plan["experiments"] <= as_json["planned"]
     assert len(as_json["experiments"]) == 1 <= as_json["planned"]  # only the next --experiments
     assert as_json["coverage"]["coverage"] == 0.0  # nothing is explained yet
 
@@ -147,7 +149,7 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
         3,
     )
     assert draws.limit == 2 and len(draws.targets) >= 2  # --run 2 stops after 2 (#4473)
-    assert "experiments, by coverage gain, until the explained share reaches" in out.output
+    assert "experiments, by coverage gain, until the coverage reaches" in out.output
     assert all("--selection attribution" in t.audit for t in draws.targets)
     external = CliRunner().invoke(
         cli, [*args[:-4], "--proposer", "external/x", "--reviewer", "anthropic/r"]
@@ -261,7 +263,7 @@ def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, m
     assert record.narration.paragraph == "Mostly unknown."
     assert record.run.stopped == "no target left"
     assert "Explanation → https://x/pull/9 (merged)" in out.output
-    assert out.output.strip().splitlines()[-1].startswith("Reached: explained share ")
+    assert out.output.strip().splitlines()[-1].startswith("Reached: prompt coverage ")
 
 
 def test_the_reached_line():
@@ -269,6 +271,38 @@ def test_the_reached_line():
 
     ran = SimpleNamespace(share_before=0.1)
     line = reached(0.42, 0.8, {"coverage": 0.3, "random": 0.05}, ran)
-    assert line == ("Reached: explained share 42.0% (from 10.0% before the run), target 80%; "
-                    "prompt coverage 30.0% against 5.0% for random units.")  # fmt: skip
-    assert reached(0.0, 1.0, {"coverage": None}) == "Reached: explained share 0.0%, target 100%."
+    assert line == (
+        "Reached: prompt coverage 30.0% (from 10.0% before the run), target 80%, "
+        "against 5.0% for random units; explained share of |attribution| 42.0%."
+    )
+    assert reached(0.0, 1.0, {"coverage": None}) == (
+        "Reached: no prompt coverage, target 100%; explained share of |attribution| 0.0%."
+    )
+
+
+def test_coverage_plan_finds_the_fewest_experiments_for_the_target(toy_runner, means):  # noqa: F811
+    from openinterpretability.explain_coverage import coverage_plan
+
+    result = ex.explain(toy_runner, "toy", PROMPT, means, {}, top=5, edges=0)
+    planned = ep.plan(result, {}, "toy", target=1.0)
+    args = (toy_runner, PROMPT, means, result.token_id, -1, result.order)
+    now = coverage_plan(*args, planned, 0.5)["now"]
+    assert coverage_plan(*args, planned, now)["experiments"] == 0  # reached already
+    found = coverage_plan(*args, planned, 0.5)
+    if found["experiments"] is not None:  # the smallest k whose units bring back half
+        assert 0 < found["experiments"] <= len(planned.experiments)
+    out_of_reach = coverage_plan(*args, planned, found["reach"] + 0.5)
+    assert out_of_reach["experiments"] is None and out_of_reach["reach"] == found["reach"]
+
+
+def test_the_coverage_meter_counts_only_coverage_above_random(monkeypatch):
+    from openinterpretability import explain_coverage, explanation_targets
+
+    monkeypatch.setattr(explanation_targets, "explained_now", lambda *a: {"u"})
+    results = iter([{"coverage": 0.3, "random_draws": [0.1, 0.2]},
+                    {"coverage": 0.3, "random_draws": [0.1, 0.4]}])  # fmt: skip
+    monkeypatch.setattr(explain_coverage, "prompt_coverage", lambda *a, **k: next(results))
+    meter = explanation_targets.CoverageMeter(None, None, "p", 1, -1, "m",
+                                              [("u", 1.0, "", False)], [], None)  # fmt: skip
+    assert meter() == 0.3 and "best random set 20.0%" in meter.note
+    assert meter() == 0.0  # a random set did as well, so the coverage isn't credited

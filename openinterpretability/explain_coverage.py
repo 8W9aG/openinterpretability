@@ -144,3 +144,34 @@ def add_gains(runner, prompt, means, token, position, order, planned, *, pool=PO
 
     planned.experiments.sort(key=by_gain)  # stable: unmeasured ones keep attribution order
     planned.groups.sort(key=by_gain)
+
+
+def coverage_plan(runner, prompt, means, token, position, order, planned, target: float) -> dict:
+    """How many planned unit experiments bring the coverage to ``target`` (#4476).
+
+    The target is causal coverage, not a share of |attribution|. The units of the first k
+    planned experiments are kept with the explained ones, and the rest mean-ablated. A
+    binary search finds the smallest k that reaches ``target``. Coverage need not rise with
+    every unit, so k is an estimate. ``reach`` is the coverage with every planned unit kept.
+    """
+    explained = [unit for unit, _, _, done in order if done]
+    clean = _log_prob(runner, prompt, token, position)
+    ablated = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, []))
+
+    def coverage(k: int) -> float:
+        keep = explained + [u for e in planned.experiments[:k] for u in e.units]
+        kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, keep))
+        found = _share(clean, ablated, kept)
+        return -1.0 if found is None else found
+
+    n = len(planned.experiments)
+    now, reach = coverage(0), coverage(n)
+    if now >= target:  # reached already, whatever larger sets do
+        return {"target": target, "now": now, "reach": reach, "experiments": 0}
+    if reach < target:
+        return {"target": target, "now": now, "reach": reach, "experiments": None}
+    low, high = 0, n
+    while low < high:
+        mid = (low + high) // 2
+        low, high = (low, mid) if coverage(mid) >= target else (mid + 1, high)
+    return {"target": target, "now": now, "reach": reach, "experiments": low}
