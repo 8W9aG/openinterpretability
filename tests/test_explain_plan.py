@@ -172,3 +172,8 @@ def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
     assert f"Explanation → {path}" in out.output
     assert record.model_name == "toy" and record.prompt == PROMPT and record.narration is None
     assert record.units and record.planned_experiments > 0
+
+
+def test_an_audit_command_takes_only_a_known_pole():
+    with pytest.raises(ValueError):
+        ep.audit_command("m/x", (1, 2, "positive;x"), None)

@@ -63,7 +63,9 @@ def explanation_slug(model: str, prompt: str, position: int = -1) -> str:
 
 
 def _explain(model: str, prompt: str, why: str) -> Candidate:
-    command = f"open-interpretability explain {shlex.quote(prompt)} --model {model}"
+    # Every value is quoted, and the prompt comes after `--`. So each value stays one
+    # argument, whatever it holds (#4397).
+    command = f"open-interpretability explain --model {shlex.quote(model)} -- {shlex.quote(prompt)}"
     return Candidate(kind="explanation", model=model, weight=EXPLANATION_WEIGHT, rationale=why,
                      commands=[command], slug=explanation_slug(model, prompt),
                      skills=SKILLS["explanation"])  # fmt: skip
@@ -106,7 +108,9 @@ def unit_candidates(views, states, windows: dict) -> list[Candidate]:
             if found is None:
                 continue
             index = int(found["unit"][1:])
-            pole = HEAD if found["unit"][0] == "H" else u.slug.rsplit("-", 1)[-1]
+            pole = HEAD if found["unit"][0] == "H" else found["pole"]
+            if pole is None:
+                continue  # a neuron slug names its pole
             audit = audit_command(model, (int(found["layer"]), index, pole), windows.get(model))
             why = (f"unstudied, and the explanation of {view.record.prompt[:60]!r} needs it "
                    f"({u.share:.1%} of the attribution)")  # fmt: skip

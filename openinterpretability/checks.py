@@ -48,6 +48,7 @@ from pydantic import ValidationError
 from openinterpretability.builder.wiki import _read_front_matter, archive_path
 from openinterpretability.circuit_checks import check_circuits
 from openinterpretability.core.agent_names import spelling_problem
+from openinterpretability.core.explanation_records import check_explanations
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 from openinterpretability.core.schemas import AuditRecord
 from openinterpretability.errata_checks import check_errata
@@ -124,6 +125,7 @@ def check_registry(
     _check_stops(wiki_dir, report, scope)
     _check_ledger(wiki_dir, report, scope)
     check_circuits(wiki_dir, report, scope)
+    check_explanations(wiki_dir, report, scope)
     check_errata(wiki_dir, report, base_ref, changes, allowed_signers)
     check_takedowns(wiki_dir, report, base_ref, changes, allowed_signers)
     if base_ref:

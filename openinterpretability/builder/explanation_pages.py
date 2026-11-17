@@ -18,7 +18,11 @@ from pathlib import Path
 
 from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI, load_latest
 
-UNIT_PAGE = re.compile(r"^(?P<model>[^/]+)/L(?P<layer>\d+)/(?P<unit>[NH]\d+)")
+# A pole or head slug, matched in full (the same grammar as explanation_records.UNIT_SLUG).
+UNIT_PAGE = re.compile(
+    r"^(?P<model>[A-Za-z0-9][A-Za-z0-9._-]*)/L(?P<layer>\d+)/"
+    r"(?P<unit>[NH]\d+)(?:-(?P<pole>positive|negative))?$"
+)
 
 
 @dataclass
