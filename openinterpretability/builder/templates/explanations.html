@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Explanations · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Explanations</nav>
+<h1 class="text-2xl font-semibold">Explanations</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why a model gives one answer to one prompt, as far as the registry explains it. Each is written from the registry's evidence by <code class="font-mono">open-interpretability explain</code>, and only VERIFIED units count as explained. A stale one cites a unit whose status has changed since it was written.</p>
+<div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Written</th><th class="px-3 py-2">Model</th><th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explained</th><th class="px-3 py-2">State</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for v in views %}
+      <tr class="align-top">
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.record.written.isoformat() }}">{{ v.record.written.strftime("%Y-%m-%d") }}</time></td>
+        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ v.record.model_name }}</td>
+        <td class="px-3 py-2"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ v.href }}">{{ v.record.prompt | truncate(90) }} → <span class="font-mono">{{ v.record.answer }}</span></a></td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.record.explained_share | pct_fine }}</td>
+        <td class="px-3 py-2 text-xs">{% if v.stale %}stale: {{ v.changed | length }} unit{{ 's' if v.changed | length != 1 }} changed{% else %}current{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

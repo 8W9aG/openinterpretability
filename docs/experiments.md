@@ -170,6 +170,8 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
   - A unit leaves the list when it is VERIFIED, when a scan stops on it, or after `--max-attempts` runs (default 5). A unit that an open PR claims waits.
   - `--proposer`, `--reviewer` and `--provider` work as for `loop`, and an `external/` model is refused. The run ends with each unit's outcome.
 
+- **Record it.** `--record` writes the explanation to `wiki/explanations/<model>/<prompt id>/<UTC>.json` (`openinterpretability/core/explanation_records.py`). The record holds the prompt, the answer, the shares and prompt coverage, and the mechanism with each unit's status at the time. With `--level long` or `paragraph`, it also holds the narration. A prompt keeps its history, and the site shows each prompt's newest record under *Explanations*, linked from Research. A page is marked stale when a unit that it cites has a different status now.
+
 `--json` prints the result as JSON, with every edge, the prompt coverage and the next planned experiments.
 
 ## Letting an agent run it (Claude Code)
