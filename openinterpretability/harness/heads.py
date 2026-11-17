@@ -29,7 +29,7 @@ from openinterpretability.harness.scan import (
     cut_pieces,
     settle,
 )
-from openinterpretability.harness.units import HeadUnit, head_strength
+from openinterpretability.harness.units import HeadUnit, above_floor, head_strength
 
 
 @dataclass
@@ -99,6 +99,7 @@ def scan_head(
     pieces = list(cut_pieces(runner.tokenizer, texts, window_tokens, stride))
 
     mean, count = _mean_output(runner, pieces, layer, head, batch_tokens)
+    floor = _strength_floor(runner, pieces, ident, mean, batch_tokens)
     confounds = ConfoundAccumulator()
     labels = LabelPass(runner.tokenizer, texts, taggers)
     top = TopExamples()
@@ -106,26 +107,27 @@ def scan_head(
     first: list[bool] = []
     for batch in batches(runner, pieces, batch_tokens):
         z = runner.head_outputs(batch.encoded, layer)[..., head, :]
-        strengths = head_strength(runner, ident, z, mean).cpu()
+        strengths = above_floor(head_strength(runner, ident, z, mean), floor).cpu()
         counted = batch.counted
         confounds.update(batch.ids[counted], batch.positions[counted], strengths[counted])
         labels.update(batch, strengths)
         values.extend(strengths[counted].tolist())
         first.extend(batch.first[counted].tolist())
         top.update(batch, strengths)
-    unit = HeadUnit(ident, tuple(mean))
+    unit = HeadUnit(ident, tuple(mean), floor=floor)
     read = partial(unit.strengths, runner)
-    examples, values, floor = settle(runner, read, values, first, top, k, labels.tokens)
+    examples, values, first_floor = settle(runner, read, values, first, top, k, labels.tokens)
 
     patterns = (pattern_sequences, pattern_length, pattern_seed)
     profile = _head_profile(runner, layer, head, mean, count, *patterns)
+    profile = profile.model_copy(update={"strength_floor": floor})
     return HeadScanResult(
         examples=[peak_attention(runner, e, layer, head) for e in examples],
         values=values,
         correlated=[],
         confounds=labels.finalize(confounds.finalize(runner.tokenizer, min_count), values),
         windows=len(pieces),
-        first_token_floor=floor,
+        first_token_floor=first_floor,
         profile=profile,
     )
 
@@ -141,6 +143,19 @@ def _mean_output(runner, pieces, layer: int, head: int, batch_tokens: int):
     if not count:
         raise ValueError("the corpus has no tokens to scan")
     return [round(float(v), 6) for v in total / count], count
+
+
+def _strength_floor(runner, pieces, ident, mean, batch_tokens: int) -> float:
+    """The median of the head's raw strength over every counted token (protocol 0.10).
+
+    A second pass, since the strength needs z̄ from the first. A head's norm never goes near
+    zero, so its strength is measured above this floor (``HeadProfile.strength_floor``).
+    """
+    values = []
+    for batch in batches(runner, pieces, batch_tokens):
+        z = runner.head_outputs(batch.encoded, ident.layer)[..., ident.head_idx, :]
+        values.append(head_strength(runner, ident, z, mean).cpu()[batch.counted])
+    return round(float(torch.cat(values).float().median()), 6)
 
 
 def _head_profile(runner, layer, head, mean, count, sequences, length, seed) -> HeadProfile:

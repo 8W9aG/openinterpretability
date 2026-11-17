@@ -14,6 +14,7 @@ from types import SimpleNamespace
 import click
 
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
+from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
 
 
@@ -98,6 +99,12 @@ def explain_command(  # long-function: one argument per option, then one line pe
 
     if complete:  # run to the target, narrate in full, and land the record (#4476)
         run, level, write_record, land = 0 if run is None else run, "long", True, True
+    reuse = look_first(Path(wiki_dir), model_name, prompt, position, target, level,
+                       write_record or run is not None)  # fmt: skip
+    if reuse.action == "done":
+        return
+    if reuse.action == "level":
+        run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
     means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
@@ -129,6 +136,7 @@ def explain_command(  # long-function: one argument per option, then one line pe
         figures = figure_data(runner, means, result, coverage, planned, found.groups)
         record = _record(model_name, result, coverage, planned, told, ran, figures,
                          found.reach["target"])  # fmt: skip
+        record = record.model_copy(update=reuse.fields)
         _keep(record, home, land)
     if not as_json:
         click.echo(reached(result.verified_share, found.reach["target"], coverage, ran))
@@ -320,6 +328,8 @@ def _print_plan(planned, show: int, reach: dict) -> None:
     goal = (f"about {k} unit experiments reach the {target:.0%} coverage target" if k is not None
             else f"the {target:.0%} coverage target is out of reach: every planned unit "
             f"brings back {reach['reach']:.1%}")  # fmt: skip
+    if reach.get("overshoot"):
+        goal += "; with every planned unit kept, the answer overshoots the clean model"
     click.echo(f"Plan: {goal} (coverage now {reach['now']:.1%}). There are "
                f"{len(planned.experiments)} unit experiments in all, and "
                f"{len(planned.groups)} for superpositions and circuits.")  # fmt: skip
@@ -386,6 +396,9 @@ def _print_coverage(coverage: dict) -> None:
         f"Prompt coverage: keeping only the {coverage['units']} explained units, and mean-ablating "
         f"the rest, brings back {share:.1%} of the answer's log-probability{against}."
     )
+    if coverage.get("overshoot"):
+        click.echo(f"Overshoot: the raw coverage is {coverage['raw']:.1%}. The kept units push "
+                   "the answer above the clean model, so the credit stops at 100%.")  # fmt: skip
 
 
 def _narrate(result, coverage, planned, model: str | None) -> dict:
@@ -456,6 +469,7 @@ def _record(model: str, result, coverage: dict, planned, told: dict, run=None, f
         model_name=model, prompt=result.prompt, position=result.position, answer=result.token,
         explained_share=result.verified_share, blocked_share=planned.blocked,
         prompt_coverage=coverage.get("coverage"), random_coverage=coverage.get("random"),
+        raw_coverage=coverage.get("raw"),
         units=units, narration=narration, planned_experiments=len(planned.experiments),
         package_version=__version__, written=datetime.now(UTC), run=run, figures=figures,
         target=target,

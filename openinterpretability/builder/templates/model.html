@@ -132,17 +132,8 @@
 {% if own_explanations %}
 <section class="mt-10" id="explanations">
   <h2 class="mb-1 text-lg font-semibold">Explanations</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why this model gives one answer to one prompt, as far as the registry explains it, newest first. Each links to its explanation. All models' explanations are on the <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> page.</p>
-  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-        <tr><th class="px-3 py-2">Written</th><th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explained</th><th class="px-3 py-2">State</th></tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-        {{ explanation_rows(own_explanations, root, show_model=false) }}
-      </tbody>
-    </table>
-  </div>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Explanations are sub-units of this model. Each says why it gives one answer to one prompt, as far as the registry explains it. A prompt's page lists every explanation of it. All models' prompts are on the <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> page.</p>
+  {{ explanation_rows(own_explanations, root, show_model=false) }}
 </section>
 {% endif %}
 

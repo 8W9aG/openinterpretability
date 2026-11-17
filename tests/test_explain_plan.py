@@ -159,7 +159,7 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
 
 def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
     from openinterpretability.cli import cli
-    from openinterpretability.core.explanation_records import load_latest
+    from openinterpretability.core.explanation_records import load_all
 
     monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
     monkeypatch.setattr(ex, "WINDOW", 4)
@@ -171,7 +171,7 @@ def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
             "--wiki-dir", str(wiki), "--edges", "0", "--record", "--no-land"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
-    ((path, record),) = load_latest(wiki)
+    (((path, record),),) = load_all(wiki).values()
     assert f"Explanation → {path}" in out.output
     assert record.model_name == "toy" and record.prompt == PROMPT and record.narration is None
     assert record.units and record.planned_experiments > 0
@@ -187,7 +187,7 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     # The record is written after the loop, from the registry as the run left it (#4474).
     from openinterpretability import cli_explain, experiment_loop
     from openinterpretability.cli import cli
-    from openinterpretability.core.explanation_records import load_latest
+    from openinterpretability.core.explanation_records import load_all
 
     monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
     monkeypatch.setattr(ex, "WINDOW", 4)
@@ -214,7 +214,7 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == code, out.output
     assert len(analyses) == 2  # before the run, to plan it, and after it
-    ((_, record),) = load_latest(wiki)
+    (((_, record),),) = load_all(wiki).values()
     assert record.run.landed == ["toy/L1/N2-positive VERIFIED https://x/pull/1"]
     assert record.run.share_after == record.explained_share
     failed = "the loop stopped with exit code 1: failures or a rate limit"

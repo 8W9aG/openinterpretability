@@ -8,7 +8,8 @@ keeps its history as the registry grows.
 
 An explanation is a snapshot. Each unit's status is the one at the time of writing. When a
 cited unit's status has changed since, the site marks the explanation stale
-(:mod:`openinterpretability.builder.explanation_pages`), and a newer record replaces it.
+(:mod:`openinterpretability.builder.explanation_pages`). A newer explanation of the prompt
+is listed beside it on the prompt's page (#4503).
 """
 
 from __future__ import annotations
@@ -27,6 +28,8 @@ EXPLANATIONS_WIKI = "explanations"  # records live in wiki/explanations/
 # The values that reach file paths and generated commands. A model name is `org/name`, or a
 # bare name in tests. A unit slug is a pole's or a head's, matched in full.
 MODEL_NAME = r"^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)?$"
+STAMP = r"^\d{8}T\d{6}Z$"  # a record's id: the UTC time it was written
+LEVELS = ("mechanism", "paragraph", "long")  # each level holds the ones before it
 UNIT_SLUG = r"^[A-Za-z0-9][A-Za-z0-9._-]*/L\d+/(N\d+-(positive|negative)|H\d+)$"
 
 
@@ -109,6 +112,11 @@ class ExplainRun(StrictModel):
     shares: list[float] = Field(default_factory=list)  # the share before each draw (#4479)
 
 
+def prompt_id(model: str, position: int, prompt: str) -> str:
+    """A prompt's id: the start of the SHA-256 of the model, position and prompt."""
+    return hashlib.sha256(f"{model}\n{position}\n{prompt}".encode()).hexdigest()[:12]
+
+
 class ExplanationRecord(StrictModel):
     """One explanation of one answer, as the registry stood (module docstring)."""
 
@@ -118,7 +126,8 @@ class ExplanationRecord(StrictModel):
     answer: str
     explained_share: float
     blocked_share: float
-    prompt_coverage: float | None
+    prompt_coverage: float | None  # credited: at most 1 (#4507)
+    raw_coverage: float | None = None  # uncapped; over 1 is an overshoot (#4507)
     random_coverage: float | None
     units: list[ExplainedUnit]
     narration: Narration | None = None
@@ -126,44 +135,77 @@ class ExplanationRecord(StrictModel):
     run: ExplainRun | None = None  # the experiments that --run landed first (#4474)
     figures: ExplanationFigures | None = None  # the page's figures' data (#4479)
     target: float | None = None  # the causal coverage it aimed at (#4476)
+    previous: str | None = Field(  # the explanation of this prompt it builds on (#4503)
+        default=None, pattern=STAMP, description="That record's id, its UTC stamp."
+    )
+    reused: bool = False  # no experiments ran: ``previous`` reached the target (#4503)
     package_version: str
     written: datetime
 
     @property
+    def id(self) -> str:
+        """The record's id among its prompt's explanations: its UTC stamp, as in its file name."""
+        return f"{self.written:%Y%m%dT%H%M%SZ}"
+
+    @property
+    def overshoot(self) -> bool:
+        """True when keeping the explained units raised the answer above the clean model."""
+        return self.raw_coverage is not None and self.raw_coverage > 1.0
+
+    @property
+    def level(self) -> str:
+        """The highest level it has: ``long``, ``paragraph`` or ``mechanism``."""
+        if self.narration is None:
+            return "mechanism"
+        return "long" if self.narration.sections else "paragraph"
+
+    @property
     def prompt_id(self) -> str:
-        """The prompt's id: the start of the SHA-256 of the model, position and prompt."""
-        key = f"{self.model_name}\n{self.position}\n{self.prompt}"
-        return hashlib.sha256(key.encode()).hexdigest()[:12]
+        """The prompt's id (:func:`prompt_id`)."""
+        return prompt_id(self.model_name, self.position, self.prompt)
 
 
 def record_path(wiki_dir: Path, record: ExplanationRecord) -> Path:
     """``wiki/explanations/<model slug>/<prompt id>/<UTC timestamp>.json``."""
     folder = wiki_dir / EXPLANATIONS_WIKI / model_slug(record.model_name) / record.prompt_id
-    return folder / f"{record.written:%Y%m%dT%H%M%SZ}.json"
+    return folder / f"{record.id}.json"
 
 
-def load_latest(wiki_dir: Path) -> list[tuple[Path, ExplanationRecord]]:
-    """The newest valid record of each prompt; none without the folder.
+def load_all(wiki_dir: Path) -> dict[tuple[str, str], list[tuple[Path, ExplanationRecord]]]:
+    """Every valid record, by ``(model slug, prompt id)``, oldest first; none without the folder.
 
-    A record that doesn't validate is left out with a warning. So one bad file can't stop
-    the planner or the site build. ``open-interpretability check`` rejects it
-    (:func:`check_explanations`).
+    A prompt is a page, and each of its records is an explanation of it (#4503). A record
+    that doesn't validate is left out with a warning. So one bad file can't stop the planner or the
+    site build. ``open-interpretability check`` rejects it (:func:`check_explanations`).
     """
     import sys
 
     from pydantic import ValidationError
 
     root = wiki_dir / EXPLANATIONS_WIKI
-    out = []
-    for folder in sorted(p for p in root.glob("*/*") if p.is_dir()) if root.is_dir() else []:
-        newest = max(folder.glob("*.json"), default=None)  # files are named by UTC time
-        if newest is None:
-            continue
+    out: dict[tuple[str, str], list[tuple[Path, ExplanationRecord]]] = {}
+    for path in sorted(root.glob("*/*/*.json")) if root.is_dir() else []:
         try:
-            out.append((newest, ExplanationRecord.model_validate_json(newest.read_text())))
+            record = ExplanationRecord.model_validate_json(path.read_text(encoding="utf-8"))
         except ValidationError:
-            print(f"warning: skipping an invalid explanation record: {newest}", file=sys.stderr)
+            print(f"warning: skipping an invalid explanation record: {path}", file=sys.stderr)
+            continue
+        out.setdefault((path.parent.parent.name, path.parent.name), []).append((path, record))
     return out
+
+
+def best(records: list[ExplanationRecord]) -> ExplanationRecord | None:
+    """The explanation with the highest prompt coverage it measured; a tie goes to the newest."""
+    measured = [r for r in records if r.prompt_coverage is not None]
+    return max(measured, key=lambda r: (r.prompt_coverage, r.written), default=None)
+
+
+def prompt_records(
+    wiki_dir: Path, model: str, prompt: str, position: int
+) -> list[ExplanationRecord]:
+    """The explanations of one prompt of one model, oldest first."""
+    found = load_all(wiki_dir).get((model_slug(model), prompt_id(model, position, prompt)), [])
+    return [r for _, r in found]
 
 
 def check_explanations(wiki_dir: Path, report: Any, scope: set[Path] | None = None) -> None:

@@ -8,12 +8,19 @@
 
 {% block content %}
 {% set r = view.record %}
-<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a></nav>
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> / <a class="underline" href="{{ root }}{{ prompt.href }}">This prompt</a></nav>
 <h1 class="max-w-3xl text-2xl font-semibold">Why <span class="font-mono">{{ r.model_name }}</span> answers <span class="font-mono">{{ r.answer }}</span></h1>
 <p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ r.prompt }}</p>
 <p class="mt-2 text-xs text-slate-500">
   Written <time datetime="{{ r.written.isoformat() }}">{{ r.written.strftime("%Y-%m-%d %H:%M") }}</time> UTC with openinterpretability {{ r.package_version }}{% if r.narration %}, narrated by <span class="font-mono">{{ r.narration.narrator_model }}</span>{% endif %} ·
   <a class="underline" href="{{ repo_url }}/blob/main/{{ view.source }}">Source</a>
+</p>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  An explanation of this prompt, {{ prompt.explanations | length }} in all: see <a class="underline" href="{{ root }}{{ prompt.href }}">the prompt's page</a>.
+  {% if r.target is not none %}It aimed at {{ r.target | pct_fine }} causal coverage.{% endif %}
+  Level: {{ r.level }}.
+  {% if view.previous %}It builds on <a class="underline" href="{{ root }}{{ view.previous.href }}">the explanation of {{ view.previous.record.written.strftime("%Y-%m-%d %H:%M") }}</a>{% if view.previous.record.prompt_coverage is not none and r.prompt_coverage is not none %}, which reached {{ view.previous.record.prompt_coverage | pct_fine }}; this one reaches {{ r.prompt_coverage | pct_fine }}{% endif %}.{% elif r.previous %}It builds on the explanation {{ r.previous }}, which is not on the site.{% endif %}
+  {% if r.reused %}No experiments ran for it: the explanation it builds on already reached the target, so this one only adds the {{ r.level }} level.{% endif %}
 </p>
 
 {% if view.stale %}
@@ -25,13 +32,13 @@
 
 <dl class="mt-6 grid max-w-3xl grid-cols-2 gap-4 text-sm sm:grid-cols-4">
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Explained</dt><dd class="font-mono text-lg">{{ r.explained_share | pct_fine }}</dd></div>
-  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Prompt coverage</dt><dd class="font-mono text-lg">{{ r.prompt_coverage | pct_fine if r.prompt_coverage is not none else "—" }}</dd></div>
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Prompt coverage</dt><dd class="font-mono text-lg">{{ r.prompt_coverage | pct_fine if r.prompt_coverage is not none else "—" }}</dd>{% if r.overshoot %}<dd class="text-xs">Overshoot: raw {{ r.raw_coverage | pct_fine }}, capped at 100%</dd>{% endif %}</div>
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Random units</dt><dd class="font-mono text-lg">{{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }}</dd></div>
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Experiments needed</dt><dd class="font-mono text-lg">{{ r.planned_experiments | thousands }}</dd></div>
 </dl>
 
 {% if figures %}
-{% set folder = view.record.prompt_id %}
+{% set folder = view.record.id %}
 <section class="mt-8" aria-labelledby="figures" data-pagefind-ignore>
   <h2 id="figures" class="mb-1 text-lg font-semibold">Figures</h2>
   <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Drawn from this explanation's measured data. A VERIFIED explanation describes its unit on the scan corpus, not on this prompt, so the coverage figure is the causal check. Each figure has its data in a table below it.</p>

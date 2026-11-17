@@ -127,8 +127,9 @@ TAXONOMY: tuple[Concept, ...] = (
     Concept(
         "Explanation",
         "Why a model gives one answer to one prompt. It is written from the registry's evidence "
-        "at three levels: a short form, a long form and the mechanism.",
-        "a model",
+        "at three levels: a short form, a long form and the mechanism. A prompt is a page, and "
+        "each explanation of it is an experiment.",
+        "a sub-unit of a model",
         "the units it cites and its three levels",
         NOT_AUDITED,
         "3f9a0c21b7e4",

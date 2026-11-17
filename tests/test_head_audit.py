@@ -59,6 +59,30 @@ def test_scan_measures_strength_from_the_mean_output(runner, scan):
         assert all(0 < w <= 1 for w in ex.attention_weights)
 
 
+def test_strength_is_measured_above_the_median_floor(runner, scan):
+    # Protocol 0.10 (#4523): the floor is the median raw norm, and strength is clamped above it.
+    mean = scan.profile.mean_output
+    raw = torch.cat([head_strength(runner, HEAD, runner.head_outputs(t, 1)[0, :, 1], mean)
+                     for t in TEXTS])  # fmt: skip
+    floor = scan.profile.strength_floor
+    assert floor == pytest.approx(float(raw.median()), abs=1e-5)
+    assert min(scan.values) == 0.0  # at or below the floor
+    skip = int(scan.first_token_floor)  # the values leave first tokens out with that floor
+    counted = torch.cat([head_strength(runner, HEAD, runner.head_outputs(t, 1)[0, skip:, 1], mean)
+                         for t in TEXTS])  # fmt: skip
+    assert max(scan.values) == pytest.approx(float(counted.max()) - floor, abs=1e-4)
+    old = HeadUnit(HEAD, tuple(mean))  # a profile without a floor: the plain norm
+    new = HeadUnit(HEAD, tuple(mean), floor=floor)
+    plain, shifted = old.strengths(runner, TEXTS[0])[0], new.strengths(runner, TEXTS[0])[0]
+    torch.testing.assert_close(shifted, (plain - floor).clamp(min=0), atol=1e-6, rtol=0)
+
+
+def test_protocol_version_is_0_10():
+    from openinterpretability.core.schemas import PROTOCOL_VERSION
+
+    assert PROTOCOL_VERSION == "0.10"
+
+
 def test_mean_ablation_zeroes_the_head_and_nothing_else(runner, scan):
     mean = tuple(scan.profile.mean_output)
     ablate = HeadUnit(HEAD, mean).ablation(runner)["head_interventions"][HEAD.layer]
