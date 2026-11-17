@@ -148,7 +148,18 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
 - **Check.** It mean-ablates each of the top 10 units alone, and reports the change in the answer's logit. That should be about minus the attribution. It then mean-ablates the VERIFIED units among the top together, and says whether the answer changes.
 - **Paths.** For each of the top `--edges` units, it holds ∂logit/∂unit constant and attributes the unit's contribution to the other top units, by the same rule. These are first-order edges between the native units, as in attribution graphs (Ameisen et al., 2025), but with no replacement model. The output lists the three strongest edges into each unit.
 
-`--json` prints the result as JSON, with every edge.
+- **Prompt coverage.** The registry's model coverage measures how much of a layer's loss rise the VERIFIED poles bring back. Prompt coverage applies the same form to one answer (`openinterpretability/explain_coverage.py`). Mean-ablate every neuron and head except the explained units, and measure the answer's log-probability. Coverage is (kept − ablated) / (clean − ablated), against the same number of random units. It is causal, not first-order, so the long tail of small attributions doesn't inflate it.
+- **Plan.** It lists the experiments that a complete explanation needs (`openinterpretability/explain_plan.py`). It walks the poles and heads in order of |attribution|, and skips the explained ones. It stops when the explained share plus the planned share reaches `--target` (default 1, a complete explanation).
+  - An unstudied unit gets an audit with `--selection attribution`, plus `--window-tokens` when the model has a configured window. The answer chose the unit, so its result stays out of the random-selection statistics.
+  - A studied unit that isn't VERIFIED gets the planner's heaviest follow-up on its record.
+  - A stopped unit, or one with no follow-up, adds to a *blocked* share.
+  - Each superposition and circuit that carries the answer, and isn't VERIFIED, gets its experiment too. A circuit gets a task hypothesis on the prompt, whose task file must be written first.
+  - Each of the top 40 unit experiments gets a measured gain, and so does each group's experiment. A gain is the prompt coverage that the experiment would add, if its units were explained too. The experiments are listed highest gain first. A gain starts from the fully ablated model, so one unit alone adds little. The order still says which experiments matter most for this answer.
+  - The output gives how many experiments reach 50%, 80%, 90% and 99% of the attribution. Then it lists the next `--experiments` (default 10) with their commands. `--json` gives the same list and the counts.
+  - The attribution spreads thinly over most units: on a GPT-2 prompt, 4,628 experiments reach 50% and 26,861 reach 90%.
+  - A share is of this prompt's first-order attribution. A VERIFIED explanation describes its unit on the scan corpus, so it may not cover the prompt.
+
+`--json` prints the result as JSON, with every edge, the prompt coverage and the next planned experiments.
 
 ## Letting an agent run it (Claude Code)
 
