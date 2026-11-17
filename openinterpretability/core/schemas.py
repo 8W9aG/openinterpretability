@@ -66,7 +66,7 @@ VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
 
-PROTOCOL_VERSION = "0.9"
+PROTOCOL_VERSION = "0.10"
 # Probes a review asks for (PROTOCOL.md §2, step 5): 20 hard negatives, 10 holdouts.
 MAX_PROBES = 30
 # Share of max activation counted as "active" (PROTOCOL.md §1); ReviewPolicy's default.
