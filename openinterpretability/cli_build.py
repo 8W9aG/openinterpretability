@@ -12,8 +12,11 @@ from openinterpretability.core.schemas import COMMITTED_SOURCES
 from openinterpretability.sisters import DEFAULT_PATH as SISTERS_PATH
 
 
-def _wiki_inputs(wiki_dir) -> dict:
-    """What the build reads from the wiki besides the experiments, by compile_site argument."""
+def _wiki_inputs(wiki_dir, states: dict) -> dict:
+    """What the build reads from the wiki besides the experiments, by compile_site argument.
+
+    ``states`` (``planner_states.states_of``) come from the records that the build loaded.
+    """
     from openinterpretability.builder.circuit_units import load_circuit_data
     from openinterpretability.builder.concept_map_view import load_maps
     from openinterpretability.builder.explanation_pages import load_views
@@ -25,7 +28,7 @@ def _wiki_inputs(wiki_dir) -> dict:
         "draws": load_draws(wiki_dir),  # random draws no experiment could audit
         "stops": load_stops(wiki_dir),
         "errata": load_errata(wiki_dir),
-        "explanations": load_views(wiki_dir),  # each prompt's newest explanation, and if stale
+        "explanations": load_views(wiki_dir, states),  # each prompt's explanations, and if stale
         "circuits": load_circuit_data(wiki_dir),  # registry circuits, their records, hub norms
         "concept_maps": load_maps(MAPS_DIR),  # each model's concept map (#4422)
     }
@@ -122,18 +125,22 @@ def build(  # noqa: PLR0913 (one option per input file)
     from openinterpretability.builder.model_facts import load_model_facts
     from openinterpretability.builder.parallel import default_jobs
     from openinterpretability.builder.users import load_users
-    from openinterpretability.builder.wiki import load_archive
+    from openinterpretability.builder.wiki import load_archive_paths
+    from openinterpretability.core.errata import load_errata
     from openinterpretability.core.project import project_links
     from openinterpretability.core.takedowns import activate, load_takedowns
     from openinterpretability.corpus import load_sources
     from openinterpretability.crossref import load_rows as load_alignment
     from openinterpretability.planner import configured_models
+    from openinterpretability.planner_states import states_of
     from openinterpretability.sisters import load_rows as load_sisters
     from openinterpretability.wiring_backfill import load_rows
 
     activate(load_takedowns(wiki_dir))  # before any text is scrubbed; workers fork after this
+    pairs = load_archive_paths(wiki_dir)  # the one copy of the records that the build holds
+    states = states_of(pairs, load_errata(wiki_dir))
     report = compile_site(
-        load_archive(wiki_dir),
+        [record for _, record in pairs],
         output_dir,
         wiring_rows=load_rows(wiring_path),
         corpus_sources=load_sources(source_paths),
@@ -146,7 +153,7 @@ def build(  # noqa: PLR0913 (one option per input file)
         coverage_rows=load_coverage(coverage_path),
         paper_pdfs=paper_pdfs,
         pending=open_experiments(),
-        **_wiki_inputs(wiki_dir),
+        **_wiki_inputs(wiki_dir, states),
     )
     click.echo(f"Published {report.experiments_published} experiments: {len(report.pages)} "
                f"pages, {report.parquet} → {output_dir}")  # fmt: skip
