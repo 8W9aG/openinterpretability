@@ -136,9 +136,7 @@ def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
     return sorted(papers, key=lambda p: p.published or "", reverse=True)
 
 
-VENDORED = {
-    "three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
-}
+VENDORED: dict[str, str] = {}
 """The vendored libraries that the site copies as is, by file name and SHA-256.
 
 The site redacts every other paper file that is UTF-8 text. A changed library needs a new hash.

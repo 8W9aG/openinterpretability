@@ -14,7 +14,6 @@ import figures_default_on
 import figures_default_on_decoding
 import figures_depth
 import figures_development
-import figures_explorer
 import figures_native_learned
 import figures_spd_input
 import figures_syntax
@@ -82,10 +81,7 @@ def build_all() -> dict[str, str]:
 
 def generated() -> dict[str, str]:
     """Return every generated file's text by its path under papers/."""
-    poles = _rows("default-on-poles")
-    dip = next(row["dip"] for row in poles if row.get("part") == "band_population")
-    data = figures_explorer.data_js(poles, _rows("why-neurons-rest"), dip)
-    return {**build_all(), "below-the-dip/data.js": data}
+    return build_all()
 
 
 def main() -> int:

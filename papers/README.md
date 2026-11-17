@@ -8,7 +8,6 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - 2026-11-07: [Where SPD can favour GPT-2's neurons](spd-input-projections/README.md)
 - 2026-11-06: [What default-on negative poles do as a population](default-on-poles/README.md)
 - 2026-11-06: [Why training rests neurons below GELU's dip](why-neurons-rest/README.md)
-- 2026-11-06: [Below the Dip](below-the-dip/README.md), an interactive page for these two papers
 - 2026-11-06: [A bracket neuron in GPT-2, and the label that hid it](syntax-positive-controls/README.md)
 
 Older write-ups stay in `docs/analyses/`.
