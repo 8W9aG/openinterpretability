@@ -31,7 +31,6 @@ from openinterpretability.core.stats import balanced_accuracy, effective_counts
 
 NAME = "openinterpretability-explainer-benchmark"
 LICENSE = "CC-BY-4.0"  # the records' licence (wiki/LICENSE.md)
-DEFAULT_DIR = Path("benchmark")
 TEST_FRACTION = 0.2
 MIN_PER_CLASS = 3  # active and inactive probes a unit needs, so that both rates exist
 PROBE_KINDS = ("hard_negative", "positive_holdout")
