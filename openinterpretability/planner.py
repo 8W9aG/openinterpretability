@@ -166,6 +166,16 @@ def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, in
     return dict(_config(pyproject).get("window_tokens", {}))
 
 
+def configured_reproduce_floors(pyproject: Path = Path("pyproject.toml")) -> dict[str, float]:
+    """Return ``[tool.openinterpretability.reproduce_floor]``: each model's absolute floor.
+
+    ``reproduce`` adds the floor, in activation units, to the tolerance of a neuron pole
+    of that model. It is the model's float32 move between machines, and it is set from
+    measurements (``docs/analyses/neuron-float32-floor.md``).
+    """
+    return {model: float(v) for model, v in _config(pyproject).get("reproduce_floor", {}).items()}
+
+
 def configured_licenses(pyproject: Path = Path("pyproject.toml")) -> dict[str, ModelLicense]:
     """Return ``[tool.openinterpretability.licenses]``, the terms of each model (empty if unset).
 

@@ -128,6 +128,14 @@ files = 20000
 # learned-basis baseline compares latents with neuron poles scanned the same way.
 "openai-community/gpt2" = 128
 
+[tool.openinterpretability.reproduce_floor]
+# An absolute term, in activation units, that `open-interpretability reproduce` adds to the
+# tolerance of a neuron pole of the model. Pythia-70m's activations move by up to 0.0049
+# in float32 between machines and thread counts, whatever the pole's scale. A negative
+# pole's scale is at most 0.17 (GELU), so that move fails the scale-relative tolerance.
+# Twice the largest move measured (docs/analyses/neuron-float32-floor.md, #4187).
+"EleutherAI/pythia-70m" = 0.01
+
 # The terms of each model in `models` (openinterpretability.core.licenses.ModelLicense), which each
 # model's site page shows. `license` and `gated` come from the model's Hub page, and
 # `publishing_allowed` is our reading of the licence text. Checked on 2026-11-05.
