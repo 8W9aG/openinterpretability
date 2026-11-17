@@ -6,7 +6,7 @@ Run on 2026-11-12 on an M1 Max (64 GB) with macOS 15. It answers the Performance
 
 ## Method
 
-- **Workload.** One scan-sized forward pass: a batch of 8 × 256 random token ids (2,048 tokens, as `BATCH_TOKENS` in `openinterp/harness/scan.py`), up to one layer's MLP activations. The layers are GPT-2 small L5 (width 3,072), Qwen2.5-0.5B L12 (width 4,864) and Qwen2.5-1.5B L8 (width 8,960).
+- **Workload.** One scan-sized forward pass: a batch of 8 × 256 random token ids (2,048 tokens, as `BATCH_TOKENS` in `openinterpretability/harness/scan.py`), up to one layer's MLP activations. The layers are GPT-2 small L5 (width 3,072), Qwen2.5-0.5B L12 (width 4,864) and Qwen2.5-1.5B L8 (width 8,960).
 - **Access to the ANE.** PyTorch cannot use the ANE. The only way is Core ML, so the script traces each model and converts it with coremltools 9.0 to fp16, the ANE's only float type. Core ML then picks a device for each operation when given a compute-unit setting. The run tries all four settings.
 - **A second copy of the forward pass.** coremltools can't convert the HF modelling code. transformers 5's mask code uses `torch.diff`, which has no converter, and 4.46's code converts shapes to Python ints, which fails. So the script runs its own copy of GPT-2 and Qwen2 on the HF weights. In fp32 it agrees with HF to a relative error of 2–8 × 10⁻⁶.
 - **Two changes keep fp16 finite on Qwen2.5,** on every device:

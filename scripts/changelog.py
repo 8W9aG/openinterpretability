@@ -111,7 +111,7 @@ def bump(current: str, kinds: list[str], breaking: bool) -> tuple[str, list[str]
 def protocol_changed(since: str) -> bool:
     """True when ``PROTOCOL_VERSION`` changed between the tag ``since`` and the working tree."""
     diff = subprocess.run(
-        ["git", "diff", since, "--", "openinterp/core/schemas.py"],
+        ["git", "diff", since, "--", "openinterpretability/core/schemas.py"],
         capture_output=True, text=True, check=True, cwd=ROOT,
     ).stdout  # fmt: skip
     return any(line[:1] in "+-" and "PROTOCOL_VERSION =" in line for line in diff.splitlines())
@@ -143,7 +143,7 @@ def main() -> None:
             print(f"changelog: {problem}", file=sys.stderr)
         sys.exit(1 if found else 0)
     if args[:1] == ["next"]:
-        init = (ROOT / "openinterp" / "__init__.py").read_text(encoding="utf-8")
+        init = (ROOT / "openinterpretability" / "__init__.py").read_text(encoding="utf-8")
         current = re.search(r'__version__ = "([^"]+)"', init).group(1)
         since = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True,
                                text=True, check=True, cwd=ROOT).stdout.strip()  # fmt: skip

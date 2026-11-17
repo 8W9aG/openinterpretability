@@ -1,7 +1,7 @@
 """Where in a pole's activation range the explanation scores look, and the recall there (#3238).
 
-``openinterp score`` draws its held-out windows with ``sample_heldout``
-(``openinterp/harness/explanation_scores.py``). A window is active when it peaks at or
+``openinterpretability score`` draws its held-out windows with ``sample_heldout``
+(``openinterpretability/harness/explanation_scores.py``). A window is active when it peaks at or
 above the pole's 0.25×max line. The active windows are sorted by peak and cut into
 equal-count bins, and each bin gives the same number of windows. Each record keeps the bin edges
 and the judge's recall in each bin. This script reads them from every record and writes

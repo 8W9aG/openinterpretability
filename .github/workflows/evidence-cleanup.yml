@@ -1,7 +1,7 @@
 name: Evidence branch cleanup
 
 # A pull request's evidence blobs ride on evidence/<branch> until the deploy on main uploads
-# them to the dataset after the merge (openinterp/evidence_branch.py, issue #3254). This
+# them to the dataset after the merge (openinterpretability/evidence_branch.py, issue #3254). This
 # deletes the branch once its PR is closed: at once if the PR did not merge, and only when
 # every blob is on the dataset if it did. Auto-merge closes PRs with the workflow token,
 # and events that token causes start no workflows. So a schedule also deletes every
@@ -33,7 +33,7 @@ jobs:
           REPO: ${{ github.repository }}
           # LINT.IfChange
           DATASET: https://huggingface.co/datasets/sackfield/open-interpretability-evidence/resolve/main
-          # LINT.ThenChange(openinterp/core/evidence.py)
+          # LINT.ThenChange(openinterpretability/core/evidence.py)
         run: |
           gh api --paginate "repos/$REPO/git/matching-refs/heads/evidence/" --jq '.[].ref' |
           while read -r ref; do

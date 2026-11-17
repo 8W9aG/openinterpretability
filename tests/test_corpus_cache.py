@@ -7,9 +7,9 @@ import pyarrow.parquet as pq
 import pytest
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.corpus import first_documents, sample_documents
-from openinterp.corpus_cache import ENV, ParquetCache, read_row_group, row_groups
+from openinterpretability.cli import cli
+from openinterpretability.corpus import first_documents, sample_documents
+from openinterpretability.corpus_cache import ENV, ParquetCache, read_row_group, row_groups
 
 COMMIT = "a" * 40
 

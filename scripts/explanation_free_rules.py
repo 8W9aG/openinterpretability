@@ -17,9 +17,9 @@ import argparse
 import json
 from pathlib import Path
 
-from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
-from openinterp.core.schemas import AuditRecord
-from openinterp.harness.explanation_scores import _balanced, explanation_free_baseline
+from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
+from openinterpretability.core.schemas import AuditRecord
+from openinterpretability.harness.explanation_scores import _balanced, explanation_free_baseline
 
 
 def pooled(records) -> dict:

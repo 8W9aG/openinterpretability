@@ -2,8 +2,8 @@
 
 transformers 5 runs the experts of about 60 mixture-of-experts architectures through
 ``ExpertsInterface``: a class decorated with ``use_experts_implementation`` looks its
-forward up by name. openinterp registers its own, ``openinterp``
-(``openinterp/harness/moe.py``). It loops over the routed experts and passes each
+forward up by name. openinterpretability registers its own, ``openinterpretability``
+(``openinterpretability/harness/moe.py``). It loops over the routed experts and passes each
 expert's hidden activation to a hook. For each architecture this script prints:
 
 * the largest difference between its logits and those of the ``eager`` forward
@@ -24,7 +24,11 @@ import torch
 import transformers as tf
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from openinterp.harness.moe import expert_hook, experts_modules, use_openinterp_experts  # noqa: E402
+from openinterpretability.harness.moe import (  # noqa: E402
+    expert_hook,
+    experts_modules,
+    use_openinterpretability_experts,
+)
 
 SMALL = dict(
     vocab_size=128, hidden_size=32, num_hidden_layers=2, num_attention_heads=4,
@@ -115,7 +119,7 @@ def check(name: str, build) -> str:
     with torch.no_grad():
         model.set_experts_implementation("eager")
         eager = model(ids).logits
-        use_openinterp_experts(model)
+        use_openinterpretability_experts(model)
         ours = model(ids).logits
     seen = {"negative": False}
 
@@ -132,7 +136,7 @@ def check(name: str, build) -> str:
     diff = (ours - eager).abs().max().item()
     changed = not torch.equal(ablated, ours)
     return (
-        f"{name:10s} max |openinterp − eager| = {diff:.1e}, zeroing E1/N3 changes the "
+        f"{name:10s} max |openinterpretability − eager| = {diff:.1e}, zeroing E1/N3 changes the "
         f"logits: {changed}, negative routing weights: {seen['negative']}"
     )
 

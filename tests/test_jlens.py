@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.jlens import transported_direction, vocabulary_lens
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.jlens import transported_direction, vocabulary_lens
 from tests.conftest import D_MODEL, N_LAYERS
 
 IDS = torch.tensor([[1, 5, 7, 2, 9], [3, 3, 8, 1, 4]])

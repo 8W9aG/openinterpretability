@@ -30,7 +30,7 @@ Written on 2026-11-14 on an Apple-silicon Mac with 10 cores, macOS 15.6, Python 
 | reproduce | 30 s | 52 s | 1,325 MB |
 | build | 58 s | 157 s | 3,979 MB |
 
-The build's time is with its on-disk memo warm (`openinterp/builder/disk_memo.py`), as on a machine that has built the site before. A first build takes longer.
+The build's time is with its on-disk memo warm (`openinterpretability/builder/disk_memo.py`), as on a machine that has built the site before. A first build takes longer.
 
 **Noise.** Three runs of scan and reproduce gave wall times of 56–58 s and 23–31 s, and peak memory within 2% of each other. So a run warns at 1.5 times the baseline for wall and CPU time, and at 1.2 times for peak memory (`TOLERANCE`). A smaller regression in time needs several runs to see.
 
@@ -40,7 +40,7 @@ The build's time is with its on-disk memo warm (`openinterp/builder/disk_memo.py
 - **A new baseline:** `uv run python scripts/perf_bench.py --write --build`, on a machine with nothing else running. A baseline from another machine or device gets a warning only, because its timings aren't comparable.
 - **In a script:** `--strict` exits 1 on a regression.
 
-`make perf` takes the heavy lock (`openinterp/core/heavy_lock.py`) when it is turned on, so another heavy job can't overlap the timings. On CI the workflow builds `corpus.jsonl` from its pinned source and checks its SHA-256. Runner timings vary between runs, so a time regression needs to show in more than one run before it counts.
+`make perf` takes the heavy lock (`openinterpretability/core/heavy_lock.py`) when it is turned on, so another heavy job can't overlap the timings. On CI the workflow builds `corpus.jsonl` from its pinned source and checks its SHA-256. Runner timings vary between runs, so a time regression needs to show in more than one run before it counts.
 
 ## Limits
 

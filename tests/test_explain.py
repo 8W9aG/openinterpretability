@@ -1,4 +1,4 @@
-"""`open-interpretability explain` (openinterp/explain.py), on the toy model and tiny GPT-2.
+"""`open-interpretability explain` (explain.py), on the toy model and tiny GPT-2.
 
 The issues are #3250 (neuron poles) and #3617 (attention heads and paths).
 """
@@ -9,8 +9,8 @@ import pytest
 import torch
 from click.testing import CliRunner
 
-from openinterp import explain as ex
-from openinterp.core.identifiers import NeuronIdentifier
+from openinterpretability import explain as ex
+from openinterpretability.core.identifiers import NeuronIdentifier
 
 TEXTS = ["a b c d e f g h", "h g f e d c b a", "a c e g b d f h"] * 20
 PROMPT = "a b c d"
@@ -72,10 +72,10 @@ def test_shares_and_labels(toy_runner, means):
 
 
 def test_cli(toy_runner, tmp_path, monkeypatch):
-    from openinterp.cli import cli
+    from openinterpretability.cli import cli
 
     monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
-    monkeypatch.setattr("openinterp.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     base = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200"]
@@ -90,7 +90,7 @@ def test_cli(toy_runner, tmp_path, monkeypatch):
 @pytest.fixture
 def gpt2(tiny_gpt2):
     """Tiny GPT-2 in float64, so a small step's logit change is above rounding noise."""
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
     from tests.conftest import FakeTokenizer
 
     return NeuronHookRunner(tiny_gpt2.double(), FakeTokenizer())
@@ -162,7 +162,7 @@ def test_an_edge_is_the_change_in_its_targets_contribution(gpt2, gpt2_means):
 
 
 def test_explain_lists_heads_with_their_labels_and_traces_paths(gpt2, gpt2_means):
-    from openinterp.core.identifiers import HeadIdentifier
+    from openinterpretability.core.identifiers import HeadIdentifier
 
     first = ex.explain(gpt2, "tiny", PROMPT, gpt2_means, {}, top=50, edges=5)
     head = next(u for u in first.poles if u.pole == ex.HEAD)
@@ -177,7 +177,7 @@ def test_explain_lists_heads_with_their_labels_and_traces_paths(gpt2, gpt2_means
 
 
 def test_a_superposition_attribution_matches_a_small_step_along_its_direction(gpt2, gpt2_means):
-    from openinterp.explain_groups import GroupDef, superposition_score
+    from openinterpretability.explain_groups import GroupDef, superposition_score
 
     group = GroupDef(
         "superposition", "L1/Sx", "m/L1/Sx", ((1, 3, 0.8), (1, 40, -0.5), (1, 77, 0.3))
@@ -203,7 +203,7 @@ def test_a_superposition_attribution_matches_a_small_step_along_its_direction(gp
 
 
 def test_circuits_sum_their_members_and_a_verified_one_explains_them(gpt2, gpt2_means, tmp_path):
-    from openinterp import explain_groups
+    from openinterpretability import explain_groups
 
     folder = tmp_path / "circuits"
     folder.mkdir()
@@ -232,7 +232,7 @@ def test_circuit_labels_read_each_circuits_newest_record(tmp_path):
     import shutil
     from pathlib import Path
 
-    from openinterp.explain_groups import circuit_labels
+    from openinterpretability.explain_groups import circuit_labels
 
     source = next(Path("wiki/circuits").glob("*/C*/*.json"))
     target = tmp_path / "circuits" / source.parent.parent.name / source.parent.name

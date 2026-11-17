@@ -5,8 +5,8 @@ from datetime import UTC, datetime, timedelta
 
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.core.ledger import (
+from openinterpretability.cli import cli
+from openinterpretability.core.ledger import (
     DrawEntry,
     ledger_path,
     load_ledger,
@@ -14,7 +14,7 @@ from openinterp.core.ledger import (
     summary,
     write_entry,
 )
-from openinterp.evidence import ScanRequest, pole_forced
+from openinterpretability.evidence import ScanRequest, pole_forced
 
 T = datetime(2026, 11, 14, 1, 0, tzinfo=UTC)
 MODEL = "Qwen/Qwen2.5-0.5B"
@@ -100,7 +100,7 @@ def test_ledger_command_reports_outcomes(tmp_path):
 
 
 def test_check_reads_ledger_entries_and_flags_a_misplaced_one(tmp_path):
-    from openinterp.checks import check_registry
+    from openinterpretability.checks import check_registry
 
     path = write_entry(explore(), tmp_path)
     legacy = tmp_path / "no-legacy"

@@ -25,11 +25,11 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.cli import _load, resolve_device
-from openinterp.cli_evidence import read_corpus
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS, sample_tokens
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.wiring import _project
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.cli_evidence import read_corpus
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS, sample_tokens
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.wiring import _project
 
 GPT2 = "openai-community/gpt2"
 WINDOW_TOKENS = 128

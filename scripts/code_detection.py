@@ -6,7 +6,7 @@ Scores four detectors. Each reads a document's text only, because an unlabelled 
 has no file names.
 
 - Magika, Google's file-type model (``magika``). It runs three ways: with a confidence
-  line, with its own thresholds, and as ``openinterp.codeid`` runs it.
+  line, with its own thresholds, and as ``openinterpretability.codeid`` runs it.
 - go-enry, the Go port of GitHub Linguist (``scripts/code_detection_enry``): its shebang
   and modeline rules, then its Bayesian classifier over every language it knows.
 - ``philomath-1209/programming-language-identification``, a CodeBERTa classifier of
@@ -42,9 +42,9 @@ from pathlib import Path
 
 import click
 
-from openinterp import codeid
-from openinterp.corpus_presets import GITHUB_CODE_LANGUAGES
-from openinterp.syntax import GRAMMARS
+from openinterpretability import codeid
+from openinterpretability.corpus_presets import GITHUB_CODE_LANGUAGES
+from openinterpretability.syntax import GRAMMARS
 
 PILE_10K = "NeelNanda/pile-10k"
 PILE_10K_REVISION = "127bfedcd5047750df5ccf3a12979a47bfa0bafa"  # as corpus.source.json pins
@@ -158,7 +158,7 @@ def detectors(enry: Path) -> dict[str, Detector]:
     return {
         "magika": magika["magika"],
         # Labels that are github-code names already, or None.
-        "magika (openinterp.codeid)": lambda texts: [codeid.predict(t) for t in texts],
+        "magika (openinterpretability.codeid)": lambda texts: [codeid.predict(t) for t in texts],
         "magika (own thresholds)": magika["magika (own thresholds)"],
         "go-enry (Linguist)": enry_detector(enry),
         "codeberta language-id": codeberta_detector(),

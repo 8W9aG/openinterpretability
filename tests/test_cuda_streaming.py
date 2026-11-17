@@ -6,7 +6,7 @@ These run only where CUDA is available. CI's runners have no GPU.
 import pytest
 import torch
 
-from openinterp.harness import memory
+from openinterpretability.harness import memory
 
 pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a CUDA GPU")
 
@@ -29,9 +29,9 @@ def saved_gpt2(tiny_gpt2, tmp_path):
 def test_a_model_streamed_onto_the_gpu_measures_what_a_loaded_one_does(
     saved_gpt2, monkeypatch, tmp_path
 ):
-    from openinterp.harness.hooks import NeuronHookRunner
-    from openinterp.harness.layer_major import map_layer_major
-    from openinterp.harness.scan import scan_neuron
+    from openinterpretability.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.layer_major import map_layer_major
+    from openinterpretability.harness.scan import scan_neuron
     from tests.conftest import FakeTokenizer
 
     whole = NeuronHookRunner(_load(saved_gpt2, "normal", monkeypatch, tmp_path), FakeTokenizer())

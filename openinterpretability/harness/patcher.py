@@ -1,0 +1,322 @@
+"""Activation patching on single neuron poles.
+
+Two directions are supported:
+
+* **Denoising** (clean -> corrupted): run the corrupted prompt but inject the
+  neuron's activation cached from the clean run. The normalised recovery of the
+  clean behaviour measures *sufficiency*.
+* **Noising** (corrupted -> clean): run the clean prompt but inject the activation
+  from the corrupted run (a resample ablation). The normalised movement towards
+  the corrupted behaviour measures *necessity*.
+
+Only the requested pole is swapped. The opposite pole keeps its own value. With
+``freeze_downstream=True``, the outputs of every later MLP are pinned to their values
+from the unpatched run. This blocks MLP-mediated self-repair (the "hydra effect"), so
+the measured effect is closer to the neuron's direct effect.
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
+from typing import Literal, Protocol
+
+import torch
+
+from openinterpretability.core.exceptions import ShapeMismatchError
+from openinterpretability.core.schemas import Pole
+from openinterpretability.harness.hooks import (
+    Inputs,
+    Intervention,
+    NeuronHookRunner,
+    _recorders,
+    replace_pole,
+)
+from openinterpretability.harness.memory import stream_rows
+
+Metric = Callable[[torch.Tensor], torch.Tensor]
+# (patched logits [1, seq, vocab], unpatched target logits [1, seq, vocab]) -> effect
+Effect = Callable[[torch.Tensor, torch.Tensor], float]
+Positions = Literal["all", "last"]
+
+
+class NeuronRef(Protocol):
+    """Anything that names one neuron pole."""
+
+    layer: int
+    neuron_idx: int
+    pole: Pole
+
+
+def token_logit_metric(token_id: int, position: int = -1) -> Metric:
+    """Logit of ``token_id`` at ``position`` (averaged over the batch)."""
+    return lambda logits: logits[:, position, token_id].mean()
+
+
+def logit_diff_metric(correct_id: int, incorrect_id: int, position: int = -1) -> Metric:
+    """Logit of ``correct_id`` minus logit of ``incorrect_id`` at ``position`` (batch mean)."""
+    return lambda logits: (
+        logits[:, position, correct_id] - logits[:, position, incorrect_id]
+    ).mean()
+
+
+def logit_direction_metric(weights: torch.Tensor, position: int = -1) -> Metric:
+    """Projection of the logits at ``position`` onto a vocabulary direction (batch mean).
+
+    ``weights`` is centred first, so the shared logit offset (which softmax ignores)
+    cannot move the metric. With weights 1/k on k tokens this is the mean logit of
+    those tokens minus the mean logit over the vocabulary.
+    """
+    w = weights.float()
+    w = w - w.mean()
+    return lambda logits: (logits[:, position].float() @ w.to(logits.device)).mean()
+
+
+def metric_change(metric: Metric) -> Effect:
+    """Signed change in ``metric`` caused by the patch."""
+    return lambda patched, target: float(metric(patched)) - float(metric(target))
+
+
+def next_token_kl(position: int = -1) -> Effect:
+    """KL(unpatched ‖ patched) between next-token distributions at ``position``."""
+
+    def effect(patched: torch.Tensor, target: torch.Tensor) -> float:
+        p = torch.log_softmax(target[:, position].float(), dim=-1)
+        q = torch.log_softmax(patched[:, position].float(), dim=-1)
+        return max(0.0, float((p.exp() * (p - q)).sum(-1).mean()))
+
+    return effect
+
+
+def _constant(value: torch.Tensor) -> Intervention:
+    return lambda _out: value
+
+
+def _normalised(patched: float, baseline: float, reference: float, eps: float = 1e-6) -> float:
+    denom = reference - baseline
+    return math.nan if abs(denom) < eps else (patched - baseline) / denom
+
+
+@dataclass(frozen=True)
+class PatchResult:
+    """Outcome of patching a neuron pole from a source run into a target run.
+
+    ``baseline`` is the target run's metric, ``reference`` the source run's, and
+    ``patched`` the target run with the source activation injected.
+    """
+
+    baseline_metric: float
+    reference_metric: float
+    patched_metric: float
+    logit_delta: torch.Tensor  # patched - baseline logits at the final position, [vocab]
+
+    @property
+    def metric_delta(self) -> float:
+        """The patched metric minus the baseline metric."""
+        return self.patched_metric - self.baseline_metric
+
+    @property
+    def recovery(self) -> float:
+        """Fraction of the source-vs-target metric gap closed by the patch (NaN if no gap)."""
+        return _normalised(self.patched_metric, self.baseline_metric, self.reference_metric)
+
+
+@dataclass(frozen=True)
+class AblationResult:
+    """The patch results of one ablation over several source prompts."""
+
+    per_source: list[PatchResult] = field(default_factory=list)
+
+    @property
+    def mean_metric_delta(self) -> float:
+        """The mean metric delta over the source prompts."""
+        return sum(r.metric_delta for r in self.per_source) / len(self.per_source)
+
+    @property
+    def mean_recovery(self) -> float:
+        """The mean recovery over the prompts where it is defined; NaN when none is."""
+        finite = [r.recovery for r in self.per_source if math.isfinite(r.recovery)]
+        return sum(finite) / len(finite) if finite else math.nan
+
+
+class ActivationPatcher:
+    """Patch one neuron pole's activation between two runs (see the module docstring)."""
+
+    def __init__(self, runner: NeuronHookRunner) -> None:
+        self.runner = runner
+
+    def patch(
+        self,
+        source: Inputs,
+        target: Inputs,
+        neuron: NeuronRef,
+        *,
+        metric: Metric | None = None,
+        positions: Positions = "all",
+        freeze_downstream: bool = False,
+    ) -> PatchResult:
+        """Inject ``neuron``'s pole activation from the ``source`` run into the ``target`` run.
+
+        If ``metric`` is omitted it defaults to the logit of the source run's
+        top-1 next token at the final position.
+        """
+        runner = self.runner
+        layer, idx, pole = neuron.layer, neuron.neuron_idx, neuron.pole
+        downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
+
+        source_logits, source_cache = runner.run_with_cache(source, [layer])
+        target_enc = runner.encode(target)
+        target_logits, target_cache, downstream_out = self._target_pass(
+            target_enc, downstream, [layer]
+        )
+
+        src_act, tgt_act = source_cache[layer], target_cache[layer]
+        if positions == "all" and src_act.shape[:2] != tgt_act.shape[:2]:
+            raise ShapeMismatchError(
+                f"source {tuple(src_act.shape[:2])} and target {tuple(tgt_act.shape[:2])} "
+                "differ in batch/sequence length; use positions='last' or align the prompts."
+            )
+
+        def inject(act: torch.Tensor) -> torch.Tensor:
+            act = act.clone()
+            if positions == "all":
+                act[..., idx] = replace_pole(act[..., idx], src_act[..., idx], pole)
+            else:
+                act[:, -1, idx] = replace_pole(act[:, -1, idx], src_act[:, -1, idx], pole)
+            return act
+
+        frozen: dict[int, Intervention] = {
+            i: (lambda _out, cached=cached: cached) for i, cached in downstream_out.items()
+        }
+        patched_logits = runner.run_with_interventions(target_enc, {layer: inject}, frozen)
+
+        if metric is None:
+            metric = token_logit_metric(int(source_logits[0, -1].argmax()))
+        return PatchResult(
+            baseline_metric=float(metric(target_logits)),
+            reference_metric=float(metric(source_logits)),
+            patched_metric=float(metric(patched_logits)),
+            logit_delta=(patched_logits[0, -1] - target_logits[0, -1]).detach().cpu(),
+        )
+
+    def patch_many(
+        self,
+        source: Inputs,
+        target: Inputs,
+        layer: int,
+        neuron_indices: Sequence[int],
+        pole: Pole,
+        *,
+        effect: Effect,
+        positions: Positions = "all",
+        freeze_downstream: bool = False,
+        batch_size: int = 8,
+    ) -> list[float]:
+        """``effect`` of patching each neuron in ``layer``, one at a time, from source to target.
+
+        With ``effect=metric_change(metric)`` this is :meth:`patch`'s ``metric_delta``.
+
+        Each neuron gets its own row of a batch, so ``k`` neurons cost ``k / batch_size``
+        forward passes instead of ``k``. A streamed model runs more rows per pass
+        (:func:`~openinterpretability.harness.memory.stream_rows`). ``source`` and ``target`` must
+        be single prompts.
+        """
+        runner = self.runner
+        downstream = list(range(layer + 1, runner.n_layers)) if freeze_downstream else []
+        src_act = runner.layer_activations(source, [layer])[layer]  # stops at the layer
+        target_enc = runner.encode(target)
+        target_logits, target_cache, downstream_out = self._target_pass(
+            target_enc, downstream, [layer]
+        )
+        batch_size = stream_rows(runner, target_enc["input_ids"].shape[1], batch_size, logits=True)
+        if src_act.shape[0] != 1 or target_cache[layer].shape[0] != 1:
+            raise ValueError("patch_many takes one source and one target prompt")
+        if positions == "all" and src_act.shape[:2] != target_cache[layer].shape[:2]:
+            raise ShapeMismatchError(
+                f"source {tuple(src_act.shape[:2])} and target "
+                f"{tuple(target_cache[layer].shape[:2])} differ in sequence length; "
+                "use positions='last' or align the prompts."
+            )
+        span = slice(None) if positions == "all" else slice(-1, None)
+
+        deltas: list[float] = []
+        for start in range(0, len(neuron_indices), batch_size):
+            chunk = list(neuron_indices[start : start + batch_size])
+            batch = {k: v.repeat(len(chunk), *[1] * (v.dim() - 1)) for k, v in target_enc.items()}
+
+            def inject(act: torch.Tensor, chunk=chunk) -> torch.Tensor:
+                act = act.clone()
+                for row, idx in enumerate(chunk):
+                    act[row, span, idx] = replace_pole(
+                        act[row, span, idx], src_act[0, span, idx], pole
+                    )
+                return act
+
+            n = len(chunk)
+            frozen = {i: _constant(cached.repeat(n, 1, 1)) for i, cached in downstream_out.items()}
+            patched = runner.run_with_interventions(batch, {layer: inject}, frozen)
+            deltas += [effect(patched[row : row + 1], target_logits) for row in range(len(chunk))]
+        return deltas
+
+    def _target_pass(
+        self, encoded, downstream: Sequence[int], layers: Sequence[int] = ()
+    ) -> tuple[torch.Tensor, dict[int, torch.Tensor], dict[int, torch.Tensor]]:
+        """One pass over the target: its logits, ``layers``' activations, ``downstream``'s outputs.
+
+        Patching freezes the downstream outputs at their target values. They were read in a
+        second pass over the target. One pass gives the same values for one read of the
+        layers, which is what a streamed model pays for.
+        """
+        acts: dict[int, torch.Tensor] = {}
+        outputs: dict[int, torch.Tensor] = {}
+
+        def recorder(layer: int) -> Intervention:
+            def record(out: torch.Tensor) -> None:
+                outputs[layer] = out.detach().clone()
+
+            return record
+
+        logits = self.runner.run_with_interventions(
+            encoded, _recorders(acts, layers), {i: recorder(i) for i in downstream}
+        )
+        return logits, acts, outputs
+
+    def denoise(self, clean: Inputs, corrupted: Inputs, neuron: NeuronRef, **kw) -> PatchResult:
+        """Clean -> corrupted patch. ``recovery`` is the neuron's sufficiency."""
+        return self.patch(clean, corrupted, neuron, **kw)
+
+    def noise(self, clean: Inputs, corrupted: Inputs, neuron: NeuronRef, **kw) -> PatchResult:
+        """Corrupted -> clean patch. ``recovery`` is the neuron's necessity."""
+        return self.patch(corrupted, clean, neuron, **kw)
+
+    def resample_ablation(
+        self,
+        target: Inputs,
+        resample_sources: Sequence[Inputs],
+        neuron: NeuronRef,
+        *,
+        metric: Metric | None = None,
+        positions: Positions = "last",
+        freeze_downstream: bool = False,
+    ) -> AblationResult:
+        """Replace the neuron pole in ``target`` with its value on each resample source.
+
+        The default metric is fixed from the *target* run, so every source is scored
+        against the same token.
+        """
+        if metric is None:
+            target_logits = self.runner.run_with_interventions(target)
+            metric = token_logit_metric(int(target_logits[0, -1].argmax()))
+        results = [
+            self.patch(
+                src,
+                target,
+                neuron,
+                metric=metric,
+                positions=positions,
+                freeze_downstream=freeze_downstream,
+            )
+            for src in resample_sources
+        ]
+        return AblationResult(per_source=results)

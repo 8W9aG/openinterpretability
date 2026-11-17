@@ -28,13 +28,14 @@ from pathlib import Path
 import click
 import torch
 
-import openinterp.cli  # noqa: F401  (first: the CLI modules import each other in its order)
+import openinterpretability.cli  # noqa: F401  (first: the CLI modules import each other in its order)
+from openinterpretability.core.legacy_names import cache_base  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from untrained_null import CORPUS, MAX_TOKENS, MODEL, load_plan, pending  # noqa: E402
 
-PLAN_DIR = Path.home() / ".cache" / "openinterp" / "p3201"
+PLAN_DIR = cache_base() / "p3201"
 DEFAULT_PLAN = PLAN_DIR / "plan.json"
 WEIGHTS = "plants.pt"  # next to the plan: each plant's input column and bias
 SEED = 3201
@@ -140,7 +141,7 @@ def in_quotes(texts: list[str]) -> list[bool]:
 
 def documents(tokenizer) -> list[list[int]]:
     """The corpus's documents as token ids, cut to GPT-2's window of 1,024."""
-    from openinterp.evidence import read_corpus
+    from openinterpretability.evidence import read_corpus
 
     return [ids[:1024] for t in read_corpus(CORPUS)[0] if len(ids := tokenizer.encode(t)) > 1]
 
@@ -174,7 +175,7 @@ def install(runner, plants: list[dict], weights: dict) -> None:
 @functools.cache
 def planted_runner(plan_file: Path = DEFAULT_PLAN, device: str = "auto"):
     """GPT-2 small with every plant of ``plan_file`` installed."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     run = _load_runner(MODEL, device, "float32")
     plan = load_plan(plan_file)
@@ -207,7 +208,7 @@ def unstudied(layer: int, rng: random.Random) -> int:
 
 def fit_plants(run, docs, labels: dict, fit: torch.Tensor, rng: random.Random):
     """Fit each plant's probe on the ``fit`` tokens. Return the plants and their weights."""
-    from openinterp.harness.probing import fit_logistic
+    from openinterpretability.harness.probing import fit_logistic
 
     plants, weights = [], {}
     for rule, layer, description in PLANTS:
@@ -246,7 +247,7 @@ def cli() -> None:
 @click.option("--work-dir", default="exchange/p3201", type=click.Path(path_type=Path))
 def plant(out, work_dir):
     """Fit each plant on even documents, install them all, and gate them on odd documents."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     rng = random.Random(SEED)
     run = _load_runner(MODEL, "auto", "float32")
@@ -284,8 +285,8 @@ def scan(plan_file, names):
     """Scan units and write their proposer prompts (ev.prompt.md), or outcome.json on a stop."""
     from untrained_null import window
 
-    from openinterp.cli_evidence import write_evidence
-    from openinterp.evidence import ScanRequest, Unauditable, scan_evidence
+    from openinterpretability.cli_evidence import write_evidence
+    from openinterpretability.evidence import ScanRequest, Unauditable, scan_evidence
 
     for unit in pending(load_plan(plan_file), names, "", ("ev.json", "outcome.json")):
         out = Path(unit["dir"])

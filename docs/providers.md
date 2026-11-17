@@ -4,7 +4,7 @@ An experiment loop has two kinds of model. The **driver** runs the Claude Code s
 
 ## Profiles
 
-`openinterp/data/providers.toml` holds one profile per provider. A profile gives the provider's base URL, its model names and any environment that it needs. It also says where its API key lives. A profile never holds the key itself.
+`openinterpretability/data/providers.toml` holds one profile per provider. A profile gives the provider's base URL, its model names and any environment that it needs. It also says where its API key lives. A profile never holds the key itself.
 
 ```bash
 uv run open-interpretability provider list     # each profile, its model, and whether its key is set
@@ -24,7 +24,7 @@ uv run open-interpretability provider list     # each profile, its model, and wh
 Put each key in its environment variable, or in the macOS keychain:
 
 ```bash
-security add-generic-password -s openinterp-deepseek -a "$USER" -w   # asks for the key
+security add-generic-password -s openinterpretability-deepseek -a "$USER" -w   # asks for the key
 ```
 
 The keychain entry names are in the profiles (`key_keychain`). The key is read from the environment variable first, then from the keychain. `open-interpretability provider exec` puts it only in the environment of the command that it runs. Nothing prints it or writes it to a file.
@@ -74,4 +74,4 @@ model_list:
 
 ## Add a provider
 
-Add a table to `openinterp/data/providers.toml`, with the fields its header lists. Then add a row to the table above, and run `uv run pytest tests/test_providers.py`.
+Add a table to `openinterpretability/data/providers.toml`, with the fields its header lists. Then add a row to the table above, and run `uv run pytest tests/test_providers.py`.

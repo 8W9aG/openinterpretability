@@ -23,7 +23,7 @@ When a neuron pole in one model has a VERIFIED explanation, does the same explan
 - **The models:** GPT-2 small (Radford et al., 2019), and [Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B) and [Qwen2.5-1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B).
 - **Sister studies.** `open-interpretability audit --sister-of <record>` takes the source record's explanation as the hypothesis for the tested pole. A reviewer writes new probes against it, and the pole is judged by the protocol of the time. The planner draws a source's sister, its other top matches and, at a low weight, random poles of the other model as controls (`sister` draws).
 - **Classes.** `scripts/explanation_transfer.py` reads every study with a `sister_of`. It classifies the tested pole against `docs/analyses/sister-neurons.jsonl`: the source's sister, another of its 5 top matches, or a random pole. Each tested pole counts once, by its first study. That is 80 poles from 89 studies.
-- **Intervals and tests.** 95% Wilson intervals, and two-sided Fisher exact tests (`openinterp/builder/learned_baseline.py`).
+- **Intervals and tests.** 95% Wilson intervals, and two-sided Fisher exact tests (`openinterpretability/builder/learned_baseline.py`).
 
 ## How far each explanation carries
 

@@ -3,9 +3,9 @@
 import pytest
 import torch
 
-from openinterp.harness import memory
-from openinterp.harness.hooks import ablate_pole
-from openinterp.harness.layer_major import map_layer_major
+from openinterpretability.harness import memory
+from openinterpretability.harness.hooks import ablate_pole
+from openinterpretability.harness.layer_major import map_layer_major
 
 TEXTS = [f"text {i} " + "abc" * i for i in range(10)]
 
@@ -13,7 +13,7 @@ TEXTS = [f"text {i} " + "abc" * i for i in range(10)]
 @pytest.fixture
 def runners(tiny_gpt2, tmp_path, monkeypatch):
     """The tiny GPT-2 loaded whole and streamed from disk."""
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
     from tests.conftest import FakeTokenizer
 
     tiny_gpt2.save_pretrained(tmp_path / "gpt2")
@@ -100,7 +100,7 @@ def test_a_model_that_fits_runs_the_loop_in_order(runners):
 
 
 def test_rescoring_a_streamed_scan_reads_each_layer_once(runners, monkeypatch):
-    from openinterp.harness import scan_backend
+    from openinterpretability.harness import scan_backend
 
     whole, streamed = runners
     texts = TEXTS * 4  # 40 pieces: three passes of RESCORE_BATCH

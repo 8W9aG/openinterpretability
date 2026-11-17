@@ -36,10 +36,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from default_on_poles import STUDIED_LAYER, batched, load_split, write_row
 
-from openinterp.cli import _load, resolve_device
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
-from openinterp.harness.hooks import ablate_pole
-from openinterp.harness.wiring import _project
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
+from openinterpretability.harness.hooks import ablate_pole
+from openinterpretability.harness.wiring import _project
 
 SIDES = ("negative", "positive")
 BOOTSTRAPS = 1000

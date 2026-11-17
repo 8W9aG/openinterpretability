@@ -4,7 +4,7 @@ Shabalin and Piotrowski (arXiv 2610.24521) call a transcoder feature a *neuron f
 
 ## Method
 
-`scripts/neuron_features.py` uses the vectors that `open-interpretability crossref` compares (`openinterp/harness/crossref.py`):
+`scripts/neuron_features.py` uses the vectors that `open-interpretability crossref` compares (`openinterpretability/harness/crossref.py`):
 
 - **A latent** reads with its encoder, with `ln_2` folded in and centred. It writes with its decoder.
 - **A neuron** reads with `c_fc`, with `ln_2` folded in. It writes `w_out`.

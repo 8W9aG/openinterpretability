@@ -1,4 +1,4 @@
-"""WordNet categories of the peak words (`openinterp/wordnet.py`) in the agents' prompts."""
+"""WordNet categories of the peak words (`wordnet.py`) in the agents' prompts."""
 
 from __future__ import annotations
 
@@ -9,16 +9,16 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from openinterp import wordnet
-from openinterp.agents.proposer import ProposerAgent
-from openinterp.agents.reviewer import ReviewerAgent
-from openinterp.core.schemas import (
+from openinterpretability import wordnet
+from openinterpretability.agents.proposer import ProposerAgent
+from openinterpretability.agents.reviewer import ReviewerAgent
+from openinterpretability.core.schemas import (
     ActivatingExample,
     NeuronIdentifier,
     WordnetSpecificity,
     WordStrength,
 )
-from openinterp.harness import specificity
+from openinterpretability.harness import specificity
 from tests.site_pages import unit_pages
 
 # name: (lemma, hypernyms, frequency count); depth follows from the hypernyms.
@@ -229,7 +229,7 @@ def test_specificity_needs_enough_words_on_both_sides():
 
 
 def draft(synset=None):
-    from openinterp.agents.proposer import HypothesisDraft
+    from openinterpretability.agents.proposer import HypothesisDraft
 
     pairs = [
         {
@@ -250,7 +250,7 @@ def measured(monkeypatch):
     calls = []
     monkeypatch.setattr(wordnet, "lexicon", lambda: FakeLexicon(BIG))
     monkeypatch.setattr(
-        "openinterp.harness.specificity.specificity",
+        "openinterpretability.harness.specificity.specificity",
         lambda runner, unit, lex, synset, source, scale, exclude: calls.append(
             (synset, source, scale, exclude)
         ),
@@ -259,8 +259,8 @@ def measured(monkeypatch):
 
 
 def test_read_specificity_uses_the_proposers_synset(measured, submission):
-    from openinterp.cli import cli  # noqa: F401  (loads the commands first)
-    from openinterp.cli_submission import read_specificity
+    from openinterpretability.cli import cli  # noqa: F401  (loads the commands first)
+    from openinterpretability.cli_submission import read_specificity
 
     sub = submission.model_copy(update={"top_examples": body_examples()})
     runner = SimpleNamespace(tokenizer=FakeTokenizer())
@@ -270,8 +270,8 @@ def test_read_specificity_uses_the_proposers_synset(measured, submission):
 
 
 def test_read_specificity_falls_back_to_the_peak_words(measured, submission):
-    from openinterp.cli import cli  # noqa: F401  (loads the commands first)
-    from openinterp.cli_submission import read_specificity
+    from openinterpretability.cli import cli  # noqa: F401  (loads the commands first)
+    from openinterpretability.cli_submission import read_specificity
 
     sub = submission.model_copy(update={"top_examples": body_examples()})
     runner = SimpleNamespace(tokenizer=FakeTokenizer())
@@ -294,8 +294,8 @@ def specificity_record(record):
 
 
 def test_specificity_rendered(tmp_path, record):
-    from openinterp.builder.compiler import compile_site
-    from openinterp.builder.wiki import write_experiment_page
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.builder.wiki import write_experiment_page
 
     rec = specificity_record(record)
     compile_site([rec], tmp_path / "site")

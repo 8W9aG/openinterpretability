@@ -45,7 +45,7 @@ def weight_stats(runner, layer):
 | Active on at least half the scan's tokens | Default-on | The scan stops on it (protocol 0.8). Record it for registry statistics. Most of GPT-2's negative poles are, as GELU's dip holds them near its minimum |
 | Active at the first position on most of the vocabulary | First-token floor | Audited without each text's first token (protocol 0.8). About 1,400 of GPT-2's layer-1 and -2 positive poles |
 | Activation depends on position, not content | Positional | Test with shuffled-content probes at a fixed position |
-| Part of speech alone explains R² ≥ 0.2, and at least half of token identity's R² | Part of speech | The proposer prompt flags it (`openinterp/agents/probe_hints.py`). Test the whole tag first, e.g. every determiner, then same-word probes in another role |
+| Part of speech alone explains R² ≥ 0.2, and at least half of token identity's R² | Part of speech | The proposer prompt flags it (`openinterpretability/agents/probe_hints.py`). Test the whole tag first, e.g. every determiner, then same-word probes in another role |
 
 Get token frequencies by counting token ids over the scan corpus. Find positional neurons by correlating activation with position index across the scan. `open-interpretability activations --model … --layer … --neuron … --corpus corpus.jsonl --top 0 --format jsonl` gives every scanned token's id, position in its piece and strength. It reads the layer's cached scan when there is one, so don't write your own scan loop.
 
