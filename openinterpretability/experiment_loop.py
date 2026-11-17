@@ -13,7 +13,7 @@ from __future__ import annotations
 import shlex
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, draws_dir, experiments_dir, stops_dir
@@ -345,6 +345,8 @@ class Loop:
     done: int = 0
     failures: int = 0
     backoffs: int = 0
+    results: list = field(default_factory=list)  # each iteration's Result, for the caller
+    finished: str | None = None  # why the draws ended, when they did (Finished)
 
     def run(self) -> int:
         """Run until the limit, the stop file or too many failures; return the exit code."""
@@ -374,6 +376,7 @@ class Loop:
             ):
                 result = iteration(self.options, self.plan_next, self.claims)
         except Finished as exc:  # a targeted run (explain --run) has no target left
+            self.finished = str(exc)
             print(f"RESULT: none finished: {exc}", flush=True)
             return 0
         except Exception as exc:  # any failure of one experiment; the loop decides what next
@@ -381,6 +384,7 @@ class Loop:
         finally:
             _CONSOLE.clear()
         self.done, self.failures, self.backoffs = self.done + 1, 0, 0
+        self.results.append(result)
         print(result.line(), flush=True)
         return None
 
