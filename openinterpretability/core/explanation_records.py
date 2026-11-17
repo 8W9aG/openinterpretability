@@ -126,7 +126,8 @@ class ExplanationRecord(StrictModel):
     answer: str
     explained_share: float
     blocked_share: float
-    prompt_coverage: float | None
+    prompt_coverage: float | None  # credited: at most 1 (#4507)
+    raw_coverage: float | None = None  # uncapped; over 1 is an overshoot (#4507)
     random_coverage: float | None
     units: list[ExplainedUnit]
     narration: Narration | None = None
@@ -145,6 +146,11 @@ class ExplanationRecord(StrictModel):
     def id(self) -> str:
         """The record's id among its prompt's explanations: its UTC stamp, as in its file name."""
         return f"{self.written:%Y%m%dT%H%M%SZ}"
+
+    @property
+    def overshoot(self) -> bool:
+        """True when keeping the explained units raised the answer above the clean model."""
+        return self.raw_coverage is not None and self.raw_coverage > 1.0
 
     @property
     def level(self) -> str:

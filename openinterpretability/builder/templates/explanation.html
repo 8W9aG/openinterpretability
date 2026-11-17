@@ -32,7 +32,7 @@
 
 <dl class="mt-6 grid max-w-3xl grid-cols-2 gap-4 text-sm sm:grid-cols-4">
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Explained</dt><dd class="font-mono text-lg">{{ r.explained_share | pct_fine }}</dd></div>
-  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Prompt coverage</dt><dd class="font-mono text-lg">{{ r.prompt_coverage | pct_fine if r.prompt_coverage is not none else "—" }}</dd></div>
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Prompt coverage</dt><dd class="font-mono text-lg">{{ r.prompt_coverage | pct_fine if r.prompt_coverage is not none else "—" }}</dd>{% if r.overshoot %}<dd class="text-xs">Overshoot: raw {{ r.raw_coverage | pct_fine }}, capped at 100%</dd>{% endif %}</div>
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Random units</dt><dd class="font-mono text-lg">{{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }}</dd></div>
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Experiments needed</dt><dd class="font-mono text-lg">{{ r.planned_experiments | thousands }}</dd></div>
 </dl>

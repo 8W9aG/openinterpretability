@@ -22,7 +22,7 @@
 {% endif %}
 
 <h2 class="mb-1 mt-8 text-lg font-semibold">Explanations</h2>
-<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Newest first. Coverage is causal: the share of the answer's log-probability that the explained units bring back, with the rest mean-ablated, against random units of the same count. The share is of first-order |attribution|.</p>
+<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Newest first. Coverage is causal: the share of the answer's log-probability that the explained units bring back, with the rest mean-ablated, against random units of the same count. It is capped at 100%: an overshoot means the kept units push the answer above the clean model. The share is of first-order |attribution|.</p>
 <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
@@ -34,7 +34,7 @@
       <tr class="align-top">
         <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ v.href }}"><time datetime="{{ e.written.isoformat() }}">{{ e.written.strftime("%Y-%m-%d %H:%M") }}</time></a></td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.target | pct_fine if e.target is not none else "—" }}</td>
-        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.prompt_coverage | pct_fine if e.prompt_coverage is not none else "—" }}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.prompt_coverage | pct_fine if e.prompt_coverage is not none else "—" }}{% if e.overshoot %}<div class="text-xs">overshoot: raw {{ e.raw_coverage | pct_fine }}</div>{% endif %}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.random_coverage | pct_fine if e.random_coverage is not none else "—" }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.explained_share | pct_fine }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.landed }}</td>
