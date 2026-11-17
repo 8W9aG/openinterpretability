@@ -20,6 +20,9 @@ from openinterpretability.builder.research import _MARKDOWN, _plain
 
 LITERATURE = Path(__file__).resolve().parents[2] / "docs" / "literature"  # absent in an install
 SECTION = "research/literature"
+MAP = "map.json"  # scripts/literature_map.py writes it (#3294)
+STATUSES = ("used", "planned", "not applicable")  # the index table's status column
+_ROW = re.compile(r"^\| \[[^\]]*\]\(([\w-]+)\.md\)[^|]*\| ([a-z ]+) \|", re.M)
 
 
 @dataclass(frozen=True)
@@ -73,7 +76,119 @@ def load_reviews(repo_url: str, folder: Path = LITERATURE) -> list[Review]:
     return [_review(path, repo_url) for path in files]
 
 
-def render_reviews(render, reviews: list[Review]) -> None:
-    """Write one page per review, the index included."""
+def map_text(path: Path) -> str | None:
+    """What the map embeds for one review: its title and *Summary* section, or None.
+
+    The index and the queue have no *Summary* section, so they are left off the map.
+    """
+    text = path.read_text(encoding="utf-8")
+    title = next((line[2:] for line in text.splitlines() if line.startswith("# ")), path.stem)
+    found = re.search(r"^## Summary\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    return f"{title}\n\n{found.group(1).strip()}" if found else None
+
+
+def statuses(folder: Path) -> dict[str, str]:
+    """Each review's status from the index table: used, planned or not applicable."""
+    index = folder / "README.md"
+    rows = _ROW.findall(index.read_text(encoding="utf-8")) if index.exists() else []
+    return {name: status.strip() for name, status in rows if status.strip() in STATUSES}
+
+
+WIDTH, HEIGHT, PAD = 720, 420, 40  # the map's viewBox and margin, in SVG units
+LABEL = 34  # the longest label, in characters, before it is cut with an ellipsis
+CHAR, LINE = 6.2, 13  # a label's width per character and its height, at font size 11
+
+
+@dataclass(frozen=True)
+class Point:
+    """One review on the map, with its marker at (cx, cy) and its label at (tx, ty)."""
+
+    name: str
+    title: str
+    status: str
+    cx: float
+    cy: float
+    tx: float = 0.0
+    ty: float = 0.0
+    anchor: str = "start"  # "end" puts the label to the left of the marker
+
+    @property
+    def moved(self) -> bool:
+        """True when the label sits above or below its marker, so it needs a leader line."""
+        return self.ty != self.cy + 4
+
+    @property
+    def label(self) -> str:
+        """The title, cut to :data:`LABEL` characters."""
+        return self.title if len(self.title) <= LABEL else self.title[: LABEL - 1] + "…"
+
+
+def _box(p: Point, tx: float, ty: float, anchor: str) -> tuple[float, float, float, float]:
+    """The label's box (left, top, right, bottom) at (tx, ty) with ``anchor``."""
+    width = len(p.label) * CHAR
+    left = tx if anchor == "start" else tx - width
+    return left, ty - LINE + 3, left + width, ty + 3
+
+
+def _overlaps(a, b) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+_SPOTS = [(dx, anchor, dy * LINE) for dy in (0, 1, -1, 2, -2)
+          for dx, anchor in ((10, "start"), (-10, "end"))] + [(10, "start", 0)]  # fmt: skip
+
+
+def place_labels(points: list[Point]) -> list[Point]:
+    """Give each label the first spot that overlaps no label or marker placed before it.
+
+    The spots are right of the marker, then left of it, then each of those moved up or
+    down by one or two lines. When every spot overlaps, the label goes right anyway.
+    """
+    from dataclasses import replace
+
+    markers = [(p.cx - 7, p.cy - 7, p.cx + 7, p.cy + 7) for p in points]
+    taken: list[tuple[float, float, float, float]] = []
+    out = []
+    for p in sorted(points, key=lambda q: (q.cy, q.cx)):
+        for dx, anchor, dy in _SPOTS:
+            box = _box(p, p.cx + dx, p.cy + 4 + dy, anchor)
+            others = taken + [m for m, q in zip(markers, points, strict=True) if q is not p]
+            if box[0] >= 0 and box[2] <= WIDTH and not any(_overlaps(box, o) for o in others):
+                break
+        taken.append(box)
+        out.append(replace(p, tx=p.cx + dx, ty=p.cy + 4 + dy, anchor=anchor))
+    return out
+
+
+def literature_map(folder: Path, reviews: list[Review]) -> tuple[list[Point], list[Review]]:
+    """The placed reviews, and the ones not placed yet (new, or changed since the map)."""
+    import hashlib
+    import json
+
+    path = folder / MAP
+    placed = json.loads(path.read_text(encoding="utf-8"))["reviews"] if path.exists() else []
+    known = {row["name"]: row for row in placed}
+    status = statuses(folder)
+    points, missing = [], []
     for review in reviews:
-        render(review.href, "literature.html", review=review)
+        text = map_text(folder / f"{review.name}.md")
+        if text is None:
+            continue  # the index and the queue
+        row = known.get(review.name)
+        if row is None or row["sha256"] != hashlib.sha256(text.encode()).hexdigest():
+            missing.append(review)
+            continue
+        cx = PAD + row["x"] * (WIDTH - 2 * PAD - LABEL * CHAR / 2)
+        cy = PAD + (1 - row["y"]) * (HEIGHT - 2 * PAD)
+        points.append(Point(review.name, review.title, status.get(review.name, "unknown"),
+                            round(cx, 1), round(cy, 1)))  # fmt: skip
+    return place_labels(points), missing
+
+
+def render_reviews(render, reviews: list[Review], folder: Path = LITERATURE) -> None:
+    """Write one page per review, and the index with the map of the reviews."""
+    points, missing = literature_map(folder, reviews) if reviews else ([], [])
+    for review in reviews:
+        extra = {"points": points, "missing": missing, "map_size": (WIDTH, HEIGHT)}
+        extra = extra if review.name == "README" else {}
+        render(review.href, "literature.html", review=review, **extra)
