@@ -14,7 +14,7 @@ them up, so ``explain`` lists them in their own block and doesn't add them to th
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import torch
@@ -31,6 +31,7 @@ class GroupDef:
     slug: str  # its registry slug, for a superposition; its id, for a circuit
     neurons: tuple[tuple[int, int, float], ...]  # (layer, neuron, weight)
     heads: tuple[tuple[int, int], ...] = ()  # (layer, head)
+    definition: dict | None = field(default=None, compare=False, hash=False)  # a superposition's
 
     @property
     def units(self) -> list[tuple[int, int, str]]:
@@ -68,7 +69,8 @@ def superpositions(model: str, folder: Path | None = None) -> list[GroupDef]:
     for d in load_definitions(path):
         ident = definition_identifier(d)
         members = tuple((d["layer"], m["neuron_idx"], m["weight"]) for m in d["members"])
-        out.append(GroupDef("superposition", ident.slug.split("/", 1)[1], ident.slug, members))
+        name = ident.slug.split("/", 1)[1]
+        out.append(GroupDef("superposition", name, ident.slug, members, definition=d))
     return out
 
 
