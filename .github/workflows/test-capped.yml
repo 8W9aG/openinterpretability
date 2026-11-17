@@ -1,0 +1,57 @@
+name: "Test capped build (temporary, issue 4592)"
+
+on:
+  push:
+    branches: [ci/build-memory-cap-4592]
+
+permissions:
+  contents: read
+
+jobs:
+  cap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: A small command passes and reports its peak
+        run: scripts/capped.sh 1G 100M -- python3 -c "b = bytearray(200 * 2**20); print(len(b))"
+      - name: A memory hog fails fast with the out-of-memory error
+        id: hog
+        continue-on-error: true
+        run: |
+          start=$(date +%s)
+          scripts/capped.sh 1G 800M -- python3 -c "x = [bytearray(2**20) for _ in range(4096)]"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+      - name: The runner is alive after the hog
+        run: echo "hog outcome ${{ steps.hog.outcome }}; the next step ran"
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main, ci/build-memory-cap-4592]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ matrix.ref }}
+          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ci/build-memory-cap-4592
+          path: branch
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Build under the cap
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          branch/scripts/capped.sh 13G 11G -- \
+            open-interpretability build --wiki-dir wiki --output-dir dist

@@ -8,14 +8,21 @@ build then records them in the same order as one process does. With one job, or 
 
 A fork is safe while the build runs no other thread, and the build starts none. If that
 changes, Python warns at the fork, and ``open-interpretability build --jobs 1`` avoids it.
+
+Each fork happens under ``gc.freeze()`` (#4592). A child shares its parent's memory until
+it writes to a page. The garbage collector writes to every object that it visits, so
+without the freeze each worker slowly copies the whole tree. Frozen objects are never
+visited. After the fork, the parent unfreezes, so its own collections see them again.
 """
 
 from __future__ import annotations
 
+import gc
 import multiprocessing
 import os
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -24,6 +31,16 @@ from openinterpretability.harness.progress import Progress
 T = TypeVar("T")
 
 _WORK: dict[str, Any] = {}  # set just before the workers fork, so that they inherit it
+
+
+@contextmanager
+def _frozen() -> Iterator[None]:
+    """Freeze the garbage collector's objects for a fork, then unfreeze them in the parent."""
+    gc.freeze()
+    try:
+        yield
+    finally:
+        gc.unfreeze()
 
 
 def default_jobs() -> int:
@@ -46,7 +63,8 @@ def render_in_parallel(render, page: Callable[..., None], items: Sequence[tuple]
     _WORK.update(render=render, page=page, items=items)
     try:
         context = multiprocessing.get_context("fork")
-        with ProcessPoolExecutor(jobs, mp_context=context) as pool:
+        # The pool forks its workers on the first map.
+        with _frozen(), ProcessPoolExecutor(jobs, mp_context=context) as pool:
             shares = list(pool.map(_render_share, range(jobs), [jobs] * jobs))
     finally:
         _WORK.clear()
@@ -82,7 +100,8 @@ def in_background(fn: Callable[[], T], jobs: int) -> Callable[[], T]:
     context = multiprocessing.get_context("fork")
     reader, writer = context.Pipe(duplex=False)
     process = context.Process(target=_send_result, args=(fn, writer))
-    process.start()
+    with _frozen():
+        process.start()
     writer.close()
 
     def result() -> T:

@@ -122,8 +122,13 @@ jobs:
       - name: Build site
         env:
           GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
+        # The build runs under a 13G cap, out of the runner's 16 GB (scripts/capped.sh,
+        # #4592). Above it, the kernel kills only the build, and the step fails at once
+        # with an out-of-memory error. With no cap it killed the runner agent too, and
+        # the run hung for about 45 minutes with no reason in the log. A peak above 11G
+        # writes a warning.
         run: |
-          open-interpretability build --wiki-dir wiki --output-dir dist
+          scripts/capped.sh 13G 11G -- open-interpretability build --wiki-dir wiki --output-dir dist
           python -m openinterpretability.builder.css --site dist
           python -m pagefind --site dist
       - name: Sync to R2
