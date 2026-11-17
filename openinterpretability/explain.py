@@ -60,6 +60,7 @@ class PoleAttribution:
     explanation: str | None = None
     max_activation: float | None = None
     ablation_change: float | None = None  # target logit change when mean-ablated alone
+    hub: dict | None = None  # a HubNote, when the unit is a hub's center (#4472)
 
     @property
     def label(self) -> str:
