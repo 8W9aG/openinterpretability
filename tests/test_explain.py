@@ -1,6 +1,6 @@
-"""`open-interpretability explain` (openinterp/explain.py), on the conftest's toy model.
+"""`open-interpretability explain` (openinterp/explain.py), on the toy model and tiny GPT-2.
 
-The issue is #3250.
+The issues are #3250 (neuron poles) and #3617 (attention heads and paths).
 """
 
 import json
@@ -20,16 +20,16 @@ PROMPT = "a b c d"
 def means(toy_runner, tmp_path, monkeypatch):
     monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
     monkeypatch.setattr(ex, "WINDOW", 4)
-    return ex.neuron_means(toy_runner, "toy", TEXTS, 200)
+    return ex.unit_means(toy_runner, "toy", TEXTS, 200)
 
 
 def test_means_are_cached_and_leave_out_each_windows_first_token(toy_runner, means, tmp_path):
-    assert sorted(means) == list(range(toy_runner.n_layers))
+    assert sorted(means.neurons) == list(range(toy_runner.n_layers)) and means.heads == {}
     assert len(list((tmp_path / "means").glob("*.pt"))) == 1
     ids = [i for t in TEXTS for i in toy_runner.tokenizer.encode(t)][:200]
     windows = torch.tensor([ids[i : i + 4] for i in range(0, len(ids) - 3, 4)])
     _, cache = toy_runner.run_with_cache(windows, [0])
-    assert torch.allclose(means[0], cache[0][:, 1:].reshape(-1, cache[0].shape[-1]).mean(0))
+    assert torch.allclose(means.neurons[0], cache[0][:, 1:].reshape(-1, cache[0].shape[-1]).mean(0))
 
 
 def test_each_contribution_goes_to_the_pole_its_sign_names(toy_runner, means):
@@ -82,6 +82,165 @@ def test_cli(toy_runner, tmp_path, monkeypatch):
     args = [*base, "--wiki-dir", str(tmp_path / "wiki"), "--top", "3"]
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
-    assert "VERIFIED poles hold 0.0%" in out.output and "nothing here is explained" in out.output
+    assert "hold 0.0% of the total" in out.output and "nothing here is explained" in out.output
     as_json = CliRunner().invoke(cli, [*args, "--json"])
     assert json.loads(as_json.output)["verified_share"] == 0.0
+
+
+@pytest.fixture
+def gpt2(tiny_gpt2):
+    """Tiny GPT-2 in float64, so a small step's logit change is above rounding noise."""
+    from openinterp.harness.hooks import NeuronHookRunner
+    from tests.conftest import FakeTokenizer
+
+    return NeuronHookRunner(tiny_gpt2.double(), FakeTokenizer())
+
+
+@pytest.fixture
+def gpt2_means(gpt2, tmp_path, monkeypatch):
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    return ex.unit_means(gpt2, "tiny", TEXTS, 200)
+
+
+def _shift(gpt2, unit, means, alpha):
+    """Hooks that move one unit a share ``alpha`` of the way to its mean, past the first token."""
+    layer, index, pole = unit
+    if pole == ex.HEAD:
+        cols = slice(index * gpt2.head_dim(layer), (index + 1) * gpt2.head_dim(layer))
+
+        def head(z):
+            z = z.clone()
+            z[..., 1:, cols] -= alpha * (z[..., 1:, cols] - means.heads[layer][cols])
+            return z
+
+        return {}, {layer: head}
+
+    def neuron(act):
+        act = act.clone()
+        a = act[..., 1:, index]
+        active = a > 0 if pole == "positive" else a < 0
+        act[..., 1:, index] = torch.where(active, a - alpha * (a - means.neurons[layer][index]), a)
+        return act
+
+    return {layer: neuron}, {}
+
+
+def test_heads_have_means_and_an_attribution_that_matches_a_small_step(gpt2, gpt2_means):
+    assert sorted(gpt2_means.heads) == [0, 1]
+    assert gpt2_means.heads[0].shape == (gpt2.n_heads * gpt2.head_dim(0),)
+    token = int(ex.logits_with(gpt2, PROMPT, {}, -1).argmax())
+    scores, logit = ex.attribute(gpt2, PROMPT, gpt2_means, token, -1)
+    heads = [u for u in scores if u[2] == ex.HEAD]
+    assert sorted(heads) == [(0, 0, ex.HEAD), (0, 1, ex.HEAD), (1, 0, ex.HEAD), (1, 1, ex.HEAD)]
+    alpha = 1e-4
+    for unit in heads:
+        neurons, hooked = _shift(gpt2, unit, gpt2_means, alpha)
+        with torch.no_grad(), gpt2.hooks(neurons, None, hooked):
+            moved = gpt2.forward(gpt2.encode(PROMPT))[0, -1, token]  # float64, unrounded
+        assert float(moved - logit) / -alpha == pytest.approx(scores[unit][0], rel=0.01, abs=1e-7)
+
+
+def test_an_edge_is_the_change_in_its_targets_contribution(gpt2, gpt2_means):
+    token = int(ex.logits_with(gpt2, PROMPT, {}, -1).argmax())
+    graph = ex.Graph(gpt2, PROMPT, gpt2_means, token, -1)
+    scores = graph.scores(graph.grads)
+
+    def strongest(units):
+        return max(units, key=lambda u: abs(scores[u][0]))
+
+    target = strongest(u for u in scores if u[0] == 1 and u[2] != ex.HEAD)
+    source = strongest(u for u in scores if u[0] == 0 and u[2] == ex.HEAD)
+    (edge,) = [e for e in ex.paths(graph, [target, source], 1) if e["target"] != e["source"]]
+    alpha = 1e-4
+    neurons, heads = _shift(gpt2, source, gpt2_means, alpha)
+    with gpt2.hooks(neurons, None, heads):
+        moved = ex.Graph(gpt2, PROMPT, gpt2_means, token, -1)
+    moved.grads = graph.grads  # the target's contribution, with ∂logit/∂target held fixed
+    change = float((moved.contribution(target) - graph.contribution(target)).detach())
+    assert change / -alpha == pytest.approx(edge["weight"], rel=0.01, abs=1e-7)
+
+
+def test_explain_lists_heads_with_their_labels_and_traces_paths(gpt2, gpt2_means):
+    from openinterp.core.identifiers import HeadIdentifier
+
+    first = ex.explain(gpt2, "tiny", PROMPT, gpt2_means, {}, top=50, edges=5)
+    head = next(u for u in first.poles if u.pole == ex.HEAD)
+    assert head.label == f"L{head.layer}/H{head.neuron}"
+    assert first.edges and all({"source", "target", "weight"} <= set(e) for e in first.edges)
+    slug = HeadIdentifier(model_name="tiny", layer=head.layer, head_idx=head.neuron).slug
+    labels = {slug: ("VERIFIED", "copies b", 1.0)}
+    labelled = ex.explain(gpt2, "tiny", PROMPT, gpt2_means, labels, top=50)
+    shown = next(u for u in labelled.poles if u.key == head.key)
+    assert shown.status == "VERIFIED" and shown.explanation == "copies b"
+    assert labelled.joint["poles"] == 1 and "logit_change" in labelled.joint
+
+
+def test_a_superposition_attribution_matches_a_small_step_along_its_direction(gpt2, gpt2_means):
+    from openinterp.explain_groups import GroupDef, superposition_score
+
+    group = GroupDef(
+        "superposition", "L1/Sx", "m/L1/Sx", ((1, 3, 0.8), (1, 40, -0.5), (1, 77, 0.3))
+    )
+    token = int(ex.logits_with(gpt2, PROMPT, {}, -1).argmax())
+    graph = ex.Graph(gpt2, PROMPT, gpt2_means, token, -1)
+    expected = superposition_score(graph, group)
+    index = torch.tensor([3, 40, 77])
+    w = torch.tensor([0.8, -0.5, 0.3], dtype=torch.float64)
+    u, alpha = w / w.norm(), 1e-4
+
+    def step(act):
+        act = act.clone()
+        part = act[..., 1:, :][..., index]
+        along = ((part - gpt2_means.neurons[1][index].double()) @ u) * (part @ w > 0)
+        act[..., 1:, index] = part - alpha * along[..., None] * u
+        return act
+
+    with torch.no_grad(), gpt2.hooks({1: step}):
+        moved = gpt2.forward(gpt2.encode(PROMPT))[0, -1, token]
+    change = float((moved - graph.logit).detach())
+    assert change / -alpha == pytest.approx(expected, rel=0.01, abs=1e-7)
+
+
+def test_circuits_sum_their_members_and_a_verified_one_explains_them(gpt2, gpt2_means, tmp_path):
+    from openinterp import explain_groups
+
+    folder = tmp_path / "circuits"
+    folder.mkdir()
+    hrefs = ["models/tiny/L0/N5.html", "models/tiny/L1/H1.html"]
+    line = {"date": "2026-11-16", "event": "new", "id": "C1", "members": hrefs}
+    (folder / "tiny.jsonl").write_text(json.dumps(line) + "\n")
+    (circuit,) = explain_groups.circuits("tiny", folder)
+    assert circuit.neurons == ((0, 5, 1.0),) and circuit.heads == ((1, 1),)
+    plain = ex.explain(gpt2, "tiny", PROMPT, gpt2_means, {}, top=1000, groups=[circuit])
+    (found,) = plain.groups
+    token = int(ex.logits_with(gpt2, PROMPT, {}, -1).argmax())
+    scores, _ = ex.attribute(gpt2, PROMPT, gpt2_means, token, -1)
+    assert found.attribution == pytest.approx(sum(scores.get(u, (0.0,))[0] for u in circuit.units))
+    assert found.status == "unstudied" and found.ablation_change is not None
+    assert plain.verified_share == 0.0
+    labels = {"C1": ("VERIFIED", "copies the name")}
+    verified = ex.explain(
+        gpt2, "tiny", PROMPT, gpt2_means, {}, groups=[circuit], group_labels=labels
+    )
+    assert verified.groups[0].explanation == "copies the name"
+    covered = sum(abs(scores[u][0]) for u in circuit.units if u in scores)
+    assert verified.verified_share == pytest.approx(covered / verified.total)
+
+
+def test_circuit_labels_read_each_circuits_newest_record(tmp_path):
+    import shutil
+    from pathlib import Path
+
+    from openinterp.explain_groups import circuit_labels
+
+    source = next(Path("wiki/circuits").glob("*/C*/*.json"))
+    target = tmp_path / "circuits" / source.parent.parent.name / source.parent.name
+    target.mkdir(parents=True)
+    shutil.copy(source, target / source.name)
+    record = json.loads(source.read_text())
+    model = record["hypothesis"]["model_name"]
+    labels = circuit_labels(tmp_path, model)
+    assert labels == {
+        source.parent.name: (record["verdict"]["status"], record["hypothesis"]["explanation"])
+    }
