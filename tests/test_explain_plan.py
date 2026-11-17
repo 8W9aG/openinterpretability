@@ -152,3 +152,23 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
         cli, [*args[:-4], "--proposer", "external/x", "--reviewer", "anthropic/r"]
     )
     assert external.exit_code != 0  # nobody would answer an external model's prompt files
+
+
+def test_cli_records_the_explanation(toy_runner, tmp_path, monkeypatch):
+    from openinterpretability.cli import cli
+    from openinterpretability.core.explanation_records import load_latest
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    wiki = tmp_path / "wiki"
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(wiki), "--edges", "0", "--record"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    ((path, record),) = load_latest(wiki)
+    assert f"Explanation → {path}" in out.output
+    assert record.model_name == "toy" and record.prompt == PROMPT and record.narration is None
+    assert record.units and record.planned_experiments > 0
