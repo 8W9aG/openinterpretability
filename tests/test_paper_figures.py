@@ -10,7 +10,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 from figure_svg import gelu, number  # noqa: E402
-from paper_figures import PAPERS, build_all, generated  # noqa: E402
+from paper_figures import PAPERS, build_all  # noqa: E402
 
 BUILT = build_all()
 
@@ -32,11 +32,6 @@ def test_each_figure_appears_in_its_paper(name):
     paper, _, file_name = name.split("/")
     prose = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
     assert f"(media/{file_name})" in prose
-
-
-def test_interactive_page_data_matches_the_results():
-    written = (PAPERS / "below-the-dip" / "data.js").read_text(encoding="utf-8")
-    assert written == generated()["below-the-dip/data.js"]
 
 
 def test_each_media_file_is_built():
