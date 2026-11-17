@@ -53,7 +53,7 @@ from openinterpretability.harness.layer_major import map_layer_major, prompt_tok
 
 @dataclass(frozen=True)
 class Tolerance:
-    """Allowed |reproduced − recorded| = atol × scale + rtol × |recorded|.
+    """Allowed |reproduced − recorded| = atol × scale + rtol × |recorded| + floor.
 
     The defaults absorb float32 differences between devices and library versions
     (records round activations to 5–6 decimals) but not an edited number.
@@ -61,26 +61,37 @@ class Tolerance:
 
     atol: float = 1e-3  # fraction of the neuron's max activation
     rtol: float = 1e-2
+    floor: float = 0.0  # in activation units: the model's float32 move (for_unit)
 
     def close(self, recorded: float | None, reproduced: float | None, scale: float) -> bool:
         """True when ``reproduced`` is within tolerance of ``recorded``, or both are ``None``."""
         if recorded is None or reproduced is None:
             return recorded is None and reproduced is None
-        return abs(reproduced - recorded) <= self.atol * scale + self.rtol * abs(recorded)
+        allowed = self.atol * scale + self.rtol * abs(recorded) + self.floor
+        return abs(reproduced - recorded) <= allowed
 
     def for_dtype(self, dtype: str) -> Tolerance:
         """This tolerance, widened to :data:`HALF_TOLERANCE` for a record in a 16-bit dtype."""
         return self.widened(HALF_TOLERANCE) if dtype in HALF else self
 
     def for_unit(self, ident) -> Tolerance:
-        """This tolerance, widened to :data:`HEAD_TOLERANCE` for an attention head."""
-        from openinterpretability.core.schemas import HeadIdentifier
+        """Widened to :data:`HEAD_TOLERANCE` for a head, or a neuron model's ``reproduce_floor``."""
+        from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+        from openinterpretability.planner import configured_reproduce_floors
 
-        return self.widened(HEAD_TOLERANCE) if isinstance(ident, HeadIdentifier) else self
+        if isinstance(ident, HeadIdentifier):
+            return self.widened(HEAD_TOLERANCE)
+        floor = configured_reproduce_floors().get(ident.model_name, 0.0)
+        neuron = isinstance(ident, NeuronIdentifier) and floor
+        return self.widened(Tolerance(atol=0.0, rtol=0.0, floor=floor)) if neuron else self
 
     def widened(self, other: Tolerance) -> Tolerance:
         """The larger of this tolerance and ``other``, term by term."""
-        return Tolerance(atol=max(self.atol, other.atol), rtol=max(self.rtol, other.rtol))
+        return Tolerance(
+            atol=max(self.atol, other.atol),
+            rtol=max(self.rtol, other.rtol),
+            floor=max(self.floor, other.floor),
+        )
 
 
 DEFAULT_TOLERANCE = Tolerance()

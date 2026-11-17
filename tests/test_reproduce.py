@@ -383,6 +383,31 @@ def test_a_head_gets_the_wider_head_tolerance_and_an_edit_still_fails():
     assert both.atol == max(HALF_TOLERANCE.atol, HEAD_TOLERANCE.atol)
 
 
+def test_a_pythia_neuron_gets_its_models_float32_floor_and_an_edit_still_fails():
+    # #4187: Pythia-70m L5/N389, negative pole, scale 0.16997, scanned on an Intel CPU.
+    from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+    from openinterpretability.planner import configured_reproduce_floors
+    from openinterpretability.reproduce import HEAD_TOLERANCE, Tolerance
+
+    floors = configured_reproduce_floors()
+    assert floors["EleutherAI/pythia-70m"] == 0.01 and "openai-community/gpt2" not in floors
+    base = Tolerance()
+    pythia = NeuronIdentifier(
+        model_name="EleutherAI/pythia-70m", layer=5, neuron_idx=389, pole="negative"
+    )
+    gpt2 = NeuronIdentifier(
+        model_name="openai-community/gpt2", layer=1, neuron_idx=2, pole="negative"
+    )
+    wide = base.for_unit(pythia)
+    assert wide.floor == 0.01 and base.for_unit(gpt2) is base
+    scale = 0.16997
+    assert not base.close(0.12703, 0.125384, scale) and wide.close(0.12703, 0.125384, scale)
+    assert not wide.close(scale, scale * 1.10, scale)  # 10% at a peak: an edit
+    head = HeadIdentifier(model_name="EleutherAI/pythia-70m", layer=4, head_idx=4)
+    assert base.for_unit(head) == HEAD_TOLERANCE  # heads keep their own study (#3956)
+    assert base.for_dtype("bfloat16").for_unit(pythia).floor == 0.01  # each term keeps the larger
+
+
 def test_a_bfloat16_record_reproduces_on_float32_weights_with_a_warning(record, toy_runner):
     report = reproduce_record(_pinned(record, "bfloat16"), toy_runner)
     assert report.ok, report.mismatches
