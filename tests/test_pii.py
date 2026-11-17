@@ -1,7 +1,6 @@
 """What the site removes and masks: personal data and offensive examples (offline)."""
 
 import json
-from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
@@ -320,17 +319,21 @@ def test_errata_notes_are_scrubbed_like_the_record():
     assert erratum.title == "Bad example from jane.doe@somemail.org"  # the original is unchanged
 
 
-def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path):
+def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path, monkeypatch):
+    import hashlib
+
+    from openinterpretability.builder import research
     from openinterpretability.builder.research import Paper, copy_assets
+
+    library = b"/* a vendored library */ var a = 'jane.doe@somemail.org';"
+    monkeypatch.setitem(research.VENDORED, "three.min.js", hashlib.sha256(library).hexdigest())
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
     (folder / "index.html").write_text("<p>Write to jane.doe@somemail.org</p>")
     (folder / "data.js").write_text("const v = [0.12773621082305908, 4.09394097328186];")
     (folder / "lib.min.js").write_text("// jane.doe@somemail.org")
-    (folder / "three.min.js").write_bytes(
-        (Path(__file__).parents[1] / "papers/below-the-dip/three.min.js").read_bytes()
-    )
+    (folder / "three.min.js").write_bytes(library)
     (folder / "pic.png").write_bytes(b"\x89PNG jane.doe@somemail.org")
     paper = Paper("p", "T", "S", "", None, interactive=True)
     copy_assets(tmp_path / "papers", paper, tmp_path / "out")
