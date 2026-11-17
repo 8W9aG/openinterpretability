@@ -198,7 +198,10 @@ def reproduce_record(
     _compare_environment(record, run_environment(runner), report)
     scale = sub.max_activation or 0.0
 
-    # 1. Scan evidence, in the dtype the scan pins.
+    # 1. Scan evidence, in the dtype the scan pins. The first-token floor reads every
+    # token of the vocabulary. In bfloat16 on a CPU, that took more than an hour (#3801).
+    # So the review's runner checks it.
+    _check_scale(sub, unit, runner, scale, report)
     _check_scan(record, unit, scan_runner or runner, tolerance, corpus, report)
     tolerance = tolerance.for_dtype(review_dtype)
 
@@ -222,14 +225,13 @@ def reproduce_record(
 def _check_scan(record: AuditRecord, unit, runner, tolerance: Tolerance, corpus, report):
     """Compare the scan evidence, measured by ``runner`` in the dtype that the scan pins.
 
-    The scan evidence is the scale, the corpus sample and the top examples. A 16-bit scan
-    is compared within the 16-bit tolerance, with :data:`HALF_STRAY_TOKENS` stray tokens.
+    The scan evidence is the corpus sample and the top examples. A 16-bit scan is compared
+    within the 16-bit tolerance, with :data:`HALF_STRAY_TOKENS` stray tokens.
     """
     sub, scanned_in = record.submission, scan_dtype(record)
     if scanned_in != pinned_environment(record)[1]:
         compare_dtype("scan", scanned_in, run_environment(runner).dtype, report)
     scale = sub.max_activation or 0.0
-    _check_scale(sub, unit, runner, scale, report)
     if corpus is not None:
         _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
     stray = HALF_STRAY_TOKENS if scanned_in in HALF else 0
