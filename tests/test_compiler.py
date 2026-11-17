@@ -269,6 +269,7 @@ def test_pct_fine():
     assert _pct_fine(0.5) == "50%"
     assert _pct_fine(0.021) == "2.1%"
     assert _pct_fine(1 / 116_736) == "0.00086%"
+    assert _pct_fine(-0.0009418028191878567) == "-0.094%"  # a random baseline below zero
 
 
 def test_experiments_ordered_by_conclusiveness(tmp_path, records):
