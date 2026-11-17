@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 
@@ -23,13 +24,19 @@ from openinterpretability.core.identifiers import model_slug
 from openinterpretability.core.strict import StrictModel
 
 EXPLANATIONS_WIKI = "explanations"  # records live in wiki/explanations/
+# The values that reach file paths and generated commands. A model name is `org/name`, or a
+# bare name in tests. A unit slug is a pole's or a head's, matched in full.
+MODEL_NAME = r"^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)?$"
+UNIT_SLUG = r"^[A-Za-z0-9][A-Za-z0-9._-]*/L\d+/(N\d+-(positive|negative)|H\d+)$"
 
 
 class ExplainedUnit(StrictModel):
     """One unit or group of the mechanism, as it stood when the explanation was written."""
 
     unit: str = Field(description="L3/N7+, L2/H10, L20/S0123456789ab or C4.")
-    slug: str | None = Field(default=None, description="Its registry slug, for a pole or head.")
+    slug: str | None = Field(
+        default=None, pattern=UNIT_SLUG, description="Its registry slug, for a pole or head."
+    )
     kind: str  # pole, head, superposition or circuit
     share: float
     attribution: float
@@ -49,7 +56,7 @@ class Narration(StrictModel):
 class ExplanationRecord(StrictModel):
     """One explanation of one answer, as the registry stood (module docstring)."""
 
-    model_name: str
+    model_name: str = Field(pattern=MODEL_NAME)
     prompt: str
     position: int
     answer: str
@@ -77,11 +84,54 @@ def record_path(wiki_dir: Path, record: ExplanationRecord) -> Path:
 
 
 def load_latest(wiki_dir: Path) -> list[tuple[Path, ExplanationRecord]]:
-    """The newest record of each prompt, by model and prompt id; none without the folder."""
+    """The newest valid record of each prompt; none without the folder.
+
+    A record that doesn't validate is left out with a warning. So one bad file can't stop
+    the planner or the site build. ``open-interpretability check`` rejects it
+    (:func:`check_explanations`).
+    """
+    import sys
+
+    from pydantic import ValidationError
+
     root = wiki_dir / EXPLANATIONS_WIKI
     out = []
     for folder in sorted(p for p in root.glob("*/*") if p.is_dir()) if root.is_dir() else []:
         newest = max(folder.glob("*.json"), default=None)  # files are named by UTC time
-        if newest is not None:
+        if newest is None:
+            continue
+        try:
             out.append((newest, ExplanationRecord.model_validate_json(newest.read_text())))
+        except ValidationError:
+            print(f"warning: skipping an invalid explanation record: {newest}", file=sys.stderr)
     return out
+
+
+def check_explanations(wiki_dir: Path, report: Any, scope: set[Path] | None = None) -> None:
+    """Add a problem to ``report`` for each explanation record that fails a check.
+
+    Each record must validate, sit at its own path, and name a configured model.
+    """
+    from pydantic import ValidationError
+
+    from openinterpretability.planner import configured_models, signed_models
+
+    root = wiki_dir / EXPLANATIONS_WIKI
+    if not root.exists():
+        return
+    models = {*configured_models(), *signed_models()}
+    for path in sorted(root.rglob("*")):
+        if path.is_dir() or (scope is not None and path not in scope):
+            continue
+        if path.suffix != ".json":
+            report.add(path, "only explanation records (.json) belong in wiki/explanations/")
+            continue
+        try:
+            record = ExplanationRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValidationError as error:
+            report.add(path, f"not a valid explanation record: {error.errors()[0]['msg']}")
+            continue
+        if record_path(wiki_dir, record) != path:
+            report.add(path, f"should be at {record_path(wiki_dir, record)}")
+        if record.model_name not in models:
+            report.add(path, f"{record.model_name} is not a configured model")
