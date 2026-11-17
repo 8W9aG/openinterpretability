@@ -75,11 +75,12 @@ class HeadUnit:
     ident: HeadIdentifier
     mean_output: tuple[float, ...]
     skip_first: bool = False
+    floor: float | None = None  # HeadProfile.strength_floor (protocol 0.10)
 
     def strengths(self, runner: NeuronHookRunner, inputs: Inputs) -> torch.Tensor:
-        """Per-token ``|W_O (z − z̄)|`` ``[batch, seq]``."""
+        """Per-token ``|W_O (z − z̄)|``, less the floor if any, ``[batch, seq]``."""
         z = runner.head_outputs(inputs, self.ident.layer)[..., self.ident.head_idx, :]
-        return head_strength(runner, self.ident, z, self.mean_output)
+        return above_floor(head_strength(runner, self.ident, z, self.mean_output), self.floor)
 
     def ablation(self, runner: NeuronHookRunner) -> dict[str, Mapping[int, Any]]:
         """``run_with_interventions`` keyword arguments that mean-ablate the head."""
@@ -130,6 +131,11 @@ def head_strength(
     return ((z.float() - mean) @ w_o.T.to(z.device)).norm(dim=-1)
 
 
+def above_floor(strength: torch.Tensor, floor: float | None) -> torch.Tensor:
+    """``max(0, strength − floor)``, or ``strength`` with no floor (protocol 0.10, #4523)."""
+    return strength if floor is None else (strength - floor).clamp(min=0.0)
+
+
 def unit_of(
     ident: ComponentIdentifier,
     head_profile=None,
@@ -150,7 +156,8 @@ def unit_of(
     if isinstance(ident, HeadIdentifier):
         if head_profile is None:
             raise ValueError(f"{ident} has no head profile, so its strength is undefined")
-        return HeadUnit(ident, tuple(head_profile.mean_output), skip_first)
+        return HeadUnit(ident, tuple(head_profile.mean_output), skip_first,
+                        head_profile.strength_floor)  # fmt: skip
     if isinstance(ident, FeatureIdentifier):
         if dictionary_profile is None:
             raise ValueError(f"{ident} has no dictionary profile, so its strength is undefined")
