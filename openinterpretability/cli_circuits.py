@@ -51,6 +51,43 @@ def identify_command(wiki_dir: Path, out_dir: Path, only: str) -> None:
         click.echo(f"{model.slug}: {len(result.circuits)} circuits ({kinds})")
 
 
+@circuits_group.command(name="hubs")
+@click.option(
+    "--wiki-dir", type=click.Path(file_okay=False, path_type=Path), default=DEFAULT_WIKI_DIR
+)
+@click.option("--out-dir", type=click.Path(file_okay=False, path_type=Path),
+              default=Path("data/hubs"), show_default=True)  # fmt: skip
+@click.option("--model", "only", default="", help="One model slug; default: every model.")
+@click.option("--device", default="cpu", show_default=True)
+def hubs_command(wiki_dir: Path, out_dir: Path, only: str, device: str) -> None:
+    """Record each hub center's output-weight norm against its layer (openinterpretability/hubs.py).
+
+    It appends one row per hub to data/hubs/<model>.jsonl. Only the weights are read.
+    """
+    from openinterpretability import hubs
+    from openinterpretability.builder.circuits import circuits_and_hubs
+    from openinterpretability.builder.tree import build_tree
+    from openinterpretability.builder.wiki import load_archive
+    from openinterpretability.core.errata import load_errata
+    from openinterpretability.wiring_backfill import load_rows
+
+    today = datetime.now(UTC).date().isoformat()
+    rows = load_rows()
+    for model in build_tree(load_archive(wiki_dir), load_errata(wiki_dir)):
+        if only and model.slug != only:
+            continue
+        found = circuits_and_hubs(model, rows)[1]
+        if not found:
+            continue
+        runner = _model_runner(found[0].unit.model, device, None)
+        lines = [hubs.norm_row(runner, hubs.identifier(h.unit), today) for h in found]
+        path = hubs.path_for(model.slug, out_dir)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.writelines(row.model_dump_json() + "\n" for row in lines)
+        click.echo(f"{model.slug}: {len(lines)} hubs → {path}")
+
+
 def _model_runner(model: str, device: str, revision: str | None):
     from openinterpretability.cli import _load_runner
 

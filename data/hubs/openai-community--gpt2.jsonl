@@ -1,0 +1,11 @@
+{"hub":"openai-community--gpt2/L11/H10/HUB","date":"2026-11-17","norm":32.595387,"layer_median":37.738312,"percentile":0.0}
+{"hub":"openai-community--gpt2/L3/H5/HUB","date":"2026-11-17","norm":23.316681,"layer_median":16.281343,"percentile":0.75}
+{"hub":"openai-community--gpt2/L6/H3/HUB","date":"2026-11-17","norm":28.572233,"layer_median":24.761608,"percentile":0.666667}
+{"hub":"openai-community--gpt2/L1/H8/HUB","date":"2026-11-17","norm":27.858614,"layer_median":20.657341,"percentile":0.916667}
+{"hub":"openai-community--gpt2/L5/H5/HUB","date":"2026-11-17","norm":19.328634,"layer_median":20.199495,"percentile":0.333333}
+{"hub":"openai-community--gpt2/L5/H2/HUB","date":"2026-11-17","norm":19.223297,"layer_median":20.199495,"percentile":0.25}
+{"hub":"openai-community--gpt2/L8/H4/HUB","date":"2026-11-17","norm":23.579689,"layer_median":25.919685,"percentile":0.083333}
+{"hub":"openai-community--gpt2/L3/H8/HUB","date":"2026-11-17","norm":15.575298,"layer_median":16.281343,"percentile":0.25}
+{"hub":"openai-community--gpt2/L5/H1/HUB","date":"2026-11-17","norm":21.342564,"layer_median":20.199495,"percentile":0.75}
+{"hub":"openai-community--gpt2/L6/H9/HUB","date":"2026-11-17","norm":22.017193,"layer_median":24.761608,"percentile":0.333333}
+{"hub":"openai-community--gpt2/L7/H11/HUB","date":"2026-11-17","norm":25.441284,"layer_median":24.921839,"percentile":0.5}
