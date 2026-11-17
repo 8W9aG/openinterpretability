@@ -4,20 +4,20 @@ WIKI_DIR ?= wiki
 DIST_DIR ?= dist
 
 # Reinstalls the package itself: when the distribution was renamed to open-interpretability
-# (issue #3251), a plain sync removed the `openinterp` command with the old distribution.
+# (issue #3251), a plain sync removed the `openinterpretability` command with the old distribution.
 install:
 	uv sync --reinstall-package open-interpretability
 
 # Single-threaded: the tests use tiny models, and thread pools contending with other
 # jobs on the machine have hung the suite.
 test:
-	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterp.core.heavy_lock pytest
+	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.
 # The heavy lock keeps another heavy job from overlapping the timings.
 perf:
-	uv run python -m openinterp.core.heavy_lock python scripts/perf_bench.py
+	uv run python -m openinterpretability.core.heavy_lock python scripts/perf_bench.py
 
 # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml).
 typecheck:
@@ -31,7 +31,8 @@ lint:
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
 	python3 scripts/ifttt_lint.py
-	uv run interrogate openinterp
+	python3 scripts/check_old_name.py
+	uv run interrogate openinterpretability
 	$(MAKE) typecheck
 	$(MAKE) markdown
 	$(MAKE) shell
@@ -56,7 +57,7 @@ shell:
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
-VALE_PATHS ?= openinterp scripts tests
+VALE_PATHS ?= openinterpretability scripts tests
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
 	vale $(VALE_PATHS)
@@ -102,7 +103,7 @@ build:
 
 # The stylesheet, from the classes the pages use (Tailwind's standalone CLI, no Node).
 css:
-	uv run python -m openinterp.builder.css --site $(DIST_DIR)
+	uv run python -m openinterpretability.builder.css --site $(DIST_DIR)
 
 # Pagefind (a locked dev dependency, so no Node is needed) indexes dist/ for search.
 search-index:

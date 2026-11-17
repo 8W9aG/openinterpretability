@@ -59,7 +59,7 @@ QUALIFY row_number() OVER (PARTITION BY slug ORDER BY reviewed_at, experiment_id
 
 def load_units(site_dir: Path) -> list[dict]:
     """The first reading of every random neuron pole, oldest first, with its features."""
-    from openinterp.core.agent_names import canonical_agent
+    from openinterpretability.core.agent_names import canonical_agent
 
     con = duckdb.connect()
     data = site_dir / "data" / "registry.parquet"
@@ -94,7 +94,7 @@ def histogram_features(histogram: dict | None) -> dict:
 
 def add_output_norms(rows: list[dict], device: str) -> None:
     """Each row's ``output_norm``: the norm of its neuron's row of the down projection."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     for model in sorted({r["model_name"] for r in rows}):
         runner = _load_runner(model, device, "float32", None)

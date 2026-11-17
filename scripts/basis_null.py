@@ -31,7 +31,8 @@ from pathlib import Path
 import click
 import torch
 
-import openinterp.cli  # noqa: F401  (first: the CLI modules import each other in its order)
+import openinterpretability.cli  # noqa: F401  (first: the CLI modules import each other in its order)
+from openinterpretability.core.legacy_names import cache_base  # noqa: E402
 
 MODEL = "Qwen/Qwen2.5-0.5B"
 NAME = "qwen2.5-0.5b-mlp-basis"  # one name for both arms
@@ -43,12 +44,12 @@ WINDOW_TOKENS = 512
 def weights_dir(arm: str, seed: int) -> Path:
     """Where an arm's basis weights go: a directory named by a hash, so the name hides the arm."""
     digest = hashlib.sha256(f"{arm}/{seed}".encode()).hexdigest()[:12]
-    return Path.home() / ".cache" / "openinterp" / "bases" / digest
+    return cache_base() / "bases" / digest
 
 
 def spec(arm: str, seed: int, layers):
     """The ``basis`` preset of one arm."""
-    from openinterp.harness.dictionaries import DictionarySpec
+    from openinterpretability.harness.dictionaries import DictionarySpec
 
     return DictionarySpec(
         model_name=MODEL,
@@ -68,7 +69,7 @@ def load_plan(path: Path) -> dict:
 
 def register(plan: dict, unit: dict) -> None:
     """Point the shared dictionary name at this unit's arm."""
-    from openinterp.harness.dictionaries import DICTIONARIES
+    from openinterpretability.harness.dictionaries import DICTIONARIES
 
     layers = sorted({u["layer"] for u in plan["units"]})
     DICTIONARIES[NAME] = spec(unit["arm"], plan["seed"], layers)
@@ -145,7 +146,7 @@ def pending(plan: dict, names, needs: str, makes: tuple[str, ...]) -> list[dict]
 
 def runner():
     """The model runner for :data:`MODEL`, in float32."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     return _load_runner(MODEL, "auto", "float32")
 
@@ -158,8 +159,8 @@ def scan(plan_file, names):
 
     Writes outcome.json instead if the scan stops on a unit (dead or default-on).
     """
-    from openinterp.cli_evidence import write_evidence
-    from openinterp.evidence import ScanRequest, Unauditable, scan_evidence
+    from openinterpretability.cli_evidence import write_evidence
+    from openinterpretability.evidence import ScanRequest, Unauditable, scan_evidence
 
     plan, run = load_plan(plan_file), runner()
     for unit in pending(plan, names, "", ("ev.json", "outcome.json")):
@@ -197,9 +198,9 @@ def strengths(unit_dir, texts):
     The peak is a fraction of the unit's scale, read from the unit's own ev.json. So it
     says nothing of which arm the unit is in. Runs on the CPU.
     """
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import ScanEvidence
-    from openinterp.harness.units import unit_of
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import ScanEvidence
+    from openinterpretability.harness.units import unit_of
 
     evidence = ScanEvidence.model_validate_json((unit_dir / "ev.json").read_text())
     skip = bool(evidence.first_token_floor)
@@ -225,10 +226,10 @@ def submit(plan_file, names, agent_model):
     The submission comes from the unit's scan and the proposer's draft, with the
     counterfactuals measured.
     """
-    from openinterp.agents.proposer import HypothesisDraft, ProposerAgent
-    from openinterp.cli_review import write_review_prompt
-    from openinterp.cli_submission import build_submission
-    from openinterp.core.schemas import ScanEvidence
+    from openinterpretability.agents.proposer import HypothesisDraft, ProposerAgent
+    from openinterpretability.cli_review import write_review_prompt
+    from openinterpretability.cli_submission import build_submission
+    from openinterpretability.core.schemas import ScanEvidence
 
     plan, run = load_plan(plan_file), runner()
     for unit in pending(plan, names, "ev.hypothesis.json", ("submission.json",)):
@@ -252,8 +253,8 @@ def measure(plan_file, names, agent_model):
     """
     from null_calibration import review_probes  # beside this script
 
-    from openinterp.agents.reviewer import ProbeSet
-    from openinterp.core.schemas import NeuronAuditSubmission
+    from openinterpretability.agents.reviewer import ProbeSet
+    from openinterpretability.core.schemas import NeuronAuditSubmission
 
     plan, run = load_plan(plan_file), runner()
     for unit in pending(plan, names, "review.probes.json", ("result.json",)):

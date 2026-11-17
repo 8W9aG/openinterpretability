@@ -1,10 +1,10 @@
-"""The site's sitemap, feed and robots.txt (``openinterp/builder/feeds.py``, #3285)."""
+"""The site's sitemap, feed and robots.txt (``openinterpretability/builder/feeds.py``, #3285)."""
 
 import xml.etree.ElementTree as ET
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.feeds import NOINDEX
-from openinterp.core.project import site_url
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.feeds import NOINDEX
+from openinterpretability.core.project import site_url
 from tests.test_compiler import experiment
 
 ATOM = "{http://www.w3.org/2005/Atom}"

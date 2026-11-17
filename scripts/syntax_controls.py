@@ -17,8 +17,8 @@ from pathlib import Path
 import click
 import torch
 
-from openinterp.cli import _load, resolve_device
-from openinterp.core.confounds import (
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.core.confounds import (
     BRACKET_DEPTH,
     INDENT_DEPTH,
     PROGRAMMING_LANGUAGE,
@@ -26,13 +26,13 @@ from openinterp.core.confounds import (
     SYNTAX_CONSTRUCT,
     SYNTAX_NODE,
 )
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS, sample_indices
-from openinterp.evidence import read_corpus, read_labels
-from openinterp.harness.annotations import UNLABELLED, TokenLabels
-from openinterp.harness.hooks import pole_strength
-from openinterp.harness.scan import cut_pieces, scan_chunks, scan_neuron
-from openinterp.planner import configured_windows
-from openinterp.syntax import (
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS, sample_indices
+from openinterpretability.evidence import read_corpus, read_labels
+from openinterpretability.harness.annotations import UNLABELLED, TokenLabels
+from openinterpretability.harness.hooks import pole_strength
+from openinterpretability.harness.scan import cut_pieces, scan_chunks, scan_neuron
+from openinterpretability.planner import configured_windows
+from openinterpretability.syntax import (
     BRACKET,
     COMMENT,
     GRAMMARS,
@@ -79,7 +79,7 @@ def depth_variants(tokens: TokenLabels, labels: dict[str, torch.Tensor]) -> dict
 def closers_added(text: str, language: str) -> tuple[list[str], list[str]]:
     """Label ``text`` with the first fix for cut documents: add the open brackets' closers.
 
-    This was the tagger before it searched endings (``openinterp.syntax.parse_labels``),
+    This was the tagger before it searched endings (``openinterpretability.syntax.parse_labels``),
     kept so the stability table can compare the two.
     """
     nodes, constructs = _paint(text, language)

@@ -13,7 +13,7 @@ tags:
 
 One skip transcoder per layer (all 24) of
 [Qwen/Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B), trained for
-[openinterp](https://github.com/8W9aG/openinterpretability). Each one maps the MLP's input
+[openinterpretability](https://github.com/8W9aG/openinterpretability). Each one maps the MLP's input
 to the MLP's output through 16,384 sparse latents plus a dense linear skip path.
 
 ## Sites
@@ -60,13 +60,13 @@ the training log.
   - [NeelNanda/pile-10k](https://huggingface.co/datasets/NeelNanda/pile-10k) at revision
     `127bfedc`.
   - 13.5M tokens, one pass, in 1,024-token pieces. Each piece's first token is skipped.
-  - The 518 documents that openinterp's scan corpus draws from are excluded, so its audits run
+  - The 518 documents that openinterpretability's scan corpus draws from are excluded, so its audits run
     on text the transcoders never saw.
   - The last 100 documents are held out for validation.
 
 ## Fit
 
-The fit is measured on openinterp's scan corpus (32 documents, 1,024-token windows, first
+The fit is measured on openinterpretability's scan corpus (32 documents, 1,024-token windows, first
 token excluded). It reports explained variance of the MLP output under the exported JumpReLU,
 the mean number of active latents (L0), and the share of latents dead at the end of training.
 
@@ -91,7 +91,7 @@ On the 100 held-out documents, explained variance ranges from 0.61 (layer 12) to
 These are small, quickly trained dictionaries (13.5M tokens on a laptop). They serve as a
 learned-basis baseline for audits, not as a state-of-the-art reconstruction.
 
-## Use in openinterp
+## Use in openinterpretability
 
 ```bash
 open-interpretability audit --model Qwen/Qwen2.5-0.5B --dictionary qwen2.5-0.5b-transcoders ...

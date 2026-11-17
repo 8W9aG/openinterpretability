@@ -1,0 +1,469 @@
+"""Scan one unit into :class:`~openinterpretability.core.schemas.ScanEvidence`.
+
+The steps are reading the corpus, picking the unit, the scan, and the lens and
+attribution that follow it.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import secrets
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import click
+
+from openinterpretability.audit_options import selection as chosen_selection
+
+
+def read_corpus(path: Path | None):
+    """Return (snippets, description, sha256 of the corpus file, its CorpusSource or None)."""
+    from openinterpretability.corpus import jsonl_lines, load_source
+
+    if path is None:
+        from openinterpretability.core.schemas import BUILTIN_CORPUS
+        from openinterpretability.data import sample_corpus
+
+        texts = sample_corpus()
+        return texts, BUILTIN_CORPUS, sha256("\n".join(texts).encode()), None
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
+    if path.suffix == ".jsonl":
+        lines = [json.loads(line)["text"] for line in jsonl_lines(text)]
+    else:  # a plain-text corpus keeps its old split, so its records reproduce
+        lines = [line for line in text.splitlines() if line.strip()]
+    digest = sha256(raw)
+    source = load_source(path, digest)
+    return lines, str(source) if source else path.name, digest, source
+
+
+def read_labels(path: Path | None) -> dict[str, list[str | None]]:
+    """Return the corpus's document labels (:data:`~openinterpretability.corpus.DOCUMENT_LABELS`).
+
+    They are by label set, one per document in :func:`read_corpus` order. Only the sets
+    that some document has are included.
+    """
+    from openinterpretability.corpus import DOCUMENT_LABELS, jsonl_lines
+
+    if path is None or path.suffix != ".jsonl":
+        return {}
+    rows = [json.loads(line) for line in jsonl_lines(path.read_bytes().decode("utf-8"))]
+    return {
+        name: [row.get(field) for row in rows]
+        for field, name in DOCUMENT_LABELS.items()
+        if any(row.get(field) is not None for row in rows)
+    }
+
+
+def sha256(data: bytes) -> str:
+    """The hex SHA-256 of ``data``."""
+    return hashlib.sha256(data).hexdigest()
+
+
+@dataclass(frozen=True)
+class ScanRequest:
+    """What ``open-interpretability audit`` scans: the unit (or how to draw it) and the corpus.
+
+    ``None`` for ``layer`` or the unit's index means "draw it" (with ``random_pick``).
+    """
+
+    model_name: str
+    unit: str = "neuron"
+    layer: int | None = None
+    neuron: int | None = None
+    pole: str | None = None
+    head: int | None = None
+    feature: int | None = None
+    dictionary: str | None = None
+    superposition: object | None = None  # its SuperpositionProfile, with unit="superposition"
+    random_pick: bool = False
+    seed: int | None = None
+    corpus: Path | None = None
+    top_k: int = 20
+    dtype: str | None = None
+    window_tokens: int | None = None
+    stride: int | None = None
+    max_tokens: int | None = None
+    sample_seed: int = 0
+    selection: str | None = (
+        None  # a chosen unit's selection (openinterpretability/audit_options.py)
+    )
+
+
+@dataclass
+class _Texts:
+    """The scanned snippets and where they came from."""
+
+    texts: list[str]
+    name: str
+    sha256: str
+    source: object
+    sample: object
+    stride: int | None
+    labels: dict[str, list[str | None]] = field(default_factory=dict)  # by label set
+
+    def taggers(self):
+        """Return the document taggers, the syntax taggers, then the match taggers.
+
+        There is one document tagger per label set that the corpus carries. The syntax
+        taggers run only on a corpus that records programming languages.
+        """
+        from openinterpretability import names, sensitive, syntax, toxicity
+        from openinterpretability.core.confounds import (
+            HATE_SPEECH,
+            NAMES,
+            PART_OF_SPEECH,
+            PERSONAL_DATA,
+            POSTAL_ADDRESSES,
+            PROGRAMMING_LANGUAGE,
+            TOXICITY,
+        )
+        from openinterpretability.harness.annotations import DocumentLabels, MatchTagger
+
+        languages = self.labels.get(PROGRAMMING_LANGUAGE)
+        return [
+            *(DocumentLabels(name, labels) for name, labels in self.labels.items()),
+            *(syntax.syntax_taggers(languages) if languages else ()),
+            MatchTagger(PERSONAL_DATA, sensitive.pii_matches),
+            MatchTagger(TOXICITY, toxicity.toxicity_matches),
+            MatchTagger(HATE_SPEECH, toxicity.hate_matches),
+            MatchTagger(NAMES, names.person_matches),
+            MatchTagger(PART_OF_SPEECH, names.pos_matches),
+            MatchTagger(POSTAL_ADDRESSES, sensitive.address_matches),
+        ]
+
+
+def scan_evidence(runner, request: ScanRequest, scan_cache=None):
+    """Pick the unit, scan the corpus, then read the lens and the attribution.
+
+    The scan reads the corpus, or a ``max_tokens`` sample of it. The vocabulary lens is
+    for neurons and dictionary features. The attribution assigns the top examples' peaks
+    to their context tokens, for neurons only. A neuron scan replays ``scan_cache`` when
+    it holds the layer.
+    """
+    from openinterpretability.core.schemas import ScanEvidence
+    from openinterpretability.harness.dictionaries import dictionary_spec
+    from openinterpretability.harness.hooks import activation_histogram
+
+    unit = request.unit
+    spec = dictionary_spec(request.dictionary) if unit == "feature" else None
+    ident, seed = pick_unit(runner, request, spec)
+    corpus = load_texts(runner, request)
+    scan = run_scan(runner, request, ident, spec, corpus, scan_cache)
+    provenance = scan_provenance(runner, request, seed, corpus, len(scan.values))
+    if not scan.examples or scan.examples[0].max_activation <= 0:
+        raise dead_unit(runner, ident, provenance)
+    check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
+    from openinterpretability.evidence_lenses import read_lenses, read_manifold
+
+    lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
+    return ScanEvidence(
+        identifier=ident,
+        top_examples=scan.examples,
+        activation_histogram=activation_histogram(scan.values),
+        first_token_floor=scan.first_token_floor,
+        provenance=provenance,
+        confounds=scan.confounds,
+        correlated_neurons=scan.correlated,
+        vocabulary_lens=lens,
+        input_attribution=attribution,
+        head_profile=scan.profile if unit == "head" else None,
+        model_n_heads=runner.n_heads if unit == "head" else None,
+        dictionary_profile=scan.profile if unit == "feature" else None,
+        superposition_profile=scan.profile if unit == "superposition" else None,
+        opposite_pole=opposite_pole(scan),
+        manifold=read_manifold(runner, ident, scan),
+    )
+
+
+def pick_unit(runner, request: ScanRequest, spec):
+    """Return the unit's identifier and the ``--random`` seed.
+
+    Draws whatever ``request`` leaves unset. The draws come in a fixed order (layer,
+    index, pole), so a seed replays.
+    """
+    import random
+
+    from openinterpretability.harness.dictionaries import load_spec
+
+    unit, layer, pole, seed = request.unit, request.layer, request.pole, request.seed
+    if unit == "superposition":  # chosen, never drawn: its file names the direction
+        from openinterpretability.harness.superpositions import superposition_identifier
+
+        return superposition_identifier(request.model_name, layer, request.superposition), None
+    index = {"head": request.head, "feature": request.feature}.get(unit, request.neuron)
+    if not request.random_pick and (layer is None or index is None):
+        raise click.UsageError(f"--layer and --{unit} are required unless --random is given.")
+    if request.random_pick:
+        seed = secrets.randbits(32) if seed is None else seed
+        rng = random.Random(seed)
+        if layer is None:  # a dictionary's layers are the ones its features can come from
+            layer = rng.choice(spec.layers) if spec else rng.randrange(runner.n_layers)
+        if unit == "feature":
+            width = load_spec(spec, layer, runner.device).n_features
+        else:
+            width = runner.n_heads if unit == "head" else runner.mlp_width(layer)
+        index = rng.randrange(width) if index is None else index
+        if unit == "neuron":
+            pole = rng.choice(["positive", "negative"]) if pole is None else pole
+    return identifier(request, layer, index, pole), seed
+
+
+def pole_forced(request: ScanRequest) -> bool | None:
+    """Whether ``--pole`` fixed a random draw's pole. None for a chosen unit or a head."""
+    if not request.random_pick or request.unit != "neuron":
+        return None
+    return request.pole is not None
+
+
+def identifier(request: ScanRequest, layer: int, index: int, pole: str | None):
+    """The identifier of the unit that ``request`` scans, at ``layer`` and ``index``."""
+    from openinterpretability.core.schemas import (
+        FeatureIdentifier,
+        HeadIdentifier,
+        NeuronIdentifier,
+    )
+
+    model_name = request.model_name
+    if request.unit == "head":
+        return HeadIdentifier(model_name=model_name, layer=layer, head_idx=index)
+    if request.unit == "feature":
+        return FeatureIdentifier(
+            model_name=model_name, layer=layer, dictionary=request.dictionary, feature_idx=index
+        )
+    return NeuronIdentifier(
+        model_name=model_name, layer=layer, neuron_idx=index, pole=pole or "positive"
+    )
+
+
+def load_texts(runner, request: ScanRequest) -> _Texts:
+    """Read the corpus, take the ``max_tokens`` sample, and settle the window stride."""
+    from openinterpretability.harness.scan import default_stride
+
+    corpus = request.corpus
+    texts, corpus_name, corpus_sha, corpus_source = read_corpus(corpus)
+    if corpus is not None and corpus_source is None:
+        from openinterpretability.corpus import source_path
+
+        click.echo(
+            f"warning: {corpus} has no {source_path(corpus).name} describing these bytes, "
+            "so nobody can rebuild this scan's corpus. "
+            "Build corpora with `open-interpretability corpus`; "
+            "for the registry's corpus, see the README.",
+            err=True,
+        )
+    sample, labels = None, read_labels(corpus)
+    if request.max_tokens:
+        from openinterpretability.corpus import sample_indices
+
+        picked, sample = sample_indices(
+            runner.tokenizer, texts, request.max_tokens, request.sample_seed
+        )
+        texts = [texts[i] for i in picked]
+        labels = {name: [values[i] for i in picked] for name, values in labels.items()}
+        click.echo(f"Sampled {sample}", err=True)
+    stride = request.stride
+    if request.window_tokens is not None:
+        stride = stride or default_stride(request.window_tokens)
+    else:
+        check_context(runner, texts)
+    return _Texts(texts, corpus_name, corpus_sha, corpus_source, sample, stride, labels)
+
+
+def run_scan(runner, request: ScanRequest, ident, spec, corpus: _Texts, scan_cache):
+    """Scan the unit over the corpus with the scanner for its kind, timed as the scan stage."""
+    from openinterpretability.core import costs
+    from openinterpretability.harness.features import scan_feature
+    from openinterpretability.harness.heads import scan_head
+    from openinterpretability.harness.scan import scan_neuron
+    from openinterpretability.harness.superpositions import scan_superposition
+
+    texts, unit, top_k = corpus.texts, request.unit, request.top_k
+    windows = {"window_tokens": request.window_tokens, "stride": corpus.stride}
+    taggers = corpus.taggers()
+    how = ""
+    if request.window_tokens is not None:
+        how = f" as {request.window_tokens}-token windows every {corpus.stride} tokens"
+    click.echo(f"Scanning {len(texts)} snippets{how} for {ident}…", err=True)
+    with costs.stage("scan"):
+        if unit == "head":
+            scan = scan_head(runner, texts, ident, k=top_k, taggers=taggers, **windows)
+        elif unit == "feature":
+            scan = scan_feature(runner, texts, ident, spec, k=top_k, taggers=taggers, **windows)
+        elif unit == "superposition":
+            scan = scan_superposition(
+                runner, texts, ident, request.superposition, k=top_k, taggers=taggers, **windows
+            )
+        else:
+            scan = scan_neuron(
+                runner,
+                texts,
+                ident.layer,
+                ident.neuron_idx,
+                ident.pole,
+                k=top_k,
+                cache=scan_cache,
+                taggers=taggers,
+                batch_tokens=_scan_batch_tokens(runner),
+                **windows,
+            )
+    if unit == "neuron" and scan_cache is not None and scan_cache.last is not None:
+        verb = "Replayed" if scan_cache.replayed else "Cached"
+        click.echo(f"{verb} layer {ident.layer}'s scan: {scan_cache.last}", err=True)
+    return scan
+
+
+def _scan_environment(runner):
+    """The runner's environment, with the scan's backend if the scan ran on the ANE."""
+    from openinterpretability.harness.environment import run_environment
+
+    environment = run_environment(runner)
+    backend = getattr(runner, "scan_backend", None)
+    if backend is not None and backend.used:
+        from openinterpretability.harness.ane import convert
+
+        update = {"scan_backend": backend.name, "coremltools_version": convert.version()}
+        environment = environment.model_copy(update=update)
+    return environment
+
+
+def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
+    """Where and how the scan ran, for the evidence's provenance."""
+    from openinterpretability import __version__, names, sensitive, syntax, toxicity
+    from openinterpretability.core.confounds import PROGRAMMING_LANGUAGE
+    from openinterpretability.core.schemas import ExperimentProvenance
+    from openinterpretability.harness.environment import run_environment
+
+    windowed = request.window_tokens is not None
+    return ExperimentProvenance(
+        model_revision=run_environment(runner).model_revision,
+        dtype=request.dtype,
+        corpus=corpus.name,
+        corpus_sha256=corpus.sha256,
+        n_snippets=len(corpus.texts),
+        tokens_scanned=tokens_scanned,
+        snippet_tokens=request.window_tokens,
+        snippet_stride=corpus.stride if windowed else None,
+        selection=chosen_selection(request.random_pick, request.selection),
+        seed=seed if request.random_pick else None,
+        pole_forced=pole_forced(request),
+        harness_version=__version__,
+        environment=_scan_environment(runner),
+        corpus_source=corpus.source,
+        corpus_sample=corpus.sample,
+        label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}"
+        + (f"; {syntax.detector()}" if PROGRAMMING_LANGUAGE in corpus.labels else ""),
+    )
+
+
+def opposite_pole(scan):
+    """A neuron's other pole, recorded if it ever fired."""
+    from openinterpretability.core.schemas import OppositePole
+    from openinterpretability.harness.hooks import activation_histogram
+
+    other = scan.opposite
+    if other is None or not other.examples or other.examples[0].max_activation <= 0:
+        return None
+    return OppositePole(
+        pole=other.pole,
+        top_examples=other.examples,
+        activation_histogram=activation_histogram(other.values),
+    )
+
+
+class Unauditable(click.ClickException):
+    """The scan stopped on a unit that can't be audited; ``draw`` records it."""
+
+    def __init__(self, message: str, draw):
+        super().__init__(message)
+        self.draw = draw
+
+
+def draw(ident, outcome, share, provenance):
+    """An unauditable draw of ``ident``, stamped now."""
+    from datetime import UTC, datetime
+
+    from openinterpretability.core.draws import UnauditableDraw
+
+    share = None if share is None else round(share, 6)
+    return UnauditableDraw(
+        identifier=ident,
+        outcome=outcome,
+        active_share=share,
+        provenance=provenance,
+        timestamp=datetime.now(UTC),
+    )
+
+
+def dead_unit(runner, ident, provenance) -> Unauditable:
+    """The stop for a unit that never fires on the scan, with the weight check on a neuron."""
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from openinterpretability.harness.dead import prove_dead
+
+    stop = draw(ident, "dead", None, provenance)
+    if not isinstance(ident, NeuronIdentifier):
+        return Unauditable(f"{ident} never activates on this corpus; try a larger --corpus.", stop)
+    proof = prove_dead(runner, ident)
+    stop = stop.model_copy(update={"proven_dead": proof.proven, "dead_bound": proof.bound})
+    if proof.proven:
+        return Unauditable(f"{ident} is dead: no input can make it fire ({proof.reason}).", stop)
+    return Unauditable(
+        f"{ident} never activates on this corpus, but the weights don't prove it dead "
+        f"({proof.reason}); try a larger --corpus.",
+        stop,
+    )
+
+
+def check_default_on(ident, values, scale: float, provenance=None) -> None:
+    """Stop if the unit is default-on (protocol 0.8).
+
+    A default-on unit is active on so much of the scan that a hard negative of a few
+    words would still fire. So it can't be audited as a detector. Most of GPT-2's negative
+    poles are default-on (GELU's dip; docs/analyses/position-zero.md). The share is read
+    from the histogram, as the review's `not_default_on` gate reads it.
+    """
+    from openinterpretability.core.schemas import ReviewPolicy
+    from openinterpretability.harness.hooks import activation_histogram
+
+    policy = ReviewPolicy()
+    share = activation_histogram(values).share_at_least(policy.activation_threshold * scale)
+    if share >= policy.max_active_share:
+        raise Unauditable(
+            f"{ident} is default-on: it is active on {share:.0%} of the scan's tokens, so no "
+            "hard negative can stay inactive and it can't be audited as a detector "
+            "(docs/PROTOCOL.md §1).",
+            draw(ident, "default_on", share, provenance) if provenance else None,
+        )
+
+
+def check_context(runner, texts) -> None:
+    """Whole documents must fit the model's context (GPT-2 reads 1,024 positions)."""
+    config = getattr(runner.model, "config", None)
+    limit = getattr(config, "n_positions", None) or getattr(config, "max_position_embeddings", 0)
+    if not limit or runner.tokenizer is None:
+        return
+    longest = max((len(runner.tokenizer.encode(t)) for t in texts), default=0)
+    if longest > limit:
+        raise click.UsageError(
+            f"a document has {longest:,} tokens but the model reads at most {limit:,}; "
+            f"scan windows instead, e.g. --window-tokens {limit // 2}."
+        )
+
+
+def _scan_batch_tokens(runner) -> int:
+    """The scan's batch: the usual one, or a larger one when the model streams from disk.
+
+    A streamed scan reads its layers once per batch, so fewer, larger batches read them
+    fewer times (:func:`openinterpretability.harness.memory.stream_batch_tokens`).
+    """
+    from openinterpretability.harness import memory
+    from openinterpretability.harness.scan import BATCH_TOKENS
+
+    if not memory.is_streamed(runner.model):
+        return BATCH_TOKENS
+    dtype = next(runner.model.parameters()).dtype
+    have = memory.available_bytes()
+    tokens = memory.stream_batch_tokens(runner.model.config, dtype, have, BATCH_TOKENS)
+    click.echo(f"Streaming: scanning {tokens:,} tokens per batch.", err=True)
+    return tokens

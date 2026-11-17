@@ -6,7 +6,7 @@ Issue #3228. A reviewer writes probes that it thinks will break a hypothesis, so
 
 ## Method
 
-- **Dreaming.** EPO, from Thompson, Straznickas & Sklar (2024), §2, in `openinterp/harness/dreaming.py`.
+- **Dreaming.** EPO, from Thompson, Straznickas & Sklar (2024), §2, in `openinterpretability/harness/dreaming.py`.
   - A population of 12-token prompts has one member per λ, with eight λ log-spaced from 0.1 to 10, as in the paper.
   - Member i maximises the pole's strength minus λ times the prompt's mean cross-entropy under GPT-2 itself, so a larger λ asks for more fluent text.
   - Each step takes the gradient of that objective with respect to a one-hot encoding of the tokens. It keeps the 128 tokens with the largest gradient at each position. Each member then has 32 children, each with one random position swapped for one of those tokens. Each λ keeps the best of the pooled prompts.

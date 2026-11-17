@@ -162,7 +162,7 @@ def null_sets(runner, seed: int) -> list[list[tuple[int, int]]]:
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
 def main(device: str, pairs: int, seed: int, out: Path) -> None:
     """Measure C1 on word completion, two negative tasks, its members and a null."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     runner = _load_runner(MODEL, device, "float32", None)
     tok = runner.tokenizer

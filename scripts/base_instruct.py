@@ -43,9 +43,9 @@ GATES = ("specificity", "sensitivity")
 
 def verified_records(wiki_dir: Path, model: str) -> list:
     """The standing record of each neuron pole of ``model`` that stands VERIFIED."""
-    from openinterp.builder.tree import build_tree
-    from openinterp.builder.wiki import load_archive
-    from openinterp.core.errata import load_errata
+    from openinterpretability.builder.tree import build_tree
+    from openinterpretability.builder.wiki import load_archive
+    from openinterpretability.core.errata import load_errata
 
     out = []
     for node in build_tree(load_archive(wiki_dir), load_errata(wiki_dir)):
@@ -135,7 +135,7 @@ def chat_strength(runner, unit, text: str) -> float | None:
 
 def chat_probes(runner, unit, probes, scale: float, threshold: float):
     """:func:`measure_probes`'s results, with each probe read by :func:`chat_strength`."""
-    from openinterp.core.schemas import AdversarialTestResult
+    from openinterpretability.core.schemas import AdversarialTestResult
 
     results = []
     for probe in probes:
@@ -158,9 +158,12 @@ def readings(runner, record, scale_factor: float = 1.0, chat: bool = False) -> d
 
     With ``chat``, each probe is read inside the chat template (:func:`chat_strength`).
     """
-    from openinterp.agents.review_measurements import measure_probes, settle_first_token_floor
-    from openinterp.agents.reviewer import AdversarialProbe, review_metrics
-    from openinterp.core.schemas import ReviewPolicy
+    from openinterpretability.agents.review_measurements import (
+        measure_probes,
+        settle_first_token_floor,
+    )
+    from openinterpretability.agents.reviewer import AdversarialProbe, review_metrics
+    from openinterpretability.core.schemas import ReviewPolicy
 
     policy = record.verdict.policy or ReviewPolicy()
     probes = [
@@ -199,7 +202,7 @@ def wilson(k: int, n: int) -> list[float]:
 @click.option("--chat", is_flag=True, help="Read the instruct model inside its chat template.")
 def main(wiki_dir: Path, out: Path, device: str, base_name: str, chat: bool) -> None:
     """Measure each VERIFIED pole's probes on both models, and write the rows."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     instruct_name = f"{base_name}-Instruct"
     records = verified_records(wiki_dir, base_name)

@@ -1,10 +1,10 @@
-"""The PDF of each paper (openinterp/builder/paper_pdf.py, #3140), with a fake Chrome."""
+"""The PDF of each paper (openinterpretability/builder/paper_pdf.py, #3140), with a fake Chrome."""
 
 import stat
 import sys
 
-from openinterp.builder import paper_pdf
-from openinterp.builder.compiler import compile_site
+from openinterpretability.builder import paper_pdf
+from openinterpretability.builder.compiler import compile_site
 
 PAPER = "# A title\n\nThe abstract.\n\n## Introduction\n\nText.\n\n## References\n\n- A.\n"
 

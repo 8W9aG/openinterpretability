@@ -12,10 +12,10 @@ from pathlib import Path
 import pytest
 import torch
 
-from openinterp.agents.proposer import format_dictionary_profile
-from openinterp.core.schemas import DictionaryProfile
-from openinterp.harness.dictionaries import load_dictionary
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterpretability.agents.proposer import format_dictionary_profile
+from openinterpretability.core.schemas import DictionaryProfile
+from openinterpretability.harness.dictionaries import load_dictionary
+from openinterpretability.harness.hooks import NeuronHookRunner
 from tests.conftest import VOCAB, FakeTokenizer
 
 SCRIPTS = Path(__file__).parents[1] / "scripts"

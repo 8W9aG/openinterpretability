@@ -4,10 +4,14 @@ import pytest
 import torch
 from pydantic import ValidationError
 
-from openinterp.core.profiles import SuperpositionMember, SuperpositionProfile, superposition_id
-from openinterp.core.schemas import SuperpositionIdentifier
-from openinterp.harness.superpositions import NULLS, directions, scan_superposition
-from openinterp.harness.units import unit_of
+from openinterpretability.core.profiles import (
+    SuperpositionMember,
+    SuperpositionProfile,
+    superposition_id,
+)
+from openinterpretability.core.schemas import SuperpositionIdentifier
+from openinterpretability.harness.superpositions import NULLS, directions, scan_superposition
+from openinterpretability.harness.units import unit_of
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)
 
 MEMBERS = [(3, 2.0), (7, -1.0), (20, 0.5)]
@@ -89,10 +93,10 @@ def test_cli_audits_a_superposition_from_its_file(qwen_runner, tmp_path, monkeyp
 
     from click.testing import CliRunner
 
-    from openinterp.cli import cli
-    from openinterp.core.schemas import ScanEvidence
+    from openinterpretability.cli import cli
+    from openinterpretability.core.schemas import ScanEvidence
 
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: qwen_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: qwen_runner)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "corpus.txt").write_text("\n".join(TEXTS))
     p = _profile()
@@ -122,10 +126,14 @@ def test_cli_audits_a_superposition_from_its_file(qwen_runner, tmp_path, monkeyp
 
 def _reviewed(runner):
     """A reviewed record of the test superposition, measured on ``runner``."""
-    from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft, ProposerAgent
-    from openinterp.agents.reviewer import AdversarialProbe, evaluate_submission
-    from openinterp.core.schemas import AuditRecord
-    from openinterp.harness.hooks import activation_histogram
+    from openinterpretability.agents.proposer import (
+        CounterfactualDraft,
+        HypothesisDraft,
+        ProposerAgent,
+    )
+    from openinterpretability.agents.reviewer import AdversarialProbe, evaluate_submission
+    from openinterpretability.core.schemas import AuditRecord
+    from openinterpretability.harness.hooks import activation_histogram
     from tests.test_agents import SMALL
 
     p = _profile()
@@ -155,8 +163,8 @@ def _reviewed(runner):
 
 
 def test_a_superposition_is_reviewed_and_reproduced(qwen_runner):  # noqa: F811
-    from openinterp.core.schemas import AuditRecord
-    from openinterp.reproduce import reproduce_record
+    from openinterpretability.core.schemas import AuditRecord
+    from openinterpretability.reproduce import reproduce_record
 
     record = _reviewed(qwen_runner)
     sub, verdict = record.submission, record.verdict
@@ -172,8 +180,8 @@ def test_a_superposition_record_has_a_wiki_page_and_passes_the_check(
     tmp_path,
     monkeypatch,
 ):
-    from openinterp.builder.wiki import write_experiment_page
-    from openinterp.checks import check_registry
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.checks import check_registry
 
     record = _reviewed(qwen_runner)
     monkeypatch.chdir(tmp_path)

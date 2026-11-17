@@ -1,10 +1,10 @@
-"""The site's stylesheet, built with Tailwind's CLI (openinterp/builder/css.py, #3282)."""
+"""The site's stylesheet, built with Tailwind's CLI (openinterpretability/builder/css.py, #3282)."""
 
 import json
 
 import pytest
 
-from openinterp.builder import css, palette
+from openinterpretability.builder import css, palette
 
 
 def test_the_config_holds_the_palette_and_the_fonts():

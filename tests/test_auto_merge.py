@@ -76,7 +76,7 @@ def _run(tmp_path, author, sender, files, changed_files=None, head_repo=REPO):
 
 
 ADDED_WIKI = [{"filename": "wiki/experiments/m/L0/N1-positive/r.json", "status": "added"}]
-CODE = [{"filename": "openinterp/cli.py", "status": "modified"}]
+CODE = [{"filename": "openinterpretability/cli.py", "status": "modified"}]
 
 pytestmark = pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
 

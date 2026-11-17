@@ -44,7 +44,7 @@ These proposals go to #4284. The pilot measured one circuit, on one task hypothe
 
 ## Grown by attribution
 
-Issue #4284 (part B) added `openinterp/harness/circuit_measures.py`, which ablates heads as well as neurons and ranks every unit by attribution patching. `scripts/circuit_grown.py` uses it on the same task. It measures C1 whole, with its two heads, and then C1 grown to larger sizes by attribution. The null is 32 random sets with the same layers and kinds, so its 95th percentile is coarse.
+Issue #4284 (part B) added `openinterpretability/harness/circuit_measures.py`, which ablates heads as well as neurons and ranks every unit by attribution patching. `scripts/circuit_grown.py` uses it on the same task. It measures C1 whole, with its two heads, and then C1 grown to larger sizes by attribution. The null is 32 random sets with the same layers and kinds, so its 95th percentile is coarse.
 
 | Members | Heads among them | Necessity | Null, 95th percentile | Faithfulness | Beats the null |
 | --- | --- | --- | --- | --- | --- |

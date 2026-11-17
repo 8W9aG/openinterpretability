@@ -11,8 +11,8 @@ import math
 import torch
 from torch import nn
 
-from openinterp.harness.dictionaries import gate_logits, layer_gate_logits
-from openinterp.harness.hooks import _try_path
+from openinterpretability.harness.dictionaries import gate_logits, layer_gate_logits
+from openinterpretability.harness.hooks import _try_path
 
 # The matrices that ``--matrices`` decomposes in each layer, in the order they are built.
 MATRICES = {"down": ("down",), "up": ("up",), "both": ("down", "up")}

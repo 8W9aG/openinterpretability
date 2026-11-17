@@ -103,10 +103,10 @@ def window_loss(runner, windows: list[str]) -> float:
 
 def measure_step(step: int, records: list[dict], texts: list[str], device: str) -> tuple:
     """Each pole's strengths over the windows and probes at ``step``, and the step's loss."""
-    from openinterp.cli import _load_runner
-    from openinterp.core.schemas import AuditRecord
-    from openinterp.harness.layer_major import map_layer_major, prompt_tokens
-    from openinterp.harness.units import peak_strength, submission_unit
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.core.schemas import AuditRecord
+    from openinterpretability.harness.layer_major import map_layer_major, prompt_tokens
+    from openinterpretability.harness.units import peak_strength, submission_unit
 
     runner = _load_runner(MODEL, device, "float32", f"step{step}")
     windows = texts
@@ -160,8 +160,8 @@ def measure_pole(record: dict, by_step: dict, steps: tuple, n_windows: int) -> l
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
 def main(wiki_dir, corpus, windows, window_tokens, device, steps, out):
     """Measure every VERIFIED pole of Pythia-70m at each step in STEPS."""
-    from openinterp.cli import _load_runner
-    from openinterp.harness.explanation_scores import cut_windows
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.harness.explanation_scores import cut_windows
 
     records = verified_records(wiki_dir)
     docs = [json.loads(line)["text"] for line in corpus.read_text().splitlines()[-200:]]

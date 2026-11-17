@@ -24,7 +24,7 @@ Thank you for helping. This file is the short map. The detail is in the pages it
 
 - Write comments, docstrings and Markdown in ASD-STE100 Simplified Technical English. The `commenting` and `asd-ste100` skills give the rules, and `make ste` and `make vale` check them.
 - Define each constant, threshold or list of names once, and read it everywhere else (the `single-source-of-truth` skill).
-- Credit uses a public handle, never an email. Set `OPENINTERP_CONTRIBUTOR` to your GitHub username.
+- Credit uses a public handle, never an email. Set `OPENINTERPRETABILITY_CONTRIBUTOR` to your GitHub username.
 
 ## Security
 

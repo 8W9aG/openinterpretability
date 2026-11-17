@@ -1,4 +1,4 @@
-"""Detecting a document's language (`openinterp/langid.py`) for `open-interpretability corpus`."""
+"""Detecting a document's language (`langid.py`) for `open-interpretability corpus`."""
 
 import hashlib
 import json
@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import fsspec
 import pytest
 
-from openinterp import langid
-from openinterp.corpus import build_from_hub
+from openinterpretability import langid
+from openinterpretability.corpus import build_from_hub
 from tests.test_corpus import shards  # noqa: F401  (fixture)
 
 

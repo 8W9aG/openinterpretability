@@ -8,11 +8,11 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from openinterp.cli import cli
-from openinterp.cli_review import refuse_unisolated
-from openinterp.core import costs
-from openinterp.core.isolation import forbidden
-from openinterp.core.transcripts import forbidden_reads
+from openinterpretability.cli import cli
+from openinterpretability.cli_review import refuse_unisolated
+from openinterpretability.core import costs
+from openinterpretability.core.isolation import forbidden
+from openinterpretability.core.transcripts import forbidden_reads
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def test_symlink_into_a_blocked_dir_is_denied(repo):
 
 def _hook(event: dict, root) -> dict | None:
     out = subprocess.run(
-        [sys.executable, "-m", "openinterp.core.isolation"],
+        [sys.executable, "-m", "openinterpretability.core.isolation"],
         input=json.dumps(event) if isinstance(event, dict) else event,
         capture_output=True,
         text=True,

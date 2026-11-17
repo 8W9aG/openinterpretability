@@ -1,6 +1,6 @@
 """Measure how jobs that share Apple's GPU, the ANE and the CPU slow each other down.
 
-The device planner (``openinterp/harness/devices.py``) sends a job to the ANE or the
+The device planner (``openinterpretability/harness/devices.py``) sends a job to the ANE or the
 CPU when the GPU is busy. This script measures whether that helps, and sets the GPU
 utilization at which the GPU counts as busy. For each *mix* of jobs it starts one
 process per job at the same moment. Each job runs scan-sized forward passes (2,048
@@ -76,15 +76,15 @@ def _job(args):
     """``run(ids) -> acts`` on the job's device, and one batch of token ids."""
     import torch
 
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     device = "cpu" if args.device == "ane" else args.device
     runner = _load_runner(args.model, device, "float32")
     vocab = int(runner.model.config.vocab_size)
     batch = torch.randint(0, vocab, (ROWS, SEQ), generator=torch.Generator().manual_seed(8))
     if args.device == "ane":
-        from openinterp.harness.ane import convert
-        from openinterp.harness.ane.backend import AneScan
+        from openinterpretability.harness.ane import convert
+        from openinterpretability.harness.ane.backend import AneScan
 
         ane = AneScan.for_model(runner.model, args.model, runner.model_revision)
         models = ane.compiled(args.layer, ROWS, SEQ)
@@ -111,7 +111,7 @@ def run_mix(model: str, layer: int, mix: list[str], seconds: float, warmup: floa
     """Start one process per job in ``mix``, all timed together, and gather their results."""
     import tempfile
 
-    from openinterp.harness.devices import gpu_utilization
+    from openinterpretability.harness.devices import gpu_utilization
 
     start_at = time.time() + warmup
     stop_at = start_at + seconds
@@ -129,7 +129,9 @@ def run_mix(model: str, layer: int, mix: list[str], seconds: float, warmup: floa
         "mix": mix,
         "gpu_percent": readings,
         "jobs": _collect(jobs, mix, work, stop_at),
-        "other_jobs": sorted(others),  # openinterp commands outside this script; skews a mix
+        "other_jobs": sorted(
+            others
+        ),  # openinterpretability commands outside this script; skews a mix
     }
 
 
@@ -159,9 +161,9 @@ def _collect(jobs, mix, work: Path, stop_at: float) -> list[dict]:
 def other_jobs() -> set[str]:
     """``open-interpretability`` commands that run now, outside this script.
 
-    The old name, ``openinterp``, still matches, for a checkout from before issue #3691.
+    The old name, ``openinterpretability``, still matches, for a checkout from before issue #3691.
     """
-    pattern = "open-interpretability |openinterp "
+    pattern = "open-interpretability |openinterpretability "
     found = subprocess.run(["pgrep", "-fl", pattern], capture_output=True, text=True)
     return {
         " ".join(line.split()[1:4])

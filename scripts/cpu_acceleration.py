@@ -18,7 +18,7 @@ change the timings. Each round times every option, and the rows give the median 
 rounds.
 
 Agreement is against float32 on the default thread count. It uses the tolerance of
-``reproduce`` (``openinterp.reproduce.Tolerance``). The largest difference over all MLP
+``reproduce`` (``openinterpretability.reproduce.Tolerance``). The largest difference over all MLP
 activations of the layer must be at most ``atol`` times the largest float32 activation.
 
     uv run python scripts/cpu_acceleration.py --out docs/analyses/cpu-acceleration.json
@@ -65,7 +65,7 @@ def fuse_gelu(model) -> None:
 
 def load(dtype: str, gelu: bool):
     """A runner of :data:`MODEL` on the CPU, in ``dtype``, with the fused GELU if ``gelu``."""
-    from openinterp.cli import _load_runner
+    from openinterpretability.cli import _load_runner
 
     runner = _load_runner(MODEL, "cpu", dtype, None)
     if gelu:
@@ -98,7 +98,7 @@ def timed(fn) -> float:
 
 def agreement(acts: torch.Tensor, reference: torch.Tensor) -> dict:
     """How far ``acts`` is from ``reference``, against ``reproduce``'s tolerance."""
-    from openinterp.reproduce import Tolerance
+    from openinterpretability.reproduce import Tolerance
 
     diff = (acts.float() - reference).abs()
     scale = float(reference.abs().max())
@@ -269,7 +269,7 @@ def main(out: Path, rounds: int) -> None:
     """Time every option, compare it with float32, and write the rows."""
     from transformers import AutoTokenizer
 
-    from openinterp.harness.scan import BATCH_TOKENS
+    from openinterpretability.harness.scan import BATCH_TOKENS
 
     batch = corpus_batch(AutoTokenizer.from_pretrained(MODEL), BATCH_TOKENS)
     rows = [machine()]

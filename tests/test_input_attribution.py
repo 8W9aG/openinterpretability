@@ -1,9 +1,9 @@
 import pytest
 import torch
 
-from openinterp.core.schemas import ActivatingExample
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.input_attribution import (
+from openinterpretability.core.schemas import ActivatingExample
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.input_attribution import (
     DISTANCE_BANDS,
     _pole_values,
     ablate_positions,
@@ -118,7 +118,7 @@ def test_input_attribution_on_gpt2(gpt2_runner):
 
 def test_attribution_does_not_depend_on_the_token_budget(gpt2_runner, monkeypatch):
     """Fewer rows per backward pass bound memory and give the same attribution."""
-    from openinterp.harness import input_attribution as ia
+    from openinterpretability.harness import input_attribution as ia
 
     runner = gpt2_runner
     pole = peak_pole(runner, 1, 7)
@@ -164,8 +164,8 @@ def test_frozen_weights_measure_the_same(tiny_gpt2):
 
     Gradients are only taken for inputs and activations.
     """
-    from openinterp.harness.attribution import attribution_patching
-    from openinterp.harness.wiring_activations import activation_wiring
+    from openinterpretability.harness.attribution import attribution_patching
+    from openinterpretability.harness.wiring_activations import activation_wiring
     from tests.test_wiring import neuron
 
     runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
