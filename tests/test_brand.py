@@ -43,3 +43,27 @@ def test_the_accent_has_one_name():
         capture_output=True, text=True, check=False,
     ).stdout  # fmt: skip
     assert found == ""  # templates name the accent `brand-`, defined once in palette.py
+
+
+def test_the_mark_and_logo_are_drawn_from_the_palette():
+    # The committed SVGs are the generated ones, so the colours have one source (#4465).
+    assert (brand.SOURCE / "mark.svg").read_text(encoding="utf-8") == brand.mark_svg()
+    assert (brand.SOURCE / "logo.svg").read_text(encoding="utf-8") == brand.logo_svg()
+    used = {c for _, _, share, c in brand.CELLS if share}
+    assert used == set(palette.MARK_HEX)
+    layouts = {*palette.STATUS_HEX.values(), *palette.POLE_HEX.values()}
+    assert set(palette.MARK_HEX.values()) <= layouts
+    for hex_colour in palette.MARK_HEX.values():
+        assert hex_colour in brand.mark_svg()
+
+
+def test_the_mark_colours_differ_in_lightness_and_stand_out_on_the_tile():
+    import itertools
+
+    from tests.test_palette import contrast, linear, oklab
+
+    lightness = {n: oklab(linear(h))[0] for n, h in palette.MARK_HEX.items()}
+    for a, b in itertools.combinations(lightness, 2):
+        assert abs(lightness[a] - lightness[b]) >= 0.1, (a, b)  # not hue alone (deuteranopia)
+    for name, hex_colour in palette.MARK_HEX.items():
+        assert contrast(hex_colour, palette.MARK_TILE) >= 3.0, name
