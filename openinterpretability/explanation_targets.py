@@ -92,35 +92,77 @@ def circuit_notes(planned) -> list[str]:
     return out
 
 
+def explained_now(model: str, order: list, groups: list, wiki_dir: Path) -> set:
+    """The units of ``order`` that are explained in the registry now.
+
+    A unit is explained when it is VERIFIED, or when a VERIFIED superposition or circuit
+    holds it, as :func:`openinterpretability.explain.explain` counts it.
+    """
+    from openinterpretability.explain import _slug, registry_labels
+    from openinterpretability.explain_groups import circuit_labels
+
+    labels = registry_labels(wiki_dir, model)
+    circuits = circuit_labels(wiki_dir, model)
+    covered = {u for g in groups if _group_status(g, labels, circuits) == "VERIFIED"
+               for u in g.units}  # fmt: skip
+    verified = {u for u, *_ in order if labels.get(_slug(model, u), ("",))[0] == "VERIFIED"}
+    return covered | verified
+
+
 @dataclass
 class ShareMeter:
-    """The prompt's explained share, measured again from the registry (#4473).
+    """The prompt's explained share of |attribution|, measured again from the registry.
 
-    The prompt's attributions don't change, only the registry's statuses. A unit counts
-    when it is VERIFIED, or when a VERIFIED superposition or circuit holds it, as
-    :func:`openinterpretability.explain.explain` counts it.
+    The prompt's attributions don't change, only the registry's statuses.
     """
 
     model: str
     order: list  # explain's (unit key, |attribution|, status, explained), in rank order
     groups: list  # the GroupDefs that carry the answer
     wiki_dir: Path
+    note: str = ""
 
     def __call__(self) -> float:
         """The share of the total |attribution| that is explained now."""
-        from openinterpretability.explain import _slug, registry_labels
-        from openinterpretability.explain_groups import circuit_labels
-
-        labels = registry_labels(self.wiki_dir, self.model)
-        circuits = circuit_labels(self.wiki_dir, self.model)
-        covered = {u for g in self.groups if _group_status(g, labels, circuits) == "VERIFIED"
-                   for u in g.units}  # fmt: skip
-
-        def explained(unit) -> bool:
-            return unit in covered or labels.get(_slug(self.model, unit), ("",))[0] == "VERIFIED"
-
+        done = explained_now(self.model, self.order, self.groups, self.wiki_dir)
         total = sum(a for _, a, _, _ in self.order) or 1.0
-        return sum(a for unit, a, _, _ in self.order if explained(unit)) / total
+        return sum(a for unit, a, _, _ in self.order if unit in done) / total
+
+
+@dataclass
+class CoverageMeter:
+    """The prompt's causal coverage, measured again after each landed experiment (#4476).
+
+    The explained units are kept, the rest mean-ablated, and the share of the answer's
+    log-probability that comes back is the coverage. Random sets of the same count are the
+    baseline. Coverage is noisy for small sets, so it counts only when it beats every random
+    set. Otherwise the meter gives 0. :attr:`note` says both numbers.
+    """
+
+    runner: object
+    means: object
+    prompt: str
+    token: int
+    position: int
+    model: str
+    order: list
+    groups: list
+    wiki_dir: Path
+    draws: int = 4
+    note: str = ""
+
+    def __call__(self) -> float:
+        """The coverage, when it beats every random set, else 0."""
+        from openinterpretability.explain_coverage import prompt_coverage
+
+        done = explained_now(self.model, self.order, self.groups, self.wiki_dir)
+        order = [(u, a, s, u in done) for u, a, s, _ in self.order]
+        found = prompt_coverage(self.runner, self.prompt, self.means, self.token, self.position,
+                                order, draws=self.draws)  # fmt: skip
+        coverage = found["coverage"] if found["coverage"] is not None else 0.0
+        best = max(found["random_draws"], default=0.0)
+        self.note = f" (coverage {coverage:.1%}, best random set {best:.1%})"
+        return coverage if coverage > best else 0.0
 
 
 def _group_status(g, labels: dict, circuits: dict) -> str:
@@ -143,6 +185,7 @@ class TargetedDraws:
     limit: int = 0  # experiments to start at most; 0 for no limit
     window: int | None = None  # the model's scan window, for a superposition's draw
     started: int = 0
+    shares: list = field(default_factory=list)  # each measured share, for the page (#4479)
 
     def __call__(self, wiki_dir: Path, *, epsilon: float = 0.0, claims=()):
         """The next experiment for the first target that needs one, as a planner ``Plan``."""
@@ -179,9 +222,11 @@ class TargetedDraws:
 
         if self.meter is not None:
             share = self.meter()
-            say(f"explained share now {share:.1%} (target {self.target:.0%})")
+            self.shares.append(round(share, 4))
+            note = getattr(self.meter, "note", "")
+            say(f"measured {share:.1%}{note}, target {self.target:.0%}")
             if share >= self.target:
-                raise Finished(f"the explained share {share:.1%} reached the target "
+                raise Finished(f"the measure {share:.1%} reached the target "
                                f"{self.target:.0%}. {self.summary()}")  # fmt: skip
         if self.limit and self.started >= self.limit:
             raise Finished(f"ran {self.started} experiments. {self.summary()}")

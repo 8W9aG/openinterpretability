@@ -14,6 +14,7 @@ from types import SimpleNamespace
 import click
 
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
+from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
 
 
@@ -37,7 +38,8 @@ from openinterpretability.explain_run import run_plan
 )
 @click.option(
     "--target", default=None, type=click.FloatRange(0, 1),
-    help="The explained share to plan experiments for. Default: 1, a complete explanation.",
+    help="The causal coverage to aim at: the share of the answer's log-probability that the "
+    "explained units bring back, the rest mean-ablated (#4476). Default: 1.",
 )  # fmt: skip
 @click.option(
     "--experiments", "show", default=10, show_default=True, help="Planned experiments to list."
@@ -97,6 +99,12 @@ def explain_command(  # long-function: one argument per option, then one line pe
 
     if complete:  # run to the target, narrate in full, and land the record (#4476)
         run, level, write_record, land = 0 if run is None else run, "long", True, True
+    reuse = look_first(Path(wiki_dir), model_name, prompt, position, target, level,
+                       write_record or run is not None)  # fmt: skip
+    if reuse.action == "done":
+        return
+    if reuse.action == "level":
+        run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
     means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
@@ -105,27 +113,33 @@ def explain_command(  # long-function: one argument per option, then one line pe
     ran, code = None, 0
     if run is not None:  # run, then explain the answer as the registry stands after it (#4474)
         agents = (proposer, reviewer, provider)
-        ran, code = run_plan(found, ask, agents, max_attempts, run, Path(wiki_dir))
+        ran, code = run_plan(found, ask, agents, max_attempts, run, Path(wiki_dir),
+                             measure=(runner, means))  # fmt: skip
         found = _analyse(runner, means, ask, Path(wiki_dir))
-        ran = ran.model_copy(update={"share_after": found.result.verified_share})
+        ran = ran.model_copy(update={"share_after": found.coverage.get("coverage") or 0.0})
     result, planned, coverage = found.result, found.planned, found.coverage
     told = _narrate(result, coverage, planned, narrator_model) if level != "mechanism" else {}
     if as_json:
-        out = _as_json(result, planned, show) | {"coverage": coverage}
+        out = _as_json(result, planned, show) | {"coverage": coverage, "coverage_plan": found.reach}
         click.echo(
             json.dumps(out | told | {"run": ran and ran.model_dump()}, indent=1, default=str)
         )
     elif level != "paragraph":
         _print(result)
         _print_coverage(coverage)
-        _print_plan(planned, show)
+        _print_plan(planned, show, found.reach)
     if not as_json:
         _print_narrative(told, level)
     if write_record:
-        record = _record(model_name, result, coverage, planned, told, ran)
+        from openinterpretability.explain_figure_data import figure_data
+
+        figures = figure_data(runner, means, result, coverage, planned, found.groups)
+        record = _record(model_name, result, coverage, planned, told, ran, figures,
+                         found.reach["target"])  # fmt: skip
+        record = record.model_copy(update=reuse.fields)
         _keep(record, home, land)
     if not as_json:
-        click.echo(reached(result.verified_share, planned.target, coverage, ran))
+        click.echo(reached(result.verified_share, found.reach["target"], coverage, ran))
     if code:
         raise SystemExit(code)
 
@@ -151,7 +165,12 @@ def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
     """
     from openinterpretability import explain_groups, explain_plan
     from openinterpretability.explain import explain, registry_labels
-    from openinterpretability.explain_coverage import POOL, add_gains, prompt_coverage
+    from openinterpretability.explain_coverage import (
+        POOL,
+        add_gains,
+        coverage_plan,
+        prompt_coverage,
+    )
     from openinterpretability.planner import configured_windows, load_states
 
     model = ask.model
@@ -164,14 +183,17 @@ def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
         group_labels=explain_groups.circuit_labels(wiki_dir, model),
     )  # fmt: skip
     mark_hubs(result, model, states)  # a top unit that is a hub's center, and its facts
-    planned = explain_plan.plan(
-        result, states, model, target=explain_plan.TARGET if ask.target is None else ask.target,
+    planned = explain_plan.plan(  # every unit experiment: the coverage target picks how many
+        result, states, model, target=explain_plan.TARGET,
         window=configured_windows().get(model), groups=groups,
     )  # fmt: skip
     args = (runner, ask.prompt, means, result.token_id, ask.position, result.order)
     coverage = prompt_coverage(*args)
     add_gains(*args, planned, pool=max(POOL, ask.show))  # rank the experiments by coverage gained
-    return SimpleNamespace(result=result, planned=planned, coverage=coverage, groups=groups)
+    target = explain_plan.TARGET if ask.target is None else ask.target
+    reach = coverage_plan(*args, planned, target)  # the target is causal coverage (#4476)
+    return SimpleNamespace(result=result, planned=planned, coverage=coverage, groups=groups,
+                           reach=reach)  # fmt: skip
 
 
 def mark_hubs(result, model: str, states: dict) -> None:
@@ -295,19 +317,26 @@ def _print_paths(result, per_target: int = 3) -> None:
             click.echo(f"  {unit.label:<12} ← {sources}")
 
 
-def _print_plan(planned, show: int) -> None:
-    """The planned experiments: how far they reach, the first ``show``, and what is blocked."""
+def _print_plan(planned, show: int, reach: dict) -> None:
+    """The planned experiments: how far they reach, the first ``show``, and what is blocked.
+
+    ``reach`` is the coverage estimate (``explain_coverage.coverage_plan``, #4476).
+    """
     from openinterpretability.explain_plan import CAVEAT
 
-    n, reach = len(planned.experiments), planned.reaches
-    goal = "reach" if reach >= planned.target - 1e-9 else f"reach only {reach:.1%}, short of"
-    click.echo(
-        f"Plan: {n} unit experiment{'s' if n != 1 else ''} {goal} the {planned.target:.0%} target "
-        f"(explained now: {planned.explained:.1%}), and {len(planned.groups)} for "
-        "superpositions and circuits."
-    )
+    k, target = reach["experiments"], reach["target"]
+    goal = (f"about {k} unit experiments reach the {target:.0%} coverage target" if k is not None
+            else f"the {target:.0%} coverage target is out of reach: every planned unit "
+            f"brings back {reach['reach']:.1%}")  # fmt: skip
+    click.echo(f"Plan: {goal} (coverage now {reach['now']:.1%}). There are "
+               f"{len(planned.experiments)} unit experiments in all, and "
+               f"{len(planned.groups)} for superpositions and circuits.")  # fmt: skip
     if marks := _milestones(planned):
-        click.echo("  " + "; ".join(f"{k} experiments reach {m:.0%}" for m, k in marks) + ".")
+        click.echo(
+            "  Of the |attribution|: "
+            + "; ".join(f"{k} experiments reach {m:.0%}" for m, k in marks)
+            + "."
+        )
     for e in planned.experiments[:show] + planned.groups[:show]:
         held = f"; in {', '.join(e.covered_by)}" if e.covered_by else ""
         gain = f"{e.gain:+.1%} coverage" if e.gain is not None else "gain not measured"
@@ -318,7 +347,7 @@ def _print_plan(planned, show: int) -> None:
             click.echo(f"      {line}")
         for command in e.commands:
             click.echo(f"    $ {command}")
-    if n > show:
+    if (n := len(planned.experiments)) > show:
         click.echo(f"  … and {n - show} more unit experiments (--experiments, or --json).")
     if planned.blocked:
         click.echo(
@@ -342,14 +371,14 @@ def _milestones(planned, marks=(0.5, 0.8, 0.9, 0.99)) -> list[tuple[float, int]]
 
 
 def reached(share: float, target: float, coverage: dict, ran=None) -> str:
-    """The last line: the explained share and the prompt coverage that were reached (#4476)."""
+    """The last line: the coverage reached against its target, and the share (#4476)."""
     start = f" (from {ran.share_before:.1%} before the run)" if ran is not None else ""
-    text = f"Reached: explained share {share:.1%}{start}, target {target:.0%}"
-    if coverage.get("coverage") is not None:
-        random = coverage.get("random")
-        against = f" against {random:.1%} for random units" if random is not None else ""
-        text += f"; prompt coverage {coverage['coverage']:.1%}{against}"
-    return text + "."
+    found = coverage.get("coverage")
+    text = (f"Reached: prompt coverage {found:.1%}{start}, target {target:.0%}" if found is not None
+            else f"Reached: no prompt coverage, target {target:.0%}")  # fmt: skip
+    if found is not None and coverage.get("random") is not None:
+        text += f", against {coverage['random']:.1%} for random units"
+    return text + f"; explained share of |attribution| {share:.1%}."
 
 
 def _print_coverage(coverage: dict) -> None:
@@ -414,7 +443,8 @@ def _keep(record, home: Path, land: bool) -> None:
     click.echo(f"Explanation → {url} ({'merged' if merged else 'left open'})")
 
 
-def _record(model: str, result, coverage: dict, planned, told: dict, run=None):
+def _record(model: str, result, coverage: dict, planned, told: dict, run=None, figures=None,
+            target: float | None = None):  # fmt: skip
     """The explanation record (core/explanation_records.py), as the registry stands."""
     from datetime import UTC, datetime
 
@@ -435,7 +465,8 @@ def _record(model: str, result, coverage: dict, planned, told: dict, run=None):
         explained_share=result.verified_share, blocked_share=planned.blocked,
         prompt_coverage=coverage.get("coverage"), random_coverage=coverage.get("random"),
         units=units, narration=narration, planned_experiments=len(planned.experiments),
-        package_version=__version__, written=datetime.now(UTC), run=run,
+        package_version=__version__, written=datetime.now(UTC), run=run, figures=figures,
+        target=target,
     )  # fmt: skip
     return record
 

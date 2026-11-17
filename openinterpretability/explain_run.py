@@ -14,16 +14,18 @@ import click
 
 
 def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit: int,
-         wiki_dir: Path):  # fmt: skip
+         wiki_dir: Path, measure=(None, None)):  # fmt: skip
     """Run the plan through the experiment loop, and return what it did and its exit code.
 
-    Units and superpositions run by coverage gain until the explained share reaches the
-    target (#4473). Circuits wait for an agent to write their task
-    (:func:`~openinterpretability.explanation_targets.circuit_notes`). When the loop ends,
-    its worktree is reset to ``origin/main``, so the records that it landed are there (#4474).
+    Units and superpositions run by coverage gain until the causal coverage reaches the
+    target (#4473, #4476). ``measure`` is the ``(runner, means)`` that the coverage meter
+    runs, or ``(None, None)`` to count the share of |attribution| instead. Circuits wait
+    for an agent to write their task (``explanation_targets.circuit_notes``). When the loop
+    ends, its worktree is reset to ``origin/main``, so the records it landed are there.
     """
     from openinterpretability.cli_loop import _api_model, _models, run_loop
     from openinterpretability.explanation_targets import (
+        CoverageMeter,
         ShareMeter,
         TargetedDraws,
         by_gain,
@@ -39,18 +41,22 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     result, planned, model = found.result, found.planned, ask.model
     ordered = by_gain([*planned.experiments, *planned.groups])
     chosen = targets(ordered, model, found.groups)
-    target = _reachable(planned, circuit_notes(ordered))
-    click.echo(f"Running {len(chosen)} experiments, by coverage gain, until the explained share "
+    target = _reachable(found.reach, planned, circuit_notes(ordered))
+    click.echo(f"Running {len(chosen)} experiments, by coverage gain, until the coverage "
                f"reaches {target:.0%}: " + ", ".join(t.label for t in chosen))  # fmt: skip
     carrying = {(g.kind, g.name) for g in result.groups}  # the groups that carry the answer
     groups = [g for g in found.groups if (g.kind, g.name) in carrying]
-    meter = ShareMeter(model, result.order, groups, wiki_dir)
+    runner, means = measure
+    meter = (ShareMeter(model, result.order, groups, wiki_dir) if runner is None else
+             CoverageMeter(runner, means, ask.prompt, result.token_id, ask.position, model,
+                           result.order, groups, wiki_dir))  # fmt: skip
     window = configured_windows().get(model)
     draws = TargetedDraws(chosen, reviewer, max_attempts, meter=meter, target=target,
                           limit=limit, window=window)  # fmt: skip
     out: dict = {}
     code = run_loop(proposer, reviewer, draws, out=out)
-    return _ran(out.get("loop"), result.verified_share, code), code
+    ran = _ran(out.get("loop"), found.coverage.get("coverage") or 0.0, code)
+    return ran.model_copy(update={"shares": draws.shares}), code
 
 
 def _ran(loop, before: float, code: int):
@@ -71,19 +77,20 @@ def _ran(loop, before: float, code: int):
     )  # fmt: skip
 
 
-def _reachable(planned, circuits: list[str]) -> float:
-    """The target the run aims at, said with what blocks the rest (#4473).
+def _reachable(reach: dict, planned, circuits: list[str]) -> float:
+    """The coverage the run aims at, said with what blocks the rest (#4473, #4476).
 
-    The run reaches at most the share now plus what the planned unit experiments add.
-    Blocked units can't rise, and circuits wait for an agent.
+    ``reach`` is :func:`~openinterpretability.explain_coverage.coverage_plan`'s estimate.
+    The run reaches at most the coverage with every planned unit kept. Blocked units can't
+    rise, and circuits wait for an agent.
     """
-    click.echo(f"Explained now: {planned.explained:.1%}. Blocked: {planned.blocked:.1%} "
-               f"(stopped units, or no follow-up). The planned experiments reach "
-               f"{planned.reaches:.1%}.")  # fmt: skip
+    click.echo(f"Coverage now: {reach['now']:.1%}. With every planned unit explained: "
+               f"{reach['reach']:.1%}. Blocked: {planned.blocked:.1%} of the attribution "
+               f"(stopped units, or no follow-up).")  # fmt: skip
     for note in circuits:
         click.echo(f"Not run: circuit {note}")
-    if planned.target <= planned.reaches:
-        return planned.target
-    click.echo(f"The target {planned.target:.0%} is out of reach, so the run stops at "
-               f"{planned.reaches:.1%}, the most it can explain.")  # fmt: skip
-    return planned.reaches
+    if reach["experiments"] is not None:
+        return reach["target"]
+    click.echo(f"The target {reach['target']:.0%} is out of reach, so the run stops at "
+               f"{reach['reach']:.1%}, the most it can explain.")  # fmt: skip
+    return reach["reach"]

@@ -89,10 +89,10 @@ def test_the_run_stops_when_the_share_reaches_the_target(registry, tmp_path, cap
     shares = iter([0.5, 0.82])
     draws = TargetedDraws([A, B], reviewer="rev/model", meter=lambda: next(shares), target=0.8)
     assert draws(tmp_path, claims=[]).choice.slug == A.slug
-    with pytest.raises(Finished, match="82.0% reached the target 80%"):
+    with pytest.raises(Finished, match="the measure 82.0% reached the target 80%"):
         draws(tmp_path, claims=[])
     out = capsys.readouterr().out
-    assert "explained share now 50.0% (target 80%)" in out and "now 82.0%" in out
+    assert "measured 50.0%, target 80%" in out and "measured 82.0%" in out
 
 
 def test_run_n_stops_after_n_experiments(registry, tmp_path):
