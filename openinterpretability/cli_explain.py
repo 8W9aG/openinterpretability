@@ -14,6 +14,7 @@ from types import SimpleNamespace
 import click
 
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
+from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
 
 
@@ -98,6 +99,12 @@ def explain_command(  # long-function: one argument per option, then one line pe
 
     if complete:  # run to the target, narrate in full, and land the record (#4476)
         run, level, write_record, land = 0 if run is None else run, "long", True, True
+    reuse = look_first(Path(wiki_dir), model_name, prompt, position, target, level,
+                       write_record or run is not None)  # fmt: skip
+    if reuse.action == "done":
+        return
+    if reuse.action == "level":
+        run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
     means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
@@ -129,6 +136,7 @@ def explain_command(  # long-function: one argument per option, then one line pe
         figures = figure_data(runner, means, result, coverage, planned, found.groups)
         record = _record(model_name, result, coverage, planned, told, ran, figures,
                          found.reach["target"])  # fmt: skip
+        record = record.model_copy(update=reuse.fields)
         _keep(record, home, land)
     if not as_json:
         click.echo(reached(result.verified_share, found.reach["target"], coverage, ran))

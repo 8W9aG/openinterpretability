@@ -138,16 +138,27 @@
 {%- endmacro %}
 
 {# The rows of an explanations table: on the Explanations index and on each model page (#4206). #}
-{% macro explanation_rows(views, root, show_model=true) -%}
-{% for v in views %}
+{# Prompts and their explanations (#4503): one row per prompt, linking to its page. #}
+{% macro explanation_rows(prompts, root, show_model=true) -%}
+<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Newest</th>{% if show_model %}<th class="px-3 py-2">Model</th>{% endif %}<th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explanations</th><th class="px-3 py-2 text-right">Best coverage</th><th class="px-3 py-2">State</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+{% for p in prompts %}
 <tr class="align-top">
-  <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.record.written.isoformat() }}">{{ v.record.written.strftime("%Y-%m-%d") }}</time></td>
-  {% if show_model %}<td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ v.record.model_name }}</td>{% endif %}
-  <td class="px-3 py-2"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ v.href }}">{{ v.record.prompt | truncate(90) }} → <span class="font-mono">{{ v.record.answer }}</span></a></td>
-  <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.record.explained_share | pct_fine }}</td>
-  <td class="px-3 py-2 text-xs">{% if v.stale %}stale: {{ v.changed | length }} unit{{ 's' if v.changed | length != 1 }} changed{% else %}current{% endif %}</td>
+  <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ p.record.written.isoformat() }}">{{ p.record.written.strftime("%Y-%m-%d") }}</time></td>
+  {% if show_model %}<td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ p.record.model_name }}</td>{% endif %}
+  <td class="px-3 py-2"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ p.href }}">{{ p.record.prompt | truncate(90) }} → <span class="font-mono">{{ p.record.answer }}</span></a></td>
+  <td class="px-3 py-2 text-right font-mono tabular-nums">{{ p.explanations | length }}</td>
+  <td class="px-3 py-2 text-right font-mono tabular-nums">{{ p.best_coverage | pct_fine if p.best_coverage is not none else "—" }}</td>
+  <td class="px-3 py-2 text-xs">{% if p.stale %}stale: {{ p.changed | length }} unit{{ 's' if p.changed | length != 1 }} changed{% else %}current{% endif %}</td>
 </tr>
 {% endfor %}
+    </tbody>
+  </table>
+</div>
 {%- endmacro %}
 
 {# A paper's status (#3150): a preprint with the issues still open on it, or published on a day. Text says it, not colour. #}

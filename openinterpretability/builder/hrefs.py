@@ -23,6 +23,16 @@ def hub_href(slug: str, key: str) -> str:
     return f"models/{slug}/hubs/{key}.html"
 
 
+def prompt_href(slug: str, prompt_id: str) -> str:
+    """A prompt's page, which lists its explanations (#4503)."""
+    return f"models/{slug}/explanations/{prompt_id}.html"
+
+
+def explanation_href(slug: str, prompt_id: str, record_id: str) -> str:
+    """One explanation's page, named after its record's UTC stamp (#4503)."""
+    return f"models/{slug}/explanations/{prompt_id}/{record_id}.html"
+
+
 def layer_href(slug: str, layer: int) -> str:
     """The layer's index page."""
     return f"models/{slug}/L{layer}/index.html"
