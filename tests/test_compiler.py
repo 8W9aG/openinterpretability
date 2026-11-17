@@ -1353,33 +1353,43 @@ def _stop(*, layer=3, idx=117, pole="negative", outcome="default_on", share=0.55
     )
 
 
-def test_unit_page_shows_a_stop_and_links_its_wiki_page(tmp_path, record):
-    # The positive pole has an experiment. The negative pole has only the stop.
+def test_unit_page_lists_a_stop_with_its_experiments(tmp_path, record):
+    # The positive pole has an experiment. The negative pole has only the stop (#3297).
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop()])
     page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "Scans that stopped" in page and "default-on" in page and "55%" in page
+    experiments = page[page.index('id="experiments"') :]
+    assert "Stopped: default-on" in experiments and "55%" in experiments
+    assert "chosen" in experiments and "Scans that stopped come last" in experiments
     assert f"/blob/main/wiki/stops/{MODEL}/L3/N117-negative/20261105T230800Z.md" in page
     assert "No experiment: the scan stopped before a hypothesis" in page
     assert "Not studied yet" not in page  # the stopped pole isn't offered as a candidate
-    assert "Scans that stopped" not in (tmp_path / "index.html").read_text()
+    assert 'id="scans-that-stopped"' not in page
 
 
-def test_unit_page_without_a_stop_has_no_stop_section(tmp_path, record):
+def test_unit_page_without_a_stop_lists_none(tmp_path, record):
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop(idx=9)])
     page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "Scans that stopped" not in page and "Not studied yet" in page
+    assert "Stopped:" not in page and "Not studied yet" in page
 
 
-def test_home_page_lists_a_stop_on_a_unit_with_no_page(tmp_path, record):
+def test_a_neuron_whose_scans_all_stopped_has_a_page(tmp_path, record):
+    from openinterpretability.core.draws import UnauditableDraw
+
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
-    dead = _stop(idx=9, pole="positive", outcome="dead", share=None)
-    compile_site([studied], tmp_path, stops=[dead])
-    home = (tmp_path / "index.html").read_text()
-    assert "Scans that stopped on units with no page" in home and "L3/N9+" in home
-    assert f"/blob/main/wiki/stops/{MODEL}/L3/N9-positive/20261105T230800Z.md" in home
-    assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
+    chosen = _stop_on_model(studied, idx=9, pole="positive", outcome="dead", share=None)
+    fields = _stop_on_model(studied, idx=9).model_dump(exclude={"latest_record"})
+    draw = UnauditableDraw.model_validate(fields)  # a random draw that stopped
+    compile_site([studied], tmp_path, stops=[chosen], draws=[draw])
+    page = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    assert "Stopped: dead" in page and "Stopped: default-on" in page
+    assert "random draw" in page and "chosen" in page
+    assert f"/blob/main/wiki/draws/{MODEL}/L3/N9-negative/20261105T230800Z.json" in page
+    assert "Not studied yet" not in page
+    layer = (tmp_path / "models" / MODEL / "L3" / "index.html").read_text()
+    assert 'href="N9.html"' in layer or "L3/N9.html" in layer
+    assert "Scans that stopped on units with no page" not in (tmp_path / "index.html").read_text()
 
 
 @pytest.mark.parametrize(("proven", "verified"), [(True, 2), (False, 1)])
@@ -1417,7 +1427,7 @@ def test_a_neuron_with_only_stopped_scans_counts_as_studied(tmp_path, record):
     layer = " ".join((tmp_path / "models" / MODEL / "L3" / "index.html").read_text().split())
     assert "2 neurons studied (1 with only stopped scans)" in layer
     assert "N9 · scan stopped: negative default-on, positive dead" in layer
-    assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
+    assert (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()  # it has a page (#3297)
 
 
 def test_a_stop_on_a_neuron_with_an_experiment_is_not_counted_twice(tmp_path, record):

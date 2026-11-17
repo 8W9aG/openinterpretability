@@ -30,7 +30,7 @@
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
     {% endfor %}
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lp.unexplored | thousands }}</span>
-    <span>Each cell is one neuron, in index order left to right; a studied one is coloured by its best pole's status and links to its page. A cell filled to half height has one of its two poles studied, and a full cell both. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment or page.</span>
+    <span>Each cell is one neuron, in index order left to right; a studied one is coloured by its best pole's status and links to its page. A cell filled to half height has one of its two poles studied, and a full cell both. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped.</span>
   </figcaption>
 </figure>
 {% endif %}
