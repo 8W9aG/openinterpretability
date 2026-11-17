@@ -50,7 +50,8 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
                           limit=limit, window=window)  # fmt: skip
     out: dict = {}
     code = run_loop(proposer, reviewer, draws, out=out)
-    return _ran(out.get("loop"), result.verified_share, code), code
+    ran = _ran(out.get("loop"), result.verified_share, code)
+    return ran.model_copy(update={"shares": draws.shares}), code
 
 
 def _ran(loop, before: float, code: int):
