@@ -29,6 +29,10 @@ class LoopError(Exception):
     """One iteration failed. Its message is the reason that the loop gives."""
 
 
+AGENT_ONLY_KINDS = ("circuit",)  # draws whose steps need an agent to write a file
+AGENT_ONLY_REDRAWS = 5  # draws before the loop gives up on finding one it can run
+
+
 class Finished(Exception):
     """The draws have nothing left to run: the loop ends cleanly. The message says why."""
 
@@ -123,12 +127,14 @@ def draw(options: Options, plan_next, claims):
 
     ``plan_next`` and ``claims`` are passed in so that tests can replace them.
     """
-    for _ in range(2):
+    for _ in range(AGENT_ONLY_REDRAWS):
         plan = plan_next(DEFAULT_WIKI_DIR, epsilon=options.epsilon, claims=claims())
         c = plan.choice
+        if c.kind in AGENT_ONLY_KINDS:
+            continue  # its task is written by an agent, which this loop doesn't have (#4286)
         if c.kind not in REVIEW_KINDS or proposer_of(c.record) != options.reviewer:
             return plan
-    raise LoopError(f"twice drew a review of {options.reviewer}'s own record")
+    raise LoopError(f"no draw that {options.reviewer} can run, in {AGENT_ONLY_REDRAWS} tries")
 
 
 def pr_url() -> str:
@@ -151,6 +157,14 @@ def verdict_of(kind: str, key: str) -> tuple[str, str]:
     from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
     from openinterpretability.core.schemas import AuditRecord
 
+    if kind == "circuit":  # a circuit draw writes a circuit record (core/circuit_records.py)
+        from openinterpretability.core.circuit_records import CIRCUITS_WIKI, CircuitRecord
+
+        found = [p for p in new_files(DEFAULT_WIKI_DIR / CIRCUITS_WIKI) if p.suffix == ".json"]
+        if not found:
+            raise LoopError("the draw's steps wrote no circuit record")
+        status = CircuitRecord.model_validate_json(Path(found[0]).read_text()).verdict.status
+        return status, f"{VERBS[kind]} {key} ({status})"
     if kind == "explanation":  # an explanation draw writes an explanation record, no verdict
         if not new_files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
             raise LoopError("the draw's steps wrote no explanation")

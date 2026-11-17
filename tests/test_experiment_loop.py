@@ -180,8 +180,15 @@ def test_a_review_of_the_reviewers_own_record_is_drawn_again(monkeypatch):
     options = el.Options("api/proposer", "api/reviewer")
     plan = el.draw(options, lambda *a, **k: next(plans), lambda: [])
     assert plan.choice.record == "other.json"
-    with pytest.raises(el.LoopError, match="twice"):
+    with pytest.raises(el.LoopError, match="no draw that api/reviewer can run"):
         el.draw(options, lambda *a, **k: _plan("replicate", "own.json"), lambda: [])
+
+
+def test_a_circuit_draw_is_drawn_again(monkeypatch):
+    # Its task is written by an agent, which the API loop doesn't have (#4286).
+    plans = iter([_plan("circuit", None), _plan("explore", None)])
+    plan = el.draw(el.Options("api/p", "api/r"), lambda *a, **k: next(plans), lambda: [])
+    assert plan.choice.kind == "explore"
 
 
 def test_rate_limits_back_off_then_stop(repo, monkeypatch, capsys):
