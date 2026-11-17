@@ -302,6 +302,7 @@ def compile_site(
     paper_pdfs: bool = False,
     pending: Sequence = (),
     explanations: Sequence = (),  # builder/explanation_pages.load_views
+    circuits: dict | None = None,  # builder/circuit_units.load_circuit_data
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -312,7 +313,7 @@ def compile_site(
     ``paper_pdfs`` adds each paper's PDF, and ``pending`` (``builder/pending.py``) lists open
     experiment PRs on the pages. ``stops`` and ``draws`` (``core.draws``) go on their unit's
     page. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the Models page.
-    ``jobs`` is the unit pages' worker processes.
+    ``jobs`` is the unit pages' worker processes. ``circuits`` feed the circuit and hub pages.
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
     erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
     who made records that name no contributor, each with a page under ``users/``.
@@ -340,7 +341,7 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
-    common |= model_page_extras(coverage_rows or {}, explanations)  # coverage, explanations
+    common |= model_page_extras(coverage_rows or {}, explanations, circuits or {})
     render = _Renderer(_environment(), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
