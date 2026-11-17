@@ -37,6 +37,7 @@ The registry's concepts, and how they nest. `openinterpretability/core/taxonomy.
 | Dictionary feature | A latent of a published sparse dictionary (an SAE or a transcoder) on one layer. It is a learned direction, the baseline for native neurons, and never counted with them. | a layer | yes | `L4/F12` | None planned: it is a baseline. |
 | Circuit | Units in several layers that work together: a cluster of the wiring graph between studied units. A task circuit traced by attribution is an analysis, not a registry circuit. | a model | yes | `C3` | Planned: a circuit in another model that does the same task (#4440). |
 | Hub | A neuron or head that the wiring joins to many studied units. Circuits leave hubs out, and a hub has no experiments of its own. | a model | no | `L3/N7/HUB` | Through its center. |
+| Explanation | Why a model gives one answer to one prompt. It is written from the registry's evidence at three levels: a short form, a long form and the mechanism. | a model | no | `3f9a0c21b7e4` | — |
 | Experiment | One test of one hypothesis about one audited unit, with a verdict. | an audited unit | no | `20261019T050928Z` | A sister study tests a pole's explanation on its sister. |
 | Record | The signed, write-once file of one experiment, in the wiki. | an experiment | no | `wiki/experiments/<unit>/<time>.json` | — |
 <!-- taxonomy:end -->

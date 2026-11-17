@@ -51,6 +51,6 @@ def test_the_about_page_shows_each_concept_and_three_figures(tmp_path):
     about = (tmp_path / "about.html").read_text()
     for concept in TAXONOMY:
         assert f'id="{concept.anchor}"' in about and escape(concept.identifier) in about
-    assert about.count('role="img" aria-labelledby="tax-') == 3
+    assert about.count('role="img" aria-labelledby="tax-') == 4
     assert "/issues/4438" in about and "<code>open-interpretability sisters</code>" in about
     assert "docs/PROTOCOL.md#1-unit-of-analysis" in about
