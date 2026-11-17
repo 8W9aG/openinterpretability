@@ -190,7 +190,8 @@ def _explain(c, corpus: str, proposer: str | None) -> Step:
     """An explanation draw: explain the answer, narrate it and record it (issue #3744)."""
     narrator = proposer or "external/<your model ID>"
     options = f"--corpus {corpus} --level long --narrator-model {narrator} --record"
-    command = f"uv run {c.commands[0]} {options}"
+    head, sep, prompt = c.commands[0].partition(" -- ")  # options go before the prompt
+    command = f"uv run {head} {options}{sep}{prompt}"
     note = (
         ""
         if proposer
