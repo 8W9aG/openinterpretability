@@ -101,7 +101,7 @@ class ExplanationFigures(StrictModel):
 class ExplainRun(StrictModel):
     """What ``explain --run`` did before this explanation was written (#4474)."""
 
-    share_before: float  # the explained share when the run started
+    share_before: float  # the prompt coverage when the run started (#4476)
     share_after: float  # and when it stopped
     landed: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
     left_open: list[str] = Field(default_factory=list, description="PRs that didn't merge")
@@ -125,6 +125,7 @@ class ExplanationRecord(StrictModel):
     planned_experiments: int = 0  # unit experiments that a complete explanation needs
     run: ExplainRun | None = None  # the experiments that --run landed first (#4474)
     figures: ExplanationFigures | None = None  # the page's figures' data (#4479)
+    target: float | None = None  # the causal coverage it aimed at (#4476)
     package_version: str
     written: datetime
 
