@@ -47,7 +47,7 @@ def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
     states: dict[str, NeuronState] = {}
     records = []
     counted: set[str] = set()  # poles with an experiment that isn't set aside
-    for path, raw in load_archive_paths(Path(wiki_dir)):  # oldest first
+    for path, raw in load_archive_paths(Path(wiki_dir), skip_missing=True):  # oldest first
         record, aside = corrected(raw, errata)
         records.append(raw)
         slug = record.submission.identifier.slug

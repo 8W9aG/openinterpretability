@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import broad_badge %}
 
 {% block title %}Why {{ view.record.answer | trim }} · {{ site_title }}{% endblock %}
 
@@ -87,7 +88,7 @@
 {% endif %}
 
 <h2 class="mb-1 mt-8 text-lg font-semibold">Mechanism</h2>
-<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units and groups that carry the answer, as they stood. Shares are of first-order attribution on this prompt. Only a VERIFIED unit's explanation is shown.</p>
+<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units and groups that carry the answer, as they stood. Shares are of first-order attribution on this prompt. Only a VERIFIED unit's explanation is shown. A <em>broad</em> unit is VERIFIED but active on at least half of its held-out text, so its explanation says little about this one prompt.</p>
 <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
@@ -101,7 +102,7 @@
         <td class="px-3 py-2 text-xs">{{ u.kind }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ u.share | pct_fine }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ '%+.3f' % u.attribution }}</td>
-        <td class="px-3 py-2 text-xs">{{ u.status }}</td>
+        <td class="px-3 py-2 text-xs">{{ u.status }}{% if u.slug in view.broad %} {{ broad_badge() }}{% endif %}</td>
         <td class="px-3 py-2 text-xs">{{ u.explanation or "" }}</td>
       </tr>
       {% endfor %}

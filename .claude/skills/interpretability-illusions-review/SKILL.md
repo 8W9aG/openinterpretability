@@ -26,6 +26,11 @@ description: Reviewer's checklist of documented ways neuron explanations fool th
 8. **Make every probe count.** Since protocol v0.3, probes sharing most of their words (Jaccard ≥ 0.5) cluster into one observation. Ten variations of one sentence count as one probe, so vary the wording, topic and structure.
 9. **Beat the trivial baselines.** The `beats_confound_baseline` gate compares the hypothesis with "fires on its trigger tokens", position and never-active baselines. Include hard negatives that contain the trigger tokens in the wrong context, and holdouts that express the feature without them.
 10. **Label by the hypothesis.** Every probe's `expected_active` is what the hypothesis text implies, even if you suspect the neuron disagrees. That is the point of the test.
+11. **A broad hypothesis.** Some hypotheses say the unit is active on most text, and name a few narrow inactive classes. Generic early attention heads are an example (`attention-head-audit`, *Broad early heads*). That is a legitimate claim. Test it on its own terms:
+    - Never use plain prose as a hard negative when the hypothesis says prose is active.
+    - Draw hard negatives from every inactive class that it names, not from one class only. Test each class's edges, as in item 1.
+    - Keep hard negatives and holdouts the same length. A narrow inactive class is often short ("Water."), so use its longer forms, or the probe-length baseline wins.
+    - Read each class's stated exceptions, and keep them out of the negatives.
 
 ## Checklist when judging
 

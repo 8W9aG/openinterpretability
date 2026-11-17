@@ -311,4 +311,5 @@ def _whole_records(monkeypatch, tmp_path):
     """
     monkeypatch.setenv("OPENINTERPRETABILITY_OFFLOAD_EVIDENCE", "0")
     monkeypatch.setenv("OPENINTERPRETABILITY_EVIDENCE_DIR", str(tmp_path / "evidence-store"))
+    monkeypatch.setenv("OPENINTERPRETABILITY_EVIDENCE_BRANCHES", "0")  # no git fetch (#4530)
     monkeypatch.setenv("OPENINTERPRETABILITY_ROTATION_CACHE", str(tmp_path / "rotations"))  # #3646
