@@ -30,6 +30,16 @@ BRAND_HEX = {
     500: "#10b981", 600: "#059669", 700: "#047857", 800: "#065f46", 900: "#064e3b",
     950: "#022c22",
 }  # fmt: skip
+# The mark's colours: the model layouts' own yellow, orange and blue (#4465). VERIFIED's blue
+# is too dark for the dark tile, so the blue is the negative pole's sky. They differ in
+# lightness as well as hue, and none is a green.
+MARK_HEX = {
+    "yellow": STATUS_HEX["NEEDS_REVISION"],
+    "orange": STATUS_HEX["REJECTED"],
+    "blue": POLE_HEX["negative"],
+}
+MARK_TILE = "#0F172A"  # Tailwind's slate-900: the mark's tile
+INK = {"light": "#0F172A", "dark": "#F8FAFC"}  # the wordmark: slate-900, and slate-50 in dark mode
 # Light and dark page surfaces (base.html: bg-white, dark:bg-slate-950).
 SURFACES = {"light": "#FFFFFF", "dark": "#020617"}
 
