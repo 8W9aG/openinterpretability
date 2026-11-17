@@ -40,12 +40,17 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
 @click.option(
     "--experiments", "show", default=10, show_default=True, help="Planned experiments to list."
 )
+@click.option(
+    "--level", type=click.Choice(["mechanism", "long", "paragraph"]), default="mechanism",
+    show_default=True, help="mechanism: the evidence. long and paragraph: an LLM narrates it.",
+)  # fmt: skip
+@click.option("--narrator-model", default=None, help="The narrator's model (agents' default).")
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
 def explain_command(
-    prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, as_json,
-    wiki_dir, device, dtype,
+    prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
+    narrator_model, as_json, wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
 
@@ -79,12 +84,16 @@ def explain_command(
     args = (runner, prompt, means, result.token_id, position, result.order)
     coverage = prompt_coverage(*args)
     add_gains(*args, planned, pool=max(POOL, show))  # rank the experiments by coverage gained
+    told = _narrate(result, coverage, planned, narrator_model) if level != "mechanism" else {}
     if as_json:
-        click.echo(json.dumps(_as_json(result, planned, show) | {"coverage": coverage}, indent=1))
+        out = _as_json(result, planned, show) | {"coverage": coverage}
+        click.echo(json.dumps(out | told, indent=1, default=str))
         return
-    _print(result)
-    _print_coverage(coverage)
-    _print_plan(planned, show)
+    if level != "paragraph":
+        _print(result)
+        _print_coverage(coverage)
+        _print_plan(planned, show)
+    _print_narrative(told, level)
 
 
 def _answer(runner, token: str | None) -> int | None:
@@ -238,3 +247,39 @@ def _print_coverage(coverage: dict) -> None:
         f"Prompt coverage: keeping only the {coverage['units']} explained units, and mean-ablating "
         f"the rest, brings back {share:.1%} of the answer's log-probability{against}."
     )
+
+
+def _narrate(result, coverage, planned, model: str | None) -> dict:
+    """The narrator's long form and paragraph, the evidence it read, and its checks (#3743)."""
+    from openinterpretability.agents.base import DEFAULT_MODEL
+    from openinterpretability.agents.narrator import Narrator
+    from openinterpretability.core import costs
+    from openinterpretability.explain_narrate import check_citations, evidence
+
+    ev = evidence(result, coverage, planned)
+    narrator = Narrator(model or DEFAULT_MODEL)
+    costs.reset()  # so that the costs below are the narrator's alone
+    narrative = narrator.narrate(ev)
+    return {
+        "evidence": ev, "narrative": narrative.model_dump(), "narrator_model": narrator.model,
+        "citations_not_in_evidence": check_citations(narrative, ev),
+        "narrator_costs": costs.measured().model_dump(mode="json"),
+    }  # fmt: skip
+
+
+def _print_narrative(told: dict, level: str) -> None:
+    """The long form and the paragraph, or the paragraph alone, with any unsupported citation."""
+    if not told:
+        return
+    narrative = told["narrative"]
+    if level == "long":
+        click.echo("")
+        for section in narrative["sections"]:
+            click.echo(f"## {section['title']}\n")
+            click.echo(textwrap.fill(section["text"], 100) + "\n")
+        click.echo("## In one paragraph\n")
+    click.echo(textwrap.fill(narrative["paragraph"], 100))
+    click.echo(f"\n(narrated by {told['narrator_model']} from the evidence only)")
+    if told["citations_not_in_evidence"]:
+        missing = ", ".join(told["citations_not_in_evidence"])
+        click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")
