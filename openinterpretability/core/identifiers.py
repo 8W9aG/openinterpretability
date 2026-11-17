@@ -99,6 +99,31 @@ class HeadIdentifier(_Component):
         return f"{self.model_name} {self.label}"
 
 
+class HubIdentifier(_Component):
+    """Addresses one hub: a neuron or head that the wiring joins to many studied units.
+
+    A hub has no experiments of its own, so it is not a :data:`ComponentIdentifier`. Its
+    standing is its center's (``docs/circuits-and-hubs.md``, :mod:`openinterpretability.hubs`).
+    """
+
+    kind: Literal["hub"] = "hub"
+    center: Literal["neuron", "head"]
+    index: int = Field(ge=0)
+
+    @property
+    def center_slug(self) -> str:
+        """``Qwen--Qwen2.5-0.5B/L3/N7`` or ``…/L3/H2``: the center's page, without a pole."""
+        letter = "N" if self.center == "neuron" else "H"
+        return f"{self.model_slug}/L{self.layer}/{letter}{self.index}"
+
+    @property
+    def slug(self) -> str:
+        """``Qwen--Qwen2.5-0.5B/L3/N7/HUB``: the hub's name."""
+        return f"{self.center_slug}/HUB"
+
+    noun: ClassVar[str] = "hub"
+
+
 class FeatureIdentifier(_Component):
     """Addresses one latent of a published sparse dictionary (a transcoder or SAE) on an MLP.
 

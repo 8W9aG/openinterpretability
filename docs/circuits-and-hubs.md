@@ -63,6 +63,8 @@ A hub needs no experiment of its own, because what it does is what its center do
 
 A hub can be an artefact. A unit with a large output norm, or one that is on most of the time (default-on, §1), touches many units without carrying anything particular. So the hub's page reports whether its center is default-on, and its output norm against its layer (`neuron-family-triage`). These are reported, not gated, so hubs need no protocol change.
 
+A hub is an entity with its own identifier, `HubIdentifier` (`<model>/L<layer>/N<idx>/HUB`, or `H<idx>` for a head), in `openinterpretability/hubs.py`. Its standing is its center's, derived each build and never stored. Its default-on share comes from its center's lead experiment. Its output norm comes from weights, so `open-interpretability circuits hubs` records it in `data/hubs/<model>.jsonl`, with the layer's median and the center's percentile. The build reads the newest row per hub, and loads no model.
+
 ## How it shows
 
 - **Standing.** A circuit has a standing per task, by the rule of §3 step 9 unchanged. One reading per probe set counts, independent reviews outweigh self-reviews, and a majority decides. A hub's standing is its center's.
