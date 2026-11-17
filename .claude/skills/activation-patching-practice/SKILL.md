@@ -15,11 +15,15 @@ description: Design and interpret causal tests of a neuron pole with activation 
 - Syed, Rager & Conmy, 2023, *Attribution Patching Outperforms Automated Circuit Discovery*, arXiv:2310.10348.
 - Kramár, Lieberum, Shah & Nanda, 2024, *AtP\*: An efficient and scalable method for localizing LLM behaviour to components*, arXiv:2403.00745. Documents attribution-patching failure modes (attention saturation, cancellation) and changes that solve them.
 
-## openinterp primitives
+## openinterpretability primitives
 
 ```python
-from openinterp.harness.patcher import ActivationPatcher, logit_diff_metric, token_logit_metric
-from openinterp.harness.attribution import attribution_patching, top_attributed_neurons
+from openinterpretability.harness.patcher import (
+    ActivationPatcher,
+    logit_diff_metric,
+    token_logit_metric,
+)
+from openinterpretability.harness.attribution import attribution_patching, top_attributed_neurons
 
 p = ActivationPatcher(runner)
 metric = logit_diff_metric(correct_id, incorrect_id)  # prefer this over a single logit

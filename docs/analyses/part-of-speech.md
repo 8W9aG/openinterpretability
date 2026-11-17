@@ -1,6 +1,6 @@
 # Part of speech in the scan
 
-Run on 2026-11-14 for issue #3223. Every scan now records a `part of speech` label set: each word's universal tag (UPOS), from the same spaCy pass that finds names (`openinterp/names.py`). Reported, not gated.
+Run on 2026-11-14 for issue #3223. Every scan now records a `part of speech` label set: each word's universal tag (UPOS), from the same spaCy pass that finds names (`openinterpretability/names.py`). Reported, not gated.
 
 The question: how much does part of speech explain of a pole's activity? And does it pick out poles whose explanations are about syntax?
 

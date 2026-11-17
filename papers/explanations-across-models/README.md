@@ -2,6 +2,8 @@
 
 When a neuron pole in one model has a VERIFIED explanation, does the same explanation describe a matched pole in another model? The registry has 80 sister studies that test this. Each audits a pole of one model with another model's VERIFIED explanation, unchanged. The explanation verifies on 8 of 50 sisters (16%), 1 of 26 other close matches and 0 of 4 random poles. Most sisters fail only in part: their median balanced accuracy is 0.78, against 0.56 for other matches and 0.45 for random poles. The explanation is near chance (REJECTED) on 24% of sisters and 54% of other matches. So matching finds poles where an explanation largely carries over, but it seldom carries over whole. Sisters across tokenizers, GPT-2 to Qwen, carry about as well as sisters within the Qwen family.
 
+**Status:** Preprint. Work left: #4246 (rewrite in the paper form of #4202), #3817 (a random-pole control and one protocol).
+
 **Why we wrote it.** If a VERIFIED explanation carried over to a matched pole in another model, the registry could explain new models without auditing every pole again. The registry has 80 sister studies that test this, and they had not yet been read together. **The question.** Does a VERIFIED explanation describe a matched pole in another model? It is research question 4, *Do explanations carry across models?* ([research questions](../../docs/research-questions.md)).
 
 ![A pole's explanation carries better to its sister than to another match or a random pole](media/transfer.svg)
@@ -23,7 +25,7 @@ When a neuron pole in one model has a VERIFIED explanation, does the same explan
 - **The models:** GPT-2 small (Radford et al., 2019), and [Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B) and [Qwen2.5-1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B).
 - **Sister studies.** `open-interpretability audit --sister-of <record>` takes the source record's explanation as the hypothesis for the tested pole. A reviewer writes new probes against it, and the pole is judged by the protocol of the time. The planner draws a source's sister, its other top matches and, at a low weight, random poles of the other model as controls (`sister` draws).
 - **Classes.** `scripts/explanation_transfer.py` reads every study with a `sister_of`. It classifies the tested pole against `docs/analyses/sister-neurons.jsonl`: the source's sister, another of its 5 top matches, or a random pole. Each tested pole counts once, by its first study. That is 80 poles from 89 studies.
-- **Intervals and tests.** 95% Wilson intervals, and two-sided Fisher exact tests (`openinterp/builder/learned_baseline.py`).
+- **Intervals and tests.** 95% Wilson intervals, and two-sided Fisher exact tests (`openinterpretability/builder/learned_baseline.py`).
 
 ## How far each explanation carries
 

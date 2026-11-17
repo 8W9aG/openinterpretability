@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from openinterp.agents.base import LLMAgent
-from openinterp.agents.proposer import (
+from openinterpretability.agents.base import LLMAgent
+from openinterpretability.agents.proposer import (
     FIRST_TOKEN_UNMEASURED,
     SNIPPET_AFTER,
     SNIPPET_BEFORE,
@@ -17,7 +17,7 @@ from openinterp.agents.proposer import (
     ProposerAgent,
     format_examples,
 )
-from openinterp.agents.reviewer import (
+from openinterpretability.agents.reviewer import (
     AdversarialProbe,
     ProbeSet,
     ReviewerAgent,
@@ -29,23 +29,23 @@ from openinterp.agents.reviewer import (
     review_metrics,
     split,
 )
-from openinterp.core.exceptions import AgentError
-from openinterp.core.schemas import (
+from openinterpretability.core.exceptions import AgentError
+from openinterpretability.core.schemas import (
     MAX_PROBES,
     ActivatingExample,
     AdversarialTestResult,
     CounterfactualPair,
     NeuronIdentifier,
 )
-from openinterp.harness.causal import (
+from openinterpretability.harness.causal import (
     _matched_units,
     _percentile,
     causal_metrics,
     claimed_token_weights,
 )
-from openinterp.harness.jlens import vocabulary_lens
-from openinterp.harness.scan import top_activating_examples
-from openinterp.harness.units import NeuronUnit, max_strength, peak_strength
+from openinterpretability.harness.jlens import vocabulary_lens
+from openinterpretability.harness.scan import top_activating_examples
+from openinterpretability.harness.units import NeuronUnit, max_strength, peak_strength
 from tests.test_fence import PLANTED
 
 # The toy model's probe set is small, so relax only the minimum-count gates.
@@ -124,14 +124,14 @@ def test_external_prompt_puts_the_unit_after_the_stable_parts(tmp_path):
     ],
 )
 def test_recorded_model_applies_aliases(monkeypatch, spec, model, recorded):
-    from openinterp.agents.base import MODEL_ALIASES_ENV, recorded_model
+    from openinterpretability.agents.base import MODEL_ALIASES_ENV, recorded_model
 
     monkeypatch.setenv(MODEL_ALIASES_ENV, spec)
     assert recorded_model(model) == recorded
 
 
 def test_recorded_model_rejects_malformed_aliases(monkeypatch):
-    from openinterp.agents.base import MODEL_ALIASES_ENV, recorded_model
+    from openinterpretability.agents.base import MODEL_ALIASES_ENV, recorded_model
 
     monkeypatch.setenv(MODEL_ALIASES_ENV, "claude-haiku-5-5=")
     with pytest.raises(ValueError, match="malformed"):
@@ -150,7 +150,7 @@ def test_agent_errors_are_wrapped(mocker):
 
 
 def test_structured_call_records_usage_across_retries(draft):
-    from openinterp.core import costs
+    from openinterpretability.core import costs
 
     class Client:  # instructor's hooks: one raw LiteLLM response per attempt
         def __init__(self):
@@ -223,7 +223,7 @@ def test_probe_prompt_asks_for_the_split():
 
 
 def _submission(ident, toy_runner, draft, *, honest: bool):
-    from openinterp.harness.scan import scan_neuron
+    from openinterpretability.harness.scan import scan_neuron
 
     scan = scan_neuron(toy_runner, TEXTS, 1, 2, "positive")
     sub = ProposerAgent("openai/test").build_submission(
@@ -266,7 +266,7 @@ def test_review_verifies_accurate_hypothesis(ident, toy_runner, draft):
     sub = _submission(ident, toy_runner, draft, honest=True)
     probes = _probes(toy_runner, ident, sub, honest=True)
     # Lookahead claim matches whatever is measured, so every component passes.
-    from openinterp.harness.lookahead import measure_lookahead
+    from openinterpretability.harness.lookahead import measure_lookahead
 
     measured = measure_lookahead(
         toy_runner, [c.base_prompt for c in sub.counterfactuals], 1, 2, "positive"
@@ -681,7 +681,7 @@ class _LogitWatch:
 
 
 def test_a_scan_and_the_lens_compute_no_logits(toy_runner):
-    from openinterp.harness.scan import scan_neuron
+    from openinterpretability.harness.scan import scan_neuron
 
     with _LogitWatch(toy_runner.model) as watch:
         scan_neuron(toy_runner, TEXTS, 1, 2, "positive")
@@ -719,3 +719,25 @@ def test_a_planted_instruction_does_not_change_the_verdict(ident, toy_runner, dr
     attacked = evaluate_submission(planted, toy_runner, probes, "anthropic/reviewer", SMALL)
     assert attacked.status == clean.status
     assert attacked.metrics == clean.metrics
+
+
+def test_an_answer_written_as_soon_as_the_error_appears_is_kept(tmp_path, monkeypatch):
+    # The bad answer is removed before the error appears. An answerer that wrote again the
+    # moment it saw the error used to lose that answer. The agent then waited out its whole
+    # timeout (#4376). Here it answers inside the error write, with no gap at all.
+    from openinterpretability.agents import base
+
+    real = base._write_whole
+
+    def write_then_answer(path, text):
+        real(path, text)
+        response = tmp_path / "ProposerAgent.response.json"
+        if path.name.endswith(".prompt.md"):  # a first answer that fails validation
+            response.write_text('{"explanation": 1}')
+        if path.name.endswith(".error.txt"):  # the fixed answer, written at once
+            response.write_text(json.dumps(EXTERNAL_ANSWER))
+
+    monkeypatch.setattr(base, "_write_whole", write_then_answer)
+    agent = ProposerAgent("external/test-llm", exchange_dir=tmp_path, poll_interval=0.01, timeout=5)
+    draft = agent.structured(HypothesisDraft, "describe the neuron")
+    assert draft.explanation == "fires on x"

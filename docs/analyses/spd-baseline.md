@@ -33,7 +33,7 @@ Four changes were needed on GPT-2. Each came from a failed pilot (next section):
 
 Position 0, the attention sink, keeps the model's weights and is left out of every loss. Training reads pile-10k without the scan corpus's documents, in 128-token pieces, 8 to a batch. A step takes about 2.7 s on the laptop's GPU (MPS).
 
-Each subcomponent exports as two latents, the positive and negative parts of `g·((h − mean)·V[:, c])`, which write `+U[c]` and `−U[c]`. `openinterp.harness.dictionaries` reads them with `kind: spd` and `activation: causal_importance`. A test checks that the latents give back exactly the CI-masked projection.
+Each subcomponent exports as two latents, the positive and negative parts of `g·((h − mean)·V[:, c])`, which write `+U[c]` and `−U[c]`. `openinterpretability.harness.dictionaries` reads them with `kind: spd` and `activation: causal_importance`. A test checks that the latents give back exactly the CI-masked projection.
 
 ## Pilots
 
@@ -104,7 +104,7 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 ## Colab run A: from random, 50,000 steps
 
-`scripts/train_spd_colab.ipynb` ran the laptop run's settings on a Colab A100 (2026-11-03), with two changes. The run was 50,000 steps, and p reached 0.4 at step 5,000 (`--p-anneal 0.1`). A step took 0.16 s, so the run took 2.3 hours. The outputs are in the owner's Google Drive (`openinterp/gpt2-spd-random-50k`), not in the repository.
+`scripts/train_spd_colab.ipynb` ran the laptop run's settings on a Colab A100 (2026-11-03), with two changes. The run was 50,000 steps, and p reached 0.4 at step 5,000 (`--p-anneal 0.1`). A step took 0.16 s, so the run took 2.3 hours. The outputs are in the owner's Google Drive (`openinterpretability/gpt2-spd-random-50k`), not in the repository.
 
 **Training.** The middle layers grew denser while p was above 1 (layer 5: 2,604 active subcomponents at step 2,000). They then fell as p reached its floor (945 at step 5,000). They levelled off at about 700 by step 15,000. Explained variance levelled off by step 30,000. From step 1,000 the gate gradient norm stayed at 0.04–0.17, and the counts changed at every evaluation, so the gates did not freeze. Unlike the laptop run, some subcomponents died: 2,435–3,064 per layer were alive on 256 held-out pieces.
 
@@ -133,7 +133,7 @@ All 3,072 subcomponents of every layer were alive on 256 held-out pieces.
 
 ## Colab run B: from the neurons, 50,000 steps
 
-Run B had run A's settings, except that each subcomponent started as one neuron (`--init neurons`: V = I, U = W). Its outputs are in the owner's Google Drive (`openinterp/gpt2-spd-neurons-50k`).
+Run B had run A's settings, except that each subcomponent started as one neuron (`--init neurons`: V = I, U = W). Its outputs are in the owner's Google Drive (`openinterpretability/gpt2-spd-neurons-50k`).
 
 | Layer | SPD active | SPD EV | Neurons, same count: EV | Neurons for SPD EV | Best-neuron cosine (median) | Share over 0.7 |
 | --- | --- | --- | --- | --- | --- | --- |

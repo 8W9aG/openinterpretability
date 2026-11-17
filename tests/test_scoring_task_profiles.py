@@ -3,10 +3,10 @@
 import ast
 from pathlib import Path
 
-from openinterp.agents.judge import ScoringTask
-from openinterp.core.schemas import SuperpositionIdentifier
-from openinterp.harness.superpositions import SuperpositionUnit
-from openinterp.harness.units import submission_unit
+from openinterpretability.agents.judge import ScoringTask
+from openinterpretability.core.schemas import SuperpositionIdentifier
+from openinterpretability.harness.superpositions import SuperpositionUnit
+from openinterpretability.harness.units import submission_unit
 from tests.test_superpositions import _ident, _profile
 
 ROOT = Path(__file__).parents[1]
@@ -32,7 +32,7 @@ def test_a_superposition_task_keeps_its_profile_and_unit():
 def test_every_scoring_task_passes_every_profile():
     """A new unit kind's profile must not be dropped where a task is built."""
     missing = []
-    for path in (ROOT / "openinterp").rglob("*.py"):
+    for path in (ROOT / "openinterpretability").rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "ScoringTask":
                 given = {k.arg for k in node.keywords}

@@ -1,9 +1,9 @@
 import torch
 
-from openinterp.harness import first_position
-from openinterp.harness.first_position import NeuronReader, strengths_of
-from openinterp.harness.hooks import pole_strength
-from openinterp.harness.scan import first_position_share
+from openinterpretability.harness import first_position
+from openinterpretability.harness.first_position import NeuronReader, strengths_of
+from openinterpretability.harness.hooks import pole_strength
+from openinterpretability.harness.scan import first_position_share
 
 
 def _passes(runner, monkeypatch) -> list[int]:
@@ -40,7 +40,7 @@ def test_both_poles_share_one_pass_of_the_vocabulary(toy_runner, monkeypatch):
 
 
 def test_a_later_run_reads_the_values_from_disk(toy_model, monkeypatch):
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
     from tests.conftest import FakeTokenizer
 
     first = NeuronHookRunner(toy_model, FakeTokenizer())

@@ -7,7 +7,7 @@ violation of impact "serious" or "critical", and prints each one with the elemen
 fails.
 
 axe-core is one JavaScript file. The check downloads it at ``AXE_VERSION``, checks it
-against ``AXE_SHA256`` and keeps it in ``~/.cache/openinterp``. Playwright is not a
+against ``AXE_SHA256`` and keeps it in ``~/.cache/openinterpretability``. Playwright is not a
 project dependency, so run the check with it added:
 
     make sample-run
@@ -22,6 +22,8 @@ import hashlib
 import sys
 import urllib.request
 from pathlib import Path
+
+from openinterpretability.core.legacy_names import cache_base
 
 AXE_VERSION = "4.10.2"
 AXE_SHA256 = "b511cd9dec01c76f4b2ad1723b66b6db37d4c2eb4ed199076e1829d9ee7b75e3"
@@ -87,7 +89,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--site", type=Path, default=Path("dist"), help="the built site")
     parser.add_argument("--channel", help="a browser channel, e.g. chrome (default: Chromium)")
-    parser.add_argument("--cache", type=Path, default=Path.home() / ".cache" / "openinterp")
+    parser.add_argument("--cache", type=Path, default=cache_base())
     args = parser.parse_args()
     from playwright.sync_api import sync_playwright
 

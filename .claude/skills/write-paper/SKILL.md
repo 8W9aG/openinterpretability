@@ -16,7 +16,7 @@ papers/<slug>/
 └── media/          figures, written by scripts/paper_figures.py
 ```
 
-List the paper in `papers/README.md`. That order is the order of the site's Research index ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
+List the paper in `papers/README.md`, with the date it is published before it: `- 2026-11-16: [Title](slug/README.md)`. The site's Research index shows the papers newest first by that date, and keeps the list's order for one date ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
 
 ## Structure
 
@@ -98,11 +98,28 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 - **Keep colours consistent.** One side or route has one colour through the paper. Check new colours with the `dataviz` skill.
 - **Look at each figure** in light and dark, and mid-animation, before you call it done.
 
+## Status: preprint or published
+
+The maintainer decided on 2026-11-17 that every paper is either a **preprint** or **published**, and that the reader must see which (#3150). The status line under the abstract says it, and the site shows it beside the title.
+
+- **A preprint** has work left. Its line names the open issues that would change it: `**Status:** Preprint. Work left: #N (what), #M (what).` A new paper starts as one:
+  ```bash
+  uv run python scripts/papers.py new <slug> --work "#N (what is left)."
+  ```
+  This also writes its `CITATION.cff`. When an issue on the paper closes, take it off the line, and name any follow-up issue that changes the paper.
+- **Publish it when no work on it is left**, in the PR that closes its last issue:
+  ```bash
+  uv run python scripts/papers.py publish <slug>
+  ```
+  The line then gives the date, and `CITATION.cff` holds the SHA-256 of the text and the results files.
+- **A published paper doesn't change.** A later correction goes in a `## Addenda` section at the end, one dated `### YYYY-MM-DD` entry each. New work becomes a new paper that cites it. `make lint` (`scripts/papers.py check`) fails if the text above the addenda, or a results file, changes.
+
 ## Before you finish
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
 - At least one figure moves (`paper-animation`), or the Method says why none does. Render a middle frame and the last frame, in light and dark, and look at them.
 - Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
+- The status line names the work left, or the paper is published (*Status* above), and `uv run python scripts/papers.py check` passes.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
 - Build the site with `make build`, and open the Research index, the paper and its PDF (`dist/research/<slug>/paper.pdf`, printed by headless Chrome).

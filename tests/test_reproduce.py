@@ -7,16 +7,16 @@ from types import SimpleNamespace
 import pytest
 from click.testing import CliRunner
 
-from openinterp.agents.reviewer import evaluate_submission
-from openinterp.cli import cli
-from openinterp.core.schemas import AuditRecord
-from openinterp.reproduce import reproduce_record, rotating_sample
+from openinterpretability.agents.reviewer import evaluate_submission
+from openinterpretability.cli import cli
+from openinterpretability.core.schemas import AuditRecord
+from openinterpretability.reproduce import reproduce_record, rotating_sample
 from tests.test_agents import SMALL, _probes, _submission
 
 
 @pytest.fixture
 def draft():
-    from openinterp.agents.proposer import CounterfactualDraft, HypothesisDraft
+    from openinterpretability.agents.proposer import CounterfactualDraft, HypothesisDraft
 
     return HypothesisDraft(
         explanation="Fires on repeated letters.",
@@ -33,7 +33,7 @@ def draft():
 
 @pytest.fixture
 def ident():
-    from openinterp.core.schemas import NeuronIdentifier
+    from openinterpretability.core.schemas import NeuronIdentifier
 
     return NeuronIdentifier(model_name="toy", layer=1, neuron_idx=2, pole="positive")
 
@@ -95,8 +95,8 @@ def test_edited_scan_evidence_is_caught(record, toy_runner):
 
 
 def test_corpus_sample_is_redrawn(record, toy_runner):
-    from openinterp.core.schemas import ExperimentProvenance
-    from openinterp.corpus import sample_tokens
+    from openinterpretability.core.schemas import ExperimentProvenance
+    from openinterpretability.corpus import sample_tokens
 
     docs = [e.text for e in record.submission.top_examples] + ["padding text"] * 3
     _, sample = sample_tokens(toy_runner.tokenizer, docs, 10**6, 0)
@@ -136,7 +136,7 @@ def test_cli_exit_code(tmp_path, monkeypatch, record, toy_runner):
     toy_runner.model.config = SimpleNamespace()
     loads = []
     monkeypatch.setattr(
-        "openinterp.cli._load_runner",
+        "openinterpretability.cli._load_runner",
         lambda name, device, dtype, revision=None, attn=None: (
             loads.append((name, dtype)) or toy_runner
         ),
@@ -159,7 +159,7 @@ def test_cli_exit_code(tmp_path, monkeypatch, record, toy_runner):
 def test_cli_time_budget_leaves_later_records_unreached(tmp_path, monkeypatch, record, toy_runner):
     import time
 
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: toy_runner)
     clock = iter([0.0, 0.0, 120 * 60.0])  # start, before the first record, before the second
     monkeypatch.setattr(time, "monotonic", lambda: next(clock))
     summary = tmp_path / "summary.md"
@@ -178,7 +178,8 @@ def test_cli_time_budget_leaves_later_records_unreached(tmp_path, monkeypatch, r
 
 def test_cli_allow_list_refuses_other_models_without_loading(tmp_path, monkeypatch, record):
     monkeypatch.setattr(
-        "openinterp.cli._load_runner", lambda *a, **k: pytest.fail("must not load the model")
+        "openinterpretability.cli._load_runner",
+        lambda *a, **k: pytest.fail("must not load the model"),
     )
     path = tmp_path / "r.json"
     path.write_text(record.model_dump_json())
@@ -187,7 +188,7 @@ def test_cli_allow_list_refuses_other_models_without_loading(tmp_path, monkeypat
 
 
 def test_cli_reports_to_github_actions(tmp_path, monkeypatch, record, toy_runner):
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: toy_runner)
     summary = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
@@ -202,7 +203,7 @@ def test_cli_reports_to_github_actions(tmp_path, monkeypatch, record, toy_runner
 def test_changed_records_lists_added_records(tmp_path, monkeypatch):
     import subprocess
 
-    from openinterp.checks import changed_records
+    from openinterpretability.checks import changed_records
 
     def git(*args):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
@@ -271,11 +272,11 @@ def _wiki_record(tmp_path, record):
 
 
 def test_cli_sample_reproduces_signed_and_old_records(tmp_path, monkeypatch, record, toy_runner):
-    from openinterp.signing import sign_record
+    from openinterpretability.signing import sign_record
     from tests.test_signing import keypair, signer_line
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: toy_runner)
     path = _wiki_record(tmp_path, _old_protocol(record))
     key = keypair(tmp_path, "maintainer")
     sign_record(path, key)
@@ -298,10 +299,10 @@ def test_cli_sample_reproduces_signed_and_old_records(tmp_path, monkeypatch, rec
 
 
 def test_cli_include_signed_runs_the_review(tmp_path, monkeypatch, record, toy_runner):
-    from openinterp.signing import sign_record
+    from openinterpretability.signing import sign_record
     from tests.test_signing import keypair, signer_line
 
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: toy_runner)
     path = _wiki_record(tmp_path, record)
     key = keypair(tmp_path, "maintainer")
     sign_record(path, key)
@@ -315,10 +316,10 @@ def test_cli_include_signed_runs_the_review(tmp_path, monkeypatch, record, toy_r
 def test_cli_reproduces_a_record_signed_outside_its_keys_window(
     tmp_path, monkeypatch, record, toy_runner
 ):
-    from openinterp.signing import sign_record
+    from openinterpretability.signing import sign_record
     from tests.test_signing import keypair, signer_line
 
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *a, **k: toy_runner)
     path = _wiki_record(tmp_path, record)
     key = keypair(tmp_path, "maintainer")
     sign_record(path, key)
@@ -352,8 +353,8 @@ def _pinned(record, dtype):
 
 
 def test_a_16_bit_record_is_reproduced_in_float32_with_a_wider_tolerance():
-    from openinterp.half_precision import reproduction_dtype
-    from openinterp.reproduce import HALF_TOLERANCE, Tolerance
+    from openinterpretability.half_precision import reproduction_dtype
+    from openinterpretability.reproduce import HALF_TOLERANCE, Tolerance
 
     assert reproduction_dtype("bfloat16") == "float32" == reproduction_dtype("float16")
     assert reproduction_dtype("float32") == "float32"
@@ -365,8 +366,8 @@ def test_a_16_bit_record_is_reproduced_in_float32_with_a_wider_tolerance():
 
 
 def test_a_head_gets_the_wider_head_tolerance_and_an_edit_still_fails():
-    from openinterp.core.schemas import HeadIdentifier, NeuronIdentifier
-    from openinterp.reproduce import HALF_TOLERANCE, HEAD_TOLERANCE, Tolerance
+    from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+    from openinterpretability.reproduce import HALF_TOLERANCE, HEAD_TOLERANCE, Tolerance
 
     base = Tolerance()
     head = HeadIdentifier(model_name="EleutherAI/pythia-70m", layer=4, head_idx=4)
@@ -380,6 +381,31 @@ def test_a_head_gets_the_wider_head_tolerance_and_an_edit_still_fails():
     assert not wide.close(2.4, 2.4 * 1.10, scale)  # 10% at a peak: an edit
     both = base.for_dtype("bfloat16").for_unit(head)  # each term keeps the larger value
     assert both.atol == max(HALF_TOLERANCE.atol, HEAD_TOLERANCE.atol)
+
+
+def test_a_pythia_neuron_gets_its_models_float32_floor_and_an_edit_still_fails():
+    # #4187: Pythia-70m L5/N389, negative pole, scale 0.16997, scanned on an Intel CPU.
+    from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+    from openinterpretability.planner import configured_reproduce_floors
+    from openinterpretability.reproduce import HEAD_TOLERANCE, Tolerance
+
+    floors = configured_reproduce_floors()
+    assert floors["EleutherAI/pythia-70m"] == 0.01 and "openai-community/gpt2" not in floors
+    base = Tolerance()
+    pythia = NeuronIdentifier(
+        model_name="EleutherAI/pythia-70m", layer=5, neuron_idx=389, pole="negative"
+    )
+    gpt2 = NeuronIdentifier(
+        model_name="openai-community/gpt2", layer=1, neuron_idx=2, pole="negative"
+    )
+    wide = base.for_unit(pythia)
+    assert wide.floor == 0.01 and base.for_unit(gpt2) is base
+    scale = 0.16997
+    assert not base.close(0.12703, 0.125384, scale) and wide.close(0.12703, 0.125384, scale)
+    assert not wide.close(scale, scale * 1.10, scale)  # 10% at a peak: an edit
+    head = HeadIdentifier(model_name="EleutherAI/pythia-70m", layer=4, head_idx=4)
+    assert base.for_unit(head) == HEAD_TOLERANCE  # heads keep their own study (#3956)
+    assert base.for_dtype("bfloat16").for_unit(pythia).floor == 0.01  # each term keeps the larger
 
 
 def test_a_bfloat16_record_reproduces_on_float32_weights_with_a_warning(record, toy_runner):
@@ -399,8 +425,12 @@ def _at_threshold(record, toy_runner):
 
 
 def _flip(record, toy_runner, *, forge: bool):
-    from openinterp.half_precision import rederived
-    from openinterp.reproduce import DEFAULT_TOLERANCE, ReproductionReport, _compare_verdicts
+    from openinterpretability.half_precision import rederived
+    from openinterpretability.reproduce import (
+        DEFAULT_TOLERANCE,
+        ReproductionReport,
+        _compare_verdicts,
+    )
 
     i, under, over = _at_threshold(record, toy_runner)
     # the record, consistent with itself: the probe just under its threshold, so it passed
@@ -428,7 +458,11 @@ def test_a_16_bit_pass_that_its_own_number_contradicts_is_caught(record, toy_run
 
 
 def test_a_16_bit_record_whose_status_doesnt_follow_from_its_results_is_caught(record, toy_runner):
-    from openinterp.reproduce import DEFAULT_TOLERANCE, ReproductionReport, _compare_verdicts
+    from openinterpretability.reproduce import (
+        DEFAULT_TOLERANCE,
+        ReproductionReport,
+        _compare_verdicts,
+    )
 
     i, under, over = _at_threshold(record, toy_runner)
     old = edit_result(record, i, activation=under).verdict
@@ -443,7 +477,11 @@ def test_a_16_bit_record_whose_status_doesnt_follow_from_its_results_is_caught(r
 
 
 def test_a_float32_result_that_flips_still_fails(record, toy_runner):
-    from openinterp.reproduce import DEFAULT_TOLERANCE, ReproductionReport, _compare_verdicts
+    from openinterpretability.reproduce import (
+        DEFAULT_TOLERANCE,
+        ReproductionReport,
+        _compare_verdicts,
+    )
 
     i, under, over = _at_threshold(record, toy_runner)
     old = edit_result(record, i, activation=under).verdict
@@ -472,9 +510,11 @@ def _edit_tokens(record, count: int, by: float):
 
 
 def test_a_16_bit_record_may_have_a_few_stray_tokens(record, toy_runner, monkeypatch):
-    import openinterp.reproduce
+    import openinterpretability.reproduce
 
-    monkeypatch.setattr(openinterp.reproduce, "HALF_STRAY_TOKENS", 2)  # the toy has 5 tokens
+    monkeypatch.setattr(
+        openinterpretability.reproduce, "HALF_STRAY_TOKENS", 2
+    )  # the toy has 5 tokens
     half = _pinned(record, "bfloat16")
     few = reproduce_record(_edit_tokens(half, 2, -0.2), toy_runner)
     assert few.ok, few.mismatches
@@ -499,10 +539,60 @@ def test_a_10_percent_edit_of_a_16_bit_peak_is_caught(record, toy_runner):
     )
 
 
+def _scanned_in(record, dtype):
+    """``record`` with a scan that pins ``dtype``. Its review keeps its own pin (float32)."""
+    from openinterpretability.core.schemas import ExperimentProvenance
+
+    prov = ExperimentProvenance(
+        dtype=dtype, corpus="c", corpus_sha256="abc", n_snippets=5, tokens_scanned=100,
+        selection="manual", harness_version="t",
+    )  # fmt: skip
+    return record.model_copy(
+        update={"submission": record.submission.model_copy(update={"provenance": prov})}
+    )
+
+
+def test_a_bfloat16_scan_is_reproduced_in_bfloat16_and_its_review_in_float32(record, toy_runner):
+    # #3801: a bfloat16 scan with a float32 review. Its scan evidence drifted by up to 1.4% of
+    # the scale on another device, and failed the float32 tolerance.
+    from openinterpretability.reproduce import scan_dtype
+
+    mixed = _scanned_in(record, "bfloat16")
+    assert scan_dtype(mixed) == "bfloat16" and mixed.verdict.environment.dtype == "float32"
+    assert scan_dtype(record) == "float32"  # no scan pin: the review's
+    drift = _edit_tokens(mixed, 1, 0.03)  # 3% of the scale: 16-bit rounding
+    report = reproduce_record(drift, toy_runner)
+    assert report.ok, report.mismatches
+    assert any("the scan pins bfloat16" in w for w in report.warnings)
+    float32_scan = _edit_tokens(_scanned_in(record, "float32"), 1, 0.03)
+    assert not reproduce_record(float32_scan, toy_runner).ok
+    # The review was measured in float32, so its numbers keep the float32 tolerance.
+    i = next(n for n, r in enumerate(mixed.verdict.adversarial_test_results) if r.activation)
+    probe = mixed.verdict.adversarial_test_results[i].activation
+    nudged = edit_result(mixed, i, activation=probe + 0.03 * mixed.submission.max_activation)
+    assert any("activation" in m for m in reproduce_record(nudged, toy_runner).mismatches)
+
+
+def test_cli_loads_the_scan_dtype_for_the_scan_evidence(tmp_path, monkeypatch, record, toy_runner):
+    toy_runner.model.config = SimpleNamespace()
+    loads = []
+    monkeypatch.setattr(
+        "openinterpretability.cli._load_runner",
+        lambda name, device, dtype, revision=None, attn=None: (
+            loads.append((name, dtype)) or toy_runner
+        ),
+    )
+    path = tmp_path / "mixed.json"
+    path.write_text(_scanned_in(record, "bfloat16").model_dump_json())
+    result = CliRunner().invoke(cli, ["reproduce", str(path)])
+    assert result.exit_code == 0, result.output
+    assert sorted(loads) == [("toy", "bfloat16"), ("toy", "float32")]
+
+
 def test_reproduce_picks_each_records_scan_corpus_by_sha(record, tmp_path, monkeypatch):
-    from openinterp.cli_evidence import read_corpus
-    from openinterp.cli_reproduce import _Reproducer, scan_corpora
-    from openinterp.core.schemas import CorpusSample, ExperimentProvenance
+    from openinterpretability.cli_evidence import read_corpus
+    from openinterpretability.cli_reproduce import _Reproducer, scan_corpora
+    from openinterpretability.core.schemas import CorpusSample, ExperimentProvenance
 
     monkeypatch.chdir(tmp_path)
     given = tmp_path / "given.txt"
@@ -535,8 +625,8 @@ def test_reproduce_picks_each_records_scan_corpus_by_sha(record, tmp_path, monke
 
 
 def test_an_unsigned_record_of_a_signed_only_model_fails_ci(record):
-    from openinterp.cli_reproduce import _Reproducer
-    from openinterp.planner import signed_models
+    from openinterpretability.cli_reproduce import _Reproducer
+    from openinterpretability.planner import signed_models
 
     (model,) = signed_models()
     ident = record.submission.identifier.model_copy(update={"model_name": model})

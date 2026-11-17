@@ -2,11 +2,11 @@
 
 import pyarrow.parquet as pq
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.neuronpedia_export import export_row
-from openinterp.builder.tree import build_tree, false_discovery
-from openinterp.builder.wiki import rebuild_indexes, write_experiment_page
-from openinterp.core.schemas import AuditRecord, NeuronIdentifier
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.neuronpedia_export import export_row
+from openinterpretability.builder.tree import build_tree, false_discovery
+from openinterpretability.builder.wiki import rebuild_indexes, write_experiment_page
+from openinterpretability.core.schemas import AuditRecord, NeuronIdentifier
 from tests.site_pages import unit_pages
 from tests.test_superpositions import MEMBERS, _reviewed
 from tests.test_wiring import qwen_runner  # noqa: F401  (fixture)

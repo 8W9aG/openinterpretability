@@ -15,7 +15,7 @@ The source is Nick Cammarata / Goodfire, *Neural Networks Are Already Clean* (15
 4. **Look for offshoots, not unrelated meanings.** Neurons grow related offshoots over training (e.g. "iy" → "diy" → "do it yourself"). Before claiming two jobs, ask whether the second is a generalisation of the first. If the model publishes intermediate checkpoints (e.g. Pythia), compare them.
 5. **Describe the shared pattern, not a list of nouns.** Ask the essay's question: *if I couldn't use groups of nouns at all, how would I describe this neuron?*
 6. **Audit both poles.** The negative pole gets gradient whenever the neuron is active. It often encodes the distinction the positive pole draws (the essay's V-neuron's negative pole is an O). Scan `--pole negative` too, and mention the contrast in the explanation.
-7. **Don't standardise activation scales across neurons.** Use each neuron's own range. `openinterp` already does this: the "active" threshold is a fraction of the neuron's own `max_activation`.
+7. **Don't standardise activation scales across neurons.** Use each neuron's own range. `openinterpretability` already does this: the "active" threshold is a fraction of the neuron's own `max_activation`.
 8. **Dial or detector?** Check the shape of the histogram. A detector has a near-zero bulk and a separate tail. A dial varies smoothly. Percentiles hide the difference, so read the raw histogram. Results also depend on how far into weak activations you look, so report examples from several strength bands (see the `explanation-simulation-scoring` skill).
 9. **Leftovers point at tool problems.** If a consistent subset of examples doesn't fit, suspect the tool first. For SwiGLU models (Qwen, Llama, Mistral), run the regime decomposition below.
 10. **Say so when you don't know.** A narrow, true explanation with acknowledged leftovers beats a broad one that the reviewer's holdouts will break.
@@ -26,7 +26,7 @@ Gated MLPs compute `a = silu(g) * u`. Because `silu(g)` is slightly negative for
 
 ```python
 import torch
-from openinterp.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.hooks import NeuronHookRunner
 
 
 def swiglu_regimes(runner: NeuronHookRunner, text: str, layer: int, idx: int):
@@ -55,6 +55,6 @@ The regime is common but rarely on top. On Qwen3.6-35B-A3B, `g-u-` gives 35–36
 ## Fit with the protocol
 
 - To check a reading against the whole scan (every occurrence of a token, everything above a strength), use `open-interpretability activations` with the audit's corpus options. It replays the layer's cached scan instead of running the model again.
-- Scan long documents with `open-interpretability audit --window-tokens 512` (stride defaults to half a window). Provenance records the window length and stride (`snippet_tokens`, `snippet_stride`). Reviewers will discount short-context scans. The exception is GPT-2 small, scanned in 128-token windows (`[tool.openinterp.window_tokens]`). Its transcoders' latents fit no longer contexts, and this lets its neuron poles compare like for like with them.
+- Scan long documents with `open-interpretability audit --window-tokens 512` (stride defaults to half a window). Provenance records the window length and stride (`snippet_tokens`, `snippet_stride`). Reviewers will discount short-context scans. The exception is GPT-2 small, scanned in 128-token windows (`[tool.openinterpretability.window_tokens]`). Its transcoders' latents fit no longer contexts, and this lets its neuron poles compare like for like with them.
 - Use the "Too little room" and "offshoot" points when arguing that a two-job neuron is really one job. The reviewer's positive holdouts should then include the offshoot.
 - Steering ("what the model writes when the neuron is turned up") is one of the essay's main checks. See the `neuron-steering-tests` skill.

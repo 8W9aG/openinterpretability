@@ -1,19 +1,19 @@
 ---
 name: semantic-versioning
-description: Decide the next package version of openinterp under Semantic Versioning. Read the waiting changelog fragments and the changes since the last tag. Find the breaking changes (record schema, CLI, Python API, protocol), and choose a major, minor or patch bump with its reasons. Use in the release skill before the version is bumped, or when the user asks what the next version should be.
+description: Decide the next package version of openinterpretability under Semantic Versioning. Read the waiting changelog fragments and the changes since the last tag. Find the breaking changes (record schema, CLI, Python API, protocol), and choose a major, minor or patch bump with its reasons. Use in the release skill before the version is bumped, or when the user asks what the next version should be.
 ---
 
 # Semantic versioning
 
-The package version (`openinterp.__version__`) follows [Semantic Versioning](https://semver.org/). The `release` skill runs this skill before it bumps the version. The result is one version and the reasons for it, which go in the release PR.
+The package version (`openinterpretability.__version__`) follows [Semantic Versioning](https://semver.org/). The `release` skill runs this skill before it bumps the version. The result is one version and the reasons for it, which go in the release PR.
 
 ## The rule
 
 A change is **breaking** when it breaks one of these for a user of the package:
 
-- **The record schema.** A field is removed or renamed, its type or meaning changes, or old records stop validating (`openinterp/core/schemas.py`).
+- **The record schema.** A field is removed or renamed, its type or meaning changes, or old records stop validating (`openinterpretability/core/schemas.py`).
 - **The CLI.** A command or option is removed or renamed, or its default changes what it writes (`open-interpretability --help`).
-- **The Python API.** A public name in `openinterp` is removed or renamed, or its signature changes in an incompatible way.
+- **The Python API.** A public name in `openinterpretability` is removed or renamed, or its signature changes in an incompatible way.
 - **The protocol.** `PROTOCOL_VERSION` changes (`docs/PROTOCOL.md` §6), because the same evidence can then get another verdict.
 
 Then:
@@ -33,8 +33,8 @@ Then:
 2. **Look for breaking changes that nobody marked.** A fragment's author can forget the marker, so check the changes themselves:
    ```bash
    last=$(git describe --tags --abbrev=0)
-   git diff "$last" -- openinterp/core/schemas.py     # removed or renamed fields, new required fields
-   git diff "$last" -- openinterp/cli.py openinterp/cli_*.py | grep -E '^[-+].*(@click\.(option|command|argument)|def )'
+   git diff "$last" -- openinterpretability/core/schemas.py     # removed or renamed fields, new required fields
+   git diff "$last" -- openinterpretability/cli.py openinterpretability/cli_*.py | grep -E '^[-+].*(@click\.(option|command|argument)|def )'
    git log --oneline "$last"..HEAD
    ```
    Check each removed or renamed field, option, command and public function. A new optional field or option is not breaking. If you find a breaking change, add `**Breaking.**` to the start of its fragment's bullet in the release branch, so that the CHANGELOG says so.

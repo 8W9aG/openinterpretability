@@ -1,0 +1,172 @@
+{# Fill per neuron status on the layer map and pieces bars. Defined in builder/statuses.py. #}
+{% set map_fill = statuses.STATUS_FILL %}
+
+{% macro status_badge(status) -%}
+<span class="whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold {{ statuses.STATUS_BADGE[status] }}">{{ status | replace('_', ' ') }}</span>
+{%- endmacro %}
+
+{# A broad unit (#4545): VERIFIED, but active on at least half its held-out windows. Text, not colour. #}
+{% macro broad_badge() -%}
+<span class="whitespace-nowrap rounded border border-slate-400 px-1.5 py-0.5 text-xs text-slate-700 dark:border-slate-500 dark:text-slate-300" title="Broad: active on at least half of its held-out text, so its explanation says little about any one text">broad</span>
+{%- endmacro %}
+
+{# Why a scan stopped on a chosen unit, in words. #}
+{% macro stop_outcome(stop) -%}
+{{ stop.outcome | replace('_', '-') }}{% if stop.proven_dead %} (proven by the weights){% endif %}
+{%- endmacro %}
+
+{% macro evidence_badge(conclusiveness, direction) -%}
+{% set strength = evidence_strength(conclusiveness) %}
+{% set supports = direction == 'supports' %}
+<span class="whitespace-nowrap rounded border px-2 py-0.5 text-xs {{ 'border-brand-300 text-brand-800 dark:border-brand-800 dark:text-brand-300' if supports else 'border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-300' }}"
+      title="Conclusiveness {{ conclusiveness | num(2) }}: how settled the probe evidence is, in either direction">
+  {{ strength }} evidence {{ 'for' if supports else 'against' }} · {{ conclusiveness | num(2) }}
+</span>
+{%- endmacro %}
+
+{# The proposer's model also wrote the probes. Recorded, not gated (protocol §2). #}
+{% macro self_review_badge() -%}
+<span class="whitespace-nowrap rounded border border-dashed border-amber-400 px-2 py-0.5 text-xs text-amber-800 dark:border-amber-700 dark:text-amber-300"
+      title="The proposer's model also wrote the probes, so this is not an independent review. Allowed, but a re-review by a different model is worth more: open-interpretability next draws these.">self-reviewed</span>
+{%- endmacro %}
+
+{# Scanned on the 552-token built-in sample: the max activation behind every "active" line means little. #}
+{% macro builtin_sample_badge() -%}
+<span class="whitespace-nowrap rounded border border-dashed border-amber-400 px-2 py-0.5 text-xs text-amber-800 dark:border-amber-700 dark:text-amber-300"
+      title="Scanned on the 552-token built-in sample, not the registry corpus, so its max activation (the denominator of every 'active' line) means little. open-interpretability next draws a rescan instead of re-reviewing it.">built-in sample</span>
+{%- endmacro %}
+
+{% macro pole_mark(pole) -%}
+<span class="{{ 'text-pole-positive' if pole == 'positive' else 'text-pole-negative' }}">{{ '+' if pole == 'positive' else '−' }}</span>
+{%- endmacro %}
+
+{% macro breadcrumb(root, model=none, layer=none, neuron=none, unit_link=false) -%}
+<nav class="mb-4 text-xs text-slate-500">
+  <a class="underline" href="{{ root }}index.html">Registry</a>
+  {% if model %} / {% if layer %}<a class="underline" href="{{ root }}{{ model.href }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}{% endif %}
+  {% if layer %} / {% if neuron %}<a class="underline" href="{{ root }}{{ layer.href }}">Layer {{ layer.layer }}</a>{% else %}Layer {{ layer.layer }}{% endif %}{% endif %}
+  {% if neuron %} / {% if unit_link %}<a class="underline" href="{{ root }}{{ neuron.href }}">{% endif %}{{ neuron.noun | capitalize }} {{ neuron.idx }}{% if neuron.dictionary %} ({{ neuron.dictionary }}){% endif %}{% if unit_link %}</a>{% endif %}{% endif %}
+</nav>
+{%- endmacro %}
+
+{# Tokens shaded by pole strength; hover (or tap) a token for its exact value. #}
+{# Masks an example that matched the word list of openinterpretability/sensitive.py until the reader opts in. CSS only, so it works with no script. Pagefind leaves it out, so search results do not show the text. #}
+{% macro spoiler(masked) -%}
+{%- if masked -%}
+<div class="spoiler" data-pagefind-ignore>
+  <input type="checkbox" class="spoiler-toggle" aria-label="Show text that may be offensive or distressing">
+  <span class="spoiler-cover" aria-hidden="true">May be offensive or distressing · select to show</span>
+  <div class="spoiler-body">{{ caller() }}</div>
+</div>
+{%- else -%}
+{{ caller() }}
+{%- endif -%}
+{%- endmacro %}
+
+{# The spans are built in Python (builder/heat.py), because pages show many thousands of tokens. #}
+{% macro heat_tokens(tokens) -%}
+{{ heat_html(tokens) }}
+{%- endmacro %}
+
+{# What errata changed about one experiment (core/errata.py). Errata have no page of their own. #}
+{% macro errata_notes(errata, edits, repo_url) -%}
+{% for x in errata %}
+<div role="note" class="mt-3 max-w-3xl rounded-lg border border-amber-400 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+  <p><span class="font-semibold">Erratum, {{ x.date.isoformat() }}: {{ x.title }}.</span>
+    {% if x.set_aside %}This record is set aside: it no longer counts toward the status.{% else %}This page shows the record with these corrections:{% endif %}</p>
+  {% if not x.set_aside %}
+  <ul class="mt-1 list-disc pl-5">
+    {% for d in edits if d.erratum == x.id %}
+    <li><code>{{ d.path }}</code>: <span class="line-through">{{ d.before | tojson | truncate(80) }}</span> → {{ d.after | tojson | truncate(80) }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <p class="mt-1">{{ x.bug }} Fixed in <a class="font-mono underline" href="{{ repo_url }}/commit/{{ x.fixed_in }}">{{ x.fixed_in[:12] }}</a>.</p>
+</div>
+{% endfor %}
+{%- endmacro %}
+
+{# The open experiment PRs (builder/pending.py, #3283): what is still running or landing. #}
+{% macro pending_table(pending, root, show_model=true) -%}
+<section class="mb-10 mt-10">
+  <h2 class="mb-1 text-lg font-semibold">Pending experiments</h2>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">{{ pending | length }} experiment{{ 's are' if pending | length != 1 else ' is' }} in an open pull request, newest first, as of this build. A draft is still running, and a ready one waits for its checks.</p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="hidden px-3 py-2 sm:table-cell">Opened</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Draw</th><th class="px-3 py-2">State</th><th class="px-3 py-2">PR</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for p in pending %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ p.opened }}">{{ p.opened }}</time></td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ p.unit_href }}">L{{ p.layer }}/{{ p.unit }}{% if p.pole %}{{ pole_mark(p.pole) }}{% endif %}</a>{% if show_model %}<div class="text-slate-500">{{ p.model_slug.replace('--', '/') }}</div>{% endif %}</td>
+          <td class="px-3 py-2">{{ p.kind.replace('_', ' ') }}</td>
+          <td class="px-3 py-2">{% if p.draft %}running (draft){% else %}waiting for checks{% endif %}</td>
+          <td class="px-3 py-2"><a class="underline underline-offset-2" href="{{ p.url }}">#{{ p.number }}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endmacro %}
+
+
+{# A model's card: its statistics and its pieces bars (builder/pieces.py), on the home and
+   Models pages (#3287). `idx` keeps each card's SVG pattern id unique on the page. #}
+{% macro model_card(m, explore, root, idx) -%}
+{% set pc = pieces.model_pieces(m) %}
+<a href="{{ root }}{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-brand-500 dark:border-slate-800">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <span class="font-mono text-sm font-medium">{{ m.name }}{% if m.name == explore.model %} <span class="ml-1 rounded bg-brand-100 px-1.5 py-0.5 font-sans text-xs font-normal text-brand-800 dark:bg-brand-900/40 dark:text-brand-300" title="The smallest model below the verified target: open-interpretability next draws most new neurons from it.">explore focus</span>{% endif %}</span>
+    <span class="text-sm tabular-nums text-slate-600 dark:text-slate-400">
+      {{ m.experiments }} experiments ·
+      {{ m.neurons_studied }}/{{ m.total_neurons | thousands }} neurons studied{% if m.member_only %}, {{ m.member_only }} of them only as part of a superposition{% endif %} ({{ m.coverage | pct_fine }}) ·
+      {% set v = explore.models[m.name] %}{{ v.verified }}/{{ m.total_neurons | thousands }} verified ({{ (v.verified / m.total_neurons if m.total_neurons else none) | pct_fine }}; target {{ '{:g}%'.format(100 * explore.target) }}){% if v.dead %}, {{ v.dead }} of them proven dead{% endif %}
+    </span>
+  </div>
+  {% if pc %}
+  <svg viewBox="0 0 {{ pc.width }} {{ 4 * pc.rows | length - 1 }}" class="mt-3 w-full" role="img" data-pagefind-ignore
+       aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons; {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron. A cell's colour is the best status in it, and how far it fills is the share of its poles studied.">
+    <defs><pattern id="pieces-{{ idx }}" width="{{ pc.pitch }}" height="4" patternUnits="userSpaceOnUse"><rect width="{{ pc.pitch - 1 }}" height="3" class="fill-slate-200 dark:fill-slate-800"/></pattern></defs>
+    <rect width="{{ pc.width + 1 }}" height="{{ 4 * pc.rows | length }}" fill="url(#pieces-{{ idx }})"/>
+    {% for row in pc.rows %}
+    {% for c in row.cells %}
+    <rect x="{{ c.x }}" y="{{ 4 * row.layer + c.y }}" width="{{ pc.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
+    {% endfor %}
+    {% endfor %}
+  </svg>
+  <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top. Each cell is {{ pc.block }} neurons, coloured by the best status among them. It fills from the bottom with the share of their poles that are studied, so one studied pole shows as a thin line.</p>
+  {% endif %}
+</a>
+{%- endmacro %}
+
+{# The rows of an explanations table: on the Explanations index and on each model page (#4206). #}
+{# Prompts and their explanations (#4503): one row per prompt, linking to its page. #}
+{% macro explanation_rows(prompts, root, show_model=true) -%}
+<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Newest</th>{% if show_model %}<th class="px-3 py-2">Model</th>{% endif %}<th class="px-3 py-2">Prompt → answer</th><th class="px-3 py-2 text-right">Explanations</th><th class="px-3 py-2 text-right">Best coverage</th><th class="px-3 py-2">State</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+{% for p in prompts %}
+<tr class="align-top">
+  <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ p.record.written.isoformat() }}">{{ p.record.written.strftime("%Y-%m-%d") }}</time></td>
+  {% if show_model %}<td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ p.record.model_name }}</td>{% endif %}
+  <td class="px-3 py-2"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ p.href }}">{{ p.record.prompt | truncate(90) }} → <span class="font-mono">{{ p.record.answer }}</span></a></td>
+  <td class="px-3 py-2 text-right font-mono tabular-nums">{{ p.explanations | length }}</td>
+  <td class="px-3 py-2 text-right font-mono tabular-nums">{{ p.best_coverage | pct_fine if p.best_coverage is not none else "—" }}</td>
+  <td class="px-3 py-2 text-xs">{% if p.stale %}stale: {{ p.changed | length }} unit{{ 's' if p.changed | length != 1 }} changed{% else %}current{% endif %}</td>
+</tr>
+{% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}
+
+{# A paper's status (#3150): a preprint with the issues still open on it, or published on a day. Text says it, not colour. #}
+{% macro paper_status(status, repo_url) -%}
+{% if status %}{% if status.preprint %}<span class="rounded border border-slate-400 px-1.5 py-0.5 font-medium text-slate-700 dark:border-slate-500 dark:text-slate-300">Preprint</span> work left: {% for n in status.issues %}<a class="underline" href="{{ repo_url }}/issues/{{ n }}">#{{ n }}</a>{{ ", " if not loop.last }}{% endfor %}{% else %}<span class="rounded bg-slate-800 px-1.5 py-0.5 font-medium text-white dark:bg-slate-200 dark:text-slate-900">Published</span> <time datetime="{{ status.published }}">{{ status.published }}</time>; changes since are addenda{% endif %}{% endif %}
+{%- endmacro %}

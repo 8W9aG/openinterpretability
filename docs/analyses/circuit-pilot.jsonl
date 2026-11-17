@@ -1,0 +1,73 @@
+{"table": "task", "task": "word_completion", "pairs": 120, "clean_metric": 9.0549, "faithfulness": 0.0007, "necessity": 0.0001}
+{"table": "task", "task": "agreement", "pairs": 120, "clean_metric": 4.4408, "faithfulness": 0.0001, "necessity": 0.0014}
+{"table": "task", "task": "names", "pairs": 120, "clean_metric": 6.1012, "faithfulness": 0.0009, "necessity": 0.0006}
+{"table": "member", "layer": 4, "neuron": 2999, "faithfulness": 0.0003, "necessity": -0.0}
+{"table": "member", "layer": 5, "neuron": 1208, "faithfulness": 0.0005, "necessity": -0.0002}
+{"table": "member", "layer": 5, "neuron": 2567, "faithfulness": -0.0003, "necessity": 0.0003}
+{"table": "member", "layer": 5, "neuron": 616, "faithfulness": 0.0, "necessity": -0.0001}
+{"table": "member", "layer": 6, "neuron": 37, "faithfulness": 0.0002, "necessity": -0.0}
+{"table": "null", "set": 0, "faithfulness": 0.0, "necessity": 0.0001}
+{"table": "null", "set": 1, "faithfulness": 0.0, "necessity": 0.0002}
+{"table": "null", "set": 2, "faithfulness": -0.0002, "necessity": -0.0008}
+{"table": "null", "set": 3, "faithfulness": 0.0, "necessity": -0.0005}
+{"table": "null", "set": 4, "faithfulness": -0.0001, "necessity": -0.0005}
+{"table": "null", "set": 5, "faithfulness": -0.0, "necessity": 0.0004}
+{"table": "null", "set": 6, "faithfulness": 0.0001, "necessity": 0.0}
+{"table": "null", "set": 7, "faithfulness": 0.0, "necessity": 0.0011}
+{"table": "null", "set": 8, "faithfulness": 0.0001, "necessity": -0.0004}
+{"table": "null", "set": 9, "faithfulness": 0.0, "necessity": -0.0007}
+{"table": "null", "set": 10, "faithfulness": 0.0001, "necessity": 0.0003}
+{"table": "null", "set": 11, "faithfulness": 0.0011, "necessity": 0.0026}
+{"table": "null", "set": 12, "faithfulness": -0.0001, "necessity": -0.0001}
+{"table": "null", "set": 13, "faithfulness": -0.0003, "necessity": 0.0004}
+{"table": "null", "set": 14, "faithfulness": 0.0, "necessity": 0.0002}
+{"table": "null", "set": 15, "faithfulness": -0.0002, "necessity": -0.0003}
+{"table": "null", "set": 16, "faithfulness": -0.0001, "necessity": 0.0}
+{"table": "null", "set": 17, "faithfulness": 0.0003, "necessity": 0.0003}
+{"table": "null", "set": 18, "faithfulness": 0.0, "necessity": 0.0}
+{"table": "null", "set": 19, "faithfulness": -0.0, "necessity": -0.0007}
+{"table": "null", "set": 20, "faithfulness": -0.0, "necessity": 0.0006}
+{"table": "null", "set": 21, "faithfulness": 0.0001, "necessity": 0.0006}
+{"table": "null", "set": 22, "faithfulness": 0.0011, "necessity": -0.0001}
+{"table": "null", "set": 23, "faithfulness": -0.0002, "necessity": -0.0005}
+{"table": "null", "set": 24, "faithfulness": 0.0002, "necessity": 0.0001}
+{"table": "null", "set": 25, "faithfulness": 0.0005, "necessity": -0.0}
+{"table": "null", "set": 26, "faithfulness": -0.0001, "necessity": -0.0004}
+{"table": "null", "set": 27, "faithfulness": -0.0001, "necessity": -0.0}
+{"table": "null", "set": 28, "faithfulness": 0.0, "necessity": 0.0005}
+{"table": "null", "set": 29, "faithfulness": 0.0002, "necessity": -0.0002}
+{"table": "null", "set": 30, "faithfulness": 0.0001, "necessity": 0.0003}
+{"table": "null", "set": 31, "faithfulness": 0.0002, "necessity": 0.0005}
+{"table": "null", "set": 32, "faithfulness": -0.0001, "necessity": 0.0005}
+{"table": "null", "set": 33, "faithfulness": 0.0003, "necessity": -0.0005}
+{"table": "null", "set": 34, "faithfulness": -0.0001, "necessity": 0.0002}
+{"table": "null", "set": 35, "faithfulness": -0.0002, "necessity": -0.0008}
+{"table": "null", "set": 36, "faithfulness": 0.0, "necessity": -0.0002}
+{"table": "null", "set": 37, "faithfulness": 0.0002, "necessity": 0.0}
+{"table": "null", "set": 38, "faithfulness": 0.0006, "necessity": 0.0006}
+{"table": "null", "set": 39, "faithfulness": -0.0001, "necessity": -0.0009}
+{"table": "null", "set": 40, "faithfulness": 0.0001, "necessity": 0.0003}
+{"table": "null", "set": 41, "faithfulness": 0.0003, "necessity": -0.0004}
+{"table": "null", "set": 42, "faithfulness": 0.0004, "necessity": 0.0002}
+{"table": "null", "set": 43, "faithfulness": -0.0003, "necessity": -0.0}
+{"table": "null", "set": 44, "faithfulness": 0.0002, "necessity": 0.0001}
+{"table": "null", "set": 45, "faithfulness": 0.0001, "necessity": -0.0}
+{"table": "null", "set": 46, "faithfulness": -0.0001, "necessity": -0.0001}
+{"table": "null", "set": 47, "faithfulness": -0.0001, "necessity": 0.0001}
+{"table": "null", "set": 48, "faithfulness": 0.0, "necessity": 0.0002}
+{"table": "null", "set": 49, "faithfulness": -0.0008, "necessity": -0.0007}
+{"table": "null", "set": 50, "faithfulness": -0.0002, "necessity": -0.0002}
+{"table": "null", "set": 51, "faithfulness": 0.0003, "necessity": -0.0002}
+{"table": "null", "set": 52, "faithfulness": 0.0, "necessity": 0.0002}
+{"table": "null", "set": 53, "faithfulness": 0.0001, "necessity": -0.0004}
+{"table": "null", "set": 54, "faithfulness": -0.001, "necessity": -0.0001}
+{"table": "null", "set": 55, "faithfulness": -0.0023, "necessity": -0.0002}
+{"table": "null", "set": 56, "faithfulness": 0.0002, "necessity": 0.0003}
+{"table": "null", "set": 57, "faithfulness": 0.0001, "necessity": -0.0}
+{"table": "null", "set": 58, "faithfulness": -0.0, "necessity": -0.0006}
+{"table": "null", "set": 59, "faithfulness": 0.0, "necessity": 0.0}
+{"table": "null", "set": 60, "faithfulness": -0.0001, "necessity": 0.0005}
+{"table": "null", "set": 61, "faithfulness": 0.0001, "necessity": 0.0}
+{"table": "null", "set": 62, "faithfulness": -0.0004, "necessity": -0.0002}
+{"table": "null", "set": 63, "faithfulness": 0.0004, "necessity": 0.0}
+{"table": "circuit", "model": "openai-community/gpt2", "neurons": [[4, 2999], [5, 1208], [5, 2567], [5, 616], [6, 37]], "heads_not_ablated": ["L7/H10", "L7/H2"], "words": ["pianistic", "defectiveness", "humidifier", "bourdon", "reveler", "undying", "ejectment", "biosynthesis", "springing", "illegality", "hurriedly", "verticality", "abstention", "expressway", "suburbanite", "evangelize", "subjectivity", "assumingly", "kitchenware", "circulatory"]}

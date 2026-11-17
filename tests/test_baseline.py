@@ -3,7 +3,7 @@ import json
 import pytest
 from click.testing import CliRunner
 
-from openinterp.baseline import (
+from openinterpretability.baseline import (
     BaselineRow,
     blind_explanation,
     blind_reading,
@@ -11,11 +11,11 @@ from openinterp.baseline import (
     rescored,
     sign_test,
 )
-from openinterp.cli import cli
-from openinterp.core.explanation import ExplanationScores, ScoredWindow
-from openinterp.core.patchscope import PatchscopeReading, PatchscopeReadout
-from openinterp.core.schemas import NeuronIdentifier
-from openinterp.harness.explanation_scores import finalize_scores
+from openinterpretability.cli import cli
+from openinterpretability.core.explanation import ExplanationScores, ScoredWindow
+from openinterpretability.core.patchscope import PatchscopeReading, PatchscopeReadout
+from openinterpretability.core.schemas import NeuronIdentifier
+from openinterpretability.harness.explanation_scores import finalize_scores
 
 
 def readout(texts: dict[tuple[str, int, float], str]) -> PatchscopeReadout:
@@ -125,15 +125,15 @@ def test_report_pairs_only_metrics_both_explanations_have():
 
 @pytest.fixture
 def archive(tmp_path, record, toy_runner, monkeypatch):
-    from openinterp.builder.wiki import archive_record
+    from openinterpretability.builder.wiki import archive_record
 
     ident = NeuronIdentifier(model_name="toy", layer=1, neuron_idx=2, pole="positive")
     sub = record.submission.model_copy(update={"identifier": ident})
     verdict = record.verdict.model_copy(update={"explanation_scores": scores()})
     archive_record(record.model_copy(update={"submission": sub, "verdict": verdict}), tmp_path)
-    monkeypatch.setattr("openinterp.cli._load_runner", lambda *_a, **_k: toy_runner)
+    monkeypatch.setattr("openinterpretability.cli._load_runner", lambda *_a, **_k: toy_runner)
     monkeypatch.setattr(
-        "openinterp.harness.explanation_scores.embedding_similarities",
+        "openinterpretability.harness.explanation_scores.embedding_similarities",
         lambda _model, query, texts: [float(len(query) % 2)] * len(texts),
     )
     return tmp_path
@@ -169,8 +169,8 @@ def test_command_writes_judge_prompts_then_scores_their_answers(archive):
 def test_neuronpedia_baseline_scores_their_machine_explanation_and_credits_it(
     tmp_path, record, monkeypatch
 ):
-    from openinterp.core.identifiers import FeatureIdentifier
-    from openinterp.crossref import Explanation
+    from openinterpretability.core.identifiers import FeatureIdentifier
+    from openinterpretability.crossref import Explanation
 
     ident = FeatureIdentifier(model_name="toy", layer=1, dictionary="toy-tc", feature_idx=7)
     other = ident.model_copy(update={"feature_idx": 8})  # Neuronpedia has none for it
@@ -181,10 +181,11 @@ def test_neuronpedia_baseline_scores_their_machine_explanation_and_credits_it(
         return None, record.model_copy(update={"submission": sub, "verdict": verdict})
 
     monkeypatch.setattr(
-        "openinterp.builder.wiki.load_archive_paths", lambda _w: [audited(ident), audited(other)]
+        "openinterpretability.builder.wiki.load_archive_paths",
+        lambda _w: [audited(ident), audited(other)],
     )
     monkeypatch.setattr(
-        "openinterp.crossref.latent_url",
+        "openinterpretability.crossref.latent_url",
         lambda d, layer, i, api=False: f"https://www.neuronpedia.org/toy/{layer}-tc/{i}",
     )
     found = {
@@ -194,9 +195,11 @@ def test_neuronpedia_baseline_scores_their_machine_explanation_and_credits_it(
         ],
         8: [],
     }
-    monkeypatch.setattr("openinterp.crossref.latent_explanations", lambda d, layer, i: found[i])
     monkeypatch.setattr(
-        "openinterp.harness.explanation_scores.embedding_similarities",
+        "openinterpretability.crossref.latent_explanations", lambda d, layer, i: found[i]
+    )
+    monkeypatch.setattr(
+        "openinterpretability.harness.explanation_scores.embedding_similarities",
         lambda _model, query, texts: [float(len(query) % 2)] * len(texts),
     )
     work, out = tmp_path / "work", tmp_path / "out" / "np"

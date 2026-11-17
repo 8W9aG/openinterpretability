@@ -1,6 +1,6 @@
 import pytest
 
-from openinterp.core.agent_names import canonical_agent, same_agent, spelling_problem
+from openinterpretability.core.agent_names import canonical_agent, same_agent, spelling_problem
 
 
 @pytest.mark.parametrize(
@@ -48,7 +48,7 @@ def test_spelling_problem(model, expected):
 
 
 def test_recorded_model_rejects_new_spellings(monkeypatch):
-    from openinterp.agents.base import MODEL_ALIASES_ENV, recorded_model
+    from openinterpretability.agents.base import MODEL_ALIASES_ENV, recorded_model
 
     monkeypatch.delenv(MODEL_ALIASES_ENV, raising=False)
     assert recorded_model("external/deepseek-flash") == "external/deepseek-flash"

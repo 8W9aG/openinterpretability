@@ -1,0 +1,29 @@
+"""The project's public links, read from ``pyproject.toml``'s metadata.
+
+``[project.urls]`` holds the site's URL (``Homepage``) and the repo's (``Repository``).
+The builder and ``open-interpretability deploy`` read them here, so each URL is written down once.
+"""
+
+from __future__ import annotations
+
+from email.utils import parseaddr
+from importlib.metadata import metadata
+
+from openinterpretability import DISTRIBUTION
+
+
+def project_links() -> dict[str, str]:
+    """The site and repo URLs, the contact email and the project's one-line description."""
+    meta = metadata(DISTRIBUTION)
+    urls = dict(u.split(", ", 1) for u in meta.get_all("Project-URL") or [])
+    return {
+        "site_url": urls["Homepage"],
+        "repo_url": urls["Repository"],
+        "contact_email": parseaddr(meta["Author-email"])[1],
+        "description": meta["Summary"].split(": ", 1)[-1],  # for social cards (#3289)
+    }
+
+
+def site_url() -> str:
+    """The public URL of the site's root, with a final ``/``."""
+    return project_links()["site_url"]

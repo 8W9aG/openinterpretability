@@ -21,9 +21,14 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from openinterp.agents.reviewer import decide, review_metrics
-from openinterp.core.paths import DEFAULT_WIKI_DIR, experiments_dir
-from openinterp.core.schemas import PROTOCOL_VERSION, AuditRecord, ReviewPolicy, scan_active_share
+from openinterpretability.agents.reviewer import decide, review_metrics
+from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
+from openinterpretability.core.schemas import (
+    PROTOCOL_VERSION,
+    AuditRecord,
+    ReviewPolicy,
+    scan_active_share,
+)
 
 # Settings applied when the probes were measured. If one differs from today's, the stored
 # pass or fail of a probe is not what today's measurement would give.
@@ -43,8 +48,8 @@ def length_baseline(record: AuditRecord, today: ReviewPolicy) -> tuple[str, floa
     A probe's measured activity is read back from its result: a passed hard negative was
     inactive, and a passed holdout was active. None when no probe was measured.
     """
-    from openinterp.agents.reviewer import AdversarialProbe, best_baseline
-    from openinterp.harness.confounds import length_predictions
+    from openinterpretability.agents.reviewer import AdversarialProbe, best_baseline
+    from openinterpretability.harness.confounds import length_predictions
 
     rows = [
         r

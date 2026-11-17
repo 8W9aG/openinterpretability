@@ -6,7 +6,7 @@ This script keeps its ridge readout and its random-feature null, and predicts tw
 
 * ``next-token``: the model's own log-probabilities of the 200 commonest tokens, and the
   entropy of its distribution, on the corpus sample's windows.
-* ``concepts``: human labels of `openinterp/concepts.py`, for each token of each document.
+* ``concepts``: human labels of `openinterpretability/concepts.py`, for each token of each document.
 
 Token identity explains much of each target, so each row also has a lookup baseline that
 reads only the current token. ``concepts`` also scores the ambiguous tokens: the token
@@ -37,10 +37,10 @@ from default_on_poles import (
     write_row,
 )
 
-from openinterp.cli import _load, resolve_device
-from openinterp.concepts import CONCEPT_PRESETS
-from openinterp.concepts import load_split as load_concept_split
-from openinterp.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
+from openinterpretability.cli import _load, resolve_device
+from openinterpretability.concepts import CONCEPT_PRESETS
+from openinterpretability.concepts import load_split as load_concept_split
+from openinterpretability.corpus import DEFAULT_SAMPLE_SEED, DEFAULT_SAMPLE_TOKENS
 
 NEXT_TOKEN_CLASSES = 200
 NULL_DRAWS = 3

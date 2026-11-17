@@ -31,7 +31,7 @@ from pathlib import Path
 
 import click
 
-from openinterp.agents.reviewer import (
+from openinterpretability.agents.reviewer import (
     DEFAULT_POLICY,
     _probe_score,
     decide,
@@ -43,7 +43,7 @@ from openinterp.agents.reviewer import (
     scan_active_share,
     settle_first_token_floor,
 )
-from openinterp.core.schemas import AuditRecord
+from openinterpretability.core.schemas import AuditRecord
 
 PROBE_KINDS = ("hard_negative", "positive_holdout")
 PROPOSER_GATES = ("counterfactual_reproduction", "lookahead_consistent")
@@ -141,7 +141,7 @@ def relabel(record: AuditRecord, probes, labels, baselines):
 
     They come from the activity that the record measured.
     """
-    from openinterp.agents.reviewer import AdversarialProbe
+    from openinterpretability.agents.reviewer import AdversarialProbe
 
     sub, policy = record.submission, DEFAULT_POLICY
     actual = [r.passed == bool(r.expected_active) for r in probes]
@@ -175,7 +175,7 @@ def shuffle_baselines(sub, tokenizer, texts, policy) -> dict[str, list[bool]] | 
 
     ``None`` without a confound profile. The gate then fails, as in a review.
     """
-    from openinterp.harness.confounds import baseline_predictions
+    from openinterpretability.harness.confounds import baseline_predictions
 
     if sub.confounds is None:
         return None
@@ -205,12 +205,12 @@ def shuffle_baselines(sub, tokenizer, texts, policy) -> dict[str, list[bool]] | 
 @click.option("--out", required=True, type=click.Path(dir_okay=False, path_type=Path))
 def swap(wiki_dir, corpora, models, seed, device, out):
     """Score each VERIFIED pole's hypothesis against a random neuron of its layer."""
-    import openinterp.harness.scan
-    from openinterp.cli import _load_runner
-    from openinterp.cli_evidence import open_scan_cache
-    from openinterp.evidence import read_corpus
+    import openinterpretability.harness.scan
+    from openinterpretability.cli import _load_runner
+    from openinterpretability.cli_evidence import open_scan_cache
+    from openinterpretability.evidence import read_corpus
 
-    openinterp.harness.scan.PartnerSearch = _NoPartners
+    openinterpretability.harness.scan.PartnerSearch = _NoPartners
     by_sha = {read_corpus(None)[2]: None} | {read_corpus(p)[2]: p for p in corpora}
     targets, skipped = verified_units(wiki_dir, models), Counter()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -271,7 +271,7 @@ def swap_record(record: AuditRecord, runner, corpus, seed: int, cache, samples) 
 
     The review uses the record's submission and probes.
     """
-    from openinterp.evidence import Unauditable, check_default_on, run_scan
+    from openinterpretability.evidence import Unauditable, check_default_on, run_scan
 
     sub = record.submission
     ident = sub.identifier
@@ -293,7 +293,7 @@ def swap_record(record: AuditRecord, runner, corpus, seed: int, cache, samples) 
 
 def scan_request(sub, null, corpus):
     """The scan that the null neuron's own audit would make."""
-    from openinterp.evidence import ScanRequest
+    from openinterpretability.evidence import ScanRequest
 
     prov = sub.provenance
     sample = prov.corpus_sample
@@ -314,7 +314,7 @@ def scan_request(sub, null, corpus):
 
 def scan_texts(runner, request, samples):
     """The corpus sample ``request`` reads, drawn once per corpus, sample and windows."""
-    from openinterp.evidence import load_texts
+    from openinterpretability.evidence import load_texts
 
     key = (request.corpus, request.max_tokens, request.sample_seed, request.window_tokens)
     key += (request.stride,)
@@ -325,7 +325,7 @@ def scan_texts(runner, request, samples):
 
 def null_submission(sub, null, scan):
     """The submission with everything its scan measured replaced by the null neuron's."""
-    from openinterp.harness.hooks import activation_histogram
+    from openinterpretability.harness.hooks import activation_histogram
 
     return sub.model_copy(
         update={
@@ -348,7 +348,7 @@ def review_null(record: AuditRecord, runner, sub) -> dict:
 
 def review_probes(sub, runner, probes, reviewer_model: str) -> dict:
     """``evaluate_submission`` without causal metrics or wiring, which aren't gated."""
-    from openinterp.agents.reviewer import confound_baseline
+    from openinterpretability.agents.reviewer import confound_baseline
 
     policy = DEFAULT_POLICY
     sub, unit, scale = settle_first_token_floor(sub, runner, policy)

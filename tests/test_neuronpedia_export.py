@@ -3,11 +3,11 @@
 import gzip
 import json
 
-from openinterp.builder.compiler import compile_site
-from openinterp.builder.neuronpedia_export import EXPORT_DIR, NEURON_SET, TYPE_NAME
-from openinterp.core.identifiers import FeatureIdentifier
-from openinterp.core.licenses import DATA_LICENSE
-from openinterp.core.schemas import NeuronIdentifier
+from openinterpretability.builder.compiler import compile_site
+from openinterpretability.builder.neuronpedia_export import EXPORT_DIR, NEURON_SET, TYPE_NAME
+from openinterpretability.core.identifiers import FeatureIdentifier
+from openinterpretability.core.licenses import DATA_LICENSE
+from openinterpretability.core.schemas import NeuronIdentifier
 
 GPT2 = "openai-community/gpt2"
 

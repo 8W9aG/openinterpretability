@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from openinterp.core.exceptions import ArchitectureNotSupportedError
-from openinterp.harness.hooks import (
+from openinterpretability.core.exceptions import ArchitectureNotSupportedError
+from openinterpretability.harness.hooks import (
     NeuronHookRunner,
     activation_histogram,
     isolate_pole,

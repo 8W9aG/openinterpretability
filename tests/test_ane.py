@@ -8,11 +8,17 @@ import numpy as np
 import pytest
 import torch
 
-from openinterp.harness import devices, scan_backend
-from openinterp.harness.ane import backend, cache, forward
-from openinterp.harness.hooks import NeuronHookRunner
-from openinterp.harness.layer_cache import LayerCache
-from openinterp.harness.scan import Piece, TopExamples, cut_pieces, layer_chunks, scan_neuron
+from openinterpretability.harness import devices, scan_backend
+from openinterpretability.harness.ane import backend, cache, forward
+from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.layer_cache import LayerCache
+from openinterpretability.harness.scan import (
+    Piece,
+    TopExamples,
+    cut_pieces,
+    layer_chunks,
+    scan_neuron,
+)
 from tests.conftest import VOCAB, FakeTokenizer
 from tests.test_agents import TEXTS
 
@@ -270,7 +276,7 @@ def test_a_scan_on_the_ane_has_its_own_layer_cache_key(tiny_gpt2, tmp_path):
 
 
 def test_the_record_names_the_scan_backend_when_the_ane_ran(tiny_gpt2):
-    from openinterp.evidence import _scan_environment
+    from openinterpretability.evidence import _scan_environment
 
     runner = NeuronHookRunner(tiny_gpt2, FakeTokenizer())
     assert _scan_environment(runner).scan_backend is None
@@ -302,7 +308,7 @@ def test_a_free_gpu_never_uses_the_ane():
 
 
 def test_device_ane_forces_scans_on_the_ane(monkeypatch):
-    from openinterp.cli import resolve_device
+    from openinterpretability.cli import resolve_device
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
@@ -345,7 +351,7 @@ def test_an_idle_model_does_not_crash_the_process(tiny_qwen2, tmp_path, monkeypa
     np.savez(extra, **backend.convert.feed(forward.shape_inputs(tiny_qwen2.config, 16, 0)))
     script = (
         "import sys, time, numpy, torch\n"
-        "from openinterp.harness.ane import convert\n"
+        "from openinterpretability.harness.ane import convert\n"
         "model = convert.load(sys.argv[1])\n"
         "extra = dict(numpy.load(sys.argv[2]))\n"
         "convert.predict(model, torch.zeros((4, 16), dtype=torch.long), extra)\n"
@@ -368,7 +374,7 @@ def test_the_shapes_a_scan_needs_follow_its_batches():
 
 
 def test_a_chunk_copies_only_its_layers(tiny_qwen2):
-    from openinterp.harness.ane import chunks
+    from openinterpretability.harness.ane import chunks
 
     part = chunks.part(tiny_qwen2, "tiny", None, 1, 1)
     assert isinstance(part.model.layers[0], torch.nn.Identity)  # not copied
@@ -389,7 +395,7 @@ def _ane(model, monkeypatch, tmp_path, compiled=None):
 def test_a_conversion_that_wont_fit_in_memory_keeps_the_scan_on_torch(
     tiny_qwen2, monkeypatch, tmp_path
 ):
-    import openinterp.harness.memory as memory
+    import openinterpretability.harness.memory as memory
 
     monkeypatch.setattr(memory, "available_bytes", lambda device=None: 1000)
     ane, calls = _ane(tiny_qwen2, monkeypatch, tmp_path)
@@ -423,7 +429,7 @@ def test_one_scan_gets_one_answer(tiny_qwen2, monkeypatch, tmp_path):
 
 
 def test_only_a_qualified_model_scans_on_the_ane(tiny_qwen2, monkeypatch):
-    from openinterp.harness.ane import qualified
+    from openinterpretability.harness.ane import qualified
 
     monkeypatch.setattr(backend.convert, "available", lambda: True)
     assert backend.AneScan.for_model(tiny_qwen2, "tiny", None) is None
@@ -432,7 +438,7 @@ def test_only_a_qualified_model_scans_on_the_ane(tiny_qwen2, monkeypatch):
 
 
 def test_a_layer_past_the_deepest_qualified_one_scans_on_torch(tiny_qwen2, monkeypatch):
-    from openinterp.harness.ane import qualified
+    from openinterpretability.harness.ane import qualified
 
     monkeypatch.setitem(qualified.QUALIFIED, "tiny", ((0,), "2026-11-12"))
     monkeypatch.setitem(qualified.DEEPEST, "tiny", 0)
@@ -454,7 +460,7 @@ def test_an_ane_failure_during_a_scan_redoes_it_on_torch(tiny_gpt2, capsys):
 
 
 def test_a_retry_after_an_mps_failure_scans_on_the_ane(monkeypatch):
-    from openinterp.cli import resolve_device
+    from openinterpretability.cli import resolve_device
 
     monkeypatch.setenv(devices.FORCE_ENV, "cpu")
     monkeypatch.setattr(devices, "ane_possible", lambda: True)
@@ -476,7 +482,7 @@ def test_a_compile_that_takes_too_long_keeps_the_scan_on_torch(tiny_qwen2, monke
 
 
 def test_layers_split_into_chunks_that_every_target_shares(tiny_qwen2, monkeypatch):
-    from openinterp.harness.ane import chunks
+    from openinterpretability.harness.ane import chunks
 
     layer = 2 * sum(p.numel() for p in tiny_qwen2.model.layers[0].parameters())
     embeds = 2 * tiny_qwen2.model.embed_tokens.weight.numel()
@@ -489,7 +495,7 @@ def test_layers_split_into_chunks_that_every_target_shares(tiny_qwen2, monkeypat
 
 
 def test_a_chunk_reads_the_same_weights_from_the_checkpoint(tiny_qwen2, tmp_path):
-    from openinterp.harness.ane import chunks
+    from openinterpretability.harness.ane import chunks
 
     tiny_qwen2.save_pretrained(tmp_path, safe_serialization=True)
     read = chunks._from_checkpoint(tiny_qwen2, str(tmp_path), None, 1, 1)
@@ -501,7 +507,7 @@ def test_a_chunk_reads_the_same_weights_from_the_checkpoint(tiny_qwen2, tmp_path
 
 @pytest.mark.skipif(not devices.ane_possible(), reason="needs Apple's Neural Engine")
 def test_a_chain_of_chunks_on_the_ane_matches_torch(tiny_qwen2, tmp_path, monkeypatch):
-    from openinterp.harness.ane import chunks
+    from openinterpretability.harness.ane import chunks
 
     monkeypatch.setattr(backend, "SEQS", (16, 32, 64))
     monkeypatch.setattr(backend, "SHAPE_TOKENS", 64)

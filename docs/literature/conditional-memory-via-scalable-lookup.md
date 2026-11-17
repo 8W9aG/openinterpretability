@@ -54,7 +54,7 @@ These are our observations, not the paper's.
 
 ## Use in this repo
 
-**Not applicable as a method or a model.** The registry explains native units of pretrained models at pinned revisions (`docs/PROTOCOL.md`). The configured models are Qwen2.5-0.5B, Qwen2.5-1.5B and GPT-2 (`pyproject.toml`, `[tool.openinterp] models`). None has an Engram module, and no Engram weights are released, so there are no gates or memory rows to audit.
+**Not applicable as a method or a model.** The registry explains native units of pretrained models at pinned revisions (`docs/PROTOCOL.md`). The configured models are Qwen2.5-0.5B, Qwen2.5-1.5B and GPT-2 (`pyproject.toml`, `[tool.openinterpretability] models`). None has an Engram module, and no Engram weights are released, so there are no gates or memory rows to audit.
 
 **Its premise is a claim about our models' early layers, which the registry could check.** The paper argues that standard transformers spend early layers on local, static patterns: multi-token entities and set phrases. The registry's random draws make this testable without an Engram model. Take the VERIFIED poles in the first few layers. What share are explained as completing a local N-gram or multi-token name? And how does that share change with depth? `neuron-family-triage` already lists token and N-gram detectors (Voita et al., Gurnee et al.). The N2G baseline item (`TODO.md`, *Protocol and science*) would give the floor for that question: how much of a VERIFIED explanation a token-pattern matcher already predicts. No `TODO.md` item asks the depth question itself.
 

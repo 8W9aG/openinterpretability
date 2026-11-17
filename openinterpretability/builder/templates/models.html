@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_macros.html" import model_card %}
+
+{% block title %}Models · {{ site_title }}{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Models</nav>
+<h1 class="text-2xl font-semibold">Models</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  The models that <code class="font-mono">open-interpretability next</code> draws experiments from.
+  Size, layers, MLP width and activation come from each model's <code class="font-mono">config.json</code>.
+  Size counts parameters, with tied embeddings counted once.
+  Verified counts the neurons with a VERIFIED pole and the VERIFIED attention heads. It leaves out dictionary features, which are a baseline. It also leaves out superpositions.
+  Loss effect kept is the registry's coverage: the share of the loss rise from mean-ablating every MLP neuron that comes back when only the VERIFIED poles keep their activations. Random poles of the same count give the baseline beside it (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">method</a>).
+</p>
+
+<div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr>
+        <th class="px-3 py-2">Model</th>
+        <th class="px-3 py-2 text-right">Size</th>
+        <th class="px-3 py-2 text-right">Layers</th>
+        <th class="px-3 py-2 text-right">MLP width</th>
+        <th class="px-3 py-2">Activation</th>
+        <th class="px-3 py-2">Licence</th>
+        <th class="px-3 py-2 text-right">Experiments</th>
+        <th class="px-3 py-2 text-right">Verified</th>
+        <th class="px-3 py-2 text-right">Loss effect kept</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for r in rows %}
+      <tr>
+        <td class="whitespace-nowrap px-3 py-2 font-mono">{% if r.href %}<a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ r.href }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
+        <td class="px-3 py-2 text-right tabular-nums"{% if r.parameters %} title="{{ r.parameters | thousands }} parameters"{% endif %}>{{ r.size }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ r.layers if r.layers else "—" }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ r.mlp_width | thousands if r.mlp_width else "—" }}</td>
+        <td class="px-3 py-2 font-mono text-xs">{{ r.activation or "—" }}</td>
+        <td class="px-3 py-2">{% if r.terms %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ r.terms.url }}">{{ r.terms.license }}</a>{% if r.terms.gated %} <span class="text-xs text-slate-500">gated</span>{% endif %}{% else %}<span class="text-slate-500">not recorded</span>{% endif %}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ r.experiments | thousands }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ r.verified | thousands }}</td>
+        {% set cov = coverage.get(r.name) %}
+        <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">{% if cov and cov.summary.recovered is not none %}{{ "{:.2%}".format(cov.summary.recovered) }}{% if cov.summary.recovered_random is not none %} <span class="text-xs text-slate-500">random {{ "{:.2%}".format(cov.summary.recovered_random) }}</span>{% endif %}{% else %}—{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="px-3 py-4 text-center text-slate-500">No models are configured.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if models %}
+<section class="mt-10">
+  <h2 class="mb-1 text-lg font-semibold">Pieces</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">How much of each model is studied, layer by layer. New neurons are drawn mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified.</p>
+  <div class="space-y-4">
+    {% for m in models %}
+    {{ model_card(m, explore, root, loop.index) }}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

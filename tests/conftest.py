@@ -7,7 +7,7 @@ import pytest
 import torch
 from torch import nn
 
-from openinterp.core.schemas import (
+from openinterpretability.core.schemas import (
     ActivatingExample,
     AdversarialTestResult,
     AuditRecord,
@@ -184,7 +184,7 @@ class FakeTokenizer:
 
 @pytest.fixture
 def toy_runner(toy_model):
-    from openinterp.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.hooks import NeuronHookRunner
 
     return NeuronHookRunner(toy_model, FakeTokenizer())
 
@@ -192,15 +192,27 @@ def toy_runner(toy_model):
 @pytest.fixture(autouse=True)
 def no_name_model(monkeypatch):
     """Scans in tests find no names: the real model is a 460 MB download."""
-    monkeypatch.setattr("openinterp.names.person_matches", lambda text: ())
-    monkeypatch.setattr("openinterp.names.pos_matches", lambda text: ())
+    monkeypatch.setattr("openinterpretability.names.person_matches", lambda text: ())
+    monkeypatch.setattr("openinterpretability.names.pos_matches", lambda text: ())
 
 
 @pytest.fixture(autouse=True)
 def no_toxicity_models(monkeypatch):
     """Scans in tests find no toxic text: the real models are 500 MB downloads."""
-    monkeypatch.setattr("openinterp.toxicity.toxicity_matches", lambda text: ())
-    monkeypatch.setattr("openinterp.toxicity.hate_matches", lambda text: ())
+    monkeypatch.setattr("openinterpretability.toxicity.toxicity_matches", lambda text: ())
+    monkeypatch.setattr("openinterpretability.toxicity.hate_matches", lambda text: ())
+
+
+@pytest.fixture(autouse=True)
+def _no_real_browser(monkeypatch):
+    """No test starts the real Chrome: `build` prints each paper's PDF with it by default.
+
+    Under load, printing every paper in papers/ took over the 60 s timeout and hung a full
+    run (#4376). The PDF tests set their own fake browser in the same variable.
+    """
+    from openinterpretability.builder.paper_pdf import CHROME_ENV
+
+    monkeypatch.setenv(CHROME_ENV, "/nonexistent/chrome-for-tests")
 
 
 @pytest.fixture(autouse=True)
@@ -211,7 +223,7 @@ def _fixed_memory_budget(monkeypatch):
     (``harness/memory.available_bytes``). With the real figure, a test's result depended
     on what else the machine ran, and some failed only in a full run (#4003).
     """
-    from openinterp.harness.memory import MEMORY_ENV
+    from openinterpretability.harness.memory import MEMORY_ENV
 
     monkeypatch.setenv(MEMORY_ENV, "64")
 
@@ -219,13 +231,13 @@ def _fixed_memory_budget(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_prior_art(monkeypatch):
     """Keep audits in tests off Neuronpedia's API (tests opt back in)."""
-    monkeypatch.setenv("OPENINTERP_PRIOR_ART", "0")
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "0")
 
 
 @pytest.fixture(autouse=True)
 def _no_auto_sign(monkeypatch):
     """Never sign test records with the developer's real key (tests opt back in)."""
-    monkeypatch.setenv("OPENINTERP_AUTO_SIGN", "0")
+    monkeypatch.setenv("OPENINTERPRETABILITY_AUTO_SIGN", "0")
 
 
 @pytest.fixture(autouse=True)
@@ -235,15 +247,15 @@ def _no_github(monkeypatch, tmp_path_factory):
     def offline(url):
         raise OSError("no network in tests")
 
-    monkeypatch.setattr("openinterp.builder.users._get", offline)
+    monkeypatch.setattr("openinterpretability.builder.users._get", offline)
     cache = tmp_path_factory.mktemp("pr-authors")
-    monkeypatch.setenv("OPENINTERP_PR_AUTHORS_CACHE", str(cache))
+    monkeypatch.setenv("OPENINTERPRETABILITY_PR_AUTHORS_CACHE", str(cache))
 
 
 @pytest.fixture(autouse=True)
 def _no_costs_ledger(monkeypatch):
     """Keep test commands out of a loop's real costs ledger (tests opt back in)."""
-    from openinterp.core.costs import LEDGER_ENV
+    from openinterpretability.core.costs import LEDGER_ENV
 
     monkeypatch.delenv(LEDGER_ENV, raising=False)
 
@@ -251,7 +263,7 @@ def _no_costs_ledger(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_wordnet(monkeypatch):
     """Keep WordNet out of agent prompts, so tests never download it (tests opt back in)."""
-    from openinterp import wordnet
+    from openinterpretability import wordnet
 
     monkeypatch.setattr(wordnet, "lexicon", lambda: None)
 
@@ -259,13 +271,15 @@ def _no_wordnet(monkeypatch):
 @pytest.fixture(autouse=True)
 def _idle_devices(tmp_path_factory, monkeypatch):
     """The device planner sees no other jobs and an idle GPU, and keeps leases in tmp."""
-    from openinterp.harness import devices
+    from openinterpretability.harness import devices
 
     monkeypatch.setenv(devices.LEASES_ENV, str(tmp_path_factory.mktemp("leases")))
     monkeypatch.delenv(devices.FORCE_ENV, raising=False)
     monkeypatch.setattr(devices, "gpu_utilization", lambda *a, **k: 0.0)
     monkeypatch.setattr(devices, "mps_stuck", lambda: None)  # a fresh MPS start for each test
-    monkeypatch.setattr("openinterp.harness.cuda_devices.utilization", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "openinterpretability.harness.cuda_devices.utilization", lambda *a, **k: None
+    )
     devices.forget()
     yield
     devices.forget()
@@ -274,7 +288,7 @@ def _idle_devices(tmp_path_factory, monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_pause(tmp_path_factory, monkeypatch):
     """Keep tests away from a real pause of new experiments (``open-interpretability pause``)."""
-    from openinterp.core.pause import ENV
+    from openinterpretability.core.pause import ENV
 
     monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("pause") / "pause"))
 
@@ -282,8 +296,8 @@ def _no_pause(tmp_path_factory, monkeypatch):
 @pytest.fixture(autouse=True)
 def _scan_cache(tmp_path_factory, monkeypatch):
     """Cache layer scans and first positions in a temporary directory, never the real cache."""
-    from openinterp.harness import first_position
-    from openinterp.harness.layer_cache import ENV
+    from openinterpretability.harness import first_position
+    from openinterpretability.harness.layer_cache import ENV
 
     monkeypatch.setenv(ENV, str(tmp_path_factory.mktemp("scan-cache")))
     monkeypatch.setenv(first_position.ENV, str(tmp_path_factory.mktemp("first-position")))
@@ -293,8 +307,9 @@ def _scan_cache(tmp_path_factory, monkeypatch):
 def _whole_records(monkeypatch, tmp_path):
     """Write whole records, and keep any evidence blob out of the developer's store.
 
-    Slim records are the default (openinterp/core/evidence.py, issue #3254). Tests opt in.
+    Slim records are the default (openinterpretability/core/evidence.py, issue #3254). Tests opt in.
     """
-    monkeypatch.setenv("OPENINTERP_OFFLOAD_EVIDENCE", "0")
-    monkeypatch.setenv("OPENINTERP_EVIDENCE_DIR", str(tmp_path / "evidence-store"))
-    monkeypatch.setenv("OPENINTERP_ROTATION_CACHE", str(tmp_path / "rotations"))  # #3646
+    monkeypatch.setenv("OPENINTERPRETABILITY_OFFLOAD_EVIDENCE", "0")
+    monkeypatch.setenv("OPENINTERPRETABILITY_EVIDENCE_DIR", str(tmp_path / "evidence-store"))
+    monkeypatch.setenv("OPENINTERPRETABILITY_EVIDENCE_BRANCHES", "0")  # no git fetch (#4530)
+    monkeypatch.setenv("OPENINTERPRETABILITY_ROTATION_CACHE", str(tmp_path / "rotations"))  # #3646
