@@ -17,7 +17,7 @@ def _request_memory(_ctx, _param, value: str) -> str:
 
 memory_option = click.option(
     "--memory",
-    type=click.Choice(["auto", "normal", "stream"]),
+    type=click.Choice(["auto", "normal", "stream"]),  # harness.memory.MemoryMode; a test checks
     default="auto",
     show_default=True,
     expose_value=False,

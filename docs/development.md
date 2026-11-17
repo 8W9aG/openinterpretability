@@ -66,6 +66,18 @@ Two more checks run on every pull request but aren't required. *Secret scan* run
 
 Run `make check` locally before pushing. The [PR template](../.github/pull_request_template.md) has a checklist for posting experiments.
 
+## Dead code
+
+`make lint` runs vulture (`make vulture`), so an unused function, method, property or variable fails (#3164). Vulture can't see everything that uses a name. It misses Click commands and Pydantic validators, which decorators register. It also misses fields read from JSON, and names that only templates read. Those are kept in `vulture_whitelist.py`, under the reason for each.
+
+When vulture flags a name, check these before you delete it:
+
+- **Templates, skills, scripts and workflows.** Search the whole repository for the name, not only the package.
+- **Public API.** Code that only tests use can still be API that a skill tells agents to call, such as `ActivationPatcher.resample_ablation`. Keep it, test it, and add it to the whitelist's API section.
+- **Records and docs.** A CLI option or a schema field can still be in old records or in the docs. Delete it only after checking them.
+
+Otherwise delete it. Don't add a name to the whitelist to keep code that nothing uses.
+
 ## Progress on long steps
 
 A step that can run for minutes reports its progress, so a slow run doesn't look like a stuck one (#3142).
