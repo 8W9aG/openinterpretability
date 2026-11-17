@@ -146,7 +146,8 @@ def test_model_page_shows_the_model_license(tmp_path, records, monkeypatch):
     assert "generated text may not be published" in page
     assert "Say so." in page
 
-    (tmp_path / "pyproject.toml").write_text("")
+    # A table with no licences. An empty file would mean the project's own settings (#3693).
+    (tmp_path / "pyproject.toml").write_text("[tool.openinterpretability]\n")
     compile_site(records, tmp_path / "site")
     page = (tmp_path / "site" / "models" / MODEL / "index.html").read_text()
     assert "Licence not recorded" in page

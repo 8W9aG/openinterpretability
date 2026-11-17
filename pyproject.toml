@@ -89,6 +89,11 @@ path = "openinterpretability/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["openinterpretability"]
 
+# The project's settings (`[tool.openinterpretability]` below) travel with an install, so
+# commands run outside a clone read the same models, windows and licences (#3693).
+[tool.hatch.build.targets.wheel.force-include]
+"pyproject.toml" = "openinterpretability/data/pyproject.toml"
+
 # The sdist holds the package and its metadata, not the registry, docs or papers. Without
 # this it packed the whole repository, and PyPI refused v0.0.20's sdist as over 100 MB.
 [tool.hatch.build.targets.sdist]

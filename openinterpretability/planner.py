@@ -110,12 +110,35 @@ def claim_key(slug: str) -> str:
     return slug.replace("/", "-")
 
 
-def _config(pyproject: Path) -> dict:
+DEFAULT_PYPROJECT = Path("pyproject.toml")
+# The repository's pyproject.toml, as an install holds it (the wheel's force-include), and
+# as a clone holds it beside the package.
+PACKAGED_PYPROJECT = Path(__file__).parent / "data" / "pyproject.toml"
+CLONE_PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
+
+
+def _table(path: Path) -> dict | None:
+    """``[tool.openinterpretability]`` of ``path``, or None if the file or the table is missing."""
     try:
-        with open(pyproject, "rb") as fh:
-            return tomllib.load(fh).get("tool", {}).get("openinterpretability", {})
+        with open(path, "rb") as fh:
+            return tomllib.load(fh).get("tool", {}).get("openinterpretability")
     except (OSError, tomllib.TOMLDecodeError):
-        return {}
+        return None
+
+
+def _config(pyproject: Path) -> dict:
+    """The project's settings, ``[tool.openinterpretability]``.
+
+    A path other than the default is read as it is. For the default, the working directory's
+    ``pyproject.toml`` counts only when it has the table. Otherwise the copy that an install
+    holds is read, else the clone's beside the package (#3693).
+    """
+    if pyproject != DEFAULT_PYPROJECT:
+        return _table(pyproject) or {}
+    for path in (DEFAULT_PYPROJECT, PACKAGED_PYPROJECT, CLONE_PYPROJECT):
+        if (found := _table(path)) is not None:
+            return found
+    return {}
 
 
 def configured_models(pyproject: Path = Path("pyproject.toml")) -> tuple[str, ...]:

@@ -122,9 +122,23 @@ R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_
 - `scripts/exchange.py check` runs in `make lint` and CI. It fails when a tracked file cites an `exchange/` folder that the manifest doesn't pin.
 - Output-only names are left out of the check, as are working folders such as `bench/`, which holds the benchmark's private test probes (`OUTPUTS` in the script). Inputs kept back on purpose are listed in `UNPUBLISHED` with the reason. For example, pile-10k excerpts stay back because the Pile corpus is not published.
 
+## Running outside a clone
+
+An install (`pip install open-interpretability`) reads the project's settings, `[tool.openinterpretability]` in `pyproject.toml`, from the copy that the wheel holds. A clone run from another directory reads the clone's. A `pyproject.toml` in the working directory counts only when it has that table (`planner._config`, #3693). So the models, scan windows and licences are the same everywhere.
+
+The commands fall into three groups:
+
+| Group | Commands |
+| --- | --- |
+| **Work anywhere.** They read no repository file. | `activations`, `benchmark score`, `benchmark seal`, `concepts`, `corpus`, `corpus-cache`, `costs`, `evidence load`, `evidence load-all`, `pause`, `probe-compare`, `provider …`, `resume`, `scan-cache`, `score`, `show`, `superpositions …`, `usage` |
+| **Work anywhere once you name their files.** Their defaults are repository paths. A record goes to `--wiki-dir`, `wiki/` by default, so the directory where they run becomes a small registry of its own. | `audit`, `review`, `verify`, `reevaluate` and `explain` (`--wiki-dir`, `--corpus`). `pole-effects` (`--corpus`). `sign` and `signatures` (`--allowed-signers`, `--wiki-dir`). |
+| **Need a clone.** They read or change the shared registry, its analyses, its site, or its git history. | `build`, `check`, `next`, `reproduce`, `wiki`, `stats`, `ledger`, `deploy`, `loop`, `loop-bug`, `evidence publish`, `evidence push`, `evidence verify`, `erratum draft`, `circuits …`, `crossref`, `aligned-latents`, `sisters`, `coverage`, `wiring-backfill`, `benchmark freeze`, `benchmark measure`, `neuronpedia-baseline`, `neuronpedia-review`, `patchscope-baseline` |
+
+`tests/test_install_anywhere.py` checks the settings from another directory, and a smoke test runs commands of the first group there.
+
 ## Releases on PyPI
 
-The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is still `openinterpretability`, and the `openinterpretability` command remains as an alias until every doc, skill and workflow uses the new name. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterpretability.__version__`. It uploads with PyPI's trusted publishing, so no PyPI token is stored in the repository. PyPI trusts the repository `8W9aG/openinterpretability`, the workflow `publish.yml` and the GitHub environment `pypi`. That environment lets only `v*` tags deploy.
+The package is `open-interpretability` on PyPI, and its command is `open-interpretability`. The Python import is `openinterpretability`. `.github/workflows/publish.yml` publishes the wheel and the sdist each time a GitHub release is published. The release skill publishes one for every version. The job fails if the release's tag isn't `v` plus `openinterpretability.__version__`. It uploads with PyPI's trusted publishing, so no PyPI token is stored in the repository. PyPI trusts the repository `8W9aG/openinterpretability`, the workflow `publish.yml` and the GitHub environment `pypi`. That environment lets only `v*` tags deploy.
 
 After pulling the rename, run `make install` once in each checkout. A plain `uv sync` loses the `openinterpretability` command with the old distribution.
 
