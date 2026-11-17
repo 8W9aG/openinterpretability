@@ -46,9 +46,10 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
 )  # fmt: skip
 @click.option("--narrator-model", default=None, help="The narrator's model (agents' default).")
 @click.option(
-    "--run", "run", default=0, show_default=True, type=click.IntRange(0),
-    help="Run the top N planned unit experiments through the experiment loop, until each "
-    "unit is VERIFIED (#3744). 0: only list them.",
+    "--run", "run", default=None, type=click.IntRange(0), is_flag=False, flag_value=0,
+    help="Run the planned unit and superposition experiments through the experiment loop, by "
+    "coverage gain, until the explained share reaches --target or no work is left (#4473). "
+    "--run N stops after N experiments too. Without it, only list them.",
 )  # fmt: skip
 @click.option("--proposer", default="", help="--run: the LiteLLM proposer model.")
 @click.option("--reviewer", default="", help="--run: the LiteLLM reviewer model.")
@@ -64,7 +65,7 @@ from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_mo
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
 @wiki_dir_option()
 @with_model_options
-def explain_command(
+def explain_command(  # long-function: one argument per option, then one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
     narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, as_json,
     wiki_dir, device, dtype,
@@ -115,8 +116,9 @@ def explain_command(
     if write_record:
         path = _record(model_name, result, coverage, planned, told, Path(wiki_dir))
         click.echo(f"Explanation → {path}")
-    if run:
-        _run(planned.experiments[:run], model_name, (proposer, reviewer, provider), max_attempts)
+    if run is not None:
+        agents = (proposer, reviewer, provider)
+        _run(result, planned, groups, model_name, agents, max_attempts, run, Path(wiki_dir))
 
 
 def mark_hubs(result, model: str, states: dict) -> None:
@@ -337,20 +339,56 @@ def _print_narrative(told: dict, level: str) -> None:
         click.echo(f"Warning: the text cites units that the evidence doesn't hold: {missing}.")
 
 
-def _run(experiments, model: str, agents: tuple[str, str, str], max_attempts: int) -> None:
-    """Run ``experiments`` through the experiment loop until each unit is VERIFIED (#3744)."""
+def _run(result, planned, groups, model: str, agents: tuple[str, str, str], max_attempts: int,
+         limit: int, wiki_dir: Path) -> None:  # fmt: skip
+    """Run the plan through the experiment loop until the explained share reaches its target.
+
+    Units and superpositions run by coverage gain (#4473). Circuits wait for an agent to write
+    their task (:func:`~openinterpretability.explanation_targets.circuit_notes`).
+    """
     from openinterpretability.cli_loop import _api_model, _models, run_loop
-    from openinterpretability.explanation_targets import TargetedDraws, targets
+    from openinterpretability.explanation_targets import (
+        ShareMeter,
+        TargetedDraws,
+        by_gain,
+        circuit_notes,
+        targets,
+    )
+    from openinterpretability.planner import configured_windows
 
     for model_name in agents[:2]:
         if model_name:
             _api_model(None, None, model_name)  # an external model has nobody to answer it
     proposer, reviewer = _models(*agents)
-    found = targets(experiments, model)
-    click.echo(f"Running {len(found)} unit experiments until each is VERIFIED: "
-               + ", ".join(t.label for t in found))  # fmt: skip
-    draws = TargetedDraws(found, reviewer, max_attempts)
+    ordered = by_gain([*planned.experiments, *planned.groups])
+    found = targets(ordered, model, groups)
+    target = _reachable(planned, circuit_notes(ordered))
+    click.echo(f"Running {len(found)} experiments, by coverage gain, until the explained share "
+               f"reaches {target:.0%}: " + ", ".join(t.label for t in found))  # fmt: skip
+    carrying = {(g.kind, g.name) for g in result.groups}  # the groups that carry the answer
+    meter = ShareMeter(model, result.order, [g for g in groups if (g.kind, g.name) in carrying],
+                       wiki_dir)  # fmt: skip
+    draws = TargetedDraws(found, reviewer, max_attempts, meter=meter, target=target, limit=limit,
+                          window=configured_windows().get(model))  # fmt: skip
     raise SystemExit(run_loop(proposer, reviewer, draws))
+
+
+def _reachable(planned, circuits: list[str]) -> float:
+    """The target the run aims at, said with what blocks the rest (#4473).
+
+    The run reaches at most the share now plus what the planned unit experiments add.
+    Blocked units can't rise, and circuits wait for an agent.
+    """
+    click.echo(f"Explained now: {planned.explained:.1%}. Blocked: {planned.blocked:.1%} "
+               f"(stopped units, or no follow-up). The planned experiments reach "
+               f"{planned.reaches:.1%}.")  # fmt: skip
+    for note in circuits:
+        click.echo(f"Not run: circuit {note}")
+    if planned.target <= planned.reaches:
+        return planned.target
+    click.echo(f"The target {planned.target:.0%} is out of reach, so the run stops at "
+               f"{planned.reaches:.1%}, the most it can explain.")  # fmt: skip
+    return planned.reaches
 
 
 def _record(model: str, result, coverage: dict, planned, told: dict, wiki_dir: Path) -> Path:

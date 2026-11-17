@@ -82,3 +82,81 @@ def test_finished_ends_the_loop_cleanly(tmp_path, monkeypatch):
     loop = experiment_loop.Loop(experiment_loop.Options("p", "r"), tmp_path, 0, 3, None, None,
                                 lambda s: None)  # fmt: skip
     assert loop.run() == 0
+
+
+def test_the_run_stops_when_the_share_reaches_the_target(registry, tmp_path, capsys):
+    # The share is measured before each draw, after the previous experiment landed (#4473).
+    shares = iter([0.5, 0.82])
+    draws = TargetedDraws([A, B], reviewer="rev/model", meter=lambda: next(shares), target=0.8)
+    assert draws(tmp_path, claims=[]).choice.slug == A.slug
+    with pytest.raises(Finished, match="82.0% reached the target 80%"):
+        draws(tmp_path, claims=[])
+    out = capsys.readouterr().out
+    assert "explained share now 50.0% (target 80%)" in out and "now 82.0%" in out
+
+
+def test_run_n_stops_after_n_experiments(registry, tmp_path):
+    draws = TargetedDraws([A, B], reviewer="rev/model", limit=1)
+    draws(tmp_path, claims=[])
+    with pytest.raises(Finished, match="ran 1 experiments"):
+        draws(tmp_path, claims=[])
+
+
+def test_an_unstudied_superposition_gets_its_draw(registry, tmp_path, monkeypatch):
+    from openinterpretability import planner_superpositions as ps
+
+    seen = {}
+
+    def candidate(ident, definition, source, window):
+        seen.update(definition=definition, window=window)
+        return _candidate("superposition", 1.0)
+
+    monkeypatch.setattr(ps, "_candidate", candidate)
+    monkeypatch.setattr(ps, "definition_identifier", lambda d: "ident")
+    s = Target("m/L2/S0123456789ab", "m/x", 2, "", "L2/S0123456789ab", {"members": []})
+    draws = TargetedDraws([s], reviewer="rev/model", window=64)
+    assert draws(tmp_path, claims=[]).choice.kind == "superposition"
+    assert seen == {"definition": {"members": []}, "window": 64}
+
+
+def test_targets_order_and_circuit_notes():
+    from openinterpretability.explain_groups import GroupDef
+    from openinterpretability.explain_plan import PlannedExperiment
+    from openinterpretability.explanation_targets import by_gain, circuit_notes, targets
+
+    def planned(target, entity, gain, units=()):
+        commands = ["open-interpretability audit x"]
+        return PlannedExperiment(target, entity, 0.1, "unstudied", "explore", "why", commands,
+                                 units=list(units), gain=gain)  # fmt: skip
+
+    unit = planned("L1/N2+", "pole", 0.01, [(1, 2, "positive")])
+    sup = planned("L2/S0123456789ab", "superposition", 0.05)
+    circ = planned("C4", "circuit", 0.2)
+    ordered = by_gain([unit, sup, circ])
+    assert [e.target for e in ordered] == ["C4", "L2/S0123456789ab", "L1/N2+"]
+    group = GroupDef("superposition", "L2/S0123456789ab", "m--x/L2/S0123456789ab", ((2, 1, 1.0),),
+                     definition={"members": []})  # fmt: skip
+    found = targets(ordered, "m/x", [group])
+    assert [t.label for t in found] == ["L2/S0123456789ab", "L1/N2+"]  # the circuit is not run
+    assert found[0].definition == {"members": []} and found[0].layer == 2
+    (note,) = circuit_notes(ordered)
+    assert note.startswith("C4 (10.0%): its task needs a corrupted twin of this prompt")
+
+
+def test_the_meter_counts_verified_units_and_units_in_verified_groups(tmp_path, monkeypatch):
+    from openinterpretability import explain, explain_groups
+    from openinterpretability.explain_groups import GroupDef
+    from openinterpretability.explanation_targets import ShareMeter
+
+    slug = explain._slug("m/x", (1, 2, "positive"))
+    labels = {slug: ("VERIFIED", None, None)}
+    monkeypatch.setattr(explain, "registry_labels", lambda wiki, model: labels)
+    circuits = {"C4": ("VERIFIED", None)}
+    monkeypatch.setattr(explain_groups, "circuit_labels", lambda wiki, model: circuits)
+    order = [((1, 2, "positive"), 3.0, "", False), ((5, 1, "head"), 1.0, "", False),
+             ((6, 7, "negative"), 4.0, "", False)]  # fmt: skip
+    circuit = GroupDef("circuit", "C4", "C4", (), heads=((5, 1),))
+    meter = ShareMeter("m/x", order, [circuit], tmp_path)
+    head_key = circuit.units[0]
+    order[1] = (head_key, 1.0, "", False)
+    assert meter() == pytest.approx(4.0 / 8.0)  # the VERIFIED pole, and the head in VERIFIED C4
