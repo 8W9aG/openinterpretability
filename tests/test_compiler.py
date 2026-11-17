@@ -340,7 +340,7 @@ def test_parquet_has_every_experiment(tmp_path, records):
     manifest = json.loads((tmp_path / "data" / "manifest.json").read_text())
     snapshot = tmp_path / manifest["snapshot"]
     assert snapshot.read_bytes() == (tmp_path / "data" / "registry.parquet").read_bytes()
-    nulls = duckdb.sql(f"SELECT count(*) FROM '{snapshot}' WHERE status = 'REJECTED'").fetchone()
+    nulls = duckdb.sql(f"SELECT count(*) FROM '{snapshot}' WHERE status = 'REJECTED'").fetchall()[0]
     assert nulls == (2,)
 
 
