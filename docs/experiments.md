@@ -186,6 +186,8 @@ The repo's skills load automatically, and `choose-next-experiment` defines the w
 
 Besides neuron poles and heads, the planner draws superpositions. A `superposition` draw audits one definition in `data/superpositions/` that has no experiment yet. Its steps write the definition with `open-interpretability superpositions show`, then scan it with `audit --superposition`.
 
+The planner also draws explanations (`openinterpretability/planner_explanations.py`). An `explanation` draw explains a model's answer to a prompt from `data/explanation-prompts.jsonl`, narrates it and records it (`explain --level long --record`). It also re-explains an answer whose explanation is stale. Each unstudied pole or head that a recorded explanation cites gets an `explore` draw, audited with `--selection attribution`. So the loop drives an explained answer's units toward VERIFIED, one normal experiment at a time.
+
 The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
 
 **In a loop.** `scripts/experiment-loop.sh` runs experiments back to back, each in a fresh headless Claude Code session (`claude -p`). It stops when it reaches `--max` or `claude` exits with an error (for example at the usage limit). Claude drives the workflow, and you choose the LLMs that propose and review:
