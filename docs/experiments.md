@@ -159,6 +159,12 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
   - The attribution spreads thinly over most units: on a GPT-2 prompt, 4,628 experiments reach 50% and 26,861 reach 90%.
   - A share is of this prompt's first-order attribution. A VERIFIED explanation describes its unit on the scan corpus, so it may not cover the prompt.
 
+- **Levels.** `--level mechanism` (the default) prints the evidence above. `--level long` adds a narrative and `--level paragraph` prints only its one-paragraph summary. Both come from a narrator agent (`openinterpretability/agents/narrator.py`), which reads the evidence and nothing else (`openinterpretability/explain_narrate.py`).
+  - The evidence holds the shares, prompt coverage, the units and groups with their status and ablation checks, the paths and the next experiments. A unit's explanation goes in only when it is VERIFIED, fenced as data.
+  - The narrator must cite a unit for each claim, present only VERIFIED explanations as fact, and state the unexplained share. It must not fill gaps with general knowledge about language models.
+  - The output warns about any cited unit that the evidence doesn't hold. `--json` keeps the evidence, the narrative, the narrator model and its costs, so a reader can check each sentence.
+  - `--narrator-model` takes a LiteLLM model, or `external/<name>` for an answer through `exchange/`. The `explanation-narrator` subagent answers that prompt from Claude Code.
+
 `--json` prints the result as JSON, with every edge, the prompt coverage and the next planned experiments.
 
 ## Letting an agent run it (Claude Code)
