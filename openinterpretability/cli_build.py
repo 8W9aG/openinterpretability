@@ -100,6 +100,7 @@ def build(  # noqa: PLR0913 (one option per input file)
     """Compile every archived experiment into static pages and data/registry.parquet."""
     from openinterpretability.builder.compiler import compile_site
     from openinterpretability.builder.coverage import load_rows as load_coverage
+    from openinterpretability.builder.explanation_pages import load_views
     from openinterpretability.builder.model_facts import load_model_facts
     from openinterpretability.builder.parallel import default_jobs
     from openinterpretability.builder.users import load_users
@@ -132,8 +133,7 @@ def build(  # noqa: PLR0913 (one option per input file)
         coverage_rows=load_coverage(coverage_path),
         paper_pdfs=paper_pdfs,
         pending=open_experiments(),
+        explanations=load_views(wiki_dir),  # each prompt's newest explanation, and if stale
     )
-    click.echo(
-        f"Published {report.experiments_published} experiments: {len(report.pages)} pages, "
-        f"{report.parquet} → {output_dir}"
-    )
+    click.echo(f"Published {report.experiments_published} experiments: {len(report.pages)} "
+               f"pages, {report.parquet} → {output_dir}")  # fmt: skip

@@ -170,6 +170,8 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
   - A unit leaves the list when it is VERIFIED, when a scan stops on it, or after `--max-attempts` runs (default 5). A unit that an open PR claims waits.
   - `--proposer`, `--reviewer` and `--provider` work as for `loop`, and an `external/` model is refused. The run ends with each unit's outcome.
 
+- **Record it.** `--record` writes the explanation to `wiki/explanations/<model>/<prompt id>/<UTC>.json` (`openinterpretability/core/explanation_records.py`). The record holds the prompt, the answer, the shares and prompt coverage, and the mechanism with each unit's status at the time. With `--level long` or `paragraph`, it also holds the narration. A prompt keeps its history, and the site shows each prompt's newest record under *Explanations*, linked from Research. A page is marked stale when a unit that it cites has a different status now.
+
 `--json` prints the result as JSON, with every edge, the prompt coverage and the next planned experiments.
 
 ## Letting an agent run it (Claude Code)
@@ -183,6 +185,8 @@ The repo's skills load automatically, and `choose-next-experiment` defines the w
 5. posts the result.
 
 Besides neuron poles and heads, the planner draws superpositions. A `superposition` draw audits one definition in `data/superpositions/` that has no experiment yet. Its steps write the definition with `open-interpretability superpositions show`, then scan it with `audit --superposition`.
+
+The planner also draws explanations (`openinterpretability/planner_explanations.py`). An `explanation` draw explains a model's answer to a prompt from `data/explanation-prompts.jsonl`, narrates it and records it (`explain --level long --record`). It also re-explains an answer whose explanation is stale. Each unstudied pole or head that a recorded explanation cites gets an `explore` draw, audited with `--selection attribution`. So the loop drives an explained answer's units toward VERIFIED, one normal experiment at a time.
 
 The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
 
