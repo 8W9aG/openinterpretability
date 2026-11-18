@@ -225,6 +225,19 @@ def load(wiki_dir: Path, model: str, prompt_hash: str) -> list[AnswerRecord]:
     return out
 
 
+def summary(record: AnswerRecord) -> dict[str, Any]:
+    """The claim and its verdict, for the plan and the narrator's evidence (#4780)."""
+    c, v = record.claim, record.verdict
+    m = v.measures
+    return {
+        "status": v.status, "attempt": c.attempt, "route": c.route, "sources": c.sources,
+        "roles": c.roles, "claim": c.explanation, "failed_gates": v.failed,
+        "necessity": round(m.necessity, 4), "sufficiency": m.sufficiency,
+        "patching": m.patching, "reviewer_prompts_as_predicted": f"{sum(m.probes.values())}"
+        f" of {len(m.probes)}",
+    }  # fmt: skip
+
+
 def next_attempt(records: list[AnswerRecord]) -> int | None:
     """The next attempt's number, or None when one is VERIFIED or the cap is reached."""
     if any(r.verdict.status == "VERIFIED" for r in records) or len(records) >= MAX_ATTEMPTS:

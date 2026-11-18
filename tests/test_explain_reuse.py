@@ -4,23 +4,28 @@ from datetime import UTC, datetime
 
 from click.testing import CliRunner
 
+from openinterpretability.core.explanation_records import CoverageDetail
 from openinterpretability.explain_reuse import decide
 from tests.test_explanation_records import _record, _write
 
 MODEL, PROMPT = "openai-community/gpt2", "John gave a drink to"
 
 
-def _wiki(tmp_path, *coverages_and_levels):
+def _wiki(tmp_path, *coverages_and_levels, matched=True):
     wiki = tmp_path / "wiki"
     for day, (coverage, narrated) in enumerate(coverages_and_levels, start=1):
         r = _record(datetime(2026, 11, day, tzinfo=UTC))
-        _write(
-            wiki,
-            r.model_copy(
-                update={"prompt_coverage": coverage, "narration": r.narration if narrated else None}
-            ),
-        )
+        update = {"prompt_coverage": coverage, "narration": r.narration if narrated else None,
+                  "coverage_detail": CoverageDetail() if matched else None}  # fmt: skip
+        _write(wiki, r.model_copy(update=update))
     return wiki
+
+
+def test_one_measured_before_the_matched_baseline_is_built_on_not_reused(tmp_path):
+    wiki = _wiki(tmp_path, (1.0, True), matched=False)  # #4895: full coverage, never matched
+    reuse = decide(wiki, MODEL, PROMPT, -1, 1.0, "long")
+    assert reuse.action == "run" and reuse.previous == "20261101T000000Z"
+    assert "measured before the matched random baseline" in reuse.message
 
 
 def test_a_prompt_with_no_explanation_runs(tmp_path):
