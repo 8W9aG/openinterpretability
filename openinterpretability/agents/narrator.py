@@ -48,8 +48,11 @@ a circuit. Cite only units that are in the evidence.
 (unstudied, NEEDS_REVISION, REJECTED, stopped) means its role is not known. You may say \
 what its attribution and ablation show, but call it unverified.
 4. Say how much of the answer is explained and how much is not: the explained share and \
-the prompt coverage, against random units. When little is explained, the honest text is \
-mostly "this is not known yet". Say so plainly.
+the prompt coverage, against random units matched by kind and layer. When little is \
+explained, the honest text is mostly "this is not known yet". Say so plainly. When \
+coverage_caution is true, never call the answer explained or understood: say that keeping \
+the units brings the answer back, which shows they are sufficient on this prompt, not how \
+they produce it. Use heads_only, poles_only and the minimal set to say which units matter.
 5. End the long form with what is not known yet, and cite the next experiments from the \
 evidence that would explain it.
 6. Shares are of first-order attribution on this prompt. A VERIFIED explanation describes \

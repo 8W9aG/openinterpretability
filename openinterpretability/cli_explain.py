@@ -381,7 +381,7 @@ def reached(share: float, target: float, coverage: dict, ran=None) -> str:
     text = (f"Reached: prompt coverage {found:.1%}{start}, target {target:.0%}" if found is not None
             else f"Reached: no prompt coverage, target {target:.0%}")  # fmt: skip
     if found is not None and coverage.get("random") is not None:
-        text += f", against {coverage['random']:.1%} for random units"
+        text += f", against {coverage['random']:.1%} for random units matched by kind and layer"
     return text + f"; explained share of |attribution| {share:.1%}."
 
 
@@ -391,9 +391,7 @@ def _print_coverage(coverage: dict) -> None:
     if share is None:
         click.echo("Prompt coverage: ablating every unit doesn't change the answer.")
         return
-    against = (
-        f"; {coverage['units']} random units bring back {base:.1%}" if base is not None else ""
-    )
+    against = f"; {coverage['units']} matched random units: {base:.1%}" if base is not None else ""
     click.echo(
         f"Prompt coverage: keeping only the {coverage['units']} explained units, and mean-ablating "
         f"the rest, brings back {share:.1%} of the answer's log-probability{against}."
@@ -474,7 +472,7 @@ def _record(model: str, result, coverage: dict, planned, told: dict, run=None, f
         raw_coverage=coverage.get("raw"),
         units=units, narration=narration, planned_experiments=len(planned.experiments),
         package_version=__version__, written=datetime.now(UTC), run=run, figures=figures,
-        target=target,
+        target=target, coverage_detail=ExplanationRecord.detail(coverage),
     )  # fmt: skip
     return record
 

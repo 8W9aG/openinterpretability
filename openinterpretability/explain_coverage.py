@@ -32,6 +32,7 @@ for a pool of the top planned experiments and for every superposition and circui
 from __future__ import annotations
 
 import random
+from collections import Counter
 from collections.abc import Iterable
 
 import torch
@@ -105,26 +106,95 @@ def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAW
     """The explained units' coverage of the answer, and the random baseline (module docstring).
 
     ``order`` is ``Explanation.order``: every unit with its status and whether it is explained.
+    The baseline draws, per layer, as many heads and as many neuron poles as the kept set
+    holds (:func:`matched_draw`, #4777). Kept units are also measured by kind, and pruned to
+    the smallest set that keeps most of their coverage (:func:`minimal_set`).
     """
     keep = [unit for unit, _, _, explained in order if explained]
     clean = _log_prob(runner, prompt, token, position)
     ablated = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, []))
+
+    def share(units) -> float | None:
+        value = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, units))
+        return _share(clean, ablated, value)
+
     kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, keep))
     rng, units = random.Random(seed), [unit for unit, *_ in order]
-    randoms = []
-    for _ in range(draws if keep else 0):
-        drawn = rng.sample(units, len(keep))
-        value = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, drawn))
-        randoms.append(_share(clean, ablated, value))
+    randoms = [share(matched_draw(rng, units, keep)) for _ in range(draws if keep else 0)]
     baseline = [r for r in randoms if r is not None]
     raw = _raw(clean, ablated, kept)
+    heads = [u for u in keep if u[2] == HEAD]
+    minimal = minimal_set(share, keep, _share(clean, ablated, kept)) if keep else []
     return {
         "units": len(keep), "clean": clean, "ablated": ablated, "kept": kept,
         "coverage": _share(clean, ablated, kept), "raw": raw,
         "overshoot": raw is not None and raw > 1.0,  # the kept units push past the clean run
         "random": sum(baseline) / len(baseline) if baseline else None,
         "random_draws": baseline,  # each draw's coverage, for the page's figure (#4479)
+        "random_spread": _spread(baseline),
+        "random_matched": True,
+        "heads_only": share(heads) if keep else None,
+        "poles_only": share([u for u in keep if u[2] != HEAD]) if keep else None,
+        "heads_kept": dict(sorted(Counter(u[0] for u in heads).items())),
+        "n_heads": getattr(runner, "n_heads", None) if getattr(means, "heads", None) else None,
+        "minimal_units": minimal,
+        "minimal_coverage": share(minimal) if minimal else None,
     }  # fmt: skip
+
+
+def _kind(unit) -> tuple[int, bool]:
+    """A unit's layer, and whether it is a head: what a matched draw keeps the same."""
+    return unit[0], unit[2] == HEAD
+
+
+def matched_draw(rng: random.Random, units: list, keep: list) -> list:
+    """Units drawn at random, with ``keep``'s number of heads and of poles in each layer.
+
+    An unmatched draw from every unit is nearly all neuron poles. So it scores near 0 when
+    the kept set holds many heads, whatever they explain (#4777).
+    """
+    pools: dict[tuple[int, bool], list] = {}
+    for unit in units:
+        pools.setdefault(_kind(unit), []).append(unit)
+    drawn = []
+    for kind, n in sorted(Counter(_kind(u) for u in keep).items()):
+        pool = pools.get(kind, [])
+        drawn += rng.sample(pool, min(n, len(pool)))
+    return drawn
+
+
+MINIMAL = 0.9  # the minimal set keeps at least this share of the kept set's coverage
+
+
+def minimal_set(share, keep: list, full: float | None, keep_share: float = MINIMAL) -> list:
+    """The smallest subset of ``keep`` found whose coverage stays >= ``keep_share`` × ``full``.
+
+    It is greedy, in two passes, at about two forward passes per unit. The first pass
+    measures each unit's drop when it alone is removed. The second removes units in order of
+    smallest drop, while the coverage holds. ``share(units)`` is the coverage of ``units``.
+    """
+    if full is None or full <= 0:
+        return list(keep)
+    floor = keep_share * full
+    drops = []
+    for i, unit in enumerate(keep):
+        rest = share(keep[:i] + keep[i + 1 :])
+        drops.append(((full - rest) if rest is not None else float("inf"), i, unit))
+    current = list(keep)
+    for _, _, unit in sorted(drops, key=lambda d: (d[0], d[1])):
+        trial = [u for u in current if u != unit]
+        value = share(trial) if trial else None
+        if value is not None and value >= floor:
+            current = trial
+    return current
+
+
+def _spread(values: list[float]) -> float | None:
+    """The population standard deviation of ``values``, or None with fewer than two."""
+    if len(values) < 2:
+        return None
+    mean = sum(values) / len(values)
+    return (sum((v - mean) ** 2 for v in values) / len(values)) ** 0.5
 
 
 POOL = 40  # planned unit experiments whose gain is measured, in attribution order

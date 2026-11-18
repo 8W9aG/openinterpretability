@@ -1,5 +1,6 @@
 """Prompt coverage is capped at 100%, and an overshoot is kept and shown (#4507)."""
 
+import itertools
 from datetime import UTC, datetime
 
 import pytest
@@ -9,7 +10,8 @@ from openinterpretability import explain_coverage as ec
 
 def _fake(monkeypatch, kept: float, drawn: float = -4.0):
     """Clean run −1, all ablated −5, the explained units ``kept``, random sets ``drawn``."""
-    values = iter([-1.0, -5.0, kept] + [drawn] * ec.DRAWS)
+    # Then the per-kind and pruning passes, which these tests don't check, read ``drawn``.
+    values = itertools.chain([-1.0, -5.0, kept] + [drawn] * ec.DRAWS, itertools.repeat(drawn))
     monkeypatch.setattr(ec, "keep_hooks", lambda *a: None)
     monkeypatch.setattr(ec, "_log_prob", lambda *a: next(values))
 
