@@ -1,1 +1,0 @@
-- The site deploys again. The build loaded every experiment record a second time to find the status of the units that explanations cite. The deploy runner ran out of memory, and no deploy finished after the first explanation landed. The build now finds these statuses from the records that it already holds.

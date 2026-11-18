@@ -1,1 +1,0 @@
-- **`reproduce` refuses a record whose review policy is not its protocol's default** (part of #4750). A record is re-reviewed under the policy stored in it, so its thresholds must be the protocol's own. Every current record holds the default policy.

@@ -1,1 +1,0 @@
-- **The deploy and nightly workflows' failure issues** hold fixed fields only, and each workflow comments only on an issue that it opened (part of #4750).
