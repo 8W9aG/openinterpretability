@@ -333,14 +333,15 @@ def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
 
 
 def load_archive_paths(
-    wiki_dir: Path, skip_missing: bool = False
+    wiki_dir: Path, skip_missing: bool = False, keep=None
 ) -> list[tuple[Path, AuditRecord]]:
     """Every archived experiment record with its path, oldest first.
 
     With ``skip_missing``, a record whose evidence can't be had is left out with a warning
     (#4530). The planner and ``explain`` use it, so one record merged before its evidence
     reached the dataset can't stop them. The site build and the checks keep the default and
-    fail on it.
+    fail on it. ``keep(path, record)`` returns what to hold of each record as it loads: the
+    site build holds it slim (``builder.slim.SlimArchive``, #4652).
     """
     import sys
 
@@ -350,7 +351,8 @@ def load_archive_paths(
     pairs = []
     for p in sorted(root.rglob("*.json")):
         try:
-            pairs.append((p, AuditRecord.model_validate_json(p.read_text(encoding="utf-8"))))
+            record = AuditRecord.model_validate_json(p.read_text(encoding="utf-8"))
+            pairs.append((p, keep(p, record) if keep else record))
         except EvidenceMissing as error:
             if not skip_missing:
                 raise

@@ -338,6 +338,7 @@ def build_tree(
     records: Sequence[AuditRecord],
     errata: Sequence[Erratum],
     users: Mapping[str, str] | None = None,
+    claims: Mapping[int, str] | None = None,
 ) -> list[ModelNode]:
     """Group the reviewed records into models, layers and units.
 
@@ -345,7 +346,8 @@ def build_tree(
     (:mod:`openinterpretability.core.errata`), and holds the record with their edits applied.
     ``errata`` has no default, so that no caller can leave them out by mistake: pass
     ``load_errata(wiki_dir)``, or ``[]`` in a test. Its ``user`` is the proposer's recorded
-    contributor, else the record's entry in ``users`` (:func:`.users.load_users`).
+    contributor, else the record's entry in ``users`` (:func:`.users.load_users`). ``claims``
+    gives the claim of each slim record by ``id()``, from its full submission (builder/slim.py).
     """
     reviewed = [r for r in records if r.verdict is not None]
     latest: dict[str, AuditRecord] = {}
@@ -362,7 +364,10 @@ def build_tree(
         edited, edits = apply_errata(r, found)
         is_latest = latest[r.submission.identifier.slug] is r
         experiment = _add_experiment(models, units, edited, is_latest, widths)
+        if claims and edited is r and id(r) in claims:  # a slim record's (builder/slim.py)
+            experiment.claim = claims[id(r)]
         experiment.errata, experiment.edits = found, edits
+        experiment.loaded = id(r)  # builder/slim.py finds its file by this
         experiment.user = r.submission.contributor or (users or {}).get(record_ref(r))
 
     for (name, layer_idx, *_), node in sorted(units.items()):
