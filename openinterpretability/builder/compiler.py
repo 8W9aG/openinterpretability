@@ -372,7 +372,7 @@ def _save_memos() -> None:
 def _true_text_stats(experiments, draws, corpus_sources) -> dict:
     """The home page's totals and leaderboards, from true text. Leaderboards are scrubbed."""
     with TemporaryDirectory() as unpublished:
-        true_text = export_registry(experiments, Path(unpublished), corpus_sources)
+        true_text = export_registry(experiments, Path(unpublished), corpus_sources, with_json=False)
         return scrub(registry_stats(true_text, draws))
 
 

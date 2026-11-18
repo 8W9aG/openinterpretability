@@ -52,7 +52,9 @@ class Experiment:
     id: str
     is_latest: bool  # newest experiment for this neuron pole
     reuses: str | None = None  # id of an earlier experiment with the same probe set
-    claim: str = ""  # the submission without its provenance: equal for re-reviews of one hypothesis
+    # A SHA-256 of the submission without its provenance: equal for re-reviews of one
+    # hypothesis. A hash, not the JSON itself, which held about 1 GiB in a build (#4652).
+    claim: str = ""
     role: str = "current"  # what it counts for in the pole's standing (standing.ROLES)
     # Revision links (``supersedes``) point both ways, so keep them out of repr and ==.
     revises: Experiment | None = field(default=None, repr=False, compare=False)
