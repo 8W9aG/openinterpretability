@@ -117,6 +117,18 @@ class LayerView(StrictModel):
     lens: list[dict[str, float]] = Field(default_factory=list)
     spectrum: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][direction]
     space: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][x, y, z]
+    route_place: list[list[list[float]]] = Field(default_factory=list)  # in the route's axes
+
+
+class RouteSpace(StrictModel):
+    """The 3D space in which an answer's route writes (#4934): its corpus cloud and units.
+
+    The axes are the 3 directions of most variance within the span of the route units'
+    write directions (``embedding_space.route_directions``), at each layer.
+    """
+
+    cloud: list[list[list[float]]]  # [layer][corpus point][x, y, z]
+    arrows: dict[str, list[list[float]]]  # unit → its write direction in 3D at each layer
 
 
 class RouteReading(StrictModel):
@@ -142,6 +154,8 @@ class RouteReading(StrictModel):
     spectrum: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][direction]
     # Each token in the model's 3D embedding space, at each layer (embedding_space, #4929).
     space: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][x, y, z]
+    # The same in the route's axes: where the route's units write (#4934).
+    route_place: list[list[list[float]]] = Field(default_factory=list)
     # The same with units switched off (mean-ablated). Every prompt has the whole route off.
     # The original prompt also has each route unit off on its own, keyed by its label.
     route_off: LayerView | None = None
@@ -164,6 +178,7 @@ class AnswerMeasures(StrictModel):
     top_tokens: dict[str, str] = Field(default_factory=dict)  # each prompt's top token
     # The route on each prompt: the original, the controls and the probes (#4917).
     readings: dict[str, RouteReading] = Field(default_factory=dict)
+    route_space: RouteSpace | None = None  # the space where the route writes (#4934)
 
     @property
     def necessity(self) -> float:

@@ -298,14 +298,15 @@ def test_the_page_draws_the_route_on_every_prompt(gpt2, means, tmp_path, record)
     moving = (folder / "fig-route-0.svg").read_text()
     assert "@keyframes" in moving and "<rect" in moving  # it moves, and the head is a square
     assert "animation:none" in (folder / "fig-route-0-static.svg").read_text()
-    # The 3D explorer: its data is on the page, and three.js loads only when started.
+    # The 3D explorer: its data is on the page, and it starts by itself with no button.
     import json
     import re
 
     data = json.loads(re.search(r'id="route3d-data">(.*?)</script>', page, re.S)[1])
     assert len(data["prompts"]) == len(readings) and data["prompts"][0]["by"] == "original"
     assert {u["unit"] for u in data["units"]} == {"L0/H1", "L1/N3+"}
-    assert "three@0.169.0" in page and 'type="importmap"' in page and 'id="route3d-start"' in page
+    assert "three@0.169.0" in page and 'type="importmap"' in page
+    assert 'id="route3d-start"' not in page and "IntersectionObserver" in page
 
 
 def test_the_lens_and_spectrum_follow_the_layers_on_shared_axes(gpt2, means):
@@ -327,3 +328,17 @@ def test_the_lens_and_spectrum_follow_the_layers_on_shared_axes(gpt2, means):
     assert all(r.route_off and len(r.route_off.lens) == 3 for r in m.readings.values())
     assert set(first.unit_off) == {"L0/H1", "L1/N3+"} and not m.readings["w"].unit_off
     assert first.route_off.lens[-1] != first.lens[-1]  # switching the route off changes it
+
+
+def test_with_the_corpus_the_record_holds_the_routes_space(gpt2, means):
+    """#4934: the space where the route writes, its cloud, its arrows and each prompt's place."""
+    from openinterpretability.answer_review import review
+
+    r = review(gpt2, means, _claim(), _probes(), ar.AnswerPolicy(null_sets=1), texts=TEXTS * 4)
+    space = r.verdict.measures.route_space
+    assert space is not None and len(space.cloud) == 3 and len(space.cloud[0][0]) == 3
+    assert set(space.arrows) == {"L0/H1", "L1/N3+"} and len(space.arrows["L0/H1"]) == 3
+    first = r.verdict.measures.readings["abcd"]
+    assert len(first.route_place) == 3 and len(first.route_place[0]) == len(first.tokens)
+    plain = review(gpt2, means, _claim(), _probes(), ar.AnswerPolicy(null_sets=1))
+    assert plain.verdict.measures.route_space is None  # no corpus, no route space

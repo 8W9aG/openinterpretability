@@ -1,55 +1,75 @@
-{# The 3D route explorer (#4905, #4917). Expects `route3d` (route_figures.route3d). three.js loads only when the reader starts it, pinned, as the home page loads DuckDB. The SVG figures stay as the static and reduced-motion form. #}
-<section class="mt-8" aria-labelledby="route3d-title" data-pagefind-ignore>
-  <h2 id="route3d-title" class="mb-1 text-lg font-semibold">Explore it in 3D</h2>
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Three views of the same prompts, from this experiment's measures. Pick a prompt to see each view change in place, or play them all. Drag to turn it.</p>
-  <ul class="mt-1 max-w-3xl list-disc pl-5 text-sm text-slate-600 dark:text-slate-400">
-    <li><strong>The embedding space:</strong> the model's representation space, as a cloud of 1,500 corpus tokens at every layer, with its shadow on the floor. The prompt's tokens sit in it, coloured in sentence order and joined by a thin path; each leaves a trail of where it has been. Play the layers and the space shifts as the model reads: every point moves smoothly from the embedding to the last layer. Compare with another prompt to see where the two sentences' states meet and part; its tokens are rings on a dashed path.</li>
-    <li><strong>The route:</strong> layers run left to right. Cubes are attention heads and spheres are neuron poles, sized by their strength against the original prompt. Particles flow along each measured edge, faster and denser where it is stronger. Dots push {{ route3d.answer }} up, rings push it down.</li>
-    <li><strong>Read it:</strong> as the bracket paper's figure does, a cursor reads the prompt token by token. Under each token, a bar per route unit shows its strength there. The 3D view follows the cursor: the units swell with their strength at that token, and the spectrum shows that token's state through the layers. At the last token the model makes its answer.</li>
-    <li><strong>The spectrum:</strong> the state at the cursor's token after each layer, as a waterfall. Layers are time, from the embedding at the front to the last layer at the back. Each ridge is the state on the {{ route3d.prompts[0].spectrum[0] | length if route3d.prompts[0].spectrum else 0 }} principal directions shared by every prompt, the strongest first, as frequencies run in a spectrum. The surface is a smooth curve through the measured values, which the dots mark, and it flows between layers the same way. A curve can swing a little past the values between them, so read the dots.</li>
-    <li><strong>Switch neurons off:</strong> set the whole route, or one of its units, to its mean, and watch the spectrum and the lens move. The clean ridges stay as dashed lines, so you see what changed. One unit at a time works on the original prompt; the whole route works on every prompt.</li>
-    <li><strong>The logit lens:</strong> the same waterfall, but each ridge is what the model would answer at that layer: the probability of each candidate token. Small spheres follow {{ route3d.answer }} through the layers, so you see where the answer forms.</li>
-  </ul>
-  <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-    <button type="button" id="route3d-start" class="rounded border border-slate-400 px-3 py-1 font-semibold dark:border-slate-600">Start the 3D view</button>
-    <span id="route3d-status" class="text-slate-500" role="status"></span>
-  </div>
-  <div id="route3d-ui" class="mt-3 hidden">
-    <div class="flex flex-wrap items-center gap-2 text-xs">
-      <label for="route3d-prompt" class="text-slate-500">Prompt</label>
-      <select id="route3d-prompt" class="max-w-full rounded border border-slate-300 bg-transparent px-2 py-1 font-mono dark:border-slate-700">
+{# The 3D route explorer (#4905, #4917). Expects `route3d` (route_figures.route3d). three.js loads, pinned, when the section nears the screen, as the home page loads DuckDB. It starts by itself (#4976). The SVG figures stay as the static and reduced-motion form. #}
+{#- Shared styles: frosted pills on the stage, a toolbar under it. A chosen option is a filled pill, so the choice shows by fill and weight, not colour alone. -#}
+{%- set glass = "rounded-full bg-white/85 shadow-sm ring-1 ring-slate-900/10 backdrop-blur dark:bg-slate-900/80 dark:ring-white/10" -%}
+{%- set seg = "whitespace-nowrap rounded-full px-2.5 py-1 text-xs sm:px-3 font-medium text-slate-600 transition hover:text-slate-900 aria-checked:bg-slate-900 aria-checked:font-semibold aria-checked:text-white aria-checked:shadow dark:text-slate-300 dark:hover:text-white dark:aria-checked:bg-white dark:aria-checked:text-slate-900" -%}
+{%- set pill = "rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-900/10 transition hover:bg-slate-50 hover:text-slate-900 aria-pressed:bg-slate-900 aria-pressed:text-white dark:bg-slate-800 dark:text-slate-200 dark:ring-white/10 dark:hover:bg-slate-700 dark:aria-pressed:bg-white dark:aria-pressed:text-slate-900" -%}
+{%- set pick = "max-w-full rounded-full border-0 bg-white py-1.5 pl-3 pr-8 text-xs text-slate-800 shadow-sm ring-1 ring-slate-900/10 dark:bg-slate-800 dark:text-slate-100 dark:ring-white/10" -%}
+{%- set tag = "text-[11px] font-medium uppercase tracking-wide text-slate-400" -%}
+<section class="mt-10" aria-labelledby="route3d-title" data-pagefind-ignore>
+  <h2 id="route3d-title" class="sr-only">The prompt in 3D</h2>
+  <p id="route3d-status" class="text-xs text-slate-500" role="status"></p>
+  <div id="route3d-ui" class="hidden">
+    {# The stage comes first, so the view is on screen as soon as it starts. The view picker and the layer player float on it. #}
+    <div class="relative">
+      <div id="route3d-stage" class="relative h-[560px] w-full overflow-hidden rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:from-slate-900 dark:to-slate-950 dark:ring-white/10" role="img" aria-label="A 3D view of the route; the caption under it says what it shows."></div>
+      <div class="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-3">
+        <span role="radiogroup" aria-label="View" class="pointer-events-auto inline-flex gap-0.5 p-1 {{ glass }}">
+          {% for key, name in [("space", "Embedding space"), ("route", "Route"), ("spectrum", "Spectrum"), ("lens", "Logit lens")] %}<button type="button" role="radio" data-view="{{ key }}" aria-checked="{{ 'true' if loop.first else 'false' }}" class="{{ seg }}">{{ name }}</button>{% endfor %}
+        </span>
+      </div>
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3" data-space-only>
+        <div class="pointer-events-auto flex items-center gap-3 py-1.5 pl-1.5 pr-4 {{ glass }}">
+          <button type="button" id="route3d-depth-play" class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white shadow transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">Play the layers</button>
+          <label for="route3d-depth" class="sr-only">Depth through the layers</label>
+          <input type="range" id="route3d-depth" min="0" max="6" step="0.01" value="0" class="w-40 accent-slate-900 sm:w-64 dark:accent-white" aria-describedby="route3d-caption">
+        </div>
+      </div>
+    </div>
+    <p id="route3d-caption" class="mt-3 max-w-3xl text-sm text-slate-600 dark:text-slate-300" aria-live="polite"></p>
+    <div class="mt-4 flex flex-wrap items-end gap-x-4 gap-y-3">
+      <label class="flex min-w-0 flex-col gap-1"><span class="{{ tag }}">Prompt</span>
+        <select id="route3d-prompt" class="{{ pick }}">
         {% for p in route3d.prompts %}<option value="{{ loop.index0 }}">{% if p.by == "original" %}the original{% else %}{{ p.expect }} {{ "✓" if p.ok else "✗" }}{% endif %} · {{ p.prompt }} → {{ p.top }}</option>{% endfor %}
-      </select>
-      <button type="button" id="route3d-play" class="rounded border border-slate-300 px-2 py-1 dark:border-slate-700" aria-pressed="false">Play all</button>
-      <label for="route3d-off" class="ml-2 text-slate-500">Switch off</label>
-      <select id="route3d-off" class="rounded border border-slate-300 bg-transparent px-2 py-1 font-mono dark:border-slate-700">
+        </select>
+      </label>
+      <button type="button" id="route3d-play" class="{{ pill }}" aria-pressed="false">Play all</button>
+      <label class="flex flex-col gap-1" data-space-only><span class="{{ tag }}">Compare with</span>
+        <select id="route3d-compare" class="max-w-xs {{ pick }}">
+        <option value="-1">no other prompt</option>
+        {% for p in route3d.prompts %}<option value="{{ loop.index0 }}">{{ p.prompt }} → {{ p.top }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="flex flex-col gap-1"><span class="{{ tag }}">Switch off</span>
+        <select id="route3d-off" class="{{ pick }}">
         <option value="">nothing</option>
         <option value="route">the whole route</option>
         {% for u in route3d.units %}<option value="{{ u.unit }}">{{ u.unit }} alone</option>{% endfor %}
-      </select>
-      <span class="ml-2 text-slate-500" id="route3d-view-label">View</span>
-      <span role="radiogroup" aria-labelledby="route3d-view-label" class="inline-flex gap-1">
-        {% for key, name in [("space", "Embedding space"), ("route", "Route"), ("spectrum", "Spectrum"), ("lens", "Logit lens")] %}<button type="button" role="radio" data-view="{{ key }}" aria-checked="{{ 'true' if loop.first else 'false' }}" class="rounded border border-slate-300 px-2 py-1 aria-checked:border-slate-600 aria-checked:font-semibold dark:border-slate-700">{{ name }}</button>{% endfor %}
-      </span>
+        </select>
+      </label>
+      <div class="flex flex-col gap-1" data-space-only><span class="{{ tag }}" id="route3d-axes-label">Axes</span>
+        <span role="radiogroup" aria-labelledby="route3d-axes-label" class="inline-flex gap-0.5 p-1 {{ glass }}">
+          {% for key, name in [("route", "Where the route writes"), ("corpus", "The corpus's")] %}<button type="button" role="radio" data-axes="{{ key }}" aria-checked="{{ 'true' if loop.first else 'false' }}" class="{{ seg }}">{{ name }}</button>{% endfor %}
+        </span>
+      </div>
     </div>
-    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs" data-space-only>
-      <button type="button" id="route3d-depth-play" class="rounded border border-slate-300 px-2 py-1 dark:border-slate-700">Play the layers</button>
-      <label for="route3d-depth" class="text-slate-500">Depth</label>
-      <input type="range" id="route3d-depth" min="0" max="6" step="0.01" value="0" class="w-48" aria-describedby="route3d-caption">
-      <label for="route3d-compare" class="ml-2 text-slate-500">Compare with</label>
-      <select id="route3d-compare" class="max-w-xs rounded border border-slate-300 bg-transparent px-2 py-1 font-mono dark:border-slate-700">
-        <option value="-1">no other prompt</option>
-        {% for p in route3d.prompts %}<option value="{{ loop.index0 }}">{{ p.prompt }} → {{ p.top }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-      <button type="button" id="route3d-read" class="rounded border border-slate-300 px-2 py-1 dark:border-slate-700" aria-pressed="false">Read it</button>
-      <span class="text-slate-500">or click a token.</span>
+    <div class="mt-5 flex items-center gap-3">
+      <button type="button" id="route3d-read" class="{{ pill }}" aria-pressed="false">Read it</button>
+      <span class="text-xs text-slate-500">or click a token to follow it through the route.</span>
     </div>
     <div id="route3d-reading" class="mt-2 overflow-x-auto"></div>
-    <p id="route3d-caption" class="mt-2 text-sm" aria-live="polite"></p>
-    <div id="route3d-stage" class="relative mt-2 h-[520px] w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800" role="img" aria-label="A 3D view of the route; the caption above says what it shows."></div>
   </div>
+  <details class="mt-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    <summary class="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">How to read it</summary>
+    <p class="mt-1">Three views of the same prompts, from this experiment's measures. Pick a prompt to see each view change in place, or play them all. Drag to turn it.</p>
+    <ul class="mt-1 max-w-3xl list-disc pl-5 text-sm text-slate-600 dark:text-slate-400">
+      <li><strong>The embedding space:</strong> the model's representation space, as a cloud of 1,500 corpus tokens at every layer, with its shadow on the floor. The prompt's tokens sit in it, coloured in sentence order and joined by a thin path; each leaves a trail of where it has been. Play the layers and the space shifts as the model reads: every point moves smoothly from the embedding to the last layer. Compare with another prompt to see where the two sentences' states meet and part; its tokens are rings on a dashed path. Each token trails a coloured gas as it moves, like a comet. The axes are, by default, the three directions of most variance within the directions the route's heads and neurons write, drawn as labelled arrows. So the space is shown where the causal units act. Switch to the corpus's axes for the model's own top directions.</li>
+      <li><strong>The route:</strong> layers run left to right. Cubes are attention heads and spheres are neuron poles, sized by their strength against the original prompt. Particles flow along each measured edge, faster and denser where it is stronger. Dots push {{ route3d.answer }} up, rings push it down.</li>
+      <li><strong>Read it:</strong> as the bracket paper's figure does, a cursor reads the prompt token by token. Under each token, a bar per route unit shows its strength there. The 3D view follows the cursor: the units swell with their strength at that token, and the spectrum shows that token's state through the layers. At the last token the model makes its answer.</li>
+      <li><strong>The spectrum:</strong> the state at the cursor's token after each layer, as a waterfall. Layers are time, from the embedding at the front to the last layer at the back. Each ridge is the state on the {{ route3d.prompts[0].spectrum[0] | length if route3d.prompts[0].spectrum else 0 }} principal directions shared by every prompt, the strongest first, as frequencies run in a spectrum. The surface is a smooth curve through the measured values, which the dots mark, and it flows between layers the same way. A curve can swing a little past the values between them, so read the dots.</li>
+      <li><strong>Switch neurons off:</strong> set the whole route, or one of its units, to its mean, and watch the spectrum and the lens move. The clean ridges stay as dashed lines, so you see what changed. One unit at a time works on the original prompt; the whole route works on every prompt.</li>
+      <li><strong>The logit lens:</strong> the same waterfall, but each ridge is what the model would answer at that layer: the probability of each candidate token. Small spheres follow {{ route3d.answer }} through the layers, so you see where the answer forms.</li>
+    </ul>
+  </details>
   <script type="application/json" id="route3d-data">{{ route3d | tojson }}</script>
   {# The addons import the bare name "three", which only an import map can resolve. #}
   <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
@@ -60,9 +80,20 @@
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const $ = (id) => document.getElementById(id);
 
+    function hasWebGL() {
+      try {
+        const c = document.createElement("canvas");
+        return Boolean(c.getContext("webgl2") || c.getContext("webgl"));
+      } catch (error) {
+        return false;
+      }
+    }
+
     async function start() {
-      $("route3d-start").disabled = true;
-      $("route3d-status").textContent = "Loading three.js…";
+      if (!hasWebGL()) {
+        $("route3d-status").textContent = "This browser has WebGL turned off, so the 3D view can't show. The 2D figures above show the same measures.";
+        return;
+      }
       let THREE, OrbitControls, CSS2D;
       try {
         THREE = await import(THREE_URL);
@@ -88,7 +119,9 @@
       try {
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       } catch (error) {
-        $("route3d-status").textContent = "This browser has no WebGL, so the 2D figures stand in for it.";
+        console.error("route3d: no WebGL renderer", error);
+        $("route3d-ui").classList.add("hidden");
+        $("route3d-status").textContent = "This browser could not start WebGL, so the 3D view can't show. The 2D figures above show the same measures.";
         return;
       }
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
@@ -256,6 +289,7 @@
       {% include "_route3d_waves.html" %}
       const waves = { spectrum: buildWave("spectrum"), lens: buildWave("lens") };
       {% include "_embedding3d.html" %}
+      {% include "_gas3d.html" %}
       const cameras = { space: [new THREE.Vector3(8, 6, 8), new THREE.Vector3(0, -0.9, 0)],
                         route: [new THREE.Vector3(2, 3, 22), new THREE.Vector3(0, 0, 0)],
                         spectrum: [new THREE.Vector3(0, 9, 17), new THREE.Vector3(0, -1, 0)],
@@ -356,6 +390,7 @@
       });
       show(0);
       setView(hasSpace ? "space" : "route");  // the space leads when the model has one
+      if (hasSpace) loadCloud().catch((error) => { console.error("route3d: no embedding space", error); });
 
       const clock = new THREE.Clock();
       function frame() {
@@ -393,6 +428,25 @@
         labels.setSize(stage.clientWidth, stage.clientHeight);
       }).observe(stage);
     }
-    $("route3d-start").addEventListener("click", start);
+    // Start once the section nears the screen, so a reader who never scrolls here loads nothing.
+    // Any failure says so in the status line rather than leaving an empty box.
+    let started = false;
+    const go = () => {
+      if (started) return;
+      started = true;
+      $("route3d-status").textContent = "Loading the 3D view…";
+      start().catch((error) => {
+        console.error("route3d: the 3D view failed", error);
+        $("route3d-status").textContent = "The 3D view failed to start; the 2D figures above show the same measures.";
+      });
+    };
+    if ("IntersectionObserver" in window) {
+      const seen = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) { seen.disconnect(); go(); }
+      }, { rootMargin: "400px" });
+      seen.observe(document.getElementById("route3d-title").closest("section"));
+    } else {
+      go();
+    }
   </script>
 </section>

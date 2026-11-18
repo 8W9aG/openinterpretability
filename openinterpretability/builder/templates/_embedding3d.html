@@ -6,8 +6,14 @@
       const spaceGroup = new THREE.Group();
       scene.add(spaceGroup);
       let cloud = null, depth = 0, depthPlaying = !still, compare = -1;
-      const hasSpace = !!(data.space_href && data.prompts[0].space && data.prompts[0].space.length);
-      const layersN = hasSpace ? data.prompts[0].space.length : 0;
+      // Two sets of axes: where the route writes (#4934), and the corpus's own (#4929).
+      const hasRoute = !!(data.route_space && data.prompts[0].route_place && data.prompts[0].route_place.length);
+      const hasCorpus = !!(data.space_href && data.prompts[0].space && data.prompts[0].space.length);
+      const hasSpace = hasRoute || hasCorpus;
+      let axes = hasRoute ? "route" : "corpus";
+      const placeKey = () => (axes === "route" ? "route_place" : "space");
+      const layersN = hasSpace ? data.prompts[0][hasRoute ? "route_place" : "space"].length : 0;
+      let corpusCloud = null;
       let FLOOR = -1.8;  // set under the cloud once it loads
       const TAIL = 1.5;  // layers of a token's trail: a short comet tail, not its whole history
 
@@ -41,7 +47,7 @@
       floor.position.y = FLOOR;
       spaceGroup.add(floor);
       const depthTag = document.createElement("div");
-      Object.assign(depthTag.style, { position: "absolute", left: "14px", bottom: "10px", letterSpacing: "0.12em", pointerEvents: "none" });
+      Object.assign(depthTag.style, { position: "absolute", left: "16px", top: "16px", letterSpacing: "0.12em", pointerEvents: "none" });
       depthTag.className = "font-mono text-xs uppercase opacity-70";
       stage.appendChild(depthTag);
 
@@ -53,19 +59,13 @@
 
       let cloudPoints, cloudShadows;
       async function loadCloud() {
-        const response = await fetch("{{ root }}" + data.space_href);  // relative to this page
-        cloud = (await response.json()).cloud;  // [layer][point][3]
-        // The floor sits just under most of the cloud, and is about as wide. Percentiles, so a
-        // few outlying points don't push it away.
-        const ys = [], spans = [];
-        for (const layer of cloud) for (const q of layer) { ys.push(q[1]); spans.push(Math.abs(q[0]), Math.abs(q[2])); }
-        ys.sort((a, b) => a - b); spans.sort((a, b) => a - b);
-        FLOOR = ys[Math.floor(0.02 * ys.length)] - 0.3;
-        const wide = spans[Math.floor(0.98 * spans.length)];
-        floor.position.y = FLOOR;
-        floor.scale.setScalar((2.4 * wide) / 6.5);
-        cameras.space[1].set(0, FLOOR / 2, 0);
-        if (view === "space") controls.target.copy(cameras.space[1]);
+        if (axes === "route") cloud = data.route_space.cloud;  // in the record: [layer][point][3]
+        else {
+          if (!corpusCloud) corpusCloud = (await (await fetch("{{ root }}" + data.space_href)).json()).cloud;
+          cloud = corpusCloud;
+        }
+        if (cloudPoints) spaceGroup.remove(cloudPoints, cloudShadows);
+        fitted = ""; fitView();
         cloudPoints = pointsOf(cloud[0].length, dotTexture, 0.15, dark ? 0.7 : 0.8, 0xffffff);
         // Each corpus point keeps a muted colour from its place at the embedding, so a reader
         // can follow a region of the space as it moves through the layers.
@@ -83,7 +83,7 @@
       }
 
       // The sentence: a sphere per token, its shadow, its label, the path, and its trail.
-      let sentence = [], comparison = [];
+      let sentence = [], comparison = [], fitted = "";
       function tokensOf(p, rings) {
         const n = p.tokens.length, out = [];
         const path = new THREE.Line(new THREE.BufferGeometry(), rings
@@ -100,15 +100,18 @@
             const rim = new THREE.Mesh(new THREE.SphereGeometry(0.088, 24, 12), new THREE.MeshBasicMaterial({ color: dark ? 0xffffff : 0x111111, side: THREE.BackSide }));
             mesh.add(rim);
           }
-          const shadow = new THREE.Sprite(new THREE.SpriteMaterial({ map: shadowTexture, color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false }));
-          shadow.scale.set(0.35, 0.35, 1);
+          // A flat, blurred disc lying on the floor: a sprite would face the camera and cut it.
+          const shadow = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.MeshBasicMaterial({ map: shadowTexture, color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false }));
+          shadow.rotation.x = -Math.PI / 2;
           const tag = label(JSON.stringify(tok).slice(1, -1), "text-[11px]" + (rings ? " italic opacity-80" : ""));
           tag.position.set(0, 0.16, 0);
           mesh.add(tag);
           const trail = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.35 }));
           trail.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(64 * 3), 3));
           spaceGroup.add(mesh, shadow, trail);
-          out.push({ mesh, shadow, trail, path, i });
+          const entry = { mesh, shadow, trail, path, i };
+          gasFor(entry, color, i % 2 ? 1 : -1);  // neighbouring comets turn opposite ways
+          out.push(entry);
         });
         return out;
       }
@@ -117,6 +120,7 @@
         for (const t of list) {
           t.mesh.children.forEach((c) => c.element && c.element.remove());
           spaceGroup.remove(t.mesh, t.shadow, t.trail, t.path);
+          if (t.gas) { spaceGroup.remove(t.gas.points); t.gas.points.geometry.dispose(); }
         }
       }
 
@@ -126,11 +130,65 @@
         sentence = tokensOf(data.prompts[index], false);
         comparison = compare >= 0 && compare !== index ? tokensOf(data.prompts[compare], true) : [];
         setVisible(spaceGroup, view === "space");
+        const key = [index, compare, axes].join();
+        if (key !== fitted) { fitted = key; fitView(); }  // not on every cursor step: keep the reader's view
       }
 
-      function rowsFor(p) {  // [layer][token][3], with units switched off when chosen
-        const switched = offRows(p, "space");
-        return switched && switched.length ? switched : p.space;
+      // Fit the floor and the camera to what is shown: most of the cloud (percentiles, so a few
+      // outliers don't push them away) and every token of the prompts, at every layer.
+      function fitView() {
+        if (!cloud) return;
+        const pts = [];
+        for (const layer of cloud) for (const q of layer) pts.push(q);
+        const sorted = (k) => pts.map((q) => q[k]).sort((a, b) => a - b);
+        const pick = (arr, f) => arr[Math.floor(f * (arr.length - 1))];
+        const xs = sorted(0), ys = sorted(1), zs = sorted(2);
+        let lo = [pick(xs, 0.02), pick(ys, 0.02), pick(zs, 0.02)], hi = [pick(xs, 0.98), pick(ys, 0.98), pick(zs, 0.98)];
+        const index = +$("route3d-prompt").value;
+        for (const p of [data.prompts[index], compare >= 0 ? data.prompts[compare] : null]) {
+          if (!p) continue;
+          for (const layer of rowsFor(p)) for (const q of layer) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], q[k]); hi[k] = Math.max(hi[k], q[k]); }
+        }
+        const centre = new THREE.Vector3((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2);
+        const radius = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2;
+        FLOOR = lo[1] - 0.15 * radius;
+        floor.position.set(centre.x, FLOOR, centre.z);
+        floor.scale.setScalar((2.6 * Math.max(hi[0] - lo[0], hi[2] - lo[2]) / 2) / 6.5);
+        cameras.space[1].copy(centre).setY(centre.y - 0.3 * radius);
+        cameras.space[0].copy(cameras.space[1]).add(new THREE.Vector3(1, 0.78, 1).normalize().multiplyScalar(7.4 * radius));
+        if (view === "space") { camera.position.copy(cameras.space[0]); controls.target.copy(cameras.space[1]); }
+      }
+
+      function rowsFor(p) {  // [layer][token][3] in the chosen axes, units switched off if chosen
+        const switched = offRows(p, placeKey());
+        return switched && switched.length ? switched : p[placeKey()];
+      }
+
+      // In the route's axes, each route unit's write direction is an arrow from the origin.
+      const arrows = hasRoute ? data.units.map((u) => {
+        const arrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 1, dark ? 0xcbd5e1 : 0x475569, 0.12, 0.07);
+        const tag = label(u.unit, "text-[10px] opacity-80");
+        arrow.add(tag);
+        spaceGroup.add(arrow);
+        return { arrow, tag, track: data.route_space.arrows[u.unit] };
+      }) : [];
+
+      function drawArrows(t) {
+        const longest = Math.max(1e-9, ...arrows.map((b) => Math.hypot(...catmull(b.track, t))));
+        for (const a of arrows) {
+          // Only the units that write strongly along these axes, so the labels stay legible.
+          const on = axes === "route" && view === "space" && Math.hypot(...catmull(a.track, t)) >= 0.25 * longest;
+          a.arrow.visible = on; a.tag.visible = on;
+          a.arrow.traverse((c) => { c.visible = on; });
+          if (!on) continue;
+          const v = vec(catmull(a.track, t));
+          const length = v.length();
+          if (length < 1e-6) continue;
+          const scale = 1.6 / Math.max(...arrows.map((b) => Math.hypot(...b.track[Math.round(t)]))) ;
+          a.arrow.setDirection(v.clone().normalize());
+          a.arrow.setLength(Math.max(0.15, length * scale), 0.12, 0.07);
+          a.tag.position.set(0, Math.max(0.15, length * scale) + 0.08, 0);
+        }
       }
 
       function placeTokens(list, p, t) {
@@ -142,7 +200,8 @@
           const track = rows.map((layer) => layer[tok.i]);
           const xyz = catmull(track, t);
           tok.mesh.position.set(...xyz);
-          tok.shadow.position.set(xyz[0], FLOOR + 0.001, xyz[2]);
+          gasEmit(tok, xyz);
+          tok.shadow.position.set(xyz[0], FLOOR + 0.002, xyz[2]);
           const on = tok.i < shown;
           tok.mesh.visible = on; tok.shadow.visible = on; tok.trail.visible = on;
           tok.mesh.traverse((c) => { c.visible = on; });
@@ -167,7 +226,7 @@
         const t = Math.min(layersN - 1, depth);
         $("route3d-depth").value = String(t);
         depthTag.textContent = t < 0.05 ? "the embedding" : "layer " + t.toFixed(1);
-        if (cloud) {
+        if (cloud && cloudPoints) {
           const a = Math.floor(Math.min(t, layersN - 2)), f = t - a;
           const pts = cloudPoints.geometry.attributes.position, shadows = cloudShadows.geometry.attributes.position;
           for (let i = 0; i < cloud[0].length; i++) {
@@ -179,6 +238,8 @@
           pts.needsUpdate = true; shadows.needsUpdate = true;
           cloudPoints.geometry.computeBoundingSphere(); cloudShadows.geometry.computeBoundingSphere();
         }
+        drawArrows(t);
+        gasUpdate(dt, view === "space");
         const index = +$("route3d-prompt").value;
         placeTokens(sentence, data.prompts[index], t);
         if (compare >= 0) placeTokens(comparison, data.prompts[compare], t);
@@ -187,7 +248,7 @@
       function spaceSentence(p) {  // what the view shows, in words
         if (!hasSpace) return "";
         const t = Math.round(Math.min(layersN - 1, depth)), rows = rowsFor(p), last = p.tokens.length - 1;
-        let out = " In the embedding space at " + (t === 0 ? "the embedding" : "layer " + t) + ", the sentence's path runs through " + p.tokens.length + " tokens.";
+        let out = " In the embedding space, " + (axes === "route" ? "on the axes where the route writes" : "on the corpus's axes") + ", at " + (t === 0 ? "the embedding" : "layer " + t) + ", the sentence's path runs through " + p.tokens.length + " tokens.";
         if (compare >= 0 && compare !== +$("route3d-prompt").value) {
           const q = data.prompts[compare], qrows = rowsFor(q);
           const d = vec(rows[t][last]).distanceTo(vec(qrows[t][q.tokens.length - 1]));
@@ -201,4 +262,13 @@
       $("route3d-depth-play").addEventListener("click", (e) => { depthPlaying = !depthPlaying; e.target.textContent = depthPlaying ? "Pause" : "Play the layers"; });
       $("route3d-depth-play").textContent = depthPlaying ? "Pause" : "Play the layers";
       $("route3d-compare").addEventListener("change", (e) => { compare = +e.target.value; show(+$("route3d-prompt").value); });
-      if (hasSpace) loadCloud().catch((error) => { console.error("route3d: no embedding space", error); });
+      document.querySelectorAll("[data-axes]").forEach((b) => {
+        if ((b.dataset.axes === "route" && !hasRoute) || (b.dataset.axes === "corpus" && !hasCorpus)) b.disabled = true;
+        b.setAttribute("aria-checked", String(b.dataset.axes === axes));
+        b.addEventListener("click", async () => {
+          axes = b.dataset.axes;
+          document.querySelectorAll("[data-axes]").forEach((c) => c.setAttribute("aria-checked", String(c.dataset.axes === axes)));
+          await loadCloud();
+          show(+$("route3d-prompt").value);
+        });
+      });

@@ -206,9 +206,12 @@ def route3d(record) -> dict | None:
             "ok": came_out.get(prompt), "scale": scale, "strength": r.strength,
             "attribution": r.attribution, "edges": r.edges,
             "lens": r.lens, "spectrum": r.spectrum, "space": r.space,
+            "route_place": r.route_place,
             "route_off": r.route_off.model_dump() if r.route_off else None,
             "unit_off": {u: v.model_dump() for u, v in r.unit_off.items()},
         })  # fmt: skip
     candidates = list(original.lens[0]) if original.lens else []
+    rs = record.verdict.measures.route_space
     return {"answer": claim.answer, "units": units, "prompts": prompts,
+            "route_space": rs.model_dump() if rs is not None else None,
             "candidates": candidates}  # fmt: skip

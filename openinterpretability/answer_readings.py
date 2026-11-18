@@ -98,21 +98,26 @@ def _patched(runner, claim, route, prompt: str, lp) -> float | None:
     return lp(hooks=patch_hooks(runner, claim.prompt, route))
 
 
-def read_all(runner, means, claim: AnswerClaim, probes, token: int) -> dict[str, RouteReading]:
-    """The readings of the original prompt, the proposer's and the reviewer's prompts."""
+def read_all(runner, means, claim: AnswerClaim, probes, token: int,
+             texts=None) -> tuple[dict[str, RouteReading], dict | None]:  # fmt: skip
+    """The readings of the original prompt, the proposer's and the reviewer's prompts.
+
+    With the corpus ``texts``, the second item is the space where the route writes (#4934).
+    """
     from openinterpretability.answer_lens import measures
 
     prompts = list(dict.fromkeys([claim.prompt, *(c.prompt for c in claim.counterfactuals),
                                   *(c.prompt for c in probes.prompts)]))  # fmt: skip
     route = [parse_unit(u) for u in claim.route]
-    layers = measures(runner, means, prompts, token, route, claim.route, claim.model_name)
+    layers = measures(runner, means, prompts, token, route, claim.route, claim.model_name, texts)
+    saved = layers.pop("_route_space")
     out = {}
     for p in prompts:
         v = layers[p]
         out[p] = read(runner, means, claim, token, p).model_copy(update={
             "lens": v["clean"]["lens"], "spectrum": v["clean"]["spectrum"],
-            "space": v["clean"]["space"],
+            "space": v["clean"]["space"], "route_place": v["clean"]["route_place"],
             "route_off": LayerView(**v["route_off"]),
             "unit_off": {u: LayerView(**x) for u, x in v.get("unit_off", {}).items()},
         })  # fmt: skip
-    return out
+    return out, saved
