@@ -1,0 +1,85 @@
+{# The comet gas of the embedding-space view (#4934). Included inside _route3d.html's start(), after _embedding3d.html: it shares spaceGroup, dotTexture, dark and still. #}
+      // Each moving token sheds soft gas, like a comet. A particle drifts, swells and fades,
+      // and its hue turns from the token's colour as it ages. Tokens turn opposite ways, so
+      // neighbouring comets differ. Under reduced motion there is no gas.
+      const GAS_N = 180, GAS_LIFE = 1.6;
+      const gasMaterial = new THREE.ShaderMaterial({
+        uniforms: { map: { value: dotTexture } },
+        vertexShader: `
+          attribute float alpha; attribute float size; varying vec3 vColor; varying float vAlpha;
+          void main() {
+            vColor = color; vAlpha = alpha;
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * (300.0 / -mv.z);
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: `
+          uniform sampler2D map; varying vec3 vColor; varying float vAlpha;
+          void main() {
+            float a = texture2D(map, gl_PointCoord).a * vAlpha;
+            if (a < 0.01) discard;
+            gl_FragColor = vec4(vColor, a);
+          }`,
+        vertexColors: true, transparent: true, depthWrite: false,
+        blending: dark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      });
+
+      function gasFor(tok, color, turn) {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(GAS_N * 3), 3));
+        geometry.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(GAS_N * 3), 3));
+        geometry.setAttribute("alpha", new THREE.Float32BufferAttribute(new Float32Array(GAS_N), 1));
+        geometry.setAttribute("size", new THREE.Float32BufferAttribute(new Float32Array(GAS_N), 1));
+        const points = new THREE.Points(geometry, gasMaterial);
+        points.frustumCulled = false;
+        spaceGroup.add(points);
+        const hsl = {};
+        color.getHSL(hsl);
+        tok.gas = { points, hsl, turn, next: 0, age: new Float32Array(GAS_N).fill(GAS_LIFE), vel: new Float32Array(GAS_N * 3), last: null };
+      }
+
+      function gasEmit(tok, xyz) {
+        const g = tok.gas;
+        if (still || !g || !tok.mesh.visible) return;
+        const here = new THREE.Vector3(...xyz);
+        const step = g.last ? here.clone().sub(g.last) : new THREE.Vector3();
+        const speed = step.length();
+        g.last = here;
+        // More gas the faster it moves; a wisp at rest, so a still comet still glows.
+        const count = Math.min(8, Math.floor(speed * 160)) + (Math.random() < 0.25 ? 1 : 0);
+        const pos = g.points.geometry.attributes.position;
+        for (let k = 0; k < count; k++) {
+          const i = g.next;
+          g.next = (g.next + 1) % GAS_N;
+          const back = step.clone().multiplyScalar(-0.6 * Math.random());  // shed behind it
+          pos.setXYZ(i, here.x + back.x, here.y + back.y, here.z + back.z);
+          g.vel[3 * i] = (Math.random() - 0.5) * 0.12 - step.x * 2;
+          g.vel[3 * i + 1] = (Math.random() - 0.3) * 0.12 - step.y * 2;
+          g.vel[3 * i + 2] = (Math.random() - 0.5) * 0.12 - step.z * 2;
+          g.age[i] = 0;
+        }
+      }
+
+      function gasUpdate(dt, visible) {
+        const color = new THREE.Color();
+        for (const tok of [...sentence, ...comparison]) {
+          const g = tok.gas;
+          if (!g) continue;
+          g.points.visible = visible && !still;
+          if (!g.points.visible) continue;
+          const a = g.points.geometry.attributes;
+          for (let i = 0; i < GAS_N; i++) {
+            g.age[i] += dt;
+            const life = Math.min(1, g.age[i] / GAS_LIFE);
+            if (life >= 1) { a.alpha.setX(i, 0); continue; }
+            a.position.setXYZ(i, a.position.getX(i) + g.vel[3 * i] * dt, a.position.getY(i) + g.vel[3 * i + 1] * dt, a.position.getZ(i) + g.vel[3 * i + 2] * dt);
+            for (let k = 0; k < 3; k++) g.vel[3 * i + k] *= 0.97;
+            // Its hue turns as it ages, and it lightens: each comet has its own colours.
+            color.setHSL((g.hsl.h + g.turn * 0.22 * life + 1) % 1, Math.min(1, g.hsl.s + 0.15), Math.min(0.8, g.hsl.l + 0.25 * life));
+            a.color.setXYZ(i, color.r, color.g, color.b);
+            a.size.setX(i, 0.12 + 0.55 * life);
+            a.alpha.setX(i, (dark ? 0.55 : 0.4) * Math.pow(1 - life, 1.4));
+          }
+          a.position.needsUpdate = true; a.color.needsUpdate = true; a.size.needsUpdate = true; a.alpha.needsUpdate = true;
+        }
+      }

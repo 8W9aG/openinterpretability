@@ -63,3 +63,31 @@ def test_the_build_publishes_each_models_cloud_once(tmp_path, monkeypatch):
     assert published == {"layers": 2, "cloud": [[[0, 0, 0]], [[1, 1, 1]]]}  # no mean or w
     monkeypatch.setattr(es, "path_for", lambda model, root=None: tmp_path / "none.json")
     assert write_space(render, "y/m") is None
+
+
+def test_a_basis_keeps_the_axes_in_its_span():
+    """Route axes (#4934): the 3 directions lie in the span of the basis's rows."""
+    torch.manual_seed(1)
+    states = torch.randn(2, 300, 24)
+    basis = torch.randn(5, 24)
+    space = es.fit(states, basis)
+    q = torch.linalg.qr(basis.T)[0]  # [24, 5]
+    for w in space["w"]:
+        inside = (w @ q) @ q.T  # each direction, projected onto the span
+        assert torch.allclose(inside, w, atol=1e-4)
+    assert torch.allclose(es.project(space, states), space["cloud"], atol=1e-4)
+
+
+def test_route_directions_are_unit_and_signed(tiny_gpt2, tmp_path, monkeypatch):
+    from openinterpretability import explain as ex
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)  # the tiny model has 64 positions
+    runner = _runner(tiny_gpt2)
+    means = ex.unit_means(runner, "tiny", TEXTS, 200)
+    dirs = es.route_directions(
+        runner, means, [(0, 3, "positive"), (0, 3, "negative"), (1, 1, "head")], "abcd"
+    )
+    assert dirs.shape == (3, 32)
+    assert torch.allclose(dirs.norm(dim=-1), torch.ones(3, dtype=dirs.dtype), atol=1e-5)
+    assert torch.allclose(dirs[0], -dirs[1])  # the other pole writes the other way
