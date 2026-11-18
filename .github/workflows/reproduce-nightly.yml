@@ -86,8 +86,9 @@ jobs:
             grep -E '^(FAILED|::error)' reproduce.log | head -c 60000 || true
             echo '```'
           } > issue.md
-          number=$(gh issue list --state open --search "\"$TITLE\" in:title" \
-            --json number --jq '.[0].number // empty')
+          # Only an issue that this workflow opened: anyone can open one with this title.
+          number=$(gh issue list --state open --author app/github-actions \
+            --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then
             gh issue comment "$number" --body-file issue.md
           else
