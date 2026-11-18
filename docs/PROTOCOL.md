@@ -152,6 +152,26 @@ A circuit experiment has its own rule, versioned apart from the rule above (`CIR
 
 All three pass: **VERIFIED**. The first two pass and specificity fails: **NEEDS_REVISION**, because the members carry the task but other tasks too. Otherwise **REJECTED**. The gates come from the pilot (`docs/analyses/circuit-pilot.md`): a bare wiring cluster fails them, and the same cluster grown by attribution passes the first two. Records live in `wiki/circuits/<model>/<circuit id>/`, and `open-interpretability check` recomputes each verdict from its stored measures.
 
+### Answer experiments
+
+An answer experiment says how a model produces one answer to one prompt (issue #4778). Its rule is versioned apart from the rules above (`ANSWER_PROTOCOL_VERSION`, §6). Explained units say what each unit does on the corpus. A VERIFIED unit can still play no part in this answer, so prompt coverage alone doesn't say that the answer is understood.
+
+The proposer writes a **route**: the prompt tokens it reads, the units in order, and what each one does here. It also gives a corrupted prompt with the sources changed and the same token count, and 4–8 counterfactual prompts. Each counterfactual says if the answer stays the model's top token (`kept`) or not (`changed`). The reviewer writes 10–30 more, blind to every measure. `answers review` measures the claim in the answer's log-probability at its position, against each unit's corpus mean (`openinterpretability/answer_review.py`).
+
+| Gate | Threshold | Meaning |
+| --- | --- | --- |
+| `necessity` | ≥ 0.5 | Mean-ablating the route cuts at least half as much as ablating every unit. |
+| `beats_null` | ≥ 3× | The route's cut is at least 3 times the mean cut of 8 random sets with the route's heads and poles in each layer. |
+| `sufficiency` | ≥ 0.5 | With only the route live, at least half the answer comes back. |
+| `patching` | ≥ 0.5 | The route's activations from the corrupted prompt move the answer by at least half the gap between the prompts. |
+| `patching_null` | ≤ 0.1 | The same random sets, patched, move it by at most a tenth, on the mean. |
+| `controls` | 1.0 | Every proposer prompt comes out as the claim predicts. |
+| `probes` | ≥ 0.8 | At least 80% of the reviewer's prompts come out as the claim predicts. |
+
+Every gate passes: **VERIFIED**. The five causal gates pass and a prompt gate fails: **NEEDS_REVISION**. Then the route carries the answer, but the claim is too broad or too narrow. Otherwise **REJECTED**. A neuron pole is patched as its whole neuron, since the corrupted prompt can flip its sign.
+
+One answer can take several attempts. Each attempt is its own record, and its proposer sees every earlier claim with its failed gates. The attempts stop at the first VERIFIED claim, or after 5 records on the prompt (`MAX_ATTEMPTS`). `explain` plans the next attempt once the prompt has explained units. A page says that the answer is understood only when a claim is VERIFIED. A VERIFIED claim is about this one prompt, not a family of prompts. Records live in `wiki/answers/<model>/<prompt id>/`, and `open-interpretability check` recomputes each verdict from its stored measures.
+
 ### What is not evidence (yet)
 
 - **The proposer's counterfactuals.** The proposer can measure these before submitting, so a match is a reproduction check (it catches measurement or transcription errors) and not a successful prediction. The predictive test is the reviewer's probes, which are written without seeing any activations.
@@ -255,6 +275,7 @@ All three pass: **VERIFIED**. The first two pass and specificity fails: **NEEDS_
 | --- | --- | --- |
 | Experiment | `wiki/experiments/` | Re-measured: `reproduce` runs the model again and compares. |
 | Circuit | `wiki/circuits/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
+| Answer | `wiki/answers/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
 | Explanation | `wiki/explanations/` | Not checked yet. A reproduction is #4793. |
 | Draw | `wiki/draws/` | Not checked. |
 | Stop | `wiki/stops/` | Not checked. |
@@ -346,6 +367,14 @@ Circuit verdicts have their own version, `CIRCUIT_PROTOCOL_VERSION` in `core/cir
 | Version | Change |
 | --- | --- |
 | 1.0 | The first circuit rule (*Circuits* in §4). Necessity on holdout pairs must be at least 0.02, and above the 95th percentile of 64 random member sets. Specificity on other tasks must be at least 0.80. |
+
+### The answer rule
+
+Answer verdicts have their own version, `ANSWER_PROTOCOL_VERSION` in `core/answer_records.py`, as circuits have. A change to the answer rule doesn't put unit records out of date (issue #4778).
+
+| Version | Change |
+| --- | --- |
+| 1.0 | The first answer rule (*Answer experiments* in §4): seven gates, at most 5 attempts on one prompt. |
 
 ### Registry-level dependence
 

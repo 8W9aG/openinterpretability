@@ -432,6 +432,7 @@ def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
 
 # Registers the registry-maintenance commands on `cli`.
 from openinterpretability import (  # noqa: E402, F401
+    cli_answers,
     cli_baseline,
     cli_benchmark,
     cli_build,
