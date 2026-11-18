@@ -1730,11 +1730,26 @@ def test_the_registry_table_is_the_same_in_batches(records, monkeypatch):
     whole = px.records_to_table(experiments)
     monkeypatch.setattr(px, "BATCH_ROWS", 1)
     batched = px.records_to_table(experiments)
-    assert batched.equals(whole) and batched.column("record_json").num_chunks == 1
+    assert batched.equals(whole)
     assert whole.column("record_json")[0].as_py().startswith("{")
     slim = px.records_to_table(experiments, with_json=False)
     assert "record_json" not in slim.column_names
     assert slim.equals(whole.drop_columns(["record_json"]))
+
+
+def test_the_registry_file_is_written_a_batch_at_a_time(records, tmp_path, monkeypatch):
+    """Each batch is its own row group, and the file reads back as the whole table (#4652)."""
+    import pyarrow.parquet as pq
+
+    from openinterpretability.builder import parquet_export as px
+    from openinterpretability.builder.tree import build_tree
+
+    experiments = [e for m in build_tree(records, []) for la in m.layers for n in la.units
+                   for e in n.experiments]  # fmt: skip
+    monkeypatch.setattr(px, "BATCH_ROWS", 2)
+    path = px.export_registry(experiments, tmp_path)
+    assert pq.ParquetFile(path).metadata.num_row_groups == 2  # 4 rows
+    assert pq.read_table(path).equals(px.records_to_table(experiments).combine_chunks())
 
 
 def test_a_claim_is_a_hash_shared_by_re_reviews(records):
