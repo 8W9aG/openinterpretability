@@ -96,10 +96,21 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    1. *Newest hypothesis.* Only experiments on the unit's newest submission count. A new submission replaces older ones (a revision names them in `supersedes`), and their verdicts were about a different claim. Re-reviews of one submission share everything but provenance.
    2. *One reading per probe set.* A re-measurement of a probe set (e.g. `reevaluate` under a newer protocol) replaces that set's earlier reading.
    3. *Independent over self-review.* If any reading came from a reviewer model other than the proposer's, self-reviews are outweighed.
-   4. *Majority.* The readings left vote, VERIFIED or not, and the majority decides. When most are VERIFIED, the status is VERIFIED. When most are not, the newest of those readings gives the status: NEEDS_REVISION against REJECTED is not a disagreement about whether the claim holds. Only an even split between VERIFIED and not makes the status **CONTESTED**, and then the unit is not counted as verified. One more independent review settles it. Until 2026-11-16, any disagreement made a unit CONTESTED, so more reviews could never settle one (#3212).
-   5. *A verified claim is not overturned by a failed rival.* If step 4 gives a status other than VERIFIED, and an earlier hypothesis of the unit was VERIFIED, the status is **CONTESTED**. An earlier hypothesis counts as VERIFIED when steps 2–4 give VERIFIED on its own experiments. The unit is not counted as verified while it is contested. A newer hypothesis that reaches VERIFIED settles it. A newer one that fails leaves it CONTESTED. Before 2026-11-18, a weaker hypothesis that failed replaced a VERIFIED one, and the unit fell to REJECTED with no change to the verified claim (#4654).
+   4. *Majority.* Only VERIFIED against REJECTED is a disagreement. A NEEDS_REVISION reading says the claim is too broad or too narrow, not that it is wrong. So it never counts against a VERIFIED one (#4900).
+      - With no VERIFIED reading, the newest reading gives the status.
+      - With VERIFIED readings and no REJECTED one, the status is VERIFIED.
+      - With both, the majority of those two decides.
+      - An even split goes to the **score**. The side whose newest reading scores at least 0.05 higher wins.
+      - With a smaller gap, or no score, the status is **CONTESTED**. The unit is not counted as verified, and one more independent review settles it.
+      - The score is the judge's detection balanced accuracy on held-out windows that neither agent chose. A record with none uses its probe balanced accuracy.
+      - The maintainer chose the score and the margin on 2026-11-18. Until then, NEEDS_REVISION counted against VERIFIED, and an even split was CONTESTED whatever the scores (#3212).
+   5. *A verified claim is not overturned by a failed rival.* An earlier hypothesis counts as VERIFIED when steps 2–4 give VERIFIED on its own experiments. Suppose a newer hypothesis fails after such a one.
+      - A newer **NEEDS_REVISION** never contests it. The earlier hypothesis keeps the standing, and its readings are the ones the status rests on.
+      - A newer **REJECTED** reading, on any newer hypothesis, is settled by the score, as in step 4. The earlier one wins if it scores at least 0.05 higher, and the status is VERIFIED. The newer one wins if it scores at least 0.05 higher, and the newest hypothesis's own status stands. Otherwise the status is **CONTESTED**.
+      - A newer hypothesis that reaches VERIFIED settles it.
+      - Before 2026-11-18, a newer hypothesis that failed replaced a VERIFIED one, and the unit fell to REJECTED (#4654). Then, until #4900, any failed rival made it CONTESTED, NEEDS_REVISION included.
 
-   Unit pages show which reviews the status rests on. They mark every other experiment as re-measured, outweighed, an earlier hypothesis or set aside by an erratum (§5). An earlier VERIFIED hypothesis that a newer one contests has a mark of its own. The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
+   Unit pages show which reviews the status rests on. They mark every other experiment as re-measured, outweighed, an earlier hypothesis or set aside by an erratum (§5). An earlier VERIFIED hypothesis that a newer one contests has a mark of its own. So do one that keeps its standing, and the failed rival that doesn't overturn it. The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
 
 ## 4. Decision rule
 
@@ -151,6 +162,26 @@ A circuit experiment has its own rule, versioned apart from the rule above (`CIR
 | `specificity` | ≥ 0.80 | On at least 80% of the other tasks, ablating the members loses less than 20% of the metric. |
 
 All three pass: **VERIFIED**. The first two pass and specificity fails: **NEEDS_REVISION**, because the members carry the task but other tasks too. Otherwise **REJECTED**. The gates come from the pilot (`docs/analyses/circuit-pilot.md`): a bare wiring cluster fails them, and the same cluster grown by attribution passes the first two. Records live in `wiki/circuits/<model>/<circuit id>/`, and `open-interpretability check` recomputes each verdict from its stored measures.
+
+### Answer experiments
+
+An answer experiment says how a model produces one answer to one prompt (issue #4778). Its rule is versioned apart from the rules above (`ANSWER_PROTOCOL_VERSION`, §6). Explained units say what each unit does on the corpus. A VERIFIED unit can still play no part in this answer, so prompt coverage alone doesn't say that the answer is understood.
+
+The proposer writes a **route**: the prompt tokens it reads, the units in order, and what each one does here. It also gives a corrupted prompt with the sources changed and the same token count, and 4–8 counterfactual prompts. Each counterfactual says if the answer stays the model's top token (`kept`) or not (`changed`). The reviewer writes 10–30 more, blind to every measure. `answers review` measures the claim in the answer's log-probability at its position, against each unit's corpus mean (`openinterpretability/answer_review.py`).
+
+| Gate | Threshold | Meaning |
+| --- | --- | --- |
+| `necessity` | ≥ 0.5 | Mean-ablating the route cuts at least half as much as ablating every unit. |
+| `beats_null` | ≥ 3× | The route's cut is at least 3 times the mean cut of 8 random sets with the route's heads and poles in each layer. |
+| `sufficiency` | ≥ 0.5 | With only the route live, at least half the answer comes back. |
+| `patching` | ≥ 0.5 | The route's activations from the corrupted prompt move the answer by at least half the gap between the prompts. |
+| `patching_null` | ≤ 0.1 | The same random sets, patched, move it by at most a tenth, on the mean. |
+| `controls` | 1.0 | Every proposer prompt comes out as the claim predicts. |
+| `probes` | ≥ 0.8 | At least 80% of the reviewer's prompts come out as the claim predicts. |
+
+Every gate passes: **VERIFIED**. The five causal gates pass and a prompt gate fails: **NEEDS_REVISION**. Then the route carries the answer, but the claim is too broad or too narrow. Otherwise **REJECTED**. A neuron pole is patched as its whole neuron, since the corrupted prompt can flip its sign.
+
+One answer can take several attempts. Each attempt is its own record, and its proposer sees every earlier claim with its failed gates. The attempts stop at the first VERIFIED claim, or after 5 records on the prompt (`MAX_ATTEMPTS`). `explain` plans the next attempt once the prompt has explained units. A page says that the answer is understood only when a claim is VERIFIED. A VERIFIED claim is about this one prompt, not a family of prompts. Records live in `wiki/answers/<model>/<prompt id>/`, and `open-interpretability check` recomputes each verdict from its stored measures.
 
 ### What is not evidence (yet)
 
@@ -255,6 +286,7 @@ All three pass: **VERIFIED**. The first two pass and specificity fails: **NEEDS_
 | --- | --- | --- |
 | Experiment | `wiki/experiments/` | Re-measured: `reproduce` runs the model again and compares. |
 | Circuit | `wiki/circuits/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
+| Answer | `wiki/answers/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
 | Explanation | `wiki/explanations/` | Not checked yet. A reproduction is #4793. |
 | Draw | `wiki/draws/` | Not checked. |
 | Stop | `wiki/stops/` | Not checked. |
@@ -346,6 +378,14 @@ Circuit verdicts have their own version, `CIRCUIT_PROTOCOL_VERSION` in `core/cir
 | Version | Change |
 | --- | --- |
 | 1.0 | The first circuit rule (*Circuits* in §4). Necessity on holdout pairs must be at least 0.02, and above the 95th percentile of 64 random member sets. Specificity on other tasks must be at least 0.80. |
+
+### The answer rule
+
+Answer verdicts have their own version, `ANSWER_PROTOCOL_VERSION` in `core/answer_records.py`, as circuits have. A change to the answer rule doesn't put unit records out of date (issue #4778).
+
+| Version | Change |
+| --- | --- |
+| 1.0 | The first answer rule (*Answer experiments* in §4): seven gates, at most 5 attempts on one prompt. |
 
 ### Registry-level dependence
 

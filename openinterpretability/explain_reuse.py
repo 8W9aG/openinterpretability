@@ -10,6 +10,10 @@ measured (:func:`~openinterpretability.core.explanation_records.best`). Then:
   run. The new explanation only adds the level, and names the one it reuses.
 - **run:** none reaches the target. The run goes on, and the new explanation names the best
   one so far as the one it builds on.
+
+Only an explanation measured against the matched random baseline (#4777) can stop a run.
+One written before it has no ``coverage_detail``. Its coverage was never compared with
+random units of the same kinds and layers, so it is built on, never reused (#4895).
 """
 
 from __future__ import annotations
@@ -52,9 +56,14 @@ def decide(wiki_dir: Path, model: str, prompt: str, position: int, target: float
     """The :class:`Reuse` for an explanation of ``prompt`` to ``target``, at ``level``."""
     from openinterpretability.core.explanation_records import LEVELS, best, prompt_records
 
-    found = best(prompt_records(wiki_dir, model, prompt, position))
+    records = prompt_records(wiki_dir, model, prompt, position)
+    found = best([r for r in records if r.coverage_detail is not None])  # #4895
     if found is None:
-        return Reuse("run")
+        older = best(records)  # measured before the matched baseline: built on, not reused
+        if older is None:
+            return Reuse("run")
+        return Reuse("run", older.id, f"Builds on {href(older)}, which was measured before the "
+                     "matched random baseline (#4777), so it is measured again.")  # fmt: skip
     coverage = found.prompt_coverage or 0.0
     said = f"{href(found)} reached {coverage:.1%} coverage, at the {found.level} level"
     if coverage < target:

@@ -30,7 +30,15 @@ def _row(name: str, attribution: float, total: float, status: str, explanation) 
     return row
 
 
-def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
+NOTES = (
+    "Shares are of first-order |attribution| on this prompt. A unit's role is known only when "
+    "its status is VERIFIED. A unit with a hub is a hub's center: wired to many studied units, "
+    "it can be an artefact, so say so with its facts."
+)
+
+
+def evidence(result, coverage: dict, plan, *, experiments: int = 10,
+             answer: dict | None = None) -> dict:  # fmt: skip
     """Level 1 of the explanation, as the narrator reads it (module docstring)."""
     from openinterpretability.explain import PoleAttribution
 
@@ -67,10 +75,19 @@ def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
         "groups": groups,
         "paths": result.edges[:20],
         "next_experiments": nxt,
-        "notes": "Shares are of first-order |attribution| on this prompt. A unit's role is "
-        "known only when its status is VERIFIED. A unit with a hub is a hub's center: wired to "
-        "many studied units, it can be an artefact, so say so with its facts.",
+        "answer_experiment": _answer(answer),
+        "notes": NOTES,
     }
+
+
+def _answer(answer: dict | None) -> dict:
+    """The newest answer claim on the prompt (#4778), its text fenced: another agent wrote it."""
+    if answer is None or answer.get("newest") is None:
+        return {"status": "unstudied", "attempts": 0}
+    newest = dict(answer["newest"])
+    newest["claim"] = fence(newest["claim"])
+    newest["roles"] = {unit: fence(role) for unit, role in newest["roles"].items()}
+    return newest | {"attempts": answer["attempts"]}
 
 
 def caution(coverage: dict, explained_share: float) -> bool:
@@ -92,6 +109,8 @@ def check_citations(narrative, ev: dict) -> list[str]:
     """The units that the narrative cites but the evidence doesn't hold, sorted."""
     known = {str(row["unit"]).replace("−", "-") for key in ("units", "groups", "next_experiments")
              for row in ev[key]}  # fmt: skip
+    known |= set(ev.get("answer_experiment", {}).get("route", []))
+    known |= {u.replace("−", "-") for u in ev.get("minimal_set", [])}  # the evidence lists them
     for path in ev["paths"]:
         known |= {path["source"].replace("−", "-"), path["target"].replace("−", "-")}
     text = " ".join([narrative.paragraph, *(s.title + " " + s.text for s in narrative.sections)])
