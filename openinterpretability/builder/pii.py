@@ -16,7 +16,7 @@ import json
 import sqlite3
 from collections.abc import Sequence
 from dataclasses import replace as dc_replace
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -72,7 +72,9 @@ def save_spans() -> None:
     _found.clear()
 
 
-@cache
+# A bounded cache: it holds each text as its key, and a build reads every record's text,
+# which held over 1 GiB unbounded (#4652). The disk cache keeps the costly search's results.
+@lru_cache(maxsize=4096)
 def find_spans(text: str) -> tuple[Span, ...]:
     """Return the ``(start, end)`` of each match in ``text``, sorted and merged.
 

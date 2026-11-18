@@ -34,12 +34,13 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from openinterpretability.builder.draws_export import export_draws  # noqa: F401  (re-exported)
 from openinterpretability.builder.slim import full_records
 from openinterpretability.builder.tree import SIDES, Experiment, mlp_widths
 from openinterpretability.core.confounds import MATCH_LABEL_SETS, NO_MATCH
@@ -375,34 +376,43 @@ def _balanced(score) -> float | None:
 UNIT_INDEX_COLUMNS = ("neuron_idx", "head_idx", "feature_idx")  # a superposition has none
 
 
-BATCH_ROWS = 256  # rows per Arrow batch: one batch's full records are in memory at a time
+BATCH_ROWS = 64  # rows per Arrow batch: one batch's full records are in memory at a time
 
 
 def records_to_table(
     experiments: Sequence[Experiment], corpus_sources: Sources = None, *, with_json: bool = True
 ) -> pa.Table:
-    """The registry table: one row per experiment, in a fixed order.
+    """The registry table: one row per experiment, in a fixed order (:func:`record_batches`)."""
+    schema = registry_schema(with_json)
+    return pa.Table.from_batches(list(record_batches(experiments, corpus_sources, with_json)),
+                                 schema=schema)  # fmt: skip
+
+
+def registry_schema(with_json: bool = True) -> pa.Schema:
+    """The registry's columns, without ``record_json`` for a table only the statistics read."""
+    if with_json:
+        return REGISTRY_SCHEMA
+    return REGISTRY_SCHEMA.remove(REGISTRY_SCHEMA.get_field_index("record_json"))
+
+
+def record_batches(experiments: Sequence[Experiment], corpus_sources: Sources = None,
+                   with_json: bool = True) -> Iterator[pa.RecordBatch]:  # fmt: skip
+    """The registry's rows in their fixed order, :data:`BATCH_ROWS` at a time.
 
     The ``model_mlp_width`` column is filled for old records that do not give a width.
-    ``record_json`` keeps the signed record as it is, or is left out (``with_json=False``)
-    for a table that only the statistics read. Batches of :data:`BATCH_ROWS` rows add it, so
-    the registry's JSON is never all in Python at once: that took about 3 GiB (#4652).
+    ``record_json`` keeps the signed record as it is, or is left out (``with_json=False``).
+    Each batch loads its records in full and adds their JSON. So only one batch's JSON is
+    in memory at a time. Holding all of it took about 3 GiB in a build (#4652).
     """
     widths = mlp_widths(e.record for e in experiments)
-    rows = sorted(((experiment_row(e, corpus_sources, with_json=False), e) for e in experiments),
-                  key=lambda pair: _row_order(pair[0]))  # fmt: skip
-    schema = REGISTRY_SCHEMA
-    if not with_json:
-        schema = schema.remove(schema.get_field_index("record_json"))
-    batches = []
-    for start in range(0, len(rows), BATCH_ROWS):
-        chunk = [e for _, e in rows[start : start + BATCH_ROWS]]
+    order = sorted(experiments, key=_experiment_order)  # from the unit, not a whole row
+    schema = registry_schema(with_json)
+    for start in range(0, len(order), BATCH_ROWS):
+        chunk = order[start : start + BATCH_ROWS]
         with full_records(chunk):  # a slim record lacks some columns' evidence (slim.py)
             full = [_with_width(experiment_row(e, corpus_sources, with_json=with_json), widths)
                     for e in chunk]  # fmt: skip
-        batches.append(pa.RecordBatch.from_pylist(full, schema=schema))
-    # One chunk per column, so the file is written as it was from one list of rows.
-    return pa.Table.from_batches(batches, schema=schema).combine_chunks()
+        yield pa.RecordBatch.from_pylist(full, schema=schema)
 
 
 def _row_order(row: dict) -> tuple:
@@ -415,6 +425,14 @@ def _row_order(row: dict) -> tuple:
         next((row[c] for c in UNIT_INDEX_COLUMNS if row[c] is not None), 0),
         row["pole"] or "",
         row["experiment_id"],
+    )
+
+
+def _experiment_order(e: Experiment) -> tuple:
+    """:func:`_row_order` of ``e``'s row, from its unit's columns alone."""
+    sub = e.record.submission
+    return _row_order(
+        _unit_columns(sub.identifier, sub.superposition_profile) | {"experiment_id": e.id}
     )
 
 
@@ -433,8 +451,11 @@ def export_registry(
     data_dir = Path(output_dir) / "data"
     (data_dir / "snapshots").mkdir(parents=True, exist_ok=True)
     latest = data_dir / "registry.parquet"
-    pq.write_table(records_to_table(experiments, corpus_sources, with_json=with_json), latest,
-                   compression="zstd")  # fmt: skip
+    # One row group per batch, so no column is ever whole in memory (#4652).
+    with pq.ParquetWriter(latest, registry_schema(with_json), compression="zstd") as writer:
+        for batch in record_batches(experiments, corpus_sources, with_json):
+            writer.write_batch(batch)
+            pa.default_memory_pool().release_unused()  # Arrow keeps freed buffers otherwise
 
     with latest.open("rb") as f:
         digest = hashlib.file_digest(f, "sha256").hexdigest()[:16]
@@ -452,49 +473,3 @@ def export_registry(
     }
     (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return latest
-
-
-DRAW_COLUMNS = {
-    "kind": pa.string(),
-    "model_name": pa.string(),
-    "layer": pa.int32(),
-    "index": pa.int32(),
-    "pole": pa.string(),
-    "dictionary": pa.string(),
-    "outcome": pa.string(),
-    "active_share": pa.float64(),
-    "corpus_sha256": pa.string(),
-    "window_tokens": pa.int32(),
-    "seed": pa.int64(),
-    "protocol_version": pa.string(),
-    "drawn_at": pa.timestamp("us", tz="UTC"),
-}
-
-
-def export_draws(draws: Sequence, output_dir: Path) -> Path:
-    """Write ``data/draws.parquet``: the random draws no experiment could audit."""
-    rows = []
-    for d in draws:
-        ident, prov = d.identifier, d.provenance
-        rows.append(
-            {
-                "kind": ident.kind,
-                "model_name": ident.model_name,
-                "layer": ident.layer,
-                "index": ident.index,
-                "pole": getattr(ident, "pole", None),
-                "dictionary": getattr(ident, "dictionary", None),
-                "outcome": d.outcome,
-                "active_share": d.active_share,
-                "corpus_sha256": prov.corpus_sha256,
-                "window_tokens": prov.snippet_tokens,
-                "seed": prov.seed,
-                "protocol_version": d.protocol_version,
-                "drawn_at": d.timestamp,
-            }
-        )
-    path = Path(output_dir) / "data" / "draws.parquet"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    schema = pa.schema(list(DRAW_COLUMNS.items()))
-    pq.write_table(pa.Table.from_pylist(rows, schema=schema), path, compression="zstd")
-    return path
