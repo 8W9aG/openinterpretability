@@ -89,6 +89,8 @@ _.best_coverage  # unused property (openinterpretability/builder/explanation_pag
 _.overshoot  # unused property (openinterpretability/core/explanation_records.py:150)
 
 # Dataclass and Pydantic fields, read from JSON, by templates or by keyword; and settings that libraries read.
+disagreements  # unused variable (openinterpretability/core/rivals.py: read by _rivals.html)
+survivor  # unused variable (openinterpretability/core/rivals.py: read by _rivals.html)
 _.share_before  # unused variable (openinterpretability/core/explanation_records.py:77)
 _.share_after  # unused variable (openinterpretability/core/explanation_records.py:78)
 _.left_open  # unused variable (openinterpretability/core/explanation_records.py:80)

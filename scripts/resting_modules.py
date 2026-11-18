@@ -143,8 +143,8 @@ def parallel_forward(
     hidden_states,
     past_key_values=None,
     attention_mask=None,
-    encoder_hidden_states=None,
-    encoder_attention_mask=None,
+    encoder_hidden_states=None,  # noqa: ARG001  (the forward it replaces takes these)
+    encoder_attention_mask=None,  # noqa: ARG001
     use_cache=False,
     **kwargs,
 ):

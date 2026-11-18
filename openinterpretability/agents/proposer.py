@@ -19,6 +19,7 @@ from openinterpretability.core.attribution import InputAttribution
 from openinterpretability.core.confounds import MATCH_LABEL_SETS, NO_MATCH, NOT_SHOWN_TO_PROPOSER
 from openinterpretability.core.fence import FENCE_RULE, fence
 from openinterpretability.core.manifold import format_for_proposer as format_manifold
+from openinterpretability.core.rivals import MAX_RIVALS
 from openinterpretability.core.schemas import (
     ActivatingExample,
     ComponentIdentifier,
@@ -67,6 +68,13 @@ class HypothesisDraft(BaseModel):  # noqa: D101 (a docstring would join the JSON
         default_factory=list, description="For lookahead neurons: the tokens being prepared."
     )
     counterfactuals: list[CounterfactualDraft] = Field(min_length=3, max_length=10)
+    rivals: list[str] = Field(
+        default_factory=list,
+        max_length=MAX_RIVALS,
+        description="Up to three rival readings, one sentence each: other explanations that "
+        "fit the same top examples but predict differently on new text. The review scores "
+        "each one on its probes beside the hypothesis (reported, not gated).",
+    )
     wordnet_synset: str | None = Field(
         default=None,
         description="If the hypothesis claims a WordNet noun category, its synset "
@@ -241,7 +249,9 @@ class ProposerAgent(LLMAgent):
         "*before* the predicted one, and their promoted-token list is informative. Write "
         "minimal-pair "
         "counterfactuals that change as little text as possible, including at least one "
-        "control pair with expected_delta near 0. " + FENCE_RULE
+        "control pair with expected_delta near 0. Give two rival readings that fit the same "
+        "examples but predict differently elsewhere: the review scores them beside your "
+        "hypothesis. " + FENCE_RULE
     )
 
     def propose(
@@ -367,6 +377,7 @@ class ProposerAgent(LLMAgent):
             identifier=identifier,
             natural_language_explanation=draft.explanation,
             activating_tokens=list(draft.activating_tokens),
+            rival_explanations=list(draft.rivals),
             counterfactuals=pairs,
             lookahead=lookahead,
             submitting_agent_model=self.model,

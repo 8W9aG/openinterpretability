@@ -45,7 +45,7 @@ class Recording(Tolerance):
             self.seen.append((float(recorded), float(reproduced), float(scale), self.label[0]))
         return True
 
-    def for_dtype(self, dtype):
+    def for_dtype(self, dtype):  # noqa: ARG002  (the interface it stands in for)
         """Keep recording, whatever the record's dtype."""
         return self
 

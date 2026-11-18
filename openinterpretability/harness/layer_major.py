@@ -84,7 +84,8 @@ class LayerScheduler:
             self.running += 1
             self.inside += 1
 
-    def leave(self, layer: int) -> None:
+    def leave(self, layer: int) -> None:  # noqa: ARG002
+        # ``layer`` matches enter(layer), so the hooks call both the same way.
         """This thread's pass has run ``layer``, or stopped in it."""
         with self.cond:
             self.inside -= 1

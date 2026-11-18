@@ -208,7 +208,7 @@ extend-exclude = [".claude/skills/asd-ste100"]
 # D: docstrings, held to the commenting skill (.claude/skills/commenting/SKILL.md).
 # ERA: commented-out code.
 # S: Bandit's security checks (flake8-bandit), ported to Ruff.
-select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA", "S"]
+select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA", "S", "ARG"]
 # Magic methods and __init__ are described by their class's docstring. D301 asks for r"""
 # when a docstring has a backslash, but Click's `\b` (no rewrapping) must stay a real \b.
 # S311: the random generators seed experiments and samples, never secrets.
@@ -224,7 +224,9 @@ convention = "google"
 # restates it is noise (.claude/skills/commenting/SKILL.md). The other D rules apply.
 # Tests assert (S101), and give token fields fixed strings that S105 and S106 read as
 # passwords. S314 parses SVG, and S608 queries parquet files, that the test itself wrote.
-"tests/**" = ["D1", "S101", "S105", "S106", "S314", "S608"]
+# Fixtures requested only for their side effects, and stubs that must match what they
+# replace, take arguments that they never read (ARG, #3165).
+"tests/**" = ["D1", "S101", "S105", "S106", "S314", "S608", "ARG"]
 # A notebook checks its state with assert before a long run.
 "*.ipynb" = ["S101"]
 

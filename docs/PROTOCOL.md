@@ -112,6 +112,8 @@ Probe accuracy is reported as **balanced accuracy**, the mean of:
 
 Balanced accuracy is the `confidence_score`. Using it means many easy negatives cannot hide failed generalisations.
 
+**Rival readings** (issue #3197). The proposer may write up to three rival readings beside its hypothesis. Each is one sentence that fits the same top examples but predicts differently on new text. The reviewer labels each probe with what each rival predicts, as well as what the hypothesis predicts. It also writes some probes where they disagree. Each reading is scored by its balanced accuracy on the measured probes (`core/rivals.py`). The verdict records the scores and the reading with the best score, and ties go to the hypothesis. This is reported, not gated: the decision rule reads only the hypothesis's labels. If the best reading ever decided a verdict, that would change the decision rule and bump the version (§6).
+
 **Confound control.** The scan records a confound profile of the pole. It holds the variance explained by token identity and by position, and the correlation with token frequency. It also holds the tokens and positions with the highest mean strength. On the reviewer's probes, the hypothesis is compared with three trivial baselines, each scored by the same cluster-weighted balanced accuracy:
 
 - *token identity*: active if any measured token is a trigger token.

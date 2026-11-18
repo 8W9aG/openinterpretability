@@ -22,6 +22,7 @@ Some text in the prompt is fenced: it starts on a line `<data-ID>` and ends on t
    - `explanation`: one or two sentences precise enough that a third party can label new text "predicted active" or "predicted inactive". It must predict activity better than "fires on the trigger tokens" in the confound profile.
    - `mechanism`: `retrospective` or `lookahead`. For lookahead, list `target_upcoming_tokens`.
    - `counterfactuals`: 3–10 minimal pairs that change as little text as possible, with `expected_delta` = (base − counterfactual) peak strength / max activation. Include at least one control pair with `expected_delta` near 0. Keep each pair's two prompts the same token length where you can, so causal patching can use every position. If the prompt says the unit has a first-token floor, a prompt's first token is not measured, so each prompt needs at least two tokens and its trigger must not come first.
+   - `rivals`: two rival readings, one sentence each, that fit the same top examples but predict differently on new text, for example a broader or a narrower trigger class. The review scores each one beside your hypothesis on its probes (reported, not gated, #3197). Make them honest alternatives, not straw men.
 
 ## Output
 

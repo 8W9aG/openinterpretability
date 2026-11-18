@@ -65,6 +65,7 @@ def measure_probes(runner, unit, probes, scale: float, threshold: float):
                 activation=None if strength is None else round(strength, 6),
                 detail=probe.rationale,
                 measured=strength is not None,
+                rival_expected_active=list(probe.rival_expected_active) or None,
             )
         )
     return results, measured_probes, actual

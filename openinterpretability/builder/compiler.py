@@ -356,7 +356,7 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
-    _render_index(render, models, experiments, agents, stats, (*draws, *stops))
+    _render_index(render, models, agents, stats, (*draws, *stops))
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
@@ -387,7 +387,7 @@ def _render_agents(render, experiments, output_dir, report) -> list:
     return agents
 
 
-def _render_index(render, models, experiments, agents, stats, draws) -> None:
+def _render_index(render, models, agents, stats, draws) -> None:
     render(
         "index.html",
         "index.html",
