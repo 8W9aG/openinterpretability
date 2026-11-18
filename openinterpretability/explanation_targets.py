@@ -234,7 +234,7 @@ class TargetedDraws:
 
     def _finished(self, t: Target, state, stops: set[str]) -> str | None:
         """Why a target needs no more runs, or None."""
-        if state is not None and state.record.verdict.status == "VERIFIED":
+        if state is not None and state.standing[0] == "VERIFIED":  # the standing (#4900)
             return "VERIFIED"
         if t.slug in stops:
             return "stopped (dead or default-on)"
