@@ -17,6 +17,7 @@ as studied, as a stopped neuron of its layer (:mod:`openinterpretability.builder
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -379,6 +380,14 @@ def build_tree(
     return [models[name] for name in sorted(models)]
 
 
+def claim_of(r: AuditRecord) -> str:
+    """Return the hash that identifies ``r``'s hypothesis: its submission without provenance.
+
+    Re-reviews of one submission share everything but provenance, so they share a claim.
+    """
+    return hashlib.sha256(r.submission.model_dump_json(exclude={"provenance"}).encode()).hexdigest()
+
+
 def _add_experiment(
     models: dict, units: dict, r: AuditRecord, is_latest: bool, widths: dict[str, int]
 ) -> Experiment:
@@ -414,7 +423,7 @@ def _add_experiment(
         significance(r),
         experiment_id(r),
         is_latest,
-        claim=r.submission.model_dump_json(exclude={"provenance"}),
+        claim=claim_of(r),
     )
     units[key].experiments.append(experiment)
     return experiment

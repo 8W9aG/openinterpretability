@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
@@ -164,10 +165,13 @@ REGISTRY_SCHEMA = pa.schema(
 )
 
 
-def record_to_row(record: AuditRecord) -> dict:
-    """The registry columns that come from ``record`` alone."""
+def record_to_row(record: AuditRecord, *, with_json: bool = True) -> dict:
+    """The registry columns that come from ``record`` alone.
+
+    ``with_json=False`` leaves out ``record_json``, the whole record as JSON (#4652).
+    """
     sub = record.submission
-    return {
+    row = {
         **_unit_columns(sub.identifier, sub.superposition_profile),
         "model_num_layers": sub.model_num_layers,
         "model_mlp_width": sub.model_mlp_width,
@@ -180,8 +184,10 @@ def record_to_row(record: AuditRecord) -> dict:
         "max_activation": sub.max_activation,
         "counterfactuals": [cf.model_dump() for cf in sub.counterfactuals],
         **_verdict_columns(record),
-        "record_json": record.model_dump_json(),
     }
+    if with_json:
+        row["record_json"] = record.model_dump_json()
+    return row
 
 
 def _unit_columns(ident, superposition) -> dict:
@@ -278,8 +284,8 @@ DICTIONARY_COLUMNS = {
 }
 
 
-def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
-    """Return one experiment's row.
+def experiment_row(exp: Experiment, corpus_sources: Sources = None, *, with_json=True) -> dict:
+    """Return one experiment's row (``with_json``: see :func:`record_to_row`).
 
     ``corpus_sources`` is committed sidecars by SHA-256
     (:func:`openinterpretability.corpus.load_sources`). They give the corpus of records that didn't
@@ -292,7 +298,7 @@ def experiment_row(exp: Experiment, corpus_sources: Sources = None) -> dict:
     if attribution is not None and not attribution.examples:
         attribution = None  # every example was skipped: nothing measured
     return {
-        **record_to_row(exp.record),
+        **record_to_row(exp.record, with_json=with_json),
         **_standing_columns(exp),
         **_corpus_columns(sub.provenance, corpus_sources or {}),
         "balanced_accuracy": metrics.balanced_accuracy if metrics else None,
@@ -368,26 +374,47 @@ def _balanced(score) -> float | None:
 UNIT_INDEX_COLUMNS = ("neuron_idx", "head_idx", "feature_idx")  # a superposition has none
 
 
-def records_to_table(experiments: Sequence[Experiment], corpus_sources: Sources = None) -> pa.Table:
+# Rows per Arrow batch. Only one batch's ``record_json`` strings are in Python at a time.
+BATCH_ROWS = 256
+
+
+def records_to_table(
+    experiments: Sequence[Experiment], corpus_sources: Sources = None, *, with_json: bool = True
+) -> pa.Table:
     """The registry table: one row per experiment, in a fixed order.
 
     The ``model_mlp_width`` column is filled for old records that do not give a width.
-    ``record_json`` keeps the signed record as it is.
+    ``record_json`` keeps the signed record as it is, or is left out (``with_json=False``)
+    for a table that only the statistics read. Batches of :data:`BATCH_ROWS` rows add it, so
+    the registry's JSON is never all in Python at once: that took about 3 GiB (#4652).
     """
     widths = mlp_widths(e.record for e in experiments)
-    rows = sorted(
-        (_with_width(experiment_row(e, corpus_sources), widths) for e in experiments),
-        key=lambda row: (
-            row["model_name"],
-            row["layer"],
-            list(SIDES).index(row["kind"]),
-            row["dictionary"] or row["superposition_id"] or "",
-            next((row[c] for c in UNIT_INDEX_COLUMNS if row[c] is not None), 0),
-            row["pole"] or "",
-            row["experiment_id"],
-        ),
+    rows = [(_with_width(experiment_row(e, corpus_sources, with_json=False), widths), e)
+            for e in experiments]  # fmt: skip
+    rows.sort(key=lambda pair: _row_order(pair[0]))
+    schema = REGISTRY_SCHEMA
+    if not with_json:
+        schema = schema.remove(schema.get_field_index("record_json"))
+    batches = []
+    for start in range(0, len(rows), BATCH_ROWS):
+        chunk = rows[start : start + BATCH_ROWS]
+        if with_json:
+            chunk = [(row | {"record_json": e.record.model_dump_json()}, e) for row, e in chunk]
+        batches.append(pa.RecordBatch.from_pylist([row for row, _ in chunk], schema=schema))
+    return pa.Table.from_batches(batches, schema=schema)
+
+
+def _row_order(row: dict) -> tuple:
+    """The fixed order of the registry's rows: by unit, then experiment."""
+    return (
+        row["model_name"],
+        row["layer"],
+        list(SIDES).index(row["kind"]),
+        row["dictionary"] or row["superposition_id"] or "",
+        next((row[c] for c in UNIT_INDEX_COLUMNS if row[c] is not None), 0),
+        row["pole"] or "",
+        row["experiment_id"],
     )
-    return pa.Table.from_pylist(rows, schema=REGISTRY_SCHEMA)
 
 
 def _with_width(row: dict, widths: dict[str, int]) -> dict:
@@ -395,20 +422,23 @@ def _with_width(row: dict, widths: dict[str, int]) -> dict:
 
 
 def export_registry(
-    experiments: Sequence[Experiment], output_dir: Path, corpus_sources: Sources = None
+    experiments: Sequence[Experiment],
+    output_dir: Path,
+    corpus_sources: Sources = None,
+    *,
+    with_json: bool = True,
 ) -> Path:
-    """Write the registry parquet, a content-addressed snapshot and a manifest.
-
-    Returns the path of ``data/registry.parquet``.
-    """
+    """Write the registry parquet, a snapshot and a manifest; return the parquet's path."""
     data_dir = Path(output_dir) / "data"
     (data_dir / "snapshots").mkdir(parents=True, exist_ok=True)
     latest = data_dir / "registry.parquet"
-    pq.write_table(records_to_table(experiments, corpus_sources), latest, compression="zstd")
+    pq.write_table(records_to_table(experiments, corpus_sources, with_json=with_json), latest,
+                   compression="zstd")  # fmt: skip
 
-    digest = hashlib.sha256(latest.read_bytes()).hexdigest()[:16]
+    with latest.open("rb") as f:
+        digest = hashlib.file_digest(f, "sha256").hexdigest()[:16]
     snapshot = data_dir / "snapshots" / f"registry-{digest}.parquet"
-    snapshot.write_bytes(latest.read_bytes())
+    shutil.copyfile(latest, snapshot)
 
     manifest = {
         "latest": "data/registry.parquet",
