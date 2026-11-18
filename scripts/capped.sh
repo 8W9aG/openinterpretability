@@ -4,8 +4,9 @@
 #   scripts/capped.sh CAP WARN -- COMMAND [ARG...]
 #
 # CAP and WARN are sizes such as 13G. CAP may be "infinity", which only measures: no
-# cap and no swap limit. Otherwise the command runs in a transient systemd scope
-# with MemoryMax=CAP and no swap. Then the kernel kills only the command when it goes
+# cap and no swap limit. CAPPED_SWAP (default 0) is the swap that the command may use
+# on top of CAP. Otherwise the command runs in a transient systemd scope
+# with MemoryMax=CAP and MemorySwapMax=CAPPED_SWAP. Then the kernel kills only the command when it goes
 # above the cap, not the GitHub runner agent. A killed agent reports nothing, and the
 # job waits about 45 minutes before it fails with no reason in its log.
 #
@@ -47,7 +48,7 @@ kills=$(awk "/^oom_kill /{print \$2}" "$cgroup/memory.events" 2>/dev/null)
 echo "$status $peak ${kills:-0} $swap" > "$CAPPED_REPORT"
 exit "$status"'
 
-limits=(-p MemoryMax="$cap" -p MemorySwapMax=0)
+limits=(-p MemoryMax="$cap" -p MemorySwapMax="${CAPPED_SWAP:-0}")
 [ "$cap" = infinity ] && limits=()
 sudo --preserve-env systemd-run --scope --quiet "${limits[@]}" \
   --uid "$(id -u)" --gid "$(id -g)" \

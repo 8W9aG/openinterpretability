@@ -31,16 +31,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [main, ci/build-memory-cap-4592]
+        jobs: ["", "--jobs 2"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          ref: ${{ matrix.ref }}
           fetch-depth: 0
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          ref: ci/build-memory-cap-4592
-          path: branch
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
@@ -52,6 +47,9 @@ jobs:
       - name: Build under the cap
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          CAPPED_SWAP: 2G
+          JOBS: ${{ matrix.jobs }}
         run: |
-          branch/scripts/capped.sh infinity 11G -- \
-            open-interpretability build --wiki-dir wiki --output-dir dist
+          # shellcheck disable=SC2086  # JOBS is empty or two words
+          scripts/capped.sh 14.5G 13G -- \
+            open-interpretability build --wiki-dir wiki --output-dir dist $JOBS
