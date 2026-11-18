@@ -27,7 +27,7 @@ import json, os, sys
 args = sys.argv[1:]
 with open(os.environ["GH_LOG"], "a") as log:
     log.write(" ".join(args) + "\\n")
-files = json.loads(os.environ.get("GH_FILES", '["wiki/x.json"]'))
+files = json.loads(os.environ.get("GH_FILES", '["wiki/experiments/x.json"]'))
 if args[:2] == ["pr", "view"] and "url" in args:
     print("{url}")
 elif args[:2] == ["pr", "view"]:
@@ -213,10 +213,21 @@ def test_the_stop_file_stops_before_any_draw(repo, monkeypatch, capsys):
 
 
 def test_merge_blockers():
-    view = {"files": [{"path": "wiki/a.json"}], "isDraft": False, "mergeable": "MERGEABLE"}
+    record = "wiki/experiments/m/L1/N2-positive/1.json"
+    view = {"files": [{"path": record}], "isDraft": False, "mergeable": "MERGEABLE"}
     assert el.merge_blockers(view, "WRITE") == []
     assert el.merge_blockers(view | {"isDraft": True}, "ADMIN") == ["it is a draft"]
     assert len(el.merge_blockers(view | {"mergeable": "CONFLICTING"}, "")) == 2
+
+
+def test_only_the_maintainer_merges_records_that_ci_cannot_reproduce():
+    """A contributor's PR may merge reproducible records only; the maintainer's, any (#4792)."""
+    other = {"files": [{"path": "wiki/explanations/m/abc/1.json"}],
+             "isDraft": False, "mergeable": "MERGEABLE"}  # fmt: skip
+    assert el.merge_blockers(other, "WRITE") == [
+        "wiki/explanations/m/abc/1.json is not a record that CI reproduces"
+    ]
+    assert el.merge_blockers(other, "ADMIN") == []
 
 
 def test_external_models_are_refused():
