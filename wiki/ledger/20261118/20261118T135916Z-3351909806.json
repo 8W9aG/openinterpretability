@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-18T13:59:16Z","seed":3351909806,"kind":"revise","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L1/N4275-positive","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L1/N4275-positive/20261027T170922Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 1 --neuron 4275 --window-tokens 512 --pole positive","pole_forced":null,"harness_version":"0.2.0"}
