@@ -132,6 +132,29 @@ def test_other_protocol_versions_are_refused(record, toy_runner):
     assert "protocol 0.4" in message and "re-evaluate" in message
 
 
+def test_a_record_cannot_choose_its_own_review_thresholds(record, toy_runner, monkeypatch):
+    """It is re-reviewed under its stored policy, so that policy must be the protocol's (#4750)."""
+    import openinterpretability.reproduce_policy as rp
+    from openinterpretability.core.schemas import ReviewPolicy
+    from openinterpretability.reproduce import check_protocol
+
+    monkeypatch.setattr(rp, "REVIEW_POLICY", ReviewPolicy())  # as outside the tests
+    default = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"policy": ReviewPolicy()})}
+    )
+    assert check_protocol(default) is None
+    assert "default policy" in check_protocol(record)  # the toy record's smaller policy
+    monkeypatch.setattr(rp, "REVIEW_POLICY", record.verdict.policy)
+    assert check_protocol(record) is None
+    easy = record.verdict.policy.model_copy(
+        update={"min_specificity": 0.0, "min_sensitivity": 0.0, "require_confound_control": False}
+    )
+    lax = record.model_copy(update={"verdict": record.verdict.model_copy(update={"policy": easy})})
+    assert "default policy" in check_protocol(lax)
+    (message,) = reproduce_record(lax, toy_runner).mismatches
+    assert "default policy" in message
+
+
 def test_cli_exit_code(tmp_path, monkeypatch, record, toy_runner):
     toy_runner.model.config = SimpleNamespace()
     loads = []
