@@ -1715,3 +1715,29 @@ def test_protocol_mix_of_verified_units_is_reported(tmp_path, records):
     assert sum(mix.values()) == stats["totals"]["verified"]
     home = (tmp_path / "index.html").read_text()
     assert "Protocol of the verified claims:" in home and "1 under 0.7" in home
+
+
+def test_the_registry_table_is_the_same_in_batches(records, monkeypatch):
+    """Batches only bound memory: the table is the same with one row per batch (#4652)."""
+    from openinterpretability.builder import parquet_export as px
+    from openinterpretability.builder.tree import build_tree
+
+    experiments = [e for m in build_tree(records, []) for la in m.layers for n in la.units
+                   for e in n.experiments]  # fmt: skip
+    whole = px.records_to_table(experiments)
+    monkeypatch.setattr(px, "BATCH_ROWS", 1)
+    batched = px.records_to_table(experiments)
+    assert batched.equals(whole) and batched.column("record_json").num_chunks == 1
+    assert whole.column("record_json")[0].as_py().startswith("{")
+    slim = px.records_to_table(experiments, with_json=False)
+    assert "record_json" not in slim.column_names
+    assert slim.equals(whole.drop_columns(["record_json"]))
+
+
+def test_a_claim_is_a_hash_shared_by_re_reviews(records):
+    from openinterpretability.builder.tree import claim_of
+
+    verified = records[1]
+    again = _reviewed_by(verified, "deepseek/flash", status="VERIFIED", hours=3)
+    assert claim_of(again) == claim_of(verified) and len(claim_of(verified)) == 64
+    assert claim_of(records[0]) != claim_of(verified)  # another hypothesis

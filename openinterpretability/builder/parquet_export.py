@@ -401,7 +401,8 @@ def records_to_table(
         if with_json:
             chunk = [(row | {"record_json": e.record.model_dump_json()}, e) for row, e in chunk]
         batches.append(pa.RecordBatch.from_pylist([row for row, _ in chunk], schema=schema))
-    return pa.Table.from_batches(batches, schema=schema)
+    # One chunk per column, so the file is written as it was from one list of rows.
+    return pa.Table.from_batches(batches, schema=schema).combine_chunks()
 
 
 def _row_order(row: dict) -> tuple:
