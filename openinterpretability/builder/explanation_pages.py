@@ -187,7 +187,7 @@ def _view(path: Path, record, states: dict, wiki_dir: Path) -> ExplanationView:
         if u.slug is None:
             continue  # a group: its status isn't in the unit states
         state = states.get(u.slug)
-        now = state.record.verdict.status if state is not None else "unstudied"
+        now = state.standing[0] if state is not None else "unstudied"  # the standing (#4900)
         if now != u.status and u.status != "stopped":
             changed.append({"unit": u.unit, "then": u.status, "now": now})
         if state is not None and is_broad(state.record.verdict):
