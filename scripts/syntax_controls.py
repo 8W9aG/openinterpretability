@@ -275,7 +275,8 @@ def bracket_kind_taggers(languages) -> list[SyntaxTagger]:
         return lambda doc, text: _runs(parsed_depths(text, languages[doc], opener, closer))
 
     def literal(opener: str, closer: str):
-        return lambda doc, text: _runs(literal_depths(text, opener, closer))
+        # Every tagger takes the document's index too.
+        return lambda doc, text: _runs(literal_depths(text, opener, closer))  # noqa: ARG005
 
     return [
         SyntaxTagger("round depth", parsed("(", ")")),

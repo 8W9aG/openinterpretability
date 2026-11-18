@@ -123,7 +123,7 @@ def check(name: str, build) -> str:
         ours = model(ids).logits
     seen = {"negative": False}
 
-    def zero(act, expert, tokens, weights):
+    def zero(act, expert, tokens, weights):  # noqa: ARG001  (the expert hook's signature)
         seen["negative"] |= bool((weights < 0).any())
         if expert != 1:
             return act

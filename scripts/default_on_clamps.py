@@ -204,7 +204,7 @@ def all_layer_conditions(constants: dict, n_layers: int, generator) -> dict:
     changes = {"mean": lambda la: hold_mean(constants[la, "mean"])}
     for side in SIDES:
         changes[f"clamp_{side}"] = lambda la, side=side: clamp(constants[la, side], side)
-        changes[f"zero_{side}"] = lambda la, side=side: zero(side)
+        changes[f"zero_{side}"] = lambda la, side=side: zero(side)  # noqa: ARG005  (as clamp_)
     conditions = {}
     for name, change in changes.items():
         conditions[name] = {la: keep_first(change(la)) for la in layers}
@@ -277,7 +277,8 @@ def _run_layer(runner, batch, constants, tally, generator, layer, clean, targets
     """Add the conditions on one layer, for each side."""
     inputs = {"input_ids": batch}
     frozen = {
-        later: (lambda out, kept=writes[later]: kept) for later in range(layer + 1, runner.n_layers)
+        later: (lambda out, kept=writes[later]: kept)  # noqa: ARG005  (a replace hook)
+        for later in range(layer + 1, runner.n_layers)
     }
     for side in SIDES:
         apply = keep_first(clamp(constants[layer, side], side))

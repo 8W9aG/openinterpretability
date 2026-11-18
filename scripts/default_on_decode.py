@@ -87,7 +87,7 @@ def class_accuracy(x, labels, x_test, labels_test) -> dict:
     }
 
 
-def random_negative_side(h: torch.Tensor, x: torch.Tensor, h_test, x_test, seed: int):
+def random_negative_side(h: torch.Tensor, x: torch.Tensor, x_test, seed: int):
     """Return the null's negative side on fit and test rows, from random input directions.
 
     Each random feature takes the median and SD of one real neuron, on the fit rows.
@@ -118,7 +118,7 @@ def decode_row(runner, split: Split, layer: int) -> dict:
         "negative": (fit.clamp(max=0), test.clamp(max=0)),
         "positive": (fit.clamp(min=0), test.clamp(min=0)),
         "both": (fit, test),
-        "random_negative": random_negative_side(h, x, h_test, x_test, layer),
+        "random_negative": random_negative_side(h, x, x_test, layer),
     }
     writes = {name: (a @ weights, b @ weights) for name, (a, b) in sides.items()}
     row = {"part": "decode", "layer": layer, **_write_overlap(sides, writes)}

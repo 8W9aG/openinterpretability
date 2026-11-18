@@ -232,7 +232,6 @@
     </ol>
   </section>
   {% endif %}
-
   <section class="mb-10">
     <h3 class="mb-3 text-base font-semibold">Minimal-pair counterfactuals</h3>
     <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
@@ -340,6 +339,7 @@
   </section>
   {% endif %}
 
+  {% include "_rivals.html" %}
   {% if v.scores %}
   {% set xs = v.scores %}{% set es = xs.s %}
   <section class="mt-10" data-pagefind-ignore style="--heat-rgb: {{ palette.POLE_RGB['positive' if positive else 'negative'] }}">

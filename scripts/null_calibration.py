@@ -249,7 +249,7 @@ class _NoPartners:
     def update(self, target, layer_acts) -> None:
         pass
 
-    def partners(self, exclude, active_threshold, *, k=10):
+    def partners(self, exclude, active_threshold, *, k=10):  # noqa: ARG002  (a stub)
         return []
 
 

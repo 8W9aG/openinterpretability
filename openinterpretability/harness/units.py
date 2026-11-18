@@ -62,8 +62,11 @@ class NeuronUnit:
         ident = self.ident
         return runner.neuron_activations(inputs, ident.layer, ident.neuron_idx, ident.pole)
 
-    def ablation(self, runner: NeuronHookRunner) -> dict[str, Mapping[int, Any]]:
-        """``run_with_interventions`` keyword arguments that zero the pole."""
+    def ablation(self, runner: NeuronHookRunner) -> dict[str, Mapping[int, Any]]:  # noqa: ARG002
+        """``run_with_interventions`` keyword arguments that zero the pole.
+
+        Every unit kind's ``ablation`` takes the runner. A pole doesn't need it.
+        """
         ident = self.ident
         return {"interventions": {ident.layer: ablate_pole(ident.neuron_idx, ident.pole)}}
 

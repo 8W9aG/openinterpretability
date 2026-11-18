@@ -180,7 +180,7 @@ def _aot_inductor(model, batch):
     return lambda b: loaded(**b)
 
 
-def _inductor(model, batch):
+def _inductor(model, batch):  # noqa: ARG001  (every backend takes the batch)
     """``torch.compile`` with its default backend, Inductor, which emits C++ with OpenMP."""
     compiled = torch.compile(model)
     return lambda b: compiled(**b)

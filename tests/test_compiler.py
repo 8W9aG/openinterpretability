@@ -548,9 +548,12 @@ def test_build_is_deterministic(tmp_path, records):
 
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     if today not in ("2026-10-01", "2026-10-02"):  # the fixtures' own review dates
-        # The Changelog page shows each release's date from CHANGELOG.md, not the clock:
-        # on a release day that date is today.
-        clocked = {path: content for path, content in a.items() if path != "changelog.html"}
+        # Pages rendered from the repo's own documents show the dates written in them, not
+        # the clock. On the day a document names (a release in CHANGELOG.md, a literature
+        # page read today), that date is today (#4747).
+        documents = ("changelog.html", "about.html")
+        clocked = {path: content for path, content in a.items()
+                   if path not in documents and not path.startswith("research/")}  # fmt: skip
         assert not any(today.encode() in content for content in clocked.values())
 
 
@@ -978,6 +981,75 @@ def test_revision_replaces_contested_hypothesis(records):
     assert [e.record.submission.natural_language_explanation for e in standing.readings] == [
         "Narrower."
     ]
+
+
+def _rival(records, *, status, hours, text, counts=(2, 8, 0, 5)):
+    """A new hypothesis on N117+, after its VERIFIED one."""
+    return experiment(records[0], idx=117, status=status, counts=counts, hours=hours, text=text)
+
+
+def test_failed_rival_contests_a_verified_hypothesis(tmp_path, records):
+    """VERIFIED, then a different hypothesis that is REJECTED: CONTESTED, not REJECTED (#4654)."""
+    from openinterpretability.builder.compiler import registry_stats
+
+    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
+    standing, unit = _standing(records)
+    assert standing.status == "CONTESTED" and standing.contested_by_hypothesis
+    assert not unit.verified
+    assert standing.lead.record.submission.natural_language_explanation == "Fires on vowels."
+    assert standing.prior.record is records[1]
+    roles = {
+        e.record.submission.natural_language_explanation: e.role
+        for e in unit.experiments
+        if e.side == "positive"
+    }
+    assert roles == {
+        "Early idea.": "earlier_hypothesis",
+        records[1].submission.natural_language_explanation: "contested_hypothesis",
+        "Fires on vowels.": "current",
+    }
+
+    report = compile_site(records, tmp_path)
+    assert registry_stats(report.parquet)["totals"]["contested"] == 1
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
+    assert "A newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
+    assert "A new hypothesis that reaches VERIFIED settles it." in neuron
+    assert "split evenly" not in neuron
+
+
+def test_a_second_failed_rival_leaves_it_contested(records):
+    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
+    records.append(_rival(records, status="NEEDS_REVISION", hours=5, text="Fires on nouns."))
+    standing, _ = _standing(records)
+    assert standing.status == "CONTESTED" and standing.prior.record is records[1]
+
+
+def test_a_verified_rival_settles_the_contest(records):
+    """VERIFIED, then REJECTED, then a third hypothesis that is VERIFIED: VERIFIED."""
+    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
+    records.append(
+        _rival(records, status="VERIFIED", hours=6, text="Narrower.", counts=(10, 0, 5, 0))
+    )
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and standing.prior is None and unit.verified
+    assert standing.lead.record.submission.natural_language_explanation == "Narrower."
+
+
+def test_rejected_then_verified_is_verified(records):
+    """The ``records`` fixture: N117+ was NEEDS_REVISION, then a new hypothesis VERIFIED."""
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and standing.prior is None and unit.verified
+
+
+def test_only_a_verified_earlier_hypothesis_contests(records):
+    """N9+ was REJECTED; a new NEEDS_REVISION hypothesis is no contest."""
+    records.append(
+        experiment(
+            records[0], idx=9, status="NEEDS_REVISION", counts=(5, 5, 1, 4), hours=3, text="Dates?"
+        )
+    )
+    standing, _ = _standing(records, idx=9)
+    assert standing.status == "NEEDS_REVISION" and standing.prior is None
 
 
 def test_reviewer_agreement(records):
@@ -1646,3 +1718,54 @@ def test_protocol_mix_of_verified_units_is_reported(tmp_path, records):
     assert sum(mix.values()) == stats["totals"]["verified"]
     home = (tmp_path / "index.html").read_text()
     assert "Protocol of the verified claims:" in home and "1 under 0.7" in home
+
+
+def test_the_registry_table_is_the_same_in_batches(records, monkeypatch):
+    """Batches only bound memory: the table is the same with one row per batch (#4652)."""
+    from openinterpretability.builder import parquet_export as px
+    from openinterpretability.builder.tree import build_tree
+
+    experiments = [e for m in build_tree(records, []) for la in m.layers for n in la.units
+                   for e in n.experiments]  # fmt: skip
+    whole = px.records_to_table(experiments)
+    monkeypatch.setattr(px, "BATCH_ROWS", 1)
+    batched = px.records_to_table(experiments)
+    assert batched.equals(whole) and batched.column("record_json").num_chunks == 1
+    assert whole.column("record_json")[0].as_py().startswith("{")
+    slim = px.records_to_table(experiments, with_json=False)
+    assert "record_json" not in slim.column_names
+    assert slim.equals(whole.drop_columns(["record_json"]))
+
+
+def test_a_claim_is_a_hash_shared_by_re_reviews(records):
+    from openinterpretability.builder.tree import claim_of
+
+    verified = records[1]
+    again = _reviewed_by(verified, "deepseek/flash", status="VERIFIED", hours=3)
+    assert claim_of(again) == claim_of(verified) and len(claim_of(verified)) == 64
+    assert claim_of(records[0]) != claim_of(verified)  # another hypothesis
+
+
+def test_a_build_from_slim_records_writes_the_same_site(tmp_path, records):
+    """Records held slim, and loaded in full per unit and per batch, change no file (#4652)."""
+    from openinterpretability.builder.slim import SlimArchive
+    from openinterpretability.builder.wiki import load_archive_paths
+
+    wiki = tmp_path / "wiki"
+    for i, rec in enumerate(records):
+        path = wiki / "experiments" / f"r{i}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(rec.model_dump_json())
+    full = [r for _, r in load_archive_paths(wiki)]
+    archive = SlimArchive([])
+    slim = [r for _, r in load_archive_paths(wiki, keep=archive)]
+    assert len(archive.paths) == len(records)
+    assert all(not r.submission.top_examples for r in slim)
+    compile_site(full, tmp_path / "a")
+    compile_site(slim, tmp_path / "b", archive=archive)
+    assert not slim  # handed over
+    a = {p.relative_to(tmp_path / "a"): p.read_bytes() for p in (tmp_path / "a").rglob("*")
+         if p.is_file()}  # fmt: skip
+    b = {p.relative_to(tmp_path / "b"): p.read_bytes() for p in (tmp_path / "b").rglob("*")
+         if p.is_file()}  # fmt: skip
+    assert a.keys() == b.keys() and all(a[k] == b[k] for k in a)

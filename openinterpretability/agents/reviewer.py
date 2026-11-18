@@ -42,6 +42,7 @@ from openinterpretability.agents.review_measurements import (  # noqa: F401  (_d
 from openinterpretability.core import costs
 from openinterpretability.core.agent_names import same_agent
 from openinterpretability.core.fence import FENCE_RULE, fence
+from openinterpretability.core.rivals import compare, rival_prompt
 from openinterpretability.core.schemas import (
     MAX_PROBES,
     AdversarialTestResult,
@@ -71,6 +72,11 @@ class AdversarialProbe(BaseModel):  # noqa: D101 (a docstring would join the JSO
         "inactive; positive holdouts are novel cases predicted active."
     )
     rationale: str
+    rival_expected_active: list[bool] = Field(
+        default_factory=list,
+        description="What each rival reading predicts for this probe, in the order the prompt "
+        "lists them. Empty if the prompt lists none.",
+    )
 
 
 def split(n: int) -> tuple[int, int]:
@@ -175,6 +181,7 @@ class ReviewerAgent(LLMAgent):
             + (HEAD_ACTIVITY if is_head else "")
             + (FIRST_TOKEN_UNMEASURED if submission.first_token_floor else "")
             + f"The submitted hypothesis, which your probes test:\n{fence(claim)}\n"
+            + rival_prompt(submission.rival_explanations, n)
             + format_review_examples(submission.top_examples, full_snippets)
             + (LANGUAGE_PROBES if has_language_labels(submission) else "")
             + (SYNTAX_PROBES if has_syntax_labels(submission) else "")
@@ -287,6 +294,9 @@ def evaluate_submission(
     submission, unit, scale = settle_first_token_floor(submission, runner, policy)
     threshold = policy.activation_threshold * scale
     results, measured_probes, actual = measure_probes(runner, unit, probes, scale, threshold)
+    labels = [(p.expected_active, p.rival_expected_active or None) for p in measured_probes]
+    rivals = compare(submission.natural_language_explanation, submission.rival_explanations,
+                     labels, actual)  # fmt: skip
     results += measure_counterfactuals(runner, unit, submission, scale, policy)
     results.append(lookahead_result(runner, unit, submission))
     lap("probe_measurement")
@@ -316,6 +326,7 @@ def evaluate_submission(
         joint_ablation=joint,
         environment=run_environment(runner),
         wiring=wiring,
+        rivals=rivals,
         notes=_summary(results, metrics),
     )
 
@@ -478,7 +489,12 @@ def _summary(results: Sequence[AdversarialTestResult], metrics: ReviewMetrics) -
 def probes_from_verdict(verdict: VerificationVerdict) -> list[AdversarialProbe]:
     """Recover the probe set stored in a verdict, to re-evaluate it under another policy."""
     return [
-        AdversarialProbe(text=r.prompt, expected_active=bool(r.expected_active), rationale=r.detail)
+        AdversarialProbe(
+            text=r.prompt,
+            expected_active=bool(r.expected_active),
+            rationale=r.detail,
+            rival_expected_active=r.rival_expected_active or [],
+        )
         for r in verdict.adversarial_test_results
         if r.kind in {"hard_negative", "positive_holdout"}
     ]

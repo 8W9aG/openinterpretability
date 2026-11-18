@@ -167,7 +167,8 @@ def plan_groups(result, groups, states, model, window, slugs, now) -> list[Plann
     return out
 
 
-def _superposition(g, status, states, model, window, slugs, now):
+def _superposition(g, status, states, model, window, slugs, now):  # noqa: ARG001
+    # The same arguments as _circuit: plan_groups calls either one through ``make``.
     from openinterpretability.planner_superpositions import (
         _candidate,
         default_definitions,
@@ -182,7 +183,8 @@ def _superposition(g, status, states, model, window, slugs, now):
     return best.kind, best.rationale, best.commands
 
 
-def _circuit(g, status, states, model, window, slugs, now):
+def _circuit(g, status, states, model, window, slugs, now):  # noqa: ARG001
+    # The same arguments as _superposition: plan_groups calls either one through ``make``.
     from openinterpretability.core.paths import DEFAULT_EXCHANGE_DIR
 
     files = f"{DEFAULT_EXCHANGE_DIR}/circuit-{g.name}"  # a working folder, not a cited input

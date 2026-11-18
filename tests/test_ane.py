@@ -498,7 +498,7 @@ def test_a_chunk_reads_the_same_weights_from_the_checkpoint(tiny_qwen2, tmp_path
     from openinterpretability.harness.ane import chunks
 
     tiny_qwen2.save_pretrained(tmp_path, safe_serialization=True)
-    read = chunks._from_checkpoint(tiny_qwen2, str(tmp_path), None, 1, 1)
+    read = chunks._from_checkpoint(str(tmp_path), None, 1, 1)
     for name, want in tiny_qwen2.model.layers[1].state_dict().items():
         assert torch.equal(read.model.layers[1].state_dict()[name], want.float()), name
     assert read.model.layers[0].self_attn.q_proj.weight.is_meta  # never read

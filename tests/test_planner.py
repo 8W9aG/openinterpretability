@@ -588,3 +588,19 @@ def test_an_even_split_draws_a_resolving_review(tmp_path, record):
     plan = plan_next(_registry(tmp_path, *split), seed=1, now=NOW)
     assert ("resolve", "N1-positive") in _kinds(plan)
     assert ("revise", "N1-positive") not in _kinds(plan)
+
+
+def test_a_failed_rival_of_a_verified_hypothesis_draws_a_revision(tmp_path, record):
+    """VERIFIED, then a new hypothesis REJECTED: CONTESTED, so `revise`, not `resolve` (#4654)."""
+    rec = _record(record, status="VERIFIED", idx=1, gates={})
+    sub = rec.submission.model_copy(update={"natural_language_explanation": "A rival."})
+    verdict = rec.verdict.model_copy(
+        update={"status": "REJECTED", "timestamp": rec.verdict.timestamp + timedelta(hours=2)}
+    )
+    rival = _probes_of_its_own(rec.model_copy(update={"submission": sub, "verdict": verdict}),
+                               "r", "REJECTED")  # fmt: skip
+    plan = plan_next(_registry(tmp_path, rec, rival), seed=1, now=NOW)
+    revise = [c for c in plan.candidates
+              if (c.kind, c.slug.rsplit("/", 1)[-1]) == ("revise", "N1-positive")]  # fmt: skip
+    assert revise and "submit one that addresses both" in revise[0].rationale
+    assert ("resolve", "N1-positive") not in _kinds(plan)

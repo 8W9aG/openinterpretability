@@ -92,13 +92,14 @@ select ─▶ scan ─▶ hypothesize ─▶ submit (frozen) ─▶ probe ─▶
    - With Beta(1, 1) priors on specificity and sensitivity, P(useful) = P(balanced accuracy > 0.6).
    - Conclusiveness is |2·P(useful) − 1|, so a well-probed rejection ranks as high as a well-probed verification, and thinly-probed results rank low whatever their verdict.
 
-   **Standing.** A unit's status is not simply its newest experiment's, or a weaker or self-reviewed rerun could overturn an independent VERIFIED. It is derived in four steps (`builder.standing.pole_standing`):
+   **Standing.** A unit's status is not simply its newest experiment's, or a weaker or self-reviewed rerun could overturn an independent VERIFIED. It is derived in five steps (`builder.standing.pole_standing`):
    1. *Newest hypothesis.* Only experiments on the unit's newest submission count. A new submission replaces older ones (a revision names them in `supersedes`), and their verdicts were about a different claim. Re-reviews of one submission share everything but provenance.
    2. *One reading per probe set.* A re-measurement of a probe set (e.g. `reevaluate` under a newer protocol) replaces that set's earlier reading.
    3. *Independent over self-review.* If any reading came from a reviewer model other than the proposer's, self-reviews are outweighed.
    4. *Majority.* The readings left vote, VERIFIED or not, and the majority decides. When most are VERIFIED, the status is VERIFIED. When most are not, the newest of those readings gives the status: NEEDS_REVISION against REJECTED is not a disagreement about whether the claim holds. Only an even split between VERIFIED and not makes the status **CONTESTED**, and then the unit is not counted as verified. One more independent review settles it. Until 2026-11-16, any disagreement made a unit CONTESTED, so more reviews could never settle one (#3212).
+   5. *A verified claim is not overturned by a failed rival.* If step 4 gives a status other than VERIFIED, and an earlier hypothesis of the unit was VERIFIED, the status is **CONTESTED**. An earlier hypothesis counts as VERIFIED when steps 2–4 give VERIFIED on its own experiments. The unit is not counted as verified while it is contested. A newer hypothesis that reaches VERIFIED settles it. A newer one that fails leaves it CONTESTED. Before 2026-11-18, a weaker hypothesis that failed replaced a VERIFIED one, and the unit fell to REJECTED with no change to the verified claim (#4654).
 
-   Unit pages show which reviews the status rests on. They mark every other experiment as re-measured, outweighed, an earlier hypothesis or set aside by an erratum (§5). The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
+   Unit pages show which reviews the status rests on. They mark every other experiment as re-measured, outweighed, an earlier hypothesis or set aside by an erratum (§5). An earlier VERIFIED hypothesis that a newer one contests has a mark of its own. The home page lists contested units and reports **reviewer agreement**. It takes the hypotheses reviewed with more than one probe set, self-reviews included, each set read by its newest experiment. It reports how many got the same verdict, VERIFIED or not, from every review, and the agreement rate over pairs of reviews. `registry.parquet` has `unit_status` and `counts_toward_status`.
 
 ## 4. Decision rule
 
@@ -110,6 +111,8 @@ Probe accuracy is reported as **balanced accuracy**, the mean of:
 - **sensitivity**: the cluster-weighted fraction of positive holdouts that fired.
 
 Balanced accuracy is the `confidence_score`. Using it means many easy negatives cannot hide failed generalisations.
+
+**Rival readings** (issue #3197). The proposer may write up to three rival readings beside its hypothesis. Each is one sentence that fits the same top examples but predicts differently on new text. The reviewer labels each probe with what each rival predicts, as well as what the hypothesis predicts. It also writes some probes where they disagree. Each reading is scored by its balanced accuracy on the measured probes (`core/rivals.py`). The verdict records the scores and the reading with the best score, and ties go to the hypothesis. This is reported, not gated: the decision rule reads only the hypothesis's labels. If the best reading ever decided a verdict, that would change the decision rule and bump the version (§6).
 
 **Confound control.** The scan records a confound profile of the pole. It holds the variance explained by token identity and by position, and the correlation with token frequency. It also holds the tokens and positions with the highest mean strength. On the reviewer's probes, the hypothesis is compared with three trivial baselines, each scored by the same cluster-weighted balanced accuracy:
 

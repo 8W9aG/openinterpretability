@@ -137,8 +137,10 @@ def unit_href(slug: str | None) -> str | None:
 def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     """Each prompt with all its explanations, by its newest explanation, newest first.
 
-    Each explanation carries the units whose status has changed since it was written.
+    Each explanation carries the units whose status has changed since it was written. Its
+    text is scrubbed of personal data, as the site publishes it.
     """
+    from openinterpretability.builder.pii import scrub
     from openinterpretability.core.explanation_records import load_all
     from openinterpretability.planner import load_states
 
@@ -148,7 +150,9 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     states = load_states(wiki_dir) if states is None else states
     prompts = []
     for records in found.values():
-        views = [_view(path, record, states, wiki_dir) for path, record in records]
+        # What the site publishes is scrubbed of personal data and takedowns, as for
+        # experiments (builder/pii.py, #4750).
+        views = [_view(path, scrub(record), states, wiki_dir) for path, record in records]
         by_id = {v.record.id: v for v in views}
         for v in views:
             v.previous = by_id.get(v.record.previous or "")

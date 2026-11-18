@@ -56,6 +56,7 @@ from openinterpretability.core.profiles import (  # noqa: F401  (re-exported)
     SuperpositionProfile,
     require_unit_profile,
 )
+from openinterpretability.core.rivals import MAX_RIVALS, RivalComparison
 from openinterpretability.core.run_environment import RunEnvironment  # noqa: F401  (re-exported)
 from openinterpretability.core.specificity import WordnetSpecificity, WordStrength  # noqa: F401
 from openinterpretability.core.steering import SteeringSamples
@@ -252,6 +253,8 @@ class NeuronAuditSubmission(StrictModel):
     activating_tokens: list[str]
     counterfactuals: list[CounterfactualPair] = Field(min_length=1)
     lookahead: LookaheadProfile
+    # Other readings that fit the top examples, scored beside it (core/rivals.py, #3197).
+    rival_explanations: list[str] = Field(default_factory=list, max_length=MAX_RIVALS)
     submitting_agent_model: str = Field(min_length=1)
     contributor: Contributor | None = None
     # Evidence gathered by the harness. Optional so hand-written submissions validate.
@@ -343,6 +346,8 @@ class AdversarialTestResult(StrictModel):
     # v0.8: False for a one-token prompt to a unit with a first-token floor, which is not
     # measured at the first token. It is recorded but counts in no metric.
     measured: bool = True
+    # What each of the submission's rival readings predicts, in their order (#3197).
+    rival_expected_active: list[bool] | None = None
 
 
 class ReviewPolicy(StrictModel):
@@ -432,6 +437,7 @@ class VerificationVerdict(StrictModel):
         description="A neuron pole's top connections by attribution on the review's prompts "
         "where it fired (reported, not gated).",
     )
+    rivals: RivalComparison | None = None  # reported, not gated (core/rivals.py, #3197)
     notes: str = ""
 
 

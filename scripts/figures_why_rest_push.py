@@ -47,7 +47,7 @@ def push_run(rows: list[dict], condition: str, seed: int) -> dict | None:
     return _run(rows, condition, seed, part="training_push_rerun") or _run(rows, condition, seed)
 
 
-def _push_time_panel(fig: Figure, panel: Panel, rows: list[dict]) -> None:
+def _push_time_panel(panel: Panel, rows: list[dict]) -> None:
     """Draw the push ratio of each activation over training, seed 0."""
     panel.grid_x([0, 1000, 2000, 3000, 4000], 0, thousands=True)
     panel.grid_y([-0.1, -0.05, 0, 0.05], 2)
@@ -108,6 +108,6 @@ def push(rows: list[dict]) -> Figure:
     right = Panel(fig, (460, top, 270, 230), (-0.05, 0.005), (-5.3, 0.3))
     left.head("Push ratio over training")
     right.head("Rest against mean push")
-    _push_time_panel(fig, left, rows)
+    _push_time_panel(left, rows)
     _push_depth_panel(fig, right, rows)
     return fig
