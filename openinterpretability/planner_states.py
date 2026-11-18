@@ -26,7 +26,10 @@ class NeuronState:
     reviewers: set[str] = field(default_factory=set)
     independent_reviews: int = 0  # experiments reviewed by a model other than the proposer's
     last: datetime | None = None
-    contested: bool = False  # its readings split evenly between VERIFIED and not (#3212)
+    contested: bool = False  # its standing is CONTESTED (#3212, #4654)
+    # A newer hypothesis failed after an earlier VERIFIED one, so a new hypothesis settles
+    # it, not one more review (#4654).
+    contested_hypothesis: bool = False
 
 
 def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
@@ -72,18 +75,24 @@ def states_of(pairs, errata) -> dict[str, NeuronState]:
         state.reviewers.add(canonical_agent(record.verdict.reviewer_agent_model))
         state.independent_reviews += not record.self_reviewed
         state.last = record.verdict.timestamp
-    for slug in contested_slugs(records, errata):
+    for slug, by_hypothesis in contested_slugs(records, errata).items():
         if slug in states:
             states[slug].contested = True
+            states[slug].contested_hypothesis = by_hypothesis
     return states
 
 
-def contested_slugs(records, errata) -> set[str]:
-    """The slugs of the poles whose standing is CONTESTED (``builder.standing``, #3212)."""
+def contested_slugs(records, errata) -> dict[str, bool]:
+    """Map the slug of each pole whose standing is CONTESTED (``builder.standing``) to why.
+
+    The value is True when a newer hypothesis failed after a VERIFIED one (#4654), and
+    False when the readings of one hypothesis split evenly (#3212).
+    """
     from openinterpretability.builder.standing import contested_units
     from openinterpretability.builder.tree import build_tree
 
-    found = set()
+    found = {}
     for row in contested_units(build_tree(records, errata)):
-        found.add(row["standing"].lead.record.submission.identifier.slug)
+        standing = row["standing"]
+        found[standing.lead.record.submission.identifier.slug] = standing.contested_by_hypothesis
     return found
