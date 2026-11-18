@@ -34,6 +34,23 @@ def _wiki_inputs(wiki_dir, states: dict) -> dict:
     }
 
 
+def _load(wiki_dir: Path):
+    """Return the slim archive, its records and the other inputs, as the build holds them.
+
+    Each record is held slim as it loads (``builder.slim.SlimArchive``, #4652). The records
+    are the one copy that the build holds: ``compile_site`` takes them over.
+    """
+    from openinterpretability.builder.slim import SlimArchive
+    from openinterpretability.builder.wiki import load_archive_paths
+    from openinterpretability.core.errata import load_errata
+    from openinterpretability.planner_states import states_of
+
+    archive = SlimArchive(load_errata(wiki_dir))
+    pairs = load_archive_paths(wiki_dir, keep=archive)
+    inputs = _wiki_inputs(wiki_dir, states_of(pairs, archive.errata))
+    return archive, [record for _, record in pairs], inputs
+
+
 @cli.command()
 @wiki_dir_option("Experiment archive (wiki/experiments/**/<id>.json).", exists=True)
 @click.option(
@@ -125,22 +142,18 @@ def build(  # noqa: PLR0913 (one option per input file)
     from openinterpretability.builder.model_facts import load_model_facts
     from openinterpretability.builder.parallel import default_jobs
     from openinterpretability.builder.users import load_users
-    from openinterpretability.builder.wiki import load_archive_paths
-    from openinterpretability.core.errata import load_errata
     from openinterpretability.core.project import project_links
     from openinterpretability.core.takedowns import activate, load_takedowns
     from openinterpretability.corpus import load_sources
     from openinterpretability.crossref import load_rows as load_alignment
     from openinterpretability.planner import configured_models
-    from openinterpretability.planner_states import states_of
     from openinterpretability.sisters import load_rows as load_sisters
     from openinterpretability.wiring_backfill import load_rows
 
     activate(load_takedowns(wiki_dir))  # before any text is scrubbed; workers fork after this
-    pairs = load_archive_paths(wiki_dir)  # the one copy of the records that the build holds
-    states = states_of(pairs, load_errata(wiki_dir))
+    archive, records, inputs = _load(wiki_dir)
     report = compile_site(
-        [record for _, record in pairs],
+        records,
         output_dir,
         wiring_rows=load_rows(wiring_path),
         corpus_sources=load_sources(source_paths),
@@ -153,7 +166,8 @@ def build(  # noqa: PLR0913 (one option per input file)
         coverage_rows=load_coverage(coverage_path),
         paper_pdfs=paper_pdfs,
         pending=open_experiments(),
-        **_wiki_inputs(wiki_dir, states),
+        archive=archive,
+        **inputs,
     )
     click.echo(f"Published {report.experiments_published} experiments: {len(report.pages)} "
                f"pages, {report.parquet} → {output_dir}")  # fmt: skip
