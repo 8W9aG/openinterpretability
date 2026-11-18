@@ -116,6 +116,7 @@ class LayerView(StrictModel):
 
     lens: list[dict[str, float]] = Field(default_factory=list)
     spectrum: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][direction]
+    space: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][x, y, z]
 
 
 class RouteReading(StrictModel):
@@ -139,6 +140,8 @@ class RouteReading(StrictModel):
     # candidate tokens, and the residual stream on the shared principal directions.
     lens: list[dict[str, float]] = Field(default_factory=list)
     spectrum: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][direction]
+    # Each token in the model's 3D embedding space, at each layer (embedding_space, #4929).
+    space: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][x, y, z]
     # The same with units switched off (mean-ablated). Every prompt has the whole route off.
     # The original prompt also has each route unit off on its own, keyed by its label.
     route_off: LayerView | None = None
