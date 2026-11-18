@@ -40,7 +40,9 @@ N_PROBES = 20
     help="Writes <out>.jsonl (one row per latent) and <out>.md (the comparison).",
 )
 @with_model_options
-def neuronpedia_review(wiki_dir, work_dir, reviewer_model, out, device, dtype):
+def neuronpedia_review(wiki_dir, work_dir, reviewer_model, out, device, dtype):  # noqa: ARG001
+    # ``dtype`` comes from with_model_options. Each unit's runner loads with its record's
+    # pinned dtype, so the option has no effect here (#3165).
     """Review Neuronpedia's explanation of each audited latent, against the agent's.
 
     Nothing is written to the registry, and nothing is sent to Neuronpedia.

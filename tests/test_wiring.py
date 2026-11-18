@@ -150,7 +150,7 @@ def test_downstream_head_value_channel_matches_attention_by_hand(gpt2_runner, ti
     cap = _clean_pass(gpt2_runner, t, encoded, attention=True)
     delta = t.written(cap)
     peak = int(t.strength(cap["read"]).argmax())
-    effects = _downstream_head_effects(gpt2_runner, t, encoded, cap, delta, 1, torch.tensor([peak]))
+    effects = _downstream_head_effects(gpt2_runner, encoded, cap, delta, 1, torch.tensor([peak]))
     block = tiny_gpt2.transformer.h[1]
     with torch.no_grad():
         out = tiny_gpt2(**encoded, output_attentions=True)

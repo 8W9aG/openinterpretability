@@ -86,7 +86,8 @@ class MatchTagger:
     name: str
     find: Callable[[str], Sequence[tuple[int, int, str]]]
 
-    def spans(self, doc: int, text: str) -> list[Span]:
+    def spans(self, doc: int, text: str) -> list[Span]:  # noqa: ARG002
+        # ``doc`` is in every tagger's signature: the document taggers read it.
         """The matches, then the gaps, so a token half in a match takes the match's label."""
         matches = self.find(text)
         spans = [Span(start, end, label) for start, end, label in matches]

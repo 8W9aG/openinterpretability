@@ -38,7 +38,7 @@ def show(path: Path, full: bool = False) -> str:
     if "submission" in data:
         return show_record(AuditRecord.model_validate_json(text), path, full)
     if "natural_language_explanation" in data:
-        return show_submission(NeuronAuditSubmission.model_validate_json(text), full)
+        return show_submission(NeuronAuditSubmission.model_validate_json(text))
     if "top_examples" in data:
         return show_evidence(ScanEvidence.model_validate_json(text), full)
     raise ValueError(f"{path} is not a record, submission or scan evidence")
@@ -65,7 +65,7 @@ def show_record(record: AuditRecord, path: Path | None = None, full: bool = Fals
     sub, verdict = record.submission, record.verdict
     name = f"{sub.identifier.slug}" + (f" · {path.stem}" if path else "")
     if verdict is None:
-        return f"{name} · not reviewed\n{show_submission(sub, full)}"
+        return f"{name} · not reviewed\n{show_submission(sub)}"
     status = f"{verdict.status} {verdict.confidence_score:.2f}"
     protocol = verdict.policy.protocol_version if verdict.policy else "< 0.2"
     lines = [
@@ -117,7 +117,7 @@ def _metrics(verdict) -> list[str]:
     return lines
 
 
-def show_submission(sub: NeuronAuditSubmission, full: bool = False) -> str:
+def show_submission(sub: NeuronAuditSubmission) -> str:
     """A submission's unit, proposer, selection and hypothesis."""
     lines = [
         f"== {sub.identifier.slug} · submission by {sub.submitting_agent_model}{_selection(sub)}"
