@@ -56,7 +56,9 @@ def test_the_explanation_page_marks_a_broad_cited_unit(tmp_path, record):
     _write(wiki, _record(datetime(2026, 11, 17, tzinfo=UTC), status="VERIFIED"))
     scores = SimpleNamespace(candidate_windows=100, active_windows=90)
     verdict = SimpleNamespace(status="VERIFIED", explanation_scores=scores)
-    states = {SLUG: SimpleNamespace(record=SimpleNamespace(verdict=verdict))}
+    states = {
+        SLUG: SimpleNamespace(record=SimpleNamespace(verdict=verdict), standing=("VERIFIED", None))
+    }
     (prompt,) = load_views(wiki, states=states)
     assert prompt.newest.broad == {SLUG}
     compile_site([record], tmp_path / "site", explanations=[prompt])

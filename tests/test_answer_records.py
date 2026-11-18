@@ -206,7 +206,7 @@ def test_the_page_leads_with_the_answer_verdict(tmp_path, record):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(r.model_dump_json())
     (prompt,) = load_views(tmp_path / "wiki", states={})
-    assert prompt.understood and prompt.answer.claim.attempt == 2
+    assert prompt.understood and prompt.answer.record.claim.attempt == 2
     compile_site([record], tmp_path / "site", explanations=[prompt])
     for page in (prompt.href, prompt.newest.href):
         html = (tmp_path / "site" / page).read_text()
@@ -214,6 +214,18 @@ def test_the_page_leads_with_the_answer_verdict(tmp_path, record):
         assert "L0/H1 → L1/N3+" in html and "REJECTED" in html and "patching" in html
     newest = (tmp_path / "site" / prompt.newest.href).read_text()
     assert "the VERIFIED route claim above does" in newest
+    # Each answer experiment has its own page, linked from the explanation pages (#4909).
+    for answer in prompt.answers:
+        assert f'href="../../../../{answer.href}"' in newest or answer.href in newest
+        page = (tmp_path / "site" / answer.href).read_text()
+        assert "Counterfactual prompts" in page and "The reviewer's prompts" in page
+        assert page.count("passed") + page.count("failed") >= 7  # every gate, in words
+        slug = answer.record.claim.model_name.replace("/", "--")
+        assert "L0/H1" in page and f"models/{slug}/L0/H1.html" in page
+    verified = (tmp_path / "site" / prompt.answers[-1].href).read_text()
+    assert "VERIFIED</strong>: every gate passed" in verified
+    rejected = (tmp_path / "site" / prompt.answers[0].href).read_text()
+    assert "REJECTED</strong>: failed patching" in rejected and "axcd" in rejected
 
 
 def test_the_narrator_reads_the_answer_claim_and_may_cite_its_route(tmp_path):
@@ -235,3 +247,5 @@ def test_the_narrator_reads_the_answer_claim_and_may_cite_its_route(tmp_path):
           "answer_experiment": told}  # fmt: skip
     narrative = SimpleNamespace(paragraph="L1/N3+ writes it; L9/H9 too.", sections=[])
     assert check_citations(narrative, ev) == ["L9/H9"]
+    ev["minimal_set"] = ["L9/H9"]  # a unit of the minimal set is in the evidence too
+    assert check_citations(narrative, ev) == []

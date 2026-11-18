@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{# One answer experiment's page (#4909): its claim, and every test it was held to. Expects `answer` (explanation_pages.AnswerView) and `prompt` (PromptView). #}
+
+{% macro outcome(ok) %}{% if ok %}<span aria-hidden="true">✓</span> passed{% else %}<span aria-hidden="true">✗</span> failed{% endif %}{% endmacro %}
+
+{% block title %}Answer experiment {{ answer.record.claim.attempt }} · {{ answer.record.claim.answer | trim }} · {{ site_title }}{% endblock %}
+
+{% block head %}
+{% include "_prose.html" %}
+{% endblock %}
+
+{% block content %}
+{% set r = answer.record %}{% set c = r.claim %}{% set v = r.verdict %}{% set m = v.measures %}{% set p = v.policy %}
+<article data-pagefind-body>
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ c.model_name }}</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> / <a class="underline" href="{{ root }}{{ prompt.href }}">This prompt</a></nav>
+<h1 class="max-w-3xl text-2xl font-semibold" data-pagefind-meta="title">How <span class="font-mono">{{ c.model_name }}</span> answers <span class="font-mono">{{ c.answer }}</span>: answer experiment {{ c.attempt }}</h1>
+<p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ c.prompt }}</p>
+<p class="mt-3 text-lg"><strong>{{ v.status }}</strong>{% if v.failed %}: failed {{ v.failed | join(", ") }}{% else %}: every gate passed{% endif %}.</p>
+<p class="mt-2 max-w-3xl text-xs text-slate-500">
+  Attempt {{ c.attempt }} of {{ prompt.answers | length }} on <a class="underline" href="{{ root }}{{ prompt.href }}">this prompt</a>{% if c.supersedes %}, after attempt {{ c.attempt - 1 }} ({{ c.supersedes }}){% endif %}.
+  Proposed by <span class="font-mono">{{ c.submitting_agent_model }}</span>. The reviewer, <span class="font-mono">{{ v.reviewer_agent_model }}</span>, wrote {{ r.probes.prompts | length }} prompts without seeing any measure.
+  Measured <time datetime="{{ v.timestamp.isoformat() }}">{{ v.timestamp.strftime("%Y-%m-%d %H:%M") }}</time> UTC under answer protocol {{ p.protocol_version }} ·
+  <a class="underline" href="{{ repo_url }}/blob/main/{{ answer.source }}">Source</a>
+</p>
+
+<div class="paper mt-6">
+  <h2>The claim</h2>
+  <p>{{ c.explanation }}</p>
+  <p>It reads {{ c.sources | join(", ") }}, through this route, in order:</p>
+</div>
+<div class="mt-2 max-w-3xl overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Step</th><th class="py-1 pr-3">Unit</th><th class="py-1 pr-3">Its role here</th></tr></thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for u in answer.route %}
+      <tr class="align-top"><td class="py-1 pr-3 font-mono tabular-nums">{{ loop.index }}</td><td class="py-1 pr-3 font-mono"><a class="underline underline-offset-2" href="{{ root }}{{ u.href }}">{{ u.unit }}</a></td><td class="py-1 pr-3">{{ u.role or "—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">The gates</h2>
+<p class="mb-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Every gate must pass for VERIFIED. When the five causal gates pass and a prompt gate fails, the verdict is NEEDS_REVISION: the route carries the answer, but the claim is too broad or too narrow.</p>
+{% set null_cut = (m.null_cuts | sum / m.null_cuts | length) if m.null_cuts else 0 %}
+{% set nulls = m.null_patching | reject("none") | list %}
+<div class="max-w-3xl overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Gate</th><th class="py-1 pr-3">Measured</th><th class="py-1 pr-3">Needed</th><th class="py-1 pr-3">Result</th></tr></thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      <tr><td class="py-1 pr-3">Necessity</td><td class="py-1 pr-3 font-mono">{{ m.necessity | pct_fine }}</td><td class="py-1 pr-3 font-mono">≥ {{ p.min_necessity | pct_fine }}</td><td class="py-1 pr-3">{{ outcome(v.gates.necessity) }}</td></tr>
+      <tr><td class="py-1 pr-3">Beats random units</td><td class="py-1 pr-3 font-mono">{{ "%.2f" | format(m.route_cut) }} against {{ "%.2f" | format(null_cut) }}</td><td class="py-1 pr-3 font-mono">≥ {{ p.null_factor }}×</td><td class="py-1 pr-3">{{ outcome(v.gates.beats_null) }}</td></tr>
+      <tr><td class="py-1 pr-3">Sufficiency</td><td class="py-1 pr-3 font-mono">{{ m.sufficiency | pct_fine if m.sufficiency is not none else "—" }}</td><td class="py-1 pr-3 font-mono">≥ {{ p.min_sufficiency | pct_fine }}</td><td class="py-1 pr-3">{{ outcome(v.gates.sufficiency) }}</td></tr>
+      <tr><td class="py-1 pr-3">Path patching</td><td class="py-1 pr-3 font-mono">{{ m.patching | pct_fine if m.patching is not none else "—" }}</td><td class="py-1 pr-3 font-mono">≥ {{ p.min_patching | pct_fine }}</td><td class="py-1 pr-3">{{ outcome(v.gates.patching) }}</td></tr>
+      <tr><td class="py-1 pr-3">Patching random units</td><td class="py-1 pr-3 font-mono">{{ ((nulls | sum) / (nulls | length)) | pct_fine if nulls else "—" }}</td><td class="py-1 pr-3 font-mono">≤ {{ p.max_null_patching | pct_fine }}</td><td class="py-1 pr-3">{{ outcome(v.gates.patching_null) }}</td></tr>
+      <tr><td class="py-1 pr-3">The proposer's prompts</td><td class="py-1 pr-3 font-mono">{{ m.controls.values() | select | list | length }} of {{ m.controls | length }}</td><td class="py-1 pr-3 font-mono">all</td><td class="py-1 pr-3">{{ outcome(v.gates.controls) }}</td></tr>
+      <tr><td class="py-1 pr-3">The reviewer's prompts</td><td class="py-1 pr-3 font-mono">{{ m.probes.values() | select | list | length }} of {{ m.probes | length }}</td><td class="py-1 pr-3 font-mono">≥ {{ p.min_probes | pct_fine }}</td><td class="py-1 pr-3">{{ outcome(v.gates.probes) }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">Ablation: is the route necessary?</h2>
+<p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each unit is set to its mean over the corpus. The answer's log-probability is {{ "%.3f" | format(m.clean) }} on the clean model. Ablating every unit cuts it by {{ "%.3f" | format(m.all_cut) }}. Ablating the route alone cuts it by {{ "%.3f" | format(m.route_cut) }}, {{ m.necessity | pct_fine }} of that. {{ m.null_cuts | length }} random sets with the route's heads and poles in each layer cut it by:</p>
+<p class="mt-1 max-w-3xl font-mono text-xs tabular-nums">{% for n in m.null_cuts %}{{ "%.3f" | format(n) }}{{ ", " if not loop.last }}{% endfor %} (mean {{ "%.3f" | format(null_cut) }})</p>
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">Sufficiency: does the route alone bring the answer back?</h2>
+<p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">With every unit but the route set to its mean, the route brings back {{ m.sufficiency | pct_fine if m.sufficiency is not none else "an unmeasured share" }} of the answer: (kept − all ablated) / (clean − all ablated), at most 100%.</p>
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">Path patching: does the route carry the change?</h2>
+<p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">The corrupted prompt changes the sources:</p>
+<p class="mt-1 max-w-3xl font-mono text-sm">{{ c.corrupted }}</p>
+<p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">On it, the answer's log-probability falls by {{ "%.3f" | format(m.corrupted_gap) }}. Putting only the route's corrupted activations into the clean run moves the answer by {{ m.patching | pct_fine if m.patching is not none else "—" }} of that gap. The same random sets move it by:</p>
+<p class="mt-1 max-w-3xl font-mono text-xs tabular-nums">{% for n in m.null_patching %}{{ n | pct_fine if n is not none else "—" }}{{ ", " if not loop.last }}{% endfor %}</p>
+
+<h2 class="mb-1 mt-8 text-lg font-semibold">Counterfactual prompts</h2>
+<p class="mb-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each prompt says whether the answer {{ c.answer }} should stay the model's top token (kept) or not (changed), and why. The proposer wrote the first set. The reviewer wrote the second, to break the claim, without seeing any result.</p>
+{% for title, prompts, results in [("The proposer's prompts", c.counterfactuals, m.controls), ("The reviewer's prompts", r.probes.prompts, m.probes)] %}
+<h3 class="mb-1 mt-4 text-sm font-semibold">{{ title }}</h3>
+<div class="max-w-4xl overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Prompt</th><th class="py-1 pr-3">Predicted</th><th class="py-1 pr-3">Model's answer</th><th class="py-1 pr-3">Result</th><th class="py-1 pr-3">Why</th></tr></thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for q in prompts %}
+      <tr class="align-top"><td class="py-1 pr-3 font-mono">{{ q.prompt }}</td><td class="py-1 pr-3">{{ q.expect }}</td><td class="py-1 pr-3 font-mono">{{ m.top_tokens.get(q.prompt, "—") }}</td><td class="whitespace-nowrap py-1 pr-3">{% if q.prompt in results %}{{ outcome(results[q.prompt]) }}{% else %}—{% endif %}</td><td class="py-1 pr-3 text-xs text-slate-600 dark:text-slate-400">{{ q.why }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+</article>
+{% endblock %}

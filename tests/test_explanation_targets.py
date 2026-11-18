@@ -16,7 +16,7 @@ B = Target("m/L3/H4", "m/x", 3, "open-interpretability audit --model m/x --layer
 
 def _state(status, path="wiki/x.json"):
     return SimpleNamespace(record=SimpleNamespace(verdict=SimpleNamespace(status=status)),
-                           record_path=path)  # fmt: skip
+                           record_path=path, standing=(status, None))  # fmt: skip
 
 
 @pytest.fixture

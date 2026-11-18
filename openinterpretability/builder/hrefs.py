@@ -33,6 +33,11 @@ def explanation_href(slug: str, prompt_id: str, record_id: str) -> str:
     return f"models/{slug}/explanations/{prompt_id}/{record_id}.html"
 
 
+def answer_href(slug: str, prompt_id: str, record_id: str) -> str:
+    """One answer experiment's page, named after its record's UTC stamp (#4909)."""
+    return f"models/{slug}/explanations/{prompt_id}/answers/{record_id}.html"
+
+
 def layer_href(slug: str, layer: int) -> str:
     """The layer's index page."""
     return f"models/{slug}/L{layer}/index.html"

@@ -30,6 +30,16 @@ class NeuronState:
     # A newer hypothesis failed after an earlier VERIFIED one, so a new hypothesis settles
     # it, not one more review (#4654).
     contested_hypothesis: bool = False
+    # The standing (``builder.standing``): its status and the record it rests on. These can
+    # differ from ``record``, the newest: a newer NEEDS_REVISION leaves a VERIFIED
+    # hypothesis standing (#4900). ``explain`` reads these, the follow-ups read ``record``.
+    status: str = ""
+    standing_record: AuditRecord | None = None
+
+    @property
+    def standing(self) -> tuple[str, AuditRecord]:
+        """The standing's status and record, or the newest record's when none is derived."""
+        return (self.status or self.record.verdict.status), (self.standing_record or self.record)
 
 
 def load_states(wiki_dir: Path) -> dict[str, NeuronState]:
@@ -75,24 +85,21 @@ def states_of(pairs, errata) -> dict[str, NeuronState]:
         state.reviewers.add(canonical_agent(record.verdict.reviewer_agent_model))
         state.independent_reviews += not record.self_reviewed
         state.last = record.verdict.timestamp
-    for slug, by_hypothesis in contested_slugs(records, errata).items():
+    for slug, standing in standings(records, errata).items():
         if slug in states:
-            states[slug].contested = True
-            states[slug].contested_hypothesis = by_hypothesis
+            state = states[slug]
+            state.status, state.standing_record = standing.status, standing.lead.record
+            state.contested = standing.contested
+            state.contested_hypothesis = standing.contested_by_hypothesis
     return states
 
 
-def contested_slugs(records, errata) -> dict[str, bool]:
-    """Map the slug of each pole whose standing is CONTESTED (``builder.standing``) to why.
-
-    The value is True when a newer hypothesis failed after a VERIFIED one (#4654), and
-    False when the readings of one hypothesis split evenly (#3212).
-    """
-    from openinterpretability.builder.standing import contested_units
+def standings(records, errata) -> dict:
+    """Map the slug of each native pole and head to its standing (``builder.standing``)."""
+    from openinterpretability.builder.standing import native_standings
     from openinterpretability.builder.tree import build_tree
 
-    found = {}
-    for row in contested_units(build_tree(records, errata)):
-        standing = row["standing"]
-        found[standing.lead.record.submission.identifier.slug] = standing.contested_by_hypothesis
-    return found
+    return {
+        standing.lead.record.submission.identifier.slug: standing
+        for _, _, standing in native_standings(build_tree(records, errata))
+    }

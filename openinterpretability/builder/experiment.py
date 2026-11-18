@@ -110,4 +110,4 @@ class Experiment:
     @property
     def counts(self) -> bool:
         """Whether the pole's current status rests on this experiment."""
-        return self.role == "current"
+        return self.role in ("current", "standing_hypothesis")  # #4900: an earlier VERIFIED one

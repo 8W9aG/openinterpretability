@@ -1,9 +1,11 @@
 """A unit's standing: what all of its experiments say now (``docs/PROTOCOL.md`` §3 step 9).
 
 The newest hypothesis counts, one reading per probe set, independent reviews outweigh
-self-reviews, and a majority of those readings decides. The unit is CONTESTED when they
-split evenly between VERIFIED and not (issue #3212). It is also CONTESTED when the newest
-hypothesis is not VERIFIED but an earlier one was (issue #4654). An erratum
+self-reviews, and a majority of those readings decides. Only VERIFIED against REJECTED is a
+disagreement: NEEDS_REVISION never contests a VERIFIED claim (issue #4900). An even split
+between VERIFIED and REJECTED readings goes to the side with the higher detection score.
+When the scores are close, the unit is CONTESTED (#3212). A newer REJECTED hypothesis after a
+VERIFIED one is settled by the scores the same way (#4654). An erratum
 can set experiments aside (:mod:`openinterpretability.core.errata`). Also the
 registry-wide reviewer agreement those readings give. Derived, never stored.
 """
@@ -26,6 +28,8 @@ ROLES = {
     "outweighed": "outweighed by an independent review",
     "earlier_hypothesis": "earlier hypothesis",
     "contested_hypothesis": "earlier VERIFIED hypothesis, contested by a newer one",
+    "standing_hypothesis": "VERIFIED hypothesis that a newer, failed one doesn't overturn",
+    "failed_rival": "newer hypothesis that failed, and doesn't overturn the VERIFIED one",
     "set_aside": "set aside by an erratum",
 }
 
@@ -36,9 +40,14 @@ class Standing:
 
     status: str  # VERIFIED, NEEDS_REVISION, REJECTED or CONTESTED
     readings: list[Experiment]  # the experiments it rests on: those that agree first, newest first
-    # The lead of an earlier VERIFIED hypothesis that a newer, failed one contests (#4654).
-    # None when the unit is not contested, or is contested by an even split of readings.
+    # The lead of an earlier VERIFIED hypothesis that a newer, failed one contests (#4654),
+    # or that keeps the standing against it (#4900). None when no newer hypothesis failed.
     prior: Experiment | None = None
+
+    @property
+    def margin(self) -> float:
+        """The lead in score that settles VERIFIED against REJECTED, for the pages (#4900)."""
+        return SCORE_MARGIN
 
     @property
     def lead(self) -> Experiment:
@@ -108,14 +117,52 @@ def _readings(experiments: Sequence[Experiment]) -> list[Experiment]:
     return out
 
 
+SCORE_MARGIN = 0.05  # a lead in detection score that settles VERIFIED against REJECTED (#4900)
+
+
+def score(e: Experiment) -> float | None:
+    """The reading's detection score on held-out windows, else its probe balanced accuracy.
+
+    The maintainer chose the held-out score on 2026-11-18 (#4900): neither agent chose its
+    text, so it compares two hypotheses fairly.
+    """
+    verdict = e.record.verdict
+    scores = verdict.explanation_scores
+    if scores is not None and scores.detection is not None:
+        return scores.detection.balanced_accuracy
+    return verdict.metrics.balanced_accuracy if verdict.metrics is not None else None
+
+
+def by_score(verified: Experiment, rejected: Experiment) -> str:
+    """The side that scores higher by :data:`SCORE_MARGIN`; CONTESTED when neither does."""
+    a, b = score(verified), score(rejected)
+    if a is None or b is None or abs(a - b) < SCORE_MARGIN:
+        return "CONTESTED"
+    return "VERIFIED" if a > b else "REJECTED"
+
+
 def _majority(readings: list[Experiment]) -> Standing:
-    """The standing that a majority of ``readings`` (newest first) gives, VERIFIED or not."""
-    verified = [e for e in readings if e.record.verdict.status == "VERIFIED"]
-    others = [e for e in readings if e.record.verdict.status != "VERIFIED"]
-    if len(verified) == len(others):
-        return Standing("CONTESTED", readings)
-    winners, losers = (verified, others) if len(verified) > len(others) else (others, verified)
-    return Standing(winners[0].record.verdict.status, winners + losers)
+    """The standing that ``readings`` (newest first) give (#3212, #4900).
+
+    NEEDS_REVISION never contests VERIFIED. Between VERIFIED and REJECTED readings the
+    majority decides, and an even split goes to :func:`by_score`.
+    """
+
+    def of(status: str) -> list[Experiment]:
+        return [e for e in readings if e.record.verdict.status == status]
+
+    verified, rejected = of("VERIFIED"), of("REJECTED")
+    rest = [e for e in readings if e not in verified]
+    if not verified:
+        return Standing(readings[0].record.verdict.status, readings)
+    if len(verified) > len(rejected):
+        return Standing("VERIFIED", verified + rest)
+    if len(rejected) > len(verified):
+        return Standing("REJECTED", rejected + [e for e in readings if e not in rejected])
+    status = by_score(verified[0], rejected[0])
+    if status == "REJECTED":
+        return Standing(status, rejected + [e for e in readings if e not in rejected])
+    return Standing(status, verified + rest if status == "VERIFIED" else readings)
 
 
 def _claim_readings(newest: list[Experiment], claim: str) -> tuple[list, list]:
@@ -146,6 +193,32 @@ def _verified_prior(newest: list[Experiment], current: str, introduced: dict) ->
     return None
 
 
+def _key(e: Experiment) -> tuple:
+    return e.record.verdict.timestamp, e.id
+
+
+def _against_prior(standing: Standing, prior: list[Experiment], newest: list) -> Standing:
+    """Step 5 of :func:`pole_standing`: failed newer hypotheses against a VERIFIED one.
+
+    Only a REJECTED reading of a newer hypothesis disagrees with it. The newest such reading
+    goes to :func:`by_score`, whichever hypothesis is newest now.
+    """
+    since = min(_key(e) for e in prior)
+    rejected = [e for e in newest if e.claim != prior[0].claim and _key(e) > since
+                and e.record.verdict.status == "REJECTED"]  # fmt: skip
+    status = by_score(prior[0], rejected[0]) if rejected else "VERIFIED"
+    if status == "REJECTED":
+        return standing  # the newer hypothesis outscores it: its own status stands
+    role = "standing_hypothesis" if status == "VERIFIED" else "contested_hypothesis"
+    for e in prior:
+        e.role = role
+    if status == "VERIFIED":  # it rests on the earlier hypothesis's readings (#4900)
+        for e in standing.readings:
+            e.role = "failed_rival" if e.role == "current" else e.role
+        return Standing("VERIFIED", prior, prior=prior[0])
+    return Standing("CONTESTED", standing.readings, prior=prior[0])
+
+
 def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     """Derive one pole's standing from all of its experiments, and set each one's ``role``.
 
@@ -153,13 +226,15 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
        verdicts were about a different claim.
     2. Each probe set counts once, read by its newest experiment.
     3. If any reading is an independent review, self-reviews are outweighed.
-    4. A majority of the readings left decides, VERIFIED or not. When most are VERIFIED,
-       the pole is VERIFIED. When most are not, the newest of those readings gives the
-       status: NEEDS_REVISION against REJECTED is no disagreement about whether the claim
-       holds. An even split between VERIFIED and not leaves the pole CONTESTED (#3212).
-    5. If step 4 gives a status other than VERIFIED, and an earlier hypothesis was
-       VERIFIED by steps 2–4, the pole is CONTESTED (#4654). A failed rival does not
-       overturn a verified claim, and the claim does not count while it is disputed.
+    4. The readings left decide (:func:`_majority`). NEEDS_REVISION never counts against
+       VERIFIED. Between VERIFIED and REJECTED readings, the majority decides. An even
+       split goes to :func:`by_score`, and is CONTESTED when the scores are close (#3212,
+       #4900).
+    5. Suppose step 4 gives a status other than VERIFIED, and an earlier hypothesis was
+       VERIFIED by steps 2–4. Then a failed rival does not simply overturn it (#4654,
+       #4900). A newer NEEDS_REVISION never contests it: the earlier hypothesis keeps the
+       standing. A newer REJECTED goes to :func:`by_score`. The result is VERIFIED on the
+       earlier hypothesis, REJECTED on the newer one, or CONTESTED when the scores are close.
        A newer hypothesis that reaches VERIFIED settles it.
 
     Before step 1, experiments that an erratum sets aside are left out, unless that leaves
@@ -186,9 +261,7 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     standing = _majority(readings)
     prior = None if standing.verified else _verified_prior(newest, current, introduced)
     if prior:
-        for e in prior:
-            e.role = "contested_hypothesis"
-        standing = Standing("CONTESTED", standing.readings, prior=prior[0])
+        standing = _against_prior(standing, prior, newest)
     for e in experiments:
         e.standing = standing
     return standing

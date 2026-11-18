@@ -68,7 +68,10 @@ def test_explained_units_that_are_unstudied_get_attribution_audits(tmp_path):
     ]
     assert "--head 8" in units[HEAD].commands[0] and "needs it" in units[HEAD].rationale
     studied = {
-        POLE: SimpleNamespace(record=SimpleNamespace(verdict=SimpleNamespace(status="REJECTED")))
+        POLE: SimpleNamespace(
+            record=SimpleNamespace(verdict=SimpleNamespace(status="REJECTED")),
+            standing=("REJECTED", None),
+        )
     }
     later = explanation_candidates(studied, [], root, [MODEL], 1)
     assert POLE not in {c.slug for c in later if c.kind == "explore"}  # follow-ups cover it now
@@ -78,7 +81,10 @@ def test_a_stale_explanation_is_drawn_again_and_claims_are_respected(tmp_path):
     root = _root(tmp_path, prompts=("A prompt",))
     _explained(root, "A prompt")
     verified = {
-        POLE: SimpleNamespace(record=SimpleNamespace(verdict=SimpleNamespace(status="VERIFIED")))
+        POLE: SimpleNamespace(
+            record=SimpleNamespace(verdict=SimpleNamespace(status="VERIFIED")),
+            standing=("VERIFIED", None),
+        )
     }
     found = [
         c for c in explanation_candidates(verified, [], root, [MODEL], 1) if c.kind == "explanation"

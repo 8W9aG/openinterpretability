@@ -110,6 +110,7 @@ def check_citations(narrative, ev: dict) -> list[str]:
     known = {str(row["unit"]).replace("−", "-") for key in ("units", "groups", "next_experiments")
              for row in ev[key]}  # fmt: skip
     known |= set(ev.get("answer_experiment", {}).get("route", []))
+    known |= {u.replace("−", "-") for u in ev.get("minimal_set", [])}  # the evidence lists them
     for path in ev["paths"]:
         known |= {path["source"].replace("−", "-"), path["target"].replace("−", "-")}
     text = " ".join([narrative.paragraph, *(s.title + " " + s.text for s in narrative.sections)])

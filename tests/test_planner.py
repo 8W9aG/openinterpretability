@@ -579,11 +579,14 @@ def _probes_of_its_own(rec, tag, status):
 
 
 def test_an_even_split_draws_a_resolving_review(tmp_path, record):
-    """One VERIFIED and one NEEDS_REVISION independent reading: CONTESTED, so `resolve` (#3212)."""
+    """One VERIFIED and one REJECTED independent reading, scored alike: CONTESTED, so `resolve`.
+
+    The issues are #3212 and #4900. A NEEDS_REVISION reading would not contest the VERIFIED one.
+    """
     rec = _record(record, status="VERIFIED", idx=1, gates={})
     split = [
         _probes_of_its_own(_reviewed_by(rec, "x/a"), "a", "VERIFIED"),
-        _probes_of_its_own(_reviewed_by(rec, "x/b", hours=1), "b", "NEEDS_REVISION"),
+        _probes_of_its_own(_reviewed_by(rec, "x/b", hours=1), "b", "REJECTED"),
     ]
     plan = plan_next(_registry(tmp_path, *split), seed=1, now=NOW)
     assert ("resolve", "N1-positive") in _kinds(plan)
