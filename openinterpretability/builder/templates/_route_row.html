@@ -1,0 +1,8 @@
+{# One counterfactual's route measures, in words, and its figure (#4917). Expects `rd` (a RouteReading), `c` (the claim), `p` (the policy), `routes`, `folder` and `q`. #}
+{% set kept = rd.top | trim == c.answer | trim %}
+{% set carried = rd.route_share is not none and rd.route_share >= p.min_necessity %}
+<p>{% if kept and carried %}The route carries {{ c.answer }} here.{% elif kept %}{{ c.answer }} stays, but the route carries little of it here: something else does.{% elif carried %}The route still pushes {{ c.answer }}, but the model answers {{ rd.top }}.{% else %}The route is quiet here, and the model answers {{ rd.top }}.{% endif %}</p>
+<p class="mt-1 font-mono tabular-nums text-slate-600 dark:text-slate-400">route share {{ rd.route_share | pct_fine if rd.route_share is not none else "—" }} · log p({{ c.answer | trim }}) {{ "%.2f" | format(rd.answer_log_prob) }}{% if rd.patched_log_prob is not none %}, {{ "%.2f" | format(rd.patched_log_prob) }} with the original's route patched in{% endif %}</p>
+{% if q.prompt in routes %}{% set f = routes[q.prompt] %}
+<details class="mt-1"><summary class="cursor-pointer text-slate-500">The route on this prompt</summary>{% include "_figure.html" %}</details>
+{% endif %}

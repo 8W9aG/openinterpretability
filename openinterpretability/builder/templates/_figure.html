@@ -1,0 +1,17 @@
+{# One drawn figure, its moving and still copies, and its table. Expects `f` (a Drawn) and `folder`. #}
+<figure class="mt-6" id="fig-{{ f.name }}">
+  <div class="overflow-x-auto"><picture>
+    {% if f.static %}<source media="(prefers-reduced-motion: reduce)" srcset="{{ folder }}/fig-{{ f.name }}-static.svg">{% endif %}
+    <img class="w-full min-w-[560px] max-w-[760px]" src="{{ folder }}/fig-{{ f.name }}.svg" alt="{{ f.alt }}"{% if f.static %} data-moving="{{ folder }}/fig-{{ f.name }}.svg" data-still="{{ folder }}/fig-{{ f.name }}-static.svg"{% endif %}>
+  </picture></div>
+  <figcaption class="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+    <span>{{ f.alt }}</span>
+    {% if f.static %}<button type="button" class="rounded border border-slate-300 px-2 py-0.5 dark:border-slate-700" data-pause aria-pressed="false">Pause</button>{% endif %}
+  </figcaption>
+  <details class="mt-1 text-xs"><summary class="cursor-pointer text-slate-500">Table</summary>
+    <div class="overflow-x-auto"><table class="mt-1 font-mono">
+      <thead class="text-slate-500"><tr>{% for h in f.table[0] %}<th class="pr-4 text-left font-normal">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in f.table[1:] %}<tr>{% for c in row %}<td class="pr-4">{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table></div>
+  </details>
+</figure>

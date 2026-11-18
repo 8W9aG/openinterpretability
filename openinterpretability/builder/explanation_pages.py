@@ -266,11 +266,30 @@ def render_explanations(render, prompts: list[PromptView]) -> None:
         old = render.output_dir / prompt.legacy_href
         _write_redirect(old, f"../../{prompt.href}", render.report)
         for answer in prompt.answers:  # one page per answer experiment (#4909)
-            render(answer.href, "answer.html", answer=answer, prompt=prompt, unit_href=unit_href)
+            from openinterpretability.builder.route_figures import route3d
+
+            routes = write_routes(render, answer)  # the route on each prompt (#4905, #4917)
+            render(answer.href, "answer.html", answer=answer, prompt=prompt, routes=routes,
+                   route3d=route3d(answer.record))  # fmt: skip
         for view in prompt.explanations:
             drawn = write_figures(render, view)
             render(view.href, "explanation.html", view=view, prompt=prompt, unit_href=unit_href,
                    figures=drawn)  # fmt: skip
+
+
+def write_routes(render, answer: AnswerView) -> dict:
+    """Draw the route on each prompt into ``<page>/fig-route-<n>.svg``; prompt → figure."""
+    from openinterpretability.builder.route_figures import answer_figures
+
+    drawn = answer_figures(answer.record)
+    if not drawn:
+        return {}
+    folder = render.output_dir / answer.href.removesuffix(".html")
+    folder.mkdir(parents=True, exist_ok=True)
+    for _, d in drawn:
+        (folder / f"fig-{d.name}.svg").write_text(d.svg, encoding="utf-8")
+        (folder / f"fig-{d.name}-static.svg").write_text(d.static or d.svg, encoding="utf-8")
+    return dict(drawn)
 
 
 def write_figures(render, view: ExplanationView) -> list:
