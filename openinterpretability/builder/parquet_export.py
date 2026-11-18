@@ -376,7 +376,7 @@ def _balanced(score) -> float | None:
 UNIT_INDEX_COLUMNS = ("neuron_idx", "head_idx", "feature_idx")  # a superposition has none
 
 
-BATCH_ROWS = 256  # rows per Arrow batch: one batch's full records are in memory at a time
+BATCH_ROWS = 64  # rows per Arrow batch: one batch's full records are in memory at a time
 
 
 def records_to_table(
@@ -401,15 +401,14 @@ def record_batches(experiments: Sequence[Experiment], corpus_sources: Sources = 
 
     The ``model_mlp_width`` column is filled for old records that do not give a width.
     ``record_json`` keeps the signed record as it is, or is left out (``with_json=False``).
-    Each batch loads its records in full and adds their JSON, so only one batch's JSON is
-    in memory at a time: holding all of it took about 3 GiB in a build (#4652).
+    Each batch loads its records in full and adds their JSON. So only one batch's JSON is
+    in memory at a time. Holding all of it took about 3 GiB in a build (#4652).
     """
     widths = mlp_widths(e.record for e in experiments)
-    rows = sorted(((experiment_row(e, corpus_sources, with_json=False), e) for e in experiments),
-                  key=lambda pair: _row_order(pair[0]))  # fmt: skip
+    order = sorted(experiments, key=_experiment_order)  # from the unit, not a whole row
     schema = registry_schema(with_json)
-    for start in range(0, len(rows), BATCH_ROWS):
-        chunk = [e for _, e in rows[start : start + BATCH_ROWS]]
+    for start in range(0, len(order), BATCH_ROWS):
+        chunk = order[start : start + BATCH_ROWS]
         with full_records(chunk):  # a slim record lacks some columns' evidence (slim.py)
             full = [_with_width(experiment_row(e, corpus_sources, with_json=with_json), widths)
                     for e in chunk]  # fmt: skip
@@ -426,6 +425,14 @@ def _row_order(row: dict) -> tuple:
         next((row[c] for c in UNIT_INDEX_COLUMNS if row[c] is not None), 0),
         row["pole"] or "",
         row["experiment_id"],
+    )
+
+
+def _experiment_order(e: Experiment) -> tuple:
+    """:func:`_row_order` of ``e``'s row, from its unit's columns alone."""
+    sub = e.record.submission
+    return _row_order(
+        _unit_columns(sub.identifier, sub.superposition_profile) | {"experiment_id": e.id}
     )
 
 
@@ -448,6 +455,7 @@ def export_registry(
     with pq.ParquetWriter(latest, registry_schema(with_json), compression="zstd") as writer:
         for batch in record_batches(experiments, corpus_sources, with_json):
             writer.write_batch(batch)
+            pa.default_memory_pool().release_unused()  # Arrow keeps freed buffers otherwise
 
     with latest.open("rb") as f:
         digest = hashlib.file_digest(f, "sha256").hexdigest()[:16]
