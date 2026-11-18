@@ -214,12 +214,17 @@ def record_path(wiki_dir: Path, record: AnswerRecord) -> Path:
 
 def load(wiki_dir: Path, model: str, prompt_hash: str) -> list[AnswerRecord]:
     """The answer records of one prompt, oldest first. Invalid files are left out."""
+    return [record for _, record in load_paths(wiki_dir, model, prompt_hash)]
+
+
+def load_paths(wiki_dir: Path, model: str, prompt_hash: str) -> list[tuple[Path, AnswerRecord]]:
+    """The answer records of one prompt with their files, oldest first (#4909)."""
     from pydantic import ValidationError
 
     out = []
     for path in sorted(folder(wiki_dir, model, prompt_hash).glob("*.json")):
         try:
-            out.append(AnswerRecord.model_validate_json(path.read_text(encoding="utf-8")))
+            out.append((path, AnswerRecord.model_validate_json(path.read_text(encoding="utf-8"))))
         except ValidationError:
             continue  # `open-interpretability check` rejects it (check_answers)
     return out

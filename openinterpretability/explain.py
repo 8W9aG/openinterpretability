@@ -347,13 +347,10 @@ def registry_labels(wiki_dir: Path, model: str, states: dict | None = None) -> d
         if ident.model_name == model:
             out[ident.slug] = ("stopped", None, None)
     for slug, state in (load_states(wiki_dir) if states is None else states).items():
-        sub = state.record.submission
+        status, record = state.standing  # the standing, not the newest record (#4900)
+        sub = record.submission
         if sub.identifier.model_name == model:
-            out[slug] = (
-                state.record.verdict.status,
-                sub.natural_language_explanation,
-                sub.max_activation,
-            )
+            out[slug] = (status, sub.natural_language_explanation, sub.max_activation)
     return out
 
 

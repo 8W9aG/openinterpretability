@@ -72,6 +72,42 @@ class ExplanationView:
 
 
 @dataclass
+class AnswerView:
+    """One answer experiment, with its page and its record's file (#4909)."""
+
+    record: object  # AnswerRecord
+    source: str  # its path in the repository, for the source link
+
+    @property
+    def href(self) -> str:
+        """Its page: ``models/<model>/explanations/<prompt id>/answers/<stamp>.html``."""
+        from openinterpretability.builder.hrefs import answer_href
+        from openinterpretability.core.identifiers import model_slug
+
+        c = self.record.claim
+        return answer_href(model_slug(c.model_name), c.prompt_id, self.record.id)
+
+    @property
+    def status(self) -> str:
+        """Its verdict."""
+        return self.record.verdict.status
+
+    @property
+    def route(self) -> list[dict]:
+        """The route in order: each unit's label, role and unit page."""
+        from openinterpretability.core.answer_records import parse_unit
+        from openinterpretability.core.identifiers import model_slug
+
+        c, out = self.record.claim, []
+        for label in c.route:
+            layer, index, pole = parse_unit(label)
+            unit = f"H{index}" if pole == "head" else f"N{index}"
+            href = f"models/{model_slug(c.model_name)}/L{layer}/{unit}.html"
+            out.append({"unit": label, "role": c.roles.get(label, ""), "href": href})
+        return out
+
+
+@dataclass
 class PromptView:
     """One prompt of one model: its page lists every explanation of it, newest first (#4503).
 
@@ -80,17 +116,23 @@ class PromptView:
     """
 
     explanations: list[ExplanationView]  # newest first
-    answers: list = field(default_factory=list)  # AnswerRecord claims, oldest first (#4778)
+    answers: list[AnswerView] = field(default_factory=list)  # oldest first (#4778, #4909)
 
     @property
-    def answer(self):
-        """The newest answer claim, or None: the page leads with its verdict (#4778)."""
+    def answer(self) -> AnswerView | None:
+        """The newest answer experiment, or None (#4778)."""
         return self.answers[-1] if self.answers else None
+
+    @property
+    def standing_answer(self) -> AnswerView | None:
+        """The answer experiment the verdict rests on: a VERIFIED one, else the newest."""
+        verified = [a for a in self.answers if a.status == "VERIFIED"]
+        return verified[-1] if verified else self.answer
 
     @property
     def understood(self) -> bool:
         """True when a claim about how the model produces the answer is VERIFIED (#4778)."""
-        return any(a.verdict.status == "VERIFIED" for a in self.answers)
+        return any(a.status == "VERIFIED" for a in self.answers)
 
     @property
     def newest(self) -> ExplanationView:
@@ -155,7 +197,7 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     text is scrubbed of personal data, as the site publishes it.
     """
     from openinterpretability.builder.pii import scrub
-    from openinterpretability.core.answer_records import load as load_answers
+    from openinterpretability.core.answer_records import load_paths as load_answers
     from openinterpretability.core.explanation_records import load_all
     from openinterpretability.planner import load_states
 
@@ -174,7 +216,8 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
         views.sort(key=lambda v: v.record.written, reverse=True)
         first = views[0].record
         answers = load_answers(wiki_dir, first.model_name, first.prompt_id)
-        prompts.append(PromptView(views, [scrub(a) for a in answers]))
+        prompts.append(PromptView(views, [AnswerView(scrub(r), _source(path, wiki_dir))
+                                          for path, r in answers]))  # fmt: skip
     return sorted(prompts, key=lambda p: p.record.written, reverse=True)
 
 
@@ -187,13 +230,17 @@ def _view(path: Path, record, states: dict, wiki_dir: Path) -> ExplanationView:
         if u.slug is None:
             continue  # a group: its status isn't in the unit states
         state = states.get(u.slug)
-        now = state.record.verdict.status if state is not None else "unstudied"
+        now = state.standing[0] if state is not None else "unstudied"  # the standing (#4900)
         if now != u.status and u.status != "stopped":
             changed.append({"unit": u.unit, "then": u.status, "now": now})
         if state is not None and is_broad(state.record.verdict):
             broad.add(u.slug)
-    source = path.relative_to(wiki_dir.parent).as_posix() if wiki_dir.parent else str(path)
-    return ExplanationView(record, source, changed, broad=broad)
+    return ExplanationView(record, _source(path, wiki_dir), changed, broad=broad)
+
+
+def _source(path: Path, wiki_dir: Path) -> str:
+    """A record's path in the repository, for its page's source link."""
+    return path.relative_to(wiki_dir.parent).as_posix() if wiki_dir.parent else str(path)
 
 
 def by_model(views) -> dict[str, list]:
@@ -218,6 +265,8 @@ def render_explanations(render, prompts: list[PromptView]) -> None:
         render(prompt.href, "explanation_prompt.html", prompt=prompt)
         old = render.output_dir / prompt.legacy_href
         _write_redirect(old, f"../../{prompt.href}", render.report)
+        for answer in prompt.answers:  # one page per answer experiment (#4909)
+            render(answer.href, "answer.html", answer=answer, prompt=prompt, unit_href=unit_href)
         for view in prompt.explanations:
             drawn = write_figures(render, view)
             render(view.href, "explanation.html", view=view, prompt=prompt, unit_href=unit_href,
