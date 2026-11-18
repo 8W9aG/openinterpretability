@@ -21,6 +21,7 @@ from openinterpretability.core.answer_records import (
     AnswerProbes,
     AnswerRecord,
     AnswerVerdict,
+    RouteSpace,
     decide,
     parse_unit,
 )
@@ -163,7 +164,7 @@ def measure(runner, means, claim: AnswerClaim, probes: AnswerProbes, policy: Ans
 
 def review(runner, means, claim: AnswerClaim, probes: AnswerProbes,
            policy: AnswerPolicy | None = None, seed: int = 0,
-           remeasures: str | None = None) -> AnswerRecord:  # fmt: skip
+           remeasures: str | None = None, texts=None) -> AnswerRecord:  # fmt: skip
     """Measure ``claim`` on ``probes``, decide it, and return the record.
 
     The record holds the route's reading on every prompt too (#4917). ``remeasures`` names
@@ -177,8 +178,10 @@ def review(runner, means, claim: AnswerClaim, probes: AnswerProbes,
         raise ValueError("; ".join(problems))
     measured = measure(runner, means, claim, probes, policy, seed)
     token = answer_token(runner, claim.answer)
-    readings = read_all(runner, means, claim, probes, token)
-    measured = measured.model_copy(update={"readings": readings})
+    readings, routed = read_all(runner, means, claim, probes, token, texts)
+    measured = measured.model_copy(update={
+        "readings": readings, "route_space": RouteSpace(**routed) if routed else None,
+    })  # fmt: skip
     status, gates = decide(measured, policy)
     verdict = AnswerVerdict(status=status, gates=gates, policy=policy, measures=measured,
                             reviewer_agent_model=probes.reviewer_agent_model,
