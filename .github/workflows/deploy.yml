@@ -192,32 +192,27 @@ jobs:
     steps:
       - name: Open an issue, or comment on the open one
         shell: bash
+        # The body holds fixed fields only: the run, the commit SHA, and the names of the
+        # failed jobs and steps. It holds no commit message and no log, since a merged
+        # PR's title and a log line are text from outside, and agents work this issue.
         run: |
-          subject=$(gh api "repos/$GH_REPO/commits/$HEAD" \
-            --jq '.commit.message | split("\n")[0]' || true)
           jobs=$(gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/jobs" --jq "$FAILED_JOBS")
           {
             echo "Run: $RUN"
-            echo "Commit: $HEAD ($subject)"
+            echo "Commit: $HEAD"
             echo
-            echo "The site keeps its last good build until a deploy succeeds."
+            echo "The site keeps its last good build until a deploy succeeds. The run's logs"
+            echo "say why it failed: \`gh run view $GITHUB_RUN_ID --log-failed\`."
+            echo
             while IFS=$'\t' read -r id name steps; do
               [ -n "$id" ] || continue
-              echo
-              echo "**$name** failed at: ${steps:-a step}"
-              echo
-              echo '```text'
-              # The run is still going, so `gh run view --log-failed` has no log yet. The
-              # job's own log is ready once the job ends. The sed strips terminal colours,
-              # and the cut drops each line's timestamp.
-              gh api --allow-escape-sequences "repos/$GH_REPO/actions/jobs/$id/logs" \
-                | sed $'s/\x1b\\[[0-9;]*[A-Za-z]//g' | cut -d' ' -f2- \
-                | tail -n 60 | cut -c1-400 || true
-              echo '```'
+              echo "- **$name** failed at: ${steps:-a step}"
             done <<< "$jobs"
           } > issue.md
-          number=$(gh issue list --state open --search "\"$TITLE\" in:title" \
-            --json number,title --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          # Only an issue that this workflow opened: anyone can open one with this title.
+          number=$(gh issue list --state open --author app/github-actions \
+            --search "\"$TITLE\" in:title" --json number,title \
+            --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
           if [ -n "$number" ]; then
             gh issue comment "$number" --body-file issue.md
           else
