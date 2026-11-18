@@ -12,6 +12,10 @@ of the scan corpus:
    scaled to a spread of 1. The same tokens then move a little from one layer to the next.
    So the space shifts continuously with depth, and doesn't flip or jump.
 
+With a ``basis`` (:func:`route_directions`, issue #4934), the 3 directions are chosen within
+the subspace that an answer's route writes to. So the axes show the space where the causal
+heads and neurons act.
+
 :func:`project` puts any state into the space with the same mean, directions and rotation.
 The file holds each layer's mean and 3×d projection, and the projected cloud.
 """
@@ -56,15 +60,50 @@ def corpus_states(runner, texts, points: int = POINTS, seed: int = 0) -> torch.T
     return torch.cat(out, dim=1)[:, :points]
 
 
-def fit(states: torch.Tensor) -> dict:
-    """The space of ``states`` (``[layers, points, d]``): means, projections and the cloud."""
+def route_directions(runner, means, route, prompt: str) -> torch.Tensor:
+    """``[units, d_model]``: the unit direction each route unit writes to the residual stream.
+
+    A neuron pole writes along its down-projection column, negated for a negative pole. A
+    head writes ``W_O (z − z̄)``, here averaged over the prompt's tokens past the first.
+    """
+    from openinterpretability.explain import _captured
+
+    with torch.no_grad():
+        _, _, heads = _captured(runner, runner.encode(prompt), bool(means.heads))
+    out = []
+    for layer, index, pole in route:
+        if pole == "head":
+            d = runner.head_dim(layer)
+            cols = slice(index * d, (index + 1) * d)
+            z = heads[layer][0, 1:, cols].float().cpu() - means.heads[layer][cols]
+            v = runner.head_output_weights(layer, index).float().cpu() @ z.mean(0)
+        else:
+            v = runner.neuron_output_direction(layer, index).float().cpu()
+            v = -v if pole == "negative" else v
+        out.append(v / v.norm().clamp(min=1e-9))
+    return torch.stack(out)
+
+
+def fit(states: torch.Tensor, basis: torch.Tensor | None = None) -> dict:
+    """The space of ``states`` (``[layers, points, d]``): means, projections and the cloud.
+
+    ``basis`` (``[k, d]``), when given, limits the 3 directions to the span of its rows.
+    """
+    q = torch.linalg.qr(basis.T.double())[0].T.float() if basis is not None else None
     means, projections, cloud = [], [], []
     previous = None
     for layer in states:
         x = _scaled(layer)
         mean = x.mean(0)
-        _, _, v = torch.linalg.svd(x - mean, full_matrices=False)
-        w = v[:3]  # [3, d]
+        if q is None:
+            _, _, v = torch.linalg.svd(x - mean, full_matrices=False)
+            w = v[:3]  # [3, d]
+        else:  # the top 3 directions within the basis's span
+            _, _, v = torch.linalg.svd((x - mean) @ q.T, full_matrices=False)
+            w = v[:3] @ q
+            if w.shape[0] < 3:  # a route of 1 or 2 units: the corpus fills the rest
+                rest = (x - mean) - ((x - mean) @ q.T) @ q
+                w = torch.cat([w, torch.linalg.svd(rest, full_matrices=False)[2][: 3 - w.shape[0]]])
         coords = (x - mean) @ w.T
         if previous is not None:  # rotate onto the layer before: the cloud moves, not flips
             u, _, vt = torch.linalg.svd(coords.T @ previous)
