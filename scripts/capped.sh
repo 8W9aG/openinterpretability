@@ -21,6 +21,11 @@
 #
 # Without systemd-run or passwordless sudo (macOS, a container), the command runs
 # with no cap and no report.
+#
+# The command keeps the caller's exported environment (HF_TOKEN and GITHUB_TOKEN among
+# it). sudo resets the environment, so it goes through a file that only this user can read.
+# The scope sources the file and removes it before the command starts, so no secret is on
+# a command line (#4795).
 set -uo pipefail
 
 if [ $# -lt 4 ] || [ "$3" != -- ]; then
@@ -36,10 +41,15 @@ if ! command -v systemd-run >/dev/null 2>&1 || ! sudo -n true 2>/dev/null; then
 fi
 
 report=$(mktemp)
+envfile=$(mktemp)
+chmod 600 "$envfile"
+export -p > "$envfile"
 # Runs inside the scope: the command, then the scope's own cgroup counters. The single
 # quotes are on purpose: the inner shell expands these, not this one.
 # shellcheck disable=SC2016
 inner='
+. "$CAPPED_ENVFILE"
+rm -f "$CAPPED_ENVFILE"
 cgroup=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)
 # memory.peak counts the file cache too, which the kernel can reclaim. So a sampler
 # keeps the largest "anon" (process memory) once a second.
@@ -63,14 +73,14 @@ exit "$status"'
 
 limits=(-p MemoryMax="$cap" -p MemorySwapMax="${CAPPED_SWAP:-0}")
 [ "$cap" = infinity ] && limits=()
-sudo --preserve-env systemd-run --scope --quiet "${limits[@]}" \
+sudo systemd-run --scope --quiet "${limits[@]}" \
   --uid "$(id -u)" --gid "$(id -g)" \
-  env "PATH=$PATH" "HOME=$HOME" "CAPPED_REPORT=$report" \
+  env "PATH=$PATH" "HOME=$HOME" "CAPPED_REPORT=$report" "CAPPED_ENVFILE=$envfile" \
   bash -c "$inner" capped "$@"
 status=$?
 
 read -r inner_status peak kills swap total < "$report" 2>/dev/null || true
-rm -f "$report" "$report.anon"
+rm -f "$report" "$report.anon" "$envfile"
 gib() { awk -v b="$1" 'BEGIN { printf "%.1f GiB", b / 1073741824 }'; }
 summary() { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
 
