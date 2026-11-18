@@ -273,7 +273,8 @@ def test_the_reached_line():
     line = reached(0.42, 0.8, {"coverage": 0.3, "random": 0.05}, ran)
     assert line == (
         "Reached: prompt coverage 30.0% (from 10.0% before the run), target 80%, "
-        "against 5.0% for random units; explained share of |attribution| 42.0%."
+        "against 5.0% for random units matched by kind and layer; explained share of "
+        "|attribution| 42.0%."
     )
     assert reached(0.0, 1.0, {"coverage": None}) == (
         "Reached: no prompt coverage, target 100%; explained share of |attribution| 0.0%."

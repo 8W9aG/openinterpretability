@@ -34,9 +34,16 @@
 <dl class="mt-6 grid max-w-3xl grid-cols-2 gap-4 text-sm sm:grid-cols-4">
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Explained</dt><dd class="font-mono text-lg">{{ r.explained_share | pct_fine }}</dd></div>
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Prompt coverage</dt><dd class="font-mono text-lg">{{ r.prompt_coverage | pct_fine if r.prompt_coverage is not none else "—" }}</dd>{% if r.overshoot %}<dd class="text-xs">Overshoot: raw {{ r.raw_coverage | pct_fine }}, capped at 100%</dd>{% endif %}</div>
-  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Random units</dt><dd class="font-mono text-lg">{{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }}</dd></div>
+  <div><dt class="text-xs uppercase tracking-wide text-slate-500">Random units{% if r.coverage_detail %}, matched by kind and layer{% else %} (not matched){% endif %}</dt><dd class="font-mono text-lg">{{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }}</dd>{% if r.coverage_detail and r.coverage_detail.random_spread is not none %}<dd class="text-xs">± {{ r.coverage_detail.random_spread | pct_fine }} over draws</dd>{% endif %}</div>
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Experiments needed</dt><dd class="font-mono text-lg">{{ r.planned_experiments | thousands }}</dd></div>
 </dl>
+{% if r.coverage_caution %}
+<p class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700"><strong>Coverage here does not show that the answer is understood.</strong> Verified units hold {{ r.explained_share | pct_fine }} of the attribution, and keeping them brings back {{ r.prompt_coverage | pct_fine }} of the answer, against {{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }} for random units{% if not r.coverage_detail %} not matched by kind and layer{% endif %}. Their explanations describe each unit on its scan corpus, not its role in this answer.</p>
+{% endif %}
+{% set d = r.coverage_detail %}
+{% if d %}
+<p class="mt-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">By kind: the explained heads alone bring back {{ d.heads_only | pct_fine if d.heads_only is not none else "—" }}, and the explained neuron poles alone {{ d.poles_only | pct_fine if d.poles_only is not none else "—" }}.{% if d.n_heads and d.heads_kept %} The explained set keeps {% for layer, n in d.heads_kept.items() %}{{ n }} of layer {{ layer }}'s {{ d.n_heads }} heads{{ ", " if not loop.last }}{% endfor %}.{% endif %}{% if d.minimal_units %} The smallest set found that keeps 90% of the coverage has {{ d.minimal_units | length }} units ({{ d.minimal_coverage | pct_fine if d.minimal_coverage is not none else "—" }}): <span class="font-mono">{{ d.minimal_units | join(", ") }}</span>.{% endif %}</p>
+{% endif %}
 
 {% if figures %}
 {% set folder = view.record.id %}
