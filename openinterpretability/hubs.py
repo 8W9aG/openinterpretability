@@ -155,3 +155,29 @@ def explain_notes(model: str, states: dict, folder: Path = HUBS_DIR) -> dict:
             elif unit == center:
                 notes[unit] = note
     return notes
+
+
+def mark_hubs(result, model: str, states: dict) -> None:
+    """Set ``hub`` on each top unit that is a hub's center (#4472)."""
+    from openinterpretability.explain import _slug
+
+    notes = explain_notes(model, states)
+    for unit in result.poles:
+        note = notes.get(_slug(model, unit.key))
+        unit.hub = note.model_dump() if note is not None else None
+
+
+def hub_line(hub: dict) -> str:
+    """One line on a unit that is a hub's center: its id, page and artefact facts."""
+    facts = []
+    if hub.get("active_share") is not None:
+        on = "default-on" if hub.get("default_on") else "not default-on"
+        facts.append(f"{on}, active on {hub['active_share']:.0%} of its scan")
+    if hub.get("norm") is not None:
+        facts.append(f"output norm {hub['norm']:.3g} against its layer's median "
+                     f"{hub['layer_median']:.3g} (p{100 * hub['percentile']:.0f})")  # fmt: skip
+    from openinterpretability.core.project import project_links
+
+    told = "; ".join(facts) or "no facts recorded"
+    url = project_links()["site_url"] + hub["href"]
+    return f"hub {hub['hub']} ({url}): {told}. A hub can be an artefact."
