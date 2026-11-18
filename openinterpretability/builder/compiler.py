@@ -44,6 +44,7 @@ from openinterpretability.builder.registry_stats import registry_stats  # noqa: 
 from openinterpretability.builder.sections import render_reference_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
 from openinterpretability.builder.sister_graph import sister_graphs
+from openinterpretability.builder.slim import SlimArchive, full_records, hand_over
 from openinterpretability.builder.standing import ROLES, contested_units, reviewer_agreement
 from openinterpretability.builder.stopped import add_stopped, explore_focus, stopped_unit
 from openinterpretability.builder.stops import stops_by_unit
@@ -306,6 +307,7 @@ def compile_site(
     explanations: Sequence = (),  # builder/explanation_pages.load_views
     circuits: dict | None = None,  # builder/circuit_units.load_circuit_data
     concept_maps: dict | None = None,  # builder/concept_map_view.load_maps
+    archive: SlimArchive | None = None,  # the records were loaded slim by it (slim.py)
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -327,18 +329,17 @@ def compile_site(
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    models = build_tree(records, errata, users)
+    models = build_tree(records, errata, users, archive and archive.claims)
     add_stopped(models, (*draws, *stops))  # neurons that only stopped scans cover
     add_members(models)  # the neurons of each superposition, linked back to it
-    experiments = [
-        e for m in models for layer in m.layers for n in layer.units for e in n.experiments
-    ]
+    experiments = [e for m in models for la in m.layers for n in la.units for e in n.experiments]
+    report = BuildReport(output_dir, len(records), len(experiments))
+    hand_over(records, experiments, archive and archive.paths)  # each slim record's file
     # Statistics read the true text: build_tree counts near-duplicate probes, and the queries
     # group readings by explanation. Only what the site publishes is scrubbed. The two
     # exports run in the background while the pages render (builder/parallel.py).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
     scrub_experiments(experiments)  # what the pages show: the record and its errata notes
-    report = BuildReport(output_dir, len(records), len(experiments))
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
     export_draws(draws, output_dir)  # random draws no experiment could audit
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
@@ -359,20 +360,15 @@ def compile_site(
     report.parquet = parquet()
     render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
-    _save_memos()
+    save_spans()  # keep the matches of new text for the next build
+    P_USEFUL.save()  # and the significance of new records
     return report
-
-
-def _save_memos() -> None:
-    """Keep the matches of new text, and the significance of new records, for the next build."""
-    save_spans()
-    P_USEFUL.save()
 
 
 def _true_text_stats(experiments, draws, corpus_sources) -> dict:
     """The home page's totals and leaderboards, from true text. Leaderboards are scrubbed."""
     with TemporaryDirectory() as unpublished:
-        true_text = export_registry(experiments, Path(unpublished), corpus_sources)
+        true_text = export_registry(experiments, Path(unpublished), corpus_sources, with_json=False)
         return scrub(registry_stats(true_text, draws))
 
 
@@ -476,6 +472,10 @@ def _render_model(
         render(layer.href, "layer.html", model=model, layer=layer)
 
     def unit_page(layer, neuron) -> None:
+        with full_records(neuron.experiments):  # only this unit's evidence in memory (#4652)
+            _unit_pages(layer, neuron)
+
+    def _unit_pages(layer, neuron) -> None:
         circuit = circuit_of.get(neuron.href)
         for rank, e in enumerate(neuron.experiments, 1):
             view = _experiment_view(e, studied, rows, circuit)

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from openinterpretability.builder.hrefs import experiment_href
@@ -52,7 +53,9 @@ class Experiment:
     id: str
     is_latest: bool  # newest experiment for this neuron pole
     reuses: str | None = None  # id of an earlier experiment with the same probe set
-    claim: str = ""  # the submission without its provenance: equal for re-reviews of one hypothesis
+    # A SHA-256 of the submission without its provenance: equal for re-reviews of one
+    # hypothesis. A hash, not the JSON itself, which held about 1 GiB in a build (#4652).
+    claim: str = ""
     role: str = "current"  # what it counts for in the pole's standing (standing.ROLES)
     # Revision links (``supersedes``) point both ways, so keep them out of repr and ==.
     revises: Experiment | None = field(default=None, repr=False, compare=False)
@@ -61,6 +64,11 @@ class Experiment:
     errata: list[Erratum] = field(default_factory=list, repr=False, compare=False)  # covering it
     edits: list[AppliedEdit] = field(default_factory=list, repr=False, compare=False)  # theirs
     user: str | None = None  # who made it: its contributor, else its PR's author (users.py)
+    # While a build holds the record slim (builder/slim.py): its file, and whether the build
+    # has scrubbed it. ``loaded`` is ``id()`` of the record as loaded, before its errata.
+    source: Path | None = field(default=None, repr=False, compare=False)
+    scrubbed: bool = field(default=False, repr=False, compare=False)
+    loaded: int = field(default=0, repr=False, compare=False)
 
     @property
     def set_aside(self) -> bool:
