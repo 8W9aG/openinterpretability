@@ -49,6 +49,7 @@ from openinterpretability.half_precision import HALF, compare_dtype, recorded_pa
 from openinterpretability.harness.environment import run_environment
 from openinterpretability.harness.hooks import NeuronHookRunner
 from openinterpretability.harness.layer_major import map_layer_major, prompt_tokens
+from openinterpretability.reproduce_policy import policy_problem
 
 
 @dataclass(frozen=True)
@@ -159,7 +160,7 @@ def check_protocol(record: AuditRecord) -> str | None:
             f"{PROTOCOL_VERSION}; reproduce it with that openinterpretability version, or "
             "re-evaluate it"
         )
-    return None
+    return policy_problem(policy)
 
 
 def rotating_sample(paths: Sequence[Path], size: int, day: date) -> list[Path]:

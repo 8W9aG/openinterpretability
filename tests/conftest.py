@@ -190,6 +190,15 @@ def toy_runner(toy_model):
 
 
 @pytest.fixture(autouse=True)
+def _any_review_policy(monkeypatch):
+    """Toy records are reviewed under small policies, so reproduction accepts any (#4750).
+
+    ``tests/test_reproduce.py`` turns the check back on to test it.
+    """
+    monkeypatch.setattr("openinterpretability.reproduce_policy.REVIEW_POLICY", None)
+
+
+@pytest.fixture(autouse=True)
 def no_name_model(monkeypatch):
     """Scans in tests find no names: the real model is a 460 MB download."""
     monkeypatch.setattr("openinterpretability.names.person_matches", lambda text: ())
