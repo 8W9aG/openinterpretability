@@ -548,9 +548,12 @@ def test_build_is_deterministic(tmp_path, records):
 
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     if today not in ("2026-10-01", "2026-10-02"):  # the fixtures' own review dates
-        # The Changelog page shows each release's date from CHANGELOG.md, not the clock:
-        # on a release day that date is today.
-        clocked = {path: content for path, content in a.items() if path != "changelog.html"}
+        # Pages rendered from the repo's own documents show the dates written in them, not
+        # the clock. On the day a document names (a release in CHANGELOG.md, a literature
+        # page read today), that date is today (#4747).
+        documents = ("changelog.html", "about.html")
+        clocked = {path: content for path, content in a.items()
+                   if path not in documents and not path.startswith("research/")}  # fmt: skip
         assert not any(today.encode() in content for content in clocked.values())
 
 
