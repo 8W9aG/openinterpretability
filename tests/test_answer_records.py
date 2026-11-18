@@ -298,14 +298,15 @@ def test_the_page_draws_the_route_on_every_prompt(gpt2, means, tmp_path, record)
     moving = (folder / "fig-route-0.svg").read_text()
     assert "@keyframes" in moving and "<rect" in moving  # it moves, and the head is a square
     assert "animation:none" in (folder / "fig-route-0-static.svg").read_text()
-    # The 3D explorer: its data is on the page, and three.js loads only when started.
+    # The 3D explorer: its data is on the page, and it starts by itself with no button.
     import json
     import re
 
     data = json.loads(re.search(r'id="route3d-data">(.*?)</script>', page, re.S)[1])
     assert len(data["prompts"]) == len(readings) and data["prompts"][0]["by"] == "original"
     assert {u["unit"] for u in data["units"]} == {"L0/H1", "L1/N3+"}
-    assert "three@0.169.0" in page and 'type="importmap"' in page and 'id="route3d-start"' in page
+    assert "three@0.169.0" in page and 'type="importmap"' in page
+    assert 'id="route3d-start"' not in page and "IntersectionObserver" in page
 
 
 def test_the_lens_and_spectrum_follow_the_layers_on_shared_axes(gpt2, means):
