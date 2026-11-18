@@ -32,6 +32,8 @@ def _row(name: str, attribution: float, total: float, status: str, explanation) 
 
 def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
     """Level 1 of the explanation, as the narrator reads it (module docstring)."""
+    from openinterpretability.explain import PoleAttribution
+
     total = result.total or 1.0
     units = []
     for u in result.poles:
@@ -53,7 +55,13 @@ def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
         "unexplained_share": round(1 - result.verified_share, 4),
         "blocked_share": round(plan.blocked, 4),
         "prompt_coverage": coverage.get("coverage"),
-        "random_coverage": coverage.get("random"),
+        "random_coverage": coverage.get("random"),  # matched by kind and layer (#4777)
+        "coverage_caution": caution(coverage, result.verified_share),
+        "heads_only": coverage.get("heads_only"),
+        "poles_only": coverage.get("poles_only"),
+        "minimal_set": [
+            PoleAttribution(*u, 0.0, 0.0).label for u in coverage.get("minimal_units", [])
+        ],
         "verified_units_ablated_together": result.joint,
         "units": units,
         "groups": groups,
@@ -63,6 +71,16 @@ def evidence(result, coverage: dict, plan, *, experiments: int = 10) -> dict:
         "known only when its status is VERIFIED. A unit with a hub is a hub's center: wired to "
         "many studied units, it can be an artefact, so say so with its facts.",
     }
+
+
+def caution(coverage: dict, explained_share: float) -> bool:
+    """Whether coverage here shows little (``ExplanationRecord.coverage_caution``, #4777)."""
+    from openinterpretability.core.explanation_records import CAUTION_MARGIN, CAUTION_SHARE
+
+    share, base = coverage.get("coverage"), coverage.get("random")
+    if share is None:
+        return False
+    return (base is not None and share - base < CAUTION_MARGIN) or explained_share < CAUTION_SHARE
 
 
 def cited(text: str) -> set[str]:

@@ -101,6 +101,45 @@ class ExplanationFigures(StrictModel):
     groups: list[dict[str, Any]] = Field(default_factory=list)  # {name, kind, status, members}
 
 
+# A page cautions that coverage shows little in two cases (#4777). Coverage beats the random
+# baseline by less than CAUTION_MARGIN. Or verified units hold less than CAUTION_SHARE.
+CAUTION_MARGIN = 0.2
+CAUTION_SHARE = 0.25
+
+
+class CoverageDetail(StrictModel):
+    """What prompt coverage rests on (#4777): a matched baseline, each kind, a minimal set."""
+
+    random_matched: bool = True  # the baseline drew each layer's heads and poles alike
+    random_spread: float | None = None  # its draws' standard deviation
+    heads_only: float | None = None  # coverage with only the explained heads live
+    poles_only: float | None = None  # and with only the explained neuron poles live
+    heads_kept: dict[int, int] = Field(default_factory=dict)  # explained heads, by layer
+    n_heads: int | None = None  # the model's heads per layer
+    minimal_units: list[str] = Field(default_factory=list)  # the pruned set's labels
+    minimal_coverage: float | None = None  # its coverage
+
+    @classmethod
+    def of(cls, coverage: dict[str, Any]) -> CoverageDetail | None:
+        """The detail of ``explain_coverage.prompt_coverage``'s result, or None without it."""
+        from openinterpretability.explain import PoleAttribution
+
+        if "random_matched" not in coverage:
+            return None
+        return cls(
+            random_spread=coverage.get("random_spread"),
+            heads_only=coverage.get("heads_only"),
+            poles_only=coverage.get("poles_only"),
+            heads_kept=coverage.get("heads_kept") or {},
+            n_heads=coverage.get("n_heads"),
+            minimal_units=[
+                PoleAttribution(layer, index, pole, 0.0, 0.0).label
+                for layer, index, pole in coverage.get("minimal_units", [])
+            ],
+            minimal_coverage=coverage.get("minimal_coverage"),
+        )
+
+
 class ExplainRun(StrictModel):
     """What ``explain --run`` did before this explanation was written (#4474)."""
 
@@ -129,6 +168,8 @@ class ExplanationRecord(StrictModel):
     prompt_coverage: float | None  # credited: at most 1 (#4507)
     raw_coverage: float | None = None  # uncapped; over 1 is an overshoot (#4507)
     random_coverage: float | None
+    # None in records before #4777, whose random baseline was not matched by kind and layer.
+    coverage_detail: CoverageDetail | None = None
     units: list[ExplainedUnit]
     narration: Narration | None = None
     planned_experiments: int = 0  # unit experiments that a complete explanation needs
@@ -146,6 +187,26 @@ class ExplanationRecord(StrictModel):
     def id(self) -> str:
         """The record's id among its prompt's explanations: its UTC stamp, as in its file name."""
         return f"{self.written:%Y%m%dT%H%M%SZ}"
+
+    @staticmethod
+    def detail(coverage: dict[str, Any]) -> CoverageDetail | None:
+        """:meth:`CoverageDetail.of`, for a caller that imports only this class."""
+        return CoverageDetail.of(coverage)
+
+    @property
+    def coverage_caution(self) -> bool:
+        """True when coverage here doesn't show that the answer is understood (#4777).
+
+        That is when coverage is within :data:`CAUTION_MARGIN` of the random baseline, or
+        verified units hold less than :data:`CAUTION_SHARE` of the first-order attribution.
+        """
+        if self.prompt_coverage is None:
+            return False
+        near = (
+            self.random_coverage is not None
+            and self.prompt_coverage - self.random_coverage < CAUTION_MARGIN
+        )
+        return near or self.explained_share < CAUTION_SHARE
 
     @property
     def overshoot(self) -> bool:
