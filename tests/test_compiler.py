@@ -980,6 +980,75 @@ def test_revision_replaces_contested_hypothesis(records):
     ]
 
 
+def _rival(records, *, status, hours, text, counts=(2, 8, 0, 5)):
+    """A new hypothesis on N117+, after its VERIFIED one."""
+    return experiment(records[0], idx=117, status=status, counts=counts, hours=hours, text=text)
+
+
+def test_failed_rival_contests_a_verified_hypothesis(tmp_path, records):
+    """VERIFIED, then a different hypothesis that is REJECTED: CONTESTED, not REJECTED (#4654)."""
+    from openinterpretability.builder.compiler import registry_stats
+
+    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
+    standing, unit = _standing(records)
+    assert standing.status == "CONTESTED" and standing.contested_by_hypothesis
+    assert not unit.verified
+    assert standing.lead.record.submission.natural_language_explanation == "Fires on vowels."
+    assert standing.prior.record is records[1]
+    roles = {
+        e.record.submission.natural_language_explanation: e.role
+        for e in unit.experiments
+        if e.side == "positive"
+    }
+    assert roles == {
+        "Early idea.": "earlier_hypothesis",
+        records[1].submission.natural_language_explanation: "contested_hypothesis",
+        "Fires on vowels.": "current",
+    }
+
+    report = compile_site(records, tmp_path)
+    assert registry_stats(report.parquet)["totals"]["contested"] == 1
+    neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
+    assert "A newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
+    assert "A new hypothesis that reaches VERIFIED settles it." in neuron
+    assert "split evenly" not in neuron
+
+
+def test_a_second_failed_rival_leaves_it_contested(records):
+    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
+    records.append(_rival(records, status="NEEDS_REVISION", hours=5, text="Fires on nouns."))
+    standing, _ = _standing(records)
+    assert standing.status == "CONTESTED" and standing.prior.record is records[1]
+
+
+def test_a_verified_rival_settles_the_contest(records):
+    """VERIFIED, then REJECTED, then a third hypothesis that is VERIFIED: VERIFIED."""
+    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
+    records.append(
+        _rival(records, status="VERIFIED", hours=6, text="Narrower.", counts=(10, 0, 5, 0))
+    )
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and standing.prior is None and unit.verified
+    assert standing.lead.record.submission.natural_language_explanation == "Narrower."
+
+
+def test_rejected_then_verified_is_verified(records):
+    """The ``records`` fixture: N117+ was NEEDS_REVISION, then a new hypothesis VERIFIED."""
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and standing.prior is None and unit.verified
+
+
+def test_only_a_verified_earlier_hypothesis_contests(records):
+    """N9+ was REJECTED; a new NEEDS_REVISION hypothesis is no contest."""
+    records.append(
+        experiment(
+            records[0], idx=9, status="NEEDS_REVISION", counts=(5, 5, 1, 4), hours=3, text="Dates?"
+        )
+    )
+    standing, _ = _standing(records, idx=9)
+    assert standing.status == "NEEDS_REVISION" and standing.prior is None
+
+
 def test_reviewer_agreement(records):
     from openinterpretability.builder.standing import reviewer_agreement
     from openinterpretability.builder.tree import build_tree
