@@ -1,0 +1,12 @@
+{# The figures' Pause buttons swap a moving SVG for its still last frame. #}
+  <script>
+  document.querySelectorAll("[data-pause]").forEach(function (button) {
+    var img = button.closest("figure").querySelector("img[data-moving]");
+    button.addEventListener("click", function () {
+      var paused = button.getAttribute("aria-pressed") === "true";
+      img.src = paused ? img.dataset.moving : img.dataset.still;  // the still is the last frame
+      button.setAttribute("aria-pressed", paused ? "false" : "true");
+      button.textContent = paused ? "Pause" : "Play";
+    });
+  });
+  </script>

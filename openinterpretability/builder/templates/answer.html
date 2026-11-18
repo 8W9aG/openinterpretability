@@ -39,6 +39,16 @@
   </table>
 </div>
 
+{% set folder = r.id %}
+{% if routes %}
+<section class="mt-8" aria-labelledby="route" data-pagefind-ignore>
+  <h2 id="route" class="mb-1 text-lg font-semibold">The route at work</h2>
+  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Drawn from this experiment's measures. The signal builds from the prompt's tokens, layer by layer, to the answer. Each counterfactual prompt below has its own figure on the same layout, so the units hold their places and a reader sees what changes.</p>
+  {% set f = routes[c.prompt] %}{% include "_figure.html" %}
+</section>
+{% endif %}
+{% if route3d %}{% include "_route3d.html" %}{% endif %}
+
 <h2 class="mb-1 mt-8 text-lg font-semibold">The gates</h2>
 <p class="mb-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Every gate must pass for VERIFIED. When the five causal gates pass and a prompt gate fails, the verdict is NEEDS_REVISION: the route carries the answer, but the claim is too broad or too narrow.</p>
 {% set null_cut = (m.null_cuts | sum / m.null_cuts | length) if m.null_cuts else 0 %}
@@ -77,14 +87,18 @@
 <h3 class="mb-1 mt-4 text-sm font-semibold">{{ title }}</h3>
 <div class="max-w-4xl overflow-x-auto">
   <table class="w-full text-left text-sm">
-    <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Prompt</th><th class="py-1 pr-3">Predicted</th><th class="py-1 pr-3">Model's answer</th><th class="py-1 pr-3">Result</th><th class="py-1 pr-3">Why</th></tr></thead>
+    <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Prompt</th><th class="py-1 pr-3">Predicted</th><th class="py-1 pr-3">Model's answer</th><th class="py-1 pr-3">Result</th><th class="py-1 pr-3">The route here</th><th class="py-1 pr-3">Why</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for q in prompts %}
-      <tr class="align-top"><td class="py-1 pr-3 font-mono">{{ q.prompt }}</td><td class="py-1 pr-3">{{ q.expect }}</td><td class="py-1 pr-3 font-mono">{{ m.top_tokens.get(q.prompt, "—") }}</td><td class="whitespace-nowrap py-1 pr-3">{% if q.prompt in results %}{{ outcome(results[q.prompt]) }}{% else %}—{% endif %}</td><td class="py-1 pr-3 text-xs text-slate-600 dark:text-slate-400">{{ q.why }}</td></tr>
+      {% set rd = m.readings.get(q.prompt) %}
+      <tr class="align-top"><td class="py-1 pr-3 font-mono">{{ q.prompt }}</td><td class="py-1 pr-3">{{ q.expect }}</td><td class="py-1 pr-3 font-mono">{{ m.top_tokens.get(q.prompt, "—") }}</td><td class="whitespace-nowrap py-1 pr-3">{% if q.prompt in results %}{{ outcome(results[q.prompt]) }}{% else %}—{% endif %}</td>
+        <td class="py-1 pr-3 text-xs">{% if rd %}{% include "_route_row.html" %}{% else %}not measured: this record predates the route readings{% endif %}</td>
+        <td class="py-1 pr-3 text-xs text-slate-600 dark:text-slate-400">{{ q.why }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endfor %}
+{% if routes %}{% include "_figure_pause.html" %}{% endif %}
 </article>
 {% endblock %}

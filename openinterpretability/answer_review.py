@@ -162,15 +162,25 @@ def measure(runner, means, claim: AnswerClaim, probes: AnswerProbes, policy: Ans
 
 
 def review(runner, means, claim: AnswerClaim, probes: AnswerProbes,
-           policy: AnswerPolicy | None = None, seed: int = 0) -> AnswerRecord:  # fmt: skip
-    """Measure ``claim`` on ``probes``, decide it, and return the record."""
+           policy: AnswerPolicy | None = None, seed: int = 0,
+           remeasures: str | None = None) -> AnswerRecord:  # fmt: skip
+    """Measure ``claim`` on ``probes``, decide it, and return the record.
+
+    The record holds the route's reading on every prompt too (#4917). ``remeasures`` names
+    an earlier record of the same claim and probes that this one measures again.
+    """
+    from openinterpretability.answer_readings import read_all
+
     policy = policy or AnswerPolicy()
     problems = check_claim(runner.tokenizer, claim)
     if problems:
         raise ValueError("; ".join(problems))
     measured = measure(runner, means, claim, probes, policy, seed)
+    token = answer_token(runner, claim.answer)
+    readings = read_all(runner, means, claim, probes, token)
+    measured = measured.model_copy(update={"readings": readings})
     status, gates = decide(measured, policy)
     verdict = AnswerVerdict(status=status, gates=gates, policy=policy, measures=measured,
                             reviewer_agent_model=probes.reviewer_agent_model,
                             timestamp=datetime.now(UTC))  # fmt: skip
-    return AnswerRecord(claim=claim, probes=probes, verdict=verdict)
+    return AnswerRecord(claim=claim, probes=probes, verdict=verdict, remeasures=remeasures)
