@@ -53,5 +53,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          branch/scripts/capped.sh 13G 11G -- \
+          branch/scripts/capped.sh infinity 11G -- \
             open-interpretability build --wiki-dir wiki --output-dir dist

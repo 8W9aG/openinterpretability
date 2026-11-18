@@ -3,7 +3,8 @@
 #
 #   scripts/capped.sh CAP WARN -- COMMAND [ARG...]
 #
-# CAP and WARN are sizes such as 13G. The command runs in a transient systemd scope
+# CAP and WARN are sizes such as 13G. CAP may be "infinity", which only measures: no
+# cap and no swap limit. Otherwise the command runs in a transient systemd scope
 # with MemoryMax=CAP and no swap. Then the kernel kills only the command when it goes
 # above the cap, not the GitHub runner agent. A killed agent reports nothing, and the
 # job waits about 45 minutes before it fails with no reason in its log.
@@ -41,30 +42,34 @@ inner='
 status=$?
 cgroup=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)
 peak=$(cat "$cgroup/memory.peak" 2>/dev/null || echo 0)
+swap=$(cat "$cgroup/memory.swap.peak" 2>/dev/null || echo 0)
 kills=$(awk "/^oom_kill /{print \$2}" "$cgroup/memory.events" 2>/dev/null)
-echo "$status $peak ${kills:-0}" > "$CAPPED_REPORT"
+echo "$status $peak ${kills:-0} $swap" > "$CAPPED_REPORT"
 exit "$status"'
 
-sudo --preserve-env systemd-run --scope --quiet \
-  -p MemoryMax="$cap" -p MemorySwapMax=0 \
+limits=(-p MemoryMax="$cap" -p MemorySwapMax=0)
+[ "$cap" = infinity ] && limits=()
+sudo --preserve-env systemd-run --scope --quiet "${limits[@]}" \
   --uid "$(id -u)" --gid "$(id -g)" \
   env "PATH=$PATH" "HOME=$HOME" "CAPPED_REPORT=$report" \
   bash -c "$inner" capped "$@"
 status=$?
 
-read -r inner_status peak kills < "$report" 2>/dev/null || true
+read -r inner_status peak kills swap < "$report" 2>/dev/null || true
 rm -f "$report"
 gib() { awk -v b="$1" 'BEGIN { printf "%.1f GiB", b / 1073741824 }'; }
 summary() { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
 
 if [ -z "${peak:-}" ]; then
-  # The report is missing: the kernel killed the inner shell too.
-  echo "::error::The command ran out of memory (cap $cap) and left no report."
+  # The report is missing: the scope went above its cap, and systemd stopped all of it,
+  # the inner shell too. A scope stops on an out-of-memory kill (OOMPolicy=stop).
+  echo "::error::The command ran out of memory: it went above its $cap cap, and systemd stopped it (exit $status)."
   summary "**Out of memory:** the command went above its $cap cap."
   exit 137
 fi
 
 line="Peak memory: $(gib "$peak") (the command and its workers), cap $cap."
+[ "${swap:-0}" -gt 0 ] && line="$line Peak swap: $(gib "$swap")."
 echo "$line"
 summary "$line"
 if [ "${kills:-0}" -gt 0 ]; then
