@@ -33,6 +33,7 @@ class RecordKind:
 RECORD_KINDS = (
     RecordKind("experiment", "wiki/experiments/", REMEASURED),
     RecordKind("circuit", "wiki/circuits/", DERIVED, "the stored measures give the status"),
+    RecordKind("answer", "wiki/answers/", DERIVED, "the stored measures give the status"),
     RecordKind("explanation", "wiki/explanations/", UNCHECKED, "a reproduction is #4793"),
     RecordKind("draw", "wiki/draws/", UNCHECKED),
     RecordKind("stop", "wiki/stops/", UNCHECKED),
