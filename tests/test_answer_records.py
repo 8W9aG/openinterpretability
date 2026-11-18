@@ -235,3 +235,5 @@ def test_the_narrator_reads_the_answer_claim_and_may_cite_its_route(tmp_path):
           "answer_experiment": told}  # fmt: skip
     narrative = SimpleNamespace(paragraph="L1/N3+ writes it; L9/H9 too.", sections=[])
     assert check_citations(narrative, ev) == ["L9/H9"]
+    ev["minimal_set"] = ["L9/H9"]  # a unit of the minimal set is in the evidence too
+    assert check_citations(narrative, ev) == []
