@@ -1,1 +1,0 @@
-- The site build no longer fails on a negative coverage, such as a random baseline that does worse than no change.

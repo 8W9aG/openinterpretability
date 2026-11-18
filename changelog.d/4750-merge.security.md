@@ -1,1 +1,0 @@
-- **Someone else's PR auto-merges only when it only adds experiment records** under `wiki/experiments/`, which CI reproduces. Other wiki records wait for a maintainer. The site also scrubs explanation records of personal data, as it does experiments (part of #4750).
