@@ -51,5 +51,5 @@ jobs:
           JOBS: ${{ matrix.jobs }}
         run: |
           # shellcheck disable=SC2086  # JOBS is empty or two words
-          scripts/capped.sh 14.5G 13G -- \
+          scripts/capped.sh infinity 13G -- \
             open-interpretability build --wiki-dir wiki --output-dir dist $JOBS

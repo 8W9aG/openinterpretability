@@ -11,7 +11,8 @@
 # job waits about 45 minutes before it fails with no reason in its log.
 #
 # The scope's cgroup counts the command and every process that it forks, so the
-# peak is the total of the build and its workers. After the command ends, the script:
+# peak is the total of the build and its workers. The peak that counts is process
+# memory ("anon"), sampled each second, since the file cache can be reclaimed. After the command ends, the script:
 # - prints the peak, also to the step summary on GitHub;
 # - writes a warning when the peak is above WARN;
 # - writes an error and exits 137 when the kernel killed a process for memory. A killed
@@ -39,13 +40,25 @@ report=$(mktemp)
 # quotes are on purpose: the inner shell expands these, not this one.
 # shellcheck disable=SC2016
 inner='
+cgroup=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)
+# memory.peak counts the file cache too, which the kernel can reclaim. So a sampler
+# keeps the largest "anon" (process memory) once a second.
+(
+  most=0
+  while sleep 1; do
+    anon=$(awk "/^anon /{print \$2}" "$cgroup/memory.stat" 2>/dev/null)
+    if [ "${anon:-0}" -gt "$most" ]; then most=$anon; echo "$most" > "$CAPPED_REPORT.anon"; fi
+  done
+) &
+sampler=$!
 "$@"
 status=$?
-cgroup=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)
-peak=$(cat "$cgroup/memory.peak" 2>/dev/null || echo 0)
+kill "$sampler" 2>/dev/null
+peak=$(cat "$CAPPED_REPORT.anon" 2>/dev/null || echo 0)
+total=$(cat "$cgroup/memory.peak" 2>/dev/null || echo 0)
 swap=$(cat "$cgroup/memory.swap.peak" 2>/dev/null || echo 0)
 kills=$(awk "/^oom_kill /{print \$2}" "$cgroup/memory.events" 2>/dev/null)
-echo "$status $peak ${kills:-0} $swap" > "$CAPPED_REPORT"
+echo "$status $peak ${kills:-0} $swap $total" > "$CAPPED_REPORT"
 exit "$status"'
 
 limits=(-p MemoryMax="$cap" -p MemorySwapMax="${CAPPED_SWAP:-0}")
@@ -56,8 +69,8 @@ sudo --preserve-env systemd-run --scope --quiet "${limits[@]}" \
   bash -c "$inner" capped "$@"
 status=$?
 
-read -r inner_status peak kills swap < "$report" 2>/dev/null || true
-rm -f "$report"
+read -r inner_status peak kills swap total < "$report" 2>/dev/null || true
+rm -f "$report" "$report.anon"
 gib() { awk -v b="$1" 'BEGIN { printf "%.1f GiB", b / 1073741824 }'; }
 summary() { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
 
@@ -69,7 +82,8 @@ if [ -z "${peak:-}" ]; then
   exit 137
 fi
 
-line="Peak memory: $(gib "$peak") (the command and its workers), cap $cap."
+line="Peak memory: $(gib "$peak") (the command and its workers, sampled each second),"
+line="$line cap $cap. With the file cache: $(gib "${total:-0}")."
 [ "${swap:-0}" -gt 0 ] && line="$line Peak swap: $(gib "$swap")."
 echo "$line"
 summary "$line"
