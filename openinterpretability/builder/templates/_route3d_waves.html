@@ -1,0 +1,152 @@
+{# The spectrum and logit-lens waterfalls of the 3D explorer (#4917). Included inside _route3d.html's start(), so it shares its scope: scene, label, ink, accent, dark, still and data. #}
+      // The waterfalls: one continuous surface over the layers, the embedding at the front.
+      // Each layer's measured values are joined by a Catmull-Rom spline, which passes through
+      // every one of them, and the layers by the same spline along depth. Dots mark the
+      // measured values, and a ridge line marks each real layer.
+      let view = "route";
+      const surfaceColor = new THREE.Color(dark ? 0x1e293b : 0xe2e8f0);
+      const WIDTH3 = 14, DEPTH3 = 10, FX = 10, FZ = 8;
+      // The cursor's token, or null for the last token; cursorNow glides toward it.
+      let cursor = null, cursorNow = null;
+      const pick = (row) => {
+        const last = row.length - 1;
+        const at = cursorNow === null ? last : Math.min(last, Math.max(0, cursorNow));
+        const a = Math.floor(at), b = Math.min(last, a + 1), f = at - a;
+        return row[a].map((v, i) => v * (1 - f) + row[b][i] * f);
+      };
+      const valuesOf = (kind, row) => kind === "lens" ? data.candidates.map((c) => Math.sqrt(row[c] || 0)) : pick(row);
+
+      function spline(v, n) {  // Catmull-Rom through every value of v, n samples per gap
+        const out = [];
+        for (let i = 0; i < v.length - 1; i++) {
+          const p0 = v[Math.max(0, i - 1)], p1 = v[i], p2 = v[i + 1], p3 = v[Math.min(v.length - 1, i + 2)];
+          for (let k = 0; k < n; k++) {
+            const t = k / n;
+            out.push(0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t));
+          }
+        }
+        out.push(v[v.length - 1]);
+        return out;
+      }
+
+      function setVisible(group, on) { group.traverse((o) => { o.visible = on; }); }
+
+      function buildWave(kind) {
+        const first = data.prompts[0][kind] || [];
+        const rowsN = first.length;
+        const cols = rowsN ? valuesOf(kind, first[0]).length : 0;
+        if (rowsN < 2 || cols < 2) return null;
+        const group = new THREE.Group();
+        scene.add(group);
+        const fineCols = (cols - 1) * FX + 1, fineRows = (rowsN - 1) * FZ + 1;
+        const fx = (j) => -WIDTH3 / 2 + j * WIDTH3 / (fineCols - 1), xs = (i) => fx(i * FX);
+        const fz = (k) => DEPTH3 / 2 - k * DEPTH3 / (fineRows - 1), zs = (r) => fz(r * FZ);
+        let peak = 1e-9;
+        for (const p of data.prompts) for (const row of p[kind] || []) for (const vs of kind === "lens" ? [valuesOf(kind, row)] : row) for (const v of vs) peak = Math.max(peak, Math.abs(v));
+        const height = kind === "lens" ? 4 : 2.4;
+        // The surface: a grid of fineRows × fineCols, lit, so its slopes read as a landscape.
+        const surface = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ color: surfaceColor, side: THREE.DoubleSide, roughness: 0.8, transparent: true, opacity: 0.92, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
+        surface.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(fineRows * fineCols * 3), 3));
+        const index = [];
+        for (let k = 0; k < fineRows - 1; k++) for (let j = 0; j < fineCols - 1; j++) {
+          const a = k * fineCols + j, b = a + 1, c = a + fineCols, d = c + 1;
+          index.push(a, c, b, b, c, d);
+        }
+        surface.geometry.setIndex(index);
+        group.add(surface);
+        const rows = [];
+        for (let r = 0; r < rowsN; r++) {
+          const line = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: ink }));
+          line.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(fineCols * 3), 3));
+          const ghost = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: ink, dashSize: 0.18, gapSize: 0.14, transparent: true, opacity: 0.7 }));
+          ghost.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(fineCols * 3), 3));
+          const dots = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ color: ink, size: 0.12 }));
+          dots.geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(cols * 3), 3));
+          group.add(line, ghost, dots);
+          const tag = label(r === 0 ? "embedding" : "layer " + r, "text-[10px]");
+          tag.position.set(-WIDTH3 / 2 - 1.4, 0, zs(r));
+          group.add(tag);
+          rows.push({ line, ghost, dots, z: zs(r), now: new Float32Array(cols), target: new Float32Array(cols), ghostY: new Float32Array(cols), ghostOn: false });
+        }
+        if (kind === "lens") {
+          data.candidates.forEach((t, i) => {
+            const tag = label(JSON.stringify(t).slice(1, -1), t === data.answer ? "text-xs font-bold underline" : "text-[10px]");
+            tag.element.style.writingMode = "vertical-rl";  // upright names would overlap
+            tag.position.set(xs(i), -0.9, DEPTH3 / 2 + 1);
+            group.add(tag);
+          });
+        } else {
+          const tag = label("principal directions, the strongest first →", "text-[10px]");
+          tag.position.set(0, -height - 0.8, DEPTH3 / 2 + 1);
+          group.add(tag);
+        }
+        const answerCol = data.candidates.indexOf(data.answer);
+        const markers = kind === "lens" && answerCol >= 0 ? rows.map(() => {
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 8), new THREE.MeshStandardMaterial({ color: accent }));
+          group.add(m);
+          return m;
+        }) : [];
+        setVisible(group, false);
+        return { group, surface, rows, cols, fineCols, fineRows, fx, fz, xs, kind, peak, height, markers, answerCol };
+      }
+
+      // What is switched off: "" for nothing, "route", or one unit's label.
+      let off = "";
+      function offRows(p, kind) {
+        if (off === "route" && p.route_off) return p.route_off[kind];
+        if (off && p.unit_off && p.unit_off[off]) return p.unit_off[off][kind];
+        return null;
+      }
+
+      function setWave(wave, p) {
+        if (!wave) return;
+        const switched = offRows(p, wave.kind);
+        (p[wave.kind] || []).forEach((row, r) => {
+          const clean = valuesOf(wave.kind, row);
+          const vals = switched ? valuesOf(wave.kind, switched[r]) : clean;
+          for (let i = 0; i < wave.cols; i++) {
+            wave.rows[r].target[i] = (vals[i] || 0) / wave.peak * wave.height;
+            wave.rows[r].ghostY[i] = (clean[i] || 0) / wave.peak * wave.height;
+          }
+          wave.rows[r].ghostOn = !!switched;
+        });
+      }
+
+      function drawWave(wave, dt, elapsed) {
+        // The sweep grows the surface from the embedding to the last layer, then holds.
+        const grown = still ? 1 : Math.min(1, (elapsed % 8) / 5);
+        const front = Math.max(1, Math.round(grown * (wave.fineRows - 1)));
+        for (const row of wave.rows) for (let i = 0; i < wave.cols; i++) {
+          row.now[i] = still ? row.target[i] : row.now[i] + (row.target[i] - row.now[i]) * Math.min(1, dt * 5);
+        }
+        const fine = wave.rows.map((row) => spline(Array.from(row.now), FX));
+        const pos = wave.surface.geometry.attributes.position;
+        for (let j = 0; j < wave.fineCols; j++) {
+          const column = spline(fine.map((f) => f[j]), FZ);  // the same spline along depth
+          for (let k = 0; k < wave.fineRows; k++) pos.setXYZ(k * wave.fineCols + j, wave.fx(j), column[k], wave.fz(k));
+        }
+        pos.needsUpdate = true;
+        wave.surface.geometry.computeVertexNormals();
+        wave.surface.geometry.computeBoundingSphere();
+        wave.surface.geometry.setDrawRange(0, front * (wave.fineCols - 1) * 6);
+        wave.rows.forEach((row, r) => {
+          const on = r * FZ <= front;
+          const line = row.line.geometry.attributes.position, ghost = row.ghost.geometry.attributes.position;
+          const ghostFine = spline(Array.from(row.ghostY), FX);
+          for (let j = 0; j < wave.fineCols; j++) {
+            line.setXYZ(j, wave.fx(j), fine[r][j] + 0.01, row.z);
+            ghost.setXYZ(j, wave.fx(j), ghostFine[j] + 0.02, row.z);
+          }
+          const dots = row.dots.geometry.attributes.position;
+          for (let i = 0; i < wave.cols; i++) dots.setXYZ(i, wave.xs(i), row.now[i] + 0.03, row.z);
+          line.needsUpdate = true; ghost.needsUpdate = true; dots.needsUpdate = true;
+          for (const o of [row.line, row.ghost, row.dots]) o.geometry.computeBoundingSphere();
+          row.ghost.computeLineDistances();
+          row.line.visible = on; row.dots.visible = on; row.ghost.visible = on && row.ghostOn;
+          if (wave.markers[r]) {
+            wave.markers[r].visible = on;
+            wave.markers[r].position.set(wave.xs(wave.answerCol), row.now[wave.answerCol] + 0.22, row.z);
+          }
+        });
+      }
+

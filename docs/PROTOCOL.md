@@ -181,6 +181,8 @@ The proposer writes a **route**: the prompt tokens it reads, the units in order,
 
 Every gate passes: **VERIFIED**. The five causal gates pass and a prompt gate fails: **NEEDS_REVISION**. Then the route carries the answer, but the claim is too broad or too narrow. Otherwise **REJECTED**. A neuron pole is patched as its whole neuron, since the corrupted prompt can flip its sign.
 
+Each record also holds **readings**, which are reported and never gated (#4917). They are the route on every prompt, and the last token through the layers on shared axes, with the route and each unit switched off. The answer experiment's page draws them as figures and a 3D explorer. `answers remeasure` gives an older record its readings, as a new record that names it.
+
 One answer can take several attempts. Each attempt is its own record, and its proposer sees every earlier claim with its failed gates. The attempts stop at the first VERIFIED claim, or after 5 records on the prompt (`MAX_ATTEMPTS`). `explain` plans the next attempt once the prompt has explained units. A page says that the answer is understood only when a claim is VERIFIED. A VERIFIED claim is about this one prompt, not a family of prompts. Records live in `wiki/answers/<model>/<prompt id>/`, and `open-interpretability check` recomputes each verdict from its stored measures.
 
 ### What is not evidence (yet)

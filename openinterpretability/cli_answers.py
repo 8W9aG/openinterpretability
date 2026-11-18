@@ -140,7 +140,40 @@ def review_command(claim_file, probes_file, corpus, mean_tokens, seed, wiki_dir,
         raise click.UsageError(str(error)) from error
     path = record_path(Path(wiki_dir), record)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(record.model_dump_json(indent=1) + "\n", encoding="utf-8")
+    path.write_text(record.model_dump_json() + "\n", encoding="utf-8")  # compact: it is large
     v = record.verdict
     failed = ", ".join(v.failed) or "none"
     click.echo(f"{v.status} (failed gates: {failed}) → {path}")
+
+
+@answers_group.command(name="remeasure")
+@click.option("--record", "record_file", required=True,
+              type=click.Path(exists=True, dir_okay=False, path_type=Path))  # fmt: skip
+@click.option("--corpus", default="corpus.jsonl", show_default=True,
+              type=click.Path(path_type=Path))  # fmt: skip
+@click.option("--mean-tokens", default=20_000, show_default=True)
+@wiki_dir_option()
+@with_model_options
+def remeasure_command(record_file, corpus, mean_tokens, wiki_dir, device, dtype):
+    """Measure an answer record's claim and probes again, as a new record (#4917).
+
+    Records are write-once, so the new one names the old one in ``remeasures``. It holds
+    the route's reading on every prompt, which records before #4917 lack. It is not an
+    attempt: the claim and the probes are the same.
+    """
+    from openinterpretability.answer_review import review
+    from openinterpretability.core.answer_records import AnswerRecord, record_path
+    from openinterpretability.evidence import read_corpus
+    from openinterpretability.explain import unit_means
+
+    old = AnswerRecord.model_validate_json(record_file.read_text(encoding="utf-8"))
+    c = old.claim
+    runner = _load_runner(c.model_name, device, dtype, c.model_revision)
+    means = unit_means(runner, c.model_name, read_corpus(corpus)[0], mean_tokens)
+    record = review(runner, means, c, old.probes, old.verdict.policy, remeasures=old.id)
+    path = record_path(Path(wiki_dir), record)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(record.model_dump_json() + "\n", encoding="utf-8")  # compact: it is large
+    v = record.verdict
+    click.echo(f"{v.status} (was {old.verdict.status}; failed gates: "
+               f"{', '.join(v.failed) or 'none'}) → {path}")  # fmt: skip

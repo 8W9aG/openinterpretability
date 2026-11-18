@@ -111,6 +111,40 @@ class AnswerPolicy(StrictModel):
     protocol_version: str = ANSWER_PROTOCOL_VERSION
 
 
+class LayerView(StrictModel):
+    """The last token through the layers: a lens row and a spectrum row per layer (#4917)."""
+
+    lens: list[dict[str, float]] = Field(default_factory=list)
+    spectrum: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][direction]
+
+
+class RouteReading(StrictModel):
+    """The route on one prompt: what each unit does there, for the page's figures (#4917).
+
+    Reported, never gated: the maintainer decided on 2026-11-18 that these don't change a
+    verdict. Each unit is keyed by its label in the claim's route.
+    """
+
+    tokens: list[str]
+    top: str  # the model's top token after the prompt
+    answer_log_prob: float  # the claim's answer, at the prompt's last position
+    route_share: float | None  # the route's cut over the cut from ablating every unit
+    strength: dict[str, list[float]]  # unit → its strength at each token, 0 at the first
+    attribution: dict[str, float]  # unit → its first-order attribution to the answer's logit
+    edges: list[dict[str, Any]] = Field(default_factory=list)  # {source, target, weight}
+    # The answer's log-probability with the original prompt's route values patched in. A
+    # share of the gap would divide by almost 0 where the answer stays the same.
+    patched_log_prob: float | None = None
+    # Through the layers, the embedding first (answer_lens): the logit lens over the shared
+    # candidate tokens, and the residual stream on the shared principal directions.
+    lens: list[dict[str, float]] = Field(default_factory=list)
+    spectrum: list[list[list[float]]] = Field(default_factory=list)  # [layer][token][direction]
+    # The same with units switched off (mean-ablated). Every prompt has the whole route off.
+    # The original prompt also has each route unit off on its own, keyed by its label.
+    route_off: LayerView | None = None
+    unit_off: dict[str, LayerView] = Field(default_factory=dict)
+
+
 class AnswerMeasures(StrictModel):
     """What the review measured, in the answer's log-probability at its position."""
 
@@ -125,6 +159,8 @@ class AnswerMeasures(StrictModel):
     controls: dict[str, bool]  # proposer prompt → came out as predicted
     probes: dict[str, bool]  # reviewer prompt → came out as predicted
     top_tokens: dict[str, str] = Field(default_factory=dict)  # each prompt's top token
+    # The route on each prompt: the original, the controls and the probes (#4917).
+    readings: dict[str, RouteReading] = Field(default_factory=dict)
 
     @property
     def necessity(self) -> float:
@@ -154,6 +190,9 @@ class AnswerRecord(StrictModel):
     claim: AnswerClaim
     probes: AnswerProbes
     verdict: AnswerVerdict
+    remeasures: str | None = Field(  # #4917: the same claim and probes, measured again
+        default=None, description="The id of the record this one measures again."
+    )
 
     @property
     def id(self) -> str:
@@ -245,9 +284,10 @@ def summary(record: AnswerRecord) -> dict[str, Any]:
 
 def next_attempt(records: list[AnswerRecord]) -> int | None:
     """The next attempt's number, or None when one is VERIFIED or the cap is reached."""
-    if any(r.verdict.status == "VERIFIED" for r in records) or len(records) >= MAX_ATTEMPTS:
+    claims = {r.claim.attempt for r in records}  # a re-measure is not an attempt (#4917)
+    if any(r.verdict.status == "VERIFIED" for r in records) or len(claims) >= MAX_ATTEMPTS:
         return None
-    return len(records) + 1
+    return len(claims) + 1
 
 
 def check_answers(wiki_dir: Path, report: Any, scope: set[Path] | None = None) -> None:
