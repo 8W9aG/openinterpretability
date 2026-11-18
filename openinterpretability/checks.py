@@ -470,14 +470,16 @@ def _check_new_signatures(
 
 
 def changed_records(wiki_dir: Path, base_ref: str) -> list[Path]:
-    """Experiment records added, modified or changed in type since ``base_ref``."""
+    """Reproducible records added, modified or changed in type since ``base_ref``.
+
+    The reproducible kinds are ``core.record_kinds.REPRODUCIBLE``, the list that CI's
+    *Record changes* job and ``auto-merge.yml`` read too (#4792).
+    """
+    from openinterpretability.core.record_kinds import REPRODUCIBLE
+
+    dirs = [str(Path(wiki_dir) / p.removeprefix("wiki/")) for p in REPRODUCIBLE]
     diff = _git(
-        "diff",
-        "--name-only",
-        "--no-renames",
-        "--diff-filter=AMT",
-        f"{base_ref}...HEAD",
-        "--",
-        str(experiments_dir(wiki_dir)),
-    )
+        "diff", "--name-only", "--no-renames", "--diff-filter=AMT", f"{base_ref}...HEAD",
+        "--", *dirs,
+    )  # fmt: skip
     return [Path(name) for name in diff.splitlines() if name.endswith(".json")]

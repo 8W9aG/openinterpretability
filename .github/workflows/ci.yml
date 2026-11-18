@@ -204,8 +204,10 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
+          # The reproducible kinds come from one list (openinterpretability/core/record_kinds.py).
+          mapfile -t kinds < <(python3 openinterpretability/core/record_kinds.py)
           git diff --name-only --no-renames --diff-filter=AMT "origin/$BASE_REF...HEAD" \
-            -- wiki/experiments | grep '\.json$' | tee records.txt || true
+            -- "${kinds[@]}" | grep '\.json$' | tee records.txt || true
           echo "records=$([ -s records.txt ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   reproduce:

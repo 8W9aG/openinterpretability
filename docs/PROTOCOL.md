@@ -249,6 +249,20 @@ All three pass: **VERIFIED**. The first two pass and specificity fails: **NEEDS_
 
 ## 5. Reproducibility requirements
 
+**Record kinds and how CI checks them** (issue #4792). One list, `openinterpretability/core/record_kinds.py`, says which kinds CI reproduces. CI's *Record changes* job, `auto-merge.yml` and the experiment loop's merge check all read it.
+
+| Record kind | Path | How CI checks it |
+| --- | --- | --- |
+| Experiment | `wiki/experiments/` | Re-measured: `reproduce` runs the model again and compares. |
+| Circuit | `wiki/circuits/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
+| Explanation | `wiki/explanations/` | Not checked yet. A reproduction is #4793. |
+| Draw | `wiki/draws/` | Not checked. |
+| Stop | `wiki/stops/` | Not checked. |
+| Ledger entry | `wiki/ledger/` | Not checked. |
+| Erratum | `wiki/errata.jsonl` | Signed by a key in `.github/allowed_signers`. |
+
+A pull request from anyone but the maintainer auto-merges only when every file it adds is a re-measured record, and CI has reproduced each one. A record of any other kind waits for a person. The maintainer's own pull requests, including the agent loops' pull requests, merge on their checks as before.
+
 A record must let a third party re-derive its verdict:
 
 - `identifier`: model name, layer, and neuron and pole, or head.

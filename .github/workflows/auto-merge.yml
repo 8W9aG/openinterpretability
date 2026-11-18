@@ -52,7 +52,15 @@ jobs:
       # The files API lists at most this many files of a PR.
       MAX_LISTED: 3000
     steps:
-      - name: Auto-merge if the maintainer opened it, or it only adds experiment records
+      # The one list of reproducible record kinds (openinterpretability/core/record_kinds.py,
+      # #4792). It is read from the base branch, so this job still runs none of the PR's code.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: openinterpretability/core/record_kinds.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Auto-merge if the maintainer opened it, or it only adds reproducible records
         run: |
           set -euo pipefail
           # A fork's branch can be pushed by someone else, so only this repo's branches count.
@@ -84,10 +92,18 @@ jobs:
             echo "more than $MAX_LISTED files" > outside.txt
           fi
           if [ -s files.txt ] && [ ! -s changed.txt ] && [ ! -s outside.txt ] \
-            && ! grep -v '^wiki/experiments/' files.txt > outside.txt; then
+            && ! python3 - files.txt > outside.txt <<'PY'
+          import sys
+          sys.path.insert(0, "openinterpretability/core")
+          from record_kinds import reproducible
+          outside = [f for f in open(sys.argv[1]).read().split() if not reproducible(f)]
+          print("\n".join(outside))
+          sys.exit(0 if outside else 1)
+          PY
+          then
             # --match-head-commit: never auto-merge a commit whose files weren't listed.
             gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
-            echo "Auto-merge on: it only adds experiment records." >> "$GITHUB_STEP_SUMMARY"
+            echo "Auto-merge on: it only adds reproducible records." >> "$GITHUB_STEP_SUMMARY"
           else
             if [ "$(gh pr view "$PR" --repo "$REPO" --json autoMergeRequest \
                   -q '.autoMergeRequest != null')" = true ]; then

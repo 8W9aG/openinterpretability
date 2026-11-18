@@ -42,7 +42,7 @@ elif args[0] == "api":
 def _script() -> str:
     """The run script of the step that turns auto-merge on."""
     steps = yaml.safe_load(WORKFLOW.read_text())["jobs"]["enable"]["steps"]
-    return next(s["run"] for s in steps if "Auto-merge" in s["name"])
+    return next(s["run"] for s in steps if "Auto-merge" in s.get("name", ""))
 
 
 def _env() -> dict:
@@ -71,6 +71,10 @@ def _run(tmp_path, author, sender, files, changed_files=None, head_repo=REPO):
         "REPO": "8W9aG/openinterpretability", "PR": "7", "HEAD_SHA": "abc",
         "AUTHOR": author, "SENDER": sender, "HEAD_REPO": head_repo,
     }  # fmt: skip
+    # The job's sparse checkout of the base branch gives it this one file (#4792).
+    kinds = tmp_path / "openinterpretability" / "core" / "record_kinds.py"
+    kinds.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(WORKFLOW.parents[2] / "openinterpretability" / "core" / "record_kinds.py", kinds)
     subprocess.run(["bash", "-c", _script()], env=env, cwd=tmp_path, check=True)
     return log.read_text()
 

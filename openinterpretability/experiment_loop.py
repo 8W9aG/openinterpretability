@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, draws_dir, experiments_dir, stops_dir
+from openinterpretability.core.record_kinds import reproducible
 from openinterpretability.draw_steps import REVIEW_KINDS, VERBS, draw_slug, steps
 from openinterpretability.planner import claim_key
 
@@ -197,6 +198,9 @@ def merge_blockers(view: dict, permission: str) -> list[str]:
     files = [f["path"] for f in view.get("files", [])]
     wiki = f"{DEFAULT_WIKI_DIR}/"
     reasons = [f"it changes {p}, outside {wiki}" for p in files if not p.startswith(wiki)]
+    if permission != "ADMIN":  # anyone but the maintainer: reproducible records only (#4792)
+        reasons += [f"{p} is not a record that CI reproduces" for p in files
+                    if p.startswith(wiki) and not reproducible(p)]  # fmt: skip
     if permission not in MERGE_PERMISSIONS:
         reasons.append(f"the token's permission is {permission or 'unknown'}")
     if view.get("isDraft"):
