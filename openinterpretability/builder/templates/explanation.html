@@ -52,34 +52,9 @@
   <h2 id="figures" class="mb-1 text-lg font-semibold">Figures</h2>
   <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Drawn from this explanation's measured data. A VERIFIED explanation describes its unit on the scan corpus, not on this prompt, so the coverage figure is the causal check. Each figure has its data in a table below it.</p>
   {% for f in figures %}
-  <figure class="mt-6" id="fig-{{ f.name }}">
-    <div class="overflow-x-auto"><picture>
-      {% if f.static %}<source media="(prefers-reduced-motion: reduce)" srcset="{{ folder }}/fig-{{ f.name }}-static.svg">{% endif %}
-      <img class="w-full min-w-[560px] max-w-[760px]" src="{{ folder }}/fig-{{ f.name }}.svg" alt="{{ f.alt }}"{% if f.static %} data-moving="{{ folder }}/fig-{{ f.name }}.svg" data-still="{{ folder }}/fig-{{ f.name }}-static.svg"{% endif %}>
-    </picture></div>
-    <figcaption class="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-      <span>{{ f.alt }}</span>
-      {% if f.static %}<button type="button" class="rounded border border-slate-300 px-2 py-0.5 dark:border-slate-700" data-pause aria-pressed="false">Pause</button>{% endif %}
-    </figcaption>
-    <details class="mt-1 text-xs"><summary class="cursor-pointer text-slate-500">Table</summary>
-      <div class="overflow-x-auto"><table class="mt-1 font-mono">
-        <thead class="text-slate-500"><tr>{% for h in f.table[0] %}<th class="pr-4 text-left font-normal">{{ h }}</th>{% endfor %}</tr></thead>
-        <tbody>{% for row in f.table[1:] %}<tr>{% for c in row %}<td class="pr-4">{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
-      </table></div>
-    </details>
-  </figure>
+  {% include "_figure.html" %}
   {% endfor %}
-  <script>
-  document.querySelectorAll("[data-pause]").forEach(function (button) {
-    var img = button.closest("figure").querySelector("img[data-moving]");
-    button.addEventListener("click", function () {
-      var paused = button.getAttribute("aria-pressed") === "true";
-      img.src = paused ? img.dataset.moving : img.dataset.still;  // the still is the last frame
-      button.setAttribute("aria-pressed", paused ? "false" : "true");
-      button.textContent = paused ? "Pause" : "Play";
-    });
-  });
-  </script>
+  {% include "_figure_pause.html" %}
 </section>
 {% endif %}
 
