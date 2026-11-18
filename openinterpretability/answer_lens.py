@@ -78,8 +78,30 @@ def _scaled(h: torch.Tensor) -> torch.Tensor:
     return h / h.pow(2).mean(-1, keepdim=True).sqrt().clamp(min=1e-9)
 
 
+ROUTE_POINTS = 600  # corpus points in an answer's route space: each record holds its own
+
+
+def route_space(runner, means, route, labels, prompt: str, texts) -> tuple[dict, dict]:
+    """The space where the route writes (#4934), and its record's cloud and arrows."""
+    from openinterpretability import embedding_space as es
+
+    directions = es.route_directions(runner, means, route, prompt)
+    space = es.fit(es.corpus_states(runner, texts, ROUTE_POINTS), directions)
+    arrows = {label: [[round(x, 3) for x in (w @ d).tolist()] for w in space["w"]]
+              for label, d in zip(labels, directions, strict=True)}  # fmt: skip
+    cloud = [[[round(x, 3) for x in p] for p in layer] for layer in space["cloud"].tolist()]
+    return space, {"cloud": cloud, "arrows": arrows}
+
+
+def _fits(space, shape) -> dict | None:
+    """``space``, or None when it was fitted for another width or depth."""
+    if space is not None and space["w"].shape[::2] != (shape[0], shape[-1]):
+        return None
+    return space
+
+
 def measures(runner, means, prompts: list[str], answer: int, route: list,
-             labels: list[str], model: str = "") -> dict[str, dict]:  # fmt: skip
+             labels: list[str], model: str = "", texts=None) -> dict[str, dict]:  # fmt: skip
     """Each prompt's layers on the shared axes, clean and with units switched off.
 
     Every prompt gets ``clean`` and ``route_off``: the whole route mean-ablated. The first
@@ -92,10 +114,11 @@ def measures(runner, means, prompts: list[str], answer: int, route: list,
 
     space = es.load(es.path_for(model)) if model else None  # placed only when it is fitted
     hidden = {p: states(runner, p) for p in prompts}
-    shape = next(iter(hidden.values())).shape
-    if space is not None and space["w"].shape[::2] != (shape[0], shape[-1]):
-        space = None  # a space fitted for another width or depth: leave it out
+    space = _fits(space, next(iter(hidden.values())).shape)
     probs = {p: lens(runner, h) for p, h in hidden.items()}
+    routed, saved = (
+        route_space(runner, means, route, labels, prompts[0], texts) if texts else (None, None)
+    )
     tokens = candidates(probs, answer)
     names = [runner.tokenizer.decode([t]) for t in tokens]
     mean, directions = basis(hidden)
@@ -106,10 +129,12 @@ def measures(runner, means, prompts: list[str], answer: int, route: list,
                  for row in p]  # fmt: skip
         spectrum = ((_scaled(h) - mean) @ directions.T).tolist()  # [layer][token][direction]
         placed = es.project(space, h).tolist() if space is not None else []
+        in_route = es.project(routed, h).tolist() if routed is not None else []
         return {
             "lens": table,
             "spectrum": [[[round(x, 3) for x in tok] for tok in layer] for layer in spectrum],
             "space": [[[round(x, 3) for x in tok] for tok in layer] for layer in placed],
+            "route_place": [[[round(x, 3) for x in tok] for tok in layer] for layer in in_route],
         }
 
     off = mean_ablation(route, means, runner)
@@ -120,4 +145,5 @@ def measures(runner, means, prompts: list[str], answer: int, route: list,
         label: view(states(runner, first, mean_ablation([unit], means, runner)))
         for unit, label in zip(route, labels, strict=True)
     }
+    out["_route_space"] = saved  # the route space's record, under a key no prompt has
     return out
