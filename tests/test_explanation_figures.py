@@ -92,3 +92,20 @@ def test_the_built_page_has_the_figures_section(tmp_path, record):
     plain = ExplanationView(rec, f"wiki/explanations/m/{rec.prompt_id}/x.json")
     compile_site([record], tmp_path / "bare", explanations=[PromptView([plain])])
     assert 'id="figures"' not in (tmp_path / "bare" / plain.href).read_text()
+
+
+def test_a_heads_strength_moves_its_mean_to_the_outputs_device():
+    """The head means are on the CPU and the outputs may be on a GPU (#4623).
+
+    The ``meta`` device stands in for the GPU. A CPU tensor in the subtraction raises the
+    same device error as on MPS. That error made ``explain`` run again on the CPU.
+    """
+    import torch
+
+    from openinterpretability.explain_figure_data import head_strength
+
+    out = torch.zeros(5, 4, device="meta")
+    mean = torch.zeros(8)  # the whole layer's mean, on the CPU
+    values = head_strength(out, mean, slice(4, 8))
+    assert values.device.type == "meta" and values.shape == (5,)
+    assert head_strength(torch.ones(2, 4), None, slice(0, 4)).tolist() == [2.0, 2.0]
