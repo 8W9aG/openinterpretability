@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(uv run:*)",
+      "Bash(uv run open-interpretability evidence push:*)",
       "Bash(make:*)",
       "Bash(git:*)",
       "Bash(gh pr:*)",
