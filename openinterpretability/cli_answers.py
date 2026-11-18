@@ -177,3 +177,33 @@ def remeasure_command(record_file, corpus, mean_tokens, wiki_dir, device, dtype)
     v = record.verdict
     click.echo(f"{v.status} (was {old.verdict.status}; failed gates: "
                f"{', '.join(v.failed) or 'none'}) → {path}")  # fmt: skip
+
+
+@answers_group.command(name="space")
+@click.option("--model", "model_name", required=True, help="Hugging Face id.")
+@click.option("--corpus", default="corpus.jsonl", show_default=True,
+              type=click.Path(path_type=Path))  # fmt: skip
+@click.option("--points", default=1500, show_default=True, help="Corpus token positions.")
+@click.option("--seed", default=0, show_default=True)
+@with_model_options
+def space_command(model_name, corpus, points, seed, device, dtype):
+    """Fit the model's 3D embedding space on the corpus, for the answer pages (#4929).
+
+    It writes data/embedding-space/<model slug>.json. Re-measure an answer record
+    (`answers remeasure`) to place its prompts in the space.
+    """
+    import hashlib
+
+    from openinterpretability import embedding_space as es
+    from openinterpretability.evidence import read_corpus
+
+    texts = read_corpus(corpus)[0]
+    runner = _load_runner(model_name, device, dtype)
+    space = es.fit(es.corpus_states(runner, texts, points, seed))
+    digest = (
+        hashlib.sha256(Path(corpus).read_bytes()).hexdigest() if Path(corpus).exists() else None
+    )
+    path = es.path_for(model_name)
+    es.save(space, path, model_name, {"points": points, "seed": seed, "window": es.WINDOW,
+                                      "corpus": str(corpus), "corpus_sha256": digest})  # fmt: skip
+    click.echo(f"{space['cloud'].shape[1]} points × {space['cloud'].shape[0]} layers → {path}")

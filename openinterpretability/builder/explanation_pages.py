@@ -269,12 +269,39 @@ def render_explanations(render, prompts: list[PromptView]) -> None:
             from openinterpretability.builder.route_figures import route3d
 
             routes = write_routes(render, answer)  # the route on each prompt (#4905, #4917)
+            explorer = route3d(answer.record)
+            if explorer is not None:  # the model's space, if fitted (#4929)
+                explorer["space_href"] = write_space(render, answer.record.claim.model_name)
             render(answer.href, "answer.html", answer=answer, prompt=prompt, routes=routes,
-                   route3d=route3d(answer.record))  # fmt: skip
+                   route3d=explorer)  # fmt: skip
         for view in prompt.explanations:
             drawn = write_figures(render, view)
             render(view.href, "explanation.html", view=view, prompt=prompt, unit_href=unit_href,
                    figures=drawn)  # fmt: skip
+
+
+def write_space(render, model: str) -> str | None:
+    """Publish the model's embedding-space cloud once, for the 3D explorer (#4929).
+
+    It returns the cloud's path on the site, or None when the model has no space yet
+    (``open-interpretability answers space``).
+    """
+    import json
+
+    from openinterpretability import embedding_space as es
+    from openinterpretability.core.identifiers import model_slug
+
+    source = es.path_for(model)
+    if not source.exists():
+        return None
+    href = f"models/{model_slug(model)}/embedding-space.json"
+    target = render.output_dir / href
+    if not target.exists():
+        data = json.loads(source.read_text(encoding="utf-8"))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({"layers": data["layers"], "cloud": data["cloud"]},
+                                     separators=(",", ":")), encoding="utf-8")  # fmt: skip
+    return href
 
 
 def write_routes(render, answer: AnswerView) -> dict:

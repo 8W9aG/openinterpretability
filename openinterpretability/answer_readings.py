@@ -105,12 +105,13 @@ def read_all(runner, means, claim: AnswerClaim, probes, token: int) -> dict[str,
     prompts = list(dict.fromkeys([claim.prompt, *(c.prompt for c in claim.counterfactuals),
                                   *(c.prompt for c in probes.prompts)]))  # fmt: skip
     route = [parse_unit(u) for u in claim.route]
-    layers = measures(runner, means, prompts, token, route, claim.route)  # on shared axes
+    layers = measures(runner, means, prompts, token, route, claim.route, claim.model_name)
     out = {}
     for p in prompts:
         v = layers[p]
         out[p] = read(runner, means, claim, token, p).model_copy(update={
             "lens": v["clean"]["lens"], "spectrum": v["clean"]["spectrum"],
+            "space": v["clean"]["space"],
             "route_off": LayerView(**v["route_off"]),
             "unit_off": {u: LayerView(**x) for u, x in v.get("unit_off", {}).items()},
         })  # fmt: skip

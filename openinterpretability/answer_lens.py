@@ -79,7 +79,7 @@ def _scaled(h: torch.Tensor) -> torch.Tensor:
 
 
 def measures(runner, means, prompts: list[str], answer: int, route: list,
-             labels: list[str]) -> dict[str, dict]:  # fmt: skip
+             labels: list[str], model: str = "") -> dict[str, dict]:  # fmt: skip
     """Each prompt's layers on the shared axes, clean and with units switched off.
 
     Every prompt gets ``clean`` and ``route_off``: the whole route mean-ablated. The first
@@ -87,9 +87,14 @@ def measures(runner, means, prompts: list[str], answer: int, route: list,
     keyed by its label. Each is a ``LayerView`` dict: a lens row and a spectrum row per
     layer. The axes come from the clean runs only, so a switched-off run reads on them.
     """
+    from openinterpretability import embedding_space as es
     from openinterpretability.explain import mean_ablation
 
+    space = es.load(es.path_for(model)) if model else None  # placed only when it is fitted
     hidden = {p: states(runner, p) for p in prompts}
+    shape = next(iter(hidden.values())).shape
+    if space is not None and space["w"].shape[::2] != (shape[0], shape[-1]):
+        space = None  # a space fitted for another width or depth: leave it out
     probs = {p: lens(runner, h) for p, h in hidden.items()}
     tokens = candidates(probs, answer)
     names = [runner.tokenizer.decode([t]) for t in tokens]
@@ -100,9 +105,11 @@ def measures(runner, means, prompts: list[str], answer: int, route: list,
         table = [{n: round(float(row[t]), 5) for n, t in zip(names, tokens, strict=True)}
                  for row in p]  # fmt: skip
         spectrum = ((_scaled(h) - mean) @ directions.T).tolist()  # [layer][token][direction]
+        placed = es.project(space, h).tolist() if space is not None else []
         return {
             "lens": table,
             "spectrum": [[[round(x, 3) for x in tok] for tok in layer] for layer in spectrum],
+            "space": [[[round(x, 3) for x in tok] for tok in layer] for layer in placed],
         }
 
     off = mean_ablation(route, means, runner)

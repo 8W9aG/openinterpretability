@@ -205,7 +205,7 @@ def route3d(record) -> dict | None:
             "share": r.route_share, "expect": what, "by": who,
             "ok": came_out.get(prompt), "scale": scale, "strength": r.strength,
             "attribution": r.attribution, "edges": r.edges,
-            "lens": r.lens, "spectrum": r.spectrum,
+            "lens": r.lens, "spectrum": r.spectrum, "space": r.space,
             "route_off": r.route_off.model_dump() if r.route_off else None,
             "unit_off": {u: v.model_dump() for u, v in r.unit_off.items()},
         })  # fmt: skip
