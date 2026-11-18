@@ -65,14 +65,25 @@ def _reading(runner, means, result, encoded) -> dict[str, list[float]]:
             out_layer = outputs[u.layer][0].float()
             width = out_layer.shape[-1] // runner.n_heads
             cols = slice(u.neuron * width, (u.neuron + 1) * width)
-            mean = means.heads.get(u.layer)
-            centre = mean[cols].float() if mean is not None else 0.0
-            values = (out_layer[:, cols] - centre).norm(dim=-1)
+            values = head_strength(out_layer[:, cols], means.heads.get(u.layer), cols)
         else:
             act = neurons[u.layer][0, :, u.neuron].float()
             values = act.clamp(min=0) if u.pole == "positive" else (-act).clamp(min=0)
         out[u.label] = [round(float(v), 4) for v in values.cpu()]
     return out
+
+
+def head_strength(out: torch.Tensor, mean: torch.Tensor | None, cols: slice) -> torch.Tensor:
+    """Return a head's strength at each token: its output's distance from its mean.
+
+    ``out`` is the head's slice of the attention output, ``[tokens, width]``. ``mean`` is
+    the whole layer's mean output, or None. :func:`explain.unit_means` keeps the means on
+    the CPU, so the mean goes to ``out``'s device first. On a GPU, a mean left on the CPU
+    failed the subtraction, and the command then ran again on the CPU (#4623).
+    """
+    if mean is None:
+        return out.norm(dim=-1)
+    return (out - mean[cols].to(out)).norm(dim=-1)
 
 
 def _ablation(runner, means, result, explained: list) -> list[dict]:
