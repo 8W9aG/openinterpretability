@@ -1784,3 +1784,48 @@ def test_a_build_from_slim_records_writes_the_same_site(tmp_path, records):
     b = {p.relative_to(tmp_path / "b"): p.read_bytes() for p in (tmp_path / "b").rglob("*")
          if p.is_file()}  # fmt: skip
     assert a.keys() == b.keys() and all(a[k] == b[k] for k in a)
+
+
+@pytest.mark.parametrize("copies", [1, 3])
+def test_a_build_holds_only_a_batch_or_a_unit_in_full(tmp_path, records, monkeypatch, copies):
+    """The records held in full at once don't grow with the archive (#4652).
+
+    A build holds every record slim. It loads records in full only per unit page and per
+    Parquet batch. With N or 3N records, at most a batch or the widest unit is full at once.
+    """
+    from contextlib import contextmanager
+
+    from openinterpretability.builder import compiler, parquet_export, slim
+    from openinterpretability.builder.wiki import load_archive_paths
+
+    wiki = tmp_path / "wiki"
+    many = [
+        experiment(r, idx=r.submission.identifier.neuron_idx + 1000 * k,
+                   pole=r.submission.identifier.pole, status=r.verdict.status,
+                   counts=(10, 0, 5, 0), hours=k)
+        for k in range(copies) for r in records
+    ]  # fmt: skip
+    for i, rec in enumerate(many):
+        path = wiki / "experiments" / f"r{i}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(rec.model_dump_json())
+    widest = {"n": 0, "loads": 0}
+    real = slim.full_records
+
+    @contextmanager
+    def counted(experiments):
+        held = [e for e in experiments if e.source is not None]
+        widest["n"] = max(widest["n"], len(held))
+        widest["loads"] += len(held)
+        with real(experiments):
+            yield
+
+    monkeypatch.setattr(compiler, "full_records", counted)
+    monkeypatch.setattr(parquet_export, "full_records", counted)
+    monkeypatch.setattr(parquet_export, "BATCH_ROWS", 2)
+    archive = slim.SlimArchive([])
+    held = [r for _, r in load_archive_paths(wiki, keep=archive)]
+    compile_site(held, tmp_path / "out", archive=archive)
+    assert widest["loads"] >= len(many)  # each record was loaded in full somewhere
+    # A batch of 2, or the widest unit's 3 experiments (N117's two poles): the same for 3N.
+    assert widest["n"] == 3

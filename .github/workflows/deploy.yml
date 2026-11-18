@@ -124,17 +124,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
           # Swap that the build may use above its cap (scripts/capped.sh).
           CAPPED_SWAP: 2G
-        # The build runs under a 14.5G cap plus 2G of swap, out of the runner's 16 GB
-        # (scripts/capped.sh, #4592). That leaves the runner agent about 1.5 GB. Above
+        # The build runs under a 6G cap plus 2G of swap, out of the runner's 16 GB
+        # (scripts/capped.sh, #4592), so the runner agent keeps the rest. Above
         # the cap, the kernel stops only the build, and the step fails at once with an
         # out-of-memory error. With no cap, the kernel killed the runner agent too, and
         # the run hung for about 45 minutes with no reason in the log.
-        # The build holds each record slim and streams the Parquet (#4652). With --jobs 1
-        # its process memory peaked at 1.9 GiB, down from 14.0 GiB with 4 jobs before
-        # (#4737). It runs with its default jobs again. The warning above 3G shows a
-        # regression early. The cap stays until the default-jobs peak is measured.
+        # The build holds each record slim and streams the Parquet (#4652). With its
+        # default jobs its process memory peaked at 2.8-2.9 GiB, down from 14.0 GiB (#4737).
+        # The cap leaves room above that and gives the runner agent the rest. The warning
+        # above 4G shows a regression early.
         run: |
-          scripts/capped.sh 14.5G 3G -- \
+          scripts/capped.sh 6G 4G -- \
             open-interpretability build --wiki-dir wiki --output-dir dist
           python -m openinterpretability.builder.css --site dist
           python -m pagefind --site dist
