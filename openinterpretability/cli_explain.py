@@ -120,7 +120,9 @@ def explain_command(  # long-function: one argument per option, then one line pe
         found = _analyse(runner, means, ask, Path(wiki_dir))
         ran = ran.model_copy(update={"share_after": found.coverage.get("coverage") or 0.0})
     result, planned, coverage = found.result, found.planned, found.coverage
-    told = _narrate(result, coverage, planned, narrator_model) if level != "mechanism" else {}
+    told = {}
+    if level != "mechanism":
+        told = _narrate(result, coverage, planned, narrator_model, found.answer)
     if as_json:
         out = _as_json(result, planned, show) | {
             "coverage": coverage,
@@ -384,14 +386,14 @@ def _print_coverage(coverage: dict) -> None:
                    "the answer above the clean model, so the credit stops at 100%.")  # fmt: skip
 
 
-def _narrate(result, coverage, planned, model: str | None) -> dict:
+def _narrate(result, coverage, planned, model: str | None, answer: dict | None = None) -> dict:
     """The narrator's long form and paragraph, the evidence it read, and its checks (#3743)."""
     from openinterpretability.agents.base import DEFAULT_MODEL
     from openinterpretability.agents.narrator import Narrator
     from openinterpretability.core import costs
     from openinterpretability.explain_narrate import check_citations, evidence
 
-    ev = evidence(result, coverage, planned)
+    ev = evidence(result, coverage, planned, answer=answer)
     narrator = Narrator(model or DEFAULT_MODEL)
     costs.reset()  # so that the costs below are the narrator's alone
     narrative = narrator.narrate(ev)

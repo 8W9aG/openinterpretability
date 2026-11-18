@@ -39,7 +39,7 @@
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Experiments needed</dt><dd class="font-mono text-lg">{{ r.planned_experiments | thousands }}</dd></div>
 </dl>
 {% if r.coverage_caution %}
-<p class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700"><strong>Coverage here does not show that the answer is understood.</strong> Verified units hold {{ r.explained_share | pct_fine }} of the attribution, and keeping them brings back {{ r.prompt_coverage | pct_fine }} of the answer, against {{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }} for random units{% if not r.coverage_detail %} not matched by kind and layer{% endif %}. Their explanations describe each unit on its scan corpus, not its role in this answer.</p>
+<p class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700"><strong>{% if prompt.understood %}Coverage alone does not show that the answer is understood: the VERIFIED route claim above does.{% else %}Coverage here does not show that the answer is understood.{% endif %}</strong> Verified units hold {{ r.explained_share | pct_fine }} of the attribution, and keeping them brings back {{ r.prompt_coverage | pct_fine }} of the answer, against {{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }} for random units{% if not r.coverage_detail %} not matched by kind and layer{% endif %}. Their explanations describe each unit on its scan corpus, not its role in this answer.</p>
 {% endif %}
 {% set d = r.coverage_detail %}
 {% if d %}
