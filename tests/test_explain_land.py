@@ -49,3 +49,15 @@ def test_no_land_writes_locally_and_a_second_run_updates_one_page(tmp_path):
     assert first.parent == second.parent and first != second
     (view,) = load_views(tmp_path / "wiki", states={})  # one page, from the newer record
     assert view.record.written.hour == 5
+
+
+def test_explanation_pages_are_scrubbed_of_personal_data(tmp_path):
+    """The site publishes explanations scrubbed, as it does experiments (#4750)."""
+    from openinterpretability.builder.explanation_pages import load_views
+    from openinterpretability.builder.pii import REMOVED_TEXT
+
+    record = _record(WHEN)
+    told = record.narration.model_copy(update={"paragraph": "Login from 8.8.4.4 failed."})
+    write_local(record.model_copy(update={"narration": told}), tmp_path / "wiki")
+    (view,) = load_views(tmp_path / "wiki", states={})
+    assert view.record.narration.paragraph == f"Login from {REMOVED_TEXT} failed."

@@ -60,7 +60,7 @@ A pull request that does an issue says `Closes #<number>`. Its changelog entry i
   echo "<github-user> valid-after=\"$(date -u +%Y%m%d)Z\",namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterpretability_signing.pub)" >> .github/allowed_signers
   ```
 
-A PR that changes only files under `wiki/` is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. So is a PR that the maintainer opened from a branch of this repository, whatever it changes. Agents that use the maintainer's GitHub login open PRs as the maintainer, so their PRs merge this way too. Any other PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
+A PR that only adds files under `wiki/experiments/` is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. CI reproduces those records. Other wiki records, such as circuits and explanations, are not reproduced, so someone else's PR that adds them waits for a maintainer. So is a PR that the maintainer opened from a branch of this repository, whatever it changes. Agents that use the maintainer's GitHub login open PRs as the maintainer, so their PRs merge this way too. Any other PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
 
 Two more checks run on every pull request but aren't required. *Secret scan* runs gitleaks over the commits the PR adds (`.github/workflows/secret-scan.yml`, rules in `.gitleaks.toml`). Run it by hand to scan the whole history. Workflows pin each action to a full commit SHA, and Dependabot (`.github/dependabot.yml`) opens PRs that update the pins and `uv.lock`.
 

@@ -1,18 +1,20 @@
 name: Auto-merge
 
 # Turns on GitHub's auto-merge (squash) for three kinds of pull request:
-# - one that changes only files under wiki/: experiment records, their .sig files and pages.
-#   A PR with more files than the files API lists (3,000) is never wiki-only.
+# - one that only adds files under wiki/experiments/: experiment records, their .sig files
+#   and pages. CI reproduces each record there ("Reproduce records"). Other wiki records,
+#   such as circuits and explanations, are not reproduced, so they wait for a person.
+#   A PR with more files than the files API lists (3,000) never qualifies.
 # - one that the maintainer opened from a branch of this repository, whatever it changes,
 #   when the maintainer also made the event: the push (synchronize) or the reopen.
-#   Someone else's push to that branch gets the wiki-only rule.
+#   Someone else's push to that branch gets the experiments-only rule.
 # - one that Dependabot opened and pushed, from a branch of this repository.
 # The repository's own automatic PRs (the benchmark ledger) turn on auto-merge themselves:
 # a PR that the workflow token opens starts no workflow, so this file never sees them.
 # GitHub then merges once the required checks ("Lint and tests", "Experiment records",
 # "Reproduce records") pass on the head commit. Any other PR that changes files outside
-# wiki/ (code, workflows, .github/allowed_signers) is left for a human, and auto-merge is
-# turned off if an earlier push had turned it on.
+# wiki/experiments/ (code, workflows, other wiki records, .github/allowed_signers) is left
+# for a human, and auto-merge is turned off if an earlier push had turned it on.
 #
 # pull_request_target runs this file from main with a write token, also for fork PRs, so
 # it must never check out or run the PR's code: it reads the PR's file list through the
@@ -50,7 +52,7 @@ jobs:
       # The files API lists at most this many files of a PR.
       MAX_LISTED: 3000
     steps:
-      - name: Auto-merge if the maintainer opened it, or every change is under wiki/
+      - name: Auto-merge if the maintainer opened it, or it only adds experiment records
         run: |
           set -euo pipefail
           # A fork's branch can be pushed by someone else, so only this repo's branches count.
@@ -82,10 +84,10 @@ jobs:
             echo "more than $MAX_LISTED files" > outside.txt
           fi
           if [ -s files.txt ] && [ ! -s changed.txt ] && [ ! -s outside.txt ] \
-            && ! grep -v '^wiki/' files.txt > outside.txt; then
+            && ! grep -v '^wiki/experiments/' files.txt > outside.txt; then
             # --match-head-commit: never auto-merge a commit whose files weren't listed.
             gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
-            echo "Auto-merge on: every change is under wiki/." >> "$GITHUB_STEP_SUMMARY"
+            echo "Auto-merge on: it only adds experiment records." >> "$GITHUB_STEP_SUMMARY"
           else
             if [ "$(gh pr view "$PR" --repo "$REPO" --json autoMergeRequest \
                   -q '.autoMergeRequest != null')" = true ]; then
