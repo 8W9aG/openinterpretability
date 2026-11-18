@@ -1,8 +1,9 @@
 """A unit's standing: what all of its experiments say now (``docs/PROTOCOL.md`` §3 step 9).
 
 The newest hypothesis counts, one reading per probe set, independent reviews outweigh
-self-reviews, and a majority of those readings decides. The unit is CONTESTED only when
-they split evenly between VERIFIED and not (issue #3212). An erratum
+self-reviews, and a majority of those readings decides. The unit is CONTESTED when they
+split evenly between VERIFIED and not (issue #3212). It is also CONTESTED when the newest
+hypothesis is not VERIFIED but an earlier one was (issue #4654). An erratum
 can set experiments aside (:mod:`openinterpretability.core.errata`). Also the
 registry-wide reviewer agreement those readings give. Derived, never stored.
 """
@@ -24,6 +25,7 @@ ROLES = {
     "remeasured": "re-measured since",
     "outweighed": "outweighed by an independent review",
     "earlier_hypothesis": "earlier hypothesis",
+    "contested_hypothesis": "earlier VERIFIED hypothesis, contested by a newer one",
     "set_aside": "set aside by an erratum",
 }
 
@@ -32,8 +34,11 @@ ROLES = {
 class Standing:
     """What a pole's experiments say now. Derived, never stored (``pole_standing``)."""
 
-    status: str  # VERIFIED, NEEDS_REVISION, REJECTED, or CONTESTED on an even split
+    status: str  # VERIFIED, NEEDS_REVISION, REJECTED or CONTESTED
     readings: list[Experiment]  # the experiments it rests on: those that agree first, newest first
+    # The lead of an earlier VERIFIED hypothesis that a newer, failed one contests (#4654).
+    # None when the unit is not contested, or is contested by an even split of readings.
+    prior: Experiment | None = None
 
     @property
     def lead(self) -> Experiment:
@@ -54,8 +59,13 @@ class Standing:
 
     @property
     def contested(self) -> bool:
-        """True when the readings split evenly between VERIFIED and not."""
+        """True when the standing is CONTESTED, by an even split or by a newer hypothesis."""
         return self.status == "CONTESTED"
+
+    @property
+    def contested_by_hypothesis(self) -> bool:
+        """True when a newer hypothesis failed after an earlier VERIFIED one (#4654)."""
+        return self.contested and self.prior is not None
 
     @property
     def agreeing(self) -> list[Experiment]:
@@ -108,6 +118,34 @@ def _majority(readings: list[Experiment]) -> Standing:
     return Standing(winners[0].record.verdict.status, winners + losers)
 
 
+def _claim_readings(newest: list[Experiment], claim: str) -> tuple[list, list]:
+    """Return ``(latest, counted)`` for one claim: steps 2 and 3 of :func:`pole_standing`.
+
+    ``latest`` is the newest reading per probe set. ``counted`` is those left after
+    independent reviews outweigh self-reviews.
+    """
+    latest = _readings([e for e in newest if e.claim == claim])
+    return latest, [e for e in latest if not e.record.self_reviewed] or latest
+
+
+def _verified_prior(newest: list[Experiment], current: str, introduced: dict) -> list | None:
+    """Return the counted readings of the newest earlier claim that is VERIFIED, or None.
+
+    Each earlier claim is scored by steps 2–4 on its own experiments. That is the status
+    that it had while it was the newest, because a later claim never adds readings to it.
+    """
+    earlier = sorted(
+        (e for claim, e in introduced.items() if claim != current),
+        key=lambda e: (e.record.verdict.timestamp, e.id),
+        reverse=True,
+    )
+    for first in earlier:
+        _, counted = _claim_readings(newest, first.claim)
+        if _majority(counted).verified:
+            return counted
+    return None
+
+
 def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     """Derive one pole's standing from all of its experiments, and set each one's ``role``.
 
@@ -119,6 +157,10 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
        the pole is VERIFIED. When most are not, the newest of those readings gives the
        status: NEEDS_REVISION against REJECTED is no disagreement about whether the claim
        holds. An even split between VERIFIED and not leaves the pole CONTESTED (#3212).
+    5. If step 4 gives a status other than VERIFIED, and an earlier hypothesis was
+       VERIFIED by steps 2–4, the pole is CONTESTED (#4654). A failed rival does not
+       overturn a verified claim, and the claim does not count while it is disputed.
+       A newer hypothesis that reaches VERIFIED settles it.
 
     Before step 1, experiments that an erratum sets aside are left out, unless that leaves
     none. Then the standing rests on them, and :attr:`Standing.errata` names the errata.
@@ -130,8 +172,7 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     newest = _newest_first(kept or experiments)
     introduced = {e.claim: e for e in reversed(newest)}  # each claim's first experiment
     current = max(introduced.values(), key=lambda e: (e.record.verdict.timestamp, e.id)).claim
-    latest = _readings([e for e in newest if e.claim == current])
-    readings = [e for e in latest if not e.record.self_reviewed] or latest
+    latest, readings = _claim_readings(newest, current)
     counted, read = {e.id for e in readings}, {e.id for e in latest}
     for e in newest:
         if e.claim != current:
@@ -143,6 +184,11 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
         else:
             e.role = "remeasured"
     standing = _majority(readings)
+    prior = None if standing.verified else _verified_prior(newest, current, introduced)
+    if prior:
+        for e in prior:
+            e.role = "contested_hypothesis"
+        standing = Standing("CONTESTED", standing.readings, prior=prior[0])
     for e in experiments:
         e.standing = standing
     return standing
