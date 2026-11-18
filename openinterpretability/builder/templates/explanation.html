@@ -12,6 +12,7 @@
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> / <a class="underline" href="{{ root }}{{ prompt.href }}">This prompt</a></nav>
 <h1 class="max-w-3xl text-2xl font-semibold">Why <span class="font-mono">{{ r.model_name }}</span> answers <span class="font-mono">{{ r.answer }}</span></h1>
 <p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ r.prompt }}</p>
+{% include "_answer_verdict.html" %}
 <p class="mt-2 text-xs text-slate-500">
   Written <time datetime="{{ r.written.isoformat() }}">{{ r.written.strftime("%Y-%m-%d %H:%M") }}</time> UTC with openinterpretability {{ r.package_version }}{% if r.narration %}, narrated by <span class="font-mono">{{ r.narration.narrator_model }}</span>{% endif %} ·
   <a class="underline" href="{{ repo_url }}/blob/main/{{ view.source }}">Source</a>

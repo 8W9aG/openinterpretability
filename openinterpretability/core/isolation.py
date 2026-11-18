@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from openinterpretability.core.answer_records import ANSWERS_WIKI
 from openinterpretability.core.paths import (
     DEFAULT_EXCHANGE_DIR,
     DEFAULT_SUBMISSIONS_DIR,
@@ -34,6 +35,7 @@ from openinterpretability.core.paths import (
 
 BLOCKED_DIRS = (
     experiments_dir(DEFAULT_WIKI_DIR),
+    DEFAULT_WIKI_DIR / ANSWERS_WIKI,  # answer records hold earlier claims' measures (#4778)
     DEFAULT_SUBMISSIONS_DIR,
     DEFAULT_EXCHANGE_DIR,
     Path("dist"),  # the built site (DIST_DIR in the Makefile)

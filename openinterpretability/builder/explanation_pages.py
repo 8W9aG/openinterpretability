@@ -9,9 +9,12 @@ An explanation is stale when a unit it cites has a different status now. For exa
 unit that was unstudied when it was written can have a VERIFIED record now. Its page says
 which units changed, so a reader knows that a newer explanation would say more.
 
-Each page shows the paragraph first, then the long form, then the mechanism with a link
-to each unit's page. ``explanations/index.html`` lists the prompts by model. The pages that
-were at ``explanations/<model>/<prompt id>.html`` before #4503 redirect to the prompt's page.
+Each page leads with the newest answer claim's verdict (#4778,
+:mod:`openinterpretability.core.answer_records`). The answer is understood only when a claim
+about how the model produces it is VERIFIED. Then the page shows the paragraph, the long
+form, and the mechanism with a link to each unit's page. ``explanations/index.html`` lists
+the prompts by model. The pages that were at ``explanations/<model>/<prompt id>.html``
+before #4503 redirect to the prompt's page.
 """
 
 from __future__ import annotations
@@ -77,6 +80,17 @@ class PromptView:
     """
 
     explanations: list[ExplanationView]  # newest first
+    answers: list = field(default_factory=list)  # AnswerRecord claims, oldest first (#4778)
+
+    @property
+    def answer(self):
+        """The newest answer claim, or None: the page leads with its verdict (#4778)."""
+        return self.answers[-1] if self.answers else None
+
+    @property
+    def understood(self) -> bool:
+        """True when a claim about how the model produces the answer is VERIFIED (#4778)."""
+        return any(a.verdict.status == "VERIFIED" for a in self.answers)
 
     @property
     def newest(self) -> ExplanationView:
@@ -141,6 +155,7 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     text is scrubbed of personal data, as the site publishes it.
     """
     from openinterpretability.builder.pii import scrub
+    from openinterpretability.core.answer_records import load as load_answers
     from openinterpretability.core.explanation_records import load_all
     from openinterpretability.planner import load_states
 
@@ -157,7 +172,9 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
         for v in views:
             v.previous = by_id.get(v.record.previous or "")
         views.sort(key=lambda v: v.record.written, reverse=True)
-        prompts.append(PromptView(views))
+        first = views[0].record
+        answers = load_answers(wiki_dir, first.model_name, first.prompt_id)
+        prompts.append(PromptView(views, [scrub(a) for a in answers]))
     return sorted(prompts, key=lambda p: p.record.written, reverse=True)
 
 

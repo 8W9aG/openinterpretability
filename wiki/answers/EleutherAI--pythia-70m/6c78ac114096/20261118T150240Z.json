@@ -1,0 +1,309 @@
+{
+ "claim": {
+  "model_name": "EleutherAI/pythia-70m",
+  "model_revision": null,
+  "prompt": "The sun rises in the",
+  "position": -1,
+  "answer": " sky",
+  "sources": [
+   " sun"
+  ],
+  "route": [
+   "L0/H0",
+   "L0/H1",
+   "L0/H2",
+   "L0/N513+",
+   "L0/N1335+",
+   "L0/N353+",
+   "L0/N1418+",
+   "L0/N1669+",
+   "L1/H6",
+   "L2/H3",
+   "L3/H3",
+   "L5/H7",
+   "L5/N1677+"
+  ],
+  "roles": {
+   "L0/H0": "Early mixing head: at ' sun' it attends mostly to 'The' and itself, and at the last position it spreads over the clause; it supplies context that the later copy heads read.",
+   "L0/H1": "At the last position it attends to ' in' (0.72) and ' rises' (0.22): it writes the locative-preposition frame that makes a place noun the next token.",
+   "L0/H2": "Early mixing head that spreads attention over 'The', ' sun' and the verb; it helps build the ' sun' and ' the' token features that the copy heads move.",
+   "L0/N513+": "Token detector that fires on ' sun' (1.24, mean -0.05): writes the 'sun' identity feature at the subject position.",
+   "L0/N1335+": "Token detector that fires on ' sun' (1.18) and nowhere else in the prompt: part of the 'sun' identity feature.",
+   "L0/N353+": "Token detector that fires on ' sun' (1.23) and nowhere else in the prompt: part of the 'sun' identity feature.",
+   "L0/N1418+": "Weaker ' sun' detector (0.45): part of the 'sun' identity feature.",
+   "L0/N1669+": "Fires on 'The'/' the' (3.02 at the last position): marks the final position as a determiner that must be followed by a noun.",
+   "L1/H6": "Copy head: at the last position it attends almost only to ' sun' (0.95) and moves the 'sun' feature to the position that predicts the answer.",
+   "L2/H3": "Most-recent-noun copier: at the last position it attends to ' sun' (0.52) and ' rises' (0.22) and writes the subject noun again.",
+   "L3/H3": "At the last position it rests on the first token; its effect on the answer comes from the earlier positions, where it reinforces the copied subject feature.",
+   "L5/H7": "Late head that turns the copied 'sun' + 'in the' context into the ' sky' logit at the last position.",
+   "L5/N1677+": "Fires at the final ' the' (0.97): a late pole that promotes a place noun after 'in the', including ' sky'."
+  },
+  "explanation": "Layer-0 token detectors (N513, N1335, N353, N1418) write a 'sun' identity feature at the subject position, and L0/N1669 marks the final ' the' as a determiner. Copy heads L1/H6 and L2/H3 move the 'sun' feature from ' sun' to the last position, while L0/H1 brings the ' in' frame there. L5/H7 and L5/N1677+ turn 'sun-like subject + in the' into ' sky'. Swap the subject for a non-sky noun and the copied feature changes, so the answer changes; swap it for another sky object (moon, stars, clouds) and the answer stays.",
+  "corrupted": "The price rises in the",
+  "counterfactuals": [
+   {
+    "prompt": "The moon rises in the",
+    "expect": "kept",
+    "why": "Source swap to another sky object: the copy heads move a 'sky-object' subject feature, so ' sky' stays the top token."
+   },
+   {
+    "prompt": "The sun sets in the",
+    "expect": "kept",
+    "why": "The verb is not a source; the subject ' sun' and the ' in the' frame are unchanged."
+   },
+   {
+    "prompt": "The clouds float in the",
+    "expect": "kept",
+    "why": "Source swap to another sky object; the copied subject still points to ' sky'."
+   },
+   {
+    "prompt": "The stars shine in the",
+    "expect": "kept",
+    "why": "Source swap to another sky object; ' sky' stays."
+   },
+   {
+    "prompt": "The car parks in the",
+    "expect": "changed",
+    "why": "Source swap to a ground object: the copy heads move a 'car' feature, so the top place noun is not ' sky'."
+   },
+   {
+    "prompt": "The fish swims in the",
+    "expect": "changed",
+    "why": "Source swap to a water animal: the copied subject points to ' water', not ' sky'."
+   },
+   {
+    "prompt": "The smoke rises in the",
+    "expect": "changed",
+    "why": "Same verb, but the copied subject 'smoke' points to ' air', so the answer changes; the subject, not the verb, decides it."
+   },
+   {
+    "prompt": "The sun rises on the",
+    "expect": "changed",
+    "why": "L0/H1 reads the preposition at the last position; ' on the' asks for a surface (' horizon'), not a container, so ' sky' loses the top spot."
+   }
+  ],
+  "attempt": 1,
+  "supersedes": null,
+  "submitting_agent_model": "claude-opus-5-5"
+ },
+ "probes": {
+  "prompts": [
+   {
+    "prompt": "The sun rises in the",
+    "expect": "kept",
+    "why": "Baseline: the claimed prompt itself."
+   },
+   {
+    "prompt": "The rainbow appears in the",
+    "expect": "kept",
+    "why": "Another sky object; the route should carry a sky-like subject."
+   },
+   {
+    "prompt": "The comet streaks across the",
+    "expect": "kept",
+    "why": "Sky object with a different frame; sky answer expected."
+   },
+   {
+    "prompt": "The planet glows in the",
+    "expect": "kept",
+    "why": "Celestial subject, same preposition frame."
+   },
+   {
+    "prompt": "The eagle soars in the",
+    "expect": "kept",
+    "why": "Sky-dwelling subject; the sun-like feature should still point to sky."
+   },
+   {
+    "prompt": "The sun, which was very bright and warm that morning, rises in the",
+    "expect": "kept",
+    "why": "Distractor clause between source and answer; the L1/H6 copy head should still find sun."
+   },
+   {
+    "prompt": "In the morning the sun slowly rises in the",
+    "expect": "kept",
+    "why": "Extra words and a changed word order before the source."
+   },
+   {
+    "prompt": "Every day the red sun rises in the",
+    "expect": "kept",
+    "why": "Adjective between determiner and source."
+   },
+   {
+    "prompt": "The sun sun sun rises in the",
+    "expect": "kept",
+    "why": "Repeated source token; detectors should still write the sun feature."
+   },
+   {
+    "prompt": "The kitchen rises in the",
+    "expect": "changed",
+    "why": "Non-sky noun swaps the copied feature."
+   },
+   {
+    "prompt": "The baker sleeps in the",
+    "expect": "changed",
+    "why": "Person subject; the claim says the answer changes with a non-sky noun."
+   },
+   {
+    "prompt": "The sun-dried tomatoes sit in the",
+    "expect": "changed",
+    "why": "Sun token in an unrelated sense; the copied feature is about food, so the answer should change."
+   },
+   {
+    "prompt": "The Sun newspaper is sold in the",
+    "expect": "changed",
+    "why": "Same token, other sense (newspaper); the claim should not carry it to sky."
+   },
+   {
+    "prompt": "The submarine dives in the",
+    "expect": "changed",
+    "why": "Sea subject, expect sea or ocean rather than sky."
+   },
+   {
+    "prompt": "The miner works in the",
+    "expect": "changed",
+    "why": "Place frame without a sky noun; answer should move to a work place."
+   },
+   {
+    "prompt": "The sun rises in a",
+    "expect": "changed",
+    "why": "Removing the final ' the' loses the L0/N1669 determiner marker and the L5/N1677 pole, so the sky answer should change."
+   },
+   {
+    "prompt": "The sun rises in the east and sets in the",
+    "expect": "changed",
+    "why": "Earlier ' the' gives a strong east/west alternative; the route is not claimed to yield sky here, so the top token should move to west."
+   },
+   {
+    "prompt": "Sun the in rises The",
+    "expect": "changed",
+    "why": "Scrambled word order breaks the frame; the last position no longer follows 'in the'."
+   },
+   {
+    "prompt": "The sun rises in the sky. The moon sets in the",
+    "expect": "kept",
+    "why": "Long-ish context where sky is already in the prompt, and the sun feature plus moon feature should still give sky; also a repetition control."
+   },
+   {
+    "prompt": "The sun is not a fish. The fish swims in the",
+    "expect": "changed",
+    "why": "Sun appears as a distractor but the nearest subject is fish; the route's copy heads should carry fish, changing the answer."
+   }
+  ],
+  "reviewer_agent_model": "claude-sonnet-5-5"
+ },
+ "verdict": {
+  "status": "VERIFIED",
+  "gates": {
+   "necessity": true,
+   "beats_null": true,
+   "sufficiency": true,
+   "patching": true,
+   "patching_null": true,
+   "controls": true,
+   "probes": true
+  },
+  "policy": {
+   "min_necessity": 0.5,
+   "null_factor": 3.0,
+   "null_sets": 8,
+   "min_sufficiency": 0.5,
+   "min_patching": 0.5,
+   "max_null_patching": 0.1,
+   "min_controls": 1.0,
+   "min_probes": 0.8,
+   "protocol_version": "1.0"
+  },
+  "measures": {
+   "clean": -2.8034913539886475,
+   "all_cut": 7.443216562271118,
+   "route_cut": 5.460855722427368,
+   "null_cuts": [
+    0.29058218002319336,
+    0.22420191764831543,
+    1.6317980289459229,
+    0.7295429706573486,
+    0.3536710739135742,
+    0.34220457077026367,
+    1.9283745288848877,
+    0.5247323513031006
+   ],
+   "sufficiency": 0.5356020204673977,
+   "corrupted_gap": 2.9635050296783447,
+   "patching": 0.8645540196370975,
+   "null_patching": [
+    0.11281375200213743,
+    -0.0589587590058473,
+    0.1995411687084332,
+    0.12394663777275992,
+    -0.08653626381866027,
+    0.05232681576538268,
+    0.2738780809826932,
+    0.04787390281178979
+   ],
+   "controls": {
+    "The moon rises in the": true,
+    "The sun sets in the": true,
+    "The clouds float in the": true,
+    "The stars shine in the": true,
+    "The car parks in the": true,
+    "The fish swims in the": true,
+    "The smoke rises in the": true,
+    "The sun rises on the": true
+   },
+   "probes": {
+    "The sun rises in the": true,
+    "The rainbow appears in the": true,
+    "The comet streaks across the": true,
+    "The planet glows in the": true,
+    "The eagle soars in the": true,
+    "The sun, which was very bright and warm that morning, rises in the": true,
+    "In the morning the sun slowly rises in the": true,
+    "Every day the red sun rises in the": true,
+    "The sun sun sun rises in the": true,
+    "The kitchen rises in the": true,
+    "The baker sleeps in the": true,
+    "The sun-dried tomatoes sit in the": true,
+    "The Sun newspaper is sold in the": true,
+    "The submarine dives in the": true,
+    "The miner works in the": true,
+    "The sun rises in a": true,
+    "The sun rises in the east and sets in the": true,
+    "Sun the in rises The": true,
+    "The sun rises in the sky. The moon sets in the": true,
+    "The sun is not a fish. The fish swims in the": true
+   },
+   "top_tokens": {
+    "The moon rises in the": " sky",
+    "The sun sets in the": " sky",
+    "The clouds float in the": " sky",
+    "The stars shine in the": " sky",
+    "The car parks in the": " area",
+    "The fish swims in the": " water",
+    "The smoke rises in the": " air",
+    "The sun rises on the": " horizon",
+    "The sun rises in the": " sky",
+    "The rainbow appears in the": " sky",
+    "The comet streaks across the": " sky",
+    "The planet glows in the": " sky",
+    "The eagle soars in the": " sky",
+    "The sun, which was very bright and warm that morning, rises in the": " sky",
+    "In the morning the sun slowly rises in the": " sky",
+    "Every day the red sun rises in the": " sky",
+    "The sun sun sun rises in the": " sky",
+    "The kitchen rises in the": " middle",
+    "The baker sleeps in the": " room",
+    "The sun-dried tomatoes sit in the": " center",
+    "The Sun newspaper is sold in the": " United",
+    "The submarine dives in the": "\n",
+    "The miner works in the": " same",
+    "The sun rises in a": " few",
+    "The sun rises in the east and sets in the": " west",
+    "Sun the in rises The": " moon",
+    "The sun rises in the sky. The moon sets in the": " sky",
+    "The sun is not a fish. The fish swims in the": " water"
+   }
+  },
+  "reviewer_agent_model": "claude-sonnet-5-5",
+  "timestamp": "2026-11-18T15:02:40.268382Z"
+ }
+}
