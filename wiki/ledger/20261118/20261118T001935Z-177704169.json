@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-18T00:19:35Z","seed":177704169,"kind":"opposite_pole","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L19/N4178-positive","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L19/N4178-negative/20261029T185055Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 19 --neuron 4178 --pole positive","pole_forced":null,"harness_version":"0.1.0"}
