@@ -81,11 +81,14 @@ def test_a_failed_causal_gate_rejects(change, gate):
 
 
 def test_attempts_stop_at_a_verified_claim_or_the_cap():
-    rejected = _record(_measures(patching=0.0))
+    def rejected(attempt=1):
+        return _record(_measures(patching=0.0), attempt=attempt)
+
     assert ar.next_attempt([]) == 1
-    assert ar.next_attempt([rejected] * 2) == 3
-    assert ar.next_attempt([rejected] * ar.MAX_ATTEMPTS) is None
-    assert ar.next_attempt([rejected, _record()]) is None
+    assert ar.next_attempt([rejected(1), rejected(2)]) == 3
+    assert ar.next_attempt([rejected(1)] * 2) == 2  # a re-measure is not an attempt (#4917)
+    assert ar.next_attempt([rejected(i + 1) for i in range(ar.MAX_ATTEMPTS)]) is None
+    assert ar.next_attempt([rejected(), _record(attempt=2)]) is None
 
 
 def test_check_rederives_each_verdict_and_its_path(tmp_path):
@@ -144,6 +147,16 @@ def test_review_measures_a_route_on_a_real_architecture(gpt2, means):
     assert set(m.controls) == set("wxyz") and len(m.probes) == 10
     assert record.verdict.status in ("VERIFIED", "NEEDS_REVISION", "REJECTED")
     assert ar.decide(m, record.verdict.policy) == (record.verdict.status, record.verdict.gates)
+    # The route on every prompt (#4917): the original, the 4 controls and the 10 probes.
+    assert set(m.readings) == {"abcd", *"wxyz", *(f"q{i}" for i in range(10))}
+    original = m.readings["abcd"]
+    assert original.tokens and set(original.strength) == {"L0/H1", "L1/N3+"}
+    assert len(original.strength["L0/H1"]) == len(original.tokens) == 4
+    assert original.strength["L1/N3+"][0] == 0.0 and original.patched_log_prob is None
+    assert all(min(v) >= 0 for v in original.strength.values())
+    assert {e["source"] for e in original.edges} <= {"L0/H1", "L1/N3+"}
+    one = m.readings["w"]  # one token: nothing past the first to attribute
+    assert set(one.attribution.values()) == {0.0} and one.edges == []
     assert len(every_unit(gpt2, means)) == 2 * (2 * 128 + 2)  # 2 layers, 128 neurons, 2 heads
     # Patching every unit from the prompt itself changes nothing.
     from openinterpretability.explain_coverage import _log_prob
@@ -168,7 +181,7 @@ def test_the_plan_lists_the_next_attempt_until_the_cap(tmp_path):
     assert step["status"] == "unstudied" and "attempt 1 of at most 5" in step["reason"]
     assert any("answers review " in c and "answer-1.probes.json" in c for c in step["commands"])
     for i in range(ar.MAX_ATTEMPTS):
-        r = _record(_measures(patching=0.0), datetime(2026, 11, 18, i, tzinfo=UTC))
+        r = _record(_measures(patching=0.0), datetime(2026, 11, 18, i, tzinfo=UTC), attempt=i + 1)
         path = ar.record_path(tmp_path, r)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(r.model_dump_json())
@@ -249,3 +262,68 @@ def test_the_narrator_reads_the_answer_claim_and_may_cite_its_route(tmp_path):
     assert check_citations(narrative, ev) == ["L9/H9"]
     ev["minimal_set"] = ["L9/H9"]  # a unit of the minimal set is in the evidence too
     assert check_citations(narrative, ev) == []
+
+
+def test_the_page_draws_the_route_on_every_prompt(gpt2, means, tmp_path, record):
+    """Each prompt's route measures and figure are on the answer page (#4905, #4917)."""
+    from openinterpretability.answer_review import review
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.builder.explanation_pages import load_views
+    from tests.test_explanation_records import _record as explanation
+    from tests.test_explanation_records import _write
+
+    e = explanation(datetime(2026, 11, 17, tzinfo=UTC))
+    _write(tmp_path / "wiki", e)
+    claim = _claim(model_name=e.model_name, prompt="abcd", position=e.position,
+                   counterfactuals=[ar.Counterfactual(prompt=p, expect="kept")
+                                    for p in ("abce", "abcf", "xbcd", "ab")])  # fmt: skip
+    r = review(gpt2, means, claim, _probes(), ar.AnswerPolicy(null_sets=2))
+    # Put it under the explanation's prompt, so the explanation pages list it.
+    r = r.model_copy(update={"claim": r.claim.model_copy(update={"prompt": e.prompt})})
+    readings = dict(r.verdict.measures.readings)
+    readings[e.prompt] = readings.pop("abcd")  # the original is keyed by the claim's prompt
+    measures = r.verdict.measures.model_copy(update={"readings": readings})
+    r = r.model_copy(update={"verdict": r.verdict.model_copy(update={"measures": measures})})
+    path = ar.record_path(tmp_path / "wiki", r)
+    path.parent.mkdir(parents=True)
+    path.write_text(r.model_dump_json())
+    (prompt,) = load_views(tmp_path / "wiki", states={})
+    compile_site([record], tmp_path / "site", explanations=[prompt])
+    page = (tmp_path / "site" / prompt.answers[0].href).read_text()
+    folder = tmp_path / "site" / prompt.answers[0].href.removesuffix(".html")
+    figures = sorted(p.name for p in folder.glob("fig-route-*.svg"))
+    assert len(figures) == 2 * len(readings)  # each prompt: a moving and a still copy
+    assert "The route at work" in page and page.count("The route on this prompt") == 14
+    assert "route share" in page and "patched in" in page  # "abce" has the original's length
+    moving = (folder / "fig-route-0.svg").read_text()
+    assert "@keyframes" in moving and "<rect" in moving  # it moves, and the head is a square
+    assert "animation:none" in (folder / "fig-route-0-static.svg").read_text()
+    # The 3D explorer: its data is on the page, and three.js loads only when started.
+    import json
+    import re
+
+    data = json.loads(re.search(r'id="route3d-data">(.*?)</script>', page, re.S)[1])
+    assert len(data["prompts"]) == len(readings) and data["prompts"][0]["by"] == "original"
+    assert {u["unit"] for u in data["units"]} == {"L0/H1", "L1/N3+"}
+    assert "three@0.169.0" in page and 'type="importmap"' in page and 'id="route3d-start"' in page
+
+
+def test_the_lens_and_spectrum_follow_the_layers_on_shared_axes(gpt2, means):
+    """Each prompt's last token through the layers (#4917): one row per layer, shared axes."""
+    from openinterpretability.answer_review import review
+
+    m = review(gpt2, means, _claim(), _probes(), ar.AnswerPolicy(null_sets=1)).verdict.measures
+    first = m.readings["abcd"]
+    assert len(first.lens) == len(first.spectrum) == 3  # the embedding and 2 layers
+    names = set(first.lens[0])
+    assert all(set(row) == names for r in m.readings.values() for row in r.lens)
+    assert "e" in names  # the claim's answer is always a candidate
+    assert all(0 <= v <= 1 for row in first.lens for v in row.values())
+    width = len(first.spectrum[0][0])  # [layer][token][direction]
+    assert all(len(layer) == len(r.tokens) for r in m.readings.values() for layer in r.spectrum)
+    assert all(len(tok) == width for r in m.readings.values() for layer in r.spectrum
+               for tok in layer)  # fmt: skip
+    # Switching units off: the whole route on every prompt, each unit on the original.
+    assert all(r.route_off and len(r.route_off.lens) == 3 for r in m.readings.values())
+    assert set(first.unit_off) == {"L0/H1", "L1/N3+"} and not m.readings["w"].unit_off
+    assert first.route_off.lens[-1] != first.lens[-1]  # switching the route off changes it
