@@ -31,11 +31,23 @@ if TYPE_CHECKING:
     from openinterpretability.core.errata import Erratum
 
 
+# The submission's fields that only a unit's pages and the Parquet export read, emptied.
+UNIT_PAGE_ONLY = {
+    "top_examples": [],
+    "opposite_pole": None,
+    "confounds": None,
+    "input_attribution": None,
+    "correlated_neurons": [],
+    "patchscope": None,
+    "steering": None,
+    "wordnet_specificity": None,
+    "vocabulary_lens": None,
+}
+
+
 def slim(record: AuditRecord) -> AuditRecord:
     """Return a copy of ``record`` without the evidence that only its unit's pages read."""
-    sub = record.submission.model_copy(
-        update={"top_examples": [], "opposite_pole": None, "confounds": None}
-    )
+    sub = record.submission.model_copy(update=UNIT_PAGE_ONLY)
     verdict = record.verdict
     scores = verdict.explanation_scores if verdict else None
     if scores is not None:
