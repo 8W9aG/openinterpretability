@@ -40,6 +40,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from openinterpretability.builder.slim import full_records
 from openinterpretability.builder.tree import SIDES, Experiment, mlp_widths
 from openinterpretability.core.confounds import MATCH_LABEL_SETS, NO_MATCH
 from openinterpretability.core.schemas import AuditRecord, CorpusSource
@@ -374,8 +375,7 @@ def _balanced(score) -> float | None:
 UNIT_INDEX_COLUMNS = ("neuron_idx", "head_idx", "feature_idx")  # a superposition has none
 
 
-# Rows per Arrow batch. Only one batch's ``record_json`` strings are in Python at a time.
-BATCH_ROWS = 256
+BATCH_ROWS = 256  # rows per Arrow batch: one batch's full records are in memory at a time
 
 
 def records_to_table(
@@ -389,18 +389,18 @@ def records_to_table(
     the registry's JSON is never all in Python at once: that took about 3 GiB (#4652).
     """
     widths = mlp_widths(e.record for e in experiments)
-    rows = [(_with_width(experiment_row(e, corpus_sources, with_json=False), widths), e)
-            for e in experiments]  # fmt: skip
-    rows.sort(key=lambda pair: _row_order(pair[0]))
+    rows = sorted(((experiment_row(e, corpus_sources, with_json=False), e) for e in experiments),
+                  key=lambda pair: _row_order(pair[0]))  # fmt: skip
     schema = REGISTRY_SCHEMA
     if not with_json:
         schema = schema.remove(schema.get_field_index("record_json"))
     batches = []
     for start in range(0, len(rows), BATCH_ROWS):
-        chunk = rows[start : start + BATCH_ROWS]
-        if with_json:
-            chunk = [(row | {"record_json": e.record.model_dump_json()}, e) for row, e in chunk]
-        batches.append(pa.RecordBatch.from_pylist([row for row, _ in chunk], schema=schema))
+        chunk = [e for _, e in rows[start : start + BATCH_ROWS]]
+        with full_records(chunk):  # a slim record lacks some columns' evidence (slim.py)
+            full = [_with_width(experiment_row(e, corpus_sources, with_json=with_json), widths)
+                    for e in chunk]  # fmt: skip
+        batches.append(pa.RecordBatch.from_pylist(full, schema=schema))
     # One chunk per column, so the file is written as it was from one list of rows.
     return pa.Table.from_batches(batches, schema=schema).combine_chunks()
 

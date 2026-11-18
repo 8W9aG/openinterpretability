@@ -243,6 +243,7 @@ def scrub_experiments(experiments: Sequence[Any]) -> None:
     """
     for e in experiments:
         e.record = scrub_record(e.record)
+        e.scrubbed = True  # a full record loaded later is scrubbed too (builder/slim.py)
         e.errata, e.edits = scrub_errata(e.errata, e.edits)
 
 
