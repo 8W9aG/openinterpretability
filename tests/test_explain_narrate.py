@@ -95,3 +95,31 @@ def test_cli_narrates_a_paragraph(toy_runner, tmp_path, monkeypatch):
         "C99"
     ]
     assert as_json["evidence"]["units"] and as_json["narrative"]["paragraph"]
+
+
+def test_record_at_the_long_level_asks_the_narrator_once(toy_runner, tmp_path, monkeypatch):
+    """``explain --record --level long`` narrates once, and records that narration (#4623)."""
+    from openinterpretability.cli import cli
+    from openinterpretability.core.explanation_records import load_all
+
+    asked = []
+
+    def narrate(self, ev):
+        asked.append(ev)
+        return _story(f"Narration {len(asked)}.")
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setattr(Narrator, "narrate", narrate)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    wiki = tmp_path / "wiki"
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(wiki), "--edges", "0", "--level", "long",
+            "--narrator-model", "anthropic/x", "--record", "--no-land"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    assert len(asked) == 1
+    (((_, record),),) = load_all(wiki).values()
+    assert record.narration.paragraph == "Narration 1."

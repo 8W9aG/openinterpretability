@@ -339,7 +339,9 @@ def _review_kinds(state: NeuronState, c: _Commands) -> list[Kind]:
         *c.revise,
         "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>",
     ]
-    if state.contested:
+    if state.contested_hypothesis:  # a newer hypothesis failed after a VERIFIED one (#4654)
+        kinds.append(("revise", "contested; submit one that addresses both", resubmit, None))
+    elif state.contested:
         why = "its reviews split evenly between VERIFIED and not; one more settles it"
         kinds.append(("resolve", why, [c.review], None))
     elif verdict.status == "NEEDS_REVISION":
