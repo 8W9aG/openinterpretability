@@ -215,6 +215,7 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
         MAX_ATTEMPTS,
         load,
         next_attempt,
+        summary,
         working_dir,
     )
     from openinterpretability.core.explanation_records import prompt_id
@@ -222,7 +223,8 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
     pid = prompt_id(model, position, prompt)
     records = load(wiki_dir, model, pid)
     newest = records[-1].verdict.status if records else "unstudied"
-    out = {"prompt_id": pid, "status": newest, "attempts": len(records), "commands": []}
+    out = {"prompt_id": pid, "status": newest, "attempts": len(records), "commands": [],
+           "newest": summary(records[-1]) if records else None}  # fmt: skip
     attempt = next_attempt(records)
     if newest == "VERIFIED":
         return out | {"reason": "a claim is VERIFIED"}

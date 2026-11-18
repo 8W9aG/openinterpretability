@@ -212,3 +212,26 @@ def test_the_page_leads_with_the_answer_verdict(tmp_path, record):
         html = (tmp_path / "site" / page).read_text()
         assert "Answer understood: a route claim is VERIFIED" in html
         assert "L0/H1 → L1/N3+" in html and "REJECTED" in html and "patching" in html
+    newest = (tmp_path / "site" / prompt.newest.href).read_text()
+    assert "the VERIFIED route claim above does" in newest
+
+
+def test_the_narrator_reads_the_answer_claim_and_may_cite_its_route(tmp_path):
+    from types import SimpleNamespace
+
+    from openinterpretability.explain_narrate import _answer, check_citations
+    from openinterpretability.explain_plan import answer_step
+
+    r = _record()
+    path = ar.record_path(tmp_path, r)
+    path.parent.mkdir(parents=True)
+    path.write_text(r.model_dump_json())
+    step = answer_step(tmp_path, r.claim.model_name, r.claim.prompt, -1, "e", {})
+    told = _answer(step)
+    assert told["status"] == "VERIFIED" and told["route"] == ["L0/H1", "L1/N3+"]
+    assert told["claim"] != r.claim.explanation and r.claim.explanation in told["claim"]  # fenced
+    assert _answer(None) == {"status": "unstudied", "attempts": 0}
+    ev = {"units": [], "groups": [], "next_experiments": [], "paths": [],
+          "answer_experiment": told}  # fmt: skip
+    narrative = SimpleNamespace(paragraph="L1/N3+ writes it; L9/H9 too.", sections=[])
+    assert check_citations(narrative, ev) == ["L9/H9"]

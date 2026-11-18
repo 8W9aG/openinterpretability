@@ -53,9 +53,15 @@ explained, the honest text is mostly "this is not known yet". Say so plainly. Wh
 coverage_caution is true, never call the answer explained or understood: say that keeping \
 the units brings the answer back, which shows they are sufficient on this prompt, not how \
 they produce it. Use heads_only, poles_only and the minimal set to say which units matter.
-5. End the long form with what is not known yet, and cite the next experiments from the \
+5. answer_experiment is the newest claim about how the model produces this answer: a route \
+from the sources through units to the answer, tested by ablation, patching and a reviewer's \
+prompts. Call the answer understood only when its status is VERIFIED. Then describe the \
+route in order, cite its units and give its necessity, sufficiency and patching. A VERIFIED \
+claim is about this prompt only. Any other status means how the answer is produced is not \
+known yet, whatever the coverage.
+6. End the long form with what is not known yet, and cite the next experiments from the \
 evidence that would explain it.
-6. Shares are of first-order attribution on this prompt. A VERIFIED explanation describes \
+7. Shares are of first-order attribution on this prompt. A VERIFIED explanation describes \
 its unit on a scan corpus, so it may not cover this prompt. Say so if you rely on one.
 
 {FENCE_RULE}"""
