@@ -129,13 +129,13 @@ jobs:
         # the cap, the kernel stops only the build, and the step fails at once with an
         # out-of-memory error. With no cap, the kernel killed the runner agent too, and
         # the run hung for about 45 minutes with no reason in the log.
-        # With the default 4 jobs, the build's process memory peaked at 14.0 GiB, and one
-        # deploy went above the cap (#4737). With --jobs 1 (no forks) it peaked at
-        # 8.6 GiB, in 9.6 minutes against 5. The warning above 11G shows when that
-        # headroom runs out. Remove --jobs 1 when the build streams its records (#4652).
+        # The build holds each record slim and streams the Parquet (#4652). With --jobs 1
+        # its process memory peaked at 1.9 GiB, down from 14.0 GiB with 4 jobs before
+        # (#4737). It runs with its default jobs again. The warning above 3G shows a
+        # regression early. The cap stays until the default-jobs peak is measured.
         run: |
-          scripts/capped.sh 14.5G 11G -- \
-            open-interpretability build --wiki-dir wiki --output-dir dist --jobs 1
+          scripts/capped.sh 14.5G 3G -- \
+            open-interpretability build --wiki-dir wiki --output-dir dist
           python -m openinterpretability.builder.css --site dist
           python -m pagefind --site dist
       - name: Sync to R2
