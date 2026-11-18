@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-18T11:40:04Z","seed":3781871838,"kind":"rescan","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L8/N2126-positive","record":"wiki/experiments/Qwen--Qwen2.5-0.5B/L8/N2126-positive/20261027T150836Z.json","audit":"--model Qwen/Qwen2.5-0.5B --layer 8 --neuron 2126 --pole positive","pole_forced":null,"harness_version":"0.2.0"}
