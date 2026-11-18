@@ -13,9 +13,11 @@ from types import SimpleNamespace
 
 import click
 
+from openinterpretability import explain_plan
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
 from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
+from openinterpretability.hubs import hub_line, mark_hubs
 
 
 @cli.command(name="explain")
@@ -118,9 +120,15 @@ def explain_command(  # long-function: one argument per option, then one line pe
         found = _analyse(runner, means, ask, Path(wiki_dir))
         ran = ran.model_copy(update={"share_after": found.coverage.get("coverage") or 0.0})
     result, planned, coverage = found.result, found.planned, found.coverage
-    told = _narrate(result, coverage, planned, narrator_model) if level != "mechanism" else {}
+    told = {}
+    if level != "mechanism":
+        told = _narrate(result, coverage, planned, narrator_model, found.answer)
     if as_json:
-        out = _as_json(result, planned, show) | {"coverage": coverage, "coverage_plan": found.reach}
+        out = _as_json(result, planned, show) | {
+            "coverage": coverage,
+            "coverage_plan": found.reach,
+            "answer_experiment": found.answer,
+        }
         click.echo(
             json.dumps(out | told | {"run": ran and ran.model_dump()}, indent=1, default=str)
         )
@@ -128,6 +136,7 @@ def explain_command(  # long-function: one argument per option, then one line pe
         _print(result)
         _print_coverage(coverage)
         _print_plan(planned, show, found.reach)
+        click.echo("\n".join(explain_plan.answer_lines(found.answer)))
     if not as_json:
         _print_narrative(told, level)
     if write_record:
@@ -163,7 +172,7 @@ def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
 
     ``explain --run`` calls it twice: to plan the run, and after it (#4474).
     """
-    from openinterpretability import explain_groups, explain_plan
+    from openinterpretability import explain_groups
     from openinterpretability.explain import explain, registry_labels
     from openinterpretability.explain_coverage import (
         POOL,
@@ -192,35 +201,11 @@ def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
     add_gains(*args, planned, pool=max(POOL, ask.show))  # rank the experiments by coverage gained
     target = explain_plan.TARGET if ask.target is None else ask.target
     reach = coverage_plan(*args, planned, target)  # the target is causal coverage (#4476)
+    answer = explain_plan.answer_step(
+        wiki_dir, model, ask.prompt, ask.position, result.token, coverage
+    )  # how the units make the answer (#4778)
     return SimpleNamespace(result=result, planned=planned, coverage=coverage, groups=groups,
-                           reach=reach)  # fmt: skip
-
-
-def mark_hubs(result, model: str, states: dict) -> None:
-    """Set ``hub`` on each top unit that is a hub's center (#4472)."""
-    from openinterpretability.explain import _slug
-    from openinterpretability.hubs import explain_notes
-
-    notes = explain_notes(model, states)
-    for unit in result.poles:
-        note = notes.get(_slug(model, unit.key))
-        unit.hub = note.model_dump() if note is not None else None
-
-
-def hub_line(hub: dict) -> str:
-    """One line on a unit that is a hub's center: its id, page and artefact facts."""
-    facts = []
-    if hub.get("active_share") is not None:
-        on = "default-on" if hub.get("default_on") else "not default-on"
-        facts.append(f"{on}, active on {hub['active_share']:.0%} of its scan")
-    if hub.get("norm") is not None:
-        facts.append(f"output norm {hub['norm']:.3g} against its layer's median "
-                     f"{hub['layer_median']:.3g} (p{100 * hub['percentile']:.0f})")  # fmt: skip
-    from openinterpretability.core.project import project_links
-
-    told = "; ".join(facts) or "no facts recorded"
-    url = project_links()["site_url"] + hub["href"]
-    return f"hub {hub['hub']} ({url}): {told}. A hub can be an artefact."
+                           reach=reach, answer=answer)  # fmt: skip
 
 
 def _answer(runner, token: str | None) -> int | None:
@@ -401,14 +386,14 @@ def _print_coverage(coverage: dict) -> None:
                    "the answer above the clean model, so the credit stops at 100%.")  # fmt: skip
 
 
-def _narrate(result, coverage, planned, model: str | None) -> dict:
+def _narrate(result, coverage, planned, model: str | None, answer: dict | None = None) -> dict:
     """The narrator's long form and paragraph, the evidence it read, and its checks (#3743)."""
     from openinterpretability.agents.base import DEFAULT_MODEL
     from openinterpretability.agents.narrator import Narrator
     from openinterpretability.core import costs
     from openinterpretability.explain_narrate import check_citations, evidence
 
-    ev = evidence(result, coverage, planned)
+    ev = evidence(result, coverage, planned, answer=answer)
     narrator = Narrator(model or DEFAULT_MODEL)
     costs.reset()  # so that the costs below are the narrator's alone
     narrative = narrator.narrate(ev)

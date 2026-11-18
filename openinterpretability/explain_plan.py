@@ -201,3 +201,51 @@ def _circuit(g, status, states, model, window, slugs, now):  # noqa: ARG001
         f"--probes {files}/probes.json",
     ]
     return "circuit", why, commands
+
+
+def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
+                coverage: dict) -> dict:  # fmt: skip
+    """The answer experiment that the plan lists last (#4778, ``core/answer_records.py``).
+
+    Units say what each part of the model does. An answer claim says how they make this
+    answer. So it is planned once some units are explained, which gives a minimal set. The
+    attempts go on until one claim is VERIFIED, or ``MAX_ATTEMPTS`` claims are on record.
+    """
+    from openinterpretability.core.answer_records import (
+        MAX_ATTEMPTS,
+        load,
+        next_attempt,
+        summary,
+        working_dir,
+    )
+    from openinterpretability.core.explanation_records import prompt_id
+
+    pid = prompt_id(model, position, prompt)
+    records = load(wiki_dir, model, pid)
+    newest = records[-1].verdict.status if records else "unstudied"
+    out = {"prompt_id": pid, "status": newest, "attempts": len(records), "commands": [],
+           "newest": summary(records[-1]) if records else None}  # fmt: skip
+    attempt = next_attempt(records)
+    if newest == "VERIFIED":
+        return out | {"reason": "a claim is VERIFIED"}
+    if attempt is None:
+        return out | {"reason": f"blocked: {MAX_ATTEMPTS} claims, none VERIFIED"}
+    if not coverage.get("minimal_units"):
+        return out | {"reason": "no explained units yet: explain the units first"}
+    folder = working_dir(pid).as_posix()
+    out["commands"] = [
+        f"open-interpretability answers propose-prompt {shlex.quote(prompt)} --model {model} "
+        f"--position {position} --answer {shlex.quote(answer)}",
+        f"open-interpretability answers review-prompt --claim {folder}/claim-{attempt}.json",
+        f"open-interpretability answers review --claim {folder}/claim-{attempt}.json "
+        f"--probes {folder}/answer-{attempt}.probes.json",
+    ]
+    why = (f"attempt {attempt} of at most {MAX_ATTEMPTS}: the answer-proposer and "
+           "answer-reviewer agents write the claim and the probes")  # fmt: skip
+    return out | {"reason": why}
+
+
+def answer_lines(step: dict) -> list[str]:
+    """How the plan prints :func:`answer_step`."""
+    lines = [f"Answer experiment: {step['status']}, {step['attempts']} claims; {step['reason']}."]
+    return lines + [f"    $ {command}" for command in step["commands"]]
