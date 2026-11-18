@@ -138,11 +138,11 @@ def sister_graphs(model, rows: dict, studied: set) -> list[dict]:
     for other, edges in _edges(model.name, rows).items():
         n_a = depths.get(model.name) or model.n_layers
         n_b = depths.get(other) or 1 + max(_layer(e.b) for e in edges.values())
-        panels.append(_panel(model, other, list(edges.values()), (n_a, n_b), studied))
+        panels.append(_panel(other, list(edges.values()), (n_a, n_b), studied))
     return sorted(panels, key=lambda p: (-p["n_sisters"], p["other"]))
 
 
-def _panel(model, other: str, edges: list[_Edge], depth: tuple[int, int], studied) -> dict:
+def _panel(other: str, edges: list[_Edge], depth: tuple[int, int], studied) -> dict:
     """One other model's panel: nodes, lines (weakest first, sisters last) and sisters."""
     (xa, xb), (n_a, n_b) = COLUMNS, depth
     nodes = {

@@ -187,7 +187,8 @@ class TargetedDraws:
     started: int = 0
     shares: list = field(default_factory=list)  # each measured share, for the page (#4479)
 
-    def __call__(self, wiki_dir: Path, *, epsilon: float = 0.0, claims=()):
+    def __call__(self, wiki_dir: Path, *, epsilon: float = 0.0, claims=()):  # noqa: ARG002
+        # The keywords of planner.plan_next, so the loop calls either one the same way.
         """The next experiment for the first target that needs one, as a planner ``Plan``."""
         from openinterpretability.planner import Plan, claim_key, load_states, stopped
 

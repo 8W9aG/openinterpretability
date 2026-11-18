@@ -57,7 +57,7 @@ def _unit(rows: torch.Tensor) -> torch.Tensor:
     return rows / rows.norm(dim=-1, keepdim=True).clamp_min(1e-12)
 
 
-def latent_writes(runner: NeuronHookRunner, spec: DictionarySpec, layer: int, d: Dictionary):
+def latent_writes(runner: NeuronHookRunner, layer: int, d: Dictionary):
     """Each latent's write ``[n, d_model]``, in the space a pole writes to."""
     if runner.mlp_write(layer) is not runner.down_proj(layer):
         # Gemma 2 normalises the MLP's output, and its dictionaries decode after that norm.
@@ -168,7 +168,7 @@ def align_layer(
     poles = list(poles)
     device = runner.device
     d = load_spec(spec, layer, device)
-    writes = _unit(latent_writes(runner, spec, layer, d))
+    writes = _unit(latent_writes(runner, layer, d))
     w_out = _matrix(runner.down_proj(layer)).T.to(device)  # [width, d_model]
     write_null = _null(runner, layer, writes, "write")
     by_write, write_best = _align({"out": w_out}, writes, poles, k)

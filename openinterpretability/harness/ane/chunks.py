@@ -87,7 +87,7 @@ def part(model: nn.Module, name: str, revision: str | None, start: int, last: in
     from openinterpretability.harness.memory import is_streamed
 
     if is_streamed(model):
-        return _from_checkpoint(model, name, revision, start, last)
+        return _from_checkpoint(name, revision, start, last)
     return _from_memory(model, start, last).to("cpu", torch.float32)
 
 
@@ -112,8 +112,8 @@ def _from_memory(model: nn.Module, start: int, last: int) -> nn.Module:
         model.set_output_embeddings(head)
 
 
-def _from_checkpoint(model, name: str, revision: str | None, start: int, last: int):
-    """An empty copy of ``model``'s architecture, with the chunk's weights from the checkpoint."""
+def _from_checkpoint(name: str, revision: str | None, start: int, last: int):
+    """An empty copy of ``name``'s architecture, with the chunk's weights from the checkpoint."""
     from safetensors import safe_open
 
     from openinterpretability.harness.memory import _empty_model, _snapshot

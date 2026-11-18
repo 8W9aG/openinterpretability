@@ -98,7 +98,7 @@ def read_sides(runner, fit, test, layer: int, keep_fit=None, keep_test=None) -> 
     }
     for draw in range(NULL_DRAWS):
         seed = layer + draw * NULL_SEED_STEP
-        sides[f"null_{draw}"] = random_negative_side(h, x, h_test, x_test, seed)
+        sides[f"null_{draw}"] = random_negative_side(h, x, x_test, seed)
     return sides
 
 

@@ -87,7 +87,8 @@ def integrated_gradients(runner, task: Task, steps: int, batch: int) -> dict[int
                 alpha = (k + 0.5) / steps
                 held: list[torch.Tensor] = []
 
-                def patch(act, base=corrupted[layer], delta=delta, alpha=alpha, held=held):
+                # A replace hook: it takes the activation it replaces, and ignores it.
+                def patch(act, base=corrupted[layer], delta=delta, alpha=alpha, held=held):  # noqa: ARG001
                     x = (base + alpha * delta).detach().requires_grad_(True)
                     held.append(x)
                     return x

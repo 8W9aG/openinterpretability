@@ -38,7 +38,9 @@ from openinterpretability.cli import cli, recorded_model_option, wiki_dir_option
     help="Writes <out>.jsonl (one row per experiment) and <out>.md (the comparison).",
 )
 @with_model_options
-def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):
+def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):  # noqa: ARG001
+    # ``dtype`` comes from with_model_options. Each unit's runner loads with its record's
+    # pinned dtype, so the option has no effect here (#3165).
     """Score each unit's Patchscope readout as an explanation, against the agent's.
 
     A fixed rule turns the readout into an explanation. It is scored on the held-out
@@ -61,7 +63,7 @@ def patchscope_baseline(wiki_dir, work_dir, judge_model, out, device, dtype):
         and r.submission.identifier.kind != "attn_head"
     ]
     click.echo(f"{len(records)} experiments have explanation scores.", err=True)
-    readouts = _readouts(records, work_dir / "readouts", device, dtype)
+    readouts = _readouts(records, work_dir / "readouts", device)  # dtype: each record pins its own
     rows, pending = [], 0
     for record in records:
         row, waiting = _baseline_row(record, readouts, work_dir, judge_model)
@@ -194,8 +196,12 @@ def _answer(model, path: Path):
         raise click.ClickException(f"{path} is not a valid answer; judge it again: {exc}") from exc
 
 
-def _readouts(records, directory: Path, device: str, dtype: str) -> dict:
-    """Each unit's readout, read once under its record's pinned revision and cached."""
+def _readouts(records, directory: Path, device: str) -> dict:
+    """Each unit's readout, read once under its record's pinned revision and cached.
+
+    The runner loads with the record's pinned dtype, so the command's ``--dtype`` has no
+    effect on the readouts (#3165).
+    """
     from openinterpretability.cli import _load_unit_runner
     from openinterpretability.core.patchscope import PatchscopeReadout
     from openinterpretability.harness.patchscope import patchscope, write_direction

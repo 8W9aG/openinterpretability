@@ -62,7 +62,7 @@ def layer_scores(runner, layer: int):
     spec = DICTIONARIES[DICTIONARY]
     d = load_spec(spec, layer, runner.device)
     reads = _unit(latent_reads(runner, spec, layer, d))
-    writes = _unit(latent_writes(runner, spec, layer, d))
+    writes = _unit(latent_writes(runner, layer, d))
     n_in = _unit(mlp_reads(runner, layer)["in"])
     n_out = _unit(_matrix(runner.down_proj(layer)).T)
     g = torch.Generator().manual_seed(3608 + layer)

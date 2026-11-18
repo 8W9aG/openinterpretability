@@ -258,7 +258,8 @@ def _judge(model: str):
 
     agent = ExplanationJudge(model)
 
-    def judge(unit: str, explanation: str, texts: list[str]) -> list[bool]:
+    def judge(unit: str, explanation: str, texts: list[str]) -> list[bool]:  # noqa: ARG001
+        # ``unit`` is part of every judge's signature: the file judge names its answer by it.
         windows = [TaskWindow(text=t, tokens=[t]) for t in texts]
         answer = agent.detect(explanation, windows)
         return answered(answer.active, len(texts), "detection")

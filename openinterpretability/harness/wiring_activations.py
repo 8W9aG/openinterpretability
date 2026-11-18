@@ -105,7 +105,7 @@ def _head_strength(runner, t: Target, encoded, x: torch.Tensor) -> torch.Tensor:
     return ((out - t.mean_output.to(out.device)) @ w_o.T).norm(dim=-1)
 
 
-def _downstream_head_effects(runner, t: Target, encoded, cap, delta, layer, peaks) -> torch.Tensor:
+def _downstream_head_effects(runner, encoded, cap, delta, layer, peaks) -> torch.Tensor:
     """Return ``[b, n_heads, 3]``: how far each head's write at the peak moves.
 
     It moves when ``delta`` is removed from what the head's ``q``, ``k`` or ``v`` reads,
@@ -282,5 +282,5 @@ def _add_downstream(acc: _Sums, runner, t, encoded, cap, fired, peaks, down_n, d
         sub = {key: v[fired] for key, v in encoded.items()}
         kept = {**cap, "z": {i: v[fired] for i, v in cap["z"].items()}}
         for i in down_h:
-            effects = _downstream_head_effects(runner, t, sub, kept, delta[fired], i, peaks)
+            effects = _downstream_head_effects(runner, sub, kept, delta[fired], i, peaks)
             acc.add(("down_h", i), effects.sum(0))
