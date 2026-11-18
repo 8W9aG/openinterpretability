@@ -133,9 +133,10 @@ def review_command(claim_file, probes_file, corpus, mean_tokens, seed, wiki_dir,
     if expected != claim.attempt:
         raise click.UsageError(f"the claim is attempt {claim.attempt}; the next is {expected}")
     runner = _load_runner(claim.model_name, device, dtype, claim.model_revision)
-    means = unit_means(runner, claim.model_name, read_corpus(corpus)[0], mean_tokens)
+    texts = read_corpus(corpus)[0]
+    means = unit_means(runner, claim.model_name, texts, mean_tokens)
     try:
-        record = review(runner, means, claim, probes, seed=seed)
+        record = review(runner, means, claim, probes, seed=seed, texts=texts)
     except ValueError as error:
         raise click.UsageError(str(error)) from error
     path = record_path(Path(wiki_dir), record)
@@ -169,8 +170,10 @@ def remeasure_command(record_file, corpus, mean_tokens, wiki_dir, device, dtype)
     old = AnswerRecord.model_validate_json(record_file.read_text(encoding="utf-8"))
     c = old.claim
     runner = _load_runner(c.model_name, device, dtype, c.model_revision)
-    means = unit_means(runner, c.model_name, read_corpus(corpus)[0], mean_tokens)
-    record = review(runner, means, c, old.probes, old.verdict.policy, remeasures=old.id)
+    texts = read_corpus(corpus)[0]
+    means = unit_means(runner, c.model_name, texts, mean_tokens)
+    record = review(runner, means, c, old.probes, old.verdict.policy, remeasures=old.id,
+                    texts=texts)  # fmt: skip
     path = record_path(Path(wiki_dir), record)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(record.model_dump_json() + "\n", encoding="utf-8")  # compact: it is large
