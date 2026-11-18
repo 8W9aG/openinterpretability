@@ -406,6 +406,6 @@ def _layer_marks(model, x, top: float, pitch: float) -> tuple[list[dict], dict[s
         for n in layer.stopped:
             counts[STOPPED] += 1
             label = f"L{layer.layer} {stopped_label(n)}"
-            marks.append({"x": x(n.idx), "y": y, "status": STOPPED, "href": None, "label": label})
+            marks.append({"x": x(n.idx), "y": y, "status": STOPPED, "href": n.href, "label": label})
     marks.sort(key=lambda m: -MAP_STATUSES.index(m["status"]))
     return marks, counts

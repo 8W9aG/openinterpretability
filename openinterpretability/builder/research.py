@@ -19,9 +19,46 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
+from openinterpretability.builder.contents import anchor as section_anchor
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
+# An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
+# A paper's status line, under its abstract (#3150). A preprint names the issues still
+# open on it. A published paper gives the day it was published.
+STATUS = re.compile(
+    r"^\*\*Status:\*\* (?:(Preprint)\. Work left: (.+)|Published (\d{4}-\d{2}-\d{2})\. (.+))$",
+    re.M,
+)
+ADDENDA = "## Addenda"  # a published paper changes only below this heading
+
+
+@dataclass(frozen=True)
+class PaperStatus:
+    """A paper's status: a preprint with work left, or published on a day."""
+
+    published: str | None  # the day it was published, or None for a preprint
+    note: str  # a preprint's work left, or what a published paper says about changes
+    issues: tuple[int, ...] = ()  # the issues named in the note
+
+    @property
+    def preprint(self) -> bool:
+        """True while work on the paper is left."""
+        return self.published is None
+
+
+def paper_status(text: str) -> PaperStatus | None:
+    """The status line of a paper's Markdown, or None when it has none."""
+    found = STATUS.search(text)
+    if found is None:
+        return None
+    note = found.group(2) or found.group(4)
+    outside = re.sub(r"\([^)]*\)", "", note)  # "(rewrite in the form of #4202)" names no work
+    issues = tuple(int(n) for n in re.findall(r"#(\d+)", outside))
+    return PaperStatus(found.group(3), note, issues)
+
+
+_ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
 _MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
 
 
@@ -36,6 +73,8 @@ class Paper:
     hero: str | None  # the first figure, relative to the paper's folder
     interactive: bool
     sections: tuple[tuple[str, str], ...] = ()  # (id, title) of each `##` heading, in order
+    published: str | None = None  # the date before its entry in papers/README.md
+    status: PaperStatus | None = None  # preprint or published (#3150)
 
     @property
     def href(self) -> str:
@@ -63,23 +102,13 @@ def _rewrite_links(tokens: list[Token], slug: str, repo_url: str) -> None:
                 child.attrSet("href", f"{repo_url}/blob/main/{path}")
 
 
-def _anchor(title: str, taken: set[str]) -> str:
-    """A stable id for a section, from its title: lower case, hyphens, and unique on the page."""
-    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "section"
-    anchor, n = base, 2
-    while anchor in taken:
-        anchor, n = f"{base}-{n}", n + 1
-    taken.add(anchor)
-    return anchor
-
-
 def _mark_sections(tokens: list[Token]) -> tuple[tuple[str, str], ...]:
     """Give each `##` heading an id, and return the (id, title) of each one, in order."""
     sections, taken = [], set()
     for i, token in enumerate(tokens):
         if token.type == "heading_open" and token.tag == "h2":
             title = _plain(tokens[i + 1])
-            anchor = _anchor(title, taken)
+            anchor = section_anchor(title, taken)
             token.attrSet("id", anchor)
             sections.append((anchor, title))
     return tuple(sections)
@@ -96,7 +125,8 @@ def _first_image(tokens: list[Token]) -> str | None:
 
 def _read_paper(folder: Path, repo_url: str) -> Paper:
     """Render one paper. Its text passes the same search for personal data as all the site."""
-    tokens = _MARKDOWN.parse(redact_text((folder / "README.md").read_text(encoding="utf-8")))
+    text = redact_text((folder / "README.md").read_text(encoding="utf-8"))
+    tokens = _MARKDOWN.parse(text)
     if tokens[0].type != "heading_open" or tokens[0].tag != "h1":
         raise ValueError(f"{folder / 'README.md'} must start with a level 1 heading")
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
@@ -111,21 +141,30 @@ def _read_paper(folder: Path, repo_url: str) -> Paper:
         hero=_first_image(tokens),
         interactive=interactive,
         sections=sections,
+        status=paper_status(text),
     )
 
 
 def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
-    """Return the listed papers in the listed order. Return none if there is no such folder."""
+    """Return the listed papers, newest first. Return none if there is no such folder.
+
+    Each entry's date comes before it in papers/README.md (#3292). Papers of one date keep
+    their order in the list, and an entry with no date goes last.
+    """
+    from dataclasses import replace
+
     index = Path(papers_dir) / "README.md" if papers_dir else None
     if index is None or not index.exists():
         return []
-    slugs = _LISTED.findall(index.read_text(encoding="utf-8"))
-    return [_read_paper(Path(papers_dir) / slug, repo_url) for slug in slugs]
+    entries = _ENTRY.findall(index.read_text(encoding="utf-8"))
+    papers = [
+        replace(_read_paper(Path(papers_dir) / slug, repo_url), published=date or None)
+        for date, slug in entries
+    ]
+    return sorted(papers, key=lambda p: p.published or "", reverse=True)
 
 
-VENDORED = {
-    "three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
-}
+VENDORED: dict[str, str] = {}
 """The vendored libraries that the site copies as is, by file name and SHA-256.
 
 The site redacts every other paper file that is UTF-8 text. A changed library needs a new hash.

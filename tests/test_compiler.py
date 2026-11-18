@@ -139,8 +139,7 @@ def test_model_page_shows_the_model_license(tmp_path, records, monkeypatch):
     compile_site(records, tmp_path / "site")
     page = (tmp_path / "site" / "models" / MODEL / "index.html").read_text()
     assert (
-        '<a class="text-emerald-700 underline dark:text-emerald-400" href="https://u">x-1</a>'
-        in page
+        '<a class="text-brand-700 underline dark:text-brand-400" href="https://u">x-1</a>' in page
     )
     assert "gated" in page and "not gated" not in page
     assert "generated text may not be published" in page
@@ -212,6 +211,15 @@ def test_layer_map(tmp_path, records):
     assert "Studied neurons per layer" not in page  # the map replaces the histogram
 
 
+def test_a_cell_fills_by_its_share_of_poles():
+    from openinterpretability.builder.pieces import fill, studied_poles
+    from openinterpretability.builder.stopped import StoppedNeuron
+
+    assert [fill(s, 4) for s in (0, 0.01, 0.5, 1.0)] == [0, 1, 2, 4]  # any pole shows
+    both = StoppedNeuron(1, 2, ["negative default-on", "positive dead"])
+    assert studied_poles(both) == 2 and studied_poles(StoppedNeuron(1, 2, ["negative dead"])) == 1
+
+
 def test_pieces_bars(tmp_path, record, records):
     from openinterpretability.builder.pieces import layer_pieces, model_pieces
     from openinterpretability.builder.tree import ModelNode, build_tree
@@ -225,8 +233,10 @@ def test_pieces_bars(tmp_path, record, records):
     n9, n117 = bars["rows"][3]["cells"]
     assert (n9["x"], n9["status"]) == (0, "REJECTED")
     assert (n117["x"], n117["status"]) == (3 * 5, "VERIFIED")
-    assert n117["label"].startswith("L3 N114–151: N117 positive VERIFIED")
+    assert n117["label"].startswith("L3 N114–151, 3 of 76 poles studied: N117 positive VERIFIED")
     assert "N120 positive REJECTED" in n117["label"]
+    # Three of 76 poles fill 1 px of 3, from the bottom: a thin line, but visible (#3288).
+    assert (n117["height"], n117["y"]) == (1, 2) and bars["bar"] == 3
 
     grid = layer_pieces(model, model.layers[0])
     assert len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
@@ -238,7 +248,8 @@ def test_pieces_bars(tmp_path, record, records):
         "STOPPED": 0,
     }
     cell = next(c for c in grid["cells"] if c["href"].endswith("/N120.html"))
-    assert (cell["x"], cell["y"]) == (grid["left"] + 120 * 5, 0)
+    # One of its two poles is studied: the cell fills the lower half of its 4 px.
+    assert (cell["x"], cell["y"], cell["height"]) == (grid["left"] + 120 * 5, 2, 2)
     assert model_pieces(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no bars
 
     compile_site(records, tmp_path)
@@ -258,6 +269,7 @@ def test_pct_fine():
     assert _pct_fine(0.5) == "50%"
     assert _pct_fine(0.021) == "2.1%"
     assert _pct_fine(1 / 116_736) == "0.00086%"
+    assert _pct_fine(-0.0009418028191878567) == "-0.094%"  # a random baseline below zero
 
 
 def test_experiments_ordered_by_conclusiveness(tmp_path, records):
@@ -329,7 +341,7 @@ def test_parquet_has_every_experiment(tmp_path, records):
     manifest = json.loads((tmp_path / "data" / "manifest.json").read_text())
     snapshot = tmp_path / manifest["snapshot"]
     assert snapshot.read_bytes() == (tmp_path / "data" / "registry.parquet").read_bytes()
-    nulls = duckdb.sql(f"SELECT count(*) FROM '{snapshot}' WHERE status = 'REJECTED'").fetchone()
+    nulls = duckdb.sql(f"SELECT count(*) FROM '{snapshot}' WHERE status = 'REJECTED'").fetchall()[0]
     assert nulls == (2,)
 
 
@@ -536,7 +548,10 @@ def test_build_is_deterministic(tmp_path, records):
 
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     if today not in ("2026-10-01", "2026-10-02"):  # the fixtures' own review dates
-        assert not any(today.encode() in content for content in a.values())
+        # The Changelog page shows each release's date from CHANGELOG.md, not the clock:
+        # on a release day that date is today.
+        clocked = {path: content for path, content in a.items() if path != "changelog.html"}
+        assert not any(today.encode() in content for content in clocked.values())
 
 
 def test_rebuild_removes_stale_pages(tmp_path, records):
@@ -723,7 +738,7 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
         f"/N117-positive/{recent[0]['experiment_id']}.html"
     )
     home = (tmp_path / "index.html").read_text()
-    section = home.split("Most recent experiments")[1].split("Most conclusive results")[0]
+    section = home.split("Most recent experiments</h2>")[1].split("Most conclusive results</h2>")[0]
     assert section.index("Fires on commas.") < section.index("Fires on dates.")  # +1 h before +0 h
     assert '<time datetime="2026-10-01T14:00:00Z">2026-10-01</time>' in section
 
@@ -1083,7 +1098,8 @@ def test_label_confounds_rendered(tmp_path, record):
     assert "Language R² · MI" in page and "0.07 · 0.313 bits" in page
     assert "fr 19% · other 81%" in page  # 63 of 327 labelled tokens
     index = (tmp_path / "site" / "index.html").read_text()
-    assert 'id="corpora"' in index and "fr 19% · other 81%" in index
+    assert 'id="corpora"' not in index  # the experiment shows its own corpus (#3298)
+    assert "Corpus</dt>" in page and "wiki.jsonl" in page
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "frequency r 0.10, language R² 0.07 (0.313 bits)." in wiki
 
@@ -1172,10 +1188,11 @@ def test_agents_page_merges_spellings_of_one_model(tmp_path, records):
     assert ">deepseek-flash</a>" in home and ">external/deepseek-flash[1m]</a>" not in home
 
 
-def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
+def test_language_mix_of_one_scan(record):
+    # Each experiment shows its own scan's mix; the home page's corpora table is gone (#3298).
     from types import SimpleNamespace
 
-    from openinterpretability.builder.corpora import corpora_view, language_mix
+    from openinterpretability.builder.corpora import language_mix
     from openinterpretability.core.schemas import (
         ConfoundProfile,
         CorpusSample,
@@ -1201,11 +1218,10 @@ def test_corpora_view_takes_each_models_largest_whole_corpus_scan(record):
     sample = CorpusSample(
         seed=0, max_tokens=10, documents=1, corpus_documents=2, tokens=9, sha256="x"
     )
-    (corpus,) = corpora_view(
-        [experiment(50), experiment(90, sample), experiment(70), experiment(5, labelled=False)]
-    )
-    assert corpus.experiments == 4 and len(corpus.mixes) == 1
-    assert (corpus.mixes[0].tokens, corpus.mixes[0].sampled) == (70, False)
+    whole = language_mix(experiment(70).record.submission)
+    sampled = language_mix(experiment(90, sample).record.submission)
+    assert (whole.tokens, whole.sampled, whole.shown[0].label) == (70, False, "en")
+    assert (sampled.tokens, sampled.sampled) == (90, True)
     assert language_mix(experiment(5, labelled=False).record.submission) is None
 
 
@@ -1339,33 +1355,43 @@ def _stop(*, layer=3, idx=117, pole="negative", outcome="default_on", share=0.55
     )
 
 
-def test_unit_page_shows_a_stop_and_links_its_wiki_page(tmp_path, record):
-    # The positive pole has an experiment. The negative pole has only the stop.
+def test_unit_page_lists_a_stop_with_its_experiments(tmp_path, record):
+    # The positive pole has an experiment. The negative pole has only the stop (#3297).
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop()])
     page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "Scans that stopped" in page and "default-on" in page and "55%" in page
+    experiments = page[page.index('id="experiments"') :]
+    assert "Stopped: default-on" in experiments and "55%" in experiments
+    assert "chosen" in experiments and "Scans that stopped come last" in experiments
     assert f"/blob/main/wiki/stops/{MODEL}/L3/N117-negative/20261105T230800Z.md" in page
     assert "No experiment: the scan stopped before a hypothesis" in page
     assert "Not studied yet" not in page  # the stopped pole isn't offered as a candidate
-    assert "Scans that stopped" not in (tmp_path / "index.html").read_text()
+    assert 'id="scans-that-stopped"' not in page
 
 
-def test_unit_page_without_a_stop_has_no_stop_section(tmp_path, record):
+def test_unit_page_without_a_stop_lists_none(tmp_path, record):
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop(idx=9)])
     page = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "Scans that stopped" not in page and "Not studied yet" in page
+    assert "Stopped:" not in page and "Not studied yet" in page
 
 
-def test_home_page_lists_a_stop_on_a_unit_with_no_page(tmp_path, record):
+def test_a_neuron_whose_scans_all_stopped_has_a_page(tmp_path, record):
+    from openinterpretability.core.draws import UnauditableDraw
+
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
-    dead = _stop(idx=9, pole="positive", outcome="dead", share=None)
-    compile_site([studied], tmp_path, stops=[dead])
-    home = (tmp_path / "index.html").read_text()
-    assert "Scans that stopped on units with no page" in home and "L3/N9+" in home
-    assert f"/blob/main/wiki/stops/{MODEL}/L3/N9-positive/20261105T230800Z.md" in home
-    assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
+    chosen = _stop_on_model(studied, idx=9, pole="positive", outcome="dead", share=None)
+    fields = _stop_on_model(studied, idx=9).model_dump(exclude={"latest_record"})
+    draw = UnauditableDraw.model_validate(fields)  # a random draw that stopped
+    compile_site([studied], tmp_path, stops=[chosen], draws=[draw])
+    page = (tmp_path / "models" / MODEL / "L3" / "N9.html").read_text()
+    assert "Stopped: dead" in page and "Stopped: default-on" in page
+    assert "random draw" in page and "chosen" in page
+    assert f"/blob/main/wiki/draws/{MODEL}/L3/N9-negative/20261105T230800Z.json" in page
+    assert "Not studied yet" not in page
+    layer = (tmp_path / "models" / MODEL / "L3" / "index.html").read_text()
+    assert 'href="N9.html"' in layer or "L3/N9.html" in layer
+    assert "Scans that stopped on units with no page" not in (tmp_path / "index.html").read_text()
 
 
 @pytest.mark.parametrize(("proven", "verified"), [(True, 2), (False, 1)])
@@ -1403,7 +1429,7 @@ def test_a_neuron_with_only_stopped_scans_counts_as_studied(tmp_path, record):
     layer = " ".join((tmp_path / "models" / MODEL / "L3" / "index.html").read_text().split())
     assert "2 neurons studied (1 with only stopped scans)" in layer
     assert "N9 · scan stopped: negative default-on, positive dead" in layer
-    assert not (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()
+    assert (tmp_path / "models" / MODEL / "L3" / "N9.html").exists()  # it has a page (#3297)
 
 
 def test_a_stop_on_a_neuron_with_an_experiment_is_not_counted_twice(tmp_path, record):
@@ -1459,8 +1485,8 @@ def test_models_page_lists_every_configured_model(tmp_path, records, monkeypatch
     qwen, unstudied, unreadable = rows
     assert qwen[1:6] == ["494M", "24", "4,864", "silu", "apache-2.0"]
     assert unstudied[1:7] == ["124M", "12", "3,072", "gelu_new", "not", "recorded"]
-    assert unstudied[-2:] == ["0", "0"]
-    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0"]
+    assert unstudied[-3:] == ["0", "0", "—"]  # no coverage run
+    assert unreadable[1:] == ["—", "—", "—", "—", "not", "recorded", "0", "0", "—"]
 
     # A model with no record still gets a page when its config gives its layers.
     assert 'href="../models/Qwen--Qwen2.5-0.5B/index.html"' in page
@@ -1476,7 +1502,7 @@ def test_models_page_counts_experiments_and_verified(tmp_path, records, monkeypa
     monkeypatch.chdir(tmp_path)
     compile_site(records, tmp_path / "site", model_facts=MODEL_FACTS)
     qwen = _rows((tmp_path / "site" / "models" / "index.html").read_text())[0]
-    assert qwen[-2:] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
+    assert qwen[-3:-1] == ["4", "1"]  # the fixture: 4 experiments, 1 neuron with a VERIFIED pole
 
 
 def test_models_page_shows_each_models_pieces_bars_as_the_home_page_does(tmp_path, records):

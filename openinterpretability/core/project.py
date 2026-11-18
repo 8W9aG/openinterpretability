@@ -13,13 +13,14 @@ from openinterpretability import DISTRIBUTION
 
 
 def project_links() -> dict[str, str]:
-    """The site and repo URLs and the contact email."""
+    """The site and repo URLs, the contact email and the project's one-line description."""
     meta = metadata(DISTRIBUTION)
     urls = dict(u.split(", ", 1) for u in meta.get_all("Project-URL") or [])
     return {
         "site_url": urls["Homepage"],
         "repo_url": urls["Repository"],
         "contact_email": parseaddr(meta["Author-email"])[1],
+        "description": meta["Summary"].split(": ", 1)[-1],  # for social cards (#3289)
     }
 
 

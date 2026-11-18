@@ -2,6 +2,8 @@
 
 Protocol 0.8 stops the audit of a default-on pole, because no hard negative can stay silent ([position zero](../../docs/analyses/position-zero.md)). This analysis asks what those poles do together. It starts from an earlier study of GPT-2 L9/N1046−, whose scripts were not kept. Its numbers survive in [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md). It rebuilds them, measures every layer, and adds the nulls the first study lacked.
 
+**Status:** Preprint. Work left: #4245 (rewrite in the paper form of #4202), #3195 (the negative side's lead on the next-token distribution).
+
 **Why we wrote it.** Protocol 0.8 stops the audit of every default-on pole, so the registry says nothing about a large share of negative poles. Before we accept that gap, we need to know whether those poles do anything worth explaining. **The question.** What do default-on negative poles do as a population, and is it safe to stop auditing them one by one? It bears on research question 1, *Are native MLP neurons clean?*, and on question 5 ([research questions](../../docs/research-questions.md)).
 
 ![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
@@ -327,7 +329,7 @@ uv run python scripts/paper_figures.py
 
 ## Next
 
-[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. [Below the Dip](../below-the-dip/README.md) lets you rotate these scenes in 3D. Open questions are issues in the Linear project *Default-on poles*, and the research questions are in [docs/research-questions.md](../../docs/research-questions.md).
+[Why training rests neurons below GELU's dip](../why-neurons-rest/README.md) studies why training rests neurons below the dip. Open questions are issues in the Linear project *Default-on poles*, and the research questions are in [docs/research-questions.md](../../docs/research-questions.md).
 
 ## References
 

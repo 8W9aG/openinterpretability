@@ -34,6 +34,18 @@ How the harness handles heads (protocol 0.6, `harness/units.py` and `harness/hea
 4. **Evidence.** The scan records the tokens each top example's peak attends to, and previous-token, duplicate-token and induction scores on random repeated sequences. There is no vocabulary lens or partner search for heads.
 5. **Probe semantics.** Hard negatives for an induction head are repeated sequences with the copy broken. Holdouts are repeated random-token sequences (Olsson et al.). Probes are measured on their own, so the earlier copy must be inside the probe.
 
+## Broad early heads
+
+Many heads in the first layers of a small model are generic. Examples are previous-token heads, copy heads and nearest-noun heads. Since protocol 0.10, a head's strength is measured above its floor, the median of its norm (#4523). Even so, a generic head stays above the active line on most text. On Pythia-70m, L1/H2, L1/H6 and L2/H3 were active on 75–100% of held-out windows. A broad head is a legitimate finding, not a failed audit.
+
+- **Measure as the review does.** Use `HeadUnit(ident, mean_output, floor=strength_floor)` from the scan's `head_profile`, and load the runner with eager attention (`openinterpretability.cli._load_runner`). The active line is 0.25 × the scan's max. Skip a probe's first token only when the scan has a first-token floor (`first_token_floor` in the evidence and the prompt). Otherwise the review measures the first token too. On Pythia-70m L2/H5, "Yes." measured 0.33 without its first token and 1.22 with it, and so failed as a hard negative.
+- **Measure prose per token.** Plain sentences such as "The house is near the park." often cross the line weakly. Check 20 or more varied sentences before you call prose inactive.
+- **Say plainly that the head is broad.** If most text crosses, the explanation must say so: "predict ordinary prose active-weak". Then name what makes it strong.
+- **Name only inactive classes that hold.** Measure each class below the line on at least 15 varied examples. A class that fails once in five is not an inactive class. Narrow classes are fine, for example comma lists of plain numbers, one-word sentences, or "The N V." clauses.
+- **Expect the held-out scores to be low.** A broad explanation marks almost every window active, so detection sits near 0.5. The probes and counterfactuals carry the verdict. #4545 asks whether such records need a mark on the site.
+
+On Pythia-70m, each of the three heads above needed two or three rounds. Each was VERIFIED once its hypothesis followed these rules.
+
 ## Learned-basis baselines
 
 To test the project's premise, compare native neurons with transcoder or SAE features on the same layer, model and corpus. Score both with this protocol: the share VERIFIED among randomly selected units, and balanced accuracy. Learned features go in as another `kind`, never mixed into native-neuron statistics. Done for transcoder latents. `FeatureIdentifier` (`kind = "dictionary_feature"`) names a latent. The presets are in `harness/dictionaries.py` (the first is `gpt2-small-transcoders`, Dunefsky et al.). The scan and patching are in `harness/features.py`. Run `open-interpretability audit --dictionary <name> --random`, with `--window-tokens` no longer than the preset's `context_tokens`. The GPT-2 transcoders fail past position ~200. The home page's learned-basis table compares the arms (`builder/learned_baseline.py`). The site and Parquet keep features apart from native units. The first full comparison, GPT-2 small with 40 latents against 40 positive poles, is in `docs/analyses/transcoder-baseline.md`: 37 against 20 VERIFIED. For a GELU model, sample the native arm with `--pole positive`.

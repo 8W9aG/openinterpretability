@@ -23,8 +23,9 @@ SCAN_KINDS = (
     "rescan",
     "sister",
     "superposition",
+    "explanation",  # its attribution reads the corpus too
 )
-NEW_UNIT_KINDS = ("explore", "opposite_pole", "superposition")  # no history to read
+NEW_UNIT_KINDS = ("explore", "opposite_pole", "superposition", "explanation", "circuit")
 SUPERSEDING_KINDS = ("revise", "new_hypothesis", "rescan")
 REVIEW_KINDS = ("independent_review", "replicate", "resolve", "challenge")
 
@@ -173,6 +174,10 @@ def _history(c: Candidate) -> Step:
 
 
 def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
+    if c.kind == "explanation":
+        return [_explain(c, corpus, proposer)]
+    if c.kind == "circuit":
+        return _circuit(c, out)
     if c.kind == "reevaluate":
         command = f"uv run open-interpretability reevaluate --record {c.record}"
         return [Step("Re-evaluate (no LLM calls)", [command])]
@@ -181,6 +186,39 @@ def _run(c, key, out, corpus, proposer, reviewer) -> list[Step]:
     submission = f"submissions/{key}.json"
     scan = _scan(c, out, corpus, proposer, submission)
     return [*_definition(c), *scan, *_review(submission, out, corpus, reviewer, independent=False)]
+
+
+def _explain(c, corpus: str, proposer: str | None) -> Step:
+    """An explanation draw: explain the answer, narrate it and record it (issue #3744)."""
+    narrator = proposer or "external/<your model ID>"
+    options = f"--corpus {corpus} --level long --narrator-model {narrator} --record"
+    head, sep, prompt = c.commands[0].partition(" -- ")  # options go before the prompt
+    command = f"uv run {head} {options}{sep}{prompt}"
+    note = (
+        ""
+        if proposer
+        else "The narrator is a Claude Code subagent: when the command waits, give "
+        "exchange/Narrator.prompt.md to the explanation-narrator agent."
+    )
+    return Step("Explain the answer, narrate it and record it", [command], note)
+
+
+def _circuit(c, out: str) -> list[Step]:
+    """A circuit draw: write the task, propose the hypothesis, then review it (#4286)."""
+    propose, review = c.commands
+    task = Step(
+        "Write the circuit's task",
+        [f"uv run open-interpretability show {c.record.rsplit('/', 1)[0]}"] if c.record else [],
+        f"Write {out}/task.json, a CircuitTask (core/circuit_records.py): the behaviour the "
+        "members carry, read from their records, and clean and corrupted prompt pairs of "
+        "equal token length. A stale circuit's history is above: its members changed since.",
+    )
+    probes = (
+        f"A reviewer of another model writes {out}/probes.json, a CircuitProbes: holdout "
+        "pairs of the same task, and negative tasks the circuit should not carry."
+    )
+    return [task, Step("Propose the task hypothesis", [f"uv run {propose}"]),
+            Step("Review it on the reviewer's probes", [f"uv run {review}"], probes)]  # fmt: skip
 
 
 def _definition(c) -> list[Step]:
@@ -349,6 +387,8 @@ VERBS = {
     "opposite_pole": "Explore",
     "sister": "Sister study of",
     "superposition": "Explore",
+    "explanation": "Explain",
+    "circuit": "Circuit study of",
 }
 
 

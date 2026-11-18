@@ -45,6 +45,9 @@ def changed_lines(diff: str) -> dict[str, set[int]]:
         name = re.search(r"^\+\+\+ (?:b/)?(.+)$", part, re.M)
         old = re.search(r"^--- (?:a/)?(.+)$", part, re.M)
         path = name.group(1) if name and name.group(1) != "/dev/null" else old and old.group(1)
+        if not path:  # a binary file's diff has only the header: "a/<path> b/<path>"
+            header = re.match(r"a/(.+?) b/(.+)$", part.splitlines()[0])
+            path = header.group(2) if header else part.splitlines()[0]
         lines = out.setdefault(path, set())
         for start, count in HUNK.findall(part):
             first, n = int(start), int(count or 1)

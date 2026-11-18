@@ -29,7 +29,6 @@ import torch
 from torch import nn
 
 MemoryMode = Literal["auto", "normal", "stream"]
-MEMORY_MODES: tuple[MemoryMode, ...] = ("auto", "normal", "stream")
 
 # What a scan or review holds beyond the weights, measured on CPU in float32. It is about
 # 2.5–3 GB for GPT-2 and Qwen2.5-0.5B and 1.5B (docs/experiments.md, Memory).

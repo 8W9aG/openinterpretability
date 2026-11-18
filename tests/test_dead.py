@@ -229,3 +229,32 @@ def test_the_wiki_home_links_a_stop_only_on_a_unit_with_no_index(tmp_path, recor
     stem = "stops/openai-community--gpt2/L1/N7"
     assert f"{stem}-negative/20261105T000000Z.md" in home  # no experiment, so no index
     assert f"{stem}-positive/" not in home  # the unit's own index links this one
+
+
+def test_negative_pole_ceiling_is_gelu_floor(gpt2_runner, tiny_gpt2):
+    """#4581: an ungated GELU neuron's negative pole is never above about 0.170."""
+    from openinterpretability.harness.dead import FLOOR_TOLERANCE, negative_pole_ceiling
+
+    ceiling = negative_pole_ceiling(gpt2_runner, 1)
+    assert ceiling == pytest.approx(0.1700 * (1 + FLOOR_TOLERANCE), abs=5e-4)
+    h = torch.linspace(-50, 50, 100_001)
+    strength = -torch.clamp(tiny_gpt2.transformer.h[1].mlp.act(h), max=0)
+    assert float(strength.max()) <= ceiling
+
+
+def test_negative_pole_ceiling_relu_and_gated(gpt2_runner, tiny_gpt2, qwen_runner, monkeypatch):
+    from openinterpretability.harness.dead import negative_pole_ceiling
+
+    monkeypatch.setattr(tiny_gpt2.config, "activation_function", "relu")
+    assert negative_pole_ceiling(gpt2_runner, 1) == 0.0
+    assert negative_pole_ceiling(qwen_runner, 1) is None
+
+
+def test_scan_above_the_ceiling_stops(gpt2_runner):
+    """A scan that reads more than the pole can give is refused, and records no draw."""
+    from openinterpretability.evidence import ScanCorrupt, check_ceiling
+
+    check_ceiling(gpt2_runner, neuron(1, 5, "negative"), 0.169)
+    check_ceiling(gpt2_runner, neuron(1, 5), 3.7)
+    with pytest.raises(ScanCorrupt, match="can't exceed"):
+        check_ceiling(gpt2_runner, neuron(1, 5, "negative"), 3.7)

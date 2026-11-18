@@ -13,7 +13,7 @@ from __future__ import annotations
 import shlex
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, draws_dir, experiments_dir, stops_dir
@@ -27,6 +27,14 @@ OPENINTERPRETABILITY = ("uv", "run", "open-interpretability")
 
 class LoopError(Exception):
     """One iteration failed. Its message is the reason that the loop gives."""
+
+
+AGENT_ONLY_KINDS = ("circuit",)  # draws whose steps need an agent to write a file
+AGENT_ONLY_REDRAWS = 5  # draws before the loop gives up on finding one it can run
+
+
+class Finished(Exception):
+    """The draws have nothing left to run: the loop ends cleanly. The message says why."""
 
 
 @dataclass(frozen=True)
@@ -119,12 +127,14 @@ def draw(options: Options, plan_next, claims):
 
     ``plan_next`` and ``claims`` are passed in so that tests can replace them.
     """
-    for _ in range(2):
+    for _ in range(AGENT_ONLY_REDRAWS):
         plan = plan_next(DEFAULT_WIKI_DIR, epsilon=options.epsilon, claims=claims())
         c = plan.choice
+        if c.kind in AGENT_ONLY_KINDS:
+            continue  # its task is written by an agent, which this loop doesn't have (#4286)
         if c.kind not in REVIEW_KINDS or proposer_of(c.record) != options.reviewer:
             return plan
-    raise LoopError(f"twice drew a review of {options.reviewer}'s own record")
+    raise LoopError(f"no draw that {options.reviewer} can run, in {AGENT_ONLY_REDRAWS} tries")
 
 
 def pr_url() -> str:
@@ -144,8 +154,21 @@ def verdict_of(kind: str, key: str) -> tuple[str, str]:
     A scan that stopped on its unit writes a draw or stop record and no experiment, so
     its verdict is STOPPED.
     """
+    from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
     from openinterpretability.core.schemas import AuditRecord
 
+    if kind == "circuit":  # a circuit draw writes a circuit record (core/circuit_records.py)
+        from openinterpretability.core.circuit_records import CIRCUITS_WIKI, CircuitRecord
+
+        found = [p for p in new_files(DEFAULT_WIKI_DIR / CIRCUITS_WIKI) if p.suffix == ".json"]
+        if not found:
+            raise LoopError("the draw's steps wrote no circuit record")
+        status = CircuitRecord.model_validate_json(Path(found[0]).read_text()).verdict.status
+        return status, f"{VERBS[kind]} {key} ({status})"
+    if kind == "explanation":  # an explanation draw writes an explanation record, no verdict
+        if not new_files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
+            raise LoopError("the draw's steps wrote no explanation")
+        return "EXPLAINED", f"{VERBS[kind]} {key}"
     records = [p for p in new_files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
     if not records:
         if new_files(draws_dir(DEFAULT_WIKI_DIR)) or new_files(stops_dir(DEFAULT_WIKI_DIR)):
@@ -183,10 +206,28 @@ def merge_blockers(view: dict, permission: str) -> list[str]:
     return reasons
 
 
+_CONSOLE: list = []  # the loop's own stdout, while an iteration writes to its log
+
+
+def say(text: str) -> None:
+    """Print one progress line of the iteration, at once (#3142).
+
+    Every stage prints one, so a slow iteration doesn't look like a stuck one. The line
+    goes to the iteration's log and to the console that runs the loop. The ``RESULT``
+    line at the end is separate, and its form is unchanged.
+    """
+    line = f"loop: {text}"
+    print(line, flush=True)
+    for console in _CONSOLE:
+        if console is not sys.stdout:
+            print(line, file=console, flush=True)
+
+
 def land(url: str) -> bool:
     """Wait for the checks, then merge the PR if every merge condition holds. True if merged."""
     import json
 
+    say(f"waiting for the checks on {url}")
     try:
         sh(
             ["gh", "pr", "checks", url, "--watch", "--fail-fast", "--interval", "30"],
@@ -202,7 +243,9 @@ def land(url: str) -> bool:
     permission = sh(["gh", "repo", "view", "--json", "viewerPermission", "-q", ".viewerPermission"])
     if reasons := merge_blockers(view, permission):
         sh(["gh", "pr", "comment", url, "--body", "Left open: " + "; ".join(reasons) + "."])
+        say("left open: " + "; ".join(reasons))
         return False
+    say("merging")
     sh(["gh", "pr", "merge", url, "--squash", "--match-head-commit", view["headRefOid"]])
     delete_branch()
     return True
@@ -225,9 +268,11 @@ def iteration(options: Options, plan_next, claims) -> Result:
     claim, *work, _ = steps(
         plan, corpus, options.proposer, options.reviewer, options.corpus is None
     )
+    say(f"drew {plan.choice.kind} {slug} on {plan.choice.model}")
     for command in claim.commands:
         run_command(command)
     url = pr_url()
+    say(f"claimed: {url}")
     try:
         status = run_work(work, plan.choice.kind, claim_key(slug))
     except Exception as exc:
@@ -252,11 +297,13 @@ def run_work(work, kind: str, key: str) -> str:
     from openinterpretability.evidence import Unauditable
 
     try:
-        for step in work:
+        for i, step in enumerate(work, 1):
+            say(f"step {i}/{len(work)}: {step.title}")
             for command in step.commands:
                 run_command(command)
     except Unauditable as exc:
         sys.stdout.write(f"The scan stopped on the unit: {exc}\n")
+    say("posting the result")
     return post(kind, key)
 
 
@@ -298,6 +345,8 @@ class Loop:
     done: int = 0
     failures: int = 0
     backoffs: int = 0
+    results: list = field(default_factory=list)  # each iteration's Result, for the caller
+    finished: str | None = None  # why the draws ended, when they did (Finished)
 
     def run(self) -> int:
         """Run until the limit, the stop file or too many failures; return the exit code."""
@@ -318,6 +367,7 @@ class Loop:
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         self.log_dir.mkdir(parents=True, exist_ok=True)
         log = self.log_dir / f"{stamp}.log"
+        _CONSOLE[:] = [sys.stdout]
         try:
             with (
                 open(log, "w") as out,
@@ -325,9 +375,16 @@ class Loop:
                 contextlib.redirect_stderr(out),
             ):
                 result = iteration(self.options, self.plan_next, self.claims)
+        except Finished as exc:  # a targeted run (explain --run) has no target left
+            self.finished = str(exc)
+            print(f"RESULT: none finished: {exc}", flush=True)
+            return 0
         except Exception as exc:  # any failure of one experiment; the loop decides what next
             return self._failed(exc, log)
+        finally:
+            _CONSOLE.clear()
         self.done, self.failures, self.backoffs = self.done + 1, 0, 0
+        self.results.append(result)
         print(result.line(), flush=True)
         return None
 

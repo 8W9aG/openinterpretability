@@ -10,14 +10,21 @@ install:
 
 # Single-threaded: the tests use tiny models, and thread pools contending with other
 # jobs on the machine have hung the suite.
+# The whole output goes to logs/test-last.log too, so a hang's stack dump (pytest-timeout)
+# is kept even when only the exit code was read (#4376). pipefail keeps pytest's exit code.
 test:
-	OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest
+	@mkdir -p logs
+	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest 2>&1 | tee logs/test-last.log'
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.
 # The heavy lock keeps another heavy job from overlapping the timings.
 perf:
 	uv run python -m openinterpretability.core.heavy_lock python scripts/perf_bench.py
+
+# Unused code: a name vulture finds, and vulture_whitelist.py doesn't keep, fails (#3164).
+vulture:
+	uv run vulture openinterpretability scripts vulture_whitelist.py --min-confidence 60
 
 # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml).
 typecheck:
@@ -30,9 +37,11 @@ lint:
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
+	uv run python scripts/papers.py check
 	python3 scripts/ifttt_lint.py
 	python3 scripts/check_old_name.py
 	uv run interrogate openinterpretability
+	$(MAKE) vulture
 	$(MAKE) typecheck
 	$(MAKE) markdown
 	$(MAKE) shell

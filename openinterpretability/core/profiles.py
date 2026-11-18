@@ -35,9 +35,16 @@ class HeadProfile(StrictModel):
       in the first.
 
     Each score is between 0 and 1. Reported, not gated.
+
+    ``strength_floor`` is the median of ``|W_O (z_t − mean_output)|`` over the scan's
+    counted tokens (protocol 0.10, #4523). The norm never goes near zero, so a head's
+    strength is measured above it: ``max(0, |W_O (z_t − mean_output)| − strength_floor)``.
+    The active line then sits above the floor. A record without it (protocol 0.9 or
+    earlier) keeps the plain norm.
     """
 
     mean_output: list[float] = Field(min_length=1)
+    strength_floor: float | None = Field(default=None, ge=0.0)
     mean_tokens: int = Field(gt=0, description="Tokens z̄ was averaged over.")
     previous_token_score: UnitFloat
     duplicate_token_score: UnitFloat

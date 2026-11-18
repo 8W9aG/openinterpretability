@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table %}
+{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -19,7 +19,7 @@
 {% set terms = model_licenses.get(model.name) %}
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   {% if terms %}
-  Licence <a class="text-emerald-700 underline dark:text-emerald-400" href="{{ terms.url }}">{{ terms.license }}</a> ·
+  Licence <a class="text-brand-700 underline dark:text-brand-400" href="{{ terms.url }}">{{ terms.license }}</a> ·
   {{ "gated" if terms.gated else "not gated" }} ·
   activations and generated text {{ "may" if terms.publishing_allowed else "may not" }} be published
   {% if terms.conditions %}· {{ terms.conditions }}{% endif %}
@@ -29,7 +29,7 @@
 </p>
 
 {% if circuits or hubs %}
-<p class="mt-2 text-sm"><a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
+<p class="mt-2 text-sm"><a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
 
 {% set lm = charts.layer_map(model) %}
@@ -55,7 +55,7 @@
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
     {% endfor %}
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lm.unexplored | thousands }}</span>
-    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment or page. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</span>
+    <span>Each mark is one studied neuron, coloured by its best pole's status; click it for its page. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</span>
   </figcaption>
 </figure>
 {% else %}
@@ -63,7 +63,7 @@
 {% set peak = (counts | max) or 1 %}
 <div class="mt-6 flex h-10 items-end gap-px" role="img" aria-label="Studied neurons per layer">
   {% for n in counts %}
-  <div class="flex-1 {{ 'bg-emerald-500' if n else 'bg-slate-200 dark:bg-slate-800' }}"
+  <div class="flex-1 {{ 'bg-brand-500' if n else 'bg-slate-200 dark:bg-slate-800' }}"
        style="height: {{ (100 * n / peak) | round(0) if n else 8 }}%" title="Layer {{ loop.index0 }}: {{ n }} neurons"></div>
   {% endfor %}
 </div>
@@ -84,7 +84,7 @@
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for layer in model.layers %}
       <tr class="hover:bg-slate-50 dark:hover:bg-slate-900">
-        <td class="px-3 py-2 font-mono"><a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
+        <td class="px-3 py-2 font-mono"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ layer.href }}">L{{ layer.layer }}</a></td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.neurons_studied }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.heads | length }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ layer.experiments }}</td>
@@ -94,6 +94,48 @@
     </tbody>
   </table>
 </div>
+
+{% include "_concept_map.html" %}
+
+{% set cov = coverage.get(model.name) %}
+{% if cov %}
+<section class="mt-10" id="coverage">
+  <h2 class="mb-1 text-lg font-semibold">How much of this model is explained</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    Mean-ablating every neuron of an MLP layer raises the next-token loss. The share of that rise that comes back when only the VERIFIED poles keep their real activations is the registry's coverage. Over all {{ cov.summary.layers }} layers, weighted by each layer's rise,
+    the {{ cov.summary.verified_poles | thousands }} VERIFIED poles of {{ cov.summary.poles | thousands }} keep <strong>{{ "—" if cov.summary.recovered is none else "{:.2%}".format(cov.summary.recovered) }}</strong>
+    of the loss effect{% if cov.summary.recovered_random is not none %}, and the same number of random poles keep {{ "{:.2%}".format(cov.summary.recovered_random) }}{% endif %}.
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Layer</th><th class="px-3 py-2 text-right">VERIFIED poles</th><th class="px-3 py-2 text-right">Loss rise from ablation</th><th class="px-3 py-2 text-right">Share kept</th><th class="px-3 py-2 text-right">Random poles, same count</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for r in cov.layers %}
+        <tr>
+          <td class="px-3 py-2 font-mono text-xs">L{{ r.layer }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ r.verified_poles | thousands }} of {{ (2 * r.width) | thousands }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "%.3f" | format(r.rise) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "—" if r.recovered is none else "{:.2%}".format(r.recovered) }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ "—" if r.recovered_random is none else "{:.2%}".format(r.recovered_random) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-1 text-xs text-slate-500">Measured {{ cov.summary.date }}{% if cov.corpus %} on {{ cov.corpus }}{% endif %}{% if cov.version %}, openinterpretability {{ cov.version }}{% endif %}. Loss rise in nats per token. A share below zero means that keeping only those poles gave a higher loss than ablating the whole layer. On a layer with a small rise, a share is noisy. <a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">Method</a>.</p>
+</section>
+{% endif %}
+
+{% set own_explanations = explanations_by_model.get(model.name, []) %}
+{% if own_explanations %}
+<section class="mt-10" id="explanations">
+  <h2 class="mb-1 text-lg font-semibold">Explanations</h2>
+  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Explanations are sub-units of this model. Each says why it gives one answer to one prompt, as far as the registry explains it. A prompt's page lists every explanation of it. All models' prompts are on the <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> page.</p>
+  {{ explanation_rows(own_explanations, root, show_model=false) }}
+</section>
+{% endif %}
 
 {% if recent %}
 <section class="mt-10">
@@ -109,7 +151,7 @@
         <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400"><time datetime="{{ r.reviewed_iso }}">{{ r.reviewed_date }}</time></td>
           <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
             <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
           </td>
           <td class="px-3 py-2">
@@ -144,15 +186,15 @@
       <text x="{{ t.x }}" y="{{ t.y + 3 }}" text-anchor="{{ t.anchor }}" class="fill-slate-500 font-mono" font-size="9">{{ t.label }}</text>
       {% endfor %}
       {% for l in g.lines %}
-      <path d="{{ l.d }}" fill="none" class="{{ 'stroke-emerald-600 dark:stroke-emerald-400' if l.sister else 'stroke-slate-400 dark:stroke-slate-500' }}" stroke-width="{{ 1.6 if l.sister else 0.8 }}" stroke-opacity="{{ l.opacity }}"><title>{{ l.label }}{{ ' (sister)' if l.sister }}</title></path>
+      <path d="{{ l.d }}" fill="none" class="{{ 'stroke-brand-600 dark:stroke-brand-400' if l.sister else 'stroke-slate-400 dark:stroke-slate-500' }}" stroke-width="{{ 1.6 if l.sister else 0.8 }}" stroke-opacity="{{ l.opacity }}"><title>{{ l.label }}{{ ' (sister)' if l.sister }}</title></path>
       {% endfor %}
       {% for n in g.nodes %}
-      {% if n.href %}<a href="{{ root }}{{ n.href }}">{% endif %}<circle cx="{{ n.x }}" cy="{{ n.y }}" r="2.2" class="{{ 'fill-emerald-700 dark:fill-emerald-300' if n.href else 'fill-slate-500 dark:fill-slate-400' }}"><title>{{ n.label }}</title></circle>{% if n.href %}</a>{% endif %}
+      {% if n.href %}<a href="{{ root }}{{ n.href }}">{% endif %}<circle cx="{{ n.x }}" cy="{{ n.y }}" r="2.2" class="{{ 'fill-brand-700 dark:fill-brand-300' if n.href else 'fill-slate-500 dark:fill-slate-400' }}"><title>{{ n.label }}</title></circle>{% if n.href %}</a>{% endif %}
       {% endfor %}
     </svg>
     </div>
     <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-      <span><svg class="inline align-middle" width="16" height="10" aria-hidden="true"><line x1="1" y1="5" x2="15" y2="5" class="stroke-emerald-600 dark:stroke-emerald-400" stroke-width="2"/></svg> sister {{ g.n_sisters }}</span>
+      <span><svg class="inline align-middle" width="16" height="10" aria-hidden="true"><line x1="1" y1="5" x2="15" y2="5" class="stroke-brand-600 dark:stroke-brand-400" stroke-width="2"/></svg> sister {{ g.n_sisters }}</span>
       <span><svg class="inline align-middle" width="16" height="10" aria-hidden="true"><line x1="1" y1="5" x2="15" y2="5" class="stroke-slate-400" stroke-width="1"/></svg> other best match {{ g.n_edges - g.n_sisters }}</span>
       {% if g.depth_gap is not none %}<span>median depth gap of sisters {{ '%.3f' | format(g.depth_gap) }}</span>{% endif %}
       <span>Lines are darker the higher the correlation; hover one for r. Dark poles have a page here.</span>
@@ -168,7 +210,7 @@
           <tbody class="divide-y divide-slate-200 font-mono dark:divide-slate-800">
             {% for s in g.sisters %}
             <tr>
-              {% for n in (s.a, s.b) %}<td class="px-3 py-1">{% if n.href %}<a class="text-emerald-700 hover:underline dark:text-emerald-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% else %}{{ n.label }}{% endif %}</td>{% endfor %}
+              {% for n in (s.a, s.b) %}<td class="px-3 py-1">{% if n.href %}<a class="text-brand-700 hover:underline dark:text-brand-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% else %}{{ n.label }}{% endif %}</td>{% endfor %}
               <td class="px-3 py-1 text-right tabular-nums">{{ '%.2f' | format(s.pearson) }}</td>
               <td class="px-3 py-1 text-right tabular-nums">{{ '%.2f' | format(s.rotated) }}</td>
             </tr>

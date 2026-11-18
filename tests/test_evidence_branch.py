@@ -142,3 +142,37 @@ def test_load_all_loads_every_evidence_branch(record, repo, tmp_path, monkeypatc
     assert result.exit_code == 0, result.output
     assert f"Loaded {len(shas)} evidence blobs from 1 evidence branches." in result.output
     assert eb.unresolved([path]) == []
+
+
+def test_a_blob_missing_from_the_dataset_is_read_from_its_evidence_branch(
+    record, repo, tmp_path, monkeypatch
+):
+    # A record merged before the deploy published its blobs (#4530).
+    path, store = _slim_record(record, tmp_path, monkeypatch)
+    shas = eb.record_refs([path])
+    commit = eb.blob_commit(shas)
+    subprocess.run(["git", "update-ref", f"{eb.LOCAL_REFS}experiment/x", commit], check=True)
+    for sha in shas:
+        (store / evidence.blob_name(sha)).unlink()  # gone from the store, and not on the dataset
+    monkeypatch.setenv(evidence.BRANCHES_ENV, "1")
+    monkeypatch.setattr(evidence, "_BRANCHES", {"fetched": True})  # the branches are already here
+    sha = next(iter(shas))
+    assert evidence.sha256(evidence.get(sha)) == sha and (store / evidence.blob_name(sha)).exists()
+
+
+def test_the_fallback_fetches_once_and_a_git_error_is_not_found(
+    record, repo, tmp_path, monkeypatch
+):
+    calls = []
+    monkeypatch.setenv(evidence.BRANCHES_ENV, "1")
+    monkeypatch.setattr(evidence, "_BRANCHES", {})
+    monkeypatch.setattr(eb, "fetch_branches", lambda *a: calls.append(1))
+    monkeypatch.setenv(evidence.DIR_ENV, str(tmp_path / "empty"))
+    for _ in range(2):
+        with pytest.raises(evidence.EvidenceMissing):
+            evidence.get("0" * 64)
+    assert calls == [1]  # fetched once per process
+    monkeypatch.setattr(evidence, "_BRANCHES", {})
+    monkeypatch.setattr(eb, "fetch_branches", lambda *a: (_ for _ in ()).throw(OSError("no git")))
+    with pytest.raises(evidence.EvidenceMissing):
+        evidence.get("1" * 64)  # a git error is "not found", not a crash

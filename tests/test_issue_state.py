@@ -34,8 +34,9 @@ def test_trusted_authors_are_eligible(monkeypatch, author):
     assert issue_state.eligibility("1")[0]
 
 
-def test_nightly_issue_needs_the_workflows_title(monkeypatch):
-    _stub(monkeypatch, "github-actions[bot]", title=issue_state.nightly_title())
+@pytest.mark.parametrize("title", ["Nightly reproduction failed", "Deploy registry failed on main"])
+def test_workflow_issue_needs_a_workflows_title(monkeypatch, title):
+    _stub(monkeypatch, "github-actions[bot]", title=title)
     assert issue_state.eligibility("1")[0]
     _stub(monkeypatch, "github-actions[bot]", title="Something else")
     assert not issue_state.eligibility("1")[0]
@@ -61,8 +62,11 @@ def test_an_edit_by_someone_else_after_the_thumbs_up_needs_a_new_approval(monkey
     assert not ok and "edited by someone after" in why
 
 
-def test_nightly_title_is_read_from_the_workflow():
-    assert issue_state.nightly_title() == "Nightly reproduction failed"
+def test_titles_are_read_from_the_workflows():
+    assert issue_state.automatic_titles() == {
+        "Nightly reproduction failed",
+        "Deploy registry failed on main",
+    }
 
 
 def test_in_progress_is_refused_for_an_ineligible_issue(monkeypatch):

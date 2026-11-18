@@ -2,6 +2,8 @@
 
 A parameter decomposition keeps whichever basis it starts in on GPT-2 small's down projections, so it says little about neurons there. The input projection is a sharper test, because GELU acts on each neuron separately. We decomposed both MLP projections for 50,000 steps from each of two starts. At about the same total of active subcomponents, the start from the neurons ends with a KL of 0.093 against 0.158. A random start does not turn towards the neurons: its closest-neuron cosine stays at 0.07–0.10, near a random direction's 0.07. So the losses favour the neurons, and training does not find them.
 
+**Status:** Preprint. Work left: #4248 (rewrite in the paper form of #4202), #4104 (one count per site, more seeds and a constant-rate continuation).
+
 **Why we wrote it.** If a decomposition that starts from no basis found the neurons on its own, that would show that the neuron basis is special. On the down projections a decomposition keeps whichever basis it starts in, so that test says nothing there. **The question.** Do a parameter decomposition's losses favour GPT-2's neurons, and does training find them from a random start? It bears on research question 3, *Do native neurons explain a model as well as learned dictionaries do?* ([research questions](../../docs/research-questions.md)).
 
 ![Input projections move through training from each start. From the neurons they fit far better and keep more subcomponents active](media/training.svg)

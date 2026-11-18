@@ -85,6 +85,8 @@ SKILLS = {
     "challenge": ["interpretability-illusions-review", "neuron-steering-tests"],
     "sister": ["native-neuron-audit", "interpretability-illusions-review"],
     "superposition": ["native-neuron-audit", "interpretability-illusions-review"],
+    "explanation": [],  # explain, narrate and record one answer (planner_explanations.py)
+    "circuit": ["activation-patching-practice", "interpretability-illusions-review"],
 }
 DEFAULT_MODELS = ("Qwen/Qwen2.5-0.5B",)
 
@@ -162,6 +164,16 @@ def configured_windows(pyproject: Path = Path("pyproject.toml")) -> dict[str, in
     reads 1,024 positions.
     """
     return dict(_config(pyproject).get("window_tokens", {}))
+
+
+def configured_reproduce_floors(pyproject: Path = Path("pyproject.toml")) -> dict[str, float]:
+    """Return ``[tool.openinterpretability.reproduce_floor]``: each model's absolute floor.
+
+    ``reproduce`` adds the floor, in activation units, to the tolerance of a neuron pole
+    of that model. It is the model's float32 move between machines, and it is set from
+    measurements (``docs/analyses/neuron-float32-floor.md``).
+    """
+    return {model: float(v) for model, v in _config(pyproject).get("reproduce_floor", {}).items()}
 
 
 def configured_licenses(pyproject: Path = Path("pyproject.toml")) -> dict[str, ModelLicense]:
@@ -405,12 +417,16 @@ def plan_next(
     pyproject = Path(wiki_dir).parent / "pyproject.toml"
     pool = _model_pool(models, pyproject, states)
     # Imported here: these modules build their candidates from this module's weights.
+    from openinterpretability.planner_circuits import circuit_candidates
+    from openinterpretability.planner_explanations import explanation_candidates
     from openinterpretability.planner_sisters import sister_candidates
     from openinterpretability.planner_superpositions import superposition_candidates
 
     root = Path(wiki_dir).parent
     sisters = sister_candidates(states, claims, now, pool, root, seed)
     extra = [*sisters, *superposition_candidates(states, claims, root)]
+    extra += explanation_candidates(states, claims, root, pool, seed)  # issue #3744
+    extra += circuit_candidates(claims, root)  # issue #4286
     candidates = sorted(
         [*(c for s in states.values() for c in candidates_for(s, slugs, claims, now)), *extra],
         key=lambda c: -c.weight,

@@ -148,7 +148,31 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
 - **Check.** It mean-ablates each of the top 10 units alone, and reports the change in the answer's logit. That should be about minus the attribution. It then mean-ablates the VERIFIED units among the top together, and says whether the answer changes.
 - **Paths.** For each of the top `--edges` units, it holds ∂logit/∂unit constant and attributes the unit's contribution to the other top units, by the same rule. These are first-order edges between the native units, as in attribution graphs (Ameisen et al., 2025), but with no replacement model. The output lists the three strongest edges into each unit.
 
-`--json` prints the result as JSON, with every edge.
+- **Prompt coverage.** The registry's model coverage measures how much of a layer's loss rise the VERIFIED poles bring back. Prompt coverage applies the same form to one answer (`openinterpretability/explain_coverage.py`). Mean-ablate every neuron and head except the explained units, and measure the answer's log-probability. Coverage is (kept − ablated) / (clean − ablated), against the same number of random units. It is causal, not first-order, so the long tail of small attributions doesn't inflate it.
+- **Plan.** It lists the experiments that a complete explanation needs (`openinterpretability/explain_plan.py`). It walks the poles and heads in order of |attribution|, and skips the explained ones. It stops when the explained share plus the planned share reaches `--target` (default 1, a complete explanation).
+  - An unstudied unit gets an audit with `--selection attribution`, plus `--window-tokens` when the model has a configured window. The answer chose the unit, so its result stays out of the random-selection statistics.
+  - A studied unit that isn't VERIFIED gets the planner's heaviest follow-up on its record.
+  - A stopped unit, or one with no follow-up, adds to a *blocked* share.
+  - Each superposition and circuit that carries the answer, and isn't VERIFIED, gets its experiment too. A circuit gets a task hypothesis on the prompt, whose task file must be written first.
+  - Each of the top 40 unit experiments gets a measured gain, and so does each group's experiment. A gain is the prompt coverage that the experiment would add, if its units were explained too. The experiments are listed highest gain first. A gain starts from the fully ablated model, so one unit alone adds little. The order still says which experiments matter most for this answer.
+  - The output gives how many experiments reach 50%, 80%, 90% and 99% of the attribution. Then it lists the next `--experiments` (default 10) with their commands. `--json` gives the same list and the counts.
+  - The attribution spreads thinly over most units: on a GPT-2 prompt, 4,628 experiments reach 50% and 26,861 reach 90%.
+  - A share is of this prompt's first-order attribution. A VERIFIED explanation describes its unit on the scan corpus, so it may not cover the prompt.
+
+- **Levels.** `--level mechanism` (the default) prints the evidence above. `--level long` adds a narrative and `--level paragraph` prints only its one-paragraph summary. Both come from a narrator agent (`openinterpretability/agents/narrator.py`), which reads the evidence and nothing else (`openinterpretability/explain_narrate.py`).
+  - The evidence holds the shares, prompt coverage, the units and groups with their status and ablation checks, the paths and the next experiments. A unit's explanation goes in only when it is VERIFIED, fenced as data.
+  - The narrator must cite a unit for each claim, present only VERIFIED explanations as fact, and state the unexplained share. It must not fill gaps with general knowledge about language models.
+  - The output warns about any cited unit that the evidence doesn't hold. `--json` keeps the evidence, the narrative, the narrator model and its costs, so a reader can check each sentence.
+  - `--narrator-model` takes a LiteLLM model, or `external/<name>` for an answer through `exchange/`. The `explanation-narrator` subagent answers that prompt from Claude Code.
+
+- **Run the plan.** `--run N` runs the top N unit experiments of the plan, by coverage gain, until each unit is VERIFIED (`openinterpretability/explanation_targets.py`). They go through the experiment loop, as `open-interpretability loop` runs draws. Each run is a normal experiment: claimed, audited, reviewed, verified, opened as a PR and landed.
+  - Each draw reloads the registry. An unstudied unit gets its attribution audit. A unit that ends NEEDS_REVISION or REJECTED gets the planner's next follow-up on a later draw. That is a revision, a new hypothesis or an independent review, so one unit can take several runs.
+  - A unit leaves the list when it is VERIFIED, when a scan stops on it, or after `--max-attempts` runs (default 5). A unit that an open PR claims waits.
+  - `--proposer`, `--reviewer` and `--provider` work as for `loop`, and an `external/` model is refused. The run ends with each unit's outcome.
+
+- **Record it.** `--record` writes the explanation to `wiki/explanations/<model>/<prompt id>/<UTC>.json` (`openinterpretability/core/explanation_records.py`). The record holds the prompt, the answer, the shares and prompt coverage, and the mechanism with each unit's status at the time. With `--level long` or `paragraph`, it also holds the narration. A prompt keeps its history, and the site shows each prompt's newest record under *Explanations*, linked from Research. A page is marked stale when a unit that it cites has a different status now.
+
+`--json` prints the result as JSON, with every edge, the prompt coverage and the next planned experiments.
 
 ## Letting an agent run it (Claude Code)
 
@@ -161,6 +185,8 @@ The repo's skills load automatically, and `choose-next-experiment` defines the w
 5. posts the result.
 
 Besides neuron poles and heads, the planner draws superpositions. A `superposition` draw audits one definition in `data/superpositions/` that has no experiment yet. Its steps write the definition with `open-interpretability superpositions show`, then scan it with `audit --superposition`.
+
+The planner also draws explanations (`openinterpretability/planner_explanations.py`). An `explanation` draw explains a model's answer to a prompt from `data/explanation-prompts.jsonl`, narrates it and records it (`explain --level long --record`). It also re-explains an answer whose explanation is stale. Each unstudied pole or head that a recorded explanation cites gets an `explore` draw, audited with `--selection attribution`. So the loop drives an explained answer's units toward VERIFIED, one normal experiment at a time.
 
 The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
 

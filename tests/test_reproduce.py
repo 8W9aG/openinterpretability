@@ -383,6 +383,31 @@ def test_a_head_gets_the_wider_head_tolerance_and_an_edit_still_fails():
     assert both.atol == max(HALF_TOLERANCE.atol, HEAD_TOLERANCE.atol)
 
 
+def test_a_pythia_neuron_gets_its_models_float32_floor_and_an_edit_still_fails():
+    # #4187: Pythia-70m L5/N389, negative pole, scale 0.16997, scanned on an Intel CPU.
+    from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+    from openinterpretability.planner import configured_reproduce_floors
+    from openinterpretability.reproduce import HEAD_TOLERANCE, Tolerance
+
+    floors = configured_reproduce_floors()
+    assert floors["EleutherAI/pythia-70m"] == 0.01 and "openai-community/gpt2" not in floors
+    base = Tolerance()
+    pythia = NeuronIdentifier(
+        model_name="EleutherAI/pythia-70m", layer=5, neuron_idx=389, pole="negative"
+    )
+    gpt2 = NeuronIdentifier(
+        model_name="openai-community/gpt2", layer=1, neuron_idx=2, pole="negative"
+    )
+    wide = base.for_unit(pythia)
+    assert wide.floor == 0.01 and base.for_unit(gpt2) is base
+    scale = 0.16997
+    assert not base.close(0.12703, 0.125384, scale) and wide.close(0.12703, 0.125384, scale)
+    assert not wide.close(scale, scale * 1.10, scale)  # 10% at a peak: an edit
+    head = HeadIdentifier(model_name="EleutherAI/pythia-70m", layer=4, head_idx=4)
+    assert base.for_unit(head) == HEAD_TOLERANCE  # heads keep their own study (#3956)
+    assert base.for_dtype("bfloat16").for_unit(pythia).floor == 0.01  # each term keeps the larger
+
+
 def test_a_bfloat16_record_reproduces_on_float32_weights_with_a_warning(record, toy_runner):
     report = reproduce_record(_pinned(record, "bfloat16"), toy_runner)
     assert report.ok, report.mismatches
@@ -512,6 +537,56 @@ def test_a_10_percent_edit_of_a_16_bit_peak_is_caught(record, toy_runner):
     assert any(
         "max_activation differs" in m for m in reproduce_record(tampered, toy_runner).mismatches
     )
+
+
+def _scanned_in(record, dtype):
+    """``record`` with a scan that pins ``dtype``. Its review keeps its own pin (float32)."""
+    from openinterpretability.core.schemas import ExperimentProvenance
+
+    prov = ExperimentProvenance(
+        dtype=dtype, corpus="c", corpus_sha256="abc", n_snippets=5, tokens_scanned=100,
+        selection="manual", harness_version="t",
+    )  # fmt: skip
+    return record.model_copy(
+        update={"submission": record.submission.model_copy(update={"provenance": prov})}
+    )
+
+
+def test_a_bfloat16_scan_is_reproduced_in_bfloat16_and_its_review_in_float32(record, toy_runner):
+    # #3801: a bfloat16 scan with a float32 review. Its scan evidence drifted by up to 1.4% of
+    # the scale on another device, and failed the float32 tolerance.
+    from openinterpretability.reproduce import scan_dtype
+
+    mixed = _scanned_in(record, "bfloat16")
+    assert scan_dtype(mixed) == "bfloat16" and mixed.verdict.environment.dtype == "float32"
+    assert scan_dtype(record) == "float32"  # no scan pin: the review's
+    drift = _edit_tokens(mixed, 1, 0.03)  # 3% of the scale: 16-bit rounding
+    report = reproduce_record(drift, toy_runner)
+    assert report.ok, report.mismatches
+    assert any("the scan pins bfloat16" in w for w in report.warnings)
+    float32_scan = _edit_tokens(_scanned_in(record, "float32"), 1, 0.03)
+    assert not reproduce_record(float32_scan, toy_runner).ok
+    # The review was measured in float32, so its numbers keep the float32 tolerance.
+    i = next(n for n, r in enumerate(mixed.verdict.adversarial_test_results) if r.activation)
+    probe = mixed.verdict.adversarial_test_results[i].activation
+    nudged = edit_result(mixed, i, activation=probe + 0.03 * mixed.submission.max_activation)
+    assert any("activation" in m for m in reproduce_record(nudged, toy_runner).mismatches)
+
+
+def test_cli_loads_the_scan_dtype_for_the_scan_evidence(tmp_path, monkeypatch, record, toy_runner):
+    toy_runner.model.config = SimpleNamespace()
+    loads = []
+    monkeypatch.setattr(
+        "openinterpretability.cli._load_runner",
+        lambda name, device, dtype, revision=None, attn=None: (
+            loads.append((name, dtype)) or toy_runner
+        ),
+    )
+    path = tmp_path / "mixed.json"
+    path.write_text(_scanned_in(record, "bfloat16").model_dump_json())
+    result = CliRunner().invoke(cli, ["reproduce", str(path)])
+    assert result.exit_code == 0, result.output
+    assert sorted(loads) == [("toy", "bfloat16"), ("toy", "float32")]
 
 
 def test_reproduce_picks_each_records_scan_corpus_by_sha(record, tmp_path, monkeypatch):

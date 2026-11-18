@@ -11,6 +11,7 @@
   Size, layers, MLP width and activation come from each model's <code class="font-mono">config.json</code>.
   Size counts parameters, with tied embeddings counted once.
   Verified counts the neurons with a VERIFIED pole and the VERIFIED attention heads. It leaves out dictionary features, which are a baseline. It also leaves out superpositions.
+  Loss effect kept is the registry's coverage: the share of the loss rise from mean-ablating every MLP neuron that comes back when only the VERIFIED poles keep their activations. Random poles of the same count give the baseline beside it (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">method</a>).
 </p>
 
 <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
@@ -25,22 +26,25 @@
         <th class="px-3 py-2">Licence</th>
         <th class="px-3 py-2 text-right">Experiments</th>
         <th class="px-3 py-2 text-right">Verified</th>
+        <th class="px-3 py-2 text-right">Loss effect kept</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for r in rows %}
       <tr>
-        <td class="whitespace-nowrap px-3 py-2 font-mono">{% if r.href %}<a class="text-emerald-700 underline underline-offset-2 dark:text-emerald-400" href="{{ root }}{{ r.href }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
+        <td class="whitespace-nowrap px-3 py-2 font-mono">{% if r.href %}<a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ r.href }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
         <td class="px-3 py-2 text-right tabular-nums"{% if r.parameters %} title="{{ r.parameters | thousands }} parameters"{% endif %}>{{ r.size }}</td>
         <td class="px-3 py-2 text-right tabular-nums">{{ r.layers if r.layers else "—" }}</td>
         <td class="px-3 py-2 text-right tabular-nums">{{ r.mlp_width | thousands if r.mlp_width else "—" }}</td>
         <td class="px-3 py-2 font-mono text-xs">{{ r.activation or "—" }}</td>
-        <td class="px-3 py-2">{% if r.terms %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ r.terms.url }}">{{ r.terms.license }}</a>{% if r.terms.gated %} <span class="text-xs text-slate-500">gated</span>{% endif %}{% else %}<span class="text-slate-500">not recorded</span>{% endif %}</td>
+        <td class="px-3 py-2">{% if r.terms %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ r.terms.url }}">{{ r.terms.license }}</a>{% if r.terms.gated %} <span class="text-xs text-slate-500">gated</span>{% endif %}{% else %}<span class="text-slate-500">not recorded</span>{% endif %}</td>
         <td class="px-3 py-2 text-right tabular-nums">{{ r.experiments | thousands }}</td>
         <td class="px-3 py-2 text-right tabular-nums">{{ r.verified | thousands }}</td>
+        {% set cov = coverage.get(r.name) %}
+        <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">{% if cov and cov.summary.recovered is not none %}{{ "{:.2%}".format(cov.summary.recovered) }}{% if cov.summary.recovered_random is not none %} <span class="text-xs text-slate-500">random {{ "{:.2%}".format(cov.summary.recovered_random) }}</span>{% endif %}{% else %}—{% endif %}</td>
       </tr>
       {% else %}
-      <tr><td colspan="8" class="px-3 py-4 text-center text-slate-500">No models are configured.</td></tr>
+      <tr><td colspan="9" class="px-3 py-4 text-center text-slate-500">No models are configured.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -21,10 +21,12 @@ ablation and explanation scores are reported but not gated, so a difference ther
 only a warning. Explanation scores are re-derived from re-measured windows and the
 judge's stored answers; the judge and embedding model are not re-run.
 
-A record made in a 16-bit dtype (bfloat16 or float16) is reproduced in float32. Its
-numbers are compared within :data:`HALF_TOLERANCE`, because 16-bit rounding moves a
-number by a few percent from one device to another (issue #2995). float32 is also about
-10 times faster than bfloat16 on a CPU. ``half_precision.py`` has the other rules.
+The scan and the review can pin different dtypes. The scan evidence is reproduced in
+the dtype that the scan pins (``provenance.dtype``), as #3801 asks. A review in a 16-bit
+dtype (bfloat16 or float16) is reproduced in float32. On a CPU, float32 is about 10
+times faster than bfloat16. Numbers measured in a 16-bit dtype are compared within
+:data:`HALF_TOLERANCE`. 16-bit rounding moves a number by a few percent from one device
+to another (issue #2995). ``half_precision.py`` has the other rules.
 
 A record judged under another protocol version can't be reproduced by this harness:
 its decision rule was different. Re-evaluate it instead (`open-interpretability reevaluate`). A
@@ -43,7 +45,7 @@ from functools import partial
 from pathlib import Path
 
 from openinterpretability.core.schemas import PROTOCOL_VERSION, AuditRecord, RunEnvironment
-from openinterpretability.half_precision import HALF, recorded_pass, rederived, reproduction_dtype
+from openinterpretability.half_precision import HALF, compare_dtype, recorded_pass, rederived
 from openinterpretability.harness.environment import run_environment
 from openinterpretability.harness.hooks import NeuronHookRunner
 from openinterpretability.harness.layer_major import map_layer_major, prompt_tokens
@@ -51,7 +53,7 @@ from openinterpretability.harness.layer_major import map_layer_major, prompt_tok
 
 @dataclass(frozen=True)
 class Tolerance:
-    """Allowed |reproduced − recorded| = atol × scale + rtol × |recorded|.
+    """Allowed |reproduced − recorded| = atol × scale + rtol × |recorded| + floor.
 
     The defaults absorb float32 differences between devices and library versions
     (records round activations to 5–6 decimals) but not an edited number.
@@ -59,26 +61,37 @@ class Tolerance:
 
     atol: float = 1e-3  # fraction of the neuron's max activation
     rtol: float = 1e-2
+    floor: float = 0.0  # in activation units: the model's float32 move (for_unit)
 
     def close(self, recorded: float | None, reproduced: float | None, scale: float) -> bool:
         """True when ``reproduced`` is within tolerance of ``recorded``, or both are ``None``."""
         if recorded is None or reproduced is None:
             return recorded is None and reproduced is None
-        return abs(reproduced - recorded) <= self.atol * scale + self.rtol * abs(recorded)
+        allowed = self.atol * scale + self.rtol * abs(recorded) + self.floor
+        return abs(reproduced - recorded) <= allowed
 
     def for_dtype(self, dtype: str) -> Tolerance:
         """This tolerance, widened to :data:`HALF_TOLERANCE` for a record in a 16-bit dtype."""
         return self.widened(HALF_TOLERANCE) if dtype in HALF else self
 
     def for_unit(self, ident) -> Tolerance:
-        """This tolerance, widened to :data:`HEAD_TOLERANCE` for an attention head."""
-        from openinterpretability.core.schemas import HeadIdentifier
+        """Widened to :data:`HEAD_TOLERANCE` for a head, or a neuron model's ``reproduce_floor``."""
+        from openinterpretability.core.schemas import HeadIdentifier, NeuronIdentifier
+        from openinterpretability.planner import configured_reproduce_floors
 
-        return self.widened(HEAD_TOLERANCE) if isinstance(ident, HeadIdentifier) else self
+        if isinstance(ident, HeadIdentifier):
+            return self.widened(HEAD_TOLERANCE)
+        floor = configured_reproduce_floors().get(ident.model_name, 0.0)
+        neuron = isinstance(ident, NeuronIdentifier) and floor
+        return self.widened(Tolerance(atol=0.0, rtol=0.0, floor=floor)) if neuron else self
 
     def widened(self, other: Tolerance) -> Tolerance:
         """The larger of this tolerance and ``other``, term by term."""
-        return Tolerance(atol=max(self.atol, other.atol), rtol=max(self.rtol, other.rtol))
+        return Tolerance(
+            atol=max(self.atol, other.atol),
+            rtol=max(self.rtol, other.rtol),
+            floor=max(self.floor, other.floor),
+        )
 
 
 DEFAULT_TOLERANCE = Tolerance()
@@ -124,6 +137,16 @@ def pinned_environment(record: AuditRecord) -> tuple[str | None, str]:
     return revision, dtype
 
 
+def scan_dtype(record: AuditRecord) -> str:
+    """The dtype that the scan evidence was measured in: the scan's own pin, else the review's.
+
+    A scan can pin another dtype than its review. For example, a bfloat16 scan of a model
+    that does not fit a GPU in float32, followed by a float32 review (#3801).
+    """
+    prov = record.submission.provenance
+    return (prov and prov.dtype) or pinned_environment(record)[1]
+
+
 def check_protocol(record: AuditRecord) -> str | None:
     """Why this harness can't reproduce ``record``'s verdict, or ``None`` if it can."""
     if record.verdict is None:
@@ -161,9 +184,12 @@ def reproduce_record(
     corpus: tuple[list[str], str] | None = None,
     *,
     measurements_only: bool = False,
+    scan_runner: NeuronHookRunner | None = None,
 ) -> ReproductionReport:
     """Reproduce ``record`` with ``runner``.
 
+    ``scan_runner`` measures the scan evidence. Give it when the scan pins another dtype
+    than the review (:func:`scan_dtype`). If it is not given, ``runner`` is used.
     ``corpus`` is (documents, SHA-256 of the corpus file), to draw the scan's sample from.
     With ``measurements_only``, a record from another protocol version gets its scan
     evidence and counterfactuals compared, and a warning that the review was left out.
@@ -177,18 +203,18 @@ def reproduce_record(
 
     sub, verdict = record.submission, record.verdict
     unit = submission_unit(sub)
-    half = pinned_environment(record)[1] in HALF
-    tolerance = tolerance.for_dtype(pinned_environment(record)[1]).for_unit(sub.identifier)
+    review_dtype = pinned_environment(record)[1]
+    half = review_dtype in HALF
+    tolerance = tolerance.for_unit(sub.identifier)
     _compare_environment(record, run_environment(runner), report)
-
     scale = sub.max_activation or 0.0
-    _check_scale(sub, unit, runner, scale, report)
 
-    # 1. Scan evidence.
-    if corpus is not None:
-        _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
-    stray = HALF_STRAY_TOKENS if half else 0
-    _check_examples(sub.top_examples, unit, runner, tolerance, scale, report, stray)
+    # 1. Scan evidence, in the dtype the scan pins. The first-token floor reads every
+    # token of the vocabulary. In bfloat16 on a CPU, that took more than an hour (#3801).
+    # So the review's runner checks it.
+    _check_scale(sub, unit, runner, scale, report)
+    _check_scan(record, unit, scan_runner or runner, tolerance, corpus, report)
+    tolerance = tolerance.for_dtype(review_dtype)
 
     # 2. Counterfactuals as submitted.
     _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
@@ -205,6 +231,23 @@ def reproduce_record(
             verdict.explanation_scores, runner, unit, tolerance, scale, report
         )
     return report
+
+
+def _check_scan(record: AuditRecord, unit, runner, tolerance: Tolerance, corpus, report):
+    """Compare the scan evidence, measured by ``runner`` in the dtype that the scan pins.
+
+    The scan evidence is the corpus sample and the top examples. A 16-bit scan is compared
+    within the 16-bit tolerance, with :data:`HALF_STRAY_TOKENS` stray tokens.
+    """
+    sub, scanned_in = record.submission, scan_dtype(record)
+    if scanned_in != pinned_environment(record)[1]:
+        compare_dtype("scan", scanned_in, run_environment(runner).dtype, report)
+    scale = sub.max_activation or 0.0
+    if corpus is not None:
+        _check_sample(sub.provenance, sub.top_examples, runner, *corpus, report)
+    stray = HALF_STRAY_TOKENS if scanned_in in HALF else 0
+    tolerance = tolerance.for_dtype(scanned_in)
+    _check_examples(sub.top_examples, unit, runner, tolerance, scale, report, stray)
 
 
 def _review_again(record: AuditRecord, runner):
@@ -356,13 +399,7 @@ def _compare_environment(record: AuditRecord, now: RunEnvironment, report) -> No
     revision, dtype = pinned_environment(record)
     if revision and now.model_revision and revision != now.model_revision:
         report.fail(f"model revision {now.model_revision} is not the pinned {revision}")
-    if dtype not in {"auto", now.dtype} and reproduction_dtype(dtype) != now.dtype:
-        report.fail(f"loaded {now.dtype} weights; the record pins {dtype}")
-    elif dtype in HALF and now.dtype != dtype:
-        report.warnings.append(
-            f"reproduced in {now.dtype}; the record pins {dtype}, so its numbers are compared "
-            "within the 16-bit tolerance"
-        )
+    compare_dtype("record", dtype, now.dtype, report)
     then = record.verdict.environment
     if then is None:
         report.warnings.append("record predates environment pinning; device and versions unknown")

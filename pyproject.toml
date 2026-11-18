@@ -60,6 +60,8 @@ open-interpretability = "openinterpretability.cli:main"
 [project.optional-dependencies]
 # `open-interpretability build` makes the site's search index with Pagefind.
 site = ["pagefind[bin]>=1.3.0"]
+# `open-interpretability map` lays out a model's studied neurons by meaning (#4422).
+map = ["sentence-transformers>=5.0", "umap-learn>=0.5.7", "leidenalg>=0.10.2", "igraph>=0.11"]
 
 [dependency-groups]
 dev = [
@@ -72,6 +74,7 @@ dev = [
     "pytest-timeout>=2.3.0",
     "ruff>=0.17.4",
     "shellcheck-py>=0.11.0.1",
+    "vulture>=2.16",
     "yamllint>=1.38.0",
 ]
 
@@ -124,6 +127,14 @@ files = 20000
 # GPT-2 reads 1,024, but its transcoders fit only 128 (harness/dictionaries.py), and the
 # learned-basis baseline compares latents with neuron poles scanned the same way.
 "openai-community/gpt2" = 128
+
+[tool.openinterpretability.reproduce_floor]
+# An absolute term, in activation units, that `open-interpretability reproduce` adds to the
+# tolerance of a neuron pole of the model. Pythia-70m's activations move by up to 0.0049
+# in float32 between machines and thread counts, whatever the pole's scale. A negative
+# pole's scale is at most 0.17 (GELU), so that move fails the scale-relative tolerance.
+# Twice the largest move measured (docs/analyses/neuron-float32-floor.md, #4187).
+"EleutherAI/pythia-70m" = 0.01
 
 # The terms of each model in `models` (openinterpretability.core.licenses.ModelLicense), which each
 # model's site page shows. `license` and `gated` come from the model's Hub page, and

@@ -2,7 +2,8 @@
 
 A scan stops on a neuron pole that is dead or default-on (:mod:`openinterpretability.core.draws`).
 The neuron still counts as studied, in the site's counts and maps. When the weights prove
-the pole dead, it also counts as verified (:func:`explore_focus`).
+the pole dead, it also counts as verified (:func:`explore_focus`). It has a page, which
+lists its stops as its experiments list theirs (#3297).
 """
 
 from __future__ import annotations
@@ -10,7 +11,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from openinterpretability.builder.tree import LayerNode, ModelNode, layer_href
+from openinterpretability.builder.tree import (
+    LayerNode,
+    ModelNode,
+    UnitNode,
+    layer_href,
+    neuron_href,
+)
 
 
 @dataclass
@@ -23,6 +30,7 @@ class StoppedNeuron:
     layer: int
     idx: int
     outcomes: list[str] = field(default_factory=list)
+    href: str | None = None  # the neuron's page
 
     @property
     def label(self) -> str:
@@ -59,7 +67,13 @@ def add_stopped(models: Sequence[ModelNode], stops: Sequence) -> None:
             model.layers.append(layer)
             model.layers.sort(key=lambda lay: lay.layer)
             model.n_layers = max(model.n_layers, layer_idx + 1)
-        layer.stopped.append(StoppedNeuron(layer_idx, idx, sorted(outcomes)))
+        href = neuron_href(model.slug, layer_idx, idx)
+        layer.stopped.append(StoppedNeuron(layer_idx, idx, sorted(outcomes), href))
+
+
+def stopped_unit(model: ModelNode, neuron: StoppedNeuron) -> UnitNode:
+    """The unit that the page of ``neuron`` shows: a neuron with no experiment."""
+    return UnitNode(model.name, neuron.layer, neuron.idx, neuron.href or "")
 
 
 def explore_focus(models: Sequence[ModelNode], draws: Sequence = ()) -> dict:

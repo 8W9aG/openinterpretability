@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import paper_status %}
 
 {% block title %}{{ paper.title }} · {{ site_title }}{% endblock %}
 
@@ -10,18 +11,11 @@
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="../index.html">Research</a></nav>
 <h1 class="max-w-3xl text-2xl font-semibold">{{ paper.title }}</h1>
 <p class="mt-2 text-xs text-slate-500">
+  {% if paper.status %}{{ paper_status(paper.status, repo_url) }} ·{% endif %}
   <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/results.jsonl">Results</a> ·
+  <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/CITATION.cff">Cite</a> ·
   <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/README.md">Source</a>{% if pdf %} ·
   <a class="underline" href="paper.pdf">PDF</a>{% endif %}
 </p>
-{% if paper.sections %}
-<nav class="paper mt-6" aria-label="Contents">
-  <h2>Contents</h2>
-  <ol>
-    {% for anchor, title in paper.sections %}<li><a href="#{{ anchor }}">{{ title }}</a></li>
-    {% endfor %}
-  </ol>
-</nav>
-{% endif %}
 <div class="paper mt-6">{{ paper.body | safe }}</div>
 {% endblock %}

@@ -332,13 +332,29 @@ def archive_record(record: AuditRecord, wiki_dir: Path) -> Path:
     return path
 
 
-def load_archive_paths(wiki_dir: Path) -> list[tuple[Path, AuditRecord]]:
-    """Every archived experiment record with its path, oldest first."""
+def load_archive_paths(
+    wiki_dir: Path, skip_missing: bool = False
+) -> list[tuple[Path, AuditRecord]]:
+    """Every archived experiment record with its path, oldest first.
+
+    With ``skip_missing``, a record whose evidence can't be had is left out with a warning
+    (#4530). The planner and ``explain`` use it, so one record merged before its evidence
+    reached the dataset can't stop them. The site build and the checks keep the default and
+    fail on it.
+    """
+    import sys
+
+    from openinterpretability.core.evidence import EvidenceMissing
+
     root = experiments_dir(wiki_dir)
-    pairs = [
-        (p, AuditRecord.model_validate_json(p.read_text(encoding="utf-8")))
-        for p in sorted(root.rglob("*.json"))
-    ]
+    pairs = []
+    for p in sorted(root.rglob("*.json")):
+        try:
+            pairs.append((p, AuditRecord.model_validate_json(p.read_text(encoding="utf-8"))))
+        except EvidenceMissing as error:
+            if not skip_missing:
+                raise
+            print(f"warning: skipping {p}: {error}", file=sys.stderr)
     return sorted(pairs, key=lambda pr: (pr[1].verdict.timestamp, pr[1].submission.identifier.slug))
 
 

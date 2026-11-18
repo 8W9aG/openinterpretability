@@ -31,7 +31,7 @@
         </p>
         {% endif %}
         {% elif stops | selectattr("side", "equalto", pole) | list %}
-        <p class="mt-2 text-xs text-slate-500">No experiment: the scan stopped before a hypothesis. See <a class="underline-offset-2 hover:underline" href="#scans-that-stopped">Scans that stopped</a>.</p>
+        <p class="mt-2 text-xs text-slate-500">No experiment: the scan stopped before a hypothesis. See <a class="underline-offset-2 hover:underline" href="#experiments">Experiments</a>.</p>
         {% else %}
         <p class="mt-2 text-xs text-slate-500">Not studied yet: a candidate for <code>open-interpretability next</code>.</p>
         {% endif %}
@@ -88,7 +88,7 @@
                 <tbody>
                   {% for x in s.matches %}
                   <tr class="{{ '' if x.above else 'text-slate-500' }}"{% if x.m.channel %} title="{{ x.m.channel }}"{% endif %}>
-                    <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">F{{ x.m.feature_idx }}</a>{% elif x.neuronpedia %}<a class="underline-offset-2 hover:underline" href="{{ x.neuronpedia }}" rel="noopener">F{{ x.m.feature_idx }}</a>{% else %}F{{ x.m.feature_idx }}{% endif %}</td>
+                    <td>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">F{{ x.m.feature_idx }}</a>{% elif x.neuronpedia %}<a class="underline-offset-2 hover:underline" href="{{ x.neuronpedia }}" rel="noopener">F{{ x.m.feature_idx }}</a>{% else %}F{{ x.m.feature_idx }}{% endif %}</td>
                     <td class="text-right tabular-nums">{{ '%+.2f' | format(x.m.cosine) }}</td>
                   </tr>
                   {% endfor %}
@@ -114,13 +114,13 @@
         <div class="min-w-0 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
           <div class="text-slate-500">{{ p.pole | capitalize }} pole {{ pole_mark(p.pole) }}</div>
           {% for v in p.rows %}
-          <div class="mt-2 text-xs font-medium">{{ v.row.other }}{% if v.sister %} · <span class="text-emerald-700 dark:text-emerald-400">sister</span>{% endif %}</div>
+          <div class="mt-2 text-xs font-medium">{{ v.row.other }}{% if v.sister %} · <span class="text-brand-700 dark:text-brand-400">sister</span>{% endif %}</div>
           <div class="text-xs text-slate-500">rotated {{ v.row.rotated | num(2) }} · {{ '{:,}'.format(v.row.tokens) }} positions ({{ (100 * v.row.coverage) | round | int }}% coverage)</div>
           <table class="mt-1 w-full font-mono text-xs">
             <tbody>
               {% for x in v.matches %}
               <tr class="{{ '' if x.m.pearson > v.row.rotated else 'text-slate-500' }}" title="best partner back: {{ x.m.back_slug }}">
-                <td>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">L{{ x.m.layer }}/N{{ x.m.neuron_idx }}</a>{% else %}L{{ x.m.layer }}/N{{ x.m.neuron_idx }}{% endif %} {{ pole_mark(x.m.pole) }}</td>
+                <td>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">L{{ x.m.layer }}/N{{ x.m.neuron_idx }}</a>{% else %}L{{ x.m.layer }}/N{{ x.m.neuron_idx }}{% endif %} {{ pole_mark(x.m.pole) }}</td>
                 <td class="text-right tabular-nums">r {{ '%+.2f' | format(x.m.pearson) }}</td>
                 <td class="text-right tabular-nums">back {{ '%+.2f' | format(x.m.back_pearson) }}{{ ' ✓' if x.mutual else '' }}</td>
                 <td class="text-right">{% if x.tested %}{{ status_badge(x.tested) }}{% endif %}</td>
@@ -133,7 +133,7 @@
           <div class="mt-2 text-xs font-medium">Matched from</div>
           <ul class="mt-1 font-mono text-xs">
             {% for x in p.named_by %}
-            <li>{% if x.href %}<a class="text-emerald-700 underline dark:text-emerald-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
+            <li>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
             {% endfor %}
           </ul>
           {% endif %}
@@ -142,50 +142,16 @@
       </div>
     </section>
     {% endif %}
-    {% if stops %}
-    <section class="mt-6" aria-labelledby="scans-that-stopped" data-pagefind-ignore>
-      <h2 id="scans-that-stopped" class="text-base font-semibold">Scans that stopped</h2>
-      <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        A scan stops on a unit that never fires or that is active on at least half of its tokens. These attempts tested no hypothesis, so they give no verdict, and they don't count in random-draw statistics.
-      </p>
-      <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-            <tr>
-              <th class="px-3 py-2">Date</th>
-              {% if neuron.is_neuron %}<th class="px-3 py-2">Pole</th>{% endif %}
-              <th class="px-3 py-2">Outcome</th>
-              <th class="px-3 py-2 text-right">Active share</th>
-              <th class="px-3 py-2">Protocol</th>
-              <th class="px-3 py-2">Corpus</th>
-              <th class="px-3 py-2">Page</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-            {% for v in stops %}
-            <tr class="align-top">
-              <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.stop.timestamp.isoformat() }}">{{ v.stop.timestamp.strftime("%Y-%m-%d %H:%M") }}</time></td>
-              {% if neuron.is_neuron %}<td class="px-3 py-2">{{ v.side | capitalize }} {{ pole_mark(v.side) }}</td>{% endif %}
-              <td class="px-3 py-2">{{ stop_outcome(v.stop) }}</td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.stop.active_share | pct }}</td>
-              <td class="px-3 py-2 font-mono text-xs">{{ v.stop.protocol_version }}</td>
-              <td class="px-3 py-2 text-xs">{{ v.stop.provenance.corpus }}</td>
-              <td class="px-3 py-2 text-xs"><a class="underline-offset-2 hover:underline" href="{{ repo_url }}/blob/main/{{ v.page }}">Wiki page</a></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-    {% endif %}
   </header>
 
-  {% if neuron.experiments %}
+  {% if neuron.experiments or stops %}
   <section aria-labelledby="experiments">
     <h2 id="experiments" class="text-base font-semibold">Experiments</h2>
     <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-      Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
+      {% if neuron.experiments %}Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
       conclusive its probe evidence is (in either direction). Each has its own page with the evidence and the review.
+      {% else %}This {{ neuron.noun }} has no experiment: every scan of it stopped, newest first below.{% endif %}
+      {% if stops %}{% if neuron.experiments %}Scans that stopped come last, newest first. {% endif %}A scan stops on a unit that never fires, or that is active on at least half of its tokens. It tested no hypothesis, so its outcome stands in place of a verdict and counts toward no status. A chosen unit's stop doesn't count in random-draw statistics.{% endif %}
     </p>
     <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-sm">
@@ -220,6 +186,21 @@
               <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(verdict.reviewer_agent_model) }}" title="recorded as {{ verdict.reviewer_agent_model }}">{{ agent_name(verdict.reviewer_agent_model) }}</a>
             </td>
             <td class="px-3 py-2"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ e.href }}">{{ sub.natural_language_explanation | truncate(160) }}</a></td>
+          </tr>
+          {% endfor %}
+          {% for v in stops %}
+          <tr class="align-top">
+            <td class="px-3 py-2 font-mono text-xs text-slate-500">{{ neuron.experiments | length + loop.index }}</td>
+            <td class="px-3 py-2">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="rounded border border-slate-300 px-2 py-0.5 text-xs dark:border-slate-700">Stopped: {{ stop_outcome(v.stop) }}</span>
+                <span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400" title="How this scan was chosen">{{ v.role }}</span>
+              </div>
+            </td>
+            {% if neuron.is_neuron %}<td class="whitespace-nowrap px-3 py-2">{{ v.side | capitalize }} {{ pole_mark(v.side) }}</td>{% endif %}
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs"><time datetime="{{ v.stop.timestamp.isoformat() }}">{{ v.stop.timestamp.strftime("%Y-%m-%d") }}</time></td>
+            <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-500">scan only</td>
+            <td class="px-3 py-2 text-xs">No hypothesis: the scan stopped{% if v.stop.active_share is not none %}, active on {{ v.stop.active_share | pct }} of its tokens{% endif %}. Protocol {{ v.stop.protocol_version }}, corpus {{ v.stop.provenance.corpus }}. <a class="underline-offset-2 hover:underline" href="{{ repo_url }}/blob/main/{{ v.page }}">Record</a></td>
           </tr>
           {% endfor %}
         </tbody>

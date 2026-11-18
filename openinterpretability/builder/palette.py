@@ -8,7 +8,8 @@ and that badge text stays readable on each fill.
 
 The pole colours are Tailwind's orange-600 and sky-600, already a safe pair.
 
-Templates use them as Tailwind colours (``status-verified``, ``pole-positive``), which
+Templates use them as Tailwind colours (``status-verified``, ``pole-positive``,
+``brand-700``), which
 ``builder/css.py`` adds to Tailwind's config from :func:`tailwind_colors`. The token heatmaps use
 :data:`POLE_RGB`.
 """
@@ -22,6 +23,23 @@ STATUS_HEX = {
     "REJECTED": "#F97316",
 }
 POLE_HEX = {"positive": "#EA580C", "negative": "#0284C7"}
+# The brand's accent: links, highlights and the mark (#3289). These are Tailwind's emerald
+# shades, under one name, so that changing the accent is one edit here.
+BRAND_HEX = {
+    50: "#ecfdf5", 100: "#d1fae5", 200: "#a7f3d0", 300: "#6ee7b7", 400: "#34d399",
+    500: "#10b981", 600: "#059669", 700: "#047857", 800: "#065f46", 900: "#064e3b",
+    950: "#022c22",
+}  # fmt: skip
+# The mark's colours: the model layouts' own yellow, orange and blue (#4465). VERIFIED's blue
+# is too dark for the dark tile, so the blue is the negative pole's sky. They differ in
+# lightness as well as hue, and none is a green.
+MARK_HEX = {
+    "yellow": STATUS_HEX["NEEDS_REVISION"],
+    "orange": STATUS_HEX["REJECTED"],
+    "blue": POLE_HEX["negative"],
+}
+MARK_TILE = "#0F172A"  # Tailwind's slate-900: the mark's tile
+INK = {"light": "#0F172A", "dark": "#F8FAFC"}  # the wordmark: slate-900, and slate-50 in dark mode
 # Light and dark page surfaces (base.html: bg-white, dark:bg-slate-950).
 SURFACES = {"light": "#FFFFFF", "dark": "#020617"}
 
@@ -56,4 +74,5 @@ def tailwind_colors() -> dict[str, str]:
     """The colours ``base.html`` adds to Tailwind's theme."""
     colours = {token(s): h for s, h in STATUS_HEX.items()}
     colours |= {f"pole-{p}": h for p, h in POLE_HEX.items()}
+    colours |= {f"brand-{shade}": h for shade, h in BRAND_HEX.items()}
     return colours

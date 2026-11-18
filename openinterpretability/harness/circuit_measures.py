@@ -158,12 +158,17 @@ def random_like(runner, members, rng: random.Random) -> list[Member]:
 
 
 def null_necessity(runner, task, means, members, sets: int = 64, seed: int = 0) -> list[float]:
-    """Necessity of ``sets`` random member sets like ``members``, sorted."""
-    rng = random.Random(seed)
-    return sorted(
-        measures(runner, task, means, random_like(runner, members, rng))["necessity"]
-        for _ in range(sets)
-    )
+    """Necessity of ``sets`` random member sets like ``members``, sorted.
+
+    Each set is a pass over every pair, so a :class:`~.progress.Progress` reports the count.
+    """
+    from openinterpretability.harness.progress import Progress
+
+    rng, progress, found = random.Random(seed), Progress("random member sets", sets), []
+    for _ in range(sets):
+        found.append(measures(runner, task, means, random_like(runner, members, rng))["necessity"])
+        progress.step()
+    return sorted(found)
 
 
 def attribution(runner, task: PairTask) -> dict[Member, float]:

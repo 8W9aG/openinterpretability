@@ -1,9 +1,8 @@
 """Compile every archived experiment into a static site under ``dist/``.
 
 Pages follow the registry hierarchy: the index, then a page per model, layer and unit.
-A neuron's page is ``models/<model>/L<layer>/N<idx>.html``, and a head's is
-``H<idx>.html``. Each unit page lists all of its experiments, most conclusive first. Null
-results are published alongside positive ones.
+A neuron's page is ``models/<model>/L<layer>/N<idx>.html``, and a head's ``H<idx>.html``.
+Each unit page lists all of its experiments, null results too, most conclusive first.
 """
 
 from __future__ import annotations
@@ -30,12 +29,12 @@ from openinterpretability.builder.agents import (
 from openinterpretability.builder.aligned import aligned_latents
 from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
-from openinterpretability.builder.corpora import corpora_view, language_mix
-from openinterpretability.builder.coverage import model_summary
+from openinterpretability.builder.contents import add_contents
+from openinterpretability.builder.corpora import language_mix
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
-from openinterpretability.builder.model_facts import ModelFacts, render_models
+from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
 from openinterpretability.builder.parallel import in_background, render_in_parallel
 from openinterpretability.builder.parquet_export import export_draws, export_registry
@@ -46,8 +45,8 @@ from openinterpretability.builder.sections import render_reference_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
 from openinterpretability.builder.sister_graph import sister_graphs
 from openinterpretability.builder.standing import ROLES, contested_units, reviewer_agreement
-from openinterpretability.builder.stopped import add_stopped, explore_focus
-from openinterpretability.builder.stops import pageless_stops, stops_by_unit
+from openinterpretability.builder.stopped import add_stopped, explore_focus, stopped_unit
+from openinterpretability.builder.stops import stops_by_unit
 from openinterpretability.builder.superpositions import add_members, count_pageless_neurons
 from openinterpretability.builder.tree import (
     Experiment,
@@ -60,6 +59,7 @@ from openinterpretability.core.agent_names import canonical_agent
 from openinterpretability.core.draws import ChosenStop
 from openinterpretability.core.errata import Erratum
 from openinterpretability.core.exceptions import RegistryError
+from openinterpretability.core.explanation import is_broad
 from openinterpretability.core.project import project_links
 from openinterpretability.core.schemas import ActivatingExample, AuditRecord
 from openinterpretability.planner import configured_licenses
@@ -107,6 +107,7 @@ def _environment() -> Environment:
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
+    env.globals["is_broad"] = is_broad  # a VERIFIED unit active on most held-out text (#4545)
     env.globals["palette"] = palette  # the status and pole colours
     env.globals["agent_href"] = agent_href  # links from agent names to their pages
     env.globals["agent_name"] = canonical_agent  # one name per model, however it was recorded
@@ -118,12 +119,12 @@ def _environment() -> Environment:
 
 
 def _pct_fine(v: float | None) -> str:
-    """A percentage with two significant figures, so 1 neuron in 100k isn't shown as 0%."""
+    """A signed percentage with two significant figures, so 1 in 100k isn't shown as 0%."""
     if v is None:
         return "—"
     if v == 0:
         return "0%"
-    decimals = max(0, 1 - math.floor(math.log10(100 * v)))
+    decimals = max(0, 1 - math.floor(math.log10(100 * abs(v))))
     return f"{100 * v:.{decimals}f}%"
 
 
@@ -302,6 +303,9 @@ def compile_site(
     coverage_rows: dict | None = None,
     paper_pdfs: bool = False,
     pending: Sequence = (),
+    explanations: Sequence = (),  # builder/explanation_pages.load_views
+    circuits: dict | None = None,  # builder/circuit_units.load_circuit_data
+    concept_maps: dict | None = None,  # builder/concept_map_view.load_maps
 ) -> BuildReport:
     """Render every reviewed experiment in ``records``, normally the wiki archive.
 
@@ -310,14 +314,13 @@ def compile_site(
     (``crossref.load_rows``) are each pole's aligned latents. ``sister_rows``
     (``sisters.load_rows``) are its matches. ``papers_dir`` holds the Research section.
     ``paper_pdfs`` adds each paper's PDF, and ``pending`` (``builder/pending.py``) lists open
-    experiment PRs on the pages. ``stops`` (``core.draws.load_stops``) go on their unit's
-    page, or the home's. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the
-    Models page, of every configured model. ``jobs`` is the unit pages' worker processes.
+    experiment PRs on the pages. ``stops`` and ``draws`` (``core.draws``) go on their unit's
+    page. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the Models page.
+    ``jobs`` is the unit pages' worker processes. ``circuits`` feed the circuit and hub pages.
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
-    erratum, and one set aside counts toward no standing. ``users``
-    (``builder.users.load_users``) name who made the records that record no contributor.
-    Each person gets a page under ``users/``. ``coverage_rows`` (``builder.coverage.load_rows``)
-    give the home page each model's registry coverage.
+    erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
+    who made records that name no contributor, each with a page under ``users/``.
+    ``coverage_rows`` (``builder.coverage.load_rows``) give each model page its coverage.
     """
     rows = wiring_rows or {}
     output_dir = Path(output_dir)
@@ -341,9 +344,10 @@ def compile_site(
     export_neuronpedia(experiments, output_dir, project_links()["repo_url"])
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
+    common |= model_page_extras(coverage_rows or {}, explanations, circuits or {}, concept_maps)
     render = _Renderer(_environment(), output_dir, common, report, jobs)
-    studied = {n.href for m in models for layer in m.layers for n in layer.pages}
-    by_unit = stops_by_unit(stops)
+    studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
+    by_unit = stops_by_unit((*draws, *stops))
     for model in models:
         sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
@@ -351,10 +355,9 @@ def compile_site(
     agents = _render_agents(render, experiments, output_dir, report)
     stats = stats_result()
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
-    stats["coverage"] = [model_summary(r) for r in (coverage_rows or {}).values() if r]
-    _render_index(render, models, experiments, agents, stats, (*draws, *stops), by_unit, studied)
+    _render_index(render, models, experiments, agents, stats, (*draws, *stops))
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs)
+    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     _save_memos()
     return report
@@ -367,10 +370,7 @@ def _save_memos() -> None:
 
 
 def _true_text_stats(experiments, draws, corpus_sources) -> dict:
-    """Return the home page's totals and leaderboards, read from the records' true text.
-
-    Only the leaderboards' text is scrubbed, because they show explanations.
-    """
+    """The home page's totals and leaderboards, from true text. Leaderboards are scrubbed."""
     with TemporaryDirectory() as unpublished:
         true_text = export_registry(experiments, Path(unpublished), corpus_sources)
         return scrub(registry_stats(true_text, draws))
@@ -391,7 +391,7 @@ def _render_agents(render, experiments, output_dir, report) -> list:
     return agents
 
 
-def _render_index(render, models, experiments, agents, stats, draws, by_unit, studied) -> None:
+def _render_index(render, models, experiments, agents, stats, draws) -> None:
     render(
         "index.html",
         "index.html",
@@ -402,9 +402,7 @@ def _render_index(render, models, experiments, agents, stats, draws, by_unit, st
         agents=agents,
         fdr=false_discovery(models),
         agreement=reviewer_agreement(models),
-        corpora=corpora_view(experiments),
         contested=contested_units(models),
-        pageless_stops=pageless_stops(by_unit, studied),
     )
     if stats["baseline"]:  # the home page links to it (#3272)
         render("learned-baseline.html", "learned-baseline.html", stats=stats)
@@ -451,7 +449,8 @@ class _Renderer:
         out.parent.mkdir(parents=True, exist_ok=True)
         page = self.env.get_template(template)
         url = self.common["site_url"] + rel
-        out.write_text(page.render(**self.common, root=_root_for(rel), canonical=url, **context))
+        html = page.render(**self.common, root=_root_for(rel), canonical=url, **context)
+        out.write_text(add_contents(html))  # ids on headings, and contents on a long page
         self.report.pages.append(out)
 
 
@@ -497,4 +496,5 @@ def _render_model(
         )
 
     units = [(layer, neuron) for layer in model.layers for neuron in layer.pages]
+    units += [(layer, stopped_unit(model, n)) for layer in model.layers for n in layer.stopped]
     render_in_parallel(render, unit_page, units)

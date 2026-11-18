@@ -36,6 +36,7 @@ import torch
 from openinterpretability.core.cache_dirs import cache_root
 from openinterpretability.explain_groups import HEAD, GroupAttribution, GroupDef
 from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.harness.progress import Progress
 
 MEANS_ENV = "OPENINTERPRETABILITY_MEANS"  # the cache of per-neuron means, or "off"
 WINDOW = 128  # tokens per window of the mean's corpus sample
@@ -59,6 +60,7 @@ class PoleAttribution:
     explanation: str | None = None
     max_activation: float | None = None
     ablation_change: float | None = None  # target logit change when mean-ablated alone
+    hub: dict | None = None  # a HubNote, when the unit is a hub's center (#4472)
 
     @property
     def label(self) -> str:
@@ -86,7 +88,10 @@ class Explanation:
     verified: float  # the same sum over VERIFIED poles only
     joint: dict = field(default_factory=dict)  # the VERIFIED units ablated together
     edges: list[dict] = field(default_factory=list)  # {source, target, weight} between top units
-    groups: list[GroupAttribution] = field(default_factory=list)  # superpositions and circuits
+    groups: list[GroupAttribution] = field(default_factory=list)  # all of them, by |attribution|
+    order: list = field(default_factory=list, repr=False)  # every unit, ranked (_ranked)
+    token_id: int = -1  # the answer token's id
+    net: float = 0.0  # the signed attribution of every unit, summed (the page's waterfall)
 
     @property
     def verified_share(self) -> float:
@@ -147,11 +152,13 @@ def unit_means(runner: NeuronHookRunner, model: str, texts: Sequence[str], token
     windows = [ids[i : i + WINDOW] for i in range(0, len(ids) - WINDOW + 1, WINDOW)]
     heads = has_heads(runner)
     sums: list[dict[int, torch.Tensor]] = [{}, {}]
+    progress = Progress("windows read for the mean activations", len(windows))
     for window in windows:
         encoded = runner.encode(torch.tensor([window]))
         for store, acts in zip(sums, _captured(runner, encoded, heads)[1:], strict=True):
             for la, act in acts.items():  # a window's first token is an attention sink
                 store[la] = store.get(la, 0) + act[0, 1:].float().sum(0).cpu()
+        progress.step()
     count = max(sum(len(w) - 1 for w in windows), 1)
     means = Means(*({la: s / count for la, s in store.items()} for store in sums))
     if path is not None:
@@ -326,11 +333,12 @@ def logits_with(runner: NeuronHookRunner, prompt: str, interventions, position: 
         return runner.forward(runner.encode(prompt))[0, position].float().cpu()
 
 
-def registry_labels(wiki_dir: Path, model: str) -> dict[str, tuple[str, str | None, float | None]]:
+def registry_labels(wiki_dir: Path, model: str, states: dict | None = None) -> dict:
     """``{unit slug: (status, explanation, max_activation)}`` for ``model``'s poles and heads.
 
     The status is the newest record's verdict. A pole that a scan stopped on, with no
-    record, is ``stopped``.
+    record, is ``stopped``. ``states`` are ``load_states(wiki_dir)``, when the caller has
+    them already: each call reads the whole archive.
     """
     from openinterpretability.planner import load_states, stopped
 
@@ -338,7 +346,7 @@ def registry_labels(wiki_dir: Path, model: str) -> dict[str, tuple[str, str | No
     for ident in stopped(wiki_dir):
         if ident.model_name == model:
             out[ident.slug] = ("stopped", None, None)
-    for slug, state in load_states(wiki_dir).items():
+    for slug, state in (load_states(wiki_dir) if states is None else states).items():
         sub = state.record.submission
         if sub.identifier.model_name == model:
             out[slug] = (
@@ -362,18 +370,22 @@ def _ranked(model: str, scores: dict, labels: dict, top: int, covered=frozenset(
     """The top units, labelled, and the total and explained sums of |attribution|.
 
     A unit is explained when it is VERIFIED, or in ``covered``: a VERIFIED group has it.
+    The last item is every unit in rank order, as ``(unit, |attribution|, status,
+    explained)``, for the experiment plan (:mod:`openinterpretability.explain_plan`).
     """
     ranked = sorted(scores.items(), key=lambda kv: abs(kv[1][0]), reverse=True)
     total = verified = 0.0
-    units = []
+    units, order = [], []
     for rank, (unit, (score, strength)) in enumerate(ranked):
         status, text, max_act = labels.get(_slug(model, unit), ("unstudied", None, None))
+        explained = status == "VERIFIED" or unit in covered
         total += abs(score)
-        verified += abs(score) if status == "VERIFIED" or unit in covered else 0.0
+        verified += abs(score) if explained else 0.0
+        order.append((unit, abs(score), status, explained))
         if rank < top:
             shown = text if status == "VERIFIED" else None  # only a VERIFIED one is shown
             units.append(PoleAttribution(*unit, score, strength, status, shown, max_act))
-    return units, total, verified
+    return units, total, verified, order
 
 
 def _check(runner, prompt, means: Means, units, base, token, position, confirm) -> dict:
@@ -453,13 +465,15 @@ def explain(
     found_groups = _groups(graph, scores, groups, labels, group_labels or {})
     verified_groups = {(a.kind, a.name) for a in found_groups if a.status == "VERIFIED"}
     covered = {u for g in groups if (g.kind, g.name) in verified_groups for u in g.units}
-    units, total, verified = _ranked(model, scores, labels, top, frozenset(covered))
+    units, total, verified, order = _ranked(model, scores, labels, top, frozenset(covered))
     found = paths(graph, [u.key for u in units], edges) if edges else []
     logit = float(graph.logit.detach())
     del graph  # the kept graph is the largest thing here
     joint = _check(runner, prompt, means, units, base, token, position, confirm)
     _check_groups(runner, prompt, means, found_groups, groups, base, token, position, confirm)
     decoded = runner.tokenizer.decode([token])
+    net = sum(score for score, _ in scores.values())
     return Explanation(
-        prompt, position, decoded, logit, units, total, verified, joint, found, found_groups[:top]
-    )
+        prompt, position, decoded, logit, units, total, verified, joint, found, found_groups, order,
+        token, net,
+    )  # fmt: skip

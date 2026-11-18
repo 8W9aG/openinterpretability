@@ -3,7 +3,7 @@
 {% block title %}About · {{ site_title }}{% endblock %}
 
 {% set protocol_url = repo_url ~ "/blob/main/docs/PROTOCOL.md" %}
-{% set link = "text-emerald-700 underline underline-offset-2 dark:text-emerald-400" %}
+{% set link = "text-brand-700 underline underline-offset-2 dark:text-brand-400" %}
 
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / About</nav>
@@ -25,6 +25,19 @@
       problems rather than superposition. The registry tests that claim one pole at a time. A pole that resists a
       clean explanation is a result too, and every experiment is published whatever its verdict.
     </p>
+  </section>
+
+  <section id="taxonomy">
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">What the registry studies</h2>
+    <p class="mt-2">
+      The registry studies open-weight models, one small part at a time. A part with its own experiments, verdicts
+      and page is an <em>audited unit</em>: a neuron pole, an attention head, a superposition, a dictionary feature
+      or a circuit. The figures show how the parts nest, and the table defines each one. A <em>sister</em> is the
+      same concept in another model. The same table is in
+      <a class="{{ link }}" href="{{ protocol_url }}#1-unit-of-analysis">the protocol, §1</a>, with the precise
+      definitions of the audited units.
+    </p>
+    {% include "_taxonomy.html" %}
   </section>
 
   <section>
