@@ -849,10 +849,10 @@ def _standing(records, idx=117, pole="positive"):
     return unit.standings[pole], unit
 
 
-def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
+def test_a_needs_revision_reading_does_not_contest_a_verified_one(tmp_path, records):
     """An independent VERIFIED, then an independent NEEDS_REVISION of the same hypothesis.
 
-    The pole is CONTESTED, not NEEDS_REVISION, and not counted as verified.
+    NEEDS_REVISION never contests a VERIFIED claim (#4900): the pole stays VERIFIED.
     """
     from openinterpretability.builder.compiler import registry_stats
 
@@ -863,19 +863,45 @@ def test_weaker_rerun_contests_instead_of_overturning(tmp_path, records):
         )
     )
     standing, unit = _standing(records)
-    assert standing.status == "CONTESTED" and standing.contested
-    assert [e.record.verdict.status for e in standing.readings] == ["NEEDS_REVISION", "VERIFIED"]
-    assert not unit.verified
+    assert standing.status == "VERIFIED" and not standing.contested and unit.verified
+    assert [e.record.verdict.status for e in standing.readings] == ["VERIFIED", "NEEDS_REVISION"]
 
     report = compile_site(records, tmp_path)
     stats = registry_stats(report.parquet)
-    assert (stats["totals"]["verified"], stats["totals"]["contested"]) == (0, 1)
-    assert "verified" not in stats  # the home page lists no verified units (#3273)
+    assert (stats["totals"]["verified"], stats["totals"]["contested"]) == (1, 0)
     neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "CONTESTED" in neuron and "Reviews of this hypothesis split evenly" in neuron
-    home = (tmp_path / "index.html").read_text()
-    assert 'id="contested"' in home and "1 unit is contested" in home
-    assert "0 of the 1 hypotheses reviewed with more than one probe set" in home
+    assert "Reviews of this hypothesis split evenly" not in neuron
+
+
+@pytest.mark.parametrize(
+    ("verified", "rejected", "status"),
+    [(0.9, 0.7, "VERIFIED"), (0.6, 0.8, "REJECTED"), (0.80, 0.78, "CONTESTED")],
+)
+def test_scores_settle_verified_against_rejected(records, monkeypatch, verified, rejected,
+                                                 status):  # fmt: skip
+    """An even VERIFIED–REJECTED split, and a REJECTED rival, go to the score (#4900)."""
+    from openinterpretability.builder import standing as st
+
+    table = {"VERIFIED": verified, "REJECTED": rejected}
+    monkeypatch.setattr(st, "score", lambda e: table.get(e.record.verdict.status))
+    split = [*records, _reviewed_by(records[1], "deepseek/flash", status="REJECTED", hours=3,
+                                    counts=(5, 5, 1, 4))]  # fmt: skip
+    assert _standing(split)[0].status == status
+    rival = [*records, _rival(records, status="REJECTED", hours=4, text="Fires on vowels.")]
+    standing, _ = _standing(rival)
+    assert standing.status == status
+    if status == "VERIFIED":  # the earlier hypothesis keeps the standing, and its readings count
+        assert standing.lead.record is records[1] and standing.lead.counts
+
+
+def test_a_newer_needs_revision_hypothesis_leaves_a_verified_one_standing(records):
+    """The L2/H3 case of #4780: a self-reviewed NEEDS_REVISION rival doesn't contest (#4900)."""
+    records.append(_rival(records, status="NEEDS_REVISION", hours=4, text="Fires on nouns."))
+    standing, unit = _standing(records)
+    assert standing.status == "VERIFIED" and unit.verified and standing.prior.record is records[1]
+    roles = {e.record.submission.natural_language_explanation: e.role
+             for e in unit.experiments if e.side == "positive"}  # fmt: skip
+    assert roles["Fires on nouns."] == "failed_rival"
 
 
 def test_a_majority_of_verified_readings_settles_a_contest(tmp_path, records):
@@ -898,7 +924,12 @@ def test_a_majority_of_verified_readings_settles_a_contest(tmp_path, records):
     assert "Most reviews of this hypothesis agree (2 of 3)" in neuron
 
 
-def test_a_majority_against_verified_takes_the_newest_of_its_statuses(records):
+def test_needs_revision_does_not_join_rejected_against_verified(records):
+    """VERIFIED, NEEDS_REVISION and REJECTED readings: one against one, so the scores decide.
+
+    With no score on either side the pole is CONTESTED (#4900). Before, NEEDS_REVISION and
+    REJECTED outvoted VERIFIED.
+    """
     verified = records[1]
     records.append(
         _reviewed_by(
@@ -909,7 +940,7 @@ def test_a_majority_against_verified_takes_the_newest_of_its_statuses(records):
         _reviewed_by(verified, "muse/spark", status="REJECTED", hours=5, counts=(2, 8, 0, 5))
     )
     standing, unit = _standing(records)
-    assert standing.status == "REJECTED" and not unit.verified and standing.dissent == 1
+    assert standing.status == "CONTESTED" and not unit.verified
 
 
 def test_independent_review_outweighs_self_review(records):
@@ -1829,3 +1860,20 @@ def test_a_build_holds_only_a_batch_or_a_unit_in_full(tmp_path, records, monkeyp
     assert widest["loads"] >= len(many)  # each record was loaded in full somewhere
     # A batch of 2, or the widest unit's 3 experiments (N117's two poles): the same for 3N.
     assert widest["n"] == 3
+
+
+def test_explain_reads_the_standing_not_the_newest_record(tmp_path, records):
+    """The labels explain reads: a newer NEEDS_REVISION rival leaves the unit VERIFIED (#4900)."""
+    from openinterpretability.explain import registry_labels
+    from openinterpretability.planner_states import states_of
+
+    records.append(_rival(records, status="NEEDS_REVISION", hours=4, text="Fires on nouns."))
+    pairs = [(tmp_path / f"{i}.json", r) for i, r in enumerate(records)]
+    states = states_of(pairs, [])
+    slug = records[1].submission.identifier.slug
+    assert states[slug].record.verdict.status == "NEEDS_REVISION"  # the newest record
+    status, explanation, _ = registry_labels(
+        tmp_path, records[1].submission.identifier.model_name, states
+    )[slug]
+    assert status == "VERIFIED"
+    assert explanation == records[1].submission.natural_language_explanation

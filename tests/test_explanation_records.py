@@ -52,7 +52,10 @@ def test_an_explanation_is_stale_when_a_cited_units_status_changed(tmp_path):
     (current,) = load_views(wiki, states={})
     assert not current.stale  # still unstudied
     verified = {
-        SLUG: SimpleNamespace(record=SimpleNamespace(verdict=SimpleNamespace(status="VERIFIED")))
+        SLUG: SimpleNamespace(
+            record=SimpleNamespace(verdict=SimpleNamespace(status="VERIFIED")),
+            standing=("VERIFIED", None),
+        )
     }
     (view,) = load_views(wiki, states=verified)
     assert view.changed == [{"unit": "L10/N2931-", "then": "unstudied", "now": "VERIFIED"}]
