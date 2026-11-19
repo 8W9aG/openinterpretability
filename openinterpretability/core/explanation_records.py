@@ -21,7 +21,9 @@ from typing import Any
 
 from pydantic import Field
 
+from openinterpretability.core.corpora import CorpusSource
 from openinterpretability.core.identifiers import model_slug
+from openinterpretability.core.run_environment import RunEnvironment
 from openinterpretability.core.strict import StrictModel
 
 EXPLANATIONS_WIKI = "explanations"  # records live in wiki/explanations/
@@ -151,6 +153,28 @@ class ExplainRun(StrictModel):
     shares: list[float] = Field(default_factory=list)  # the share before each draw (#4479)
 
 
+class ExplanationInputs(StrictModel):
+    """What ``reproduce`` needs to measure the explanation again, with no registry (#4793).
+
+    The registry changes after a record is written. So the record keeps the unit sets as
+    they stood, and the means' corpus and budget, which the attribution is measured against.
+    """
+
+    environment: RunEnvironment  # the device, dtype and model revision it was measured with
+    token_id: int  # the answer's token id
+    means_corpus_sha256: str  # the corpus of the means (explain.unit_means)
+    means_corpus_source: CorpusSource | None = None  # how to build that corpus again
+    means_tokens: int  # the corpus tokens that the means read
+    means_window: int  # explain.WINDOW when it was written
+    means_version: int  # explain.MEANS_VERSION when it was written
+    top: int  # the top units listed (explain --top)
+    edges: int  # the top units whose incoming paths are traced (explain --edges)
+    explained: list[str]  # every explained unit's label, in attribution order
+    blocked: list[str] = Field(default_factory=list)  # every blocked unit's label
+    random_seed: int = 0  # the random baseline's seed (explain_coverage.prompt_coverage)
+    random_draws: int = 4  # and its number of draws
+
+
 def prompt_id(model: str, position: int, prompt: str) -> str:
     """A prompt's id: the start of the SHA-256 of the model, position and prompt."""
     return hashlib.sha256(f"{model}\n{position}\n{prompt}".encode()).hexdigest()[:12]
@@ -180,6 +204,8 @@ class ExplanationRecord(StrictModel):
         default=None, pattern=STAMP, description="That record's id, its UTC stamp."
     )
     reused: bool = False  # no experiments ran: ``previous`` reached the target (#4503)
+    # None in records before #4793, which can't be reproduced.
+    inputs: ExplanationInputs | None = None
     package_version: str
     written: datetime
 

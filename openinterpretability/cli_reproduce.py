@@ -97,11 +97,13 @@ def reproduce(
     allowed_models,
     allowed_signers,
 ):
-    """Re-run experiment records against their pinned model and compare (no LLM calls).
+    """Re-run experiment and explanation records against their pinned model (no LLM calls).
 
-    Each record's scan evidence, counterfactual deltas and review are measured again
-    with the model revision and dtype it pins, under its own review policy. Exits 1 if
-    any number differs beyond tolerance or any pass/fail, gate or status differs.
+    Each experiment's scan evidence, counterfactual deltas and review are measured again
+    with the model revision and dtype it pins, under its own review policy. Each
+    explanation's attribution, coverage and figure data are measured again from its stored
+    inputs (#4793). Exits 1 if any number differs beyond tolerance, or any pass/fail, gate,
+    status or conclusion differs.
     """
     import os
 
@@ -177,6 +179,9 @@ def _chosen_records(records, base_ref, sample, sample_date, wiki_dir) -> list[Pa
     return paths
 
 
+DICTIONARIES = "openinterpretability/harness/dictionaries.py"
+
+
 @dataclass
 class _Reproducer:
     """Checks one record at a time, loading each pinned model once."""
@@ -200,12 +205,15 @@ class _Reproducer:
 
         from openinterpretability.core.schemas import AuditRecord
         from openinterpretability.reproduce import reproduce_record
+        from openinterpretability.reproduce_explanation import check_path, is_explanation
         from openinterpretability.signing import (
             SignatureError,
             SignatureOutsideWindow,
             verify_record,
         )
 
+        if is_explanation(path):  # #4793
+            return check_path(self, path)
         notes = []
         try:
             signer = verify_record(path, self.signers, self.landed.get(path.resolve()))
@@ -236,6 +244,30 @@ class _Reproducer:
         )
         status = "FAILED" if report.mismatches else "REPRODUCED"
         return status, report.mismatches, notes + report.warnings
+
+    def model_refusal(self, model: str, revision: str | None) -> str | None:
+        """Why CI may not run ``model`` at ``revision``, or ``None``."""
+        from openinterpretability.model_revisions import unapproved_revision
+        from openinterpretability.planner import signed_models
+
+        allowed = self.allowed_models
+        if not allowed:
+            return None
+        if model in signed_models():
+            why = "because CI doesn't run it ([tool.openinterpretability] signed_models)"
+            return f"records of {model} must be signed (open-interpretability sign), {why}"
+        if model not in allowed:
+            return f"model {model} is not on the allow-list ({', '.join(allowed)})"
+        return unapproved_revision(model, revision)  # not, say, a Hub pull request's weights
+
+    def load(self, model: str, revision, dtype: str, attn):
+        """The runner for ``model`` at ``revision`` in ``dtype``, loaded once."""
+        from openinterpretability.cli import _load_runner
+
+        key = (model, revision, dtype, attn)
+        if key not in self.runners:
+            self.runners[key] = _load_runner(model, self.device, dtype, revision, attn)
+        return self.runners[key]
 
     def scan_corpus(self, record, path: Path, notes: list[str]):
         """(documents, SHA-256) of the corpus that ``record`` scanned, if it is known here."""
@@ -278,25 +310,15 @@ class _Reproducer:
 
     def refusal(self, record) -> str | None:
         """Why ``record`` can't be reproduced here, or ``None``."""
-        from openinterpretability.model_revisions import unapproved_revision
-        from openinterpretability.planner import signed_models
         from openinterpretability.reproduce import check_protocol, pinned_environment
+        from openinterpretability.reproduce_policy import preset_dictionary
 
-        model, allowed = record.submission.identifier.model_name, self.allowed_models
-        reason = None if self.measurements_only else check_protocol(record)
-        if allowed and model in signed_models():
-            reason = (
-                f"records of {model} must be signed (open-interpretability sign), "
-                "because CI doesn't run it ([tool.openinterpretability] signed_models)"
-            )
-        elif allowed and model not in allowed:
-            reason = f"model {model} is not on the allow-list ({', '.join(allowed)})"
-        elif allowed and not _preset_dictionary(record):
-            reason = (
-                "its dictionary is not a preset's (openinterpretability/harness/dictionaries.py)"
-            )
-        elif allowed and (why := unapproved_revision(model, pinned_environment(record)[0])):
-            reason = why  # a record can't pick, say, a Hub pull request's weights
+        model = record.submission.identifier.model_name
+        reason = self.model_refusal(model, pinned_environment(record)[0])
+        if reason is None and self.allowed_models and not preset_dictionary(record):
+            reason = f"its dictionary is not a preset's ({DICTIONARIES})"
+        if reason is None and not self.measurements_only:
+            reason = check_protocol(record)
         return reason
 
     def runner(self, record, *, scan: bool = False):
@@ -305,7 +327,6 @@ class _Reproducer:
         The scan evidence is reproduced in the dtype the scan pins (#3801). A 16-bit review
         is reproduced in float32 (``half_precision.reproduction_dtype``).
         """
-        from openinterpretability.cli import _load_runner
         from openinterpretability.half_precision import reproduction_dtype
         from openinterpretability.harness.units import attn_implementation
         from openinterpretability.reproduce import pinned_environment, scan_dtype
@@ -315,11 +336,7 @@ class _Reproducer:
         dtype = scan_dtype(record) if scan else reproduction_dtype(pinned)
         if dtype == "auto":
             dtype = reproduction_dtype(pinned)
-        attn = attn_implementation(record.submission.identifier)
-        key = (model, revision, dtype, attn)
-        if key not in self.runners:
-            self.runners[key] = _load_runner(model, self.device, dtype, revision, attn)
-        return self.runners[key]
+        return self.load(model, revision, dtype, attn_implementation(record.submission.identifier))
 
 
 def _report(path: Path, status: str, problems, warnings, in_actions: bool) -> None:
@@ -338,21 +355,6 @@ def _step_summary(path: str, summary: str, results, unreached=()) -> None:
             fh.write(f"- {'❌' if problems else '✅'} `{record}`\n")
             fh.writelines(f"  - {message}\n" for message in problems)
         fh.writelines(f"- ⏭️ `{record}` (not reached)\n" for record in unreached)
-
-
-def _preset_dictionary(record) -> bool:
-    """Check that a feature record's dictionary is on the allow-list.
-
-    A feature record pins the weights of its dictionary's preset. So the allow-list also
-    limits which dictionaries are downloaded. Other records have none to check.
-    """
-    from openinterpretability.harness.dictionaries import DICTIONARIES
-
-    ident, profile = record.submission.identifier, record.submission.dictionary_profile
-    if ident.kind != "dictionary_feature" or profile is None:
-        return True
-    spec = DICTIONARIES.get(ident.dictionary)
-    return spec is not None and (spec.repo, spec.revision) == (profile.repo, profile.revision)
 
 
 def _default_key() -> Path:

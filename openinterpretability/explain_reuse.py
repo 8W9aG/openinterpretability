@@ -13,7 +13,8 @@ measured (:func:`~openinterpretability.core.explanation_records.best`). Then:
 
 Only an explanation measured against the matched random baseline (#4777) can stop a run.
 One written before it has no ``coverage_detail``. Its coverage was never compared with
-random units of the same kinds and layers, so it is built on, never reused (#4895).
+random units of the same kinds and layers, so it is built on, never reused (#4895). The
+same holds for one with no ``inputs``, which CI can't measure again (#4793).
 """
 
 from __future__ import annotations
@@ -57,13 +58,16 @@ def decide(wiki_dir: Path, model: str, prompt: str, position: int, target: float
     from openinterpretability.core.explanation_records import LEVELS, best, prompt_records
 
     records = prompt_records(wiki_dir, model, prompt, position)
-    found = best([r for r in records if r.coverage_detail is not None])  # #4895
+    found = best([r for r in records if r.coverage_detail is not None and r.inputs is not None])
     if found is None:
-        older = best(records)  # measured before the matched baseline: built on, not reused
+        older = best(records)  # unmatched (#4895) or not reproducible (#4793): built on
         if older is None:
             return Reuse("run")
-        return Reuse("run", older.id, f"Builds on {href(older)}, which was measured before the "
-                     "matched random baseline (#4777), so it is measured again.")  # fmt: skip
+        why = "measured before the matched random baseline (#4777)"
+        if older.coverage_detail is not None:
+            why = "written before explanation records stored their inputs (#4793)"
+        return Reuse("run", older.id, f"Builds on {href(older)}, which was {why}, so it is "
+                     "measured again.")  # fmt: skip
     coverage = found.prompt_coverage or 0.0
     said = f"{href(found)} reached {coverage:.1%} coverage, at the {found.level} level"
     if coverage < target:
