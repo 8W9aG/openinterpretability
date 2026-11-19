@@ -235,6 +235,36 @@ def test_an_expired_key_signs_nothing(auto_signing, keys, tmp_path):
     assert not signature_path(record).exists()
 
 
+def test_an_old_ssh_keygen_is_named_not_mistaken_for_an_expired_key(
+    auto_signing, tmp_path, monkeypatch
+):
+    """OpenSSH 8.9 cannot read times that end in "Z". Say so, and keep no signature."""
+    import shutil
+
+    from openinterpretability.signing import auto_sign
+
+    auto_signing.write_text(
+        auto_signing.read_text().replace("will ", 'will valid-after="20200101Z",', 1)
+    )
+    real = shutil.which("ssh-keygen")
+    old = tmp_path / "old-openssh" / "ssh-keygen"
+    old.parent.mkdir()
+    old.write_text(
+        "#!/bin/sh\n"
+        f'if [ "$2" = sign ]; then exec "{real}" "$@"; fi\n'
+        """echo 'allowed_signers:1: bad options: invalid "valid-after" time' >&2\n"""
+        "exit 255\n"
+    )
+    old.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{old.parent}{os.pathsep}{os.environ['PATH']}")
+    record = tmp_path / "r.json"
+    record.write_text("{}")
+    with pytest.raises(SignatureError, match="too old") as raised:
+        auto_sign(record)
+    assert not isinstance(raised.value, SignatureOutsideWindow)
+    assert not signature_path(record).exists()
+
+
 @pytest.mark.parametrize("setting", ["untrusted", "disabled", "no key"])
 def test_auto_sign_does_nothing_otherwise(auto_signing, keys, monkeypatch, setting, tmp_path):
     from openinterpretability.signing import auto_sign

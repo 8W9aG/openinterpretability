@@ -135,6 +135,28 @@ def without_windows(allowed_signers: str) -> str:
     return "\n".join(re.sub(r",(?=\s)", "", line) for line in lines) + "\n"
 
 
+# An older ssh-keygen writes this when it cannot read a time that ends in "Z" (UTC).
+# OpenSSH 8.9 (Ubuntu 22.04) cannot read these times. OpenSSH 9.6 and 9.9 can.
+_UNREADABLE_TIME = re.compile(r'invalid "(?:valid-after|valid-before|verify-time)"', re.I)
+
+
+def _check_times_readable(stderr: str) -> None:
+    """Raise :class:`SignatureError` if ``ssh-keygen`` could not read a validity time.
+
+    If ``ssh-keygen`` cannot read a time, it ignores the signer line. Then a good
+    signature looks like a signature from a key outside its window. This error says
+    the true cause: the ``ssh-keygen`` on ``PATH`` is too old.
+    """
+    match = _UNREADABLE_TIME.search(stderr)
+    if match:
+        raise SignatureError(
+            f"ssh-keygen cannot read the times in the allowed signers ({match.group(0)} "
+            'time). This ssh-keygen is too old to read times that end in "Z". '
+            "OpenSSH 8.9 cannot read them. OpenSSH 9.6 and 9.9 can. Put a newer "
+            "ssh-keygen first on PATH."
+        )
+
+
 def _signed_by(record_path: Path, allowed_signers: str, at: datetime | None):
     """(principal who signed at ``at`` or ``None``, whether any listed key matched)."""
     sig = signature_path(record_path)
@@ -146,6 +168,7 @@ def _signed_by(record_path: Path, allowed_signers: str, at: datetime | None):
         found = _ssh_keygen(
             "-Y", "find-principals", "-s", str(sig), "-f", signers, *when, check=False
         )
+        _check_times_readable(found.stderr)
         principals = found.stdout.split()
         for principal in principals:
             with record_path.open("rb") as data:
@@ -154,6 +177,7 @@ def _signed_by(record_path: Path, allowed_signers: str, at: datetime | None):
                      "-n", NAMESPACE, "-s", str(sig), *when],
                     stdin=data, capture_output=True, text=True,
                 )  # fmt: skip
+            _check_times_readable(result.stderr)
             if result.returncode == 0:
                 return principal, True
     finally:
