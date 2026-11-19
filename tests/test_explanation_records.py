@@ -194,3 +194,21 @@ def test_levels_ids_and_the_best_explanation():
     tie = rec.model_copy(update={"prompt_coverage": 0.1, "written": when.replace(hour=6)})
     assert best([low, tie]) is tie and best([]) is None
     assert best([rec.model_copy(update={"prompt_coverage": None})]) is None
+
+
+def test_the_home_page_counts_each_explained_prompt_once(tmp_path, record):
+    """Two runs on one prompt and one on another: the tile says 2, and links the index (#4574)."""
+    wiki = tmp_path / "wiki"
+    _write(wiki, _record(datetime(2026, 11, 17, tzinfo=UTC)))
+    _write(wiki, _record(datetime(2026, 11, 18, tzinfo=UTC)))  # a second run, same prompt
+    other = _record(datetime(2026, 11, 18, tzinfo=UTC)).model_copy(update={"prompt": "The sky is"})
+    _write(wiki, other)
+    views = load_views(wiki, states={})
+    assert len(views) == 2
+    compile_site([record], tmp_path / "site", explanations=views)
+    home = (tmp_path / "site" / "index.html").read_text()
+    tile = home[home.index("Explanations</a>") :]
+    assert 'href="explanations/index.html"' in home and ">2</dd>" in tile[:400]
+    compile_site([record], tmp_path / "bare")
+    bare = (tmp_path / "bare" / "index.html").read_text()
+    assert "Explanations</dt>" in bare and 'href="explanations/index.html"' not in bare
