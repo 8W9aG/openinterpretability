@@ -213,3 +213,12 @@ patched_log_prob  # a stored answer reading, shown by the template _route_row.ht
 inverse_rule_version  # VerificationVerdict field, set in reviewer.evaluate_submission (#4951)
 null_levels  # AnswerView property, read by templates/answer.html (#4892)
 _.handle_starttag  # HTMLParser callback, called by feed() (scripts/check_site_links.py)
+_known  # pydantic validator of patches.schema.Op (#5229)
+_readable  # pydantic validator of patches.schema.Patch (#5229)
+identity_at_init  # patches.schema.Op field, a record field read by its checks (#5229)
+rebased_from  # patches.schema.Patch field, set by history.rebase (#5229)
+zero_start_check  # patches.apply, run by the fix's checks and the commands of #5229 part 2
+revert  # patches.history, used by the commands of #5229 part 2 and tests/test_patches.py
+rebase  # patches.history, used by the commands of #5229 part 2 and tests/test_patches.py
+PatchStore  # patches.store, used by the commands of #5229 part 2 and tests/test_patches.py
+put_tensor  # patches.tensors, used by whoever writes a patch, and tests/test_patches.py
