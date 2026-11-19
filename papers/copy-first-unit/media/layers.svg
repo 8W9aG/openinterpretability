@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 582" width="760" height="582" role="img">
+<title>Six small panels, one per wrong prompt. In each, both ranks climb from the thousands toward the top; the copied unit reaches rank 1 by layer 3 or 4, and the right unit stays at rank 2 to 6.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+.dash{stroke-dasharray:6 4}@keyframes rank0{0.0%{transform:translate(64.0px,256.1px)}16.0%{transform:translate(102.0px,224.2px)}32.0%{transform:translate(140.0px,200.8px)}48.0%{transform:translate(178.0px,158.2px)}64.0%{transform:translate(216.0px,153.0px)}80.0%{transform:translate(254.0px,153.0px)}100%{transform:translate(254.0px,153.0px)}}.rank0{animation:rank0 7s step-end infinite;transform:translate(254.0px,153.0px)}@keyframes rank1{0.0%{transform:translate(296.0px,186.1px)}16.0%{transform:translate(334.0px,210.2px)}32.0%{transform:translate(372.0px,194.1px)}48.0%{transform:translate(410.0px,190.3px)}64.0%{transform:translate(448.0px,158.2px)}80.0%{transform:translate(486.0px,161.9px)}100%{transform:translate(486.0px,161.9px)}}.rank1{animation:rank1 7s step-end infinite;transform:translate(486.0px,161.9px)}@keyframes rank2{0.0%{transform:translate(528.0px,283.5px)}16.0%{transform:translate(566.0px,276.1px)}32.0%{transform:translate(604.0px,270.9px)}48.0%{transform:translate(642.0px,161.9px)}64.0%{transform:translate(680.0px,158.2px)}80.0%{transform:translate(718.0px,153.0px)}100%{transform:translate(718.0px,153.0px)}}.rank2{animation:rank2 7s step-end infinite;transform:translate(718.0px,153.0px)}@keyframes rank3{0.0%{transform:translate(64.0px,409.1px)}16.0%{transform:translate(102.0px,419.8px)}32.0%{transform:translate(140.0px,388.8px)}48.0%{transform:translate(178.0px,409.1px)}64.0%{transform:translate(216.0px,388.8px)}80.0%{transform:translate(254.0px,367.2px)}100%{transform:translate(254.0px,367.2px)}}.rank3{animation:rank3 7s step-end infinite;transform:translate(254.0px,367.2px)}@keyframes rank4{0.0%{transform:translate(296.0px,450.4px)}16.0%{transform:translate(334.0px,415.8px)}32.0%{transform:translate(372.0px,386.1px)}48.0%{transform:translate(410.0px,364.8px)}64.0%{transform:translate(448.0px,353.0px)}80.0%{transform:translate(486.0px,353.0px)}100%{transform:translate(486.0px,353.0px)}}.rank4{animation:rank4 7s step-end infinite;transform:translate(486.0px,353.0px)}@keyframes rank5{0.0%{transform:translate(528.0px,417.8px)}16.0%{transform:translate(566.0px,407.4px)}32.0%{transform:translate(604.0px,418.9px)}48.0%{transform:translate(642.0px,397.2px)}64.0%{transform:translate(680.0px,361.9px)}80.0%{transform:translate(718.0px,353.0px)}100%{transform:translate(718.0px,353.0px)}}.rank5{animation:rank5 7s step-end infinite;transform:translate(718.0px,353.0px)}@keyframes layernow0{0%{opacity:0}0.0%{opacity:1}16.0%{opacity:0}100%{opacity:0}}.layernow0{animation:layernow0 7s step-end infinite;opacity:0}@keyframes layernow1{0%{opacity:0}16.0%{opacity:1}32.0%{opacity:0}100%{opacity:0}}.layernow1{animation:layernow1 7s step-end infinite;opacity:0}@keyframes layernow2{0%{opacity:0}32.0%{opacity:1}48.0%{opacity:0}100%{opacity:0}}.layernow2{animation:layernow2 7s step-end infinite;opacity:0}@keyframes layernow3{0%{opacity:0}48.0%{opacity:1}64.0%{opacity:0}100%{opacity:0}}.layernow3{animation:layernow3 7s step-end infinite;opacity:0}@keyframes layernow4{0%{opacity:0}64.0%{opacity:1}80.0%{opacity:0}100%{opacity:0}}.layernow4{animation:layernow4 7s step-end infinite;opacity:0}@keyframes layernow5{0%{opacity:0}80.0%{opacity:1}100%{opacity:1}}.layernow5{animation:layernow5 7s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="582" rx="10"/>
+<text x="20.0" y="30.0" class="title">By layer 4 the right unit is near the top, but the copied unit stays first</text>
+<text x="20.0" y="50.0" class="sub">The rank of the right answer (solid) and of the copied unit (dashed) at the</text>
+<text x="20.0" y="68.0" class="sub">answer position, under the logit lens after each layer. Rank 1 is at the top.</text>
+<text x="20.0" y="86.0" class="sub">A moving dot steps along the right answer&#x27;s line, layer by layer.</text>
+<text x="64.0" y="136.0" class="head">minutes, not seconds</text>
+<path class="grid" d="M64.0 144.0L254.0 144.0"/>
+<text x="58.0" y="148.0" class="small" text-anchor="end">1</text>
+<path class="grid" d="M64.0 173.8L254.0 173.8"/>
+<text x="58.0" y="177.8" class="small" text-anchor="end">10</text>
+<path class="grid" d="M64.0 203.6L254.0 203.6"/>
+<text x="58.0" y="207.6" class="small" text-anchor="end">100</text>
+<path class="grid" d="M64.0 233.3L254.0 233.3"/>
+<text x="58.0" y="237.3" class="small" text-anchor="end">1,000</text>
+<path class="grid" d="M64.0 263.1L254.0 263.1"/>
+<text x="58.0" y="267.1" class="small" text-anchor="end">10,000</text>
+<text x="64.0" y="299.0" class="small" text-anchor="middle">0</text>
+<text x="102.0" y="299.0" class="small" text-anchor="middle">1</text>
+<text x="140.0" y="299.0" class="small" text-anchor="middle">2</text>
+<text x="178.0" y="299.0" class="small" text-anchor="middle">3</text>
+<text x="216.0" y="299.0" class="small" text-anchor="middle">4</text>
+<text x="254.0" y="299.0" class="small" text-anchor="middle">5</text>
+<path class="line sneutral dash" d="M64.0 252.0L102.0 213.0L140.0 188.8L178.0 144.0L216.0 144.0L254.0 144.0"/>
+<path class="curve" d="M64.0 256.1L102.0 224.2L140.0 200.8L178.0 158.2L216.0 153.0L254.0 153.0"/>
+<text x="296.0" y="136.0" class="head">months, not days</text>
+<path class="grid" d="M296.0 144.0L486.0 144.0"/>
+<path class="grid" d="M296.0 173.8L486.0 173.8"/>
+<path class="grid" d="M296.0 203.6L486.0 203.6"/>
+<path class="grid" d="M296.0 233.3L486.0 233.3"/>
+<path class="grid" d="M296.0 263.1L486.0 263.1"/>
+<text x="296.0" y="299.0" class="small" text-anchor="middle">0</text>
+<text x="334.0" y="299.0" class="small" text-anchor="middle">1</text>
+<text x="372.0" y="299.0" class="small" text-anchor="middle">2</text>
+<text x="410.0" y="299.0" class="small" text-anchor="middle">3</text>
+<text x="448.0" y="299.0" class="small" text-anchor="middle">4</text>
+<text x="486.0" y="299.0" class="small" text-anchor="middle">5</text>
+<path class="line sneutral dash" d="M296.0 230.0L334.0 222.2L372.0 234.1L410.0 189.2L448.0 153.0L486.0 144.0"/>
+<path class="curve" d="M296.0 186.1L334.0 210.2L372.0 194.1L410.0 190.3L448.0 158.2L486.0 161.9"/>
+<text x="528.0" y="136.0" class="head">toes, not fingers</text>
+<path class="grid" d="M528.0 144.0L718.0 144.0"/>
+<path class="grid" d="M528.0 173.8L718.0 173.8"/>
+<path class="grid" d="M528.0 203.6L718.0 203.6"/>
+<path class="grid" d="M528.0 233.3L718.0 233.3"/>
+<path class="grid" d="M528.0 263.1L718.0 263.1"/>
+<text x="528.0" y="299.0" class="small" text-anchor="middle">0</text>
+<text x="566.0" y="299.0" class="small" text-anchor="middle">1</text>
+<text x="604.0" y="299.0" class="small" text-anchor="middle">2</text>
+<text x="642.0" y="299.0" class="small" text-anchor="middle">3</text>
+<text x="680.0" y="299.0" class="small" text-anchor="middle">4</text>
+<text x="718.0" y="299.0" class="small" text-anchor="middle">5</text>
+<path class="line sneutral dash" d="M528.0 278.6L566.0 272.8L604.0 248.5L642.0 144.0L680.0 144.0L718.0 144.0"/>
+<path class="curve" d="M528.0 283.5L566.0 276.1L604.0 270.9L642.0 161.9L680.0 158.2L718.0 153.0"/>
+<text x="64.0" y="336.0" class="head">months, not eggs</text>
+<path class="grid" d="M64.0 344.0L254.0 344.0"/>
+<text x="58.0" y="348.0" class="small" text-anchor="end">1</text>
+<path class="grid" d="M64.0 373.8L254.0 373.8"/>
+<text x="58.0" y="377.8" class="small" text-anchor="end">10</text>
+<path class="grid" d="M64.0 403.6L254.0 403.6"/>
+<text x="58.0" y="407.6" class="small" text-anchor="end">100</text>
+<path class="grid" d="M64.0 433.3L254.0 433.3"/>
+<text x="58.0" y="437.3" class="small" text-anchor="end">1,000</text>
+<path class="grid" d="M64.0 463.1L254.0 463.1"/>
+<text x="58.0" y="467.1" class="small" text-anchor="end">10,000</text>
+<text x="64.0" y="499.0" class="small" text-anchor="middle">0</text>
+<text x="102.0" y="499.0" class="small" text-anchor="middle">1</text>
+<text x="140.0" y="499.0" class="small" text-anchor="middle">2</text>
+<text x="178.0" y="499.0" class="small" text-anchor="middle">3</text>
+<text x="216.0" y="499.0" class="small" text-anchor="middle">4</text>
+<text x="254.0" y="499.0" class="small" text-anchor="middle">5</text>
+<path class="line sneutral dash" d="M64.0 479.7L102.0 469.4L140.0 457.3L178.0 344.0L216.0 344.0L254.0 344.0"/>
+<path class="curve" d="M64.0 409.1L102.0 419.8L140.0 388.8L178.0 409.1L216.0 388.8L254.0 367.2"/>
+<text x="159.0" y="515.0" class="small" text-anchor="middle">layer</text>
+<text x="296.0" y="336.0" class="head">seconds, not minutes</text>
+<path class="grid" d="M296.0 344.0L486.0 344.0"/>
+<path class="grid" d="M296.0 373.8L486.0 373.8"/>
+<path class="grid" d="M296.0 403.6L486.0 403.6"/>
+<path class="grid" d="M296.0 433.3L486.0 433.3"/>
+<path class="grid" d="M296.0 463.1L486.0 463.1"/>
+<text x="296.0" y="499.0" class="small" text-anchor="middle">0</text>
+<text x="334.0" y="499.0" class="small" text-anchor="middle">1</text>
+<text x="372.0" y="499.0" class="small" text-anchor="middle">2</text>
+<text x="410.0" y="499.0" class="small" text-anchor="middle">3</text>
+<text x="448.0" y="499.0" class="small" text-anchor="middle">4</text>
+<text x="486.0" y="499.0" class="small" text-anchor="middle">5</text>
+<path class="line sneutral dash" d="M296.0 452.8L334.0 422.7L372.0 391.4L410.0 344.0L448.0 344.0L486.0 344.0"/>
+<path class="curve" d="M296.0 450.4L334.0 415.8L372.0 386.1L410.0 364.8L448.0 353.0L486.0 353.0"/>
+<text x="391.0" y="515.0" class="small" text-anchor="middle">layer</text>
+<text x="528.0" y="336.0" class="head">days, not months</text>
+<path class="grid" d="M528.0 344.0L718.0 344.0"/>
+<path class="grid" d="M528.0 373.8L718.0 373.8"/>
+<path class="grid" d="M528.0 403.6L718.0 403.6"/>
+<path class="grid" d="M528.0 433.3L718.0 433.3"/>
+<path class="grid" d="M528.0 463.1L718.0 463.1"/>
+<text x="528.0" y="499.0" class="small" text-anchor="middle">0</text>
+<text x="566.0" y="499.0" class="small" text-anchor="middle">1</text>
+<text x="604.0" y="499.0" class="small" text-anchor="middle">2</text>
+<text x="642.0" y="499.0" class="small" text-anchor="middle">3</text>
+<text x="680.0" y="499.0" class="small" text-anchor="middle">4</text>
+<text x="718.0" y="499.0" class="small" text-anchor="middle">5</text>
+<path class="line sneutral dash" d="M528.0 406.8L566.0 425.5L604.0 401.0L642.0 388.0L680.0 353.0L718.0 344.0"/>
+<path class="curve" d="M528.0 417.8L566.0 407.4L604.0 418.9L642.0 397.2L680.0 361.9L718.0 353.0"/>
+<text x="623.0" y="515.0" class="small" text-anchor="middle">layer</text>
+<circle class="ink ring rank0" cx="0.0" cy="0.0" r="4"/>
+<circle class="ink ring rank1" cx="0.0" cy="0.0" r="4"/>
+<circle class="ink ring rank2" cx="0.0" cy="0.0" r="4"/>
+<circle class="ink ring rank3" cx="0.0" cy="0.0" r="4"/>
+<circle class="ink ring rank4" cx="0.0" cy="0.0" r="4"/>
+<circle class="ink ring rank5" cx="0.0" cy="0.0" r="4"/>
+<text x="718.0" y="118.0" class="small layernow0" text-anchor="end">layer 0</text>
+<text x="718.0" y="118.0" class="small layernow1" text-anchor="end">layer 1</text>
+<text x="718.0" y="118.0" class="small layernow2" text-anchor="end">layer 2</text>
+<text x="718.0" y="118.0" class="small layernow3" text-anchor="end">layer 3</text>
+<text x="718.0" y="118.0" class="small layernow4" text-anchor="end">layer 4</text>
+<text x="718.0" y="118.0" class="small layernow5" text-anchor="end">layer 5</text>
+<circle class="ink" cx="25.0" cy="526.0" r="5"/>
+<text x="35.0" y="530.0">right answer, solid</text>
+<circle class="fneutral" cx="176.4" cy="526.0" r="5"/>
+<text x="186.4" y="530.0">copied unit, dashed</text>
+</svg>
