@@ -1,0 +1,66 @@
+# End-to-End Test-Time Training for Long Context
+
+**Citation.** The core contributors are Arnuv Tandon (Astera Institute, Stanford University) and Karan Dalal (Astera Institute, UC Berkeley). Xinhao Li (UC San Diego), Daniel Koceja (Stanford) and Marcel Rød (Stanford) are core contributors too. Yu Sun (NVIDIA, Stanford) is a core contributor and the project lead. The other authors are Sam Buchanan (UC Berkeley) and Xiaolong Wang (UC San Diego). Jure Leskovec, Sanmi Koyejo, Tatsunori Hashimoto and Carlos Guestrin are at Stanford. Jed McCaleb is at the Astera Institute and Yejin Choi at NVIDIA. "End-to-End Test-Time Training for Long Context". arXiv 2512.23675 [cs.LG]. v1 is from 29 December 2025 and v2 from 31 December 2025. We read v2. [Paper](https://arxiv.org/abs/2512.23675). [Code](https://github.com/test-time-training/e2e). The data is DCLM-Baseline for pre-training and Books for fine-tuning. The paper cites the Pile for Books. Preprint, no venue given: neither the arXiv page nor the PDF names one. The acknowledgements name two NSF CAREER awards, an ONR grant, a DARPA cooperative agreement and the Tianqiao and Chrissy Chen Foundation. GPU time came from Hyperbolic Labs, SF Compute, Voltage Park and Y Combinator credits.
+
+**Status.** Planned. #4782 would use it in its synthesis on weight-space programming, and it is evidence for the ceiling that #5144 counts. Its updated units are the ordinary MLP layers of a Transformer, and the static checkpoint holds only their start. The page proposes one follow-up on dynamic evaluation, below.
+
+**Read.** We read the arXiv v2 PDF (29 pages) on 2026-11-19, as text that `pdftotext` took from it. We have the source's own text for the abstract, §1 to §5, the author contributions, the acknowledgements and the references. We also have Appendices A to D. Tables 1, 2 and 3 came through as text. We read Table 2 from a layout-preserving extraction. We also read the arXiv abstract page for the version history. We did not see the figures as images. Figures 1, 2 and 4 to 9 are plots, and only their axis ticks and captions came through. So the page gives no number read from a plot. Table 2's caption says that the best results are in bold, and we could not see the bold. A model (Claude Opus 5.5) did the reading.
+
+## Summary
+
+**Claim.** Long-context language modelling can be a continual-learning problem, not an architecture problem. A Transformer with sliding-window attention keeps training at test time, by next-token prediction on the context. Meta-learning at training time prepares its start weights for that. At 3B parameters and 164B tokens, the method scales with context length like full attention. Its inference latency stays constant, as in an RNN.
+
+**Method.**
+
+- **Test-time training (§2.1).** The weights W take one gradient step of the next-token loss on the context: `W_t = W_{t−1} − η∇ℓ_t(W_{t−1})`. The output is `f(x_T; W_T)`. The paper says that this form is close to "dynamic evaluation".
+- **End to end at training time (§2.2).** The outer loop trains the start weights W_0 on the mean loss after the inner updates (Eq. 3), through gradients of gradients. The paper calls this TTT-E2E. "TTT-naive" trains W_0 on the loss with no updates (Eq. 4), as in the dynamic-evaluation literature.
+- **Mini-batch and window (§2.3).** The inner loop takes one step per mini-batch of b tokens (Eq. 5). For the main results, b = 1K, the context is up to 128K, and the attention window k is 8K. The paper says that k ≥ b must hold.
+- **Implementation details (§2.3.1).** Only the MLP layers change at test time. The embeddings, the normalisation layers and the attention layers stay frozen, because their updates make the outer loop unstable. Only the last 1/4 of the blocks change. Each of those blocks has a second, static MLP as "safe" storage for pre-trained knowledge. All MLPs are narrower, so the parameter count stays the same.
+- **Alternative derivation (§2.4).** The paper starts from TTT-KVB, whose layers learn to predict a value from a key. It replaces that layer-wise loss with the next-token loss at the end of the network. It then updates fewer but larger MLPs. The paper notes that TTT-KVB with a linear model is DeltaNet, and that Titans and Nested Learning use the KVB objective.
+- **Experiments (§3).** Five sizes, 125M to 3B parameters, from a GPT-3 and Mamba recipe (Appendix B). Pre-training is at 8K on DCLM, and extension fine-tuning is on Books at up to 128K. The six baselines are full attention, sliding-window attention (SWA), a 5:1 SWA and full hybrid, Mamba 2, Gated DeltaNet and TTT-KVB. The authors ran baselines 4 to 6 from their official code. They swept the fine-tuning learning rate for full attention only. The tokenizer is Llama 3's.
+
+**Findings, as the source reports them.**
+
+| Setting | Result |
+| --- | --- |
+| Abstract, 3B models, 164B tokens, 128K context, prefill on an H100 | TTT-E2E is 2.7× faster than full attention |
+| Table 1, 760M on DCLM, 8K context, loss | SWA 2.827, TTT-KVB 2.818, TTT-KVB simplified 2.819, TTT-E2E all layers MH 2.806, TTT-E2E 2.805 |
+| Table 1 caption | The authors treat a difference of 0.001 as below statistical significance |
+| §2.4.4, 760M, TTT-E2E against TTT-E2E all layers MH | Hidden state 88M against 18M, prefill latency 0.0086 against 0.017 s per 1K tokens |
+| §3.2, 760M, k = 8K on DCLM, so SWA is full attention | TTT-E2E lowers the test loss by 0.018 |
+| §3.2, b = 8K, the same as no test-time training | Loss 2.825 (TTT-E2E), 2.826 (TTT-KVB), 2.827 (full attention) |
+| §3.2.1, 760M with 24 layers, layers updated | 1 or 3 layers do not scale with context like full attention. 6 or 12 do, and 12 is close to 6 |
+| §3.3, scaling with compute | Trend similar to full attention above about 760M parameters and about 48B tokens |
+| §3.3, anecdote, 3B | The Llama 3 tokenizer in place of Llama 2 improved the advantage over full attention by about 0.01 |
+| Table 2, S-NIAH-1 / 2 / 3 at 128K, 3B | Full attention 0.99 / 0.86 / 0.64, TTT-E2E 0.06 / 0.05 / 0.03 |
+| Table 2, S-NIAH-1 at 8K, 3B | Full attention 1.00, TTT-E2E 1.00 |
+| §3.6, decoding 8K tokens after 8K of Books, Qwen-3-8B as judge | TTT-E2E has a lower Qwen loss than full attention. The authors inspected about 20 samples |
+| §3.7, training latency on an H200 | 1.2× faster than full attention at 128K, 3.4× slower at 8K |
+| Appendix C, 760M Gated DeltaNet with QK norm | Loss 2.814 → 2.809 at 8K, and 2.691 → 2.683 at 32K |
+
+## Where the claims go beyond the evidence
+
+- **The headline numbers are in plots only.** The context-scaling result (Figure 1) and the per-token result (Figure 6) give their losses as lines. The text gives no loss Δ values for them, so a reader can't check the size of the advantage from the text.
+- **No seeds and no intervals.** Each setting is one run. The Table 1 caption calls 0.001 "below the threshold of statistical significance", but the paper names no test. Many of the gaps in Table 1 and §3.2 are 0.01 to 0.02 nats.
+- **"Strongly indicate" goes past the runs.** §3.3 says that TTT-E2E "should" follow full attention in production-scale runs. The largest model is 3B, and the paper itself sees a small uptick with model size.
+- **The method loses on recall, and the paper says so.** On all three S-NIAH tasks at 128K, TTT-E2E is at 0.06 or below, while full attention holds 0.64 to 0.99. The authors credit this to compression. The abstract does not report it.
+- **Forgetting is a concern, but no test measures it.** §2.3.1 adds a static MLP against the loss of pre-trained knowledge. No experiment tests knowledge after the inner updates, or with the safe MLP removed.
+- **Two datasets, one language.** The data is DCLM and Books, both in English. The data and tokenizer effects in §3.3 are anecdotes, and the authors say that a full study is out of scope.
+- **The tuning favours the baseline, and the authors say so.** Only full attention got a learning-rate sweep for fine-tuning. The authors also improved the RNN baselines with QK norm and FlashAttention 3. Latency still compares a JAX method with PyTorch baselines.
+- **The authors state their own limits.** §2.3.1 says that the three implementation details may be "merely artifacts" of the setup. §3.7 calls training latency "a significant limitation".
+- **Some citations point to the wrong work.** Dynamic evaluation cites [72], which is Mikolov et al.'s 2013 word-vector paper. RoPE cites [59], which is Reformer. The Figure 4 caption cites [105] for Gated DeltaNet, which elsewhere is [104]. The Figure 8 caption points to Subsection 3.3 for training latency, which §3.7 covers.
+
+## Use in this repo
+
+- **The updated units are the registry's kind of unit.** In TTT-E2E, the weights that change at test time are the ordinary MLP layers of the last 1/4 of a Transformer's blocks. That differs from [`test-time-training-layers.md`](test-time-training-layers.md) and [`titans-test-time-memory.md`](titans-test-time-memory.md). Both of those change a small extra module. Here, the MLP neurons themselves move every 1K tokens.
+- **A weight-only reading sees W_0, not the weights in use.** The checkpoint holds the meta-learned start. After the first mini-batch, each updated neuron has weights that depend on the text. A weight-only check such as ROTATE (#3446) reads W_0 only. This is the ceiling of #5144, now inside the MLP. [`docs/analyses/weight-kurtosis.md`](../analyses/weight-kurtosis.md) already finds that ROTATE's output kurtosis gives AUC 0.51 (0.45–0.57) on 518 test poles. This is an inference from the method. The paper reads no unit.
+- **Meta-learning changes W_0 itself.** §3.4.1 notes that before t = 1K, TTT-E2E and full attention have the same computation graph. TTT-E2E still has a lower loss there, so the meta-learned W_0 differs from a standard one. An explanation of a W_0 neuron would describe weights trained to be overwritten. The paper does not test what those neurons compute.
+- **Dynamic evaluation can run on the registry's own models.** TTT-naive is next-token gradient steps on the test text, with no meta-learning. That is possible on GPT-2 or Qwen2.5 today. It would move the late-layer MLP poles that the registry marks VERIFIED. No analysis in the repo measures this.
+- **The repo's drift numbers give a scale to compare with.** `papers/neuron-development/README.md` finds that Pythia-70m's 86 VERIFIED poles keep changing after the loss settles. Their median correlation with the final form is 0.62 at step 16,000. Adjacent checkpoints correlate at a median of 0.78 to 0.82. In [`docs/analyses/base-instruct.md`](../analyses/base-instruct.md), 252 of 311 Qwen2.5-0.5B poles keep under instruction tuning (81%). A dynamic-evaluation test would add a third, much smaller change: one text, one reset.
+- **#5118 and #5133 ask which poles keep. This paper only picks which layers change.** The paper updates the last 1/4 of blocks because that trades compute against context scaling (§3.2.1). It gives no data on which neurons change most. On Qwen2.5-0.5B, 85 of 107 last-third poles keep, against 104 of 112 in the first third. The paper gives no reason to expect late layers to change more under a narrow update.
+- **The safe MLP is a fast and slow store.** The conclusion calls the updated weights long-term memory and the window short-term memory. The static second MLP keeps pre-trained knowledge apart from the fast writes. That matches the split in [`complementary-learning-systems.md`](complementary-learning-systems.md), where focused learning damages related knowledge. The paper does not measure that damage, so it adds no number to #4782's interference question.
+- **Weight-space programming (#3381, #4471).** Here gradient descent writes the MLP weights at run time, and nobody reads the result. #4471 has an agent write weights as code, to be read. The paper's §4.3 calls TTT-E2E a special case of fast weight programmers, as in [`linear-transformers-fast-weight-programmers.md`](linear-transformers-fast-weight-programmers.md).
+- **A TTT-E2E model is a possible case, but not now.** #3331 proposes a Qwen3.5 fine-tune with Gated DeltaNet layers, which this paper uses as a baseline. A TTT-E2E model would need a harness that reads per-text MLP weights. The four configured models (`pyproject.toml`) have static weights. No new model joins the registry before every model meets its coverage target.
+- **No single-neuron content.** The paper gives no unit explanations, no probes and no null. Nothing in it bears on any pole's verdict.
+- **Follow-up: do VERIFIED poles keep after dynamic evaluation?** Take VERIFIED late-layer poles on one registry model. Run next-token gradient steps on one long text, as in TTT-naive. Then run each pole's own probes again, and compare against a no-update null. This reads evidence only and changes no stored weights. It is close to #5125, which asks about a sequence of narrow fine-tunes. It could join that issue.
+- **Question for the maintainer.** If the registry ever explains a unit whose weights change at inference, is the verdict on W_0 or on the updated weights? The second would make a claim that names the text. That would change the decision rule, so it would need a `PROTOCOL_VERSION` bump (`docs/PROTOCOL.md` §6). We record it as a question only.
