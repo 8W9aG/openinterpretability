@@ -55,3 +55,5 @@ gh issue create --title "..." --body "..." --label "area: pipeline" --label "pri
 ```
 
 Put it in the workstream that it continues. A follow-up of a paper goes in that paper's project, for example *Why neurons rest*.
+
+If the new issue can't start until the current one lands, record that when you file it: `python3 scripts/issue_state.py --blocked-by <new> <current>`. `next_issue.py` then skips the new issue while the current one is open. `scripts/linear_sync.py` keeps the relation the same in Linear and on GitHub (#3842).

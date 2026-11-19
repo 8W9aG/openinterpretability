@@ -4,10 +4,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from openinterpretability import hubs
-from openinterpretability.cli_explain import _explained_units, hub_line, mark_hubs
+from openinterpretability.cli_explain import _explained_units, mark_hubs
 from openinterpretability.core.explanation_records import ExplainedUnit
 from openinterpretability.explain import HEAD, PoleAttribution
 from openinterpretability.explain_narrate import evidence
+from openinterpretability.hubs import hub_line
 
 MODEL = "Qwen/Qwen2.5-0.5B"
 SLUG = "Qwen--Qwen2.5-0.5B"
