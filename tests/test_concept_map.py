@@ -74,12 +74,17 @@ def test_the_model_page_draws_the_map(tmp_path, record):
     assert studied.shape == "circle"
     assert studied.href.endswith(f"L{ident.layer}/N{ident.neuron_idx}.html")
     assert other.shape == "dot" and (studied.x, studied.y) == (WIDTH - PAD, HEIGHT - PAD)
-    assert all(PAD <= label["x"] <= WIDTH - PAD for label in view["labels"])
-    names = {label["name"] for label in view["labels"]}
-    assert names == {"quotes · speech (1)", "no VERIFIED member (1)"}
+    badges = view["badges"]  # numbered by size; only a cluster with a VERIFIED member is named
+    assert [(b.number, b.name, b.slot) for b in badges] == [
+        (1, "quotes · speech", 1),
+        (2, "no VERIFIED member, so no name", 0),
+    ]
+    assert (studied.slot, other.slot) == (1, 0)  # a nameless cluster is grey
+    assert all(b.box[0] >= 0 and b.box[2] <= WIDTH for b in badges)
     compile_site([record], tmp_path / "site", concept_maps={model.name: found})
     page = (tmp_path / "site" / "models" / model.slug / "index.html").read_text()
-    assert 'id="concept-map"' in page and "quotes · speech (1)" in page
+    assert 'id="concept-map"' in page and "quotes · speech" in page
+    assert 'class="litmap' in page and "map-card" in page  # the shared theme (#4577)
     assert "Distances between clusters mean little" in page
     compile_site([record], tmp_path / "bare")
     bare = (tmp_path / "bare" / "models" / model.slug / "index.html").read_text()
