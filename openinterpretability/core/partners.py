@@ -30,3 +30,6 @@ class CorrelatedNeuron(StrictModel):
     coactive_tokens: int = Field(ge=0)
     spearman: float = Field(ge=-1.0, le=1.0)
     pearson: float = Field(ge=-1.0, le=1.0)
+    # The partner's strongest distinct tokens in the scan's uniform sample, above its own
+    # 99th percentile (#3240). Shown to the proposer for a partner the registry hasn't studied.
+    top_tokens: list[str] = Field(default_factory=list, max_length=5)
