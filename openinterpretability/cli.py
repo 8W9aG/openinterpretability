@@ -447,6 +447,7 @@ from openinterpretability import (  # noqa: E402, F401
     cli_evidence,
     cli_evidence_store,
     cli_explain,
+    cli_interference,
     cli_loop,
     cli_map,
     cli_neuronpedia,
