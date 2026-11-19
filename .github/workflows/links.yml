@@ -1,0 +1,145 @@
+name: Check links
+
+# A weekly link check (#3170). It runs on a schedule, not per PR, so that a flaky host
+# never blocks a merge. `make lint` already checks the relative links in hand-written
+# Markdown on each PR (scripts/check_markdown.py).
+#
+# - The site: build it as the deploy does, then check every internal link and anchor
+#   (scripts/check_site_links.py).
+# - External links: lychee over the hand-written Markdown, with lychee.toml.
+#
+# On failure, it opens an issue, or comments on the open one.
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"  # Mondays at 05:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read  # the build reads each record's PR author (builder/users.py)
+
+concurrency:
+  group: check-links
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Internal links in the built site
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.cache/openinterpretability/pii
+          key: pii-spans-${{ github.run_id }}
+          restore-keys: pii-spans-
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ~/.cache/openinterpretability/pr-authors
+          key: pr-authors-${{ github.run_id }}
+          restore-keys: pr-authors-
+      - name: Build site
+        env:
+          GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
+          CAPPED_SWAP: 2G
+        run: |
+          scripts/capped.sh 6G 4G -- \
+            open-interpretability build --wiki-dir wiki --output-dir dist
+          python -m openinterpretability.builder.css --site dist
+          python -m pagefind --site dist
+      - name: Check internal links and anchors
+        shell: bash
+        run: |
+          status=0
+          python scripts/check_site_links.py dist > links.log 2>&1 || status=$?
+          { echo "### Internal links"; echo; echo '```'; head -n 45 links.log; echo '```'; } \
+            >> "$GITHUB_STEP_SUMMARY"
+          cat links.log
+          exit "$status"
+
+  external:
+    name: External links in the Markdown
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.run_id }}
+          restore-keys: lychee-
+      - name: Check external links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8  # v2.9.0
+        with:
+          args: >-
+            --config lychee.toml --cache --no-progress
+            'README.md' 'CONTRIBUTING.md' 'SECURITY.md' 'REVIEW.md'
+            'docs/**/*.md' 'papers/**/*.md' '.claude/skills/**/*.md'
+          fail: true
+          jobSummary: true
+
+  report:
+    name: Open an issue on failure
+    needs: [site, external]
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: Link check failed
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      HEAD: ${{ github.sha }}
+      FAILED_JOBS: >-
+        .jobs[] | select(.conclusion == "failure")
+        | [.id, .name, ([.steps[] | select(.conclusion == "failure") | .name] | join(", "))]
+        | @tsv
+    steps:
+      - name: Open an issue, or comment on the open one
+        shell: bash
+        # The body holds fixed fields only: the run, the commit and the failed jobs and
+        # steps. It holds no log line, since a link is text from outside and agents work
+        # this issue. The run's summary lists the broken links.
+        run: |
+          jobs=$(gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/jobs" --jq "$FAILED_JOBS")
+          {
+            echo "Run: $RUN"
+            echo "Commit: $HEAD"
+            echo
+            echo "The run's summary lists the broken links:"
+            echo "\`gh run view $GITHUB_RUN_ID --log-failed\`."
+            echo
+            while IFS=$'\t' read -r id name steps; do
+              [ -n "$id" ] || continue
+              echo "- **$name** failed at: ${steps:-a step}"
+            done <<< "$jobs"
+          } > issue.md
+          # Only an issue that this workflow opened: anyone can open one with this title.
+          number=$(gh issue list --state open --author app/github-actions \
+            --search "\"$TITLE\" in:title" --json number,title \
+            --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file issue.md
+          else
+            gh issue create --title "$TITLE" --body-file issue.md \
+              --label bug --label "priority: medium" --label "area: code quality and tooling"
+          fi

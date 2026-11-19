@@ -133,6 +133,13 @@ Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) a
 
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
 
+**Links.** `make lint` checks the relative links and anchors in hand-written Markdown on each PR. A weekly workflow, *Check links* (`.github/workflows/links.yml`), checks the rest (#3170):
+
+- It builds the site as the deploy does, and checks every internal link and anchor in it with `scripts/check_site_links.py`. Run that after a local build: `uv run python scripts/check_site_links.py dist`.
+- It checks the external links in the Markdown with [lychee](https://github.com/lycheeverse/lychee), set up in `lychee.toml`. A 403 or 429 counts as up, since many publishers refuse automated clients.
+
+It runs on Mondays and by hand (`gh workflow run links.yml`), never per PR, so a flaky host doesn't block a merge. A failure opens an issue, *Link check failed*, or comments on the open one.
+
 ## Inputs in exchange/
 
 `exchange/` is git-ignored working space. A paper, analysis or script that reads a file from it must cite a published copy, so that others can reproduce the result (issue #3255). The copies are on the public Hugging Face dataset [`sackfield/open-interpretability-exchange`](https://huggingface.co/datasets/sackfield/open-interpretability-exchange). `data/exchange-manifest.json` pins its revision and each file's SHA-256.
