@@ -227,3 +227,4 @@ delete_branch_command  # a click command of 'open-interpretability patch' (cli_p
 revert_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
 merge_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
 rebase_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+_.ink  # Badge.ink, read by the templates _map_theme.html, _concept_map.html and literature.html (#4577)

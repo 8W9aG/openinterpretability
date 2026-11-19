@@ -11,19 +11,18 @@ from the repository, never the clock, so an unchanged repository rebuilds them b
 
 from __future__ import annotations
 
-import re
 import subprocess
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from openinterpretability.builder.literature_pages import review_rows
+
 PAPERS_FEED = "research/papers.xml"
 LITERATURE_FEED = "research/literature.xml"
 NO_DATE = "1970-01-01T00:00:00Z"  # a date the repository can't give
 NOT_REVIEWS = ("README", "queue")  # pages of docs/literature/ that review no source
-# A row of docs/literature/README.md: "| [Title](name.md) (Authors, year) | status | why |".
-_ROW = re.compile(r"^\| \[[^\]]*\]\(([\w-]+)\.md\)[^|]*\| ([a-z ]+) \| (.+?) \|\s*$", re.M)
 
 
 def _feed(title: str, path: str, site_url: str, entries: list[tuple[str, str, str, str]]) -> str:
@@ -60,13 +59,6 @@ def papers_feed(papers: Sequence, site_url: str, site_title: str) -> str:
         for p in papers
     ]  # fmt: skip
     return _feed(f"{site_title}: papers", PAPERS_FEED, site_url, entries)
-
-
-def review_rows(folder: Path) -> dict[str, tuple[str, str]]:
-    """Each review's (status, reason) from the index table of ``folder``."""
-    index = folder / "README.md"
-    text = index.read_text(encoding="utf-8") if index.exists() else ""
-    return {name: (status.strip(), why.strip()) for name, status, why in _ROW.findall(text)}
 
 
 def added_times(folder: Path) -> dict[str, str]:
