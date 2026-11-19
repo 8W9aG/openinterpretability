@@ -14,7 +14,7 @@ def test_running_the_module_prints_the_reproducible_prefixes():
         [sys.executable, str(ROOT / "openinterpretability/core/record_kinds.py")],
         capture_output=True, text=True, check=True,
     ).stdout  # fmt: skip
-    assert out.split() == list(REPRODUCIBLE) == ["wiki/experiments/"]
+    assert out.split() == list(REPRODUCIBLE) == ["wiki/experiments/", "wiki/explanations/"]
 
 
 def test_the_workflows_read_the_list_not_their_own():
@@ -34,4 +34,5 @@ def test_every_wiki_record_kind_is_listed_and_documented():
     protocol = (ROOT / "docs/PROTOCOL.md").read_text()
     assert all(f"`{k.prefix}`" in protocol for k in RECORD_KINDS)
     assert reproducible("wiki/experiments/m/L1/N2-positive/1.json")
-    assert not reproducible("wiki/explanations/m/abc/1.json")
+    assert reproducible("wiki/explanations/m/abc/1.json")  # since #4793
+    assert not reproducible("wiki/circuits/m/abc/1.json")

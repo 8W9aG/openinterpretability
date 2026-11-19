@@ -176,3 +176,15 @@ def test_the_fallback_fetches_once_and_a_git_error_is_not_found(
     monkeypatch.setattr(eb, "fetch_branches", lambda *a: (_ for _ in ()).throw(OSError("no git")))
     with pytest.raises(evidence.EvidenceMissing):
         evidence.get("1" * 64)  # a git error is "not found", not a crash
+
+
+def test_only_experiment_records_are_checked_for_blobs(monkeypatch):
+    # An explanation record has no evidence blobs, and isn't an AuditRecord (#4793).
+    from pathlib import Path
+
+    from openinterpretability import cli_evidence_store
+
+    added = [Path("wiki/experiments/m/L1/N2-positive/1.json"),
+             Path("wiki/explanations/m/abc123/20261119T013311Z.json")]  # fmt: skip
+    monkeypatch.setattr("openinterpretability.checks.changed_records", lambda *a: added)
+    assert cli_evidence_store._added(Path("wiki"), "main") == added[:1]
