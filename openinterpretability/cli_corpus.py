@@ -136,7 +136,8 @@ def corpus(
     from openinterpretability.corpus import build_from_hub
 
     if same_as:
-        return _same_as(ctx, same_as, out)
+        _same_as(ctx, same_as, out)
+        return
     if dataset in BLENDS or dataset in BLEND_ALIASES:
         per_dataset = {
             "--files": files, "--text-column": text_column, "--revision": revision,
@@ -144,7 +145,8 @@ def corpus(
             "--lang-pattern": lang_pattern, "--detect-lang": detect_lang,
             "--detect-code": detect_code, "--chat-template": chat_template,
         }  # fmt: skip
-        return _blend(dataset, per_dataset, out, documents, seed, max_chars, ascii_)
+        _blend(dataset, per_dataset, out, documents, seed, max_chars, ascii_)
+        return
     preset = PRESETS.get(dataset)
     _check_dataset(dataset, preset, files, lang_pattern, detect_lang, detect_code)
     try:

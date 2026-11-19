@@ -284,7 +284,7 @@ def purge_cloudflare_cache(
     api_token: str,
     urls: Sequence[str],
     *,
-    opener: Callable[..., Any] = urllib.request.urlopen,
+    opener: Callable[..., Any] = urllib.request.urlopen,  # noqa: S310  (Cloudflare's https API)
 ) -> None:
     """Purge ``urls`` from Cloudflare's edge cache (no-op for an empty list)."""
     for start in range(0, len(urls), PURGE_BATCH):

@@ -419,12 +419,19 @@ def scan_neuron(
     return ScanResult(
         examples=examples,
         values=values,
-        correlated=scan.partners.partners(neuron_idx, active, k=n_correlated) if active > 0 else [],
+        correlated=_partners(scan, neuron_idx, active, n_correlated, runner),
         confounds=confounds,
         windows=len(pieces),
         opposite=OppositeScan(other, other_examples, other_values, other_floor),
         first_token_floor=floor,
     )
+
+
+def _partners(scan, neuron_idx: int, active: float, k: int, runner) -> list:
+    """The pole's co-activating partners, with their top tokens (#3240); none if it never fired."""
+    if active <= 0:
+        return []
+    return scan.partners.partners(neuron_idx, active, k=k, decode=runner.tokenizer.decode)
 
 
 @dataclass
@@ -447,7 +454,7 @@ def _pole_pass(runner, pieces, layer: int, neuron_idx: int, poles, batch_tokens,
         acts = chunk.acts.float()  # [n, d_mlp]
         strengths = pole_strength(acts[:, neuron_idx], pole)
         counted = chunk.counted
-        scan.partners.update(strengths[counted], acts[counted])
+        scan.partners.update(strengths[counted], acts[counted], chunk.ids[counted])
         scan.confounds.update(chunk.ids[counted], chunk.positions[counted], strengths[counted])
         labels.update_chunk(chunk, strengths)
         scan.values.extend(strengths[counted].tolist())

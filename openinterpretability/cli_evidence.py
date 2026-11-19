@@ -87,17 +87,17 @@ def record_draw(exc: Unauditable, random_pick: bool, wiki_dir: Path) -> None:
 def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None, superseded=None):
     """Return what other research links to the unit, for the proposer.
 
-    That is the unit's studied sisters, and the record a revision supersedes. In a sister
-    study (``sister_file``), it is only the study's brief, because the explanation is fixed.
+    Its partners (#3240), studied sisters and superseded record. A sister study: its brief.
     """
-    from openinterpretability.cli_review import sisters_text
+    from openinterpretability.cli_review import partners_text, sisters_text
     from openinterpretability.revision import previous_attempt
     from openinterpretability.sisters import sister_brief
 
     if sister_file:
         return sister_brief(load_sister(sister_file, evidence.identifier))
     related = sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
-    return related + (previous_attempt(superseded) if superseded else "")
+    tail = previous_attempt(superseded) if superseded else ""
+    return partners_text(evidence, wiki_dir) + related + tail
 
 
 def load_sister(path: Path, unit):

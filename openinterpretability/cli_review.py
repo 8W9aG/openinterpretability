@@ -119,9 +119,11 @@ def verify(
     tested = [submission.sister_of.rsplit("/", 1)[0]] if submission.sister_of else []
     latents += sisters_text(submission.identifier, wiki_dir, "reviewer", tested) if sisters else ""
     if emit_prompt is not None:
-        return write_review_prompt(submission, emit_prompt, n_probes, full_snippets, latents)
+        write_review_prompt(submission, emit_prompt, n_probes, full_snippets, latents)
+        return
     if check_probes is not None:
-        return write_token_check(submission, check_probes)
+        write_token_check(submission, check_probes)
+        return
     inverse = submission.claim == "inverse"  # no explanation scores (inverse_claims.py)
     check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus, inverse)
     scores = load_scores(scores_file, submission)
@@ -170,6 +172,15 @@ def sisters_text(identifier, wiki_dir, role: str, exclude=()) -> str:
     if text:
         click.echo(f"Showing the {role} {text.count(chr(10)) - 1} studied sister neurons", err=True)
     return text
+
+
+def partners_text(evidence, wiki_dir) -> str:
+    """The proposer's section on the unit's co-activating partners (#3240), or ""."""
+    from openinterpretability.cli import _skip_wiki
+    from openinterpretability.partner_context import partner_context
+
+    wiki = None if _skip_wiki(wiki_dir) else wiki_dir
+    return partner_context(evidence.identifier, evidence.correlated_neurons, wiki)
 
 
 def aligned_latents_text(submission, wiki_dir) -> str:
