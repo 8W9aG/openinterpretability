@@ -306,6 +306,7 @@ One answer can take several attempts. Each attempt is its own record, and its pr
 | Stop | `wiki/stops/` | Not checked. |
 | Ledger entry | `wiki/ledger/` | Not checked. |
 | Erratum | `wiki/errata.jsonl` | Signed by a key in `.github/allowed_signers`. |
+| Patch | `wiki/patches/` | Not checked. A fix patch to a base model, not a new model (#5229). It is signed when written, but CI does not check the signature yet. |
 
 A pull request from anyone but the maintainer auto-merges only when every file it adds is a re-measured record, and CI has reproduced each one. A record of any other kind waits for a person. The maintainer's own pull requests, including the agent loops' pull requests, merge on their checks as before.
 
