@@ -1,0 +1,74 @@
+# Mechanistically Analyzing the Effects of Fine-Tuning on Procedurally Defined Tasks
+
+**Citation.** Samyak Jain (University of Cambridge), Robert Kirk (University College London), Ekdeep Singh Lubana (University of Michigan and Harvard), Robert P. Dick (University of Michigan), Hidenori Tanaka (Harvard and NTT Research), Edward Grefenstette (UCL), Tim Rocktäschel (UCL) and David Krueger (Cambridge). Jain, Kirk and Lubana are co-first authors. "Mechanistically analyzing the effects of fine-tuning on procedurally defined tasks". arXiv 2311.12786 [cs.LG]. Versions: v1 of 21 November 2023 and v2 of 21 August 2024. We read v2. [Paper](https://arxiv.org/abs/2311.12786). The PDF header says "Published as a conference paper at ICLR 2024". We did not check the proceedings page. The paper gives no link to its own code or data. It says that its TinyStories code builds on [karpathy/llama2.c](https://github.com/karpathy/llama2.c), and it uses the public [TinyStories-Instruct](https://huggingface.co/datasets/roneneldan/TinyStoriesInstruct) dataset. Funding: BERI for Jain, NSF awards CNS-2008151 and CNS-2211509 for Lubana, and the Foundation AI CDT at UCL for Kirk. The TinyStories evaluation uses a GPT-3.5 classifier, fine-tuned through the OpenAI API.
+
+**Status.** Planned. #5125 (narrow fine-tunes of Qwen2.5-0.5B and its instruct model) would use the paper's reverse fine-tuning as a test of whether a failed explanation comes back. The page also proposes one follow-up, which looks for a small set of neurons that holds the base-to-instruct failures. The paper studies full fine-tuning only, not LoRA, so the issue's adapter question is outside it.
+
+**Read.** On 2026-11-19 a model (Claude Opus 5.5) downloaded the arXiv v2 PDF and extracted its text with `pdftotext`. It read the text directly. We have in the source's own words the abstract, Sections 1 to 6, the acknowledgements and the author contributions. We also have Appendices B (datasets), D (training, evaluation and the pruning protocol) and E (the jailbreak, sample-efficiency and randFT results). We have Appendix F (TinyStories) in full. Appendices G and H hold more Tracr and PCFG results. Of these, we read the figure captions, the observations and the table titles, but not every table cell. We did not see the figures as images. So no number below comes from a plot, only from text or Table 1. We read the reference list in part.
+
+## Summary
+
+**Claim.** Fine-tuning a pretrained model at a small learning rate seldom changes its pretrained capabilities. In place of a change, the model learns a small, local transform on top of a capability, which the authors call a *wrapper*. Pruning a few neurons removes the wrapper. A short further fine-tune on pretraining data brings the capability back, in fewer steps than a control needs to learn it.
+
+**Method.**
+
+- **Definitions (Section 3).** A *capability* is a map that a linear readout at some layer computes, over a stated input domain. A capability is *strongly relevant* to a fine-tuning task when a transform of it gives the right output on the whole fine-tuning distribution. It is *weakly relevant* when the transform works only on the fine-tuning data, for example through a spurious attribute.
+- **Tracr models (Section 4, Appendices B.1 and D).** Tracr compiles a program into a 3-block transformer. One program counts a token, and one finds the k-th largest element. The authors add small Gaussian noise (scale 0.001) to the weights. Fine-tuning uses SGD with momentum for 10K iterations, batch 96, at learning rates from 10⁻¹ to 10⁻⁴.
+- **PCFG models (Section 4, Appendices B.2 and D).** A minGPT model of about 3 million parameters (6 blocks, 6 heads, width 192) pretrains on strings from a probabilistic context-free grammar. Task-family and operand tokens in front of each string name one of five tasks, such as counting a token. Pretraining runs 10K to 200K iterations with AdamW.
+- **The main task.** The model pretrains to count a, b and c, and fine-tunes to count b only. A spurious attribute makes the count of b one more than the count of a. Its share in the fine-tuning data, C_Tr, is 0, 0.5, 0.8 or 1. The pretraining prior on the operands is low, medium or high for b. Fine-tuning runs 10K iterations at a learning rate of 10⁻⁵ (η_M) or 10⁻⁶ (η_S), and in the appendix also 10⁻⁴ (η_L).
+- **Analysis tools (Section 5 and Appendix D).**
+  - *Pruning*: one step that removes the top-K weights or neurons by gradient times weight. The gradient lowers the loss on the pretraining task. A neuron is one row of a weight matrix.
+  - *Linear probes*: on the residual output of every block, to read the pretraining count.
+  - *Attention maps*: for the Tracr models only.
+  - *Reverse fine-tuning (reFT)*: train the fine-tuned model again on pretraining data.
+- **reFT baseline.** *Scr. + FT* pretrains on the fine-tuning target and then fine-tunes on the pretraining target. So it starts from a model that never learned the pretraining task.
+- **TinyStories (Section 5 and Appendix F).** A LLaMa-style model of 91 million parameters (12 layers, width 768, vocabulary 8,192) pretrains for 30,000 steps on TinyStories-Instruct. Three protocols fine-tune it to stop writing stories with a twist:
+  - *Filtering*: remove the twist stories.
+  - *Filtering + Mix & Match*: also replace the foreshadowing instruction with the twist instruction.
+  - *Filtering + Randomisation*: also add the twist instruction to stories without a twist.
+
+  Then reFT trains on twist stories. The control is a model pretrained without twist stories and then fine-tuned on them. A GPT-3.5 classifier marks each generated story as twist or not. Linear probes on the mean of the last 10 positions predict each story feature.
+
+**Findings, as the source reports them.**
+
+| Setting | Result |
+| --- | --- |
+| PCFG counter, small learning rate, pruning (Figure 7 caption) | Pretraining accuracy rises after pruning only 5 to 15 neurons. Fine-tuning accuracy falls to match. |
+| PCFG counter, reFT, strongly relevant capability (Figure 9 caption) | Good pretraining accuracy after 0.1K to 1K iterations. |
+| PCFG counter, reFT, weakly relevant capability (Figure 9 caption) | About 3K iterations. |
+| PCFG counter, Scr. + FT baseline (Figure 9 caption) | Perfect accuracy only at 4.5K iterations, and only at the larger rate η_M. |
+| PCFG counter, linear probes (Figure 8 caption) | The pretraining count can be read with a trend like the pretrained model's. It drops only at η_M with a weakly relevant capability. |
+| Tracr counter, attention (Figure 10 caption) | The model keeps attending to the pretraining token a. Only a large rate with no spurious attribute changes the pattern. |
+| PCFG jailbreak tokens (Appendix E, Figure 24) | Other task-family tokens bring back the a-count after fine-tuning, when the pretraining prior on b was high. Probes read the a-count in middle layers even with the fine-tuning token. |
+| randFT, trained to give wrong pretraining answers (Appendix E, Figure 28) | reFT is about as sample-efficient as after the main protocol, and more than both baselines. |
+| TinyStories, twist share during reFT at 0, 30, 300 and 3,000 iterations (Table 1) | Filtering at η_M: 44%, 81%, 81%, 82%. Filtering + Randomisation at η_M: 12%, 56%, 69%, 75%. Control not pretrained on twists: 12%, 31%, 44%, 81%. |
+| TinyStories, reFT loss (Figure 11 caption) | Fine-tuned models' loss falls within 30 to 300 iterations. The controls never reach the same loss. |
+| TinyStories twist classifier (Appendix F) | 92% accuracy on a held-out test set. |
+
+## Where the claims go beyond the evidence
+
+- **The claim of little change rests on very small models.** The PCFG model has about 3 million parameters, and the Tracr models have 3 blocks. The one realistic check is a 91-million-parameter TinyStories model and one feature, the twist. The abstract's step to safety tuning of large models is an extrapolation. The authors call for work on larger models.
+- **The wrapper result needs a weak capability and a small rate.** The paper's own captions say the probe signal drops at η_M with a weakly relevant capability. With a large rate and no spurious attribute, the Tracr attention pattern changes. So the claim holds for small learning rates, the setting that the authors define as fine-tuning in Section 2.
+- **No seeds, intervals or tests.** The text reports no seed counts and no intervals. Most results are curves, with no error bands named in the captions.
+- **Table 1 looks like a small sample.** Each share in Table 1 is close to a multiple of 1/16, for example 12%, 31%, 44% and 81%. That suggests about 16 stories per cell. This is our inference, and the paper states no count. Filtering + Mix & Match at η_M goes from 88% at 30 iterations to 50% at 300, so the cells are noisy.
+- **At 3,000 iterations the TinyStories gap is gone.** The control reaches 81% at 3,000 iterations, as high as or higher than four of the six fine-tuned arms. The advantage is in speed at 30 and 300 iterations, which matches the authors' "sample-efficient" wording. It supports the abstract's wider claim less.
+- **Pruning has no random control.** The paper does not prune random neurons, or neurons chosen on another loss. So "5 to 15 neurons" has no null to show how special those neurons are.
+- **The learning rates do not agree between sections.** Section 5 gives η_M = η_PT/10 and η_S = η_PT/100, with η_PT the mean pretraining rate. Appendix D gives a pretraining rate of 10⁻³ with a cosine schedule, and η_M = 10⁻⁵, η_S = 10⁻⁶. That is 100 and 1,000 times below the peak, not 10 and 100.
+- **One caption likely has a slip.** The captions of Figures 9 and 26 say "even if behavior relevant to the capability ceased during pretraining". The context suggests fine-tuning.
+- **No code for the synthetic runs.** The paper links code only as the base of the TinyStories runs.
+
+The authors state their scope clearly. Section 2 limits "fine-tuning" to further training at a rate one to three orders of magnitude below pretraining. Section 3 says that their idealised notion of capability will not hold for every capability of a real model. They use several tools because each tool comes with known pitfalls.
+
+## Use in this repo
+
+- **The base-instruct analysis already measures what a wrapper would leave.** [`docs/analyses/base-instruct.md`](../analyses/base-instruct.md) reads each VERIFIED pole of Qwen2.5-1.5B at the same index in its instruct model. 38 of 43 hypotheses keep, and the activations correlate at a median r of 0.983, at least 0.953. On Qwen2.5-0.5B, 252 of 311 keep, at a median r of 0.974. That fits the paper's picture: the units under the tuned behaviour barely move. But a wrapper sits elsewhere by definition, so these numbers can't show one.
+- **The grain differs.** The paper's capability is a linear readout from the residual stream, so it does not test single units. The repo tests one pole against its own probes. A wrapper in the paper is a few neurons that the tuning added. Those neurons need not be VERIFIED poles, or poles that the registry studies at all.
+- **The paper puts wrappers late. Our failures are not all late.** The paper says that wrapper components often sit in the latter half of the model. On Qwen2.5-1.5B, three of the five failures are in the last third, all on sensitivity. On Qwen2.5-0.5B, keep shares by third are 104 of 112, 63 of 92 and 85 of 107. So the middle third loses most there. These counts come from `base-instruct.md`, and they are not a test of the paper.
+- **A wrapper search needs no training.** The paper's pruning step is gradient times weight on the loss of the old task. On a base-instruct pair, the old task can be the base model's next-token distribution on `corpus.jsonl`. Prune the top-K instruct neurons by that score, then read whether the 59 failed poles of Qwen2.5-0.5B pass their probes again. Compare with K random neurons of the same layers. We propose this as a follow-up issue. It differs from #5122, which prunes a pole's own input weights by magnitude.
+- **reFT is the recovery test for #5125.** [`spurious-forgetting.md`](spurious-forgetting.md) already proposes, for #5125, a short re-tune after each stage to see whether a failed pole comes back. This paper adds the control that a recovery claim needs. Re-tune the base model from a state that never had the function, or re-tune a pole that never passed, for the same steps. Without that control, a fast return can't be told from fast learning. This belongs on #5125 as a comment.
+- **The paper's rate dependence bears on the arms of #5125 and #5154.** The paper's wrappers appear at small learning rates, and larger rates change the capability itself. So the keep share in #5125 may depend on the learning rate more than on the task. #5154 compares instruction tuning with a random weight change of the same norm. The paper does not test random changes, so it gives no prediction for #5154.
+- **Pretraining moves poles more than this kind of tuning.** In [`papers/neuron-development/`](../../papers/neuron-development/README.md), adjacent Pythia-70m checkpoints after step 16,000 correlate at a median of 0.78 to 0.82. The base-to-instruct correlations of Qwen2.5 are 0.95 or more. The models and measures differ, so this is a contrast, not a test. It fits the paper's point that a small learning rate leaves the old computation in place.
+- **Evidence for the fix campaign, not a design.** The paper adds to the *Suppression comes back* rows of [`fixing-models.md`](fixing-models.md). A model trained to give wrong answers for its old task (randFT) still learned that task again fast under reFT. Probes still read the old count. So a fix of the #4781 " days" error by a short fine-tune could hide the copy route and leave it in place. This is our inference, and the maintainer designs the campaign.
+- **Neighbouring pages.** [`implicit-inference-forgetting.md`](implicit-inference-forgetting.md) gives a related reading: tuning moves task inference more than capabilities. The authors cite it as support. [`fine-tuning-distorts-features.md`](fine-tuning-distorts-features.md) predicts that tuning moves features most on inputs like the tuning data, which #5126 tests. #4863 (Prakash et al. 2024) is the next review in this strand, and the authors cite it as support too.
+- **The word "probe" has two meanings here.** The paper's probes are linear classifiers that the authors train. The repo's probes are the reviewer's test texts. [`linear-probe-evidence.md`](linear-probe-evidence.md) covers the first meaning.
+- **A question for the maintainer.** Should a pole that fails after tuning but passes again after a short re-tune count as kept, lost or a separate state? That would change how the base-instruct analyses report their share. It is a question, so this page opens no issue.

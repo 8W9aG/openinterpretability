@@ -1,0 +1,69 @@
+# LoRA vs Full Fine-tuning: An Illusion of Equivalence
+
+**Citation.** Reece Shuttleworth, Jacob Andreas, Antonio Torralba and Pratyusha Sharma, all at MIT CSAIL. "LoRA vs Full Fine-tuning: An Illusion of Equivalence". [arXiv:2410.21228](https://arxiv.org/abs/2410.21228), version 3 of 22 October 2025. Version 1 is of 28 October 2024, and version 2 is of 23 June 2025. Venue: the 39th Conference on Neural Information Processing Systems (NeurIPS 2025), from the footer of the v3 PDF. The paper and the arXiv abstract page give no code link. The LLaMA2-7B checkpoints are those that Biderman et al. (2024) released on Hugging Face, and Table 5 lists their paths. The acknowledgements name National Science Foundation grant IIS-2238240.
+
+**Status.** Planned. #4782 (catastrophic interference, weight-space programming and LoRA) would use it in its LoRA strand. It gives #5133 (the weight change at a pole) a weight-only test. It also predicts how a LoRA arm of #5125 would differ from full fine-tuning. No code, skill or protocol in this repo depends on it. The maintainer designs the campaign to fix models, so this page reports evidence and records questions only.
+
+**Read.** On 2026-11-19 we downloaded the arXiv v3 PDF (29 pages) with `curl` and converted it with `pdftotext`. The reader was this page's author, a model (Claude Opus 5.5). We read in the source's own text the abstract, Sections 1 to 6, the acknowledgements, the references and Appendices A to O. We read Tables 1 to 5 as extracted text. We did not see the figures as images, so for Figures 1 to 23 we have the captions and the numbers that the text states. We did not read versions 1 and 2, or the NeurIPS review discussion.
+
+## Summary
+
+**Claim.** LoRA and full fine-tuning can reach the same accuracy on a task with different weight changes. LoRA adds new singular vectors of high rank that are unlike any pre-trained singular vector, which the authors call "intruder dimensions". Full fine-tuning does not. Intruder dimensions cause forgetting of the pre-training distribution, and they build up when the authors merge LoRA adapters one after another.
+
+**Method.**
+
+- **Intruder dimension (Definition 3.1, Algorithm 1).** Take the SVD of the pre-trained weight W0 and of the tuned weight. A tuned left singular vector among the top k is an intruder if its cosine with every pre-trained left singular vector is below ε. The count per model is the sum over all weight matrices. The main setting is k = 10, with a sweep of ε.
+- **Models.** RoBERTa-base, which the authors fine-tune on six classification tasks: MNLI, SST-2, QQP, SIQA, WinoGrande and FEVER. LLaMA2-7B checkpoints from Biderman et al. (2024), tuned on code or maths. LLaMA-7B checkpoints tuned on Alpaca, from other groups (Appendix K).
+- **RoBERTa recipe (Appendix B.3).** The authors tune all linear layers except the embedding. LoRA ranks 1, 2, 4, 8, 16 and 64, with α = 2r and α·η fixed at 2.4e-3. Full fine-tuning at learning rate 1e-5. At most 5 epochs, batch size 16. Appendix M repeats the runs at α = 8.
+- **Forgetting.** For RoBERTa, the pseudo-loss of Salazar et al. (2020) on a sample of its four pre-training corpora. For LLaMA2-7B, the mean score on HellaSwag, WinoGrande and ARC-Challenge, and also the language-modelling loss on a sample of pre-training data.
+- **The intervention (Section 5).** In each weight matrix, take the top intruder and set W = W0 + ΔW + (λ − 1)uᵢσᵢvᵢᵀ for λ from 0 to 2. The control scales the intruder's neighbour, a pre-trained singular vector, in the same way.
+- **Continual learning.** The authors tune RoBERTa on the six tasks in sequence. After each task they merge the LoRA weights and start a new adapter. Before each test they train a new classification head for that task.
+- **Other checks.** Five seeds for the intruder count on MNLI (Appendix N), dataset size (Appendix J), effective rank (Appendix H) and training B only (Appendix A.5). Appendix O tests four LoRA variants: AdaLoRA, LoRA+, PiSSA and VeRA.
+
+**Findings, as the source reports them.** All numbers are from the text or from Tables 1 to 4.
+
+| Setting | Result |
+| --- | --- |
+| Intruder count at k = 10 (Section 3, Figure 4) | LoRA has intruders for r ≤ 256 on LLaMA2-7B and r ≤ 16 on RoBERTa. Full fine-tuning "almost never" has any, for ε up to about 0.6 to 0.9 |
+| LLaMA2-7B on maths at r = 2048 (Section 3) | No intruders, with a curve close to full fine-tuning |
+| RoBERTa task accuracy at α = 2r (Table 2) | MNLI: full 0.8745, LoRA 0.8604 to 0.8739. SIQA: full 0.6499, LoRA 0.6167 to 0.6607 |
+| Intruders against forgetting, RoBERTa MNLI r = 8, learning-rate sweep (Figure 7) | Spearman ρ = 0.971, p ≪ 0.001 |
+| Intruders against test accuracy, same runs (Section 4) | ρ = −0.3381, p = 0.218 |
+| Intruders against forgetting, LLaMA2-7B over epochs (Appendix F.2) | ρ = 0.59, p = 0.0006. Against test accuracy: ρ = −0.3178, p = 0.0869 |
+| Scale the top intruder, RoBERTa QQP r = 8, λ = 0.7 (Table 3) | Test accuracy −0.0%, forgetting −33.2% |
+| Same, λ = 0.1 (Table 3) | Test accuracy −3.3%, forgetting −52.0% |
+| Scale the top intruder, LLaMA2-7B MetaMath r = 256, λ = 0.3 (Table 4) | Test accuracy −0.1%, forgetting −33.3% |
+| Same, λ = 0.5 (Table 4, Appendix G.1.2) | Test accuracy +1.8%, forgetting −25.2% |
+| Same model at r = 16, λ = 0.3 (Table 4) | Test accuracy −15.0%, forgetting −46.5% |
+| Scale the neighbour, a pre-trained vector, λ below 1 (Appendix G.2) | Forgetting "sharply increases", and test accuracy falls more than for the intruder |
+| Effective rank of ΔW, RoBERTa MNLI (Appendix H) | Full fine-tuning above 400. LoRA r = 768 at α = 8: below 50 |
+| Seeds (Appendix N) | Over 5 seeds, the seed has a "negligible role" in the intruder count |
+
+## Where the claims go beyond the evidence
+
+- **The title is wider than the tests.** The causal and continual-learning results are on RoBERTa-base, an encoder, with six classification tasks. LLaMA2-7B adds correlation and scaling results only, on checkpoints that someone else trained.
+- **"Equal fit" is approximate.** Table 2 is the basis for the claim that LoRA forgets less at the same accuracy. But on SIQA, LoRA r = 64 scores 0.6167 against 0.6499 for full fine-tuning, and on WinoGrande r = 1 scores 0.6275 against 0.6582. One run per setting gives no interval for these gaps.
+- **The control for the intervention is not matched.** Scaling an intruder down moves the weights back toward W0. Scaling a pre-trained neighbour down moves them away. So the contrast cannot tell "intruders cause forgetting" from "any part of ΔW causes forgetting". The paper does not scale ΔW as a whole, or a non-intruder part of ΔW, by the same Frobenius amount.
+- **The correlation has dependent points.** ρ = 0.971 pools several epochs of each learning-rate run. Points from one run are not independent, so the p-value is too small. The paper gives no count of points.
+- **The continual-learning link is a correlation.** Section 5 says that accumulated intruders drive the forgetting. No run scales the intruders in the sequence to test that.
+- **Algorithm 1 reads ties as intruders.** It takes the largest cosine with single pre-trained vectors. When two singular values are close, a small change can rotate their pair, and each tuned vector then has a cosine near 0.71 with both. That is a cosine below ε = 0.9 with no new direction. The paper does not test for this. We found such pairs in Qwen2.5 (next section), so counts at high ε can include them.
+- **Two numbers disagree.** Appendix H says that LoRA r = 768 at α = 2r has an effective rank "always above 100". Appendix M says that the same model "always has an effective rank above 768". Appendix H also says that the LoRA rank bounds the effective rank, so the second number is not possible.
+- **The sign in Table 3 is unclear.** Its caption calls the numbers both a "percent reduction in forgetting" and a "percent change". The values are negative, so a reader must use the text to learn that negative means less forgetting.
+- **No code.** The paper gives no code link for Algorithm 1 or the fine-tunes.
+- **The paper reads no unit.** Intruders are directions of a whole weight matrix. The paper does not say which neurons or features they load on.
+
+The authors give some limits themselves. They say that intruder dimensions are "an empirical observation", and that the variants need "rigorous analysis" in future work. Appendix A.4 expects the objection that the hyperparameters cause the result, and it answers that they come from prior work and library defaults. Appendix I reports that on Magicoder, full fine-tuning and LoRA have "very similar" distributions of intruders.
+
+## Use in this repo
+
+- **The repo has no LoRA or fine-tuning code.** [`fixing-models.md`](fixing-models.md) notes that the repo has no fine-tuning or weight-edit code. Its only fine-tuned weights are the instruct models of the base-instruct analysis, which it reads but did not train.
+- **We ran Algorithm 1 on the Qwen2.5 instruct change.** We ran it on 2026-11-19 with a scratch script, so the analysis did not record it. For each MLP matrix (W_gate, W_up, W_down) we took the SVD of the base and instruct weights, with k = 10. On Qwen2.5-0.5B (72 matrices), no top-10 vector has a largest cosine below 0.5. One has a value below 0.7 (0.692), and 19 have values below 0.9. On Qwen2.5-1.5B (84 matrices), the lowest value is 0.875, and 2 are below 0.9.
+- **Those 21 vectors are ties, not intruders.** Each one lies in the span of the base model's top 50 singular vectors, with a projection norm of 0.996 or more. 20 of the 21 come as pairs at adjacent ranks, for example 0.759 and 0.759 at ranks 4 and 5 of layer 19's W_gate. So the instruct change rotates near-tied pairs and adds no new direction. By the paper's measure, it has the spectral form of full fine-tuning. The repo does not record how Qwen tuned its instruct models, so this result does not show the method.
+- **The change is small in both pairs.** The relative size ‖Δ‖_F/‖W‖_F has a median of 0.078 (0.060 to 0.092) on 0.5B, and 0.013 (0.010 to 0.014) on 1.5B. On 0.5B, layer 0's W_gate has ‖Δ‖_F 3.04 but spectral norm 0.24, against the base matrix's top singular value of 6.12. So the change is spread across many directions.
+- **What this means for #5133.** [`docs/analyses/base-instruct.md`](../analyses/base-instruct.md) reports that 252 of 311 poles keep on 0.5B (81%) and 38 of 43 on 1.5B (88%). Both rates come with no intruders in the MLP. So intruders at k = 10 cannot explain the 59 and 5 failures there. #5133's per-pole read of Δ is the next place to look. The paper's Appendix I says that full fine-tuning changes lower-ranked singular vectors more. This fits as a comment on #5133.
+- **What a LoRA arm of #5125 would add.** The paper predicts that a merged LoRA adds intruders, and that sequential merges add more. #5125's stages would test that with registry units. Record for each stage the intruder count at k = 10, and the share of each VERIFIED pole's row in the intruders' directions. For W_gate and W_up, the left singular vectors live in neuron space, so a pole's loading is one coordinate of uᵢ. For W_down, Algorithm 1 tests uᵢ in residual space, and the pole's loading is one coordinate of vᵢ. Then test the loading against keep and fail, against a shuffled-pole null. This fits as a comment on #5125.
+- **The λ intervention is a read, not a fix, in this repo.** The paper's λ scaling could show whether a failed pole's explanation comes back when its intruder shrinks. That is evidence about cause. Whether to use it to fix a model is the maintainer's decision, so this page proposes no such campaign.
+- **#5154's null has the spectral form of full fine-tuning.** #5154 adds a seeded random Δ′ with the instruct change's Frobenius norm. A dense Gaussian Δ′ spreads that norm over all directions, so it adds no intruders. A rank-r random Δ′ of the same norm puts that norm in r new directions, as in the paper's Appendix A.2. On 0.5B at r = 8, each of its singular values would be a median 0.27 of the base matrix's top singular value (0.13 to 0.51). At r = 64 the median is 0.095. In layer 0's W_gate, the base matrix's tenth singular value is 0.76 of its first. So these directions would rank below the top 10, and the read needs a larger k. A rank-r arm would separate "this much change" from "this much change in few new directions". This fits as a comment on #5154.
+- **The paper's forgetting is behaviour, the repo's is the explanation.** The paper reads pre-training loss and benchmark scores. The repo's keep test reads whether a pole's explanation still passes its probes. A model can forget without moving a VERIFIED pole, or move a pole without much loss change. So the paper's "LoRA forgets less" does not predict the keep share directly.
+- **Neighbouring reviews.** [`lora-learns-less-forgets-less.md`](lora-learns-less-forgets-less.md) reviews the paper that supplies these LLaMA2-7B checkpoints. That paper finds that full fine-tuning gives changes of high rank. [`lora-low-rank-adaptation.md`](lora-low-rank-adaptation.md) finds in its Section 7 that ΔW amplifies directions that W holds but does not emphasize. Both papers find that ΔW's top directions are not W's top directions. Hu et al. read them as weak features of W, and this paper reads them as new ones. Hu et al. also freeze the MLP. [`dora-weight-decomposed-lora.md`](dora-weight-decomposed-lora.md) splits each neuron's change into scale and direction. An intruder in W_gate or W_up shows there as a change of direction.
+- **A question for the maintainer.** The paper proposes a data-free check: of two models with equal task scores, take the one with fewer intruders. Should the repo record an intruder count for any fine-tuned model that it reads, beside the keep share? This changes what the analyses report, so this page records it as a question and opens no issue.
