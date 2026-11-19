@@ -38,6 +38,7 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run python scripts/check_line_limit.py
+	uv run python scripts/check_step_comments.py
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
