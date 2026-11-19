@@ -9,8 +9,9 @@ from openinterpretability import DISTRIBUTION
 from openinterpretability.builder.brand import write_brand
 from openinterpretability.builder.changelog_page import load_versions
 from openinterpretability.builder.explanation_pages import render_explanations
-from openinterpretability.builder.literature_pages import load_reviews, render_reviews
+from openinterpretability.builder.literature_pages import LITERATURE, load_reviews, render_reviews
 from openinterpretability.builder.research import copy_assets, load_papers
+from openinterpretability.builder.research_feeds import write_research_feeds
 from openinterpretability.builder.taxonomy_view import taxonomy_rows
 from openinterpretability.core.licenses import DATA_TERMS
 from openinterpretability.core.schemas import ReviewPolicy
@@ -45,14 +46,17 @@ def render_reference_pages(
         render("changelog.html", "changelog.html", versions=versions)
     reviews = load_reviews(render.common["repo_url"])
     render_reviews(render, reviews)
-    _render_research(render, papers_dir, report, pdfs, bool(explanations), bool(reviews))
+    papers = _render_research(render, papers_dir, report, pdfs, bool(explanations), bool(reviews))
+    write_research_feeds(render.output_dir, papers, reviews, LITERATURE, render.common)
     render_explanations(render, list(explanations))
 
 
 def _render_research(
     render, papers_dir: Path | None, report, pdfs: bool, explained: bool, reviewed: bool
-) -> None:
+) -> list:
     """Write the Research section: its index, each paper, their media and their PDFs.
+
+    Return the papers, for the section's feed.
 
     A paper's PDF is printed before its page, so the page links it only if it exists.
     """
@@ -71,3 +75,4 @@ def _render_research(
             folder.mkdir(parents=True, exist_ok=True)
             pdf = write_pdf(render.env, folder, paper, render.common, browser)
             render(f"research/{paper.href}", "paper.html", paper=paper, pdf=pdf)
+    return papers
