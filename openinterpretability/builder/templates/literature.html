@@ -3,6 +3,7 @@
 {% block title %}{{ review.title }} · {{ site_title }}{% endblock %}
 
 {% block head %}
+<link rel="alternate" type="application/atom+xml" title="Literature reviews" href="{{ root }}research/literature.xml">
 {% include "_prose.html" %}
 {% endblock %}
 

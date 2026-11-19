@@ -4,6 +4,7 @@
 {% block title %}{{ paper.title }} · {{ site_title }}{% endblock %}
 
 {% block head %}
+<link rel="alternate" type="application/atom+xml" title="Papers" href="{{ root }}research/papers.xml">
 {% include "_prose.html" %}
 {% endblock %}
 
