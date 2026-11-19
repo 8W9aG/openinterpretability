@@ -36,7 +36,7 @@ The tag comes from the title, not from reading the source. If the source shows t
 5. **Add the row** to the right section of `docs/literature/README.md`: page link, authors and year, status, and one or two sentences of why. Add a section if no section fits.
    Then put the page on the index's map. The map embeds the page's title and *Summary*, so run this again whenever either changes:
    ```bash
-   uv run --with sentence-transformers python scripts/literature_map.py
+   uv run --extra map python scripts/literature_map.py
    ```
    It rewrites `docs/literature/map.json`. Commit that file with the page. A test fails while a page is missing from the map.
 6. **Open follow-up issues** for work that the source suggests and that the repo should do. Give each one an area label and a priority label, and name the page in its body. Don't widen the review into that work. A result that strengthens an open issue goes on that issue as a comment.
