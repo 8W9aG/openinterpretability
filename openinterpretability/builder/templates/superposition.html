@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge %}
+{# A superposition's page (#4006): a sparse direction over one layer's neurons, with its members and experiments. It has none of a neuron's sections: no poles, dictionary latents or sister neurons. #}
+
+{% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
+
+{% block content %}
+<article data-pagefind-body>
+  {{ breadcrumb(root, model, layer, neuron) }}
+  <header class="mb-8">
+    <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · L{{ neuron.layer }}/{{ neuron.label }}</h1>
+    <p class="mt-1 hidden" data-pagefind-filter="model">{{ model.name }}</p>
+    {% for side in neuron.sides %}
+    {% set s = neuron.standings.get(side) %}
+    {% set side_exps = neuron.experiments | selectattr("side", "equalto", side) | selectattr("independent") | list %}
+    <div class="mt-4 max-w-3xl rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+      {% if s %}
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500">Superposition of {{ neuron.members | length }} neurons</span>
+        {{ status_badge(s.status) }}<span class="hidden" data-pagefind-filter="status">{{ s.status }}</span>{% if s.self_reviewed %}{{ self_review_badge() }}{% endif %}
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        {% if not s.contested %}{{ evidence_badge(s.lead.sig.conclusiveness, s.lead.sig.direction) }}{% endif %}
+        <span>{{ side_exps | length }} independent experiment{{ 's' if side_exps | length != 1 }}</span>
+      </div>
+      <p class="mt-2">{{ s.lead.record.submission.natural_language_explanation }}</p>
+      {% else %}
+      <p class="text-xs text-slate-500">Not studied yet.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% include "_members.html" %}
+  </header>
+
+  {% include "_experiments.html" %}
+</article>
+{% endblock %}

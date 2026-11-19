@@ -74,3 +74,28 @@ def test_superpositions_stay_out_of_native_counts_and_neuronpedia(qwen_runner, t
         f"L{record.submission.identifier.layer}/S{record.submission.identifier.superposition_id}"
         in index
     )
+
+
+def test_a_superposition_has_its_own_page_and_layer_table(qwen_runner, tmp_path):  # noqa: F811
+    """Its page has members and experiments but no neuron sections. Its layer lists it apart."""
+    record = _reviewed(qwen_runner)
+    ident = record.submission.identifier
+    studied = MEMBERS[0][0]
+    compile_site([record, _neuron_record(record, studied)], tmp_path / "dist")
+    layer_dir = tmp_path / "dist" / "models" / ident.model_slug / f"L{ident.layer}"
+    href = f"S{ident.superposition_id}.html"
+
+    page = (layer_dir / href).read_text()
+    assert 'id="members"' in page and 'id="experiments"' in page
+    assert f"Superposition S{ident.superposition_id}</" in page  # the breadcrumb names it
+    for neuron_only in ('id="both-poles"', 'id="dictionary-latents"', 'id="sister-neurons"'):
+        assert neuron_only not in page
+    assert 'id="members"' not in (layer_dir / f"N{studied}.html").read_text()
+
+    layer = (layer_dir / "index.html").read_text()
+    table = layer[layer.index('id="superpositions"') :]
+    assert f'{href}">L{ident.layer}/S{ident.superposition_id}</a>' in table
+    assert ">3</td>" in table  # its members
+    units = layer[: layer.index('id="superpositions"')]
+    assert href not in units.split("<tbody", 1)[1]  # not in the general units table
+    assert f"N{studied}.html" in units
