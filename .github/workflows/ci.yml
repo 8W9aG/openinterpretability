@@ -108,7 +108,7 @@ jobs:
       - name: Markdown prose (STE linter)
         run: make ste
       - name: Tests
-        run: pytest
+        run: pytest -n auto  # side by side, one process per core (#3266)
 
   accessibility:
     name: Accessibility (axe-core)
