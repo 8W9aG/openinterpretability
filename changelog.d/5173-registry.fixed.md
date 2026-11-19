@@ -1,0 +1,1 @@
+- **`reproduce` checks a new explanation record against the registry.** Its explained and blocked sets, and each listed unit's status and explanation, must agree with the registry in the checkout. An old record still reproduces with its own sets. (`openinterpretability/explanation_registry.py`)
