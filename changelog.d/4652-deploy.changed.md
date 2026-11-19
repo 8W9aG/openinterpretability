@@ -1,1 +1,0 @@
-- **The deploy builds the site with its default jobs again** (part of #4652). With records held slim and the Parquet streamed, a one-job build peaks at 1.9 GiB of process memory on the runner.
