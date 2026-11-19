@@ -7,6 +7,7 @@ integration links each issue, and this script finds the Linear issue from that l
     python3 scripts/issue_state.py 3371 3372 "In Review"
     python3 scripts/issue_state.py --check 3371
     python3 scripts/issue_state.py --release v0.0.20 [--dry-run]
+    python3 scripts/issue_state.py --blocked-by 3372 3371
 
 An agent may work only on an eligible issue. It refuses "In Progress" for any other.
 An issue is eligible when one of these holds:
@@ -22,6 +23,9 @@ the label to hold an issue back, and removes it to release the issue.
 `--check` prints whether each issue is eligible, and why. It exits 1 if one is not.
 `--release <tag>` moves every closed issue in milestone ``<tag>`` to Released. The
 `linear-released` workflow runs it when that release is published.
+`--blocked-by <issue> <blocker>` records that ``<issue>`` can't start until ``<blocker>``
+closes (#3842). It adds Linear's "blocks" relation and GitHub's native dependency at once.
+`scripts/linear_sync.py` keeps the two the same after that.
 Setting a state needs LINEAR_API_KEY. The check needs the GitHub CLI (`gh`). The
 `work-an-issue` skill says when to call this script.
 """
@@ -165,20 +169,51 @@ def state_id(name: str) -> str:
 
 def set_state(number: str, state: str) -> str:
     """Move the Linear issue linked to GitHub issue ``number`` to ``state``."""
-    url = f"https://github.com/{REPO}/issues/{number}"
-    query = (
-        "query($u: String!) { attachmentsForURL(url: $u) { nodes { issue { id identifier } } } }"
-    )
-    nodes = linear(query, {"u": url})["attachmentsForURL"]["nodes"]
-    if not nodes:
+    issue = linear_issue(number)
+    if issue is None:
         return f"#{number}: not in Linear yet"
-    issue = nodes[0]["issue"]
     mutation = (
         "mutation($id: String!, $s: String!) "
         "{ issueUpdate(id: $id, input: {stateId: $s}) { success } }"
     )
     linear(mutation, {"id": issue["id"], "s": state_id(state)})
     return f"#{number} {issue['identifier']}: {state}"
+
+
+def linear_issue(number: str) -> dict | None:
+    """The Linear issue (``id``, ``identifier``) linked to GitHub issue ``number``, or None."""
+    url = f"https://github.com/{REPO}/issues/{number}"
+    query = (
+        "query($u: String!) { attachmentsForURL(url: $u) { nodes { issue { id identifier } } } }"
+    )
+    nodes = linear(query, {"u": url})["attachmentsForURL"]["nodes"]
+    return nodes[0]["issue"] if nodes else None
+
+
+RELATE = """mutation($a: String!, $b: String!) { issueRelationCreate(
+  input: {issueId: $a, relatedIssueId: $b, type: blocks}) { success } }"""
+ADD_BLOCKED_BY = """mutation($i: ID!, $b: ID!) {
+  addBlockedBy(input: {issueId: $i, blockingIssueId: $b}) { clientMutationId } }"""
+
+
+def node_id(number: str) -> str:
+    """The GraphQL node id of GitHub issue ``number``."""
+    out = subprocess.run(["gh", "issue", "view", number, "--repo", REPO, "--json", "id"],
+                         capture_output=True, text=True, check=True).stdout  # fmt: skip
+    return json.loads(out)["id"]
+
+
+def block(number: str, blocker: str) -> str:
+    """Record that ``number`` is blocked by ``blocker``, in Linear and on GitHub."""
+    issue, by = linear_issue(number), linear_issue(blocker)
+    if issue and by:
+        linear(RELATE, {"a": by["id"], "b": issue["id"]})
+    query = f"query={ADD_BLOCKED_BY}"
+    ids = [f"i={node_id(number)}", f"b={node_id(blocker)}"]
+    subprocess.run(["gh", "api", "graphql", "-f", query, "-f", ids[0], "-f", ids[1]],
+                   capture_output=True, text=True, check=True)  # fmt: skip
+    where = "Linear and GitHub" if issue and by else "GitHub (not in Linear yet)"
+    return f"#{number} is blocked by #{blocker}, in {where}"
 
 
 def check(numbers: list[str]) -> bool:
@@ -238,13 +273,16 @@ def main() -> None:
     args = [a.lstrip("#") for a in sys.argv[1:]]
     if args[:1] == ["--check"]:
         sys.exit(0 if check(args[1:]) else 1)
+    if args[:1] == ["--blocked-by"] and len(args) == 3:
+        print(block(args[1], args[2]))
+        return
     if args[:1] == ["--release"] and len(args) >= 2:
         sys.exit(0 if release(args[1], "--dry-run" in args[2:]) else 1)
     *numbers, state = args or [""]
     if not numbers or state not in STATES:
         sys.exit(
             f"usage: issue_state.py <number>... <{'|'.join(STATES)}> | --check <number>..."
-            " | --release <tag> [--dry-run]"
+            " | --release <tag> [--dry-run] | --blocked-by <issue> <blocker>"
         )
     if state == "In Progress" and not check(numbers):
         sys.exit("Refused: work only on eligible issues (see the docstring).")

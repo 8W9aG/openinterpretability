@@ -7,6 +7,10 @@ is a candidate instead. The exception is `area: models`: no new model until ever
 configured model reaches its coverage target. Candidates rank by priority, then by the workstream
 that the release has served least, then oldest first.
 
+A candidate that another open issue blocks is skipped until that issue closes (#3842). The
+relation is GitHub's native "blocked by" dependency, which ``scripts/linear_sync.py`` keeps
+the same as Linear's.
+
 An answered issue comes before all of them. That is a started issue (In Progress or In
 Review) where an agent asked the maintainer something and stopped, and the maintainer has
 replied since. Agents and the maintainer comment from one account. So an agent's comment
@@ -221,18 +225,35 @@ def unstarted(issues: list[dict], states: dict) -> list[dict]:
     ]
 
 
-def pick(ranked: list[dict]) -> tuple[dict | None, list[dict]]:
+BLOCKERS = """query($n: Int!) { repository(owner: "8W9aG", name: "openinterpretability") {
+  issue(number: $n) { blockedBy(first: 50) { nodes { number state } } } } }"""
+
+
+def open_blockers(number: str) -> list[int]:
+    """The open issues that block issue ``number`` (GitHub's "blocked by")."""
+    data = gh_json("api", "graphql", "-f", f"query={BLOCKERS}", "-F", f"n={number}")
+    nodes = data["data"]["repository"]["issue"]["blockedBy"]["nodes"]
+    return [n["number"] for n in nodes if n["state"] == "OPEN"]
+
+
+def pick(ranked: list[dict], blocked: dict | None = None) -> tuple[dict | None, list[dict]]:
     """The first eligible issue in ``ranked``, and up to RUNNERS_UP eligible ones after it.
 
-    An issue that waits on the maintainer's answer (:func:`asked`) is skipped.
+    An issue that waits on the maintainer's answer (:func:`asked`) is skipped. So is one that
+    an open issue blocks. ``blocked`` gets its number and its open blockers.
     """
     chosen: list[dict] = []
     for issue in ranked:
         number = str(issue["number"])
-        if issue_state.eligibility(number)[0] and not asked(comments_of(number)):
-            chosen.append(issue)
-            if len(chosen) > RUNNERS_UP:
-                break
+        if not issue_state.eligibility(number)[0] or asked(comments_of(number)):
+            continue
+        if by := open_blockers(number):
+            if blocked is not None:
+                blocked[number] = by
+            continue
+        chosen.append(issue)
+        if len(chosen) > RUNNERS_UP:
+            break
     return (chosen[0], chosen[1:]) if chosen else (None, [])
 
 
@@ -254,21 +275,21 @@ def choose() -> dict:
         "labels",
         *(["--milestone", milestone] if milestone else []),
     )
-    served = Counter(area(i) for i in released)
-    replied, rest = pick(rank(answered(states), states, served))
+    served, blocked = Counter(area(i) for i in released), {}
+    replied, rest = pick(rank(answered(states), states, served), blocked)
     if replied is not None:
-        _, normal = pick(rank(unstarted(in_release, states), states, served))
+        _, normal = pick(rank(unstarted(in_release, states), states, served), blocked)
         others = (rest + normal)[:RUNNERS_UP]
         return {"milestone": milestone, "pulled": False, "resume": True, "pick": replied,
-                "runners_up": others}  # fmt: skip
-    best, others = pick(rank(unstarted(in_release, states), states, served))
+                "runners_up": others, "blocked": blocked}  # fmt: skip
+    best, others = pick(rank(unstarted(in_release, states), states, served), blocked)
     pulled = False
     if best is None:
         backlog = [i for i in open_issues(None) if area(i) not in HELD_AREAS]
-        best, others = pick(rank(unstarted(backlog, states), states, served))
+        best, others = pick(rank(unstarted(backlog, states), states, served), blocked)
         pulled = best is not None
     return {"milestone": milestone, "pulled": pulled, "resume": False, "pick": best,
-            "runners_up": others}  # fmt: skip
+            "runners_up": others, "blocked": blocked}  # fmt: skip
 
 
 def unprioritised(issues: list[dict], states: dict) -> list[dict]:
@@ -356,6 +377,8 @@ def main() -> None:
         print(f"  The maintainer's reply: {result['pick']['answer'][:300]}")
     for issue in result["runners_up"]:
         print(f"  then: {describe(issue)}")
+    for number, by in result.get("blocked", {}).items():
+        print(f"  skipped #{number}: blocked by {', '.join(f'#{b}' for b in by)}")
     if result["pulled"] and "--pull" in sys.argv and result["milestone"]:
         pull_into(result["milestone"], result["pick"])
         print(f"Added #{result['pick']['number']} to {result['milestone']}.")

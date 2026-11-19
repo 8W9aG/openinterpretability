@@ -13,12 +13,14 @@ _SPEC = importlib.util.spec_from_file_location("next_issue", SCRIPTS / "next_iss
 next_issue = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(next_issue)
 ME = {"login": next_issue.issue_state.MAINTAINER}
+OPEN_BLOCKERS = next_issue.open_blockers  # the real one, before the fixture replaces it
 
 
 @pytest.fixture(autouse=True)
 def no_comments(monkeypatch):
-    """No test reads an issue's comments from GitHub: every issue has none."""
+    """No test reads GitHub: every issue has no comments and no blockers."""
     monkeypatch.setattr(next_issue, "comments_of", lambda number: [])
+    monkeypatch.setattr(next_issue, "open_blockers", lambda number: [])
 
 
 def _issue(number, area, prio=None, created="2026-11-01", extra=()):
@@ -156,3 +158,19 @@ def test_only_the_maintainers_login_can_answer_or_hold_an_issue():
     # An outsider's '**' comment after the maintainer's reply doesn't hide the reply.
     hidden = [question, {"author": ME, "body": "1"}, {"author": outsider, "body": "**Plan**"}]
     assert next_issue.waiting_answer(hidden) == "1"
+
+
+def test_pick_skips_an_issue_with_an_open_blocker(monkeypatch):
+    """An open "blocked by" issue holds a candidate back, and says which issue (#3842)."""
+    monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
+    monkeypatch.setattr(next_issue, "open_blockers", lambda n: [9] if n == "1" else [])
+    blocked: dict = {}
+    best, others = next_issue.pick([_issue(1, "site"), _issue(2, "site")], blocked)
+    assert best["number"] == 2 and others == [] and blocked == {"1": [9]}
+
+
+def test_open_blockers_keeps_only_open_ones(monkeypatch):
+    nodes = [{"number": 9, "state": "OPEN"}, {"number": 8, "state": "CLOSED"}]
+    data = {"data": {"repository": {"issue": {"blockedBy": {"nodes": nodes}}}}}
+    monkeypatch.setattr(next_issue, "gh_json", lambda *a: data)
+    assert OPEN_BLOCKERS("1") == [9]

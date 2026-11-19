@@ -4,6 +4,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
+
 _SPEC = importlib.util.spec_from_file_location(
     "linear_sync", Path(__file__).parents[1] / "scripts" / "linear_sync.py"
 )
@@ -107,3 +109,30 @@ def test_unrelease_moves_only_issues_whose_release_is_not_published(monkeypatch)
     calls.clear()
     assert linear_sync.unrelease(dry=True) == 2
     assert calls == []
+
+
+def test_linear_relations_win_and_github_fills_a_gap():
+    """Linear's blockers replace GitHub's for an issue; GitHub's seed Linear's (#3842)."""
+    a, b, c, d = (f"https://github.com/o/r/issues/{n}" for n in (1, 2, 3, 4))
+    linear_side = {a: {b}}
+    github_side = {a: {c}, d: {b}}
+    assert linear_sync.plan_relations(linear_side, github_side) == [
+        ("github_add", a, b),
+        ("github_remove", a, c),
+        ("linear_add", d, b),
+    ]
+    assert linear_sync.plan_relations({a: {b}}, {a: {b}}) == []  # in sync
+    assert linear_sync.plan_relations({}, {}) == []
+
+
+def test_sync_relations_dry_run_prints_and_changes_nothing(monkeypatch, capsys):
+    a, b = "https://github.com/o/r/issues/1", "https://github.com/o/r/issues/2"
+    monkeypatch.setattr(linear_sync, "linear_relations", lambda: ({a: "LA", b: "LB"}, {a: {b}}))
+    monkeypatch.setattr(linear_sync, "github_dependencies", lambda: ({a: "GA", b: "GB"}, {}))
+    monkeypatch.setattr(linear_sync, "github_graphql", lambda *a, **k: pytest.fail("changed"))
+    assert linear_sync.sync_relations(dry=True) == 1
+    assert "github add blocked by" in capsys.readouterr().out
+    calls = []
+    monkeypatch.setattr(linear_sync, "github_graphql", lambda q, t, **v: calls.append(v))
+    linear_sync.sync_relations(dry=False)
+    assert calls == [{"i": "GA", "b": "GB"}]
