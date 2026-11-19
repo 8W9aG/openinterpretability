@@ -4,21 +4,37 @@ from datetime import UTC, datetime
 
 from click.testing import CliRunner
 
-from openinterpretability.core.explanation_records import CoverageDetail
+from openinterpretability.core.explanation_records import CoverageDetail, ExplanationInputs
+from openinterpretability.core.run_environment import RunEnvironment
 from openinterpretability.explain_reuse import decide
 from tests.test_explanation_records import _record, _write
 
 MODEL, PROMPT = "openai-community/gpt2", "John gave a drink to"
 
 
-def _wiki(tmp_path, *coverages_and_levels, matched=True):
+ENV = RunEnvironment(device="cpu", dtype="float32", openinterp_version="0", torch_version="0")
+INPUTS = ExplanationInputs(
+    environment=ENV, token_id=1, means_corpus_sha256="0" * 64, means_tokens=200,
+    means_window=128, means_version=3, top=20, edges=8, explained=[],
+)  # fmt: skip
+
+
+def _wiki(tmp_path, *coverages_and_levels, matched=True, inputs=True):
     wiki = tmp_path / "wiki"
     for day, (coverage, narrated) in enumerate(coverages_and_levels, start=1):
         r = _record(datetime(2026, 11, day, tzinfo=UTC))
         update = {"prompt_coverage": coverage, "narration": r.narration if narrated else None,
-                  "coverage_detail": CoverageDetail() if matched else None}  # fmt: skip
+                  "coverage_detail": CoverageDetail() if matched else None,
+                  "inputs": INPUTS if inputs else None}  # fmt: skip
         _write(wiki, r.model_copy(update=update))
     return wiki
+
+
+def test_one_with_no_inputs_is_built_on_not_reused(tmp_path):
+    wiki = _wiki(tmp_path, (1.0, True), inputs=False)  # #4793: CI can't measure it again
+    reuse = decide(wiki, MODEL, PROMPT, -1, 1.0, "long")
+    assert reuse.action == "run" and reuse.previous == "20261101T000000Z"
+    assert "before explanation records stored their inputs" in reuse.message
 
 
 def test_one_measured_before_the_matched_baseline_is_built_on_not_reused(tmp_path):

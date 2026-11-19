@@ -23,6 +23,7 @@
   Level: {{ r.level }}.
   {% if view.previous %}It builds on <a class="underline" href="{{ root }}{{ view.previous.href }}">the explanation of {{ view.previous.record.written.strftime("%Y-%m-%d %H:%M") }}</a>{% if view.previous.record.prompt_coverage is not none and r.prompt_coverage is not none %}, which reached {{ view.previous.record.prompt_coverage | pct_fine }}; this one reaches {{ r.prompt_coverage | pct_fine }}{% endif %}.{% elif r.previous %}It builds on the explanation {{ r.previous }}, which is not on the site.{% endif %}
   {% if r.reused %}No experiments ran for it: the explanation it builds on already reached the target, so this one only adds the {{ r.level }} level.{% endif %}
+  {% if r.inputs %}CI measured it again before it merged, from the inputs that it stores.{% else %}It can't be measured again: it was written before explanation records stored their inputs (#4793).{% endif %}
 </p>
 
 {% if view.stale %}

@@ -40,6 +40,7 @@ import torch
 from openinterpretability.explain_groups import HEAD
 
 DRAWS = 4  # random sets for the baseline
+SEED = 0  # their seed, which a record stores (#4793)
 
 
 def keep_hooks(runner, means, keep: Iterable[tuple[int, int, str]]):
@@ -102,7 +103,7 @@ def _share(clean: float, ablated: float, kept: float) -> float | None:
     return None if raw is None else min(raw, 1.0)
 
 
-def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAWS, seed=0):
+def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAWS, seed=SEED):
     """The explained units' coverage of the answer, and the random baseline (module docstring).
 
     ``order`` is ``Explanation.order``: every unit with its status and whether it is explained.
@@ -154,7 +155,7 @@ def matched_draw(rng: random.Random, units: list, keep: list) -> list:
     the kept set holds many heads, whatever they explain (#4777).
     """
     pools: dict[tuple[int, bool], list] = {}
-    for unit in units:
+    for unit in sorted(units):  # not in attribution order, which a near tie can reorder
         pools.setdefault(_kind(unit), []).append(unit)
     drawn = []
     for kind, n in sorted(Counter(_kind(u) for u in keep).items()):
