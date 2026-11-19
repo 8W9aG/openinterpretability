@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-SLOTS = 7  # coloured clusters; the rest are grey, slot 0
+SLOTS = 8  # coloured clusters, one per palette hue; the rest are grey, slot 0
 BADGE_W, BADGE_H = 26, 20
-DARK_INK = (3, 4, 5)  # slots light enough to need dark text on their badge
+DARK_INK = (3, 4, 5, 8)  # slots light enough to need dark text on their badge
 
 
 @dataclass(frozen=True)

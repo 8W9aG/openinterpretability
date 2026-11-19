@@ -6,9 +6,9 @@ paragraph of the issue. The model is all-MiniLM-L6-v2, which did best in the con
 (#3290). UMAP, with a fixed seed, lays every paper out in two dimensions. Close points are
 papers about similar things. The axes themselves have no meaning.
 
-The papers' :data:`KNN`-nearest-neighbour graph is split into Leiden communities, at most
-:data:`RESOLUTION`, numbered from 1, biggest first. This is the method of Alexander Coulton's
-map of cancer research, which issue #4577 cites as the model. Each region is named by the
+The papers' :data:`KNN`-nearest-neighbour graph is split into about :data:`TARGET` Leiden
+communities, numbered from 1, biggest first. This is the method of Alexander Coulton's map
+of cancer research, which issue #4577 cites as the model. Each region is named by the
 section of docs/literature/README.md that most of its reviews are under. A region with fewer
 than :data:`MIN_REVIEWS` reviews is mostly queued papers, and is called :data:`QUEUED`. Each review
 also keeps its :data:`NEIGHBOURS` nearest reviews by cosine, which the map links on hover.
@@ -42,7 +42,8 @@ from openinterpretability.builder.literature_pages import (  # noqa: E402
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 SEED = 4577
-RESOLUTION = 1.5  # Leiden's: about ten regions for some 300 papers
+TARGET = 10  # regions to aim at; Leiden's resolution is searched for the closest count
+RESOLUTIONS = [round(0.8 + 0.1 * i, 1) for i in range(15)]  # 0.8 to 2.2, searched in order
 KNN = 10  # neighbours per paper in the graph that Leiden clusters
 MIN_REVIEWS = 3  # a region with fewer reviews is mostly queued papers, and isn't named
 NEIGHBOURS = 3
@@ -78,7 +79,12 @@ def layout(vectors):
 
 
 def communities(vectors) -> list[int]:
-    """Leiden communities of the papers' k-nearest-neighbour graph, at :data:`RESOLUTION`."""
+    """Leiden communities of the papers' k-nearest-neighbour graph.
+
+    A fixed resolution gave 10 regions, then 13 once one review was added. So each of
+    :data:`RESOLUTIONS` is tried, and the first that gives the count nearest :data:`TARGET`
+    wins. Leiden's seed is fixed, so the map stays the same for the same papers.
+    """
     import igraph
     import leidenalg
     import numpy as np
@@ -93,10 +99,14 @@ def communities(vectors) -> list[int]:
     graph = igraph.Graph(n=len(vectors), edges=edges)
     graph.es["weight"] = weights
     graph = graph.simplify(combine_edges="max")
-    part = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition,
-                                    weights="weight", resolution_parameter=RESOLUTION,
-                                    seed=SEED)  # fmt: skip
-    return list(part.membership)
+    best = None
+    for resolution in RESOLUTIONS:
+        part = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition,
+                                        weights="weight", resolution_parameter=resolution,
+                                        seed=SEED)  # fmt: skip
+        if best is None or abs(len(part) - TARGET) < abs(len(best) - TARGET):
+            best = part
+    return list(best.membership)
 
 
 QUEUED = "Queued, not reviewed yet"  # the name of a region with too few reviews to name
