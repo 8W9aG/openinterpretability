@@ -108,7 +108,8 @@ def explain_command(  # long-function: one argument per option, then one line pe
     if reuse.action == "level":
         run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
-    means = unit_means(runner, model_name, read_corpus(corpus)[0], mean_tokens)
+    texts, _, corpus_sha, corpus_source = read_corpus(corpus)
+    means = unit_means(runner, model_name, texts, mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
     found = _analyse(runner, means, ask, Path(wiki_dir))
     home = Path(wiki_dir).resolve()  # the record goes here, though --run moves to its worktree
@@ -141,11 +142,13 @@ def explain_command(  # long-function: one argument per option, then one line pe
         _print_narrative(told, level)
     if write_record:
         from openinterpretability.explain_figure_data import figure_data
+        from openinterpretability.reproduce_explanation import inputs_of
 
         figures = figure_data(runner, means, result, coverage, planned, found.groups)
         record = _record(model_name, result, coverage, planned, told, ran, figures,
                          found.reach["target"])  # fmt: skip
-        record = record.model_copy(update=reuse.fields)
+        inputs = inputs_of(runner, ask, result, planned, (corpus_sha, corpus_source), mean_tokens)
+        record = record.model_copy(update=reuse.fields | {"inputs": inputs})
         _keep(record, home, land)
     if not as_json:
         click.echo(reached(result.verified_share, found.reach["target"], coverage, ran))

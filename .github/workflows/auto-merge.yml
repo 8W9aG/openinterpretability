@@ -1,9 +1,10 @@
 name: Auto-merge
 
 # Turns on GitHub's auto-merge (squash) for three kinds of pull request:
-# - one that only adds files under wiki/experiments/: experiment records, their .sig files
-#   and pages. CI reproduces each record there ("Reproduce records"). Other wiki records,
-#   such as circuits and explanations, are not reproduced, so they wait for a person.
+# - one that only adds records that CI re-measures (openinterpretability/core/record_kinds.py):
+#   experiment records, their .sig files and pages, and explanation records (#4793). CI
+#   reproduces each one ("Reproduce records"). Other wiki records, such as circuits, are not
+#   reproduced, so they wait for a person.
 #   A PR with more files than the files API lists (3,000) never qualifies.
 # - one that the maintainer opened from a branch of this repository, whatever it changes,
 #   when the maintainer also made the event: the push (synchronize) or the reopen.
@@ -12,8 +13,8 @@ name: Auto-merge
 # The repository's own automatic PRs (the benchmark ledger) turn on auto-merge themselves:
 # a PR that the workflow token opens starts no workflow, so this file never sees them.
 # GitHub then merges once the required checks ("Lint and tests", "Experiment records",
-# "Reproduce records") pass on the head commit. Any other PR that changes files outside
-# wiki/experiments/ (code, workflows, other wiki records, .github/allowed_signers) is left
+# "Reproduce records") pass on the head commit. Any other PR that changes other files
+# (code, workflows, other wiki records, .github/allowed_signers) is left
 # for a human, and auto-merge is turned off if an earlier push had turned it on.
 #
 # pull_request_target runs this file from main with a write token, also for fork PRs, so

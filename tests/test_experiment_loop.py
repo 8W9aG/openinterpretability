@@ -222,10 +222,10 @@ def test_merge_blockers():
 
 def test_only_the_maintainer_merges_records_that_ci_cannot_reproduce():
     """A contributor's PR may merge reproducible records only; the maintainer's, any (#4792)."""
-    other = {"files": [{"path": "wiki/explanations/m/abc/1.json"}],
+    other = {"files": [{"path": "wiki/circuits/m/abc/1.json"}],
              "isDraft": False, "mergeable": "MERGEABLE"}  # fmt: skip
     assert el.merge_blockers(other, "WRITE") == [
-        "wiki/explanations/m/abc/1.json is not a record that CI reproduces"
+        "wiki/circuits/m/abc/1.json is not a record that CI reproduces"
     ]
     assert el.merge_blockers(other, "ADMIN") == []
 

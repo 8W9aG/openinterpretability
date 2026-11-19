@@ -289,7 +289,7 @@ One answer can take several attempts. Each attempt is its own record, and its pr
 | Experiment | `wiki/experiments/` | Re-measured: `reproduce` runs the model again and compares. |
 | Circuit | `wiki/circuits/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
 | Answer | `wiki/answers/` | Re-derived: its stored measures must give its status. Nothing is re-run. |
-| Explanation | `wiki/explanations/` | Not checked yet. A reproduction is #4793. |
+| Explanation | `wiki/explanations/` | Re-measured: `reproduce` runs the model again and compares (#4793). A record written before #4793 holds no inputs, so it is reported as not reproducible. |
 | Draw | `wiki/draws/` | Not checked. |
 | Stop | `wiki/stops/` | Not checked. |
 | Ledger entry | `wiki/ledger/` | Not checked. |

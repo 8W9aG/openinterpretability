@@ -24,9 +24,11 @@ ref_option = click.option(
 
 
 def _added(wiki_dir: Path, base_ref: str) -> list[Path]:
+    """The experiment records added since ``base_ref``: only they have evidence blobs."""
     from openinterpretability.checks import changed_records
+    from openinterpretability.reproduce_explanation import is_explanation
 
-    return changed_records(wiki_dir, base_ref)
+    return [p for p in changed_records(wiki_dir, base_ref) if not is_explanation(p)]
 
 
 @cli.group()
