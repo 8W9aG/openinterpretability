@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 447" width="760" height="447" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 465" width="760" height="465" role="img">
 <title>Two plots. Left: balanced accuracy by class, with medians of 0.78 for sisters, 0.55 for other matches and 0.45 for random poles. Right: balanced accuracy against the correlation r for sisters and other matches.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
@@ -28,206 +28,207 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 @keyframes sisterdots{0%{opacity:0}8.0%{opacity:1}100%{opacity:1}}.sisterdots{animation:sisterdots 8s step-end infinite;opacity:1}@keyframes sistermid{0%{opacity:0}20.0%{opacity:1}100%{opacity:1}}.sistermid{animation:sistermid 8s step-end infinite;opacity:1}@keyframes matchdots{0%{opacity:0}30.0%{opacity:1}100%{opacity:1}}.matchdots{animation:matchdots 8s step-end infinite;opacity:1}@keyframes matchmid{0%{opacity:0}42.0%{opacity:1}100%{opacity:1}}.matchmid{animation:matchmid 8s step-end infinite;opacity:1}@keyframes randomdots{0%{opacity:0}52.0%{opacity:1}100%{opacity:1}}.randomdots{animation:randomdots 8s step-end infinite;opacity:1}@keyframes randommid{0%{opacity:0}64.0%{opacity:1}100%{opacity:1}}.randommid{animation:randommid 8s step-end infinite;opacity:1}</style>
-<rect class="bg" width="760" height="447" rx="10"/>
+<rect class="bg" width="760" height="465" rx="10"/>
 <text x="20.0" y="30.0" class="title">A pole&#x27;s explanation carries better to its sister</text>
 <text x="20.0" y="53.0" class="title">than to another match or a random pole</text>
-<text x="20.0" y="73.0" class="sub">Each dot is a sister study: the balanced accuracy of the source&#x27;s explanation on the tested pole. The line marks chance.</text>
-<text x="60.0" y="123.0" class="head">by class</text>
-<text x="416.0" y="123.0" class="head">against r</text>
-<path class="grid" d="M60.0 351.0L380.0 351.0"/>
-<text x="53.0" y="355.0" class="small" text-anchor="end">0.00</text>
-<path class="grid" d="M60.0 296.0L380.0 296.0"/>
-<text x="53.0" y="300.0" class="small" text-anchor="end">0.25</text>
-<path class="grid" d="M60.0 241.0L380.0 241.0"/>
-<text x="53.0" y="245.0" class="small" text-anchor="end">0.50</text>
-<path class="grid" d="M60.0 186.0L380.0 186.0"/>
-<text x="53.0" y="190.0" class="small" text-anchor="end">0.75</text>
-<path class="grid" d="M60.0 131.0L380.0 131.0"/>
-<text x="53.0" y="135.0" class="small" text-anchor="end">1.00</text>
-<path class="axis" d="M60.0 241.0L380.0 241.0"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="257.9" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="256.7" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="255.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="249.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="249.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="243.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="242.2" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="241.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="241.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="236.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="233.7" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="225.3" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="219.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="218.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="212.2" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="212.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="209.6" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="209.6" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="209.6" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="203.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="203.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="203.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="186.6" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="186.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="179.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="178.1" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="178.1" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="178.1" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="178.1" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="175.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="175.5" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="172.1" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="170.3" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="167.7" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="165.0" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="163.6" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="163.6" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="162.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="162.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="162.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="162.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="156.4" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="155.2" r="3.5"/>
-<circle class="fc1 sisterdots" cx="92.0" cy="155.2" r="3.5"/>
-<circle class="fc1 sisterdots" cx="102.7" cy="147.9" r="3.5"/>
-<circle class="fc1 sisterdots" cx="113.3" cy="147.9" r="3.5"/>
-<circle class="fc1 sisterdots" cx="124.0" cy="147.9" r="3.5"/>
-<circle class="fc1 sisterdots" cx="134.7" cy="146.7" r="3.5"/>
-<circle class="fc1 sisterdots" cx="145.3" cy="146.7" r="3.5"/>
-<circle class="fc1 sisterdots" cx="81.3" cy="131.0" r="3.5"/>
-<path class="line sc1 sistermid" d="M76.0 178.7L150.7 178.7"/>
-<text x="113.3" y="366.0" class="small" text-anchor="middle">sisters</text>
-<circle class="fc3 matchdots" cx="188.0" cy="257.9" r="3.5"/>
-<circle class="fc3 matchdots" cx="198.7" cy="252.0" r="3.5"/>
-<circle class="fc3 matchdots" cx="209.3" cy="250.7" r="3.5"/>
-<circle class="fc3 matchdots" cx="220.0" cy="250.7" r="3.5"/>
-<circle class="fc3 matchdots" cx="230.7" cy="249.5" r="3.5"/>
-<circle class="fc3 matchdots" cx="241.3" cy="249.5" r="3.5"/>
-<circle class="fc3 matchdots" cx="252.0" cy="246.5" r="3.5"/>
-<circle class="fc3 matchdots" cx="188.0" cy="241.0" r="3.5"/>
-<circle class="fc3 matchdots" cx="198.7" cy="241.0" r="3.5"/>
-<circle class="fc3 matchdots" cx="209.3" cy="241.0" r="3.5"/>
-<circle class="fc3 matchdots" cx="220.0" cy="241.0" r="3.5"/>
-<circle class="fc3 matchdots" cx="230.7" cy="233.7" r="3.5"/>
-<circle class="fc3 matchdots" cx="241.3" cy="232.5" r="3.5"/>
-<circle class="fc3 matchdots" cx="252.0" cy="225.3" r="3.5"/>
-<circle class="fc3 matchdots" cx="188.0" cy="210.8" r="3.5"/>
-<circle class="fc3 matchdots" cx="198.7" cy="210.8" r="3.5"/>
-<circle class="fc3 matchdots" cx="209.3" cy="209.6" r="3.5"/>
-<circle class="fc3 matchdots" cx="220.0" cy="208.0" r="3.5"/>
-<circle class="fc3 matchdots" cx="230.7" cy="202.5" r="3.5"/>
-<circle class="fc3 matchdots" cx="241.3" cy="193.9" r="3.5"/>
-<circle class="fc3 matchdots" cx="252.0" cy="186.6" r="3.5"/>
-<circle class="fc3 matchdots" cx="188.0" cy="180.6" r="3.5"/>
-<circle class="fc3 matchdots" cx="198.7" cy="179.4" r="3.5"/>
-<circle class="fc3 matchdots" cx="209.3" cy="170.9" r="3.5"/>
-<circle class="fc3 matchdots" cx="220.0" cy="162.4" r="3.5"/>
-<circle class="fc3 matchdots" cx="230.7" cy="146.7" r="3.5"/>
-<path class="line sc3 matchmid" d="M182.7 228.9L257.3 228.9"/>
-<text x="220.0" y="366.0" class="small" text-anchor="middle">other top matches</text>
-<circle class="fc2 randomdots" cx="294.7" cy="296.0" r="3.5"/>
-<circle class="fc2 randomdots" cx="305.3" cy="254.1" r="3.5"/>
-<circle class="fc2 randomdots" cx="316.0" cy="249.5" r="3.5"/>
-<circle class="fc2 randomdots" cx="326.7" cy="249.5" r="3.5"/>
-<path class="line sc2 randommid" d="M289.3 251.8L364.0 251.8"/>
-<text x="326.7" y="366.0" class="small" text-anchor="middle">random poles</text>
-<path class="grid" d="M416.0 131.0L416.0 351.0"/>
-<text x="416.0" y="366.0" class="small" text-anchor="middle">0.00</text>
-<path class="grid" d="M496.0 131.0L496.0 351.0"/>
-<text x="496.0" y="366.0" class="small" text-anchor="middle">0.25</text>
-<path class="grid" d="M576.0 131.0L576.0 351.0"/>
-<text x="576.0" y="366.0" class="small" text-anchor="middle">0.50</text>
-<path class="grid" d="M656.0 131.0L656.0 351.0"/>
-<text x="656.0" y="366.0" class="small" text-anchor="middle">0.75</text>
-<path class="grid" d="M736.0 131.0L736.0 351.0"/>
-<text x="736.0" y="366.0" class="small" text-anchor="middle">1.00</text>
-<path class="grid" d="M416.0 351.0L736.0 351.0"/>
-<path class="grid" d="M416.0 296.0L736.0 296.0"/>
-<path class="grid" d="M416.0 241.0L736.0 241.0"/>
-<path class="grid" d="M416.0 186.0L736.0 186.0"/>
-<path class="grid" d="M416.0 131.0L736.0 131.0"/>
-<path class="axis" d="M416.0 241.0L736.0 241.0"/>
-<text x="576.0" y="382.0" class="small" text-anchor="middle">correlation r with the source pole</text>
-<circle class="fc1 sisterdots" cx="661.7" cy="162.4" r="4"/>
-<circle class="fc1 sisterdots" cx="648.3" cy="155.2" r="4"/>
-<circle class="fc1 sisterdots" cx="502.0" cy="256.7" r="4"/>
-<circle class="fc1 sisterdots" cx="662.6" cy="165.0" r="4"/>
-<circle class="fc1 sisterdots" cx="542.6" cy="249.5" r="4"/>
-<circle class="fc1 sisterdots" cx="550.4" cy="257.9" r="4"/>
-<circle class="fc1 sisterdots" cx="595.9" cy="156.4" r="4"/>
-<circle class="fc1 sisterdots" cx="658.6" cy="170.3" r="4"/>
-<circle class="fc1 sisterdots" cx="504.2" cy="242.2" r="4"/>
-<circle class="fc1 sisterdots" cx="582.8" cy="147.9" r="4"/>
-<circle class="fc1 sisterdots" cx="590.9" cy="175.5" r="4"/>
-<circle class="fc1 sisterdots" cx="516.2" cy="218.0" r="4"/>
-<circle class="fc1 sisterdots" cx="552.7" cy="225.3" r="4"/>
-<circle class="fc1 sisterdots" cx="505.0" cy="147.9" r="4"/>
-<circle class="fc1 sisterdots" cx="529.9" cy="162.4" r="4"/>
-<circle class="fc1 sisterdots" cx="575.7" cy="241.0" r="4"/>
-<circle class="fc1 sisterdots" cx="529.6" cy="255.4" r="4"/>
-<circle class="fc1 sisterdots" cx="533.0" cy="209.6" r="4"/>
-<circle class="fc1 sisterdots" cx="502.1" cy="146.7" r="4"/>
-<circle class="fc1 sisterdots" cx="498.9" cy="241.0" r="4"/>
-<circle class="fc1 sisterdots" cx="565.6" cy="162.4" r="4"/>
-<circle class="fc1 sisterdots" cx="522.9" cy="131.0" r="4"/>
-<circle class="fc1 sisterdots" cx="478.4" cy="212.2" r="4"/>
-<circle class="fc1 sisterdots" cx="607.7" cy="249.5" r="4"/>
-<circle class="fc1 sisterdots" cx="561.5" cy="178.1" r="4"/>
-<circle class="fc1 sisterdots" cx="521.5" cy="167.7" r="4"/>
-<circle class="fc1 sisterdots" cx="540.4" cy="209.6" r="4"/>
-<circle class="fc1 sisterdots" cx="523.4" cy="203.5" r="4"/>
-<circle class="fc1 sisterdots" cx="654.7" cy="162.4" r="4"/>
-<circle class="fc1 sisterdots" cx="551.6" cy="178.1" r="4"/>
-<circle class="fc1 sisterdots" cx="531.5" cy="219.0" r="4"/>
-<circle class="fc1 sisterdots" cx="572.3" cy="155.2" r="4"/>
-<circle class="fc1 sisterdots" cx="661.0" cy="203.5" r="4"/>
-<circle class="fc1 sisterdots" cx="529.9" cy="146.7" r="4"/>
-<circle class="fc1 sisterdots" cx="572.5" cy="233.7" r="4"/>
-<circle class="fc1 sisterdots" cx="489.0" cy="212.0" r="4"/>
-<circle class="fc1 sisterdots" cx="506.5" cy="179.4" r="4"/>
-<circle class="fc1 sisterdots" cx="571.4" cy="175.5" r="4"/>
-<circle class="fc1 sisterdots" cx="500.9" cy="209.6" r="4"/>
-<circle class="fc1 sisterdots" cx="605.3" cy="178.1" r="4"/>
-<circle class="fc1 sisterdots" cx="478.9" cy="186.6" r="4"/>
-<circle class="fc1 sisterdots" cx="541.1" cy="186.0" r="4"/>
-<circle class="fc1 sisterdots" cx="607.4" cy="163.6" r="4"/>
-<circle class="fc1 sisterdots" cx="533.8" cy="147.9" r="4"/>
-<circle class="fc1 sisterdots" cx="669.2" cy="178.1" r="4"/>
-<circle class="fc1 sisterdots" cx="565.7" cy="236.0" r="4"/>
-<circle class="fc1 sisterdots" cx="602.4" cy="243.4" r="4"/>
-<circle class="fc1 sisterdots" cx="587.2" cy="163.6" r="4"/>
-<circle class="fc1 sisterdots" cx="474.2" cy="203.5" r="4"/>
-<circle class="fc1 sisterdots" cx="614.5" cy="172.1" r="4"/>
-<circle class="fc3 matchdots" cx="551.5" cy="241.0" r="4"/>
-<circle class="fc3 matchdots" cx="582.9" cy="209.6" r="4"/>
-<circle class="fc3 matchdots" cx="600.1" cy="179.4" r="4"/>
-<circle class="fc3 matchdots" cx="555.1" cy="225.3" r="4"/>
-<circle class="fc3 matchdots" cx="537.8" cy="241.0" r="4"/>
-<circle class="fc3 matchdots" cx="553.5" cy="170.9" r="4"/>
-<circle class="fc3 matchdots" cx="473.2" cy="232.5" r="4"/>
-<circle class="fc3 matchdots" cx="516.8" cy="210.8" r="4"/>
-<circle class="fc3 matchdots" cx="553.2" cy="241.0" r="4"/>
-<circle class="fc3 matchdots" cx="461.5" cy="186.6" r="4"/>
-<circle class="fc3 matchdots" cx="500.4" cy="249.5" r="4"/>
-<circle class="fc3 matchdots" cx="508.4" cy="162.4" r="4"/>
-<circle class="fc3 matchdots" cx="607.5" cy="241.0" r="4"/>
-<circle class="fc3 matchdots" cx="506.6" cy="233.7" r="4"/>
-<circle class="fc3 matchdots" cx="458.8" cy="250.7" r="4"/>
-<circle class="fc3 matchdots" cx="580.6" cy="210.8" r="4"/>
-<circle class="fc3 matchdots" cx="491.8" cy="146.7" r="4"/>
-<circle class="fc3 matchdots" cx="566.8" cy="249.5" r="4"/>
-<circle class="fc3 matchdots" cx="557.2" cy="250.7" r="4"/>
-<circle class="fc3 matchdots" cx="508.8" cy="257.9" r="4"/>
-<circle class="fc3 matchdots" cx="485.6" cy="193.9" r="4"/>
-<circle class="fc3 matchdots" cx="508.6" cy="180.6" r="4"/>
-<circle class="fc3 matchdots" cx="492.2" cy="202.5" r="4"/>
-<circle class="fc3 matchdots" cx="460.4" cy="246.5" r="4"/>
-<circle class="fc3 matchdots" cx="501.3" cy="208.0" r="4"/>
-<circle class="fc3 matchdots" cx="479.0" cy="252.0" r="4"/>
-<circle class="fc1" cx="25.0" cy="395.0" r="5"/>
-<text x="35.0" y="399.0">sisters</text>
-<circle class="fc3" cx="97.2" cy="395.0" r="5"/>
-<text x="107.2" y="399.0">other top matches</text>
-<circle class="fc2" cx="235.4" cy="395.0" r="5"/>
-<text x="245.4" y="399.0">random poles</text>
+<text x="20.0" y="73.0" class="sub">Each mark is a sister study: the balanced accuracy of the source&#x27;s explanation on the tested pole.</text>
+<text x="20.0" y="91.0" class="sub">Circles are sisters, squares other matches and triangles random poles. The line marks chance.</text>
+<text x="60.0" y="141.0" class="head">by class</text>
+<text x="416.0" y="141.0" class="head">against r</text>
+<path class="grid" d="M60.0 369.0L380.0 369.0"/>
+<text x="53.0" y="373.0" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M60.0 314.0L380.0 314.0"/>
+<text x="53.0" y="318.0" class="small" text-anchor="end">0.25</text>
+<path class="grid" d="M60.0 259.0L380.0 259.0"/>
+<text x="53.0" y="263.0" class="small" text-anchor="end">0.50</text>
+<path class="grid" d="M60.0 204.0L380.0 204.0"/>
+<text x="53.0" y="208.0" class="small" text-anchor="end">0.75</text>
+<path class="grid" d="M60.0 149.0L380.0 149.0"/>
+<text x="53.0" y="153.0" class="small" text-anchor="end">1.00</text>
+<path class="axis" d="M60.0 259.0L380.0 259.0"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="275.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="274.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="273.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="267.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="267.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="261.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="260.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="259.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="259.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="254.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="251.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="243.3" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="237.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="236.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="230.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="230.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="227.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="227.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="227.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="221.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="221.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="221.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="204.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="204.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="197.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="196.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="196.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="196.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="196.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="193.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="193.5" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="190.1" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="188.3" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="185.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="183.0" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="181.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="181.6" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="180.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="180.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="180.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="180.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="174.4" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="173.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="92.0" cy="173.2" r="3.5"/>
+<circle class="fc1 sisterdots" cx="102.7" cy="165.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="113.3" cy="165.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="124.0" cy="165.9" r="3.5"/>
+<circle class="fc1 sisterdots" cx="134.7" cy="164.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="145.3" cy="164.7" r="3.5"/>
+<circle class="fc1 sisterdots" cx="81.3" cy="149.0" r="3.5"/>
+<path class="line sc1 sistermid" d="M76.0 196.7L150.7 196.7"/>
+<text x="113.3" y="384.0" class="small" text-anchor="middle">sisters</text>
+<rect class="fc3 matchdots" x="184.8" y="272.8" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="195.5" y="266.9" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="206.2" y="265.5" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="216.8" y="265.5" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="227.5" y="264.3" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="238.2" y="264.3" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="248.8" y="261.4" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="184.8" y="255.8" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="195.5" y="255.8" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="206.2" y="255.8" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="216.8" y="255.8" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="227.5" y="248.6" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="238.2" y="247.4" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="248.8" y="240.1" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="184.8" y="225.6" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="195.5" y="225.6" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="206.2" y="224.4" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="216.8" y="222.8" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="227.5" y="217.3" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="238.2" y="208.7" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="248.8" y="201.5" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="184.8" y="195.4" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="195.5" y="194.2" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="206.2" y="185.7" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="216.8" y="177.3" width="6.3" height="6.3" rx="1.5"/>
+<rect class="fc3 matchdots" x="227.5" y="161.6" width="6.3" height="6.3" rx="1.5"/>
+<path class="line sc3 matchmid" d="M182.7 246.9L257.3 246.9"/>
+<text x="220.0" y="384.0" class="small" text-anchor="middle">other top matches</text>
+<path class="fc2 randomdots" d="M294.7 310.0L298.7 317.2L290.6 317.2Z"/>
+<path class="fc2 randomdots" d="M305.3 268.1L309.4 275.3L301.3 275.3Z"/>
+<path class="fc2 randomdots" d="M316.0 263.4L320.0 270.7L312.0 270.7Z"/>
+<path class="fc2 randomdots" d="M326.7 263.4L330.7 270.7L322.6 270.7Z"/>
+<path class="line sc2 randommid" d="M289.3 269.8L364.0 269.8"/>
+<text x="326.7" y="384.0" class="small" text-anchor="middle">random poles</text>
+<path class="grid" d="M416.0 149.0L416.0 369.0"/>
+<text x="416.0" y="384.0" class="small" text-anchor="middle">0.00</text>
+<path class="grid" d="M496.0 149.0L496.0 369.0"/>
+<text x="496.0" y="384.0" class="small" text-anchor="middle">0.25</text>
+<path class="grid" d="M576.0 149.0L576.0 369.0"/>
+<text x="576.0" y="384.0" class="small" text-anchor="middle">0.50</text>
+<path class="grid" d="M656.0 149.0L656.0 369.0"/>
+<text x="656.0" y="384.0" class="small" text-anchor="middle">0.75</text>
+<path class="grid" d="M736.0 149.0L736.0 369.0"/>
+<text x="736.0" y="384.0" class="small" text-anchor="middle">1.00</text>
+<path class="grid" d="M416.0 369.0L736.0 369.0"/>
+<path class="grid" d="M416.0 314.0L736.0 314.0"/>
+<path class="grid" d="M416.0 259.0L736.0 259.0"/>
+<path class="grid" d="M416.0 204.0L736.0 204.0"/>
+<path class="grid" d="M416.0 149.0L736.0 149.0"/>
+<path class="axis" d="M416.0 259.0L736.0 259.0"/>
+<text x="576.0" y="400.0" class="small" text-anchor="middle">correlation r with the source pole</text>
+<circle class="fc1 sisterdots" cx="661.7" cy="180.4" r="4"/>
+<circle class="fc1 sisterdots" cx="648.3" cy="173.2" r="4"/>
+<circle class="fc1 sisterdots" cx="502.0" cy="274.7" r="4"/>
+<circle class="fc1 sisterdots" cx="662.6" cy="183.0" r="4"/>
+<circle class="fc1 sisterdots" cx="542.6" cy="267.5" r="4"/>
+<circle class="fc1 sisterdots" cx="550.4" cy="275.9" r="4"/>
+<circle class="fc1 sisterdots" cx="595.9" cy="174.4" r="4"/>
+<circle class="fc1 sisterdots" cx="658.6" cy="188.3" r="4"/>
+<circle class="fc1 sisterdots" cx="504.2" cy="260.2" r="4"/>
+<circle class="fc1 sisterdots" cx="582.8" cy="165.9" r="4"/>
+<circle class="fc1 sisterdots" cx="590.9" cy="193.5" r="4"/>
+<circle class="fc1 sisterdots" cx="516.2" cy="236.0" r="4"/>
+<circle class="fc1 sisterdots" cx="552.7" cy="243.3" r="4"/>
+<circle class="fc1 sisterdots" cx="505.0" cy="165.9" r="4"/>
+<circle class="fc1 sisterdots" cx="529.9" cy="180.4" r="4"/>
+<circle class="fc1 sisterdots" cx="575.7" cy="259.0" r="4"/>
+<circle class="fc1 sisterdots" cx="529.6" cy="273.4" r="4"/>
+<circle class="fc1 sisterdots" cx="533.0" cy="227.6" r="4"/>
+<circle class="fc1 sisterdots" cx="502.1" cy="164.7" r="4"/>
+<circle class="fc1 sisterdots" cx="498.9" cy="259.0" r="4"/>
+<circle class="fc1 sisterdots" cx="565.6" cy="180.4" r="4"/>
+<circle class="fc1 sisterdots" cx="522.9" cy="149.0" r="4"/>
+<circle class="fc1 sisterdots" cx="478.4" cy="230.2" r="4"/>
+<circle class="fc1 sisterdots" cx="607.7" cy="267.5" r="4"/>
+<circle class="fc1 sisterdots" cx="561.5" cy="196.1" r="4"/>
+<circle class="fc1 sisterdots" cx="521.5" cy="185.7" r="4"/>
+<circle class="fc1 sisterdots" cx="540.4" cy="227.6" r="4"/>
+<circle class="fc1 sisterdots" cx="523.4" cy="221.5" r="4"/>
+<circle class="fc1 sisterdots" cx="654.7" cy="180.4" r="4"/>
+<circle class="fc1 sisterdots" cx="551.6" cy="196.1" r="4"/>
+<circle class="fc1 sisterdots" cx="531.5" cy="237.0" r="4"/>
+<circle class="fc1 sisterdots" cx="572.3" cy="173.2" r="4"/>
+<circle class="fc1 sisterdots" cx="661.0" cy="221.5" r="4"/>
+<circle class="fc1 sisterdots" cx="529.9" cy="164.7" r="4"/>
+<circle class="fc1 sisterdots" cx="572.5" cy="251.7" r="4"/>
+<circle class="fc1 sisterdots" cx="489.0" cy="230.0" r="4"/>
+<circle class="fc1 sisterdots" cx="506.5" cy="197.4" r="4"/>
+<circle class="fc1 sisterdots" cx="571.4" cy="193.5" r="4"/>
+<circle class="fc1 sisterdots" cx="500.9" cy="227.6" r="4"/>
+<circle class="fc1 sisterdots" cx="605.3" cy="196.1" r="4"/>
+<circle class="fc1 sisterdots" cx="478.9" cy="204.6" r="4"/>
+<circle class="fc1 sisterdots" cx="541.1" cy="204.0" r="4"/>
+<circle class="fc1 sisterdots" cx="607.4" cy="181.6" r="4"/>
+<circle class="fc1 sisterdots" cx="533.8" cy="165.9" r="4"/>
+<circle class="fc1 sisterdots" cx="669.2" cy="196.1" r="4"/>
+<circle class="fc1 sisterdots" cx="565.7" cy="254.0" r="4"/>
+<circle class="fc1 sisterdots" cx="602.4" cy="261.4" r="4"/>
+<circle class="fc1 sisterdots" cx="587.2" cy="181.6" r="4"/>
+<circle class="fc1 sisterdots" cx="474.2" cy="221.5" r="4"/>
+<circle class="fc1 sisterdots" cx="614.5" cy="190.1" r="4"/>
+<rect class="fc3 matchdots" x="547.9" y="255.4" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="579.3" y="224.0" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="596.5" y="193.8" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="551.5" y="239.7" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="534.2" y="255.4" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="549.9" y="185.3" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="469.6" y="246.9" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="513.2" y="225.2" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="549.6" y="255.4" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="457.9" y="201.0" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="496.8" y="263.9" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="504.8" y="176.8" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="603.9" y="255.4" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="503.0" y="248.1" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="455.2" y="265.1" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="577.0" y="225.2" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="488.2" y="161.1" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="563.2" y="263.9" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="553.6" y="265.1" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="505.2" y="272.3" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="482.0" y="208.3" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="505.0" y="195.0" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="488.6" y="216.9" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="456.8" y="260.9" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="497.7" y="222.4" width="7.2" height="7.2" rx="1.5"/>
+<rect class="fc3 matchdots" x="475.4" y="266.4" width="7.2" height="7.2" rx="1.5"/>
+<circle class="fc1" cx="25.0" cy="413.0" r="5"/>
+<text x="35.0" y="417.0">sisters</text>
+<rect class="fc3" x="92.7" y="408.5" width="9.0" height="9.0" rx="1.5"/>
+<text x="107.2" y="417.0">other top matches</text>
+<path class="fc2" d="M235.4 407.2L241.1 417.6L229.6 417.6Z"/>
+<text x="245.4" y="417.0">random poles</text>
 </svg>
