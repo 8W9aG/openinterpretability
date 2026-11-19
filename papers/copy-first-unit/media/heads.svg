@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 504" width="760" height="504" role="img">
+<title>Six rows, one per wrong prompt. The model&#x27;s own gap is negative in each. Switching off the three copy heads, or them and L4/H1, moves it toward 0 on most prompts, and past 0 only for the eggs prompt. Random heads move it about as much.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="504" rx="10"/>
+<text x="20.0" y="30.0" class="title">Without the copy heads, the copied unit still wins on five of the six prompts</text>
+<text x="20.0" y="50.0" class="sub">logit(right) − logit(copied) at the answer position. Right of 0, the right</text>
+<text x="20.0" y="68.0" class="sub">answer beats the copied unit. Line: 20 sets of 3 random heads of layers 3–4</text>
+<text x="20.0" y="86.0" class="sub">switched off, from lowest to highest, with its median as a tick.</text>
+<path class="grid" d="M200.0 140.0L200.0 404.0"/>
+<text x="200.0" y="419.0" class="small" text-anchor="middle">-6</text>
+<path class="grid" d="M286.7 140.0L286.7 404.0"/>
+<text x="286.7" y="419.0" class="small" text-anchor="middle">-4</text>
+<path class="grid" d="M373.3 140.0L373.3 404.0"/>
+<text x="373.3" y="419.0" class="small" text-anchor="middle">-2</text>
+<path class="axis" d="M460.0 140.0L460.0 404.0"/>
+<text x="460.0" y="419.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M546.7 140.0L546.7 404.0"/>
+<text x="546.7" y="419.0" class="small" text-anchor="middle">+2</text>
+<path class="grid" d="M633.3 140.0L633.3 404.0"/>
+<text x="633.3" y="419.0" class="small" text-anchor="middle">+4</text>
+<path class="grid" d="M720.0 140.0L720.0 404.0"/>
+<text x="720.0" y="419.0" class="small" text-anchor="middle">+6</text>
+<text x="460.0" y="435.0" class="small" text-anchor="middle">logit(right) − logit(copied)</text>
+<text x="188.0" y="166.0" text-anchor="end">minutes, not seconds</text>
+<path class="range sneutral" d="M331.6 162.0L382.8 162.0"/>
+<path class="range sneutral" d="M351.2 156.0L351.2 168.0"/>
+<rect class="fneutral" x="344.5" y="158.0" width="8.0" height="8.0" rx="1.5"/>
+<circle class="open sneutral" cx="381.2" cy="162.0" r="5"/>
+<circle class="ink ring" cx="334.8" cy="162.0" r="5"/>
+<text x="188.0" y="210.0" text-anchor="end">months, not days</text>
+<path class="range sneutral" d="M286.6 206.0L365.7 206.0"/>
+<path class="range sneutral" d="M330.7 200.0L330.7 212.0"/>
+<rect class="fneutral" x="376.2" y="202.0" width="8.0" height="8.0" rx="1.5"/>
+<circle class="open sneutral" cx="378.5" cy="206.0" r="5"/>
+<circle class="ink ring" cx="321.2" cy="206.0" r="5"/>
+<text x="188.0" y="254.0" text-anchor="end">toes, not fingers</text>
+<path class="range sneutral" d="M318.6 250.0L362.9 250.0"/>
+<path class="range sneutral" d="M346.0 244.0L346.0 256.0"/>
+<rect class="fneutral" x="326.0" y="246.0" width="8.0" height="8.0" rx="1.5"/>
+<circle class="open sneutral" cx="359.6" cy="250.0" r="5"/>
+<circle class="ink ring" cx="348.6" cy="250.0" r="5"/>
+<text x="188.0" y="298.0" text-anchor="end">months, not eggs</text>
+<path class="range sneutral" d="M238.4 294.0L343.4 294.0"/>
+<path class="range sneutral" d="M295.4 288.0L295.4 300.0"/>
+<rect class="fneutral" x="450.6" y="290.0" width="8.0" height="8.0" rx="1.5"/>
+<circle class="open sneutral" cx="513.2" cy="294.0" r="5"/>
+<circle class="ink ring" cx="280.1" cy="294.0" r="5"/>
+<text x="188.0" y="342.0" text-anchor="end">seconds, not minutes</text>
+<path class="range sneutral" d="M383.0 338.0L437.8 338.0"/>
+<path class="range sneutral" d="M420.8 332.0L420.8 344.0"/>
+<rect class="fneutral" x="385.5" y="334.0" width="8.0" height="8.0" rx="1.5"/>
+<circle class="open sneutral" cx="413.1" cy="338.0" r="5"/>
+<circle class="ink ring" cx="416.2" cy="338.0" r="5"/>
+<text x="188.0" y="386.0" text-anchor="end">days, not months</text>
+<path class="range sneutral" d="M393.2 382.0L453.1 382.0"/>
+<path class="range sneutral" d="M424.0 376.0L424.0 388.0"/>
+<rect class="fneutral" x="455.7" y="378.0" width="8.0" height="8.0" rx="1.5"/>
+<circle class="open sneutral" cx="459.8" cy="382.0" r="5"/>
+<circle class="ink ring" cx="412.0" cy="382.0" r="5"/>
+<circle class="ink" cx="205.0" cy="446.0" r="5"/>
+<text x="215.0" y="450.0">the model</text>
+<circle class="open sneutral" cx="290.4" cy="446.0" r="5"/>
+<text x="300.4" y="450.0">copy heads off</text>
+<rect class="fneutral" x="414.0" y="442.0" width="8.0" height="8.0" rx="1.5"/>
+<text x="428.0" y="450.0">copy heads and L4/H1 off</text>
+</svg>

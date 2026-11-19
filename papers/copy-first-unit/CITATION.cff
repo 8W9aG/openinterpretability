@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: If you use this paper, please cite it as below.
+type: article
+title: Why Pythia-70m copies the first clause's unit
+authors:
+- name: Open Interpretability
+date-released: '2026-11-19'
+version: preprint
+url: https://open-interpretability.com/research/copy-first-unit/index.html
+repository-code: https://github.com/8W9aG/openinterpretability
