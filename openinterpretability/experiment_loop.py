@@ -20,6 +20,7 @@ from openinterpretability.core.paths import DEFAULT_WIKI_DIR, draws_dir, experim
 from openinterpretability.core.record_kinds import reproducible
 from openinterpretability.draw_steps import REVIEW_KINDS, VERBS, draw_slug, steps
 from openinterpretability.planner import claim_key
+from openinterpretability.until_verified import decide, keep_going, next_turn
 
 MERGE_PERMISSIONS = ("ADMIN", "MAINTAIN", "WRITE")
 CHECKS_TIMEOUT = 45 * 60  # seconds; the land-experiment skill gives up after 45 minutes
@@ -46,6 +47,8 @@ class Options:
     reviewer: str
     epsilon: float = 0.7
     corpus: str | None = None  # None: each new scan builds a fresh corpus from its seed
+    until_verified: bool | None = False  # None: a seeded chance per draw (until_verified.py)
+    max_turns: int = 3  # an until-verified draw's turns, at most (until_verified.MAX_TURNS)
 
 
 @dataclass(frozen=True)
@@ -279,6 +282,8 @@ def iteration(options: Options, plan_next, claims) -> Result:
     say(f"claimed: {url}")
     try:
         status = run_work(work, plan.choice.kind, claim_key(slug))
+        if decide(plan.seed, options.until_verified):
+            status = more_turns(options, plan.choice.kind, slug, status)
     except Exception as exc:
         sh(
             [
@@ -294,6 +299,28 @@ def iteration(options: Options, plan_next, claims) -> Result:
         delete_branch()
         raise
     return Result(slug, status, url, land(url))
+
+
+def more_turns(options: Options, kind: str, slug: str, status: str) -> str:
+    """Run an until-verified draw's later turns on its branch (#4485); return the last verdict.
+
+    Each turn is the unit's superseding follow-up, which builds on the turn before. The
+    sequence ends on a terminal verdict, on a unit with no such follow-up, or after
+    ``options.max_turns``. The PR lands once, after the last turn.
+    """
+    turn = 1
+    while keep_going(kind, status, turn, options.max_turns):
+        plan = next_turn(slug, DEFAULT_WIKI_DIR)
+        if plan is None:
+            say(f"no superseding follow-up for {slug}: the draw ends at turn {turn}")
+            break
+        turn, kind = turn + 1, plan.choice.kind
+        say(f"turn {turn}/{options.max_turns}: {kind} after {status}")
+        corpus = options.corpus or "corpus.jsonl"
+        _, *work, _ = steps(plan, corpus, options.proposer, options.reviewer,
+                            options.corpus is None)  # fmt: skip
+        status = run_work(work, kind, claim_key(slug))
+    return status
 
 
 def run_work(work, kind: str, key: str) -> str:
