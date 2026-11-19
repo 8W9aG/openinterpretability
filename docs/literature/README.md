@@ -160,6 +160,18 @@ Part of the review of interference, weight-space programming and low-rank fine-t
 | [RL's Razor: Why Online Reinforcement Learning Forgets Less](rls-razor.md) (Shenfeld, Pari and Agrawal, ICLR 2026) | planned | Forgetting tracks the base-to-fine-tuned KL on the new task's own inputs, and Fisher-weighted and activation change predict it less well (ParityMNIST). It gives #5118 an output-side predictor to test, per pole, beside Fisher and weight change. |
 | [Mechanistic Analysis of Catastrophic Forgetting in LLMs During Continual Fine-tuning](mechanistic-forgetting-continual-fine-tuning.md) (Lundstrom-Imanov, 2026) | not applicable | Its numbers can't be checked: no code, and v1 and v2 report different studies under one arXiv ID. Its layer-level CKA and per-matrix drift are already covered, with nulls, by #5127 and #5133. |
 
+## Weight-space programming and fast weights
+
+Part of #4782. These pages ask whether one network can write another's weights, and whether reading weights alone can check an explanation.
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Using Fast Weights to Deblur Old Memories](fast-weights-deblur.md) (Hinton and Plaut, 1987) | planned | After later learning blurs old associations, retraining on a few of them restores the rest through shared weights. Fast weights make this temporary. It is evidence for #4782's relearning and interference questions, but it gives no way to read units from weights for ROTATE (#3446). |
+| [Learning to Control Fast-Weight Memories](fast-weight-memories.md) (Schmidhuber, 1992) | planned | A slow net learns by gradient to write a fast net's weights each step. It solves a flip-flop and a variable-binding task with 3 fast weights. Its weights are easy to read only because its codes are local, and it never tests those readings. The repo's own evidence (weight-kurtosis AUC 0.51–0.54, and 1.8% for L4/H1's copy-suppression signature on ordinary text) agrees that weights alone don't check an explanation (#3446). |
+| [Using Fast Weights to Attend to the Recent Past](fast-weights-recent-past.md) (Ba, Hinton, Mnih, Leibo and Ionescu, 2016) | planned | A decaying Hebbian weight matrix, rebuilt for each sequence, equals attention to past states. It helps small RNNs on a key–value task, glimpse MNIST, Multi-PIE and Catch. It explains why weights alone can't check a context rule, which the ground-truth plants and the ROTATE kurtosis results agree with. |
+| [HyperNetworks](hypernetworks.md) (Ha, Dai and Le, 2016) | planned | A small network writes a larger network's weights: static for CNNs (12,544 kernel weights from 4 numbers) and dynamic, per-step row scaling for LSTMs. That row scaling is the form of Qwen's SwiGLU gate, which is why `dead.py` can't prove a gated pole dead from the weights. The paper gives no weight-only check of an explanation (#3446, #3381). |
+| [Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention](linear-attention-transformers-are-rnns.md) (Katharopoulos, Vyas, Pappas and Fleuret, 2020) | not applicable | Kernel attention makes a causal layer an RNN with state Σφ(k)vᵀ. The registry's heads all use softmax, and the state comes from activations, so it gives no check of an explanation without forward passes. Its strongest speed figure is throughput at large batches: one CIFAR-10 image takes 61.3 s against 70.4 s for cached softmax on a GPU. |
+
 ## Philosophy of mind
 
 | Page | Status | Why |
