@@ -191,7 +191,8 @@ jobs:
     name: Record changes
     # Whether a pull request adds or changes a record, by the same rule as
     # `open-interpretability reproduce --base-ref` (checks.py, changed_records), so PRs
-    # without record changes never wait in the reproduce queue.
+    # without record changes never wait in the reproduce queue. A PR whose records all
+    # have a valid signature skips the queue too (#4669): reproduce would skip each one.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
@@ -208,12 +209,31 @@ jobs:
           mapfile -t kinds < <(python3 openinterpretability/core/record_kinds.py)
           git diff --name-only --no-renames --diff-filter=AMT "origin/$BASE_REF...HEAD" \
             -- "${kinds[@]}" | grep '\.json$' | tee records.txt || true
-          echo "records=$([ -s records.txt ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if [ ! -s records.txt ]; then
+            echo "records=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The gate runs from the base branch, so a PR can't change the gate that judges
+          # it. It needs only the standard library, git and ssh-keygen. Any failure,
+          # such as a base branch without the gate, gives "true": reproduce decides.
+          base="$RUNNER_TEMP/base"
+          mkdir -p "$base"
+          records=true
+          gate_file=openinterpretability/signing.py
+          if git archive "origin/$BASE_REF" "$gate_file" | tar -x -C "$base"; then
+            mapfile -t changed < records.txt
+            gate=$(python3 -I "$base/$gate_file" gate \
+              --base-ref "origin/$BASE_REF" "${changed[@]}") || gate=true
+            [ "$gate" = false ] && records=false
+          fi
+          echo "Reproduction needed: $records"
+          echo "records=$records" >> "$GITHUB_OUTPUT"
 
   reproduce:
     name: Reproduce records
     # Re-runs every record a pull request adds or changes against the model it pins
-    # (docs/PROTOCOL.md §5). Skipped when the PR changes no record; a skipped job counts
+    # (docs/PROTOCOL.md §5). Skipped when the PR changes no record, or when every record
+    # it changes has a valid signature; a skipped job counts
     # as passing, so it can still be a required check. Fork PRs get a read-only token
     # and no secrets, and only allow-listed models are downloaded.
     needs: record-changes
