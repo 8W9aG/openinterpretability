@@ -17,6 +17,7 @@ from openinterpretability import explain_plan
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
 from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
+from openinterpretability.explain_stopped import lines as stopped_lines
 from openinterpretability.hubs import hub_line, mark_hubs
 
 
@@ -129,6 +130,7 @@ def explain_command(  # long-function: one argument per option, then one line pe
             "coverage": coverage,
             "coverage_plan": found.reach,
             "answer_experiment": found.answer,
+            "stopped": [{k: v for k, v in r.items() if k != "unit"} for r in found.stopped],
         }
         click.echo(
             json.dumps(out | told | {"run": ran and ran.model_dump()}, indent=1, default=str)
@@ -137,6 +139,7 @@ def explain_command(  # long-function: one argument per option, then one line pe
         _print(result)
         _print_coverage(coverage)
         _print_plan(planned, show, found.reach)
+        click.echo("\n".join(stopped_lines(found.stopped, ask.model)))
         click.echo("\n".join(explain_plan.answer_lines(found.answer)))
     if not as_json:
         _print_narrative(told, level)
@@ -183,6 +186,7 @@ def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
         coverage_plan,
         prompt_coverage,
     )
+    from openinterpretability.explain_stopped import rank as rank_stopped
     from openinterpretability.planner import configured_windows, load_states
 
     model = ask.model
@@ -202,13 +206,14 @@ def _analyse(runner, means, ask: Ask, wiki_dir: Path) -> SimpleNamespace:
     args = (runner, ask.prompt, means, result.token_id, ask.position, result.order)
     coverage = prompt_coverage(*args)
     add_gains(*args, planned, pool=max(POOL, ask.show))  # rank the experiments by coverage gained
+    stopped = rank_stopped(*args, planned, wiki_dir, model)  # the blocked units, by gain (#4951)
     target = explain_plan.TARGET if ask.target is None else ask.target
     reach = coverage_plan(*args, planned, target)  # the target is causal coverage (#4476)
     answer = explain_plan.answer_step(
         wiki_dir, model, ask.prompt, ask.position, result.token, coverage
     )  # how the units make the answer (#4778)
     return SimpleNamespace(result=result, planned=planned, coverage=coverage, groups=groups,
-                           reach=reach, answer=answer)  # fmt: skip
+                           reach=reach, answer=answer, stopped=stopped)  # fmt: skip
 
 
 def _answer(runner, token: str | None) -> int | None:

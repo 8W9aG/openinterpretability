@@ -136,6 +136,7 @@ Pythia-70m copies the first clause's unit because the right unit is weak, not be
 - Pythia SAEs (#5065) and a gradient-routed positive control (#5066) would test the copy another way.
 - The coverage tail of the " days" explanation, and the three units to revise (#5094).
 - The same measures on larger Pythia models would test whether the fact grows strong enough to win.
+- Whether the model can tell a wrong copy from a right one (#5074). The route's units can't, but a residual-stream direction after layer 2 does, modestly (`docs/analyses/copy-route-separation.md`).
 
 ## References
 

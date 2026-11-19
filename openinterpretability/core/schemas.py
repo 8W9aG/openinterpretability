@@ -66,6 +66,7 @@ from openinterpretability.core.wiring import Wiring, WiringEdge  # noqa: F401  (
 VerdictStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
 ProbeKind = Literal["hard_negative", "positive_holdout", "counterfactual", "lookahead_consistency"]
 SelectionMethod = Literal["random", "attribution", "manual"]
+ClaimKind = Literal["detector", "inverse"]  # inverse: when a default-on pole goes quiet (#4951)
 
 PROTOCOL_VERSION = "0.10"
 # Probes a review asks for (PROTOCOL.md §2, step 5): 20 hard negatives, 10 holdouts.
@@ -234,6 +235,7 @@ class ScanEvidence(StrictModel):
     superposition_profile: SuperpositionProfile | None = None
     opposite_pole: OppositePole | None = None
     manifold: ManifoldCheck | None = None  # see NeuronAuditSubmission
+    claim: ClaimKind = "detector"  # see NeuronAuditSubmission
 
     @model_validator(mode="after")
     def _head_profile(self) -> ScanEvidence:
@@ -253,6 +255,7 @@ class NeuronAuditSubmission(StrictModel):
     activating_tokens: list[str]
     counterfactuals: list[CounterfactualPair] = Field(min_length=1)
     lookahead: LookaheadProfile
+    claim: ClaimKind = "detector"  # an inverse claim swaps the review's sides (inverse_claims.py)
     # Other readings that fit the top examples, scored beside it (core/rivals.py, #3197).
     rival_explanations: list[str] = Field(default_factory=list, max_length=MAX_RIVALS)
     submitting_agent_model: str = Field(min_length=1)
@@ -438,6 +441,7 @@ class VerificationVerdict(StrictModel):
         "where it fired (reported, not gated).",
     )
     rivals: RivalComparison | None = None  # reported, not gated (core/rivals.py, #3197)
+    inverse_rule_version: str | None = None  # an inverse claim's rule (inverse_claims.py)
     notes: str = ""
 
 

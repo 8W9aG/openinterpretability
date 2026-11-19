@@ -151,6 +151,18 @@ A verdict is **VERIFIED** only if every gate passes:
 
 If the probe set is adequate (both count gates pass) and balanced accuracy is below **0.60**, the verdict is **REJECTED**. The hypothesis then predicts the neuron barely better than chance. Every other outcome is **NEEDS_REVISION**, and the failed gates are listed in `verdict.notes`.
 
+### Inverse claims
+
+A default-on neuron pole (§1) can't be a detector, but it can be studied with an *inverse claim* (issue #4951). An inverse claim says when the pole goes quiet, below the activity line, on texts where it is otherwise on. `open-interpretability audit --inverse` scans the pole, and the scan doesn't stop because it is default-on. It does stop on a pole that isn't default-on, which is audited as a detector instead. Inverse claims are for neuron poles only.
+
+The review measures the probes as for a detector, and uses the same gates with the sides swapped:
+
+- A **holdout** is a text that the claim says silences the pole. It passes when the pole stays below the line, and the sensitivity gate reads it.
+- A **hard negative** is a near-miss that the claim says keeps the pole on. It passes when the pole reaches the line, and the specificity gate reads it.
+- **`is_default_on`** replaces `not_default_on`: the pole's active share must be at least `max_active_share`, so that the claim applies at all.
+
+Every other gate and the rule for REJECTED are as above. Explanation scores are not computed for an inverse claim, because their judges label where a unit is active. They are reported, not gated, so no verdict depends on them. A VERIFIED inverse claim makes its pole explained for coverage, as any VERIFIED record does. `explain` ranks a prompt's stopped units by the coverage that each would add. It plans an inverse experiment for the first `INVERSE_CAP` (5) default-on poles in that order. Inverse claims have their own rule version (`INVERSE_RULE_VERSION`, §6), which each such verdict records.
+
 ### Circuits
 
 A circuit experiment has its own rule, versioned apart from the rule above (`CIRCUIT_PROTOCOL_VERSION`, §6). The proposer gives a task: clean and corrupted prompt pairs of equal token length, each with the token it predicts. The metric is logit(clean target) − logit(corrupted target) at the last position. The members are the circuit's cluster, grown by attribution patching on the task (`circuits propose`). The reviewer gives holdout pairs of the task and other tasks that the circuit should not carry (`circuits review`). Each set is measured with mean ablation of neurons and heads to their means over its prompts, relative to ablating every neuron and head (`openinterpretability/harness/circuit_measures.py`).
@@ -388,6 +400,14 @@ Answer verdicts have their own version, `ANSWER_PROTOCOL_VERSION` in `core/answe
 | Version | Change |
 | --- | --- |
 | 1.0 | The first answer rule (*Answer experiments* in §4): seven gates, at most 5 attempts on one prompt. |
+
+### The inverse rule
+
+Inverse claims have their own version, `INVERSE_RULE_VERSION` in `openinterpretability/inverse_claims.py`. A change to it doesn't put detector records out of date (issue #4951).
+
+| Version | Change |
+| --- | --- |
+| 1.0 | The first inverse rule (*Inverse claims* in §4): the detector's gates, with holdouts and hard negatives swapped and `is_default_on` in place of `not_default_on`. |
 
 ### Registry-level dependence
 

@@ -147,6 +147,8 @@ def score(
         if emit_task is None and out is None:
             raise click.UsageError("--out is required when scoring in one step.")
         submission = _load_submission(audit_file)
+        if submission.claim == "inverse":  # the judges label activity, not quiet (#4951)
+            raise click.UsageError("explanation scores are not computed for an inverse claim")
         runner = _load_unit_runner(submission.identifier, device, dtype)
         sampling = (seed, window_tokens, quantiles, per_quantile, max_windows, controls)
         if emit_task is not None:

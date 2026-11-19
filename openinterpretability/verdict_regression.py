@@ -38,6 +38,7 @@ def recompute(record: AuditRecord):
         baseline=baseline,
         active_share=stored.active_share,
         first_token_floor=stored.first_token_floor,
+        inverse=record.submission.claim == "inverse",
     )
     return metrics, decide(metrics, verdict.policy)
 
