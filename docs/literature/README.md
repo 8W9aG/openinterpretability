@@ -127,6 +127,14 @@ Part of the review of how to fix a model's behaviour (#4784). These pages cover 
 | [Steering Safely or Off a Cliff?](steering-specificity.md) (Goyal and Daumé, 2026) | planned | It splits a steering fix's side effects into general, control and shift checks: steering keeps refusal on harmful queries but loses 8–55% of jailbreak safety. For #4781 the control set already exists: same-frame prompts where copying is right (" legs", " wheels"). |
 | [Does Steering Break Your Model?](does-steering-break-your-model.md) (Yang et al., 2026) | planned | On two Gemma 2 models, none of 23 activation-steering methods beats prompt steering on effect against side effects such as fluency. That is a reason to score the side effects of our steering samples, and to compare any steering fix with a prompt (#4784, #3209). |
 
+## Catastrophic interference and forgetting
+
+Part of the review of interference, weight-space programming and low-rank fine-tuning (#4782). These pages ask what a change to a network's weights does to what it already knows.
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Why There Are Complementary Learning Systems in the Hippocampus and Neocortex](complementary-learning-systems.md) (McClelland, McNaughton and O'Reilly, 1995) | planned | Slow, interleaved learning finds shared structure, and focused learning of one new fact damages related knowledge where the answers differ. That is the risk for a fix of the #4781 error, and it fits the late changes in the neuron-development paper. |
+
 ## Philosophy of mind
 
 | Page | Status | Why |
