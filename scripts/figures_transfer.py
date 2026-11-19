@@ -3,14 +3,28 @@
 from figure_motion import reveal
 from figure_svg import Figure, Panel, columns
 
-# One colour per class through the paper: sisters, other matches, random poles.
+# One colour and one shape per class through the paper: sisters, other matches, random poles.
+# The shape keeps the classes apart without colour.
 CLASSES = (("sister", "c1", "sisters"), ("match", "c3", "other top matches"),
            ("random", "c2", "random poles"))  # fmt: skip
+SHAPES = {"sister": "circle", "match": "square", "random": "triangle"}
 SLOT_WIDTH = 0.6  # of a class's column, over which its studies spread
 CYCLE = "8s"  # the classes appear one after another, each median after its dots
 # When each class's dots and then its median appear, in percent of the cycle.
 DOTS_AT = {"sister": 8, "match": 30, "random": 52}
 MEDIAN_AFTER = 12
+
+
+def _mark(fig: Figure, name: str, x: float, y: float, size: float, cls: str) -> None:
+    """One study's mark, in its class's shape (:data:`SHAPES`)."""
+    shape = SHAPES[name]
+    if shape == "circle":
+        fig.dot(x, y, size, cls)
+    elif shape == "square":
+        fig.bar(x - size * 0.9, y - size * 0.9, size * 1.8, size * 1.8, cls)
+    else:
+        h = size * 1.15
+        fig.path([(x, y - h), (x + h, y + h * 0.8), (x - h, y + h * 0.8)], cls, close=True)
 
 
 def _shown(fig: Figure, name: str) -> tuple[str, str]:
@@ -29,7 +43,7 @@ def _strip(fig: Figure, panel: Panel, studies: list[dict]) -> None:
         values = sorted(s["balanced_accuracy"] for s in studies if s["class"] == name)
         for i, value in enumerate(values):
             x = slot + 0.5 + SLOT_WIDTH * ((i % 7) / 6 - 0.5)  # a fixed spread, not random
-            fig.dot(panel.x(x), panel.y(value), 3.5, f"f{colour} {dots}")
+            _mark(fig, name, panel.x(x), panel.y(value), 3.5, f"f{colour} {dots}")
         mid = values[len(values) // 2] if len(values) % 2 else sum(values[len(values) // 2 - 1:
               len(values) // 2 + 1]) / 2  # fmt: skip
         fig.line(panel.x(slot + 0.15), panel.y(mid), panel.x(slot + 0.85), panel.y(mid),
@@ -46,8 +60,8 @@ def _scatter(fig: Figure, panel: Panel, studies: list[dict]) -> None:
     for name, colour, _ in CLASSES[:2]:
         for s in studies:
             if s["class"] == name and s["pearson"] is not None:
-                fig.dot(panel.x(s["pearson"]), panel.y(s["balanced_accuracy"]), 4,
-                        f"f{colour} {name}dots")  # fmt: skip
+                _mark(fig, name, panel.x(s["pearson"]), panel.y(s["balanced_accuracy"]), 4,
+                      f"f{colour} {name}dots")  # fmt: skip
 
 
 def transfer(rows: list[dict]) -> Figure:
@@ -59,8 +73,10 @@ def transfer(rows: list[dict]) -> Figure:
             "than to another match or a random pole",
         ],
         [
-            "Each dot is a sister study: the balanced accuracy of the source's explanation "
-            "on the tested pole. The line marks chance.",
+            "Each mark is a sister study: the balanced accuracy of the source's explanation "
+            "on the tested pole.",
+            "Circles are sisters, squares other matches and triangles random poles. "
+            "The line marks chance.",
         ],
         "Two plots. Left: balanced accuracy by class, with medians of 0.78 for sisters, 0.55 "
         "for other matches and 0.45 for random poles. Right: balanced accuracy against the "
@@ -74,7 +90,11 @@ def transfer(rows: list[dict]) -> Figure:
     _strip(fig, left, studies)
     _scatter(fig, right, studies)
     bottom = left.top + left.height + 48
-    fig.legend(bottom, [(f"f{c}", label) for _, c, label in CLASSES])
+    x = 20.0
+    for name, colour, label in CLASSES:  # the legend in each class's shape, not only colour
+        _mark(fig, name, x + 5, bottom - 4, 5, f"f{colour}")
+        fig.text(x + 15, bottom, label)
+        x += 26 + 6.6 * len(label)
     fig.bottom = bottom
     return fig
 
