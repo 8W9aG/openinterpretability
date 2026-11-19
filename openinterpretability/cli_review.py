@@ -172,6 +172,15 @@ def sisters_text(identifier, wiki_dir, role: str, exclude=()) -> str:
     return text
 
 
+def partners_text(evidence, wiki_dir) -> str:
+    """The proposer's section on the unit's co-activating partners (#3240), or ""."""
+    from openinterpretability.cli import _skip_wiki
+    from openinterpretability.partner_context import partner_context
+
+    wiki = None if _skip_wiki(wiki_dir) else wiki_dir
+    return partner_context(evidence.identifier, evidence.correlated_neurons, wiki)
+
+
 def aligned_latents_text(submission, wiki_dir) -> str:
     """The reviewer's section on aligned dictionary latents, or "" if there are none."""
     from openinterpretability.builder.wiki import load_archive
