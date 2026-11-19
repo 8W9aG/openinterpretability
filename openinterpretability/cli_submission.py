@@ -158,6 +158,7 @@ def write_submission(
         update={
             "contributor": contributor,
             "opposite_pole": evidence.opposite_pole,
+            "claim": evidence.claim,
             "provenance": provenance,
             "supersedes": revises,
             "sister_of": sister and sister_ref(sister),

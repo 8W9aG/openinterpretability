@@ -63,6 +63,8 @@ from openinterpretability.harness.confounds import (
 )
 from openinterpretability.harness.environment import run_environment
 from openinterpretability.harness.hooks import NeuronHookRunner
+from openinterpretability.inverse_claims import INVERSE_RULE_VERSION, count_line
+from openinterpretability.inverse_claims import gates as claim_gates
 
 
 class AdversarialProbe(BaseModel):  # noqa: D101 (a docstring would join the JSON schema that the agent reads)
@@ -190,7 +192,7 @@ class ReviewerAgent(LLMAgent):
             + (f"{context}\n" if context else "")
             + (f"{related}\n" if related else "")
             + (f"{art}\n" if (art := prior_art.format_for_reviewer(submission.prior_art)) else "")
-            + "Write {} probes: {} hard negatives and {} positive holdouts.".format(n, *split(n))
+            + count_line(submission, n, *split(n))
             + LENGTH_MATCHED
         )
 
@@ -276,7 +278,7 @@ def repeated_runs(ids: Sequence[int]) -> list[tuple[int, int]]:
     ]
 
 
-def evaluate_submission(
+def evaluate_submission(  # long-function: the review's steps, one or two lines each
     submission: NeuronAuditSubmission,
     runner: NeuronHookRunner,
     probes: Sequence[AdversarialProbe],
@@ -293,7 +295,9 @@ def evaluate_submission(
     lap = costs.laps()
     submission, unit, scale = settle_first_token_floor(submission, runner, policy)
     threshold = policy.activation_threshold * scale
-    results, measured_probes, actual = measure_probes(runner, unit, probes, scale, threshold)
+    inverse = submission.claim == "inverse"
+    results, measured_probes, actual = measure_probes(runner, unit, probes, scale, threshold,
+                                                      inverse)  # fmt: skip
     labels = [(p.expected_active, p.rival_expected_active or None) for p in measured_probes]
     rivals = compare(submission.natural_language_explanation, submission.rival_explanations,
                      labels, actual)  # fmt: skip
@@ -307,6 +311,7 @@ def evaluate_submission(
         baseline=confound_baseline(submission, runner, measured_probes, actual, threshold, policy),
         active_share=scan_active_share(submission, policy),
         first_token_floor=submission.first_token_floor,
+        inverse=inverse,
     )
     lap("gates")
     causal, joint = causal_readouts(submission, runner, probes, policy, scale)
@@ -327,6 +332,7 @@ def evaluate_submission(
         environment=run_environment(runner),
         wiring=wiring,
         rivals=rivals,
+        inverse_rule_version=INVERSE_RULE_VERSION if inverse else None,
         notes=_summary(results, metrics),
     )
 
@@ -410,6 +416,7 @@ def review_metrics(
     baseline: tuple[str, float] | None = None,
     active_share: float | None = None,
     first_token_floor: bool | None = None,
+    inverse: bool = False,
 ) -> ReviewMetrics:
     """The rates and gates of the decision rule, from the measured results (docs/PROTOCOL.md §4)."""
 
@@ -429,9 +436,8 @@ def review_metrics(
         baseline is not None and round(balanced, 6) >= baseline[1]
     )
 
-    gates = _gates(
-        policy, negatives, holdouts, reproduction, lookahead, independent, beats, active_share
-    )
+    gates = claim_gates(policy, negatives, holdouts, reproduction, lookahead, independent, beats,
+                        active_share, inverse)  # fmt: skip
     return ReviewMetrics(
         specificity=None if negatives.rate is None else round(negatives.rate, 6),
         sensitivity=None if holdouts.rate is None else round(holdouts.rate, 6),
@@ -447,23 +453,6 @@ def review_metrics(
         active_share=None if active_share is None else round(active_share, 6),
         first_token_floor=first_token_floor,
     )
-
-
-def _gates(
-    policy, negatives, holdouts, reproduction, lookahead, independent, beats, active_share
-) -> dict[str, bool]:
-    return {
-        "enough_hard_negatives": negatives.clusters >= policy.min_hard_negatives,
-        "enough_holdouts": holdouts.clusters >= policy.min_holdouts,
-        "specificity": (negatives.rate or 0.0) >= policy.min_specificity,
-        "sensitivity": (holdouts.rate or 0.0) >= policy.min_sensitivity,
-        "counterfactual_reproduction": (reproduction or 0.0)
-        >= policy.min_counterfactual_reproduction,
-        "lookahead_consistent": lookahead,
-        "independent_review": independent or not policy.require_independent_review,
-        "beats_confound_baseline": beats,
-        "not_default_on": active_share is None or active_share < policy.max_active_share,
-    }
 
 
 def decide(metrics: ReviewMetrics, policy: ReviewPolicy) -> VerdictStatus:

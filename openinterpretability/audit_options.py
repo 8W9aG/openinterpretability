@@ -17,6 +17,8 @@ from pathlib import Path
 
 import click
 
+from openinterpretability.inverse_claims import inverse_preamble  # noqa: F401  (re-exported)
+
 scan_cache_option = click.option(
     "--scan-cache/--no-scan-cache",
     "use_scan_cache",
@@ -77,3 +79,11 @@ def resolve_unit(unit, neuron, pole, head, feature, dictionary) -> str:
     if unit != "feature" and (feature is not None or dictionary is not None):
         raise click.UsageError("--feature and --dictionary need --unit feature (or no --unit).")
     return unit
+
+
+inverse_option = click.option(
+    "--inverse",
+    is_flag=True,
+    help="Audit a default-on neuron pole with an inverse claim: when it goes quiet. "
+    "Reviewed with the gates' sides swapped (docs/PROTOCOL.md, Inverse claims, #4951).",
+)

@@ -89,6 +89,7 @@ class ScanRequest:
     selection: str | None = (
         None  # a chosen unit's selection (openinterpretability/audit_options.py)
     )
+    inverse: bool = False  # an inverse claim on a default-on pole (inverse_claims.py)
 
 
 @dataclass
@@ -155,7 +156,9 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
     if not scan.examples or scan.examples[0].max_activation <= 0:
         raise dead_unit(runner, ident, provenance)
     check_ceiling(runner, ident, scan.examples[0].max_activation)
-    check_default_on(ident, scan.values, scan.examples[0].max_activation, provenance)
+    from openinterpretability.inverse_claims import check_scan
+
+    check_scan(ident, scan.values, scan.examples[0].max_activation, provenance, request.inverse)
     from openinterpretability.evidence_lenses import read_lenses, read_manifold
 
     lens, attribution = read_lenses(runner, request, ident, spec, corpus, scan)
@@ -175,6 +178,7 @@ def scan_evidence(runner, request: ScanRequest, scan_cache=None):
         superposition_profile=scan.profile if unit == "superposition" else None,
         opposite_pole=opposite_pole(scan),
         manifold=read_manifold(runner, ident, scan),
+        claim="inverse" if request.inverse else "detector",
     )
 
 
