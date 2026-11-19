@@ -1,11 +1,11 @@
 ---
 name: release
-description: Cut a package release of openinterpretability. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run. Bump `openinterpretability.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterpretability. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run, and the concept map of every model (`make maps`). Bump `openinterpretability.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterpretability
 
-A release does two jobs. It refreshes the analyses that are too slow to run per experiment, which today is the sister search. Then it versions what's on `main`. Do them in that order, so that the release ships the refreshed rows.
+A release does two jobs. It refreshes the analyses that are too slow to run per experiment. These are the sister search, the registry coverage, the circuit ids and the concept maps. Then it versions what's on `main`. Do them in that order, so that the release ships the refreshed rows.
 
 The CHANGELOG's header explains the two version numbers. The **package version** (`openinterpretability/__init__.py`) changes every release. The **protocol version** (`PROTOCOL_VERSION` in `openinterpretability/core/schemas.py`) changes only in the PR that changes the decision rule, never here. A release only reports it.
 
@@ -30,11 +30,18 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    gh pr list --author app/dependabot
    ```
    Merge Dependabot's own PRs when CI is green. For an alert with no PR, upgrade the package (`uv lock --upgrade-package <name>`), run `make lint test`, and open one PR for all of them. GitHub closes an alert when `main` no longer has the vulnerable version. If no fixed version exists, or the package is never reached at run time, don't dismiss the alert yourself. List it in the release PR with the reason, and the maintainer decides.
-2. **Resolve every open code-scanning (CodeQL) alert.**
+2. **Run CodeQL on `main`, then fix everything it finds.** The maintainer decided on 2026-11-19 that each release runs a fresh scan, not only the daily one (`.github/workflows/codeql.yml`). Start it and wait for it:
+   ```bash
+   gh workflow run codeql.yml --ref main
+   sleep 10
+   run=$(gh run list --workflow codeql.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$run" --exit-status
+   ```
+   If the run fails, read its log and fix the cause before going on. Then list the open alerts:
    ```bash
    gh api "repos/8W9aG/openinterpretability/code-scanning/alerts?state=open" --jq '.[] | "\(.number) \(.rule.severity) \(.rule.id) \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"'
    ```
-   Fix each one in the code, with a test where the fix changes behaviour. GitHub closes an alert when the next scan of `main` no longer finds it. A false positive is listed in the release PR with the reason, for the maintainer to dismiss.
+   Fix every alert in the code, whatever its severity, with a test where the fix changes behaviour. The fixes merge before the release branch is cut. Then run the scan again, as above, and check that the list is empty. GitHub closes an alert when a scan of `main` no longer finds it. If an alert is a false positive, change the code so that the scan no longer flags it, where that keeps the code clear. Otherwise list it in the release PR with the reason, and the maintainer dismisses it.
 3. **Land lingering experiment PRs.** The maintainer asked on 2026-11-15 that a release try to merge the experiment PRs that were left behind. Take the open ones that are ready (not drafts) and more than 12 hours old. Each must come from a branch of this repository, opened by the maintainer's account (`8W9aG`, which the experiment loops use):
    ```bash
    cutoff=$(date -u -v-12H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '12 hours ago' +%Y-%m-%dT%H:%M:%SZ)
@@ -105,6 +112,12 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    ```
    Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md` (dots as hyphens).
    Then update the circuit ids: `uv run open-interpretability circuits identify`. It appends each model's new, grown, split, merged and gone circuits to `data/circuits/<model>.jsonl` (`docs/circuits-and-hubs.md`). Commit those files in the release PR too.
+   Then rebuild the concept maps on the model pages (#4785): `make maps`. It runs `open-interpretability map` for each configured model, on CPU. A model with too few studied poles gets no map. Each map's `date` becomes the release date. Commit `data/concept-maps/*.json` in the release PR. In the PR body, give how many poles and clusters each map gained:
+   ```bash
+   for f in data/concept-maps/*.json; do
+     python3 -c 'import json,subprocess,sys; f=sys.argv[1]; n=json.load(open(f)); o=json.loads(subprocess.run(["git","show","HEAD:"+f],capture_output=True,text=True).stdout or "{}"); print(f, len(n.get("points",[]))-len(o.get("points",[])), "poles,", len(n.get("clusters",[]))-len(o.get("clusters",[])), "clusters")' "$f"
+   done
+   ```
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
    Then run the benchmarks on CI. They no longer run on a local machine (#3808):
    ```bash
@@ -119,7 +132,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    If the protocol version changed since the last tag (`git diff v<previous> -- openinterpretability/core/schemas.py | grep PROTOCOL_VERSION`), say so in that line: "Ships with protocol version **0.9** (was 0.8)." The section's entries explain why.
 7. **Commit and push.** Check the branch first (`git branch --show-current` prints `release/<version>`):
    ```bash
-   git add CHANGELOG.md changelog.d openinterpretability/__init__.py docs/analyses/sister-neurons.jsonl docs/analyses/registry-coverage.jsonl data/circuits
+   git add CHANGELOG.md changelog.d openinterpretability/__init__.py docs/analyses/sister-neurons.jsonl docs/analyses/registry-coverage.jsonl data/circuits data/concept-maps
    git commit -m "Release <version> (protocol v<PROTOCOL_VERSION>)"
    git push -u origin release/<version>
    ```
@@ -127,7 +140,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    ```bash
    gh pr create --title "Release <version> (protocol v<PROTOCOL_VERSION>)" --body "..."
    ```
-   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped). Open it ready, not as a draft. The maintainer decided on 2026-11-15 that you merge it yourself, as `next-issue` step 6 merges an issue's PR:
+   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped) and what each concept map gained. Open it ready, not as a draft. The maintainer decided on 2026-11-15 that you merge it yourself, as `next-issue` step 6 merges an issue's PR:
    1. Merge `origin/main` into the release branch first. Collect any changelog fragments that arrived since step 6 into the version's section, under their types. Then run `make lint test` and push.
    2. Wait for every check on the head commit. Then merge with `gh pr merge <number> --squash --match-head-commit <sha>`. Never use `--admin`.
 9. **Tag the merged commit.** Do this after the PR merges, not before. A squash merge makes a new commit on `main`, so a tag on the release branch's commit is not on `main`:

@@ -3,6 +3,12 @@
 
 {% block title %}Research · {{ site_title }}{% endblock %}
 
+{# The section's feeds (builder/research_feeds.py, #4256). #}
+{% block head %}
+<link rel="alternate" type="application/atom+xml" title="Papers" href="{{ root }}research/papers.xml">
+{% if reviewed %}<link rel="alternate" type="application/atom+xml" title="Literature reviews" href="{{ root }}research/literature.xml">{% endif %}
+{% endblock %}
+
 {% set link = "text-brand-700 underline underline-offset-2 dark:text-brand-400" %}
 
 {% block content %}
