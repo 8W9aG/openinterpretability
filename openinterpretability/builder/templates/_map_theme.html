@@ -1,0 +1,82 @@
+{# The theme of the site's cluster maps (builder/cluster_map.py, #4577): the literature map and
+   each model's concept map. The palette is the dataviz skill's, validated for colour-blind
+   readers in both modes. A figure.litmap holds an svg, a .map-links group (optional) and a
+   .map-card. Each mark is an <a> with data-x, data-y, data-title and data-status, and may
+   have data-credit, data-why, data-name and data-near. #}
+<style>
+  .litmap { --surface: #ffffff; --ink: #1f2937; --muted: #6b7280; --card: #ffffff; --card-ink: #111827; --card-line: #d1d5db; --lead: #6b7280;
+    --s0: #8b9099; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; }
+  @media (prefers-color-scheme: dark) {
+    .litmap { --surface: #05060a; --ink: #e5e7eb; --muted: #9ca3af; --card: #e5e7eb; --card-ink: #111827; --card-line: #e5e7eb; --lead: #9ca3af;
+      --s0: #7d828c; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; }
+  }
+  .litmap .f0 { fill: var(--s0); } .litmap .f1 { fill: var(--s1); } .litmap .f2 { fill: var(--s2); } .litmap .f3 { fill: var(--s3); }
+  .litmap .f4 { fill: var(--s4); } .litmap .f5 { fill: var(--s5); } .litmap .f6 { fill: var(--s6); } .litmap .f7 { fill: var(--s7); } .litmap .f8 { fill: var(--s8); }
+  .litmap .sw0 { background: var(--s0); } .litmap .sw1 { background: var(--s1); } .litmap .sw2 { background: var(--s2); } .litmap .sw3 { background: var(--s3); }
+  .litmap .sw4 { background: var(--s4); } .litmap .sw5 { background: var(--s5); } .litmap .sw6 { background: var(--s6); } .litmap .sw7 { background: var(--s7); } .litmap .sw8 { background: var(--s8); }
+  .litmap .ink-dark { fill: #111827; color: #111827; } .litmap .ink-light { fill: #ffffff; color: #ffffff; }
+  .litmap svg .paper { stroke: var(--surface); stroke-width: 1; }
+  .litmap.dense svg .paper { stroke-width: 0.4; }
+  .litmap svg.focusing .paper:not(.focus):not(.near), .litmap svg.focusing .queued, .litmap svg.focusing .pair { opacity: 0.15; }
+  .litmap svg .paper.focus { stroke: var(--ink); stroke-width: 2.5; }
+  .litmap svg a:focus-visible .paper { stroke: var(--ink); stroke-width: 2.5; }
+  .litmap svg a { outline: none; }
+  @media (max-width: 640px) { .litmap .callout { display: none; } }
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var ns = "http://www.w3.org/2000/svg";
+  document.querySelectorAll("figure.litmap").forEach(function (fig) {
+    var svg = fig.querySelector("svg"), card = fig.querySelector(".map-card");
+    var links = svg && svg.querySelector(".map-links");
+    if (!svg || !card) return;
+    var marks = svg.querySelectorAll("a[data-x]"), byName = {};
+    marks.forEach(function (a) { if (a.dataset.name) byName[a.dataset.name] = a; });
+    function clear() {
+      svg.classList.remove("focusing");
+      svg.querySelectorAll(".focus, .near").forEach(function (e) { e.classList.remove("focus", "near"); });
+      if (links) while (links.firstChild) links.removeChild(links.firstChild);
+      card.classList.add("hidden");
+    }
+    function line(text, style) {
+      var el = document.createElement("div");
+      el.textContent = text;
+      if (style) el.className = style;
+      card.appendChild(el);
+    }
+    function show(a) {
+      clear();
+      svg.classList.add("focusing");
+      var mark = a.querySelector(".paper");
+      if (mark) mark.classList.add("focus");
+      (a.dataset.near || "").split(" ").forEach(function (n) {
+        var b = byName[n];
+        if (!b || !links) return;
+        b.querySelector(".paper").classList.add("near");
+        var l = document.createElementNS(ns, "line");
+        l.setAttribute("x1", a.dataset.x); l.setAttribute("y1", a.dataset.y);
+        l.setAttribute("x2", b.dataset.x); l.setAttribute("y2", b.dataset.y);
+        links.appendChild(l);
+      });
+      card.textContent = "";
+      line(a.dataset.title, "font-bold");
+      if (a.dataset.credit) line(a.dataset.credit, "italic");
+      line(a.dataset.status, "text-slate-600");
+      if (a.dataset.why) line(a.dataset.why, "mt-1 text-xs");
+      card.classList.remove("hidden");
+      var box = svg.getBoundingClientRect(), outer = fig.getBoundingClientRect();
+      var scale = box.width / svg.viewBox.baseVal.width;
+      var x = box.left - outer.left + a.dataset.x * scale + 12;
+      var y = box.top - outer.top + a.dataset.y * scale + 12;
+      card.style.left = Math.max(Math.min(x, outer.width - card.offsetWidth - 8), 8) + "px";
+      card.style.top = y + "px";
+    }
+    marks.forEach(function (a) {
+      a.addEventListener("mouseenter", function () { show(a); });
+      a.addEventListener("focus", function () { show(a); });
+      a.addEventListener("mouseleave", clear);
+      a.addEventListener("blur", clear);
+    });
+  });
+});
+</script>
