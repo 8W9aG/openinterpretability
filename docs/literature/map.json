@@ -3,380 +3,440 @@
  "reviews": [
   {
    "name": "activation-addition",
-   "x": 0.4193,
-   "y": 0.5283,
+   "x": 0.6048,
+   "y": 0.4353,
    "sha256": "099937804f0e0d4f9961000fd4be978c2209ab781d2400472218e95982d73da4"
   },
   {
    "name": "activation-inversion",
-   "x": 0.3489,
-   "y": 0.4572,
+   "x": 0.4371,
+   "y": 0.4991,
    "sha256": "037f1032248f34102b7ef5b92c66401761e82008aa2c6fb393891fd925dd8290"
   },
   {
    "name": "activation-probes-few-positives",
-   "x": 0.1178,
-   "y": 0.5778,
+   "x": 0.4277,
+   "y": 0.1468,
    "sha256": "dfcfa7e01bc82dcabd87f0763226287001ef3d815bca49b29e9b07197efe0cc6"
   },
   {
    "name": "affine-steering",
-   "x": 0.2241,
-   "y": 0.5215,
+   "x": 0.4641,
+   "y": 0.2789,
    "sha256": "c22e3aa098d933da655d9dca98949d88b75c2fd26f21cd60e83873fbcf9c1324"
   },
   {
    "name": "aging-with-grace",
-   "x": 0.7026,
-   "y": 0.1956,
+   "x": 0.5665,
+   "y": 0.9248,
    "sha256": "8891a0cab5890ef41ba906ef78508ee7517cd5d1ea666c439131910d69fa5e01"
   },
   {
    "name": "axbench",
-   "x": 0.1846,
-   "y": 0.4654,
+   "x": 0.4842,
+   "y": 0.214,
    "sha256": "32eb43daa2270f2e63f306cfe95e65b789e1a7bd45c874cb17da9474ecf20701"
   },
   {
    "name": "beyond-top-activations",
-   "x": 0.1787,
-   "y": 0.4164,
+   "x": 0.3508,
+   "y": 0.3298,
    "sha256": "e74f4f0caeda073dafe42fb5ba55c7a1a0a19e74b22f600bdcb783a9c4264b74"
   },
   {
    "name": "biology-of-a-large-language-model",
-   "x": 0.389,
-   "y": 0.5715,
+   "x": 0.624,
+   "y": 0.3687,
    "sha256": "24ec59b42dfd149f4c0385ab9f00c544433061a3db82441c93626bed119758d8"
   },
   {
    "name": "calibrated-concept-profiles",
-   "x": 0.1788,
-   "y": 0.4249,
+   "x": 0.4719,
+   "y": 0.2135,
    "sha256": "9bbb476a34f8af158497542c05d9397931585bd3485ef98282544e2fffd78d0e"
   },
   {
+   "name": "catastrophic-forgetting-connectionist",
+   "x": 0.0641,
+   "y": 0.7665,
+   "sha256": "73ad8d64834b8a30f0e1f25813acc89666bb669e4d130e63d3904367aa7a3288"
+  },
+  {
+   "name": "catastrophic-forgetting-empirical",
+   "x": 0.0056,
+   "y": 0.8138,
+   "sha256": "c10f0c2f395247d6b92cf66cce0e04ba33df231293f83387e1bdb0907bdf8fda"
+  },
+  {
    "name": "causally-grounded-explanations",
-   "x": 0.4374,
-   "y": 0.6942,
+   "x": 0.6846,
+   "y": 0.3735,
    "sha256": "16b67268840dcdaad5ed219641ed8f29fd0176ef5ef8cfd7c08d22764c394d61"
   },
   {
    "name": "circuit-breakers",
-   "x": 0.3426,
-   "y": 0.419,
+   "x": 0.4546,
+   "y": 0.4778,
    "sha256": "7697f1377ceb15faebcbaedac7a72e4d7dc675294802e754d408475486b1ff29"
   },
   {
    "name": "complementary-learning-systems",
-   "x": 0.3254,
-   "y": 0.4509,
+   "x": 0.3275,
+   "y": 0.5646,
    "sha256": "96b68779ea632bac18f781dec4df341fd140900fa62973ea334f368c526f7517"
   },
   {
    "name": "concept-ablation-fine-tuning",
-   "x": 0.2974,
-   "y": 0.4918,
+   "x": 0.5045,
+   "y": 0.3599,
    "sha256": "d6ac53ba41b14f6acae9479f9b665388ef94438245a3155ae50e264e62fac86d"
   },
   {
    "name": "conditional-memory-via-scalable-lookup",
-   "x": 0.4385,
-   "y": 0.2756,
+   "x": 0.4738,
+   "y": 0.6223,
    "sha256": "3de6f45a403aaa950a57dfb37c4618908804856b6bfb8af91a5d5cfd0063c9b8"
   },
   {
    "name": "context-language-models",
-   "x": 0.7323,
-   "y": 0.3775,
+   "x": 0.7052,
+   "y": 0.8193,
    "sha256": "91ea400b6e7171e8084b412ed921b5b23ee05789c4d80b3254c6daa3c093c17b"
   },
   {
    "name": "contrastive-activation-addition",
-   "x": 0.2915,
-   "y": 0.6731,
+   "x": 0.5214,
+   "y": 0.3068,
    "sha256": "1ee52c344aaf7728231db124b10598095f664d16f9a07da58fd8f69d95cf4692"
   },
   {
    "name": "copy-suppression-head",
-   "x": 0.3989,
-   "y": 0.3663,
+   "x": 0.4663,
+   "y": 0.5616,
    "sha256": "f2fdfa8388d3c22be85a8fd498f1bd7bc2ce106cf0577bd5ee4f7a05565c7c1b"
   },
   {
    "name": "dissecting-factual-recall",
-   "x": 0.5537,
-   "y": 0.5917,
+   "x": 0.6544,
+   "y": 0.5943,
    "sha256": "e0405a36bf22062c43de62ade879b8e2914407a45c95d24ff04ba96efcef815f"
   },
   {
    "name": "distillation-robustifies-unlearning",
-   "x": 0.5219,
-   "y": 0.2804,
+   "x": 0.5233,
+   "y": 0.7019,
    "sha256": "52a0671d769754d9bad774f634780271db3b6c43b69004c0d46fdcba78ac5ee1"
   },
   {
    "name": "does-localization-inform-editing",
-   "x": 0.7556,
-   "y": 0.482,
+   "x": 0.8295,
+   "y": 0.7415,
    "sha256": "23ea4422d96b99355c7a29416e2047cc30c24c9c4f7038a3c83881896a2bd807"
   },
   {
    "name": "does-steering-break-your-model",
-   "x": 0.1183,
-   "y": 0.4244,
+   "x": 0.3753,
+   "y": 0.2178,
    "sha256": "34d72234143496ee0109dc8b085c11f8fee0522d6f6ecbb3325fc1635ff61e30"
   },
   {
    "name": "editing-factual-knowledge",
-   "x": 0.7767,
-   "y": 0.2356,
+   "x": 0.6602,
+   "y": 0.9477,
    "sha256": "94edcbd6b03381adf3a33cabc4a6f45d1bd4234e2666fa34f5d9c3f6f6e151c4"
   },
   {
    "name": "editing-llms-survey",
-   "x": 0.8909,
-   "y": 0.3273,
+   "x": 0.866,
+   "y": 0.9095,
    "sha256": "4e1c1a35342026f2bdc5d931b1a798b636fdbd836e8f85232406a90a53480c04"
   },
   {
+   "name": "elastic-weight-consolidation",
+   "x": 0.0435,
+   "y": 0.8552,
+   "sha256": "41bed7b0e7b8d86d260dc2b0ab4be516f5315cb79f629db3433c08a1ce433360"
+  },
+  {
    "name": "evaluating-neuron-explanations",
-   "x": 0.1634,
-   "y": 0.6627,
+   "x": 0.4792,
+   "y": 0.1607,
    "sha256": "eef9707c7e61d267a3cd4198360298742497528955c4ea7f9180e4c479d3745f"
   },
   {
    "name": "factual-recall-mechanisms",
-   "x": 0.7654,
-   "y": 0.7587,
+   "x": 0.84,
+   "y": 0.7129,
    "sha256": "90067d0e85e515656fe9da26d076034ca2c474d8c270c09da0c427d4eb595edf"
   },
   {
    "name": "faithful-stable-explanations",
-   "x": 0.1208,
-   "y": 0.4715,
+   "x": 0.2776,
+   "y": 0.305,
    "sha256": "6a5d2e2ef703fec08bc92eafabd1b23164dcb1ecf2c7937874c04aa6710b332f"
   },
   {
    "name": "fast-model-editing",
-   "x": 0.727,
-   "y": 0.0,
+   "x": 0.5985,
+   "y": 0.9542,
    "sha256": "fb3080725243bd2873889fb2563b41131f35ce876c04a8d338594ee6505e5807"
   },
   {
    "name": "ffn-key-value-memories",
-   "x": 0.3914,
-   "y": 0.2714,
+   "x": 0.4227,
+   "y": 0.5991,
    "sha256": "1fdb4d9f70b31e0a7844de3f5bf75ca1713d323a8e6e9aa4a9001ce782bb2db4"
   },
   {
    "name": "fine-tuning-new-knowledge",
-   "x": 0.5359,
-   "y": 0.701,
+   "x": 0.6674,
+   "y": 0.5453,
    "sha256": "8d91d2fd25682fd278a9e6a1dd75990c5395ed4977aca76d6ff61bcf0590658a"
   },
   {
+   "name": "gradient-episodic-memory",
+   "x": 0.1566,
+   "y": 0.9062,
+   "sha256": "3999f280ac0ad059549faf4b143872d60691b0598be95cb4a6debf36a79b78d0"
+  },
+  {
    "name": "gradient-routing",
-   "x": 0.1034,
-   "y": 0.1052,
+   "x": 0.1469,
+   "y": 0.4344,
    "sha256": "54e7a9138489f3db235066424c8cae63ce88759827a09770e62a2f818a62f600"
   },
   {
+   "name": "hard-attention-to-the-task",
+   "x": 0.0,
+   "y": 0.8219,
+   "sha256": "49444830d0564aa8b24c41ff4bb75dc20a3b0d9db914e2720ff595a567fe8fe1"
+  },
+  {
    "name": "induction-heads-in-context-learning",
-   "x": 0.4312,
-   "y": 0.5367,
+   "x": 0.562,
+   "y": 0.503,
    "sha256": "38118e14d418545d98fa827f36ff1955613298ea31983846cca876f55b319bf9"
   },
   {
    "name": "inference-time-intervention",
-   "x": 0.551,
-   "y": 0.783,
+   "x": 0.7004,
+   "y": 0.5219,
    "sha256": "0e3410d1dc5b7ad4bee125d7cd7ae7107fb081b0a0b90306a4abd56e95ef731c"
   },
   {
    "name": "knowledge-awareness-entities",
-   "x": 0.5658,
-   "y": 0.7484,
+   "x": 0.8047,
+   "y": 0.4495,
    "sha256": "2b853407d601c629976c9296af4b02327fb6df982050646a14e84b815c7d8800"
   },
   {
    "name": "latent-steering-vectors",
-   "x": 0.4385,
-   "y": 0.4294,
+   "x": 0.5205,
+   "y": 0.5625,
    "sha256": "1b2cad494ed7579cab0444e988442b748f4919c3a2d667d14158c987f59400b2"
   },
   {
+   "name": "learning-without-forgetting",
+   "x": 0.1307,
+   "y": 0.8308,
+   "sha256": "0f4f201b2664469bf65194cd63d85d7e2a762ae409cb847499e8bb05f3388459"
+  },
+  {
    "name": "levins-ingressing-minds-from-platonic-space",
-   "x": 0.2782,
-   "y": 0.885,
+   "x": 0.5664,
+   "y": 0.2221,
    "sha256": "5286377b450b074e27ca75abf58e23b762472552751ad3f48716c0cb858b8af5"
   },
   {
    "name": "linear-probe-evidence",
-   "x": 0.099,
-   "y": 0.6733,
+   "x": 0.5505,
+   "y": 0.0,
    "sha256": "610ba4f50ad6b66a8133cd7ec936e573ef7fdb34862f44d5c23b404e11e45527"
   },
   {
    "name": "mechanistic-unlearning",
-   "x": 0.7506,
-   "y": 0.4443,
+   "x": 0.6816,
+   "y": 0.8767,
    "sha256": "2a2924d0e5473222e11ac57324a006d7efe819339eae5d011edf7991733c239f"
   },
   {
    "name": "memory-based-model-editing",
-   "x": 0.7252,
-   "y": 0.1483,
+   "x": 0.6649,
+   "y": 0.8731,
    "sha256": "1ba2d379843dcd7895d55ebe19a419cf8dbdcc5f6a89934b4124fa48c2cc8c3f"
   },
   {
    "name": "mirage-of-model-editing",
-   "x": 0.9217,
-   "y": 0.544,
+   "x": 0.9302,
+   "y": 0.883,
    "sha256": "b9a2b2fe8cd33a82b0ed1ce41997a7a1bc78098477ab8ca99279ffaa97f46426"
   },
   {
    "name": "model-graded-robustness",
-   "x": 0.5189,
-   "y": 0.8088,
+   "x": 0.8512,
+   "y": 0.327,
    "sha256": "b09e1ff11eb5801ab7b5a20a189fe752050f300a8fd4dd92ddc37e3d1c26c3e4"
   },
   {
    "name": "models-rewrite-own-weights",
-   "x": 0.6899,
-   "y": 0.2083,
+   "x": 0.6623,
+   "y": 0.8142,
    "sha256": "be938bd393521df2a6878bd075f13ed3e5ab279b6c2cbef5730d86735816c657"
   },
   {
    "name": "mquake",
-   "x": 1.0,
-   "y": 0.7115,
+   "x": 0.9616,
+   "y": 0.9512,
    "sha256": "0797afe3dbd68bb4e4d557f9feb66e50bf5de1b22e53076fa90ce02ecfbeb22a"
   },
   {
    "name": "neuron-basis-circuits",
-   "x": 0.1413,
-   "y": 0.2821,
+   "x": 0.3459,
+   "y": 0.2906,
    "sha256": "9808cdc71dfeb6118071e7891e2811dffadf6b0b4a03198cf7c0907856cb9c24"
   },
   {
    "name": "neurons-as-an-interpretable-basis",
-   "x": 0.0,
-   "y": 0.168,
+   "x": 0.2566,
+   "y": 0.1733,
    "sha256": "b2dc4ab8f9046bb410468cc6821004e7d425f4ea52c5fea773780b73ebdeffd5"
   },
   {
    "name": "neurons-in-disguise",
-   "x": 0.0538,
-   "y": 0.1005,
+   "x": 0.3305,
+   "y": 0.1986,
    "sha256": "ca9d05785e151b140d336d1c2fd51547e52d163884b804d030d8adbd288009e7"
   },
   {
    "name": "neurons-speak-in-ranges",
-   "x": 0.0792,
-   "y": 0.4772,
+   "x": 0.3455,
+   "y": 0.1726,
    "sha256": "37d6ecfdce9d0e33684e3e128e37f46be278c12bd7ccf8a85ab503cd0eda0518"
   },
   {
    "name": "non-factual-hallucination-mechanisms",
-   "x": 0.5334,
-   "y": 0.581,
+   "x": 0.6951,
+   "y": 0.5267,
    "sha256": "10e06b5324115a69bd4aab86877c7f409123faa2685653a829e062cdbd2ccb51"
   },
   {
+   "name": "packnet",
+   "x": 0.115,
+   "y": 0.7997,
+   "sha256": "9c900d56e3e5c20574c6e55ef318e69e34bbbf6de9c2b40503759cf09c0d7b2f"
+  },
+  {
    "name": "persona-vectors",
-   "x": 0.3214,
-   "y": 1.0,
+   "x": 0.7492,
+   "y": 0.1083,
    "sha256": "305301c90ca48930f9f205dc4fdbd1b10b320339b9a6072bb175f95e6140e09c"
   },
   {
+   "name": "progressive-neural-networks",
+   "x": 0.0851,
+   "y": 0.6857,
+   "sha256": "324f804bcd6c5170b145b5645ecb50714c1f03c3220016872d71ce3cd12c5cfd"
+  },
+  {
    "name": "recursive-language-models",
-   "x": 0.5176,
-   "y": 0.6135,
+   "x": 0.7267,
+   "y": 0.4563,
    "sha256": "6d8df5fb3d182dc8d48af064f7f7a3885e7fec0a8ee279c949e707d63bf891cd"
   },
   {
    "name": "refusal-single-direction",
-   "x": 0.4378,
-   "y": 0.8214,
+   "x": 0.7453,
+   "y": 0.2983,
    "sha256": "511fb7fee51fce05cab652a3706b684434aee418a5fb1cedd1b477140e93430e"
   },
   {
+   "name": "rehearsal-and-pseudorehearsal",
+   "x": 0.1839,
+   "y": 0.7741,
+   "sha256": "503be5c9465c913904781332957be0f73cec6691953d5c3f7e62bcb69b139b73"
+  },
+  {
    "name": "representation-engineering",
-   "x": 0.12,
-   "y": 0.732,
+   "x": 0.4633,
+   "y": 0.0976,
    "sha256": "68aa5f31b4f29d07e4e4bb7e750d5aa5900b8375a1f5fcf8ab5228d0efcd50af"
   },
   {
    "name": "ripple-effects-of-knowledge-editing",
-   "x": 0.9727,
-   "y": 0.6303,
+   "x": 1.0,
+   "y": 0.8805,
    "sha256": "375869c0302d0fe6f874d4551cae8a7f4f19182260ebfb5eaa20aabf8bc6570a"
   },
   {
    "name": "robust-unlearning-evaluation",
-   "x": 0.5694,
-   "y": 0.7837,
+   "x": 0.7707,
+   "y": 0.4898,
    "sha256": "9a98f6080ae6163d98ab8c4d9ee5524013ed2bc3bdd89a6cc08affd0c8e96ea3"
   },
   {
    "name": "scoring-explanations-without-reading-them",
-   "x": 0.3638,
-   "y": 0.7613,
+   "x": 0.6812,
+   "y": 0.2625,
    "sha256": "748f58a8d4fbc55e392d615768cd6c545f0bf4b5807070b6c8ad85adb0ea62f4"
   },
   {
    "name": "sparse-feature-circuits",
-   "x": 0.1563,
-   "y": 0.1748,
+   "x": 0.3372,
+   "y": 0.335,
    "sha256": "123c724e3b743499dd720ca899b16aa870b795f0544bbe3c0c734caed8d5a463"
   },
   {
    "name": "steering-specificity",
-   "x": 0.3444,
-   "y": 0.6109,
+   "x": 0.5053,
+   "y": 0.4086,
    "sha256": "52cadde9dbf79e43268b688d27e8a849cbdb27c98b93466da3de02cd9b326dfd"
   },
   {
    "name": "steering-vector-reliability",
-   "x": 0.3059,
-   "y": 0.5855,
+   "x": 0.5405,
+   "y": 0.3191,
    "sha256": "d16b42f9283ae13a5a30a13f08265833f5ecb3613ac3240f6276e096c3351a4c"
   },
   {
+   "name": "synaptic-intelligence",
+   "x": 0.0413,
+   "y": 0.7262,
+   "sha256": "151e9730ee34368de389f10434f972e5b7b3041d9daf56e6b6d017211b8240a1"
+  },
+  {
    "name": "training-llms-to-predict-world-events",
-   "x": 0.567,
-   "y": 0.4934,
+   "x": 0.5389,
+   "y": 0.7356,
    "sha256": "ca5bf11e16ac3dc44e3655adfe06eaab457eea38102e23b36e849ef6835e670d"
   },
   {
    "name": "understanding-ai-from-the-inside",
-   "x": 0.2817,
-   "y": 0.6682,
+   "x": 0.6371,
+   "y": 0.1879,
    "sha256": "9013538e3e25610d4823d0f22e9c7dd23e471aeba794c993e9f8b420b685fe69"
   },
   {
    "name": "what-survives-distillation",
-   "x": 0.3581,
-   "y": 0.2662,
+   "x": 0.3759,
+   "y": 0.5964,
    "sha256": "a05704050208ff41e24b6cf627ef54a5127c59351378273865b9bc6fe9bcc1af"
   },
   {
    "name": "why-language-models-hallucinate",
-   "x": 0.395,
-   "y": 0.6636,
+   "x": 0.6466,
+   "y": 0.3558,
    "sha256": "9ec63f354923bba2f9df86a57a8a6a7be3b1f8a80606a0800d52a666c3dea709"
   },
   {
    "name": "wise-lifelong-editing",
-   "x": 0.7037,
-   "y": 0.059,
+   "x": 0.5153,
+   "y": 1.0,
    "sha256": "0f316509a851256ee737f71c5cf0cb436ce259259713c9d95b757b82bce18150"
   },
   {
    "name": "wmdp-rmu-unlearning",
-   "x": 0.4383,
-   "y": 0.2935,
+   "x": 0.4101,
+   "y": 0.6884,
    "sha256": "477546cd1f880b042686f0cd011199c6e0374c8d9e6aea3cfb8947f1b929281d"
   }
  ]
