@@ -28,6 +28,8 @@ jobs:
     name: Internal links in the built site
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}  # read-only: the build downloads models from the Hub
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
