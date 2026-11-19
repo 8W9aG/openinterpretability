@@ -8,13 +8,17 @@ DIST_DIR ?= dist
 install:
 	uv sync --reinstall-package open-interpretability
 
-# Single-threaded: the tests use tiny models, and thread pools contending with other
-# jobs on the machine have hung the suite.
+# Single-threaded in each process: the tests use tiny models, and thread pools contending
+# with other jobs on the machine have hung the suite.
+# The tests run side by side on TEST_WORKERS processes (pytest-xdist, #3266): `auto` is one
+# per core. `make test TEST_WORKERS=0` runs them one at a time, to chase a failure that
+# only shows in parallel.
 # The whole output goes to logs/test-last.log too, so a hang's stack dump (pytest-timeout)
 # is kept even when only the exit code was read (#4376). pipefail keeps pytest's exit code.
+TEST_WORKERS ?= auto
 test:
 	@mkdir -p logs
-	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest 2>&1 | tee logs/test-last.log'
+	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest -n $(TEST_WORKERS) 2>&1 | tee logs/test-last.log'
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.
