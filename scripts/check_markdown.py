@@ -61,7 +61,30 @@ def style_problems(files: list[Path]) -> list[str]:
     )
     if result.returncode not in (0, 1) or result.stderr.strip():
         raise RuntimeError(f"pymarkdown failed: {result.stderr or result.stdout}")
-    return result.stdout.splitlines()
+    return [line for line in result.stdout.splitlines() if not in_maths(line)]
+
+
+# A finding: "<path>:<line>:<column>: <rule id>: ...".
+FINDING = re.compile(r"^(.+?):(\d+):(\d+): (md\d+):", re.I)
+MATHS = re.compile(r"\$[^$\n]+\$")  # inline LaTeX, which papers write (#4211)
+EMPHASIS = {"md037", "md049", "md050"}  # rules that read LaTeX's _ and * as emphasis
+
+
+def in_maths(finding: str) -> bool:
+    """Whether ``finding`` is an emphasis rule that fired inside inline LaTeX.
+
+    PyMarkdown has no maths extension, so ``$W_{:,i}$ and $u_i$`` looks like emphasis with
+    underscores. Such a finding is not a style problem.
+    """
+    match = FINDING.match(finding)
+    if not match or match.group(4).lower() not in EMPHASIS:
+        return False
+    path, row, column = Path(match.group(1)), int(match.group(2)), int(match.group(3))
+    try:
+        line = path.read_text(encoding="utf-8").splitlines()[row - 1]
+    except (OSError, IndexError):
+        return False
+    return any(m.start() < column <= m.end() for m in MATHS.finditer(line))
 
 
 def outside_fences(text: str) -> list[str]:

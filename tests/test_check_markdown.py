@@ -148,3 +148,15 @@ def test_rendered_stop_template_passes(tmp_path, record, fields):
     )
     page = write_stop_page(draw, wiki)
     assert check_markdown.style_problems([page]) == [], page.read_text()
+
+
+def test_emphasis_findings_inside_latex_are_dropped(tmp_path):
+    """PyMarkdown reads LaTeX's underscores as emphasis. Inside `$...$` that isn't a problem."""
+    page = tmp_path / "paper.md"
+    page.write_text("It starts with $W_{:,i}$ and $u_i$, and _bad_ here.\n", encoding="utf-8")
+    inside = f"{page}:1:{page.read_text().index('_{') + 1}: MD049: Emphasis style"
+    outside = f"{page}:1:{page.read_text().index('_bad') + 1}: MD049: Emphasis style"
+    other = f"{page}:1:{page.read_text().index('_{') + 1}: MD013: Line length"
+    assert check_markdown.in_maths(inside)
+    assert not check_markdown.in_maths(outside)
+    assert not check_markdown.in_maths(other)  # only the emphasis rules are excused

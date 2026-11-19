@@ -77,7 +77,6 @@ SECTIONS = ("Introduction", "Related work", "Method", "Discussion", "Limitations
             "Conclusion", "References", "Appendices")  # fmt: skip
 # Papers written before #4202, each with the issue that rewrites it. Only shrink this list.
 OLD_FORM = {
-    "spd-input-projections": 4248,
     "syntax-positive-controls": 4249, "why-neurons-rest": 4250,
 }  # fmt: skip
 NEW_FORM = [paper for paper in WRITTEN if paper not in OLD_FORM]
