@@ -217,8 +217,13 @@ _known  # pydantic validator of patches.schema.Op (#5229)
 _readable  # pydantic validator of patches.schema.Patch (#5229)
 identity_at_init  # patches.schema.Op field, a record field read by its checks (#5229)
 rebased_from  # patches.schema.Patch field, set by history.rebase (#5229)
-zero_start_check  # patches.apply, run by the fix's checks and the commands of #5229 part 2
-revert  # patches.history, used by the commands of #5229 part 2 and tests/test_patches.py
-rebase  # patches.history, used by the commands of #5229 part 2 and tests/test_patches.py
-PatchStore  # patches.store, used by the commands of #5229 part 2 and tests/test_patches.py
 put_tensor  # patches.tensors, used by whoever writes a patch, and tests/test_patches.py
+seal_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+log_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+diff_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+branches_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+branch_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+delete_branch_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+revert_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+merge_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
+rebase_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)

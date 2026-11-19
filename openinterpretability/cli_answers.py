@@ -18,6 +18,8 @@ from pathlib import Path
 import click
 
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
+from openinterpretability.cli_patch import patch_options, patch_target
+from openinterpretability.patches.session import patched
 
 
 @cli.group(name="answers")
@@ -115,10 +117,16 @@ def review_prompt_command(claim_file: Path, out: Path | None) -> None:
 @click.option("--seed", type=int, default=None,
               help="Seed of the matched random sets. By default the review draws one and "
               "records it, so the proposer can't tune against them (#4892).")  # fmt: skip
+@patch_options
 @wiki_dir_option()
 @with_model_options
-def review_command(claim_file, probes_file, corpus, mean_tokens, seed, wiki_dir, device, dtype):
-    """Measure a claim on the reviewer's probes, decide it, and write its record."""
+def review_command(claim_file, probes_file, corpus, mean_tokens, seed, patch_ref, evidence_out,
+                   wiki_dir, device, dtype):  # fmt: skip
+    """Measure a claim on the reviewer's probes, decide it, and write its record.
+
+    With ``--patch``, it measures the claim on the patched model (#5229). The record then
+    goes to ``--evidence-out`` as the fix's evidence, not to the registry.
+    """
     from openinterpretability.answer_review import review
     from openinterpretability.core.answer_records import (
         AnswerProbes,
@@ -134,14 +142,17 @@ def review_command(claim_file, probes_file, corpus, mean_tokens, seed, wiki_dir,
     expected = next_attempt(load(Path(wiki_dir), claim.model_name, claim.prompt_id))
     if expected != claim.attempt:
         raise click.UsageError(f"the claim is attempt {claim.attempt}; the next is {expected}")
+    target = patch_target(patch_ref, evidence_out, wiki_dir, claim.model_name)
     runner = _load_runner(claim.model_name, device, dtype, claim.model_revision)
     texts = read_corpus(corpus)[0]
-    means = unit_means(runner, claim.model_name, texts, mean_tokens)
-    try:
-        record = review(runner, means, claim, probes, seed=seed, texts=texts)
-    except ValueError as error:
-        raise click.UsageError(str(error)) from error
-    path = record_path(Path(wiki_dir), record)
+    key = claim.model_name + (target.key if target else "")  # a patched model's own means
+    with patched(runner.model, target):
+        means = unit_means(runner, key, texts, mean_tokens)
+        try:
+            record = review(runner, means, claim, probes, seed=seed, texts=texts)
+        except ValueError as error:
+            raise click.UsageError(str(error)) from error
+    path = evidence_out if target else record_path(Path(wiki_dir), record)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(record.model_dump_json() + "\n", encoding="utf-8")  # compact: it is large
     v = record.verdict

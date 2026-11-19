@@ -15,10 +15,13 @@ import click
 
 from openinterpretability import explain_plan
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
+from openinterpretability.cli_patch import patch_options, patch_target
+from openinterpretability.explain_print import print_result
 from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
 from openinterpretability.explain_stopped import lines as stopped_lines
-from openinterpretability.hubs import hub_line, mark_hubs
+from openinterpretability.hubs import mark_hubs
+from openinterpretability.patches.session import patched
 
 
 @cli.command(name="explain")
@@ -80,12 +83,13 @@ from openinterpretability.hubs import hub_line, mark_hubs
     "--target, --level long and --record, landed as a PR.",
 )  # fmt: skip
 @click.option("--json", "as_json", is_flag=True, help="Print the result as JSON.")
+@patch_options
 @wiki_dir_option()
 @with_model_options
 def explain_command(  # long-function: one argument per option, then one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
     narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, complete,
-    as_json,
+    as_json, patch_ref, evidence_out,
     wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
@@ -96,7 +100,30 @@ def explain_command(  # long-function: one argument per option, then one line pe
     them. It lists the superpositions and circuits that carry the most attribution, and
     traces the paths between the top units. Then it lists the experiments that would
     explain the rest: for each pole, head, superposition and circuit that isn't VERIFIED.
+
+    With ``--patch``, it explains the patched model's answer as a fix's evidence, written to
+    ``--evidence-out``. Nothing goes to the registry, so ``--run``, ``--record`` and
+    ``--complete`` are refused (#5229).
     """
+    fix = patch_target(patch_ref, evidence_out, wiki_dir, model_name)
+    if fix is not None and (complete or write_record or run is not None):
+        raise click.UsageError("--patch writes evidence only: drop --run, --record and --complete")
+    runner = _load_runner(model_name, device, dtype) if fix else None
+    with patched(runner.model if runner else None, fix):
+        _explain(
+            prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show,
+            level, narrator_model, run, proposer, reviewer, provider, max_attempts,
+            write_record, land, complete, as_json or fix is not None, wiki_dir, device, dtype,
+            fix, evidence_out,
+        )  # fmt: skip
+
+
+def _explain(  # long-function: the body of explain_command, one line per step
+    prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, complete,
+    as_json, wiki_dir, device, dtype, fix=None, evidence_out=None,
+):  # fmt: skip
+    """Run ``explain`` once, on the model as it stands (patched or not)."""
     from openinterpretability.evidence import read_corpus
     from openinterpretability.explain import unit_means
 
@@ -104,13 +131,13 @@ def explain_command(  # long-function: one argument per option, then one line pe
         run, level, write_record, land = 0 if run is None else run, "long", True, True
     reuse = look_first(Path(wiki_dir), model_name, prompt, position, target, level,
                        write_record or run is not None)  # fmt: skip
-    if reuse.action == "done":
+    if reuse.action == "done" and fix is None:
         return
     if reuse.action == "level":
         run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
     texts, _, corpus_sha, corpus_source = read_corpus(corpus)
-    means = unit_means(runner, model_name, texts, mean_tokens)
+    means = unit_means(runner, model_name + (fix.key if fix else ""), texts, mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
     found = _analyse(runner, means, ask, Path(wiki_dir))
     home = Path(wiki_dir).resolve()  # the record goes here, though --run moves to its worktree
@@ -132,11 +159,13 @@ def explain_command(  # long-function: one argument per option, then one line pe
             "answer_experiment": found.answer,
             "stopped": [{k: v for k, v in r.items() if k != "unit"} for r in found.stopped],
         }
-        click.echo(
-            json.dumps(out | told | {"run": ran and ran.model_dump()}, indent=1, default=str)
-        )
+        text = json.dumps(out | told | {"run": ran and ran.model_dump()}, indent=1, default=str)
+        click.echo(text)
+        if evidence_out is not None:  # a fix's evidence (#5229)
+            Path(evidence_out).parent.mkdir(parents=True, exist_ok=True)
+            Path(evidence_out).write_text(text + "\n", encoding="utf-8")
     elif level != "paragraph":
-        _print(result)
+        print_result(result)
         _print_coverage(coverage)
         _print_plan(planned, show, found.reach)
         click.echo("\n".join(stopped_lines(found.stopped, ask.model)))
@@ -238,76 +267,6 @@ def _as_json(result, planned, show: int) -> dict:
         "group_experiments": [asdict(e) for e in planned.groups],
         "blocked_units": planned.blocked_units,
     }  # fmt: skip
-
-
-def _print(result) -> None:
-    click.echo(f"Answer at position {result.position}: {result.token!r} (logit {result.logit:.2f})")
-    click.echo(
-        f"{'unit':<14} {'attribution':>11} {'share':>6} {'ablated Δ':>9} {'peak/max':>9}  status"
-    )
-    for p in result.poles:
-        share = abs(p.attribution) / result.total if result.total else 0.0
-        ablated = f"{p.ablation_change:+.2f}" if p.ablation_change is not None else ""
-        peak = f"{p.strength / p.max_activation:.2f}" if p.max_activation else "—"
-        row = f"{p.label:<14} {p.attribution:>+11.3f} {share:>6.1%} {ablated:>9} {peak:>9}"
-        click.echo(f"{row}  {p.status}")
-        if p.explanation:
-            click.echo(f"{'':<14} {p.explanation[:110]}")
-        if p.hub:
-            click.echo(f"{'':<14} {hub_line(p.hub)}")
-    click.echo(
-        f"Explained units (VERIFIED, or in a VERIFIED superposition or circuit) hold "
-        f"{result.verified_share:.1%} of the total |attribution|; "
-        f"{1 - result.verified_share:.1%} is unexplained."
-    )
-    joint = result.joint
-    if joint.get("poles"):
-        changed = (
-            f"the top token changes to {joint['new_top_token']!r}"
-            if joint["top_token_changed"]
-            else "the top token stays"
-        )
-        click.echo(
-            f"Mean-ablating the {joint['poles']} VERIFIED units above together moves the answer's "
-            f"logit by {joint['logit_change']:+.2f}, and {changed}."
-        )
-    else:
-        click.echo("No unit above is VERIFIED, so nothing here is explained yet.")
-    _print_groups(result)
-    _print_paths(result)
-    click.echo(
-        "Attribution is first order and against each unit's mean. The ablated Δ column is "
-        "the exact check: mean-ablating a unit moves the logit by about minus its attribution. "
-        "Unverified units carry no label."
-    )
-
-
-def _print_groups(result) -> None:
-    """The superpositions and circuits, which overlap with the units and aren't in the total."""
-    if not result.groups:
-        return
-    click.echo("Superpositions and circuits (they overlap with the units above):")
-    for g in result.groups[:10]:
-        ablated = f"{g.ablation_change:+.2f}" if g.ablation_change is not None else ""
-        name = f"{g.name} ({g.kind}, {g.members} members)"
-        click.echo(f"  {name:<46} {g.attribution:>+9.3f} {ablated:>9}  {g.status}")
-        if g.explanation:
-            click.echo(f"  {'':<46} {g.explanation[:110]}")
-
-
-def _print_paths(result, per_target: int = 3) -> None:
-    """Each traced unit's strongest incoming edges from the other top units."""
-    incoming: dict[str, list[dict]] = {}
-    for edge in result.edges:  # sorted by |weight|, strongest first
-        incoming.setdefault(edge["target"], []).append(edge)
-    if not incoming:
-        return
-    click.echo("Paths: the top units that drive each unit's contribution (first order).")
-    for unit in result.poles:
-        edges = incoming.get(unit.label, [])[:per_target]
-        if edges:
-            sources = ", ".join(f"{e['source']} {e['weight']:+.3f}" for e in edges)
-            click.echo(f"  {unit.label:<12} ← {sources}")
 
 
 def _print_plan(planned, show: int, reach: dict) -> None:
