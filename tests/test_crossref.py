@@ -195,7 +195,6 @@ def test_the_reviewer_sees_only_above_chance_latents_with_a_description(planted)
 
     def fetch(_row, idx):
         fetched.append(idx)
-        return None
 
     text = format_for_reviewer(describe([row], registry, fetch=fetch))
     assert fetched == [2]  # the registry answers for PLANTED; F3 is below chance

@@ -46,7 +46,7 @@
       </tr>
     </thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-      {% for n in layer.units %}
+      {% for n in layer.units | rejectattr("is_superposition") %}
       <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
         <td class="whitespace-nowrap px-3 py-2 font-mono">
           <a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ n.href }}">{{ n.label }}</a>{% if n.dictionary %}<div class="text-xs text-slate-500">{{ n.dictionary }}</div>{% endif +%}
@@ -66,4 +66,36 @@
     </tbody>
   </table>
 </div>
+
+{% if layer.superpositions %}
+{# Superpositions have their own table (#4006): they are directions over the layer's neurons, not units with poles. #}
+<section class="mt-8" aria-labelledby="superpositions">
+  <h2 id="superpositions" class="text-base font-semibold">Superpositions</h2>
+  <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each is a sparse direction over this layer's neurons, studied as one unit. Its page lists its member neurons and its experiments.</p>
+  <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr>
+          <th class="px-3 py-2">Superposition</th>
+          <th class="px-3 py-2">Status</th>
+          <th class="px-3 py-2 text-right">Members</th>
+          <th class="px-3 py-2 text-right">Experiments</th>
+          <th class="px-3 py-2">Explanation</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for s in layer.superpositions %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="whitespace-nowrap px-3 py-2 font-mono"><a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ root }}{{ s.href }}">L{{ s.layer }}/{{ s.label }}</a></td>
+          <td class="space-y-1 px-3 py-2">{% for _, st in s.standings | dictsort(reverse=true) %}<div>{{ status_badge(st.status) }}</div>{% endfor %}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ s.members | length }}</td>
+          <td class="px-3 py-2 text-right font-mono tabular-nums">{{ s.experiments | length }}</td>
+          <td class="px-3 py-2">{% if s.top %}<a class="hover:underline" href="{{ root }}{{ s.top.href }}">{{ s.top.record.submission.natural_language_explanation | truncate(140) }}</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 {% endblock %}

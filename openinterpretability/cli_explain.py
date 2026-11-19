@@ -458,7 +458,7 @@ def _record(model: str, result, coverage: dict, planned, told: dict, run=None, f
             narrator_model=told["narrator_model"],
             citations_not_in_evidence=told["citations_not_in_evidence"],
         )  # fmt: skip
-    record = ExplanationRecord(
+    return ExplanationRecord(
         model_name=model, prompt=result.prompt, position=result.position, answer=result.token,
         explained_share=result.verified_share, blocked_share=planned.blocked,
         prompt_coverage=coverage.get("coverage"), random_coverage=coverage.get("random"),
@@ -467,7 +467,6 @@ def _record(model: str, result, coverage: dict, planned, told: dict, run=None, f
         package_version=__version__, written=datetime.now(UTC), run=run, figures=figures,
         target=target, coverage_detail=ExplanationRecord.detail(coverage),
     )  # fmt: skip
-    return record
 
 
 def _explained_units(model: str, result) -> list:

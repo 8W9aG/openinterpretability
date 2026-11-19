@@ -22,7 +22,7 @@ other unit's name. A URL from an earlier build then lands on the unit's current 
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from openinterpretability.builder.hrefs import circuit_href, hub_href
 from openinterpretability.builder.tree import ModelNode, UnitNode, head_href, neuron_href
@@ -104,29 +104,37 @@ def circuit_edges(model: ModelNode, rows: dict) -> list[CircuitEdge]:
         for e in unit.experiments:
             weights, activations, backfilled = record_wiring(e.record, rows)
             for wiring in (weights, activations):
-                if wiring is None:
-                    continue
-                sides = [
-                    (wiring.upstream_neurons, True),
-                    (wiring.upstream_heads or [], True),
-                    (wiring.downstream_neurons, False),
-                    (wiring.downstream_heads or [], False),
-                ]
-                for found, upstream in sides:
-                    for edge in found:
-                        other = units.get(HREF[edge.kind](model.slug, edge.layer, edge.index))
-                        if other is None or other is unit:
-                            continue
-                        source, target = (other, unit) if upstream else (unit, other)
-                        key = (source.href, target.href)
-                        if key not in edges:
-                            edges[key] = CircuitEdge(source, target)
-                        edges[key].readings.append(
-                            Reading(unit, e, wiring.method, edge.weight, edge.channels, backfilled)
-                        )
+                if wiring is not None:
+                    seen = Reading(unit, e, wiring.method, 0.0, {}, backfilled)
+                    _add_edges(edges, units, model.slug, seen, wiring)
     return sorted(
         edges.values(), key=lambda c: (c.source.layer, c.target.layer, c.source.href, c.target.href)
     )
+
+
+def _add_edges(edges: dict, units: dict, slug: str, seen: Reading, wiring) -> None:
+    """Add to ``edges`` each edge of one reading's ``wiring`` between two units with pages.
+
+    ``seen`` is the reading with its unit, experiment, method and backfill. Each edge's
+    reading takes its weight and channels.
+    """
+    sides = [
+        (wiring.upstream_neurons, True),
+        (wiring.upstream_heads or [], True),
+        (wiring.downstream_neurons, False),
+        (wiring.downstream_heads or [], False),
+    ]
+    unit = seen.unit
+    for found, upstream in sides:
+        for edge in found:
+            other = units.get(HREF[edge.kind](slug, edge.layer, edge.index))
+            if other is None or other is unit:
+                continue
+            source, target = (other, unit) if upstream else (unit, other)
+            key = (source.href, target.href)
+            if key not in edges:
+                edges[key] = CircuitEdge(source, target)
+            edges[key].readings.append(replace(seen, weight=edge.weight, channels=edge.channels))
 
 
 @dataclass
