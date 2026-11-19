@@ -20,6 +20,7 @@ from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
 from openinterpretability.builder.contents import anchor as section_anchor
+from openinterpretability.builder.maths import MathsError, enable_maths
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
@@ -59,7 +60,7 @@ def paper_status(text: str) -> PaperStatus | None:
 
 
 _ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
-_MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
+_MARKDOWN = enable_maths(MarkdownIt("commonmark", {"html": False}).enable("table"))
 
 
 @dataclass(frozen=True)
@@ -125,19 +126,23 @@ def _first_image(tokens: list[Token]) -> str | None:
 
 def _read_paper(folder: Path, repo_url: str) -> Paper:
     """Render one paper. Its text passes the same search for personal data as all the site."""
+    interactive = (folder / "index.html").exists()
     text = redact_text((folder / "README.md").read_text(encoding="utf-8"))
     tokens = _MARKDOWN.parse(text)
     if tokens[0].type != "heading_open" or tokens[0].tag != "h1":
         raise ValueError(f"{folder / 'README.md'} must start with a level 1 heading")
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
     _rewrite_links(tokens, folder.name, repo_url)
-    interactive = (folder / "index.html").exists()
     sections = () if interactive else _mark_sections(tokens)
+    try:
+        body = "" if interactive else _MARKDOWN.renderer.render(tokens[3:], _MARKDOWN.options, {})
+    except MathsError as exc:
+        raise MathsError(f"{folder / 'README.md'}: {exc}") from None
     return Paper(
         slug=folder.name,
         title=_plain(tokens[1]),
         summary=_plain(tokens[first + 1]),
-        body="" if interactive else _MARKDOWN.renderer.render(tokens[3:], _MARKDOWN.options, {}),
+        body=body,
         hero=_first_image(tokens),
         interactive=interactive,
         sections=sections,

@@ -1,6 +1,6 @@
 # A bracket neuron in GPT-2, and the label that hid it
 
-Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. A claim of round and square brackets, with curly ones weak, is VERIFIED. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. All four are VERIFIED through the same review, L9 N340+ on its second claim. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Without L2 N676+, the model also stops closing brackets that stay open. Later layers read the pole through the head L3H5 and then L8 N689+, another round-depth pole. Qwen2.5-0.5B and 1.5B have no round-depth pole as strong: their best have R² 0.160 and 0.175, and 0.168 and 0.161 at GPT-2's windows. Their best poles do not count depth.
+Syntax labels from a parser should find the code neurons that the literature leads us to expect. So we swept every neuron pole of GPT-2 small over labelled source code. Our first bracket-depth label found nothing convincing, because it counted all brackets together. Counted for round brackets alone, one pole stands out: L2 N676+ is the best pole in its layer and across all 12 layers. On written text the same token reads 4.19 to 11.02 under one to five open brackets, and near zero once they close. At one open bracket, ablating the pole lowers the predicted chance of a closing bracket from 0.46 to 0.20. It is a short-range, imperfect counter of bracket characters. Through the registry's review, a claim of round brackets alone earns NEEDS_REVISION, because the pole also fires under square and curly brackets. A claim of round and square brackets, with curly ones weak, is VERIFIED. Four more poles in layers 2, 3, 8 and 9 respond to open round brackets too. All four are VERIFIED through the same review, L9 N340+ on its second claim. Ablating L2 N676+ makes the model close one bracket where it would close several, and ablating the other four makes it close too many. Without L2 N676+, the model also stops closing brackets that stay open. Later layers read the pole through the head L3H5 and then L8 N689+, another round-depth pole. Qwen2.5-0.5B and 1.5B have no round-depth pole as strong: their best have $R^2$ 0.160 and 0.175, and 0.168 and 0.161 at GPT-2's windows. Their best poles do not count depth.
 
 **Status:** Preprint. Work left: #4249 (rewrite in the paper form of #4202).
 
@@ -10,23 +10,23 @@ Syntax labels from a parser should find the code neurons that the literature lea
 
 **Results.**
 
-1. **The labels carry signal.** Every label set far exceeds a null that gives each window another document's labels. The highest null R² in any layer and set is 0.028, against a best of 0.605 for `syntax node`. This does not show that a label's best pole encodes that label: token identity explains more of that pole (0.78).
+1. **The labels carry signal.** Every label set far exceeds a null that gives each window another document's labels. The highest null $R^2$ in any layer and set is 0.028, against a best of 0.605 for `syntax node`. This does not show that a label's best pole encodes that label: token identity explains more of that pole (0.78).
 2. **The first bracket label's winners were false leads.** Its best pole overall, L4 N3038−, has a flat strength from depth 1 up. L6 N1416− peaks in licence comments. On written text neither pole responds to depth. Of the two poles that won narrower depth tests, one doesn't rise with depth and the other falls, at a strength of at most 0.30.
-3. **Round depth finds L2 N676+.** Its R² on held-out documents is 0.277, first of the layer's 6,144 poles, and 0.310 when we count `(` characters with no parser. On all brackets the same pole has at most 0.095. The first label hid it.
+3. **Round depth finds L2 N676+.** Its $R^2$ on held-out documents is 0.277, first of the layer's 6,144 poles, and 0.310 when we count `(` characters with no parser. On all brackets the same pole has at most 0.095. The first label hid it.
 4. **Written text supports a depth signal.** With the target token and the token before it fixed, strength rises with open brackets and falls to about zero when they close. In one snippet it climbs to 9.15 at depth 4, and drops to 0.65 at the token that closes two brackets.
 5. **The pole sets how many brackets the model closes.** Ablating it lowers the mean probability of a closing bracket at depths 1 to 4. A finer measure shows more. The model's predicted closer closes 1.0 bracket at depth 1 and 1.95 at depth 5. With the pole ablated, it closes about 1.0 at every depth. Twenty random poles of the layer barely change either measure.
 6. **The signal has clear limits.** It fades over about 20 list items, it weakens over line breaks, and it does not fully count down. It also fires inside strings and comments, so it follows characters and not the grammar.
 7. **The protocol rejects a claim of round brackets alone.** On a new sample of code, a hypothesis of round-bracket depth passes every probe, counterfactual and causal gate, with detection 0.98 and fuzzing 0.92. It fails specificity (0.58), because the pole fires under square and curly brackets with no round bracket open. The verdict is NEEDS_REVISION. A revised claim, of round and square brackets strong and curly and angle brackets weak, is VERIFIED (1.00) on its second review.
 8. **Other poles carry depth too, and pull the other way.** L2 N1195+ responds to depth almost as L2 N676+ does. L3 N695+ responds more weakly, and L8 N689+ and L9 N340+ peak at depth 2 or 3 and reach further. Ablating these four raises the count of brackets closed to about 3.8 from depth 3, where the model closes about 1.8. Through the protocol, L2 N1195+, L3 N695+ and L8 N689+ are VERIFIED. L9 N340+ first earned NEEDS_REVISION, because it also fires on function words inside an open round bracket. Its revised claim, that it fires inside an open round bracket, is VERIFIED.
-9. **Qwen2.5 has no such pole.** The same sweep finds no pole of Qwen2.5-0.5B or 1.5B above an R² of 0.175 for round depth, against 0.277 for L2 N676+. The best of each is in a late layer. Their best `syntax construct` poles are stronger than GPT-2's, at 0.466 and 0.554 against 0.273.
+9. **Qwen2.5 has no such pole.** The same sweep finds no pole of Qwen2.5-0.5B or 1.5B above an $R^2$ of 0.175 for round depth, against 0.277 for L2 N676+. The best of each is in a late layer. Their best `syntax construct` poles are stronger than GPT-2's, at 0.466 and 0.554 against 0.273.
 10. **Cut documents broke the labels until we fixed them.** Corpus documents end mid-class. Against the parse of the whole file, a single parse of a cut document loses 27.8% of the characters that lie in a construct to `top level`. Adding the missing closing brackets lowers this to 7.7%. Trying several endings, including a line break, a quote and Ruby's `end`, lowers it to 1.7%, and to 0.3% on a second sample.
 11. **The model closes the rest later, and needs L2 N676+ to do so.** When its first closer leaves brackets open, the model gives 0.36 to 0.62 to one more closer. Once the last one closes, it gives 0.001 at depth 3. With L2 N676+ ablated, it gives 0.024 or less with brackets still open, and every greedy line that ends closes too few.
-12. **Curly brackets that hold blocks don't count.** No round-depth pole responds to a code block or to indentation. Four of them respond to an object literal. This fits the corpus R² of zero for curly depth in L2 N676+, since most curly brackets in code hold blocks.
+12. **Curly brackets that hold blocks don't count.** No round-depth pole responds to a code block or to indentation. Four of them respond to an object literal. This fits the corpus $R^2$ of zero for curly depth in L2 N676+, since most curly brackets in code hold blocks.
 13. **Qwen's best round-depth poles don't count.** On written text, L21 N953− of Qwen2.5-0.5B fires inside round brackets without rising with depth, and grows as a bracketed list gets longer. L26 N7101+ of Qwen2.5-1.5B fires outside them. Neither changes the probability of a closer when ablated.
 14. **Later layers read L2 N676+ through L3H5, and then L8 N689+.** The model reads the pole from the tokens inside the brackets, not at the closer. Patched alone, L3H5 carries 27% to 63% of the effect. From it, the signal goes through heads of L4, L5H3 and L7H4 to L8 N689+, another round-depth pole. That pole alone carries 34% to 59% of what L3H5 sends.
 15. **The model counts closed brackets up to depth 6, and the extra closer at depths 4 and 5 is mostly our method's.** Early heads (L0H10, L1H3, L2H10 and L3H10) read the closers and take part in an exact count. L3H5, which carries the push, gives the closers almost no attention. Our chain adds a closer at every step. At depth 4 it forced a closer in 4 of 7 items, where the model gave closers 0.005 or less. Only those items keep a high chance of one more closer. In the model's own chains, that chance is 0.02 or less at depths 2 to 5. The one exception is a chain at depth 5 that closes with `)))` and then `))`. The model counts its rare packed tokens, `)))` and `))))`, less sharply.
 16. **Through the protocol, L9 N340+ and Qwen's L21 N953− earn VERIFIED as signs of an open round bracket.** Both first claimed a lookahead to `)` and earned NEEDS_REVISION. Their revised, retrospective claims passed.
-17. **At GPT-2's 128-token windows, Qwen still has no such pole.** Each best pole for round depth stays the same, with R² 0.168 and 0.161. The null falls, and a curly-depth winner that followed position drops out.
+17. **At GPT-2's 128-token windows, Qwen still has no such pole.** Each best pole for round depth stays the same, with $R^2$ 0.168 and 0.161. The null falls, and a curly-depth winner that followed position drops out.
 
 These results do not show that L2 N676+ is the only bracket signal in GPT-2. They do not show how the model computes depth. The probes and ablations use narrow templates.
 
@@ -37,7 +37,13 @@ The scripts are `scripts/syntax_controls.py`, `scripts/syntax_probes.py`, `scrip
 - **Model.** GPT-2 small (Radford et al., 2019), at 128-token windows, as the registry scans it. Each neuron has 2 poles, so each layer has 6,144. The sweeps ran on Apple's MPS backend, in float32.
 - **Data.** 500 documents of [`codeparrot/github-code-clean`](https://huggingface.co/datasets/codeparrot/github-code-clean) at commit `c48d40f9`, seed 0, each cut to 3,000 characters. The card gives the licence as Apache-2.0 and names no citation. Its `license` column shows that each file keeps its repository's licence. Of these, 396 documents have a grammar, and the seeded 200,000-token sample holds 266 of them.
 - **Labels.** [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) parses each document, with a grammar for each of 15 languages. Its page describes it as useful even in the presence of syntax errors. We sort each grammar's node names into shared labels by pattern, so the labels are approximate.
-- **Held-out R².** For each pole and label set, per-label means from half of the documents predict strengths in the other half. The two ways to split are averaged. So a pole can't score by fitting noise, and a useless label scores near or below zero. A planted signal scored 0.985 in a sanity check, and noise scored about 0.
+- **Held-out $R^2$.** For each pole and label set, per-label means from half of the documents predict strengths in the other half. The two ways to split are averaged. So a pole can't score by fitting noise, and a useless label scores near or below zero. A planted signal scored 0.985 in a sanity check, and noise scored about 0. For a split with training half $A$ and test half $B$, the score of one pole is
+
+  $$
+  R^2 = 1 - \frac{\sum_{t \in B} \left(a_t - \mu_A(\ell_t)\right)^2}{\sum_{t \in B} \left(a_t - \bar{a}_B\right)^2}
+  $$
+
+  where $a_t$ is the pole's strength at token $t$, $\ell_t$ is the label of token $t$, $\mu_A(\ell)$ is the mean strength of tokens with label $\ell$ in $A$, and $\bar{a}_B$ is the mean strength in $B$.
 - **Null.** Each window takes the labels of a window from the document before it. That keeps the labels' positions and run lengths, and removes their link to the text.
 - **Probes.** Eight target tokens each follow `first,`, in templates that change only what comes earlier. All of the probe text is written for this paper. Each cell has 8 items, and the tables give the mean strength. We designed the probes after seeing the corpus results, so they check the sweep's winners on new text. They were not predictions registered in advance.
 - **Ablation.** `ablate_pole` zeroes the positive part of a neuron's activation at every token of L2. The measure is the summed probability of next tokens that start with `)`. The 20 control poles are the positive poles of random L2 neurons, seed 0.
@@ -52,16 +58,16 @@ Evidence closer to GPT-2 is mixed. Friedman et al. (2024) study bracket depth in
 
 `bracket depth` counts round, square and curly brackets, and ignores those in comments and strings. Its best poles looked like a result until we read them.
 
-| Label set, best pole overall | Held-out R² | Token R² | What the pole does |
+| Label set, best pole overall | Held-out $R^2$ | Token $R^2$ | What the pole does |
 | --- | --- | --- | --- |
 | `syntax node`, L1 N2566+ | 0.605 | 0.781 | `.` and `;` in Java imports. A token detector |
 | `bracket depth`, L4 N3038− | 0.231 | 0.509 | Depth 0 against the rest. Flat from depth 1 (0.122, 0.133, 0.136, 0.137) |
 | `indent depth`, L6 N1416− | 0.184 | 0.322 | Peaks in licence comments and imports. Also wins `syntax construct` at L6 |
 | `syntax construct`, L2 N676+ | 0.273 | 0.258 | Call arguments 1.85 and parameters 1.85, against 0.46 or less elsewhere |
 
-Token R² is in-sample and has many more levels than a label set, so it is a generous comparison. The first three poles fail it, and the fourth passes narrowly.
+Token $R^2$ is in-sample and has many more levels than a label set, so it is a generous comparison. The first three poles fail it, and the fourth passes narrowly.
 
-To remove the licence header, we repeated the depth sets without comments and strings. To ask for depth itself, not inside against outside, we also dropped depth 0. The best R² across layers falls, and the winners change.
+To remove the licence header, we repeated the depth sets without comments and strings. To ask for depth itself, not inside against outside, we also dropped depth 0. The best $R^2$ across layers falls, and the winners change.
 
 | Label set | All tokens | No comments or strings | Also no depth 0 |
 | --- | --- | --- | --- |
@@ -81,9 +87,9 @@ L5 N1743+ does respond to open brackets. It falls from 0.19 to 0.01, and it stay
 
 L2 N676+ scored 0.273 on `syntax construct`, and much of that is call arguments and parameter lists. Its mean strength also rose with depth. This suggested two reasons for the weak depth score: curly brackets, which mostly hold blocks, and strings and comments, which the label leaves out. We then split the count.
 
-![R² per layer for round and all brackets, and the three counts for L2 N676+](media/labels.svg)
+![R squared per layer for round and all brackets, and the three counts for L2 N676+](media/labels.svg)
 
-| Count of depth | Best pole, L2 | Best R², L2 | L2 N676+ | Its rank in L2 |
+| Count of depth | Best pole, L2 | Best $R^2$, L2 | L2 N676+ | Its rank in L2 |
 | --- | --- | --- | --- | --- |
 | All brackets | L2 N1513− | 0.142 | at most 0.095 (in-sample) | not in the top 5 |
 | Round | L2 N676+ | 0.277 | 0.277 | 1 |
@@ -91,7 +97,7 @@ L2 N676+ scored 0.273 on `syntax construct`, and much of that is call arguments 
 | Square | L2 N1441+ | 0.051 | 0.017 | 4 |
 | Curly | L2 N1513− | 0.106 | 0.000 | 4,039 |
 
-Its round R² is the highest of any layer's best pole. The nearest are L3 N695+ (0.232) and L8 N689+ (0.230). L2 N1195+ (0.236) and the other pole of the same neuron, L2 N676− (0.225), are next in its layer. L9 N340+ (0.187) is first in L9. *Other round-depth poles* tests L2 N1195+, L3 N695+, L8 N689+ and L9 N340+ on written text.
+Its round $R^2$ is the highest of any layer's best pole. The nearest are L3 N695+ (0.232) and L8 N689+ (0.230). L2 N1195+ (0.236) and the other pole of the same neuron, L2 N676− (0.225), are next in its layer. L9 N340+ (0.187) is first in L9. *Other round-depth poles* tests L2 N1195+, L3 N695+, L8 N689+ and L9 N340+ on written text.
 
 ## On written text
 
@@ -111,9 +117,9 @@ Its round R² is the highest of any layer's best pole. The nearest are L3 N695+ 
 The standard errors over items are at most 0.21. Four things limit the reading of "counter".
 
 - **It doesn't fully count down.** A pole that counts would read the same under `One closed` as under `Open`. It reads lower, by 2.5 to 3.0. The tokens just before the target differ too, so this comparison is rough.
-- **Strings and comments do not stop it.** A parser says these brackets are not brackets. The pole reads them almost as it reads code, and its R² is higher for characters than for parsed brackets.
+- **Strings and comments do not stop it.** A parser says these brackets are not brackets. The pole reads them almost as it reads code, and its $R^2$ is higher for characters than for parsed brackets.
 - **Lines matter.** With each call on its own line, strength peaks at depth 2 and then falls. The comment row still reads high after one line break, so one newline is not a reset.
-- **Curly brackets differ between tests.** The pole responds to `load{`, but its corpus R² for curly depth is zero. Curly brackets in real code mostly hold blocks. We did not write probes with blocks.
+- **Curly brackets differ between tests.** The pole responds to `load{`, but its corpus $R^2$ for curly depth is zero. Curly brackets in real code mostly hold blocks. We did not write probes with blocks.
 
 Strength also fades with distance. These rows have one open bracket and a list of filler items between it and the target.
 
@@ -255,7 +261,7 @@ We audited L3H5 as a chosen unit, on the seed-1 sample of `github-code` at 128-t
 
 The verdict is NEEDS_REVISION (0.77). The claim passed 7 of 7 positive holdouts and 7 of 7 counterfactuals, but only 7 of 13 hard negatives. Ordinary prose, a licence header and a copyright notice with no ` All` read 5.0 to 7.0, above the activity line of 5.01. On held-out windows, 2,421 of 4,000 are active. Detection and fuzzing are 0.48 and 0.50, no better than chance, and token identity predicts the head better than the claim does. So L3H5 is active on much of the text, and the copyright peak is only its top. The open-bracket signal that it carries to the closer is one part of its middle range. [Pull request 2770](https://github.com/8W9aG/openinterpretability/pull/2770) added the record.
 
-A revision read the same scan. Its proposer (Claude Opus 5.5) found that the head's strength grows as its attention leaves the first token of the text. Over 30,000 tokens, the two correlate at r = −0.72. So no token in the first 6 or so reaches the line. After that, token type decides: later clause words of English prose and licence text, a `.` or `?` that ends a sentence, `}`, ` {`, ` return` and line breaks reach it. Word pieces, indentation, nouns and some prepositions do not. The copyright ` All` stays the peak.
+A revision read the same scan. Its proposer (Claude Opus 5.5) found that the head's strength grows as its attention leaves the first token of the text. Over 30,000 tokens, the two correlate at $r = -0.72$. So no token in the first 6 or so reaches the line. After that, token type decides: later clause words of English prose and licence text, a `.` or `?` that ends a sentence, `}`, ` {`, ` return` and line breaks reach it. Word pieces, indentation, nouns and some prepositions do not. The copyright ` All` stays the peak.
 
 | Gate or score | First claim | Revised claim |
 | --- | --- | --- |
@@ -285,11 +291,11 @@ The two L2 poles and L3 N695+ read 0.00 at the last closer at every depth. L2 N1
 | Change | Still open, depths 3, 4, 5 | All closed, depths 3, 4, 5 |
 | --- | --- | --- |
 | None | 0.50, 0.18, −0.60 | −7.10, −3.01, −3.24 |
-| Brake L2 N1195+ ×1.5 | −3.31, −0.88, −1.41 | −8.24, −4.41, −6.04 |
-| Brake ×2 | −4.66, −4.26, −4.25 | −8.29, −4.44, −5.65 |
-| Brake ×0.5 | 0.40, −0.68, −1.93 | −2.53, −0.83, −1.38 |
-| Push L2 N676+ ×0.5 | −3.42, −1.15, −1.46 | −8.24, −4.41, −5.98 |
-| Push ×1.5 | 0.42, −0.61, −1.82 | −2.49, −0.84, −1.38 |
+| Brake L2 N1195+ $\times 1.5$ | −3.31, −0.88, −1.41 | −8.24, −4.41, −6.04 |
+| Brake $\times 2$ | −4.66, −4.26, −4.25 | −8.29, −4.44, −5.65 |
+| Brake $\times 0.5$ | 0.40, −0.68, −1.93 | −2.53, −0.83, −1.38 |
+| Push L2 N676+ $\times 0.5$ | −3.42, −1.15, −1.46 | −8.24, −4.41, −5.98 |
+| Push $\times 1.5$ | 0.42, −0.61, −1.82 | −2.49, −0.84, −1.38 |
 
 A stronger brake removes the extra closer at depths 4 and 5. But it also stops the closer that the model needs while brackets are still open. A weaker push does the same. A stronger push or a weaker brake adds closers after all brackets close, and does not help while they are open. No scale in the table does better than the model in both states. So the brake is not too weak in a simple sense. The same signals serve both states.
 
@@ -374,7 +380,7 @@ The neuron reads 0.00 whenever too many brackets close. So the model does not co
 
 ## Curly brackets that hold blocks
 
-The pole responds to `load{first, value`, but its corpus R² for curly depth is zero. We guessed that this is because curly brackets in real code mostly hold blocks. So we wrote probes with real blocks. Each target is the token after `x = first +`. Each block header holds a round bracket that is already closed, such as `if (ready) {`. Each cell is a mean over 8 items, and the standard errors are at most 0.18.
+The pole responds to `load{first, value`, but its corpus $R^2$ for curly depth is zero. We guessed that this is because curly brackets in real code mostly hold blocks. So we wrote probes with real blocks. Each target is the token after `x = first +`. Each block header holds a round bracket that is already closed, such as `if (ready) {`. Each cell is a mean over 8 items, and the standard errors are at most 0.18.
 
 | Pole | Round, `x = load(parse(` | Object literal, `x = {a: {b: ` | Blocks, each on its own line | Blocks on one line | Python indentation |
 | --- | --- | --- | --- | --- | --- |
@@ -480,13 +486,13 @@ To measure this, we take the same sample with no cut, and parse each whole file.
 
 Agreement is for `syntax construct`. `syntax node` agreement rises from 0.992 to 0.999. We chose the endings on this sample, so we also tested them on the seed-1 sample, which we did not look at while choosing them. There, at 3,000 characters, agreement is 0.819 with one parse, 0.974 with closers added and 0.997 with endings searched. Lost falls from 0.272 to 0.038 and 0.003. A cut at 1,500 characters gives similar numbers in both samples. Few files stand behind some rows: Scala has 1, TypeScript 3 and Go 4. Haskell, Lua and Shell have no file over 3,000 characters in this sample.
 
-The sweeps above use the searched endings. Each layer's best R² moved by at most 0.011 from the first fix (`syntax construct` in L10). The best of each set across layers moved by at most 0.003. Most of the sampled documents are not cut in PHP or Ruby.
+The sweeps above use the searched endings. Each layer's best $R^2$ moved by at most 0.011 from the first fix (`syntax construct` in L10). The best of each set across layers moved by at most 0.003. Most of the sampled documents are not cut in PHP or Ruby.
 
 ## Qwen2.5
 
 We repeated the sweep and the sweep by bracket kind on Qwen2.5-0.5B and Qwen2.5-1.5B (Yang et al., 2024), on the same 500 documents. The 0.5B model has 24 layers of 4,864 neurons, so 233,472 poles. The 1.5B model has 28 layers of 8,960 neurons, so 501,760 poles. Their MLPs are gated. A pole is the positive or negative part of the input to the down projection, which is the product of the gate and up projections. The registry sets no window for Qwen, so each document is one piece, about 500 tokens on average. The 200,000-token sample holds all 396 documents with a grammar. Both models use the same tokenizer, so they read the same tokens.
 
-| Label set | GPT-2 small | R² | Qwen2.5-0.5B | R² | Qwen2.5-1.5B | R² |
+| Label set | GPT-2 small | $R^2$ | Qwen2.5-0.5B | $R^2$ | Qwen2.5-1.5B | $R^2$ |
 | --- | --- | --- | --- | --- | --- | --- |
 | `syntax node` | L1 N2566+ | 0.605 | L15 N1415+ | 0.529 | L21 N6306+ | 0.554 |
 | `syntax construct` | L2 N676+ | 0.273 | L8 N3135+ | 0.466 | L11 N1460+ | 0.554 |
@@ -497,15 +503,15 @@ We repeated the sweep and the sweep by bracket kind on Qwen2.5-0.5B and Qwen2.5-
 | square depth | L10 N1339+ | 0.094 | L22 N1943+ | 0.185 | L25 N8793− | 0.237 |
 | curly depth | L4 N3038− | 0.176 | L0 N2546+ | 0.158 | L22 N2957+ | 0.258 |
 
-Each cell is the best pole of all layers for that label set, and its held-out R².
+Each cell is the best pole of all layers for that label set, and its held-out $R^2$.
 
-![The best R² per layer for round depth and syntax construct, in GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B](media/models.svg)
+![The best R squared per layer for round depth and syntax construct, in GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B](media/models.svg)
 
 For round depth, GPT-2 has four layers whose best pole reaches 0.187 or more, the poles of the section above. In Qwen2.5-0.5B the best of each layer lies between 0.059 and 0.160, with no layer that stands out. Its best pole is in L21 of 24, not in an early layer. The second best in that layer has 0.126, so the gap is smaller than in GPT-2's L2 (0.277 and 0.236). In Qwen2.5-1.5B the best of each layer lies between 0.044 and 0.175. Its best pole, L26 N7101+, is two layers from the output, and the second best in its layer has 0.077. A pole that late may predict a closing bracket, not count open ones. *Qwen's best poles on written text* tests both poles.
 
-The null is higher in Qwen. Its highest is 0.097 in Qwen2.5-0.5B (L0) and 0.060 in Qwen2.5-1.5B (L18), against 0.028 in GPT-2. Whole documents give a pole room to track position, and the null keeps each label's position. So a pole that follows position scores in the null too. L0 N2546+ has the best curly-depth R² (0.158) with a null of 0.092 in its layer. The best pole of that set by its margin over the null is L12 N1468+ (0.158, null 0.032). The other label sets' best poles, in both Qwen models, have a null of at most 0.039 in their layer.
+The null is higher in Qwen. Its highest is 0.097 in Qwen2.5-0.5B (L0) and 0.060 in Qwen2.5-1.5B (L18), against 0.028 in GPT-2. Whole documents give a pole room to track position, and the null keeps each label's position. So a pole that follows position scores in the null too. L0 N2546+ has the best curly-depth $R^2$ (0.158) with a null of 0.092 in its layer. The best pole of that set by its margin over the null is L12 N1468+ (0.158, null 0.032). The other label sets' best poles, in both Qwen models, have a null of at most 0.039 in their layer.
 
-GPT-2 and Qwen read different windows, so their R² are not directly comparable: a longer window holds more depth and more constructs. *At 128-token windows* removes that difference.
+GPT-2 and Qwen read different windows, so their $R^2$ are not directly comparable: a longer window holds more depth and more constructs. *At 128-token windows* removes that difference.
 
 ### At 128-token windows
 
@@ -519,7 +525,7 @@ We repeated the sweep by bracket kind on both Qwen models, at the windows that G
 | curly depth | L0 N2546+ 0.158 | L12 N1468+ 0.162 | L22 N2957+ 0.258 | L22 N2957+ 0.266 |
 | Highest null of the four | 0.093 | 0.013 | 0.056 | 0.009 |
 
-The window changes little. Each best pole stays the same, except curly depth in Qwen2.5-0.5B, and each R² moves by at most 0.018. GPT-2's L2 N676+ (0.277) stays well above both. For round depth, the best pole of each layer lies between 0.054 and 0.168 in Qwen2.5-0.5B. In Qwen2.5-1.5B it lies between 0.032 and 0.161. So no early counter appears at the shorter window either. The null falls, since a window gives a pole less room to track position. In Qwen2.5-0.5B, L0 N2546+ loses its lead for curly depth to L12 N1468+. On whole documents, L12 N1468+ led by its margin over the null.
+The window changes little. Each best pole stays the same, except curly depth in Qwen2.5-0.5B, and each $R^2$ moves by at most 0.018. GPT-2's L2 N676+ (0.277) stays well above both. For round depth, the best pole of each layer lies between 0.054 and 0.168 in Qwen2.5-0.5B. In Qwen2.5-1.5B it lies between 0.032 and 0.161. So no early counter appears at the shorter window either. The null falls, since a window gives a pole less room to track position. In Qwen2.5-0.5B, L0 N2546+ loses its lead for curly depth to L12 N1468+. On whole documents, L12 N1468+ led by its margin over the null.
 
 ### Qwen's best poles on written text
 
@@ -534,7 +540,7 @@ We read L21 N953− of Qwen2.5-0.5B and L26 N7101+ of Qwen2.5-1.5B on the probes
 | Square brackets | 0.73, 0.19, 0.01, 0.40, 0.42 | 5.29, 3.63, 1.90, 0.66, 0.48 |
 | Curly brackets | 0.00 at each depth | 3.53, 2.26, 1.62, 1.07, 1.05 |
 
-The standard errors are at most 0.45 for L21 N953− and 0.72 for L26 N7101+. Neither pole counts depth. L21 N953− fires under open round brackets and not after they close, but it does not rise with depth. With one open bracket and a list of filler items before the target, it rises from 1.20 with no filler to 2.89 after 80 items. GPT-2's L2 N676+ falls to zero after 20 items. L26 N7101+ is silent under open round brackets, and fires once they close or under other brackets. So its R² for round depth comes from telling outside from inside, and it is high outside.
+The standard errors are at most 0.45 for L21 N953− and 0.72 for L26 N7101+. Neither pole counts depth. L21 N953− fires under open round brackets and not after they close, but it does not rise with depth. With one open bracket and a list of filler items before the target, it rises from 1.20 with no filler to 2.89 after 80 items. GPT-2's L2 N676+ falls to zero after 20 items. L26 N7101+ is silent under open round brackets, and fires once they close or under other brackets. So its $R^2$ for round depth comes from telling outside from inside, and it is high outside.
 
 We then tested whether either pole predicts a closing bracket. Through the direct path, from the pole's output to the unembedding, L21 N953− raises closers. Its 15 tokens raised most include `)` with line breaks, `.)` and `())`, and 40 of its top 100 tokens start with `)`. L26 N7101+ raises a quote or a backtick followed by a closer, such as `")`, `')` and `` `) ``. None of its top 100 tokens starts with `)`, and `)` alone ranks 562 of 151,936. The direct path leaves out every later layer. Ablation shows no effect. We ablated each pole on the 8 items of each depth. The probability of a closer moved by at most 0.003, and the count of brackets closed by at most 0.007. Ablating 20 random poles of the same layer and sign moves them as much or more. So L21 N953− writes toward a closer, and it grows as a bracketed list gets longer. But these templates show no effect of it on the output. L26 N7101+ does not predict a closing bracket.
 
@@ -569,11 +575,11 @@ The failed holdout is `print(value` at the end of a function, which read 3.02 ag
 ## Caveats
 
 - **Few models, one sample for the sweep.** The sweep ran on GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B, on one sample of documents. The label stability and the audit used a second sample.
-- **Selection.** We chose this pole from 73,728 poles, and we changed the label after seeing results. Held-out R² guards against noise in the fit, not against our choices. The written probes and the ablation are separate tests of the pole, but they came after we chose it.
+- **Selection.** We chose this pole from 73,728 poles, and we changed the label after seeing results. Held-out $R^2$ guards against noise in the fit, not against our choices. The written probes and the ablation are separate tests of the pole, but they came after we chose it.
 - **Few probes.** Each cell has 8 items from one template family, in Python-like or C-like text. Standard errors cover the items, not the choice of template.
 - **One path of closers.** *Closing the rest later* follows the model's most probable closer at each step, and greedy text follows its most probable token. Other closers and other text can lead elsewhere. The chain also adds a closer where the model would not (see *Natural and forced chains*).
 - **No confidence interval on ablation.** The 20 controls show the size of a random pole's effect, and no more.
-- **R² is a weak search.** A pole that responds to a label only sometimes scores low, and the depth-tracking poles here score under 0.32. A sweep can miss signals, including any spread over several neurons.
+- **$R^2$ is a weak search.** A pole that responds to a label only sometimes scores low, and the depth-tracking poles here score under 0.32. A sweep can miss signals, including any spread over several neurons.
 - **The label is approximate.** Node names are sorted by pattern, and angle brackets don't count.
 
 ## Effect on the protocol
