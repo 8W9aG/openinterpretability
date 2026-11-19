@@ -195,8 +195,10 @@ def scaling(runner, case, draws: list) -> dict:
     """Measure 4: the copy heads scaled by each alpha, and random heads switched off."""
     prompt, right, copied, _, _ = case
     r, c = token(runner, right), token(runner, copied)
-    copy = [{"alpha": a, **answer(runner, last_logits(runner, prompt, scaled(runner, COPY_HEADS, a)),
-                                  r, c)} for a in ALPHAS]  # fmt: skip
+    copy = []
+    for a in ALPHAS:
+        logits = last_logits(runner, prompt, scaled(runner, COPY_HEADS, a))
+        copy.append({"alpha": a, **answer(runner, logits, r, c)})
     rand = [answer(runner, last_logits(runner, prompt, scaled(runner, d, 0.0)), r, c)
             for d in draws]  # fmt: skip
     four = answer(runner, last_logits(runner, prompt, scaled(runner, HEADS, 0.0)), r, c)
