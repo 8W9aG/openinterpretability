@@ -74,6 +74,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages report
 | [Evaluating the Ripple Effects of Knowledge Editing](ripple-effects-of-knowledge-editing.md) (Cohen, Biran, Yoran, Globerson and Geva, 2024) | planned | An edit must also change the facts it implies. MEND, ROME and MEMIT fail most of these tests, and an in-context baseline does best. A #4781 fix needs such neighbour prompts (#5015). |
 | [MQuAKE](mquake.md) (Zhong, Wu, Manning, Potts and Chen, 2023) | planned | Editors that recall over 88% of edited facts answer only 0.3–16.0% of the multi-hop questions that follow. So a test on the edited prompt alone overstates a fix. Its single-fact control bears on #5015. |
 | [Editing Large Language Models: Problems, Methods, and Opportunities](editing-llms-survey.md) (Yao et al., 2023) | planned | A same-conditions comparison of about a dozen editing methods, on four properties. Single-neuron edits did poorly on GPT-J. Its Distract-Neighbour test is the copy habit behind #4781 (#5015). |
+| [Language Models Can Rewrite Their Own Weights](models-rewrite-own-weights.md) (Fan et al., 2026) | planned | A 27B model edits a direction or clips weight outliers, with no gradients. Its edit gains 6.6 points only after a framework check, and 1.1 without one. No random-direction control, so it bears on #5069 and #4782. |
 
 ## Fixing models: why models give wrong answers
 
