@@ -96,7 +96,7 @@ def proposer_context(evidence, wiki_dir: Path, sisters: bool, sister_file=None, 
     if sister_file:
         return sister_brief(load_sister(sister_file, evidence.identifier))
     related = sisters_text(evidence.identifier, wiki_dir, "proposer") if sisters else ""
-    tail = previous_attempt(superseded) if superseded else ""
+    tail = previous_attempt(superseded, wiki_dir) if superseded else ""  # #4485: earlier turns
     return partners_text(evidence, wiki_dir) + related + tail
 
 
