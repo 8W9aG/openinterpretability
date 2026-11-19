@@ -210,23 +210,23 @@ def reproduce_record(
     _compare_environment(record, run_environment(runner), report)
     scale = sub.max_activation or 0.0
 
-    # 1. Scan evidence, in the dtype the scan pins. The first-token floor reads every
+    # Scan evidence, in the dtype the scan pins. The first-token floor reads every
     # token of the vocabulary. In bfloat16 on a CPU, that took more than an hour (#3801).
     # So the review's runner checks it.
     _check_scale(sub, unit, runner, scale, report)
     _check_scan(record, unit, scan_runner or runner, tolerance, corpus, report)
     tolerance = tolerance.for_dtype(review_dtype)
 
-    # 2. Counterfactuals as submitted.
+    # Counterfactuals as submitted.
     _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
     if reason:
         report.warnings.append(f"measurements only, because the record was {reason}")
         return report
 
-    # 3. The review, under the record's own policy and reviewer.
+    # The review, under the record's own policy and reviewer.
     _compare_verdicts(verdict, _review_again(record, runner), tolerance, scale, report, half=half)
 
-    # 4. Explanation scores (reported, not gated): re-measure the windows, keep the answers.
+    # Explanation scores (reported, not gated): re-measure the windows, keep the answers.
     if verdict.explanation_scores is not None:
         _compare_explanation_scores(
             verdict.explanation_scores, runner, unit, tolerance, scale, report
