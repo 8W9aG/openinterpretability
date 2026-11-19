@@ -18,6 +18,7 @@ from openinterpretability.harness.lookahead import ablation_profile
 from openinterpretability.harness.scan import has_first_token_floor
 from openinterpretability.harness.units import peak_strength, submission_unit
 from openinterpretability.harness.wiring_activations import activation_wiring
+from openinterpretability.inverse_claims import probe_kind
 
 
 def settle_first_token_floor(submission, runner, policy: ReviewPolicy):
@@ -38,8 +39,10 @@ def settle_first_token_floor(submission, runner, policy: ReviewPolicy):
     return submission, unit, scale
 
 
-def measure_probes(runner, unit, probes, scale: float, threshold: float):
+def measure_probes(runner, unit, probes, scale: float, threshold: float, inverse: bool = False):
     """Each probe's result, plus the measured probes and whether each was active.
+
+    For an inverse claim, a probe predicted quiet is a holdout (``inverse_claims.py``).
 
     A one-token prompt to a unit with a first-token floor has nothing measured: it is
     recorded as unmeasured and counts in no metric.
@@ -58,7 +61,7 @@ def measure_probes(runner, unit, probes, scale: float, threshold: float):
             actual.append(active)
         results.append(
             AdversarialTestResult(
-                kind="positive_holdout" if probe.expected_active else "hard_negative",
+                kind=probe_kind(probe.expected_active, inverse),
                 prompt=probe.text,
                 passed=strength is not None and active == probe.expected_active,
                 expected_active=probe.expected_active,

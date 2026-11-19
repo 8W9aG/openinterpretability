@@ -10,6 +10,8 @@ from pathlib import Path
 import click
 
 from openinterpretability.audit_options import (  # noqa: F401  (re-exported)
+    inverse_option,
+    inverse_preamble,
     open_scan_cache,
     read_superposition,
     resolve_unit,
@@ -120,7 +122,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
     path.write_text(evidence.model_dump_json(indent=2))
     prompt_path = path.with_suffix(".prompt.md")
     answer_path = path.with_suffix(".hypothesis.json")
-    task = ProposerAgent.proposal_prompt(
+    task = inverse_preamble(evidence) + ProposerAgent.proposal_prompt(
         evidence.identifier,
         evidence.top_examples,
         evidence.vocabulary_lens,
@@ -286,6 +288,7 @@ def write_evidence(evidence, path: Path, full_snippets: bool = False, related: s
     "stops/<slug>/. Pass --wiki-dir '' to skip.",
 )
 @selection_option
+@inverse_option
 @with_model_options
 def audit(  # long-function: a click command; ScanRequest takes one line per option
     model_name,
@@ -308,6 +311,7 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
     stride,
     use_scan_cache,
     selection,
+    inverse,
     agent_model,
     contributor,
     evidence_out,
@@ -367,6 +371,7 @@ def audit(  # long-function: a click command; ScanRequest takes one line per opt
             max_tokens=max_tokens,
             sample_seed=sample_seed,
             selection=selection,
+            inverse=inverse,
         )
         runner, evidence = scan_or_record(request, use_scan_cache, wiki_dir, device)
         related = proposer_context(evidence, wiki_dir, sisters, sister_file, superseded)

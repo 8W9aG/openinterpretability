@@ -210,3 +210,4 @@ corrupted_gap  # a stored answer measure, shown in the record (core/answer_recor
 _.understood  # used by the template _answer_verdict.html (builder/explanation_pages.py)
 _.standing_answer  # used by the template _answer_verdict.html (builder/explanation_pages.py)
 patched_log_prob  # a stored answer reading, shown by the template _route_row.html (core/answer_records.py)
+inverse_rule_version  # VerificationVerdict field, set in reviewer.evaluate_submission (#4951)

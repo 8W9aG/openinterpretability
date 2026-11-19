@@ -18,13 +18,13 @@
       {% if e.record.self_reviewed %}{{ self_review_badge() }}{% endif %}
       {% if e.record.scanned_on_builtin_sample %}{{ builtin_sample_badge() }}{% endif %}
       <span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800{{ '' if e.counts else ' text-slate-600 dark:text-slate-400' }}" title="How this experiment counts toward the {{ what }}'s status">{{ roles[e.role] }}</span>
-      {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}
+      {% if sub.lookahead.is_lookahead %}<span class="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-900 dark:text-violet-200">lookahead</span>{% endif %}{% if sub.claim == "inverse" %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800" title="An inverse claim: when this default-on pole goes quiet. Holdouts are texts that silence it, and hard negatives are texts that keep it on.">inverse claim</span>{% endif %}
       <span class="ml-auto font-mono text-xs text-slate-500">{{ verdict.timestamp.strftime("%Y-%m-%d") }} · {{ e.id }}</span>
     </div>
     {{ errata_notes(e.errata, e.edits, repo_url) }}<p class="mt-3 max-w-3xl text-base leading-relaxed">{{ sub.natural_language_explanation }}</p>
     <p class="mt-2 text-xs text-slate-500">
-      Hard negatives {{ "%g" | format(e.sig.negatives.passed) }}/{{ e.sig.negatives.clusters }} rejected ·
-      holdouts {{ "%g" | format(e.sig.holdouts.passed) }}/{{ e.sig.holdouts.clusters }} fired
+      Hard negatives {{ "%g" | format(e.sig.negatives.passed) }}/{{ e.sig.negatives.clusters }} {{ "stayed on" if sub.claim == "inverse" else "rejected" }} ·
+      holdouts {{ "%g" | format(e.sig.holdouts.passed) }}/{{ e.sig.holdouts.clusters }} {{ "went quiet" if sub.claim == "inverse" else "fired" }}
       <span title="Near-duplicate probes count as one observation">(independent observations; {{ e.sig.negatives.raw + e.sig.holdouts.raw }} probes)</span> ·
       P(useful) {{ e.sig.p_useful | num(2) }}
       {% if not e.independent %}· <span class="text-amber-700 dark:text-amber-400">re-measures the probes of {{ e.reuses }}; not independent evidence</span>{% endif %}
