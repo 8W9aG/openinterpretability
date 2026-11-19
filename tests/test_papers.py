@@ -77,7 +77,7 @@ SECTIONS = ("Introduction", "Related work", "Method", "Discussion", "Limitations
             "Conclusion", "References", "Appendices")  # fmt: skip
 # Papers written before #4202, each with the issue that rewrites it. Only shrink this list.
 OLD_FORM = {
-    "native-vs-learned": 4247, "spd-input-projections": 4248,
+    "spd-input-projections": 4248,
     "syntax-positive-controls": 4249, "why-neurons-rest": 4250,
 }  # fmt: skip
 NEW_FORM = [paper for paper in WRITTEN if paper not in OLD_FORM]
@@ -127,3 +127,25 @@ def test_paper_says_why_it_was_written_and_its_question(paper):
     assert why, f"{paper}: no '**Why we wrote it.**' paragraph before the first section"
     assert "**The question.**" in why[0], f"{paper}: the why paragraph names no question"
     assert paragraphs.index(why[0]) == 2, f"{paper}: put it right after the opening paragraph"
+
+
+# Maths written as Unicode text, outside code and LaTeX (write-paper skill, Mathematics, #4211).
+# A ratio such as "1.9×" or "3–22×" stays text, so a "×" right after a number passes.
+UNICODE_MATHS = re.compile(
+    r"[⁰¹²³⁴⁵⁶⁷⁸⁹⁻₀₁₂₃₄₅₆₇₈₉√∑∏∫≤≥≈≠±∈αβγδεθλμπρστφχψω]|(?<![\d)])\s*×|×(?=\s*[\d(])"
+)
+
+
+def _prose(paper: str) -> str:
+    """The paper's text without code blocks, inline code and LaTeX."""
+    text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
+    text = re.sub(r"^```.*?^```", "", text, flags=re.M | re.S)
+    text = re.sub(r"`[^`\n]*`", "", text)
+    text = re.sub(r"\$\$.*?\$\$", "", text, flags=re.S)
+    return re.sub(r"\$[^$\n]+\$", "", text)
+
+
+@pytest.mark.parametrize("paper", sorted(p.parent.name for p in PAPERS.glob("*/README.md")))
+def test_maths_is_written_in_latex(paper):
+    found = [line.strip()[:80] for line in _prose(paper).splitlines() if UNICODE_MATHS.search(line)]
+    assert not found, f"write these in LaTeX ($...$): {found}"

@@ -46,7 +46,7 @@ The paper's contributions are these:
 
 **The models.** We use three models. GPT-2 small (Radford et al., 2019) has 12 layers, and its byte-level vocabulary "is expanded to 50,257" tokens (their Section 2.3). [Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B) and [Qwen2.5-1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B) have 24 and 28 layers, and a SwiGLU MLP (Yang et al., 2024, Section 2). Both use Qwen's byte-level tokenizer, with 151,643 regular tokens. Yang et al. (2024) state that this "establishes a unified vocabulary across all Qwen2.5 models". So the two Qwen models share a tokenizer, and GPT-2 to Qwen crosses tokenizers.
 
-**Matching.** A search matches each VERIFIED pole with the poles of another model. Both models read the same corpus of 500 documents. They are compared at *shared boundaries*, the character offsets where a token ends in both tokenizations. Both models are causal, so at a shared boundary each has read the same text. The search correlates the pole's activation, by Pearson's r, with every pole of every layer of the other model, and keeps the 5 best matches. A second pass correlates each match with every pole of the first model.
+**Matching.** A search matches each VERIFIED pole with the poles of another model. Both models read the same corpus of 500 documents. They are compared at *shared boundaries*, the character offsets where a token ends in both tokenizations. Both models are causal, so at a shared boundary each has read the same text. The search correlates the pole's activation, by Pearson's $r$, with every pole of every layer of the other model, and keeps the 5 best matches. A second pass correlates each match with every pole of the first model.
 
 - **Sister.** A match whose own best partner is the source pole is a *mutual* best match. A mutual best match is a *sister* when its correlation also beats the best that a random rotation of the matched layer reaches.
 - **Our steps.** The maximum correlation across models and the rotated baseline follow Gurnee et al. (2024). The mutual step is a strict form of the one-to-one matching of Li et al. (2016). This registry's own step is the use of the match to pick poles for a sister study.
@@ -59,9 +59,15 @@ The paper's contributions are these:
 - **Another top match:** one of the source's 5 best matches that is not its sister.
 - **Random pole:** any other pole of the tested model.
 
-Each tested pole counts once, by its first study. That gives 80 poles from 89 studies. For a sister or another match, r is the correlation between the two poles that the search recorded. We call a study *within a tokenizer* when both models are Qwen2.5, and *across tokenizers* when one is GPT-2.
+Each tested pole counts once, by its first study. That gives 80 poles from 89 studies. For a sister or another match, $r$ is the correlation between the two poles that the search recorded. We call a study *within a tokenizer* when both models are Qwen2.5, and *across tokenizers* when one is GPT-2.
 
-**Intervals and tests.** For each share, we give a 95% Wilson score interval. For k successes in n trials, with p = k/n and z = 1.96, the interval is centred on (p + z²/2n) / (1 + z²/n). Its half-width is z √(p(1 − p)/n + z²/4n²) / (1 + z²/n). Unlike the normal interval, it stays within 0 and 1 and does not collapse to a point at k = 0. To compare two shares, we use the two-sided Fisher exact test on the 2×2 table of the two classes and the two outcomes. With the margins of the table fixed, the counts follow a hypergeometric distribution. The p-value is the sum of the probabilities of all tables no more likely than the one observed.
+**Intervals and tests.** For each share, we give a 95% Wilson score interval. For $k$ successes in $n$ trials, with $\hat{p} = k/n$ and $z = 1.96$, the interval is
+
+$$
+\frac{\hat{p} + \frac{z^2}{2n}}{1 + \frac{z^2}{n}} \pm \frac{z}{1 + \frac{z^2}{n}} \sqrt{\frac{\hat{p}(1 - \hat{p})}{n} + \frac{z^2}{4n^2}}
+$$
+
+Unlike the normal interval, it stays within 0 and 1 and does not collapse to a point at $k = 0$. To compare two shares, we use the two-sided Fisher exact test on the $2 \times 2$ table of the two classes and the two outcomes. With the margins of the table fixed, the counts follow a hypergeometric distribution. The p-value is the sum of the probabilities of all tables no more likely than the one observed.
 
 **Setup.** The search is `open-interpretability sisters` (`docs/PROTOCOL.md` §4, *Sister neurons*), and its rows are in `docs/analyses/sister-neurons.jsonl`. A sister study is `open-interpretability audit --sister-of`, with the source record as its argument. Draws of the kind `sister` come from `open-interpretability next`. `scripts/explanation_transfer.py` reads every study that names a source and assigns its class. The intervals and tests are in `openinterpretability/builder/learned_baseline.py`. Appendix A gives the commands.
 
@@ -79,7 +85,7 @@ The first question is whether a VERIFIED explanation passes the full review on a
 
 **Table 1.** How far each explanation carries, by the tested pole's relation to the source pole. Each tested pole counts once, by its first study. The intervals are 95% Wilson score intervals. A REJECTED study has balanced accuracy below 0.60 on an adequate probe set.
 
-Sisters verify four times as often as other matches, but the difference is not significant (Fisher p = 0.15). The counts are small. Both intervals are wide, and they overlap from 8% to 19%. So the data show that a whole explanation seldom carries over, even to a sister. They do not show that a sister is a better target than another close match, on this measure.
+Sisters verify four times as often as other matches, but the difference is not significant (Fisher $p = 0.15$). The counts are small. Both intervals are wide, and they overlap from 8% to 19%. So the data show that a whole explanation seldom carries over, even to a sister. They do not show that a sister is a better target than another close match, on this measure.
 
 The 80 studies were not a designed experiment. The registry's planner drew them, and each ran with the proposer and reviewer models that its draw gave. This rate is therefore a rate over the studies that the planner chose to run, not over all matched poles.
 
@@ -89,9 +95,9 @@ A verdict of VERIFIED needs every gate to pass, so it hides how much of an expla
 
 ![A pole's explanation carries better to its sister than to another match or a random pole](media/transfer.svg)
 
-**Figure 1.** Left: the balanced accuracy of each of the 80 studies, in one column per class, with each class's median as a short line. The line across the panel marks chance, 0.5. Right: balanced accuracy against the correlation r between the source pole and the tested pole, for sisters and other matches. Random poles have no recorded r, so the right panel leaves them out. Each class has its own shape and colour: circles for sisters, squares for other matches and triangles for random poles. The classes appear in turn, sisters first, in both panels.
+**Figure 1.** Left: the balanced accuracy of each of the 80 studies, in one column per class, with each class's median as a short line. The line across the panel marks chance, 0.5. Right: balanced accuracy against the correlation $r$ between the source pole and the tested pole, for sisters and other matches. Random poles have no recorded $r$, so the right panel leaves them out. Each class has its own shape and colour: circles for sisters, squares for other matches and triangles for random poles. The classes appear in turn, sisters first, in both panels.
 
-On sisters, the explanation mostly carries in part. The median balanced accuracy is 0.78 on sisters, 0.55 on other matches and 0.45 on random poles (Table 1). In Figure 1, left, sisters crowd between 0.75 and 0.95, and other matches spread from 0.4 to 0.9. The middle half of the sister studies lies between 0.59 and 0.86. Sisters are REJECTED 12 of 50 times (24%), and other matches 14 of 26 times (54%). That difference is significant (Fisher p = 0.012).
+On sisters, the explanation mostly carries in part. The median balanced accuracy is 0.78 on sisters, 0.55 on other matches and 0.45 on random poles (Table 1). In Figure 1, left, sisters crowd between 0.75 and 0.95, and other matches spread from 0.4 to 0.9. The middle half of the sister studies lies between 0.59 and 0.86. Sisters are REJECTED 12 of 50 times (24%), and other matches 14 of 26 times (54%). That difference is significant (Fisher $p = 0.012$).
 
 Most sister studies end NEEDS_REVISION: 30 of the 50. In these, the explanation passes many probes and misses some. In 13 of the 30, its balanced accuracy is 0.80 or more, and no sister study that ends NEEDS_REVISION scores below 0.60. One sister study scores 1.00 and still ends NEEDS_REVISION, because a gate other than the probes failed (Table 3). So the review's other gates, as well as the probes, keep sisters from verifying.
 
@@ -118,11 +124,11 @@ Other matches across tokenizers do worst. None of 13 verify, 8 are REJECTED, and
 
 ## Does a higher correlation predict transfer?
 
-The fourth question is whether the correlation between two poles predicts that an explanation carries over. If the correlation measures a shared feature, studies with a higher r should verify more often. Of the 80 studies, 76 have a recorded r: the sisters and the other matches.
+The fourth question is whether the correlation between two poles predicts that an explanation carries over. If the correlation measures a shared feature, studies with a higher $r$ should verify more often. Of the 80 studies, 76 have a recorded $r$: the sisters and the other matches.
 
-The median r is 0.49 for the 9 studies that verified, and 0.38 for the other 67. A higher correlation thus goes with an explanation that carries over. Figure 1, right, shows the same trend across all studies, and the spread around it. Five sisters with r below 0.4 score above 0.9. Three studies with r near 0.6, two sisters and one other match, are REJECTED.
+The median $r$ is 0.49 for the 9 studies that verified, and 0.38 for the other 67. A higher correlation thus goes with an explanation that carries over. Figure 1, right, shows the same trend across all studies, and the spread around it. Five sisters with $r$ below 0.4 score above 0.9. Three studies with $r$ near 0.6, two sisters and one other match, are REJECTED.
 
-This result rests on only 9 VERIFIED studies. It also mixes two effects. Sisters have a higher r than other matches, with a median of 0.42 against 0.29 among the studies here. So r may predict transfer only because it predicts the class. A larger set of studies within each class would separate the two.
+This result rests on only 9 VERIFIED studies. It also mixes two effects. Sisters have a higher $r$ than other matches, with a median of 0.42 against 0.29 among the studies here. So $r$ may predict transfer only because it predicts the class. A larger set of studies within each class would separate the two.
 
 ## Discussion
 
@@ -130,7 +136,7 @@ The results fit one picture. A mutual best match is a good target for an explana
 
 **Why partial transfer is the common outcome.** There are at least three readings, and the data do not choose between them. First, the two poles may encode the same feature with different boundaries. One model may treat a token as an instance of the feature and the other may not. The first sister studies give an example ([sister neurons](../../docs/analyses/sister-neurons.md)). A Qwen explanation of a separator detector passed every hard negative on its GPT-2 sister, but two of its holdouts failed. Second, a pole may have more than one mode, in the sense of Tigges et al. (2026), and only some modes may recur. An explanation that covers two modes would then pass the probes of the shared mode and fail those of the other. This would show as NEEDS_REVISION, which is the most common verdict on sisters. Third, the review is noisy, and an explanation near a gate can fail by chance (*Limitations*).
 
-**Relation to universality.** Gurnee et al. (2024) find 1–5% of GPT-2 neurons universal across seeds of one model. Li et al. (2016) find that "some features are learned reliably in multiple networks, yet other features are not consistently learned". Gurnee et al. chose seeds of one architecture, trained on the same data, as "the most favorable experimental conditions for measuring universality". Our models differ far more than seeds do: they differ in family, size, data and tokenizer. That sisters exist across them at all, and that their explanations carry in part, extends the picture of partial universality to a harder case. It also adds a test that correlation alone does not give. A high correlation over one corpus does not imply that an explanation transfers. Three studies with r near 0.6 are REJECTED (Figure 1, right).
+**Relation to universality.** Gurnee et al. (2024) find 1–5% of GPT-2 neurons universal across seeds of one model. Li et al. (2016) find that "some features are learned reliably in multiple networks, yet other features are not consistently learned". Gurnee et al. chose seeds of one architecture, trained on the same data, as "the most favorable experimental conditions for measuring universality". Our models differ far more than seeds do: they differ in family, size, data and tokenizer. That sisters exist across them at all, and that their explanations carry in part, extends the picture of partial universality to a harder case. It also adds a test that correlation alone does not give. A high correlation over one corpus does not imply that an explanation transfers. Three studies with $r$ near 0.6 are REJECTED (Figure 1, right).
 
 **Relation to the neuron basis.** Shabalin and Piotrowski (2026) find that features aligned with neurons recur across training runs of a dictionary. Tigges et al. (2026) find that a pole's two signs usually have unrelated roles. Both support matching poles, not whole neurons. The search agrees: 24 of 53 sisters between the two Qwen models join a positive pole to a negative one ([sister neurons](../../docs/analyses/sister-neurons.md)). Our results add that the neuron basis also supports some transfer of explanations across models, though seldom of a whole explanation.
 
@@ -184,9 +190,9 @@ The classes depend on the sister search's rows and on the registry on the day th
 
 ### B. Every study
 
-Table 3 lists the 80 tested poles, from `results.jsonl`. Each row is the first study of its tested pole. A pole is named by its model, its layer and its neuron, with + for the positive pole and − for the negative one. Qwen-0.5B and Qwen-1.5B stand for Qwen2.5-0.5B and Qwen2.5-1.5B. The column r is the correlation between the two poles that the sister search recorded. Random poles have none.
+Table 3 lists the 80 tested poles, from `results.jsonl`. Each row is the first study of its tested pole. A pole is named by its model, its layer and its neuron, with + for the positive pole and − for the negative one. Qwen-0.5B and Qwen-1.5B stand for Qwen2.5-0.5B and Qwen2.5-1.5B. The column $r$ is the correlation between the two poles that the sister search recorded. Random poles have none.
 
-| Tested pole | Class | Source pole | Tokenizer | r | Verdict | Balanced accuracy |
+| Tested pole | Class | Source pole | Tokenizer | $r$ | Verdict | Balanced accuracy |
 | --- | --- | --- | --- | --- | --- | --- |
 | Qwen-1.5B L16/N4458− | Sister | Qwen-0.5B L6/N1189+ | same | 0.33 | NEEDS_REVISION | 1.00 |
 | Qwen-1.5B L24/N6717− | Sister | Qwen-0.5B L21/N2536− | same | 0.27 | NEEDS_REVISION | 0.93 |

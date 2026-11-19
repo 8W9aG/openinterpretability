@@ -13,7 +13,7 @@ The paper's contributions are these:
 1. **The fact is weak on its own.** With only its second clause, the model's top token is the right unit for one prompt of six ("A week has seven" → " days"). The right unit is rank 1 to 15 there. After four unrelated facts it falls to rank 3 to 254. *Limit:* one zero-shot form and one set few-shot context, scored by rank and probability, not the sampled accuracy of Gekhman et al. (2024).
 2. **Enrichment at the subject fails.** At the second clause's subject (" year"), no layer's MLP output ranks the right unit above 731 of 50,304 tokens. That is outside the top 1%, the line that Yu et al. (2024) draw. For two of the three controls, the MLPs rank the right unit at 54 and 105. *Limit:* the lens reads each MLP's output alone, with the final norm's statistics of that output.
 3. **The right unit is present at the answer position, and outvoted.** Under the lens, the right unit is rank 2 to 4 after layer 4 on five of the six prompts. The copied unit is rank 1 or 2 there. The last layer leaves the order unchanged.
-4. **The verified copy heads are not the whole copy.** Switching off L3/H3, L4/H0 and L4/H7 narrows logit(right) − logit(copied) on five prompts. Only " eggs" flips, to " hours". Switching off L4/H1 as well flips no other prompt. On three prompts, the copy heads move the gap no further than 20 random sets of three heads do. *Limit:* switching a head off sets its output to zero, which isn't a mean ablation. And the random sets come from layers 3 and 4 only.
+4. **The verified copy heads are not the whole copy.** Switching off L3/H3, L4/H0 and L4/H7 narrows $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ on five prompts. Only " eggs" flips, to " hours". Switching off L4/H1 as well flips no other prompt. On three prompts, the copy heads move the gap no further than 20 random sets of three heads do. *Limit:* switching a head off sets its output to zero, which isn't a mean ablation. And the random sets come from layers 3 and 4 only.
 5. **L5/N2014+ is part of the prompt's structure, not of its fact.** It is active on four of the six wrong prompts, and below its activity line on every second clause alone. On the " days" prompt it is the second-largest writer toward " months". On two other prompts it writes toward the copied unit. Its unit experiment VERIFIES it as a time-expression value-slot pole (#5093).
 
 These results don't show what a repair would do. They describe the model as it is, with no change made to it.
@@ -48,8 +48,8 @@ Three prompts of the shortlist are right because the model copies. They are the 
 - *Single clause.* The second clause alone, such as "A year has twelve", zero-shot. Also the same clause after four facts with no unit of the prompts: "A triangle has three sides. A square has four corners. An octopus has eight arms. A pentagon has five sides." Following Gekhman et al. (2024), a model that answers the clause alone knows the fact without a clause to copy.
 - *Enrichment.* Following Geva et al. (2023) and Yu et al. (2024), the subject's state after each layer, and each layer's MLP output, read through the final norm and the unembedding. It records the ranks of the right and the copied tokens. The same reading of the answer position gives contribution 3.
 - *Attention.* The share of the answer position's attention that L3/H3, L4/H0, L4/H7 and L4/H1 give to the copied unit and to the subject.
-- *Scaling.* Following Yu et al. (2023), the copy heads' outputs scaled by α in {1, 0.5, 0, −0.5}, past the first token. Also the copy heads and L4/H1 at 0 together, and 20 seeded sets of three random heads of layers 3 and 4 at 0.
-- *Direct writes.* Following Geva et al. (2021), each layer 4 and 5 neuron's activation at the answer position, times its write to logit(right) − logit(copied). The final norm's gain and mean are folded in, and its scale is taken from the real residual stream.
+- *Scaling.* Following Yu et al. (2023), the copy heads' outputs scaled by $\alpha \in \{1, 0.5, 0, -0.5\}$, past the first token. Also the copy heads and L4/H1 at 0 together, and 20 seeded sets of three random heads of layers 3 and 4 at 0.
+- *Direct writes.* Following Geva et al. (2021), each layer 4 and 5 neuron's activation at the answer position, times its write to $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$. The final norm's gain and mean are folded in, and its scale is taken from the real residual stream.
 
 ## The fact is weak on its own
 
@@ -84,15 +84,15 @@ At the second clause's subject, the best rank of the right unit in any layer's M
 
 At the answer position, the right unit rises with depth on every wrong prompt (Figure 2). After layer 4 it is rank 2, 3, 3, 32, 2 and 4, and the copied unit is rank 1 or 2. The last layer leaves the order as it is. The right answer therefore reaches the answer position, but from somewhere other than the subject's MLPs, and the copied unit outvotes it. The " eggs" prompt is the exception, with the right unit at rank 32 after layer 4.
 
-The layer 4 and 5 MLPs add little either way. Over all their neuron poles, the direct writes to logit(right) − logit(copied) sum to between −2.46 and +1.24 on the six prompts. Writers on each side sum to 16 to 34 logits, so the two sides nearly cancel. On the second clause alone, the sum is between −0.30 and +1.36.
+The layer 4 and 5 MLPs add little either way. Over all their neuron poles, the direct writes to $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ sum to between −2.46 and +1.24 on the six prompts. Writers on each side sum to 16 to 34 logits, so the two sides nearly cancel. On the second clause alone, the sum is between −0.30 and +1.36.
 
 ## The verified copy heads are not the whole copy
 
 ![Without the copy heads, the copied unit still wins on five of the six prompts](media/heads.svg)
 
-**Figure 3.** logit(right) − logit(copied) for the model, with the three copy heads switched off, and with them and L4/H1 switched off. A line spans 20 random sets of three heads of layers 3 and 4, switched off, with a tick at their median.
+**Figure 3.** $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ for the model, with the three copy heads switched off, and with them and L4/H1 switched off. A line spans 20 random sets of three heads of layers 3 and 4, switched off, with a tick at their median.
 
-| Prompt | The model | Copy heads off | Copy heads and L4/H1 off | Copy heads at α = −0.5 | Random heads off: median, range |
+| Prompt | The model | Copy heads off | Copy heads and L4/H1 off | Copy heads at $\alpha = -0.5$ | Random heads off: median, range |
 | --- | --- | --- | --- | --- | --- |
 | minutes, not seconds | −2.89 | −1.82 | −2.57 | −1.25 | −2.51, −2.96 to −1.78 |
 | months, not days | −3.20 | −1.88 | −1.84 | −0.51 | −2.98, −4.00 to −2.18 |
@@ -101,13 +101,13 @@ The layer 4 and 5 MLPs add little either way. Over all their neuron poles, the d
 | seconds, not minutes | −1.01 | −1.08 | −1.63 | −1.88 | −0.91, −1.78 to −0.51 |
 | days, not months | −1.11 | −0.00 | −0.01 | +0.51, top " days" | −0.83, −1.54 to −0.16 |
 
-**Table 3.** logit(right) − logit(copied) at the answer position. Below 0, the copied unit wins. The top token is the copied unit unless the table names another.
+**Table 3.** $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ at the answer position. Below 0, the copied unit wins. The top token is the copied unit unless the table names another.
 
-Switching off the copy heads narrows the gap on five of the six prompts (Figure 3, Table 3). It flips one: " eggs" gives way to " hours", not to " months". On "minutes", "toes" and "seconds" the change is within the range of random heads. Reversing the copy heads' outputs (α = −0.5) makes " days" the answer to the reversed prompt. With all four heads off, the copied unit still wins on five prompts.
+Switching off the copy heads narrows the gap on five of the six prompts (Figure 3, Table 3). It flips one: " eggs" gives way to " hours", not to " months". On "minutes", "toes" and "seconds" the change is within the range of random heads. Reversing the copy heads' outputs ($\alpha = -0.5$) makes " days" the answer to the reversed prompt. With all four heads off, the copied unit still wins on five prompts.
 
 The attention patterns show why the route's heads are not enough. L4/H7 puts at least 0.87 of its attention on the copied unit on every wrong prompt, and on every control. L4/H1 puts 0.94 or more on it on four wrong prompts. So L4/H1, a candidate copy-suppression head (#5063, McDougall et al., 2023), reads the copied unit. Switching it off doesn't lift the right answer, though. The copy runs through more heads than the verified route lists. The route's claim was about how the model produces " days", not that its heads are the only path.
 
-On the three controls, switching the copy heads off keeps the right answer, and α = −0.5 breaks it each time.
+On the three controls, switching the copy heads off keeps the right answer, and $\alpha = -0.5$ breaks it each time.
 
 ## L5/N2014+
 

@@ -16,6 +16,10 @@
   .paper th, .paper td { padding: 0.3rem 0.6rem; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }
   .paper td:first-child { white-space: normal; min-width: 7rem; }
   .paper th { font-weight: 600; }
+  /* LaTeX maths, typeset as MathML (builder/maths.py, #4211). It takes the text colour, so
+     it reads in both themes. A wide display equation scrolls in its own box at phone width. */
+  .paper math { color: inherit; font-size: 1.05em; }
+  .paper .math.block { margin: 1rem 0; overflow-x: auto; overflow-y: hidden; }
   @media (prefers-color-scheme: dark) {
     .paper a { color: #34d399; }
     .paper code, .paper pre { background: #1e293b; }
