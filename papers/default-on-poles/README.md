@@ -1,6 +1,6 @@
 # What default-on negative poles do as a population
 
-Most neurons of GPT-2 small rest below GELU's minimum, so their negative side is on for almost every token and cannot be audited as a detector. We asked what these default-on negative poles do together, with random nulls for each claim. Training produces this rest: at layer 9 the median neuron rests at h = −1.04, against 0.00 at random initialisation, and the bias gives only −0.08 of that. The negative side's cost is mostly its resting level. With all 12 layers changed, holding it at its mean adds 0.19 nats of cross-entropy, but setting it to zero adds 3.72. Each reading of its variation does about as well on a matched null. A random direction's low tail is as reliable by token as a real neuron's (0.68 against 0.70), and random features decode token identity and human labels about as well as the negative side does. The negative side leads random features by at most 0.025 of R² on the next-token distribution, where the positive side leads by up to 0.073. In Qwen2.5-0.5B, a SwiGLU model, the two sides are symmetric and each costs 2.46 nats when clamped. These results support the protocol's choice to stop auditing default-on poles one at a time.
+Most neurons of GPT-2 small rest below GELU's minimum, so their negative side is on for almost every token and cannot be audited as a detector. We asked what these default-on negative poles do together, with random nulls for each claim. Training produces this rest: at layer 9 the median neuron rests at $h = -1.04$, against 0.00 at random initialisation, and the bias gives only −0.08 of that. The negative side's cost is mostly its resting level. With all 12 layers changed, holding it at its mean adds 0.19 nats of cross-entropy, but setting it to zero adds 3.72. Each reading of its variation does about as well on a matched null. A random direction's low tail is as reliable by token as a real neuron's (0.68 against 0.70), and random features decode token identity and human labels about as well as the negative side does. The negative side leads random features by at most 0.025 of $R^2$ on the next-token distribution, where the positive side leads by up to 0.073. In Qwen2.5-0.5B, a SwiGLU model, the two sides are symmetric and each costs 2.46 nats when clamped. These results support the protocol's choice to stop auditing default-on poles one at a time.
 
 **Status:** Preprint. Work left: #3195 (the negative side's lead on the next-token distribution).
 
@@ -8,7 +8,7 @@ Most neurons of GPT-2 small rest below GELU's minimum, so their negative side is
 
 Interpretability work often explains a trained network one unit at a time. The registry that this paper draws on reads each sign of an MLP neuron's activation apart, and calls each side a *pole*. A pole gets an explanation, and an adversarial review tries to break it with probes. A default-on pole is a negative pole that is on for almost every token, so no probe can stay silent and its explanation can never pass. Protocol 0.8 therefore stops the audit of every default-on pole ([position zero](../../docs/analyses/position-zero.md)). The registry thus says nothing about a large share of negative poles, unless those poles do little worth explaining.
 
-GELU dips below zero, with its minimum near h = −0.75 (Hendrycks & Gimpel, 2016), so a neuron that rests near that dip writes a small negative value on most tokens. An earlier study of GPT-2 L9/N1046−, the negative pole of neuron 1046 in layer 9, suggested that these poles carry a signal: a scaled-down copy of the positive side, with a readable set of tokens below the dip. Its scripts were not kept, and its numbers survive in [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md). It did not measure every layer, and it had no random null. A readable tail, a decodable signal and a cost under ablation can each arise without learned content, so the open question is which of them survive a null.
+GELU dips below zero, with its minimum near $h = -0.75$ (Hendrycks & Gimpel, 2016), so a neuron that rests near that dip writes a small negative value on most tokens. An earlier study of GPT-2 L9/N1046−, the negative pole of neuron 1046 in layer 9, suggested that these poles carry a signal: a scaled-down copy of the positive side, with a readable set of tokens below the dip. Its scripts were not kept, and its numbers survive in [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md). It did not measure every layer, and it had no random null. A readable tail, a decodable signal and a cost under ablation can each arise without learned content, so the open question is which of them survive a null.
 
 This paper asks what default-on negative poles do as a population, and whether it is safe to stop auditing them one by one. It bears on research question 1, *Are native MLP neurons clean?*, and on question 5 ([research questions](../../docs/research-questions.md)).
 
@@ -36,15 +36,27 @@ The paper's contributions are these:
 
 ## Method
 
-**Terms.** A neuron's pre-activation is h, the output of the MLP's first linear map (`c_fc` in GPT-2). Its activation is a = GELU(h), the input of the second linear map (`c_proj`). A neuron's *negative side* is its tokens with a < 0, and its *positive side* those with a > 0. A pole is *active* on a token when its strength reaches 0.25 of its maximum. We call that level the *activation line*. A pole is *default-on* when it is active on almost every token, so that no probe can stay silent. We write L9/N1046− for the negative pole of neuron 1046 in layer 9.
+**Terms.** A neuron's pre-activation is $h$, the output of the MLP's first linear map (`c_fc` in GPT-2). Its activation is $a = \mathrm{GELU}(h)$, the input of the second linear map (`c_proj`). A neuron's *negative side* is its tokens with $a < 0$, and its *positive side* those with $a > 0$. A pole is *active* on a token when its strength reaches 0.25 of its maximum. We call that level the *activation line*. A pole is *default-on* when it is active on almost every token, so that no probe can stay silent. We write L9/N1046− for the negative pole of neuron 1046 in layer 9.
 
-**The dip.** GELU is xΦ(x), with Φ the standard normal distribution function (Hendrycks & Gimpel, 2016). The minimum of this exact form is at h = −0.7518. GPT-2's MLP uses the tanh approximation that the same paper gives, whose minimum is at h = −0.7525. Our scripts use the exact form's minimum. A token is *below the dip* when h is under −0.7518 and the pole's strength is under the activation line. GELU is back near zero there, so the pole is silent.
+**The dip.** GELU is the input times the standard normal distribution function $\Phi$ (Hendrycks & Gimpel, 2016):
+
+$$
+\mathrm{GELU}(x) = x \, \Phi(x)
+$$
+
+The minimum of this exact form is at $h = -0.7518$. GPT-2's MLP uses the tanh approximation that the same paper gives, whose minimum is at $h = -0.7525$. Our scripts use the exact form's minimum. A token is *below the dip* when $h < -0.7518$ and the pole's strength is under the activation line. GELU is back near zero there, so the pole is silent.
 
 **Models and data.** We use GPT-2 small (Radford et al., 2019) and Qwen2.5-0.5B, from the Qwen2.5 family (Yang et al., 2024). The text is a 200,000-token sample with seed 0 from the first 10,000 documents of the Pile (Gao et al., 2020). We cut it into whole 128-token windows that do not overlap. GPT-2 gets 1,355 windows from 384 documents, and Qwen gets 1,328 from 420. We fit constants on 300 windows and test on 400 others, with no document in both. Windows of one document share a topic, so a split by window would leak.
 
 **First tokens.** Band statistics skip each window's first token, and interventions leave it unchanged. The conditions marked *with first* change it too (Section *What does each side cost?*).
 
-**Interventions.** Table 1 lists the changes that we make to the activations, and Figure 1 shows them on one neuron. KL is KL(clean‖changed) over the next-token distributions. A *clamp* keeps a side's mean and removes its variation. A *zero* removes the mean as well. The *shuffled null* has the same size of change as the clamp, with no link to the token.
+**Interventions.** Table 1 lists the changes that we make to the activations, and Figure 1 shows them on one neuron. KL is the divergence of the changed next-token distribution $q$ from the clean one $p$, summed over the vocabulary's tokens $t$:
+
+$$
+\mathrm{KL}(p \Vert q) = \sum_t p(t) \log \frac{p(t)}{q(t)}
+$$
+
+A *clamp* keeps a side's mean and removes its variation. A *zero* removes the mean as well. The *shuffled null* has the same size of change as the clamp, with no link to the token.
 
 | Condition | Change |
 | --- | --- |
@@ -67,19 +79,19 @@ The paper's contributions are these:
 
 ## Does training rest the neurons below the dip?
 
-The first question is whether resting below the dip is learned, and what sets it. We measured each layer's median h on the trained model and on random initialisations of the same architecture (Table 2, Figure 2 and Figure 3). At random initialisation 23–40% of neurons are default-on. After training, 75–97% are, on every layer but L1.
+The first question is whether resting below the dip is learned, and what sets it. We measured each layer's median $h$ on the trained model and on random initialisations of the same architecture (Table 2, Figure 2 and Figure 3). At random initialisation 23–40% of neurons are default-on. After training, 75–97% are, on every layer but L1.
 
 ![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
 
-**Figure 2.** Every layer but L1 moves left of GELU's dip during training. An animated sketch in depth: one normal curve for each layer of GPT-2 small, with its median h and its median neuron's SD. The ridges move between random initialisation (mean of 5 seeds) and the trained model, and only these two end states are measured. The dark line on the floor is GELU's dip, at −0.75.
+**Figure 2.** Every layer but L1 moves left of GELU's dip during training. An animated sketch in depth: one normal curve for each layer of GPT-2 small, with its median $h$ and its median neuron's SD. The ridges move between random initialisation (mean of 5 seeds) and the trained model, and only these two end states are measured. The dark line on the floor is GELU's dip, at −0.75.
 
 ![GELU over a sketch of a typical L9 neuron's h before and after training, and median h by layer](media/rest.svg)
 
-**Figure 3.** Training moves GPT-2's neurons left of GELU's dip. Left: GELU, with a sketch of a typical L9 neuron's h before and after training. Right: the trained median h by layer.
+**Figure 3.** Training moves GPT-2's neurons left of GELU's dip. Left: GELU, with a sketch of a typical L9 neuron's $h$ before and after training. Right: the trained median $h$ by layer.
 
 | Layer | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Median h, trained | −1.16 | −0.24 | −1.15 | −1.25 | −0.99 | −1.11 | −1.05 | −1.01 | −1.03 | −1.04 | −0.99 | −0.86 |
+| Median $h$, trained | −1.16 | −0.24 | −1.15 | −1.25 | −0.99 | −1.11 | −1.05 | −1.01 | −1.03 | −1.04 | −0.99 | −0.86 |
 | … from the bias | −0.07 | −0.05 | −0.09 | −0.09 | −0.08 | −0.07 | −0.08 | −0.08 | −0.08 | −0.08 | −0.08 | −0.07 |
 | … from the input term | −1.08 | −0.20 | −1.04 | −1.15 | −0.92 | −1.03 | −0.97 | −0.92 | −0.94 | −0.96 | −0.92 | −0.81 |
 | Default-on %, trained | 86 | 58 | 75 | 86 | 90 | 90 | 94 | 96 | 97 | 97 | 96 | 92 |
@@ -87,7 +99,7 @@ The first question is whether resting below the dip is learned, and what sets it
 | Mean \|GELU slope\|, trained | 0.21 | 0.31 | 0.23 | 0.19 | 0.21 | 0.20 | 0.21 | 0.21 | 0.20 | 0.20 | 0.21 | 0.24 |
 | Mean \|GELU slope\|, random init | 0.51 | 0.51 | 0.51 | 0.51 | 0.51 | 0.51 | 0.51 | 0.51 | 0.51 | 0.51 | 0.52 | 0.51 |
 
-**Table 2.** Where GPT-2's neurons rest, by layer. The random-init rows are means over 5 seeds of the same architecture, and their median h is 0.00 on every layer, to within 0.01. The bias and input-term rows are medians of different quantities, so they do not sum exactly to the median h.
+**Table 2.** Where GPT-2's neurons rest, by layer. The random-init rows are means over 5 seeds of the same architecture, and their median $h$ is 0.00 on every layer, to within 0.01. The bias and input-term rows are medians of different quantities, so they do not sum exactly to the median $h$.
 
 Most neurons rest left of the dip, not in it. On every layer but L1, the typical median is below −0.75, so the typical neuron sits on GELU's flat left tail. At L9 the signed mean slope is 0.09, and the mean absolute slope is 0.20, against 0.51 at random initialisation. The input weights, not the bias, make this rest. A bias could set the rest alone, but its median is at most −0.09 in size on any layer, against an input term of −0.81 to −1.15 outside L1. So the rest comes from how the weights project the inputs that the MLP reads. L1 is the exception. Its median is −0.24, and 58% of its neurons are default-on. We did not investigate why.
 
@@ -115,7 +127,7 @@ The second question is how much of the prediction depends on each side, and on w
 
 The resting level costs far more than the variation. The negative side's zero costs about 20× its clamp. The clamp keeps the side's mean and removes its variation, whereas the zero also removes the mean. So most of the 3.72 nats come from removing a nearly constant offset, not 3.7 nats of varying signal, as the first study's numbers could suggest.
 
-The variation still does something. The clamp's KL is 1.9× its null's, at the same size of change. So the variation's link to the token matters, but its total cost is small. Single poles do almost nothing. Zeroing L9/N1046− gives a KL of 1.3×10⁻⁵, and 10 default-on controls give 1.2–2.5×10⁻⁵. So N1046 is an ordinary default-on pole.
+The variation still does something. The clamp's KL is 1.9× its null's, at the same size of change. So the variation's link to the token matters, but its total cost is small. Single poles do almost nothing. Zeroing L9/N1046− gives a KL of $1.3 \times 10^{-5}$, and 10 default-on controls give $1.2$–$2.5 \times 10^{-5}$. So N1046 is an ordinary default-on pole.
 
 ### The first token
 
@@ -144,13 +156,13 @@ The first study read the negative side as a scaled-down copy of the positive sid
 
 ![KL ratio of the clamp and of the shuffled null against the activation variance ratio, by layer](media/kl-ratio.svg)
 
-**Figure 5.** A shuffled change with no link to the token fits the variance just as well. Each dot is a layer of GPT-2 small. Left: the clamp's KL ratio, with r = 0.95 against the activation variance ratio. Right: the shuffled null's KL ratio, with r = 0.97.
+**Figure 5.** A shuffled change with no link to the token fits the variance just as well. Each dot is a layer of GPT-2 small. Left: the clamp's KL ratio, with $r = 0.95$ against the activation variance ratio. Right: the shuffled null's KL ratio, with $r = 0.97$.
 
-The match is real, but it says little. Over the 12 layers the KL ratio correlates with the variance ratio at r = 0.95, as the first study saw. L0 is the clear miss, at 0.06 against 0.14. But the shuffled null's ratio correlates with the variance ratio at r = 0.97, although it has no link to the token. So KL mostly tracks the size of the change. Twelve layers are few, so these correlations are weak evidence in any case.
+The match is real, but it says little. Over the 12 layers the KL ratio correlates with the variance ratio at $r = 0.95$, as the first study saw. L0 is the clear miss, at 0.06 against 0.14. But the shuffled null's ratio correlates with the variance ratio at $r = 0.97$, although it has no link to the token. So KL mostly tracks the size of the change. Twelve layers are few, so these correlations are weak evidence in any case.
 
-The sides are not shown to be one signal. Centred on the token mean, the two sides' writes have a mean cosine of −0.19 to 0.28 by layer. A ridge readout predicts the positive write from the negative side with R² of 0.28–0.82, but random features get 0.23–0.78 (Table 7). So most of that overlap comes from the shared input.
+The sides are not shown to be one signal. Centred on the token mean, the two sides' writes have a mean cosine of −0.19 to 0.28 by layer. A ridge readout predicts the positive write from the negative side with $R^2$ of 0.28–0.82, but random features get 0.23–0.78 (Table 7). So most of that overlap comes from the shared input.
 
-Later layers compensate for early clamps and amplify middle ones. Freezing the later MLPs raises the negative clamp's KL at L0–L4, by 1.38–2.65×, so those later MLPs undo part of the damage. This resembles the Hydra effect of McGrath et al. (2023), which they found for attention layers. At L6–L8 freezing lowers the KL, to 0.78–0.89×, so later MLPs add to the damage there. The positive side has the same shape, with less of this. The ratio survives both changes. With later MLPs frozen, or with the direct path alone, it still correlates with the variance ratio, at r = 0.98 and 0.97.
+Later layers compensate for early clamps and amplify middle ones. Freezing the later MLPs raises the negative clamp's KL at L0–L4, by 1.38–2.65×, so those later MLPs undo part of the damage. This resembles the Hydra effect of McGrath et al. (2023), which they found for attention layers. At L6–L8 freezing lowers the KL, to 0.78–0.89×, so later MLPs add to the damage there. The positive side has the same shape, with less of this. The ratio survives both changes. With later MLPs frozen, or with the direct path alone, it still correlates with the variance ratio, at $r = 0.98$ and $0.97$.
 
 Most of an early clamp's effect is indirect. The direct path to the final norm carries 6–10% of the KL at L0–L4, and all of it at L11, where nothing follows. Clamps also add up to more than their parts. The sum of the single-layer KLs is 0.11 for the negative side and 0.79 for the positive. All layers together give 0.18 and 1.46.
 
@@ -193,13 +205,13 @@ A real neuron's tail is no more reliable than a random direction's (Figure 6). O
 
 A random direction's tail can also suggest a theme (Table 6). Direction 0 has code syntax among its top tokens, and direction 2 has sentence openers and pronouns. Those are the first study's two readings of N1046, and N1046's own list is also a mix. Several lists have no clear theme, as do some of the controls. We read these lists knowing which were random, so the readings are not blind, but the reliability numbers do not depend on them.
 
-Token identity dominates the MLP's input, so a reliable tail is no evidence that a neuron means something, and a readable one is weak evidence. This is the result that Szegedy et al. (2014) report for image networks, here for the tail of a language model's neurons. We could not check the first study's phrase "pronouns after 'what'", because this method reads single tokens. Surprisal does not explain the tails either. The Spearman ρ between h and the token's surprisal given its prefix is 0.05 for N1046, and −0.14 to 0.11 for the controls.
+Token identity dominates the MLP's input, so a reliable tail is no evidence that a neuron means something, and a readable one is weak evidence. This is the result that Szegedy et al. (2014) report for image networks, here for the tail of a language model's neurons. We could not check the first study's phrase "pronouns after 'what'", because this method reads single tokens. Surprisal does not explain the tails either. The Spearman $\rho$ between $h$ and the token's surprisal given its prefix is 0.05 for N1046, and −0.14 to 0.11 for the controls.
 
 ## Can the negative side be decoded?
 
-The fifth question is whether the negative side's collective signal decodes into anything meaningful. A ridge readout fits on 300 windows and tests on 400. It reads one side of a layer's activations, and predicts which of the 200 commonest tokens is the current or the next token. Chance is 12.5%. The null reads the negative side of random features of the same input, each with a real neuron's median and SD of h. Table 7 gives the scores.
+The fifth question is whether the negative side's collective signal decodes into anything meaningful. A ridge readout fits on 300 windows and tests on 400. It reads one side of a layer's activations, and predicts which of the 200 commonest tokens is the current or the next token. Chance is 12.5%. The null reads the negative side of random features of the same input, each with a real neuron's median and SD of $h$. Table 7 gives the scores.
 
-| Layer | Current token: − | + | null | Next token: − | + | both | null | Positive write R²: from − | from null |
+| Layer | Current token: − | + | null | Next token: − | + | both | null | Positive write $R^2$: from − | from null |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | L0 | 0.999 | 0.996 | 1.000 | 0.365 | 0.361 | 0.361 | 0.358 | 0.67 | 0.63 |
 | L1 | 0.998 | 0.993 | 0.999 | 0.373 | 0.373 | 0.374 | 0.367 | 0.50 | 0.43 |
@@ -214,7 +226,7 @@ The fifth question is whether the negative side's collective signal decodes into
 | L10 | 0.831 | 0.825 | 0.837 | 0.470 | 0.540 | 0.543 | 0.497 | 0.50 | 0.46 |
 | L11 | 0.779 | 0.778 | 0.788 | 0.487 | 0.544 | 0.546 | 0.506 | 0.82 | 0.78 |
 
-**Table 7.** Ridge readouts of token identity on GPT-2 small. The token columns give the accuracy on the 200 commonest tokens, from the negative side, the positive side, both sides and the random-feature null. The last two columns give the R² of the positive side's write, predicted from the negative side and from the null.
+**Table 7.** Ridge readouts of token identity on GPT-2 small. The token columns give the accuracy on the 200 commonest tokens, from the negative side, the positive side, both sides and the random-feature null. The last two columns give the $R^2$ of the positive side's write, predicted from the negative side and from the null.
 
 The negative side decodes well, and that alone means little. It gets 78–99.9% on the current token, but random features get as much or more on all 12 layers. On the next token, the negative side leads the null by at most 0.008 on L0–L6, and the null leads on L7–L11. The positive side does beat the null late. On the next token it gets 0.544 at L11, against the null's 0.506, and adding the negative side adds almost nothing (0.546). So late positive poles hold something that the input's random features do not give.
 
@@ -224,7 +236,7 @@ A readout shows what is present, not what later layers read (Belinkov, 2022), an
 
 Token identity is the easiest thing to read from the MLP's input, so it could hide content that needs a learned direction. The sixth question is whether the negative side leads random features on two harder targets. We kept the same readout, with three draws of the null. Each target has a baseline that reads only the current token, which we call the *lookup*. Like the control tasks of Hewitt and Liang (2019), the lookup shows what a readout gets from token identity alone.
 
-**The model's next-token distribution.** The target is the model's log-probability of the 200 commonest tokens, with the same fit and test windows. The score is R² on the test windows (Table 8).
+**The model's next-token distribution.** The target is the model's log-probability of the 200 commonest tokens, with the same fit and test windows. The score is $R^2$ on the test windows (Table 8).
 
 | Layer | Lookup | − | + | both | null (3 draws) | − minus best null | + minus best null | Top agreement: − | + | best null |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -241,13 +253,13 @@ Token identity is the easiest thing to read from the MLP's input, so it could hi
 | L10 | 0.278 | 0.767 | 0.792 | 0.809 | 0.739–0.742 | +0.025 | +0.050 | 0.527 | 0.671 | 0.580 |
 | L11 | 0.278 | 0.806 | 0.871 | 0.879 | 0.792–0.798 | +0.008 | +0.073 | 0.545 | 0.717 | 0.634 |
 
-**Table 8.** Ridge readouts of the model's next-token distribution on GPT-2 small. The first columns give R² on the test windows, for the lookup, each side, both sides and the three null draws. The lead columns subtract the best null draw. The last three columns give how often the readout's top token matches the model's.
+**Table 8.** Ridge readouts of the model's next-token distribution on GPT-2 small. The first columns give $R^2$ on the test windows, for the lookup, each side, both sides and the three null draws. The lead columns subtract the best null draw. The last three columns give how often the readout's top token matches the model's.
 
 The negative side leads the null a little. Its lead over the best of three draws is 0.008–0.025 on L1–L11, and 0.002 on L0. Its 95% interval by document, against the first draw, is above zero on L1–L11. The draws themselves differ by up to 0.015, so the smaller leads are close to that spread. The positive side leads by more late. Its lead grows to 0.073 at L11, where the negative side's is 0.008. Reading both sides adds 0.008–0.029 to the better single side.
 
-The top prediction goes the other way late. The negative side matches the model's top token more often than the null on L0–L6, and less often on L7–L11. At L11 it is 0.545, against 0.634 for the null and 0.717 for the positive side. Entropy agrees with R². The negative side leads the null on the distribution's entropy by 0.001 at L0, and by 0.009–0.035 on L1–L11.
+The top prediction goes the other way late. The negative side matches the model's top token more often than the null on L0–L6, and less often on L7–L11. At L11 it is 0.545, against 0.634 for the null and 0.717 for the positive side. Entropy agrees with $R^2$. The negative side leads the null on the distribution's entropy by 0.001 at L0, and by 0.009–0.035 on L1–L11.
 
-A lead does not show that training built the negative side for this. Both sides read the same h, so weights learned for the positive side would also help the negative side beat random weights. This test cannot separate the two.
+A lead does not show that training built the negative side for this. Both sides read the same $h$, so weights learned for the positive side would also help the negative side beat random weights. This test cannot separate the two.
 
 **Human labels.** The labels come from Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and a language-identification dataset. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup reads the current token's rate of the label (Table 9).
 
@@ -265,11 +277,11 @@ All sides read context, and the null reads it too. Each side is far above the lo
 
 ![Each side's lead over the random-feature null on the next-token distribution and on human labels](media/decoding.svg)
 
-**Figure 7.** The negative side leads random features only a little on these targets. Zero is the best of three random-feature draws. Left: the R² lead on the next-token distribution by layer, with the spread of the three null draws shaded. Right: the negative side's AUROC lead on the human labels. The two panels use different scores, so compare each with its own zero.
+**Figure 7.** The negative side leads random features only a little on these targets. Zero is the best of three random-feature draws. Left: the $R^2$ lead on the next-token distribution by layer, with the spread of the three null draws shaded. Right: the negative side's AUROC lead on the human labels. The two panels use different scores, so compare each with its own zero.
 
 ## Does a SwiGLU model behave the same?
 
-The seventh question is whether the picture holds with another activation function. Qwen's MLP is SwiGLU (Shazeer, 2020), so a neuron is silu(gate) × up. We ran the clamps on the same window design, on every layer together and on layers 0, 5, 11, 17 and 23 alone. We sampled the layers because a full per-layer run would take hours. The clean cross-entropy is 2.75 nats (Table 10 and Table 11).
+The seventh question is whether the picture holds with another activation function. Qwen's MLP is SwiGLU (Shazeer, 2020), so a neuron is $\mathrm{silu}(\mathrm{gate}) \times \mathrm{up}$. We ran the clamps on the same window design, on every layer together and on layers 0, 5, 11, 17 and 23 alone. We sampled the layers because a full per-layer run would take hours. The clean cross-entropy is 2.75 nats (Table 10 and Table 11).
 
 | All 24 layers | Added nats | Top prediction unchanged |
 | --- | --- | --- |
@@ -300,7 +312,7 @@ In this SwiGLU model, then, the negative side costs as much as the positive side
 
 ## Discussion
 
-The results give a consistent picture of GPT-2's default-on negative poles. Training rests most neurons left of GELU's dip, and the negative side then writes a nearly constant offset that carries most of its cost. Each reading of its variation does about as well on a matched null, and the shared h could explain any lead.
+The results give a consistent picture of GPT-2's default-on negative poles. Training rests most neurons left of GELU's dip, and the negative side then writes a nearly constant offset that carries most of its cost. Each reading of its variation does about as well on a matched null, and the shared $h$ could explain any lead.
 
 This is not a claim that the negative side is meaningless. The clamp's KL is still 1.9× its null's, and the lead on the next-token distribution has an interval above zero on L1–L11. Other readouts or targets could find more. The claim is narrower: a single default-on pole cannot be audited as a detector, and the population's varying content is small against nulls that the first study lacked.
 
@@ -322,7 +334,7 @@ For the protocol, no rule changes. These results support the rule that stops the
 - **Few controls.** The 10 controls show the range. The population figures rest on L9 alone.
 - **Linear readouts and short labelled text.** The decoding tests use linear readouts and one sample. The labelled text is short, and it differs from the Pile sample. The fit sets are smaller than the features would like on the Universal Dependencies data, with 16,476 tokens for 3,072 features. Other readouts or targets could still show more.
 - **One model of each kind.** GPT-2 small is the only GELU model, and Qwen2.5-0.5B is the only SwiGLU model. The Qwen per-layer clamps cover 5 of 24 layers.
-- **Device.** The runs used float32 on Apple's GPU. Activations there match the CPU's to about 1×10⁻⁴ of a neuron's peak.
+- **Device.** The runs used float32 on Apple's GPU. Activations there match the CPU's to about $1 \times 10^{-4}$ of a neuron's peak.
 - **The resting level's cause.** The noise-gain test uses small noise on fixed weights, and it cannot show what training selects for.
 
 ## Conclusion
@@ -388,7 +400,7 @@ The first study's scripts were not kept, so we cannot say what caused each diffe
 
 | Number | First study | Here |
 | --- | --- | --- |
-| L9 median h, trained / random init | −1.03 / 0.00 | −1.04 / 0.00 |
+| L9 median $h$, trained / random init | −1.03 / 0.00 | −1.04 / 0.00 |
 | L9 default-on, trained / random init | 97% / 40% | 97% / 40% (5 seeds) |
 | L9 mean GELU slope, trained / random init | 0.20 / 0.51 | The same, as mean \|slope\|. The signed trained mean is 0.09 |
 | Clean cross-entropy | 3.62 | 3.63 |
@@ -396,13 +408,13 @@ The first study's scripts were not kept, so we cannot say what caused each diffe
 | Positive clamp: added nats, top unchanged | 1.33, 41% | 1.34, 40% |
 | Negative zero: added nats, top unchanged | 3.68, 13% | 3.72, 13% |
 | All at mean: added nats, top unchanged | 4.94, 10% | 4.09, 13%. With first tokens changed: 5.63, 9% |
-| Zeroing L9/N1046 alone, KL | 2.6×10⁻⁵ | 1.3×10⁻⁵ |
+| Zeroing L9/N1046 alone, KL | $2.6 \times 10^{-5}$ | $1.3 \times 10^{-5}$ |
 | KL ratio / variance ratio at L3, L6, L9, L11 | 0.25/0.31, 0.22/0.20, 0.12/0.13, 0.05/0.04 | 0.26/0.31, 0.21/0.21, 0.11/0.13, 0.05/0.04 |
 | The same at L0 | 0.07/0.14 | 0.06/0.14 |
 | L9/N1046 tokens below the dip | 2.3% | 2.4% |
 | L9/N1046 reliability | 0.80 | 0.70 by document, 0.90 by occurrence |
 | Reliability of 10 controls | 0.79–0.93 | 0.56–0.83 by document, 0.66–0.92 by occurrence |
-| ρ with surprisal | 0.05 | 0.05 |
+| $\rho$ with surprisal | 0.05 | 0.05 |
 
 **Table 12.** The first study's numbers, from [an earlier `TODO.md`](https://github.com/8W9aG/openinterpretability/blob/7b735684/TODO.md), beside this paper's.
 
@@ -410,17 +422,17 @@ Reliability depends on the split. A split by occurrence puts one document's toke
 
 ### Appendix C: The gain on noise
 
-We tested whether a low slope at rest lowers the gain on input noise. We compared each MLP with a copy that has each neuron's median h moved to zero by its bias. The noise has 0.1 × each input dimension's SD. It is isotropic, or it points towards another token's input, which we call *data-shaped* noise. Table 13 gives the gains.
+We tested whether a low slope at rest lowers the gain on input noise. We compared each MLP with a copy that has each neuron's median $h$ moved to zero by its bias. The noise has $0.1 \times$ each input dimension's SD. It is isotropic, or it points towards another token's input, which we call *data-shaped* noise. Table 13 gives the gains.
 
 | Layer | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Noise gain falls by (×) | 5.5 | 8.2 | 22.0 | 11.3 | 6.4 | 6.2 | 4.9 | 4.6 | 4.5 | 4.3 | 3.8 | 3.3 |
-| Signal gain falls by (×) | 7.3 | 15.7 | 23.5 | 19.9 | 12.9 | 11.8 | 9.3 | 7.1 | 6.6 | 5.7 | 3.5 | 2.4 |
+| Noise gain falls by ($\times$) | 5.5 | 8.2 | 22.0 | 11.3 | 6.4 | 6.2 | 4.9 | 4.6 | 4.5 | 4.3 | 3.8 | 3.3 |
+| Signal gain falls by ($\times$) | 7.3 | 15.7 | 23.5 | 19.9 | 12.9 | 11.8 | 9.3 | 7.1 | 6.6 | 5.7 | 3.5 | 2.4 |
 | Signal/noise gain, trained | 1.31 | 0.23 | 0.29 | 0.36 | 0.35 | 0.39 | 0.43 | 0.50 | 0.55 | 0.64 | 0.94 | 2.23 |
 | Signal/noise gain, recentred | 1.73 | 0.44 | 0.30 | 0.64 | 0.71 | 0.73 | 0.82 | 0.79 | 0.80 | 0.84 | 0.86 | 1.62 |
 | Signal/data-shaped gain, trained | 0.35 | 0.15 | 0.09 | 0.09 | 0.09 | 0.11 | 0.14 | 0.17 | 0.21 | 0.25 | 0.28 | 0.28 |
 | Signal/data-shaped gain, recentred | 0.80 | 0.59 | 0.30 | 0.26 | 0.30 | 0.35 | 0.44 | 0.44 | 0.50 | 0.54 | 0.40 | 0.34 |
 
-**Table 13.** The gain of each MLP on its signal and on small input noise, as trained and in a copy recentred so that each neuron's median h is zero. The first two rows and the first ratio use isotropic noise. A higher ratio means that the MLP passes more signal per unit of noise.
+**Table 13.** The gain of each MLP on its signal and on small input noise, as trained and in a copy recentred so that each neuron's median $h$ is zero. The first two rows and the first ratio use isotropic noise. A higher ratio means that the MLP passes more signal per unit of noise.
 
 The gain on noise does fall at rest, by 3–22×. But the signal's gain falls by more on L0–L9, so the trained signal-to-noise ratio is lower there than the recentred one. Only L10 and L11 are higher, and only for isotropic noise. For data-shaped noise the trained ratio is lower on all 12 layers. So a lower gain on noise is true as a fact about size, but this test does not support it as a reason for the rest. The test also has limits. It uses small noise on fixed weights, and training would not reach the recentred copy, so it cannot show what training selects for. A causal test would train small models and vary the dropout, the weight decay or the activation function.

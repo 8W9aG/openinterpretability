@@ -42,12 +42,18 @@ Hoogland et al. (2025) divide the training of a small attention-only language mo
 
 **Measures.** For each pole and step we measure four things.
 
-- *The correlation with the final form*, written r, is the Pearson correlation between the pole's peak activations on the 300 windows at that step and at step 143,000.
+- *The correlation with the final form*, written $r$, is the Pearson correlation between the pole's peak activations on the 300 windows at that step and at step 143,000:
+
+  $$
+  r_t = \mathrm{corr}(a_t, a_{143000})
+  $$
+
+  Here $a_t$ is the vector of the pole's peak activations on the 300 windows at step $t$.
 - *The correlation with the checkpoint before* is the same correlation with the previous checkpoint in the list.
 - *Whether the explanation holds*: the recorded probes are run again, and the explanation holds when both pass rates reach the gates. The activation line at each step is 0.25 of a scaled maximum: the recorded maximum, times the step's largest window activation divided by the last step's.
 - *The loss* is the mean next-token loss on the 300 windows.
 
-**Reproduction of the first run.** We ran the first 9 poles again with the same code before the full run. No pass or fail, pass rate or formation step changed. The largest numeric change was 2.5×10⁻⁴ in a step's maximum, which is float rounding.
+**Reproduction of the first run.** We ran the first 9 poles again with the same code before the full run. No pass or fail, pass rate or formation step changed. The largest numeric change was $2.5 \times 10^{-4}$ in a step's maximum, which is float rounding.
 
 ## Does the loss settle before the poles?
 
@@ -104,9 +110,9 @@ The 86 poles cover all six layers, where the first 9 covered four. Table 2 gives
 
 ## Discussion
 
-The first version found that the two measures of formation order its 9 poles in reverse (Table 1). The poles whose activations take their final shape early, L4/N812+, L4/N216+ and L4/N566+, were the ones whose explanations settled last. The poles whose explanations held early, L5/N655+ and L5/N674+, took their final shape late. Over the 9, the Spearman correlation between the step from which an explanation holds and the first step with r ≥ 0.8 is −0.73.
+The first version found that the two measures of formation order its 9 poles in reverse (Table 1). The poles whose activations take their final shape early, L4/N812+, L4/N216+ and L4/N566+, were the ones whose explanations settled last. The poles whose explanations held early, L5/N655+ and L5/N674+, took their final shape late. Over the 9, the Spearman correlation between the step from which an explanation holds and the first step with $r \geq 0.8$ is −0.73.
 
-That reversal does not hold for the 85 positive poles. There, the same correlation is 0.24, and with the first step with r ≥ 0.5 it is 0.25. The two measures are thus weakly related, not opposed, and the 9 were an unusual sample. The weaker claim still stands. Passing the probes and matching the final activations measure different things. A pole can do what its explanation says while much of the rest of its activation still changes. Equally, it can keep its overall shape while the detail that the probes test still moves. Table 2 shows the same at the level of layers. Layer 0's poles take their shape earliest, but layer 3's explanations hold earliest.
+That reversal does not hold for the 85 positive poles. There, the same correlation is 0.24, and with the first step with $r \geq 0.5$ it is 0.25. The two measures are thus weakly related, not opposed, and the 9 were an unusual sample. The weaker claim still stands. Passing the probes and matching the final activations measure different things. A pole can do what its explanation says while much of the rest of its activation still changes. Equally, it can keep its overall shape while the detail that the probes test still moves. Table 2 shows the same at the level of layers. Layer 0's poles take their shape earliest, but layer 3's explanations hold earliest.
 
 This result differs from the induction heads of Olsson et al. (2022), whose formation is visible as a bump in the loss. The poles studied here change without any matching feature in the loss. This suggests that the loss curve is a poor guide to when single neurons form. A measure of the model's local geometry may show these late changes where the loss does not. An example is the local learning coefficient (Lau et al., 2023), as Hoogland et al. (2025) use it.
 

@@ -61,6 +61,17 @@ at step 64,000 and 0.93 at step 128,000, which suggests that the poles keep chan
 long after the loss settles.
 ```
 
+## Mathematics
+
+Write maths in LaTeX. The site typesets it at build time (`openinterpretability/builder/maths.py`), and GitHub renders it too. A formula that the site can't read stops the build.
+
+- **Write each equation, formula and maths symbol in LaTeX.** Use `$...$` inline: `$\mathrm{silu}(g) \cdot u$`, `$1.3 \times 10^{-5}$`, `$\sigma$`, `$R^2$`, `$\alpha = -0.5$`.
+- **Give each definition that the method depends on a block equation of its own**, such as the pole, the clamp or the KL metric. Put `$$` on its own line before and after the formula.
+- **Define each symbol the first time it occurs**, in the sentence that uses it.
+- **Keep plain numbers as text**, in prose and in tables: "12 layers", "3.72 nats", "0.28–0.82". A ratio such as "1.9×" is a plain number too. A number in scientific notation is maths: `$2.6 \times 10^{-5}$`.
+- **Keep code identifiers in backticks**, not in LaTeX: `silu`, `--clamp`.
+- **Don't use `$` for anything else** outside code. Write a shell variable such as `$OUT` in backticks or a code block.
+
 ## Citations
 
 Cite each outside idea, method, model and dataset where the paper uses it. Do this before the paper is finished, not after it.
