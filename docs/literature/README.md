@@ -58,6 +58,23 @@ Status marks how the work relates to this repo:
 | [Calibrated Concept Profiles](calibrated-concept-profiles.md) (Wilam, 2026) | not applicable | It reads every neuron's response to a named Python construct in OpenCoder-1.5B, which is the opposite direction to ours. Its twin draws, nulls and untrained reference match controls we run. Its untrained probe result (0.80) supports #3559. |
 | [Interpreting Any Residual Stream Direction by Scaling Activation Inversion](activation-inversion.md) (De Schamphelaere et al., 2026) | not applicable | A 27B generator, trained for one model, writes text that drives a chosen residual direction. No generator exists for our models. It reports EPO, our dreaming optimiser, far below it, so dreaming's miss rate is a floor (#3779). |
 
+## Fixing models: editing and where it fails
+
+Part of the review of how to fix a model's behaviour (#4784). These pages report evidence for the fix campaign, which the maintainer designs. They do not design it.
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Does Localization Inform Editing?](does-localization-inform-editing.md) (Hase, Bansal, Kim and Ghandeharioun, 2023) | planned | Causal Tracing does not predict the best layer to edit a fact. The edit layer explains 94.7% of the variance in ROME's success, and tracing adds 0.1%. It tests the premise of a fix guided by an explanation (#4784, #5015). |
+| [The Mirage of Model Editing](mirage-of-model-editing.md) (Yang et al., 2025) | not applicable | Teacher forcing and truncation inflate editing scores. Llama-2 single-edit success is 38.5% under free decoding, and sequential editing collapses by 1,000 edits. Our answer measures read one token, so a fix to #4781 also needs a free-decoded check. |
+| [Editing Factual Knowledge in Language Models](editing-factual-knowledge.md) (De Cao, Aziz and Titov, 2021) | planned | A hyper-network edits one fact under a KL constraint on other outputs. Its success, retain, paraphrase and deterioration scores are a ready test for a fix of the #4781 prompt (#5015). |
+| [Fast Model Editing at Scale](fast-model-editing.md) (Mitchell, Lin, Bosselut, Finn and Manning, 2022) | not applicable | MEND turns one example's gradient into a weight edit, and checks reliability, generality and locality. Its random locality inputs are too easy. The shortlist prompts that copying answers right are harder negatives for a #4781 fix. |
+| [Memory-Based Model Editing at Scale](memory-based-model-editing.md) (Mitchell, Lin, Bosselut, Manning and Finn, 2022) | not applicable | A black-box editor that keeps edits in a memory and leaves every unit unchanged. Its hard out-of-scope test still bears on a fix: three shortlist prompts are right because the model copies the first unit. |
+| [Aging with GRACE](aging-with-grace.md) (Hartvigsen et al., 2023) | not applicable | A codebook at one layer swaps that layer's output inside a key's radius, with no change to the weights. It uses no explanation, so it could be a control for the fix campaign. It reports generality in figures only. |
+| [WISE: Knowledge Memory for Lifelong Model Editing](wise-lifelong-editing.md) (Wang, Li, Zhang et al., 2024) | not applicable | Sequential edits go in a gated side copy of one FFN matrix. It scores reliability, generalisation and locality together, and studies no units. Its untested near-edit locality case bears on a fix. |
+| [Evaluating the Ripple Effects of Knowledge Editing](ripple-effects-of-knowledge-editing.md) (Cohen, Biran, Yoran, Globerson and Geva, 2024) | planned | An edit must also change the facts it implies. MEND, ROME and MEMIT fail most of these tests, and an in-context baseline does best. A #4781 fix needs such neighbour prompts (#5015). |
+| [MQuAKE](mquake.md) (Zhong, Wu, Manning, Potts and Chen, 2023) | planned | Editors that recall over 88% of edited facts answer only 0.3–16.0% of the multi-hop questions that follow. So a test on the edited prompt alone overstates a fix. Its single-fact control bears on #5015. |
+| [Editing Large Language Models: Problems, Methods, and Opportunities](editing-llms-survey.md) (Yao et al., 2023) | planned | A same-conditions comparison of about a dozen editing methods, on four properties. Single-neuron edits did poorly on GPT-J. Its Distract-Neighbour test is the copy habit behind #4781 (#5015). |
+
 ## Philosophy of mind
 
 | Page | Status | Why |
