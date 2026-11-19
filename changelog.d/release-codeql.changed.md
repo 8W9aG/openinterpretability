@@ -1,0 +1,1 @@
+- **Each release runs CodeQL on `main` and fixes everything it finds.** The `release` skill starts a scan, waits for it and fixes every open alert, whatever its severity. Then it scans again and checks that no alert is left, before the release branch is cut.
