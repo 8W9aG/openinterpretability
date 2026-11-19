@@ -35,7 +35,7 @@
     </svg>
     <div role="status" class="map-card pointer-events-none absolute z-10 hidden max-w-xs rounded-md bg-slate-200 px-3 py-2 text-sm text-slate-900 shadow-lg"></div>
     <ol class="mt-3 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2" style="color: var(--ink)">
-      {% for b in cm.badges %}<li class="flex items-center gap-2"><span class="sw{{ b.slot }} ink-{{ b.ink }} inline-block w-7 rounded-sm text-center font-bold">{{ "%02d" | format(b.number) }}</span> <span class="{{ 'italic' if b.slot == 0 else '' }}">{{ b.name }}</span> <span style="color: var(--muted)">({{ b.size }})</span></li>{% endfor %}
+      {% for b in cm.badges %}<li class="flex items-center gap-2"><span class="sw{{ b.slot }} inline-block h-3 w-3 shrink-0 rounded-sm" aria-hidden="true"></span><span class="font-bold tabular-nums">{{ "%02d" | format(b.number) }}</span> <span class="{{ 'italic' if b.slot == 0 else '' }}">{{ b.name }}</span> <span style="color: var(--muted)">({{ b.size }})</span></li>{% endfor %}
     </ol>
     <figcaption class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs" style="color: var(--muted)">
       <span>● VERIFIED</span><span>▲ NEEDS REVISION</span><span>■ REJECTED</span><span>◆ CONTESTED</span><span>· other</span>
