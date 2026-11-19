@@ -483,7 +483,7 @@ def _render_model(
             render(e.href, "experiment.html", **unit, v=view, rank=rank)
         render(
             neuron.href,
-            "neuron.html",
+            "superposition.html" if neuron.is_superposition else "neuron.html",  # #4006
             model=model,
             layer=layer,
             neuron=neuron,
