@@ -41,6 +41,12 @@ On five of the six prompts, L4/H1 lowers the copied unit, by 0.31 to 1.18 logits
 - **Not a general copy suppressor.** On a corpus, its effect is small, and copy suppression explains almost none of it. Its VERIFIED explanation describes when it is active: it attends to one recent content token. That is the attention that copy suppression needs, but here the write that follows is mostly something else.
 - **Evidence, not a design.** Scaling L4/H1 up is a change to the model that would also move its other writes. Whether the campaign to repair models uses it is the maintainer's question.
 
+## The unit's explanation
+
+A revise run of L4/H1 (#5099) is VERIFIED, at confidence 0.88. It passed 17 of 20 hard negatives, 9 of 10 holdouts and 8 of 8 counterfactuals. The claim says when the head is active, as the head protocol asks. It is active at a coordinator or list separator that follows a real item, such as " and" in "My cats and dogs". There it attends to that item. It rests when the only item is the text's first token, as in a bare "bread and butter". The head is broad: 80% of the held-out windows are active, and the explanation's embedding AUROC is 0.43. Judges scored it 0.62 for detection and 0.58 for fuzzing. The claim adds to the 18 November record, which said that only separators after the second or later item fire.
+
+The claim fits the copy suppression on the six prompts. At " and" the head attends to the item before it, and on the copy prompts it attends to the first clause's unit and lowers it. On these prompts the answer position is a number, not a coordinator. The head's strength there is 0.27 of its maximum, near its activity line.
+
 ## Limits
 
 - The CSPA here keeps only the OV part. The paper's QK part would mean-ablate attention outside the top 5% of predicted tokens, and would lower the share further, not raise it.
