@@ -75,18 +75,25 @@ class PartnerSearch:
         self.seen = 0
         self.res_target = torch.empty(0)
         self.res_rows = torch.empty(0, width, dtype=torch.float16)
+        self.res_ids = torch.empty(0, dtype=torch.long)  # token ids, for partners' top tokens
         self.top_target = torch.empty(0)
         self.top_rows = torch.empty(0, width, dtype=torch.float16)
 
-    def update(self, target: torch.Tensor, layer_acts: torch.Tensor) -> None:
-        """Add a batch to the Pearson sums, the reservoir and the top-k tokens."""
+    def update(self, target: torch.Tensor, layer_acts: torch.Tensor, ids=None) -> None:
+        """Add a batch to the Pearson sums, the reservoir and the top-k tokens.
+
+        ``ids`` are the tokens' ids, for each partner's top tokens (#3240). Without them,
+        partners have no top tokens.
+        """
         target, rows = target.float(), layer_acts.half()
+        ids = torch.full((target.numel(),), -1, dtype=torch.long) if ids is None else ids.long()
         self.pearson.update(target, layer_acts)
 
         # Reservoir sampling (Algorithm R), vectorised per batch.
         fill = max(0, min(self.reservoir - self.res_target.numel(), target.numel()))
         self.res_target = torch.cat([self.res_target, target[:fill]])
         self.res_rows = torch.cat([self.res_rows, rows[:fill]])
+        self.res_ids = torch.cat([self.res_ids, ids[:fill]])
         rest = torch.arange(fill, target.numel())
         if rest.numel():
             index = self.seen + rest + 1
@@ -98,6 +105,7 @@ class PartnerSearch:
             ):
                 self.res_target[slot] = target[i]
                 self.res_rows[slot] = rows[i]
+                self.res_ids[slot] = ids[i]
         self.seen += target.numel()
 
         merged = torch.cat([self.top_target, target])
@@ -112,9 +120,13 @@ class PartnerSearch:
         return torch.cat([rows.clamp(min=0), (-rows).clamp(min=0)], dim=1)
 
     def partners(
-        self, exclude: int, active_threshold: float, *, k: int = 10, quantile: float = 0.99
-    ) -> list[CorrelatedNeuron]:
-        """The ``k`` poles with the highest lower-bound co-activation lift, besides ``exclude``."""
+        self, exclude: int, active_threshold: float, *, k: int = 10, quantile: float = 0.99,
+        decode: Callable[[list[int]], str] | None = None,
+    ) -> list[CorrelatedNeuron]:  # fmt: skip
+        """The ``k`` poles with the highest lower-bound co-activation lift, besides ``exclude``.
+
+        With ``decode`` (the tokenizer's), each partner gets its top tokens (:func:`_top_tokens`).
+        """
         if self.res_target.numel() < 3:
             return []
         width = self.res_rows.shape[1]
@@ -148,9 +160,32 @@ class PartnerSearch:
                 coactive_tokens=int(coactive[c]),
                 spearman=round(float(rho[c]), 6),
                 pearson=round(float(pearson[c % width]), 6),
+                top_tokens=_top_tokens(sample[:, c], thresholds[c], self.res_ids, decode),
             )
             for c in order
         ]
+
+
+TOP_TOKENS = 5  # a partner's top tokens shown to the proposer (#3240)
+
+
+def _top_tokens(strength, threshold, ids, decode, n: int = TOP_TOKENS) -> list[str]:
+    """A partner's ``n`` strongest distinct tokens in the reservoir, above ``threshold``."""
+    if decode is None or not len(ids) or bool((ids < 0).all()):
+        return []
+    out: list[str] = []
+    seen: set[int] = set()
+    for i in torch.argsort(strength, descending=True).tolist():
+        token = int(ids[i])
+        if float(strength[i]) <= float(threshold):
+            break
+        if token < 0 or token in seen:
+            continue
+        seen.add(token)
+        out.append(decode([token]))
+        if len(out) == n:
+            break
+    return out
 
 
 def wilson_lower(successes: torch.Tensor, n: int, z: float = 1.96) -> torch.Tensor:

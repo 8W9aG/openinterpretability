@@ -11,17 +11,21 @@
     and causal patching. Null results are published too: a well-tested hypothesis that fails
     tells us as much as one that passes.
   </p>
-  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-6 dark:border-slate-800 dark:bg-slate-800">
-    {% for label, value in [
-      ("Experiments", t.experiments),
-      ("Neurons studied", t.neurons),
-      ("Heads studied", t.heads),
-      ("Models", t.models),
-      ("Verified units", t.verified),
-      ("Conclusive nulls", t.conclusive_nulls),
+  <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-4 lg:grid-cols-7 dark:border-slate-800 dark:bg-slate-800">
+    {% set explained = t.explanations or 0 %}
+    {% for label, value, href, title in [
+      ("Experiments", t.experiments, none, none),
+      ("Neurons studied", t.neurons, none, none),
+      ("Heads studied", t.heads, none, none),
+      ("Models", t.models, none, none),
+      ("Verified units", t.verified, none, none),
+      ("Explanations", explained, "explanations/index.html" if explained else none,
+       "Prompts with a published explanation: one per prompt and model, whatever its number of runs"),
+      ("Conclusive nulls", t.conclusive_nulls, none, none),
     ] %}
-    <div class="bg-white p-4 dark:bg-slate-950">
-      <dt class="text-xs uppercase tracking-wide text-slate-500">{{ label }}</dt>
+    {# Seven tiles: the last fills its row in the 2- and 4-column grids, so no cell is empty. #}
+    <div class="bg-white p-4 dark:bg-slate-950{{ ' col-span-2 lg:col-span-1' if loop.last }}"{% if title %} title="{{ title }}"{% endif %}>
+      <dt class="text-xs uppercase tracking-wide text-slate-500">{% if href %}<a class="underline underline-offset-2" href="{{ root }}{{ href }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</dt>
       <dd class="mt-1 font-mono text-2xl tabular-nums">{{ value }}</dd>
     </div>
     {% endfor %}

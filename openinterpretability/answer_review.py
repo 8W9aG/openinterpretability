@@ -2,14 +2,17 @@
 
 :func:`review` runs the claim's route on the model. It mean-ablates the route, keeps only
 the route live, and patches the route from the corrupted prompt. It does the same for
-matched random sets (:func:`~openinterpretability.explain_coverage.matched_draw`). Then it
-checks each counterfactual prompt. The baseline for ablation is each unit's mean on the
+matched random sets (:func:`~openinterpretability.explain_coverage.matched_draw`). Under
+rule 1.1 it also patches from each of the reviewer's corrupted prompts. It draws the random
+sets' seed itself, so the proposer can't tune against them (#4892). Then it checks
+each counterfactual prompt. The baseline for ablation is each unit's mean on the
 corpus, as ``explain`` uses (:func:`~openinterpretability.explain.unit_means`).
 """
 
 from __future__ import annotations
 
 import random
+import secrets
 from datetime import UTC, datetime
 
 import torch
@@ -36,6 +39,24 @@ def answer_token(runner, answer: str) -> int:
     if len(ids) != 1:
         raise ValueError(f"the answer {answer!r} is {len(ids)} tokens, not one")
     return ids[0]
+
+
+def check_probes(tokenizer, claim: AnswerClaim, probes: AnswerProbes,
+                 policy: AnswerPolicy) -> list[str]:  # fmt: skip
+    """What is wrong with the reviewer's corrupted prompts under rule 1.1 (#4892)."""
+    if policy.protocol_version == "1.0":
+        return []
+    problems = []
+    if len(probes.corrupted) < policy.min_reviewer_corrupted:
+        problems.append(f"the reviewer wrote {len(probes.corrupted)} corrupted prompts, "
+                        f"not {policy.min_reviewer_corrupted}–3")  # fmt: skip
+    clean = len(tokenizer.encode(claim.prompt))
+    for c in probes.corrupted:
+        if len(tokenizer.encode(c)) != clean:
+            problems.append(f"the reviewer's corrupted prompt {c!r} is not {clean} tokens")
+        if c in (claim.prompt, claim.corrupted):
+            problems.append(f"the reviewer's corrupted prompt {c!r} repeats the claim's")
+    return problems
 
 
 def check_claim(tokenizer, claim: AnswerClaim) -> list[str]:
@@ -129,6 +150,11 @@ def _came_out(runner, token: int, prompts, tops: dict[str, str]) -> dict[str, bo
     return out
 
 
+def draw_seed() -> int:
+    """A seed for the matched random sets, drawn at review time (rule 1.1, #4892)."""
+    return secrets.randbelow(2**31)
+
+
 def measure(runner, means, claim: AnswerClaim, probes: AnswerProbes, policy: AnswerPolicy,
             seed: int = 0) -> AnswerMeasures:  # fmt: skip
     """Every measure of the module docstring, for ``claim`` on ``probes``."""
@@ -145,37 +171,48 @@ def measure(runner, means, claim: AnswerClaim, probes: AnswerProbes, policy: Ans
     def cut(units) -> float:
         return clean - lp(hooks=mean_ablation(units, means, runner))
 
-    def patched(units) -> float | None:
-        moved = clean - lp(hooks=patch_hooks(runner, claim.corrupted, units))
+    def patched(units, corrupted=claim.corrupted, gap=gap) -> float | None:
+        moved = clean - lp(hooks=patch_hooks(runner, corrupted, units))
         return moved / gap if abs(gap) > 1e-9 else None
+
+    def from_reviewer(c: str) -> tuple[float | None, list[float | None]]:
+        their_gap = clean - lp(c)
+        return patched(route, c, their_gap), [patched(n, c, their_gap) for n in nulls]
 
     rng, units = random.Random(seed), every_unit(runner, means)
     nulls = [matched_draw(rng, units, route) for _ in range(policy.null_sets)]
     tops: dict[str, str] = {}
+    theirs = {c: from_reviewer(c) for c in probes.corrupted}
     return AnswerMeasures(
         clean=clean, all_cut=clean - ablated, route_cut=cut(route),
         null_cuts=[cut(n) for n in nulls],
         sufficiency=_share(clean, ablated, lp(hooks=keep_hooks(runner, means, route))),
         corrupted_gap=gap, patching=patched(route), null_patching=[patched(n) for n in nulls],
+        reviewer_patching={c: v[0] for c, v in theirs.items()},
+        reviewer_null_patching={c: v[1] for c, v in theirs.items()}, null_seed=seed,
         controls=_came_out(runner, token, claim.counterfactuals, tops),
         probes=_came_out(runner, token, probes.prompts, tops), top_tokens=tops,
     )  # fmt: skip
 
 
 def review(runner, means, claim: AnswerClaim, probes: AnswerProbes,
-           policy: AnswerPolicy | None = None, seed: int = 0,
+           policy: AnswerPolicy | None = None, seed: int | None = None,
            remeasures: str | None = None, texts=None) -> AnswerRecord:  # fmt: skip
     """Measure ``claim`` on ``probes``, decide it, and return the record.
 
     The record holds the route's reading on every prompt too (#4917). ``remeasures`` names
-    an earlier record of the same claim and probes that this one measures again.
+    an earlier record of the same claim and probes that this one measures again. With no
+    ``seed``, the review draws one, and the record keeps it (#4892).
     """
     from openinterpretability.answer_readings import read_all
 
     policy = policy or AnswerPolicy()
-    problems = check_claim(runner.tokenizer, claim)
+    problems = check_claim(runner.tokenizer, claim) + check_probes(
+        runner.tokenizer, claim, probes, policy
+    )
     if problems:
         raise ValueError("; ".join(problems))
+    seed = draw_seed() if seed is None else seed
     measured = measure(runner, means, claim, probes, policy, seed)
     token = answer_token(runner, claim.answer)
     readings, routed = read_all(runner, means, claim, probes, token, texts)

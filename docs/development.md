@@ -6,7 +6,7 @@ How to change the code, what CI checks on a pull request, where the code lives, 
 
 ```bash
 make install        # uv sync
-make test           # pytest (CPU only, no downloads); waits for other heavy jobs with OPENINTERPRETABILITY_HEAVY_LOCK=1
+make test           # pytest, one process per core (CPU only, no downloads); TEST_WORKERS=0 runs one at a time; waits for other heavy jobs with OPENINTERPRETABILITY_HEAVY_LOCK=1
 make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, types, Markdown, Vale, STE
 make typecheck      # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml)
 make vale           # comment and docstring prose against our STE rules (needs Vale)
@@ -132,6 +132,13 @@ dist/
 Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
 
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
+
+**Links.** `make lint` checks the relative links and anchors in hand-written Markdown on each PR. A weekly workflow, *Check links* (`.github/workflows/links.yml`), checks the rest (#3170):
+
+- It builds the site as the deploy does, and checks every internal link and anchor in it with `scripts/check_site_links.py`. Run that after a local build: `uv run python scripts/check_site_links.py dist`.
+- It checks the external links in the Markdown with [lychee](https://github.com/lycheeverse/lychee), set up in `lychee.toml`. A 403 or 429 counts as up, since many publishers refuse automated clients.
+
+It runs on Mondays and by hand (`gh workflow run links.yml`), never per PR, so a flaky host doesn't block a merge. A failure opens an issue, *Link check failed*, or comments on the open one.
 
 ## Inputs in exchange/
 

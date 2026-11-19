@@ -9,8 +9,11 @@ results. :func:`decide` judges the measures against :class:`AnswerPolicy`:
 - *Necessity.* Mean-ablating the route cuts the answer's log-probability by at least half
   the cut from ablating every unit. The cut is also 3× the mean cut of matched random sets.
 - *Sufficiency.* With only the route live, the answer comes back by at least half.
-- *Path patching.* The route's activations from the corrupted prompt move the answer by at
-  least half the clean-to-corrupted gap. Matched random sets move it by at most 0.1.
+- *Path patching.* The route's activations from each corrupted prompt move the answer by
+  at least half the clean-to-corrupted gap. The proposer writes one corrupted prompt, and
+  the reviewer writes 2–3 more (rule 1.1, #4892). On each, the 75th percentile of the
+  matched random sets' |share| is at most 0.1. The review draws those sets' seed, so the
+  proposer can't tune against them.
 - *Prompts.* Every proposer prompt, and 80% of the reviewer's prompts, come out as
   predicted.
 
@@ -18,13 +21,15 @@ One answer can take several attempts. Each attempt is its own record and sees th
 ones. The attempts stop at the first VERIFIED claim, or after :data:`MAX_ATTEMPTS`.
 
 Answer verdicts have their own rule version, :data:`ANSWER_PROTOCOL_VERSION`, as circuits
-have. ``PROTOCOL_VERSION``, the rule for units, is unchanged (``docs/PROTOCOL.md`` §4).
+have. A record keeps the rule it was judged by: :func:`decide` applies rule 1.0 to a 1.0
+record. ``PROTOCOL_VERSION``, the rule for units, is unchanged (``docs/PROTOCOL.md`` §4).
 Records live in ``wiki/answers/<model slug>/<prompt id>/<UTC stamp>.json``.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -35,7 +40,7 @@ from openinterpretability.core.explanation_records import prompt_id
 from openinterpretability.core.identifiers import model_slug
 from openinterpretability.core.strict import StrictModel
 
-ANSWER_PROTOCOL_VERSION = "1.0"
+ANSWER_PROTOCOL_VERSION = "1.1"  # 1.1: reviewer corrupted prompts, drawn seed (#4892)
 ANSWERS_WIKI = "answers"  # records live in wiki/answers/
 MAX_ATTEMPTS = 5  # answer claims on one prompt before the plan stops proposing more
 AnswerStatus = Literal["VERIFIED", "REJECTED", "NEEDS_REVISION"]
@@ -94,6 +99,8 @@ class AnswerProbes(StrictModel):
     """The reviewer's prompts, written blind to the measures, to break the claim."""
 
     prompts: list[Counterfactual] = Field(min_length=10, max_length=30)
+    # The reviewer's corrupted prompts (rule 1.1): the route must carry the answer from each.
+    corrupted: list[str] = Field(default_factory=list, max_length=3)
     reviewer_agent_model: str
 
 
@@ -105,7 +112,9 @@ class AnswerPolicy(StrictModel):
     null_sets: int = 8
     min_sufficiency: float = 0.5  # the answer that the route alone brings back
     min_patching: float = 0.5  # of the clean-to-corrupted gap
-    max_null_patching: float = 0.1  # matched random sets, on the mean
+    max_null_patching: float = 0.1  # matched random sets: the quantile of |share| (1.1)
+    null_quantile: float = 0.75  # rule 1.1; rule 1.0 gated the mean
+    min_reviewer_corrupted: int = 2  # rule 1.1: the reviewer's corrupted prompts
     min_controls: float = 1.0  # the proposer's counterfactuals that come out as predicted
     min_probes: float = 0.8  # the reviewer's prompts that come out as predicted
     protocol_version: str = ANSWER_PROTOCOL_VERSION
@@ -173,6 +182,10 @@ class AnswerMeasures(StrictModel):
     corrupted_gap: float  # clean minus the corrupted prompt
     patching: float | None  # the route patched from the corrupted run, over the gap
     null_patching: list[float | None]
+    # Rule 1.1: each reviewer corrupted prompt → the route's patching share, and the nulls'.
+    reviewer_patching: dict[str, float | None] = Field(default_factory=dict)
+    reviewer_null_patching: dict[str, list[float | None]] = Field(default_factory=dict)
+    null_seed: int | None = None  # the matched random sets' seed, drawn at review (1.1)
     controls: dict[str, bool]  # proposer prompt → came out as predicted
     probes: dict[str, bool]  # reviewer prompt → came out as predicted
     top_tokens: dict[str, str] = Field(default_factory=dict)  # each prompt's top token
@@ -223,21 +236,21 @@ def _rate(results: dict[str, bool]) -> float:
 
 
 def decide(measures: AnswerMeasures, policy: AnswerPolicy) -> tuple[AnswerStatus, dict[str, bool]]:
-    """The status and the gates from the measures.
+    """The status and the gates from the measures, under the policy's rule version.
 
     VERIFIED when every gate passes. NEEDS_REVISION when the route carries the answer but
     the prompts don't come out as the claim says. Then the claim is too broad or too
     narrow. REJECTED otherwise.
     """
     m, p = measures, policy
-    nulls = [n for n in m.null_patching if n is not None]
     null_cut = sum(m.null_cuts) / len(m.null_cuts) if m.null_cuts else 0.0
+    patching, patching_null = _patching_gates(m, p)
     gates = {
         "necessity": m.necessity >= p.min_necessity,
         "beats_null": m.route_cut > 0 and m.route_cut >= p.null_factor * max(null_cut, 0.0),
         "sufficiency": m.sufficiency is not None and m.sufficiency >= p.min_sufficiency,
-        "patching": m.patching is not None and m.patching >= p.min_patching,
-        "patching_null": bool(nulls) and sum(nulls) / len(nulls) <= p.max_null_patching,
+        "patching": patching,
+        "patching_null": patching_null,
         "controls": _rate(m.controls) >= p.min_controls,
         "probes": _rate(m.probes) >= p.min_probes,
     }
@@ -246,6 +259,78 @@ def decide(measures: AnswerMeasures, policy: AnswerPolicy) -> tuple[AnswerStatus
     if all(gates[g] for g in CAUSAL_GATES):
         return "NEEDS_REVISION", gates
     return "REJECTED", gates
+
+
+def quantile(values: list[float], q: float) -> float:
+    """The ``q`` quantile of ``values``, interpolated linearly between ranks (as NumPy's)."""
+    ranked = sorted(values)
+    at = q * (len(ranked) - 1)
+    low = int(at)
+    high = min(low + 1, len(ranked) - 1)
+    return ranked[low] + (ranked[high] - ranked[low]) * (at - low)
+
+
+def null_level(shares: list[float | None], policy: AnswerPolicy) -> float | None:
+    """How far one corrupted prompt's random sets move the answer, as the rule reads it.
+
+    Rule 1.0 reads the mean share. Rule 1.1 reads the ``null_quantile`` of |share|, so
+    large sets can't hide behind negative ones (#4892).
+    """
+    found = [s for s in shares if s is not None]
+    if not found:
+        return None
+    if policy.protocol_version == "1.0":
+        return sum(found) / len(found)
+    return quantile([abs(s) for s in found], policy.null_quantile)
+
+
+def _patching_gates(m: AnswerMeasures, p: AnswerPolicy) -> tuple[bool, bool]:
+    """The ``patching`` and ``patching_null`` gates."""
+    route = [m.patching]
+    nulls = [m.null_patching]
+    if p.protocol_version != "1.0":  # rule 1.1: the reviewer's corrupted prompts too
+        if len(m.reviewer_patching) < p.min_reviewer_corrupted:
+            return False, False
+        route += list(m.reviewer_patching.values())
+        nulls += [m.reviewer_null_patching.get(c, []) for c in m.reviewer_patching]
+    levels = [null_level(n, p) for n in nulls]
+    patching = all(s is not None and s >= p.min_patching for s in route)
+    patching_null = all(v is not None and v <= p.max_null_patching for v in levels)
+    return patching, patching_null
+
+
+def _extreme(values: list[float | None], pick: Callable[[list[float]], float]) -> float | None:
+    """``pick`` (min or max) of ``values``, or None when any is unmeasured."""
+    found = [v for v in values if v is not None]
+    return pick(found) if found and len(found) == len(values) else None
+
+
+def margins(measures: AnswerMeasures, policy: AnswerPolicy) -> dict[str, dict[str, Any]]:
+    """Each gate's value, its line and the distance to the line, for the page (#4892).
+
+    The margin is positive on the passing side. It is reported, and changes no verdict.
+    For ``patching`` the value is the smallest share over the corrupted prompts. For
+    ``patching_null`` it is the largest null level over them.
+    """
+    m, p = measures, policy
+    null_cut = sum(m.null_cuts) / len(m.null_cuts) if m.null_cuts else 0.0
+    shares = [m.patching, *m.reviewer_patching.values()]
+    nulls = [m.null_patching, *(m.reviewer_null_patching.get(c, []) for c in m.reviewer_patching)]
+    levels = [null_level(n, p) for n in nulls]
+    rows = {
+        "necessity": (m.necessity, p.min_necessity, True),
+        "beats_null": (m.route_cut / null_cut if null_cut > 0 else None, p.null_factor, True),
+        "sufficiency": (m.sufficiency, p.min_sufficiency, True),
+        "patching": (_extreme(shares, min), p.min_patching, True),
+        "patching_null": (_extreme(levels, max), p.max_null_patching, False),
+        "controls": (_rate(m.controls), p.min_controls, True),
+        "probes": (_rate(m.probes), p.min_probes, True),
+    }
+    out = {}
+    for gate, (value, line, above) in rows.items():
+        margin = None if value is None else (value - line if above else line - value)
+        out[gate] = {"value": value, "line": line, "above": above, "margin": margin}
+    return out
 
 
 def working_dir(prompt_hash: str) -> Path:

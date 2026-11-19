@@ -211,3 +211,5 @@ _.understood  # used by the template _answer_verdict.html (builder/explanation_p
 _.standing_answer  # used by the template _answer_verdict.html (builder/explanation_pages.py)
 patched_log_prob  # a stored answer reading, shown by the template _route_row.html (core/answer_records.py)
 inverse_rule_version  # VerificationVerdict field, set in reviewer.evaluate_submission (#4951)
+null_levels  # AnswerView property, read by templates/answer.html (#4892)
+_.handle_starttag  # HTMLParser callback, called by feed() (scripts/check_site_links.py)

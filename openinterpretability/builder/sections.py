@@ -16,6 +16,17 @@ from openinterpretability.core.licenses import DATA_TERMS
 from openinterpretability.core.schemas import ReviewPolicy
 
 
+def with_explanations(stats: dict, explanations) -> dict:
+    """``stats`` with the home page's explanation count: one per prompt page (#4574).
+
+    The count reads the same prompt views that :func:`render_explanations` writes, so the
+    tile and the Explanations index agree. A second run on a prompt updates its page, so it
+    doesn't count again.
+    """
+    stats["totals"]["explanations"] = len(list(explanations or ()))
+    return stats
+
+
 def render_reference_pages(
     render, papers_dir: Path | None, report, *, pdfs: bool = False, explanations=()
 ) -> None:

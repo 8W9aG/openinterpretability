@@ -179,19 +179,19 @@ All three pass: **VERIFIED**. The first two pass and specificity fails: **NEEDS_
 
 An answer experiment says how a model produces one answer to one prompt (issue #4778). Its rule is versioned apart from the rules above (`ANSWER_PROTOCOL_VERSION`, §6). Explained units say what each unit does on the corpus. A VERIFIED unit can still play no part in this answer, so prompt coverage alone doesn't say that the answer is understood.
 
-The proposer writes a **route**: the prompt tokens it reads, the units in order, and what each one does here. It also gives a corrupted prompt with the sources changed and the same token count, and 4–8 counterfactual prompts. Each counterfactual says if the answer stays the model's top token (`kept`) or not (`changed`). The reviewer writes 10–30 more, blind to every measure. `answers review` measures the claim in the answer's log-probability at its position, against each unit's corpus mean (`openinterpretability/answer_review.py`).
+The proposer writes a **route**: the prompt tokens it reads, the units in order, and what each one does here. It also gives a corrupted prompt with the sources changed and the same token count, and 4–8 counterfactual prompts. Each counterfactual says if the answer stays the model's top token (`kept`) or not (`changed`). The reviewer writes 10–30 more, blind to every measure. It also writes 2–3 corrupted prompts of its own, so the proposer can't choose the corrupted prompt after measuring (rule 1.1, #4892). `answers review` measures the claim in the answer's log-probability at its position, against each unit's corpus mean (`openinterpretability/answer_review.py`).
 
 | Gate | Threshold | Meaning |
 | --- | --- | --- |
 | `necessity` | ≥ 0.5 | Mean-ablating the route cuts at least half as much as ablating every unit. |
 | `beats_null` | ≥ 3× | The route's cut is at least 3 times the mean cut of 8 random sets with the route's heads and poles in each layer. |
 | `sufficiency` | ≥ 0.5 | With only the route live, at least half the answer comes back. |
-| `patching` | ≥ 0.5 | The route's activations from the corrupted prompt move the answer by at least half the gap between the prompts. |
-| `patching_null` | ≤ 0.1 | The same random sets, patched, move it by at most a tenth, on the mean. |
+| `patching` | ≥ 0.5 | The route's activations from each corrupted prompt move the answer by at least half the gap between the prompts. That is the proposer's prompt and each of the reviewer's. |
+| `patching_null` | ≤ 0.1 | On each corrupted prompt, the 75th percentile of the same random sets' \|share\| is at most a tenth. Rule 1.0 gated the mean, which let large sets hide behind negative ones. |
 | `controls` | 1.0 | Every proposer prompt comes out as the claim predicts. |
 | `probes` | ≥ 0.8 | At least 80% of the reviewer's prompts come out as the claim predicts. |
 
-Every gate passes: **VERIFIED**. The five causal gates pass and a prompt gate fails: **NEEDS_REVISION**. Then the route carries the answer, but the claim is too broad or too narrow. Otherwise **REJECTED**. A neuron pole is patched as its whole neuron, since the corrupted prompt can flip its sign.
+Every gate passes: **VERIFIED**. The five causal gates pass and a prompt gate fails: **NEEDS_REVISION**. Then the route carries the answer, but the claim is too broad or too narrow. Otherwise **REJECTED**. A neuron pole is patched as its whole neuron, since the corrupted prompt can flip its sign. The review draws the random sets' seed after the claim is written, and the record keeps it. So the proposer can't tune against the sets that judge it. The page shows each gate's margin from its line, so a narrow pass is plain to see.
 
 Each record also holds **readings**, which are reported and never gated (#4917). They are the route on every prompt, and the last token through the layers on shared axes, with the route and each unit switched off. The answer experiment's page draws them as figures and a 3D explorer. `answers remeasure` gives an older record its readings, as a new record that names it.
 
@@ -400,6 +400,7 @@ Answer verdicts have their own version, `ANSWER_PROTOCOL_VERSION` in `core/answe
 | Version | Change |
 | --- | --- |
 | 1.0 | The first answer rule (*Answer experiments* in §4): seven gates, at most 5 attempts on one prompt. |
+| 1.1 | The reviewer writes 2–3 corrupted prompts, and `patching` must pass on each. `patching_null` gates the 75th percentile of \|share\| on each, not the mean. The review draws the random sets' seed (#4892). Records under 1.0 keep their verdicts. |
 
 ### The inverse rule
 
