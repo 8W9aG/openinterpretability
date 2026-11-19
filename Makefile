@@ -1,4 +1,4 @@
-.PHONY: install test perf lint typecheck markdown shell vale ste format check check-all stats build css search-index sample-run serve loop clean
+.PHONY: install test perf lint typecheck markdown shell vale ste format check check-all stats maps build css search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -105,6 +105,13 @@ check-all:
 # Experiments, units, models, VERIFIED and self-reviewed shares, and protocol versions.
 stats:
 	uv run open-interpretability stats --wiki-dir $(WIKI_DIR)
+
+# The concept map of every configured model, refreshed by each release (#4785). A model with
+# too few studied poles for a map is skipped by `map` itself.
+maps:
+	for m in $$(uv run python -c 'from openinterpretability.planner import configured_models; print(*configured_models())'); do \
+		uv run --extra map open-interpretability map --wiki-dir $(WIKI_DIR) "$$m" || exit 1; \
+	done
 
 format:
 	uv run ruff format .

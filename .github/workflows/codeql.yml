@@ -1,17 +1,15 @@
 name: CodeQL
 
-# Advanced setup, in place of the repository's default setup (#4669). It scans the same
-# languages on the same weekly schedule. A pull request that changes only wiki/ (an
-# experiment) is skipped: it adds data, not code. CodeQL is not a required check, so a
-# skipped run doesn't block a merge.
+# Advanced setup, in place of the repository's default setup (#4669). It scans main once a
+# day, not on every merge (#3178), and each pull request that changes code. A pull request
+# that changes only wiki/ (an experiment) is skipped: it adds data, not code. CodeQL is not
+# a required check, so a skipped run doesn't block a merge.
 
 on:
-  push:
-    branches: [main]
   pull_request:
     paths-ignore: ["wiki/**"]
   schedule:
-    - cron: "17 4 * * 1"  # weekly, off the top of the hour
+    - cron: "17 4 * * *"  # daily, off the top of the hour
   workflow_dispatch:
 
 permissions:
