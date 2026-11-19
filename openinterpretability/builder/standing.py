@@ -298,31 +298,13 @@ def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
     experiment. Self-reviews are included, because this measures the reviews, not the
     standing rule.
     """
-    claims = unanimous = pairs = agreeing = 0
-    cross_pairs = cross_agreeing = 0
-    for m in models:
-        for layer in m.layers:
-            for n in layer.units:
-                if not n.is_native:
-                    continue
-                by_claim: dict[tuple[str, str], list[Experiment]] = {}
-                for e in n.experiments:
-                    by_claim.setdefault((e.side, e.claim), []).append(e)
-                for group in by_claim.values():
-                    readings = _readings(group)
-                    if len(readings) < 2:
-                        continue
-                    claims += 1
-                    unanimous += len({e.record.is_verified for e in readings}) == 1
-                    for i, a in enumerate(readings):
-                        for b in readings[i + 1 :]:
-                            agree = a.record.is_verified == b.record.is_verified
-                            pairs += 1
-                            agreeing += agree
-                            ra, rb = a.record.verdict, b.record.verdict
-                            if not same_agent(ra.reviewer_agent_model, rb.reviewer_agent_model):
-                                cross_pairs += 1
-                                cross_agreeing += agree
+    claims = unanimous = pairs = agreeing = cross_pairs = cross_agreeing = 0
+    for readings in _repeated_claims(models):
+        claims += 1
+        unanimous += len({e.record.is_verified for e in readings}) == 1
+        counts = _pair_counts(readings)
+        pairs, agreeing = pairs + counts[0], agreeing + counts[1]
+        cross_pairs, cross_agreeing = cross_pairs + counts[2], cross_agreeing + counts[3]
     return {
         "claims": claims,
         "unanimous": unanimous,
@@ -331,3 +313,31 @@ def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
         "cross_model_pairs": cross_pairs,
         "cross_model_agreement": round(cross_agreeing / cross_pairs, 4) if cross_pairs else None,
     }
+
+
+def _repeated_claims(models):
+    """Each native unit's claim with at least two probe sets: the experiment that reads each."""
+    for m in models:
+        for layer in m.layers:
+            for n in layer.units:
+                if not n.is_native:
+                    continue
+                by_claim: dict[tuple[str, str], list[Experiment]] = {}
+                for e in n.experiments:
+                    by_claim.setdefault((e.side, e.claim), []).append(e)
+                yield from (r for r in map(_readings, by_claim.values()) if len(r) >= 2)
+
+
+def _pair_counts(readings) -> tuple[int, int, int, int]:
+    """``(pairs, agreeing, cross-model pairs, cross-model agreeing)`` among ``readings``."""
+    pairs = agreeing = cross_pairs = cross_agreeing = 0
+    for i, a in enumerate(readings):
+        for b in readings[i + 1 :]:
+            agree = a.record.is_verified == b.record.is_verified
+            pairs += 1
+            agreeing += agree
+            ra, rb = a.record.verdict, b.record.verdict
+            if not same_agent(ra.reviewer_agent_model, rb.reviewer_agent_model):
+                cross_pairs += 1
+                cross_agreeing += agree
+    return pairs, agreeing, cross_pairs, cross_agreeing
