@@ -39,6 +39,7 @@ RECORD_KINDS = (
     RecordKind("stop", "wiki/stops/", UNCHECKED),
     RecordKind("ledger entry", "wiki/ledger/", UNCHECKED),
     RecordKind("erratum", "wiki/errata.jsonl", SIGNED),
+    RecordKind("patch", "wiki/patches/", UNCHECKED, "a fix to a base model (#5229)"),
 )
 
 # The prefixes whose records CI re-runs. A contributor's PR auto-merges only when every file
