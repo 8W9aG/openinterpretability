@@ -10,6 +10,7 @@ import json
 import sys
 from pathlib import Path
 
+import figures_copy_first_unit
 import figures_default_on
 import figures_default_on_decoding
 import figures_depth
@@ -56,6 +57,9 @@ def build_all() -> dict[str, str]:
             "decoding.svg": figures_default_on_decoding.decoding(poles),
             "ridges.svg": figures_depth.ridges(poles, dip),
         },
+        "copy-first-unit": figures_copy_first_unit.build(
+            [r for r in _rows("copy-first-unit") if "prompt" in r]
+        ),
         "neuron-development": figures_development.build(_rows("neuron-development")),
         "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
         "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),
