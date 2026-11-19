@@ -4,6 +4,11 @@ The proposer reads the newest explanation of the prompt. That is its coverage, i
 set, its top units with their VERIFIED explanations, and the paths between them. It also
 reads every earlier answer claim on the prompt, with its measures and its failed gates. The
 reviewer reads only the claim, never a measure, as a unit's reviewer does.
+
+Every text that a person or another agent wrote is fenced as data
+(:mod:`openinterpretability.core.fence`). That is the prompt, the explanation's units and
+paths, and each earlier or reviewed claim. An explanation record can come from a fork
+(#5173).
 """
 
 from __future__ import annotations
@@ -17,6 +22,7 @@ from openinterpretability.core.answer_records import (
     AnswerRecord,
 )
 from openinterpretability.core.explanation_records import ExplanationRecord
+from openinterpretability.core.fence import FENCE_RULE, fence
 
 
 def _pct(value: float | None) -> str:
@@ -91,7 +97,9 @@ def proposer_prompt(  # long-function: the prompt's text, one line of it per lin
         "",
         f"Model `{model}` answers {answer!r} after this prompt, at position {position}:",
         "",
-        f"> {prompt}",
+        fence(prompt),
+        "",
+        FENCE_RULE,
         "",
         "Write one falsifiable claim about **how** the model produces this answer here: the",
         "route. Name the prompt tokens it reads (sources) and the units in order: heads that",
@@ -114,11 +122,11 @@ def proposer_prompt(  # long-function: the prompt's text, one line of it per lin
         "",
         "## Evidence",
         "",
-        *_explanation(explanation),
+        fence("\n".join(_explanation(explanation))),
         "",
         "## Earlier claims on this prompt",
         "",
-        *_attempts(earlier),
+        fence("\n".join(_attempts(earlier))),
         "Don't repeat a claim that failed. Change the route or the claim where its gates",
         "failed.",
         "",
@@ -142,19 +150,18 @@ def reviewer_prompt(probes_path: str, claim: AnswerClaim,
                 "reviewer_agent_model": agent_model}  # fmt: skip
     roles = [f"- {u}: {claim.roles.get(u, '(no role given)')}" for u in claim.route]
     shown = [f"- {c.prompt!r}: {c.expect}" for c in claim.counterfactuals]
+    told = [f"After this prompt, the model answers {claim.answer!r} by this route:", "",
+            claim.prompt, "", f"- Sources: {', '.join(claim.sources)}",
+            f"- Route: {' → '.join(claim.route)}", *roles, "", claim.explanation, "",
+            "The proposer's own prompts (don't repeat them):", *shown]  # fmt: skip
     return "\n".join([
         f"# Review an answer claim: {claim.model_name}",
         "",
-        f"The claim: after `{claim.prompt}`, the model answers {claim.answer!r} by this route.",
+        "The proposer's claim, as it wrote it:",
         "",
-        f"- Sources: {', '.join(claim.sources)}",
-        f"- Route: {' → '.join(claim.route)}",
-        *roles,
+        fence("\n".join(told)),
         "",
-        claim.explanation,
-        "",
-        "The proposer's own prompts (don't repeat them):",
-        *shown,
+        FENCE_RULE,
         "",
         "## Your task",
         "",

@@ -15,7 +15,7 @@ is listed beside it on the prompt's page (#4503).
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +31,7 @@ EXPLANATIONS_WIKI = "explanations"  # records live in wiki/explanations/
 # bare name in tests. A unit slug is a pole's or a head's, matched in full.
 MODEL_NAME = r"^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)?$"
 STAMP = r"^\d{8}T\d{6}Z$"  # a record's id: the UTC time it was written
+FUTURE_SLACK = timedelta(hours=1)  # clock skew allowed for a record's written stamp (#5173)
 LEVELS = ("mechanism", "paragraph", "long")  # each level holds the ones before it
 UNIT_SLUG = r"^[A-Za-z0-9][A-Za-z0-9._-]*/L\d+/(N\d+-(positive|negative)|H\d+)$"
 
@@ -323,3 +324,5 @@ def check_explanations(wiki_dir: Path, report: Any, scope: set[Path] | None = No
             report.add(path, f"should be at {record_path(wiki_dir, record)}")
         if record.model_name not in models:
             report.add(path, f"{record.model_name} is not a configured model")
+        if record.written > datetime.now(UTC) + FUTURE_SLACK:  # #5173: it would stay newest
+            report.add(path, f"it is stamped {record.id}, which is in the future")

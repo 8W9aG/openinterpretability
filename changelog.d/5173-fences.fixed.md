@@ -1,0 +1,1 @@
+- **Answer prompts fence other people's text.** The proposer's prompt fences the prompt, the explanation's units and paths and the earlier claims. The reviewer's prompt fences the claim. An explanation record stamped more than an hour in the future fails `check`. (`openinterpretability/answer_prompts.py`)
