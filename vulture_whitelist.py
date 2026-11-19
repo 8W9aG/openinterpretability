@@ -228,3 +228,4 @@ revert_command  # a click command of 'open-interpretability patch' (cli_patch.py
 merge_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
 rebase_command  # a click command of 'open-interpretability patch' (cli_patch.py, #5229)
 _.ink  # Badge.ink, read by the templates _map_theme.html, _concept_map.html and literature.html (#4577)
+interference_command  # the click command 'open-interpretability interference' (cli_interference.py, #5230)
