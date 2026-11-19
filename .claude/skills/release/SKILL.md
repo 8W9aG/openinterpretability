@@ -30,11 +30,18 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    gh pr list --author app/dependabot
    ```
    Merge Dependabot's own PRs when CI is green. For an alert with no PR, upgrade the package (`uv lock --upgrade-package <name>`), run `make lint test`, and open one PR for all of them. GitHub closes an alert when `main` no longer has the vulnerable version. If no fixed version exists, or the package is never reached at run time, don't dismiss the alert yourself. List it in the release PR with the reason, and the maintainer decides.
-2. **Resolve every open code-scanning (CodeQL) alert.**
+2. **Run CodeQL on `main`, then fix everything it finds.** The maintainer decided on 2026-11-19 that each release runs a fresh scan, not only the daily one (`.github/workflows/codeql.yml`). Start it and wait for it:
+   ```bash
+   gh workflow run codeql.yml --ref main
+   sleep 10
+   run=$(gh run list --workflow codeql.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$run" --exit-status
+   ```
+   If the run fails, read its log and fix the cause before going on. Then list the open alerts:
    ```bash
    gh api "repos/8W9aG/openinterpretability/code-scanning/alerts?state=open" --jq '.[] | "\(.number) \(.rule.severity) \(.rule.id) \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"'
    ```
-   Fix each one in the code, with a test where the fix changes behaviour. GitHub closes an alert when the next scan of `main` no longer finds it. A false positive is listed in the release PR with the reason, for the maintainer to dismiss.
+   Fix every alert in the code, whatever its severity, with a test where the fix changes behaviour. The fixes merge before the release branch is cut. Then run the scan again, as above, and check that the list is empty. GitHub closes an alert when a scan of `main` no longer finds it. If an alert is a false positive, change the code so that the scan no longer flags it, where that keeps the code clear. Otherwise list it in the release PR with the reason, and the maintainer dismisses it.
 3. **Land lingering experiment PRs.** The maintainer asked on 2026-11-15 that a release try to merge the experiment PRs that were left behind. Take the open ones that are ready (not drafts) and more than 12 hours old. Each must come from a branch of this repository, opened by the maintainer's account (`8W9aG`, which the experiment loops use):
    ```bash
    cutoff=$(date -u -v-12H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '12 hours ago' +%Y-%m-%dT%H:%M:%SZ)
