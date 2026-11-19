@@ -122,14 +122,15 @@ def verify(
         return write_review_prompt(submission, emit_prompt, n_probes, full_snippets, latents)
     if check_probes is not None:
         return write_token_check(submission, check_probes)
-    check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus)
+    inverse = submission.claim == "inverse"  # no explanation scores (inverse_claims.py)
+    check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus, inverse)
     scores = load_scores(scores_file, submission)
     reviewer = ReviewerAgent(agent_model or DEFAULT_MODEL)
     warn_self_review(reviewer.model, submission)
     probes = review_probes(reviewer, submission, probes_file, n_probes, full_snippets, latents)
     runner = _load_unit_runner(submission.identifier, device, dtype)
     warn_unequal_lengths(probes, runner, submission)
-    if scores is None:  # one step: score here, on the scan's corpus (checked above)
+    if scores is None and not inverse:  # one step: score here, on the scan's corpus
         scores = score_submission(runner, submission, corpus, judge_model or reviewer.model)
     verdict = reviewer.review(submission, runner, probes=probes)
     # The scores' costs move into the record's provenance with everything else.
@@ -217,8 +218,12 @@ def write_token_check(submission, check_probes: Path):
     click.echo(f"Token check: {prompt} (answer by rewriting {check_probes})")
 
 
-def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus) -> None:
-    """Reject review options that do not go together, before any model loads."""
+def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, corpus,
+                         inverse: bool = False) -> None:  # fmt: skip
+    """Reject review options that do not go together, before any model loads.
+
+    An inverse claim needs no explanation scores: their judges label activity, not quiet.
+    """
     from openinterpretability.cli import _skip_wiki
 
     if _skip_wiki(wiki_dir) and out is None:
@@ -227,7 +232,7 @@ def check_review_options(wiki_dir, out, probes_file, agent_model, scores_file, c
         raise click.UsageError(
             "--agent-model is required with --probes: name the model that wrote them."
         )
-    if scores_file is None and (probes_file is not None or corpus is None):
+    if not inverse and scores_file is None and (probes_file is not None or corpus is None):
         raise click.UsageError(
             "--explanation-scores is required (from `open-interpretability score`, "
             "docs/PROTOCOL.md §4); "
