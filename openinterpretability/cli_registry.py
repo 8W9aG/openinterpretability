@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import click
@@ -177,6 +178,19 @@ def _refuse_while_paused() -> None:
     help="For --steps: a LiteLLM model for `verify`. Default: the neuron-reviewer and "
     "explanation-judge subagents.",
 )
+@click.option(
+    "--until-verified/--no-until-verified", "until_verified", default=None,
+    help="Force the draw to keep going on its unit until VERIFIED, or not. Default: a "
+    "seeded chance (until_verified.UNTIL_VERIFIED_SHARE).",
+)  # fmt: skip
+@click.option(
+    "--max-turns", default=None, type=click.IntRange(1),
+    help="Turns of an until-verified draw, at most. Default: until_verified.MAX_TURNS.",
+)  # fmt: skip
+@click.option(
+    "--continue", "continue_slug", metavar="SLUG",
+    help="Print the next turn of an until-verified draw on SLUG: its steps, no claim.",
+)  # fmt: skip
 def next_experiment(
     wiki_dir,
     seed,
@@ -191,14 +205,22 @@ def next_experiment(
     fresh_corpus,
     proposer,
     reviewer,
+    until_verified,
+    max_turns,
+    continue_slug,
 ):
     """Pick the next experiment (randomised; balances exploration and follow-ups).
 
     While `open-interpretability pause` is in force it draws nothing and exits 75.
     """
+    from openinterpretability import until_verified as uv
     from openinterpretability.planner import open_pr_claims, plan_next
 
     _refuse_while_paused()
+    max_turns = max_turns or uv.MAX_TURNS
+    if continue_slug:
+        _print_next_turn(continue_slug, wiki_dir, corpus, proposer, reviewer)
+        return
 
     source = click.get_current_context().get_parameter_source("corpus")
     if fresh_corpus and source != ParameterSource.DEFAULT:
@@ -211,9 +233,21 @@ def next_experiment(
         models=models,
         claims=open_pr_claims() if claims else (),
     )
+    keep = uv.decide(plan.seed, until_verified)
     if as_json:
-        click.echo(plan.to_json())
+        click.echo(json.dumps({**json.loads(plan.to_json()), "until_verified": keep,
+                               "max_turns": max_turns}, indent=2))  # fmt: skip
         return
+    _describe(plan, top)
+    if keep:
+        click.echo(f"Until verified: yes, at most {max_turns} turns (#4485).")
+    if steps:
+        turns = max_turns if keep else None
+        _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus, turns)
+
+
+def _describe(plan, top: int) -> None:
+    """Print the draw: its kind, unit, reason, commands and skills, then the candidates."""
     c = plan.choice
     click.echo(f"Next experiment: {c.kind}" + (f" on {c.slug}" if c.slug else f" ({c.model})"))
     click.echo(f"Why: {c.rationale}")
@@ -230,19 +264,37 @@ def next_experiment(
         f"{'explored' if plan.explored else 'exploited'})"
     )
     _list_candidates(plan, top)
-    if steps:
-        _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus)
 
 
-def _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus) -> None:
-    """Record the draw in the ledger, then print its steps, whose claim commits the entry."""
-    from openinterpretability.draw_steps import render
+def _print_steps(plan, wiki_dir, corpus, proposer, reviewer, fresh_corpus, turns=None) -> None:
+    """Record the draw in the ledger, then print its steps, whose claim commits the entry.
+
+    ``turns`` is an until-verified draw's turns, at most, or None for one turn.
+    """
+    from openinterpretability import until_verified as uv
+    from openinterpretability.draw_steps import draw_slug, render
     from openinterpretability.draw_steps import steps as draw_steps
 
-    ledger = record_draw_entry(plan, wiki_dir)
+    ledger = record_draw_entry(plan, wiki_dir, turns)
     click.echo(f"\nDraw recorded in the ledger: {ledger}")
     click.echo("\nSteps:")
     click.echo(render(draw_steps(plan, corpus, proposer, reviewer, fresh_corpus, ledger)))
+    if turns:
+        click.echo("\n" + uv.rule(draw_slug(plan.choice), turns))
+
+
+def _print_next_turn(slug: str, wiki_dir, corpus, proposer, reviewer) -> None:
+    """The steps of an until-verified draw's next turn on ``slug``, after its claim (#4485)."""
+    from openinterpretability import until_verified as uv
+    from openinterpretability.draw_steps import render
+    from openinterpretability.draw_steps import steps as draw_steps
+
+    plan = uv.next_turn(slug, Path(wiki_dir))
+    if plan is None:
+        raise click.ClickException(f"{slug} has no superseding follow-up: the draw ends here.")
+    c = plan.choice
+    click.echo(f"Next turn: {c.kind} on {slug}. Why: {c.rationale}\nSteps (no claim: same PR):")
+    click.echo(render(draw_steps(plan, corpus, proposer, reviewer)[1:]))
 
 
 @cli.command(name="ledger")
@@ -303,7 +355,7 @@ def _ledger_rows(wiki_dir: Path):
     return records, stopped
 
 
-def record_draw_entry(plan, wiki_dir) -> str:
+def record_draw_entry(plan, wiki_dir, turns: int | None = None) -> str:
     """Write the draw's ledger entry before any run (issue #3205), and return its path."""
     from datetime import UTC, datetime
 
@@ -321,6 +373,8 @@ def record_draw_entry(plan, wiki_dir) -> str:
         record=c.record,
         audit=c.audit,
         pole_forced=("--pole" in options) if "--random" in options else None,
+        until_verified=bool(turns),
+        max_turns=turns,
     )
     return str(write_entry(entry, Path(wiki_dir)))
 

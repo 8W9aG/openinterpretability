@@ -25,6 +25,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -232,8 +233,51 @@ def allowed_signers_text(path: Path = ALLOWED_SIGNERS, base_ref: str | None = No
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
+# The records whose valid signature lets ``reproduce`` skip them. Other kinds, such as
+# explanation records (#4793), are re-measured even when they are signed.
+SKIPPABLE = "wiki/experiments/"
+
+
+def needs_reproduction(paths: list[str], allowed_signers: str, landed: dict) -> bool:
+    """Whether CI must run the reproduce job for the changed records ``paths`` (#4669).
+
+    It is False only when each record is an experiment record whose signature verifies at
+    the time it landed (``landed``, from :func:`landing_times`). A missing, bad or
+    out-of-window signature, another record kind or any error gives True.
+    """
+    try:
+        for name in paths:
+            path = Path(name)
+            if not path.as_posix().startswith(SKIPPABLE):
+                return True
+            if not verify_record(path, allowed_signers, landed.get(path.resolve())):
+                return True
+    except Exception:  # noqa: BLE001  # fail toward reproducing
+        return True
+    return False
+
+
+def _gate(argv: list[str]) -> int:
+    """``signing.py gate --base-ref REF FILE...``: print whether the records need a reproduction.
+
+    CI runs this file from the base branch with ``python3 -I``. It imports only the standard
+    library, so the job needs no install, and a pull request can't change its own gate.
+    """
+    if len(argv) < 3 or argv[:2] != ["gate", "--base-ref"]:
+        print("usage: signing.py gate --base-ref REF FILE...", file=sys.stderr)
+        return 2
+    base_ref, paths = argv[2], argv[3:]
+    signers = allowed_signers_text(ALLOWED_SIGNERS, base_ref)
+    print(str(needs_reproduction(paths, signers, landing_times(base_ref))).lower())
+    return 0
+
+
 def _ssh_keygen(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     result = subprocess.run(["ssh-keygen", *args], capture_output=True, text=True)
     if check and result.returncode != 0:
         raise SignatureError(f"ssh-keygen {args[1]} failed: {result.stderr.strip()}")
     return result
+
+
+if __name__ == "__main__":
+    sys.exit(_gate(sys.argv[1:]))

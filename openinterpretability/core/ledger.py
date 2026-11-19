@@ -39,6 +39,8 @@ class DrawEntry(StrictModel):
     record: str | None = None  # the record that a follow-up builds on
     audit: str | None = None  # the `open-interpretability audit` options of a draw that scans
     pole_forced: bool | None = None  # for a random draw: --pole fixed the pole
+    until_verified: bool | None = None  # the draw keeps going until VERIFIED (#4485)
+    max_turns: int | None = None  # its turns, at most, when it does
     harness_version: str = __version__
 
     @property

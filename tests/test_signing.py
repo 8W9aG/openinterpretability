@@ -13,6 +13,7 @@ from openinterpretability.signing import (
     SignatureError,
     SignatureOutsideWindow,
     landing_times,
+    needs_reproduction,
     sign_record,
     signature_path,
     verify_record,
@@ -95,6 +96,7 @@ def test_reproduce_skips_signed_records_without_loading(tmp_path, monkeypatch, k
     result = CliRunner().invoke(cli, ["reproduce", str(record), "--allowed-signers", str(signers)])
     assert result.exit_code == 0, result.output
     assert "SIGNED by will (reproduction skipped)" in result.output
+    assert "1 signed (reproduction skipped). 0/0 record(s) reproduced." in result.output
 
 
 def test_branch_cannot_trust_its_own_key(tmp_path, monkeypatch, keys):
@@ -279,3 +281,81 @@ def test_auto_sign_does_nothing_otherwise(auto_signing, keys, monkeypatch, setti
         monkeypatch.setenv("OPENINTERPRETABILITY_SIGNING_KEY", str(tmp_path / "missing"))
     assert auto_sign(record) is None
     assert not signature_path(record).exists()
+
+
+GATE = Path(__file__).parents[1] / "openinterpretability" / "signing.py"
+
+
+def gate_records(tmp_path, monkeypatch, keys):
+    """Experiment records: signed, unsigned, edited after signing, and signed by a stranger."""
+    maintainer, stranger = keys
+    monkeypatch.chdir(tmp_path)
+    folder = Path("wiki/experiments/m")
+    folder.mkdir(parents=True)
+    paths = {n: folder / f"{n}.json" for n in ("signed", "unsigned", "edited", "stranger")}
+    for name, path in paths.items():
+        path.write_text(f'{{"r": "{name}"}}')
+    for name in ("signed", "edited"):
+        sign_record(paths[name], maintainer)
+    sign_record(paths["stranger"], stranger)
+    paths["edited"].write_text('{"r": "changed"}')
+    return {n: str(p) for n, p in paths.items()}, signer_line("will", maintainer)
+
+
+@pytest.mark.parametrize(
+    ("names", "expected"),
+    [
+        (["signed"], False),  # every record vouched for: the job is skipped
+        (["unsigned"], True),
+        (["edited"], True),  # a bad signature: reproduce reports FAILED
+        (["stranger"], True),  # a key that the base branch doesn't list
+        (["signed", "unsigned"], True),  # one record still needs a run
+    ],
+)
+def test_the_ci_gate_skips_only_valid_signatures(tmp_path, monkeypatch, keys, names, expected):
+    paths, signers = gate_records(tmp_path, monkeypatch, keys)
+    assert needs_reproduction([paths[n] for n in names], signers, {}) is expected
+
+
+def test_the_ci_gate_reproduces_outside_the_window_and_other_kinds(tmp_path, monkeypatch, keys):
+    maintainer, _ = keys
+    paths, _ = gate_records(tmp_path, monkeypatch, keys)
+    closed = signer_line("will", maintainer, 'valid-before="20261105Z"')
+    after = {Path(paths["signed"]).resolve(): datetime(2026, 11, 6, tzinfo=UTC)}
+    assert needs_reproduction([paths["signed"]], closed, after)  # landed after revocation
+    explanation = Path("wiki/explanations/m/e.json")
+    explanation.parent.mkdir(parents=True)
+    explanation.write_text("{}")
+    sign_record(explanation, maintainer)
+    signers = signer_line("will", maintainer)
+    assert needs_reproduction([str(explanation)], signers, {})  # reproduce re-measures these
+
+
+def test_the_ci_gate_fails_toward_reproducing(tmp_path, monkeypatch, keys):
+    paths, signers = gate_records(tmp_path, monkeypatch, keys)
+
+    def broken(*args):
+        raise OSError("ssh-keygen not found")
+
+    monkeypatch.setattr("openinterpretability.signing.verify_record", broken)
+    assert needs_reproduction([paths["signed"]], signers, {})
+
+
+def test_the_ci_gate_runs_alone_from_the_base_branch(tmp_path, monkeypatch, keys):
+    """``python3 -I signing.py gate`` needs no install and reads the base's signers."""
+    maintainer, _ = keys
+    paths, signers = gate_records(tmp_path, monkeypatch, keys)
+    git = git_repo(tmp_path)
+    Path(".github").mkdir()
+    Path(".github/allowed_signers").write_text(signers)
+    git("add", ".github/allowed_signers")
+    git("commit", "-q", "-m", "base")
+
+    def gate(*records):
+        args = ["python3", "-I", str(GATE), "gate", "--base-ref", "main", *records]
+        return subprocess.run(args, capture_output=True, text=True, cwd=tmp_path)
+
+    assert gate(paths["signed"]).stdout.strip() == "false"
+    assert gate(paths["signed"], paths["unsigned"]).stdout.strip() == "true"
+    assert gate().returncode == 0  # no records: nothing to reproduce
+    assert subprocess.run(["python3", "-I", str(GATE)], capture_output=True).returncode == 2
