@@ -9,7 +9,8 @@ record pins, and makes no LLM calls:
    SHA-256, or built again from its stored source (``corpus --same-as``).
 2. The attribution of each top unit and group, and the explained and blocked shares. The
    explained and blocked units are the record's own sets, as the registry stood when it was
-   written. So the registry is not read.
+   written. A record that a change adds must also agree with the registry in the checkout
+   (:mod:`openinterpretability.explanation_registry`).
 3. Prompt coverage: clean, ablated and kept, the raw value, the random baseline from its
    stored seed, the coverage by kind, and the minimal set.
 4. The figures' data: the tokens, the logit, the net attribution, the edges, the reading,
@@ -341,6 +342,7 @@ def check_path(reproducer, path: Path) -> tuple[str, list[str], list[str]]:
     """
     from pydantic import ValidationError
 
+    from openinterpretability.explanation_registry import registry_mismatches
     from openinterpretability.half_precision import reproduction_dtype
 
     try:
@@ -352,6 +354,10 @@ def check_path(reproducer, path: Path) -> tuple[str, list[str], list[str]]:
         return "FAILED", [f"a new explanation record must be reproducible: {why}"], []
     if why:
         return f"NOT REPRODUCIBLE: {why}", [], []
+    if path.resolve() in reproducer.new:  # its sets come from its author (#5173)
+        wrong = registry_mismatches(record, Path(path).resolve().parents[3])
+        if wrong:
+            return "FAILED", wrong, []
     env = record.inputs.environment
     reason = reproducer.model_refusal(record.model_name, env.model_revision)
     if reason:
