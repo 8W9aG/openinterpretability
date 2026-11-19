@@ -78,6 +78,8 @@ def test_the_page_shows_each_reading_and_the_best(reviewed, tmp_path):
 
     sub, verdict = reviewed
     compile_site([AuditRecord(submission=sub, verdict=verdict)], tmp_path)
-    (page,) = [p for p in tmp_path.rglob("*.html") if "Rival readings" in p.read_text()]
+    # The Changelog page can name the feature too, so look only at experiment pages.
+    pages = [p for p in tmp_path.rglob("*.html") if "changelog" not in p.as_posix().lower()]
+    (page,) = [p for p in pages if "Rival readings" in p.read_text()]
     html = page.read_text()
     assert "Fires on anything but repeats." in html and ">best</span>" in html
