@@ -450,6 +450,7 @@ from openinterpretability import (  # noqa: E402, F401
     cli_loop,
     cli_map,
     cli_neuronpedia,
+    cli_patch,
     cli_pause,
     cli_pole_effects,
     cli_probing,

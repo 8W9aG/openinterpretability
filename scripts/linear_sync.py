@@ -11,6 +11,12 @@ script syncs those two fields:
   has no project, the Roadmap's Workstream sets it. So an agent that files an
   issue with `gh` can give both.
 
+It also syncs "blocked by" relations (#3842). Linear's integration doesn't sync them,
+so Linear's "blocks" relations become GitHub's native issue dependencies. The rule for each
+blocked issue is the one for priority. When Linear names any blockers for it, GitHub gets
+exactly those. When Linear names none, GitHub's blockers are added to Linear, so a
+dependency added with `gh` alone reaches Linear.
+
 It also corrects one state. When a GitHub issue closes, Linear's integration can
 move its Linear issue to Released, not Done. An issue is Released only when its
 milestone is a published release (the `linear-released` workflow). So the script
@@ -354,6 +360,99 @@ def apply_roadmap(issue: Linked, act: Actions, meta: dict, token: str) -> None:
             github_graphql(SET_FIELD, token, p=meta["id"], i=item, f=f["id"], o=option)
 
 
+LINEAR_RELATIONS = """query($after: String) { issues(first: 100, after: $after) {
+  pageInfo { hasNextPage endCursor }
+  nodes { id attachments { nodes { url sourceType } }
+    relations { nodes { type relatedIssue { id } } } } } }"""
+GITHUB_DEPENDENCIES = """query($after: String) { repository(owner: "8W9aG",
+  name: "openinterpretability") { issues(first: 100, after: $after) {
+  pageInfo { hasNextPage endCursor }
+  nodes { id url blockedBy(first: 50) { nodes { url } } } } } }"""
+RELATE = """mutation($a: String!, $b: String!) { issueRelationCreate(
+  input: {issueId: $a, relatedIssueId: $b, type: blocks}) { success } }"""
+ADD_BLOCKED_BY = """mutation($i: ID!, $b: ID!) {
+  addBlockedBy(input: {issueId: $i, blockingIssueId: $b}) { clientMutationId } }"""
+REMOVE_BLOCKED_BY = """mutation($i: ID!, $b: ID!) {
+  removeBlockedBy(input: {issueId: $i, blockingIssueId: $b}) { clientMutationId } }"""
+Blockers = dict[str, set[str]]  # blocked issue's URL -> its blockers' URLs
+
+
+def linear_relations() -> tuple[dict[str, str], Blockers]:
+    """Each linked issue's Linear id by URL, and Linear's blockers of each issue."""
+    ids, blocks, after = {}, [], None
+    while True:
+        page = linear(LINEAR_RELATIONS, {"after": after})["issues"]
+        for n in page["nodes"]:
+            mine = f"github.com/{REPO}/issues/"
+            urls = [a["url"] for a in n["attachments"]["nodes"]
+                    if a["sourceType"] == "github" and mine in a["url"]]  # fmt: skip
+            if urls:
+                ids[urls[0]] = n["id"]
+            blocks += [(n["id"], r["relatedIssue"]["id"]) for r in n["relations"]["nodes"]
+                       if r["type"] == "blocks" and r["relatedIssue"]]  # fmt: skip
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+        after = page["pageInfo"]["endCursor"]
+    url_of = {lid: url for url, lid in ids.items()}
+    out: Blockers = {}
+    for blocker, blocked in blocks:
+        if blocker in url_of and blocked in url_of:
+            out.setdefault(url_of[blocked], set()).add(url_of[blocker])
+    return ids, out
+
+
+def github_dependencies() -> tuple[dict[str, str], Blockers]:
+    """Each issue's GitHub node id by URL, and GitHub's blockers of each issue."""
+    ids, out, after = {}, {}, ""
+    while True:
+        args = ["api", "graphql", "-f", f"query={GITHUB_DEPENDENCIES}"]
+        page = json.loads(gh(*args, *(["-f", f"after={after}"] if after else [])))
+        issues = page["data"]["repository"]["issues"]
+        for n in issues["nodes"]:
+            ids[n["url"]] = n["id"]
+            if n["blockedBy"]["nodes"]:
+                out[n["url"]] = {b["url"] for b in n["blockedBy"]["nodes"]}
+        if not issues["pageInfo"]["hasNextPage"]:
+            return ids, out
+        after = issues["pageInfo"]["endCursor"]
+
+
+def plan_relations(linear_side: Blockers, github_side: Blockers) -> list[tuple[str, str, str]]:
+    """The changes, each (action, blocked URL, blocker URL), that make both sides the same.
+
+    Linear wins for an issue it names blockers for. For any other issue, GitHub's blockers
+    are copied to Linear.
+    """
+    changes = []
+    for blocked in sorted(linear_side.keys() | github_side.keys()):
+        want, have = linear_side.get(blocked, set()), github_side.get(blocked, set())
+        if want:
+            changes += [("github_add", blocked, b) for b in sorted(want - have)]
+            changes += [("github_remove", blocked, b) for b in sorted(have - want)]
+        else:
+            changes += [("linear_add", blocked, b) for b in sorted(have)]
+    return changes
+
+
+def sync_relations(dry: bool) -> int:
+    """Make the "blocked by" relations the same in Linear and on GitHub. Return the count."""
+    linear_ids, linear_side = linear_relations()
+    node_ids, github_side = github_dependencies()
+    linked = set(linear_ids)
+    github_side = {k: v & linked for k, v in github_side.items() if k in linked and v & linked}
+    changes = plan_relations(linear_side, github_side)
+    for action, blocked, blocker in changes:
+        print(f"{blocked}: {action.replace('_', ' ')} blocked by {blocker}")
+        if dry:
+            continue
+        if action == "linear_add":
+            linear(RELATE, {"a": linear_ids[blocker], "b": linear_ids[blocked]})
+        else:
+            query = ADD_BLOCKED_BY if action == "github_add" else REMOVE_BLOCKED_BY
+            github_graphql(query, None, i=node_ids[blocked], b=node_ids[blocker])
+    return len(changes)
+
+
 def main() -> None:
     """Plan and apply the changes for every issue that Linear links to GitHub."""
     ap = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
@@ -384,6 +483,8 @@ def main() -> None:
     print(f"{len(issues)} linked issues, {changed} {'to change' if dry else 'changed'}")
     early = unrelease(dry)
     print(f"{early} issues in Released before their release, {'to move' if dry else 'moved'}")
+    related = sync_relations(dry)
+    print(f"{related} blocked-by relations {'to change' if dry else 'changed'}")
 
 
 if __name__ == "__main__":
