@@ -1,0 +1,51 @@
+name: CodeQL
+
+# Advanced setup, in place of the repository's default setup (#4669). It scans the same
+# languages on the same weekly schedule. A pull request that changes only wiki/ (an
+# experiment) is skipped: it adds data, not code. CodeQL is not a required check, so a
+# skipped run doesn't block a merge.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths-ignore: ["wiki/**"]
+  schedule:
+    - cron: "17 4 * * 1"  # weekly, off the top of the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write  # upload the results to code scanning
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: python
+            build-mode: none
+          - language: go  # scripts/code_detection_enry, built as default setup builds it
+            build-mode: autobuild
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066  # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066  # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}

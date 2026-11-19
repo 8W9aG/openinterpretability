@@ -130,20 +130,26 @@ def reproduce(
         errata=load_errata(wiki_dir),
         new={p.resolve() for p in changed_records(wiki_dir, base_ref)} if base_ref else set(),
     )
-    results, unreached = _check_all(reproducer, paths, in_actions, time_budget)
+    results, unreached, signed = _check_all(reproducer, paths, in_actions, time_budget)
     failed = sum(bool(problems) for _, problems, _ in results)
-    summary = f"{len(results) - failed}/{len(results)} record(s) reproduced."
+    summary = _summary(len(results) - failed, len(results), len(signed))
     if unreached:
         summary += f" {len(unreached)} not reached in the {time_budget:g}-minute time budget."
     click.echo(summary)
     if in_actions and os.environ.get("GITHUB_STEP_SUMMARY"):
-        _step_summary(os.environ["GITHUB_STEP_SUMMARY"], summary, results, unreached)
+        _step_summary(os.environ["GITHUB_STEP_SUMMARY"], summary, results, unreached, signed)
     if failed:
         raise SystemExit(1)
 
 
+def _summary(passed: int, checked: int, signed: int) -> str:
+    """The result line, which never counts a skipped signed record as reproduced (#4669)."""
+    line = f"{passed}/{checked} record(s) reproduced."
+    return f"{signed} signed (reproduction skipped). {line}" if signed else line
+
+
 def _check_all(reproducer, paths, in_actions: bool, time_budget: float | None):
-    """Check each record in turn. Return the results, and the records not started.
+    """Check each record. Return the results, the records not started, and the signed ones.
 
     No record starts once ``time_budget`` minutes have passed.
     """
@@ -151,15 +157,19 @@ def _check_all(reproducer, paths, in_actions: bool, time_budget: float | None):
 
     start = time.monotonic()
     results: list[tuple[Path, list[str], list[str]]] = []
+    signed: list[Path] = []
     for n, path in enumerate(paths):
         if time_budget is not None and time.monotonic() - start >= time_budget * 60:
             for later in paths[n:]:
                 click.echo(f"NOT REACHED: {later}")
-            return results, paths[n:]
+            return results, paths[n:], signed
         status, problems, warnings = reproducer.check(path)
-        results.append((path, problems, warnings))
+        if status.startswith("SIGNED"):
+            signed.append(path)
+        else:
+            results.append((path, problems, warnings))
         _report(path, status, problems, warnings, in_actions)
-    return results, []
+    return results, [], signed
 
 
 def _chosen_records(records, base_ref, sample, sample_date, wiki_dir) -> list[Path]:
@@ -348,12 +358,13 @@ def _report(path: Path, status: str, problems, warnings, in_actions: bool) -> No
         click.echo(f"::warning file={path}::{message}" if in_actions else f"  warning: {message}")
 
 
-def _step_summary(path: str, summary: str, results, unreached=()) -> None:
+def _step_summary(path: str, summary: str, results, unreached=(), signed=()) -> None:
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(f"### Reproduction\n\n{summary}\n\n")
         for record, problems, _ in results:
             fh.write(f"- {'❌' if problems else '✅'} `{record}`\n")
             fh.writelines(f"  - {message}\n" for message in problems)
+        fh.writelines(f"- ✍️ `{record}` (signed, reproduction skipped)\n" for record in signed)
         fh.writelines(f"- ⏭️ `{record}` (not reached)\n" for record in unreached)
 
 
