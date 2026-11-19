@@ -1,0 +1,78 @@
+# Loss of plasticity in deep continual learning
+
+**Citation.** Shibhansh Dohare, J. Fernando Hernandez-Garcia, Qingfeng Lan, Parash Rahman, A. Rupam Mahmood and Richard S. Sutton. All six are at the Department of Computing Science, University of Alberta, Edmonton. Mahmood and Sutton also hold Canada CIFAR AI Chairs at the Alberta Machine Intelligence Institute (Amii). "Loss of plasticity in deep continual learning". *Nature* 632, 768–774, 22 August 2024. Received 11 August 2023, accepted 12 June 2024, published online 21 August 2024. Open access under CC BY 4.0. [doi:10.1038/s41586-024-07711-7](https://doi.org/10.1038/s41586-024-07711-7). Code: [github.com/shibhansh/loss-of-plasticity](https://github.com/shibhansh/loss-of-plasticity). The data are public datasets and simulators. Funding: Canada CIFAR AI Chairs, DeepMind, Amii, CIFAR and NSERC, with compute from the Digital Research Alliance of Canada. The authors declare no competing interests. The paper cites an earlier preprint as its reference 26: arXiv:2306.13812 (2023), "Maintaining plasticity in deep continual learning". That preprint lists five authors without Lan, and its title differs from the Nature title. This page read only the Nature version.
+
+**Status.** Planned. #3190 (*What makes a neuron rest, stay dead or stay on?*) and #4782 (catastrophic interference and forgetting) would use it. No code, skill or protocol rule depends on it. The paper measures dead and dormant ReLU units in small vision and control networks, not neuron poles in language models. So this page reports evidence and proposes one measurement. The campaign to fix models is the maintainer's.
+
+**Read.** On 2026-11-19 we downloaded the Nature PDF (20 pages) with `curl` and read its text, extracted with `pdftotext`. A model (claude-opus-5-5) read it, not a person. We have the source's own text for the abstract, the main text, the Discussion and all of Methods. We also have the Extended discussion, the data and code statements, the acknowledgements and the references. We also have the captions of Figures 1 to 4, of Extended Data Figures 1 to 5 and of Extended Data Tables 1 to 5. We did not look at any figure as an image. The extraction gives only axis labels and legends, so this page takes no number from a curve. The bodies of the Extended Data Tables are images, and we did not read them. So the hyperparameter grids and architectures in those tables are unread. We did not read the Supplementary Information, the peer review file or the arXiv preprint.
+
+## Summary
+
+**Claim.** Standard deep-learning methods lose the ability to learn when training continues on a long run of new tasks. They end near or below a linear or shallow network. The authors call this loss of plasticity. It differs from catastrophic forgetting. Methods that keep weights small and keep adding randomness hold plasticity. Their own method, continual backpropagation, reinitialises a small fraction of the least-used units.
+
+**Method.**
+
+- **Continual ImageNet.** A sequence of binary tasks, each a pair of ImageNet classes, downsampled to 32 × 32. Each task trains on 1,200 images for 250 epochs and tests on 200. The network has three convolutional and three fully connected layers. Its two output units are reset at each task. SGD with momentum 0.9, 30 runs for each setting, up to 5,000 tasks. The baseline is a linear network.
+- **Class-incremental CIFAR-100.** An 18-layer ResNet, with batch norm, data augmentation, weight decay and a learning-rate schedule. It starts with five classes and adds five at a time up to 100. It keeps training on old classes, so the test is of plasticity, not of forgetting. Each increment is 200 epochs. The baseline is a network retrained from scratch on the same classes.
+- **Online Permuted MNIST.** Up to 800 tasks, each a fixed pixel permutation of all 60,000 images, seen once each with no mini-batches. A feed-forward network with three hidden layers, usually of 2,000 ReLU units. Widths of 100, 1,000 and 10,000 also ran, for 150 tasks.
+- **Slowly-Changing Regression.** A learner with five hidden units tracks a fixed target network with 100 hidden units, while some input bits flip slowly. Six activations: sigmoid, tanh, ELU, leaky ReLU, ReLU and Swish. 100 runs for each setting.
+- **Reinforcement learning.** PPO on MuJoCo Ant-v3. In one task the friction changes every 2 million steps. In the other it stays fixed for 50 million steps. Hopper-v3 and Walker-v3 are also tested. The policy and value networks each have two hidden layers of 256 units. *Tuned* Adam sets β1 = β2 = 0.99.
+- **Methods compared.** Plain backpropagation, L2 regularisation, Shrink and Perturb, Dropout, online normalisation, Adam, continual backpropagation, and a first comparison with ReDo.
+- **Continual backpropagation.** Each unit has a *contribution utility*, a running average (decay 0.99) of |h| × Σ|w_out|. Here h is the unit's output and w_out its outgoing weights. Each step, the method reinitialises a fraction ρ of the mature units in each layer, lowest utility first. It samples the unit's input weights again from the initial distribution and sets its output weights to 0. A maturity threshold m protects a new unit for m updates.
+- **Measures of the network's state.**
+  - *Dead units.* With ReLU, a unit whose output is 0 for all of a random sample of 2,000 images. The paper counts them at the start of each task.
+  - *Dormant units.* In the CIFAR-100 figure, units active on less than 1% of inputs.
+  - *Average weight magnitude.* The mean absolute weight.
+  - *Effective rank.* The exponential of the entropy of the normalised singular values of a layer's representation, after Roy and Vetterli (2007). The paper uses 2,000 examples.
+  - *Stable rank.* The smallest k whose top singular values sum to more than 99% of the total.
+
+**Findings, as the source reports them.** Numbers are from the text, not from the curves.
+
+| Setting | Result |
+| --- | --- |
+| Continual ImageNet, backpropagation, early tasks | Up to 88% of test images classified right |
+| Continual ImageNet, backpropagation, by task 2,000 | "lost substantial plasticity for all values of the step-size parameter". Some step sizes end below the linear baseline |
+| Continual ImageNet, L2 regularisation | Kept improving "over at least 5,000 tasks" |
+| Continual ImageNet, task 5,000 | Continual backpropagation reaches its best accuracy in ten epochs, against about 125 for a reinitialised network |
+| Class-incremental CIFAR-100, base system | Better than retraining at first, then worse after 40 classes. At 100 classes, 5% lower than the retrained network |
+| Class-incremental CIFAR-100, continual backpropagation | Final accuracy on all 100 classes 76.13%. Loss of plasticity "eliminated altogether" |
+| CIFAR-100, continual backpropagation settings | Replacement rate 10⁻⁵ and maturity threshold 1,000. That is about one of the last layer's 512 units every 200 updates |
+| Online Permuted MNIST, backpropagation, step size 0.01 | "up to 25% of units die after 800 tasks" |
+| Online Permuted MNIST, first layer | Inputs are non-negative, so a first-layer unit that dies stays dead |
+| Online Permuted MNIST, backpropagation | Loss of plasticity comes with more dead units, larger weights and a lower effective rank |
+| Online Permuted MNIST, width | Loss of plasticity is largest in small networks, but the widest also shows "some" |
+| Online Permuted MNIST, Adam | Dead units rise early and plateau "at around 60%". Effective rank drops early |
+| Online Permuted MNIST, Dropout | The three measures match backpropagation, but plasticity loss is higher, which they do not explain |
+| Online Permuted MNIST, online normalisation | Fewer dead units at first. In later tasks, more dead units and a lower rank than backpropagation |
+| Online Permuted MNIST, Shrink and Perturb | Almost no loss of plasticity, but still "a high fraction of dead units" and a lower rank than backpropagation |
+| Online Permuted MNIST, continual backpropagation | "almost no dead units", no weight growth, and the highest effective rank |
+| Slowly-Changing Regression | Error rises for all six activations. ReLU and tanh reach the linear baseline. ELU loses less |
+| Ant, fixed friction, standard PPO | Rises for about 3 million steps, then collapses. After 20 million steps it fails every episode |
+| Ant, fixed friction | Under PPO, "most of the network's units became dormant" and stable rank fell |
+| Ant, PPO with L2 | Avoids decline only at weight decay 10⁻³, and that stops it at a poor policy |
+| Ant, ReDo | Better than standard PPO, worse than PPO with L2. The authors call it preliminary |
+
+## Where the claims go beyond the evidence
+
+- **"Deep learning does not work" is wider than the networks tested.** The Discussion defines the phrase as failing to learn much better than shallow networks. The largest network is an 18-layer ResNet. The paper tests no transformer or language model. The authors say that a study of large language models would cost too much.
+- **The three measures are correlates, not a proven cause.** The paper says that each measure "partially explains" loss of plasticity. Dropout is a counterexample, with the same measures as backpropagation but worse results. Shrink and Perturb keeps many dead units and still holds plasticity. The authors state both facts.
+- **The paper uses "dead" and "dormant" loosely and interchangeably.** It defines dead units only for ReLU and Online Permuted MNIST. The CIFAR-100 figure plots units active on less than 1% of inputs. For the same experiment, Methods says it plots "the percentage of dead units in the full network". The text gives no definition of the dormant units in the Ant figure.
+- **"Stable rank" is not the usual stable rank.** The paper defines it as a 99% count of singular values. The standard stable rank is the squared Frobenius norm over the squared spectral norm. A reader comparing the two would be misled.
+- **Hyperparameters were chosen on the reported measure.** On Continual ImageNet, each method's grid search picks the setting with the best mean accuracy over 5,000 tasks. That is also the curve shown. The paper names no separate selection run. CIFAR-100 does use a validation set for early stopping.
+- **The run counts disagree within the paper.** The Figure 2 caption says that the CIFAR-100 results average 30 runs. Extended Data Figure 1a, for the same experiment, says 15 runs.
+- **Fine-tuning is out of scope by the authors' own account.** The Extended discussion says plasticity loss "may not occur at all for small numbers of tasks". It says the authors do not expect a large gain from such methods in fine-tuning.
+- **Credit.** Every figure states its runs, with standard errors or 95% bootstrapped intervals. The authors run many settings, release the code, and report the cases that their measures do not explain. They mark the ReDo comparison as preliminary. They separate plasticity from forgetting with the design of each benchmark.
+
+## Use in this repo
+
+- **The repo's "dead" is close to the paper's, but the repo adds a proof.** A scan stops on a pole whose largest strength on its 200,000-token sample is at most 0 (`openinterpretability/evidence.py`). That is an empirical test, like the paper's 2,000-image test. The repo then tries to prove death from the weights (`openinterpretability/harness/dead.py`). The norm before the MLP bounds every pre-activation, so a pole with `c + R ≤ 0` can never fire. The paper has no such proof. So its "dead" count may include units that a rarer input would wake.
+- **The registry's random draws contain few dead poles and many default-on poles.** On 2026-11-19, `wiki/draws/` held 24 GPT-2 draws stopped as dead, and none was proven dead by the weights. It held 454 GPT-2 and 136 Pythia-70m draws stopped as default-on. These are file counts, not a rate. The paper's dormancy is a ReLU unit that is off almost always. The repo's default-on (`docs/PROTOCOL.md` §1) is a pole active on at least half the tokens. That is near the opposite case.
+- **A default-on negative pole is a rarely firing positive pole, which is the paper's dormant unit.** [`papers/default-on-poles/`](../../papers/default-on-poles/README.md) finds that GPT-2's median L9 neuron rests at h = −1.04, against 0.00 at random initialisation. A neuron that rests there keeps its negative pole on and its positive pole mostly off. So the paper's "units become dormant" and the repo's "neurons rest below GELU's dip" may be one effect seen from two sides. The repo's activity line is 0.25 × scale, not 0, so the two shares are not directly comparable.
+- **Both works find that the optimizer drives units toward rest.** [`papers/why-neurons-rest/`](../../papers/why-neurons-rest/README.md) finds that, under AdamW, L1's rest at step 4,000 is −0.37, −1.11 and −3.18 at learning rates 1e-4, 3e-4 and 1e-3. Under SGD the rest is shallower. In the paper, Adam's dead units plateau near 60% on Online Permuted MNIST. Plain SGD reaches up to 25% after 800 tasks, at a different step size. Both results point the same way. Neither study tests the other's setting, so this is agreement in direction only.
+- **Weight decay acts differently, and the scales differ.** In the paper, L2 regularisation stops weight growth and slows plasticity loss. In `why-neurons-rest`, weight decay of 0.1 moves the rest only a little: from −1.11 to −0.98 at L1, on one seed. The paper runs thousands of tasks, and the repo runs 4,000 steps of one pretraining task. So the two results do not conflict.
+- **The paper expects little plasticity loss from one fine-tune, which bears on #4782.** [`docs/analyses/base-instruct.md`](../analyses/base-instruct.md) finds that 252 of 311 VERIFIED Qwen2.5-0.5B poles keep under instruction tuning (81%, 95% CI 76–85%). The paper says its effect builds up over many tasks. So it predicts no special loss of plasticity in one instruction-tuning step. It offers no reason to doubt the base-instruct result.
+- **Pythia-70m's late change is not evidence of plasticity loss.** [`papers/neuron-development/`](../../papers/neuron-development/README.md) finds that its 86 VERIFIED poles keep changing after the loss settles. Their median correlation with the final form is 0.62 at step 16,000. Adjacent checkpoints correlate at a median of 0.78 to 0.82. Those poles stay plastic, which is the opposite of the paper's finding. But pretraining on one stream is not the paper's continual setting. The repo has not measured dead or dormant shares across those checkpoints.
+- **Contribution utility resembles the repo's measures of a unit's output.** The paper ranks units by |h| × Σ|w_out|. The `neuron-family-triage` skill flags neurons by output-weight norm, and the repo's ablations measure effect directly. The paper's utility is a heuristic, as its authors say. The repo should not adopt it in place of a causal measure.
+- **No protocol question arises.** The paper does not bear on the decision rule. It bears on research question 5 and on #3190, as evidence on why units rest or die.
+
+**Proposed follow-up (not opened).** *Track dormant and never-firing pole shares and each MLP layer's effective rank across Pythia-70m's checkpoints.* `area: research questions`, `priority: low`. At the 20 checkpoints of `papers/neuron-development/`, measure the share of poles active on under 1% of tokens and the share that never fire. Also measure the effective rank of each layer's MLP activations, after Roy and Vetterli (2007). It tests whether pretraining shows the paper's rise in dormant units and fall in rank, and it bears on #3190. It cites this page.
