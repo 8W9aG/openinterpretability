@@ -81,6 +81,13 @@ def _api_model(_ctx, param, value: str) -> str:
     type=click.IntRange(1),
     help="Stop after this many failed experiments in a row.",
 )
+@click.option(
+    "--until-verified/--no-until-verified", "until_verified", default=None,
+    help="Keep each draw on its unit until VERIFIED, or never. Default: a seeded chance "
+    "per draw (until_verified.UNTIL_VERIFIED_SHARE). All turns go on one PR (#4485).",
+)  # fmt: skip
+@click.option("--max-turns", default=3, show_default=True, type=click.IntRange(1),
+              help="Turns of an until-verified draw, at most.")  # fmt: skip
 def loop_command(
     proposer,
     reviewer,
@@ -91,6 +98,8 @@ def loop_command(
     worktree,
     one_heavy_job,
     max_failures,
+    until_verified,
+    max_turns,
 ):
     """Run experiments back to back: draw, claim, audit, review, post and land each one.
 
@@ -102,18 +111,20 @@ def loop_command(
 
     proposer, reviewer = _models(proposer, reviewer, provider)
     options = (max_experiments, epsilon, corpus, worktree, one_heavy_job, max_failures)
-    raise SystemExit(run_loop(proposer, reviewer, plan_next, *options))
+    raise SystemExit(run_loop(proposer, reviewer, plan_next, *options,
+                              until_verified=until_verified, max_turns=max_turns))  # fmt: skip
 
 
 def run_loop(
     proposer, reviewer, plan_next, max_experiments=0, epsilon=0.7, corpus=None, worktree=None,
-    one_heavy_job=False, max_failures=3, out=None,
+    one_heavy_job=False, max_failures=3, out=None, until_verified=False, max_turns=3,
 ) -> int:  # fmt: skip
     """Set up the loop's worktree, lock and runner cache, run it with ``plan_next``, and return.
 
     ``loop`` passes the planner's draw, and ``explain --run`` its targeted draws (#3744).
     The return value is the loop's exit code. ``out``, a dict, gets the loop as ``"loop"``,
-    for its results and the reason it finished (#4474).
+    for its results and the reason it finished (#4474). ``until_verified`` is False by
+    default, so a targeted run takes one turn per draw. ``loop`` passes its own (#4485).
     """
     import time
 
@@ -135,7 +146,7 @@ def run_loop(
         os.environ[ENABLE_ENV] = "1"
     runner_cache.keep()
     os.chdir(worktree)
-    options = Options(proposer, reviewer, epsilon, corpus)
+    options = Options(proposer, reviewer, epsilon, corpus, until_verified, max_turns)
     loop = Loop(options, repo / "logs" / "loop", max_experiments, max_failures, plan_next,
                 open_pr_claims, time.sleep)  # fmt: skip
     if out is not None:
