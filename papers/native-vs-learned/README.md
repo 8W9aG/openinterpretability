@@ -10,10 +10,10 @@ Do a model's own neurons explain it as well as a learned dictionary does? We com
 
 ## Results
 
-1. **Per unit, transcoder latents verify more often.** 37 of 40 live latents, against 20 of 40 positive poles (Fisher p = 4.3 × 10⁻⁵). *Limit:* one model and one dictionary. Counting dead draws, the gap shrinks to 61% against 50%, and it is no longer significant (p = 0.31).
+1. **Per unit, transcoder latents verify more often.** 37 of 40 live latents, against 20 of 40 positive poles (Fisher $p = 4.3 \times 10^{-5}$). *Limit:* one model and one dictionary. Counting dead draws, the gap shrinks to 61% against 50%, and it is no longer significant ($p = 0.31$).
 2. **The effort per audit was equal.** Each unit had one audit by the same proposer, reviewer and judges. The proposer's prompts had a median of 17,417 characters for latents and 17,877 for poles. The reviewer's had 8,239 and 9,392. *Limit:* the agents ran outside the harness, so their token counts and costs weren't recorded, only the size of each prompt.
 3. **Per layer, a dictionary costs more and gives more.** At the measured rates, auditing a whole layer once means 16,115 audits for its live latents, against 3,072 for its positive poles. It would give about 14,907 VERIFIED latents against 1,536 VERIFIED poles. *Limit:* this is our extrapolation of two shares to a whole layer, not a run. The transcoder also explains only part of the MLP: 70% of its output's variance on the scanned layers.
-4. **The native basis is privileged.** On Qwen2.5-0.5B, 30 units in their native basis reach VERIFIED 18 times. In a random rotation of the same layers, they reach it once (sign test p = 1.5 × 10⁻⁵). *Limit:* this compares neurons with random directions, not with a learned dictionary.
+4. **The native basis is privileged.** On Qwen2.5-0.5B, 30 units in their native basis reach VERIFIED 18 times. In a random rotation of the same layers, they reach it once (sign test $p = 1.5 \times 10^{-5}$). *Limit:* this compares neurons with random directions, not with a learned dictionary.
 5. **A decomposition of GPT-2's weights doesn't find a better basis.** Stochastic Parameter Decomposition (Bushnaq et al., 2025) keeps whichever basis it starts in on the down projections. On the input projections, a start from the neurons fits better than a random start, but training from random doesn't find the neurons.
 
 **What this does not show.**
