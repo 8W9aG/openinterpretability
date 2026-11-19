@@ -34,7 +34,7 @@ def test_the_proposer_reads_the_explanation_and_the_prompt_inside_fences(recorde
 def test_the_reviewer_reads_the_claim_inside_a_fence():
     claim = SimpleNamespace(model_name="toy", prompt="a b c", answer=" d", sources=["a"],
                             route=["L0/H1"], roles={"L0/H1": TOLD}, explanation=TOLD,
-                            counterfactuals=[])  # fmt: skip
+                            counterfactuals=[], corrupted="a x c")  # fmt: skip
     text = reviewer_prompt("p.json", claim)
     assert _inside(text, TOLD)
 

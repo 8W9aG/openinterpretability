@@ -93,6 +93,23 @@ class AnswerView:
         return self.record.verdict.status
 
     @property
+    def margins(self) -> dict:
+        """Each gate's value, line and margin, for the page (#4892)."""
+        from openinterpretability.core.answer_records import margins
+
+        v = self.record.verdict
+        return margins(v.measures, v.policy)
+
+    @property
+    def null_levels(self) -> dict[str, float | None]:
+        """Each reviewer corrupted prompt's null level, as the record's rule reads it."""
+        from openinterpretability.core.answer_records import null_level
+
+        v = self.record.verdict
+        found = v.measures.reviewer_null_patching
+        return {c: null_level(found.get(c, []), v.policy) for c in v.measures.reviewer_patching}
+
+    @property
     def route(self) -> list[dict]:
         """The route in order: each unit's label, role and unit page."""
         from openinterpretability.core.answer_records import parse_unit

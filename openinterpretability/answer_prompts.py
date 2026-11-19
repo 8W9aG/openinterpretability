@@ -114,8 +114,11 @@ def proposer_prompt(  # long-function: the prompt's text, one line of it per lin
         f"- With only the route live, at least {policy.min_sufficiency:.0%} of the answer "
         "comes back.",
         f"- Patching the route from `corrupted` moves the answer by at least "
-        f"{policy.min_patching:.0%} of the gap between the two prompts. Random sets move it "
-        f"by at most {policy.max_null_patching:.0%}.",
+        f"{policy.min_patching:.0%} of the gap between the two prompts. The reviewer writes "
+        f"{policy.min_reviewer_corrupted}–3 more corrupted prompts, and the same must hold on "
+        f"each. The review draws the random sets after you submit, and on each prompt the "
+        f"{policy.null_quantile:.0%} quantile of their |share| must be at most "
+        f"{policy.max_null_patching:.0%}.",
         "- Each of your 4–8 counterfactuals says if the answer stays the top token (`kept`)",
         "  or not (`changed`). All of them must come out as you say. A reviewer then writes",
         f"  10–30 more, blind, and {policy.min_probes:.0%} must come out as the claim says.",
@@ -143,17 +146,19 @@ def proposer_prompt(  # long-function: the prompt's text, one line of it per lin
     ])  # fmt: skip
 
 
-def reviewer_prompt(probes_path: str, claim: AnswerClaim,
+def reviewer_prompt(probes_path: str, claim: AnswerClaim,  # long-function: the prompt's text
                     agent_model: str = "<your model id>") -> str:  # fmt: skip
     """The reviewer's task: write :class:`AnswerProbes` that try to break ``claim``."""
     template = {"prompts": [{"prompt": "<a prompt>", "expect": "changed", "why": "<why>"}],
+                "corrupted": ["<the prompt with the sources changed>", "<another>"],
                 "reviewer_agent_model": agent_model}  # fmt: skip
     roles = [f"- {u}: {claim.roles.get(u, '(no role given)')}" for u in claim.route]
     shown = [f"- {c.prompt!r}: {c.expect}" for c in claim.counterfactuals]
     told = [f"After this prompt, the model answers {claim.answer!r} by this route:", "",
             claim.prompt, "", f"- Sources: {', '.join(claim.sources)}",
             f"- Route: {' → '.join(claim.route)}", *roles, "", claim.explanation, "",
-            "The proposer's own prompts (don't repeat them):", *shown]  # fmt: skip
+            "The proposer's own prompts (don't repeat them):", *shown, "",
+            "The proposer's corrupted prompt (don't repeat it):", claim.corrupted]  # fmt: skip
     return "\n".join([
         f"# Review an answer claim: {claim.model_name}",
         "",
@@ -171,6 +176,13 @@ def reviewer_prompt(probes_path: str, claim: AnswerClaim,
         "that the route should carry the same way, sources it should not carry, distractors,",
         "changed word order, and prompts where the answer is likely for another reason.",
         "You will never see the results.",
+        "",
+        "Also write 2–3 corrupted prompts of your own (`corrupted`). Each is the claim's",
+        "prompt with its sources changed so that the answer should change, and it must have",
+        "the prompt's token count: swap a source word for another word of the same form.",
+        "The route must carry the answer's change from each of them, so choose ones that",
+        "test the claim, not ones that make it pass. The harness checks the token counts and",
+        "sends the file back if one is wrong.",
         "",
         f"Write them as JSON to `{probes_path}`:",
         "",

@@ -22,7 +22,8 @@ def _claim(**kw) -> ar.AnswerClaim:
 
 def _probes() -> ar.AnswerProbes:
     prompts = [ar.Counterfactual(prompt=f"q{i}", expect="changed") for i in range(10)]
-    return ar.AnswerProbes(prompts=prompts, reviewer_agent_model="claude-sonnet-5-5")
+    return ar.AnswerProbes(prompts=prompts, corrupted=["aycd", "azcd"],
+                           reviewer_agent_model="claude-sonnet-5-5")  # fmt: skip
 
 
 def _measures(**kw) -> ar.AnswerMeasures:
@@ -30,6 +31,8 @@ def _measures(**kw) -> ar.AnswerMeasures:
         "clean": -1.0, "all_cut": 4.0, "route_cut": 3.0, "null_cuts": [0.1, 0.2],
         "sufficiency": 0.7, "corrupted_gap": 2.0, "patching": 0.8, "null_patching": [0.0, 0.05],
         "controls": {"w": True, "x": True}, "probes": {f"q{i}": i < 9 for i in range(10)},
+        "reviewer_patching": {"aycd": 0.7, "azcd": 0.6},
+        "reviewer_null_patching": {"aycd": [0.0, 0.02], "azcd": [0.01, 0.0]}, "null_seed": 7,
     }  # fmt: skip
     return ar.AnswerMeasures(**(base | kw))
 
@@ -232,6 +235,9 @@ def test_the_page_leads_with_the_answer_verdict(tmp_path, record):
         assert f'href="../../../../{answer.href}"' in newest or answer.href in newest
         page = (tmp_path / "site" / answer.href).read_text()
         assert "Counterfactual prompts" in page and "The reviewer's prompts" in page
+        # Rule 1.1 (#4892): each gate's margin, the reviewer's corrupted prompts, the seed.
+        assert ">Margin<" in page and " pp<" in page and "aycd" in page
+        assert "The review drew the random sets' seed, 7" in page
         assert page.count("passed") + page.count("failed") >= 7  # every gate, in words
         slug = answer.record.claim.model_name.replace("/", "--")
         assert "L0/H1" in page and f"models/{slug}/L0/H1.html" in page
