@@ -9,16 +9,16 @@ copying answers right (:data:`PROMPTS`), in float32 on the CPU. For each it meas
 1. ``single``: the second clause alone, zero-shot and after :data:`SHOTS`. A model that
    answers it right knows the fact without a clause to copy.
 2. ``enrichment``: the right and copied tokens' ranks under the logit lens at the second
-   clause's subject (" year"), for each layer's residual stream and MLP output. The answer
-   position's residual stream is read too.
+   clause's subject (" year"). The lens reads each layer's residual stream and MLP output.
+   It reads the answer position's residual stream too.
 3. ``attention``: what share of the answer position's attention :data:`HEADS` give to the
    first clause's unit and to the second clause's subject.
 4. ``scaling``: the answer when the copy heads' outputs are scaled by each of
-   :data:`ALPHAS`, and when :data:`DRAWS` random sets of three heads of layers 3 and 4 are
-   switched off. A head is switched off by setting its output to zero. ``four_off``
-   switches off the copy heads and L4/H1 together.
+   :data:`ALPHAS`. It also switches off :data:`DRAWS` random sets of three heads of layers
+   3 and 4. A head is switched off by setting its output to zero. ``four_off`` switches off
+   the copy heads and L4/H1 together.
 5. ``writers``: each layer 4 and 5 neuron pole's direct write to logit(right) −
-   logit(copied) at the answer position, on the prompt and on its single clause.
+   logit(copied) at the answer position. It reads the prompt and its single clause.
 
 The rows go to ``--out``::
 
