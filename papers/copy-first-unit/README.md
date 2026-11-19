@@ -132,7 +132,7 @@ The verified route explains how the copy works, but it is not the only path. Swi
 Pythia-70m copies the first clause's unit because the right unit is weak, not because it is missing. The model barely knows these facts, its MLPs don't attach them to the subject, and the copy outvotes what reaches the answer. The copy runs through more heads than the verified route names. These tests would go further:
 
 - Knocking out attention edges (#5059) would show which heads beyond the route carry the copy.
-- What L4/H1 does (#5063), now that it is known to read the copied unit.
+- What L4/H1 does (#5063), now that it is known to read the copied unit. On these prompts it lowers the copied unit, but too weakly to change an answer (`docs/analyses/copy-suppression-l4h1.md`).
 - Pythia SAEs (#5065) and a gradient-routed positive control (#5066) would test the copy another way.
 - The coverage tail of the " days" explanation, and the three units to revise (#5094).
 - The same measures on larger Pythia models would test whether the fact grows strong enough to win.
