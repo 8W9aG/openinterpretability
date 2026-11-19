@@ -304,7 +304,7 @@ def latent_explanations(
     *,
     retries: int = 3,
     sleep: Callable = time.sleep,
-    opener: Callable = urllib.request.urlopen,
+    opener: Callable = urllib.request.urlopen,  # noqa: S310  (opens NEURONPEDIA's https URLs)
 ) -> list[Explanation] | None:
     """Return the latent's Neuronpedia explanations, kept on disk after the first fetch.
 

@@ -209,7 +209,13 @@ extend-exclude = [".claude/skills/asd-ste100"]
 # D: docstrings, held to the commenting skill (.claude/skills/commenting/SKILL.md).
 # ERA: commented-out code.
 # S: Bandit's security checks (flake8-bandit), ported to Ruff.
-select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA", "S", "ARG"]
+# RET and PLR1702 keep code flat (#3158): RET505-508 forbid an else after return, raise,
+# continue or break, so a function returns early; PLR1702 allows at most 5 nested blocks.
+# PLR1702 is a preview rule. explicit-preview-rules turns on only the preview rules named
+# here, so no other rule changes with preview.
+select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA", "S", "ARG", "RET", "PLR1702"]
+preview = true
+explicit-preview-rules = true
 # Magic methods and __init__ are described by their class's docstring. D301 asks for r"""
 # when a docstring has a backslash, but Click's `\b` (no rewrapping) must stay a real \b.
 # S311: the random generators seed experiments and samples, never secrets.
