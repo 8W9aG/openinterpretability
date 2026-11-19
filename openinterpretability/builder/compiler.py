@@ -41,7 +41,7 @@ from openinterpretability.builder.parquet_export import export_draws, export_reg
 from openinterpretability.builder.pii import save_spans, scrub, scrub_experiments
 from openinterpretability.builder.recent import recent_experiments
 from openinterpretability.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
-from openinterpretability.builder.sections import render_reference_pages
+from openinterpretability.builder.sections import render_reference_pages, with_explanations
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
 from openinterpretability.builder.sister_graph import sister_graphs
 from openinterpretability.builder.slim import SlimArchive, full_records, hand_over
@@ -354,7 +354,7 @@ def compile_site(
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
     render_models(render, models, model_facts or {}, _render_model, (*draws, *stops))
     agents = _render_agents(render, experiments, output_dir, report)
-    stats = stats_result()
+    stats = with_explanations(stats_result(), explanations)  # the home page's tile (#4574)
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     _render_index(render, models, agents, stats, (*draws, *stops))
     report.parquet = parquet()
