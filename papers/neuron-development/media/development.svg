@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 516" width="760" height="516" role="img">
-<title>Nine lines of correlation with the final checkpoint that rise slowly to 1 by step 143,000, beside a loss curve that is flat from about step 16,000.</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" width="760" height="500" role="img">
+<title>A band of correlations with the final checkpoint for 85 poles, whose median rises slowly to 1 by step 143,000, beside a loss curve that is flat from about step 16,000.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
 text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
@@ -27,11 +27,11 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
 .sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
-@keyframes lossdot{0.0%{transform:translate(520.0px,168.4px)}4.2%{transform:translate(532.6px,168.4px)}8.4%{transform:translate(539.9px,168.4px)}12.6%{transform:translate(549.2px,168.8px)}16.8%{transform:translate(559.8px,172.9px)}21.1%{transform:translate(571.3px,186.2px)}25.3%{transform:translate(583.4px,207.9px)}29.5%{transform:translate(595.7px,233.4px)}33.7%{transform:translate(608.1px,284.5px)}37.9%{transform:translate(620.6px,321.6px)}42.1%{transform:translate(633.1px,350.5px)}46.3%{transform:translate(645.2px,372.1px)}50.5%{transform:translate(657.8px,385.9px)}54.7%{transform:translate(670.3px,391.9px)}58.9%{transform:translate(682.9px,395.5px)}63.2%{transform:translate(695.4px,397.1px)}67.4%{transform:translate(708.0px,398.4px)}71.6%{transform:translate(720.6px,398.6px)}75.8%{transform:translate(733.1px,398.5px)}80.0%{transform:translate(735.1px,398.0px)}100%{transform:translate(735.1px,398.0px)}}.lossdot{animation:lossdot 9s step-end infinite;transform:translate(735.1px,398.0px)}@keyframes pole0{0.0%{transform:translate(64.0px,364.3px)}4.2%{transform:translate(87.3px,364.3px)}8.4%{transform:translate(100.9px,364.3px)}12.6%{transform:translate(118.0px,364.3px)}16.8%{transform:translate(137.7px,364.3px)}21.1%{transform:translate(159.1px,364.3px)}25.3%{transform:translate(181.3px,364.7px)}29.5%{transform:translate(204.1px,366.2px)}33.7%{transform:translate(227.1px,369.8px)}37.9%{transform:translate(250.2px,367.1px)}42.1%{transform:translate(273.4px,359.8px)}46.3%{transform:translate(295.9px,345.5px)}50.5%{transform:translate(319.1px,336.9px)}54.7%{transform:translate(342.4px,299.7px)}58.9%{transform:translate(365.6px,284.5px)}63.2%{transform:translate(388.9px,274.2px)}67.4%{transform:translate(412.2px,242.8px)}71.6%{transform:translate(435.4px,216.9px)}75.8%{transform:translate(458.7px,170.5px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole0{animation:pole0 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole1{0.0%{transform:translate(64.0px,355.0px)}4.2%{transform:translate(87.3px,355.0px)}8.4%{transform:translate(100.9px,355.0px)}12.6%{transform:translate(118.0px,355.0px)}16.8%{transform:translate(137.7px,354.9px)}21.1%{transform:translate(159.1px,354.2px)}25.3%{transform:translate(181.3px,348.7px)}29.5%{transform:translate(204.1px,339.9px)}33.7%{transform:translate(227.1px,335.3px)}37.9%{transform:translate(250.2px,316.6px)}42.1%{transform:translate(273.4px,347.0px)}46.3%{transform:translate(295.9px,318.5px)}50.5%{transform:translate(319.1px,319.5px)}54.7%{transform:translate(342.4px,308.6px)}58.9%{transform:translate(365.6px,276.6px)}63.2%{transform:translate(388.9px,269.5px)}67.4%{transform:translate(412.2px,274.7px)}71.6%{transform:translate(435.4px,230.6px)}75.8%{transform:translate(458.7px,184.4px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole1{animation:pole1 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole2{0.0%{transform:translate(64.0px,377.6px)}4.2%{transform:translate(87.3px,377.6px)}8.4%{transform:translate(100.9px,377.6px)}12.6%{transform:translate(118.0px,377.5px)}16.8%{transform:translate(137.7px,375.5px)}21.1%{transform:translate(159.1px,369.2px)}25.3%{transform:translate(181.3px,342.1px)}29.5%{transform:translate(204.1px,315.3px)}33.7%{transform:translate(227.1px,292.2px)}37.9%{transform:translate(250.2px,290.3px)}42.1%{transform:translate(273.4px,271.9px)}46.3%{transform:translate(295.9px,271.2px)}50.5%{transform:translate(319.1px,272.1px)}54.7%{transform:translate(342.4px,230.9px)}58.9%{transform:translate(365.6px,208.6px)}63.2%{transform:translate(388.9px,211.4px)}67.4%{transform:translate(412.2px,205.7px)}71.6%{transform:translate(435.4px,181.7px)}75.8%{transform:translate(458.7px,163.6px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole2{animation:pole2 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole3{0.0%{transform:translate(64.0px,345.5px)}4.2%{transform:translate(87.3px,345.5px)}8.4%{transform:translate(100.9px,345.5px)}12.6%{transform:translate(118.0px,345.5px)}16.8%{transform:translate(137.7px,346.3px)}21.1%{transform:translate(159.1px,349.5px)}25.3%{transform:translate(181.3px,349.6px)}29.5%{transform:translate(204.1px,281.1px)}33.7%{transform:translate(227.1px,339.2px)}37.9%{transform:translate(250.2px,313.8px)}42.1%{transform:translate(273.4px,293.7px)}46.3%{transform:translate(295.9px,278.2px)}50.5%{transform:translate(319.1px,301.0px)}54.7%{transform:translate(342.4px,237.2px)}58.9%{transform:translate(365.6px,218.9px)}63.2%{transform:translate(388.9px,213.4px)}67.4%{transform:translate(412.2px,216.0px)}71.6%{transform:translate(435.4px,202.9px)}75.8%{transform:translate(458.7px,170.5px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole3{animation:pole3 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole4{0.0%{transform:translate(64.0px,381.1px)}4.2%{transform:translate(87.3px,381.1px)}8.4%{transform:translate(100.9px,381.1px)}12.6%{transform:translate(118.0px,381.2px)}16.8%{transform:translate(137.7px,381.4px)}21.1%{transform:translate(159.1px,382.7px)}25.3%{transform:translate(181.3px,383.5px)}29.5%{transform:translate(204.1px,370.6px)}33.7%{transform:translate(227.1px,340.6px)}37.9%{transform:translate(250.2px,339.3px)}42.1%{transform:translate(273.4px,294.2px)}46.3%{transform:translate(295.9px,318.3px)}50.5%{transform:translate(319.1px,321.4px)}54.7%{transform:translate(342.4px,309.5px)}58.9%{transform:translate(365.6px,298.9px)}63.2%{transform:translate(388.9px,310.6px)}67.4%{transform:translate(412.2px,285.5px)}71.6%{transform:translate(435.4px,246.5px)}75.8%{transform:translate(458.7px,176.5px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole4{animation:pole4 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole5{0.0%{transform:translate(64.0px,352.3px)}4.2%{transform:translate(87.3px,352.3px)}8.4%{transform:translate(100.9px,352.3px)}12.6%{transform:translate(118.0px,352.1px)}16.8%{transform:translate(137.7px,349.9px)}21.1%{transform:translate(159.1px,344.4px)}25.3%{transform:translate(181.3px,343.4px)}29.5%{transform:translate(204.1px,314.4px)}33.7%{transform:translate(227.1px,275.7px)}37.9%{transform:translate(250.2px,280.5px)}42.1%{transform:translate(273.4px,270.5px)}46.3%{transform:translate(295.9px,245.7px)}50.5%{transform:translate(319.1px,230.3px)}54.7%{transform:translate(342.4px,230.9px)}58.9%{transform:translate(365.6px,224.1px)}63.2%{transform:translate(388.9px,213.5px)}67.4%{transform:translate(412.2px,214.3px)}71.6%{transform:translate(435.4px,189.9px)}75.8%{transform:translate(458.7px,167.7px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole5{animation:pole5 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole6{0.0%{transform:translate(64.0px,369.5px)}4.2%{transform:translate(87.3px,369.5px)}8.4%{transform:translate(100.9px,369.5px)}12.6%{transform:translate(118.0px,369.4px)}16.8%{transform:translate(137.7px,368.9px)}21.1%{transform:translate(159.1px,365.7px)}25.3%{transform:translate(181.3px,351.2px)}29.5%{transform:translate(204.1px,364.4px)}33.7%{transform:translate(227.1px,358.4px)}37.9%{transform:translate(250.2px,353.4px)}42.1%{transform:translate(273.4px,311.0px)}46.3%{transform:translate(295.9px,300.6px)}50.5%{transform:translate(319.1px,300.0px)}54.7%{transform:translate(342.4px,282.1px)}58.9%{transform:translate(365.6px,252.2px)}63.2%{transform:translate(388.9px,235.2px)}67.4%{transform:translate(412.2px,207.3px)}71.6%{transform:translate(435.4px,200.7px)}75.8%{transform:translate(458.7px,167.6px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole6{animation:pole6 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole7{0.0%{transform:translate(64.0px,379.7px)}4.2%{transform:translate(87.3px,379.7px)}8.4%{transform:translate(100.9px,379.7px)}12.6%{transform:translate(118.0px,379.7px)}16.8%{transform:translate(137.7px,378.5px)}21.1%{transform:translate(159.1px,372.9px)}25.3%{transform:translate(181.3px,375.8px)}29.5%{transform:translate(204.1px,392.3px)}33.7%{transform:translate(227.1px,404.3px)}37.9%{transform:translate(250.2px,401.6px)}42.1%{transform:translate(273.4px,372.3px)}46.3%{transform:translate(295.9px,372.3px)}50.5%{transform:translate(319.1px,366.7px)}54.7%{transform:translate(342.4px,322.4px)}58.9%{transform:translate(365.6px,308.1px)}63.2%{transform:translate(388.9px,290.0px)}67.4%{transform:translate(412.2px,236.0px)}71.6%{transform:translate(435.4px,217.2px)}75.8%{transform:translate(458.7px,175.8px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole7{animation:pole7 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes pole8{0.0%{transform:translate(64.0px,364.1px)}4.2%{transform:translate(87.3px,364.1px)}8.4%{transform:translate(100.9px,364.1px)}12.6%{transform:translate(118.0px,364.2px)}16.8%{transform:translate(137.7px,364.5px)}21.1%{transform:translate(159.1px,367.0px)}25.3%{transform:translate(181.3px,366.8px)}29.5%{transform:translate(204.1px,369.5px)}33.7%{transform:translate(227.1px,362.7px)}37.9%{transform:translate(250.2px,358.6px)}42.1%{transform:translate(273.4px,349.7px)}46.3%{transform:translate(295.9px,367.3px)}50.5%{transform:translate(319.1px,344.2px)}54.7%{transform:translate(342.4px,335.6px)}58.9%{transform:translate(365.6px,316.8px)}63.2%{transform:translate(388.9px,292.1px)}67.4%{transform:translate(412.2px,251.7px)}71.6%{transform:translate(435.4px,222.1px)}75.8%{transform:translate(458.7px,178.0px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.pole8{animation:pole8 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes stepnow0{0%{opacity:0}0.0%{opacity:1}4.2%{opacity:0}100%{opacity:0}}.stepnow0{animation:stepnow0 9s step-end infinite;opacity:0}@keyframes stepnow1{0%{opacity:0}4.2%{opacity:1}8.4%{opacity:0}100%{opacity:0}}.stepnow1{animation:stepnow1 9s step-end infinite;opacity:0}@keyframes stepnow2{0%{opacity:0}8.4%{opacity:1}12.6%{opacity:0}100%{opacity:0}}.stepnow2{animation:stepnow2 9s step-end infinite;opacity:0}@keyframes stepnow3{0%{opacity:0}12.6%{opacity:1}16.8%{opacity:0}100%{opacity:0}}.stepnow3{animation:stepnow3 9s step-end infinite;opacity:0}@keyframes stepnow4{0%{opacity:0}16.8%{opacity:1}21.1%{opacity:0}100%{opacity:0}}.stepnow4{animation:stepnow4 9s step-end infinite;opacity:0}@keyframes stepnow5{0%{opacity:0}21.1%{opacity:1}25.3%{opacity:0}100%{opacity:0}}.stepnow5{animation:stepnow5 9s step-end infinite;opacity:0}@keyframes stepnow6{0%{opacity:0}25.3%{opacity:1}29.5%{opacity:0}100%{opacity:0}}.stepnow6{animation:stepnow6 9s step-end infinite;opacity:0}@keyframes stepnow7{0%{opacity:0}29.5%{opacity:1}33.7%{opacity:0}100%{opacity:0}}.stepnow7{animation:stepnow7 9s step-end infinite;opacity:0}@keyframes stepnow8{0%{opacity:0}33.7%{opacity:1}37.9%{opacity:0}100%{opacity:0}}.stepnow8{animation:stepnow8 9s step-end infinite;opacity:0}@keyframes stepnow9{0%{opacity:0}37.9%{opacity:1}42.1%{opacity:0}100%{opacity:0}}.stepnow9{animation:stepnow9 9s step-end infinite;opacity:0}@keyframes stepnow10{0%{opacity:0}42.1%{opacity:1}46.3%{opacity:0}100%{opacity:0}}.stepnow10{animation:stepnow10 9s step-end infinite;opacity:0}@keyframes stepnow11{0%{opacity:0}46.3%{opacity:1}50.5%{opacity:0}100%{opacity:0}}.stepnow11{animation:stepnow11 9s step-end infinite;opacity:0}@keyframes stepnow12{0%{opacity:0}50.5%{opacity:1}54.7%{opacity:0}100%{opacity:0}}.stepnow12{animation:stepnow12 9s step-end infinite;opacity:0}@keyframes stepnow13{0%{opacity:0}54.7%{opacity:1}58.9%{opacity:0}100%{opacity:0}}.stepnow13{animation:stepnow13 9s step-end infinite;opacity:0}@keyframes stepnow14{0%{opacity:0}58.9%{opacity:1}63.2%{opacity:0}100%{opacity:0}}.stepnow14{animation:stepnow14 9s step-end infinite;opacity:0}@keyframes stepnow15{0%{opacity:0}63.2%{opacity:1}67.4%{opacity:0}100%{opacity:0}}.stepnow15{animation:stepnow15 9s step-end infinite;opacity:0}@keyframes stepnow16{0%{opacity:0}67.4%{opacity:1}71.6%{opacity:0}100%{opacity:0}}.stepnow16{animation:stepnow16 9s step-end infinite;opacity:0}@keyframes stepnow17{0%{opacity:0}71.6%{opacity:1}75.8%{opacity:0}100%{opacity:0}}.stepnow17{animation:stepnow17 9s step-end infinite;opacity:0}@keyframes stepnow18{0%{opacity:0}75.8%{opacity:1}80.0%{opacity:0}100%{opacity:0}}.stepnow18{animation:stepnow18 9s step-end infinite;opacity:0}@keyframes stepnow19{0%{opacity:0}80.0%{opacity:1}100%{opacity:1}}.stepnow19{animation:stepnow19 9s step-end infinite;opacity:1}</style>
-<rect class="bg" width="760" height="516" rx="10"/>
+.dash{stroke-dasharray:6 4}@keyframes lossdot{0.0%{transform:translate(520.0px,168.4px)}4.2%{transform:translate(532.6px,168.4px)}8.4%{transform:translate(539.9px,168.4px)}12.6%{transform:translate(549.2px,168.8px)}16.8%{transform:translate(559.8px,172.9px)}21.1%{transform:translate(571.3px,186.2px)}25.3%{transform:translate(583.4px,207.9px)}29.5%{transform:translate(595.7px,233.4px)}33.7%{transform:translate(608.1px,284.5px)}37.9%{transform:translate(620.6px,321.6px)}42.1%{transform:translate(633.1px,350.5px)}46.3%{transform:translate(645.2px,372.1px)}50.5%{transform:translate(657.8px,385.9px)}54.7%{transform:translate(670.3px,391.9px)}58.9%{transform:translate(682.9px,395.5px)}63.2%{transform:translate(695.4px,397.1px)}67.4%{transform:translate(708.0px,398.3px)}71.6%{transform:translate(720.6px,398.6px)}75.8%{transform:translate(733.1px,398.5px)}80.0%{transform:translate(735.1px,398.0px)}100%{transform:translate(735.1px,398.0px)}}.lossdot{animation:lossdot 9s step-end infinite;transform:translate(735.1px,398.0px)}@keyframes mediandot{0.0%{transform:translate(64.0px,360.1px)}4.2%{transform:translate(87.3px,360.1px)}8.4%{transform:translate(100.9px,360.1px)}12.6%{transform:translate(118.0px,360.1px)}16.8%{transform:translate(137.7px,360.0px)}21.1%{transform:translate(159.1px,360.1px)}25.3%{transform:translate(181.3px,358.6px)}29.5%{transform:translate(204.1px,356.0px)}33.7%{transform:translate(227.1px,348.3px)}37.9%{transform:translate(250.2px,341.9px)}42.1%{transform:translate(273.4px,333.9px)}46.3%{transform:translate(295.9px,318.5px)}50.5%{transform:translate(319.1px,302.9px)}54.7%{transform:translate(342.4px,276.2px)}58.9%{transform:translate(365.6px,256.4px)}63.2%{transform:translate(388.9px,238.4px)}67.4%{transform:translate(412.2px,219.3px)}71.6%{transform:translate(435.4px,198.6px)}75.8%{transform:translate(458.7px,168.5px)}80.0%{transform:translate(462.4px,156.0px)}100%{transform:translate(462.4px,156.0px)}}.mediandot{animation:mediandot 9s step-end infinite;transform:translate(462.4px,156.0px)}@keyframes stepnow0{0%{opacity:0}0.0%{opacity:1}4.2%{opacity:0}100%{opacity:0}}.stepnow0{animation:stepnow0 9s step-end infinite;opacity:0}@keyframes stepnow1{0%{opacity:0}4.2%{opacity:1}8.4%{opacity:0}100%{opacity:0}}.stepnow1{animation:stepnow1 9s step-end infinite;opacity:0}@keyframes stepnow2{0%{opacity:0}8.4%{opacity:1}12.6%{opacity:0}100%{opacity:0}}.stepnow2{animation:stepnow2 9s step-end infinite;opacity:0}@keyframes stepnow3{0%{opacity:0}12.6%{opacity:1}16.8%{opacity:0}100%{opacity:0}}.stepnow3{animation:stepnow3 9s step-end infinite;opacity:0}@keyframes stepnow4{0%{opacity:0}16.8%{opacity:1}21.1%{opacity:0}100%{opacity:0}}.stepnow4{animation:stepnow4 9s step-end infinite;opacity:0}@keyframes stepnow5{0%{opacity:0}21.1%{opacity:1}25.3%{opacity:0}100%{opacity:0}}.stepnow5{animation:stepnow5 9s step-end infinite;opacity:0}@keyframes stepnow6{0%{opacity:0}25.3%{opacity:1}29.5%{opacity:0}100%{opacity:0}}.stepnow6{animation:stepnow6 9s step-end infinite;opacity:0}@keyframes stepnow7{0%{opacity:0}29.5%{opacity:1}33.7%{opacity:0}100%{opacity:0}}.stepnow7{animation:stepnow7 9s step-end infinite;opacity:0}@keyframes stepnow8{0%{opacity:0}33.7%{opacity:1}37.9%{opacity:0}100%{opacity:0}}.stepnow8{animation:stepnow8 9s step-end infinite;opacity:0}@keyframes stepnow9{0%{opacity:0}37.9%{opacity:1}42.1%{opacity:0}100%{opacity:0}}.stepnow9{animation:stepnow9 9s step-end infinite;opacity:0}@keyframes stepnow10{0%{opacity:0}42.1%{opacity:1}46.3%{opacity:0}100%{opacity:0}}.stepnow10{animation:stepnow10 9s step-end infinite;opacity:0}@keyframes stepnow11{0%{opacity:0}46.3%{opacity:1}50.5%{opacity:0}100%{opacity:0}}.stepnow11{animation:stepnow11 9s step-end infinite;opacity:0}@keyframes stepnow12{0%{opacity:0}50.5%{opacity:1}54.7%{opacity:0}100%{opacity:0}}.stepnow12{animation:stepnow12 9s step-end infinite;opacity:0}@keyframes stepnow13{0%{opacity:0}54.7%{opacity:1}58.9%{opacity:0}100%{opacity:0}}.stepnow13{animation:stepnow13 9s step-end infinite;opacity:0}@keyframes stepnow14{0%{opacity:0}58.9%{opacity:1}63.2%{opacity:0}100%{opacity:0}}.stepnow14{animation:stepnow14 9s step-end infinite;opacity:0}@keyframes stepnow15{0%{opacity:0}63.2%{opacity:1}67.4%{opacity:0}100%{opacity:0}}.stepnow15{animation:stepnow15 9s step-end infinite;opacity:0}@keyframes stepnow16{0%{opacity:0}67.4%{opacity:1}71.6%{opacity:0}100%{opacity:0}}.stepnow16{animation:stepnow16 9s step-end infinite;opacity:0}@keyframes stepnow17{0%{opacity:0}71.6%{opacity:1}75.8%{opacity:0}100%{opacity:0}}.stepnow17{animation:stepnow17 9s step-end infinite;opacity:0}@keyframes stepnow18{0%{opacity:0}75.8%{opacity:1}80.0%{opacity:0}100%{opacity:0}}.stepnow18{animation:stepnow18 9s step-end infinite;opacity:0}@keyframes stepnow19{0%{opacity:0}80.0%{opacity:1}100%{opacity:1}}.stepnow19{animation:stepnow19 9s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="500" rx="10"/>
 <text x="20.0" y="30.0" class="title">Training loss settles by step 16,000, but the VERIFIED poles keep changing</text>
-<text x="20.0" y="50.0" class="sub">Left: each of 9 Pythia-70m poles&#x27; correlation with its final activations, by step.</text>
-<text x="20.0" y="68.0" class="sub">A filled dot is a step where the pole&#x27;s recorded probes pass its review&#x27;s gates.</text>
+<text x="20.0" y="50.0" class="sub">Left: the median correlation of 85 Pythia-70m poles with their final activations,</text>
+<text x="20.0" y="68.0" class="sub">by step. The band holds the middle half of the poles. Dashed: the first 9 poles.</text>
 <text x="20.0" y="86.0" class="sub">Right: next-token loss on the same 300 windows.</text>
 <text x="20.0" y="104.0" class="sub">In each panel, a moving dot steps through the checkpoints.</text>
 <text x="64.0" y="148.0" class="head">Correlation with the final form</text>
@@ -80,206 +80,14 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <path class="dip" d="M695.4 156.0L695.4 416.0"/>
 <text x="689.4" y="177.4" class="small" text-anchor="end">step 16k: loss</text>
 <text x="689.4" y="191.4" class="small" text-anchor="end">within 1% of final</text>
-<path class="line sneutral" d="M64.0 364.3L87.3 364.3L100.9 364.3L118.0 364.3L137.7 364.3L159.1 364.3L181.3 364.7L204.1 366.2L227.1 369.8L250.2 367.1L273.4 359.8L295.9 345.5L319.1 336.9L342.4 299.7L365.6 284.5L388.9 274.2L412.2 242.8L435.4 216.9L458.7 170.5L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="364.3" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="364.3" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="364.3" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="364.3" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="364.3" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="364.3" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="364.7" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="366.2" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="369.8" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="367.1" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="359.8" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="345.5" r="4"/>
-<circle class="fc1 ring" cx="319.1" cy="336.9" r="5"/>
-<circle class="open sneutral" cx="342.4" cy="299.7" r="4"/>
-<circle class="open sneutral" cx="365.6" cy="284.5" r="4"/>
-<circle class="fc1 ring" cx="388.9" cy="274.2" r="5"/>
-<circle class="fc1 ring" cx="412.2" cy="242.8" r="5"/>
-<circle class="fc1 ring" cx="435.4" cy="216.9" r="5"/>
-<circle class="fc1 ring" cx="458.7" cy="170.5" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 355.0L87.3 355.0L100.9 355.0L118.0 355.0L137.7 354.9L159.1 354.2L181.3 348.7L204.1 339.9L227.1 335.3L250.2 316.6L273.4 347.0L295.9 318.5L319.1 319.5L342.4 308.6L365.6 276.6L388.9 269.5L412.2 274.7L435.4 230.6L458.7 184.4L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="355.0" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="355.0" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="355.0" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="355.0" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="354.9" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="354.2" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="348.7" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="339.9" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="335.3" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="316.6" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="347.0" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="318.5" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="319.5" r="4"/>
-<circle class="open sneutral" cx="342.4" cy="308.6" r="4"/>
-<circle class="fc1 ring" cx="365.6" cy="276.6" r="5"/>
-<circle class="fc1 ring" cx="388.9" cy="269.5" r="5"/>
-<circle class="fc1 ring" cx="412.2" cy="274.7" r="5"/>
-<circle class="open sneutral" cx="435.4" cy="230.6" r="4"/>
-<circle class="fc1 ring" cx="458.7" cy="184.4" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 377.6L87.3 377.6L100.9 377.6L118.0 377.5L137.7 375.5L159.1 369.2L181.3 342.1L204.1 315.3L227.1 292.2L250.2 290.3L273.4 271.9L295.9 271.2L319.1 272.1L342.4 230.9L365.6 208.6L388.9 211.4L412.2 205.7L435.4 181.7L458.7 163.6L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="377.6" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="377.6" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="377.6" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="377.5" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="375.5" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="369.2" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="342.1" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="315.3" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="292.2" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="290.3" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="271.9" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="271.2" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="272.1" r="4"/>
-<circle class="open sneutral" cx="342.4" cy="230.9" r="4"/>
-<circle class="fc1 ring" cx="365.6" cy="208.6" r="5"/>
-<circle class="fc1 ring" cx="388.9" cy="211.4" r="5"/>
-<circle class="open sneutral" cx="412.2" cy="205.7" r="4"/>
-<circle class="open sneutral" cx="435.4" cy="181.7" r="4"/>
-<circle class="open sneutral" cx="458.7" cy="163.6" r="4"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 345.5L87.3 345.5L100.9 345.5L118.0 345.5L137.7 346.3L159.1 349.5L181.3 349.6L204.1 281.1L227.1 339.2L250.2 313.8L273.4 293.7L295.9 278.2L319.1 301.0L342.4 237.2L365.6 218.9L388.9 213.4L412.2 216.0L435.4 202.9L458.7 170.5L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="345.5" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="345.5" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="345.5" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="345.5" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="346.3" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="349.5" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="349.6" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="281.1" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="339.2" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="313.8" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="293.7" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="278.2" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="301.0" r="4"/>
-<circle class="fc1 ring" cx="342.4" cy="237.2" r="5"/>
-<circle class="open sneutral" cx="365.6" cy="218.9" r="4"/>
-<circle class="open sneutral" cx="388.9" cy="213.4" r="4"/>
-<circle class="open sneutral" cx="412.2" cy="216.0" r="4"/>
-<circle class="fc1 ring" cx="435.4" cy="202.9" r="5"/>
-<circle class="fc1 ring" cx="458.7" cy="170.5" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 381.1L87.3 381.1L100.9 381.1L118.0 381.2L137.7 381.4L159.1 382.7L181.3 383.5L204.1 370.6L227.1 340.6L250.2 339.3L273.4 294.2L295.9 318.3L319.1 321.4L342.4 309.5L365.6 298.9L388.9 310.6L412.2 285.5L435.4 246.5L458.7 176.5L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="381.1" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="381.1" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="381.1" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="381.2" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="381.4" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="382.7" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="383.5" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="370.6" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="340.6" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="339.3" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="294.2" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="318.3" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="321.4" r="4"/>
-<circle class="open sneutral" cx="342.4" cy="309.5" r="4"/>
-<circle class="open sneutral" cx="365.6" cy="298.9" r="4"/>
-<circle class="open sneutral" cx="388.9" cy="310.6" r="4"/>
-<circle class="open sneutral" cx="412.2" cy="285.5" r="4"/>
-<circle class="open sneutral" cx="435.4" cy="246.5" r="4"/>
-<circle class="fc1 ring" cx="458.7" cy="176.5" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 352.3L87.3 352.3L100.9 352.3L118.0 352.1L137.7 349.9L159.1 344.4L181.3 343.4L204.1 314.4L227.1 275.7L250.2 280.5L273.4 270.5L295.9 245.7L319.1 230.3L342.4 230.9L365.6 224.1L388.9 213.5L412.2 214.3L435.4 189.9L458.7 167.7L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="352.3" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="352.3" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="352.3" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="352.1" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="349.9" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="344.4" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="343.4" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="314.4" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="275.7" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="280.5" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="270.5" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="245.7" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="230.3" r="4"/>
-<circle class="open sneutral" cx="342.4" cy="230.9" r="4"/>
-<circle class="open sneutral" cx="365.6" cy="224.1" r="4"/>
-<circle class="open sneutral" cx="388.9" cy="213.5" r="4"/>
-<circle class="open sneutral" cx="412.2" cy="214.3" r="4"/>
-<circle class="open sneutral" cx="435.4" cy="189.9" r="4"/>
-<circle class="open sneutral" cx="458.7" cy="167.7" r="4"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 369.5L87.3 369.5L100.9 369.5L118.0 369.4L137.7 368.9L159.1 365.7L181.3 351.2L204.1 364.4L227.1 358.4L250.2 353.4L273.4 311.0L295.9 300.6L319.1 300.0L342.4 282.1L365.6 252.2L388.9 235.2L412.2 207.3L435.4 200.7L458.7 167.6L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="369.5" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="369.5" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="369.5" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="369.4" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="368.9" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="365.7" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="351.2" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="364.4" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="358.4" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="353.4" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="311.0" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="300.6" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="300.0" r="4"/>
-<circle class="open sneutral" cx="342.4" cy="282.1" r="4"/>
-<circle class="open sneutral" cx="365.6" cy="252.2" r="4"/>
-<circle class="fc1 ring" cx="388.9" cy="235.2" r="5"/>
-<circle class="fc1 ring" cx="412.2" cy="207.3" r="5"/>
-<circle class="fc1 ring" cx="435.4" cy="200.7" r="5"/>
-<circle class="fc1 ring" cx="458.7" cy="167.6" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 379.7L87.3 379.7L100.9 379.7L118.0 379.7L137.7 378.5L159.1 372.9L181.3 375.8L204.1 392.3L227.1 404.3L250.2 401.6L273.4 372.3L295.9 372.3L319.1 366.7L342.4 322.4L365.6 308.1L388.9 290.0L412.2 236.0L435.4 217.2L458.7 175.8L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="379.7" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="379.7" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="379.7" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="379.7" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="378.5" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="372.9" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="375.8" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="392.3" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="404.3" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="401.6" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="372.3" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="372.3" r="4"/>
-<circle class="fc1 ring" cx="319.1" cy="366.7" r="5"/>
-<circle class="fc1 ring" cx="342.4" cy="322.4" r="5"/>
-<circle class="fc1 ring" cx="365.6" cy="308.1" r="5"/>
-<circle class="fc1 ring" cx="388.9" cy="290.0" r="5"/>
-<circle class="fc1 ring" cx="412.2" cy="236.0" r="5"/>
-<circle class="fc1 ring" cx="435.4" cy="217.2" r="5"/>
-<circle class="fc1 ring" cx="458.7" cy="175.8" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="line sneutral" d="M64.0 364.1L87.3 364.1L100.9 364.1L118.0 364.2L137.7 364.5L159.1 367.0L181.3 366.8L204.1 369.5L227.1 362.7L250.2 358.6L273.4 349.7L295.9 367.3L319.1 344.2L342.4 335.6L365.6 316.8L388.9 292.1L412.2 251.7L435.4 222.1L458.7 178.0L462.4 156.0"/>
-<circle class="open sneutral" cx="64.0" cy="364.1" r="4"/>
-<circle class="open sneutral" cx="87.3" cy="364.1" r="4"/>
-<circle class="open sneutral" cx="100.9" cy="364.1" r="4"/>
-<circle class="open sneutral" cx="118.0" cy="364.2" r="4"/>
-<circle class="open sneutral" cx="137.7" cy="364.5" r="4"/>
-<circle class="open sneutral" cx="159.1" cy="367.0" r="4"/>
-<circle class="open sneutral" cx="181.3" cy="366.8" r="4"/>
-<circle class="open sneutral" cx="204.1" cy="369.5" r="4"/>
-<circle class="open sneutral" cx="227.1" cy="362.7" r="4"/>
-<circle class="open sneutral" cx="250.2" cy="358.6" r="4"/>
-<circle class="open sneutral" cx="273.4" cy="349.7" r="4"/>
-<circle class="open sneutral" cx="295.9" cy="367.3" r="4"/>
-<circle class="open sneutral" cx="319.1" cy="344.2" r="4"/>
-<circle class="open sneutral" cx="342.4" cy="335.6" r="4"/>
-<circle class="fc1 ring" cx="365.6" cy="316.8" r="5"/>
-<circle class="fc1 ring" cx="388.9" cy="292.1" r="5"/>
-<circle class="fc1 ring" cx="412.2" cy="251.7" r="5"/>
-<circle class="fc1 ring" cx="435.4" cy="222.1" r="5"/>
-<circle class="fc1 ring" cx="458.7" cy="178.0" r="5"/>
-<circle class="fc1 ring" cx="462.4" cy="156.0" r="5"/>
-<path class="curve" d="M520.0 168.4L532.6 168.4L539.9 168.4L549.2 168.8L559.8 172.9L571.3 186.2L583.4 207.9L595.7 233.4L608.1 284.5L620.6 321.6L633.1 350.5L645.2 372.1L657.8 385.9L670.3 391.9L682.9 395.5L695.4 397.1L708.0 398.4L720.6 398.6L733.1 398.5L735.1 398.0"/>
+<path class="fwash" fill-opacity="0.90" d="M64.0 347.1L87.3 347.1L100.9 347.1L118.0 347.1L137.7 347.6L159.1 348.6L181.3 342.7L204.1 334.1L227.1 326.2L250.2 312.2L273.4 302.1L295.9 282.6L319.1 264.0L342.4 244.1L365.6 220.8L388.9 213.4L412.2 194.4L435.4 181.7L458.7 163.6L462.4 156.0L462.4 156.0L458.7 175.2L435.4 216.7L412.2 242.8L388.9 269.5L365.6 288.7L342.4 309.5L319.1 333.5L295.9 345.5L273.4 359.8L250.2 366.3L227.1 368.9L204.1 373.1L181.3 373.3L159.1 369.5L137.7 373.0L118.0 372.9L100.9 372.9L87.3 372.9L64.0 372.9Z"/>
+<path class="curve" d="M64.0 360.1L87.3 360.1L100.9 360.1L118.0 360.1L137.7 360.0L159.1 360.1L181.3 358.6L204.1 356.0L227.1 348.3L250.2 341.9L273.4 333.9L295.9 318.5L319.1 302.9L342.4 276.2L365.6 256.4L388.9 238.4L412.2 219.3L435.4 198.6L458.7 168.5L462.4 156.0"/>
+<path class="line sneutral dash" d="M64.0 364.3L87.3 364.3L100.9 364.3L118.0 364.3L137.7 364.5L159.1 365.7L181.3 351.2L204.1 364.4L227.1 340.6L250.2 339.3L273.4 311.0L295.9 318.3L319.1 319.5L342.4 299.7L365.6 276.6L388.9 269.5L412.2 236.0L435.4 216.9L458.7 170.5L462.4 156.0"/>
+<text x="342.4" y="260.0" class="small" text-anchor="end">85 poles, median</text>
+<text x="441.4" y="234.0" class="small">first 9</text>
+<path class="curve" d="M520.0 168.4L532.6 168.4L539.9 168.4L549.2 168.8L559.8 172.9L571.3 186.2L583.4 207.9L595.7 233.4L608.1 284.5L620.6 321.6L633.1 350.5L645.2 372.1L657.8 385.9L670.3 391.9L682.9 395.5L695.4 397.1L708.0 398.3L720.6 398.6L733.1 398.5L735.1 398.0"/>
 <circle class="ink ring lossdot" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole0" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole1" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole2" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole3" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole4" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole5" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole6" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole7" cx="0.0" cy="0.0" r="4"/>
-<circle class="ink ring pole8" cx="0.0" cy="0.0" r="4"/>
+<circle class="ink ring mediandot" cx="0.0" cy="0.0" r="4"/>
 <text x="462.4" y="148.0" class="small stepnow0" text-anchor="end">step 0</text>
 <text x="462.4" y="148.0" class="small stepnow1" text-anchor="end">step 1</text>
 <text x="462.4" y="148.0" class="small stepnow2" text-anchor="end">step 2</text>
@@ -300,8 +108,4 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <text x="462.4" y="148.0" class="small stepnow17" text-anchor="end">step 64,000</text>
 <text x="462.4" y="148.0" class="small stepnow18" text-anchor="end">step 128,000</text>
 <text x="462.4" y="148.0" class="small stepnow19" text-anchor="end">step 143,000</text>
-<circle class="fc1" cx="25.0" cy="462.0" r="5"/>
-<text x="35.0" y="466.0">probes pass</text>
-<circle class="open sneutral" cx="123.6" cy="462.0" r="5"/>
-<text x="133.6" y="466.0">fail</text>
 </svg>

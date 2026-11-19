@@ -37,13 +37,32 @@ def test_a_pole_is_born_when_it_holds_and_correlates_from_then_on():
     assert nd.born_at([{"step": 0, "r_final": 1.0, "holds": False}]) is None
 
 
-def test_the_newest_verified_record_of_each_pole_is_taken(tmp_path):
-    pole = tmp_path / "experiments" / nd.SLUG / "L1" / "N5-positive"
-    pole.mkdir(parents=True)
-    for name, status in (("20260101T000000Z", "VERIFIED"), ("20260201T000000Z", "VERIFIED"),
-                         ("20260301T000000Z", "REJECTED")):  # fmt: skip
-        record = {"verdict": {"status": status}, "submission": {"n": name}}
-        (pole / f"{name}.json").write_text(json.dumps(record))
+def test_a_pole_is_taken_only_when_its_newest_record_is_verified(tmp_path):
+    # #4881: a later REJECTED record leaves the pole out, though an older one is VERIFIED.
+    for pole, statuses in (("N5-positive", ("VERIFIED", "VERIFIED", "REJECTED")),
+                           ("N7-positive", ("REJECTED", "VERIFIED"))):  # fmt: skip
+        folder = tmp_path / "experiments" / nd.SLUG / "L1" / pole
+        folder.mkdir(parents=True)
+        for month, status in enumerate(statuses, start=1):
+            name = f"20260{month}01T000000Z"
+            record = {"verdict": {"status": status}, "submission": {"n": name}}
+            (folder / f"{name}.json").write_text(json.dumps(record))
     (record,) = nd.verified_records(tmp_path)
     assert record["submission"]["n"] == "20260201T000000Z"
-    assert record["_slug"] == f"{nd.SLUG}/L1/N5-positive"
+    assert record["_slug"] == f"{nd.SLUG}/L1/N7-positive"
+    assert nd.left_out(tmp_path) == ["L1/N5-positive"]
+
+
+def test_each_row_correlates_with_the_checkpoint_before():
+    record = {
+        "_slug": "s",
+        "verdict": {
+            "adversarial_test_results": [],
+            "policy": {"min_specificity": 0.8, "min_sensitivity": 0.6},
+        },
+        "submission": {"max_activation": 1.0},
+    }
+    by_step = {0: {"s": [1.0, 2.0, 3.0]}, 1: {"s": [1.0, 2.0, 4.0]}, 2: {"s": [3.0, 2.0, 1.0]}}
+    rows = nd.measure_pole(record, by_step, (0, 1, 2), 3)
+    assert [r["r_prev"] for r in rows][0] is None
+    assert rows[1]["r_prev"] > 0.9 and rows[2]["r_prev"] < -0.9

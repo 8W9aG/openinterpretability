@@ -36,19 +36,51 @@ STEPS = (0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512,
          1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 143000)  # fmt: skip
 LINE = 0.25  # the review's activation threshold, a share of the pole's maximum
 BORN = 0.8  # a pole is formed from the first step after which r_final stays ≥ this and it holds
+# The poles of the paper's first run (2026-11-16), reported beside the full set (#4881).
+FIRST_RUN = (
+    "EleutherAI--pythia-70m/L5/N674-positive",
+    "EleutherAI--pythia-70m/L5/N655-positive",
+    "EleutherAI--pythia-70m/L4/N566-positive",
+    "EleutherAI--pythia-70m/L5/N1256-positive",
+    "EleutherAI--pythia-70m/L4/N751-positive",
+    "EleutherAI--pythia-70m/L2/N1181-positive",
+    "EleutherAI--pythia-70m/L4/N812-positive",
+    "EleutherAI--pythia-70m/L4/N216-positive",
+    "EleutherAI--pythia-70m/L1/N535-positive",
+)
 
 
 def verified_records(wiki_dir: Path) -> list[dict]:
-    """The newest VERIFIED record of each pole of the model, by pole."""
+    """The newest record of each pole of the model, for the poles where it is VERIFIED.
+
+    A pole whose newest record is not VERIFIED is left out, even with an older VERIFIED
+    record: a later review didn't confirm it (#4881).
+    """
+    return [r for r in _newest(wiki_dir).values() if r["verdict"]["status"] == "VERIFIED"]
+
+
+def left_out(wiki_dir: Path) -> list[str]:
+    """The poles with a VERIFIED record whose newest record is not VERIFIED."""
+    verified = {
+        f"{p.parent.parent.name}/{p.parent.name}"
+        for p in wiki_dir.glob(f"experiments/{SLUG}/L*/N*/*.json")
+        if json.loads(p.read_text(encoding="utf-8"))["verdict"]["status"] == "VERIFIED"
+    }
+    newest = _newest(wiki_dir)
+    return sorted(p for p in verified if newest[p]["verdict"]["status"] != "VERIFIED")
+
+
+def _newest(wiki_dir: Path) -> dict[str, dict]:
+    """Each pole's newest record, by pole, in the order of their file names."""
     newest: dict[str, tuple[str, dict]] = {}
     for path in sorted(wiki_dir.glob(f"experiments/{SLUG}/L*/N*/*.json")):
-        record = json.loads(path.read_text(encoding="utf-8"))
-        if record["verdict"]["status"] == "VERIFIED":
-            pole = f"{path.parent.parent.name}/{path.parent.name}"
+        pole = f"{path.parent.parent.name}/{path.parent.name}"
+        if pole not in newest or path.name > newest[pole][0]:
+            record = json.loads(path.read_text(encoding="utf-8"))
             record["_slug"] = f"{SLUG}/{pole}"  # the pole's slug, from where its record lives
-            if pole not in newest or path.name > newest[pole][0]:
-                newest[pole] = (path.name, record)
-    return [record for _, record in sorted(newest.values(), key=lambda v: v[0])]
+            newest[pole] = (path.name, record)
+    ordered = sorted(newest.items(), key=lambda kv: kv[1][0])
+    return {pole: record for pole, (_, record) in ordered}
 
 
 def probes_of(record: dict) -> list[tuple[str, bool]]:
@@ -131,20 +163,24 @@ def measure_pole(record: dict, by_step: dict, steps: tuple, n_windows: int) -> l
     policy = record["verdict"]["policy"]
     final = [s or 0.0 for s in by_step[steps[-1]][slug][:n_windows]]
     final_top = max(final)
-    pole_rows = []
+    pole_rows, previous = [], None
     for step in steps:
         strengths = by_step[step][slug]
         win, probe = strengths[:n_windows], strengths[n_windows:]
+        here = [s or 0.0 for s in win]
         top = max((s for s in win if s is not None), default=0.0)
         scale = record["submission"]["max_activation"] * top / final_top if final_top else 0
         spec = pass_rate(probe, expected, LINE * scale, want=False)
         sens = pass_rate(probe, expected, LINE * scale, want=True)
         pole_rows.append({
             "table": "pole", "slug": slug, "step": step, "max": round(top, 5),
-            "r_final": round(pearson([s or 0.0 for s in win], final), 4),
+            "r_final": round(pearson(here, final), 4),
+            # with the checkpoint before: drift against formation (#4156)
+            "r_prev": None if previous is None else round(pearson(here, previous), 4),
             "specificity": round(spec, 4), "sensitivity": round(sens, 4),
             "holds": spec >= policy["min_specificity"] and sens >= policy["min_sensitivity"],
         })  # fmt: skip
+        previous = here
     return pole_rows
 
 
@@ -157,13 +193,20 @@ def measure_pole(record: dict, by_step: dict, steps: tuple, n_windows: int) -> l
 @click.option("--window-tokens", default=64, show_default=True)
 @click.option("--device", default="auto", show_default=True)
 @click.option("--step", "steps", multiple=True, type=int, help="Default: each of STEPS.")
+@click.option("--pole", "poles", multiple=True, help="Only these poles, e.g. L5/N655-positive.")
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
-def main(wiki_dir, corpus, windows, window_tokens, device, steps, out):
+def main(wiki_dir, corpus, windows, window_tokens, device, steps, poles, out):
     """Measure every VERIFIED pole of Pythia-70m at each step in STEPS."""
+    from datetime import UTC, datetime
+
     from openinterpretability.cli import _load_runner
     from openinterpretability.harness.explanation_scores import cut_windows
 
     records = verified_records(wiki_dir)
+    if poles:
+        records = [r for r in records if r["_slug"].removeprefix(f"{SLUG}/") in poles]
+    selection = {"table": "selection", "date": f"{datetime.now(UTC):%Y-%m-%d}",
+                 "poles": len(records), "left_out": left_out(wiki_dir)}  # fmt: skip
     docs = [json.loads(line)["text"] for line in corpus.read_text().splitlines()[-200:]]
     final = _load_runner(MODEL, "cpu", "float32", f"step{(sorted(steps) or STEPS)[-1]}")
     texts = cut_windows(final, docs, window_tokens)[:windows]
@@ -176,7 +219,7 @@ def main(wiki_dir, corpus, windows, window_tokens, device, steps, out):
         by_step[step], losses[step] = measure_step(step, records, texts, device)
         click.echo(f"step {step}: loss {losses[step]:.3f}")
 
-    rows = []
+    rows = [selection, {"table": "first", "slugs": list(FIRST_RUN)}]
     for record in records:
         slug = record["_slug"]
         pole_rows = measure_pole(record, by_step, steps, len(texts))
