@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-19T08:11:37Z","seed":4027530159,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L4/N2601-positive","record":null,"audit":"--model openai-community/gpt2 --layer 4 --neuron 2601 --pole positive --selection attribution --window-tokens 128","pole_forced":null,"harness_version":"0.2.0"}
