@@ -13,6 +13,158 @@ Changes waiting for the next release are files in [changelog.d/](changelog.d/REA
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-19
+
+Ships with protocol version **0.10**.
+
+### Added
+
+- **Rival readings** (#3197). The proposer can write up to three rival readings beside its hypothesis. The reviewer labels each probe with what each rival predicts, and writes probes that tell them apart. The verdict records each reading's balanced accuracy on the measured probes, and the best one. The experiment page shows them. This is reported, not gated, and records without rivals are unchanged.
+- **Answer experiments** (#4778). An answer experiment claims how a model produces one answer: the route from the prompt's tokens through units to the answer. `open-interpretability answers` writes the proposer's and the reviewer's prompts, checks a claim, and measures it. The measures are route ablation against matched random sets, sufficiency, path patching from a corrupted prompt, and the prompts that come out as predicted. One answer can take up to 5 attempts, and each one sees the earlier claims. Verdicts have their own rule version, `ANSWER_PROTOCOL_VERSION` 1.0, so the unit rule is unchanged. Records live in `wiki/answers/`, and `check` re-derives each verdict. `explain` plans the next attempt. An explanation page now leads with the answer's verdict, and says that the answer is understood only when a claim is VERIFIED. New agents: `answer-proposer` and `answer-reviewer`.
+- **A pythia-70m hallucination, explained** (#4781). `scripts/hallucination_shortlist.py` scores 35 prompts that each have one right answer. It keeps the ones the model answers wrong with a confident content word (`docs/analyses/hallucination-shortlist.jsonl`). All 6 kept prompts copy the first clause's unit. "A week has seven days and a year has twelve" gives " days" (0.73), with " months" at rank 4.
+  - **Coverage.** Six batches of unit experiments, run by Claude Code agents, raised the prompt's coverage from 50.9% to 93.8%. The plan's maximum is 98.5%. Matched random units bring back 10.1%.
+  - **Answer experiment.** Its second attempt is VERIFIED on a seed that the proposer did not use. Necessity is 0.68, sufficiency 0.62 and patching 0.75 (random sets −0.004). It passes 7 of 7 controls and 20 of 24 blind probes. The first attempt was REJECTED on the patching null.
+  - **What the route shows.** Layer-0 count-word and time-unit neurons mark " seven", " days" and " twelve". Early heads line up the two "a X has N" clauses. Then the copy heads L3/H3, L4/H0 and L4/H7 carry " days" from " twelve" to the answer position. No verified unit supplies " months".
+- **Literature: five LoRA papers for #4782**, each read in full, under *LoRA and low-rank fine-tuning*.
+  - LoRA (#4854).
+  - AdaLoRA (#4855).
+  - LoRA+ (#4856).
+  - QLoRA (#4857).
+  - DoRA (#4858).
+
+  The follow-up is #5158, which rounds a registry model's weights to NF4 and counts the VERIFIED poles that keep. Evidence comments went on #5118, #5125 and #5133. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five more fine-tuning papers for #4782**, each read in full, under *LoRA and low-rank fine-tuning*.
+  - LoRA vs Full Fine-tuning: An Illusion of Equivalence (#4859).
+  - LoraHub (#4860).
+  - ReFT (#4861).
+  - Fine-tuning on procedurally defined tasks (#4862).
+  - Fine-Tuning Enhances Existing Mechanisms (#4863).
+
+  The follow-ups are #5163 and #5164. #5163 prunes a few instruct-model neurons to bring back failed poles. #5164 tests whether a VERIFIED answer route keeps on an instruct model. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five more papers for #4782**, each read in full.
+  - Under *LoRA and low-rank fine-tuning*: rank-1 LoRAs (#4864), LoRA feature geometry (#4865, *not applicable*) and LoRA Without Regret (#4866).
+  - In a new section, *Bridges: editing, merging and task vectors*: continual learning with hypernetworks (#4867) and ROME (#4868), which is *used*.
+
+  The follow-ups are #5166 and #5167. #5166 audits rank-1 adapter directions as registry units. #5167 tests which VERIFIED poles keep after one rank-one MLP edit. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five more papers for #4782**, each read in full.
+  - LoRA Learns Less and Forgets Less (#4824).
+  - Loss of plasticity in deep continual learning (#4825).
+  - Two continual-learning surveys (#4826 and #4827).
+  - Toy Models of Superposition (#4828), whose page sits under *Neurons, circuits and dictionaries*, because the repo uses it.
+
+  The follow-ups are #5133, #5134, #5135 and #5136. #5133 asks whether the weight change at a pole predicts whether it keeps. #5134 tracks dormant poles and rank across checkpoints. #5135 tests whether explanations hold below the activity line. #5136 checks the superposition finders on a toy model. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: the last five papers for #4782**, each read in full.
+  - Spurious forgetting in continual learning (#4829).
+  - RL's Razor (#4830).
+  - Sparsity artifacts in crosscoders for chat-tuning (#4831).
+  - A mechanistic analysis of forgetting in continual fine-tuning (#4832), marked *not applicable*: its two arXiv versions report different studies, and it has no code.
+  - LoKI (#4833).
+
+  The follow-ups are #5140 and #5141. #5140 asks which MLP neurons carry the base-to-instruct difference. #5141 tests whether the output KL at a pole's probes predicts whether it keeps. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five papers on fast weights for #4782**, each read in full, in a new section, *Weight-space programming and fast weights*.
+  - Using Fast Weights to Deblur Old Memories (#4834).
+  - Learning to Control Fast-Weight Memories (#4835).
+  - Using Fast Weights to Attend to the Recent Past (#4836).
+  - HyperNetworks (#4837).
+  - Transformers are RNNs (#4838), marked *not applicable*: the registry's heads all use softmax attention.
+
+  Together they find no way to check an explanation from weights alone. The follow-up is #5144, which counts the VERIFIED explanations that need context. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five more papers on weight-space programming for #4782**, each read in full.
+  - Linear Transformers Are Secretly Fast Weight Programmers (#4839).
+  - A Modern Self-Referential Weight Matrix (#4840).
+  - Transformers learn in-context by gradient descent (#4841).
+  - Thinking Like Transformers, RASP (#4842).
+  - Tracr (#4843).
+
+  The follow-ups are #5148 and #5149. #5148 reads GPT-2's previous-token heads from their weights, and checks them against the measured scores. #5149 trains a small model with RASP attention supervision, as a positive control for head audits. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five more papers on weight-space programming for #4782**, each read in full.
+  - Learning Transformer Programs (#4844), marked *not applicable*: its units are modules, and the harness can't load it.
+  - Test-time training layers (#4845).
+  - Titans (#4846).
+  - Weight-Space Programming Doesn't Need Transformers (#4847).
+  - Text-to-LoRA (#4848).
+
+  None opens a new issue. Their evidence went to #5133, #5144 and #5149. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five more papers for #4782**, each read in full.
+  - End-to-End Test-Time Training (#4849), under *Weight-space programming and fast weights*.
+  - ALTA (#4850), marked *not applicable*: its compiled models run only in the authors' NumPy code.
+  - Three papers in a new section, *LoRA and low-rank fine-tuning*: the two intrinsic-dimension papers (#4851 and #4852) and bottleneck adapters (#4853). The adapters page is *not applicable*.
+
+  The follow-up is #5154, which adds a random weight change of the instruct change's size and counts the VERIFIED poles that keep. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five papers on continual learning** (#4782), each read in full.
+  - Learning without Forgetting (#4814).
+  - Progressive Neural Networks (#4815).
+  - Gradient Episodic Memory (#4816).
+  - PackNet (#4817).
+  - Hard attention to the task (#4818).
+
+  The follow-up is #5122, which prunes a VERIFIED pole's input weights by magnitude and tests whether its explanation keeps. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five papers on catastrophic forgetting** (#4782), each read in full.
+  - Robins (1995) on rehearsal and pseudorehearsal (#4809).
+  - French (1999) on catastrophic forgetting in connectionist networks (#4810).
+  - Goodfellow et al. (2013) on forgetting in gradient-trained networks (#4811).
+  - Kirkpatrick et al. (2017) on elastic weight consolidation (#4812).
+  - Zenke, Poole and Ganguli (2017) on synaptic intelligence (#4813).
+
+  The follow-ups are #5118 and #5119. #5118 asks whether Fisher importance predicts which VERIFIED poles keep. #5119 asks whether explanations that fail at a later checkpoint come back. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: five papers on forgetting, three of them in language models** (#4782), each read in full.
+  - Orthogonal gradient descent (#4819).
+  - The anatomy of catastrophic forgetting (#4820).
+  - Fine-tuning that distorts pretrained features (#4821).
+  - Forgetting in LLM continual fine-tuning (#4822).
+  - Forgetting via implicit inference (#4823).
+
+  The follow-ups are #5125, #5126 and #5127. #5125 tests explanations through narrow fine-tunes. #5126 tests chat-formatted text against plain text. #5127 tests layer-level CKA. ([docs/literature/README.md](../docs/literature/README.md))
+- **Literature: model editing and where it fails** (#4784, area 1). Ten review pages are in `docs/literature/`, with a new README section. They cover Hase et al. (2023) on whether localization informs editing (#5016), and The Mirage of Model Editing (#5025). They also cover KnowledgeEditor (#5017), MEND (#5018), SERAC (#5019), GRACE (#5020) and WISE (#5021). The last three are RippleEdits (#5022), MQuAKE (#5023) and the editing survey (#5024). The pages report evidence for the fix campaign and do not design it. Several give prompt sets and questions for #5015.
+- **Literature: fixes guided by an explanation** (#4784, area 3). Nine review pages are in `docs/literature/`, with a new README section. They cover Sparse Feature Circuits (#5036), Mechanistic Unlearning (#5042), CAFT (#5037), gradient routing (#5038) and Persona Vectors (#5044). They also cover circuit breakers (#5039), RMU (#5040), unlearning evaluation (#5041) and distillation (#5043). Together they list the checks that show whether a fix removed a behaviour or only hid it. The follow-ups are #5065 and #5066.
+- **Literature: activation steering, and the synthesis of how to fix a model** (#4784, area 2). Eleven review pages are in `docs/literature/`, with a README section. They cover ActAdd (#5046), CAA (#5047), ITI (#5045), Representation Engineering (#5048), latent steering vectors (#5049) and the refusal direction (#5052). They also cover steering-vector reliability (#5050), affine steering (#5051), AxBench (#5053) and two 2026 studies of what steering breaks (#5054, #5055). A new page, `docs/literature/fixing-models.md`, sums up the 40 reviews of #4784: which fixes held up, where each failed, and how the papers tested a fix. Six follow-ups are #5069 to #5074.
+- **Literature: why models give wrong answers** (#4784, area 4). Ten review pages are in `docs/literature/`, with a new README section. They cover induction heads (#5028), copy suppression (#5029) and factual recall in Pythia (#5034, #5027, #5026). They also cover hallucination mechanisms (#5033, #5030, #5035), fine-tuning on new knowledge (#5031) and a theory of hallucination (#5032). Each page says what its paper predicts for the #4781 " days" copy failure. Five follow-ups are #5059 to #5063.
+- **Explanation records can be reproduced, and CI reproduces each new one in its PR.** `explain --record` now stores the record's inputs (`inputs`). They are the model revision and dtype, the answer's token id, and the means corpus with its source and token budget. They also hold every explained and blocked unit as they stood, and the random baseline's seed. `open-interpretability reproduce` takes explanation records and measures them again with no registry and no LLM calls. It re-measures the attribution and shares, the prompt coverage and its random baseline, and the figures' data. Numbers must agree within tolerance. The answer token, the explained units, the ablation's top token, the overshoot and the coverage caution must agree exactly. A quoted number in the narration that the record doesn't hold is a warning. Explanations are now a re-measured record kind, so a contributor's PR that only adds them can auto-merge after CI reproduces them. A record from before this change is reported as not reproducible, and its page says so. `explain` builds on such a record instead of reusing it. The random baseline now draws from units in a fixed order, so a near tie in attribution can't change the draw. ([openinterpretability/reproduce_explanation.py](../openinterpretability/reproduce_explanation.py), [openinterpretability/core/record_kinds.py](../openinterpretability/core/record_kinds.py), #4793)
+- **Literature: "Language Models Can Rewrite Their Own Weights"** (Fan et al., 2026). A 27B Qwen3.5 model removes a direction from its layer-8 output matrices, or clips weight outliers, with no gradients. The edit that gains 6.6 points on held-out math passed a framework check first, and the model's unchecked edit gains 1.1. The paper has no random-direction control, which bears on #5069 and #4782. ([docs/literature/models-rewrite-own-weights.md](../docs/literature/models-rewrite-own-weights.md), #4798)
+- **Literature: complementary learning systems** (McClelland, McNaughton and O'Reilly, 1995). Slow, interleaved learning finds shared structure. Focused learning of one new fact damages related knowledge, on the outputs where the old and new answers differ. The page opens a README section for catastrophic interference (#4782). ([docs/literature/complementary-learning-systems.md](../docs/literature/complementary-learning-systems.md), #4808)
+- **Each answer experiment has its own page** (#4909). A prompt's page and its explanation pages list the answer experiments, as a unit's page lists its experiments. Each row links to the experiment's page. The page shows the claim and the route, with each unit's role and unit page. It also shows every test: each gate with its threshold and result, ablation against matched random sets, sufficiency, and path patching with the corrupted prompt. The counterfactual prompts show what each one predicted and what the model answered. Results say passed or failed in words and with a mark.
+- **Each answer experiment shows its route at work, in 2D and 3D** (#4917, #4905). An answer record now holds a reading of the route on every prompt. That is each route unit's strength at each token and its attribution. It is also the edges between units, and the route's share of the answer. It also holds each layer's state. That is a logit lens of the last token over shared candidate tokens. It is also the residual stream at every token, on shared principal directions. These come clean, with the whole route switched off, and with each unit switched off alone. The readings are reported, not gated. The answer page draws an animated SVG route for every prompt, and each counterfactual row says whether the route carried the answer. A 3D explorer (three.js, loaded on demand) shows the route with flowing edges, and spectrum and logit-lens waterfalls through the layers. It reads the prompt token by token, as the bracket paper's figure does, and it switches units off. `answers remeasure` gives an older record its readings.
+- **The embedding space, in 3D** (#4929). `open-interpretability answers space` fits a model's 3D embedding space on the corpus. It is a cloud of 1,500 token states at every layer, each layer aligned to the one before, so the space moves continuously with depth. Answer records place every prompt's tokens in it, clean and with units switched off. An answer page's 3D explorer opens on this space, in the style of Goodfire's embedding clouds. The prompt's tokens move through the cloud as the layers play, coloured in sentence order, joined by a path, with short trails. A second prompt can be overlaid as rings, and the caption gives how far apart their last tokens are.
+- **The embedding space where the route writes, with comet trails** (#4934). An answer record now holds a space of its own. Its axes are the 3 directions of most variance within the directions that the route's heads and neurons write. So the view shows the space where the causal units act. Each unit's write direction is drawn as a labelled arrow. On the pythia-70m " sky" prompt, " sun" and " car" end 0.98 apart in these axes, against 0.15 in the corpus's own axes. The explorer can switch between the two. Each moving token now sheds a coloured gas trail, like a comet, whose hue turns as it ages. There is no gas under reduced motion.
+- **Inverse claims for default-on neuron poles.** `audit --inverse` audits a default-on pole with an inverse claim, which says when the pole goes quiet. The review uses the detector's gates with the sides swapped. Holdouts are texts that silence the pole, hard negatives are texts that keep it on, and `is_default_on` replaces `not_default_on`. The rule has its own version, `INVERSE_RULE_VERSION` 1.0, so `PROTOCOL_VERSION` is unchanged. A VERIFIED inverse claim explains its pole for coverage. `explain` now ranks a prompt's stopped units by the coverage each would add, and plans an inverse experiment for the first five default-on poles. ([openinterpretability/inverse_claims.py](../openinterpretability/inverse_claims.py), [docs/PROTOCOL.md](../docs/PROTOCOL.md), #4951)
+- **`review` takes an inverse claim without explanation scores.** `score` refuses an inverse claim, so `review --probes` no longer requires `--explanation-scores` for one. (#4951)
+- **A paper on why pythia-70m copies the first clause's unit.** On six prompts such as "A week has seven days and a year has twelve" → " days", the right unit is present but outvoted. With only its second clause, the model gets the right unit on one prompt of six. No MLP at the subject ranks it in the top 1% of the vocabulary. Yet at the answer position it reaches rank 2 to 4 by layer 4. Switching off the three verified copy heads, and L4/H1 too, flips one prompt of six. So the copy runs through more heads than the verified route names. `scripts/copy_first_unit.py` measures it, and L5/N2014+ has a unit experiment. ([papers/copy-first-unit/README.md](../papers/copy-first-unit/README.md), #5015)
+- **Pythia-70m's L4/H1 is a weak copy suppressor on the shortlist prompts, and not a general one.** Its weights have the copy-suppression signature (42.0% of tokens, against 0.08% or less for every other head). On five of the six wrong prompts it lowers the copied unit by 0.31 to 1.18 logits, too little to change an answer. On a corpus its effect is small, and a copy-suppression-preserving ablation keeps 1.8% of it, against 76.9% for GPT-2's L10H7. ([docs/analyses/copy-suppression-l4h1.md](../docs/analyses/copy-suppression-l4h1.md), #5063)
+- **The copy route's units don't tell a wrong copy from a right one, but a residual-stream direction does, modestly.** pythia-70m copies the first clause's unit on 956 of 1,262 template prompts: 216 right copies and 740 wrong. None of the 32 VERIFIED route units separates the groups beyond a null of units like it. A difference-in-means direction after layer 2 separates them at a balanced accuracy of 0.73, against 0.62 for random directions. ([docs/analyses/copy-route-separation.md](../docs/analyses/copy-route-separation.md), #5074)
+
+### Changed
+
+- **Ruff now checks for unused arguments** (`ARG`, #3165). Each unused argument in `openinterpretability/` and `scripts/` was removed or marked with the interface that needs it. `tests/` is exempt. The `--dtype` of `patchscope-baseline` and `neuronpedia-review` has no effect, since each record pins its own (#4765).
+- **The deploy builds the site with its default jobs again** (part of #4652). With records held slim and the Parquet streamed, a one-job build peaks at 1.9 GiB of process memory on the runner.
+- **The site build uses less memory again** (part of #4652). The published `registry.parquet` is written one row group of 64 rows at a time, so no column is ever whole in memory. Its contents are the same, but its layout and so its snapshot hash change once. The build also sorts the rows from each unit's columns alone, and bounds the scrub's in-memory cache. On one frozen `wiki/`, the one-job peak fell from 5.6 to 2.8 GiB.
+- **The deploy's build cap falls from 14.5G to 6G** (part of #4652). With its default jobs, the build now peaks at 2.8–2.9 GiB of process memory on the runner, against 14.0 GiB before. The warning moves to 4G.
+- **Slim records drop six more fields** that only a unit's pages read (part of #4652). They are the input attribution, correlated neurons, Patchscope, steering, WordNet specificity and the vocabulary lens.
+- **Prompt coverage has a matched baseline** (#4777). Its random sets now hold the same number of heads and of neuron poles in each layer as the explained set. Coverage is also measured with only the explained heads and only the explained poles, and pruned to a minimal set that keeps 90% of it. The explanation page shows these numbers. When coverage is near the baseline, or verified units hold little of the attribution, the page says so in words. Then coverage doesn't show that the answer is understood. The narrator follows the same rule. Older records say that their baseline was not matched.
+- **The narrator reads the answer experiment** (#4780). Its evidence holds the newest answer claim on the prompt: the route, its roles and its measures. It calls the answer understood only when that claim is VERIFIED, as the page's headline does. The pythia-70m " sky" explanation is re-run on the matched baseline: coverage 74.5% against −1.2% for matched random units, with a VERIFIED route.
+- **One list of the record kinds that CI reproduces** (#4792). `openinterpretability/core/record_kinds.py` lists each kind under `wiki/` and how CI checks it. CI's *Record changes* job, `auto-merge.yml`, `checks.changed_records` and the experiment loop's merge check all read it. `docs/PROTOCOL.md` §5 has the table. A contributor's PR auto-merges only when every file it adds is a record that CI reproduces. The experiment loop now applies the same rule to any token but the maintainer's.
+- **The neuron-development paper now covers all 86 VERIFIED Pythia-70m poles, up from 9.** The loss settles by step 16,000, and there the poles' median correlation with their final form is 0.62. Adjacent checkpoints after that step correlate at a median of 0.78 to 0.82, so the poles keep moving (part 1 of #4156). 38 of 86 explanations hold from step 16,000 or earlier, and 38 only from step 64,000 or later. The first version's claim that the two measures of formation run in reverse doesn't hold: they are weakly related (ρ = 0.24). The script takes a pole only when its newest record is VERIFIED, records each pole's correlation with the checkpoint before, and takes `--pole`. A new figure shows when each explanation starts to hold. ([papers/neuron-development/README.md](../papers/neuron-development/README.md), #4881)
+- **Only VERIFIED against REJECTED contests a unit, and the held-out score settles it** (#4900). A NEEDS_REVISION result, whether another review or a newer hypothesis, no longer contests a VERIFIED claim. An even VERIFIED–REJECTED split goes to the side whose detection score on held-out windows is at least 0.05 higher. So does a newer REJECTED hypothesis after a VERIFIED one. Within 0.05, or with no score, the unit is CONTESTED. `explain`, its targets and the explanation pages now read each unit's standing, not its newest record.
+- The answer page's 3D view starts by itself when its section nears the screen, with the view first and its controls under it. The how-to-read notes fold into a closed disclosure. With WebGL off, or on any start failure, the page says so rather than showing an empty box (#4976).
+- **Registry coverage refreshed on 2026-11-19.** There are 70 new layer rows, with these VERIFIED poles per model:
+  - Qwen2.5-0.5B: 344 poles, at most 1.9% of the loss recovered in any layer.
+  - Qwen2.5-1.5B: 56 poles, at most 0.4%.
+  - GPT-2: 202 poles, at most 12.3%.
+  - Pythia-70m: 95 poles, at most 6.6%.
+- **Circuit ids updated.** GPT-2 has 5 circuits, with new, grown and split ones. The other models' circuits are unchanged.
+- **Sister search refreshed for 0.2.1.** It added 184 rows and 36 new sisters. Most are Pythia-70m's newly verified poles: 12 sisters in GPT-2, 9 in Qwen2.5-0.5B and 8 in Qwen2.5-1.5B. The strongest:
+  - Pythia-70m L0/N1277+ ↔ GPT-2 L0/N908+ (r = 0.96).
+  - Pythia-70m L0/N1277+ ↔ Qwen2.5-0.5B L0/N4320+ (0.95).
+  - Pythia-70m L0/N780+ ↔ GPT-2 L0/N1175+ (0.94).
+
+### Fixed
+
+- **The narrator's citation check counts the minimal set** (#4780). The evidence lists the minimal set's units, but the check didn't read them. So the check warned when a narration cited one of them.
+- **The capped site build keeps its environment** (#4795). `scripts/capped.sh` passed only `PATH` and `HOME` into its systemd scope, because sudo resets the environment. So the deploy's build ran without `HF_TOKEN`, with anonymous Hugging Face downloads, and without `GITHUB_TOKEN`. The caller's exported environment now goes through a file that only the user can read, and the scope removes it before the command starts.
+- **`explain` measures again an explanation written before the matched baseline** (#4895). Reuse took such an explanation as already reaching its target, so `explain --complete` ran nothing. Only an explanation measured against random units matched by kind and layer (#4777) is reused now. An older one is built on.
+- **Answer prompts fence other people's text.** The proposer's prompt fences the prompt, the explanation's units and paths and the earlier claims. The reviewer's prompt fences the claim. An explanation record stamped more than an hour in the future fails `check`. (`openinterpretability/answer_prompts.py`)
+- **`reproduce` checks a new explanation record against the registry.** Its explained and blocked sets, and each listed unit's status and explanation, must agree with the registry in the checkout. An old record still reproduces with its own sets. (`openinterpretability/explanation_registry.py`)
+
+
 ## [0.2.0] - 2026-11-18
 
 Ships with protocol version **0.10** (was 0.9).

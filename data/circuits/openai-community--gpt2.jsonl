@@ -2,3 +2,6 @@
 {"date": "2026-11-16", "event": "new", "id": "C2", "members": ["models/openai-community--gpt2/L11/N2610.html", "models/openai-community--gpt2/L2/N1676.html", "models/openai-community--gpt2/L6/N2096.html"]}
 {"date": "2026-11-16", "event": "new", "id": "C3", "members": ["models/openai-community--gpt2/L2/N676.html", "models/openai-community--gpt2/L8/N689.html", "models/openai-community--gpt2/L9/N340.html"]}
 {"date": "2026-11-16", "event": "new", "id": "C4", "members": ["models/openai-community--gpt2/L4/N2999.html", "models/openai-community--gpt2/L5/N1208.html", "models/openai-community--gpt2/L5/N2567.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L6/N37.html", "models/openai-community--gpt2/L7/H10.html", "models/openai-community--gpt2/L7/H2.html"]}
+{"date": "2026-11-19", "event": "new", "id": "C5", "members": ["models/openai-community--gpt2/L1/N79.html", "models/openai-community--gpt2/L6/N37.html", "models/openai-community--gpt2/L7/H2.html"]}
+{"date": "2026-11-19", "event": "grow", "id": "C4", "members": ["models/openai-community--gpt2/L5/N1208.html", "models/openai-community--gpt2/L5/N2567.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L7/H10.html"]}
+{"date": "2026-11-19", "event": "split", "id": "C4", "into": ["C5"]}
