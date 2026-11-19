@@ -112,7 +112,9 @@ def review_prompt_command(claim_file: Path, out: Path | None) -> None:
               type=click.Path(path_type=Path))  # fmt: skip
 @click.option("--mean-tokens", default=20_000, show_default=True,
               help="Corpus tokens for each unit's mean, as explain uses (cached).")  # fmt: skip
-@click.option("--seed", default=0, show_default=True, help="Seed of the matched random sets.")
+@click.option("--seed", type=int, default=None,
+              help="Seed of the matched random sets. By default the review draws one and "
+              "records it, so the proposer can't tune against them (#4892).")  # fmt: skip
 @wiki_dir_option()
 @with_model_options
 def review_command(claim_file, probes_file, corpus, mean_tokens, seed, wiki_dir, device, dtype):
@@ -172,8 +174,9 @@ def remeasure_command(record_file, corpus, mean_tokens, wiki_dir, device, dtype)
     runner = _load_runner(c.model_name, device, dtype, c.model_revision)
     texts = read_corpus(corpus)[0]
     means = unit_means(runner, c.model_name, texts, mean_tokens)
+    seed = old.verdict.measures.null_seed  # the same random sets; records before 1.1 used 0
     record = review(runner, means, c, old.probes, old.verdict.policy, remeasures=old.id,
-                    texts=texts)  # fmt: skip
+                    texts=texts, seed=0 if seed is None else seed)  # fmt: skip
     path = record_path(Path(wiki_dir), record)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(record.model_dump_json() + "\n", encoding="utf-8")  # compact: it is large

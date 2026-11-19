@@ -1,0 +1,21 @@
+# lychee's settings for the weekly external link check (.github/workflows/links.yml, #3170).
+
+# Hosts that refuse automated clients (403) or rate-limit them (429) still count as up: a
+# weekly check must not fail on a publisher's bot wall. A 404 or a dead host still fails.
+accept = ["200..=299", "403", "429"]
+max_retries = 3
+retry_wait_time = 10
+max_concurrency = 8
+timeout = 30
+max_cache_age = "7d"
+user_agent = "Mozilla/5.0 (compatible; openinterpretability-link-check)"
+
+# Relative links are checked per PR by `make lint` (scripts/check_markdown.py).
+scheme = ["https", "http"]
+
+exclude = [
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+  "^https?://example\\.(com|org)",
+  "linear\\.app/open-interpretability",  # private workspace: a visitor sees a log-in page
+]
