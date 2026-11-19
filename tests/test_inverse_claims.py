@@ -94,3 +94,12 @@ def test_the_top_default_on_poles_by_gain_get_inverse_experiments():
     assert len(inverse_experiments(rows, "m/x", cap=1)) == 1
     text = "\n".join(lines(rows, "m/x"))
     assert "+5.0% coverage" in text and "inverse experiment for L1/N0+" in text
+
+
+def test_an_inverse_review_needs_no_explanation_scores(tmp_path):
+    from openinterpretability.cli_review import check_review_options
+
+    args = (tmp_path / "wiki", None, tmp_path / "probes.json", "external/r", None, None)
+    with pytest.raises(click.UsageError, match="explanation-scores"):
+        check_review_options(*args)
+    check_review_options(*args, inverse=True)  # the judges label activity, not quiet
