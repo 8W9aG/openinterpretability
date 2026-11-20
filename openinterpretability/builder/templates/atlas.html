@@ -33,11 +33,12 @@
 <figure class="litmap atlas dense playing relative mt-6 rounded-lg p-2" style="background: var(--surface)" data-pagefind-ignore>
   <svg viewBox="0 0 {{ w }} {{ h }}" class="w-full" role="group" aria-label="Concept atlas: {{ n }} studied poles of {{ at.rows | length }} models in {{ at.badges | length }} numbered regions, named in the legend below. Each point links to its unit page. Its shape gives its model.">
     <defs><filter id="atlas-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+    <g aria-hidden="true">{% for n, slot, path, rid in at.regions %}<path d="{{ path }}" class="region f{{ slot }}" style="stroke: var(--s{{ slot }})" data-region="{{ rid }}"/>{% endfor %}</g>
     <g filter="url(#atlas-glow)" opacity="0.3" aria-hidden="true">
       {% for p in at.points %}<circle cx="{{ p.x | round(1) }}" cy="{{ p.y | round(1) }}" r="7" class="f{{ p.slot }}"/>{% endfor %}
     </g>
     {% for p in at.points %}{% set x, y = p.x | round(1), p.y | round(1) %}
-    <a href="{{ root }}{{ p.href }}" data-x="{{ x }}" data-y="{{ y }}" data-title="{{ p.model }} {{ p.label }}" data-status="{{ p.status | replace('_', ' ') | lower }}" data-why="Region: {{ p.name }}"><title>{{ p.model }} {{ p.label }}</title>
+    <a href="{{ root }}{{ p.href }}" data-x="{{ x }}" data-y="{{ y }}" data-title="{{ p.model }} {{ p.label }}" data-status="{{ p.status | replace('_', ' ') | lower }}" data-cluster="{{ p.cluster }}" data-credit="Region: {{ p.name }}" data-why="{{ p.why }}"><title>{{ p.model }} {{ p.label }}</title>
       <g style="animation-delay: {{ (p.order * 6000 / n) | round | int }}ms" class="paper-wrap">{{ mark(at.shape[p.model], x, y, "paper f" ~ p.slot, 2.6) }}</g></a>{% endfor %}
     {% for b in at.badges %}
     <g aria-hidden="true"><rect x="{{ b.box[0] }}" y="{{ b.box[1] }}" width="26" height="20" rx="3" class="f{{ b.slot }}"/>

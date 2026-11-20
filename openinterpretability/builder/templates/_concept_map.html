@@ -19,6 +19,7 @@
   <figure class="litmap dense relative rounded-lg p-2" style="background: var(--surface)">
     <svg viewBox="0 0 {{ w }} {{ h }}" class="w-full" role="group" aria-label="Shared concept map: {{ cm.own }} studied poles of {{ model.name }} among {{ cm.points | length }} poles of all models, in {{ cm.badges | length }} numbered regions, named in the legend below. Each of this model's points links to its unit page, and its shape gives its status.">
       <defs><filter id="cm-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+      <g aria-hidden="true">{% for n, slot, path, rid in cm.regions %}<path d="{{ path }}" class="region f{{ slot }}" style="stroke: var(--s{{ slot }})" data-region="{{ rid }}"/>{% endfor %}</g>
       <g filter="url(#cm-glow)" opacity="0.4" aria-hidden="true">
         {% for p in cm.points if p.own %}<circle cx="{{ p.x | round(1) }}" cy="{{ p.y | round(1) }}" r="8" class="f{{ p.slot }}"/>{% endfor %}
       </g>
@@ -27,7 +28,7 @@
       </g>
       {% for a, b in cm.lines %}<line x1="{{ a.x | round(1) }}" y1="{{ a.y | round(1) }}" x2="{{ b.x | round(1) }}" y2="{{ b.y | round(1) }}" stroke-width="0.4" class="pair" style="stroke: var(--muted)" opacity="0.18"/>{% endfor %}
       {% for p in cm.points if p.own %}{% set x, y = p.x | round(1), p.y | round(1) %}
-      <a href="{{ root }}{{ p.href }}" data-x="{{ x }}" data-y="{{ y }}" data-title="{{ p.label }}" data-status="{{ p.status | replace('_', ' ') | lower }}" data-why="Region: {{ p.name }}"><title>{{ p.label }} · {{ p.status | replace('_', ' ') | lower }}</title>
+      <a href="{{ root }}{{ p.href }}" data-x="{{ x }}" data-y="{{ y }}" data-title="{{ p.label }}" data-status="{{ p.status | replace('_', ' ') | lower }}" data-cluster="{{ p.cluster }}" data-credit="Region: {{ p.name }}" data-why="{{ p.why }}"><title>{{ p.label }} · {{ p.status | replace('_', ' ') | lower }}</title>
         {% if p.shape == "circle" %}<circle cx="{{ x }}" cy="{{ y }}" r="3.4" class="paper f{{ p.slot }}"/>
         {% elif p.shape == "triangle" %}<path d="M{{ x }} {{ y - 3.8 }} L{{ x + 3.6 }} {{ y + 2.8 }} L{{ x - 3.6 }} {{ y + 2.8 }} Z" class="paper f{{ p.slot }}"/>
         {% elif p.shape == "square" %}<rect x="{{ x - 2.8 }}" y="{{ y - 2.8 }}" width="5.6" height="5.6" class="paper f{{ p.slot }}"/>
