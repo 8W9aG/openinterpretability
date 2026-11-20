@@ -1,4 +1,5 @@
 {# The WordNet specificity check for _experiment.html. Expects `sub` and `what`. #}
+{% from "_macros.html" import fold, read_more %}
   {% if sub.wordnet_specificity %}
   {% set sp = sub.wordnet_specificity %}
   {% macro words(label, items, hint) %}
@@ -9,13 +10,13 @@
           </p>
         </div>
   {% endmacro %}
-  <section class="mb-10" data-pagefind-ignore>
-    <h3 class="mb-1 text-base font-semibold">WordNet specificity</h3>
-    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">This {{ what }} measured on words that WordNet puts under <span class="font-mono">{{ sp.synset }}</span> ({{ sp.lemma }}{{ ", named by the proposer" if sp.source == "proposer" else ", the largest category of the peak words" }}) and on words of its sibling categories, each in {{ sp.carriers | length }} neutral sentences. Peak words are left out. AUROC <strong>{{ sp.auroc | num(2) }}</strong>: the chance that a category word is stronger than a sibling word (0.5: no difference). Active: {{ sp.category_active | pct }} of category words, {{ sp.siblings_active | pct }} of sibling words. Strengths are fractions of the top activation in the scan.</p>
+  {% call fold("WordNet specificity") %}<div data-pagefind-ignore>
+    <p class="max-w-3xl text-sm">AUROC <strong>{{ sp.auroc | num(2) }}</strong> for <span class="font-mono">{{ sp.synset }}</span> against its sibling categories. Active on {{ sp.category_active | pct }} of category words and {{ sp.siblings_active | pct }} of sibling words.</p>
+    {% call read_more() %}<p>The category is {{ sp.lemma }}{{ ", named by the proposer" if sp.source == "proposer" else ", the largest category of the peak words" }}. Each word is measured in {{ sp.carriers | length }} neutral sentences, and peak words are left out. AUROC is the chance that a category word is stronger than a sibling word, so 0.5 is no difference. Strengths are fractions of the top activation in the scan. Measured after the proposer answered, and shown to neither agent. Reported, not gated.</p>{% endcall %}
+    <div class="mt-3"></div>
     <div class="grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-800">
       {{ words(sp.lemma, sp.category, "Hyponyms of " ~ sp.synset) }}
       {{ words("Siblings", sp.siblings, sp.sibling_synsets | join(", ")) }}
     </div>
-    <p class="mt-1 text-xs text-slate-500">Measured after the proposer answered and shown to neither agent · reported, not gated</p>
-  </section>
+  </div>{% endcall %}
   {% endif %}

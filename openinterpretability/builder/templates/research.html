@@ -27,11 +27,13 @@
       {% if paper.interactive %}<p class="mb-1 text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-400">Interactive</p>{% endif %}
       {% if paper.published or paper.status %}<p class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">{% if paper.published %}<time datetime="{{ paper.published }}">{{ paper.published }}</time>{% endif %}{% if paper.status %}<span>{{ paper_status(paper.status, repo_url) }}</span>{% endif %}</p>{% endif %}
       <h2 class="text-lg font-semibold"><a class="underline-offset-2 hover:underline" href="{{ paper.href }}">{{ paper.title }}</a></h2>
+      {% if paper.authors %}<p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ paper.authors | join(", ") }}</p>{% endif %}
       <p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{{ paper.summary }}</p>
       <p class="mt-3 text-sm"><a class="{{ link }}" href="{{ paper.href }}">{{ "Open the page" if paper.interactive else "Read the paper" }}</a></p>
     </div>
     {% if paper.hero %}
-    <a class="min-w-0" href="{{ paper.href }}"><img class="w-full" src="{{ paper.slug }}/{{ paper.hero }}" alt="" loading="lazy"></a>
+    {# The title links to the same page, so this link is hidden from assistive technology and the tab order (#5649). #}
+    <a class="min-w-0" href="{{ paper.href }}" aria-hidden="true" tabindex="-1"><img class="w-full" src="{{ paper.slug }}/{{ paper.hero }}" alt="" loading="lazy"></a>
     {% endif %}
   </article>
   {% else %}

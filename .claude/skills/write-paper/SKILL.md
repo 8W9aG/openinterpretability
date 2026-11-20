@@ -18,6 +18,10 @@ papers/<slug>/
 
 List the paper in `papers/README.md`, with the date it is published before it: `- 2026-11-16: [Title](slug/README.md)`. The site's Research index shows the papers newest first by that date, and keeps the list's order for one date ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
 
+## Authors
+
+The maintainer is the first author of every paper, and Open Interpretability is the second. The maintainer decided this on 2026-11-19 (#5260). `scripts/papers.py` writes both into each paper's `CITATION.cff`, and takes the maintainer's name from the root `CITATION.cff`. The site shows them under the title. Never add an agent or a model as an author. Say in the paper's text which models proposed, reviewed, wrote and narrated the work.
+
 ## Structure
 
 A paper has the arc of the papers we review, in this order. `tests/test_papers.py` checks the fixed sections and their order.

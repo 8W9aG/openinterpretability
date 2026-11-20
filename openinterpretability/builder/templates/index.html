@@ -1,15 +1,12 @@
 {% extends "base.html" %}
-{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, model_card %}
+{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, model_card, read_more, chevron %}
 {% set t = stats.totals %}
 
 {% block content %}
 <section class="mb-10">
   <h1 class="text-3xl font-semibold tracking-tight">Neuron registry</h1>
   <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
-    Every experiment on native MLP neuron poles and attention heads in open-weight models, each stress-tested by a
-    reviewer agent (ideally a different model from the proposer) with adversarial hard negatives, minimal-pair counterfactuals
-    and causal patching. Null results are published too: a well-tested hypothesis that fails
-    tells us as much as one that passes.
+    Every experiment on the neurons and attention heads of open-weight models, each tested by an adversarial reviewer. Failed hypotheses are published too. <a class="underline" href="{{ root }}about.html">How it works</a>.
   </p>
   <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-4 lg:grid-cols-7 dark:border-slate-800 dark:bg-slate-800">
     {% set explained = t.explanations or 0 %}
@@ -37,81 +34,56 @@
     {% else %}
     No verified claims yet, so no false discovery estimate.
     {% endif %}
-    Repeat experiments that re-measure the same probes are not counted as independent evidence.
+    {% if contested %}<a class="underline" href="#contested">{{ contested | length }} contested</a>.{% endif %}
   </p>
-  {% if t.features %}
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-    Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs) audited under the same protocol as a <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a>, {{ t.verified_features }} of them verified.
-  </p>
-  {% endif %}
-  {% if t.superpositions %}
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-    Not in the verified units: {{ t.superpositions }} superpositions studied, {{ t.verified_superpositions }} of them verified. A superposition is a sparse direction over the neurons of one layer.
-  </p>
-  {% endif %}
-  {% if t.member_only %}
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-    {{ t.neurons }} neurons studied, {{ t.member_only }} of them only as part of a superposition.
-  </p>
-  {% endif %}
-  {% if stats.protocol_mix %}
-  {% set current = stats.protocol_mix | selectattr("protocol_version", "equalto", stats.current_protocol) | map(attribute="units") | sum %}
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" title="Each verified unit counts the protocol of its newest record that agrees with its standing">
-    Protocol of the verified claims: {{ current }} of {{ t.verified }} were judged under the current protocol ({{ stats.current_protocol }}){% for row in stats.protocol_mix if row.protocol_version != stats.current_protocol %}{{ "; " if loop.first else ", " }}{{ row.units }} under {{ row.protocol_version }}{% endfor %}.
-    Older verdicts were judged by older rules (<a class="underline" href="{{ repo_url }}/blob/main/docs/PROTOCOL.md">protocol §6</a>).
-  </p>
-  {% endif %}
-  {% if t.self_reviewed %}
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-    {{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.
-    {% if t.verified %}So were {{ t.verified_self_reviewed }} of the {{ t.verified }} current verified claims.{% endif %}
-    That is allowed, but a reviewer from a different model is worth more, and <code class="font-mono">open-interpretability next</code> draws re-reviews of these.
-  </p>
-  {% endif %}
-  {% if agreement.claims %}
-  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" title="Each probe set is read by its newest experiment, so re-measurements don't count twice">
-    Reviewer agreement: {{ agreement.unanimous }} of the {{ agreement.claims }} hypotheses reviewed with more than one probe set got the same verdict, VERIFIED or not, from every review.
-    Pairs of reviews agree {{ agreement.pair_agreement | pct }} of the time{% if agreement.cross_model_pairs %} ({{ agreement.cross_model_agreement | pct }} of {{ agreement.cross_model_pairs }} pairs from different reviewer models){% endif %}.
-    {% if contested %}<a class="underline" href="#contested">{{ contested | length }} unit{{ 's are' if contested | length != 1 else ' is' }} contested</a>: the reviews of its current hypothesis split evenly between VERIFIED and not, so it is not counted as verified.{% endif %}
-  </p>
-  {% endif %}
+  {% call read_more("About these numbers") %}
+    <p>Repeat experiments that re-measure the same probes don't count as independent evidence.</p>
+    {% if t.features %}<p>Not counted above: {{ t.features }} latents of sparse dictionaries (transcoders or SAEs), audited under the same protocol as a <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a>. {{ t.verified_features }} of them are verified.</p>{% endif %}
+    {% if t.superpositions %}<p>Not in the verified units: {{ t.superpositions }} superpositions studied, {{ t.verified_superpositions }} of them verified. A superposition is a sparse direction over the neurons of one layer.</p>{% endif %}
+    {% if t.member_only %}<p>{{ t.neurons }} neurons studied, {{ t.member_only }} of them only as part of a superposition.</p>{% endif %}
+    {% if stats.protocol_mix %}{% set current = stats.protocol_mix | selectattr("protocol_version", "equalto", stats.current_protocol) | map(attribute="units") | sum %}
+    <p title="Each verified unit counts the protocol of its newest record that agrees with its standing">Protocol: {{ current }} of {{ t.verified }} verified claims were judged under the current protocol ({{ stats.current_protocol }}){% for row in stats.protocol_mix if row.protocol_version != stats.current_protocol %}{{ "; " if loop.first else ", " }}{{ row.units }} under {{ row.protocol_version }}{% endfor %}. Older verdicts used older rules (<a class="underline" href="{{ repo_url }}/blob/main/docs/PROTOCOL.md">protocol §6</a>).</p>{% endif %}
+    {% if t.self_reviewed %}<p>{{ t.self_reviewed }} of {{ t.experiments }} experiments were {{ self_review_badge() }}: the proposer's model also wrote the probes.{% if t.verified %} So were {{ t.verified_self_reviewed }} of the {{ t.verified }} current verified claims.{% endif %} <code class="font-mono">open-interpretability next</code> draws re-reviews of these.</p>{% endif %}
+    {% if agreement.claims %}<p title="Each probe set is read by its newest experiment, so re-measurements don't count twice">Reviewer agreement: {{ agreement.unanimous }} of the {{ agreement.claims }} hypotheses with more than one review got the same verdict from every review. Pairs of reviews agree {{ agreement.pair_agreement | pct }} of the time{% if agreement.cross_model_pairs %} ({{ agreement.cross_model_agreement | pct }} of {{ agreement.cross_model_pairs }} pairs from different reviewer models){% endif %}.{% if contested %} A contested unit's reviews split evenly, so it doesn't count as verified.{% endif %}</p>{% endif %}
+  {% endcall %}
 </section>
 
 {% if dashboard %}{% include "_dashboard.html" %}{% endif %}
 
 {% if stats.baseline %}
 <p class="mb-10 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-  Are a model's own neurons as explainable as the latents of a sparse dictionary?
-  {% for b in stats.baseline %}On <span class="font-mono">{{ b.model_name }}</span>, {{ b.features.verified }} of {{ b.features.units }} random latents of <span class="font-mono">{{ b.dictionary }}</span> verified, against {{ b.positive_poles.verified }} of {{ b.positive_poles.units }} random positive poles. {% endfor %}
-  The <a class="underline" href="{{ root }}learned-baseline.html">learned-basis baseline</a> page has the tables.
+  {% for b in stats.baseline %}<span class="font-mono">{{ b.model_name }}</span>: {{ b.features.verified }} of {{ b.features.units }} random latents of <span class="font-mono">{{ b.dictionary }}</span> verified, against {{ b.positive_poles.verified }} of {{ b.positive_poles.units }} random positive poles. {% endfor %}
+  <a class="underline" href="{{ root }}learned-baseline.html">Learned-basis baseline</a>.
 </p>
 {% endif %}
 
 <section class="mb-10">
   <h2 class="mb-3 text-lg font-semibold">Models</h2>
   {% if models %}
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">New neurons are drawn mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified, so that one model is explained well before the next.</p>
+  {% call read_more() %}<p>New neurons come mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified, so that one model is explained well before the next.</p>{% endcall %}
+  <div class="mb-3"></div>
   <div class="space-y-4">
     {% for m in models %}
     {{ model_card(m, explore, root, loop.index) }}
     {% endfor %}
   </div>
-  {% if coverage %}<p class="mt-3 text-sm text-slate-600 dark:text-slate-400">How much of each model the VERIFIED poles explain is on the <a class="underline" href="{{ root }}models/index.html">Models page</a>, and layer by layer on each model's page.</p>{% endif %}
+  {% if coverage %}<p class="mt-3 text-sm text-slate-600 dark:text-slate-400"><a class="underline" href="{{ root }}models/index.html">Coverage by model</a>.</p>{% endif %}
   {% else %}
   <p class="text-sm text-slate-500">No experiments yet.</p>
   {% endif %}
 </section>
 
 <section class="mb-10">
-  <h2 class="mb-1 text-lg font-semibold">Most recent experiments</h2>
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">The latest {{ stats.recent | length }} experiments, whatever their verdict, newest first.</p>
+  <h2 class="mb-3 text-lg font-semibold">Most recent experiments</h2>
+  {% set head %}<thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Result</th><th class="hidden px-3 py-2 md:table-cell">Agents</th></tr>
+      </thead>{% endset %}
+  {% set shown, more = stats.recent[:5], stats.recent[5:] %}
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
-      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-        <tr><th class="hidden px-3 py-2 sm:table-cell">Reviewed</th><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Result</th><th class="hidden px-3 py-2 md:table-cell">Agents</th></tr>
-      </thead>
+      {{ head }}
       <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-        {% for r in stats.recent %}
+        {% for r in shown %}
         <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
           <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400">
             <time datetime="{{ r.reviewed_iso }}">{{ r.reviewed_date }}</time>
@@ -140,18 +112,55 @@
       </tbody>
     </table>
   </div>
+  {% if more %}
+  <details class="group mt-2">
+    <summary class="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 [&::-webkit-details-marker]:hidden">{{ chevron() }}{{ more | length }} more</summary>
+    <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-sm">
+        {{ head }}
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for r in more %}
+        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
+          <td class="hidden whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-600 sm:table-cell dark:text-slate-400">
+            <time datetime="{{ r.reviewed_iso }}">{{ r.reviewed_date }}</time>
+            <div class="text-slate-500">{{ r.reviewed_time }}</div>
+          </td>
+          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
+            <a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
+            <div class="text-slate-500">{{ r.model_name }}</div>
+            <div class="text-slate-500 sm:hidden">{{ r.reviewed_date }}</div>
+          </td>
+          <td class="px-3 py-2">
+            <div class="mb-1 flex flex-wrap gap-1">{{ status_badge(r.status) }} {{ evidence_badge(r.conclusiveness, r.evidence_direction) }}
+              {% if r.self_reviewed %}{{ self_review_badge() }}{% endif %}
+              {% if r.remeasurement %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400" title="Re-measures an earlier experiment's probes; not independent evidence">re-measurement</span>{% endif %}
+            </div>
+            {{ r.explanation | truncate(140) }}
+          </td>
+          <td class="hidden px-3 py-2 font-mono text-xs text-slate-500 md:table-cell">
+            <div title="proposer"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.submitting_agent_model) }}" title="recorded as {{ r.submitting_agent_model }}">{{ agent_name(r.submitting_agent_model) }}</a></div>
+            <div title="reviewer">↳ <a class="underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.reviewer_agent_model) }}" title="recorded as {{ r.reviewer_agent_model }}">{{ agent_name(r.reviewer_agent_model) }}</a></div>
+          </td>
+        </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endif %}
 </section>
 {% if pending %}{{ pending_table(pending, root) }}{% endif %}
 
 <p class="mb-10 text-sm text-slate-600 dark:text-slate-400">
-  {{ agents | length }} agent model{{ "" if agents | length == 1 else "s" }} proposed, reviewed or judged these experiments{% if agents %}, most often {% for a in agents[:3] %}<a class="font-mono text-xs underline" href="{{ root }}{{ a.href }}">{{ a.model }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}.
-  <a class="underline" href="{{ root }}agents/index.html">Contributors</a> has each one's VERIFIED rate and costs by role.
+  {{ agents | length }} agent model{{ "" if agents | length == 1 else "s" }}{% if agents %}, most often {% for a in agents[:3] %}<a class="font-mono text-xs underline" href="{{ root }}{{ a.href }}">{{ a.model }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %} · <a class="underline" href="{{ root }}agents/index.html">Contributors</a>
 </p>
 
 {% if contested %}
 <section id="contested" class="mb-10 scroll-mt-4">
   <h2 class="mb-1 text-lg font-semibold">Contested neurons and heads</h2>
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Reviews of the current hypothesis disagree. Independent reviews outweigh self-reviews, so these are disagreements among reviews of the same kind. Another independent review, or a narrower revision, settles them.</p>
+  <p class="text-sm text-slate-600 dark:text-slate-400">Reviews of the current hypothesis disagree.</p>
+  {% call read_more() %}<p>Independent reviews outweigh self-reviews, so these are disagreements among reviews of the same kind. Another independent review, or a narrower revision, settles them.</p>{% endcall %}
+  <div class="mb-3"></div>
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
@@ -181,7 +190,7 @@
 <section>
   <h2 class="mb-1 text-lg font-semibold">Query the registry</h2>
   <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">
-    Runs DuckDB-Wasm in your browser against <code class="font-mono">data/registry.parquet</code>, exposed as the view <code class="font-mono">registry</code>.
+    SQL on the view <code class="font-mono">registry</code> (<code class="font-mono">data/registry.parquet</code>), in your browser.
   </p>
   <textarea id="sql" rows="3" spellcheck="false" aria-label="SQL query"
     class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm dark:border-slate-700 dark:bg-slate-900">SELECT model_name, layer, neuron_idx, pole, head_idx, status, round(conclusiveness, 2) AS conclusive, evidence_direction, explanation

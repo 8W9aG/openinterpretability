@@ -3,6 +3,8 @@ message: If you use this paper, please cite it as below.
 type: article
 title: When Pythia-70m's VERIFIED neurons form
 authors:
+- given-names: Will
+  family-names: Sackfield
 - name: Open Interpretability
 date-released: '2026-11-16'
 version: preprint
