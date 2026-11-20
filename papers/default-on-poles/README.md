@@ -261,7 +261,7 @@ The top prediction goes the other way late. The negative side matches the model'
 
 A lead does not show that training built the negative side for this. Both sides read the same $h$, so weights learned for the positive side would also help the negative side beat random weights. This test cannot separate the two.
 
-**Human labels.** The labels come from Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and a language-identification dataset. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup reads the current token's rate of the label (Table 9).
+**Human labels.** The labels come from Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and a language-identification dataset. AG News's topics are its source corpus's categories, and Zhang et al. don't say how they were assigned. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup reads the current token's rate of the label (Table 9).
 
 | Dataset | Labels | Lookup | − at L6 | + at L6 | Best null at L6 | − minus best null: L0 | L3 | L6 | L9 | L11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
