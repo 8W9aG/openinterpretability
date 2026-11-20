@@ -115,10 +115,14 @@ def planned(state: State, experiments: list[Entry], papers: list[Entry],
 
 
 def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: str,
-        post: Callable[[str], str] | None, now: float) -> list[str]:  # fmt: skip
+        post: Callable[[str], str] | None, now: float,
+        repost: frozenset[str] = frozenset()) -> list[str]:  # fmt: skip
     """Post what is new and record it; return a line per action.
 
-    With ``post`` None (a dry run), print the posts and change no state.
+    With ``post`` None (a dry run), print the posts and change no state. ``repost`` names
+    entries to post again although the state has them, for example the ones that the first
+    run recorded as seen (#5527). They post within the same limits, and the state keeps them
+    as posted only after the post succeeds.
 
     Args:
         state_path: The state's JSON file. With none yet, every entry is recorded as seen.
@@ -127,6 +131,7 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
         site: The site's link, for a digest post.
         post: A function that posts a text and returns its id, or None for a dry run.
         now: The time in seconds, for the daily limit.
+        repost: The ids of entries to post although the state has them.
 
     Returns:
         One line per action, such as ``posted <id>: <first line>``, or ``["nothing new"]``.
@@ -140,13 +145,19 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
         >>> new = Entry("u2", "gpt2/L1/N6-positive VERIFIED", "https://x.org/v", "Reads.")
         >>> run(path, [new, unit], [], "https://x.org/", lambda text: "42", now=10)
         ['posted 42: gpt2/L1/N6-positive VERIFIED: Reads.']
+        >>> run(path, [new, unit], [], "https://x.org/", lambda text: "43", now=20,
+        ...     repost=frozenset({"u1"}))
+        ['posted 43: gpt2/L1/N5-positive VERIFIED: Fires.']
     """
     state = load_state(state_path)
     if state is None:
         if post is not None:
             save_state(state_path, State({e.id for e in [*experiments, *papers]}))
-        return [f"seeded {len(experiments) + len(papers)} entries; posted nothing"]
-    lines = []
+        lines = [f"seeded {len(experiments) + len(papers)} entries; posted nothing"]
+        return lines + ["--repost waits for a state: the first run only seeds"] * bool(repost)
+    known = {e.id for e in [*experiments, *papers]}
+    lines = [f"not in the feeds: {i}" for i in sorted(repost - known)]
+    state.posted -= repost  # in memory only: the state saves an id again once it posts
     budget = PER_DAY - sum(1 for t in state.times if now - t < DAY)
     for ids, text in planned(state, experiments, papers, site):
         if budget <= 0:

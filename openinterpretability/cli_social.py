@@ -42,7 +42,10 @@ def _entries(path: Path | None) -> list:
     default=0,
     help="Print the posts of the newest N entries of each feed, whatever the state.",
 )
-def post_command(experiments, papers, state, site, dry_run, preview) -> None:
+@click.option("--repost", multiple=True,
+              help="Post this entry id although the state has it, as the first run seeds "
+              "every entry (#5527). Repeat for more.")  # fmt: skip
+def post_command(experiments, papers, state, site, dry_run, preview, repost) -> None:
     """Post each new entry of the feeds once, within the per-run and daily limits.
 
     Args:
@@ -52,6 +55,7 @@ def post_command(experiments, papers, state, site, dry_run, preview) -> None:
         site: The link for a digest post, or None for the site's own.
         dry_run: Print the posts, and post nothing.
         preview: Print the posts of this many newest entries of each feed, or 0.
+        repost: Entry ids to post although the state has them.
 
     Raises:
         click.ClickException: When a post fails, for example on an HTTP or network error.
@@ -74,7 +78,9 @@ def post_command(experiments, papers, state, site, dry_run, preview) -> None:
         return
     poster = None if dry_run else XPoster(keys).post
     try:
-        lines = run(state, found, published, site or site_url(), poster, time.time())
+        lines = run(
+            state, found, published, site or site_url(), poster, time.time(), frozenset(repost)
+        )
     except OSError as error:  # an HTTP or network error: posts so far stay recorded
         raise click.ClickException(f"posting failed: {error}") from error
     click.echo("\n".join(lines))
