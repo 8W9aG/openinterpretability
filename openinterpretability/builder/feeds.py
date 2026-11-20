@@ -6,6 +6,7 @@ byte for byte, and the deploy uploads (and purges) nothing.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from datetime import UTC
 from pathlib import Path
@@ -16,15 +17,16 @@ from openinterpretability.builder.experiment import Experiment
 FEED_ENTRIES = 50
 # The sitemap protocol allows at most this many URLs in one file.
 SITEMAP_LIMIT = 50_000
-NOINDEX = '<meta name="robots" content="noindex">'
+# Any robots meta that says noindex: a redirect's, or a draft post's "noindex, nofollow".
+NOINDEX = re.compile(r'<meta name="robots" content="[^"]*\bnoindex\b')
 
 
 def sitemap(pages: Sequence[Path], output_dir: Path, site_url: str) -> str:
     """The sitemap of ``pages``, the HTML files the build wrote, without the redirects."""
     urls = []
     for page in sorted({p for p in pages if p.suffix == ".html"}):
-        if NOINDEX in page.read_text(encoding="utf-8", errors="replace"):
-            continue  # a redirect to a page that moved
+        if NOINDEX.search(page.read_text(encoding="utf-8", errors="replace")):
+            continue  # a redirect to a page that moved, or a draft post (#5551)
         rel = page.relative_to(output_dir).as_posix()
         urls.append(site_url + ("" if rel == "index.html" else rel))
     if len(urls) > SITEMAP_LIMIT:
