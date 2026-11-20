@@ -247,6 +247,7 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 | Page | Status | Why |
 | --- | --- | --- |
 | [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
+| [Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection](universal-dependencies-v2.md) (Nivre, de Marneffe, Ginter et al., 2020) | used | One scheme of parts of speech and relations for 157 treebanks in 90 languages. The source of the `ud-upos` and `ud-deprel` presets and of one paper's labels. Our citation checks out. The licences come from each treebank, not the paper. |
 
 ## Philosophy of mind
 
