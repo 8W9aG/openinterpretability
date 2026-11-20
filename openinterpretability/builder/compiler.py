@@ -377,7 +377,6 @@ def _render_agents(render, experiments, output_dir, report) -> list:
     agents = agents_view(experiments)
     contributors = contributors_view(experiments)
     render("agents/index.html", "agents.html", agents=agents, contributors=contributors)
-    render("users/index.html", "users.html", users=contributors)
     for person in contributors:
         render(person.href, "user.html", user=person)
     for agent in agents:
