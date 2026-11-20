@@ -109,6 +109,7 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 - **Be honest about the marks.** Say when a figure is an illustration with made-up values, or a sketch from summary statistics. Say when only the two ends of an animation are measured.
 - **Keep colours consistent.** One side or route has one colour through the paper. Check new colours with the `dataviz` skill.
 - **Look at each figure** in light and dark, and mid-animation, before you call it done.
+- **Draw the head figure for X.** The first figure is the paper's picture on X and in link cards. After each change to it, run `uv run --with playwright==1.65.2 python scripts/social_images.py`, and commit `media/social.*` (#5534). A test fails while the drawing is out of date.
 
 ## Status: preprint or published
 

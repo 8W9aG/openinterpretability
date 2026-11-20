@@ -35,7 +35,11 @@ def test_each_figure_appears_in_its_paper(name):
 
 
 def test_each_media_file_is_built():
-    on_disk = {str(path.relative_to(PAPERS)) for path in PAPERS.glob("*/media/*")}
+    from openinterpretability.builder.social_media import IMAGE, MANIFEST, VIDEO
+
+    drawn = {IMAGE, VIDEO, MANIFEST}  # scripts/social_images.py draws these, not this script
+    on_disk = {str(path.relative_to(PAPERS)) for path in PAPERS.glob("*/media/*")
+               if path.name not in drawn}  # fmt: skip
     assert on_disk == set(BUILT)
 
 

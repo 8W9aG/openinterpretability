@@ -2,6 +2,10 @@
 
 {% block title %}{{ post.title }} · {{ site_title }}{% endblock %}
 
+{% block card_image %}{% if post.social_image %}<meta property="og:image" content="{{ site_url }}posts/{{ post.href | replace('index.html', '') }}{{ post.social_image }}">
+  <meta property="og:image:alt" content="{{ post.hero_alt }}">
+  <meta name="twitter:image" content="{{ site_url }}posts/{{ post.href | replace('index.html', '') }}{{ post.social_image }}">{% else %}{{ super() }}{% endif %}{% endblock %}
+
 {% block head %}
 {% if post.draft %}<meta name="robots" content="noindex, nofollow">{% endif %}
 <link rel="alternate" type="application/atom+xml" title="Posts" href="{{ root }}posts/posts.xml">
