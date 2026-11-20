@@ -51,7 +51,7 @@ TEST_EXPLANATIONS = "test/registry_explanations.jsonl"
 class Unit:
     """One benchmark unit: a neuron pole, its split and what measures it."""
 
-    unit: str  # the slug, e.g. ``Qwen--Qwen2.5-0.5B/L3/N7-positive``
+    unit: str  # the slug, for example ``Qwen--Qwen2.5-0.5B/L3/N7-positive``
     model: str
     model_revision: str | None
     layer: int
@@ -255,7 +255,7 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def write(frozen: Frozen, out_dir: Path) -> None:
-    """Write a frozen version to ``out_dir`` (e.g. ``benchmark/v1``)."""
+    """Write a frozen version to ``out_dir`` (e.g., ``benchmark/v1``)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     write_manifest(out_dir, frozen.manifest)
     write_jsonl(out_dir / UNITS, (u.__dict__ for u in frozen.units))

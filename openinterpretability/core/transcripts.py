@@ -64,7 +64,7 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
         message = entry.get("message") if entry.get("type") == "assistant" else None
         if not isinstance(message, dict) or not message.get("usage"):
             continue
-        if message.get("model", "").startswith("<"):  # e.g. "<synthetic>" error stubs
+        if message.get("model", "").startswith("<"):  # for example "<synthetic>" error stubs
             continue
         at = _time(entry.get("timestamp"))
         last[message.get("id") or entry.get("uuid")] = (at, message)
@@ -100,7 +100,7 @@ def forbidden_reads(path: Path) -> tuple[list[str], list[str]]:
 
     The check is :func:`openinterpretability.core.isolation.forbidden`, for each tool call in the
     transcript. The first list has the calls that completed. The second list has the
-    calls that failed, e.g. because the reviewer's hook denied them, so no content was
+    calls that failed, for example because the reviewer's hook denied them, so no content was
     read. Each list is in transcript order, without duplicates.
     """
     from openinterpretability.core.isolation import TOOLS, forbidden

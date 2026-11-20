@@ -13,6 +13,7 @@
   Verified counts the neurons with a VERIFIED pole and the VERIFIED attention heads. It leaves out dictionary features, which are a baseline. It also leaves out superpositions.
   Loss effect kept is the registry's coverage: the share of the loss rise from mean-ablating every MLP neuron that comes back when only the VERIFIED poles keep their activations. Random poles of the same count give the baseline beside it (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">method</a>).
 </p>
+{% if atlas %}<p class="mt-2 max-w-3xl text-sm"><a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}models/atlas.html">The concept atlas</a>: every model's studied poles in one shared map, filling in as they were studied.</p>{% endif %}
 
 <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">

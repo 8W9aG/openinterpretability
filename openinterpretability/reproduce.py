@@ -215,10 +215,10 @@ def reproduce_record(
     # So the review's runner checks it.
     _check_scale(sub, unit, runner, scale, report)
     _check_scan(record, unit, scan_runner or runner, tolerance, corpus, report)
-    tolerance = tolerance.for_dtype(review_dtype)
 
-    # Counterfactuals as submitted.
-    _check_counterfactuals(sub, unit, runner, tolerance, scale, report)
+    # Counterfactuals as submitted, measured in the scan's session and dtype (#5417).
+    _check_counterfactuals(record, unit, scan_runner or runner, tolerance, scale, report)
+    tolerance = tolerance.for_dtype(review_dtype)
     if reason:
         report.warnings.append(f"measurements only, because the record was {reason}")
         return report
@@ -282,11 +282,13 @@ def _check_scale(sub, unit, runner, scale: float, report) -> None:
             report.fail(f"first_token_floor {sub.first_token_floor} does not reproduce")
 
 
-def _check_counterfactuals(sub, unit, runner, tolerance: Tolerance, scale: float, report):
+def _check_counterfactuals(record, unit, runner, tolerance: Tolerance, scale: float, report):
+    """Each counterfactual's Δ, measured by ``runner`` within the scan dtype's tolerance."""
     from openinterpretability.agents.proposer import observed_delta
 
+    sub, tolerance = record.submission, tolerance.for_dtype(scan_dtype(record))
     pairs = [(n, p) for n, p in enumerate(sub.counterfactuals, 1) if p.observed_delta is not None]
-    if not scale:
+    if not scale:  # no scale, so no Δ to compare
         return
     texts = [t for _, p in pairs for t in (p.base_prompt, p.counterfactual_prompt)]
     deltas = map_layer_major(
@@ -296,10 +298,8 @@ def _check_counterfactuals(sub, unit, runner, tolerance: Tolerance, scale: float
     for (n, pair), delta in zip(pairs, deltas, strict=True):
         report.compared += 1
         if not tolerance.close(pair.observed_delta, delta, 1.0):
-            report.fail(
-                f"counterfactual {n}: observed_delta recorded {pair.observed_delta}, "
-                f"reproduced {delta}"
-            )
+            report.fail(f"counterfactual {n}: observed_delta recorded {pair.observed_delta}, "
+                        f"reproduced {delta}")  # fmt: skip
 
 
 def _check_examples(

@@ -214,5 +214,5 @@ def build_submission(agent, draft, runner, evidence):
                 superposition_profile=evidence.superposition_profile,
                 manifold=evidence.manifold,
             )
-        except ValueError as exc:  # e.g. a one-token counterfactual prompt
+        except ValueError as exc:  # for example a one-token counterfactual prompt
             raise click.ClickException(f"Counterfactual: {exc}") from exc

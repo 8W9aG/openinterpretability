@@ -1,0 +1,9 @@
+# APA 7 §8.17: two authors are joined by "&" inside parentheses, "(Hendrycks & Gimpel,
+# 2016)", and by "and" in the running text, "Hendrycks and Gimpel (2016)".
+extends: existence
+message: "Use '&' inside parentheses and 'and' in the text: '%s'."
+level: error
+nonword: true
+tokens:
+  - '\([A-Z][\w-]+(?:, [A-Z][\w-]+)* and [A-Z][\w-]+, (?:19|20)\d{2}'
+  - '\b[A-Z][\w-]+ & [A-Z][\w-]+ \((?:19|20)\d{2}'

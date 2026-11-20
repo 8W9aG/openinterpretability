@@ -1,0 +1,11 @@
+# APA 7 §6.29: "e.g.," and "i.e.," only inside parentheses, with a comma after them. In
+# the running text write "for example" and "that is". ASD-STE100 has no use for "etc."
+# either, so it is flagged everywhere: name the items, or say "and others".
+extends: existence
+message: "Write '(e.g., ...)' or '(i.e., ...)', else 'for example' or 'that is'. No 'etc.'."
+level: error
+nonword: true
+tokens:
+  - '(?<!\()\b(?:e\.g|i\.e)\.'
+  - '\((?:e\.g|i\.e)\.(?!,)'
+  - '\betc\.'
