@@ -52,3 +52,18 @@ def test_layer_columns_give_every_layer_a_slot():
     assert [c["name"] for c in charts] == ["a", "b"]
     assert [c["n"] for c in charts[0]["columns"]] == [2, 1, 0, 0]
     assert charts[1]["columns"][1]["label"] == "b L1 · 1 experiment: 1 NEEDS REVISION (0% VERIFIED)"
+
+
+def test_the_two_main_charts_span_the_text_above_them():
+    # #4587: the timeline and the model bars fill the content width, as the summary text does.
+    # They draw at the old scale, so their height and label size stay the same.
+    from pathlib import Path
+
+    from openinterpretability.builder.dashboard import CHART_WIDTH
+
+    template = Path(__file__).parents[1] / "openinterpretability/builder/templates/_dashboard.html"
+    text = template.read_text()
+    for name in ("tl", "mb"):
+        line = next(x for x in text.splitlines() if f"{{{{ {name}.width }}}}" in x)
+        assert 'class="w-full"' in line and "max-w" not in line
+    assert round(1120 / CHART_WIDTH, 1) == round(768 / 640, 1)  # the scale is unchanged

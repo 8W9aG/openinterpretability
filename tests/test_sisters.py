@@ -428,3 +428,16 @@ def test_the_staged_search_over_many_pairs_equals_the_search_per_pair(
         _same(job.found, found)
         assert job.tokens == tokens
         assert job.source_layers == runners[a].n_layers and job.other_layers == runners[b].n_layers
+
+
+def test_the_sister_graphs_are_as_wide_as_the_text_above_them():
+    # #4579: the graph's width cap is the paragraph's, so their right edges meet.
+    import re
+    from pathlib import Path
+
+    template = Path(__file__).parents[1] / "openinterpretability/builder/templates/model.html"
+    section = template.read_text().split('<h2 class="text-lg font-semibold">Sister neurons</h2>')[1]
+    paragraph = re.search(r'<p class="[^"]*\b(max-w-\S+)', section).group(1)
+    svg = r'<svg viewBox="0 0 \{\{ g\.width \}\}[^>]*class="[^"]*\b(max-w-\S+?)"'
+    graph = re.search(svg, section)
+    assert graph.group(1) == paragraph == "max-w-3xl"
