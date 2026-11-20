@@ -21,6 +21,11 @@ on:
   schedule:
     - cron: "7,37 * * * *"  # every 30 minutes, off the top of the hour when Actions is busiest
   workflow_dispatch:
+    inputs:
+      repost:
+        description: "Entry ids to post to X although they were seen, separated by spaces (#5527)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -193,10 +198,13 @@ jobs:
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          REPOST: ${{ inputs.repost }}  # a dispatch input; empty on every other event
         shell: bash
         run: |
           set -o pipefail  # the step fails when the command fails, not when tee succeeds
-          open-interpretability social post 2>&1 | tee x.log
+          args=()
+          for id in $REPOST; do args+=(--repost "$id"); done
+          open-interpretability social post "${args[@]}" 2>&1 | tee x.log
       # A failed post leaves the deploy green, so report-x opens an issue for it. Only the
       # HTTP status goes on: a fixed field, not log text, since agents work that issue.
       - name: Read the post's HTTP status
