@@ -177,8 +177,11 @@ gated = false
 publishing_allowed = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-ra"
+# The package's docstring examples run too (#5356). tests/test_doctests.py checks that each
+# public function has one.
+testpaths = ["tests", "openinterpretability"]
+addopts = "-ra --doctest-modules"
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
 # A hang fails within a minute, dumping every thread's stack and naming the test.
 # "thread" because the hangs block in C (a semaphore wait), where SIGALRM never fires.
 timeout = 60
@@ -228,6 +231,9 @@ ignore = ["D105", "D107", "D301", "S311", "S603", "S607"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+# D417 checks an Args: section that exists. scripts/check_docstring_args.py requires one,
+# and scripts/check_docstring_sections.py requires Returns:, Yields: and Raises: (#3938,
+# #5361). Ruff's preview DOC rules stay off: they need preview for the whole linter.
 
 [tool.ruff.lint.per-file-ignores]
 # Tests need no docstrings (D1): a test's name says what it checks, and a docstring that

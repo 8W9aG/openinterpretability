@@ -37,7 +37,24 @@ class State:
 
 
 def load_state(path: Path) -> State | None:
-    """The state at ``path``, or None when there is none yet."""
+    """The state at ``path``, or None when there is none yet.
+
+    Args:
+        path: The state's JSON file.
+
+    Returns:
+        The state, or None when the file doesn't exist.
+
+    Examples:
+        >>> import tempfile
+        >>> path = Path(tempfile.mkdtemp()) / "x.json"
+        >>> load_state(path) is None
+        True
+        >>> save_state(path, State({"u2", "u1"}, [3.0]))
+        >>> state = load_state(path)
+        >>> sorted(state.posted), state.times  # a set's order varies from run to run
+        (['u1', 'u2'], [3.0])
+    """
     if not Path(path).exists():
         return None
     data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -45,7 +62,26 @@ def load_state(path: Path) -> State | None:
 
 
 def save_state(path: Path, state: State) -> None:
-    """Write ``state`` to ``path``."""
+    """Write ``state`` to ``path``.
+
+    Args:
+        path: The state's JSON file. Its folder is made if it is missing.
+        state: The state to write.
+
+    Examples:
+        >>> import tempfile
+        >>> path = Path(tempfile.mkdtemp()) / "a" / "x.json"
+        >>> save_state(path, State({"u1"}, [1.0]))
+        >>> print(path.read_text(), end="")
+        {
+         "posted": [
+          "u1"
+         ],
+         "times": [
+          1.0
+         ]
+        }
+    """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     data = {"posted": sorted(state.posted), "times": sorted(state.times)}
     Path(path).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
@@ -53,7 +89,22 @@ def save_state(path: Path, state: State) -> None:
 
 def planned(state: State, experiments: list[Entry], papers: list[Entry],
             site: str) -> list[tuple[list[str], str]]:  # fmt: skip
-    """Each post to make, with the ids it covers: papers first, then experiments."""
+    r"""Each post to make, with the ids it covers: papers first, then experiments.
+
+    Args:
+        state: What was posted or seen already.
+        experiments: The VERIFIED experiments' feed entries.
+        papers: The published papers' feed entries.
+        site: The site's link, for a digest post.
+
+    Returns:
+        One ``(ids, text)`` pair per post, papers first. Many new units give one digest.
+
+    Examples:
+        >>> unit = Entry("u1", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u", "Fires.")
+        >>> planned(State({"old"}), [unit], [], "https://x.org/")
+        [(['u1'], 'gpt2/L1/N5-positive VERIFIED: Fires.\nhttps://x.org/u')]
+    """
     posts = [([e.id], paper_post(e)) for e in papers if e.id not in state.posted]
     fresh = [e for e in experiments if e.id not in state.posted]
     if len(fresh) > PER_RUN:
@@ -68,6 +119,27 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
     """Post what is new and record it; return a line per action.
 
     With ``post`` None (a dry run), print the posts and change no state.
+
+    Args:
+        state_path: The state's JSON file. With none yet, every entry is recorded as seen.
+        experiments: The VERIFIED experiments' feed entries.
+        papers: The published papers' feed entries.
+        site: The site's link, for a digest post.
+        post: A function that posts a text and returns its id, or None for a dry run.
+        now: The time in seconds, for the daily limit.
+
+    Returns:
+        One line per action, such as ``posted <id>: <first line>``, or ``["nothing new"]``.
+
+    Examples:
+        >>> import tempfile
+        >>> path = Path(tempfile.mkdtemp()) / "x.json"
+        >>> unit = Entry("u1", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u", "Fires.")
+        >>> run(path, [unit], [], "https://x.org/", lambda text: "42", now=0)  # first run
+        ['seeded 1 entries; posted nothing']
+        >>> new = Entry("u2", "gpt2/L1/N6-positive VERIFIED", "https://x.org/v", "Reads.")
+        >>> run(path, [new, unit], [], "https://x.org/", lambda text: "42", now=10)
+        ['posted 42: gpt2/L1/N6-positive VERIFIED: Reads.']
     """
     state = load_state(state_path)
     if state is None:

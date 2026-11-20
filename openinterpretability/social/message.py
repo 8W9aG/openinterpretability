@@ -24,12 +24,39 @@ LIGHT = ((0x0000, 0x10FF), (0x2000, 0x200D), (0x2010, 0x201F), (0x2032, 0x2037))
 
 
 def weight(text: str) -> int:
-    """The length of ``text`` as X counts it, without links."""
+    """The length of ``text`` as X counts it, without links.
+
+    Args:
+        text: The text to count.
+
+    Returns:
+        The number of characters as X counts them.
+
+    Examples:
+        >>> weight("neuron")
+        6
+        >>> weight("神经元")  # each CJK character counts as two
+        6
+    """
     return sum(1 if any(a <= ord(c) <= b for a, b in LIGHT) else 2 for c in text)
 
 
 def fit(text: str, budget: int) -> str:
-    """``text`` cut at a word boundary, with an ellipsis, so its weight is at most ``budget``."""
+    """``text`` cut at a word boundary, with an ellipsis, so its weight is at most ``budget``.
+
+    Args:
+        text: The text to cut.
+        budget: The largest weight allowed.
+
+    Returns:
+        ``text`` itself if it fits, else its first words and an ellipsis, or "" if no word fits.
+
+    Examples:
+        >>> fit("Fires on the closing bracket", 20)
+        'Fires on the…'
+        >>> fit("Short", 20)
+        'Short'
+    """
     if weight(text) <= budget:
         return text
     words = text.split()
@@ -39,13 +66,38 @@ def fit(text: str, budget: int) -> str:
 
 
 def first_sentence(text: str) -> str:
-    """The first sentence of ``text``: up to its first full stop, question or exclamation."""
+    """The first sentence of ``text``: up to its first full stop, question or exclamation.
+
+    Args:
+        text: The text, such as a paper's abstract.
+
+    Returns:
+        The first sentence, or the whole stripped text if it has no end mark.
+
+    Examples:
+        >>> first_sentence("It reads brackets. More follows.")
+        'It reads brackets.'
+    """
     found = re.match(r"(.+?[.!?])(\s|$)", text.strip(), re.S)
     return found.group(1) if found else text.strip()
 
 
 def compose(head: str, body: str, link: str, separator: str = " ") -> str:
-    """``head`` and ``body``, cut to fit with ``link`` on its own line, and screened."""
+    r"""``head`` and ``body``, cut to fit with ``link`` on its own line, and screened.
+
+    Args:
+        head: The post's first words, kept whole.
+        body: The text after them, cut to fit.
+        link: The link, on its own last line.
+        separator: What goes between ``head`` and ``body``.
+
+    Returns:
+        The post: the text on one or more lines, then the link on the last line.
+
+    Examples:
+        >>> compose("L3/N7+ VERIFIED:", "Fires on dates.", "https://x.org/u")
+        'L3/N7+ VERIFIED: Fires on dates.\nhttps://x.org/u'
+    """
     from openinterpretability.builder.pii import redact_text
 
     head, body = redact_text(head), redact_text(body)
@@ -59,23 +111,70 @@ def compose(head: str, body: str, link: str, separator: str = " ") -> str:
 
 
 def experiment_post(entry: Entry) -> str:
-    """The post for a VERIFIED experiment, from its ``feed.xml`` entry."""
+    r"""The post for a VERIFIED experiment, from its ``feed.xml`` entry.
+
+    Args:
+        entry: The experiment's feed entry.
+
+    Returns:
+        The post's text, which fits :data:`LIMIT`.
+
+    Examples:
+        >>> experiment_post(Entry("u", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u",
+        ...                       "Fires on dates."))
+        'gpt2/L1/N5-positive VERIFIED: Fires on dates.\nhttps://x.org/u'
+    """
     slug = entry.title.removesuffix(" VERIFIED")
     return compose(f"{slug} VERIFIED:", entry.summary, entry.link)
 
 
 def paper_post(entry: Entry) -> str:
-    """The post for a published paper, from its ``research/published.xml`` entry."""
+    r"""The post for a published paper, from its ``research/published.xml`` entry.
+
+    Args:
+        entry: The paper's feed entry.
+
+    Returns:
+        The post's text, which fits :data:`LIMIT`.
+
+    Examples:
+        >>> paper = Entry("p", "A bracket neuron", "https://x.org/p", "It reads brackets. More.")
+        >>> paper_post(paper)
+        'A bracket neuron\n\nIt reads brackets.\nhttps://x.org/p'
+    """
     return compose(entry.title, first_sentence(entry.summary), entry.link, separator="\n\n")
 
 
 def digest_post(count: int, link: str) -> str:
-    """One post for many new VERIFIED units at once."""
+    r"""One post for many new VERIFIED units at once.
+
+    Args:
+        count: How many new VERIFIED units.
+        link: The site's link.
+
+    Returns:
+        The post's text.
+
+    Examples:
+        >>> digest_post(5, "https://x.org/")
+        '5 new VERIFIED units in the registry.\nhttps://x.org/'
+    """
     return f"{count} new VERIFIED units in the registry.\n{link}"
 
 
 def length(post: str) -> int:
-    """The weighted length of a whole post, each link counted as :data:`LINK`."""
+    r"""The weighted length of a whole post, each link counted as :data:`LINK`.
+
+    Args:
+        post: The whole post, links included.
+
+    Returns:
+        The weight of the text outside links, plus :data:`LINK` for each link.
+
+    Examples:
+        >>> length("Fires on dates.\nhttps://example.org/a/very/long/path")
+        39
+    """
     links = re.findall(r"https?://\S+", post)
     rest = re.sub(r"https?://\S+", "", post)
     return weight(rest) + LINK * len(links)

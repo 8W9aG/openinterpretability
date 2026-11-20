@@ -43,13 +43,36 @@ Every module, class, function and method has one, private and nested ones too (#
 
 **Every argument has a line in `Args:`** (Google style), and the section names no argument that the signature lacks. `scripts/check_docstring_args.py` checks it in `make lint`. Skip `self` and `cls`. Describe `*args` and `**kwargs`, with or without the stars. A Click command's arguments get lines too: a Click option's `help=` is for the command line, and the docstring is for the reader of the code. `__init__`'s arguments go in its class's docstring. The rule is ratcheted in. `scripts/docstring_args_baseline.txt` lists the functions that broke it when it was added. When you describe a listed function's arguments, delete its line, and raise interrogate's `fail-under` when its coverage rises.
 
+**A public function also has `Returns:`, `Yields:` and `Raises:` sections where they apply** (#5361). `Returns:` says what a returned value means, not only its type. A function that returns `None` needs none, and a `@property` getter needs none either. `Yields:` does the same for a generator. `Raises:` names each exception that the function's own body raises, with the condition that causes it, and names no other. A bare re-raise doesn't count. `scripts/check_docstring_sections.py` checks it in `make lint`, ratcheted by `scripts/docstring_sections_baseline.txt`.
+
 ```python
 def scale(x: float, factor: float = 2.0) -> float:
     """``x`` times ``factor``.
 
     Args:
         x: The number to scale.
-        factor: How much to scale it by.
+        factor: How much to scale it by. It must not be negative.
+
+    Returns:
+        The scaled number.
+
+    Raises:
+        ValueError: When ``factor`` is negative.
+    """
+```
+
+**Every public function and method has an `Examples` section with a doctest** (#5356). Show one real call and its exact output, with `>>>`. pytest runs them (`--doctest-modules`). Keep them fast and offline: no model or dataset download, no network, no GPU. Use small made-up data, and set every seed. A docstring whose examples print `\n` must be a raw string (`r"""`). A function that can't run offline even with a tiny stand-in goes in `scripts/doctests_exempt.txt` with the reason. Never use `# doctest: +SKIP`. `tests/test_doctests.py` checks it. `scripts/doctests_baseline.txt` lists the module files still to do, and the list only shrinks.
+
+```python
+def weight(text: str) -> int:
+    """The length of ``text`` as X counts it.
+
+    Args:
+        text: The text to count.
+
+    Examples:
+        >>> weight("neuron")
+        6
     """
 ```
 

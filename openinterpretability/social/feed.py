@@ -20,7 +20,24 @@ class Entry:
 
 
 def read_feed(path: Path) -> list[Entry]:
-    """The entries of the Atom feed at ``path``, in the feed's order (newest first)."""
+    """The entries of the Atom feed at ``path``, in the feed's order (newest first).
+
+    Args:
+        path: The Atom feed's file.
+
+    Returns:
+        One entry per ``<entry>`` element, in the feed's order.
+
+    Examples:
+        >>> import tempfile
+        >>> feed = Path(tempfile.mkdtemp()) / "feed.xml"
+        >>> _ = feed.write_text(
+        ...     '<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>u1</id>'
+        ...     '<title>T</title><link href="https://x.org/a"/><summary>S</summary>'
+        ...     '</entry></feed>')
+        >>> read_feed(feed)
+        [Entry(id='u1', title='T', link='https://x.org/a', summary='S')]
+    """
     # The feeds are files that this repo's own build wrote, not data from outside.
     root = ET.parse(path).getroot()  # noqa: S314
     out = []

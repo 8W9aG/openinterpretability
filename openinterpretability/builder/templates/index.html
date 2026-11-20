@@ -145,7 +145,7 @@
 
 <p class="mb-10 text-sm text-slate-600 dark:text-slate-400">
   {{ agents | length }} agent model{{ "" if agents | length == 1 else "s" }} proposed, reviewed or judged these experiments{% if agents %}, most often {% for a in agents[:3] %}<a class="font-mono text-xs underline" href="{{ root }}{{ a.href }}">{{ a.model }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}.
-  <a class="underline" href="{{ root }}agents/index.html">Agents</a> has each one's VERIFIED rate and costs by role.
+  <a class="underline" href="{{ root }}agents/index.html">Contributors</a> has each one's VERIFIED rate and costs by role.
 </p>
 
 {% if contested %}

@@ -30,7 +30,7 @@ BASELINE = ROOT / "scripts" / "docstring_args_baseline.txt"
 FOLDERS = ("openinterpretability/", "scripts/")
 SKIPPED = frozenset({"self", "cls"})
 SECTION = re.compile(r"^(\s*)(Args|Arguments|Parameters):\s*$")
-ENTRY = re.compile(r"^\s*\**([A-Za-z_]\w*)\s*(?:\([^)]*\))?\s*:")
+ENTRY = re.compile(r"^\s*\**([A-Za-z_][\w.]*)\s*(?:\([^)]*\))?\s*:")
 
 
 def arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
@@ -48,17 +48,28 @@ def arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
 def described(docstring: str | None) -> set[str]:
     """The argument names that the docstring's ``Args:`` section describes.
 
+    Args:
+        docstring: The function's docstring, or None.
+    """
+    return entries(docstring, SECTION)
+
+
+def entries(docstring: str | None, section: re.Pattern) -> set[str]:
+    """The names that start the entries of the docstring's ``section``.
+
     The first line after the heading sets the entries' indent. A line at that indent starts
-    an entry: a name (stars allowed), an optional type in brackets, then a colon. A deeper
-    line continues an entry, and a shallower one ends the section.
+    an entry: a name (stars and dots allowed), an optional type in brackets, then a colon. A
+    deeper line continues an entry, and a shallower one ends the section.
 
     Args:
         docstring: The function's docstring, or None.
+        section: A pattern that matches the section's heading line, with its indent as
+            group 1.
     """
     names: set[str] = set()
     heading = entry = None  # the indents of the section's heading and of its entries
     for line in (docstring or "").splitlines():
-        found = SECTION.match(line)
+        found = section.match(line)
         if found:
             heading, entry = len(found.group(1)), None
             continue
