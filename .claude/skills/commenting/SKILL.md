@@ -43,13 +43,21 @@ Every module, class, function and method has one, private and nested ones too (#
 
 **Every argument has a line in `Args:`** (Google style), and the section names no argument that the signature lacks. `scripts/check_docstring_args.py` checks it in `make lint`. Skip `self` and `cls`. Describe `*args` and `**kwargs`, with or without the stars. A Click command's arguments get lines too: a Click option's `help=` is for the command line, and the docstring is for the reader of the code. `__init__`'s arguments go in its class's docstring. The rule is ratcheted in. `scripts/docstring_args_baseline.txt` lists the functions that broke it when it was added. When you describe a listed function's arguments, delete its line, and raise interrogate's `fail-under` when its coverage rises.
 
+**A public function also has `Returns:`, `Yields:` and `Raises:` sections where they apply** (#5361). `Returns:` says what a returned value means, not only its type. A function that returns `None` needs none, and a `@property` getter needs none either. `Yields:` does the same for a generator. `Raises:` names each exception that the function's own body raises, with the condition that causes it, and names no other. A bare re-raise doesn't count. `scripts/check_docstring_sections.py` checks it in `make lint`, ratcheted by `scripts/docstring_sections_baseline.txt`.
+
 ```python
 def scale(x: float, factor: float = 2.0) -> float:
     """``x`` times ``factor``.
 
     Args:
         x: The number to scale.
-        factor: How much to scale it by.
+        factor: How much to scale it by. It must not be negative.
+
+    Returns:
+        The scaled number.
+
+    Raises:
+        ValueError: When ``factor`` is negative.
     """
 ```
 

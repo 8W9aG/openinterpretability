@@ -185,18 +185,8 @@ def explanation_view(scores, scale: float) -> dict | None:
 
 # Paths the builder (and the Pagefind step after it) owns inside the output dir.
 # They are removed before each build so deleted records leave no stale pages.
-OWNED_PATHS = (
-    "index.html",
-    "about.html",
-    "learned-baseline.html",
-    "models",
-    "agents",
-    "users",
-    "neurons",
-    "research",
-    "data",
-    "pagefind",
-)
+OWNED_PATHS = ("index.html", "about.html", "learned-baseline.html", "models", "agents", "users",
+               "neurons", "research", "posts", "data", "pagefind")  # fmt: skip
 
 
 def _clean_owned_paths(output_dir: Path) -> None:
@@ -296,6 +286,7 @@ def compile_site(
     alignment_rows: dict | None = None,
     sister_rows: dict | None = None,
     papers_dir: Path | None = None,
+    posts_dir: Path | None = None,
     stops: Sequence[ChosenStop] = (),
     model_facts: dict[str, ModelFacts] | None = None,
     jobs: int = 1,
@@ -314,10 +305,11 @@ def compile_site(
     Rows fill in what old records lack. ``wiring_rows`` and ``corpus_sources`` come from
     ``wiring_backfill.load_rows`` and ``corpus.load_sources``. ``alignment_rows``
     (``crossref.load_rows``) are each pole's aligned latents. ``sister_rows``
-    (``sisters.load_rows``) are its matches. ``papers_dir`` holds the Research section.
-    ``paper_pdfs`` adds each paper's PDF, and ``pending`` (``builder/pending.py``) lists open
-    experiment PRs on the pages. ``stops`` and ``draws`` (``core.draws``) go on their unit's
-    page. ``model_facts`` (``builder.model_facts.load_model_facts``) fill the Models page.
+    (``sisters.load_rows``) are its matches. ``papers_dir`` holds the Research section, and
+    ``posts_dir`` the Posts section (#4650). ``paper_pdfs`` adds each paper's PDF, and
+    ``pending`` (``builder/pending.py``) lists open experiment PRs on the pages. ``stops``
+    and ``draws`` (``core.draws``) go on their unit's page. ``model_facts``
+    (``builder.model_facts.load_model_facts``) fill the Models page.
     ``jobs`` is the unit pages' worker processes. ``circuits`` feed the circuit and hub pages.
     ``errata`` (``core.errata.load_errata``) alter the experiments they cover: each shows the
     erratum, and one set aside counts toward no standing. ``users`` (``builder.users``) name
@@ -358,7 +350,7 @@ def compile_site(
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     _render_index(render, models, agents, stats, (*draws, *stops))
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report, pdfs=paper_pdfs, explanations=explanations)
+    render_reference_pages(render, papers_dir, report, paper_pdfs, explanations, posts_dir)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     save_spans()  # keep the matches of new text for the next build
     P_USEFUL.save()  # and the significance of new records
