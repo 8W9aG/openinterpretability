@@ -3,6 +3,8 @@ message: If you use this paper, please cite it as below.
 type: article
 title: One concept map for four models
 authors:
+- given-names: Will
+  family-names: Sackfield
 - name: Open Interpretability
 date-released: '2026-11-20'
 version: preprint

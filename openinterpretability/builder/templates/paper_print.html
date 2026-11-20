@@ -43,7 +43,7 @@
 </head>
 <body>
 <h1>{{ paper.title }}</h1>
-<p class="byline">Open Interpretability · <a href="{{ site_url }}research/{{ paper.href }}">{{ site_url }}research/{{ paper.slug }}</a></p>
+<p class="byline">{{ paper.authors | join(", ") if paper.authors else "Open Interpretability" }} · <a href="{{ site_url }}research/{{ paper.href }}">{{ site_url }}research/{{ paper.slug }}</a></p>
 <div class="paper">{{ body | safe }}</div>
 </body>
 </html>

@@ -3,6 +3,8 @@ message: If you use this paper, please cite it as below.
 type: article
 title: A bracket neuron in GPT-2, and the label that hid it
 authors:
+- given-names: Will
+  family-names: Sackfield
 - name: Open Interpretability
 date-released: '2026-11-06'
 version: '1.0'

@@ -15,6 +15,7 @@
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="../index.html">Research</a></nav>
 <h1 class="max-w-3xl text-2xl font-semibold">{{ paper.title }}</h1>
+{% if paper.authors %}<p class="mt-1 text-sm text-slate-700 dark:text-slate-300">{{ paper.authors | join(", ") }}</p>{% endif %}
 <p class="mt-2 text-xs text-slate-500">
   {% if paper.status %}{{ paper_status(paper.status, repo_url) }} ·{% endif %}
   <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/results.jsonl">Results</a> ·

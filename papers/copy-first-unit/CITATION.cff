@@ -3,6 +3,8 @@ message: If you use this paper, please cite it as below.
 type: article
 title: Why Pythia-70m copies the first clause's unit
 authors:
+- given-names: Will
+  family-names: Sackfield
 - name: Open Interpretability
 date-released: '2026-11-19'
 version: preprint

@@ -1420,6 +1420,21 @@ def test_research_section_lists_papers_in_order_and_renders_them(tmp_path):
     assert 'href="research/index.html"' in (out / "index.html").read_text()
 
 
+def test_paper_pages_and_the_index_name_the_authors(tmp_path):
+    # The authors come from the paper's CITATION.cff, in order (#5260).
+    papers = tmp_path / "papers"
+    papers.mkdir()
+    (papers / "README.md").write_text("- [One](one/README.md)\n")
+    _write_paper(papers, "one", "# First paper\n\nIts summary.\n")
+    (papers / "one" / "CITATION.cff").write_text(
+        "authors:\n- given-names: Will\n  family-names: Sackfield\n- name: Open Interpretability\n"
+    )
+    out = tmp_path / "dist"
+    compile_site([], out, papers_dir=papers)
+    for page in ("research/index.html", "research/one/index.html"):
+        assert "Will Sackfield, Open Interpretability" in (out / page).read_text()
+
+
 def test_research_section_copies_an_interactive_page_as_it_is(tmp_path):
     papers = tmp_path / "papers"
     papers.mkdir()
