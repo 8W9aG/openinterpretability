@@ -93,6 +93,7 @@ jobs:
           python scripts/check_step_comments.py
           python scripts/check_body_comments.py
           python scripts/check_docstring_args.py
+          python scripts/check_docstring_sections.py
           python scripts/check_data_files.py
           python scripts/exchange.py check
           python scripts/changelog.py check

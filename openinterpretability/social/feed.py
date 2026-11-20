@@ -25,6 +25,9 @@ def read_feed(path: Path) -> list[Entry]:
     Args:
         path: The Atom feed's file.
 
+    Returns:
+        One entry per ``<entry>`` element, in the feed's order.
+
     Examples:
         >>> import tempfile
         >>> feed = Path(tempfile.mkdtemp()) / "feed.xml"

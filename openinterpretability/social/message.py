@@ -29,6 +29,9 @@ def weight(text: str) -> int:
     Args:
         text: The text to count.
 
+    Returns:
+        The number of characters as X counts them.
+
     Examples:
         >>> weight("neuron")
         6
@@ -44,6 +47,9 @@ def fit(text: str, budget: int) -> str:
     Args:
         text: The text to cut.
         budget: The largest weight allowed.
+
+    Returns:
+        ``text`` itself if it fits, else its first words and an ellipsis, or "" if no word fits.
 
     Examples:
         >>> fit("Fires on the closing bracket", 20)
@@ -65,6 +71,9 @@ def first_sentence(text: str) -> str:
     Args:
         text: The text, such as a paper's abstract.
 
+    Returns:
+        The first sentence, or the whole stripped text if it has no end mark.
+
     Examples:
         >>> first_sentence("It reads brackets. More follows.")
         'It reads brackets.'
@@ -81,6 +90,9 @@ def compose(head: str, body: str, link: str, separator: str = " ") -> str:
         body: The text after them, cut to fit.
         link: The link, on its own last line.
         separator: What goes between ``head`` and ``body``.
+
+    Returns:
+        The post: the text on one or more lines, then the link on the last line.
 
     Examples:
         >>> compose("L3/N7+ VERIFIED:", "Fires on dates.", "https://x.org/u")
@@ -104,6 +116,9 @@ def experiment_post(entry: Entry) -> str:
     Args:
         entry: The experiment's feed entry.
 
+    Returns:
+        The post's text, which fits :data:`LIMIT`.
+
     Examples:
         >>> experiment_post(Entry("u", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u",
         ...                       "Fires on dates."))
@@ -118,6 +133,9 @@ def paper_post(entry: Entry) -> str:
 
     Args:
         entry: The paper's feed entry.
+
+    Returns:
+        The post's text, which fits :data:`LIMIT`.
 
     Examples:
         >>> paper = Entry("p", "A bracket neuron", "https://x.org/p", "It reads brackets. More.")
@@ -134,6 +152,9 @@ def digest_post(count: int, link: str) -> str:
         count: How many new VERIFIED units.
         link: The site's link.
 
+    Returns:
+        The post's text.
+
     Examples:
         >>> digest_post(5, "https://x.org/")
         '5 new VERIFIED units in the registry.\nhttps://x.org/'
@@ -146,6 +167,9 @@ def length(post: str) -> int:
 
     Args:
         post: The whole post, links included.
+
+    Returns:
+        The weight of the text outside links, plus :data:`LINK` for each link.
 
     Examples:
         >>> length("Fires on dates.\nhttps://example.org/a/very/long/path")
