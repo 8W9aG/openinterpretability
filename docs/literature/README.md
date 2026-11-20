@@ -45,6 +45,7 @@ Status marks how the work relates to this repo:
 | --- | --- | --- |
 | [Activation Probes Are Reliable With a Handful of Positive Examples](activation-probes-few-positives.md) (Tyagi and Heimersheim, 2026) | not applicable | Train on all the negatives, with a class-weighted loss, when positives are rare. `probe-compare` already does. Our thin probe rows lack held-out positives, which the paper does not address. |
 | [Is a Linear Probe Evidence of a Linear Representation?](linear-probe-evidence.md) (Kutluozen, Internò and Klindt, 2026) | planned | A random feature map also decodes factors linearly, so probe accuracy needs a random-init control. Our verdicts have one (the untrained null). `probe-compare`'s dense probes don't yet (#3559). |
+| [Pretty Linear Liars: Unregularized Probes Favor Intervention-Unfaithful Features](pretty-linear-liars.md) (Emneby, Yocum and Allen, 2026) | planned | Unregularized probes decode best, but their directions are inert when intervened on. Ridge with a swept penalty comes close to causal search. It names a risk for the probe comparison's weakly regularised logistic probes, not for any verdict. |
 
 ## Neurons, circuits and dictionaries
 
@@ -124,6 +125,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages cover 
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Can Mechanistic Interpretability Help Explain LLM Agent Failures?](agent-web-element-hallucination.md) (Aghzal, Geva, Stein and Yao, 2026) | planned | A probe predicts Qwen2.5-7B's web-agent hallucinations (AUC 0.80), and steering along it fixes up to 85.4% while breaking 7% of valid actions. That is the best cell of a sweep, with no random-direction control. Paired patching failed, and no head, neuron or SAE feature explains the decision. |
 | [Steering Language Models With Activation Engineering](activation-addition.md) (Turner et al., 2023) | used | The steering samples and the `neuron-steering-tests` skill cite it, but they clamp one unit instead of adding a contrast-pair vector. Its random-vector control of the same norm points to a null that our steering samples lack. |
 | [Steering Llama 2 via Contrastive Activation Addition](contrastive-activation-addition.md) (Rimsky/Panickssery et al., 2024) | not applicable | Mean-difference residual vectors from contrast pairs shift Llama 2 Chat behaviours, but the paper has no random-vector null and only 50 test items per behaviour. Our steering clamps single units, so the page records evidence and questions for the fix campaign. |
 | [Inference-Time Intervention](inference-time-intervention.md) (Li, Patel, Viégas, Pfister and Wattenberg, 2023) | planned | ITI adds a class-mean shift to the top probe-ranked heads (LLaMA-7B TruthfulQA True*Info 30.5 to 43.5). It shows how to steer heads, which our steering samples skip, but it has no random-head null (#4784). |
