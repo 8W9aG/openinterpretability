@@ -237,7 +237,7 @@ def test_the_page_leads_with_the_answer_verdict(tmp_path, record):
         assert "Counterfactual prompts" in page and "The reviewer's prompts" in page
         # Rule 1.1 (#4892): each gate's margin, the reviewer's corrupted prompts, the seed.
         assert ">Margin<" in page and " pp<" in page and "aycd" in page
-        assert "The review drew the random sets' seed, 7" in page
+        assert "The review drew their seed, 7" in page
         assert page.count("passed") + page.count("failed") >= 7  # every gate, in words
         slug = answer.record.claim.model_name.replace("/", "--")
         assert "L0/H1" in page and f"models/{slug}/L0/H1.html" in page

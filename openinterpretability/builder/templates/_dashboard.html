@@ -1,11 +1,11 @@
 {# The home page's registry dashboard. Expects `dashboard` (builder/dashboard.py) and `map_fill`. #}
+{% from "_macros.html" import read_more %}
 {% set tl = dashboard.timeline %}{% set mb = dashboard.models %}
 <section class="mb-10" id="dashboard" data-pagefind-ignore>
   <h2 class="mb-1 text-lg font-semibold">Registry dashboard</h2>
-  <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-    The verdict of every experiment on a neuron pole or an attention head, by the day of its review (UTC), by model and by layer.
-    Repeat experiments count each time, so these are verdicts, not unit statuses. Dictionary latents are not included.
-  </p>
+  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Every verdict on a neuron pole or an attention head, by day, model and layer.</p>
+  {% call read_more() %}<p>By the day of the review (UTC). Repeat experiments count each time, so these are verdicts, not unit statuses. Dictionary latents are left out.</p>{% endcall %}
+  <div class="mb-4"></div>
   <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
     {% for s in dashboard.statuses %}
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }}</span>

@@ -304,7 +304,7 @@ def test_each_experiment_has_its_own_page_and_the_unit_page_lists_them(tmp_path,
         assert f'href="{href}"' in neuron
 
     page = (layer / pages[0]).read_text()
-    assert "Evidence and review" in page and "data-pagefind-body" in page
+    assert "Adversarial review" in page and "data-pagefind-body" in page
     assert 'href="../../../../index.html"' in page  # relative root, one level deeper
     assert f'<a class="underline" href="../../../../models/{MODEL}/L3/N117.html">' in page
     assert f"wiki/experiments/{MODEL}/L3/{pages[0].removesuffix('.html')}.json" in page
@@ -524,9 +524,10 @@ def test_causal_chart_rendered(tmp_path, record):
     verdict = record.verdict.model_copy(update={"causal_metrics": causal})
     compile_site([record.model_copy(update={"verdict": verdict})], tmp_path)
     page = unit_pages(next((tmp_path / "models").rglob("N*.html")))
-    assert "Causal effects per minimal pair" in page
+    assert "Minimal pairs" in page
     assert "Sufficiency and necessity percentiles for 2 minimal pairs" in page
-    assert "Per-pair numbers" in page
+    # The per-pair numbers are merged into the pair table (#5566).
+    assert '<th class="px-3 py-2 text-right">Sufficiency</th>' in page
 
 
 def test_cli_build_from_wiki_archive(tmp_path, records, monkeypatch):
@@ -1060,7 +1061,7 @@ def test_failed_rival_contests_a_verified_hypothesis(tmp_path, records):
     report = compile_site(records, tmp_path)
     assert registry_stats(report.parquet)["totals"]["contested"] == 1
     neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "A newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
+    assert "a newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
     assert "A new hypothesis that reaches VERIFIED settles it." in neuron
     assert "split evenly" not in neuron
 
@@ -1414,9 +1415,24 @@ def test_research_section_lists_papers_in_order_and_renders_them(tmp_path):
     page = (out / "research" / "one" / "index.html").read_text()
     assert 'href="../two/index.html"' in page
     assert "/blob/main/scripts/x.py" in page
-    assert "<table>" in page
+    assert '<table tabindex="0">' in page  # a table scrolls, so a keyboard must reach it (#5649)
     assert (out / "research" / "one" / "media" / "fig.svg").exists()
     assert 'href="research/index.html"' in (out / "index.html").read_text()
+
+
+def test_paper_pages_and_the_index_name_the_authors(tmp_path):
+    # The authors come from the paper's CITATION.cff, in order (#5260).
+    papers = tmp_path / "papers"
+    papers.mkdir()
+    (papers / "README.md").write_text("- [One](one/README.md)\n")
+    _write_paper(papers, "one", "# First paper\n\nIts summary.\n")
+    (papers / "one" / "CITATION.cff").write_text(
+        "authors:\n- given-names: Will\n  family-names: Sackfield\n- name: Open Interpretability\n"
+    )
+    out = tmp_path / "dist"
+    compile_site([], out, papers_dir=papers)
+    for page in ("research/index.html", "research/one/index.html"):
+        assert "Will Sackfield, Open Interpretability" in (out / page).read_text()
 
 
 def test_research_section_copies_an_interactive_page_as_it_is(tmp_path):
@@ -1765,7 +1781,8 @@ def test_protocol_mix_of_verified_units_is_reported(tmp_path, records):
     assert mix.get("0.7") == 1 and stats["current_protocol"] == PROTOCOL_VERSION
     assert sum(mix.values()) == stats["totals"]["verified"]
     home = (tmp_path / "index.html").read_text()
-    assert "Protocol of the verified claims:" in home and "1 under 0.7" in home
+    assert "verified claims were judged under the current protocol" in home
+    assert "1 under 0.7" in home
 
 
 def test_the_registry_table_is_the_same_in_batches(records, monkeypatch):

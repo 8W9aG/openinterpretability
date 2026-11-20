@@ -38,7 +38,9 @@ from openinterpretability.builder.research import (  # noqa: E402
     paper_status,
 )
 
-PAPERS = Path(__file__).resolve().parents[1] / "papers"
+ROOT = Path(__file__).resolve().parents[1]
+PAPERS = ROOT / "papers"
+GROUP = {"name": "Open Interpretability"}
 SITE = "https://open-interpretability.com/research/"
 REPO = "https://github.com/8W9aG/openinterpretability"
 PREPRINT = "preprint"
@@ -65,6 +67,19 @@ def frozen_hash(folder: Path) -> str:
     return "sha256:" + digest.hexdigest()
 
 
+def authors(root: Path = ROOT) -> list[dict]:
+    """Every paper's authors: the people of the root ``CITATION.cff``, then the group.
+
+    The maintainer decided on 2026-11-19 to be an author of every paper (#5260). The
+    agents' part goes in each paper's text, not in this list.
+
+    Args:
+        root: The repository's root, which holds the root ``CITATION.cff``.
+    """
+    people = yaml.safe_load((root / "CITATION.cff").read_text(encoding="utf-8"))["authors"]
+    return [*people, GROUP]
+
+
 def citation(folder: Path, date: str, version: str, digest: str | None = None) -> dict:
     """The paper's ``CITATION.cff``, as a mapping."""
     cff = {
@@ -72,7 +87,7 @@ def citation(folder: Path, date: str, version: str, digest: str | None = None) -
         "message": "If you use this paper, please cite it as below.",
         "type": "article",
         "title": title((folder / "README.md").read_text(encoding="utf-8")),
-        "authors": [{"name": "Open Interpretability"}],
+        "authors": authors(),
         "date-released": date,
         "version": version,
         "url": f"{SITE}{folder.name}/index.html",
@@ -104,7 +119,7 @@ def problems(folder: Path, date: str) -> list[str]:
     cff = yaml.safe_load(path.read_text(encoding="utf-8"))
     want = citation(folder, date, PREPRINT if status.preprint else PUBLISHED)
     out = [f"CITATION.cff {key} is {cff.get(key)!r}, not {want[key]!r}"
-           for key in ("cff-version", "type", "title", "date-released", "version", "url")
+           for key in ("cff-version", "type", "title", "authors", "date-released", "version", "url")
            if cff.get(key) != want[key]]  # fmt: skip
     if not status.preprint:
         stored = [i.get("value") for i in cff.get("identifiers", []) if i.get("type") == "other"]

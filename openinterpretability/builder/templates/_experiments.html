@@ -1,14 +1,13 @@
 {# Every experiment on a unit, and the scans that stopped on it. Included from neuron.html and superposition.html. Expects `neuron` and `stops`. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome, read_more %}
   {% if neuron.experiments or stops %}
   <section aria-labelledby="experiments">
     <h2 id="experiments" class="text-base font-semibold">Experiments</h2>
     <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-      {% if neuron.experiments %}Every experiment on this {{ neuron.noun }}, including null and superseded results, ordered by how
-      conclusive its probe evidence is (in either direction). Each has its own page with the evidence and the review.
-      {% else %}This {{ neuron.noun }} has no experiment: every scan of it stopped, newest first below.{% endif %}
-      {% if stops %}{% if neuron.experiments %}Scans that stopped come last, newest first. {% endif %}A scan stops on a unit that never fires, or that is active on at least half of its tokens. It tested no hypothesis, so its outcome stands in place of a verdict and counts toward no status. A chosen unit's stop doesn't count in random-draw statistics.{% endif %}
+      {% if neuron.experiments %}Most conclusive first, null and superseded results included.{% if stops %} Scans that stopped come last.{% endif %}
+      {% else %}No experiment: every scan of this {{ neuron.noun }} stopped.{% endif %}
     </p>
+    {% if stops %}{% call read_more() %}<p>A scan stops on a unit that never fires, or that is active on at least half of its tokens. It tested no hypothesis, so it counts toward no status. A chosen unit's stop doesn't count in random-draw statistics.</p>{% endcall %}{% endif %}
     <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-sm">
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">

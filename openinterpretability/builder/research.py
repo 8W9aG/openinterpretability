@@ -16,6 +16,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml  # a dependency of transformers and huggingface_hub
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
@@ -87,6 +88,56 @@ def _mark_long_cells(state) -> None:
 _MARKDOWN.core.ruler.push("long_cells", _mark_long_cells)
 
 
+def _focusable_tables(state) -> None:
+    """Give each table ``tabindex="0"``, so that a keyboard can scroll it (#5649).
+
+    ``_prose.html`` makes each table its own scroll box. A box that scrolls must take focus,
+    or a reader with no mouse can't see the hidden columns.
+
+    Args:
+        state: markdown-it's core state, whose tokens are changed in place.
+    """
+    for token in state.tokens:
+        if token.type == "table_open":
+            token.attrSet("tabindex", "0")
+
+
+_MARKDOWN.core.ruler.push("focusable_tables", _focusable_tables)
+
+
+def _focusable_code(render):
+    """Wrap a code renderer so that its ``<pre>`` takes keyboard focus (#5649).
+
+    A long code line scrolls inside its box, so the box must take focus, as a table does.
+
+    Args:
+        render: markdown-it's own renderer rule for ``fence`` or ``code_block``.
+
+    Returns:
+        A renderer rule that gives the rule's ``<pre>`` the attribute ``tabindex="0"``.
+    """
+
+    def rule(tokens, idx, options, env):
+        """Render the code block, then give its ``<pre>`` a tab stop.
+
+        Args:
+            tokens: The parsed Markdown.
+            idx: The code block's place in ``tokens``.
+            options: markdown-it's options.
+            env: markdown-it's render environment.
+
+        Returns:
+            The code block's HTML.
+        """
+        return render(tokens, idx, options, env).replace("<pre>", '<pre tabindex="0">', 1)
+
+    return rule
+
+
+for _kind in ("fence", "code_block"):
+    _MARKDOWN.renderer.rules[_kind] = _focusable_code(_MARKDOWN.renderer.rules[_kind])
+
+
 @dataclass(frozen=True)
 class Paper:
     """One entry of the Research section."""
@@ -104,6 +155,7 @@ class Paper:
     hero_alt: str = ""  # the first figure's alt text, for X and link cards (#5534)
     social_image: str | None = None  # media/social.png, drawn from the first figure (#5534)
     social_video: str | None = None  # media/social.mp4, when that figure animates
+    authors: tuple[str, ...] = ()  # from the folder's CITATION.cff, in order (#5260)
 
     @property
     def href(self) -> str:
@@ -162,6 +214,27 @@ def _first_image(tokens: list[Token]) -> tuple[str | None, str]:
     return None, ""
 
 
+def cff_authors(folder: Path) -> tuple[str, ...]:
+    """The author names in ``folder/CITATION.cff``, in order, or none if it has no such file.
+
+    A person is "given-names family-names", and a group is its ``name`` (#5260).
+
+    Args:
+        folder: The paper's folder.
+
+    Returns:
+        The names, or an empty tuple when the folder has no ``CITATION.cff``.
+    """
+    path = folder / "CITATION.cff"
+    if not path.is_file():
+        return ()
+    people = yaml.safe_load(path.read_text(encoding="utf-8")).get("authors") or []
+    return tuple(
+        a.get("name") or " ".join(filter(None, (a.get("given-names"), a.get("family-names"))))
+        for a in people
+    )
+
+
 def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
     """Render one paper or post. Its text passes the same search for personal data as all the site.
 
@@ -203,6 +276,7 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
         interactive=interactive,
         sections=sections,
         status=paper_status(text),
+        authors=cff_authors(folder),
     )
 
 

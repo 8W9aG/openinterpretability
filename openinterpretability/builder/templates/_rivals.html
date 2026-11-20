@@ -1,8 +1,10 @@
 {# Rival readings of the unit, scored beside the hypothesis (core/rivals.py, #3197). #}
+{% from "_macros.html" import fold, read_more %}
   {% if verdict and verdict.rivals %}
-  <section class="mt-10" data-pagefind-ignore>
-    <h3 class="mb-1 text-base font-semibold">Rival readings</h3>
-    <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The proposer also wrote other readings that fit the same examples, and the reviewer labelled each probe with what each one predicts. Each reading is scored by its balanced accuracy on the measured probes. Recorded, not gated: the verdict is about the hypothesis alone.</p>
+  {% call fold("Rival readings") %}<div data-pagefind-ignore>
+    <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Other readings that fit the same examples, each scored on the same probes.</p>
+    {% call read_more() %}<p>The proposer wrote the rivals, and the reviewer labelled what each one predicts on each probe. The score is balanced accuracy on the measured probes. Recorded, not gated: the verdict is about the hypothesis alone.</p>{% endcall %}
+    <div class="mt-3"></div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-slate-500"><th class="py-1 pr-3">Reading</th><th class="py-1 pr-3 text-right">Balanced accuracy</th><th class="py-1 pr-3 text-right">Probes</th><th class="py-1 text-right">Disagrees with the hypothesis</th></tr></thead>
@@ -18,5 +20,5 @@
         </tbody>
       </table>
     </div>
-  </section>
+  </div>{% endcall %}
   {% endif %}
