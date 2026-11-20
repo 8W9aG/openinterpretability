@@ -155,6 +155,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
     gh release create v<version> --verify-tag --title "openinterpretability <version> (protocol v<PROTOCOL_VERSION>)" --notes-file "$notes"
     ```
     Publishing the release also starts `.github/workflows/publish.yml`, which uploads the package to PyPI as `open-interpretability`. Check that its run passed (`gh run list --workflow publish.yml --limit 1`). If it failed on the version check, the tag doesn't match `openinterpretability.__version__`. If it failed on upload, check the trusted publisher on PyPI and the `pypi` environment's tag rule (`docs/development.md`, *Releases on PyPI*). Tell the user either way.
+    Publishing the release also starts `.github/workflows/deploy.yml`, which deploys the site from the tagged commit (#5196). Check that a run started for the `release` event and passed: `gh run list --workflow deploy.yml --event release --limit 1`. If none started, run `gh workflow run deploy.yml`, and tell the user.
     Then check that Zenodo made the DOI: the release's Zenodo record appears under the repository's concept DOI after a few minutes. If it doesn't, the Zenodo GitHub integration is off. Tell the user, since only the repository owner can turn it on at zenodo.org.
 11. **Close the milestone.** Move any open issues in `v<version>` to the next milestone, then close it:
     ```bash
@@ -168,6 +169,7 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
     git merge-base --is-ancestor v<version> origin/main && echo on-main
     gh release view v<version> --json tagName,publishedAt,isDraft      # published, not a draft
     gh run list --workflow publish.yml --limit 1                       # PyPI: passed
+    gh run list --workflow deploy.yml --event release --limit 1        # the site: passed
     curl -s https://pypi.org/pypi/open-interpretability/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
     ```
     The last line must print `<version>`. Then check Zenodo's record for `v<version>`, as in step 10. Then publish the draft advisories of the security sweep's findings, whose fixed version is now on PyPI: `gh api -X PATCH repos/8W9aG/openinterpretability/security-advisories/<id> -f state=published`. If a step fails, fix it or report it to the maintainer, and stay on the release. A release PR left open, or a tag with no GitHub release, means there's no release.
