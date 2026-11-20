@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a package release of openinterpretability. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run, and the concept map of every model (`make maps`). Bump `openinterpretability.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
+description: Cut a package release of openinterpretability. First resolve the open Dependabot and code-scanning alerts. Run the security sweep (Cloudflare's security-audit-skill) and fix each finding it proves. Propose new issues and papers for the literature review. Refresh the sister-neuron rows (`open-interpretability sisters`) for every pole VERIFIED since the last run, and the shared concept map (`make maps`). Bump `openinterpretability.__version__`, date the CHANGELOG's Unreleased section, open the release PR, tag the merged commit and publish the GitHub release that Zenodo archives. Use when the user asks to release, cut a version, bump the version or ship what's on main.
 ---
 
 # Releasing openinterpretability
@@ -112,11 +112,9 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    ```
    Each run appends its rows to `docs/analyses/registry-coverage.jsonl` with the day's date, and the site shows each model's newest run. Commit the file in the release PR, and write the new shares in a fragment, `changelog.d/coverage-<version>.changed.md` (dots as hyphens).
    Then update the circuit ids: `uv run open-interpretability circuits identify`. It appends each model's new, grown, split, merged and gone circuits to `data/circuits/<model>.jsonl` (`docs/circuits-and-hubs.md`). Commit those files in the release PR too.
-   Then rebuild the concept maps on the model pages (#4785): `make maps`. It runs `open-interpretability map` for each configured model, on CPU. A model with too few studied poles gets no map. Each map's `date` becomes the release date. Commit `data/concept-maps/*.json` in the release PR. In the PR body, give how many poles and clusters each map gained:
+   Then update the shared concept map (#4785, #4586): `make maps`. It runs `open-interpretability map` once, on CPU, for every configured model. Old poles keep their positions and regions, and the new ones are placed among their nearest neighbours. Don't pass `--refit` in a release: a refit moves every point, so it needs its own PR. Commit `data/concept-maps/shared.json` in the release PR. In the PR body, give how many poles it gained, and each model's region coverage:
    ```bash
-   for f in data/concept-maps/*.json; do
-     python3 -c 'import json,subprocess,sys; f=sys.argv[1]; n=json.load(open(f)); o=json.loads(subprocess.run(["git","show","HEAD:"+f],capture_output=True,text=True).stdout or "{}"); print(f, len(n.get("points",[]))-len(o.get("points",[])), "poles,", len(n.get("clusters",[]))-len(o.get("clusters",[])), "clusters")' "$f"
-   done
+   python3 -c 'import json,subprocess; f="data/concept-maps/shared.json"; n=json.load(open(f)); o=json.loads(subprocess.run(["git","show","HEAD:"+f],capture_output=True,text=True).stdout or "{}"); print(n["poles"]-o.get("poles",0), "new poles"); [print(m, v["poles"], v["coverage"]) for m,v in n["coverage"]["models"].items()]'
    ```
 5. **Check:** `make check-all lint test`. A failure here comes from `main`, not from the release. Stop and report it rather than fixing it in the release PR.
    Then run the benchmarks on CI. They no longer run on a local machine (#3808):

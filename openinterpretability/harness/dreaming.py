@@ -1,6 +1,6 @@
 """Fluent dreaming: prompts optimised to drive a neuron pole as high as it goes (issue #3228).
 
-This is EPO, from Thompson, Straznickas & Sklar (2024), "Fluent dreaming for language
+This is EPO, from Thompson, Straznickas and Sklar (2024), "Fluent dreaming for language
 models", arXiv:2402.01702, §2. A population of prompts of ``n`` tokens has one member for
 each λ. Member i maximises
 

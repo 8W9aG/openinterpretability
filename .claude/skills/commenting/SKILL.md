@@ -15,6 +15,7 @@ Linters check the form. This skill is for what they cannot judge. To rewrite a s
 | Commented-out code | ruff `ERA` | everything |
 | Docstring coverage | `interrogate` (`[tool.interrogate] fail-under`, never lowered) | `openinterpretability/` |
 | Sentence length, banned words, passive voice | Vale, `make vale` (`.vale/styles/STE`) | `VALE_PATHS` in the `Makefile`: `openinterpretability`, `scripts`, `tests` |
+| APA citations, Latin abbreviations, "percent" | Vale, `make vale` (`.vale/styles/APA`) | the same `VALE_PATHS` |
 | Semicolons, sentence length, synonym rotation in Markdown | `make ste` (the `asd-ste100` skill's linter) | `STE_PATHS` and `STE_LOG_PATHS` in the `Makefile`: the skills, `docs/`, `papers/`, the top-level Markdown and the PR template |
 
 ## When to comment
@@ -38,7 +39,19 @@ Do not comment when the code can say it:
 
 ## Docstrings
 
-Every public module, class, function and method has one (ruff `D1`). `__init__` and magic methods are described by their class. Tests need none: a test's name says what it checks.
+Every module, class, function and method has one, private and nested ones too (#3938). Ruff's `D1` checks the public ones, and `interrogate` counts the private ones as well. `__init__` and magic methods are described by their class. Tests need none: a test's name says what it checks.
+
+**Every argument has a line in `Args:`** (Google style), and the section names no argument that the signature lacks. `scripts/check_docstring_args.py` checks it in `make lint`. Skip `self` and `cls`. Describe `*args` and `**kwargs`, with or without the stars. A Click command's arguments get lines too: a Click option's `help=` is for the command line, and the docstring is for the reader of the code. `__init__`'s arguments go in its class's docstring. The rule is ratcheted in. `scripts/docstring_args_baseline.txt` lists the functions that broke it when it was added. When you describe a listed function's arguments, delete its line, and raise interrogate's `fail-under` when its coverage rises.
+
+```python
+def scale(x: float, factor: float = 2.0) -> float:
+    """``x`` times ``factor``.
+
+    Args:
+        x: The number to scale.
+        factor: How much to scale it by.
+    """
+```
 
 One exception: a Pydantic model that an LLM agent answers in (`HypothesisDraft`, `ProbeSet`, `DetectionAnswer` and the models they contain). Pydantic puts a class docstring into the JSON schema, so a docstring there changes what the agent is told. Mark the class `# noqa: D101` with that reason, and describe the fields with `Field(description=...)`.
 
@@ -118,6 +131,25 @@ A list wrapped so that a line reads as code (ruff `ERA` flagged `# (Latin), Russ
 - **A paper:** author and year, as in `(Paulo et al., 2025)`. Put the full reference in the skill or doc that uses it.
 - **A protocol version:** `v0.8:` at the start of the comment, for a field or rule that a version added.
 - **Another place in the code:** the qualified name, as in ``:func:`openinterpretability.core.costs.stage` `` or `openinterpretability.harness.confounds`.
+
+## APA rules we apply
+
+`.vale/styles/APA` checks the parts of APA 7 that a pattern can check with few false alarms (#3931). Each rule is at level `error`. `tests/test_vale_apa.py` runs every rule on a fixture of faults and a fixture of good forms.
+
+- **"et al." takes a full stop** (APA §8.17): `Gurnee et al. (2023)`.
+- **A comma before the year in parentheses** (§8.11): `(Paulo et al., 2025)`. A month before a year is a date, so `(November 2023)` passes.
+- **"&" inside parentheses, "and" in the text** (§8.17): `(Hendrycks & Gimpel, 2016)`, but `Hendrycks and Gimpel (2016)`.
+- **"e.g." and "i.e." only in parentheses, with a comma** (§6.29): `(e.g., ``benchmark/v1``)`. In the text write "for example" and "that is". Don't write "etc.": name the items.
+- **"%" after a numeral** (§6.44): `12%`, not `12 percent`.
+- **An arXiv locator after the year:** `(Lieberum et al., 2024, arXiv:2408.05147)`, not a URL. Vale replaces each URL with spaces before it checks, so no rule can see one. Follow this form by hand.
+
+We left out these APA rules, and why:
+
+- **Numbers zero to nine as words.** A comment names a value in the code too often, and `3` must stay `3`.
+- **The statistics form** (`p = .03`, with no leading zero). The papers write `p = 0.005`, and one repository should use one form.
+- **The serial comma, and sentence case in headings.** No pattern checks them without many false alarms.
+
+STE wins where the two styles disagree: sentence length, the word list and the active voice.
 
 ## Reviewing a diff
 

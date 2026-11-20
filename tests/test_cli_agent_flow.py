@@ -261,7 +261,7 @@ def test_contributor_is_optional_and_never_an_email(flow, monkeypatch):
 
 
 def test_model_aliases_rename_the_recorded_answerer(flow, monkeypatch):
-    # e.g. Claude Code proxied to Grok: the subagent reports the Claude model it was asked for.
+    # Claude Code proxied to Grok, say: the subagent reports the Claude model it was asked for.
     monkeypatch.setenv("OPENINTERPRETABILITY_MODEL_ALIASES", "claude-opus-5-5=grok-4")
     run("audit", "--model", "toy", "--layer", 1, "--neuron", 2, "--corpus", "corpus.txt",
         "--evidence-out", "ev.json")  # fmt: skip

@@ -40,13 +40,14 @@ lint:
 	uv run python scripts/check_line_limit.py
 	uv run python scripts/check_step_comments.py
 	uv run python scripts/check_body_comments.py
+	uv run python scripts/check_docstring_args.py
 	uv run python scripts/check_data_files.py
 	uv run python scripts/exchange.py check
 	python3 scripts/changelog.py check
 	uv run python scripts/papers.py check
 	python3 scripts/ifttt_lint.py
 	python3 scripts/check_old_name.py
-	uv run interrogate openinterpretability
+	uv run interrogate openinterpretability scripts
 	$(MAKE) vulture
 	$(MAKE) typecheck
 	$(MAKE) markdown
@@ -67,7 +68,9 @@ SHELL_PATHS ?= $(shell git ls-files -co --exclude-standard '*.sh')
 shell:
 	$(SHELLCHECK) $(SHELL_PATHS)
 
-# Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
+# Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE) and the
+# APA rules (.vale/styles/APA). The fixtures of tests/test_vale_apa.py break the rules on
+# purpose, so the run leaves them out. Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
@@ -75,7 +78,7 @@ shell:
 VALE_PATHS ?= openinterpretability scripts tests
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
-	vale $(VALE_PATHS)
+	vale --glob='!tests/fixtures/vale/*' $(VALE_PATHS)
 
 # Markdown prose against the structural ASD-STE100 rules: semicolons, sentences over 25
 # words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
@@ -107,12 +110,10 @@ check-all:
 stats:
 	uv run open-interpretability stats --wiki-dir $(WIKI_DIR)
 
-# The concept map of every configured model, refreshed by each release (#4785). A model with
-# too few studied poles for a map is skipped by `map` itself.
+# The shared concept map of every configured model, refreshed by each release (#4785, #4586).
+# Old poles keep their places. A refit (`open-interpretability map --refit`) is a separate PR.
 maps:
-	for m in $$(uv run python -c 'from openinterpretability.planner import configured_models; print(*configured_models())'); do \
-		uv run --extra map open-interpretability map --wiki-dir $(WIKI_DIR) "$$m" || exit 1; \
-	done
+	uv run --extra map open-interpretability map --wiki-dir $(WIKI_DIR)
 
 format:
 	uv run ruff format .
