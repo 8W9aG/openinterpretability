@@ -1,7 +1,7 @@
 """``open-interpretability social``: post new results to social networks (issue #4463).
 
-``social post`` reads the site's feeds of VERIFIED experiments and published papers, and
-posts each new entry once (``openinterpretability/social``). The deploy workflow runs it
+``social post`` reads the site's feeds of published papers and site posts, and posts each
+new entry once (``openinterpretability/social``). The deploy workflow runs it
 after each sync, with the X secrets. Without them it posts nothing and exits cleanly.
 """
 
@@ -17,7 +17,7 @@ from openinterpretability.cli import cli
 
 @cli.group(name="social")
 def social_group() -> None:
-    """Post new VERIFIED experiments and published papers (#4463)."""
+    """Post new published papers and site posts (#4463, #5533)."""
 
 
 def _entries(path: Path | None) -> list:
@@ -27,14 +27,12 @@ def _entries(path: Path | None) -> list:
 
 
 @social_group.command(name="post")
-@click.option("--experiments", type=click.Path(path_type=Path), default=Path("dist/feed.xml"),
-              show_default=True, help="The feed of VERIFIED experiments.")  # fmt: skip
-@click.option("--papers", type=click.Path(path_type=Path),
-              default=Path("dist/research/published.xml"), show_default=True,
-              help="The feed of published papers only.")  # fmt: skip
+@click.option("--papers", type=click.Path(path_type=Path), default=None,
+              help="The feed of published papers. Default: the build's.")  # fmt: skip
+@click.option("--posts", type=click.Path(path_type=Path), default=None,
+              help="The feed of site posts, never drafts. Default: the build's.")  # fmt: skip
 @click.option("--state", type=click.Path(path_type=Path), default=Path(".social/x.json"),
               show_default=True, help="The ids posted so far.")  # fmt: skip
-@click.option("--site", default=None, help="The link of a digest post. Default: the site.")
 @click.option("--dry-run", is_flag=True, help="Print the posts; post nothing, change no state.")
 @click.option(
     "--preview",
@@ -45,14 +43,13 @@ def _entries(path: Path | None) -> list:
 @click.option("--repost", multiple=True,
               help="Post this entry id although the state has it, as the first run seeds "
               "every entry (#5527). Repeat for more.")  # fmt: skip
-def post_command(experiments, papers, state, site, dry_run, preview, repost) -> None:
-    """Post each new entry of the feeds once, within the per-run and daily limits.
+def post_command(papers, posts, state, dry_run, preview, repost) -> None:
+    """Post each new published paper and site post once, within the daily limit (#5533).
 
     Args:
-        experiments: The feed of VERIFIED experiments.
-        papers: The feed of published papers.
+        papers: The feed of published papers, or None for the build's.
+        posts: The feed of site posts, or None for the build's.
         state: The JSON file of the ids posted or seen so far.
-        site: The link for a digest post, or None for the site's own.
         dry_run: Print the posts, and post nothing.
         preview: Print the posts of this many newest entries of each feed, or 0.
         repost: Entry ids to post although the state has them.
@@ -60,17 +57,19 @@ def post_command(experiments, papers, state, site, dry_run, preview, repost) -> 
     Raises:
         click.ClickException: When a post fails, for example on an HTTP or network error.
     """
-    from openinterpretability.core.project import site_url
-    from openinterpretability.social.message import experiment_post, length, paper_post
+    from openinterpretability.builder.research_feeds import POSTS_FEED, PUBLISHED_FEED
+    from openinterpretability.social.message import length
     from openinterpretability.social.poster import XPoster, keys_from_env
-    from openinterpretability.social.run import run
+    from openinterpretability.social.run import MESSAGES, run
 
-    found, published = _entries(experiments), _entries(papers)
+    papers = papers or Path("dist") / PUBLISHED_FEED  # the paths the build writes
+    posts = posts or Path("dist") / POSTS_FEED
+    feeds = {"papers": _entries(papers), "posts": _entries(posts)}
     if preview:
-        posts = [paper_post(e) for e in published[:preview]]
-        posts += [experiment_post(e) for e in found[:preview]]
-        for text in posts:
-            click.echo(f"--- {length(text)} of 280\n{text}")
+        for name, entries in feeds.items():
+            for entry in entries[:preview]:
+                text = MESSAGES[name](entry)
+                click.echo(f"--- {length(text)} of 280\n{text}")
         return
     keys = keys_from_env()
     if keys is None and not dry_run:
@@ -78,9 +77,7 @@ def post_command(experiments, papers, state, site, dry_run, preview, repost) -> 
         return
     poster = None if dry_run else XPoster(keys).post
     try:
-        lines = run(
-            state, found, published, site or site_url(), poster, time.time(), frozenset(repost)
-        )
+        lines = run(state, feeds, poster, time.time(), frozenset(repost))
     except OSError as error:  # an HTTP or network error: posts so far stay recorded
         raise click.ClickException(f"posting failed: {error}") from error
     click.echo("\n".join(lines))
