@@ -404,7 +404,7 @@ def by_agent(
     An experiment counts as priced for a role and model when every one of its calls there
     has a cost. ``mean_usd`` averages over priced experiments, and ``usd_per_verified``
     divides their total by how many of them were VERIFIED. ``name`` maps a call's model to
-    the name it is grouped under (e.g. ``openinterpretability.core.agent_names.canonical_agent``).
+    the name it is grouped under (e.g., ``openinterpretability.core.agent_names.canonical_agent``).
     """
     groups: dict[tuple[str, str], dict[str, float]] = {}
     for status, run in experiments:

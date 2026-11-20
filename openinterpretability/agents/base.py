@@ -75,7 +75,7 @@ class LLMAgent:
     ``"ollama/..."``) or ``"external/<name>"``. An external model is answered through
     files in ``exchange_dir``. The agent writes ``<Agent>.prompt.md``, with the response's
     JSON schema. Then it waits for ``<Agent>.response.json``. The full model string is what
-    gets recorded, so name the model that actually answered, e.g. ``external/gpt-5``.
+    gets recorded, so name the model that actually answered, for example ``external/gpt-5``.
     Pass ``client`` to inject a pre-built instructor client (useful in tests).
     """
 
