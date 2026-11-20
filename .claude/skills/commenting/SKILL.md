@@ -39,7 +39,19 @@ Do not comment when the code can say it:
 
 ## Docstrings
 
-Every public module, class, function and method has one (ruff `D1`). `__init__` and magic methods are described by their class. Tests need none: a test's name says what it checks.
+Every module, class, function and method has one, private and nested ones too (#3938). Ruff's `D1` checks the public ones, and `interrogate` counts the private ones as well. `__init__` and magic methods are described by their class. Tests need none: a test's name says what it checks.
+
+**Every argument has a line in `Args:`** (Google style), and the section names no argument that the signature lacks. `scripts/check_docstring_args.py` checks it in `make lint`. Skip `self` and `cls`. Describe `*args` and `**kwargs`, with or without the stars. A Click command's arguments get lines too: a Click option's `help=` is for the command line, and the docstring is for the reader of the code. `__init__`'s arguments go in its class's docstring. The rule is ratcheted in. `scripts/docstring_args_baseline.txt` lists the functions that broke it when it was added. When you describe a listed function's arguments, delete its line, and raise interrogate's `fail-under` when its coverage rises.
+
+```python
+def scale(x: float, factor: float = 2.0) -> float:
+    """``x`` times ``factor``.
+
+    Args:
+        x: The number to scale.
+        factor: How much to scale it by.
+    """
+```
 
 One exception: a Pydantic model that an LLM agent answers in (`HypothesisDraft`, `ProbeSet`, `DetectionAnswer` and the models they contain). Pydantic puts a class docstring into the JSON schema, so a docstring there changes what the agent is told. Mark the class `# noqa: D101` with that reason, and describe the fields with `Field(description=...)`.
 

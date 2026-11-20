@@ -37,6 +37,7 @@ EXEMPT = (
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
     "papers/*/media/*.svg",  # generated figures, one mark to a line (scripts/paper_figures.py)
+    "scripts/*_baseline.txt",  # generated ratchet lists, one function to a line, that only shrink
     "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
     "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
