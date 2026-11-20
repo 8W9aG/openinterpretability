@@ -82,6 +82,7 @@ Cite each outside idea, method, model and dataset where the paper uses it. Do th
 4. **Check the details.** Take the title, the authors, the year, the venue and the identifier from the source's own page. Give a link in each reference.
 5. **Cite data with its version and licence.** Give the dataset, the commit that was used, and what its card says about the licence. If the card names no citation or no licence, say so.
 6. **Point to work in this repo with a link.** For notes or earlier studies that have since moved, link to a commit, so that the text stays readable. Don't describe an earlier study without saying where its numbers are.
+7. **Each cited work needs a review page.** Each reference that is a paper or a post needs a page in `docs/literature/` whose Citation gives the same arXiv ID, DOI or link. If it has none, open an issue for it in the form of #5312, with `area: literature` and `priority: high`. Then add the work to `papers/awaiting_review.txt` with that issue's number, before the paper merges. A dataset revision needs no page, but the paper that describes the dataset does. `tests/test_papers.py` fails on a cited work that has neither (`scripts/cited_works.py`, #5346).
 
 Citations and references follow APA 7th edition.
 
@@ -129,7 +130,7 @@ The maintainer decided on 2026-11-17 that every paper is either a **preprint** o
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
 - At least one figure moves (`paper-animation`), or the Method says why none does. Render a middle frame and the last frame, in light and dark, and look at them.
-- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
+- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote, and against the work's review page in `docs/literature/`. A claim that the page contradicts is a finding. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
 - The status line names the work left, or the paper is published (*Status* above), and `uv run python scripts/papers.py check` passes.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.
