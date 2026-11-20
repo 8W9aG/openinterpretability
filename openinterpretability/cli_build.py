@@ -111,6 +111,14 @@ def _load(wiki_dir: Path):
     help="The papers of the Research section; the section is empty if missing.",
 )
 @click.option(
+    "--posts",
+    "posts_dir",
+    default=Path("posts"),
+    show_default=True,
+    type=click.Path(file_okay=False, path_type=Path),
+    help="The posts of the Posts section; the section is empty if missing.",
+)
+@click.option(
     "--paper-pdfs/--no-paper-pdfs",
     default=True,
     show_default=True,
@@ -133,6 +141,7 @@ def build(  # noqa: PLR0913 (one option per input file)
     sisters_path,
     coverage_path,
     papers_dir,
+    posts_dir,
     paper_pdfs,
     jobs,
 ):
@@ -160,6 +169,7 @@ def build(  # noqa: PLR0913 (one option per input file)
         alignment_rows=load_alignment(alignment_path),
         sister_rows=load_sisters(sisters_path),
         papers_dir=papers_dir,
+        posts_dir=posts_dir,
         model_facts=load_model_facts(configured_models()),  # config.json only, no weights
         jobs=jobs or default_jobs(),
         users=load_users(project_links()["repo_url"], wiki_dir),

@@ -22,12 +22,30 @@ from openinterpretability.builder.literature_pages import review_rows
 PAPERS_FEED = "research/papers.xml"
 LITERATURE_FEED = "research/literature.xml"
 PUBLISHED_FEED = "research/published.xml"  # published papers only, for posts (#4463)
+POSTS_FEED = "posts/posts.xml"  # the Posts section (#4650)
 NO_DATE = "1970-01-01T00:00:00Z"  # a date the repository can't give
 NOT_REVIEWS = ("README", "queue")  # pages of docs/literature/ that review no source
 
 
-def _feed(title: str, path: str, site_url: str, entries: list[tuple[str, str, str, str]]) -> str:
-    """An Atom feed of ``entries``, each (updated, title, href, summary), newest first."""
+def _feed(
+    title: str,
+    path: str,
+    site_url: str,
+    entries: list[tuple[str, str, str, str]],
+    index: str = "research/index.html",
+) -> str:
+    """An Atom feed of ``entries``, each (updated, title, href, summary), newest first.
+
+    Args:
+        title: The feed's title.
+        path: The feed's own path on the site.
+        site_url: The site's URL, with a trailing slash.
+        entries: The entries, in any order.
+        index: The page of the section that the feed follows.
+
+    Returns:
+        The feed's XML.
+    """
     entries = sorted(entries, key=lambda e: (e[0], e[2]), reverse=True)
     body = []
     for updated, name, href, summary in entries:
@@ -44,7 +62,7 @@ def _feed(title: str, path: str, site_url: str, entries: list[tuple[str, str, st
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<feed xmlns="http://www.w3.org/2005/Atom">\n'
         f"  <title>{escape(title)}</title>\n"
-        f'  <link href="{escape(site_url)}research/index.html"/>\n'
+        f'  <link href="{escape(site_url + index)}"/>\n'
         f'  <link rel="self" href="{feed_url}"/>\n'
         f"  <id>{feed_url}</id>\n"
         f"  <updated>{entries[0][0] if entries else NO_DATE}</updated>\n"
@@ -72,6 +90,31 @@ def published_feed(papers: Sequence, site_url: str, site_title: str) -> str:
         for p in papers if p.status is not None and not p.status.preprint
     ]  # fmt: skip
     return _feed(f"{site_title}: published papers", PUBLISHED_FEED, site_url, entries)
+
+
+def posts_feed(posts: Sequence, site_url: str, site_title: str) -> str:
+    """The feed of the posts, each dated by its line in ``posts/README.md`` (#4650).
+
+    Args:
+        posts: The posts, as :class:`~openinterpretability.builder.research.Paper`.
+        site_url: The site's URL, with a trailing slash.
+        site_title: The site's name, which starts the feed's title.
+
+    Returns:
+        The feed's XML.
+
+    >>> from types import SimpleNamespace as Post
+    >>> post = Post(published="2026-11-20", title="Hello", href="hello/index.html", summary="Hi.")
+    >>> xml = posts_feed([post], "https://example.org/", "Site")
+    >>> "<updated>2026-11-20T00:00:00Z</updated>" in xml, "example.org/posts/index.html" in xml
+    (True, True)
+    """
+    entries = [
+        (f"{p.published}T00:00:00Z" if p.published else NO_DATE, p.title,
+         f"posts/{p.href}", p.summary)
+        for p in posts
+    ]  # fmt: skip
+    return _feed(f"{site_title}: posts", POSTS_FEED, site_url, entries, "posts/index.html")
 
 
 def added_times(folder: Path) -> dict[str, str]:

@@ -1,4 +1,4 @@
-"""Pages outside the model tree that every build writes: About, Changelog and Research."""
+"""Pages outside the model tree that every build writes: About, Changelog, Research and Posts."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from openinterpretability.builder.changelog_page import load_versions
 from openinterpretability.builder.explanation_pages import render_explanations
 from openinterpretability.builder.literature_pages import LITERATURE, load_reviews, render_reviews
 from openinterpretability.builder.research import copy_assets, load_papers
-from openinterpretability.builder.research_feeds import write_research_feeds
+from openinterpretability.builder.research_feeds import POSTS_FEED, posts_feed, write_research_feeds
 from openinterpretability.builder.taxonomy_view import taxonomy_rows
 from openinterpretability.core.licenses import DATA_TERMS
 from openinterpretability.core.schemas import ReviewPolicy
@@ -29,12 +29,23 @@ def with_explanations(stats: dict, explanations) -> dict:
 
 
 def render_reference_pages(
-    render, papers_dir: Path | None, report, *, pdfs: bool = False, explanations=()
+    render,
+    papers_dir: Path | None,
+    report,
+    pdfs: bool = False,
+    explanations=(),
+    posts_dir: Path | None = None,
 ) -> None:
-    """Write About, Changelog, the Research section, its literature review and the explanations.
+    """Write About, Changelog, Research, its literature review, the explanations and Posts.
 
-    ``pdfs`` prints each paper's PDF. ``explanations`` are
-    :class:`~openinterpretability.builder.explanation_pages.ExplanationView`.
+    Args:
+        render: The site's renderer.
+        papers_dir: The folder of the papers, or None for an empty Research section.
+        report: The build's report, which collects the pages written.
+        pdfs: Print each paper's PDF.
+        explanations: The :class:`~openinterpretability.builder.explanation_pages.ExplanationView`
+            of each prompt.
+        posts_dir: The folder of the posts, or None for an empty Posts section (#4650).
     """
     license = metadata(DISTRIBUTION)["License-Expression"]
     taxonomy = taxonomy_rows(render.common["repo_url"])
@@ -49,6 +60,28 @@ def render_reference_pages(
     papers = _render_research(render, papers_dir, report, pdfs, bool(explanations), bool(reviews))
     write_research_feeds(render.output_dir, papers, reviews, LITERATURE, render.common)
     render_explanations(render, list(explanations))
+    _render_posts(render, posts_dir, report)
+
+
+def _render_posts(render, posts_dir: Path | None, report) -> None:
+    """Write the Posts section: its index, each post, their media and their feed (#4650).
+
+    A post has the form of a paper (``papers/``), so the paper loader reads it, with its
+    Markdown, maths and redaction. Only the section folder and the templates differ.
+
+    Args:
+        render: The site's renderer.
+        posts_dir: The folder of the posts, or None for an index with no posts.
+        report: The build's report, which collects the pages written.
+    """
+    posts = load_papers(posts_dir, render.common["repo_url"], source="posts")
+    render("posts/index.html", "posts.html", posts=posts)
+    for post in posts:
+        report.pages.extend(copy_assets(posts_dir, post, render.output_dir, section="posts"))
+        if not post.interactive:
+            render(f"posts/{post.href}", "post.html", post=post)
+    feed = posts_feed(posts, render.common["site_url"], render.common["site_title"])
+    (render.output_dir / POSTS_FEED).write_text(feed, encoding="utf-8")
 
 
 def _render_research(
