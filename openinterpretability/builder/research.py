@@ -89,8 +89,15 @@ def _plain(inline: Token) -> str:
     return "".join(child.content for child in inline.children or [] if child.type in kinds)
 
 
-def _rewrite_links(tokens: list[Token], slug: str, repo_url: str) -> None:
-    """Point links at the site's pages, and links to other repo files at GitHub."""
+def _rewrite_links(tokens: list[Token], slug: str, repo_url: str, source: str = "papers") -> None:
+    """Point links at the site's pages, and links to other repo files at GitHub.
+
+    Args:
+        tokens: The parsed Markdown, changed in place.
+        slug: The folder of the paper or post.
+        repo_url: The repository's URL, for links to files that the site doesn't publish.
+        source: The repository folder that holds ``slug``: ``papers`` or ``posts``.
+    """
     for token in tokens:
         for child in token.children or []:
             href = child.attrGet("href") if child.type == "link_open" else None
@@ -99,7 +106,7 @@ def _rewrite_links(tokens: list[Token], slug: str, repo_url: str) -> None:
             if href.endswith("README.md"):
                 child.attrSet("href", href[: -len("README.md")] + "index.html")
             else:
-                path = posixpath.normpath(posixpath.join("papers", slug, href))
+                path = posixpath.normpath(posixpath.join(source, slug, href))
                 child.attrSet("href", f"{repo_url}/blob/main/{path}")
 
 
@@ -124,15 +131,28 @@ def _first_image(tokens: list[Token]) -> str | None:
     return None
 
 
-def _read_paper(folder: Path, repo_url: str) -> Paper:
-    """Render one paper. Its text passes the same search for personal data as all the site."""
+def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
+    """Render one paper or post. Its text passes the same search for personal data as all the site.
+
+    Args:
+        folder: The folder of the paper or post, with its ``README.md``.
+        repo_url: The repository's URL.
+        source: The repository folder that holds ``folder``: ``papers`` or ``posts``.
+
+    Returns:
+        The rendered entry, with no date: :func:`load_papers` adds it.
+
+    Raises:
+        ValueError: When the ``README.md`` doesn't start with a level 1 heading.
+        MathsError: When its maths doesn't render.
+    """
     interactive = (folder / "index.html").exists()
     text = redact_text((folder / "README.md").read_text(encoding="utf-8"))
     tokens = _MARKDOWN.parse(text)
     if tokens[0].type != "heading_open" or tokens[0].tag != "h1":
         raise ValueError(f"{folder / 'README.md'} must start with a level 1 heading")
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
-    _rewrite_links(tokens, folder.name, repo_url)
+    _rewrite_links(tokens, folder.name, repo_url, source)
     sections = () if interactive else _mark_sections(tokens)
     try:
         body = "" if interactive else _MARKDOWN.renderer.render(tokens[3:], _MARKDOWN.options, {})
@@ -150,11 +170,20 @@ def _read_paper(folder: Path, repo_url: str) -> Paper:
     )
 
 
-def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
+def load_papers(papers_dir: Path | None, repo_url: str, source: str = "papers") -> list[Paper]:
     """Return the listed papers, newest first. Return none if there is no such folder.
 
     Each entry's date comes before it in papers/README.md (#3292). Papers of one date keep
-    their order in the list, and an entry with no date goes last.
+    their order in the list, and an entry with no date goes last. The posts of ``posts/``
+    have the same form, so this loads them too (#4650).
+
+    Args:
+        papers_dir: The folder whose ``README.md`` lists the entries, or None.
+        repo_url: The repository's URL.
+        source: The folder's name in the repository, for links to its files.
+
+    Returns:
+        The entries, newest first, or an empty list.
     """
     from dataclasses import replace
 
@@ -163,7 +192,7 @@ def load_papers(papers_dir: Path | None, repo_url: str) -> list[Paper]:
         return []
     entries = _ENTRY.findall(index.read_text(encoding="utf-8"))
     papers = [
-        replace(_read_paper(Path(papers_dir) / slug, repo_url), published=date or None)
+        replace(_read_paper(Path(papers_dir) / slug, repo_url, source), published=date or None)
         for date, slug in entries
     ]
     return sorted(papers, key=lambda p: p.published or "", reverse=True)
@@ -239,14 +268,25 @@ def _copy(path: Path, target: Path) -> None:
     target.write_text(redact_asset(text), encoding="utf-8")
 
 
-def copy_assets(papers_dir: Path, paper: Paper, output_dir: Path) -> list[Path]:
-    """Copy a paper's published files under ``research/``, and return the copied pages.
+def copy_assets(
+    papers_dir: Path, paper: Paper, output_dir: Path, section: str = "research"
+) -> list[Path]:
+    """Copy a paper's published files under ``section/``, and return the copied pages.
 
     Text files pass through :func:`redact_asset`, so that a takedown or the search for
     personal data covers them as it covers every other page.
+
+    Args:
+        papers_dir: The folder that holds the paper's folder.
+        paper: The paper or post.
+        output_dir: The site's output folder.
+        section: The site folder of the section: ``research`` for papers, ``posts`` for posts.
+
+    Returns:
+        The interactive page that was copied, or an empty list.
     """
     source = Path(papers_dir) / paper.slug
-    target = output_dir / "research" / paper.slug
+    target = output_dir / section / paper.slug
     target.mkdir(parents=True, exist_ok=True)
     if not paper.interactive:
         for path in sorted((source / "media").rglob("*")):

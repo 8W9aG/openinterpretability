@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} · {{ site_title }}{% endblock %}
+
+{% block head %}
+<link rel="alternate" type="application/atom+xml" title="Posts" href="{{ root }}posts/posts.xml">
+{% include "_prose.html" %}
+{% endblock %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="../index.html">Posts</a></nav>
+<h1 class="max-w-3xl text-2xl font-semibold">{{ post.title }}</h1>
+<p class="mt-2 text-xs text-slate-500">
+  {% if post.published %}<time datetime="{{ post.published }}">{{ post.published }}</time> ·{% endif %}
+  <a class="underline" href="{{ repo_url }}/blob/main/posts/{{ post.slug }}/README.md">Source</a>
+</p>
+<div class="paper mt-6">{{ post.body | safe }}</div>
+{% endblock %}

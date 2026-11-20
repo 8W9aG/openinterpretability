@@ -445,17 +445,12 @@ openinterpretability/builder/registry_stats.py::_experiment_href
 openinterpretability/builder/registry_stats.py::_unit_label
 openinterpretability/builder/research.py::paper_status
 openinterpretability/builder/research.py::_plain
-openinterpretability/builder/research.py::_rewrite_links
 openinterpretability/builder/research.py::_mark_sections
 openinterpretability/builder/research.py::_first_image
-openinterpretability/builder/research.py::_read_paper
-openinterpretability/builder/research.py::load_papers
 openinterpretability/builder/research.py::_in_number
 openinterpretability/builder/research.py::redact_asset
 openinterpretability/builder/research.py::_redact_array
 openinterpretability/builder/research.py::_copy
-openinterpretability/builder/research.py::copy_assets
-openinterpretability/builder/research_feeds.py::_feed
 openinterpretability/builder/research_feeds.py::papers_feed
 openinterpretability/builder/research_feeds.py::published_feed
 openinterpretability/builder/research_feeds.py::added_times
@@ -475,7 +470,6 @@ openinterpretability/builder/route_figures.py::answer_figures
 openinterpretability/builder/route_figures.py::_ordered
 openinterpretability/builder/route_figures.py::route3d
 openinterpretability/builder/sections.py::with_explanations
-openinterpretability/builder/sections.py::render_reference_pages
 openinterpretability/builder/sections.py::_render_research
 openinterpretability/builder/significance.py::evidence_strength
 openinterpretability/builder/significance.py::significance
