@@ -62,6 +62,7 @@ Status marks how the work relates to this repo:
 | [Neurons as an Interpretable Basis](neurons-as-an-interpretable-basis.md) (Tigges, Kowal, McGrath, Lewis and Cammarata, 2026) | planned | The companion to the essay behind `native-neuron-audit`, on Qwen3.6-35B-A3B. 47% of poles have one mode. The double-negative SwiGLU regime is a third of firings but rare in top examples. Its mode split is a template for #3215. |
 | [Calibrated Concept Profiles](calibrated-concept-profiles.md) (Wilam, 2026) | not applicable | It reads every neuron's response to a named Python construct in OpenCoder-1.5B, which is the opposite direction to ours. Its twin draws, nulls and untrained reference match controls we run. Its untrained probe result (0.80) supports #3559. |
 | [Interpreting Any Residual Stream Direction by Scaling Activation Inversion](activation-inversion.md) (De Schamphelaere et al., 2026) | not applicable | A 27B generator, trained for one model, writes text that drives a chosen residual direction. No generator exists for our models. It reports EPO, our dreaming optimiser, far below it, so dreaming's miss rate is a floor (#3779). |
+| [The Hydra Effect](hydra-effect.md) (McGrath, Rahtz, Kramár et al., 2023) | used | When one attention layer is ablated, a later attention layer takes over, and late MLPs push the top token down less. The harness freezes later MLPs, which stops their response but not the attention layers'. Our citations check out. |
 | [Toy Models of Superposition](toy-models-of-superposition.md) (Elhage, Hume, Olsson et al., 2022) | used | Its toy ReLU networks store more sparse features than they have dimensions, which explains polysemantic neurons. The privileged-basis argument behind our rotated-basis null and the superposition entity comes from it. `papers/why-neurons-rest` tests its negative-bias prediction. |
 
 ## Fixing models: editing and where it fails
@@ -246,6 +247,7 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 | Page | Status | Why |
 | --- | --- | --- |
 | [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
+| [Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection](universal-dependencies-v2.md) (Nivre, de Marneffe, Ginter et al., 2020) | used | One scheme of parts of speech and relations for 157 treebanks in 90 languages. The source of the `ud-upos` and `ud-deprel` presets and of one paper's labels. Our citation checks out. The licences come from each treebank, not the paper. |
 
 ## Philosophy of mind
 
