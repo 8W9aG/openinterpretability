@@ -1415,7 +1415,7 @@ def test_research_section_lists_papers_in_order_and_renders_them(tmp_path):
     page = (out / "research" / "one" / "index.html").read_text()
     assert 'href="../two/index.html"' in page
     assert "/blob/main/scripts/x.py" in page
-    assert "<table>" in page
+    assert '<table tabindex="0">' in page  # a table scrolls, so a keyboard must reach it (#5649)
     assert (out / "research" / "one" / "media" / "fig.svg").exists()
     assert 'href="research/index.html"' in (out / "index.html").read_text()
 
