@@ -21,6 +21,7 @@ from openinterpretability.builder.literature_pages import review_rows
 
 PAPERS_FEED = "research/papers.xml"
 LITERATURE_FEED = "research/literature.xml"
+PUBLISHED_FEED = "research/published.xml"  # published papers only, for posts (#4463)
 NO_DATE = "1970-01-01T00:00:00Z"  # a date the repository can't give
 NOT_REVIEWS = ("README", "queue")  # pages of docs/literature/ that review no source
 
@@ -59,6 +60,18 @@ def papers_feed(papers: Sequence, site_url: str, site_title: str) -> str:
         for p in papers
     ]  # fmt: skip
     return _feed(f"{site_title}: papers", PAPERS_FEED, site_url, entries)
+
+
+def published_feed(papers: Sequence, site_url: str, site_title: str) -> str:
+    """The feed of the published papers only, each dated by its publication (#4463).
+
+    A preprint is left out, so a paper enters this feed on the day it is published.
+    """
+    entries = [
+        (f"{p.status.published}T00:00:00Z", p.title, f"research/{p.href}", p.summary)
+        for p in papers if p.status is not None and not p.status.preprint
+    ]  # fmt: skip
+    return _feed(f"{site_title}: published papers", PUBLISHED_FEED, site_url, entries)
 
 
 def added_times(folder: Path) -> dict[str, str]:
@@ -100,11 +113,12 @@ def literature_feed(reviews: Sequence, folder: Path, site_url: str, site_title: 
 
 
 def write_research_feeds(output_dir: Path, papers, reviews, folder: Path, common: dict) -> None:
-    """Write :data:`PAPERS_FEED` and :data:`LITERATURE_FEED` in ``output_dir``."""
+    """Write :data:`PAPERS_FEED`, :data:`PUBLISHED_FEED` and :data:`LITERATURE_FEED`."""
     url, title = common["site_url"], common["site_title"]
     out = Path(output_dir)
     (out / "research").mkdir(parents=True, exist_ok=True)
     (out / PAPERS_FEED).write_text(papers_feed(papers, url, title), encoding="utf-8")
+    (out / PUBLISHED_FEED).write_text(published_feed(papers, url, title), encoding="utf-8")
     if reviews:
         text = literature_feed(reviews, folder, url, title)
         (out / LITERATURE_FEED).write_text(text, encoding="utf-8")
