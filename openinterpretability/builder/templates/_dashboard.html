@@ -15,7 +15,7 @@
 
   <figure class="mb-8">
     <h3 class="mb-1 text-sm font-medium">Experiments per {{ tl.unit }}, and the VERIFIED share to date</h3>
-    <svg viewBox="0 0 {{ tl.width }} {{ tl.height }}" class="w-full max-w-3xl" role="img"
+    <svg viewBox="0 0 {{ tl.width }} {{ tl.height }}" class="w-full" role="img"
          aria-label="Experiments per {{ tl.unit }}, stacked by verdict, and the share of all experiments to date that were VERIFIED, now {{ tl.share | pct }}. Values are in the table below.">
       {% for y, label in tl.count_ticks %}
       <line x1="{{ tl.left }}" y1="{{ y }}" x2="{{ tl.right }}" y2="{{ y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
@@ -40,7 +40,7 @@
       <text x="{{ x }}" y="{{ tl.share_base + 14 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
       {% endfor %}
     </svg>
-    <figcaption class="mt-1 max-w-3xl text-xs text-slate-500">
+    <figcaption class="mt-1 text-xs text-slate-500">
       Top: experiments reviewed each {{ tl.unit }}, stacked by verdict. Bottom: of all experiments reviewed up to that {{ tl.unit }}, the share that were VERIFIED.
     </figcaption>
     <details class="mt-2">
@@ -62,7 +62,7 @@
 
   <figure class="mb-8">
     <h3 class="mb-1 text-sm font-medium">Verdicts per model</h3>
-    <svg viewBox="0 0 {{ mb.width }} {{ mb.height }}" class="w-full max-w-3xl" role="img"
+    <svg viewBox="0 0 {{ mb.width }} {{ mb.height }}" class="w-full" role="img"
          aria-label="Experiments per model, stacked by verdict. Values are in the table below.">
       {% for r in mb.rows %}
       <g>
@@ -73,7 +73,7 @@
       </g>
       {% endfor %}
     </svg>
-    <div class="mt-2 max-w-3xl overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-xs">
         <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
           <tr><th class="px-3 py-2">Model</th><th class="px-3 py-2 text-right">Experiments</th>{% for s in dashboard.statuses %}<th class="px-3 py-2 text-right">{{ s | replace('_', ' ') }}</th>{% endfor %}<th class="px-3 py-2 text-right">VERIFIED share</th></tr>
