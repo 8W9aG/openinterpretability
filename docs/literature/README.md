@@ -239,6 +239,12 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 | [Editing Models with Task Arithmetic](task-arithmetic.md) (Ilharco, Ribeiro, Wortsman et al., 2023) | planned | A task vector is fine-tuned weights minus pre-trained weights. Negating one cuts GPT-2 Large's toxic generations from 4.8% to 0.8%, with perplexity 16.4 to 16.9. Adding eight reaches 91.2% normalised accuracy on CLIP, against 99.4% for multi-task fine-tuning. Its "minimal interference" is a speculation from near-orthogonal vectors, not a measure, and it looks at no units. It gives #5298 its scaled-sum, negation and analogy rules, and #5404 its negative and extrapolated points. |
 | [Model soups: averaging weights of multiple fine-tuned models improves accuracy without increasing inference time](model-soups.md) (Wortsman, Ilharco, Gadre et al., 2022) | planned | The greedy soup of one task's fine-tunes beats the best single model by 0.5–0.7 ImageNet points (ViT-G 90.94 against 90.72). The uniform soup is worse than the best model on all 20 GLUE model-task pairs, and the paper measures no units. The patch format's `additive` merge is a sum (θ₀+Δ₁+Δ₂), not a soup's mean, so the evidence bears on a mean rule for #5298, not on `additive`. |
 
+## Data
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
+
 ## Philosophy of mind
 
 | Page | Status | Why |
