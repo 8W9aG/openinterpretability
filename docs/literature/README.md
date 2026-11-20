@@ -32,6 +32,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Conditional Memory via Scalable Lookup](conditional-memory-via-scalable-lookup.md) (Cheng et al., 2026) | not applicable | A new architecture (hashed N-gram memory beside MoE) with no released weights. Its premise, that early layers rebuild local patterns, is a question the registry's early-layer poles could answer. |
+| [Gaussian Error Linear Units (GELUs)](gelus.md) (Hendrycks and Gimpel, 2016) | used | GPT-2's activation function, in the tanh form that this paper gives. Three papers rest on its dip below zero. The paper never states the minimum near −0.75, so one citation moved. |
 
 ## Forecasting and evaluation
 
