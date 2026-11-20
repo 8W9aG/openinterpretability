@@ -3,6 +3,10 @@
 
 {% block title %}{{ paper.title }} · {{ site_title }}{% endblock %}
 
+{% block card_image %}{% if paper.social_image %}<meta property="og:image" content="{{ site_url }}research/{{ paper.href | replace('index.html', '') }}{{ paper.social_image }}">
+  <meta property="og:image:alt" content="{{ paper.hero_alt }}">
+  <meta name="twitter:image" content="{{ site_url }}research/{{ paper.href | replace('index.html', '') }}{{ paper.social_image }}">{% else %}{{ super() }}{% endif %}{% endblock %}
+
 {% block head %}
 <link rel="alternate" type="application/atom+xml" title="Papers" href="{{ root }}research/papers.xml">
 {% include "_prose.html" %}

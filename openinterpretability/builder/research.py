@@ -22,6 +22,7 @@ from markdown_it.token import Token
 from openinterpretability.builder.contents import anchor as section_anchor
 from openinterpretability.builder.maths import MathsError, enable_maths
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
+from openinterpretability.builder.social_media import drawn
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 # An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
@@ -79,6 +80,9 @@ class Paper:
     published: str | None = None  # the date before its entry in papers/README.md
     status: PaperStatus | None = None  # preprint or published (#3150)
     draft: bool = False  # marked "Draft" in the index: built, but unlisted (#5551)
+    hero_alt: str = ""  # the first figure's alt text, for X and link cards (#5534)
+    social_image: str | None = None  # media/social.png, drawn from the first figure (#5534)
+    social_video: str | None = None  # media/social.mp4, when that figure animates
 
     @property
     def href(self) -> str:
@@ -128,13 +132,13 @@ def _mark_sections(tokens: list[Token]) -> tuple[tuple[str, str], ...]:
     return tuple(sections)
 
 
-def _first_image(tokens: list[Token]) -> str | None:
-    """Return the source of the first image, if there is one."""
+def _first_image(tokens: list[Token]) -> tuple[str | None, str]:
+    """Return the source and the alt text of the first image, or (None, "")."""
     for token in tokens:
         for child in token.children or []:
             if child.type == "image":
-                return child.attrGet("src")
-    return None
+                return child.attrGet("src"), child.content
+    return None, ""
 
 
 def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
@@ -158,6 +162,8 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
     if tokens[0].type != "heading_open" or tokens[0].tag != "h1":
         raise ValueError(f"{folder / 'README.md'} must start with a level 1 heading")
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
+    hero, alt = _first_image(tokens)
+    image, video = drawn(folder)  # scripts/social_images.py draws them (#5534)
     _rewrite_links(tokens, folder.name, repo_url, source)
     sections = () if interactive else _mark_sections(tokens)
     try:
@@ -169,7 +175,10 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
         title=_plain(tokens[1]),
         summary=_plain(tokens[first + 1]),
         body=body,
-        hero=_first_image(tokens),
+        hero=hero,
+        hero_alt=alt,
+        social_image=image,
+        social_video=video,
         interactive=interactive,
         sections=sections,
         status=paper_status(text),

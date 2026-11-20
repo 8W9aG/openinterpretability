@@ -1,3 +1,4 @@
 # Public functions that can't have a doctest that runs offline, each with the reason
 # (tests/test_doctests.py, #5356). One per line: path::Qualified.name  reason
 openinterpretability/social/poster.py::XPoster.post  sends a request to X's API
+openinterpretability/social/poster.py::XPoster.upload  downloads a figure and sends it to X's API

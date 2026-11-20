@@ -39,6 +39,17 @@ When a post shows the output of a command, run the command and paste its real ou
 
 When a post names a command's options, a test checks them against the command's `--help`. `tests/test_posts.py` does this for the post on `explain`. Add the same check for a post on another command, so that the post fails when an option changes.
 
+## The head figure on X and in link cards
+
+The first image of a post or a paper is its head figure. X takes no SVG, so draw it into `media/` after each change to the figure:
+
+```bash
+uv run --with playwright==1.65.2 playwright install chromium
+uv run --with playwright==1.65.2 python scripts/social_images.py
+```
+
+It writes `social.png` (the final frame), `social.mp4` (one loop, when the figure animates) and `social.json` (the hash that a test checks). It needs ffmpeg. Commit the three files. The post on X carries the figure, and the page's link card shows `social.png`.
+
 ## Check it
 
 ```bash
