@@ -33,6 +33,7 @@ Status marks how the work relates to this repo:
 | --- | --- | --- |
 | [Conditional Memory via Scalable Lookup](conditional-memory-via-scalable-lookup.md) (Cheng et al., 2026) | not applicable | A new architecture (hashed N-gram memory beside MoE) with no released weights. Its premise, that early layers rebuild local patterns, is a question the registry's early-layer poles could answer. |
 | [Gaussian Error Linear Units (GELUs)](gelus.md) (Hendrycks and Gimpel, 2016) | used | GPT-2's activation function, in the tanh form that this paper gives. Three papers rest on its dip below zero. The paper never states the minimum near −0.75, so one citation moved. |
+| [Language Models are Unsupervised Multitask Learners](gpt-2.md) (Radford, Wu, Child et al., 2019) | used | The GPT-2 paper: WebText, byte-level BPE and four sizes, the smallest with 12 layers. It never states the MLP width, so two papers now credit the 3,072 neurons to the released weights. |
 
 ## Forecasting and evaluation
 
