@@ -430,14 +430,15 @@ def test_the_staged_search_over_many_pairs_equals_the_search_per_pair(
         assert job.source_layers == runners[a].n_layers and job.other_layers == runners[b].n_layers
 
 
-def test_the_sister_graphs_are_as_wide_as_the_text_above_them():
-    # #4579: the graph's width cap is the paragraph's, so their right edges meet.
-    import re
+def test_the_sister_graphs_are_no_wider_than_the_text_above_them():
+    # #4579, #5660: the graph draws at its natural width. That fits the paragraph's
+    # max-w-3xl (768 px), so the graph never runs past the text.
     from pathlib import Path
+
+    from openinterpretability.builder.sister_graph import WIDTH
 
     template = Path(__file__).parents[1] / "openinterpretability/builder/templates/model.html"
     section = template.read_text().split('{% call fold("Sister neurons", level=2) %}')[1]
-    paragraph = re.search(r'<p class="[^"]*\b(max-w-\S+)', section).group(1)
-    svg = r'<svg viewBox="0 0 \{\{ g\.width \}\}[^>]*class="[^"]*\b(max-w-\S+?)"'
-    graph = re.search(svg, section)
-    assert graph.group(1) == paragraph == "max-w-3xl"
+    assert '<p class="max-w-3xl' in section
+    assert "call chart(g.width, g.height" in section
+    assert WIDTH <= 768

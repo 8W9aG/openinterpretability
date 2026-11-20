@@ -96,7 +96,7 @@ Above 1, SPD beats the baseline. The yardstick assumes the curve is a fair excha
 
 **Setup.**
 
-- **Model.** GPT-2 small (Radford et al., 2019), with 12 layers and 3,072 GELU neurons (Hendrycks & Gimpel, 2016) per MLP. Each layer has an input projection `c_fc` and a down projection `c_proj`, so there are 24 sites.
+- **Model.** GPT-2 small, with 12 layers (Radford et al., 2019, Table 2). Its released weights have 3,072 GELU neurons (Hendrycks & Gimpel, 2016) per MLP. Each layer has an input projection `c_fc` and a down projection `c_proj`, so there are 24 sites.
 - **Decomposition.** SPD (Bushnaq et al., 2025), after APD (Braun et al., 2025). Each site has $C = 3{,}072$ subcomponents.
 - **Our changes.** One gate per site reads the centred input. The importance loss adds $\epsilon = 10^{-3}$, and gate gradients are clipped to norm 1. Each site also has a loss on its CI-masked output. [The baseline write-up](../../docs/analyses/spd-baseline.md) gives the failed pilots behind each change.
 - **Runs.** Run C draws each subcomponent at random, then runs a faithfulness warmup. Run D starts each one as a neuron. Runs A and B are the same pair on the down projections only.

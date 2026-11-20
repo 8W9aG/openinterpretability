@@ -1,5 +1,5 @@
 {# The home page's registry dashboard. Expects `dashboard` (builder/dashboard.py) and `map_fill`. #}
-{% from "_macros.html" import read_more %}
+{% from "_macros.html" import read_more, chart %}
 {% set tl = dashboard.timeline %}{% set mb = dashboard.models %}
 <section class="mb-10" id="dashboard" data-pagefind-ignore>
   <h2 class="mb-1 text-lg font-semibold">Registry dashboard</h2>
@@ -15,8 +15,7 @@
 
   <figure class="mb-8">
     <h3 class="mb-1 text-sm font-medium">Experiments per {{ tl.unit }}, and the VERIFIED share to date</h3>
-    <svg viewBox="0 0 {{ tl.width }} {{ tl.height }}" class="w-full" role="img"
-         aria-label="Experiments per {{ tl.unit }}, stacked by verdict, and the share of all experiments to date that were VERIFIED, now {{ tl.share | pct }}. Values are in the table below.">
+    {% call chart(tl.width, tl.height, "Experiments per " ~ tl.unit, "Experiments per " ~ tl.unit ~ ", stacked by verdict, and the share of all experiments to date that were VERIFIED, now " ~ (tl.share | pct) ~ ". Values are in the table below.") %}
       {% for y, label in tl.count_ticks %}
       <line x1="{{ tl.left }}" y1="{{ y }}" x2="{{ tl.right }}" y2="{{ y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
       <text x="{{ tl.left - 6 }}" y="{{ y + 3 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
@@ -39,13 +38,13 @@
       {% for x, label in tl.x_labels %}
       <text x="{{ x }}" y="{{ tl.share_base + 14 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
       {% endfor %}
-    </svg>
+    {% endcall %}
     <figcaption class="mt-1 text-xs text-slate-500">
       Top: experiments reviewed each {{ tl.unit }}, stacked by verdict. Bottom: of all experiments reviewed up to that {{ tl.unit }}, the share that were VERIFIED.
     </figcaption>
     <details class="mt-2">
       <summary class="cursor-pointer text-xs text-slate-500">Values</summary>
-      <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800" tabindex="0" role="region" aria-label="Values">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
             <tr><th class="px-3 py-2">{{ 'Week of' if tl.unit == 'week' else 'Day' }}</th><th class="px-3 py-2 text-right">Experiments</th>{% for s in dashboard.statuses %}<th class="px-3 py-2 text-right">{{ s | replace('_', ' ') }}</th>{% endfor %}<th class="px-3 py-2 text-right">VERIFIED to date</th></tr>
@@ -62,8 +61,7 @@
 
   <figure class="mb-8">
     <h3 class="mb-1 text-sm font-medium">Verdicts per model</h3>
-    <svg viewBox="0 0 {{ mb.width }} {{ mb.height }}" class="w-full" role="img"
-         aria-label="Experiments per model, stacked by verdict. Values are in the table below.">
+    {% call chart(mb.width, mb.height, "Verdicts per model", "Experiments per model, stacked by verdict. Values are in the table below.") %}
       {% for r in mb.rows %}
       <g>
         <title>{{ r.label }}</title>
@@ -72,7 +70,7 @@
         <text x="{{ r.end_x }}" y="{{ r.y + mb.bar - 4 }}" class="fill-slate-500 font-mono" font-size="10">{{ r.n }}</text>
       </g>
       {% endfor %}
-    </svg>
+    {% endcall %}
     <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-xs">
         <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
@@ -89,12 +87,11 @@
 
   <figure>
     <h3 class="mb-1 text-sm font-medium">Verdicts per layer</h3>
-    <div class="grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid grid-cols-1 justify-start gap-x-8 gap-y-6 {{ 'md:grid-cols-[repeat(3,max-content)]' if dashboard.layer_columns == 3 else 'md:grid-cols-[repeat(2,max-content)]' }}">
       {% for ch in dashboard.layers %}
-      <div>
+      <div class="min-w-0">
         <h4 class="mb-1 font-mono text-xs">{{ ch.name }}</h4>
-        <svg viewBox="0 0 {{ ch.width }} {{ ch.height }}" class="w-full" role="img"
-             aria-label="Experiments per layer of {{ ch.name }}, stacked by verdict; the tallest column is {{ ch.peak }}. Values are in the table below.">
+        {% call chart(ch.width, ch.height, "Verdicts per layer of " ~ ch.name, "Experiments per layer of " ~ ch.name ~ ", stacked by verdict; the tallest column is " ~ ch.peak ~ ". Values are in the table below.") %}
           <line x1="{{ ch.left }}" y1="{{ ch.top }}" x2="{{ ch.right }}" y2="{{ ch.top }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
           <text x="{{ ch.left - 4 }}" y="{{ ch.top + 3 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">{{ ch.peak }}</text>
           <text x="{{ ch.left - 4 }}" y="{{ ch.base }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">0</text>
@@ -109,14 +106,14 @@
           {% for x, label in ch.x_labels %}
           <text x="{{ x }}" y="{{ ch.base + 12 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="9">{{ label }}</text>
           {% endfor %}
-        </svg>
+        {% endcall %}
       </div>
       {% endfor %}
     </div>
     <figcaption class="mt-1 max-w-3xl text-xs text-slate-500">Each model has its own vertical scale, up to its busiest layer. Every layer has a slot, so an empty slot is a layer with no experiments yet.</figcaption>
     <details class="mt-2">
       <summary class="cursor-pointer text-xs text-slate-500">Values</summary>
-      <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800">
+      <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800" tabindex="0" role="region" aria-label="Values">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-50 uppercase tracking-wide text-slate-500 dark:bg-slate-900">
             <tr><th class="px-3 py-2">Model</th><th class="px-3 py-2">Layer</th><th class="px-3 py-2 text-right">Experiments</th>{% for s in dashboard.statuses %}<th class="px-3 py-2 text-right">{{ s | replace('_', ' ') }}</th>{% endfor %}<th class="px-3 py-2 text-right">VERIFIED share</th></tr>

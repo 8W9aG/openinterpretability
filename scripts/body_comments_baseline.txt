@@ -18,7 +18,6 @@ openinterpretability/builder/compiler.py::explanation_view
 openinterpretability/builder/compiler.py::explanation_view.window
 openinterpretability/builder/compiler.py::pole_scans
 openinterpretability/builder/dashboard.py::model_bars
-openinterpretability/builder/dashboard.py::_layer_chart
 openinterpretability/builder/draws_export.py::export_draws
 openinterpretability/builder/explanation_figures.py::graph
 openinterpretability/builder/explanation_figures.py::waterfall

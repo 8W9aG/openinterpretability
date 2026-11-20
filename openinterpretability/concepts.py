@@ -72,7 +72,8 @@ CONCEPT_PRESETS = {
         bio=True,
     ),
     # The same sentences' Penn Treebank tags (NNP, VBD, ...): a second part-of-speech
-    # source, independent of Universal Dependencies' annotators and genres.
+    # source, independent of Universal Dependencies' genres. A tagger made them, not people:
+    # the memory-based MBT tagger (Tjong Kim Sang & De Meulder, 2003). The NER tags are by hand.
     "conll2003-pos": ConceptPreset(
         "eriktks/conll2003",
         "conll2003/{split}/*.parquet",
