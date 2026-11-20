@@ -31,11 +31,14 @@ DAILY_BINS = 120  # above this many days, the timeline bins by week (Monday to S
 TIME_LABELS = 6  # x-axis labels on the timeline, at most
 
 
-# The viewBox width of the timeline and model-bars charts (#4587). They span the page's
-# content width, about 1,120 px (max-w-6xl less its padding). The old 640-wide charts drew
-# at 768 px, a scale of 1.2. At 930 wide they keep that scale at the full width, so their
-# height and label size stay as before.
+# The natural widths of the dashboard's charts, in CSS pixels (#5660). Each chart draws at
+# this width and never scales, so its text stays at charts.CHART_TEXT_PX. A narrower screen
+# scrolls the chart inside its own box. The timeline fits the page's content width (about
+# 1,120 px). Four rows of model bars need no more than 640. A layer chart fits a 390 px phone.
 CHART_WIDTH = 930
+MODEL_BARS_WIDTH = 640
+LAYER_CHART_WIDTH = 340
+LAYER_LABEL_SPACING = 30  # px between layer labels: "L22" at 12 px is about 22 px wide
 
 
 def dashboard(rows: list[dict], models) -> dict | None:
@@ -47,7 +50,23 @@ def dashboard(rows: list[dict], models) -> dict | None:
         "timeline": timeline(rows),
         "models": model_bars(rows, models),
         "layers": layer_columns(rows, models),
+        "layer_columns": layer_grid_columns(len(_ordered_models(rows, models))),
     }
+
+
+def layer_grid_columns(count: int) -> int:
+    """The columns of the "Verdicts per layer" grid on a wide screen, so that no chart is alone.
+
+    Two columns suit an even count, and three a multiple of three. Any other count gets two,
+    and its last chart is alone (#5660).
+
+    Args:
+        count: The number of models, one chart each.
+
+    Returns:
+        2 or 3.
+    """
+    return 3 if count % 2 and count % 3 == 0 else 2
 
 
 def _counts_line(counts: Counter) -> str:
@@ -173,7 +192,7 @@ def _ordered_models(rows: list[dict], models) -> list[str]:
     return order + sorted(present - set(order))
 
 
-def model_bars(rows: list[dict], models, width: int = CHART_WIDTH) -> dict:
+def model_bars(rows: list[dict], models, width: int = MODEL_BARS_WIDTH) -> dict:
     """One horizontal bar per model, its length the experiment count, stacked by verdict."""
     totals: dict[str, Counter] = defaultdict(Counter)
     for r in rows:
@@ -215,7 +234,7 @@ def model_bars(rows: list[dict], models, width: int = CHART_WIDTH) -> dict:
     }
 
 
-def layer_columns(rows: list[dict], models, width: int = 360) -> list[dict]:
+def layer_columns(rows: list[dict], models, width: int = LAYER_CHART_WIDTH) -> list[dict]:
     """One small chart per model: a column of verdicts for each layer, on the model's scale.
 
     Every layer of the model gets a slot, studied or not, so gaps in coverage show.
@@ -244,7 +263,7 @@ def _layer_chart(name: str, layers: dict[int, Counter], n_layers: int, width: in
         if col["n"]:
             label += f": {_counts_line(col['counts'])} ({col['share']:.0%} VERIFIED)"
         columns.append({**col, "layer": layer, "label": label})
-    every = 1 if count <= 12 else 2 if count <= 24 else 4
+    every = max(1, math.ceil(LAYER_LABEL_SPACING / pitch))  # labels never touch (#5660)
     return {
         "name": name,
         "width": width,

@@ -519,6 +519,18 @@ def test_causal_chart(submission, verdict):
     assert medians_only["rows"] == [] and medians_only["rule_y"] is None
 
 
+def test_charts_draw_at_their_natural_size_with_one_text_size(tmp_path, record):
+    # #5660: the class that sets every chart text's size reaches the page unescaped.
+    # Otherwise Tailwind never generates it, and the text keeps the size it was drawn with.
+    from openinterpretability.builder.charts import CHART_TEXT_PX
+
+    compile_site([record], tmp_path)
+    page = unit_pages(next((tmp_path / "models").rglob("N*.html")))
+    assert f"[&_text]:text-[{CHART_TEXT_PX}px]" in page
+    assert "&amp;_text" not in page
+    assert 'tabindex="0" role="region" aria-label="' in page  # the scroll box
+
+
 def test_causal_chart_rendered(tmp_path, record):
     causal = _causal_pairs(record.verdict.causal_metrics)
     verdict = record.verdict.model_copy(update={"causal_metrics": causal})

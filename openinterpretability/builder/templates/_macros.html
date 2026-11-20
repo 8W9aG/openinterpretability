@@ -128,7 +128,8 @@
     </span>
   </div>
   {% if pc %}
-  <svg viewBox="0 0 {{ pc.width }} {{ 4 * pc.rows | length - 1 }}" class="mt-3 w-full" role="img" data-pagefind-ignore
+  {# No text, and inside a link: it scales down on a narrow screen, but no wider than its natural width (#5660). #}
+  <svg viewBox="0 0 {{ pc.width }} {{ 4 * pc.rows | length - 1 }}" class="mt-3 w-full" style="max-width: {{ pc.width }}px" role="img" data-pagefind-ignore
        aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons; {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron. A cell's colour is the best status in it, and how far it fills is the share of its poles studied.">
     <defs><pattern id="pieces-{{ idx }}" width="{{ pc.pitch }}" height="4" patternUnits="userSpaceOnUse"><rect width="{{ pc.pitch - 1 }}" height="3" class="fill-slate-200 dark:fill-slate-800"/></pattern></defs>
     <rect width="{{ pc.width + 1 }}" height="{{ 4 * pc.rows | length }}" fill="url(#pieces-{{ idx }})"/>
@@ -191,4 +192,24 @@
   <summary class="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden"{% if hint %} title="{{ hint }}"{% endif %}>{{ chevron() }}<h{{ level }} class="text-base font-semibold">{{ title }}</h{{ level }}></summary>
   <div class="mt-3">{{ caller() }}</div>
 </details>
+{%- endmacro %}
+
+{# A chart at its natural size (#5660). The SVG's width and height equal its viewBox, so it
+   never scales, and every <text> in it is charts.CHART_TEXT_PX at any screen width. On a
+   screen narrower than the chart, the box scrolls sideways, not the page. The box takes
+   keyboard focus so that a reader with no mouse can scroll it. `name` labels the box, and
+   `label` describes the chart. #}
+{% macro chart(width, height, name, label, role="img", extra="", labelledby=none, scale=none) -%}
+{#- A hand-drawn diagram passes `scale`: its text keeps the sizes it was drawn with, and the
+    whole figure draws at `scale` times its viewBox, still at one size on every screen. -#}
+{%- set text_rule = "" if scale else "[&_text]:text-[" ~ charts.CHART_TEXT_PX ~ "px]" -%}
+{%- set drawn = width * (scale or 1) -%}
+<div class="max-w-full overflow-x-auto" tabindex="0" role="region" aria-label="{{ name }}">
+<svg viewBox="0 0 {{ width }} {{ height }}" width="{{ drawn | round(1) }}" height="{{ (height * (scale or 1)) | round(1) }}" class="block max-w-none {{ text_rule | safe }} {{ extra }}" role="{{ role }}" {% if labelledby %}aria-labelledby="{{ labelledby }}"{% else %}aria-label="{{ label }}"{% endif %}>{{ caller() }}</svg>
+</div>
+{#- Below the width where the chart fits (the breakpoint less 2 × 16 px of padding), say that it scrolls. -#}
+{%- set fits = "hidden" if drawn <= 358 else "sm:hidden" if drawn <= 608 else "md:hidden" if drawn <= 736 else "lg:hidden" if drawn <= 992 else "xl:hidden" -%}
+{%- if fits != "hidden" %}
+<p class="mt-1 text-xs text-slate-500 {{ fits }}" aria-hidden="true">Scroll the chart sideways to see all of it.</p>
+{%- endif %}
 {%- endmacro %}

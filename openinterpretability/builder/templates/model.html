@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import chart %}
 {% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows, fold, read_more %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
@@ -36,7 +37,7 @@
 {% if lm %}
 <figure class="mt-6" data-pagefind-ignore>
   <div class="overflow-x-auto">
-  <svg viewBox="0 0 {{ lm.width }} {{ lm.height }}" class="w-full min-w-[520px]" role="group" aria-label="Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.">
+  {% set _label %}Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.{% endset %}{% call chart(lm.width, lm.height, "Layer map", _label | trim, role="group") %}
     {% for i, y in lm.rows %}
     <rect x="{{ lm.left }}" y="{{ y }}" width="{{ lm.right - lm.left }}" height="{{ lm.row }}" class="fill-slate-100 dark:fill-slate-800/60"/>
     {% if i % lm.label_every == 0 %}<text x="{{ lm.left - 6 }}" y="{{ y + lm.row - 1 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">L{{ i }}</text>{% endif %}
@@ -48,7 +49,7 @@
     <line x1="{{ tx }}" y1="{{ lm.axis_y - 2 }}" x2="{{ tx }}" y2="{{ lm.axis_y + 2 }}" class="stroke-slate-400" stroke-width="1"/>
     <text x="{{ tx }}" y="{{ lm.axis_y + 13 }}" text-anchor="{{ 'start' if loop.first else 'middle' }}" class="fill-slate-500 font-mono" font-size="10">N{{ label }}</text>
     {% endfor %}
-  </svg>
+  {% endcall %}
   </div>
   <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
     {% for s, n in lm.counts.items() %}
@@ -187,7 +188,7 @@
   <figure class="mt-6">
     <h3 class="font-mono text-sm font-medium">{{ model.name }} ↔ {{ g.other }}</h3>
     <div class="overflow-x-auto">
-    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-3xl" role="group" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
+    {% set _label %}Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.{% endset %}{% call chart(g.width, g.height, "Sister graph", _label | trim, role="group") %}
       <text x="{{ g.columns[0] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ model.name }}</text>
       <text x="{{ g.columns[1] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ g.other }}</text>
       {% for t in g.ticks %}
@@ -199,7 +200,7 @@
       {% for n in g.nodes %}
       {% if n.href %}<a href="{{ root }}{{ n.href }}">{% endif %}<circle cx="{{ n.x }}" cy="{{ n.y }}" r="2.2" class="{{ 'fill-brand-700 dark:fill-brand-300' if n.href else 'fill-slate-500 dark:fill-slate-400' }}"><title>{{ n.label }}</title></circle>{% if n.href %}</a>{% endif %}
       {% endfor %}
-    </svg>
+    {% endcall %}
     </div>
     <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
       <span><svg class="inline align-middle" width="16" height="10" aria-hidden="true"><line x1="1" y1="5" x2="15" y2="5" class="stroke-brand-600 dark:stroke-brand-400" stroke-width="2"/></svg> sister {{ g.n_sisters }}</span>

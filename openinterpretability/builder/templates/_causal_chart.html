@@ -1,9 +1,10 @@
+{% from "_macros.html" import chart %}
 {# The causal chart of the minimal-pair section of _experiment.html. Expects `v`, `c`, `sub`, `what`, `peer`, `peers`. The per-pair numbers are in that section's table. #}
   {% if v.causal %}
   {% set cc = v.causal %}
   <figure class="mb-4" data-pagefind-ignore>
       <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Causal effects per minimal pair">
-      <svg viewBox="0 0 {{ cc.width }} {{ cc.height }}" class="w-full min-w-[520px]" role="img" aria-label="Sufficiency and necessity percentiles {% if cc.rows %}for {{ cc.rows | length }} minimal pairs {% endif %}against the 0.5 baseline of matched {{ peers }}: median sufficiency {{ c.sufficiency_score | num(2) }}, necessity {{ c.necessity_score | num(2) }}.{% if cc.rows %} Values are in the table below.{% endif %}">
+      {% set _label %}Sufficiency and necessity percentiles {% if cc.rows %}for {{ cc.rows | length }} minimal pairs {% endif %}against the 0.5 baseline of matched {{ peers }}: median sufficiency {{ c.sufficiency_score | num(2) }}, necessity {{ c.necessity_score | num(2) }}.{% if cc.rows %} Values are in the table below.{% endif %}{% endset %}{% call chart(cc.width, cc.height, "Causal effects per minimal pair", _label | trim, role="img") %}
         <rect x="{{ cc.baseline_x }}" y="{{ cc.top - 8 }}" width="{{ cc.right - cc.baseline_x }}" height="{{ cc.axis_y - cc.top + 8 }}" class="fill-slate-100 dark:fill-slate-900"/>
         {% if cc.rule_y %}<line x1="0" y1="{{ cc.rule_y }}" x2="{{ cc.right }}" y2="{{ cc.rule_y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>{% endif %}
         {% for row in cc.rows + [cc.median] %}
@@ -29,7 +30,7 @@
         <line x1="{{ tx }}" y1="{{ cc.axis_y }}" x2="{{ tx }}" y2="{{ cc.axis_y + 4 }}" class="stroke-slate-400" stroke-width="1"/>
         <text x="{{ tx }}" y="{{ cc.axis_y + 16 }}" text-anchor="middle" class="fill-slate-500 font-mono" font-size="11">{{ label }}</text>
         {% endfor %}
-      </svg>
+      {% endcall %}
       </div>
       <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
         <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="2" width="10" height="8" rx="2" class="fill-indigo-500"/></svg> sufficiency (clean → corrupted)</span>
