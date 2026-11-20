@@ -179,8 +179,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
-      # Post new VERIFIED experiments and published papers to X, once the site that the posts
-      # link to is live (#4463). The state of what was posted lives in the Actions cache. A
+      # Post new published papers and site posts to X, once the site that the posts link to
+      # is live (#4463, #5533). The state of what was posted lives in the Actions cache. A
       # cache key can't be overwritten, so each run saves under its own key, and the restore
       # takes the newest. With no cache, the first run records every entry and posts nothing.
       # With the secrets unset, nothing is posted. A failure here never fails the deploy.
