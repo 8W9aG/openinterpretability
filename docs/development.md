@@ -199,3 +199,9 @@ After a deploy, `open-interpretability social post` posts each new VERIFIED expe
 - **Never fails the deploy.** The step has `continue-on-error`.
 
 `--dry-run` prints the posts and changes no state. `--preview N` prints the posts of the newest N entries of each feed.
+
+**Post an entry again.** The first run records every entry as seen, so an entry that was already in the feeds then never posts. `--repost <id>` posts it once, within the same limits. The id is the entry's URL in the feed. On CI, dispatch the deploy with the ids, separated by spaces (#5527):
+
+```bash
+gh workflow run deploy.yml -f repost="https://open-interpretability.com/research/<slug>/index.html"
+```
