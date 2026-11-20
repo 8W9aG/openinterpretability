@@ -30,10 +30,14 @@ def test_every_job_that_a_pull_request_starts_skips_a_draft():
                 assert "!github.event.pull_request.draft" in condition, f"{name}: {job_id}"
 
 
-def test_a_draft_shows_no_required_check_as_passed():
-    jobs = _load("ci.yml")["jobs"].values()
-    names = [str(job["name"]) for job in jobs]
-    for check in REQUIRED:
-        (name,) = [n for n in names if f"'{check}'" in n]
-        assert name.startswith("${{ github.event.pull_request.draft")
-        assert f"'{check} (draft, skipped)' || '{check}'" in name
+def test_auto_merge_waits_for_the_run_that_leaving_draft_starts():
+    # A draft run's skipped jobs report success under the required names. So on
+    # ready_for_review, auto-merge waits for the new CI run before it turns itself on.
+    steps = _load("auto-merge.yml")["jobs"]["enable"]["steps"]
+    names = [s.get("name", "") for s in steps]
+    wait = names.index("Wait for the CI run that leaving draft starts")
+    assert wait < next(i for i, n in enumerate(names) if n.startswith("Auto-merge if"))
+    assert steps[wait]["if"] == "github.event.action == 'ready_for_review'"
+    assert "actions/workflows/ci.yml/runs" in steps[wait]["run"]
+    names = [str(job["name"]) for job in _load("ci.yml")["jobs"].values()]
+    assert set(REQUIRED) <= set(names)  # static, so a skipped job still reports its name
