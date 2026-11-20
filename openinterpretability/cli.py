@@ -462,6 +462,7 @@ from openinterpretability import (  # noqa: E402, F401
     cli_scan,
     cli_score,
     cli_sisters,
+    cli_social,
     cli_superpositions,
     cli_wiring,
 )
