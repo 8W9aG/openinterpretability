@@ -1,11 +1,11 @@
 """The text of a post: what it says, cut to fit, and screened as the site is (issue #4463).
 
-- A VERIFIED experiment: ``<unit slug> VERIFIED: <explanation>``, then its link.
 - A published paper: its title, then the first sentence of its abstract, then its link.
+- A site post: its title, then its first paragraph, then its link (#5533).
 
 X counts a post's length its own way. Every link counts as :data:`LINK` characters. Most
 characters outside the Latin, Greek and Cyrillic ranges (CJK, emoji) count as two.
-The explanation or the sentence is cut at a word boundary, with an ellipsis, so the post
+The sentence or the paragraph is cut at a word boundary, with an ellipsis, so the post
 fits :data:`LIMIT`. The text passes the site's search for personal data and taken-down
 passages (``builder.pii.redact_text``) before it is posted, as every page does.
 """
@@ -110,28 +110,6 @@ def compose(head: str, body: str, link: str, separator: str = " ") -> str:
     return f"{text}\n{link}"
 
 
-def experiment_post(entry: Entry) -> str:
-    r"""The post for a VERIFIED experiment, from its ``feed.xml`` entry: unit, verdict and link.
-
-    The post carries no text from the record. Any contributor can write an experiment
-    record, and it can merge with no person reading it. So its explanation never goes out
-    under the project's account. The link leads to the unit's page, which shows it.
-
-    Args:
-        entry: The experiment's feed entry.
-
-    Returns:
-        The post's text, which fits :data:`LIMIT`.
-
-    Examples:
-        >>> experiment_post(Entry("u", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u",
-        ...                       "Fires on dates. @someone https://elsewhere.example"))
-        'gpt2/L1/N5-positive VERIFIED\nhttps://x.org/u'
-    """
-    slug = entry.title.removesuffix(" VERIFIED")
-    return compose(f"{slug} VERIFIED", "", entry.link)
-
-
 def paper_post(entry: Entry) -> str:
     r"""The post for a published paper, from its ``research/published.xml`` entry.
 
@@ -149,21 +127,22 @@ def paper_post(entry: Entry) -> str:
     return compose(entry.title, first_sentence(entry.summary), entry.link, separator="\n\n")
 
 
-def digest_post(count: int, link: str) -> str:
-    r"""One post for many new VERIFIED units at once.
+def site_post(entry: Entry) -> str:
+    r"""The post for a site post, from its ``posts/posts.xml`` entry (#5533).
+
+    Its title, then its summary (the post's first paragraph, cut to fit), then its link.
 
     Args:
-        count: How many new VERIFIED units.
-        link: The site's link.
+        entry: The post's feed entry.
 
     Returns:
-        The post's text.
+        The post's text, which fits :data:`LIMIT`.
 
     Examples:
-        >>> digest_post(5, "https://x.org/")
-        '5 new VERIFIED units in the registry.\nhttps://x.org/'
+        >>> site_post(Entry("s", "We are on X", "https://x.org/s", "The project posts. More."))
+        'We are on X\n\nThe project posts. More.\nhttps://x.org/s'
     """
-    return f"{count} new VERIFIED units in the registry.\n{link}"
+    return compose(entry.title, entry.summary, entry.link, separator="\n\n")
 
 
 def length(post: str) -> int:
