@@ -48,20 +48,21 @@ def test_contributors_view_lists_each_persons_experiments_newest_first(record):
 
 def test_the_site_has_a_page_per_user(tmp_path, record):
     compile_site([record], tmp_path, users={record_ref(record): "bob"})
-    index = (tmp_path / "users" / "index.html").read_text()
-    assert 'href="../users/bob.html">bob</a>' in index
+    assert not (tmp_path / "users" / "index.html").exists()  # #4620: no Users index
     page = (tmp_path / "users" / "bob.html").read_text()
     assert "github.com/bob" in page and "1 experiment," in page
     assert "Fires on the closing quote" in page and "N117" in page
     agents = (tmp_path / "agents" / "index.html").read_text()
     assert 'href="../users/bob.html">bob</a>' in agents
     home = (tmp_path / "index.html").read_text()
-    assert 'href="users/index.html" class=' in home and ">Users</a>" in home
+    assert "users/index.html" not in home and ">Users</a>" not in home
+    assert 'href="agents/index.html" class=' in home and ">Contributors</a>" in home
+    assert ">Agents</a>" not in home
 
 
 def test_a_site_without_users_says_so(tmp_path, record):
     compile_site([record], tmp_path)
-    assert "No users yet." in (tmp_path / "users" / "index.html").read_text()
+    assert "No contributors yet." in (tmp_path / "agents" / "index.html").read_text()
 
 
 def git(cwd, *args):

@@ -1,4 +1,7 @@
-"""The agents page: per agent model and role, its experiments, VERIFIED rate and costs.
+"""The Contributors page: per agent model and role, its experiments, VERIFIED rate and costs.
+
+The page lives at ``agents/index.html``, and its *People* table credits the people who
+ran the agents (#4620).
 
 A model takes part in an experiment in one of three roles. It is the proposer
 (``submitting_agent_model``), the reviewer (``reviewer_agent_model``), or the judge that
