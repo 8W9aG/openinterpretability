@@ -16,7 +16,8 @@ output, a value in [0, 1] for each position. ``params``:
   ``threshold``, over ``temperature``). A composite combines its gates' outputs as they are.
 - ``positions``: ``all`` (the default), ``last``, or a list of positions. Outside them the
   gate is shut.
-- ``force``: ``open`` or ``shut`` fixes the output, for checks.
+- ``force``: ``open`` or ``shut`` fixes the output at every position, for checks. A forced
+  gate reads no input, so it also works outside a forward pass.
 - ``meaning`` and ``metrics``: the gate's stated meaning and its measures, as data only.
 """
 
@@ -126,6 +127,9 @@ class Gates:
         if ref not in self.gates:
             raise PatchError(f"no gate {ref}")
         params = self.gates[ref]
+        force = params.get("force")
+        if force in ("open", "shut"):  # fixed everywhere, so it reads no input
+            return torch.tensor(1.0 if force == "open" else 0.0)
         function = params["function"]
         kind = function["kind"]
         if kind in COMPOSITES:
@@ -137,9 +141,6 @@ class Gates:
                 value = torch.sigmoid((score - threshold) / float(params.get("temperature", 1.0)))
             else:
                 value = (score > threshold).float()
-        force = params.get("force")
-        if force in ("open", "shut"):
-            value = torch.full_like(value, 1.0 if force == "open" else 0.0)
         return value * _mask(params, value.shape, value.device)
 
 

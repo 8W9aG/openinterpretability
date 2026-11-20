@@ -1,5 +1,7 @@
 """The literature review as a subsection of Research, one page per review (#3293)."""
 
+import json
+
 from openinterpretability.builder.compiler import compile_site
 from openinterpretability.builder.literature_pages import load_reviews
 
@@ -66,7 +68,8 @@ def _mapped(tmp_path, sha=None):
 
 
 def test_the_map_places_reviews_whose_text_matches_and_lists_the_rest(tmp_path):
-    from openinterpretability.builder.literature_pages import literature_map, statuses
+    from openinterpretability.builder.literature_map_view import literature_map
+    from openinterpretability.builder.literature_pages import statuses
 
     folder = _mapped(tmp_path)
     assert statuses(folder) == {"a": "used", "b": "planned"}
@@ -90,22 +93,50 @@ def test_the_index_draws_the_map_and_the_reviews_not_placed(tmp_path):
     assert "points" not in pages["research/literature/a.html"]
 
 
-def test_labels_do_not_overlap_when_a_free_spot_exists():
-    from openinterpretability.builder.literature_pages import Point, _box, _overlaps, place_labels
+def test_callouts_and_badges_never_overlap():
+    """Cards stack in the margins; badges overlap no badge and no card (#4577)."""
+    from openinterpretability.builder.cluster_map import overlaps
+    from openinterpretability.builder.literature_map_view import Point, badges, callouts
 
-    title = "A long title for one paper"
-    near = [Point(n, title, "used", 100, 100 + i) for i, n in enumerate("abc")]
-    placed = place_labels(near)
-    boxes = [_box(p, p.tx, p.ty, p.anchor) for p in placed]
-    assert not any(_overlaps(a, b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
-    assert sum(p.moved for p in placed) >= 1 and not placed[0].moved
-    assert Point("x", "y" * 50, "used", 0, 0).label.endswith("…")
+    title = "A long title for one paper that wraps onto more than one line"
+    near = [Point(n, title, "used", 300 + i, 300 + i, credit="A, B and C, 2026")
+            for i, n in enumerate("abcd")]  # fmt: skip
+    cards = callouts(near)
+    boxes = [c.box for c in cards]
+    assert not any(overlaps(a, b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
+    regions = [{"number": n, "name": f"r{n}", "named": True, "x": 0.1, "y": 0.5, "size": 3}
+               for n in (1, 2, 3)]  # fmt: skip
+    placed = badges(regions, cards)
+    every = [b.box for b in placed]
+    assert not any(overlaps(a, b) for i, a in enumerate(every) for b in every[i + 1 :])
+    assert not any(overlaps(a, c) for a in every for c in boxes)
 
 
 def test_the_repo_map_covers_every_review():
     # Run scripts/literature_map.py after adding or changing a review (#3294).
-    from openinterpretability.builder.literature_pages import LITERATURE, literature_map
+    from openinterpretability.builder.cluster_map import overlaps
+    from openinterpretability.builder.literature_map_view import literature_map, map_view
+    from openinterpretability.builder.literature_pages import LITERATURE
 
     points, missing = literature_map(LITERATURE, load_reviews(REPO, LITERATURE))
     assert missing == [], "run scripts/literature_map.py: " + ", ".join(r.name for r in missing)
     assert len(points) >= 20
+    view = map_view(LITERATURE, points)
+    boxes = [b.box for b in view["badges"]] + [c.box for c in view["callouts"]]
+    assert not any(overlaps(a, b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
+
+
+def test_the_repo_map_has_regions_neighbours_and_the_queue():
+    """map.json's fields since #4577: named regions, each review's neighbours, the queue."""
+    from openinterpretability.builder.literature_pages import LITERATURE, MAP, sections
+
+    data = json.loads((LITERATURE / MAP).read_text())
+    regions = data["regions"]
+    assert [r["number"] for r in regions] == list(range(1, len(regions) + 1))
+    assert {"number", "name", "named", "x", "y", "size"} <= set(regions[0])
+    named = [r["name"] for r in regions if r["named"]]
+    assert len(named) == len(set(named)) and set(named) <= set(sections(LITERATURE).values())
+    numbers = {r["number"] for r in regions}
+    assert all(r["region"] in numbers and len(r["neighbours"]) == 3 for r in data["reviews"])
+    assert data["queued"] and all({"number", "title", "x", "y", "region"} <= set(q)
+                                  for q in data["queued"])  # fmt: skip
