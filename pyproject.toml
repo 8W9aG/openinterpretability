@@ -177,8 +177,11 @@ gated = false
 publishing_allowed = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-ra"
+# The package's docstring examples run too (#5356). tests/test_doctests.py checks that each
+# public function has one.
+testpaths = ["tests", "openinterpretability"]
+addopts = "-ra --doctest-modules"
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
 # A hang fails within a minute, dumping every thread's stack and naming the test.
 # "thread" because the hangs block in C (a semaphore wait), where SIGALRM never fires.
 timeout = 60
