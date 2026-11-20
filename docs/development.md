@@ -195,6 +195,7 @@ After a deploy, `open-interpretability social post` posts each new VERIFIED expe
 
 - **New means unseen.** The Actions cache keeps the id of each entry posted or seen. The first run with no cache records every entry and posts nothing.
 - **Limits.** At most 3 single posts go out in a run. More new units than that get one digest post. At most 15 posts go out in 24 hours, under the free tier's lower published limit. The rest posts on a later run.
+- **No record text.** An experiment's post is its unit, its verdict and its link. A record can come from any contributor and merge with no person reading it, so its explanation stays on the unit's page.
 - **Screened.** Each post passes the same personal-data screen as the site's pages.
 - **Never fails the deploy.** The step has `continue-on-error`.
 

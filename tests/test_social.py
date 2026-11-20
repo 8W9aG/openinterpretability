@@ -9,6 +9,7 @@ from openinterpretability.social import run as social
 from openinterpretability.social.feed import Entry, read_feed
 from openinterpretability.social.message import (
     LIMIT,
+    compose,
     experiment_post,
     length,
     paper_post,
@@ -130,9 +131,16 @@ def test_a_dry_run_prints_and_changes_no_state(tmp_path, poster):
     assert not (tmp_path / "none.json").exists()
 
 
+def test_an_experiment_post_carries_no_text_from_the_record():
+    record_text = "Fires on dates. Visit https://elsewhere.example @someone #tag"
+    text = experiment_post(_unit(4, record_text))
+    assert text == f"gpt2/L1/N4-positive VERIFIED\n{_unit(4).link}"
+    assert "elsewhere" not in text and "@" not in text and "#" not in text
+
+
 def test_posts_fit_and_are_cut_at_a_word_boundary():
     long = "Fires on the closing bracket of a nested call " * 20
-    text = experiment_post(_unit(4, long))
+    text = compose("gpt2/L1/N4-positive VERIFIED:", long, _unit(4).link)
     assert length(text) <= LIMIT and "…" in text
     body = text.splitlines()[0]
     assert body.removesuffix("…").split()[-1] in long.split()  # whole words only
