@@ -22,9 +22,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from openinterpretability.builder.cluster_map import Badge, colour_slots, place_badges
+from openinterpretability.builder.cluster_map import (
+    Badge,
+    colour_slots,
+    place_badges,
+    region_outline,
+)
 
 WIDTH, HEIGHT, PAD = 720, 480, 24  # the SVG's viewBox and margin
+WHY_CHARS = 140  # the most of an explanation that the hover card shows
 
 # A status's mark, so that no status rests on colour alone. Others get a small dot.
 SHAPES = {"VERIFIED": "circle", "NEEDS_REVISION": "triangle", "REJECTED": "square",
@@ -48,6 +54,7 @@ class MapPoint:
     model: str = ""
     own: bool = True  # on a model page: the page's model's own pole
     order: int = 0  # its rank by first study, for the atlas's fill-in
+    why: str = ""  # one line of its explanation, for the hover card (#4578)
 
     @property
     def shape(self) -> str:
@@ -96,7 +103,34 @@ def _points(found: dict, standings, own_model: str | None) -> list[MapPoint]:
             status.status if status is not None else "unstudied", p["cluster"],
             slot.get(number.get(p["cluster"], 0), 0), named.get(p["cluster"], ""),
             p["model"], own_model is None or p["model"] == own_model, rank[i],
+            _why(status),
         ))  # fmt: skip
+    return out
+
+
+def _why(standing) -> str:
+    """The first sentence of the standing's lead explanation, cut to :data:`WHY_CHARS`.
+
+    The build has scrubbed the record already, as every page shows it.
+    """
+    import re
+
+    if standing is None or not standing.readings:
+        return ""
+    text = standing.lead.record.submission.natural_language_explanation.strip()
+    found = re.match(r"(.+?[.!?])(\s|$)", text, re.S)
+    line = " ".join((found.group(1) if found else text).split())
+    return line if len(line) <= WHY_CHARS else line[: WHY_CHARS - 1].rsplit(" ", 1)[0] + "…"
+
+
+def _outlines(points: list[MapPoint], order: list[dict], number: dict, slot: dict) -> list:
+    """Each region's outline: (number, colour slot, SVG path), biggest region first."""
+    out = []
+    for c in order:
+        n = number[c["id"]]
+        path = region_outline([(p.x, p.y) for p in points if p.cluster == c["id"]])
+        if path:
+            out.append((n, slot.get(n, 0), path, c["id"]))
     return out
 
 
@@ -120,6 +154,7 @@ def map_view(model, found: dict | None) -> dict | None:
         counts[number[p.cluster]] = counts.get(number[p.cluster], 0) + 1
     return {"points": [p for p in points if not p.own] + own, "own": len(own),
             "lines": _lines(own), "badges": _badges(points, order, number, slot),
+            "regions": _outlines(points, order, number, slot),
             "counts": counts, "found": found, "size": (WIDTH, HEIGHT)}  # fmt: skip
 
 
@@ -139,6 +174,7 @@ def atlas_view(models, found: dict | None) -> dict | None:
         rows.append({"model": m, "shape": shape[m], "by_number": by_number, **row})
     return {"points": points, "shape": shape, "badges": _badges(points, order, number, slot),
             "rows": rows, "pairs": reach.get("pairs", []),
+            "regions": _outlines(points, order, number, slot),
             "found": found, "size": (WIDTH, HEIGHT)}  # fmt: skip
 
 

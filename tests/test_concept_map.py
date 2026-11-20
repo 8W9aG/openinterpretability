@@ -160,3 +160,37 @@ def test_the_atlas_fills_in_by_first_study(record):
     assert [p.model for p in view["points"]] == [B, model.name]  # B's pole was studied first
     assert [r["shape"] for r in view["rows"]] == ["circle", "square"]
     assert view["rows"][0]["by_number"] or view["rows"][1]["by_number"]
+
+
+def test_a_region_outline_is_convex_holds_the_core_and_leaves_out_a_stray():
+    from openinterpretability.builder.cluster_map import hull, region_outline
+
+    square = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0), (5.0, 5.0)]
+    assert sorted(hull(square)) == sorted(square[:4])  # the centre point is inside
+    core = [(x, y) for x in range(0, 20, 2) for y in range(0, 20, 2)]
+    path = region_outline([(float(x), float(y)) for x, y in core] + [(500.0, 500.0)])
+    xs = [float(v) for v in path.replace("M", "").replace("L", "").replace("Z", "").split()[::2]]
+    assert path.startswith("M") and path.endswith("Z")
+    assert max(xs) < 100  # the stray at 500 is outside the inner 85%
+    assert region_outline([(0.0, 0.0), (1.0, 1.0)]) == ""  # too few points for a shape
+
+
+def test_the_map_draws_outlines_and_a_card_line(tmp_path, record):
+    from openinterpretability.builder.cluster_map import overlaps
+    from openinterpretability.builder.compiler import compile_site
+    from openinterpretability.builder.tree import build_tree
+
+    (model,) = build_tree([record], [])
+    found = _shared(model, record.submission.identifier)
+    found["points"] += [dict(found["points"][1], slug=f"x{i}", neuron=10 + i,
+                             x=0.1 * i, y=0.9 - 0.05 * i) for i in range(4)]  # fmt: skip
+    view = map_view(model, found)
+    assert [rid for _, _, _, rid in view["regions"]] == [1]  # only region 1 has 3+ points
+    boxes = [b.box for b in view["badges"]]
+    assert not any(overlaps(a, b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
+    own = next(p for p in view["points"] if p.own)
+    explanation = record.submission.natural_language_explanation
+    assert own.why and explanation.startswith(own.why.rstrip("…").rstrip())
+    compile_site([record], tmp_path / "site", concept_map=found)
+    page = (tmp_path / "site" / "models" / model.slug / "index.html").read_text()
+    assert 'class="region f0"' in page and 'data-cluster="0"' in page
