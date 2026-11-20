@@ -1,90 +1,113 @@
-# Why did the model say that? A walk through `explain`
+# Why did the model say that? How an explanation is built
 
-`open-interpretability explain` takes one prompt and asks why the model gave its answer. It finds the units that carry the answer, says which of them the registry explains, and lists the experiments that would explain the rest. This post runs it once on Qwen/Qwen2.5-0.5B and reads its output.
+`open-interpretability explain` takes one prompt and asks why the model gave its answer. This post follows two explanations of EleutherAI/pythia-70m through to the end, and shows how each part of an explanation is built and tested. One of the answers is wrong, and the explanation says how the model gets it wrong.
 
-## The run
+Every number here comes from a record in the repository. Each record was written by `explain --record` or by an answer experiment. The records name the package version that wrote them, 0.1.0 or 0.2.0, and the post gives the record with each number.
 
-The prompt is the factual-recall line of `data/explanation-prompts.jsonl`, the prompts that the explanations use. The run used openinterpretability 0.2.1 at commit `c730c1f5d`, on an Apple laptop's GPU (MPS). It took about 9 minutes, most of it to compute each unit's mean on the corpus. That mean is cached, so a second run is faster.
+## Two prompts
 
-```bash
-open-interpretability explain "The Eiffel Tower is in the city of" --top 10 --experiments 5
-```
+- **"The sun rises in the" → " sky".** The record is `wiki/explanations/EleutherAI--pythia-70m/6c78ac114096/20261119T013311Z.json`.
+- **"A week has seven days and a year has twelve" → " days".** The right answer is " months". The record is `wiki/explanations/EleutherAI--pythia-70m/970a91e11d8c/20261118T235000Z.json`, and its answer experiments are in `wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/`.
 
-`--model` defaults to Qwen/Qwen2.5-0.5B. `--top 10` lists 10 units, and `--experiments 5` lists 5 planned unit experiments. Every block below is pasted from this run. Only lines between the blocks are left out.
+## Attribution is a first guess
 
-## The answer and its units
+`explain` first measures each unit's attribution. Each MLP neuron pole and each attention head gets a first-order estimate of how much it pushes the answer's logit, against the unit's mean on a corpus. Then it asks the registry which of those units have a VERIFIED explanation.
 
-```text
-Answer at position -1: ' Paris' (logit 16.60)
-unit           attribution  share ablated Δ  peak/max  status
-L23/N1465+          -5.200   0.3%     +4.76         —  unstudied
-L0/H11              -3.855   0.2%     -6.52         —  unstudied
-L4/H12              +2.525   0.2%     +0.63         —  unstudied
-L2/H9               +2.002   0.1%     -1.49         —  unstudied
-L1/H0               -1.825   0.1%     +1.30         —  unstudied
-L5/H10              -1.726   0.1%     +1.11         —  unstudied
-L3/N765−            +1.716   0.1%     -1.37         —  unstudied
-L1/N3079−           -1.667   0.1%     +1.65         —  unstudied
-L14/H10             +1.667   0.1%     -0.61         —  unstudied
-L20/N4520−          +1.565   0.1%     -2.14         —  unstudied
-Explained units (VERIFIED, or in a VERIFIED superposition or circuit) hold 0.2% of the total |attribution|; 99.8% is unexplained.
-No unit above is VERIFIED, so nothing here is explained yet.
-```
+For " days", the units with verified explanations hold 6.4% of the total attribution (`explained_share` 0.064). For " sky" they hold 10.1%. Read alone, that looks like a model that is barely explained.
 
-The model's top token is " Paris". Each row is one unit. `N` is an MLP neuron, with its pole (`+` or `−`). `H` is an attention head.
+But attribution is first-order. Many units push the answer up and many push it down, and the pushes cancel. A unit's share of the total says little about what the answer needs. So `explain` doesn't use attribution as its target.
 
-- **Attribution** is the unit's first-order effect on the logit of " Paris", against the unit's mean on the corpus. A positive number pushes the model toward " Paris".
-- **Share** is that unit's part of the total absolute attribution. Here no unit holds more than 0.3%, so the answer is spread over many units.
-- **Ablated Δ** is the check. The command sets the unit to its mean and measures the change in the logit. For a first-order attribution, the change is about minus the attribution. For L23/N1465+ it is: −5.200 against +4.76. For L0/H11 it is not: −3.855 against −6.52. That unit's effect is not first order.
-- **Status** comes from the registry. None of these units is studied yet.
+## Causal coverage is the target
 
-## Superpositions, circuits and paths
+Coverage asks a direct question. Keep the explained units as they are, set every other unit to its corpus mean, and run the model again. How much of the answer's log-probability comes back?
 
-The next block lists the superpositions and circuits that carry the most attribution. One of them, L9/Sad6c412551e8, has a NEEDS_REVISION verdict. Then `explain` traces where the top units get their input:
+- **" days":** the explained units bring back 93.8% (`prompt_coverage` 0.938).
+- **" sky":** they bring back 81.9% (0.819).
 
-```text
-Paths: the top units that drive each unit's contribution (first order).
-  L23/N1465+   ← L4/H12 -2.731, L1/H0 +1.365, L0/H11 -0.982
-  L4/H12       ← L1/H0 +0.385, L0/H11 +0.287, L2/H9 -0.227
-  L2/H9        ← L0/H11 -0.396, L1/N3079− -0.017, L1/H0 -0.009
-  L1/H0        ← L0/H11 -0.419
-  L5/H10       ← L4/H12 +0.343, L0/H11 -0.224, L1/H0 +0.219
-  L3/N765−     ← L0/H11 -0.306, L1/N3079− -0.267, L1/H0 +0.230
-  L1/N3079−    ← L1/H0 -0.921, L0/H11 -0.401
-```
+So a set of units that holds 6.4% of the attribution brings back 93.8% of the answer. Coverage is the number that `explain --target` aims at, and the one an explanation is judged by (`openinterpretability/explain_coverage.py`).
 
-Read `L23/N1465+ ← L4/H12 -2.731` as: head 4 of layer 4 changes the neuron's contribution by −2.731, through the residual stream. `--edges` sets how many top units get this trace.
+`explain` also prunes the explained set to a minimal set that keeps at least 90% of the coverage. For " days" that is 23 units, which keep 84.8%. For " sky" it is 21 units, which keep 75.7%.
 
-## Coverage
+## The random baseline
 
-```text
-Prompt coverage: keeping only the 368 explained units, and mean-ablating the rest, brings back 0.2% of the answer's log-probability; 368 matched random units: -0.0%.
-Reached: prompt coverage 0.2%, target 100%, against -0.0% for random units matched by kind and layer; explained share of |attribution| 0.2%.
-```
+High coverage could mean that any units of the same kinds would do. So every record also measures random sets of units, with the same number of heads and of neuron poles in each layer as the explained set.
 
-The second test is causal. It keeps only the units that the registry explains, mean-ablates every other unit, and measures how much of the answer's log-probability comes back. Here 368 explained units bring back 0.2%. The same number of random units, matched by kind and layer, bring back −0.0%. So on this prompt the registry explains almost nothing yet. `--target` sets the coverage to aim at, and its default is 1, that is, 100%.
+- **" days":** random sets bring back 10.1% (`random_coverage` 0.101), against 93.8%.
+- **" sky":** random sets bring back 13.0%, against 81.9%.
 
-## The plan
+Even so, both records set `coverage_caution`. It is true when coverage is within 0.2 of the random baseline, or when verified units hold less than a quarter of the attribution. Here the second applies, with 6.4% and 10.1%. Then coverage shows that the units are sufficient on this prompt, not how they make the answer. The page and the narrator both say so.
 
-```text
-Plan: the 100% coverage target is out of reach: every planned unit brings back 100.0%; with every planned unit kept, the answer overshoots the clean model (coverage now 0.2%). There are 223255 unit experiments in all, and 26 for superpositions and circuits.
-  Greedy picks, by joint coverage: L23/H1, L8/H3, L11/H0, L22/N82+, L7/H4, L10/H12, L10/H3, L4/H11, L5/H8, L8/H1, L6/H9, L19/H11, L6/H5, L10/H10, L3/H10, L10/H6, L5/H10, L2/H6, L14/H13, L11/H6
-  Of the |attribution|: 17858 experiments reach 50%; 59871 experiments reach 80%; 91017 experiments reach 90%; 164436 experiments reach 99%.
-  L23/H1               +18.0% coverage      0.1% attr.  unstudied      explore
-      unstudied; the answer chose it, so the audit records selection attribution
-    $ open-interpretability audit --model Qwen/Qwen2.5-0.5B --layer 23 --head 1 --selection attribution
-```
+## Heads and neuron poles
 
-The first line says that 100% coverage is out of reach on this prompt. With every planned unit kept, the answer overshoots: the model gives " Paris" more probability than the clean model does. The *Of the |attribution|* line counts the experiments that each share of the attribution would need.
+The record also splits coverage by kind of unit:
 
-The plan ranks the experiments by the coverage that each one would add, not by attribution. L23/H1 holds only 0.1% of the attribution, but keeping it adds 18.0% coverage. Each planned experiment comes with the command that runs it. The output also lists stopped units and an answer experiment, which tests one claim about how the model reaches " Paris".
+| Prompt | Heads only | Poles only | Both |
+| --- | --- | --- | --- |
+| " days" | 0.422 | 0.034 | 0.938 |
+| " sky" | 0.234 | 0.019 | 0.819 |
 
-## What next
+Neither kind alone brings back much. Together they bring back most of the answer. The heads and the poles work as one route, which is what the answer experiment then tests.
 
-- **`--run N`** runs the planned experiments through the experiment loop, by coverage gain, and stops after N or at `--target`.
-- **`--level long`** has a model narrate the evidence. `--level paragraph` gives one paragraph.
-- **`--record`** writes the explanation to `wiki/explanations/`, for its page on the site's [explanations](https://open-interpretability.com/explanations/index.html).
-- **`--complete`** does all of these in one command, and lands the record as a PR.
-- **`--json`** prints the whole result as JSON.
+## Coverage changes as the registry grows
+
+The " sky" explanation has seven records, each building on the one before (`previous`):
+
+| Record | Package | Coverage |
+| --- | --- | --- |
+| `20261117T191922Z` | 0.1.0 | 0.316 |
+| `20261117T200746Z` | 0.1.0 | 0.519 |
+| `20261117T224241Z` | 0.1.0 | 0.751 |
+| `20261118T053532Z` | 0.1.0 | 1.0 |
+| `20261118T151956Z` | 0.2.0 | 0.745 |
+| `20261118T155641Z` | 0.2.0 | 1.0 |
+| `20261119T013311Z` | 0.2.0 | 0.819 |
+
+The first four rise as unit experiments VERIFY more of the units on the route. The fall to 0.745 came when coverage was measured again against the matched random baseline (#4777, #4780), and more experiments brought it back to 1.0.
+
+The last record measures it again with its inputs stored, so that CI can reproduce it (#4793). By then the explained set had grown to 86 units, with poles VERIFIED in the meantime. Coverage is not additive: keeping more units live can bring back less, because each kept unit also keeps its pushes the wrong way. The 100% record stays on the prompt's page.
+
+## The wrong answer: " days" for " months"
+
+The model completes "A week has seven days and a year has twelve" with " days". The answer experiment tests a claim about how it does that.
+
+**The claim.** It starts from three source tokens, " seven", " days" and " twelve". The VERIFIED claim's route has 32 units:
+
+- **Count-word neurons** in layer 0, such as L0/N1877+ and L0/N1277+. They fire on " seven" and on the final " twelve", and mark each as a bare count word that wants a counted noun.
+- **Time-unit neurons**, such as L0/N1101+. They write the identity of " days".
+- **Early heads** in layers 0 and 1. They line up the two parallel clauses of the form "a X has" and a count.
+- **A copy step.** At " twelve", the induction-style head L3/H3, with L4/H0 and L4/H7, attends to " days", the noun after the earlier count word. It copies " days" to the last position.
+- **Layer-5 neurons** push a counted noun up and layout tokens down. They don't choose between " days" and " months".
+
+So the copied " days" wins over the fact that a year has twelve months. The model completes a pattern from the first clause rather than recalling a fact.
+
+**The test.** A claim is VERIFIED only when every gate passes:
+
+| Gate | Rule | First claim | Second claim |
+| --- | --- | --- | --- |
+| necessity | ablating the route cuts ≥ 50% of what ablating everything cuts | 0.667 | 0.683 |
+| beats null | the cut is ≥ 3 × the mean cut of 8 matched random sets | 51 × | 123.9 × |
+| sufficiency | with only the route live, ≥ 50% of the answer comes back | 0.567 | 0.624 |
+| patching | the route's activations from a corrupted prompt move the answer ≥ 50% of the gap | 0.653 | 0.749 |
+| patching null | the random sets, patched, move it ≤ 0.1 on the mean (rule 1.0) | 0.160 | −0.004 |
+| controls | every proposer prompt comes out as claimed | 8 of 8 | 7 of 7 |
+| probes | ≥ 80% of the reviewer's prompts come out as claimed | 17 of 20 | 20 of 24 |
+
+The ratios in the necessity and beats-null rows come from the records' measured cuts. For example, the second claim's route cuts 6.227 against 9.122 for every unit, and 0.050 on the mean for random sets.
+
+**Why the first claim failed.** The first attempt (`20261118T194721Z`) passed six gates and failed `patching_null`. Its corrupted prompt changed " days" to " hours": "A week has seven hours and a year has twelve". Random sets of units, patched from that prompt, moved the answer by 0.16 on the mean, more than the 0.1 that rule 1.0 allows. So the patching result didn't belong to the route. It was REJECTED.
+
+**What the second claim changed.** The second attempt (`20261118T234629Z`) changed the count word instead: "A week has seven days and a year has the". That turns off the count-word neurons, so the copy doesn't fire, and the answer leaves " days". The random sets, patched from it, moved the answer by −0.004 on the mean. Its route added count and quantity neurons, and more layer-1 heads. It passed every gate and is VERIFIED.
+
+**What the reviewer tested.** The reviewer writes prompts that try to break the claim, without seeing any measure. They include the order swapped ("A year has twelve months and a week has seven"), paraphrases, and other counted pairs. The second claim got 20 of 24 right. Among the four it got wrong is "A week has seven days and a year has twenty". Another is "There are seven days in a week and twelve", where the clauses aren't parallel.
+
+## What this shows, and what it doesn't
+
+It shows a mechanism for one wrong answer on one prompt: a copy route that the gates can't explain away by chance. It names the units, and it tests what happens when the count word or the noun changes.
+
+It doesn't show that pythia-70m always copies in this way, or why it doesn't recall that a year has twelve months. The answer experiment is VERIFIED for this prompt only. And `coverage_caution` holds: the units with verified explanations hold 6.4% of the attribution, so most units on this prompt still have no explanation of their own.
+
+## How unit experiments add to it
+
+An explanation counts a unit as explained when the registry holds a VERIFIED experiment for it, or for a superposition or circuit that holds it. `explain` lists the experiments that would explain the rest, ranked by the coverage each would add. `explain --run N` runs them through the experiment loop, and `explain --record` writes a new record. That is how the " sky" chain above went from 0.316 to 1.0.
 
 `open-interpretability explain --help` lists every option. A test checks that each option this post names still exists.
