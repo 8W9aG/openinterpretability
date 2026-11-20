@@ -66,6 +66,7 @@ def test_titles_are_read_from_the_workflows():
     assert issue_state.automatic_titles() == {
         "Nightly reproduction failed",
         "Deploy registry failed on main",
+        "Posting to X failed on main",
     }
 
 

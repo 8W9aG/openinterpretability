@@ -2964,7 +2964,6 @@ scripts/ifttt_lint.py::_git
 scripts/ifttt_lint.py::changed_lines
 scripts/ifttt_lint.py::blocks
 scripts/ifttt_lint.py::problems
-scripts/issue_state.py::workflow_title
 scripts/issue_state.py::gh_api
 scripts/issue_state.py::eligibility
 scripts/issue_state.py::edits

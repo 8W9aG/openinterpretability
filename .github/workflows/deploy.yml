@@ -69,6 +69,9 @@ jobs:
     # Skipped (not failed) until the deploy is configured; see docs/development.md "Deploy".
     if: ${{ vars.R2_BUCKET != '' && needs.changed.outputs.deploy == 'true' }}
     runs-on: ubuntu-latest
+    outputs:  # for report-x: a failed post leaves the deploy green (#5528)
+      x_outcome: ${{ steps.x.outcome }}
+      x_error: ${{ steps.x_error.outputs.error }}
     # A hung build or sync fails here, not at GitHub's 6-hour limit.
     timeout-minutes: 60
     environment: production
@@ -183,13 +186,27 @@ jobs:
           key: social-x-${{ github.run_id }}
           restore-keys: social-x-
       - name: Post new results to X
+        id: x
         continue-on-error: true
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
-        run: open-interpretability social post
+        shell: bash
+        run: |
+          set -o pipefail  # the step fails when the command fails, not when tee succeeds
+          open-interpretability social post 2>&1 | tee x.log
+      # A failed post leaves the deploy green, so report-x opens an issue for it. Only the
+      # HTTP status goes on: a fixed field, not log text, since agents work that issue.
+      - name: Read the post's HTTP status
+        id: x_error
+        if: ${{ steps.x.outcome == 'failure' }}
+        shell: bash
+        run: |
+          error=$(grep -o -m1 'HTTP Error [0-9]\{3\}' x.log || echo "no HTTP status")
+          echo "error=$error" >> "$GITHUB_OUTPUT"
+          echo "Posting to X failed: $error. The deploy itself passed." >> "$GITHUB_STEP_SUMMARY"
       - name: Save the social state
         if: ${{ always() && hashFiles('.social/x.json') != '' }}
         continue-on-error: true  # a rerun of this run finds its key taken
@@ -254,4 +271,54 @@ jobs:
           else
             gh issue create --title "$TITLE" --body-file issue.md \
               --label bug --label "priority: high" --label "area: site"
+          fi
+
+  # A failed post to X leaves the deploy green (continue-on-error), so the report job
+  # above never runs for it, and on 2026-11-20 every post failed unseen (#5528). This job
+  # opens one issue, or comments on the open one, as the report job does. It is apart
+  # from the deploy job, so that the job with the R2 secrets gets no issues: write token.
+  # scripts/issue_state.py reads this TITLE too, so the issue is eligible for agents.
+  report-x:
+    name: Open an issue when posting to X fails
+    needs: deploy
+    if: ${{ needs.deploy.outputs.x_outcome == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: Posting to X failed on main
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      HEAD: ${{ github.sha }}
+      ERROR: ${{ needs.deploy.outputs.x_error }}
+    steps:
+      - name: Open an issue, or comment on the open one
+        shell: bash
+        # Fixed fields only: the run, the commit and the HTTP status read in the deploy job.
+        run: |
+          case "$ERROR" in
+            "HTTP Error "[0-9][0-9][0-9] | "no HTTP status") ;;
+            *) ERROR="unknown" ;;
+          esac
+          {
+            echo "Run: $RUN"
+            echo "Commit: $HEAD"
+            echo "Error: $ERROR"
+            echo
+            echo "The deploy passed, but \`open-interpretability social post\` failed. The"
+            echo "posts wait for a later run. The log says why:"
+            echo "\`gh run view $GITHUB_RUN_ID --log\`, step *Post new results to X*."
+          } > issue.md
+          # Only an issue that this workflow opened: anyone can open one with this title.
+          number=$(gh issue list --state open --author app/github-actions \
+            --search "\"$TITLE\" in:title" --json number,title \
+            --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file issue.md
+          else
+            gh issue create --title "$TITLE" --body-file issue.md \
+              --label bug --label "priority: high" --label "area: pipeline"
           fi
