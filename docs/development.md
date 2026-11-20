@@ -186,3 +186,15 @@ Configure the workflow in the repo's GitHub settings:
 | `R2_BUCKET` | variable | Bucket name |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
 | `OPENINTERPRETABILITY_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs. Without it, `open-interpretability deploy` uses `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too |
+| `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET` | secrets (optional) | Post to X, below. Without them, the step posts nothing |
+
+### Posts to X
+
+After a deploy, `open-interpretability social post` posts each new VERIFIED experiment of `feed.xml` and each published paper of `research/published.xml` to X (#4463). A preprint isn't in that feed, so a paper posts once, when it becomes published. Literature reviews never post.
+
+- **New means unseen.** The Actions cache keeps the id of each entry posted or seen. The first run with no cache records every entry and posts nothing.
+- **Limits.** At most 3 single posts go out in a run. More new units than that get one digest post. At most 15 posts go out in 24 hours, under the free tier's lower published limit. The rest posts on a later run.
+- **Screened.** Each post passes the same personal-data screen as the site's pages.
+- **Never fails the deploy.** The step has `continue-on-error`.
+
+`--dry-run` prints the posts and changes no state. `--preview N` prints the posts of the newest N entries of each feed.

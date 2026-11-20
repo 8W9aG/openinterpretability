@@ -162,6 +162,33 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
+      # Post new VERIFIED experiments and published papers to X, once the site that the posts
+      # link to is live (#4463). The state of what was posted lives in the Actions cache. A
+      # cache key can't be overwritten, so each run saves under its own key, and the restore
+      # takes the newest. With no cache, the first run records every entry and posts nothing.
+      # With the secrets unset, nothing is posted. A failure here never fails the deploy.
+      - name: Restore the social state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .social
+          key: social-x-${{ github.run_id }}
+          restore-keys: social-x-
+      - name: Post new results to X
+        continue-on-error: true
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: open-interpretability social post
+      - name: Save the social state
+        if: ${{ always() && hashFiles('.social/x.json') != '' }}
+        continue-on-error: true  # a rerun of this run finds its key taken
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .social
+          key: social-x-${{ github.run_id }}
+
   # A failed deploy leaves the site stale, and nobody sees it unless they look at Actions
   # (#4625). So a failure opens an issue, or comments on the one already open. The fixed
   # title keeps a cron that fails every 30 minutes to one issue. A later good deploy
