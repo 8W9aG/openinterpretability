@@ -6,7 +6,9 @@ name: CodeQL
 # a required check, so a skipped run doesn't block a merge.
 
 on:
+  # Not on a draft: the job is skipped, and ready_for_review starts it (#4690).
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore: ["wiki/**"]
   schedule:
     - cron: "17 4 * * *"  # daily, off the top of the hour
@@ -22,6 +24,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
