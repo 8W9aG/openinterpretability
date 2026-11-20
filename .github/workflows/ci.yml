@@ -1,7 +1,10 @@
 name: CI
 
 on:
+  # A draft starts no work: every job below is skipped while the pull request is a draft,
+  # and ready_for_review starts the full run (#4690).
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   # The Benchmarks workflow starts it on its ledger branch: a PR made with the workflow
@@ -29,7 +32,7 @@ jobs:
     # Whether a pull request changes any file outside wiki/, by the same rule as
     # auto-merge.yml. A wiki-only PR (an experiment) runs the same code as main, so
     # "Lint and tests" is skipped for it.
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.diff.outputs.code }}
@@ -57,7 +60,9 @@ jobs:
     # says "false". A skipped job counts as passing, so it can still be a required check;
     # paths-ignore on the workflow would leave the check pending and block the merge.
     needs: code-changes
-    if: ${{ !cancelled() && needs.code-changes.outputs.code != 'false' }}
+    if: >-
+      ${{ !cancelled() && !github.event.pull_request.draft
+      && needs.code-changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     # The suite takes a few minutes. A hung step fails here, not at GitHub's 6-hour limit.
     timeout-minutes: 30
@@ -134,7 +139,9 @@ jobs:
     # issue #3280). It fails on a serious or critical violation. Skipped like "Lint and
     # tests" for a wiki-only PR, which builds the same templates as main.
     needs: code-changes
-    if: ${{ !cancelled() && needs.code-changes.outputs.code != 'false' }}
+    if: >-
+      ${{ !cancelled() && !github.event.pull_request.draft
+      && needs.code-changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -162,6 +169,7 @@ jobs:
 
   experiments:
     name: Experiment records
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -211,7 +219,7 @@ jobs:
     # `open-interpretability reproduce --base-ref` (checks.py, changed_records), so PRs
     # without record changes never wait in the reproduce queue. A PR whose records all
     # have a valid signature skips the queue too (#4669): reproduce would skip each one.
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     outputs:
       records: ${{ steps.diff.outputs.records }}
