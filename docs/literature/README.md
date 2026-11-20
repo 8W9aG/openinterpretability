@@ -44,6 +44,7 @@ Status marks how the work relates to this repo:
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Designing and Interpreting Probes with Control Tasks](control-tasks.md) (Hewitt and Liang, 2019) | used | A control task gives each word type a random output, so only the probe can learn it. Selectivity is task accuracy minus control accuracy. `papers/default-on-poles` cites it correctly. The probe comparison has no control task yet. |
 | [Activation Probes Are Reliable With a Handful of Positive Examples](activation-probes-few-positives.md) (Tyagi and Heimersheim, 2026) | not applicable | Train on all the negatives, with a class-weighted loss, when positives are rare. `probe-compare` already does. Our thin probe rows lack held-out positives, which the paper does not address. |
 | [Is a Linear Probe Evidence of a Linear Representation?](linear-probe-evidence.md) (Kutluozen, Internò and Klindt, 2026) | planned | A random feature map also decodes factors linearly, so probe accuracy needs a random-init control. Our verdicts have one (the untrained null). `probe-compare`'s dense probes don't yet (#3559). |
 | [Pretty Linear Liars: Unregularized Probes Favor Intervention-Unfaithful Features](pretty-linear-liars.md) (Emneby, Yocum and Allen, 2026) | planned | Unregularized probes decode best, but their directions are inert when intervened on. Ridge with a swept penalty comes close to causal search. It names a risk for the probe comparison's weakly regularised logistic probes, not for any verdict. |
