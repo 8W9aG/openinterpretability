@@ -67,3 +67,13 @@ def test_the_mark_colours_differ_in_lightness_and_stand_out_on_the_tile():
         assert abs(lightness[a] - lightness[b]) >= 0.1, (a, b)  # not hue alone (deuteranopia)
     for name, hex_colour in palette.MARK_HEX.items():
         assert contrast(hex_colour, palette.MARK_TILE) >= 3.0, name
+
+
+def test_the_header_has_no_tagline(tmp_path):
+    from openinterpretability.builder.compiler import compile_site
+
+    compile_site([], tmp_path)
+    page = (tmp_path / "index.html").read_text()
+    header = page[page.index("<header"):page.index("</header>")]
+    assert "interpretability lab" not in header  # removed from the header (#5535)
+    assert '<meta name="description" content="An agent-run mechanistic interpretability lab' in page
