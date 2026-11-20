@@ -32,7 +32,7 @@ def test_the_site_shows_the_mark_favicon_and_card(tmp_path, record):
     assert 'rel="icon" href="assets/mark.svg"' in page and "⊕" not in page
     assert '<meta property="og:image" content="https://' in page and "assets/og.png" in page
     assert 'name="twitter:card" content="summary_large_image"' in page
-    assert '<meta name="description" content="An agent-audited' in page
+    assert '<meta name="description" content="An agent-run mechanistic interpretability lab' in page
 
 
 def test_the_accent_has_one_name():
