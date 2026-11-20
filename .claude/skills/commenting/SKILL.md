@@ -34,6 +34,8 @@ Do not comment when the code can say it:
 - **A step number** (`# 1. Scan evidence.`). Keep the text, delete the number. The code already gives the order.
 - **Commented-out code.** Delete it. Git keeps the history.
 
+**A long body needs at least one comment** (#3159). `scripts/check_body_comments.py`, in `make lint`, fails on a function whose body, after its docstring, runs to 20 lines or more with no `#` comment. Give the reason for the step a reader would most likely question: the rules above say which. Don't add a comment that only restates the code to pass the check. Split the function instead. The functions that broke the rule when it was added are in `scripts/body_comments_baseline.txt`. When you touch one, give it its comment and delete its line, because the check also fails on a line that no longer applies.
+
 ## Docstrings
 
 Every public module, class, function and method has one (ruff `D1`). `__init__` and magic methods are described by their class. Tests need none: a test's name says what it checks.
