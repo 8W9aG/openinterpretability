@@ -8,9 +8,16 @@ name: Deploy registry
 # starts no workflow, so it gets no push run (issue #3989). The schedule catches those:
 # every 30 minutes it deploys if main moved since the last successful deploy, and else
 # skips. GitHub runs schedules on a best-effort basis, so a tick can be late.
+#
+# A published GitHub release deploys at once too (#5196). The release PR merges by the
+# bot, so it gets no push run, and the schedule left the site stale for up to an hour
+# after a release. The release skill publishes the release with the maintainer's token,
+# so this event starts workflows, as it does publish.yml.
 on:
   push:
     branches: [main]
+  release:
+    types: [published]
   schedule:
     - cron: "7,37 * * * *"  # every 30 minutes, off the top of the hour when Actions is busiest
   workflow_dispatch:
@@ -27,7 +34,7 @@ concurrency:
 jobs:
   changed:
     name: Main changed since the last deploy
-    # A push or a dispatch always deploys. A scheduled tick deploys only if main's head
+    # A push, a release or a dispatch always deploys. A scheduled tick deploys only if main's head
     # differs from the head of the last successful deploy. A failed deploy doesn't
     # count, so the next tick tries again.
     runs-on: ubuntu-latest
@@ -76,7 +83,9 @@ jobs:
           # The commit that started this run, whose copy of this file is running. With
           # `ref: main`, a run started by an older push built newer code with older steps:
           # on 2026-11-15 it uploaded pages that link assets/site.css without building it.
-          # A push, a dispatch on main and the schedule all give a commit on main.
+          # A push, a dispatch on main and the schedule all give a commit on main. A release
+          # gives its tagged commit: the release PR's merge on main, tagged minutes later.
+          # A commit that merged after it deploys on the next push or scheduled run.
           ref: ${{ github.sha }}
           # `open-interpretability check` checks the errata file's signature at the time it landed,
           # which needs main's history (openinterpretability/signing.py landing_times).
