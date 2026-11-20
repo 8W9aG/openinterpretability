@@ -67,7 +67,9 @@ def _render_posts(render, posts_dir: Path | None, report) -> None:
     """Write the Posts section: its index, each post, their media and their feed (#4650).
 
     A post has the form of a paper (``papers/``), so the paper loader reads it, with its
-    Markdown, maths and redaction. Only the section folder and the templates differ.
+    Markdown, maths and redaction. Only the section folder and the templates differ. A draft
+    (#5529, #5551) builds at its own URL under ``posts/drafts/``, and no index, feed or
+    sitemap lists it.
 
     Args:
         render: The site's renderer.
@@ -75,12 +77,13 @@ def _render_posts(render, posts_dir: Path | None, report) -> None:
         report: The build's report, which collects the pages written.
     """
     posts = load_papers(posts_dir, render.common["repo_url"], source="posts")
-    render("posts/index.html", "posts.html", posts=posts)
+    listed = [post for post in posts if not post.draft]  # a draft is built, never listed (#5551)
+    render("posts/index.html", "posts.html", posts=listed)
     for post in posts:
         report.pages.extend(copy_assets(posts_dir, post, render.output_dir, section="posts"))
         if not post.interactive:
             render(f"posts/{post.href}", "post.html", post=post)
-    feed = posts_feed(posts, render.common["site_url"], render.common["site_title"])
+    feed = posts_feed(listed, render.common["site_url"], render.common["site_title"])
     (render.output_dir / POSTS_FEED).write_text(feed, encoding="utf-8")
 
 

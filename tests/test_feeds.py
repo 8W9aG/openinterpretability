@@ -27,7 +27,7 @@ def test_the_sitemap_lists_the_pages_but_not_the_redirects(tmp_path, record):
     assert any("/L3/N117-positive/" in loc for loc in locs)  # the experiment page
     for loc in locs:
         page = tmp_path / (loc.removeprefix(site_url()) or "index.html")
-        assert NOINDEX not in page.read_text(encoding="utf-8")
+        assert not NOINDEX.search(page.read_text(encoding="utf-8"))
     assert f"Sitemap: {site_url()}sitemap.xml" in (tmp_path / "robots.txt").read_text()
 
 
