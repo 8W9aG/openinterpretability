@@ -44,6 +44,8 @@ def sample_pages(site: Path) -> list[str]:
         "models/*/L*/index.html",
         "models/*/L*/N*.html",
         "models/*/L*/N*-*/*.html",
+        "research/index.html",
+        "research/*/index.html",  # tables that scroll, and the index's figure links (#5649)
     ]
     pages = ["index.html"] if (site / "index.html").is_file() else []
     for pattern in kinds:

@@ -32,7 +32,8 @@
       <p class="mt-3 text-sm"><a class="{{ link }}" href="{{ paper.href }}">{{ "Open the page" if paper.interactive else "Read the paper" }}</a></p>
     </div>
     {% if paper.hero %}
-    <a class="min-w-0" href="{{ paper.href }}"><img class="w-full" src="{{ paper.slug }}/{{ paper.hero }}" alt="" loading="lazy"></a>
+    {# The title links to the same page, so this link is hidden from assistive technology and the tab order (#5649). #}
+    <a class="min-w-0" href="{{ paper.href }}" aria-hidden="true" tabindex="-1"><img class="w-full" src="{{ paper.slug }}/{{ paper.hero }}" alt="" loading="lazy"></a>
     {% endif %}
   </article>
   {% else %}
