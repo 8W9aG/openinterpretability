@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import chart %}
 {% from "_macros.html" import breadcrumb, map_fill, status_badge, broad_badge, evidence_badge, self_review_badge, pole_mark %}
 
 {% block title %}{{ model.name }} layer {{ layer.layer }} · {{ site_title }}{% endblock %}
@@ -14,7 +15,7 @@
 {% if lp %}
 <figure class="mt-6" data-pagefind-ignore>
   <div class="overflow-x-auto">
-  <svg viewBox="0 0 {{ lp.width }} {{ lp.height }}" class="w-full min-w-[520px]" role="group" aria-label="Pieces map of layer {{ layer.layer }}: one cell per neuron, {{ lp.rows[0].width // lp.pitch + 1 }} to a row, {{ layer.studied }} of {{ model.mlp_width | thousands }} studied ({% for s, n in lp.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). A cell filled to half height has one of its two poles studied. Each studied neuron is in the table below.">
+  {% set _label %}Pieces map of layer {{ layer.layer }}: one cell per neuron, {{ lp.rows[0].width // lp.pitch + 1 }} to a row, {{ layer.studied }} of {{ model.mlp_width | thousands }} studied ({% for s, n in lp.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). A cell filled to half height has one of its two poles studied. Each studied neuron is in the table below.{% endset %}{% call chart(lp.width, lp.height, "Pieces map", _label | trim, role="group") %}
     <defs><pattern id="pieces" width="{{ lp.pitch }}" height="{{ lp.pitch }}" patternUnits="userSpaceOnUse"><rect width="{{ lp.pitch - 1 }}" height="{{ lp.pitch - 1 }}" class="fill-slate-100 dark:fill-slate-800/60"/></pattern></defs>
     {% for r in lp.rows %}
     <rect x="{{ lp.left }}" y="{{ r.y }}" width="{{ r.width + 1 }}" height="{{ lp.pitch }}" fill="url(#pieces)"/>
@@ -23,7 +24,7 @@
     {% for c in lp.cells %}
     {% if c.href %}<a href="{{ root }}{{ c.href }}">{% endif %}<title>{{ c.label }}</title><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ lp.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}"/>{% if c.href %}</a>{% endif %}
     {% endfor %}
-  </svg>
+  {% endcall %}
   </div>
   <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
     {% for s, n in lp.counts.items() %}

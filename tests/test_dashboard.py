@@ -54,16 +54,26 @@ def test_layer_columns_give_every_layer_a_slot():
     assert charts[1]["columns"][1]["label"] == "b L1 · 1 experiment: 1 NEEDS REVISION (0% VERIFIED)"
 
 
-def test_the_two_main_charts_span_the_text_above_them():
-    # #4587: the timeline and the model bars fill the content width, as the summary text does.
-    # They draw at the old scale, so their height and label size stay the same.
+def test_the_dashboard_charts_draw_at_their_natural_size():
+    # #5660: each chart draws at its own width and never scales, so its text stays at
+    # CHART_TEXT_PX. The widths fit the page's content (1,120 px) and a layer chart fits a phone.
     from pathlib import Path
 
-    from openinterpretability.builder.dashboard import CHART_WIDTH
+    from openinterpretability.builder.dashboard import (
+        CHART_WIDTH,
+        LAYER_CHART_WIDTH,
+        MODEL_BARS_WIDTH,
+    )
 
     template = Path(__file__).parents[1] / "openinterpretability/builder/templates/_dashboard.html"
     text = template.read_text()
-    for name in ("tl", "mb"):
-        line = next(x for x in text.splitlines() if f"{{{{ {name}.width }}}}" in x)
-        assert 'class="w-full"' in line and "max-w" not in line
-    assert round(1120 / CHART_WIDTH, 1) == round(768 / 640, 1)  # the scale is unchanged
+    assert text.count("{% call chart(") == 3 and "<svg viewBox" not in text
+    assert CHART_WIDTH <= 1120 and MODEL_BARS_WIDTH <= 1120
+    assert LAYER_CHART_WIDTH <= 390 - 2 * 16  # a phone, less the page's padding
+
+
+def test_no_layer_chart_is_alone_on_a_row():
+    from openinterpretability.builder.dashboard import layer_grid_columns
+
+    for count in (2, 3, 4, 6, 8, 9):
+        assert count % layer_grid_columns(count) == 0

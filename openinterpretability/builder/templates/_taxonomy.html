@@ -1,3 +1,4 @@
+{% from "_macros.html" import chart %}
 {# The registry's taxonomy on the About page (#3703): three schematic figures, then the table of core/taxonomy.py. Every element carries a text label, so no point rests on colour alone. #}
 {% set txt = "fill-slate-700 dark:fill-slate-300" %}
 {% set dim = "fill-slate-500 dark:fill-slate-400" %}
@@ -7,7 +8,7 @@
 {% set guide = "stroke-slate-400 dark:stroke-slate-600" %}
 
 <figure class="mt-4">
-  <div class="overflow-x-auto"><svg viewBox="0 0 760 352" class="w-full min-w-[640px]" role="img" aria-labelledby="tax-hier-title tax-hier-desc">
+  <div class="overflow-x-auto">{% call chart(760, 352, "How the parts nest", "", role="img", scale=charts.DIAGRAM_SCALE, labelledby="tax-hier-title tax-hier-desc") %}
     <title id="tax-hier-title">How the registry's units nest</title>
     <desc id="tax-hier-desc">A model is a stack of layers. One layer, L2, is opened up. Its attention sublayer holds heads, with head L2/H1 marked. Its MLP sublayer holds a row of neurons. Neuron L2/N9 is split into its positive pole L2/N9+ and its negative pole L2/N9−, and experiments on the positive pole each write a signed record. Neurons N1, N3 and N6 are the members of a superposition, L2/S…, inside the same layer. A dictionary feature, L2/F12, is a learned direction on the layer, drawn dashed.</desc>
     <text x="8" y="14" font-size="11" font-weight="600" class="{{ txt }}">Model</text>
@@ -67,12 +68,12 @@
     {% for k in range(3) %}<rect x="{{ 592 + k * 4 }}" y="{{ 272 + k * 4 }}" width="150" height="40" rx="4" stroke-width="1" class="{{ box }}"/>{% endfor %}
     <text x="608" y="295" font-size="10" class="{{ txt }}">Experiments on L2/N9+</text>
     <text x="608" y="307" font-size="9" class="{{ dim }}">each writes a signed record</text>
-  </svg></div>
+  {% endcall %}</div>
   <figcaption class="mt-1 text-xs text-slate-500">An illustration, not real data. A model is a stack of layers, and one layer is opened up. Units with a page: heads, neurons (with two poles each), superpositions and dictionary features. The superposition's members stay inside one layer.</figcaption>
 </figure>
 
 <figure class="mt-6">
-  <div class="overflow-x-auto"><svg viewBox="0 0 720 214" class="w-full min-w-[640px]" role="img" aria-labelledby="tax-circ-title tax-circ-desc">
+  <div class="overflow-x-auto">{% call chart(720, 214, "A circuit", "", role="img", scale=charts.DIAGRAM_SCALE, labelledby="tax-circ-title tax-circ-desc") %}
     <title id="tax-circ-title">A circuit, and a hub that circuits leave out</title>
     <desc id="tax-circ-desc">Three layers, L1, L3 and L5. Circuit C3 is four units in those layers joined by edges: neuron L1/N40 feeds head L3/H2 and neuron L3/N7, and both feed neuron L5/N12. Elsewhere, hub L3/N99 is joined to many units, so circuits leave it out.</desc>
     {% for name, y in (("L5", 26), ("L3", 92), ("L1", 158)) %}
@@ -99,12 +100,12 @@
     <rect x="{{ hub[0] - 8 }}" y="{{ hub[1] - 8 }}" width="16" height="16" stroke-width="2" class="fill-slate-300 stroke-slate-500 dark:fill-slate-600 dark:stroke-slate-400"/>
     <text x="{{ hub[0] - 14 }}" y="{{ hub[1] + 4 }}" font-size="10" text-anchor="end" font-family="ui-monospace, monospace" class="{{ txt }}">Hub L3/N99/HUB</text>
     <text x="{{ hub[0] - 14 }}" y="{{ hub[1] + 16 }}" font-size="9" text-anchor="end" class="{{ dim }}">left out of circuits</text>
-  </svg></div>
+  {% endcall %}</div>
   <figcaption class="mt-1 text-xs text-slate-500">An illustration, not real data. Squares are neurons and circles are heads. Edges are direct effects between studied units. A circuit is audited under its own rule, with a task hypothesis about its members.</figcaption>
 </figure>
 
 <figure class="mt-6">
-  <div class="overflow-x-auto"><svg viewBox="0 0 720 216" class="w-full min-w-[640px]" role="img" aria-labelledby="tax-sis-title tax-sis-desc">
+  <div class="overflow-x-auto">{% call chart(720, 216, "Sisters", "", role="img", scale=charts.DIAGRAM_SCALE, labelledby="tax-sis-title tax-sis-desc") %}
     <title id="tax-sis-title">A sister: the same concept in another model</title>
     <desc id="tax-sis-desc">Two models drawn at the same height: model A with 12 layers and model B with 6. Pole L6/N100+ of model A is linked to its sister, pole L3/N20+ of model B, a mutual best match by activation. Dashed guides join layers at the same relative depth, a correspondence that is planned.</desc>
     {% for name, x, n in (("Model A · 12 layers", 40, 12), ("Model B · 6 layers", 500, 6)) %}
@@ -124,12 +125,12 @@
     <text x="574" y="101" font-size="10" font-family="ui-monospace, monospace" class="{{ txt }}">L3/N20+</text>
     <rect x="290" y="80" width="140" height="18" rx="3" class="fill-white dark:fill-slate-900"/>
     <text x="360" y="93" font-size="10" text-anchor="middle" class="{{ txt }}">sister pole (in the registry)</text>
-  </svg></div>
+  {% endcall %}</div>
   <figcaption class="mt-1 text-xs text-slate-500">An illustration, not real data. Pole sisters are mutual best matches by activation over a shared corpus. Sisters of heads, superpositions, circuits and layers are planned.</figcaption>
 </figure>
 
 <figure class="mt-6">
-  <div class="overflow-x-auto"><svg viewBox="0 0 720 172" class="w-full min-w-[640px]" role="img" aria-labelledby="tax-expl-title tax-expl-desc">
+  <div class="overflow-x-auto">{% call chart(720, 172, "An explanation", "", role="img", scale=charts.DIAGRAM_SCALE, labelledby="tax-expl-title tax-expl-desc") %}
     <title id="tax-expl-title">An explanation: why a model gives one answer to one prompt</title>
     <desc id="tax-expl-desc">A prompt goes into the model and an answer comes out. The explanation cites the units that carry the answer: pole L2/N9+, head L5/H1 and circuit C3. It is written at three levels: a short form, a long form and the mechanism.</desc>
     <rect x="8" y="70" width="150" height="44" rx="4" stroke-width="1" class="{{ box }}"/>
@@ -155,7 +156,7 @@
     <text x="562" y="{{ y + 20 }}" font-size="10" class="{{ txt }}">{{ level }}</text>
     {% endfor %}
     <text x="552" y="24" font-size="11" font-weight="600" class="{{ txt }}">Explanation 3f9a0c21b7e4</text>
-  </svg></div>
+  {% endcall %}</div>
   <figcaption class="mt-1 text-xs text-slate-500">An illustration, not real data. An explanation has no verdict of its own. Its prompt coverage measures how much of the answer the cited units carry.</figcaption>
 </figure>
 
