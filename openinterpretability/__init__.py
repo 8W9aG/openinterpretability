@@ -2,7 +2,7 @@
 
 from openinterpretability.core.legacy_names import adopt_legacy_env
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 # The name on PyPI, and of the installed distribution (issue #3251). The import name is
 # `openinterpretability` (issue #4089).
 DISTRIBUTION = "open-interpretability"
