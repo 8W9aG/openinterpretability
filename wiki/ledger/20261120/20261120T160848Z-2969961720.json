@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-20T16:08:48Z","seed":2969961720,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L4/N2123-negative","record":null,"audit":"--model openai-community/gpt2 --layer 4 --neuron 2123 --pole negative --selection attribution --window-tokens 128","pole_forced":null,"until_verified":true,"max_turns":3,"harness_version":"0.3.0"}
