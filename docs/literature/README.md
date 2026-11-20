@@ -32,6 +32,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Conditional Memory via Scalable Lookup](conditional-memory-via-scalable-lookup.md) (Cheng et al., 2026) | not applicable | A new architecture (hashed N-gram memory beside MoE) with no released weights. Its premise, that early layers rebuild local patterns, is a question the registry's early-layer poles could answer. |
+| [Gaussian Error Linear Units (GELUs)](gelus.md) (Hendrycks and Gimpel, 2016) | used | GPT-2's activation function, in the tanh form that this paper gives. Three papers rest on its dip below zero. The paper never states the minimum near −0.75, so one citation moved. |
 
 ## Forecasting and evaluation
 
@@ -238,6 +239,12 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 | [Task Arithmetic in the Tangent Space: Improved Editing of Pre-Trained Models](tangent-space-task-arithmetic.md) (Ortiz-Jiménez, Favero and Frossard, 2023) | planned | Task arithmetic works when a change moves the model only on its own task's inputs (weight disentanglement), not because fine-tuning is linear. Fine-tuning the linearised model raises 8-task addition on ViT-B/32 from 71.4 to 76.5, at two to three times the inference cost. Its disentanglement error is an output-level keep test that a patch merge's evidence could report (#5298). It measures no units. |
 | [Editing Models with Task Arithmetic](task-arithmetic.md) (Ilharco, Ribeiro, Wortsman et al., 2023) | planned | A task vector is fine-tuned weights minus pre-trained weights. Negating one cuts GPT-2 Large's toxic generations from 4.8% to 0.8%, with perplexity 16.4 to 16.9. Adding eight reaches 91.2% normalised accuracy on CLIP, against 99.4% for multi-task fine-tuning. Its "minimal interference" is a speculation from near-orthogonal vectors, not a measure, and it looks at no units. It gives #5298 its scaled-sum, negation and analogy rules, and #5404 its negative and extrapolated points. |
 | [Model soups: averaging weights of multiple fine-tuned models improves accuracy without increasing inference time](model-soups.md) (Wortsman, Ilharco, Gadre et al., 2022) | planned | The greedy soup of one task's fine-tunes beats the best single model by 0.5–0.7 ImageNet points (ViT-G 90.94 against 90.72). The uniform soup is worse than the best model on all 20 GLUE model-task pairs, and the paper measures no units. The patch format's `additive` merge is a sum (θ₀+Δ₁+Δ₂), not a soup's mean, so the evidence bears on a mean rule for #5298, not on `additive`. |
+
+## Data
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
 
 ## Philosophy of mind
 
