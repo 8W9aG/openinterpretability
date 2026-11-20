@@ -24,6 +24,15 @@ A post has the same form as a paper, and the same code builds it (`openinterpret
 
 A post has no fixed sections, no `results.jsonl` and no PDF.
 
+## Drafts
+
+To merge a post before it goes out, mark it as a draft in `posts/README.md`. Write `Draft` in place of the date: `- Draft: [Title](slug/README.md)`.
+
+- **Where it builds.** A draft builds at `posts/drafts/<slug>/`, with its media and a "Draft" badge. Local builds and deploys do the same, so you can read it on the real site.
+- **Unlisted.** No index, feed or sitemap lists a draft, search doesn't find it, and no page links to it. Its page tells search engines not to index it.
+- **Public by its URL.** Anyone with the link can read a draft. So a draft must not hold anything secret.
+- **Publish it.** Change `Draft` to the day it goes out. The post then builds at `posts/<slug>/`, and the draft's URL stops working.
+
 ## Output that a post shows
 
 When a post shows the output of a command, run the command and paste its real output. Don't type output by hand, and don't change it. Say which model and which version ran it.

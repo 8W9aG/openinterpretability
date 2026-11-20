@@ -57,7 +57,8 @@ def test_the_section_is_empty_without_posts(tmp_path):
 
 
 def test_the_repository_posts_are_dated_and_newest_first():
-    posts = load_papers(POSTS, "https://example.org/repo", source="posts")
+    posts = [p for p in load_papers(POSTS, "https://example.org/repo", source="posts")
+             if not p.draft]  # fmt: skip
     dates = [p.published for p in posts]
     assert posts and all(dates) and dates == sorted(dates, reverse=True)
 
@@ -73,3 +74,47 @@ def test_every_flag_the_explain_post_names_is_an_explain_option():
     assert shown.exit_code == 0
     options = set(re.findall(r"--[a-z][a-z-]*", shown.output))
     assert named <= options, f"not options of explain: {sorted(named - options)}"
+
+
+def _with_draft(root: Path, marker: str) -> Path:
+    posts = _posts(root)
+    (posts / "secret" / "media").mkdir(parents=True)
+    (posts / "secret" / "media" / "fig.svg").write_text("<svg/>")
+    (posts / "secret" / "README.md").write_text(
+        "# A draft post\n\nThe draft's summary.\n\n![A figure](media/fig.svg)\n"
+    )
+    index = posts / "README.md"
+    index.write_text(index.read_text() + f"- {marker}: [A draft post](secret/README.md)\n")
+    return posts
+
+
+def test_a_draft_builds_unlisted_under_drafts(tmp_path):
+    out = tmp_path / "dist"
+    compile_site([], out, posts_dir=_with_draft(tmp_path, "Draft"))
+    page = out / "posts" / "drafts" / "secret" / "index.html"
+    html = page.read_text()
+    assert '<meta name="robots" content="noindex, nofollow">' in html and "Draft" in html
+    assert (out / "posts" / "drafts" / "secret" / "media" / "fig.svg").exists()
+    assert not (out / "posts" / "secret").exists()
+    assert not (out / "posts" / "drafts" / "index.html").exists()  # no listing page
+    assert "data-pagefind-body" not in html  # Pagefind indexes only marked pages
+    for listing in ("posts/index.html", "posts/posts.xml", "feed.xml", "sitemap.xml"):
+        text = (out / listing).read_text()
+        assert "secret" not in text and "A draft post" not in text, listing
+    for other in out.rglob("*.html"):
+        if other != page:
+            assert "drafts/secret" not in other.read_text(), other
+
+
+def test_a_dated_draft_moves_to_its_published_url(tmp_path):
+    out = tmp_path / "dist"
+    compile_site([], out, posts_dir=_with_draft(tmp_path, "2026-11-21"))
+    assert (out / "posts" / "secret" / "index.html").exists()
+    assert not (out / "posts" / "drafts").exists()
+    assert "A draft post" in (out / "posts" / "index.html").read_text()
+    assert "noindex" not in (out / "posts" / "secret" / "index.html").read_text()
+
+
+def test_the_repository_has_the_x_draft():
+    posts = {p.slug: p for p in load_papers(POSTS, "https://example.org/repo", source="posts")}
+    assert posts["on-x"].draft and posts["on-x"].href == "drafts/on-x/index.html"

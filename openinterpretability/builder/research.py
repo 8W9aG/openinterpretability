@@ -59,7 +59,9 @@ def paper_status(text: str) -> PaperStatus | None:
     return PaperStatus(found.group(3), note, issues)
 
 
-_ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
+# A post can be a draft instead: "- Draft: [Title](slug/README.md)" (#5529, #5551).
+_ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}|Draft): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
+DRAFT = "Draft"  # the marker in place of a date
 _MARKDOWN = enable_maths(MarkdownIt("commonmark", {"html": False}).enable("table"))
 
 
@@ -76,11 +78,15 @@ class Paper:
     sections: tuple[tuple[str, str], ...] = ()  # (id, title) of each `##` heading, in order
     published: str | None = None  # the date before its entry in papers/README.md
     status: PaperStatus | None = None  # preprint or published (#3150)
+    draft: bool = False  # marked "Draft" in the index: built, but unlisted (#5551)
 
     @property
     def href(self) -> str:
-        """The paper's page, relative to the section's index."""
-        return f"{self.slug}/index.html"
+        """The page, relative to the section's index. A draft's is under ``drafts/``.
+
+        A draft has no listing page there, so only its URL leads to it (#5551).
+        """
+        return f"drafts/{self.slug}/index.html" if self.draft else f"{self.slug}/index.html"
 
 
 def _plain(inline: Token) -> str:
@@ -192,7 +198,11 @@ def load_papers(papers_dir: Path | None, repo_url: str, source: str = "papers") 
         return []
     entries = _ENTRY.findall(index.read_text(encoding="utf-8"))
     papers = [
-        replace(_read_paper(Path(papers_dir) / slug, repo_url, source), published=date or None)
+        replace(
+            _read_paper(Path(papers_dir) / slug, repo_url, source),
+            published=None if date in ("", DRAFT) else date,
+            draft=date == DRAFT,
+        )
         for date, slug in entries
     ]
     return sorted(papers, key=lambda p: p.published or "", reverse=True)
@@ -286,7 +296,7 @@ def copy_assets(
         The interactive page that was copied, or an empty list.
     """
     source = Path(papers_dir) / paper.slug
-    target = output_dir / section / paper.slug
+    target = output_dir / section / posixpath.dirname(paper.href)
     target.mkdir(parents=True, exist_ok=True)
     if not paper.interactive:
         for path in sorted((source / "media").rglob("*")):
