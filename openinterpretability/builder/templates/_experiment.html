@@ -1,3 +1,4 @@
+{% from "_macros.html" import chart %}
 {# One experiment, on its own page (experiment.html). Expects `v` from compiler._experiment_view and `rank`. The top shows the hypothesis, the verdict and the values that decide it. Every other section is a closed fold, in order of importance, and a section with no data is left out (#5566). #}
 {% from "_macros.html" import status_badge, broad_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_notes, fold, read_more, chevron %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
@@ -89,7 +90,7 @@
     {% set pc = v.probes %}
     <figure class="mb-6">
       <div class="overflow-x-auto">
-      <svg viewBox="0 0 {{ pc.width }} {{ pc.height }}" class="w-full min-w-[520px]" role="img" aria-label="Probe strengths against the activation threshold: {% for row in pc.rows %}{{ row.passed }} of {{ row.n }} {{ row.label | lower }} passed{{ '; ' if not loop.last else '' }}{% endfor %}. Values are in the table below.">
+      {% set _label %}Probe strengths against the activation threshold: {% for row in pc.rows %}{{ row.passed }} of {{ row.n }} {{ row.label | lower }} passed{{ '; ' if not loop.last else '' }}{% endfor %}. Values are in the table below.{% endset %}{% call chart(pc.width, pc.height, "Probe strengths", _label | trim, role="img") %}
         <rect x="{{ pc.threshold_x }}" y="{{ pc.top }}" width="{{ pc.right - pc.threshold_x }}" height="{{ pc.axis_y - pc.top }}" class="fill-slate-100 dark:fill-slate-900"/>
         {% for row in pc.rows %}
         <text x="0" y="{{ row.y - 2 }}" class="fill-slate-700 dark:fill-slate-300" font-size="12">{{ row.label }}</text>
@@ -115,7 +116,7 @@
         <line x1="{{ tx }}" y1="{{ pc.axis_y }}" x2="{{ tx }}" y2="{{ pc.axis_y + 4 }}" class="stroke-slate-400" stroke-width="1"/>
         <text x="{{ tx }}" y="{{ pc.axis_y + 16 }}" text-anchor="{{ anchor }}" class="fill-slate-500 font-mono" font-size="11">{{ label }}</text>
         {% endfor %}
-      </svg>
+      {% endcall %}
       </div>
       <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
         <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="fill-brand-500"/></svg> passed</span>
@@ -314,14 +315,14 @@
     {% if bars %}
     <section>
       <h4 class="mb-3 text-sm font-medium">Activation distribution</h4>
-      <svg viewBox="0 0 600 160" class="w-full" role="img" aria-label="Histogram of {{ strength }} over the scanned corpus">
+      {% set _label %}Histogram of {{ strength }} over the scanned corpus{% endset %}{% call chart(600, 160, "Activation distribution", _label | trim, role="img") %}
         {% for b in bars %}
         <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" class="{{ 'fill-orange-500' if positive else 'fill-sky-500' }}"><title>{{ b.label }}</title></rect>
         {% endfor %}
         <line x1="0" y1="140.5" x2="600" y2="140.5" class="stroke-slate-400" stroke-width="1"/>
         <text x="0" y="156" class="fill-slate-500 font-mono" font-size="11">{{ sub.activation_histogram.bin_edges[0] | num(2) }}</text>
         <text x="600" y="156" text-anchor="end" class="fill-slate-500 font-mono" font-size="11">{{ sub.activation_histogram.bin_edges[-1] | num(2) }}</text>
-      </svg>
+      {% endcall %}
       <p class="mt-1 text-xs text-slate-500">{{ strength | capitalize }} per token{% if is_head %} (|W_O (z − z̄)|: distance from the head's mean write){% endif %}; bar height is log(1 + count).</p>
     </section>
     {% endif %}
