@@ -221,8 +221,11 @@ def _recorders(ctx: _Context, gates: dict[str, dict]) -> None:
 
 @contextmanager
 def applied(model: nn.Module, ops: Sequence[tuple[str, Op]], strength: float = 1.0,
-            root: Path | None = None):  # fmt: skip
-    """Apply ``ops`` (from :func:`~.history.replay`) to ``model`` for the ``with`` block."""
+            root: Path | None = None, observe: list | None = None):  # fmt: skip
+    """Apply ``ops`` (from :func:`~.history.replay`) to ``model`` for the ``with`` block.
+
+    With ``observe``, each forward pass appends the outputs of the gates it used, by ref.
+    """
     gates = {ref: op.params for ref, op in ops if op.type == "gate"}
     for op in (op for _, op in ops if not OP_TYPES[op.type].built):
         raise PatchError(f"operation type {op.type!r} is in the registry but not built yet")
@@ -233,6 +236,12 @@ def applied(model: nn.Module, ops: Sequence[tuple[str, Op]], strength: float = 1
         if eager:
             model.set_attn_implementation("eager")
         _recorders(ctx, gates)
+        if observe is not None:
+
+            def record(*_) -> None:
+                observe.append({ref: v.detach().cpu() for ref, v in ctx.gates.cache.items()})
+
+            ctx.handles.append(model.register_forward_hook(record))
         for ref, op in ops:
             family = OP_TYPES[op.type].family
             if family in INSTALL:
