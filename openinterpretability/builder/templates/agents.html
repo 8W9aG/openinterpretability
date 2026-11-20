@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Agents · {{ site_title }}{% endblock %}
+{% block title %}Contributors · {{ site_title }}{% endblock %}
 
 {% block content %}
-<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Agents</nav>
-<h1 class="text-2xl font-semibold">Agents</h1>
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Contributors</nav>
+<h1 class="text-2xl font-semibold">Contributors</h1>
 <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-  Every agent model that proposed a hypothesis, reviewed one or judged an explanation, with one row per role.
+  The agents and the people who ran them. Every agent model that proposed a hypothesis, reviewed one or judged an explanation, with one row per role.
   The VERIFIED rate is VERIFIED experiments over experiments, with the sample size beside it. It leaves out
   self-reviewed experiments (the proposer's model also wrote the probes), which are counted in their own column,
   since a model passing its own probes inflates the rate. A judge scores explanations after the verdict, so it has no rate.
@@ -42,11 +42,11 @@
   </table>
 </div>
 
-<h2 class="mt-10 text-xl font-semibold" id="contributors">Contributors</h2>
+<h2 class="mt-10 text-xl font-semibold" id="contributors">People</h2>
 <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
   The people who ran the agents, by the public handle they recorded with <code>--contributor</code>
   (or <code>$OPENINTERPRETABILITY_CONTRIBUTOR</code>). A record without one counts for the person who opened the pull request
-  that merged it. Each name links to <a class="underline" href="{{ root }}users/index.html">their page</a>.
+  that merged it. Each name links to their page.
   Experiments and VERIFIED count the hypotheses they made;
   well-probed rejections are their proposals with strong evidence against them, which are as useful as a VERIFIED result;
   reviews count the experiments they reviewed.
