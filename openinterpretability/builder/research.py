@@ -88,6 +88,56 @@ def _mark_long_cells(state) -> None:
 _MARKDOWN.core.ruler.push("long_cells", _mark_long_cells)
 
 
+def _focusable_tables(state) -> None:
+    """Give each table ``tabindex="0"``, so that a keyboard can scroll it (#5649).
+
+    ``_prose.html`` makes each table its own scroll box. A box that scrolls must take focus,
+    or a reader with no mouse can't see the hidden columns.
+
+    Args:
+        state: markdown-it's core state, whose tokens are changed in place.
+    """
+    for token in state.tokens:
+        if token.type == "table_open":
+            token.attrSet("tabindex", "0")
+
+
+_MARKDOWN.core.ruler.push("focusable_tables", _focusable_tables)
+
+
+def _focusable_code(render):
+    """Wrap a code renderer so that its ``<pre>`` takes keyboard focus (#5649).
+
+    A long code line scrolls inside its box, so the box must take focus, as a table does.
+
+    Args:
+        render: markdown-it's own renderer rule for ``fence`` or ``code_block``.
+
+    Returns:
+        A renderer rule that gives the rule's ``<pre>`` the attribute ``tabindex="0"``.
+    """
+
+    def rule(tokens, idx, options, env):
+        """Render the code block, then give its ``<pre>`` a tab stop.
+
+        Args:
+            tokens: The parsed Markdown.
+            idx: The code block's place in ``tokens``.
+            options: markdown-it's options.
+            env: markdown-it's render environment.
+
+        Returns:
+            The code block's HTML.
+        """
+        return render(tokens, idx, options, env).replace("<pre>", '<pre tabindex="0">', 1)
+
+    return rule
+
+
+for _kind in ("fence", "code_block"):
+    _MARKDOWN.renderer.rules[_kind] = _focusable_code(_MARKDOWN.renderer.rules[_kind])
+
+
 @dataclass(frozen=True)
 class Paper:
     """One entry of the Research section."""
