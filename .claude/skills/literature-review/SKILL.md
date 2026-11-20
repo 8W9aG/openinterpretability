@@ -34,6 +34,7 @@ The tag comes from the title, not from reading the source. If the source shows t
    Read the analyses you will cite (`docs/analyses/`, `papers/`), and take their numbers from them, not from memory.
 4. **Write `docs/literature/<short-slug>.md`** with the sections below.
 5. **Add the row** to the right section of `docs/literature/README.md`: page link, authors and year, status, and one or two sentences of why. Add a section if no section fits.
+   If a paper cites the work, delete its line from `papers/awaiting_review.txt`. `tests/test_papers.py` fails while the line stays (#5346).
    Then put the page on the index's map. The map embeds the page's title and *Summary*, so run this again whenever either changes:
    ```bash
    uv run --extra map python scripts/literature_map.py
