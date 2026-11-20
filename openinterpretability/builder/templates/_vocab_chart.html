@@ -1,3 +1,4 @@
+{% from "_macros.html" import chart %}
 {# Vocabulary projection for _experiment.html. Expects `v` and `sub`. #}
 {% from "_macros.html" import fold, read_more %}
   {% if sub.vocabulary_lens %}
@@ -10,7 +11,7 @@
         {% for panel in vc.panels %}
         <div>
           <h4 class="mb-1 text-sm font-medium" title="{{ panel.hint }}">{{ panel.title }}</h4>
-          <svg viewBox="0 0 {{ vc.width }} {{ vc.height }}" class="w-full max-w-[480px]" role="img" aria-label="{{ panel.title }}: z-scores of the {{ panel.rows | selectattr('promoted') | list | length }} most promoted and {{ panel.rows | rejectattr('promoted') | list | length }} most suppressed tokens. Values are in the table below.">
+          {% set _label %}{{ panel.title }}: z-scores of the {{ panel.rows | selectattr('promoted') | list | length }} most promoted and {{ panel.rows | rejectattr('promoted') | list | length }} most suppressed tokens. Values are in the table below.{% endset %}{% call chart(vc.width, vc.height, "Vocabulary projection", _label | trim, role="img") %}
             {% for tx, label in vc.ticks %}
             <line x1="{{ tx }}" y1="0" x2="{{ tx }}" y2="{{ vc.axis_y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>
             {% endfor %}
@@ -27,7 +28,7 @@
             {% for tx, label in vc.ticks %}
             <text x="{{ tx }}" y="{{ vc.axis_y + 14 }}" text-anchor="{{ 'start' if loop.first else 'end' if loop.last else 'middle' }}" class="fill-slate-500 font-mono" font-size="10">{{ label }}</text>
             {% endfor %}
-          </svg>
+          {% endcall %}
         </div>
         {% endfor %}
       </div>
