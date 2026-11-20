@@ -35,6 +35,7 @@ Status marks how the work relates to this repo:
 | [Gaussian Error Linear Units (GELUs)](gelus.md) (Hendrycks and Gimpel, 2016) | used | GPT-2's activation function, in the tanh form that this paper gives. Three papers rest on its dip below zero. The paper never states the minimum near −0.75, so one citation moved. |
 | [GLU Variants Improve Transformer](glu-variants.md) (Shazeer, 2020) | used | Defines SwiGLU, Qwen2.5's MLP: a Swish-gated half times a linear half. Our citation checks out. A SwiGLU neuron reads two input directions, not one. |
 | [Language Models are Unsupervised Multitask Learners](gpt-2.md) (Radford, Wu, Child et al., 2019) | used | The GPT-2 paper: WebText, byte-level BPE and four sizes, the smallest with 12 layers. It never states the MLP width, so two papers now credit the 3,072 neurons to the released weights. |
+| [Qwen2.5 Technical Report](qwen2-5.md) (Yang, Yang, Zhang et al., 2024) | used | The report on two configured registry models: 24 and 28 layers, SwiGLU, and one 151,643-token vocabulary across the family. All three papers that cite it match the source. |
 
 ## Forecasting and evaluation
 
