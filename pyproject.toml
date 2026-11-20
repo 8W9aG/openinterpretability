@@ -241,13 +241,14 @@ convention = "google"
 "*.ipynb" = ["S101"]
 
 [tool.interrogate]
-# Docstring coverage of openinterpretability/: raise fail-under when coverage rises, never lower it.
-# Skips what the D rules skip.
-fail-under = 94
+# Docstring coverage of openinterpretability/ and scripts/, private functions included (#3938).
+# Raise fail-under as coverage rises, to 100, never lower it. Magic methods and __init__ are
+# skipped: a class's docstring describes its constructor's arguments.
+fail-under = 86
 ignore-magic = true
 ignore-init-method = true
-ignore-private = true
-ignore-semiprivate = true
+ignore-private = false
+ignore-semiprivate = false
 ignore-module = false
 
 [tool.pymarkdown]
