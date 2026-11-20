@@ -49,7 +49,7 @@ We compare two independent arms with the two-sided Fisher exact test on their $2
 
 **Setup of the dictionary comparison.**
 
-- **Model.** GPT-2 small (Radford et al., 2019), with 12 layers and 3,072 neurons in each MLP.
+- **Model.** GPT-2 small, with 12 layers (Radford et al., 2019, Table 2). Its released weights have 3,072 neurons in each MLP.
 - **Dictionary.** The transcoders of Dunefsky et al. (2024), repackaged as [`jacobdunefsky/gpt2small-transcoders`](https://huggingface.co/jacobdunefsky/gpt2small-transcoders) at revision `8f254a3a`. They have 24,576 latents per layer, which we read from the weights. On the scanned layers, the transcoders explained 70% of the MLP output's variance, with a mean of 54 active latents per token. The model card names no licence and no citation, only the paper.
 - **Draws.** Latents were drawn uniformly by `open-interpretability audit --random --dictionary gpt2-small-transcoders`, seeds 1–61, until 40 fired on the scan. Positive poles were drawn by `--random --pole positive`, seeds 1–40. No seed was skipped, and none was audited twice. The draws and verdicts are in [`transcoder-baseline.jsonl`](../../docs/analyses/transcoder-baseline.jsonl). [The baseline write-up](../../docs/analyses/transcoder-baseline.md) gives the setup in full.
 - **Positive poles only.** GPT-2's negative poles cannot pass this protocol, because most of them are default-on: they sit above the activation line on most tokens.
