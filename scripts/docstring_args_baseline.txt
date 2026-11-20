@@ -837,7 +837,6 @@ openinterpretability/cli_score.py::load_scores
 openinterpretability/cli_sisters.py::sisters_command
 openinterpretability/cli_sisters.py::sisters_command.load
 openinterpretability/cli_social.py::_entries
-openinterpretability/cli_social.py::post_command
 openinterpretability/cli_submission.py::read_patchscope
 openinterpretability/cli_submission.py::read_prior_art
 openinterpretability/cli_submission.py::read_steering

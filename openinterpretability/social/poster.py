@@ -42,6 +42,9 @@ def oauth_header(method: str, url: str, keys: dict[str, str], nonce: str, stamp:
         nonce: A value used once.
         stamp: The time in seconds, as text.
 
+    Returns:
+        The header's value, which starts ``OAuth`` and holds the signature.
+
     Examples:
         >>> keys = dict(zip(SECRETS, ("ck", "cs", "at", "as")))
         >>> header = oauth_header("POST", TWEETS, keys, "n", "1")
@@ -63,6 +66,9 @@ def oauth_header(method: str, url: str, keys: dict[str, str], nonce: str, stamp:
 
 def keys_from_env() -> dict[str, str] | None:
     """The four X secrets from the environment, or None when any is missing.
+
+    Returns:
+        The secrets by name, or None when any of the four is unset or empty.
 
     Examples:
         >>> import os
@@ -91,6 +97,9 @@ class XPoster:
 
         Args:
             text: The post.
+
+        Returns:
+            The id that X gives the new post.
         """
         header = oauth_header(
             "POST", TWEETS, self.keys, secrets.token_hex(16), str(int(time.time()))
