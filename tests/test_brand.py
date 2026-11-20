@@ -74,6 +74,6 @@ def test_the_header_has_no_tagline(tmp_path):
 
     compile_site([], tmp_path)
     page = (tmp_path / "index.html").read_text()
-    header = page[page.index("<header"):page.index("</header>")]
+    header = page[page.index("<header") : page.index("</header>")]
     assert "interpretability lab" not in header  # removed from the header (#5535)
     assert '<meta name="description" content="An agent-run mechanistic interpretability lab' in page
