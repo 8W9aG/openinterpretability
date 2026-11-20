@@ -30,6 +30,29 @@
       }
       const dotTexture = softDot(0.55, 1), shadowTexture = softDot(0.15, 0.55);
 
+      // The halo on the cursor's token (#5086): a ring with a soft glow and a clear centre.
+      // Its shape and size mark the token, not its colour, so it reads without colour vision.
+      function ringTexture() {
+        const c = document.createElement("canvas");
+        c.width = c.height = 128;
+        const g = c.getContext("2d");
+        const glow = g.createRadialGradient(64, 64, 34, 64, 64, 62);
+        glow.addColorStop(0, "rgba(255,255,255,0)");
+        glow.addColorStop(0.45, "rgba(255,255,255,0.35)");
+        glow.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = glow;
+        g.fillRect(0, 0, 128, 128);
+        g.strokeStyle = "rgba(255,255,255,1)";
+        g.lineWidth = 7;
+        g.beginPath(); g.arc(64, 64, 44, 0, 2 * Math.PI); g.stroke();
+        return new THREE.CanvasTexture(c);
+      }
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringTexture(), color: ink, transparent: true, depthTest: false, depthWrite: false }));
+      halo.renderOrder = 10;  // drawn last, over the cloud
+      halo.visible = false;
+      spaceGroup.add(halo);
+      let haloClock = 0;
+
       // Viridis, sampled: an ordered scale, so a token's place reads in its colour and label.
       const VIRIDIS = [0x440154, 0x482878, 0x3e4989, 0x31688e, 0x26828e, 0x1f9e89, 0x35b779, 0x6ece58, 0xb5de2b, 0xfde725];
       const ordered = (i, n) => new THREE.Color(VIRIDIS[Math.round((n <= 1 ? 1 : i / (n - 1)) * (VIRIDIS.length - 1))]);
@@ -243,6 +266,18 @@
         const index = +$("route3d-prompt").value;
         placeTokens(sentence, data.prompts[index], t);
         if (compare >= 0) placeTokens(comparison, data.prompts[compare], t);
+        placeHalo(dt);
+      }
+
+      // The halo follows the main prompt's token under the cursor, never the compared prompt's.
+      // No reading (cursor null) shows no halo. Reduced motion holds it still.
+      function placeHalo(dt) {
+        const tok = cursor === null ? null : sentence.find((s) => s.i === cursor);
+        halo.visible = view === "space" && !!tok;
+        if (!halo.visible) return;
+        halo.position.copy(tok.mesh.position);
+        haloClock += dt;
+        halo.scale.setScalar(0.38 * (still ? 1 : 1 + 0.08 * Math.sin(haloClock * 3)));
       }
 
       function spaceSentence(p) {  // what the view shows, in words
