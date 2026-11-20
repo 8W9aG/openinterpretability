@@ -2,4 +2,5 @@
 
 Short posts for the site's Posts section. [docs/posts.md](../docs/posts.md) says how to write one.
 
-- 2026-11-20: [Why did the model say that? A walk through `explain`](explain/README.md)
+- Draft: [We are on X](on-x/README.md)
+- Draft: [Why did the model say that? How an explanation is built](explain/README.md)

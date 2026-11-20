@@ -1,13 +1,13 @@
 """Which entries to post, within the limits, and the state that remembers them (issue #4463).
 
-The state is a small JSON file: the id of every entry that is posted or seen, and the time
-of each post. An entry is *new* when its id isn't in the state; the clock never decides
-that. The first run, with no state, records every entry in the feeds and posts nothing. So a
-new poster doesn't post fifty old units at once.
+The state is a small JSON file. It holds the id of every entry that is posted or seen, the
+time of each post, and the feeds it has seen. An entry is *new* when its id isn't in the
+state; the clock never decides that. The first run, with no state, records every entry in
+the feeds and posts nothing. So a new poster doesn't post fifty old entries at once. A feed
+that is new to the state seeds the same way, so adding a feed posts nothing old (#5533).
 
-- Each published paper gets its own post.
-- New VERIFIED experiments get one post each, up to :data:`PER_RUN`. More than that in one
-  run get one digest post that links to the site.
+- Each published paper and each site post gets its own post (#5533). VERIFIED units don't
+  post.
 - At most :data:`PER_DAY` posts go out in any 24 hours. The X API's free tier allows 50 a
   day by its current docs, and 17 by older ones. This stays under the lower figure. When
   the budget is spent, the rest isn't recorded, and it posts on a later run.
@@ -20,24 +20,31 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from openinterpretability.social.feed import Entry
-from openinterpretability.social.message import digest_post, experiment_post, paper_post
+from openinterpretability.social.feed import Entry, Media
+from openinterpretability.social.message import paper_post, site_post
 
-PER_RUN = 3
 PER_DAY = 15
 DAY = 24 * 60 * 60
+# Each feed that posts, by name, and how its entries become posts. Papers go first.
+MESSAGES: dict[str, Callable[[Entry], str]] = {"papers": paper_post, "posts": site_post}
+# The feeds that a state saved before #5533 had seen: it has no "feeds" key.
+LEGACY_FEEDS = frozenset({"papers"})
 
 
 @dataclass
 class State:
-    """The ids already posted or seen, and the times of the posts made."""
+    """The ids already posted or seen, the times of the posts made, and the feeds seen."""
 
     posted: set[str] = field(default_factory=set)
     times: list[float] = field(default_factory=list)
+    feeds: set[str] = field(default_factory=lambda: set(LEGACY_FEEDS))
 
 
 def load_state(path: Path) -> State | None:
     """The state at ``path``, or None when there is none yet.
+
+    A state saved before #5533 has no ``feeds`` key. It counts as having seen the papers
+    feed only, so the posts feed seeds on its first run.
 
     Args:
         path: The state's JSON file.
@@ -50,15 +57,19 @@ def load_state(path: Path) -> State | None:
         >>> path = Path(tempfile.mkdtemp()) / "x.json"
         >>> load_state(path) is None
         True
-        >>> save_state(path, State({"u2", "u1"}, [3.0]))
+        >>> save_state(path, State({"u2", "u1"}, [3.0], {"papers", "posts"}))
         >>> state = load_state(path)
-        >>> sorted(state.posted), state.times  # a set's order varies from run to run
-        (['u1', 'u2'], [3.0])
+        >>> sorted(state.posted), state.times, sorted(state.feeds)  # a set's order varies
+        (['u1', 'u2'], [3.0], ['papers', 'posts'])
+        >>> _ = path.write_text('{"posted": ["u1"], "times": []}')  # from before #5533
+        >>> sorted(load_state(path).feeds)
+        ['papers']
     """
     if not Path(path).exists():
         return None
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return State(set(data.get("posted", [])), list(data.get("times", [])))
+    feeds = set(data.get("feeds", LEGACY_FEEDS))
+    return State(set(data.get("posted", [])), list(data.get("times", [])), feeds)
 
 
 def save_state(path: Path, state: State) -> None:
@@ -71,9 +82,12 @@ def save_state(path: Path, state: State) -> None:
     Examples:
         >>> import tempfile
         >>> path = Path(tempfile.mkdtemp()) / "a" / "x.json"
-        >>> save_state(path, State({"u1"}, [1.0]))
+        >>> save_state(path, State({"u1"}, [1.0], {"papers"}))
         >>> print(path.read_text(), end="")
         {
+         "feeds": [
+          "papers"
+         ],
          "posted": [
           "u1"
          ],
@@ -83,40 +97,33 @@ def save_state(path: Path, state: State) -> None:
         }
     """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    data = {"posted": sorted(state.posted), "times": sorted(state.times)}
+    data = {"feeds": sorted(state.feeds), "posted": sorted(state.posted),
+            "times": sorted(state.times)}  # fmt: skip
     Path(path).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
 
 
-def planned(state: State, experiments: list[Entry], papers: list[Entry],
-            site: str) -> list[tuple[list[str], str]]:  # fmt: skip
-    r"""Each post to make, with the ids it covers: papers first, then experiments.
+def planned(state: State, feeds: dict[str, list[Entry]]) -> list[tuple[str, str, Media | None]]:
+    r"""Each post to make, with the id it covers and its media: papers first, then site posts.
 
     Args:
         state: What was posted or seen already.
-        experiments: The VERIFIED experiments' feed entries.
-        papers: The published papers' feed entries.
-        site: The site's link, for a digest post.
+        feeds: Each feed's entries, by name (a key of :data:`MESSAGES`).
 
     Returns:
-        One ``(ids, text)`` pair per post, papers first. Many new units give one digest.
+        One ``(id, text, media)`` per post. ``media`` is the drawn head figure, or None.
 
     Examples:
-        >>> unit = Entry("u1", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u", "Fires.")
-        >>> planned(State({"old"}), [unit], [], "https://x.org/")
-        [(['u1'], 'gpt2/L1/N5-positive VERIFIED\nhttps://x.org/u')]
+        >>> post = Entry("p1", "Hello", "https://x.org/p", "The first post.")
+        >>> planned(State({"old"}), {"posts": [post]})
+        [('p1', 'Hello\n\nThe first post.\nhttps://x.org/p', None)]
     """
-    posts = [([e.id], paper_post(e)) for e in papers if e.id not in state.posted]
-    fresh = [e for e in experiments if e.id not in state.posted]
-    if len(fresh) > PER_RUN:
-        posts.append(([e.id for e in fresh], digest_post(len(fresh), site)))
-    else:
-        posts += [([e.id], experiment_post(e)) for e in fresh]
-    return posts
+    return [(e.id, MESSAGES[name](e), e.media) for name in MESSAGES for e in feeds.get(name, [])
+            if e.id not in state.posted]  # fmt: skip
 
 
-def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: str,
-        post: Callable[[str], str] | None, now: float,
-        repost: frozenset[str] = frozenset()) -> list[str]:  # fmt: skip
+def run(state_path: Path, feeds: dict[str, list[Entry]],
+        post: Callable[[str, Media | None], str] | None,
+        now: float, repost: frozenset[str] = frozenset()) -> list[str]:  # fmt: skip
     """Post what is new and record it; return a line per action.
 
     With ``post`` None (a dry run), print the posts and change no state. ``repost`` names
@@ -126,10 +133,9 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
 
     Args:
         state_path: The state's JSON file. With none yet, every entry is recorded as seen.
-        experiments: The VERIFIED experiments' feed entries.
-        papers: The published papers' feed entries.
-        site: The site's link, for a digest post.
-        post: A function that posts a text and returns its id, or None for a dry run.
+        feeds: Each feed's entries, by name: ``papers`` and ``posts``.
+        post: A function that posts a text with its media (or None) and returns the post's
+            id, or None for a dry run.
         now: The time in seconds, for the daily limit.
         repost: The ids of entries to post although the state has them.
 
@@ -139,37 +145,45 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
     Examples:
         >>> import tempfile
         >>> path = Path(tempfile.mkdtemp()) / "x.json"
-        >>> unit = Entry("u1", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u", "Fires.")
-        >>> run(path, [unit], [], "https://x.org/", lambda text: "42", now=0)  # first run
+        >>> paper = Entry("p1", "A bracket neuron", "https://x.org/p", "It reads brackets.")
+        >>> run(path, {"papers": [paper]}, lambda text, media: "42", now=0)  # the first run
         ['seeded 1 entries; posted nothing']
-        >>> new = Entry("u2", "gpt2/L1/N6-positive VERIFIED", "https://x.org/v", "Reads.")
-        >>> run(path, [new, unit], [], "https://x.org/", lambda text: "42", now=10)
-        ['posted 42: gpt2/L1/N6-positive VERIFIED']
-        >>> run(path, [new, unit], [], "https://x.org/", lambda text: "43", now=20,
-        ...     repost=frozenset({"u1"}))
-        ['posted 43: gpt2/L1/N5-positive VERIFIED']
+        >>> new = Entry("s1", "Hello", "https://x.org/s", "The first post.")
+        >>> run(path, {"papers": [paper], "posts": [new]}, lambda text, media: "43", now=10)
+        ['seeded 1 entries of the new feed posts; posted nothing', 'nothing new']
+        >>> newer = Entry("s2", "Again", "https://x.org/t", "The second post.")
+        >>> run(path, {"papers": [paper], "posts": [newer, new]}, lambda text, media: "44", now=20)
+        ['posted 44: Again']
     """
+    entries = [e for found in feeds.values() for e in found]
     state = load_state(state_path)
     if state is None:
         if post is not None:
-            save_state(state_path, State({e.id for e in [*experiments, *papers]}))
-        lines = [f"seeded {len(experiments) + len(papers)} entries; posted nothing"]
+            save_state(state_path, State({e.id for e in entries}, [], set(feeds)))
+        lines = [f"seeded {len(entries)} entries; posted nothing"]
         return lines + ["--repost waits for a state: the first run only seeds"] * bool(repost)
-    known = {e.id for e in [*experiments, *papers]}
-    lines = [f"not in the feeds: {i}" for i in sorted(repost - known)]
+    lines = []
+    for name in sorted(set(feeds) - state.feeds):  # a feed new to the state seeds (#5533)
+        state.posted.update(e.id for e in feeds[name])
+        state.feeds.add(name)
+        if post is not None:
+            save_state(state_path, state)
+        lines.append(f"seeded {len(feeds[name])} entries of the new feed {name}; posted nothing")
+    lines += [f"not in the feeds: {i}" for i in sorted(repost - {e.id for e in entries})]
     state.posted -= repost  # in memory only: the state saves an id again once it posts
     budget = PER_DAY - sum(1 for t in state.times if now - t < DAY)
-    for ids, text in planned(state, experiments, papers, site):
+    count = 0
+    for entry_id, text, media in planned(state, feeds):
         if budget <= 0:
             lines.append("daily limit reached; the rest posts on a later run")
             break
+        count += 1
+        budget -= 1
         if post is None:
             lines.append(f"would post:\n{text}")
-            budget -= 1
             continue
-        lines.append(f"posted {post(text)}: {text.splitlines()[0]}")
-        state.posted.update(ids)
+        lines.append(f"posted {post(text, media)}: {text.splitlines()[0]}")
+        state.posted.add(entry_id)
         state.times.append(now)
         save_state(state_path, state)  # after each post, so a later failure loses nothing
-        budget -= 1
-    return lines or ["nothing new"]
+    return lines if count else [*lines, "nothing new"]

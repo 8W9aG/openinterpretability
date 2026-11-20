@@ -2,13 +2,19 @@
 
 {% block title %}{{ post.title }} · {{ site_title }}{% endblock %}
 
+{% block card_image %}{% if post.social_image %}<meta property="og:image" content="{{ site_url }}posts/{{ post.href | replace('index.html', '') }}{{ post.social_image }}">
+  <meta property="og:image:alt" content="{{ post.hero_alt }}">
+  <meta name="twitter:image" content="{{ site_url }}posts/{{ post.href | replace('index.html', '') }}{{ post.social_image }}">{% else %}{{ super() }}{% endif %}{% endblock %}
+
 {% block head %}
+{% if post.draft %}<meta name="robots" content="noindex, nofollow">{% endif %}
 <link rel="alternate" type="application/atom+xml" title="Posts" href="{{ root }}posts/posts.xml">
 {% include "_prose.html" %}
 {% endblock %}
 
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="../index.html">Posts</a></nav>
+{% if post.draft %}<p class="mb-2 inline-block rounded border-2 border-dashed border-slate-500 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Draft: not published, and not listed</p>{% endif %}
 <h1 class="max-w-3xl text-2xl font-semibold">{{ post.title }}</h1>
 <p class="mt-2 text-xs text-slate-500">
   {% if post.published %}<time datetime="{{ post.published }}">{{ post.published }}</time> ·{% endif %}

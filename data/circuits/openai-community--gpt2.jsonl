@@ -5,3 +5,7 @@
 {"date": "2026-11-19", "event": "new", "id": "C5", "members": ["models/openai-community--gpt2/L1/N79.html", "models/openai-community--gpt2/L6/N37.html", "models/openai-community--gpt2/L7/H2.html"]}
 {"date": "2026-11-19", "event": "grow", "id": "C4", "members": ["models/openai-community--gpt2/L5/N1208.html", "models/openai-community--gpt2/L5/N2567.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L7/H10.html"]}
 {"date": "2026-11-19", "event": "split", "id": "C4", "into": ["C5"]}
+{"date": "2026-11-20", "event": "new", "id": "C6", "members": ["models/openai-community--gpt2/L3/N1741.html", "models/openai-community--gpt2/L4/N2999.html", "models/openai-community--gpt2/L5/N1208.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L6/N37.html", "models/openai-community--gpt2/L7/H10.html", "models/openai-community--gpt2/L7/H2.html"]}
+{"date": "2026-11-20", "event": "merge", "from": ["C4", "C5"], "id": "C6"}
+{"date": "2026-11-20", "event": "gone", "id": "C4"}
+{"date": "2026-11-20", "event": "gone", "id": "C5"}

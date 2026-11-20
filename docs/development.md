@@ -191,12 +191,12 @@ Configure the workflow in the repo's GitHub settings:
 
 ### Posts to X
 
-After a deploy, `open-interpretability social post` posts each new VERIFIED experiment of `feed.xml` and each published paper of `research/published.xml` to X (#4463). A preprint isn't in that feed, so a paper posts once, when it becomes published. Literature reviews never post.
+After a deploy, `open-interpretability social post` posts each new published paper of `research/published.xml` and each new site post of `posts/posts.xml` to X (#4463, #5533). A preprint isn't in the papers feed, so a paper posts once, when it becomes published. A draft post isn't in the posts feed. VERIFIED units and literature reviews never post.
 
-- **New means unseen.** The Actions cache keeps the id of each entry posted or seen. The first run with no cache records every entry and posts nothing.
-- **Limits.** At most 3 single posts go out in a run. More new units than that get one digest post. At most 15 posts go out in 24 hours, under the free tier's lower published limit. The rest posts on a later run.
-- **No record text.** An experiment's post is its unit, its verdict and its link. A record can come from any contributor and merge with no person reading it, so its explanation stays on the unit's page.
+- **New means unseen.** The Actions cache keeps the id of each entry posted or seen, and the feeds it has seen. The first run with no cache records every entry and posts nothing. A feed that the state hasn't seen does the same, so adding a feed posts nothing old.
+- **Limits.** At most 15 posts go out in 24 hours, under the free tier's lower published limit. The rest posts on a later run.
 - **Screened.** Each post passes the same personal-data screen as the site's pages.
+- **The head figure.** A post carries its paper's or post's head figure: the video when the figure animates, else the image (#5534). `scripts/social_images.py` draws them from the SVG into `media/social.png` and `media/social.mp4`, and the feeds link them. A failed upload posts the text alone and prints why.
 - **Never fails the deploy.** The step has `continue-on-error`.
 
 `--dry-run` prints the posts and changes no state. `--preview N` prints the posts of the newest N entries of each feed.

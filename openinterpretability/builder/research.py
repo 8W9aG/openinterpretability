@@ -22,6 +22,7 @@ from markdown_it.token import Token
 from openinterpretability.builder.contents import anchor as section_anchor
 from openinterpretability.builder.maths import MathsError, enable_maths
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
+from openinterpretability.builder.social_media import drawn
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 # An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
@@ -59,7 +60,9 @@ def paper_status(text: str) -> PaperStatus | None:
     return PaperStatus(found.group(3), note, issues)
 
 
-_ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
+# A post can be a draft instead: "- Draft: [Title](slug/README.md)" (#5529, #5551).
+_ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}|Draft): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
+DRAFT = "Draft"  # the marker in place of a date
 _MARKDOWN = enable_maths(MarkdownIt("commonmark", {"html": False}).enable("table"))
 
 
@@ -76,11 +79,18 @@ class Paper:
     sections: tuple[tuple[str, str], ...] = ()  # (id, title) of each `##` heading, in order
     published: str | None = None  # the date before its entry in papers/README.md
     status: PaperStatus | None = None  # preprint or published (#3150)
+    draft: bool = False  # marked "Draft" in the index: built, but unlisted (#5551)
+    hero_alt: str = ""  # the first figure's alt text, for X and link cards (#5534)
+    social_image: str | None = None  # media/social.png, drawn from the first figure (#5534)
+    social_video: str | None = None  # media/social.mp4, when that figure animates
 
     @property
     def href(self) -> str:
-        """The paper's page, relative to the section's index."""
-        return f"{self.slug}/index.html"
+        """The page, relative to the section's index. A draft's is under ``drafts/``.
+
+        A draft has no listing page there, so only its URL leads to it (#5551).
+        """
+        return f"drafts/{self.slug}/index.html" if self.draft else f"{self.slug}/index.html"
 
 
 def _plain(inline: Token) -> str:
@@ -122,13 +132,13 @@ def _mark_sections(tokens: list[Token]) -> tuple[tuple[str, str], ...]:
     return tuple(sections)
 
 
-def _first_image(tokens: list[Token]) -> str | None:
-    """Return the source of the first image, if there is one."""
+def _first_image(tokens: list[Token]) -> tuple[str | None, str]:
+    """Return the source and the alt text of the first image, or (None, "")."""
     for token in tokens:
         for child in token.children or []:
             if child.type == "image":
-                return child.attrGet("src")
-    return None
+                return child.attrGet("src"), child.content
+    return None, ""
 
 
 def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
@@ -152,6 +162,8 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
     if tokens[0].type != "heading_open" or tokens[0].tag != "h1":
         raise ValueError(f"{folder / 'README.md'} must start with a level 1 heading")
     first = next(i for i, token in enumerate(tokens) if token.type == "paragraph_open")
+    hero, alt = _first_image(tokens)
+    image, video = drawn(folder)  # scripts/social_images.py draws them (#5534)
     _rewrite_links(tokens, folder.name, repo_url, source)
     sections = () if interactive else _mark_sections(tokens)
     try:
@@ -163,7 +175,10 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
         title=_plain(tokens[1]),
         summary=_plain(tokens[first + 1]),
         body=body,
-        hero=_first_image(tokens),
+        hero=hero,
+        hero_alt=alt,
+        social_image=image,
+        social_video=video,
         interactive=interactive,
         sections=sections,
         status=paper_status(text),
@@ -192,7 +207,11 @@ def load_papers(papers_dir: Path | None, repo_url: str, source: str = "papers") 
         return []
     entries = _ENTRY.findall(index.read_text(encoding="utf-8"))
     papers = [
-        replace(_read_paper(Path(papers_dir) / slug, repo_url, source), published=date or None)
+        replace(
+            _read_paper(Path(papers_dir) / slug, repo_url, source),
+            published=None if date in ("", DRAFT) else date,
+            draft=date == DRAFT,
+        )
         for date, slug in entries
     ]
     return sorted(papers, key=lambda p: p.published or "", reverse=True)
@@ -286,7 +305,7 @@ def copy_assets(
         The interactive page that was copied, or an empty list.
     """
     source = Path(papers_dir) / paper.slug
-    target = output_dir / section / paper.slug
+    target = output_dir / section / posixpath.dirname(paper.href)
     target.mkdir(parents=True, exist_ok=True)
     if not paper.interactive:
         for path in sorted((source / "media").rglob("*")):

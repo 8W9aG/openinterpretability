@@ -24,11 +24,31 @@ A post has the same form as a paper, and the same code builds it (`openinterpret
 
 A post has no fixed sections, no `results.jsonl` and no PDF.
 
+## Drafts
+
+To merge a post before it goes out, mark it as a draft in `posts/README.md`. Write `Draft` in place of the date: `- Draft: [Title](slug/README.md)`.
+
+- **Where it builds.** A draft builds at `posts/drafts/<slug>/`, with its media and a "Draft" badge. Local builds and deploys do the same, so you can read it on the real site.
+- **Unlisted.** No index, feed or sitemap lists a draft, search doesn't find it, and no page links to it. Its page tells search engines not to index it.
+- **Public by its URL.** Anyone with the link can read a draft. So a draft must not hold anything secret.
+- **Publish it.** Change `Draft` to the day it goes out. The post then builds at `posts/<slug>/`, and the draft's URL stops working.
+
 ## Output that a post shows
 
 When a post shows the output of a command, run the command and paste its real output. Don't type output by hand, and don't change it. Say which model and which version ran it.
 
 When a post names a command's options, a test checks them against the command's `--help`. `tests/test_posts.py` does this for the post on `explain`. Add the same check for a post on another command, so that the post fails when an option changes.
+
+## The head figure on X and in link cards
+
+The first image of a post or a paper is its head figure. X takes no SVG, so draw it into `media/` after each change to the figure:
+
+```bash
+uv run --with playwright==1.65.2 playwright install chromium
+uv run --with playwright==1.65.2 python scripts/social_images.py
+```
+
+It writes `social.png` (the final frame), `social.mp4` (one loop, when the figure animates) and `social.json` (the hash that a test checks). It needs ffmpeg. Commit the three files. The post on X carries the figure, and the page's link card shows `social.png`.
 
 ## Check it
 
