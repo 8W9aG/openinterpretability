@@ -172,7 +172,7 @@ After pulling the rename, run `make install` once in each checkout. A plain `uv 
 
 ## Deploy
 
-[deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main`, on manual dispatch, and every 30 minutes when `main` has moved since the last successful deploy. The schedule catches merges by the auto-merge bot, whose token starts no push workflow (issue #3989). Each deploy runs `open-interpretability check`, then `open-interpretability deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
+[deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main`, on each published GitHub release (#5196) and on manual dispatch. It also runs every 30 minutes, and deploys when `main` has moved since the last successful deploy. The schedule catches merges by the auto-merge bot, whose token starts no push workflow (issue #3989). Each deploy runs `open-interpretability check`, then `open-interpretability deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
 
 - **Deterministic build.** There are no build timestamps. The footer date and `manifest.json`'s `updated_at` come from the latest verdict, and every ordering is total. Unchanged records rebuild byte-for-byte, which a test enforces.
 - **Content comparison.** Only files whose MD5 differs from the remote ETag are uploaded.
