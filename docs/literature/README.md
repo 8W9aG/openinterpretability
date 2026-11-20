@@ -250,6 +250,7 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition](conll-2003.md) (Tjong Kim Sang and De Meulder, 2003) | used | The source of the `conll2003-ner` and `conll2003-pos` presets. People tagged the entities, and a tagger made the part-of-speech tags, so the preset's comment now says so. |
 | [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
 | [Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection](universal-dependencies-v2.md) (Nivre, de Marneffe, Ginter et al., 2020) | used | One scheme of parts of speech and relations for 157 treebanks in 90 languages. The source of the `ud-upos` and `ud-deprel` presets and of one paper's labels. Our citation checks out. The licences come from each treebank, not the paper. |
 
