@@ -13,7 +13,8 @@ import sys
 OLD = "open" + "interp"  # spelled in two parts, so this file doesn't match itself
 PATTERN = re.compile(OLD + r"(?!retability)", re.IGNORECASE)
 # Frozen: signed records and their signatures cover these, so they keep the old name.
-FROZEN = (OLD + "_version", OLD + "-record")
+# The X account's handle is a name that X holds, not this project's old name (#5389).
+FROZEN = (OLD + "_version", OLD + "-record", "x.com/" + OLD + "ret")
 ALLOWED_PATHS = (
     "wiki/",  # write-once, signed records
     "benchmark/v1/",  # the sealed benchmark

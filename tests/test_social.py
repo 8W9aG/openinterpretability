@@ -51,6 +51,25 @@ def test_new_entries_are_posted_once_and_a_rerun_posts_nothing(tmp_path, poster)
     assert len(poster.sent) == 1
 
 
+def test_a_seen_entry_posts_once_with_repost(tmp_path, poster):
+    state = tmp_path / "x.json"
+    social.run(state, [_unit(1)], [], SITE, poster, now=0)  # seed: unit 1 is seen
+    again = frozenset({_unit(1).id, "https://example.org/gone"})
+    lines = social.run(state, [_unit(1)], [], SITE, poster, now=10, repost=again)
+    assert lines[0] == "not in the feeds: https://example.org/gone"
+    assert len(poster.sent) == 1 and "N1-positive VERIFIED" in poster.sent[0]
+    assert _unit(1).id in social.load_state(state).posted
+    assert social.run(state, [_unit(1)], [], SITE, poster, now=20) == ["nothing new"]
+
+
+def test_repost_on_a_dry_run_changes_no_state(tmp_path, poster):
+    state = tmp_path / "x.json"
+    social.run(state, [_unit(1)], [], SITE, poster, now=0)
+    before = state.read_text()
+    lines = social.run(state, [_unit(1)], [], SITE, None, now=10, repost=frozenset({_unit(1).id}))
+    assert lines[0].startswith("would post:") and state.read_text() == before
+
+
 def _paper(published: bool):
     status = SimpleStatus(published="2026-11-20" if published else None)
     return SimplePaper("A bracket neuron", "It reads brackets. More text.", "p/index.html", status)

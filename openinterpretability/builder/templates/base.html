@@ -19,6 +19,7 @@
   <meta property="og:image:height" content="630">
   {% if canonical %}<meta property="og:url" content="{{ canonical }}">{% endif %}
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="{{ x_handle }}">
   {# Built once with the site (openinterpretability/builder/css.py, `make build`), not in the browser. #}
   <link href="{{ root }}assets/site.css" rel="stylesheet">
   {# Pagefind's UI (`make search-index`) loads on the first use of the search box, at the end of the body. #}
@@ -118,6 +119,7 @@
       <a class="underline" href="{{ root }}data/registry.parquet">registry.parquet</a>
       <a class="underline" href="{{ root }}data/manifest.json">manifest.json</a>
       <a class="underline" href="{{ repo_url }}">GitHub</a>
+      <a class="underline" href="{{ x_url }}">X</a>
       <a class="underline" href="mailto:{{ contact_email }}">{{ contact_email }}</a>
     </div>
   </footer>
