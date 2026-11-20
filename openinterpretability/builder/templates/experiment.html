@@ -12,8 +12,8 @@
     <p class="mt-1 hidden" data-pagefind-filter="model">{{ model.name }}</p>
     <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
       Experiment {{ rank }} of {{ neuron.experiments | length }} on
-      <a class="underline-offset-2 hover:underline" href="{{ root }}{{ neuron.href }}">this {{ neuron.noun }}</a>, ordered by how conclusive its probe evidence is.
-      Its record is <a class="font-mono underline-offset-2 hover:underline" href="{{ repo_url }}/blob/main/wiki/experiments/{{ v.ident.slug }}/{{ v.e.id }}.json">wiki/experiments/{{ v.ident.slug }}/{{ v.e.id }}.json</a>.
+      <a class="underline-offset-2 hover:underline" href="{{ root }}{{ neuron.href }}">this {{ neuron.noun }}</a>, most conclusive first ·
+      <a class="underline-offset-2 hover:underline" href="{{ repo_url }}/blob/main/wiki/experiments/{{ v.ident.slug }}/{{ v.e.id }}.json">record</a>
     </p>
   </header>
   {% include "_experiment.html" %}

@@ -1,10 +1,8 @@
-{# Per-pair causal effects for _experiment.html. Expects `v`, `c`, `sub`, `what`, `peer`, `peers`. #}
+{# The causal chart of the minimal-pair section of _experiment.html. Expects `v`, `c`, `sub`, `what`, `peer`, `peers`. The per-pair numbers are in that section's table. #}
   {% if v.causal %}
   {% set cc = v.causal %}
-  <section class="mb-10" data-pagefind-ignore>
-    <h3 class="mb-3 text-base font-semibold">Causal effects per minimal pair</h3>
-    <figure>
-      <div class="overflow-x-auto">
+  <figure class="mb-4" data-pagefind-ignore>
+      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Causal effects per minimal pair">
       <svg viewBox="0 0 {{ cc.width }} {{ cc.height }}" class="w-full min-w-[520px]" role="img" aria-label="Sufficiency and necessity percentiles {% if cc.rows %}for {{ cc.rows | length }} minimal pairs {% endif %}against the 0.5 baseline of matched {{ peers }}: median sufficiency {{ c.sufficiency_score | num(2) }}, necessity {{ c.necessity_score | num(2) }}.{% if cc.rows %} Values are in the table below.{% endif %}">
         <rect x="{{ cc.baseline_x }}" y="{{ cc.top - 8 }}" width="{{ cc.right - cc.baseline_x }}" height="{{ cc.axis_y - cc.top + 8 }}" class="fill-slate-100 dark:fill-slate-900"/>
         {% if cc.rule_y %}<line x1="0" y1="{{ cc.rule_y }}" x2="{{ cc.right }}" y2="{{ cc.rule_y }}" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1"/>{% endif %}
@@ -36,32 +34,7 @@
       <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
         <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="2" width="10" height="8" rx="2" class="fill-indigo-500"/></svg> sufficiency (clean → corrupted)</span>
         <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="2" width="10" height="8" rx="2" class="fill-amber-600"/></svg> necessity (corrupted → clean)</span>
-        <span>Percentile of the {{ what }}'s |effect| among the {{ c.null_neurons }} matched {{ peers }}; control pairs are skipped. {% if cc.rows %}Hover a bar for its effect and prompts.{% else %}This record predates per-pair effects, so only the medians are shown.{% endif %}</span>
+        <span>{% if cc.rows %}Hover a bar for its effect and prompts.{% else %}This record predates per-pair effects, so only the medians are shown.{% endif %}</span>
       </figcaption>
-    </figure>
-    {% if cc.rows %}
-    <details class="mt-3">
-      <summary class="cursor-pointer text-xs text-slate-500">Per-pair numbers</summary>
-      <div class="mt-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
-            <tr><th class="px-3 py-2">Pair</th><th class="px-3 py-2">Prompts</th><th class="px-3 py-2 text-right">Sufficiency</th><th class="px-3 py-2 text-right">Necessity</th></tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-            {% for p in c.pairs %}{% set pair = sub.counterfactuals[p.pair_index] if p.pair_index < sub.counterfactuals | length else none %}
-            <tr>
-              <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ p.pair_index + 1 }}</td>
-              <td class="px-3 py-2">{% if pair %}{{ pair.base_prompt }}<div class="text-xs text-slate-500">→ {{ pair.counterfactual_prompt }}</div>{% endif %}</td>
-              {% for patch in [p.sufficiency, p.necessity] %}
-              <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-xs tabular-nums">{{ patch.percentile | num(2) }}<div class="text-slate-500">effect {{ '%.3g' | format(patch.effect) }}</div><div class="text-slate-500">matched {{ '%.3g' | format(patch.null_median) }} / {{ '%.3g' | format(patch.null_max) }}</div></td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-1 text-xs text-slate-500">Each cell: percentile, then the {{ what }}'s signed effect and the matched {{ peers }}' median and largest |effect|, in {{ 'logits' if c.target == 'claimed_tokens' else 'nats of KL' }}.</p>
-    </details>
-    {% endif %}
-  </section>
+  </figure>
   {% endif %}

@@ -1,4 +1,5 @@
 {# The shared concept map on a model page (builder/concept_map_view.py, #4422, #4586), drawn as
+{% from "_macros.html" import read_more %}
    the literature map is (_map_theme.html, #4577). This model's poles are solid, in their
    region's colour on a glow, with a shape per status. The other models' poles are small
    hollow rings, so this model stands apart by fill and size as well as colour. #}
@@ -8,14 +9,15 @@
 {% include "_map_theme.html" %}
 <section class="mt-10" id="concept-map" data-pagefind-ignore>
   <h2 class="mb-1 text-lg font-semibold">Concept map</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-    Every model's studied poles share one map, placed by the meaning of the text they fire on: their top examples, embedded with <code class="font-mono">{{ cm.found.embedder.split("/")[-1] }}</code> and centred on the mean of all models' poles.
-    This model's {{ cm.own }} poles are solid. The other models' poles are hollow rings, so an empty stretch is a region that this model's studied poles don't reach yet.
-    A line joins the two poles of one neuron. Each region is named by the words that set its VERIFIED members' explanations apart from the others', from every model.
-    Close points fire on similar text. Distances between regions mean little: another layout keeps only about half of each point's neighbours
-    (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/concept-map-feasibility.md">the study</a>).
-    <a class="underline" href="{{ root }}models/atlas.html">The atlas</a> shows all models together.
+  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    Studied poles placed by the meaning of the text they fire on. This model's {{ cm.own }} poles are solid, and other models' poles are hollow rings. <a class="underline" href="{{ root }}models/atlas.html">The atlas</a> shows all models together.
   </p>
+  {% call read_more() %}
+    <p>The text is each pole's top examples, embedded with <code class="font-mono">{{ cm.found.embedder.split("/")[-1] }}</code> and centred on the mean of all models' poles. An empty stretch is a region that this model's studied poles don't reach yet. A line joins the two poles of one neuron. Each region is named by the words that set its VERIFIED members' explanations apart from the others', from every model.</p>
+    <p>Close points fire on similar text. Distances between regions mean little: another layout keeps only about half of each point's neighbours (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/concept-map-feasibility.md">the study</a>).</p>
+    <p>Each legend line gives this model's poles in the region, of all models' poles there. This model has poles in {{ cm.counts | length }} of {{ cm.badges | length }} regions. Built {{ cm.found.date }} from {{ cm.found.poles }} poles of {{ cm.found.models | length }} models by <code class="font-mono">open-interpretability map</code> (fit version {{ cm.found.version }}, {{ cm.found.fitted }}). A region in grey and italics has no VERIFIED member, so it has no name.</p>
+  {% endcall %}
+  <div class="mb-3"></div>
   <figure class="litmap dense relative rounded-lg p-2" style="background: var(--surface)">
     <svg viewBox="0 0 {{ w }} {{ h }}" class="w-full" role="group" aria-label="Shared concept map: {{ cm.own }} studied poles of {{ model.name }} among {{ cm.points | length }} poles of all models, in {{ cm.badges | length }} numbered regions, named in the legend below. Each of this model's points links to its unit page, and its shape gives its status.">
       <defs><filter id="cm-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
@@ -47,7 +49,7 @@
     <figcaption class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs" style="color: var(--muted)">
       <span>● VERIFIED</span><span>▲ NEEDS REVISION</span><span>■ REJECTED</span><span>◆ CONTESTED</span><span>· other</span>
       <span>○ another model's pole</span>
-      <span>Each legend line gives this model's poles in the region, of all models' poles there. This model has poles in {{ cm.counts | length }} of {{ cm.badges | length }} regions. Built {{ cm.found.date }} from {{ cm.found.poles }} poles of {{ cm.found.models | length }} models by <code class="font-mono">open-interpretability map</code> (fit version {{ cm.found.version }}, {{ cm.found.fitted }}). A region in grey and italics has no VERIFIED member, so it has no name. Hover over a pole, or move to it with Tab, for its card.</span>
+      <span>Hover over a pole, or move to it with Tab, for its card.</span>
     </figcaption>
   </figure>
 </section>

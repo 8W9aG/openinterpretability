@@ -1,4 +1,5 @@
 {# The answer's verdict, which leads the prompt's page and each explanation's page (#4778). Each answer experiment has its own page (#4909). #}
+{% from "_macros.html" import read_more %}
 {% set a = prompt.standing_answer %}
 <section class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700" aria-labelledby="answer-verdict">
   <h2 id="answer-verdict" class="font-semibold">
@@ -7,7 +8,8 @@
     {% else %}Answer not understood yet: no route claim tested{% endif %}
   </h2>
   {% if not a %}
-  <p class="mt-1 text-slate-600 dark:text-slate-400">Coverage says how much of the answer the explained units bring back. It doesn't say how they make it. That needs an answer experiment: a claim about the route from the prompt's tokens to the answer, tested by ablation, path patching and a reviewer's prompts.</p>
+  <p class="mt-1 text-slate-600 dark:text-slate-400">Coverage doesn't say how the units make the answer. An answer experiment does.</p>
+  {% call read_more() %}<p>Coverage says how much of the answer the explained units bring back. An answer experiment claims the route from the prompt's tokens to the answer, and tests it by ablation, path patching and a reviewer's prompts.</p>{% endcall %}
   {% else %}
   <p class="mt-2"><strong>The claim (<a class="underline underline-offset-2" href="{{ root }}{{ a.href }}">answer experiment {{ a.record.claim.attempt }}, {{ a.status }}</a>):</strong> {{ a.record.claim.explanation }}</p>
   <h3 class="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Answer experiments, newest first</h3>
@@ -30,6 +32,6 @@
       </tbody>
     </table>
   </div>
-  <p class="mt-2 text-xs text-slate-500">Each experiment's page shows its tests: the counterfactual prompts and what the model answered, ablation and path patching against matched random units, and each gate. Necessity is the route's cut of the answer's log-probability, as a share of the cut from ablating every unit. Patching is how far the route's corrupted activations move the answer, as a share of the gap between the prompts.</p>
+  <p class="mt-2 text-xs text-slate-500">Each experiment's page defines these measures and shows its tests.</p>
   {% endif %}
 </section>

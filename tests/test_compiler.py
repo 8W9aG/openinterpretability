@@ -304,7 +304,7 @@ def test_each_experiment_has_its_own_page_and_the_unit_page_lists_them(tmp_path,
         assert f'href="{href}"' in neuron
 
     page = (layer / pages[0]).read_text()
-    assert "Evidence and review" in page and "data-pagefind-body" in page
+    assert "Adversarial review" in page and "data-pagefind-body" in page
     assert 'href="../../../../index.html"' in page  # relative root, one level deeper
     assert f'<a class="underline" href="../../../../models/{MODEL}/L3/N117.html">' in page
     assert f"wiki/experiments/{MODEL}/L3/{pages[0].removesuffix('.html')}.json" in page
@@ -524,9 +524,10 @@ def test_causal_chart_rendered(tmp_path, record):
     verdict = record.verdict.model_copy(update={"causal_metrics": causal})
     compile_site([record.model_copy(update={"verdict": verdict})], tmp_path)
     page = unit_pages(next((tmp_path / "models").rglob("N*.html")))
-    assert "Causal effects per minimal pair" in page
+    assert "Minimal pairs" in page
     assert "Sufficiency and necessity percentiles for 2 minimal pairs" in page
-    assert "Per-pair numbers" in page
+    # The per-pair numbers are merged into the pair table (#5566).
+    assert '<th class="px-3 py-2 text-right">Sufficiency</th>' in page
 
 
 def test_cli_build_from_wiki_archive(tmp_path, records, monkeypatch):
@@ -1060,7 +1061,7 @@ def test_failed_rival_contests_a_verified_hypothesis(tmp_path, records):
     report = compile_site(records, tmp_path)
     assert registry_stats(report.parquet)["totals"]["contested"] == 1
     neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
-    assert "A newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
+    assert "a newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
     assert "A new hypothesis that reaches VERIFIED settles it." in neuron
     assert "split evenly" not in neuron
 
@@ -1765,7 +1766,8 @@ def test_protocol_mix_of_verified_units_is_reported(tmp_path, records):
     assert mix.get("0.7") == 1 and stats["current_protocol"] == PROTOCOL_VERSION
     assert sum(mix.values()) == stats["totals"]["verified"]
     home = (tmp_path / "index.html").read_text()
-    assert "Protocol of the verified claims:" in home and "1 under 0.7" in home
+    assert "verified claims were judged under the current protocol" in home
+    assert "1 under 0.7" in home
 
 
 def test_the_registry_table_is_the_same_in_batches(records, monkeypatch):

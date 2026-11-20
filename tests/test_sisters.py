@@ -436,7 +436,7 @@ def test_the_sister_graphs_are_as_wide_as_the_text_above_them():
     from pathlib import Path
 
     template = Path(__file__).parents[1] / "openinterpretability/builder/templates/model.html"
-    section = template.read_text().split('<h2 class="text-lg font-semibold">Sister neurons</h2>')[1]
+    section = template.read_text().split('{% call fold("Sister neurons", level=2) %}')[1]
     paragraph = re.search(r'<p class="[^"]*\b(max-w-\S+)', section).group(1)
     svg = r'<svg viewBox="0 0 \{\{ g\.width \}\}[^>]*class="[^"]*\b(max-w-\S+?)"'
     graph = re.search(svg, section)

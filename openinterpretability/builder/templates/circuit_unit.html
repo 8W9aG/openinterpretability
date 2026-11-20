@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_circuit.html" import nav, wiring_svg %}
-{% from "_macros.html" import status_badge %}
+{% from "_macros.html" import status_badge, fold, read_more %}
 
 {# One registry circuit (builder/circuit_units.py, #4287): its members, lineage, tasks and sub-circuits. #}
 {% block title %}Circuit {{ rc.id }} · {{ model.name }} · {{ site_title }}{% endblock %}
@@ -9,13 +9,12 @@
 {{ nav(root, model, "Circuit " ~ rc.id) }}
 <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · circuit {{ rc.id }}</h1>
 <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-  {{ rc.members | length }} units of {{ model.name }}{% if rc.layers %}, layers {{ rc.layers[0] }}–{{ rc.layers[1] }}{% endif %}: a cluster of the wiring graph between studied units.
-  Its id survives as the registry grows, while its members can change. Each experiment tests one task hypothesis about it, under the circuit rule (<a class="underline" href="{{ repo_url }}/blob/main/docs/circuits-and-hubs.md">how circuits work</a>).
+  {{ rc.members | length }} units of {{ model.name }}{% if rc.layers %}, layers {{ rc.layers[0] }}–{{ rc.layers[1] }}{% endif %}, joined by their wiring. <a class="underline" href="{{ repo_url }}/blob/main/docs/circuits-and-hubs.md">How circuits work</a>.
 </p>
-<p class="mt-2 text-xs text-slate-500">
+{% call read_more("Shape and history") %}<p class="text-xs">
   {% if rc.depth is not none %}Mean relative depth {{ "%.2f" | format(rc.depth) }} (0 is the first layer, 1 the last){% endif %}{% if rc.position is not none %} · mean neuron position {{ "%.2f" | format(rc.position) }} of the MLP width{% endif %}{% if rc.stability is not none %} · overlap of its first and current members {{ "%.2f" | format(rc.stability) }}{% endif %}
   {% if rc.parents %} · merged into {% for p in rc.parents %}<a class="underline" href="{{ p }}.html">{{ p }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}
-</p>
+</p>{% endcall %}
 
 <section class="mt-8" aria-labelledby="tasks">
   <h2 id="tasks" class="text-lg font-semibold">Tasks</h2>
@@ -52,7 +51,7 @@
   {% else %}
   <p class="mt-2 text-sm text-slate-500">No task hypothesis yet: a candidate for a <code>circuit</code> draw of <code>open-interpretability next</code>.</p>
   {% endfor %}
-  <p class="mt-2 max-w-3xl text-xs text-slate-500">A task's standing follows the protocol's rule: independent reviews outweigh self-reviews, a majority decides, and a revision replaces the record it supersedes. A stale experiment ran on members that have changed since. It still counts until a newer experiment tests the current members.</p>
+  {% call read_more() %}<p class="text-xs">The circuit's id survives as its members change. Each experiment tests one task hypothesis, under the circuit rule. Independent reviews outweigh self-reviews, a majority decides, and a revision replaces the record it supersedes. A stale experiment ran on members that have changed since. It counts until a newer experiment tests the current members.</p>{% endcall %}
 </section>
 
 <section class="mt-8" aria-labelledby="members">
@@ -62,13 +61,13 @@
   </p>
   {% if rc.wiring %}
   <div class="mt-4">{{ wiring_svg(rc.wiring, root) }}</div>
-  <p class="mt-1 text-xs text-slate-500">The wiring edges between members. Edges through hubs are left out, as they are when circuits are found.</p>
+  <p class="mt-1 text-xs text-slate-500">Edges through hubs are left out.</p>
   {% endif %}
 </section>
 
-<section class="mt-8" aria-labelledby="lineage">
-  <h2 id="lineage" class="text-lg font-semibold">Lineage</h2>
-  <table class="mt-2 w-full text-left text-xs">
+<div class="mt-8">
+{% call fold("Lineage", level=2) %}
+  <table class="w-full text-left text-xs">
     <thead class="text-slate-500"><tr><th class="py-1 pr-3 font-normal">Date</th><th class="py-1 pr-3 font-normal">Event</th><th class="py-1 font-normal">Change</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for s in rc.lineage %}
@@ -77,12 +76,13 @@
       {% endfor %}
     </tbody>
   </table>
-</section>
+{% endcall %}
+</div>
 
 {% if rc.subs %}
 <section class="mt-8" aria-labelledby="sub-circuits">
   <h2 id="sub-circuits" class="text-lg font-semibold">Sub-circuits</h2>
-  <p class="mt-2 text-sm">Circuits merged into this one keep their own ids, tasks and experiments: {% for s in rc.subs %}<a class="font-mono underline" href="{{ s }}.html">{{ s }}</a>{{ ", " if not loop.last }}{% endfor %}.</p>
+  <p class="mt-2 text-sm">Merged in, with their own ids and experiments: {% for s in rc.subs %}<a class="font-mono underline" href="{{ s }}.html">{{ s }}</a>{{ ", " if not loop.last }}{% endfor %}.</p>
 </section>
 {% endif %}
 {% endblock %}
