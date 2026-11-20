@@ -9,6 +9,7 @@ from openinterpretability.social import run as social
 from openinterpretability.social.feed import Entry, read_feed
 from openinterpretability.social.message import (
     LIMIT,
+    compose,
     experiment_post,
     length,
     paper_post,
@@ -49,6 +50,25 @@ def test_new_entries_are_posted_once_and_a_rerun_posts_nothing(tmp_path, poster)
     assert len(poster.sent) == 1 and "N2-positive VERIFIED" in poster.sent[0]
     assert social.run(state, [_unit(2), _unit(1)], [], SITE, poster, now=20) == ["nothing new"]
     assert len(poster.sent) == 1
+
+
+def test_a_seen_entry_posts_once_with_repost(tmp_path, poster):
+    state = tmp_path / "x.json"
+    social.run(state, [_unit(1)], [], SITE, poster, now=0)  # seed: unit 1 is seen
+    again = frozenset({_unit(1).id, "https://example.org/gone"})
+    lines = social.run(state, [_unit(1)], [], SITE, poster, now=10, repost=again)
+    assert lines[0] == "not in the feeds: https://example.org/gone"
+    assert len(poster.sent) == 1 and "N1-positive VERIFIED" in poster.sent[0]
+    assert _unit(1).id in social.load_state(state).posted
+    assert social.run(state, [_unit(1)], [], SITE, poster, now=20) == ["nothing new"]
+
+
+def test_repost_on_a_dry_run_changes_no_state(tmp_path, poster):
+    state = tmp_path / "x.json"
+    social.run(state, [_unit(1)], [], SITE, poster, now=0)
+    before = state.read_text()
+    lines = social.run(state, [_unit(1)], [], SITE, None, now=10, repost=frozenset({_unit(1).id}))
+    assert lines[0].startswith("would post:") and state.read_text() == before
 
 
 def _paper(published: bool):
@@ -111,9 +131,16 @@ def test_a_dry_run_prints_and_changes_no_state(tmp_path, poster):
     assert not (tmp_path / "none.json").exists()
 
 
+def test_an_experiment_post_carries_no_text_from_the_record():
+    record_text = "Fires on dates. Visit https://elsewhere.example @someone #tag"
+    text = experiment_post(_unit(4, record_text))
+    assert text == f"gpt2/L1/N4-positive VERIFIED\n{_unit(4).link}"
+    assert "elsewhere" not in text and "@" not in text and "#" not in text
+
+
 def test_posts_fit_and_are_cut_at_a_word_boundary():
     long = "Fires on the closing bracket of a nested call " * 20
-    text = experiment_post(_unit(4, long))
+    text = compose("gpt2/L1/N4-positive VERIFIED:", long, _unit(4).link)
     assert length(text) <= LIMIT and "…" in text
     body = text.splitlines()[0]
     assert body.removesuffix("…").split()[-1] in long.split()  # whole words only

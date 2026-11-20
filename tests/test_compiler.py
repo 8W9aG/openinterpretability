@@ -381,6 +381,18 @@ def test_footer_links_repo_and_contact(tmp_path):
     assert "@" in email and f'href="mailto:{email}"' in index
 
 
+def test_every_page_links_the_x_account(tmp_path):
+    from openinterpretability.core.project import project_links
+
+    compile_site([], tmp_path)
+    links = project_links()  # pyproject.toml's [project.urls], the one source
+    handle = "@" + links["x_url"].rstrip("/").rsplit("/", 1)[-1]
+    for page in ("index.html", "about.html"):
+        html = (tmp_path / page).read_text()
+        assert f'href="{links["x_url"]}">X</a>' in html
+        assert f'<meta name="twitter:site" content="{handle}">' in html
+
+
 def test_every_page_names_its_canonical_url(tmp_path, records):
     report = compile_site(records, tmp_path)
     site = site_url()
