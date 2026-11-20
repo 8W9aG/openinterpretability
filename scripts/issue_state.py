@@ -55,21 +55,33 @@ NIGHTLY_BOT = "github-actions[bot]"
 # The maintainer holds an issue back with this label.
 PROPOSED = "proposed"
 WORKFLOWS = Path(__file__).parents[1] / ".github/workflows"
-# Workflows that open an issue when they fail, each under the fixed title in its TITLE env.
+# Workflows that open an issue when they fail, each under the fixed titles in its TITLE envs.
 AUTOMATIC_WORKFLOWS = (WORKFLOWS / "reproduce-nightly.yml", WORKFLOWS / "deploy.yml")
 
 
-def workflow_title(workflow: Path) -> str:
-    """The title of the issues that ``workflow`` opens (its first TITLE env)."""
-    match = re.search(r"^\s*TITLE:\s*(.+?)\s*$", workflow.read_text(), re.M)
-    if match is None:
+def workflow_titles(workflow: Path) -> set[str]:
+    """The titles of the issues that ``workflow`` opens: every TITLE env in it.
+
+    ``deploy.yml`` has two: one for a failed deploy, one for a failed post to X (#5528).
+
+    Args:
+        workflow: The workflow file.
+
+    Returns:
+        Each title, without quotes.
+
+    Raises:
+        RuntimeError: When the file has no TITLE env.
+    """
+    found = re.findall(r"^\s*TITLE:\s*(.+?)\s*$", workflow.read_text(), re.M)
+    if not found:
         raise RuntimeError(f"no TITLE in {workflow}")
-    return match.group(1).strip("\"'")
+    return {title.strip("\"'") for title in found}
 
 
 def automatic_titles() -> set[str]:
     """The titles of the issues that this repository's workflows open when they fail."""
-    return {workflow_title(w) for w in AUTOMATIC_WORKFLOWS}
+    return set().union(*(workflow_titles(w) for w in AUTOMATIC_WORKFLOWS))
 
 
 def gh_api(path: str):
