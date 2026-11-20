@@ -107,12 +107,10 @@ check-all:
 stats:
 	uv run open-interpretability stats --wiki-dir $(WIKI_DIR)
 
-# The concept map of every configured model, refreshed by each release (#4785). A model with
-# too few studied poles for a map is skipped by `map` itself.
+# The shared concept map of every configured model, refreshed by each release (#4785, #4586).
+# Old poles keep their places. A refit (`open-interpretability map --refit`) is a separate PR.
 maps:
-	for m in $$(uv run python -c 'from openinterpretability.planner import configured_models; print(*configured_models())'); do \
-		uv run --extra map open-interpretability map --wiki-dir $(WIKI_DIR) "$$m" || exit 1; \
-	done
+	uv run --extra map open-interpretability map --wiki-dir $(WIKI_DIR)
 
 format:
 	uv run ruff format .

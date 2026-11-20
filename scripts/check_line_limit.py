@@ -36,6 +36,7 @@ EXEMPT = (
     "docs/literature/map.json",  # generated literature map (scripts/literature_map.py)
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
+    "papers/*/media/*.svg",  # generated figures, one mark to a line (scripts/paper_figures.py)
     "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
     "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
