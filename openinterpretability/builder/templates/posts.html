@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Posts · {{ site_title }}{% endblock %}
+
+{# The section's feed (builder/research_feeds.py, #4650). #}
+{% block head %}
+<link rel="alternate" type="application/atom+xml" title="Posts" href="{{ root }}posts/posts.xml">
+{% endblock %}
+
+{% set link = "text-brand-700 underline underline-offset-2 dark:text-brand-400" %}
+
+{% block content %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Posts</nav>
+<h1 class="text-2xl font-semibold">Posts</h1>
+<p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+  Short posts on how to use the tools, and on what the project is doing.
+  The <a class="{{ link }}" href="{{ root }}research/index.html">papers</a> hold the full studies.
+  Follow new posts with the <a class="{{ link }}" href="posts.xml">feed</a>.
+</p>
+
+<div class="mt-8 divide-y divide-slate-200 dark:divide-slate-800">
+  {% for post in posts %}
+  <article class="grid gap-6 py-8 first:pt-0 md:grid-cols-2">
+    <div class="min-w-0">
+      {% if post.published %}<p class="mb-1 text-xs text-slate-500"><time datetime="{{ post.published }}">{{ post.published }}</time></p>{% endif %}
+      <h2 class="text-lg font-semibold"><a class="underline-offset-2 hover:underline" href="{{ post.href }}">{{ post.title }}</a></h2>
+      <p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{{ post.summary }}</p>
+      <p class="mt-3 text-sm"><a class="{{ link }}" href="{{ post.href }}">Read the post</a></p>
+    </div>
+    {% if post.hero %}
+    <a class="min-w-0" href="{{ post.href }}"><img class="w-full" src="{{ post.slug }}/{{ post.hero }}" alt="" loading="lazy"></a>
+    {% endif %}
+  </article>
+  {% else %}
+  <p class="text-sm text-slate-500">No posts yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

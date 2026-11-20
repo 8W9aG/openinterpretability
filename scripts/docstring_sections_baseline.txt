@@ -266,9 +266,7 @@ openinterpretability/builder/recent.py::unit_label
 openinterpretability/builder/recent.py::recent_experiments
 openinterpretability/builder/registry_stats.py::registry_stats
 openinterpretability/builder/research.py::paper_status
-openinterpretability/builder/research.py::load_papers
 openinterpretability/builder/research.py::redact_asset
-openinterpretability/builder/research.py::copy_assets
 openinterpretability/builder/research_feeds.py::papers_feed
 openinterpretability/builder/research_feeds.py::published_feed
 openinterpretability/builder/research_feeds.py::added_times
