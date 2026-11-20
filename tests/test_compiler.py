@@ -372,10 +372,13 @@ def test_empty_registry_builds(tmp_path):
 
 
 def test_footer_links_repo_and_contact(tmp_path):
+    from openinterpretability.core.project import project_links
+
     compile_site([], tmp_path)
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
-    assert 'href="mailto:will.sackfield@gmail.com"' in index
+    email = project_links()["contact_email"]  # pyproject.toml's author email, the one source
+    assert "@" in email and f'href="mailto:{email}"' in index
 
 
 def test_every_page_names_its_canonical_url(tmp_path, records):
