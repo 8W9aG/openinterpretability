@@ -241,7 +241,7 @@ def note_choice(text: str) -> None:
 
 
 def choice() -> str | None:
-    """How this process chose its device, or None if nothing chose it (e.g. in a test)."""
+    """How this process chose its device, or None if nothing chose it (e.g., in a test)."""
     return _choice
 
 

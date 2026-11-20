@@ -7,6 +7,9 @@ sits at each cluster's centre, and a numbered legend names the clusters. The col
 dataviz palette's, in a fixed order, validated for colour-blind readers. Clusters past
 :data:`SLOTS` are grey. The badge's number and the legend tell every cluster apart, so no
 cluster rests on colour alone. Templates draw them with ``_map_theme.html``.
+
+A region also gets an outline (:func:`region_outline`, #4578). It is a faint shape with a
+dashed edge around the region's points. So a region shows by its edge as well as its colour.
 """
 
 from __future__ import annotations
@@ -75,3 +78,52 @@ def place_badges(centres: list[Badge], blocked: list, width: float, height: floa
         taken.append(badge.box)
         out.append(badge)
     return out
+
+
+INNER = 0.85  # the share of a region's points, nearest its centre, that its outline holds
+PAD_OUT = 6.0  # pixels between the outline and the points it holds
+
+
+def hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """The convex hull of ``points``, counter-clockwise, by Andrew's monotone chain."""
+    pts = sorted(set(points))
+    if len(pts) < 3:
+        return pts
+
+    def turn(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower: list[tuple[float, float]] = []
+    upper: list[tuple[float, float]] = []
+    for p in pts:  # each half of the hull keeps only left turns
+        while len(lower) >= 2 and turn(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and turn(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def region_outline(points: list[tuple[float, float]], inner: float = INNER) -> str:
+    """An SVG path around the ``inner`` share of ``points`` nearest their centre, or "".
+
+    The hull is pushed out from the centre by :data:`PAD_OUT` pixels, so the edge clears the
+    marks. A region of fewer than 3 points gets no outline.
+    """
+    import math
+
+    if len(points) < 3:
+        return ""
+    cx = sum(x for x, _ in points) / len(points)
+    cy = sum(y for _, y in points) / len(points)
+    near = sorted(points, key=lambda p: math.hypot(p[0] - cx, p[1] - cy))
+    shape = hull(near[: max(3, math.ceil(len(near) * inner))])
+    if len(shape) < 3:
+        return ""
+    out = []
+    for x, y in shape:
+        d = math.hypot(x - cx, y - cy) or 1.0
+        out.append((x + (x - cx) / d * PAD_OUT, y + (y - cy) / d * PAD_OUT))
+    return "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in out) + " Z"

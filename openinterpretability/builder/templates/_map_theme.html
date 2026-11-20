@@ -2,7 +2,8 @@
    each model's concept map. The palette is the dataviz skill's, validated for colour-blind
    readers in both modes. A figure.litmap holds an svg, a .map-links group (optional) and a
    .map-card. Each mark is an <a> with data-x, data-y, data-title and data-status, and may
-   have data-credit, data-why, data-name and data-near. #}
+   have data-credit, data-why, data-name and data-near. A mark with data-cluster lights its
+   whole region on focus, and the .region path with the same data-region (#4578). #}
 <style>
   .litmap { --surface: #ffffff; --ink: #1f2937; --muted: #6b7280; --card: #ffffff; --card-ink: #111827; --card-line: #d1d5db; --lead: #6b7280;
     --s0: #8b9099; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; }
@@ -19,6 +20,9 @@
   .litmap.dense svg .paper { stroke-width: 0.4; }
   .litmap svg.focusing .paper:not(.focus):not(.near), .litmap svg.focusing .queued, .litmap svg.focusing .pair { opacity: 0.15; }
   .litmap svg .paper.focus { stroke: var(--ink); stroke-width: 2.5; }
+  .litmap svg .region { fill-opacity: 0.07; stroke-opacity: 0.6; stroke-width: 1; stroke-dasharray: 4 3; }
+  .litmap svg .region.lit { fill-opacity: 0.16; stroke-opacity: 1; stroke-width: 1.8; stroke-dasharray: none; }
+  .litmap svg.focusing .region:not(.lit) { opacity: 0.35; }
   .litmap svg a:focus-visible .paper { stroke: var(--ink); stroke-width: 2.5; }
   .litmap svg a { outline: none; }
   @media (max-width: 640px) { .litmap .callout { display: none; } }
@@ -34,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
     marks.forEach(function (a) { if (a.dataset.name) byName[a.dataset.name] = a; });
     function clear() {
       svg.classList.remove("focusing");
-      svg.querySelectorAll(".focus, .near").forEach(function (e) { e.classList.remove("focus", "near"); });
+      svg.querySelectorAll(".focus, .near, .lit").forEach(function (e) { e.classList.remove("focus", "near", "lit"); });
       if (links) while (links.firstChild) links.removeChild(links.firstChild);
       card.classList.add("hidden");
     }
@@ -49,6 +53,11 @@ document.addEventListener("DOMContentLoaded", function () {
       svg.classList.add("focusing");
       var mark = a.querySelector(".paper");
       if (mark) mark.classList.add("focus");
+      if (a.dataset.cluster) {  // the pole's whole region stays bright
+        svg.querySelectorAll('a[data-cluster="' + a.dataset.cluster + '"] .paper').forEach(function (m) { m.classList.add("near"); });
+        var region = svg.querySelector('.region[data-region="' + a.dataset.cluster + '"]');
+        if (region) region.classList.add("lit");
+      }
       (a.dataset.near || "").split(" ").forEach(function (n) {
         var b = byName[n];
         if (!b || !links) return;

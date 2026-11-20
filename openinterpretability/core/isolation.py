@@ -104,7 +104,7 @@ def blocked_search(path: Path, root: Path) -> bool:
 
     A search is blocked if it starts in a blocked directory, or in a directory that
     contains one. A search of one allowed file is not blocked. That file can be gone,
-    e.g. when an old transcript is checked, so its name decides.
+    for example when an old transcript is checked, so its name decides.
     """
     if path.is_file() or (_reviewer_file(path) and not path.is_dir()):
         return blocked_file(path, root)

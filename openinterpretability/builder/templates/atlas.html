@@ -1,0 +1,113 @@
+{# The concept atlas (builder/concept_map_view.atlas_view, #4586): every model's studied poles in
+   the one shared map. A pole's colour is its region's, and its shape is its model's, so no
+   model rests on colour alone. The points fill in in the order they were first studied. Under
+   reduced motion the page shows the final frame. #}
+{% extends "base.html" %}
+
+{% block title %}Concept atlas · {{ site_title }}{% endblock %}
+
+{% macro mark(shape, x, y, cls, r=3.2) -%}
+{% if shape == "circle" %}<circle cx="{{ x }}" cy="{{ y }}" r="{{ r }}" class="{{ cls }}"/>
+{%- elif shape == "square" %}<rect x="{{ (x - r * 0.85) | round(1) }}" y="{{ (y - r * 0.85) | round(1) }}" width="{{ (r * 1.7) | round(1) }}" height="{{ (r * 1.7) | round(1) }}" class="{{ cls }}"/>
+{%- elif shape == "triangle" %}<path d="M{{ x }} {{ (y - r * 1.15) | round(1) }} L{{ (x + r * 1.1) | round(1) }} {{ (y + r * 0.85) | round(1) }} L{{ (x - r * 1.1) | round(1) }} {{ (y + r * 0.85) | round(1) }} Z" class="{{ cls }}"/>
+{%- else %}<path d="M{{ x }} {{ (y - r * 1.15) | round(1) }} L{{ (x + r * 1.15) | round(1) }} {{ y }} L{{ x }} {{ (y + r * 1.15) | round(1) }} L{{ (x - r * 1.15) | round(1) }} {{ y }} Z" class="{{ cls }}"/>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+{% set at = atlas %}{% set w, h = at.size %}{% set n = at.points | length %}
+<nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}models/index.html">Models</a> / Concept atlas</nav>
+<h1 class="text-2xl font-semibold">Concept atlas</h1>
+<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  Every studied pole of {{ at.rows | length }} models in one shared map, placed by the meaning of the text it fires on.
+  The map is fitted once over all models, and a pole keeps its place when new poles arrive, so each new model fills in the space that the others made.
+  A pole's colour is its region and its shape is its model. The points appear in the order they were first studied.
+  Close points fire on similar text. Distances between regions mean little (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/concept-map-feasibility.md">the study</a>).
+</p>
+{% include "_map_theme.html" %}
+<style>
+  @keyframes atlas-in { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: scale(1); } }
+  .atlas.playing svg .paper-wrap { animation: atlas-in 0.4s ease-out both; transform-box: fill-box; transform-origin: center; }
+  .atlas .legend-mark { fill: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { .atlas.playing svg .paper-wrap { animation: none; } }
+</style>
+<figure class="litmap atlas dense playing relative mt-6 rounded-lg p-2" style="background: var(--surface)" data-pagefind-ignore>
+  <svg viewBox="0 0 {{ w }} {{ h }}" class="w-full" role="group" aria-label="Concept atlas: {{ n }} studied poles of {{ at.rows | length }} models in {{ at.badges | length }} numbered regions, named in the legend below. Each point links to its unit page. Its shape gives its model.">
+    <defs><filter id="atlas-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+    <g aria-hidden="true">{% for n, slot, path, rid in at.regions %}<path d="{{ path }}" class="region f{{ slot }}" style="stroke: var(--s{{ slot }})" data-region="{{ rid }}"/>{% endfor %}</g>
+    <g filter="url(#atlas-glow)" opacity="0.3" aria-hidden="true">
+      {% for p in at.points %}<circle cx="{{ p.x | round(1) }}" cy="{{ p.y | round(1) }}" r="7" class="f{{ p.slot }}"/>{% endfor %}
+    </g>
+    {% for p in at.points %}{% set x, y = p.x | round(1), p.y | round(1) %}
+    <a href="{{ root }}{{ p.href }}" data-x="{{ x }}" data-y="{{ y }}" data-title="{{ p.model }} {{ p.label }}" data-status="{{ p.status | replace('_', ' ') | lower }}" data-cluster="{{ p.cluster }}" data-credit="Region: {{ p.name }}" data-why="{{ p.why }}"><title>{{ p.model }} {{ p.label }}</title>
+      <g style="animation-delay: {{ (p.order * 6000 / n) | round | int }}ms" class="paper-wrap">{{ mark(at.shape[p.model], x, y, "paper f" ~ p.slot, 2.6) }}</g></a>{% endfor %}
+    {% for b in at.badges %}
+    <g aria-hidden="true"><rect x="{{ b.box[0] }}" y="{{ b.box[1] }}" width="26" height="20" rx="3" class="f{{ b.slot }}"/>
+      <text x="{{ b.x }}" y="{{ b.y + 4 }}" text-anchor="middle" font-size="12" font-weight="700" class="ink-{{ b.ink }}">{{ "%02d" | format(b.number) }}</text></g>
+    {% endfor %}
+  </svg>
+  <div role="status" class="map-card pointer-events-none absolute z-10 hidden max-w-xs rounded-md bg-slate-200 px-3 py-2 text-sm text-slate-900 shadow-lg"></div>
+  <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs" style="color: var(--ink)">
+    {% for r in at.rows %}<span class="inline-flex items-center gap-1.5"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">{{ mark(r.shape, 6, 6, "legend-mark", 4.2) }}</svg><span class="font-mono">{{ r.model }}</span></span>{% endfor %}
+    <button type="button" class="atlas-replay rounded border px-2 py-0.5" style="border-color: var(--card-line)">Replay the fill-in</button>
+  </div>
+  <ol class="mt-3 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2" style="color: var(--ink)">
+    {% for b in at.badges %}<li class="flex items-center gap-2"><span class="sw{{ b.slot }} inline-block h-3 w-3 shrink-0 rounded-sm" aria-hidden="true"></span><span class="font-bold tabular-nums">{{ "%02d" | format(b.number) }}</span> <span class="{{ 'italic' if b.slot == 0 else '' }}">{{ b.name }}</span> <span style="color: var(--muted)">({{ b.size }})</span></li>{% endfor %}
+  </ol>
+  <figcaption class="mt-3 text-xs" style="color: var(--muted)">
+    Built {{ at.found.date }} from {{ at.found.poles }} poles by <code class="font-mono">open-interpretability map</code> (fit version {{ at.found.version }}, fitted {{ at.found.fitted }}). A region in grey and italics has no VERIFIED member, so it has no name. Hover over a pole, or move to it with Tab, for its card.
+  </figcaption>
+</figure>
+
+<h2 class="mt-10 text-lg font-semibold">Which regions each model reaches</h2>
+<p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  A model's coverage is the share of regions that hold at least one of its studied poles.
+  The registry studies some neurons and not others, so this measures what has been studied, not what each model holds.
+</p>
+<div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Model</th><th class="px-3 py-2 text-right">Poles</th><th class="px-3 py-2 text-right">Coverage</th>
+        {% for b in at.badges %}<th class="px-2 py-2 text-right tabular-nums" title="{{ b.name }}">{{ "%02d" | format(b.number) }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for r in at.rows %}<tr class="border-t border-slate-200 dark:border-slate-800">
+        <td class="whitespace-nowrap px-3 py-2 font-mono">{{ r.model }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ r.poles }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ "%.0f" | format(r.coverage * 100) }}%</td>
+        {% for b in at.badges %}<td class="px-2 py-2 text-right tabular-nums">{{ r.by_number.get(b.number, 0) }}</td>{% endfor %}
+      </tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="mt-8 text-lg font-semibold">How alike two models spread</h2>
+<p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  The overlap of two models is the share of their poles that match region for region, after each model's counts are made shares: 100% when both spread alike.
+  The null shuffles the model labels across all poles {{ at.found.coverage.shuffles }} times. It is the overlap that two models of those sizes would show if they drew from one spread.
+</p>
+<div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+      <tr><th class="px-3 py-2">Models</th><th class="px-3 py-2 text-right">Overlap</th><th class="px-3 py-2 text-right">Shuffled null</th></tr>
+    </thead>
+    <tbody>
+      {% for pr in at.pairs %}<tr class="border-t border-slate-200 dark:border-slate-800">
+        <td class="px-3 py-2 font-mono">{{ pr.a }} · {{ pr.b }}</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ "%.0f" | format(pr.overlap * 100) }}%</td>
+        <td class="px-3 py-2 text-right tabular-nums">{{ "%.0f" | format(pr.null * 100) }}%</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var fig = document.querySelector("figure.atlas"), button = fig && fig.querySelector(".atlas-replay");
+  if (!button) return;
+  button.addEventListener("click", function () {
+    fig.classList.remove("playing");
+    void fig.offsetWidth;  // restart the animation
+    fig.classList.add("playing");
+  });
+});
+</script>
+{% endblock %}

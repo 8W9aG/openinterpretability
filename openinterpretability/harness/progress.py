@@ -29,7 +29,7 @@ def _duration(seconds: float) -> str:
 class Progress:
     """Counts the items of one step, and says how far it is at most once an interval."""
 
-    what: str  # e.g. "pieces scanned"
+    what: str  # for example "pieces scanned"
     total: int
     interval: float = INTERVAL
     clock: object = time.monotonic

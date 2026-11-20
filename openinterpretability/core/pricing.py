@@ -1,4 +1,4 @@
-"""List prices for token usage nobody priced, e.g. Claude Code subagents answering a prompt.
+"""List prices for token usage nobody priced, for example Claude Code subagents answering a prompt.
 
 LiteLLM prices its own calls. This module prices an external answerer's tokens
 (``external/<name>``), one request at a time. List prices change, so each priced call
@@ -142,7 +142,7 @@ PRICES: dict[str, list[tuple[date, Price]]] = {
 }
 PRICES["grok-build"] = PRICES["grok-build-0.1"]
 
-# Every version of a family, e.g. muse-spark-1.3-contributor, at one price. Muse Spark is
+# Every version of a family, for example muse-spark-1.3-contributor, at one price. Muse Spark is
 # priced at its Contributor tier (Meta may train on the prompts), which these runs use.
 FAMILIES: dict[str, list[tuple[date, Price]]] = {
     "muse-spark": [(ALWAYS, Price(0.10, 0.20, 0.002))],

@@ -140,7 +140,7 @@ def compare(baseline: dict, now: dict, tolerance: float) -> tuple[list[str], lis
 
 
 def platform_name() -> str:
-    """The platform a baseline is valid on, e.g. ``Darwin-arm64``."""
+    """The platform a baseline is valid on, for example ``Darwin-arm64``."""
     return f"{platform.system()}-{platform.machine()}"
 
 

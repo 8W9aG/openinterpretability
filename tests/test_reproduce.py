@@ -662,3 +662,48 @@ def test_an_unsigned_record_of_a_signed_only_model_fails_ci(record):
     local = _Reproducer(signers="", landed={}, tolerance=None, scan_corpora={},
                         allowed_models=(), device="cpu")  # fmt: skip
     assert local.refusal(llama) is None or "signed" not in local.refusal(llama)
+
+
+def _edit_deltas(record, by: float):
+    """``record`` with each counterfactual's observed delta moved by ``by`` (a share of scale)."""
+    sub = record.submission
+    pairs = [
+        p.model_copy(update={"observed_delta": p.observed_delta + by})
+        if p.observed_delta is not None
+        else p
+        for p in sub.counterfactuals
+    ]
+    return record.model_copy(
+        update={"submission": sub.model_copy(update={"counterfactuals": pairs})}
+    )
+
+
+def _measured(record, runner):
+    """``record`` with each counterfactual's observed delta as ``runner`` measures it."""
+    from openinterpretability.agents.proposer import observed_delta
+    from openinterpretability.harness.units import submission_unit
+
+    sub = record.submission
+    unit = submission_unit(sub)
+    pairs = [
+        p.model_copy(update={"observed_delta": observed_delta(runner, unit, p, sub.max_activation)})
+        for p in sub.counterfactuals
+    ]
+    return record.model_copy(
+        update={"submission": sub.model_copy(update={"counterfactuals": pairs})}
+    )
+
+
+def test_a_bfloat16_scans_counterfactuals_get_the_16_bit_tolerance(record, toy_runner):
+    # #5417: the proposer measured the counterfactuals in the bfloat16 scan's session, and
+    # the review ran in float32. Their deltas moved by up to 0.013 of the scale on CPU.
+    assert record.submission.counterfactuals
+    record = _measured(record, toy_runner)
+    assert reproduce_record(_scanned_in(record, "bfloat16"), toy_runner).ok
+    mixed = _edit_deltas(_scanned_in(record, "bfloat16"), 0.03)
+    report = reproduce_record(mixed, toy_runner)
+    assert report.ok, report.mismatches
+    float32 = reproduce_record(_edit_deltas(_scanned_in(record, "float32"), 0.03), toy_runner)
+    assert any("counterfactual" in m for m in float32.mismatches)
+    edited = reproduce_record(_edit_deltas(_scanned_in(record, "bfloat16"), 0.2), toy_runner)
+    assert any("counterfactual" in m for m in edited.mismatches)

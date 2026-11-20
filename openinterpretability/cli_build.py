@@ -30,7 +30,7 @@ def _wiki_inputs(wiki_dir, states: dict) -> dict:
         "errata": load_errata(wiki_dir),
         "explanations": load_views(wiki_dir, states),  # each prompt's explanations, and if stale
         "circuits": load_circuit_data(wiki_dir),  # registry circuits, their records, hub norms
-        "concept_maps": load_maps(MAPS_DIR),  # each model's concept map (#4422)
+        "concept_map": load_maps(MAPS_DIR),  # the shared concept map (#4422, #4586)
     }
 
 

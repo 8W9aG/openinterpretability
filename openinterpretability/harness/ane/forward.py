@@ -37,7 +37,7 @@ WEIGHT_RMS = 0.25  # what rescale_projections scales each weight matrix's RMS to
 # Real text can go much higher. On a 1,604-token document, Qwen2.5-1.5B's layer-1
 # down_proj reached 4 times its peak on random tokens. A cap of 16,384 gave it a scale of 8.
 # Then the ANE's fp16 sums went past fp16's range, and the batch was 23% off. At 2,048,
-# the projections that need a scale keep it. They have small outputs, e.g. o_proj near 4.
+# the projections that need a scale keep it. They have small outputs, for example o_proj near 4.
 OUTPUT_PEAK = 2048.0
 CALIBRATION = (4, 512)  # rows and seq of the random tokens that set the scales
 MASK = -3e4  # added to the scores of later positions; fp16 holds it
@@ -154,7 +154,7 @@ class ToLayer(nn.Module):
 
     @contextmanager
     def shaped(self, rows: int, seq: int) -> Iterator[None]:
-        """Run at ``rows × seq`` for a while, e.g. to calibrate on a sample of another shape."""
+        """Run at ``rows × seq`` for a while, to calibrate on a sample of another shape."""
         saved = self.rows, self.seq, self.extra
         self.rows, self.seq = rows, seq
         self.extra = shape_inputs(self.config, seq, self.start)

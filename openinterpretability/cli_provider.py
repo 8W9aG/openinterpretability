@@ -50,7 +50,7 @@ def model_command(name: str) -> None:
 @click.argument("name")
 @click.argument("command", nargs=-1, required=True, type=click.UNPROCESSED)
 def exec_command(name: str, command: tuple[str, ...]) -> None:
-    """Run COMMAND (e.g. `claude -p …`) with NAME's environment, starting its proxy if needed.
+    """Run COMMAND (e.g., `claude -p …`) with NAME's environment, starting its proxy if needed.
 
     The key goes into COMMAND's environment only. Nothing prints it.
     """

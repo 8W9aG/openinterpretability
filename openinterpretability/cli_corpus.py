@@ -169,7 +169,7 @@ def corpus(
             detect_code=detect_code,
             chat_template=chat_template or (preset.chat_template if preset else None),
         )
-    except ValueError as error:  # e.g. a model without a chat template
+    except ValueError as error:  # for example a model without a chat template
         raise click.ClickException(str(error)) from error
     _report(source, out, documents)
 
