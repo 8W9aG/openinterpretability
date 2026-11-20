@@ -180,7 +180,7 @@ _STRING_ARRAY = re.compile(r'\[\s*"(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")*
 
 
 def _in_number(text: str, start: int, end: int) -> bool:
-    """Return True if ``text[start:end]`` is part of a longer number, e.g. ``0.1277362108``.
+    """Return True if ``text[start:end]`` is part of a longer number, for example ``0.1277362108``.
 
     Data and code files hold many long numbers, and the phone and card searches match
     their digits. A match inside a number is not personal data.

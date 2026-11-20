@@ -231,7 +231,7 @@ def latent_url(dictionary: str, layer: int, feature_idx: int, *, api: bool = Fal
 class Explanation(StrictModel):
     """One Neuronpedia explanation of a latent, with who wrote it.
 
-    ``explainer`` is the model that wrote it (e.g. ``gpt-4-turbo``), or ``"human"``.
+    ``explainer`` is the model that wrote it (e.g., ``gpt-4-turbo``), or ``"human"``.
     The author's account is not kept.
     """
 

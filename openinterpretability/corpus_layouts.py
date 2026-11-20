@@ -91,7 +91,7 @@ def chat_formatter(model: str, revision: str | None = None):
 
     Also returns the model commit that the template comes from. A conversation is a list
     of ``{"role": ..., "content": ...}`` messages. The text keeps the template's special
-    tokens as text (e.g. ``<|im_start|>``), which the tokenizer reads back as the same
+    tokens as text (e.g., ``<|im_start|>``), which the tokenizer reads back as the same
     tokens. Raises ``ValueError`` if the model's tokenizer has no chat template.
     """
     from huggingface_hub import HfApi

@@ -99,7 +99,7 @@ def auto_sign(record_path: Path, allowed_signers: Path = ALLOWED_SIGNERS) -> str
     try:
         return verify_record(record_path, signers)
     except SignatureError:
-        signature_path(record_path).unlink()  # e.g. an expired key: CI would not trust it
+        signature_path(record_path).unlink()  # for example an expired key: CI would not trust it
         raise
 
 
@@ -194,7 +194,7 @@ def landing_times(ref: str = "HEAD") -> dict[Path, datetime]:
     Each time is a committer date. It comes from the newest commit on ``ref``'s first-parent
     history that added or changed the record or its ``.sig`` file. On ``main`` that is the merge
     time GitHub sets, which a pull request's author can't choose. A record not on ``ref``
-    (e.g. one a pull request adds) is absent. It is checked at the current time. In a
+    (e.g., one a pull request adds) is absent. It is checked at the current time. In a
     shallow clone the history is incomplete, so this returns nothing.
     """
 

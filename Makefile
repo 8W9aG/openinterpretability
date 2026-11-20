@@ -67,7 +67,9 @@ SHELL_PATHS ?= $(shell git ls-files -co --exclude-standard '*.sh')
 shell:
 	$(SHELLCHECK) $(SHELL_PATHS)
 
-# Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE). Vale is
+# Prose of comments and docstrings against our ASD-STE100 rules (.vale/styles/STE) and the
+# APA rules (.vale/styles/APA). The fixtures of tests/test_vale_apa.py break the rules on
+# purpose, so the run leaves them out. Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
@@ -75,7 +77,7 @@ shell:
 VALE_PATHS ?= openinterpretability scripts tests
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
-	vale $(VALE_PATHS)
+	vale --glob='!tests/fixtures/vale/*' $(VALE_PATHS)
 
 # Markdown prose against the structural ASD-STE100 rules: semicolons, sentences over 25
 # words, synonym rotation. The linter comes with the vendored asd-ste100 skill and needs
