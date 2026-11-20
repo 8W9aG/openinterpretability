@@ -5,7 +5,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
 [![PyPI](https://img.shields.io/pypi/v/open-interpretability.svg)](https://pypi.org/project/open-interpretability/)
 
-`openinterpretability` is an open, agent-audited mechanistic interpretability registry and testing protocol for open-weight foundation models (Llama, Qwen, Mistral, …).
+`openinterpretability` is an open mechanistic interpretability lab, run with agents. It publishes an agent-audited registry of native neurons and the testing protocol behind it, for open-weight foundation models (Llama, Qwen, Mistral, …).
 
 The registry is published at **[open-interpretability.com](https://open-interpretability.com/)**: every experiment, unit, model and paper, with search and the Parquet export.
 
