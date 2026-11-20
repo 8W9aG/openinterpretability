@@ -8,7 +8,7 @@ import torch
 from openinterpretability.harness.hooks import NeuronHookRunner
 from openinterpretability.interference import report
 from openinterpretability.interference.floors import Patched, Perturbed, Plain, random_patch
-from openinterpretability.interference.run import run
+from openinterpretability.interference.run import Inputs, run
 from openinterpretability.patches.history import replay
 from openinterpretability.patches.schema import Op, Patch
 from openinterpretability.patches.tensors import put_tensor
@@ -37,7 +37,7 @@ def _report(runner, ops, tmp_path):
              "floor:random": Patched(runner, noise, "random", root)}  # fmt: skip
     torch.manual_seed(1)
     batches = [torch.randint(1, VOCAB, (2, 16))]
-    return run(sides, [], batches, [], 2, set(), report.edited(ops))
+    return run(sides, Inputs([], batches, [], 2, set(), report.edited(ops)))
 
 
 def _ops(scale: float, column: int = 3):
@@ -107,3 +107,29 @@ def test_the_command_takes_exactly_one_changed_model():
     for extra in ([], ["--changed", "x", "--patch", "y"]):
         out = CliRunner().invoke(cli, ["interference", "--model", "m", "--out", "o.jsonl", *extra])
         assert out.exit_code != 0 and "exactly one" in out.output
+
+
+def test_a_gated_patch_reports_kl_where_the_gate_opens_and_shuts(tmp_path):
+    """Local scope: the KL on tokens where the gate opens, and where it stays shut."""
+    gate = Op(op_id="g", type="gate", params={"function": {"kind": "token_match", "tokens": [5]}})
+    steer = Op(op_id="s", type="steer", targets=["blocks.0.hook_resid_post"], gate="g",
+               params={"vector": put_tensor(torch.randn(32) * 5)})  # fmt: skip
+    patch = Patch(base=BASE, ops=[gate, steer]).sealed()
+    ops = replay(patch.id, {patch.id: patch}.__getitem__)
+    rows = _report(_runner(), ops, tmp_path)
+    (local,) = rows[0]["gated_kl"].values()
+    assert 0 < local["open_share"] < 1
+    assert local["open_kl"] > 0 and local["shut_kl"] >= 0
+
+
+def test_a_large_footprint_is_written_per_layer():
+    from openinterpretability.interference.run import FOOTPRINT_ROWS, compact
+
+    feet = [{"table": "footprint", "layer": i % 3, "neuron": i, "studied": i == 7, "edited": False}
+            for i in range(FOOTPRINT_ROWS + 5)]  # fmt: skip
+    out = compact([{"table": "summary"}, *feet])
+    layers = [r for r in out if r["table"] == "footprint_layer"]
+    assert sum(r["moved"] for r in layers) == FOOTPRINT_ROWS + 5 and len(layers) == 3
+    assert [r["neuron"] for r in out if r["table"] == "footprint"] == [7]  # studied ones stay
+    small = [{"table": "summary"}, *feet[:3]]
+    assert compact(small) == small
