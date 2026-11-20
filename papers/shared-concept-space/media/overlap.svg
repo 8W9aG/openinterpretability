@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 528" width="760" height="528" role="img">
+<title>Four panels, one per partition, each with six pairs. In most rows the solid dot sits left of the ring.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="528" rx="10"/>
+<text x="20.0" y="30.0" class="title">Pooled over scan corpora, most pairs of models spread less alike than chance</text>
+<text x="20.0" y="50.0" class="sub">Each pair&#x27;s overlap (solid dot) against the overlap of shuffled model labels (ring),</text>
+<text x="20.0" y="68.0" class="sub">at each partition. A line joins the two. A gap means the two models differ by region.</text>
+<text x="200.0" y="118.0" class="head">7 regions</text>
+<path class="grid" d="M200.0 126.0L200.0 266.0"/>
+<text x="200.0" y="281.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M283.3 126.0L283.3 266.0"/>
+<text x="283.3" y="281.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M366.7 126.0L366.7 266.0"/>
+<text x="366.7" y="281.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M450.0 126.0L450.0 266.0"/>
+<text x="450.0" y="281.0" class="small" text-anchor="middle">1.0</text>
+<path class="axis" d="M343.8 137.7L421.9 137.7"/>
+<circle class="open sneutral" cx="421.9" cy="137.7" r="4"/>
+<circle class="fc1" cx="343.8" cy="137.7" r="4"/>
+<text x="192.0" y="141.7" class="small" text-anchor="end">pythia-70m · Qwen2.5-0.5B</text>
+<path class="axis" d="M390.2 161.0L418.2 161.0"/>
+<circle class="open sneutral" cx="418.2" cy="161.0" r="4"/>
+<circle class="fc1" cx="390.2" cy="161.0" r="4"/>
+<text x="192.0" y="165.0" class="small" text-anchor="end">pythia-70m · Qwen2.5-1.5B</text>
+<path class="axis" d="M379.5 184.3L422.9 184.3"/>
+<circle class="open sneutral" cx="422.9" cy="184.3" r="4"/>
+<circle class="fc1" cx="379.5" cy="184.3" r="4"/>
+<text x="192.0" y="188.3" class="small" text-anchor="end">pythia-70m · gpt2</text>
+<path class="axis" d="M403.6 207.7L422.4 207.7"/>
+<circle class="open sneutral" cx="422.4" cy="207.7" r="4"/>
+<circle class="fc1" cx="403.6" cy="207.7" r="4"/>
+<text x="192.0" y="211.7" class="small" text-anchor="end">Qwen2.5-0.5B · Qwen2.5-1.5B</text>
+<path class="axis" d="M397.5 231.0L429.3 231.0"/>
+<circle class="open sneutral" cx="429.3" cy="231.0" r="4"/>
+<circle class="fc1" cx="397.5" cy="231.0" r="4"/>
+<text x="192.0" y="235.0" class="small" text-anchor="end">Qwen2.5-0.5B · gpt2</text>
+<path class="axis" d="M392.8 254.3L422.2 254.3"/>
+<circle class="open sneutral" cx="422.2" cy="254.3" r="4"/>
+<circle class="fc1" cx="392.8" cy="254.3" r="4"/>
+<text x="192.0" y="258.3" class="small" text-anchor="end">Qwen2.5-1.5B · gpt2</text>
+<text x="490.0" y="118.0" class="head">14 regions</text>
+<path class="grid" d="M490.0 126.0L490.0 266.0"/>
+<text x="490.0" y="281.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M573.3 126.0L573.3 266.0"/>
+<text x="573.3" y="281.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M656.7 126.0L656.7 266.0"/>
+<text x="656.7" y="281.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M740.0 126.0L740.0 266.0"/>
+<text x="740.0" y="281.0" class="small" text-anchor="middle">1.0</text>
+<path class="axis" d="M623.7 137.7L699.2 137.7"/>
+<circle class="open sneutral" cx="699.2" cy="137.7" r="4"/>
+<circle class="fc1" cx="623.7" cy="137.7" r="4"/>
+<path class="axis" d="M661.9 161.0L692.1 161.0"/>
+<circle class="open sneutral" cx="692.1" cy="161.0" r="4"/>
+<circle class="fc1" cx="661.9" cy="161.0" r="4"/>
+<path class="axis" d="M652.0 184.3L698.2 184.3"/>
+<circle class="open sneutral" cx="698.2" cy="184.3" r="4"/>
+<circle class="fc1" cx="652.0" cy="184.3" r="4"/>
+<path class="axis" d="M680.5 207.7L698.6 207.7"/>
+<circle class="open sneutral" cx="698.6" cy="207.7" r="4"/>
+<circle class="fc1" cx="680.5" cy="207.7" r="4"/>
+<path class="axis" d="M689.2 231.0L709.2 231.0"/>
+<circle class="open sneutral" cx="709.2" cy="231.0" r="4"/>
+<circle class="fc1" cx="689.2" cy="231.0" r="4"/>
+<path class="axis" d="M684.0 254.3L698.9 254.3"/>
+<circle class="open sneutral" cx="698.9" cy="254.3" r="4"/>
+<circle class="fc1" cx="684.0" cy="254.3" r="4"/>
+<text x="200.0" y="308.0" class="head">29 regions</text>
+<path class="grid" d="M200.0 316.0L200.0 456.0"/>
+<text x="200.0" y="471.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M283.3 316.0L283.3 456.0"/>
+<text x="283.3" y="471.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M366.7 316.0L366.7 456.0"/>
+<text x="366.7" y="471.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M450.0 316.0L450.0 456.0"/>
+<text x="450.0" y="471.0" class="small" text-anchor="middle">1.0</text>
+<path class="axis" d="M321.9 327.7L389.8 327.7"/>
+<circle class="open sneutral" cx="389.8" cy="327.7" r="4"/>
+<circle class="fc1" cx="321.9" cy="327.7" r="4"/>
+<text x="192.0" y="331.7" class="small" text-anchor="end">pythia-70m · Qwen2.5-0.5B</text>
+<path class="axis" d="M351.8 351.0L379.3 351.0"/>
+<circle class="open sneutral" cx="379.3" cy="351.0" r="4"/>
+<circle class="fc1" cx="351.8" cy="351.0" r="4"/>
+<text x="192.0" y="355.0" class="small" text-anchor="end">pythia-70m · Qwen2.5-1.5B</text>
+<path class="axis" d="M344.0 374.3L390.1 374.3"/>
+<circle class="open sneutral" cx="390.1" cy="374.3" r="4"/>
+<circle class="fc1" cx="344.0" cy="374.3" r="4"/>
+<text x="192.0" y="378.3" class="small" text-anchor="end">pythia-70m · gpt2</text>
+<path class="axis" d="M361.3 397.7L389.2 397.7"/>
+<circle class="open sneutral" cx="389.2" cy="397.7" r="4"/>
+<circle class="fc1" cx="361.3" cy="397.7" r="4"/>
+<text x="192.0" y="401.7" class="small" text-anchor="end">Qwen2.5-0.5B · Qwen2.5-1.5B</text>
+<path class="axis" d="M372.6 421.0L404.2 421.0"/>
+<circle class="open sneutral" cx="404.2" cy="421.0" r="4"/>
+<circle class="fc1" cx="372.6" cy="421.0" r="4"/>
+<text x="192.0" y="425.0" class="small" text-anchor="end">Qwen2.5-0.5B · gpt2</text>
+<path class="axis" d="M358.1 444.3L390.1 444.3"/>
+<circle class="open sneutral" cx="390.1" cy="444.3" r="4"/>
+<circle class="fc1" cx="358.1" cy="444.3" r="4"/>
+<text x="192.0" y="448.3" class="small" text-anchor="end">Qwen2.5-1.5B · gpt2</text>
+<text x="490.0" y="308.0" class="head">60 regions</text>
+<path class="grid" d="M490.0 316.0L490.0 456.0"/>
+<text x="490.0" y="471.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M573.3 316.0L573.3 456.0"/>
+<text x="573.3" y="471.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M656.7 316.0L656.7 456.0"/>
+<text x="656.7" y="471.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M740.0 316.0L740.0 456.0"/>
+<text x="740.0" y="471.0" class="small" text-anchor="middle">1.0</text>
+<path class="axis" d="M592.8 327.7L654.1 327.7"/>
+<circle class="open sneutral" cx="654.1" cy="327.7" r="4"/>
+<circle class="fc1" cx="592.8" cy="327.7" r="4"/>
+<path class="axis" d="M612.1 351.0L638.2 351.0"/>
+<circle class="open sneutral" cx="638.2" cy="351.0" r="4"/>
+<circle class="fc1" cx="612.1" cy="351.0" r="4"/>
+<path class="axis" d="M617.1 374.3L655.0 374.3"/>
+<circle class="open sneutral" cx="655.0" cy="374.3" r="4"/>
+<circle class="fc1" cx="617.1" cy="374.3" r="4"/>
+<path class="axis" d="M643.0 397.7L652.6 397.7"/>
+<circle class="open sneutral" cx="652.6" cy="397.7" r="4"/>
+<circle class="fc1" cx="643.0" cy="397.7" r="4"/>
+<path class="axis" d="M655.2 421.0L674.5 421.0"/>
+<circle class="open sneutral" cx="674.5" cy="421.0" r="4"/>
+<circle class="fc1" cx="655.2" cy="421.0" r="4"/>
+<path class="axis" d="M641.5 444.3L653.5 444.3"/>
+<circle class="open sneutral" cx="653.5" cy="444.3" r="4"/>
+<circle class="fc1" cx="641.5" cy="444.3" r="4"/>
+</svg>

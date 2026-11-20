@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 614" width="760" height="614" role="img">
+<title>Three groups of rows. Pairs pooled over corpora sit left of their nulls. Pairs on pile-10k alone sit on or right of their nulls. Each model against itself across two corpora sits far left of its null.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="614" rx="10"/>
+<text x="20.0" y="30.0" class="title">The scan corpus, not the model, sets most of where the poles fall</text>
+<text x="20.0" y="50.0" class="sub">Overlap (solid dot) against the shuffled null (ring), at the map&#x27;s 7 regions. One</text>
+<text x="20.0" y="68.0" class="sub">model&#x27;s poles from two corpora differ more than two models&#x27; poles from one corpus.</text>
+<text x="20.0" y="126.0" class="head">Two models, every scan corpus</text>
+<path class="axis" d="M446.1 142.0L596.0 142.0"/>
+<circle class="open sneutral" cx="596.0" cy="142.0" r="4"/>
+<circle class="fc1" cx="446.1" cy="142.0" r="4"/>
+<text x="242.0" y="146.0" class="small" text-anchor="end">pythia-70m · Qwen2.5-0.5B</text>
+<text x="658.0" y="146.0" class="small">p = 0.005</text>
+<path class="axis" d="M535.1 162.0L588.9 162.0"/>
+<circle class="open sneutral" cx="588.9" cy="162.0" r="4"/>
+<circle class="fc1" cx="535.1" cy="162.0" r="4"/>
+<text x="242.0" y="166.0" class="small" text-anchor="end">pythia-70m · Qwen2.5-1.5B</text>
+<text x="658.0" y="166.0" class="small">p = 0.005</text>
+<path class="axis" d="M514.7 182.0L597.9 182.0"/>
+<circle class="open sneutral" cx="597.9" cy="182.0" r="4"/>
+<circle class="fc1" cx="514.7" cy="182.0" r="4"/>
+<text x="242.0" y="186.0" class="small" text-anchor="end">pythia-70m · gpt2</text>
+<text x="658.0" y="186.0" class="small">p = 0.005</text>
+<path class="axis" d="M561.0 202.0L597.0 202.0"/>
+<circle class="open sneutral" cx="597.0" cy="202.0" r="4"/>
+<circle class="fc1" cx="561.0" cy="202.0" r="4"/>
+<text x="242.0" y="206.0" class="small" text-anchor="end">Qwen2.5-0.5B · Qwen2.5-1.5B</text>
+<text x="658.0" y="206.0" class="small">p = 0.025</text>
+<path class="axis" d="M549.1 222.0L610.2 222.0"/>
+<circle class="open sneutral" cx="610.2" cy="222.0" r="4"/>
+<circle class="fc1" cx="549.1" cy="222.0" r="4"/>
+<text x="242.0" y="226.0" class="small" text-anchor="end">Qwen2.5-0.5B · gpt2</text>
+<text x="658.0" y="226.0" class="small">p = 0.005</text>
+<path class="axis" d="M540.1 242.0L596.6 242.0"/>
+<circle class="open sneutral" cx="596.6" cy="242.0" r="4"/>
+<circle class="fc1" cx="540.1" cy="242.0" r="4"/>
+<text x="242.0" y="246.0" class="small" text-anchor="end">Qwen2.5-1.5B · gpt2</text>
+<text x="658.0" y="246.0" class="small">p = 0.005</text>
+<text x="20.0" y="284.0" class="head">Two models, both scanned on pile-10k</text>
+<path class="axis" d="M536.6 300.0L523.3 300.0"/>
+<circle class="open sneutral" cx="523.3" cy="300.0" r="4"/>
+<circle class="fc1" cx="536.6" cy="300.0" r="4"/>
+<text x="242.0" y="304.0" class="small" text-anchor="end">pythia-70m · Qwen2.5-0.5B</text>
+<text x="658.0" y="304.0" class="small">p = 0.602</text>
+<path class="axis" d="M553.4 320.0L517.5 320.0"/>
+<circle class="open sneutral" cx="517.5" cy="320.0" r="4"/>
+<circle class="fc1" cx="553.4" cy="320.0" r="4"/>
+<text x="242.0" y="324.0" class="small" text-anchor="end">pythia-70m · Qwen2.5-1.5B</text>
+<text x="658.0" y="324.0" class="small">p = 0.786</text>
+<path class="axis" d="M585.7 340.0L526.8 340.0"/>
+<circle class="open sneutral" cx="526.8" cy="340.0" r="4"/>
+<circle class="fc1" cx="585.7" cy="340.0" r="4"/>
+<text x="242.0" y="344.0" class="small" text-anchor="end">pythia-70m · gpt2</text>
+<text x="658.0" y="344.0" class="small">p = 0.935</text>
+<path class="axis" d="M617.7 360.0L556.0 360.0"/>
+<circle class="open sneutral" cx="556.0" cy="360.0" r="4"/>
+<circle class="fc1" cx="617.7" cy="360.0" r="4"/>
+<text x="242.0" y="364.0" class="small" text-anchor="end">Qwen2.5-0.5B · Qwen2.5-1.5B</text>
+<text x="658.0" y="364.0" class="small">p = 0.995</text>
+<path class="axis" d="M576.4 380.0L576.4 380.0"/>
+<circle class="open sneutral" cx="576.4" cy="380.0" r="4"/>
+<circle class="fc1" cx="576.4" cy="380.0" r="4"/>
+<text x="242.0" y="384.0" class="small" text-anchor="end">Qwen2.5-0.5B · gpt2</text>
+<text x="658.0" y="384.0" class="small">p = 0.478</text>
+<path class="axis" d="M573.4 400.0L567.8 400.0"/>
+<circle class="open sneutral" cx="567.8" cy="400.0" r="4"/>
+<circle class="fc1" cx="573.4" cy="400.0" r="4"/>
+<text x="242.0" y="404.0" class="small" text-anchor="end">Qwen2.5-1.5B · gpt2</text>
+<text x="658.0" y="404.0" class="small">p = 0.527</text>
+<text x="20.0" y="442.0" class="head">One model, pile-10k against the mixed corpus</text>
+<path class="axis" d="M345.9 458.0L518.9 458.0"/>
+<circle class="open sneutral" cx="518.9" cy="458.0" r="4"/>
+<circle class="fc1" cx="345.9" cy="458.0" r="4"/>
+<text x="242.0" y="462.0" class="small" text-anchor="end">pythia-70m</text>
+<text x="658.0" y="462.0" class="small">p = 0.005</text>
+<path class="axis" d="M381.5 478.0L562.2 478.0"/>
+<circle class="open sneutral" cx="562.2" cy="478.0" r="4"/>
+<circle class="fc1" cx="381.5" cy="478.0" r="4"/>
+<text x="242.0" y="482.0" class="small" text-anchor="end">Qwen2.5-0.5B</text>
+<text x="658.0" y="482.0" class="small">p = 0.005</text>
+<path class="axis" d="M399.3 498.0L550.9 498.0"/>
+<circle class="open sneutral" cx="550.9" cy="498.0" r="4"/>
+<circle class="fc1" cx="399.3" cy="498.0" r="4"/>
+<text x="242.0" y="502.0" class="small" text-anchor="end">Qwen2.5-1.5B</text>
+<text x="658.0" y="502.0" class="small">p = 0.005</text>
+<path class="axis" d="M373.8 518.0L584.0 518.0"/>
+<circle class="open sneutral" cx="584.0" cy="518.0" r="4"/>
+<circle class="fc1" cx="373.8" cy="518.0" r="4"/>
+<text x="242.0" y="522.0" class="small" text-anchor="end">gpt2</text>
+<text x="658.0" y="522.0" class="small">p = 0.005</text>
+<path class="grid" d="M250.0 112.0L250.0 546.0"/>
+<text x="250.0" y="561.0" class="small" text-anchor="middle">0.5</text>
+<path class="grid" d="M330.0 112.0L330.0 546.0"/>
+<text x="330.0" y="561.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M410.0 112.0L410.0 546.0"/>
+<text x="410.0" y="561.0" class="small" text-anchor="middle">0.7</text>
+<path class="grid" d="M490.0 112.0L490.0 546.0"/>
+<text x="490.0" y="561.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M570.0 112.0L570.0 546.0"/>
+<text x="570.0" y="561.0" class="small" text-anchor="middle">0.9</text>
+<path class="grid" d="M650.0 112.0L650.0 546.0"/>
+<text x="650.0" y="561.0" class="small" text-anchor="middle">1.0</text>
+</svg>
