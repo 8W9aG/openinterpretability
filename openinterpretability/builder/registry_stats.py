@@ -60,20 +60,6 @@ PROTOCOL_MIX = f"""
     GROUP BY ALL ORDER BY protocol_version DESC
     """  # noqa: S608  (interpolates module constants only)
 
-CONCLUSIVE = """
-    SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
-           superposition_id,
-           experiment_id,
-           explanation, status,
-           conclusiveness, evidence_direction
-    FROM r
-    WHERE reuses_probes_of IS NULL  -- re-measurements are not independent evidence
-    QUALIFY row_number() OVER (
-        PARTITION BY slug ORDER BY conclusiveness DESC, reviewed_at DESC, experiment_id
-    ) = 1  -- one row per neuron pole, so repeated experiments don't crowd the list
-    ORDER BY conclusiveness DESC, reviewed_at DESC, slug LIMIT 15
-    """
-
 RECENT = f"""
     SELECT slug, model_name, kind, layer, neuron_idx, pole, head_idx, dictionary, feature_idx,
            superposition_id,
@@ -102,7 +88,6 @@ VERDICTS = f"""
 QUERIES = {
     "totals": TOTALS,
     "protocol_mix": PROTOCOL_MIX,
-    "conclusive": CONCLUSIVE,
     "recent": RECENT,
     "verdicts": VERDICTS,
 }
@@ -118,7 +103,7 @@ def registry_stats(parquet: Path, draws: Sequence = ()) -> dict:
     stats["current_protocol"] = PROTOCOL_VERSION
     stats["baseline"] = learned_baseline(con, draws)
     con.close()
-    for row in stats["conclusive"] + stats["recent"]:
+    for row in stats["recent"]:
         row["href"] = _experiment_href(row)
         row["unit"] = _unit_label(row)
     return stats

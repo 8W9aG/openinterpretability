@@ -24,11 +24,32 @@ SECRETS = ("X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET")
 
 
 def _quote(value: str) -> str:
+    """``value`` percent-encoded as OAuth 1.0a asks, with only ``~`` left as it is.
+
+    Args:
+        value: The text to encode.
+    """
     return urllib.parse.quote(value, safe="~")
 
 
 def oauth_header(method: str, url: str, keys: dict[str, str], nonce: str, stamp: str) -> str:
-    """The OAuth 1.0a ``Authorization`` header for a request with no query or form fields."""
+    """The OAuth 1.0a ``Authorization`` header for a request with no query or form fields.
+
+    Args:
+        method: The HTTP method, such as ``POST``.
+        url: The request's URL.
+        keys: The four X secrets, by name (:data:`SECRETS`).
+        nonce: A value used once.
+        stamp: The time in seconds, as text.
+
+    Examples:
+        >>> keys = dict(zip(SECRETS, ("ck", "cs", "at", "as")))
+        >>> header = oauth_header("POST", TWEETS, keys, "n", "1")
+        >>> header.startswith('OAuth oauth_consumer_key="ck"')
+        True
+        >>> header == oauth_header("POST", TWEETS, keys, "n", "1")  # stable for one nonce
+        True
+    """
     params = {"oauth_consumer_key": keys["X_API_KEY"], "oauth_nonce": nonce,
               "oauth_signature_method": "HMAC-SHA1", "oauth_timestamp": stamp,
               "oauth_token": keys["X_ACCESS_TOKEN"], "oauth_version": "1.0"}  # fmt: skip
@@ -41,7 +62,15 @@ def oauth_header(method: str, url: str, keys: dict[str, str], nonce: str, stamp:
 
 
 def keys_from_env() -> dict[str, str] | None:
-    """The four X secrets from the environment, or None when any is missing."""
+    """The four X secrets from the environment, or None when any is missing.
+
+    Examples:
+        >>> import os
+        >>> for name in SECRETS:
+        ...     os.environ.pop(name, None)
+        >>> keys_from_env() is None
+        True
+    """
     keys = {name: os.environ.get(name, "") for name in SECRETS}
     return keys if all(keys.values()) else None
 
@@ -50,10 +79,19 @@ class XPoster:
     """Posts to X as the account that the access token belongs to."""
 
     def __init__(self, keys: dict[str, str]):
+        """Keep the secrets that sign each request.
+
+        Args:
+            keys: The four X secrets, by name (:data:`SECRETS`).
+        """
         self.keys = keys
 
     def post(self, text: str) -> str:
-        """Publish ``text`` as a post; return its id. An HTTP error raises."""
+        """Publish ``text`` as a post; return its id. An HTTP error raises.
+
+        Args:
+            text: The post.
+        """
         header = oauth_header(
             "POST", TWEETS, self.keys, secrets.token_hex(16), str(int(time.time()))
         )

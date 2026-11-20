@@ -416,7 +416,6 @@ Inverse claims have their own version, `INVERSE_RULE_VERSION` in `openinterpreta
 These do not change the decision rule.
 
 - **Re-measurements.** An experiment that re-measures an earlier experiment's probe set (e.g. `reevaluate`) is marked as such. It is ranked after the original and is never counted as independent evidence.
-- **Most-conclusive list.** The home page shows one row per neuron pole.
 - **Standing.** A unit's status, and with it every verified count and the false discovery estimate, follows the rule under §3 step 9. It reads verdicts and never changes one, so introducing it did not bump the version. A claim backed by several agreeing reviews enters the false discovery estimate once, with its weakest review's P(useful).
 - **False discovery estimate.** The home page reports the expected number of false discoveries among current VERIFIED claims, Σ (1 − P(useful)) over one claim per neuron pole.
 - **Dictionary features.** Adding them changed the decision rule for no unit, so it did not bump the version. Their verdicts are left out of the home page's native totals, its verified list and the false discovery estimate, and are reported separately.

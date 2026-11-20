@@ -53,6 +53,21 @@ def scale(x: float, factor: float = 2.0) -> float:
     """
 ```
 
+**Every public function and method has an `Examples` section with a doctest** (#5356). Show one real call and its exact output, with `>>>`. pytest runs them (`--doctest-modules`). Keep them fast and offline: no model or dataset download, no network, no GPU. Use small made-up data, and set every seed. A docstring whose examples print `\n` must be a raw string (`r"""`). A function that can't run offline even with a tiny stand-in goes in `scripts/doctests_exempt.txt` with the reason. Never use `# doctest: +SKIP`. `tests/test_doctests.py` checks it. `scripts/doctests_baseline.txt` lists the module files still to do, and the list only shrinks.
+
+```python
+def weight(text: str) -> int:
+    """The length of ``text`` as X counts it.
+
+    Args:
+        text: The text to count.
+
+    Examples:
+        >>> weight("neuron")
+        6
+    """
+```
+
 One exception: a Pydantic model that an LLM agent answers in (`HypothesisDraft`, `ProbeSet`, `DetectionAnswer` and the models they contain). Pydantic puts a class docstring into the JSON schema, so a docstring there changes what the agent is told. Mark the class `# noqa: D101` with that reason, and describe the fields with `Field(description=...)`.
 
 - **The first line is one sentence that stands alone** (`D205`), at most 100 characters with its indent. Then a blank line, then the details.
