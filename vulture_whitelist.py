@@ -83,6 +83,8 @@ _._one_text_per_multiple  # unused method (openinterpretability/core/steering.py
 _.role_rows  # unused property (openinterpretability/builder/agents.py:102)
 _.other_spellings  # unused property (openinterpretability/builder/agents.py:112)
 layer_map  # unused function (openinterpretability/builder/charts.py:349)
+CHART_TEXT_PX  # every chart's text size, read by the chart macro in _macros.html (#5660)
+DIAGRAM_SCALE  # the taxonomy diagrams' fixed scale, read by _taxonomy.html (#5660)
 _.p_positive  # unused property (openinterpretability/builder/learned_baseline.py:92)
 model_pieces  # unused function (openinterpretability/builder/pieces.py:39)
 layer_pieces  # unused function (openinterpretability/builder/pieces.py:122)
