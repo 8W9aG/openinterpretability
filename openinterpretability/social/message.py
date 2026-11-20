@@ -111,7 +111,11 @@ def compose(head: str, body: str, link: str, separator: str = " ") -> str:
 
 
 def experiment_post(entry: Entry) -> str:
-    r"""The post for a VERIFIED experiment, from its ``feed.xml`` entry.
+    r"""The post for a VERIFIED experiment, from its ``feed.xml`` entry: unit, verdict and link.
+
+    The post carries no text from the record. Any contributor can write an experiment
+    record, and it can merge with no person reading it. So its explanation never goes out
+    under the project's account. The link leads to the unit's page, which shows it.
 
     Args:
         entry: The experiment's feed entry.
@@ -121,11 +125,11 @@ def experiment_post(entry: Entry) -> str:
 
     Examples:
         >>> experiment_post(Entry("u", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u",
-        ...                       "Fires on dates."))
-        'gpt2/L1/N5-positive VERIFIED: Fires on dates.\nhttps://x.org/u'
+        ...                       "Fires on dates. @someone https://elsewhere.example"))
+        'gpt2/L1/N5-positive VERIFIED\nhttps://x.org/u'
     """
     slug = entry.title.removesuffix(" VERIFIED")
-    return compose(f"{slug} VERIFIED:", entry.summary, entry.link)
+    return compose(f"{slug} VERIFIED", "", entry.link)
 
 
 def paper_post(entry: Entry) -> str:

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from openinterpretability.builder.cluster_map import Badge, colour_slots, place_badges
 from openinterpretability.builder.literature_pages import MAP, credits, map_text, review_rows
+from openinterpretability.builder.pii import redact_text
 
 WIDTH, HEIGHT = 1000, 720  # the map's viewBox, in SVG units
 LEFT, RIGHT, TOP, BOTTOM = 230, 770, 40, 680  # where the dots go; the cards take the margins
@@ -173,7 +174,9 @@ def map_view(folder: Path, points: list[Point]) -> dict:
     """The queued papers, the callout cards and the region badges of the map."""
     data = _read(folder)
     colour = slots(data.get("regions", []))
-    queued = [Queued(q["number"], q["title"], *_xy(q["x"], q["y"]), colour.get(q.get("region"), 0))
+    # Issue titles are text from outside, so they pass the same redaction as the pages.
+    queued = [Queued(q["number"], redact_text(q["title"]), *_xy(q["x"], q["y"]),
+                     colour.get(q.get("region"), 0))
               for q in data.get("queued", [])]  # fmt: skip
     cards = callouts(points)
     return {"queued": queued, "callouts": cards, "badges": badges(data.get("regions", []), cards)}
