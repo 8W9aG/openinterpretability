@@ -7,7 +7,14 @@ change. Later corrections go in a ``## Addenda`` section at the end. Each paper 
 paper's file holds the SHA-256 of its text above the addenda and of its results files.
 A change to them then fails the check.
 
+A preprint's line must name only open issues (#5395). ``check --closing`` takes the issues a
+pull request closes, and fails if a line still names one. ``check --online`` asks GitHub for
+the state of every issue on every line, and fails on a closed one. Plain ``check`` stays
+offline, for ``make lint``.
+
     uv run python scripts/papers.py check
+    uv run python scripts/papers.py check --closing 4250,5394   # CI on a PR (#5395)
+    uv run python scripts/papers.py check --online              # the nightly run (#5395)
     uv run python scripts/papers.py new <slug> --work "#N (what is left)"
     uv run python scripts/papers.py publish <slug>
 """
@@ -111,6 +118,40 @@ def check(papers: Path = PAPERS) -> list[str]:
     return [f"{slug}: {p}" for date, slug in entries(papers) for p in problems(papers / slug, date)]
 
 
+def work_left(papers: Path = PAPERS) -> dict[str, tuple[int, ...]]:
+    """Each preprint's issues of work left, by slug. A bracketed issue is a citation."""
+    out = {}
+    for _, slug in entries(papers):
+        status = paper_status((papers / slug / "README.md").read_text(encoding="utf-8"))
+        if status is not None and status.preprint:
+            out[slug] = status.issues
+    return out
+
+
+FIX = "remove it from the status line, or run scripts/papers.py publish {slug} if no work is left"
+
+
+def named(issues: set[int], papers: Path = PAPERS) -> list[str]:
+    """A problem for each status line that names one of ``issues`` as work left."""
+    return [f"{slug}: #{n} is closed, or closes in this PR, but the line names it: "
+            f"{FIX.format(slug=slug)}"
+            for slug, left in work_left(papers).items() for n in left if n in issues]  # fmt: skip
+
+
+def closed(numbers: set[int]) -> set[int]:
+    """Which of ``numbers`` are closed on GitHub."""
+    import json
+    import subprocess
+
+    out = set()
+    for n in sorted(numbers):
+        view = subprocess.run(["gh", "issue", "view", str(n), "--repo", REPO, "--json", "state"],
+                              capture_output=True, text=True, check=True)  # fmt: skip
+        if json.loads(view.stdout)["state"] == "CLOSED":
+            out.add(n)
+    return out
+
+
 def new(slug: str, work: str, papers: Path = PAPERS) -> None:
     """Give a paper its preprint status line, under the abstract, and its citation file."""
     folder = papers / slug
@@ -139,7 +180,14 @@ def main() -> int:
     """Run the command. Return the exit code."""
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("check", help="Fail on a paper with no status, or a changed published one.")
+    check_cmd = sub.add_parser("check", help="Fail on a paper with no status, or a changed one.")
+    check_cmd.add_argument(
+        "--closing",
+        default="",
+        help="Issues a PR closes, e.g. 4250,5394: fail if a line names one.",
+    )
+    check_cmd.add_argument("--online", action="store_true",
+                           help="Ask GitHub, and fail if a line names a closed issue.")  # fmt: skip
     one = sub.add_parser("new", help="Give a paper its preprint status and citation file.")
     one.add_argument("slug")
     one.add_argument("--work", required=True, help='The issues still open, e.g. "#12 (x)".')
@@ -151,6 +199,10 @@ def main() -> int:
         publish(args.slug)
     else:
         found = check()
+        closing = {int(n.strip().lstrip("#")) for n in args.closing.split(",") if n.strip()}
+        if args.online:
+            closing |= closed({n for left in work_left().values() for n in left})
+        found += named(closing)
         print("\n".join(found) or "Every paper has its status and citation file.")
         return 1 if found else 0
     return 0
