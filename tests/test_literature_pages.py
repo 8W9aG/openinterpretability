@@ -140,3 +140,24 @@ def test_the_repo_map_has_regions_neighbours_and_the_queue():
     assert all(r["region"] in numbers and len(r["neighbours"]) == 3 for r in data["reviews"])
     assert data["queued"] and all({"number", "title", "x", "y", "region"} <= set(q)
                                   for q in data["queued"])  # fmt: skip
+
+
+def test_index_rows_credits_and_queued_titles_are_redacted(tmp_path):
+    from openinterpretability.builder.literature_map_view import map_view
+    from openinterpretability.builder.literature_pages import credits, review_rows
+    from openinterpretability.builder.pii import REMOVED_TEXT
+
+    mail = "jane.doe@somemail.org"  # an address the site's redaction removes (test_pii.py)
+    folder = tmp_path / "literature"
+    folder.mkdir()
+    (folder / "README.md").write_text(
+        "| Page | Status | Why |\n| --- | --- | --- |\n"
+        f"| [A paper](a-paper.md) (Doe, {mail}, 2026) | planned | Write to {mail}. |\n"
+    )
+    queued = [{"number": 1, "title": f"Review by {mail}", "x": 0.5, "y": 0.5}]
+    (folder / "map.json").write_text(json.dumps({"queued": queued, "regions": []}))
+    status, why = review_rows(folder)["a-paper"]
+    assert status == "planned" and mail not in why and REMOVED_TEXT in why
+    assert mail not in credits(folder)["a-paper"]
+    title = map_view(folder, [])["queued"][0].title
+    assert mail not in title and REMOVED_TEXT in title
