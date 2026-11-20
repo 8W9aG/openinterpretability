@@ -179,7 +179,7 @@
   <figure class="mt-6">
     <h3 class="font-mono text-sm font-medium">{{ model.name }} ↔ {{ g.other }}</h3>
     <div class="overflow-x-auto">
-    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-[720px]" role="group" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
+    <svg viewBox="0 0 {{ g.width }} {{ g.height }}" class="w-full min-w-[520px] max-w-3xl" role="group" aria-label="Sister graph of {{ model.name }} and {{ g.other }}: {{ g.n_edges }} best matches between poles placed by relative depth, {{ g.n_sisters }} of them sisters{% if g.depth_gap is not none %}, median depth gap {{ '%.3f' | format(g.depth_gap) }}{% endif %}. The sisters are listed below.">
       <text x="{{ g.columns[0] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ model.name }}</text>
       <text x="{{ g.columns[1] }}" y="12" text-anchor="middle" class="fill-slate-600 font-mono dark:fill-slate-300" font-size="11">{{ g.other }}</text>
       {% for t in g.ticks %}
