@@ -103,7 +103,7 @@ def planned(state: State, experiments: list[Entry], papers: list[Entry],
     Examples:
         >>> unit = Entry("u1", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u", "Fires.")
         >>> planned(State({"old"}), [unit], [], "https://x.org/")
-        [(['u1'], 'gpt2/L1/N5-positive VERIFIED: Fires.\nhttps://x.org/u')]
+        [(['u1'], 'gpt2/L1/N5-positive VERIFIED\nhttps://x.org/u')]
     """
     posts = [([e.id], paper_post(e)) for e in papers if e.id not in state.posted]
     fresh = [e for e in experiments if e.id not in state.posted]
@@ -144,10 +144,10 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
         ['seeded 1 entries; posted nothing']
         >>> new = Entry("u2", "gpt2/L1/N6-positive VERIFIED", "https://x.org/v", "Reads.")
         >>> run(path, [new, unit], [], "https://x.org/", lambda text: "42", now=10)
-        ['posted 42: gpt2/L1/N6-positive VERIFIED: Reads.']
+        ['posted 42: gpt2/L1/N6-positive VERIFIED']
         >>> run(path, [new, unit], [], "https://x.org/", lambda text: "43", now=20,
         ...     repost=frozenset({"u1"}))
-        ['posted 43: gpt2/L1/N5-positive VERIFIED: Fires.']
+        ['posted 43: gpt2/L1/N5-positive VERIFIED']
     """
     state = load_state(state_path)
     if state is None:
