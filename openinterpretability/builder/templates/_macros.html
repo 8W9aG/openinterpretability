@@ -88,9 +88,9 @@
 
 {# The open experiment PRs (builder/pending.py, #3283): what is still running or landing. #}
 {% macro pending_table(pending, root, show_model=true) -%}
-<section class="mb-10 mt-10">
-  <h2 class="mb-1 text-lg font-semibold">Pending experiments</h2>
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">{{ pending | length }} experiment{{ 's are' if pending | length != 1 else ' is' }} in an open pull request, newest first, as of this build. A draft is still running, and a ready one waits for its checks.</p>
+<div class="mb-10 mt-10">
+{% call fold("Pending experiments (" ~ pending | length ~ ")", level=2) %}
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">In an open pull request as of this build, newest first.</p>
   <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
@@ -109,7 +109,8 @@
       </tbody>
     </table>
   </div>
-</section>
+{% endcall %}
+</div>
 {%- endmacro %}
 
 
@@ -137,7 +138,7 @@
     {% endfor %}
     {% endfor %}
   </svg>
-  <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top. Each cell is {{ pc.block }} neurons, coloured by the best status among them. It fills from the bottom with the share of their poles that are studied, so one studied pole shows as a thin line.</p>
+  <p class="mt-1 text-xs text-slate-500">One row per layer, L0 at the top. Each cell is {{ pc.block }} neurons, filled by the share studied.</p>
   {% endif %}
 </a>
 {%- endmacro %}
@@ -169,4 +170,25 @@
 {# A paper's status (#3150): a preprint with the issues still open on it, or published on a day. Text says it, not colour. #}
 {% macro paper_status(status, repo_url) -%}
 {% if status %}{% if status.preprint %}<span class="rounded border border-slate-400 px-1.5 py-0.5 font-medium text-slate-700 dark:border-slate-500 dark:text-slate-300">Preprint</span> work left: {% for n in status.issues %}<a class="underline" href="{{ repo_url }}/issues/{{ n }}">#{{ n }}</a>{{ ", " if not loop.last }}{% endfor %}{% else %}<span class="rounded bg-slate-800 px-1.5 py-0.5 font-medium text-white dark:bg-slate-200 dark:text-slate-900">Published</span> <time datetime="{{ status.published }}">{{ status.published }}</time>; changes since are addenda{% endif %}{% endif %}
+{%- endmacro %}
+
+{# The chevron of `fold` and `read_more`. It points right when closed and down when open, so the state shows by shape, not by colour. #}
+{% macro chevron() -%}
+<svg class="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+{%- endmacro %}
+
+{# Method text that the reader opens: how a value is measured, what a gate tests, caveats (#5566). The page shows the result, and this holds the rest. #}
+{% macro read_more(label="Read more") -%}
+<details class="group mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  <summary class="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 [&::-webkit-details-marker]:hidden">{{ chevron() }}{{ label }}</summary>
+  <div class="mt-1 space-y-2">{{ caller() }}</div>
+</details>
+{%- endmacro %}
+
+{# One section of a page, closed until the reader opens it (#5566). The title is the section's heading, inside the summary. #}
+{% macro fold(title, hint=none, open=false, level=3) -%}
+<details class="group border-t border-slate-200 py-3 dark:border-slate-800"{{ " open" if open }}>
+  <summary class="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden"{% if hint %} title="{{ hint }}"{% endif %}>{{ chevron() }}<h{{ level }} class="text-base font-semibold">{{ title }}</h{{ level }}></summary>
+  <div class="mt-3">{{ caller() }}</div>
+</details>
 {%- endmacro %}

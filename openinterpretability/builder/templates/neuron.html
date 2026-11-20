@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, stop_outcome %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, stop_outcome, fold, read_more %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 
@@ -26,12 +26,14 @@
         </div>
         <p class="mt-2 text-xs">{{ s.lead.record.submission.natural_language_explanation | truncate(120) }}</p>
         {% if s.contested_by_hypothesis %}
-        <p class="mt-2 text-xs text-slate-500">A newer hypothesis came out <a class="underline-offset-2 hover:underline" href="{{ root }}{{ s.lead.href }}">{{ s.lead.record.verdict.status | replace('_', ' ') | lower }}</a> after an earlier one was <a class="underline-offset-2 hover:underline" href="{{ root }}{{ s.prior.href }}">verified</a>: “{{ s.prior.record.submission.natural_language_explanation | truncate(120) }}” Their detection scores are within {{ s.margin }}, so the unit doesn't count as verified while the two disagree. A new hypothesis that reaches VERIFIED settles it.</p>
+        <p class="mt-2 text-xs text-slate-500">Contested: a newer hypothesis came out <a class="underline-offset-2 hover:underline" href="{{ root }}{{ s.lead.href }}">{{ s.lead.record.verdict.status | replace('_', ' ') | lower }}</a> after an earlier one was <a class="underline-offset-2 hover:underline" href="{{ root }}{{ s.prior.href }}">verified</a>: “{{ s.prior.record.submission.natural_language_explanation | truncate(120) }}”</p>
+        {% call read_more() %}<p class="text-xs">Their detection scores are within {{ s.margin }}, so the unit doesn't count as verified while the two disagree. A new hypothesis that reaches VERIFIED settles it.</p>{% endcall %}
         {% elif s.prior and s.verified %}
-        <p class="mt-2 text-xs text-slate-500">A newer hypothesis was not verified, but it doesn't overturn this one: a NEEDS_REVISION result never does, and a REJECTED one must score at least {{ s.margin }} higher on held-out detection. <a class="underline-offset-2 hover:underline" href="{{ root }}{{ s.prior.href }}">This hypothesis</a> stands.</p>
+        <p class="mt-2 text-xs text-slate-500"><a class="underline-offset-2 hover:underline" href="{{ root }}{{ s.prior.href }}">This hypothesis</a> stands. A newer one wasn't verified, and doesn't overturn it.</p>
+        {% call read_more() %}<p class="text-xs">A NEEDS_REVISION result never overturns a verified hypothesis. A REJECTED one must score at least {{ s.margin }} higher on held-out detection.</p>{% endcall %}
         {% endif %}
         {% if s.readings | length > 1 %}
-        <p class="mt-2 text-xs text-slate-500">{% if s.contested and not s.prior %}Reviews of this hypothesis split evenly between verified and rejected, with detection scores within {{ s.margin }}, so one more independent review would settle it:{% elif s.contested %}The reviews of the newer hypothesis:{% elif s.dissent %}Most reviews of this hypothesis agree ({{ s.readings | length - s.dissent }} of {{ s.readings | length }}):{% else %}Every review of this hypothesis agrees:{% endif %}
+        <p class="mt-2 text-xs text-slate-500">{% if s.contested and not s.prior %}Contested, with reviews split evenly and detection scores within {{ s.margin }}:{% elif s.contested %}The reviews of the newer hypothesis:{% elif s.dissent %}Most reviews of this hypothesis agree ({{ s.readings | length - s.dissent }} of {{ s.readings | length }}):{% else %}Every review of this hypothesis agrees:{% endif %}
           {% for r in s.readings %}<a class="underline-offset-2 hover:underline" href="{{ root }}{{ r.href }}">{{ r.record.verdict.status | replace('_', ' ') | lower }}</a> by <a class="font-mono underline-offset-2 hover:underline" href="{{ root }}{{ agent_href(r.record.verdict.reviewer_agent_model) }}" title="recorded as {{ r.record.verdict.reviewer_agent_model }}">{{ agent_name(r.record.verdict.reviewer_agent_model) }}</a>{{ "; " if not loop.last }}{% endfor %}.
         </p>
         {% endif %}
@@ -48,8 +50,7 @@
     <section class="mt-6" aria-labelledby="both-poles">
       <h2 id="both-poles" class="text-base font-semibold">Both poles</h2>
       <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        {% if poles.shared %}Top examples of each pole from one scan, that of <a class="underline-offset-2 hover:underline" href="{{ root }}{{ poles.shared.href }}">experiment {{ poles.shared.id }}</a>{% else %}Top examples of each pole from its newest experiment's scan{% endif %}.
-        Each column is shaded by its own pole's max; hover a token for its value.
+        Top examples{% if poles.shared %}, from one scan: <a class="underline-offset-2 hover:underline" href="{{ root }}{{ poles.shared.href }}">experiment {{ poles.shared.id }}</a>{% else %}, each from its newest experiment{% endif %}. Hover a token for its value.
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         {% for p in poles.poles %}
@@ -74,11 +75,10 @@
     </section>
     {% endif %}
     {% if aligned %}
-    <section class="mt-6" aria-labelledby="dictionary-latents" data-pagefind-ignore>
-      <h2 id="dictionary-latents" class="text-base font-semibold">Dictionary latents</h2>
-      <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        Latents of published sparse dictionaries whose weights align with each pole's, from <code>open-interpretability crossref</code>. <em>Writes</em>: the cosine of a latent's decoder row with what the pole writes. <em>Reads</em>: of its encoder with the neuron's read of the MLP input (channel on hover), signed so + drives this pole. Grey latents fall below chance, the cosine a random direction's best match reaches 1% of the time; the percentile says how this pole's best match ranks among its layer's neurons. Supporting evidence where a latent's description agrees with the hypothesis, something to probe where it doesn't. Reported, not gated.
-      </p>
+    <div class="mt-6" data-pagefind-ignore>
+    {% call fold("Dictionary latents", level=2) %}
+      <p class="max-w-3xl text-xs text-slate-500">Latents of published sparse dictionaries whose weights align with each pole's.</p>
+      {% call read_more() %}<p class="text-xs">From <code>open-interpretability crossref</code>. <em>Writes</em>: the cosine of a latent's decoder row with what the pole writes. <em>Reads</em>: the cosine of its encoder with the neuron's read of the MLP input (channel on hover), signed so that + drives this pole. Grey latents fall below chance, the cosine that a random direction's best match reaches 1% of the time. The percentile ranks this pole's best match among its layer's neurons. Reported, not gated.</p>{% endcall %}
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         {% for p in aligned %}
         <div class="min-w-0 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
@@ -106,14 +106,14 @@
         </div>
         {% endfor %}
       </div>
-    </section>
+    {% endcall %}
+    </div>
     {% endif %}
     {% if sisters %}
-    <section class="mt-6" aria-labelledby="sister-neurons" data-pagefind-ignore>
-      <h2 id="sister-neurons" class="text-base font-semibold">Sister neurons</h2>
-      <p class="mt-1 max-w-3xl text-xs text-slate-500">
-        Poles of other models whose activity over the corpus correlates best with this pole's, from <code>open-interpretability sisters</code>. The two models are compared where both have read the same text (where a token ends in both tokenizations), leaving out first tokens; <em>coverage</em> is the share of this model's tokens that pairs. <em>r</em>: Pearson correlation of the two poles' strengths. <em>Back</em>: the matched pole's best correlation with any pole of this model; ✓ when that best partner is this pole (a mutual best match). <em>Rotated</em>: the best correlation this pole reaches with a unit of a random rotation of the top match's layer. A mutual best match above it is a <em>sister</em>: a candidate for the same feature. A badge gives the verdict of a <em>sister study</em>, which audits the match with this pole's explanation, unchanged. Reported, not gated.
-      </p>
+    <div class="mt-6" data-pagefind-ignore>
+    {% call fold("Sister neurons", level=2) %}
+      <p class="max-w-3xl text-xs text-slate-500">Poles of other models whose activity correlates best with this pole's. A <em>sister</em> is a mutual best match above the rotated baseline.</p>
+      {% call read_more() %}<p class="text-xs">From <code>open-interpretability sisters</code>. The models are compared where both have read the same text (where a token ends in both tokenizations), with first tokens left out. <em>Coverage</em> is the share of this model's tokens that pair. <em>r</em>: the Pearson correlation of the two poles' strengths. <em>Back</em>: the matched pole's best correlation with any pole of this model, with ✓ when that partner is this pole. <em>Rotated</em>: the best correlation this pole reaches with a unit of a random rotation of the top match's layer. A badge gives the verdict of a <em>sister study</em>, which audits the match with this pole's explanation, unchanged. Reported, not gated.</p>{% endcall %}
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         {% for p in sisters %}
         <div class="min-w-0 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
@@ -145,7 +145,8 @@
         </div>
         {% endfor %}
       </div>
-    </section>
+    {% endcall %}
+    </div>
     {% endif %}
   </header>
 
