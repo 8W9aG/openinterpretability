@@ -29,8 +29,6 @@ openinterpretability/builder/feeds.py::feed
 openinterpretability/builder/learned_baseline.py::_comparison
 openinterpretability/builder/pieces.py::_layer_cells
 openinterpretability/builder/pii.py::_scrub_attribution
-openinterpretability/builder/research.py::_read_paper
-openinterpretability/builder/research_feeds.py::_feed
 openinterpretability/builder/sister_graph.py::_panel
 openinterpretability/builder/stopped.py::add_stopped
 openinterpretability/builder/tree.py::_add_experiment

@@ -32,9 +32,12 @@ def _feeds(*posts: Entry, papers=()) -> dict:
 def poster():
     sent: list[str] = []
 
-    def post(text: str) -> str:
+    def post(text: str, media=None) -> str:
         sent.append(text)
+        post.media.append(media)  # type: ignore[attr-defined]
         return str(len(sent))
+
+    post.media = []  # type: ignore[attr-defined]
 
     post.sent = sent  # type: ignore[attr-defined]
     return post
@@ -108,6 +111,8 @@ class SimpleStatus:
 class SimplePaper:
     def __init__(self, title, summary, href, status):
         self.title, self.summary, self.href, self.status = title, summary, href, status
+        self.social_image = self.social_video = None
+        self.hero_alt = ""
 
 
 def test_a_preprint_waits_and_is_posted_once_published(tmp_path, poster):

@@ -11,6 +11,7 @@ from the repository, never the clock, so an unchanged repository rebuilds them b
 
 from __future__ import annotations
 
+import posixpath
 import subprocess
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -31,10 +32,10 @@ def _feed(
     title: str,
     path: str,
     site_url: str,
-    entries: list[tuple[str, str, str, str]],
+    entries: list[tuple],
     index: str = "research/index.html",
 ) -> str:
-    """An Atom feed of ``entries``, each (updated, title, href, summary), newest first.
+    """An Atom feed of ``entries``, each (updated, title, href, summary[, media]), newest first.
 
     Args:
         title: The feed's title.
@@ -48,11 +49,17 @@ def _feed(
     """
     entries = sorted(entries, key=lambda e: (e[0], e[2]), reverse=True)
     body = []
-    for updated, name, href, summary in entries:
+    for updated, name, href, summary, *media in entries:
         url = escape(site_url + href)
+        enclosure = ""
+        if media and media[0]:  # (path, type, alt) of the drawn head figure (#5534)
+            path, kind, alt = media[0]
+            title = escape(alt, {'"': "&quot;"})
+            enclosure = (f'    <link rel="enclosure" href="{escape(site_url + path)}" '
+                         f'type="{kind}" title="{title}"/>\n')  # fmt: skip
         body.append(
             f"  <entry>\n    <title>{escape(name)}</title>\n"
-            f'    <link href="{url}"/>\n    <id>{url}</id>\n'
+            f'    <link href="{url}"/>\n{enclosure}    <id>{url}</id>\n'
             f"    <updated>{updated}</updated>\n"
             f"    <summary>{escape(summary)}</summary>\n"
             "  </entry>\n"
@@ -68,6 +75,33 @@ def _feed(
         f"  <updated>{entries[0][0] if entries else NO_DATE}</updated>\n"
         f"{''.join(body)}</feed>\n"
     )
+
+
+def media(section: str, item) -> tuple[str, str, str] | None:
+    """The drawn head figure of a paper or post: its site path, its type and its alt text.
+
+    The video when the figure animates, else the still image, else None (#5534).
+
+    Args:
+        section: The site folder: ``research`` or ``posts``.
+        item: The :class:`~openinterpretability.builder.research.Paper`.
+
+    Returns:
+        ``(path, type, alt)``, or None when nothing was drawn.
+
+    Examples:
+        >>> from types import SimpleNamespace as Paper
+        >>> item = Paper(href="p/index.html", social_video=None, social_image="media/social.png",
+        ...              hero_alt="A curve")
+        >>> media("research", item)
+        ('research/p/media/social.png', 'image/png', 'A curve')
+    """
+    folder = posixpath.dirname(item.href)
+    if item.social_video:
+        return f"{section}/{folder}/{item.social_video}", "video/mp4", item.hero_alt
+    if item.social_image:
+        return f"{section}/{folder}/{item.social_image}", "image/png", item.hero_alt
+    return None
 
 
 def papers_feed(papers: Sequence, site_url: str, site_title: str) -> str:
@@ -86,7 +120,8 @@ def published_feed(papers: Sequence, site_url: str, site_title: str) -> str:
     A preprint is left out, so a paper enters this feed on the day it is published.
     """
     entries = [
-        (f"{p.status.published}T00:00:00Z", p.title, f"research/{p.href}", p.summary)
+        (f"{p.status.published}T00:00:00Z", p.title, f"research/{p.href}", p.summary,
+         media("research", p))
         for p in papers if p.status is not None and not p.status.preprint
     ]  # fmt: skip
     return _feed(f"{site_title}: published papers", PUBLISHED_FEED, site_url, entries)
@@ -104,14 +139,15 @@ def posts_feed(posts: Sequence, site_url: str, site_title: str) -> str:
         The feed's XML.
 
     >>> from types import SimpleNamespace as Post
-    >>> post = Post(published="2026-11-20", title="Hello", href="hello/index.html", summary="Hi.")
+    >>> post = Post(published="2026-11-20", title="Hello", href="hello/index.html", summary="Hi.",
+    ...             social_image=None, social_video=None, hero_alt="")
     >>> xml = posts_feed([post], "https://example.org/", "Site")
     >>> "<updated>2026-11-20T00:00:00Z</updated>" in xml, "example.org/posts/index.html" in xml
     (True, True)
     """
     entries = [
         (f"{p.published}T00:00:00Z" if p.published else NO_DATE, p.title,
-         f"posts/{p.href}", p.summary)
+         f"posts/{p.href}", p.summary, media("posts", p))
         for p in posts
     ]  # fmt: skip
     return _feed(f"{site_title}: posts", POSTS_FEED, site_url, entries, "posts/index.html")

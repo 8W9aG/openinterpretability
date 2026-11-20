@@ -20,7 +20,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from openinterpretability.social.feed import Entry
+from openinterpretability.social.feed import Entry, Media
 from openinterpretability.social.message import paper_post, site_post
 
 PER_DAY = 15
@@ -102,26 +102,27 @@ def save_state(path: Path, state: State) -> None:
     Path(path).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
 
 
-def planned(state: State, feeds: dict[str, list[Entry]]) -> list[tuple[str, str]]:
-    r"""Each post to make, with the id it covers: papers first, then site posts.
+def planned(state: State, feeds: dict[str, list[Entry]]) -> list[tuple[str, str, Media | None]]:
+    r"""Each post to make, with the id it covers and its media: papers first, then site posts.
 
     Args:
         state: What was posted or seen already.
         feeds: Each feed's entries, by name (a key of :data:`MESSAGES`).
 
     Returns:
-        One ``(id, text)`` pair per post.
+        One ``(id, text, media)`` per post. ``media`` is the drawn head figure, or None.
 
     Examples:
         >>> post = Entry("p1", "Hello", "https://x.org/p", "The first post.")
         >>> planned(State({"old"}), {"posts": [post]})
-        [('p1', 'Hello\n\nThe first post.\nhttps://x.org/p')]
+        [('p1', 'Hello\n\nThe first post.\nhttps://x.org/p', None)]
     """
-    return [(e.id, MESSAGES[name](e)) for name in MESSAGES for e in feeds.get(name, [])
+    return [(e.id, MESSAGES[name](e), e.media) for name in MESSAGES for e in feeds.get(name, [])
             if e.id not in state.posted]  # fmt: skip
 
 
-def run(state_path: Path, feeds: dict[str, list[Entry]], post: Callable[[str], str] | None,
+def run(state_path: Path, feeds: dict[str, list[Entry]],
+        post: Callable[[str, Media | None], str] | None,
         now: float, repost: frozenset[str] = frozenset()) -> list[str]:  # fmt: skip
     """Post what is new and record it; return a line per action.
 
@@ -133,7 +134,8 @@ def run(state_path: Path, feeds: dict[str, list[Entry]], post: Callable[[str], s
     Args:
         state_path: The state's JSON file. With none yet, every entry is recorded as seen.
         feeds: Each feed's entries, by name: ``papers`` and ``posts``.
-        post: A function that posts a text and returns its id, or None for a dry run.
+        post: A function that posts a text with its media (or None) and returns the post's
+            id, or None for a dry run.
         now: The time in seconds, for the daily limit.
         repost: The ids of entries to post although the state has them.
 
@@ -144,13 +146,13 @@ def run(state_path: Path, feeds: dict[str, list[Entry]], post: Callable[[str], s
         >>> import tempfile
         >>> path = Path(tempfile.mkdtemp()) / "x.json"
         >>> paper = Entry("p1", "A bracket neuron", "https://x.org/p", "It reads brackets.")
-        >>> run(path, {"papers": [paper]}, lambda text: "42", now=0)  # the first run
+        >>> run(path, {"papers": [paper]}, lambda text, media: "42", now=0)  # the first run
         ['seeded 1 entries; posted nothing']
         >>> new = Entry("s1", "Hello", "https://x.org/s", "The first post.")
-        >>> run(path, {"papers": [paper], "posts": [new]}, lambda text: "43", now=10)
+        >>> run(path, {"papers": [paper], "posts": [new]}, lambda text, media: "43", now=10)
         ['seeded 1 entries of the new feed posts; posted nothing', 'nothing new']
         >>> newer = Entry("s2", "Again", "https://x.org/t", "The second post.")
-        >>> run(path, {"papers": [paper], "posts": [newer, new]}, lambda text: "44", now=20)
+        >>> run(path, {"papers": [paper], "posts": [newer, new]}, lambda text, media: "44", now=20)
         ['posted 44: Again']
     """
     entries = [e for found in feeds.values() for e in found]
@@ -171,7 +173,7 @@ def run(state_path: Path, feeds: dict[str, list[Entry]], post: Callable[[str], s
     state.posted -= repost  # in memory only: the state saves an id again once it posts
     budget = PER_DAY - sum(1 for t in state.times if now - t < DAY)
     count = 0
-    for entry_id, text in planned(state, feeds):
+    for entry_id, text, media in planned(state, feeds):
         if budget <= 0:
             lines.append("daily limit reached; the rest posts on a later run")
             break
@@ -180,7 +182,7 @@ def run(state_path: Path, feeds: dict[str, list[Entry]], post: Callable[[str], s
         if post is None:
             lines.append(f"would post:\n{text}")
             continue
-        lines.append(f"posted {post(text)}: {text.splitlines()[0]}")
+        lines.append(f"posted {post(text, media)}: {text.splitlines()[0]}")
         state.posted.add(entry_id)
         state.times.append(now)
         save_state(state_path, state)  # after each post, so a later failure loses nothing

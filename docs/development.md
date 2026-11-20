@@ -196,6 +196,7 @@ After a deploy, `open-interpretability social post` posts each new published pap
 - **New means unseen.** The Actions cache keeps the id of each entry posted or seen, and the feeds it has seen. The first run with no cache records every entry and posts nothing. A feed that the state hasn't seen does the same, so adding a feed posts nothing old.
 - **Limits.** At most 15 posts go out in 24 hours, under the free tier's lower published limit. The rest posts on a later run.
 - **Screened.** Each post passes the same personal-data screen as the site's pages.
+- **The head figure.** A post carries its paper's or post's head figure: the video when the figure animates, else the image (#5534). `scripts/social_images.py` draws them from the SVG into `media/social.png` and `media/social.mp4`, and the feeds link them. A failed upload posts the text alone and prints why.
 - **Never fails the deploy.** The step has `continue-on-error`.
 
 `--dry-run` prints the posts and changes no state. `--preview N` prints the posts of the newest N entries of each feed.
