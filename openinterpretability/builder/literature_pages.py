@@ -89,9 +89,13 @@ def map_text(path: Path) -> str | None:
 
 
 def review_rows(folder: Path) -> dict[str, tuple[str, str]]:
-    """Each review's (status, reason) from the index table of ``folder``."""
+    """Each review's (status, reason) from the index table of ``folder``.
+
+    The text passes :func:`redact_text`, as the index page does, because the map and the
+    literature feed publish these reasons too.
+    """
     index = folder / "README.md"
-    text = index.read_text(encoding="utf-8") if index.exists() else ""
+    text = redact_text(index.read_text(encoding="utf-8")) if index.exists() else ""
     return {name: (status.strip(), why.strip()) for name, status, why in _ROW.findall(text)}
 
 
@@ -104,9 +108,10 @@ _CREDIT = re.compile(r"^\| \[[^\]]*\]\(([\w-]+)\.md\) \(([^|]+?)\) \|", re.M)
 
 
 def credits(folder: Path) -> dict[str, str]:
-    """Each review's "Authors, year", from the index table, for the map's cards."""
+    """Each review's "Authors, year", from the index table, for the map's cards (redacted)."""
     index = folder / "README.md"
-    return dict(_CREDIT.findall(index.read_text(encoding="utf-8"))) if index.exists() else {}
+    text = redact_text(index.read_text(encoding="utf-8")) if index.exists() else ""
+    return dict(_CREDIT.findall(text))
 
 
 def sections(folder: Path) -> dict[str, str]:
