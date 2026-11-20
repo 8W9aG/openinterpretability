@@ -43,7 +43,19 @@ def _entries(path: Path | None) -> list:
     help="Print the posts of the newest N entries of each feed, whatever the state.",
 )
 def post_command(experiments, papers, state, site, dry_run, preview) -> None:
-    """Post each new entry of the feeds once, within the per-run and daily limits."""
+    """Post each new entry of the feeds once, within the per-run and daily limits.
+
+    Args:
+        experiments: The feed of VERIFIED experiments.
+        papers: The feed of published papers.
+        state: The JSON file of the ids posted or seen so far.
+        site: The link for a digest post, or None for the site's own.
+        dry_run: Print the posts, and post nothing.
+        preview: Print the posts of this many newest entries of each feed, or 0.
+
+    Raises:
+        click.ClickException: When a post fails, for example on an HTTP or network error.
+    """
     from openinterpretability.core.project import site_url
     from openinterpretability.social.message import experiment_post, length, paper_post
     from openinterpretability.social.poster import XPoster, keys_from_env

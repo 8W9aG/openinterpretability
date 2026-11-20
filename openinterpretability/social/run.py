@@ -42,6 +42,9 @@ def load_state(path: Path) -> State | None:
     Args:
         path: The state's JSON file.
 
+    Returns:
+        The state, or None when the file doesn't exist.
+
     Examples:
         >>> import tempfile
         >>> path = Path(tempfile.mkdtemp()) / "x.json"
@@ -94,6 +97,9 @@ def planned(state: State, experiments: list[Entry], papers: list[Entry],
         papers: The published papers' feed entries.
         site: The site's link, for a digest post.
 
+    Returns:
+        One ``(ids, text)`` pair per post, papers first. Many new units give one digest.
+
     Examples:
         >>> unit = Entry("u1", "gpt2/L1/N5-positive VERIFIED", "https://x.org/u", "Fires.")
         >>> planned(State({"old"}), [unit], [], "https://x.org/")
@@ -121,6 +127,9 @@ def run(state_path: Path, experiments: list[Entry], papers: list[Entry], site: s
         site: The site's link, for a digest post.
         post: A function that posts a text and returns its id, or None for a dry run.
         now: The time in seconds, for the daily limit.
+
+    Returns:
+        One line per action, such as ``posted <id>: <first line>``, or ``["nothing new"]``.
 
     Examples:
         >>> import tempfile

@@ -231,6 +231,9 @@ ignore = ["D105", "D107", "D301", "S311", "S603", "S607"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+# D417 checks an Args: section that exists. scripts/check_docstring_args.py requires one,
+# and scripts/check_docstring_sections.py requires Returns:, Yields: and Raises: (#3938,
+# #5361). Ruff's preview DOC rules stay off: they need preview for the whole linter.
 
 [tool.ruff.lint.per-file-ignores]
 # Tests need no docstrings (D1): a test's name says what it checks, and a docstring that
