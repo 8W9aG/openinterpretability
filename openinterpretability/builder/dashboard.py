@@ -31,6 +31,13 @@ DAILY_BINS = 120  # above this many days, the timeline bins by week (Monday to S
 TIME_LABELS = 6  # x-axis labels on the timeline, at most
 
 
+# The viewBox width of the timeline and model-bars charts (#4587). They span the page's
+# content width, about 1,120 px (max-w-6xl less its padding). The old 640-wide charts drew
+# at 768 px, a scale of 1.2. At 930 wide they keep that scale at the full width, so their
+# height and label size stay as before.
+CHART_WIDTH = 930
+
+
 def dashboard(rows: list[dict], models) -> dict | None:
     """All three charts of the dashboard, or ``None`` when there are no verdicts."""
     if not rows:
@@ -98,7 +105,7 @@ def _plural(n: int) -> str:
     return f"{n} experiment{'s' if n != 1 else ''}"
 
 
-def timeline(rows: list[dict], width: int = 640) -> dict:
+def timeline(rows: list[dict], width: int = CHART_WIDTH) -> dict:
     """Two panels on one time axis: experiments per bin, and the VERIFIED share to date."""
     bins = _bins(rows)
     weekly = len(bins) > 1 and (bins[1][0] - bins[0][0]).days == 7
@@ -166,7 +173,7 @@ def _ordered_models(rows: list[dict], models) -> list[str]:
     return order + sorted(present - set(order))
 
 
-def model_bars(rows: list[dict], models, width: int = 640) -> dict:
+def model_bars(rows: list[dict], models, width: int = CHART_WIDTH) -> dict:
     """One horizontal bar per model, its length the experiment count, stacked by verdict."""
     totals: dict[str, Counter] = defaultdict(Counter)
     for r in rows:

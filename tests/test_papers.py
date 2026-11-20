@@ -125,3 +125,42 @@ def _prose(paper: str) -> str:
 def test_maths_is_written_in_latex(paper):
     found = [line.strip()[:80] for line in _prose(paper).splitlines() if UNICODE_MATHS.search(line)]
     assert not found, f"write these in LaTeX ($...$): {found}"
+
+
+def _cited_works():
+    import importlib.util
+    import sys
+
+    path = PAPERS.parent / "scripts" / "cited_works.py"
+    spec = importlib.util.spec_from_file_location("cited_works", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["cited_works"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_every_cited_work_has_a_review_page_or_waits_for_one():
+    # #5346: a cited paper needs a page in docs/literature/, or a line in the awaiting list.
+    assert _cited_works().problems() == []
+
+
+def test_a_new_uncovered_reference_and_a_stale_line_both_fail(tmp_path):
+    works = _cited_works()
+    papers, literature = tmp_path / "papers", tmp_path / "literature"
+    (papers / "p").mkdir(parents=True)
+    literature.mkdir()
+    (papers / "p" / "README.md").write_text(
+        "# P\n\n## References\n\n"
+        "- A, B. (2020). *Covered*. [arXiv:2001.00001](https://arxiv.org/abs/2001.00001).\n"
+        "- C, D. (2021). *Waiting*. [arXiv:2101.00002](https://arxiv.org/abs/2101.00002).\n"
+        "- E, F. (2022). *New*. [doi](https://doi.org/10.1/abc).\n"
+    )
+    (literature / "covered.md").write_text("# Covered\n\n**Citation.** [arXiv:2001.00001](x).\n")
+    awaiting = tmp_path / "awaiting.txt"
+    awaiting.write_text("# comment\n2101.00002 #1\n2001.00001 #2\n9999.99999 #3\n")
+    found = works.problems(papers, literature, awaiting)
+    assert found == [
+        "p: 10.1/abc has no page in docs/literature/ and no line in awaiting.txt",
+        "awaiting.txt: 2001.00001 has a page now; delete its line",
+        "awaiting.txt: 9999.99999 is cited by no paper; delete its line",
+    ]
