@@ -5,6 +5,10 @@ title: A bracket neuron in GPT-2, and the label that hid it
 authors:
 - name: Open Interpretability
 date-released: '2026-11-06'
-version: preprint
+version: '1.0'
 url: https://open-interpretability.com/research/syntax-positive-controls/index.html
 repository-code: https://github.com/8W9aG/openinterpretability
+identifiers:
+- type: other
+  value: sha256:db419259d6a729ce5995b7f704297d0eab744473056228ed866a2cd4e4fd8898
+  description: SHA-256 of the published text above its addenda, and of its results files
