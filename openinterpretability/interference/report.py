@@ -28,6 +28,14 @@ from openinterpretability.interference import behaviour, keep, units
 TOL = 1e-6  # how far above a floor a measure must be to count
 
 
+def say(message: str) -> None:
+    """One progress line on stderr, with the time, so a long report can be followed."""
+    import sys
+    import time
+
+    print(f"{time.strftime('%H:%M:%S')} interference: {message}", file=sys.stderr, flush=True)
+
+
 def studied(wiki_dir: Path, model: str) -> set[tuple[int, int]]:
     """Each (layer, neuron) with an experiment in the registry."""
     from openinterpretability.core.identifiers import model_slug
@@ -80,6 +88,7 @@ def _keep(sides: dict, records: list, batches) -> dict[str, dict]:
             ident = record.submission.identifier
             j = neurons.index(ident.neuron_idx)
             top = keep.pole_max(cols["base"][:, j], ident.pole)
+            say(f"keep test {len(out) + 1}/{len(records)}: {ident.slug}")
             row = {}
             for name, side in sides.items():
                 ratio = keep.pole_max(cols[name][:, j], ident.pole) / top if top > 0 else 1.0

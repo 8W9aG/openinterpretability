@@ -61,6 +61,10 @@ jobs:
     runs-on: ubuntu-latest
     # The suite takes a few minutes. A hung step fails here, not at GitHub's 6-hour limit.
     timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read  # the PR's closing issues, for the paper status step (#5395)
+      issues: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -82,11 +86,23 @@ jobs:
           ruff format --check .
           python scripts/check_line_limit.py
           python scripts/check_step_comments.py
+          python scripts/check_body_comments.py
           python scripts/check_data_files.py
           python scripts/exchange.py check
           python scripts/changelog.py check
           interrogate openinterpretability
           python scripts/check_markdown.py
+      - name: Paper status lines name no issue this PR closes (#5395)
+        # A preprint's status line lists open issues as work left. A PR that closes one of
+        # them must update the line, or publish the paper, in the same PR.
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          closing=$(gh pr view "$PR" --json closingIssuesReferences \
+            --jq '[.closingIssuesReferences[].number] | join(",")')
+          python scripts/papers.py check --closing "$closing"
       - name: Types (mypy, strict, on [tool.mypy] files)
         run: mypy
       - name: Shell scripts (ShellCheck)

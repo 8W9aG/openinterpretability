@@ -94,3 +94,27 @@ jobs:
           else
             gh issue create --title "$TITLE" --body-file issue.md
           fi
+
+  paper-status:
+    name: Paper status lines name only open issues
+    # A preprint's status line lists open issues as work left (#5395). CI on a pull request
+    # catches an issue that the PR closes. This catches one closed by hand or from Linear.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Every issue on a status line is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/papers.py check --online
