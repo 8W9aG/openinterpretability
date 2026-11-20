@@ -1,0 +1,7 @@
+# APA 7 §8.17: "et al." is an abbreviation, so it takes a full stop.
+extends: existence
+message: "Write 'et al.' with a full stop."
+level: error
+nonword: true
+raw:
+  - '\bet al\b(?!\.)'

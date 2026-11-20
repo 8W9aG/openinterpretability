@@ -83,7 +83,7 @@ def activations(
     Reads the layer's cached scan when there is one, else scans and caches the layer.
     An audit of any neuron in the layer, with the same corpus options, stores that scan.
     Each token counts once, as in the audit's histogram. Use this rather than writing
-    a scan loop: e.g. every occurrence of a token with --token ' the' --top 0.
+    a scan loop: for example every occurrence of a token with --token ' the' --top 0.
     """
     from openinterpretability.cli import _load_runner
     from openinterpretability.harness.scan import cut_pieces

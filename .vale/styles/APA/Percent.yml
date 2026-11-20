@@ -1,0 +1,7 @@
+# APA 7 §6.44: after a numeral, write the symbol "%", not the word "percent".
+extends: existence
+message: "Write '%%' after a numeral, not 'percent'."
+level: error
+nonword: true
+raw:
+  - '\b\d+(?:\.\d+)? percent\b'

@@ -126,7 +126,7 @@ def placement(package: Path) -> float | None:
     ct.utils.compile_model(str(package), str(compiled))
     try:
         plan = MLComputePlan.load_from_path(str(compiled), compute_units=ct.ComputeUnit.CPU_AND_NE)
-    except RuntimeError:  # e.g. error -7: Core ML can't build the plan
+    except RuntimeError:  # for example error -7: Core ML can't build the plan
         return None
     where = Counter()
     for op in plan.model_structure.program.functions["main"].block.operations:
@@ -176,7 +176,7 @@ def measure(module: FromEmbeddings, half: FromEmbeddings, neuron: int, emb: torc
         try:
             got, ms = on_core_ml(work / "grad.mlpackage", emb, unit, ref.shape)
             row[unit] = {**compare(ref, got), "ms": ms}
-        except Exception as exc:  # e.g. the ANE can't build the plan
+        except Exception as exc:  # for example the ANE can't build the plan
             row[unit] = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
     return row
 
