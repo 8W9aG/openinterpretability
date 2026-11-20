@@ -33,6 +33,38 @@ def token_kl(first, second, batches: list[torch.Tensor]) -> float:
     return total / max(count, 1)
 
 
+def _open_mask(value: torch.Tensor, shape: torch.Size) -> torch.Tensor:
+    """Where a gate's output is above one half, as a mask of ``shape``, first tokens left out."""
+    if value.dim() == 0:
+        return torch.full(shape, bool(value > 0.5))
+    return (value.expand(shape[0], -1)[:, 1:] > 0.5).expand(shape)
+
+
+@torch.no_grad()
+def gated_kl(base, changed, batches: list[torch.Tensor]) -> dict[str, dict]:
+    """Local scope: for each gate, the KL on tokens where it opens and where it stays shut.
+
+    A gate is open on a token when its output is above one half there.
+    """
+    sums: dict[str, list[float]] = {}  # open KL, shut KL, open tokens, shut tokens
+    for batch in batches:
+        p = _log_probs(base, batch)[:, 1:]
+        seen: list = []
+        with changed.entered(observe=seen) as runner:
+            logits = runner.model(input_ids=batch.to(runner.device)).logits
+        q = torch.log_softmax(logits.float(), dim=-1).cpu()[:, 1:]
+        kl = (p.exp() * (p - q)).sum(-1)
+        for ref, value in (seen[-1] if seen else {}).items():
+            mask = _open_mask(value, kl.shape)
+            s = sums.setdefault(ref, [0.0, 0.0, 0, 0])
+            s[0] += float(kl[mask].sum())
+            s[1] += float(kl[~mask].sum())
+            s[2] += int(mask.sum())
+            s[3] += int((~mask).sum())
+    return {ref: {"open_kl": s[0] / max(s[2], 1), "shut_kl": s[1] / max(s[3], 1),
+                  "open_share": s[2] / max(s[2] + s[3], 1)} for ref, s in sums.items()}  # fmt: skip
+
+
 def explained_prompts(wiki_dir: Path, model: str) -> list[dict]:
     """Each explained prompt of ``model``: its prompt, position and answer token id."""
     from openinterpretability.core.explanation_records import load_all

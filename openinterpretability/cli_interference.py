@@ -55,19 +55,26 @@ def interference_command(model_name, changed, out, corpus, tokens, patch_ref, ev
     Give exactly one of ``--changed`` and ``--patch``. With ``--patch`` and
     ``--evidence-out``, the summary is also written for ``patch seal --evidence keep=...``.
     """
-    from openinterpretability.interference import behaviour, keep, report
-    from openinterpretability.interference.run import run
+    from openinterpretability.evidence import read_corpus
+    from openinterpretability.interference import behaviour, keep, report, routes
+    from openinterpretability.interference.run import Inputs, compact, run
 
     if (changed is None) == (patch_ref is None):
         raise click.UsageError("give exactly one of --changed and --patch")
     target = patch_target(patch_ref, evidence_out, wiki_dir, model_name) if patch_ref else None
     base = _load_runner(model_name, device, dtype)
     sides, direct = _sides(base, changed, target, device, dtype)
-    records = keep.verified_records(Path(wiki_dir), model_name)
-    batches = keep.sample_windows(base.tokenizer, tokens, corpus)
-    prompts = behaviour.explained_prompts(Path(wiki_dir), model_name)
-    known = report.studied(Path(wiki_dir), model_name)
-    rows = run(sides, records, batches, prompts, base.n_layers, known, direct)
+    wiki = Path(wiki_dir)
+    given = Inputs(
+        records=keep.verified_records(wiki, model_name),
+        batches=keep.sample_windows(base.tokenizer, tokens, corpus),
+        prompts=behaviour.explained_prompts(wiki, model_name), n_layers=base.n_layers,
+        known=report.studied(wiki, model_name), direct=direct,
+        answers=routes.answer_records(wiki, model_name),
+        explanations=routes.explanation_records(wiki, model_name),
+        texts=read_corpus(corpus)[0], means_tokens=tokens, key=model_name,
+    )  # fmt: skip
+    rows = compact(run(sides, given))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
     if evidence_out is not None:

@@ -59,6 +59,9 @@ def activation_stats(first, second, batches: list[torch.Tensor], n_layers: int) 
     stats = Stats()
     for start in range(0, n_layers, LAYERS_AT_ONCE):
         layers = list(range(start, min(start + LAYERS_AT_ONCE, n_layers)))
+        from openinterpretability.interference.report import say
+
+        say(f"activations of layers {layers[0]}–{layers[-1]} of {n_layers}, {second.name}")
         tokens = 0
         for batch in batches:
             a, b = _acts(first, batch, layers), _acts(second, batch, layers)

@@ -49,12 +49,17 @@ class Patched:
                 if op.type == "gate" else op) for ref, op in self.ops]  # fmt: skip
         return Patched(self.runner, ops, self.name, self.root)
 
+    @property
+    def gated(self) -> bool:
+        """Whether any op of the patch is gated."""
+        return any(op.gate for _, op in self.ops)
+
     @contextmanager
-    def entered(self):
+    def entered(self, observe: list | None = None):
         """The runner with the patch applied, which comes off again afterwards."""
         from openinterpretability.patches.apply import applied
 
-        with applied(self.runner.model, self.ops, root=self.root):
+        with applied(self.runner.model, self.ops, root=self.root, observe=observe):
             yield self.runner
 
 
@@ -96,21 +101,34 @@ class Perturbed:
 
     def __init__(self, runner, other, name: str):
         self.runner, self.other, self.name = runner, other, name
+        self._noise: dict[str, torch.Tensor] | None = None
+        self._saved: dict[str, torch.Tensor] = {}
+
+    def _prepare(self) -> None:
+        """Draw the noise and copy the weights once, on first use.
+
+        The report enters this side once per batch and once per layer. Drawing the noise
+        for every weight each time took most of a run (#5230).
+        """
+        generator = torch.Generator().manual_seed(SEED)
+        theirs = dict(self.other.model.named_parameters())
+        self._noise = {}
+        for name, weight in self.runner.model.named_parameters():
+            change = theirs[name].detach().float().cpu() - weight.detach().float().cpu()
+            self._saved[name] = weight.detach().cpu().clone()
+            self._noise[name] = _noise_like(change, generator).to(weight.dtype)
 
     @contextmanager
     def entered(self):
-        """The perturbed runner; each weight is restored from a copy afterwards."""
-        generator = torch.Generator().manual_seed(SEED)
-        theirs = dict(self.other.model.named_parameters())
-        saved = {}
+        """The perturbed runner; each weight is restored from its copy afterwards."""
+        if self._noise is None:
+            self._prepare()
         with torch.no_grad():
             for name, weight in self.runner.model.named_parameters():
-                change = theirs[name].detach().float().cpu() - weight.detach().float().cpu()
-                saved[name] = weight.detach().cpu().clone()
-                weight.add_(_noise_like(change, generator).to(weight.device, weight.dtype))
+                weight.add_(self._noise[name].to(weight.device))
         try:
             yield self.runner
         finally:
             with torch.no_grad():
                 for name, weight in self.runner.model.named_parameters():
-                    weight.copy_(saved[name].to(weight.device))
+                    weight.copy_(self._saved[name].to(weight.device))
