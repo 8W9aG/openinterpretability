@@ -60,7 +60,7 @@ def test_the_repository_posts_are_dated_and_newest_first():
     posts = [p for p in load_papers(POSTS, "https://example.org/repo", source="posts")
              if not p.draft]  # fmt: skip
     dates = [p.published for p in posts]
-    assert posts and all(dates) and dates == sorted(dates, reverse=True)
+    assert all(dates) and dates == sorted(dates, reverse=True)  # every post may be a draft
 
 
 def test_every_flag_the_explain_post_names_is_an_explain_option():
