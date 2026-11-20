@@ -15,6 +15,10 @@
   .paper table { display: block; max-width: 100%; overflow-x: auto; margin: 1rem 0; border-collapse: collapse; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
   .paper th, .paper td { padding: 0.3rem 0.6rem; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }
   .paper td:first-child { white-space: normal; min-width: 7rem; }
+  /* Long text, marked by research._mark_long_cells (#5570), wraps. A table squeezes a cell below
+     its min-width or width, so an empty block 14rem wide inside the cell sets its least width. */
+  .paper td.wrap, .paper th.wrap { white-space: normal; }
+  .paper td.wrap::before, .paper th.wrap::before { content: ""; display: block; width: 14rem; }
   .paper th { font-weight: 600; }
   /* LaTeX maths, typeset as MathML (builder/maths.py, #4211). It takes the text colour, so
      it reads in both themes. A wide display equation scrolls in its own box at phone width. */

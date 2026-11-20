@@ -64,6 +64,27 @@ def paper_status(text: str) -> PaperStatus | None:
 _ENTRY = re.compile(r"^- (?:(\d{4}-\d{2}-\d{2}|Draft): )?\[[^\]]*\]\(([\w-]+)/README\.md\)", re.M)
 DRAFT = "Draft"  # the marker in place of a date
 _MARKDOWN = enable_maths(MarkdownIt("commonmark", {"html": False}).enable("table"))
+LONG_CELL = 40  # characters: a longer table cell is text, which may wrap (_prose.html, #5570)
+
+
+def _mark_long_cells(state) -> None:
+    """Give each table cell with more than :data:`LONG_CELL` characters the class ``wrap``.
+
+    Prose tables keep cells on one line, so numbers and short values line up. A long cell is
+    text, such as a literature table's reason, and ``_prose.html`` lets it wrap. CSS can't
+    measure a cell's text, so the Markdown step marks it, for every page that this parser
+    renders.
+
+    Args:
+        state: markdown-it's core state, whose tokens are changed in place.
+    """
+    tokens = state.tokens
+    for i, token in enumerate(tokens[:-1]):
+        if token.type in ("td_open", "th_open") and len(tokens[i + 1].content) > LONG_CELL:
+            token.attrJoin("class", "wrap")
+
+
+_MARKDOWN.core.ruler.push("long_cells", _mark_long_cells)
 
 
 @dataclass(frozen=True)
