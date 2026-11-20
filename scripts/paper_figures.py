@@ -10,6 +10,7 @@ import json
 import sys
 from pathlib import Path
 
+import figures_concept_space
 import figures_copy_first_unit
 import figures_default_on
 import figures_default_on_decoding
@@ -57,6 +58,7 @@ def build_all() -> dict[str, str]:
             "decoding.svg": figures_default_on_decoding.decoding(poles),
             "ridges.svg": figures_depth.ridges(poles, dip),
         },
+        "shared-concept-space": figures_concept_space.build(_rows("shared-concept-space")),
         "copy-first-unit": figures_copy_first_unit.build(
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),

@@ -140,23 +140,28 @@ def render_models(render, models, facts: dict, render_model, draws=()) -> None:
     from openinterpretability.builder.stopped import explore_focus
 
     explore = explore_focus(models, draws)  # proven dead counts as verified, as on the home page
-    render("models/index.html", "models.html", rows=rows, models=models, explore=explore)
+    atlas = render.common["concept_atlas"](models) if "concept_atlas" in render.common else None
+    render("models/index.html", "models.html", rows=rows, models=models, explore=explore,
+           atlas=atlas is not None)  # fmt: skip
+    if atlas is not None:  # every model's poles in the shared concept map (#4586)
+        render("models/atlas.html", "atlas.html", atlas=atlas)
 
 
 def model_page_extras(coverage_rows: dict, explanations, circuits: dict | None = None,
-                      concept_maps: dict | None = None) -> dict:  # fmt: skip
+                      concept_map: dict | None = None) -> dict:  # fmt: skip
     """What the model pages show besides the tree, for the site context.
 
     ``coverage`` is each model's registry coverage (#3837). ``explanations_by_model`` is
     each model's explanations (#4206). Both are keyed by model name. ``circuit_data`` is
     each model's registry circuits and hub norms (#4287), keyed by model slug.
-    ``concept_map`` gives a model node's concept map view, from ``concept_maps`` (#4422).
+    ``concept_map`` gives a model node's view of the shared concept map, and
+    ``concept_atlas`` the atlas's view of it (#4422, #4586).
     """
-    from openinterpretability.builder.concept_map_view import map_view
+    from openinterpretability.builder.concept_map_view import atlas_view, map_view
     from openinterpretability.builder.coverage import coverage_view
     from openinterpretability.builder.explanation_pages import by_model
 
-    maps = concept_maps or {}
     shown = {"coverage": coverage_view(coverage_rows),
-             "concept_map": lambda model: map_view(model, maps.get(model.name))}  # fmt: skip
+             "concept_map": lambda model: map_view(model, concept_map),
+             "concept_atlas": lambda models: atlas_view(models, concept_map)}  # fmt: skip
     return shown | {"explanations_by_model": by_model(explanations), "circuit_data": circuits or {}}
