@@ -75,11 +75,8 @@ def test_references_follow_apa(paper):
 # have any title, so only these fixed sections are checked. Others may stand between them.
 SECTIONS = ("Introduction", "Related work", "Method", "Discussion", "Limitations",
             "Conclusion", "References", "Appendices")  # fmt: skip
-# Papers written before #4202, each with the issue that rewrites it. Only shrink this list.
-OLD_FORM = {
-    "why-neurons-rest": 4250,
-}  # fmt: skip
-NEW_FORM = [paper for paper in WRITTEN if paper not in OLD_FORM]
+# Every written paper is in the new form (#4202): the last old-form paper was rewritten in #4250.
+NEW_FORM = WRITTEN
 
 
 def _headings(paper: str) -> list[str]:
@@ -98,13 +95,6 @@ def test_paper_has_the_sections_in_order(paper):
     assert "contribut" in intro.lower(), f"{paper}: list the contributions"
 
 
-@pytest.mark.parametrize("paper", sorted(OLD_FORM))
-def test_an_old_form_paper_is_still_in_the_old_form(paper):
-    """A rewritten paper leaves OLD_FORM, so its new form is checked (#4202)."""
-    assert (PAPERS / paper / "results.jsonl").exists(), f"{paper}: not a paper"
-    assert "Related work" not in _headings(paper), f"{paper}: rewritten, remove from OLD_FORM"
-
-
 @pytest.mark.parametrize("paper", NEW_FORM)
 def test_figures_and_tables_are_numbered_and_cited(paper):
     text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
@@ -113,19 +103,6 @@ def test_figures_and_tables_are_numbered_and_cited(paper):
         for n in range(1, count + 1):
             assert f"**{kind} {n}.**" in body, f"{paper}: caption {kind} {n}"
             assert body.count(f"{kind} {n}") >= 2, f"{paper}: cite {kind} {n} in the text"
-
-
-@pytest.mark.parametrize("paper", sorted(OLD_FORM))
-def test_paper_says_why_it_was_written_and_its_question(paper):
-    """Below its opening paragraph, a paper says why it was written and what it asks (#3138)."""
-    text = (PAPERS / paper / "README.md").read_text(encoding="utf-8")
-    top = text.split("\n## ", 1)[0]
-    # The status line under the abstract (#3150) doesn't count as a paragraph here.
-    paragraphs = [p for p in top.split("\n\n") if p.strip() and not p.startswith("**Status:**")]
-    why = [p for p in paragraphs if p.startswith("**Why we wrote it.**")]
-    assert why, f"{paper}: no '**Why we wrote it.**' paragraph before the first section"
-    assert "**The question.**" in why[0], f"{paper}: the why paragraph names no question"
-    assert paragraphs.index(why[0]) == 2, f"{paper}: put it right after the opening paragraph"
 
 
 # Maths written as Unicode text, outside code and LaTeX (write-paper skill, Mathematics, #4211).

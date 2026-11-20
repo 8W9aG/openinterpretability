@@ -2,7 +2,7 @@
 
 Do a model's own neurons explain it as well as a learned dictionary does? We compare them under one review protocol, one pair of agents and one audit per unit. On GPT-2 small, a transcoder latent that fires reaches VERIFIED 93% of the time, against 50% for a positive neuron pole. A third of the drawn latents never fire, and counting those, the shares are 61% against 50%. The agents read prompts of the same size in both arms, so the effort per audit was equal. Per layer, the comparison turns over. A GPT-2 layer has 24,576 latents and 3,072 positive poles. Auditing every live latent once would take about five times the audits, and would give about ten times the VERIFIED units. On Qwen2.5-0.5B, the native basis beats a random rotation of itself, 18 of 30 against 1 of 30. A decomposition of GPT-2's weights finds no basis better than the neurons. So the neurons are a privileged basis, and a learned dictionary splits them into narrower, easier units.
 
-**Status:** Preprint. Work left: #4247 (rewrite in the paper form of #4202), #3769 (one model, layer coverage and protocol 0.9).
+**Status:** Preprint. Work left: #3769 (one model, layer coverage and protocol 0.9).
 
 ## Introduction
 

@@ -117,7 +117,7 @@ The maintainer decided on 2026-11-17 that every paper is either a **preprint** o
   ```bash
   uv run python scripts/papers.py new <slug> --work "#N (what is left)."
   ```
-  This also writes its `CITATION.cff`. When an issue on the paper closes, take it off the line, and name any follow-up issue that changes the paper.
+  This also writes its `CITATION.cff`. When an issue on the paper closes, take it off the line in the PR that closes it. Name any follow-up issue that changes the paper. CI fails that PR if the line still names the issue (`scripts/papers.py check --closing`). A nightly run fails if a line names an issue closed some other way (`check --online`, #5395).
 - **Publish it when no work on it is left**, in the PR that closes its last issue:
   ```bash
   uv run python scripts/papers.py publish <slug>
