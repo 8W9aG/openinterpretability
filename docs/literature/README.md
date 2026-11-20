@@ -56,6 +56,7 @@ Status marks how the work relates to this repo:
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Efficient Streaming Language Models with Attention Sinks](attention-sinks.md) (Xiao, Tian, Chen et al., 2023) | used | Initial tokens draw attention whatever they mean, because softmax must put weight somewhere. The protocol calls the first token "the attention sink". The source didn't test GPT-2, so one preprint sentence now names the models it did test. |
 | [Finding Neurons in a Haystack: Case Studies with Sparse Probing](neurons-in-a-haystack.md) (Gurnee, Nanda, Pauly et al., 2023) | used | The method behind `sparse-probing-search`. Across seven Pythia sizes, code languages and facts become more local with scale, and some features split. At k = 1 the mean-difference probe reaches F1 0.832, against 0.573 for random neurons. |
 | [Intriguing Properties of Neural Networks](intriguing-properties.md) (Szegedy, Zaremba, Sutskever et al., 2014) | used | The claim that a random direction reads as well as a unit, judged by eye on 4 units and 4 directions per image model. The registry measures it. Our two quotes match. |
 | [Language Model Circuits Are Sparse in the Neuron Basis](neuron-basis-circuits.md) (Arora, Wu, Steinhardt and Schwettmann, 2026) | planned | Task circuits of about 10² MLP neurons, the protocol's unit, control Llama 3.1 8B's behaviour. Its RelP attribution is a candidate for our wiring and attribution selection (#3582). |
