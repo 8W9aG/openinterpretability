@@ -143,31 +143,6 @@
 </section>
 {% if pending %}{{ pending_table(pending, root) }}{% endif %}
 
-<section class="mb-10">
-  <h2 class="mb-1 text-lg font-semibold">Most conclusive results</h2>
-  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Strongest evidence in either direction, from every experiment.</p>
-  <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-        {% for r in stats.conclusive %}
-        <tr class="align-top hover:bg-slate-50 dark:hover:bg-slate-900">
-          <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">
-            <a class="text-brand-700 underline underline-offset-2 dark:text-brand-400" href="{{ r.href }}">L{{ r.layer }}/{{ r.unit }}{% if r.pole %}{{ pole_mark(r.pole) }}{% endif %}</a>
-            <div class="text-slate-500">{{ r.model_name }}</div>
-          </td>
-          <td class="px-3 py-2">
-            <div class="mb-1 flex flex-wrap gap-1">{{ evidence_badge(r.conclusiveness, r.evidence_direction) }} {{ status_badge(r.status) }}</div>
-            {{ r.explanation | truncate(140) }}
-          </td>
-        </tr>
-        {% else %}
-        <tr><td class="px-3 py-2 text-slate-500">No experiments yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-
 <p class="mb-10 text-sm text-slate-600 dark:text-slate-400">
   {{ agents | length }} agent model{{ "" if agents | length == 1 else "s" }} proposed, reviewed or judged these experiments{% if agents %}, most often {% for a in agents[:3] %}<a class="font-mono text-xs underline" href="{{ root }}{{ a.href }}">{{ a.model }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}.
   <a class="underline" href="{{ root }}agents/index.html">Agents</a> has each one's VERIFIED rate and costs by role.

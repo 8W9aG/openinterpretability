@@ -310,10 +310,12 @@ def test_each_experiment_has_its_own_page_and_the_unit_page_lists_them(tmp_path,
     assert f"wiki/experiments/{MODEL}/L3/{pages[0].removesuffix('.html')}.json" in page
 
 
-def test_index_highlights_conclusive_results_both_ways(tmp_path, records):
+def test_index_has_no_most_conclusive_list(tmp_path, records):
+    # #4616: the home page dropped its Most conclusive results list. The recent list
+    # still features a null result, with a link to its experiment.
     compile_site(records, tmp_path)
     index = (tmp_path / "index.html").read_text()
-    assert "Most conclusive results" in index
+    assert "Most conclusive results" not in index
     assert "Fires on commas." in index  # a null result is featured
     assert "models/Qwen--Qwen2.5-0.5B/L3/N117-positive/2026" in index
     assert "openai/gpt-test" in index
@@ -741,7 +743,7 @@ def test_home_lists_most_recent_experiments_newest_first(tmp_path, records):
         f"/N117-positive/{recent[0]['experiment_id']}.html"
     )
     home = (tmp_path / "index.html").read_text()
-    section = home.split("Most recent experiments</h2>")[1].split("Most conclusive results</h2>")[0]
+    section = home.split("Most recent experiments</h2>")[1].split("</section>")[0]
     assert section.index("Fires on commas.") < section.index("Fires on dates.")  # +1 h before +0 h
     assert '<time datetime="2026-10-01T14:00:00Z">2026-10-01</time>' in section
 

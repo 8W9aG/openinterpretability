@@ -1,4 +1,4 @@
-"""Open Interpretability: an agent-audited registry of native neurons in open-weight models."""
+"""Open Interpretability: an agent-run mechanistic interpretability lab and its neuron registry."""
 
 from openinterpretability.core.legacy_names import adopt_legacy_env
 
