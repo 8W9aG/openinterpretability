@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import broad_badge %}
+{% from "_macros.html" import broad_badge, fold, read_more %}
 
 {% block title %}Why {{ view.record.answer | trim }} · {{ site_title }}{% endblock %}
 
@@ -18,13 +18,14 @@
   <a class="underline" href="{{ repo_url }}/blob/main/{{ view.source }}">Source</a>
 </p>
 <p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
-  An explanation of this prompt, {{ prompt.explanations | length }} in all: see <a class="underline" href="{{ root }}{{ prompt.href }}">the prompt's page</a>.
-  {% if r.target is not none %}It aimed at {{ r.target | pct_fine }} causal coverage.{% endif %}
+  One of {{ prompt.explanations | length }} explanations of <a class="underline" href="{{ root }}{{ prompt.href }}">this prompt</a>{% if r.target is not none %}, aimed at {{ r.target | pct_fine }} causal coverage{% endif %}.
+</p>
+{% call read_more() %}<p>
   Level: {{ r.level }}.
   {% if view.previous %}It builds on <a class="underline" href="{{ root }}{{ view.previous.href }}">the explanation of {{ view.previous.record.written.strftime("%Y-%m-%d %H:%M") }}</a>{% if view.previous.record.prompt_coverage is not none and r.prompt_coverage is not none %}, which reached {{ view.previous.record.prompt_coverage | pct_fine }}; this one reaches {{ r.prompt_coverage | pct_fine }}{% endif %}.{% elif r.previous %}It builds on the explanation {{ r.previous }}, which is not on the site.{% endif %}
   {% if r.reused %}No experiments ran for it: the explanation it builds on already reached the target, so this one only adds the {{ r.level }} level.{% endif %}
   {% if r.inputs %}CI measured it again before it merged, from the inputs that it stores.{% else %}It can't be measured again: it was written before explanation records stored their inputs (#4793).{% endif %}
-</p>
+</p>{% endcall %}
 
 {% if view.stale %}
 <div class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700">
@@ -40,18 +41,19 @@
   <div><dt class="text-xs uppercase tracking-wide text-slate-500">Experiments needed</dt><dd class="font-mono text-lg">{{ r.planned_experiments | thousands }}</dd></div>
 </dl>
 {% if r.coverage_caution %}
-<p class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700"><strong>{% if prompt.understood %}Coverage alone does not show that the answer is understood: the VERIFIED route claim above does.{% else %}Coverage here does not show that the answer is understood.{% endif %}</strong> Verified units hold {{ r.explained_share | pct_fine }} of the attribution, and keeping them brings back {{ r.prompt_coverage | pct_fine }} of the answer, against {{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }} for random units{% if not r.coverage_detail %} not matched by kind and layer{% endif %}. Their explanations describe each unit on its scan corpus, not its role in this answer.</p>
+<div class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700"><p><strong>{% if prompt.understood %}Coverage alone does not show that the answer is understood: the VERIFIED route claim above does.{% else %}Coverage here does not show that the answer is understood.{% endif %}</strong></p>{% call read_more("Why") %}<p>Verified units hold {{ r.explained_share | pct_fine }} of the attribution, and keeping them brings back {{ r.prompt_coverage | pct_fine }} of the answer, against {{ r.random_coverage | pct_fine if r.random_coverage is not none else "—" }} for random units{% if not r.coverage_detail %} not matched by kind and layer{% endif %}. Their explanations describe each unit on its scan corpus, not its role in this answer.</p>{% endcall %}</div>
 {% endif %}
 {% set d = r.coverage_detail %}
 {% if d %}
-<p class="mt-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">By kind: the explained heads alone bring back {{ d.heads_only | pct_fine if d.heads_only is not none else "—" }}, and the explained neuron poles alone {{ d.poles_only | pct_fine if d.poles_only is not none else "—" }}.{% if d.n_heads and d.heads_kept %} The explained set keeps {% for layer, n in d.heads_kept.items() %}{{ n }} of layer {{ layer }}'s {{ d.n_heads }} heads{{ ", " if not loop.last }}{% endfor %}.{% endif %}{% if d.minimal_units %} The smallest set found that keeps 90% of the coverage has {{ d.minimal_units | length }} units ({{ d.minimal_coverage | pct_fine if d.minimal_coverage is not none else "—" }}): <span class="font-mono">{{ d.minimal_units | join(", ") }}</span>.{% endif %}</p>
+<p class="mt-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The explained heads alone bring back {{ d.heads_only | pct_fine if d.heads_only is not none else "—" }}, and the explained neuron poles alone {{ d.poles_only | pct_fine if d.poles_only is not none else "—" }}.{% if d.n_heads and d.heads_kept %} The explained set keeps {% for layer, n in d.heads_kept.items() %}{{ n }} of layer {{ layer }}'s {{ d.n_heads }} heads{{ ", " if not loop.last }}{% endfor %}.{% endif %}{% if d.minimal_units %} The smallest set found that keeps 90% of the coverage has {{ d.minimal_units | length }} units ({{ d.minimal_coverage | pct_fine if d.minimal_coverage is not none else "—" }}): <span class="font-mono">{{ d.minimal_units | join(", ") }}</span>.{% endif %}</p>
 {% endif %}
 
 {% if figures %}
 {% set folder = view.record.id %}
 <section class="mt-8" aria-labelledby="figures" data-pagefind-ignore>
   <h2 id="figures" class="mb-1 text-lg font-semibold">Figures</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Drawn from this explanation's measured data. A VERIFIED explanation describes its unit on the scan corpus, not on this prompt, so the coverage figure is the causal check. Each figure has its data in a table below it.</p>
+  {% call read_more() %}<p>Drawn from this explanation's measured data, each with its table below it. A VERIFIED explanation describes its unit on the scan corpus, not on this prompt, so the coverage figure is the causal check.</p>{% endcall %}
+  <div class="mb-3"></div>
   {% for f in figures %}
   {% include "_figure.html" %}
   {% endfor %}
@@ -63,17 +65,27 @@
 <div class="paper mt-6">
   <h2>In one paragraph</h2>
   <p>{{ r.narration.paragraph }}</p>
+</div>
+{% if r.narration.sections %}
+<div class="mt-2 max-w-3xl">
+{% call fold("The long form", level=2) %}<div class="paper">
   {% for s in r.narration.sections %}
-  <h2>{{ s.title }}</h2>
+  <h3>{{ s.title }}</h3>
   {% for para in s.text.split("\n\n") %}<p>{{ para }}</p>{% endfor %}
   {% endfor %}
+</div>{% endcall %}
+</div>
+{% endif %}
+<div class="paper">
   {% if r.narration.citations_not_in_evidence %}<p class="text-xs text-slate-500">The text cites units that its evidence didn't hold: {{ r.narration.citations_not_in_evidence | join(", ") }}.</p>{% endif %}
 </div>
 {% endif %}
 
-<h2 class="mb-1 mt-8 text-lg font-semibold">Mechanism</h2>
-<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units and groups that carry the answer, as they stood. Shares are of first-order attribution on this prompt. Only a VERIFIED unit's explanation is shown. A <em>broad</em> unit is VERIFIED but active on at least half of its held-out text, so its explanation says little about this one prompt.</p>
-<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+<div class="mt-8">
+{% call fold("Mechanism", level=2) %}
+<p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that carry the answer, as they stood then.</p>
+{% call read_more() %}<p>Shares are of first-order attribution on this prompt. Only a VERIFIED unit's explanation is shown. A <em>broad</em> unit is VERIFIED but active on at least half of its held-out text, so its explanation says little about this one prompt.</p>{% endcall %}
+<div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">
       <tr><th class="px-3 py-2">Unit</th><th class="px-3 py-2">Kind</th><th class="px-3 py-2 text-right">Share</th><th class="px-3 py-2 text-right">Attribution</th><th class="px-3 py-2">Status then</th><th class="px-3 py-2">Explanation</th></tr>
@@ -92,5 +104,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+{% endcall %}
 </div>
 {% endblock %}

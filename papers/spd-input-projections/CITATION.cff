@@ -3,6 +3,8 @@ message: If you use this paper, please cite it as below.
 type: article
 title: Where SPD can favour GPT-2's neurons
 authors:
+- given-names: Will
+  family-names: Sackfield
 - name: Open Interpretability
 date-released: '2026-11-07'
 version: preprint
