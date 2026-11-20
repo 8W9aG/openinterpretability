@@ -87,10 +87,11 @@ jobs:
           python scripts/check_line_limit.py
           python scripts/check_step_comments.py
           python scripts/check_body_comments.py
+          python scripts/check_docstring_args.py
           python scripts/check_data_files.py
           python scripts/exchange.py check
           python scripts/changelog.py check
-          interrogate openinterpretability
+          interrogate openinterpretability scripts
           python scripts/check_markdown.py
       - name: Paper status lines name no issue this PR closes (#5395)
         # A preprint's status line lists open issues as work left. A PR that closes one of
