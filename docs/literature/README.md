@@ -32,6 +32,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Conditional Memory via Scalable Lookup](conditional-memory-via-scalable-lookup.md) (Cheng et al., 2026) | not applicable | A new architecture (hashed N-gram memory beside MoE) with no released weights. Its premise, that early layers rebuild local patterns, is a question the registry's early-layer poles could answer. |
+| [Decoupled Weight Decay Regularization](adamw.md) (Loshchilov and Hutter, 2019) | used | AdamW: weight decay taken out of Adam's adaptive step. `papers/why-neurons-rest` trains with it, mostly with no weight decay, where it equals Adam |
 | [Gaussian Error Linear Units (GELUs)](gelus.md) (Hendrycks and Gimpel, 2016) | used | GPT-2's activation function, in the tanh form that this paper gives. Three papers rest on its dip below zero. The paper never states the minimum near −0.75, so one citation moved. |
 | [GLU Variants Improve Transformer](glu-variants.md) (Shazeer, 2020) | used | Defines SwiGLU, Qwen2.5's MLP: a Swish-gated half times a linear half. Our citation checks out. A SwiGLU neuron reads two input directions, not one. |
 | [Incorporating Second-Order Functional Knowledge for Better Option Pricing](softplus-option-pricing.md) (Dugas, Bengio, Bélisle et al., 2001) | used | Defines and names softplus, log(1 + eˢ), to build convex option-pricing networks. `papers/why-neurons-rest` trains a softplus condition |
